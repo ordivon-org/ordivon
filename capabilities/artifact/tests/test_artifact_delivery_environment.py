@@ -23,10 +23,20 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
         source=(ROOT/'scripts/artifact_delivery_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_delivery_python_wrapper.py').read_text()
         self.assertNotIn('isolated-equipment',source);self.assertNotIn('pacman',source);self.assertNotIn('libxslt.so',source);self.assertIn("'--frozen','--offline'",source);self.assertIn('venvTreeDigest',wrapper)
-    def test_production_artifact_python_defaults_do_not_use_repo_cache(self):
-        names=['scripts/artifact_delivery_temporal_support.py','scripts/temporal_artifact_delivery_deploy.py','scripts/artifact_delivery_toolchain_doctor.py','systemd/ordivon-artifact-temporal-worker.service']
-        for name in names:
-            text=(ROOT/name).read_text();self.assertNotIn('.cache/artifact-delivery-venv',text,name);self.assertIn('/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python',text,name)
+    def test_temporal_no_longer_depends_on_artifact_python_carrier(self):
+        retired_consumers=[
+            'scripts/artifact_delivery_temporal_support.py',
+            'scripts/temporal_artifact_delivery_deploy.py',
+            'systemd/ordivon-artifact-temporal-worker.service',
+        ]
+        stable='/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python'
+        for name in retired_consumers:
+            text=(ROOT/name).read_text()
+            self.assertNotIn('.cache/artifact-delivery-venv',text,name)
+            self.assertNotIn(stable,text,name)
+        doctor=(ROOT/'scripts/artifact_delivery_toolchain_doctor.py').read_text()
+        self.assertNotIn('.cache/artifact-delivery-venv',doctor)
+        self.assertIn(stable,doctor)
     def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
         lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
         wrapper=(ROOT/'scripts/artifact_delivery_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)

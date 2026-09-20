@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
-import inspect
 import json
 import tempfile
 import unittest
@@ -59,29 +57,6 @@ class ArtifactDecompositionA3TrustTests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["verificationResult"], "PASSED")
             self.assertEqual(result["authenticity"], "NOT_VERIFIED")
-
-    def test_delivery_keeps_thin_compatibility_surface_not_trust_implementation(self) -> None:
-        delivery_source = (ROOT / "scripts/artifact_delivery.py").read_text(encoding="utf-8")
-        self.assertIn("import artifact_trust.vsa as trust_vsa", delivery_source)
-        for implementation_marker in (
-            "acceptedBundleMediaTypes must contain only the standardized Sigstore",
-            "Arch Cosign package signature verification failed",
-            "required gate VSA missing:",
-            "DSSE payload is not valid base64 JSON",
-        ):
-            self.assertNotIn(implementation_marker, delivery_source)
-
-        spec = importlib.util.spec_from_file_location("artifact_delivery_a3", ROOT / "scripts/artifact_delivery.py")
-        delivery = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(delivery)
-        import artifact_trust.vsa as trust
-
-        self.assertIs(delivery.verification_summary_statement, trust.verification_summary_statement)
-        self.assertIs(delivery.verify_verification_summary, trust.verify_verification_summary)
-        self.assertIn("trust_vsa.cosign_tool_fact", inspect.getsource(delivery.cosign_tool_fact))
-        self.assertIn("trust_vsa.aggregate_vsa_gates", inspect.getsource(delivery.aggregate_vsa_gates))
-        self.assertIn("trust_vsa.verify_signed_verification_summary", inspect.getsource(delivery.verify_signed_verification_summary))
 
     def test_oci_consumes_trust_package_not_delivery_trust_symbols(self) -> None:
         source = (ROOT / "scripts/artifact_oci_package.py").read_text(encoding="utf-8")

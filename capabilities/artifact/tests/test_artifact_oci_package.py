@@ -11,6 +11,7 @@ import pytest
 
 import artifact_trust.vsa as trust_vsa
 from artifact_core.contracts import sha256_file
+from artifact_operations.providers import DirectPythonOperationProvider
 
 pytestmark = pytest.mark.integration
 
@@ -19,11 +20,6 @@ SPEC = importlib.util.spec_from_file_location("artifact_oci_package", ROOT / "sc
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
-
-DELIVERY_SPEC = importlib.util.spec_from_file_location("artifact_delivery_fixture", ROOT / "scripts/artifact_delivery.py")
-DELIVERY = importlib.util.module_from_spec(DELIVERY_SPEC)
-assert DELIVERY_SPEC.loader is not None
-DELIVERY_SPEC.loader.exec_module(DELIVERY)
 
 
 class ArtifactOciPackageTests(unittest.TestCase):
@@ -39,18 +35,18 @@ class ArtifactOciPackageTests(unittest.TestCase):
         profile_path = root / "profile.json"
         profile_path.write_text(json.dumps(profile))
         pptx = root / "artifact.pptx"
-        built = DELIVERY.build_presentation_source(
+        built = DirectPythonOperationProvider().build_presentation_source(
             ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
             ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
             pptx,
         )
         self.assertEqual(built["status"], "PASS", built)
         verify_dir = root / "verify"
-        verified = DELIVERY.execute_verify_stage(profile_path, pptx, verify_dir)
+        verified = DirectPythonOperationProvider().execute_verify_stage(profile_path, pptx, verify_dir)
         self.assertEqual(verified["status"], "PASS", verified)
         self.assertTrue(verified["profileVerificationComplete"], verified)
         report = root / "verify-stage.json"
-        DELIVERY.write_json(report, verified)
+        report.write_text(json.dumps(verified, indent=2, sort_keys=True) + "\n")
         return profile_path, pptx, report, verified
 
     def test_local_unsigned_uses_oci_layout_and_referrers_without_legacy_package_manifest(self):

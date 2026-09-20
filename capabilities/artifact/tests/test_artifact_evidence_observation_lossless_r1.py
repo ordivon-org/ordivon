@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_operations.providers import DirectPythonOperationProvider
+
 ROOT = Path(__file__).resolve().parents[1]
 
 ADAPTER_SPEC = importlib.util.spec_from_file_location(
@@ -22,13 +24,6 @@ A = importlib.util.module_from_spec(ADAPTER_SPEC)
 assert ADAPTER_SPEC.loader is not None
 ADAPTER_SPEC.loader.exec_module(A)
 
-DELIVERY_SPEC = importlib.util.spec_from_file_location(
-    "artifact_delivery_lossless_fixture",
-    ROOT / "scripts/artifact_delivery.py",
-)
-DELIVERY = importlib.util.module_from_spec(DELIVERY_SPEC)
-assert DELIVERY_SPEC.loader is not None
-DELIVERY_SPEC.loader.exec_module(DELIVERY)
 
 SERVICE_SPEC = importlib.util.spec_from_file_location(
     "artifact_verify_lossless_fixture",
@@ -64,13 +59,13 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
     def _legacy_stage_result(self, root: Path):
         profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
         pptx = root / "artifact.pptx"
-        built = DELIVERY.build_presentation_source(
+        built = DirectPythonOperationProvider().build_presentation_source(
             ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
             profile,
             pptx,
         )
         self.assertEqual(built["status"], "PASS", built)
-        result = DELIVERY.execute_verify_stage(profile, pptx, root / "verify")
+        result = DirectPythonOperationProvider().execute_verify_stage(profile, pptx, root / "verify")
         self.assertEqual(result["status"], "PASS", result)
         return profile, result
 
@@ -249,14 +244,14 @@ class ArtifactEvidenceObservationLosslessR1Tests(unittest.TestCase):
             profile = root / "profile.json"
             profile.write_text(json.dumps(base_profile), encoding="utf-8")
             pptx = root / "artifact.pptx"
-            built = DELIVERY.build_presentation_source(
+            built = DirectPythonOperationProvider().build_presentation_source(
                 ROOT
                 / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
                 pptx,
             )
             self.assertEqual(built["status"], "PASS", built)
-            source = DELIVERY.execute_verify_stage(profile, pptx, root / "verify")
+            source = DirectPythonOperationProvider().execute_verify_stage(profile, pptx, root / "verify")
             self.assertEqual(source["status"], "PASS", source)
             self.assertTrue(source["profileVerificationComplete"], source)
             envelope = A.adapt_verify_stage_result(

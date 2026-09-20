@@ -1,9 +1,7 @@
-import ast
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 
 
 class ArtifactWebVerifierDecompositionA10Tests(unittest.TestCase):
@@ -23,17 +21,6 @@ class ArtifactWebVerifierDecompositionA10Tests(unittest.TestCase):
             (ROOT / "artifact-delivery/node/verify_html.mjs").exists(),
             "Web verification runner should move with its verifier owner",
         )
-
-    def test_delivery_keeps_only_thin_web_verifier_compatibility_surface(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        for name in ("_vnu_jar", "verify_html_conformance", "verify_web_local"):
-            node = funcs.get(name)
-            self.assertIsNotNone(node, name)
-            self.assertLessEqual(node.end_lineno - node.lineno + 1, 4, name)
-        self.assertNotIn("GLOBAL_VNU =", source)
-        self.assertNotIn("GLOBAL_NODE_PACKAGE_ROOT =", source)
 
     def test_web_verifier_package_does_not_import_delivery_monolith(self):
         for relative in (

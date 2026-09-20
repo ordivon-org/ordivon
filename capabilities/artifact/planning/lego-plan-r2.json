@@ -5,8 +5,8 @@
   "project": {
     "id": "ordivon-artifact-v2",
     "redecomposition": "ARTIFACT_STANDING_KERNEL_R2",
-    "purpose": "Bind exact subject bytes to declared profile semantics, route admitted capabilities, preserve bounded evidence observations, and derive only justified Artifact standing; treat build, trust, packaging, durability, CLI, and transport as optional provider/adapter layers.",
-    "sourceRevision": "10d0f076c32621f50f7c60ef6f847e19ea2cc9ec",
+    "purpose": "Bind exact subject bytes to declared profile semantics, route admitted capabilities, preserve bounded evidence observations, and derive only justified Artifact standing; treat build, trust, packaging, durability, agent intent and transport as provider/adapter layers.",
+    "sourceRevision": "3d4184a0289cc407dbb221a3919d26e5e97dedfc",
     "evidence": [
       "README.md",
       "docs/artifact-build-delivery-e2e-v1.md",
@@ -31,13 +31,14 @@
     "capabilityVerifyBindings": 19,
     "shadowProfiles": 20,
     "productionV1ExampleProfiles": 13,
-    "deliveryFacadeLines": 750,
+    "deliveryFacadeLines": 0,
     "directPythonProviderLines": 608,
     "trustVsaLines": 808,
     "ociPackageStageLines": 362,
     "directPythonProviderProjectFanout": 17,
     "productionPythonDeliveryFacadeImports": 0,
-    "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102
+    "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102,
+    "deliveryCliProviderLines": 0
   },
   "nodes": [
     {
@@ -199,16 +200,17 @@
     },
     {
       "id": "A03",
-      "label": "CLIAdapter",
+      "label": "AgentIntentAdapter",
       "kind": "adapter",
-      "responsibility": "Expose stable human/tool command surfaces and compatibility entrypoints.",
+      "responsibility": "Project bounded agent/user intent into canonical ArtifactOperation or explicit verification/doctor execution plans.",
       "currentEvidence": [
-        "scripts/artifact_delivery.py",
         "scripts/artifact_agent_surface.py"
       ],
       "mustNotOwn": [
-        "canonical implementation semantics"
-      ]
+        "canonical implementation semantics",
+        "physical execution authority"
+      ],
+      "state": "CANONICAL_OPERATION_FIRST"
     },
     {
       "id": "C01",
@@ -220,17 +222,6 @@
         "artifact_verification/stage.py"
       ],
       "state": "ACTIVE_REQUIRED"
-    },
-    {
-      "id": "C02",
-      "label": "DeliveryCompatibilityFacade",
-      "kind": "compatibility",
-      "responsibility": "Preserve existing Delivery Python/CLI names while canonical owners remain elsewhere.",
-      "currentEvidence": [
-        "scripts/artifact_delivery.py",
-        "artifact-delivery/compatibility-retirement-manifest-v1.json"
-      ],
-      "state": "35_LIVE_CALLABLES"
     },
     {
       "id": "X01",
@@ -383,8 +374,8 @@
     {
       "from": "A03",
       "to": "A01",
-      "type": "ADAPTER",
-      "label": "CLI/API compatibility"
+      "type": "INTENT_PROJECTION",
+      "label": "canonical ArtifactOperation"
     },
     {
       "from": "C01",
@@ -395,11 +386,6 @@
       "from": "C01",
       "to": "P02",
       "type": "ADAPTS"
-    },
-    {
-      "from": "C02",
-      "to": "A01",
-      "type": "COMPATIBILITY"
     },
     {
       "from": "X01",
@@ -539,12 +525,11 @@
     "Should StandingDecision be profile/policy-owned rather than verifier-owned?",
     "Can Trust remain completely downstream of unsigned evidence observations?",
     "Can profile-v1 Office/Web become a verifier plugin without prematurely promoting profile-v2?",
-    "Should R2 mailbox move to an external delivery-infrastructure plugin/repository or remain quarantined compatibility tooling?",
-    "What explicit lifecycle policy should govern Delivery compatibility wrappers and DeliveryCliOperationProvider?"
+    "Should R2 mailbox move to external delivery infrastructure or remain quarantined transport tooling?"
   ],
   "review": {
-    "updatedAt": "2026-09-18",
-    "standing": "REDECOMPOSITION_R1",
-    "notes": "R2 intentionally changes the decomposition axis from historical workflow/file ownership to exact-byte identity, profile semantics, evidence observations, standing, and optional provider/adapters."
+    "updatedAt": "2026-09-20",
+    "standing": "COMPATIBILITY_DEMOLITION_A17",
+    "notes": "Delivery Python/CLI facade and CLI fallback provider are retired. Agent build intent now projects to ArtifactOperation; Temporal defaults exclusively to DirectPythonOperationProvider. Profile-v1 dual-contract debt remains explicit and separate."
   }
 }

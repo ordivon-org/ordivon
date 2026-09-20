@@ -1,9 +1,7 @@
-import ast
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 
 
 class ArtifactDocumentVerifierDecompositionA7Tests(unittest.TestCase):
@@ -15,25 +13,6 @@ class ArtifactDocumentVerifierDecompositionA7Tests(unittest.TestCase):
         ):
             with self.subTest(relative=relative):
                 self.assertTrue((ROOT / relative).is_file(), relative)
-
-    def test_delivery_keeps_only_thin_document_verifier_wrappers(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        for name in (
-            "verify_document_semantic_correspondence",
-            "verify_document_dependencies",
-        ):
-            node = funcs.get(name)
-            self.assertIsNotNone(node, name)
-            self.assertLessEqual(node.end_lineno - node.lineno + 1, 18, name)
-        for name in (
-            "_pandoc_inline_text",
-            "_pandoc_semantic_projection",
-            "_pandoc_meta_text",
-            "_run_pandoc_ast",
-        ):
-            self.assertNotIn(name, funcs)
 
     def test_document_verifier_package_does_not_import_delivery_monolith(self):
         for relative in (

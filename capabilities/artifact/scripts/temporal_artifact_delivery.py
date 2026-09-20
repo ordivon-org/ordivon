@@ -17,7 +17,7 @@ with workflow.unsafe.imports_passed_through():
 PREPARE_ACTIVITY='ordivon.artifact.prepare'; BUILD_ACTIVITY='ordivon.artifact.build'; VERIFY_ACTIVITY='ordivon.artifact.verify'; TRUST_ACTIVITY='ordivon.artifact.verify-trust'; PACKAGE_ACTIVITY='ordivon.artifact.package'; ARTIFACT_DELIVERY_WORKFLOW='ordivon.artifact.delivery'; TRUST_MATERIAL_SIGNAL='ordivon.artifact.submit-trust-material'; STATUS_QUERY='ordivon.artifact.status'
 RECEIPT_FENCED_RETRY=RetryPolicy(initial_interval=timedelta(seconds=1),backoff_coefficient=2.0,maximum_interval=timedelta(seconds=15),maximum_attempts=3)
 class ArtifactDeliveryActivities:
-    def __init__(self,*,state_root:Path,artifact_python:Path)->None: self.executor=ReceiptFencedArtifactExecutor(state_root,artifact_python=artifact_python)
+    def __init__(self,*,state_root:Path)->None: self.executor=ReceiptFencedArtifactExecutor(state_root)
     @activity.defn(name=PREPARE_ACTIVITY)
     def prepare(self,value:dict[str,Any])->dict[str,Any]: return self.executor.prepare(value)
     @activity.defn(name=BUILD_ACTIVITY)
@@ -57,7 +57,7 @@ class ArtifactDeliveryWorkflow:
         if trust_material is not None: package_input['trustMaterial']=trust_material
         packaged=await self._activity(PACKAGE_ACTIVITY,package_input); self._phase='COMPLETE'
         return {'schemaVersion':1,'kind':'artifact-delivery-temporal-workflow-result','workflowId':wid,'status':'PASS','allowLocalUnsignedDevelopment':local,'prepare':prepared,'build':built,'verify':verified,'trust':trust_result,'package':packaged,'releaseReady':bool(packaged.get('metadata',{}).get('releaseReady')),'trustStanding':packaged.get('metadata',{}).get('trustStanding')}
-async def run_worker(*,temporal_address:str,namespace:str,task_queue:str,state_root:Path,artifact_python:Path)->None:
-    client=await Client.connect(temporal_address,namespace=namespace); activities=ArtifactDeliveryActivities(state_root=state_root,artifact_python=artifact_python)
+async def run_worker(*,temporal_address:str,namespace:str,task_queue:str,state_root:Path)->None:
+    client=await Client.connect(temporal_address,namespace=namespace); activities=ArtifactDeliveryActivities(state_root=state_root)
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
         worker=Worker(client,task_queue=task_queue,workflows=[ArtifactDeliveryWorkflow],activities=[activities.prepare,activities.build,activities.verify,activities.verify_trust,activities.package],activity_executor=executor); await worker.run()

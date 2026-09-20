@@ -14,6 +14,8 @@ from pathlib import Path
 import jsonschema
 import pytest
 
+from artifact_operations.providers import DirectPythonOperationProvider
+
 ROOT = Path(__file__).resolve().parents[1]
 PROTO = ROOT / "planning/prototypes"
 
@@ -35,12 +37,6 @@ A = importlib.util.module_from_spec(ADAPTER_SPEC)
 assert ADAPTER_SPEC.loader is not None
 ADAPTER_SPEC.loader.exec_module(A)
 
-DELIVERY_SPEC = importlib.util.spec_from_file_location(
-    "artifact_delivery_claim_fixture", ROOT / "scripts/artifact_delivery.py"
-)
-DELIVERY = importlib.util.module_from_spec(DELIVERY_SPEC)
-assert DELIVERY_SPEC.loader is not None
-DELIVERY_SPEC.loader.exec_module(DELIVERY)
 
 SERVICE_SPEC = importlib.util.spec_from_file_location(
     "artifact_verify_claim_fixture", ROOT / "scripts/artifact_verify.py"
@@ -101,14 +97,14 @@ class ArtifactClaimResultsAdapterR1Tests(unittest.TestCase):
             )
             canonical_path, canonical = profile("pdu-sdu-presentation-r1")
             pptx = root / "artifact.pptx"
-            built = DELIVERY.build_presentation_source(
+            built = DirectPythonOperationProvider().build_presentation_source(
                 ROOT
                 / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
                 source_profile,
                 pptx,
             )
             self.assertEqual(built["status"], "PASS", built)
-            stage = DELIVERY.execute_verify_stage(source_profile, pptx, root / "verify")
+            stage = DirectPythonOperationProvider().execute_verify_stage(source_profile, pptx, root / "verify")
             candidate = A.legacy_stage_plugin_candidate(
                 stage,
                 canonical,

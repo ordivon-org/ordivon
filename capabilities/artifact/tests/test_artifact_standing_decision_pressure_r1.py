@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_operations.providers import DirectPythonOperationProvider
+
 ROOT = Path(__file__).resolve().parents[1]
 
 STANDING_SPEC = importlib.util.spec_from_file_location(
@@ -21,13 +23,6 @@ S = importlib.util.module_from_spec(STANDING_SPEC)
 assert STANDING_SPEC.loader is not None
 STANDING_SPEC.loader.exec_module(S)
 
-DELIVERY_SPEC = importlib.util.spec_from_file_location(
-    "artifact_delivery_standing_fixture",
-    ROOT / "scripts/artifact_delivery.py",
-)
-DELIVERY = importlib.util.module_from_spec(DELIVERY_SPEC)
-assert DELIVERY_SPEC.loader is not None
-DELIVERY_SPEC.loader.exec_module(DELIVERY)
 
 SERVICE_SPEC = importlib.util.spec_from_file_location(
     "artifact_verify_standing_fixture",
@@ -68,13 +63,13 @@ class ArtifactStandingDecisionPressureR1Tests(unittest.TestCase):
     def _legacy_stage(self, root: Path):
         profile_path = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
         pptx = root / "artifact.pptx"
-        built = DELIVERY.build_presentation_source(
+        built = DirectPythonOperationProvider().build_presentation_source(
             ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
             profile_path,
             pptx,
         )
         self.assertEqual(built["status"], "PASS", built)
-        result = DELIVERY.execute_verify_stage(profile_path, pptx, root / "verify")
+        result = DirectPythonOperationProvider().execute_verify_stage(profile_path, pptx, root / "verify")
         self.assertEqual(result["status"], "PASS", result)
         return result
 

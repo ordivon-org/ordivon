@@ -1,9 +1,7 @@
-import ast
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 
 
 class ArtifactPresentationVerifierDecompositionA6Tests(unittest.TestCase):
@@ -17,21 +15,6 @@ class ArtifactPresentationVerifierDecompositionA6Tests(unittest.TestCase):
         ):
             with self.subTest(relative=relative):
                 self.assertTrue((ROOT / relative).is_file(), relative)
-
-    def test_delivery_no_longer_defines_presentation_verifier_implementations(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        for name in (
-            "inspect_pptx",
-            "verify_openxml_evidence",
-            "verify_presentation_semantics",
-            "verify_font_manifest",
-            "presentation_gate",
-        ):
-            node = funcs.get(name)
-            self.assertIsNotNone(node, name)
-            self.assertLessEqual(node.end_lineno - node.lineno + 1, 18, name)
 
     def test_presentation_verifier_package_does_not_import_delivery_monolith(self):
         for relative in (

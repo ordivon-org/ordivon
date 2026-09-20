@@ -1,9 +1,7 @@
-import ast
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 
 
 class ArtifactOpenXmlVerifierDecompositionA9Tests(unittest.TestCase):
@@ -15,14 +13,6 @@ class ArtifactOpenXmlVerifierDecompositionA9Tests(unittest.TestCase):
         ):
             with self.subTest(relative=relative):
                 self.assertTrue((ROOT / relative).is_file(), relative)
-
-    def test_delivery_keeps_only_thin_openxml_verifier_wrapper(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        node = funcs.get("verify_openxml_artifact")
-        self.assertIsNotNone(node)
-        self.assertLessEqual(node.end_lineno - node.lineno + 1, 4)
 
     def test_openxml_verifier_package_does_not_import_delivery_monolith(self):
         for relative in (

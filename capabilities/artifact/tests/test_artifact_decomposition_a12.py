@@ -15,7 +15,7 @@ class ArtifactOperationTemporalAdapterA12Tests(unittest.TestCase):
             "artifact_operations/receipt.py",
             "artifact_operations/executor.py",
             "artifact_operations/providers/__init__.py",
-            "artifact_operations/providers/delivery_cli.py",
+            "artifact_operations/providers/direct_python.py",
         ):
             with self.subTest(relative=relative):
                 self.assertTrue((ROOT / relative).is_file(), relative)
@@ -36,7 +36,8 @@ class ArtifactOperationTemporalAdapterA12Tests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
         self.assertIn("ArtifactOperationExecutor", source)
-        self.assertIn("DeliveryCliOperationProvider", source)
+        self.assertIn("DirectPythonOperationProvider", source)
+        self.assertNotIn("DeliveryCliOperationProvider", source)
 
     def test_operation_envelope_has_stable_kind_and_explicit_operation_kind(self):
         from artifact_operations.contract import operation_envelope, validate_operation_envelope
@@ -53,7 +54,7 @@ class ArtifactOperationTemporalAdapterA12Tests(unittest.TestCase):
     def test_generic_executor_build_replays_with_operation_receipt(self):
         from artifact_operations.contract import operation_envelope
         from artifact_operations.executor import ArtifactOperationExecutor
-        from artifact_operations.providers.delivery_cli import DeliveryCliOperationProvider
+        from artifact_operations.providers import DirectPythonOperationProvider
 
         req = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"
         request = {
@@ -63,7 +64,7 @@ class ArtifactOperationTemporalAdapterA12Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             executor = ArtifactOperationExecutor(
                 Path(d) / "state",
-                provider=DeliveryCliOperationProvider(),
+                provider=DirectPythonOperationProvider(),
             )
             operation = operation_envelope("a12/build/replay", "build", {"request": request})
             first = executor.execute(operation)
@@ -84,14 +85,11 @@ class ArtifactOperationTemporalAdapterA12Tests(unittest.TestCase):
         self.assertNotIn("def _fenced(", source)
         self.assertNotIn("def _run_cli(", source)
 
-    def test_delivery_cli_vocabulary_is_confined_to_replaceable_provider(self):
-        provider = (
-            ROOT / "artifact_operations/providers/delivery_cli.py"
-        ).read_text(encoding="utf-8")
-        self.assertIn("build-request", provider)
-        self.assertIn("verify-stage", provider)
-        self.assertIn("aggregate-vsa-gates", provider)
-        self.assertIn("artifact_oci_package.py", provider)
+    def test_legacy_delivery_cli_provider_is_retired(self):
+        self.assertFalse((ROOT / "artifact_operations/providers/delivery_cli.py").exists())
+        source = SUPPORT.read_text(encoding="utf-8")
+        for retired in ("DeliveryCliOperationProvider", "artifact_cli", "artifact_oci_cli"):
+            self.assertNotIn(retired, source)
 
 
 if __name__ == "__main__":

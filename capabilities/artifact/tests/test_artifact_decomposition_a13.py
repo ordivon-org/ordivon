@@ -1,4 +1,3 @@
-import ast
 import hashlib
 import importlib.util
 import json
@@ -9,36 +8,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 SUPPORT = ROOT / "scripts/artifact_delivery_temporal_support.py"
 
 
 class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):
-    def test_presentation_canonicalization_has_real_owner_and_delivery_wrappers_are_thin(self):
-        module = ROOT / "artifact_capabilities/presentation/canonicalization.py"
-        self.assertTrue(module.is_file())
-        source = DELIVERY.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        for name in (
-            "normalize_zip_member_timestamps",
-            "canonicalize_generated_ooxml_metadata",
-        ):
-            node = funcs.get(name)
-            self.assertIsNotNone(node, name)
-            self.assertLessEqual(node.end_lineno - node.lineno + 1, 4, name)
-        private_wrapper = funcs.get("_canonicalize_ppt_creation_ids")
-        self.assertIsNotNone(private_wrapper)
-        self.assertLessEqual(
-            private_wrapper.end_lineno - private_wrapper.lineno + 1, 4
-        )
-        for name in (
-            "_dos_datetime_fields",
-            "_canonicalize_opc_core_xml",
-            "_canonicalize_generated_zip_bytes",
-        ):
-            self.assertNotIn(name, funcs)
-
     def test_direct_python_provider_exists_without_delivery_or_subprocess_dependency(self):
         path = ROOT / "artifact_operations/providers/direct_python.py"
         self.assertTrue(path.is_file())
@@ -62,13 +35,11 @@ class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):
             executor = module.ReceiptFencedArtifactExecutor(Path(d) / "state")
             self.assertIsInstance(executor.provider, DirectPythonOperationProvider)
 
-    def test_cli_provider_remains_explicit_fallback_not_default(self):
+    def test_cli_provider_is_fully_retired(self):
         support = SUPPORT.read_text(encoding="utf-8")
         self.assertIn("DirectPythonOperationProvider", support)
-        self.assertNotIn("self.provider = DeliveryCliOperationProvider", support)
-        self.assertTrue(
-            (ROOT / "artifact_operations/providers/delivery_cli.py").is_file()
-        )
+        self.assertNotIn("DeliveryCliOperationProvider", support)
+        self.assertFalse((ROOT / "artifact_operations/providers/delivery_cli.py").exists())
 
     @pytest.mark.integration
     def test_direct_provider_build_and_verify_smoke(self):

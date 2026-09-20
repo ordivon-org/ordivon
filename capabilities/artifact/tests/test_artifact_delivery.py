@@ -15,23 +15,78 @@ from unittest import mock
 import pytest
 
 import artifact_capabilities.presentation.canonicalization as presentation_canonicalization
+import artifact_capabilities.presentation.common as presentation_common
 import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
 import artifact_trust.vsa as trust_vsa
-from artifact_capabilities.presentation import DETERMINISTIC_OPC_CORE_TIMESTAMP
+from artifact_capabilities.presentation import (
+    DETERMINISTIC_OPC_CORE_TIMESTAMP,
+    DETERMINISTIC_ZIP_DATETIME,
+)
 from artifact_core.contracts import sha256_file
+from artifact_core.json_validation import validate_json_document
+from artifact_core.profile_v1 import validate_profile_v1
 from artifact_evidence.delivery import (
     verify_delivery_evidence,
+    verify_readback,
     verify_render_evidence,
     verify_target_evidence,
     verify_visual_review,
 )
+from artifact_operations.providers import DirectPythonOperationProvider
+from artifact_trust.provenance import slsa_statement
+from artifact_verifiers.document import (
+    verify_document_semantic_correspondence,
+)
+from artifact_verifiers.openxml import verify_openxml_artifact
+from artifact_verifiers.pdf import (
+    verapdf_executable,
+    verify_pdf,
+    verify_pdf_conformance,
+)
+from artifact_verifiers.presentation import (
+    PresentationGateHooks,
+    inspect_pptx,
+    verify_font_manifest,
+    verify_openxml_evidence,
+    verify_presentation_semantics,
+)
+from artifact_verifiers.presentation import (
+    presentation_gate as presentation_gate_owner,
+)
+from artifact_verifiers.web import verify_html_conformance
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "scripts/artifact_delivery.py"
-SPEC = importlib.util.spec_from_file_location("artifact_delivery", MODULE_PATH)
-assert SPEC is not None and SPEC.loader is not None
-MODULE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE)
+def write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def presentation_gate(
+    profile_path: Path,
+    pptx: Path,
+    pdf: Path | None,
+    render_dir: Path | None,
+    openxml_evidence: Path | None,
+    target_evidence: Path | None,
+    visual_evidence: Path | None,
+    delivery_evidence: list[Path],
+    font_dir: Path,
+) -> dict[str, object]:
+    return presentation_gate_owner(
+        profile_path,
+        pptx,
+        pdf,
+        render_dir,
+        openxml_evidence,
+        target_evidence,
+        visual_evidence,
+        delivery_evidence,
+        font_dir,
+        hooks=PresentationGateHooks(verify_pdf=verify_pdf),
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -115,7 +170,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         }
         for filename, expected in profiles.items():
             with self.subTest(profile=filename):
-                result = MODULE.validate_profile(ROOT / "artifact-delivery/examples" / filename)
+                result = validate_profile_v1(ROOT / "artifact-delivery/examples" / filename)
                 self.assertEqual(result["minimalContractErrors"], [], result)
                 if result["jsonSchema"]["validator"] == "unavailable":
                     self.assertEqual(result["status"], "FAIL")
@@ -133,13 +188,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             value.pop("$schema", None)
             value["primaryOutput"]["format"] = "xlsx"
             path.write_text(json.dumps(value))
-            result = MODULE.validate_profile(path)
+            result = validate_profile_v1(path)
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("document primaryOutput.format" in item for item in result["minimalContractErrors"]))
 
     def test_delivery_request_binds_exact_profile_and_source_bytes(self) -> None:
         request = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"
-        result = MODULE.validate_delivery_request(request)
+        result = DirectPythonOperationProvider().validate_delivery_request(request)
         if result["requestValidation"]["jsonSchema"]["validator"] == "unavailable":
             self.assertEqual(result["status"], "FAIL")
             self.assertIn("request envelope did not PASS schema validation", result["failures"])
@@ -172,13 +227,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             request_path = root / "request.json"
             request_path.write_text(json.dumps(request))
             source.write_text(source.read_text() + " ")
-            result = MODULE.validate_delivery_request(request_path)
+            result = DirectPythonOperationProvider().validate_delivery_request(request_path)
             self.assertEqual(result["status"], "FAIL")
             self.assertIn("source digest mismatch", result["failures"])
 
     def test_compile_delivery_plan_is_derived_and_profile_dispatched(self) -> None:
         request = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"
-        plan = MODULE.compile_delivery_plan(request)
+        plan = DirectPythonOperationProvider().compile_delivery_plan(request)
         self.assertEqual(plan["kind"], "artifact-delivery-derived-plan")
         self.assertEqual(plan["buildAdapter"], "python-pptx-presentation-source-v1")
         self.assertEqual(plan["stages"], ["build", "verify", "package", "release"])
@@ -224,16 +279,16 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             request_path = root / "request.json"
             request_path.write_text(json.dumps(request))
-            validation = MODULE.validate_delivery_request(request_path)
+            validation = DirectPythonOperationProvider().validate_delivery_request(request_path)
             self.assertEqual(validation["status"], "PASS", validation)
             self.assertEqual(len(validation["resolved"]["materials"]), 1)
             self.assertEqual(validation["resolved"]["materials"][0]["digest"]["sha256"], sha256_file(page))
-            plan = MODULE.compile_delivery_plan(request_path)
+            plan = DirectPythonOperationProvider().compile_delivery_plan(request_path)
             self.assertEqual(plan["status"], "PASS", plan)
             self.assertEqual(plan["buildAdapter"], "ppt-master-semantic-svg-v1")
             self.assertEqual(plan["builder"]["id"], "https://ordivon.local/builders/artifact-delivery/ppt-master-v1")
             page.write_text(page.read_text() + "\n<!-- drift -->")
-            drift = MODULE.validate_delivery_request(request_path)
+            drift = DirectPythonOperationProvider().validate_delivery_request(request_path)
             self.assertEqual(drift["status"], "FAIL")
             self.assertTrue(any("semantic SVG page digest mismatch" in item for item in drift["failures"]), drift)
 
@@ -259,7 +314,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
-            result = MODULE.validate_json_document(
+            result = validate_json_document(
                 source_path,
                 ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
                 "presentation-semantic-svg-source",
@@ -284,7 +339,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
-            result = MODULE.validate_json_document(
+            result = validate_json_document(
                 source_path,
                 ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
                 "presentation-semantic-svg-source",
@@ -318,13 +373,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             source_path = source_root / "source.json"
             source_path.write_text(json.dumps(source))
-            validation = MODULE.validate_json_document(
+            validation = validate_json_document(
                 source_path,
                 ROOT / "artifact-delivery/presentation-semantic-svg-source-v1.schema.json",
                 "presentation-semantic-svg-source",
             )
             self.assertEqual(validation["status"], "PASS", validation)
-            materials, failures = MODULE._semantic_svg_source_material_facts(source_path, source)
+            materials, failures = presentation_common._semantic_svg_source_material_facts(source_path, source)
             self.assertEqual(materials, [])
             self.assertTrue(any("escapes source directory" in item for item in failures), failures)
 
@@ -338,8 +393,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
         payload = b'<p14:creationId val="123" />'
         used: set[int] = set()
         with mock.patch.object(presentation_canonicalization.hashlib, "sha256", return_value=FixedDigest()):
-            first, first_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideMasters/slideMaster1.xml", used)
-            second, second_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
+            first, first_count = presentation_canonicalization._canonicalize_ppt_creation_ids(payload, "ppt/slideMasters/slideMaster1.xml", used)
+            second, second_count = presentation_canonicalization._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
         self.assertEqual(first_count, 1)
         self.assertEqual(second_count, 1)
         self.assertIn(b'val="42"', first)
@@ -385,8 +440,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
             second = root / "second.pptx"
             first.write_bytes(zip_bytes("2026-09-15T06:00:00Z", 1234567, (2026, 9, 15, 6, 0, 0)))
             second.write_bytes(zip_bytes("2026-09-15T07:30:00Z", 9876543, (2026, 9, 15, 7, 30, 0)))
-            r1 = MODULE.canonicalize_generated_ooxml_metadata(first)
-            r2 = MODULE.canonicalize_generated_ooxml_metadata(second)
+            r1 = presentation_canonicalization.canonicalize_generated_ooxml_metadata(first)
+            r2 = presentation_canonicalization.canonicalize_generated_ooxml_metadata(second)
             self.assertEqual(sha256_file(first), sha256_file(second))
             self.assertEqual(r1["creationIdFieldCount"], 1)
             self.assertEqual(r2["creationIdFieldCount"], 1)
@@ -407,11 +462,11 @@ class ArtifactDeliveryTests(unittest.TestCase):
         import re
         payload = b'<p:sldLayout xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"><p14:creationId val="123" /></p:sldLayout>'
         used: set[int] = set()
-        first, first_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
+        first, first_count = presentation_canonicalization._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
         self.assertEqual(first_count, 1)
         first_value = int(re.search(rb'val="([0-9]+)"', first).group(1))
         self.assertIn(first_value, used)
-        second, second_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
+        second, second_count = presentation_canonicalization._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
         self.assertEqual(second_count, 1)
         second_value = int(re.search(rb'val="([0-9]+)"', second).group(1))
         expected = first_value + 1 if first_value < 0xFFFFFFFF else 1
@@ -436,7 +491,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             rev = subprocess.CompletedProcess(args=["git"], returncode=0, stdout=expected + "\n", stderr="")
             status = subprocess.CompletedProcess(args=["git"], returncode=1, stdout="", stderr="status failed")
             with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(presentation_ppt_master.subprocess, "run", side_effect=[rev, status]):
-                provider, failures = MODULE._ppt_master_provider_facts()
+                provider, failures = presentation_ppt_master._ppt_master_provider_facts()
             self.assertFalse(provider["trackedWorktreeClean"], provider)
             self.assertTrue(any("status could not be established" in item for item in failures), failures)
 
@@ -459,7 +514,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 stderr="",
             )
             with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(presentation_ppt_master.subprocess, "run", return_value=completed):
-                provider, failures = MODULE._ppt_master_provider_facts()
+                provider, failures = presentation_ppt_master._ppt_master_provider_facts()
             self.assertEqual(provider["observedCommit"], "0" * 40)
             self.assertTrue(any("provider commit mismatch" in item for item in failures), failures)
 
@@ -472,7 +527,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
             output = root / "out.pptx"
-            result = MODULE.build_presentation_source(
+            result = DirectPythonOperationProvider().build_presentation_source(
                 source_path,
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
                 output,
@@ -525,7 +580,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             root = Path(d)
             template, source = self._template_bound_source(root)
             output = root / "bound.pptx"
-            result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", output)
+            result = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", output)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["template"]["artifact"]["digest"]["sha256"], sha256_file(template))
             self.assertGreaterEqual(len(result["template"]["themeParts"]), 1)
@@ -533,7 +588,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertGreaterEqual(len(result["template"]["layoutParts"]), 1)
             self.assertEqual(result["layoutBindings"][0]["layout"]["name"], "Title Slide")
             self.assertTrue(result["layoutBindings"][0]["layout"]["masterPart"].startswith("/ppt/slideMasters/"))
-            output_template_fact = MODULE._presentation_template_package_fact(output)
+            output_template_fact = presentation_common._presentation_template_package_fact(output)
             self.assertEqual(output_template_fact["themeParts"], result["template"]["themeParts"])
             self.assertEqual(output_template_fact["masterParts"], result["template"]["masterParts"])
             self.assertEqual(output_template_fact["layoutParts"], result["template"]["layoutParts"])
@@ -545,7 +600,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             validator = openxml_validator_path()
             dotnet = openxml_dotnet_path()
             if validator.is_file() and dotnet.is_file():
-                structural = MODULE.verify_openxml_artifact(output)
+                structural = verify_openxml_artifact(output)
                 self.assertEqual(structural["status"], "PASS", structural)
 
     def test_presentation_template_is_promoted_to_digest_bound_build_material(self) -> None:
@@ -571,13 +626,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             request_path = root / "request.json"
             request_path.write_text(json.dumps(request))
-            validation = MODULE.validate_delivery_request(request_path)
+            validation = DirectPythonOperationProvider().validate_delivery_request(request_path)
             self.assertEqual(validation["status"], "PASS", validation)
             materials = validation["resolved"]["materials"]
             self.assertEqual(len(materials), 1)
             self.assertEqual(materials[0]["path"], str(template.resolve()))
             self.assertEqual(materials[0]["digest"]["sha256"], sha256_file(template))
-            plan = MODULE.compile_delivery_plan(request_path)
+            plan = DirectPythonOperationProvider().compile_delivery_plan(request_path)
             self.assertEqual(plan["status"], "PASS", plan)
             self.assertEqual(plan["resolvedInputs"]["materials"][0]["digest"]["sha256"], sha256_file(template))
 
@@ -590,7 +645,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             value = json.loads(source.read_text())
             value["template"]["sha256"] = "0" * 64
             source.write_text(json.dumps(value))
-            result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
+            result = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("template digest mismatch" in item for item in result["failures"]))
 
@@ -603,7 +658,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             value = json.loads(source.read_text())
             value["slides"][0]["elements"][0]["placeholderIdx"] = 999
             source.write_text(json.dumps(value))
-            result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
+            result = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("placeholder idx 999 is absent" in item for item in result["failures"]))
 
@@ -613,7 +668,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             _, source = self._template_bound_source(root, add_sample_slide=True)
-            result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
+            result = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("must contain zero slides" in item for item in result["failures"]))
 
@@ -678,7 +733,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             root = Path(d)
             image_path, source = self._hybrid_media_source(root, decorative=False, include_alt=True)
             output = root / "hybrid.pptx"
-            result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", output)
+            result = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", output)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(len(result["mediaBindings"]), 1)
             self.assertEqual(result["mediaBindings"][0]["artifact"]["digest"]["sha256"], sha256_file(image_path))
@@ -696,7 +751,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             validator = openxml_validator_path()
             dotnet = openxml_dotnet_path()
             if validator.is_file() and dotnet.is_file():
-                structural = MODULE.verify_openxml_artifact(output)
+                structural = verify_openxml_artifact(output)
                 self.assertEqual(structural["status"], "PASS", structural)
 
     def test_ultrawide_34x10_hybrid_profile_builds_native_pptx(self) -> None:
@@ -722,9 +777,9 @@ class ArtifactDeliveryTests(unittest.TestCase):
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
             profile = ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json"
-            self.assertEqual(MODULE.validate_profile(profile)["status"], "PASS")
+            self.assertEqual(validate_profile_v1(profile)["status"], "PASS")
             output = root / "ultrawide.pptx"
-            result = MODULE.build_presentation_source(source_path, profile, output)
+            result = DirectPythonOperationProvider().build_presentation_source(source_path, profile, output)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["semantic"]["status"], "PASS", result)
             observed = Presentation(output)
@@ -732,7 +787,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             validator = openxml_validator_path()
             dotnet = openxml_dotnet_path()
             if validator.is_file() and dotnet.is_file():
-                structural = MODULE.verify_openxml_artifact(output)
+                structural = verify_openxml_artifact(output)
                 self.assertEqual(structural["status"], "PASS", structural)
 
     def test_hybrid_image_is_promoted_to_digest_bound_build_material(self) -> None:
@@ -752,7 +807,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             request_path = root / "request.json"
             request_path.write_text(json.dumps(request))
-            validation = MODULE.validate_delivery_request(request_path)
+            validation = DirectPythonOperationProvider().validate_delivery_request(request_path)
             self.assertEqual(validation["status"], "PASS", validation)
             self.assertEqual(len(validation["resolved"]["materials"]), 1)
             self.assertEqual(validation["resolved"]["materials"][0]["path"], str(image_path.resolve()))
@@ -767,7 +822,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             value = json.loads(source.read_text())
             value["slides"][0]["elements"][0]["sha256"] = "0" * 64
             source.write_text(json.dumps(value))
-            result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
+            result = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", root / "out.pptx")
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("image digest mismatch" in item for item in result["failures"]))
 
@@ -777,7 +832,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             _, source = self._hybrid_media_source(root, decorative=False, include_alt=False)
-            result = MODULE.validate_json_document(source, ROOT / "artifact-delivery/presentation-source-v1.schema.json", "presentation-source")
+            result = validate_json_document(source, ROOT / "artifact-delivery/presentation-source-v1.schema.json", "presentation-source")
             self.assertEqual(result["status"], "FAIL")
             self.assertEqual(result["jsonSchema"]["status"], "FAIL")
 
@@ -802,14 +857,14 @@ class ArtifactDeliveryTests(unittest.TestCase):
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
             output = root / "transparent.pptx"
-            result = MODULE.build_presentation_source(source_path, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", output)
+            result = DirectPythonOperationProvider().build_presentation_source(source_path, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", output)
             self.assertEqual(result["status"], "PASS", result)
             with zipfile.ZipFile(output) as package:
                 xml = package.read("ppt/slides/slide1.xml").decode("utf-8")
                 self.assertEqual(xml.count('a:alpha val="0"'), 2)
                 self.assertIn("面向敏捷交付的", xml)
                 self.assertIn("研发组织变革", xml)
-            structural = MODULE.verify_openxml_artifact(output)
+            structural = verify_openxml_artifact(output)
             if structural.get("status") != "NOT_RUN":
                 self.assertEqual(structural["status"], "PASS", structural)
 
@@ -832,24 +887,24 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
-            result = MODULE.build_presentation_source(source_path, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", root / "out.pptx")
+            result = DirectPythonOperationProvider().build_presentation_source(source_path, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", root / "out.pptx")
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("opacity requires explicit colorHex" in item for item in result["failures"]))
 
     def test_pdu_sdu_34x10_slide01_reference_map_validates_but_is_not_native_build(self) -> None:
         source = ROOT / "artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-slide01-reference-map-r1.json"
-        validation = MODULE.validate_json_document(source, ROOT / "artifact-delivery/presentation-source-v1.schema.json", "presentation-source")
+        validation = validate_json_document(source, ROOT / "artifact-delivery/presentation-source-v1.schema.json", "presentation-source")
         if importlib.util.find_spec("jsonschema") is None:
             self.assertEqual(validation["status"], "FAIL")
         else:
             self.assertEqual(validation["status"], "PASS", validation)
-        built = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", Path(tempfile.gettempdir()) / "should-not-build-reference-map.pptx")
+        built = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", Path(tempfile.gettempdir()) / "should-not-build-reference-map.pptx")
         self.assertEqual(built["status"], "FAIL")
         self.assertTrue(any("sourceMode=native-composition only" in item for item in built["failures"]))
 
     def test_pdu_sdu_34x10_deck_reference_map_binds_all_eight_visual_authorities(self) -> None:
         source = ROOT / "artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-deck-reference-map-r1.json"
-        validation = MODULE.validate_json_document(source, ROOT / "artifact-delivery/presentation-source-v1.schema.json", "presentation-source")
+        validation = validate_json_document(source, ROOT / "artifact-delivery/presentation-source-v1.schema.json", "presentation-source")
         if importlib.util.find_spec("jsonschema") is None:
             self.assertEqual(validation["status"], "FAIL")
             return
@@ -870,7 +925,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             "f1727f930369788b5c6a314c4fe2d3baf9f4c27e2eb361ae8ef2ff2964ef1628",
         ]
         self.assertEqual([slide["legacySource"]["sha256"] for slide in doc["slides"]], expected)
-        built = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", Path(tempfile.gettempdir()) / "should-not-build-deck-reference-map.pptx")
+        built = DirectPythonOperationProvider().build_presentation_source(source, ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json", Path(tempfile.gettempdir()) / "should-not-build-deck-reference-map.pptx")
         self.assertEqual(built["status"], "FAIL")
         self.assertTrue(any("sourceMode=native-composition only" in item for item in built["failures"]))
 
@@ -945,7 +1000,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         self.assertEqual(sha256_file(source), "5ed264937da812c2fe67f4a13566d4bdc4dbac3c700a6dbdcbed4bff9f6f8743")
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "deck-overlay.pptx"
-            result = MODULE.build_presentation_source(source, profile, output)
+            result = DirectPythonOperationProvider().build_presentation_source(source, profile, output)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["slideCount"], 8)
             alpha_count = 0
@@ -957,7 +1012,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                     text_run_count += xml.count("<a:r>")
             self.assertEqual(alpha_count, text_run_count)
             self.assertGreater(alpha_count, 111)
-            structural = MODULE.verify_openxml_artifact(output)
+            structural = verify_openxml_artifact(output)
             if structural.get("status") != "NOT_RUN":
                 self.assertEqual(structural["status"], "PASS", structural)
 
@@ -974,15 +1029,15 @@ class ArtifactDeliveryTests(unittest.TestCase):
                         info.compress_type = zipfile.ZIP_DEFLATED
                         package.writestr(info, data)
             self.assertNotEqual(a.read_bytes(), b.read_bytes())
-            result_a = MODULE.normalize_zip_member_timestamps(a)
-            result_b = MODULE.normalize_zip_member_timestamps(b)
+            result_a = presentation_canonicalization.normalize_zip_member_timestamps(a)
+            result_b = presentation_canonicalization.normalize_zip_member_timestamps(b)
             self.assertEqual(result_a["status"], "PASS")
             self.assertEqual(result_b["status"], "PASS")
             self.assertFalse(result_a["memberPayloadBytesChanged"])
             self.assertFalse(result_a["recompressionPerformed"])
             self.assertEqual(a.read_bytes(), b.read_bytes())
             with zipfile.ZipFile(a) as package:
-                self.assertEqual({tuple(info.date_time) for info in package.infolist()}, {MODULE.DETERMINISTIC_ZIP_DATETIME})
+                self.assertEqual({tuple(info.date_time) for info in package.infolist()}, {DETERMINISTIC_ZIP_DATETIME})
                 self.assertEqual([(n, package.read(n)) for n, _ in payloads], payloads)
 
     def test_native_presentation_source_build_is_byte_deterministic(self) -> None:
@@ -994,8 +1049,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             first = root / "first.pptx"
             second = root / "second.pptx"
-            one = MODULE.build_presentation_source(source, profile, first)
-            two = MODULE.build_presentation_source(source, profile, second)
+            one = DirectPythonOperationProvider().build_presentation_source(source, profile, first)
+            two = DirectPythonOperationProvider().build_presentation_source(source, profile, second)
             self.assertEqual(one["status"], "PASS", one)
             self.assertEqual(two["status"], "PASS", two)
             self.assertEqual(first.read_bytes(), second.read_bytes())
@@ -1003,14 +1058,14 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(one["containerNormalization"]["method"], "in-place-local-and-central-dos-timestamp-normalization")
             self.assertFalse(one["containerNormalization"]["memberPayloadBytesChanged"])
             with zipfile.ZipFile(first) as package:
-                self.assertEqual({tuple(info.date_time) for info in package.infolist()}, {MODULE.DETERMINISTIC_ZIP_DATETIME})
+                self.assertEqual({tuple(info.date_time) for info in package.infolist()}, {DETERMINISTIC_ZIP_DATETIME})
 
     def test_native_presentation_source_builds_ooxml_when_dependencies_available(self) -> None:
         if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
             self.skipTest("python-pptx/jsonschema are not available in this Python environment")
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "source-built.pptx"
-            result = MODULE.build_presentation_source(
+            result = DirectPythonOperationProvider().build_presentation_source(
                 ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
                 output,
@@ -1027,7 +1082,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject = root / "artifact.bin"
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
-            statement = MODULE.verification_summary_statement(
+            statement = trust_vsa.verification_summary_statement(
                 subject,
                 profile,
                 "https://example.test/verifier",
@@ -1036,7 +1091,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             )
             statement_path = root / "statement.json"
             statement_path.write_text(json.dumps(statement))
-            result = MODULE.verify_verification_summary(
+            result = trust_vsa.verify_verification_summary(
                 statement_path,
                 subject,
                 profile,
@@ -1047,7 +1102,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["authenticity"], "NOT_VERIFIED")
             self.assertEqual(statement["predicate"]["verifiedLevels"], ["SLSA_BUILD_LEVEL_UNEVALUATED"])
             self.assertTrue(statement["predicate"]["resourceUri"].startswith("ni:///sha-256;"))
-            self.assertEqual(statement["predicate"]["resourceUri"], MODULE.ni_sha256_uri(subject))
+            self.assertEqual(statement["predicate"]["resourceUri"], trust_vsa.ni_sha256_uri(subject))
             self.assertNotIn("dependencyLevels", statement["predicate"])
             self.assertNotIn("inputAttestations", statement["predicate"])
 
@@ -1058,11 +1113,11 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             statement_path = root / "statement.json"
-            statement_path.write_text(json.dumps(MODULE.verification_summary_statement(
+            statement_path.write_text(json.dumps(trust_vsa.verification_summary_statement(
                 subject, profile, "https://example.test/verifier", {}, True
             )))
             subject.write_bytes(b"changed")
-            result = MODULE.verify_verification_summary(statement_path, subject, profile)
+            result = trust_vsa.verify_verification_summary(statement_path, subject, profile)
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("subject does not exactly bind" in item for item in result["failures"]))
 
@@ -1072,7 +1127,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject = root / "artifact.bin"
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
-            statement = MODULE.verification_summary_statement(
+            statement = trust_vsa.verification_summary_statement(
                 subject, profile, "https://example.test/verifier", {}, True
             )
             statement["predicate"]["inputAttestations"] = [{
@@ -1081,7 +1136,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             }]
             statement_path = root / "statement.json"
             statement_path.write_text(json.dumps(statement))
-            result = MODULE.verify_verification_summary(statement_path, subject, profile)
+            result = trust_vsa.verify_verification_summary(statement_path, subject, profile)
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("must not misuse inputAttestations" in item for item in result["failures"]))
 
@@ -1092,10 +1147,10 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject.write_bytes(b"not-a-real-pptx")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             vsa = root / "structural.vsa.json"
-            vsa.write_text(json.dumps(MODULE.verification_summary_statement(
+            vsa.write_text(json.dumps(trust_vsa.verification_summary_statement(
                 subject, profile, "https://example.test/verifier", {}, True
             )))
-            result = MODULE.aggregate_vsa_gates(profile, subject, {"structural": vsa})
+            result = trust_vsa.aggregate_vsa_gates(profile, subject, {"structural": vsa})
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("authenticity" in item for item in result["failures"]))
             self.assertTrue(any("required gate VSA missing" in item for item in result["failures"]))
@@ -1111,14 +1166,14 @@ class ArtifactDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             pptx = root / "artifact.pptx"
-            built = MODULE.build_presentation_source(
+            built = DirectPythonOperationProvider().build_presentation_source(
                 ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
                 pptx,
             )
             self.assertEqual(built["status"], "PASS", built)
             verify_dir = root / "verify"
-            result = MODULE.execute_verify_stage(
+            result = DirectPythonOperationProvider().execute_verify_stage(
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", pptx, verify_dir
             )
             self.assertEqual(result["status"], "PASS", result)
@@ -1135,7 +1190,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             html = Path(d) / "valid.html"
             html.write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>T</title></head><body><main><h1>T</h1></main></body></html>')
-            result = MODULE.verify_html_conformance(html)
+            result = verify_html_conformance(html)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["messageCount"], 0)
             self.assertTrue(str(result["validator"]["version"]).startswith("26.9.7"))
@@ -1143,15 +1198,15 @@ class ArtifactDeliveryTests(unittest.TestCase):
     def _require_cosign_crypto(self) -> Path:
         if importlib.util.find_spec("jsonschema") is None:
             self.skipTest("jsonschema is not available")
-        tool = MODULE.cosign_tool_fact()
+        tool = trust_vsa.cosign_tool_fact()
         if tool.get("status") != "PASS":
             self.skipTest("cosign is not available")
         version = tuple(tool.get("versionTuple") or [])
-        if not MODULE._version_at_least(version, MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION):
+        if not trust_vsa._version_at_least(version, trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION):
             self.skipTest("cosign is below the standardized-bundle verification safety floor")
         return Path(tool["path"])
 
-    def _cosign_key_and_policy(self, root: Path, verifier_id: str = MODULE.LOCAL_VSA_VERIFIER_ID) -> tuple[Path, Path, Path, dict[str, str]]:
+    def _cosign_key_and_policy(self, root: Path, verifier_id: str = trust_vsa.LOCAL_VSA_VERIFIER_ID) -> tuple[Path, Path, Path, dict[str, str]]:
         cosign = self._require_cosign_crypto()
         password = "artifact-e2e-test-only-password"
         env = dict(os.environ)
@@ -1172,7 +1227,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         policy = {
             "policyVersion": 1,
             "id": "test-vsa-trust-r1",
-            "acceptedBundleMediaTypes": [MODULE.SIGSTORE_BUNDLE_V03],
+            "acceptedBundleMediaTypes": [trust_vsa.SIGSTORE_BUNDLE_V03],
             "signers": [{
                 "id": "release-signer",
                 "mode": "public-key",
@@ -1223,7 +1278,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         value = json.loads(bundle.read_text())
-        self.assertEqual(value["mediaType"], MODULE.SIGSTORE_BUNDLE_V03)
+        self.assertEqual(value["mediaType"], trust_vsa.SIGSTORE_BUNDLE_V03)
         self.assertEqual(value.get("verificationMaterial", {}).get("tlogEntries", []), [])
         self.assertIn("dsseEnvelope", value)
 
@@ -1231,11 +1286,11 @@ class ArtifactDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             _, policy_path, _, _ = self._cosign_key_and_policy(root)
-            result = MODULE.validate_vsa_trust_policy(policy_path)
+            result = trust_vsa.validate_vsa_trust_policy(policy_path)
             self.assertEqual(result["status"], "PASS", result)
             public_key = root / "trusted-signer.pub"
             public_key.write_text(public_key.read_text() + "\n")
-            drift = MODULE.validate_vsa_trust_policy(policy_path)
+            drift = trust_vsa.validate_vsa_trust_policy(policy_path)
             self.assertEqual(drift["status"], "FAIL")
             self.assertTrue(any("public key digest mismatch" in item for item in drift["failures"]))
 
@@ -1250,21 +1305,21 @@ class ArtifactDeliveryTests(unittest.TestCase):
             policy_path.write_text(json.dumps({
                 "policyVersion": 1,
                 "id": "test-keyless-root-r1",
-                "acceptedBundleMediaTypes": [MODULE.SIGSTORE_BUNDLE_V03],
+                "acceptedBundleMediaTypes": [trust_vsa.SIGSTORE_BUNDLE_V03],
                 "signers": [{
                     "id": "keyless-release-signer",
                     "mode": "keyless",
-                    "allowedVerifierIds": [MODULE.LOCAL_VSA_VERIFIER_ID],
+                    "allowedVerifierIds": [trust_vsa.LOCAL_VSA_VERIFIER_ID],
                     "requireTransparencyLog": True,
                     "certificateIdentity": "https://example.test/release-workflow",
                     "certificateOidcIssuer": "https://issuer.example.test",
                     "trustedRoot": {"path": trusted_root.name, "sha256": sha256_file(trusted_root)},
                 }],
             }))
-            result = MODULE.validate_vsa_trust_policy(policy_path)
+            result = trust_vsa.validate_vsa_trust_policy(policy_path)
             self.assertEqual(result["status"], "PASS", result)
             trusted_root.write_text('{"tampered":true}')
-            drift = MODULE.validate_vsa_trust_policy(policy_path)
+            drift = trust_vsa.validate_vsa_trust_policy(policy_path)
             self.assertEqual(drift["status"], "FAIL")
             self.assertTrue(any("trustedRoot digest mismatch" in item for item in drift["failures"]))
 
@@ -1275,13 +1330,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             statement_path = root / "structural.vsa.json"
-            MODULE.write_json(statement_path, MODULE.verification_summary_statement(
-                subject, profile, MODULE.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
+            write_json(statement_path, trust_vsa.verification_summary_statement(
+                subject, profile, trust_vsa.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
             ))
             private_key, policy_path, signing_config, env = self._cosign_key_and_policy(root)
             bundle = root / "structural.sigstore.json"
             self._sign_vsa_no_tlog(subject, statement_path, bundle, private_key, signing_config, env)
-            result = MODULE.verify_signed_verification_summary(
+            result = trust_vsa.verify_signed_verification_summary(
                 statement_path, bundle, subject, profile, policy_path, "release-signer"
             )
             self.assertEqual(result["status"], "PASS", result)
@@ -1320,16 +1375,16 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             statement_path = root / "structural.vsa.json"
-            statement = MODULE.verification_summary_statement(
-                subject, profile, MODULE.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
+            statement = trust_vsa.verification_summary_statement(
+                subject, profile, trust_vsa.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
             )
-            MODULE.write_json(statement_path, statement)
+            write_json(statement_path, statement)
             private_key, policy_path, signing_config, env = self._cosign_key_and_policy(root)
             bundle = root / "structural.sigstore.json"
             self._sign_vsa_no_tlog(subject, statement_path, bundle, private_key, signing_config, env)
             statement["predicate"]["verifier"]["version"]["test"] = "substituted"
-            MODULE.write_json(statement_path, statement)
-            result = MODULE.verify_signed_verification_summary(
+            write_json(statement_path, statement)
+            result = trust_vsa.verify_signed_verification_summary(
                 statement_path, bundle, subject, profile, policy_path, "release-signer"
             )
             self.assertEqual(result["status"], "FAIL")
@@ -1343,8 +1398,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             statement_path = root / "structural.vsa.json"
-            MODULE.write_json(statement_path, MODULE.verification_summary_statement(
-                subject, profile, MODULE.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
+            write_json(statement_path, trust_vsa.verification_summary_statement(
+                subject, profile, trust_vsa.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
             ))
             private_key, policy_path, signing_config, env = self._cosign_key_and_policy(root)
             bundle = root / "structural.sigstore.json"
@@ -1352,7 +1407,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             policy = json.loads(policy_path.read_text())
             policy["signers"][0]["allowedVerifierIds"] = ["https://example.test/other-verifier"]
             policy_path.write_text(json.dumps(policy))
-            result = MODULE.verify_signed_verification_summary(
+            result = trust_vsa.verify_signed_verification_summary(
                 statement_path, bundle, subject, profile, policy_path, "release-signer"
             )
             self.assertEqual(result["status"], "FAIL")
@@ -1369,14 +1424,14 @@ class ArtifactDeliveryTests(unittest.TestCase):
             subject.write_bytes(b"artifact")
             profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
             statement_path = root / "structural.vsa.json"
-            MODULE.write_json(statement_path, MODULE.verification_summary_statement(
-                subject, profile, MODULE.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
+            write_json(statement_path, trust_vsa.verification_summary_statement(
+                subject, profile, trust_vsa.LOCAL_VSA_VERIFIER_ID, {"test": "1"}, True
             ))
             private_key, _, signing_config, env = self._cosign_key_and_policy(signer_root)
             _, unrelated_policy, _, _ = self._cosign_key_and_policy(trust_root)
             bundle = root / "structural.sigstore.json"
             self._sign_vsa_no_tlog(subject, statement_path, bundle, private_key, signing_config, env)
-            result = MODULE.verify_signed_verification_summary(
+            result = trust_vsa.verify_signed_verification_summary(
                 statement_path, bundle, subject, profile, unrelated_policy, "release-signer"
             )
             self.assertEqual(result["status"], "FAIL")
@@ -1387,19 +1442,19 @@ class ArtifactDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             statement = root / "vsa.json"
-            statement.write_text(json.dumps({"_type": MODULE.IN_TOTO_STATEMENT_V1}))
+            statement.write_text(json.dumps({"_type": trust_vsa.IN_TOTO_STATEMENT_V1}))
             legacy = root / "legacy.json"
             legacy.write_text(json.dumps({"base64Signature": "AA==", "cert": "not-a-certificate"}))
-            result = MODULE.verify_sigstore_vsa_bundle_shape(
-                legacy, statement, [MODULE.SIGSTORE_BUNDLE_V03], "keyless"
+            result = trust_vsa.verify_sigstore_vsa_bundle_shape(
+                legacy, statement, [trust_vsa.SIGSTORE_BUNDLE_V03], "keyless"
             )
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(any("standardized Sigstore" in item for item in result["failures"]))
 
     def test_standard_bundle_cosign_safety_floor_is_3_0_6(self) -> None:
-        self.assertFalse(MODULE._version_at_least((3, 0, 5), MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
-        self.assertTrue(MODULE._version_at_least((3, 0, 6), MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
-        self.assertTrue(MODULE._version_at_least((3, 1, 0), MODULE.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
+        self.assertFalse(trust_vsa._version_at_least((3, 0, 5), trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
+        self.assertTrue(trust_vsa._version_at_least((3, 0, 6), trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
+        self.assertTrue(trust_vsa._version_at_least((3, 1, 0), trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION))
 
     def test_vsa_aggregation_separates_verification_from_assembly_gates(self) -> None:
         if importlib.util.find_spec("jsonschema") is None:
@@ -1417,10 +1472,10 @@ class ArtifactDeliveryTests(unittest.TestCase):
             profile_path = root / "profile.json"
             profile_path.write_text(json.dumps(profile))
             vsa = root / "profileSchema.vsa.json"
-            vsa.write_text(json.dumps(MODULE.verification_summary_statement(
-                subject, profile_path, MODULE.LOCAL_VSA_VERIFIER_ID, {"jsonschema": "4.26.0"}, True
+            vsa.write_text(json.dumps(trust_vsa.verification_summary_statement(
+                subject, profile_path, trust_vsa.LOCAL_VSA_VERIFIER_ID, {"jsonschema": "4.26.0"}, True
             )))
-            result = MODULE.aggregate_vsa_gates(
+            result = trust_vsa.aggregate_vsa_gates(
                 profile_path, subject, {"profileSchema": vsa}, allow_local_unsigned=True
             )
             self.assertEqual(result["status"], "PASS", result)
@@ -1434,13 +1489,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             bad = root / "bad.pptx"
             make_pptx(good)
             make_pptx(bad, "TODO replace")
-            result = MODULE.inspect_pptx(good, ["TODO"])
+            result = inspect_pptx(good, ["TODO"])
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(result["package"]["slideCount"], 1)
             self.assertIn("Microsoft YaHei", result["package"]["referencedTypefaceNames"])
             self.assertIn("Microsoft YaHei", result["package"]["renderExplicitTypefaceNames"])
             self.assertEqual(result["scope"]["OOXMLSchemaValidation"], "NOT_RUN")
-            bad_result = MODULE.inspect_pptx(bad, ["TODO"])
+            bad_result = inspect_pptx(bad, ["TODO"])
             self.assertEqual(bad_result["status"], "FAIL")
             self.assertEqual(len(bad_result["package"]["placeholderHits"]), 1)
 
@@ -1449,13 +1504,13 @@ class ArtifactDeliveryTests(unittest.TestCase):
             root = Path(d)
             good = root / "good.pptx"
             make_pptx(good)
-            inspected = MODULE.inspect_pptx(good)
+            inspected = inspect_pptx(good)
             profile = json.loads((ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json").read_text())
-            semantic = MODULE.verify_presentation_semantics(profile, inspected)
+            semantic = verify_presentation_semantics(profile, inspected)
             self.assertEqual(semantic["status"], "PASS")
             self.assertAlmostEqual(semantic["observedAspectRatio"], 16/9, places=3)
             profile["semanticPolicy"]["minimumSlideCount"] = 2
-            self.assertEqual(MODULE.verify_presentation_semantics(profile, inspected)["status"], "FAIL")
+            self.assertEqual(verify_presentation_semantics(profile, inspected)["status"], "FAIL")
 
             bad = root / "tall.pptx"
             tall_presentation = PRESENTATION_XML.replace("cx='12192000' cy='6858000'", "cx='9144000' cy='31089600'")
@@ -1466,7 +1521,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 z.writestr("ppt/_rels/presentation.xml.rels", PRESENTATION_RELS)
                 z.writestr("ppt/slides/slide1.xml", SLIDE_XML)
             profile["semanticPolicy"]["minimumSlideCount"] = 1
-            tall = MODULE.verify_presentation_semantics(profile, MODULE.inspect_pptx(bad))
+            tall = verify_presentation_semantics(profile, inspect_pptx(bad))
             self.assertEqual(tall["status"], "FAIL")
             self.assertTrue(any("aspect ratio" in item for item in tall["failures"]))
 
@@ -1481,7 +1536,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 z.writestr("ppt/slides/slide1.xml", SLIDE_XML)
                 z.writestr("ppt/slideLayouts/slideLayout1.xml", SLIDE_XML.replace("Microsoft YaHei", "Aptos"))
                 z.writestr("ppt/slideMasters/slideMaster1.xml", SLIDE_XML.replace("Microsoft YaHei", "Arial"))
-            result = MODULE.inspect_pptx(path)
+            result = inspect_pptx(path)
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(
                 result["package"]["renderExplicitTypefaceNames"],
@@ -1496,7 +1551,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 z.writestr("_rels/.rels", ROOT_RELS)
                 z.writestr("ppt/presentation.xml", PRESENTATION_XML)
                 z.writestr("ppt/_rels/presentation.xml.rels", PRESENTATION_RELS)
-            result = MODULE.inspect_pptx(path)
+            result = inspect_pptx(path)
             self.assertEqual(result["status"], "FAIL")
             self.assertTrue(result["package"]["unresolvedRelationships"])
 
@@ -1517,11 +1572,11 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "validationErrorCount": 0,
                 "validationErrors": []
             }))
-            self.assertEqual(MODULE.verify_openxml_evidence(evidence, pptx)["status"], "PASS")
+            self.assertEqual(verify_openxml_evidence(evidence, pptx)["status"], "PASS")
             value = json.loads(evidence.read_text())
             value["validator"]["implementation"] = "custom-validator"
             evidence.write_text(json.dumps(value))
-            self.assertEqual(MODULE.verify_openxml_evidence(evidence, pptx)["status"], "FAIL")
+            self.assertEqual(verify_openxml_evidence(evidence, pptx)["status"], "FAIL")
 
     def test_powerpoint_worker_uses_native_pdf_and_png_exports(self) -> None:
         worker = (ROOT / "scripts/powerpoint_render_worker.ps1").read_text()
@@ -1582,14 +1637,14 @@ class ArtifactDeliveryTests(unittest.TestCase):
             root = Path(d)
             pptx = root / "aptos.pptx"
             make_pptx(pptx, font="Aptos")
-            inspected = MODULE.inspect_pptx(pptx)
+            inspected = inspect_pptx(pptx)
             self.assertIn("Aptos", inspected["package"]["renderExplicitTypefaceNames"])
             font_dir = root / "fonts"
             font_dir.mkdir()
             for name in ("msyh.ttc", "msyhbd.ttc", "msyhl.ttc"):
                 (font_dir / name).write_bytes(name.encode())
             profile = json.loads((ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json").read_text())
-            result = MODULE.verify_font_manifest(
+            result = verify_font_manifest(
                 profile, font_dir, inspected["package"]["renderExplicitTypefaceNames"]
             )
             self.assertEqual(result["status"], "FAIL")
@@ -1600,11 +1655,11 @@ class ArtifactDeliveryTests(unittest.TestCase):
             font_dir = Path(d)
             (font_dir / "font.ttc").write_bytes(b"font")
             profile = {"fonts": [{"family": "Test", "required": True, "targetFiles": ["font.ttc"], "embeddingPermission": "unknown"}]}
-            result = MODULE.verify_font_manifest(profile, font_dir)
+            result = verify_font_manifest(profile, font_dir)
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(len(result["fonts"][0]["files"][0]["sha256"]), 64)
             (font_dir / "font.ttc").unlink()
-            self.assertEqual(MODULE.verify_font_manifest(profile, font_dir)["status"], "FAIL")
+            self.assertEqual(verify_font_manifest(profile, font_dir)["status"], "FAIL")
 
     def test_readback_is_digest_exact(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1613,9 +1668,9 @@ class ArtifactDeliveryTests(unittest.TestCase):
             readback = root / "readback.pptx"
             source.write_bytes(b"same")
             shutil.copyfile(source, readback)
-            self.assertEqual(MODULE.verify_readback(source, readback)["status"], "PASS")
+            self.assertEqual(verify_readback(source, readback)["status"], "PASS")
             readback.write_bytes(b"different")
-            self.assertEqual(MODULE.verify_readback(source, readback)["status"], "FAIL")
+            self.assertEqual(verify_readback(source, readback)["status"], "FAIL")
 
     def test_slsa_attestation_uses_in_toto_statement_and_standard_predicate(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1624,7 +1679,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             material = root / "narrative.md"
             subject.write_bytes(b"pptx")
             material.write_text("content")
-            statement = MODULE.slsa_statement(
+            statement = slsa_statement(
                 [subject],
                 [material],
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
@@ -1651,7 +1706,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             font_dir.mkdir()
             for name in ("msyh.ttc", "msyhbd.ttc", "msyhl.ttc"):
                 (font_dir / name).write_bytes(name.encode())
-            result = MODULE.presentation_gate(profile_path, pptx, None, None, None, None, None, [], font_dir)
+            result = presentation_gate(profile_path, pptx, None, None, None, None, None, [], font_dir)
             self.assertEqual(result["status"], "FAIL")
             self.assertIn("accessibility", result["requiredGateFailures"])
 
@@ -1672,7 +1727,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             font_dir.mkdir()
             for name in ("msyh.ttc", "msyhbd.ttc", "msyhl.ttc"):
                 (font_dir / name).write_bytes(name.encode())
-            result = MODULE.presentation_gate(
+            result = presentation_gate(
                 ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
                 pptx,
                 None,
@@ -1692,9 +1747,9 @@ class ArtifactDeliveryTests(unittest.TestCase):
 
     def test_verapdf_rejects_ordinary_powerpoint_pdf_as_pdfua2_when_available(self) -> None:
         pdf = ROOT / ".cache/artifact-toolchain/python-pptx/target/probe.pdf"
-        if not pdf.is_file() or MODULE._verapdf_executable() is None:
+        if not pdf.is_file() or verapdf_executable() is None:
             self.skipTest("local veraPDF/PDF probe is not available")
-        result = MODULE.verify_pdf_conformance(pdf, "ua2")
+        result = verify_pdf_conformance(pdf, "ua2")
         self.assertEqual(result["status"], "FAIL")
         self.assertFalse(result["compliant"])
         self.assertEqual(result["validator"]["implementation"], "veraPDF")
@@ -1773,7 +1828,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 for role, source in (("primary", pptx), ("companion", pdf)):
                     readback = root / f"{destination}-{role}.bin"
                     shutil.copyfile(source, readback)
-                    evidence = MODULE.verify_readback(
+                    evidence = verify_readback(
                         source,
                         readback,
                         destination,
@@ -1826,7 +1881,7 @@ out.write_text(os.environ.get('SOURCE_DATE_EPOCH','ABSENT'))
             pandoc = self._fake_pandoc_docx_builder(root)
             request = self._document_build_request(root)
             with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc), "SOURCE_DATE_EPOCH": "1234567890"}, clear=False):
-                result = MODULE.execute_build_stage(request, root / "build")
+                result = DirectPythonOperationProvider().execute_build_stage(request, root / "build")
             self.assertEqual(result["status"], "PASS", result)
             fact = result["adapterResult"]["reproducibleBuildEnvironment"]
             self.assertEqual(fact["name"], "SOURCE_DATE_EPOCH")
@@ -1845,7 +1900,7 @@ out.write_text(os.environ.get('SOURCE_DATE_EPOCH','ABSENT'))
             request = self._document_build_request(root)
             with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc)}, clear=False):
                 os.environ.pop("SOURCE_DATE_EPOCH", None)
-                result = MODULE.execute_build_stage(request, root / "build")
+                result = DirectPythonOperationProvider().execute_build_stage(request, root / "build")
             self.assertEqual(result["status"], "PASS", result)
             fact = result["adapterResult"]["reproducibleBuildEnvironment"]
             self.assertFalse(fact["present"])
@@ -1861,7 +1916,7 @@ out.write_text(os.environ.get('SOURCE_DATE_EPOCH','ABSENT'))
             pandoc = self._fake_pandoc_docx_builder(root)
             request = self._document_build_request(root)
             with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc), "SOURCE_DATE_EPOCH": "not-an-epoch"}, clear=False):
-                result = MODULE.execute_build_stage(request, root / "build")
+                result = DirectPythonOperationProvider().execute_build_stage(request, root / "build")
             self.assertEqual(result["status"], "FAIL", result)
             self.assertEqual(result["adapterResult"]["status"], "FAIL")
             self.assertIn("SOURCE_DATE_EPOCH", result["adapterResult"]["error"])
@@ -1894,13 +1949,13 @@ print(json.dumps(ast))
             document = root / "artifact.docx"
             source.write_text("# Heading\n\nsame content\n\n1. item\n")
             document.write_bytes(b"same")
-            result = MODULE.verify_document_semantic_correspondence(source, document, pandoc)
+            result = verify_document_semantic_correspondence(source, document, pandoc)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(result["sourceProjection"], result["documentProjection"])
             self.assertEqual(result["metadata"]["title"]["matched"], True)
             self.assertIn("not independent IV&V", result["boundary"])
             document.write_bytes(b"drift")
-            drift = MODULE.verify_document_semantic_correspondence(source, document, pandoc)
+            drift = verify_document_semantic_correspondence(source, document, pandoc)
             self.assertEqual(drift["status"], "FAIL", drift)
             self.assertTrue(any("semantic projections differ" in item for item in drift["failures"]))
 
@@ -1934,12 +1989,12 @@ print(json.dumps(ast))
                 "outputDirectory": "out",
                 "builder": {"id": "https://ordivon.local/builders/artifact-delivery/pandoc-v1", "buildType": "https://ordivon.local/build-types/artifact-delivery/markdown-docx-v1"}
             }))
-            result = MODULE.verify_document_dependencies(request, artifact, pandoc, archive, lock, validator)
+            result = DirectPythonOperationProvider().verify_document_dependencies(request, artifact, pandoc, archive, lock, validator)
             self.assertEqual(result["status"], "PASS", result)
             self.assertTrue(result["pandoc"]["digestMatched"])
             self.assertTrue(result["pandocReleaseArchive"]["digestMatched"])
             archive.write_bytes(b"changed")
-            drift = MODULE.verify_document_dependencies(request, artifact, pandoc, archive, lock, validator)
+            drift = DirectPythonOperationProvider().verify_document_dependencies(request, artifact, pandoc, archive, lock, validator)
             self.assertEqual(drift["status"], "FAIL", drift)
             self.assertTrue(any("release archive digest" in item for item in drift["failures"]))
 

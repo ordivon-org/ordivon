@@ -24,6 +24,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import artifact_trust.vsa as artifact_trust_vsa
+from artifact_core.profile_v1 import validate_profile_v1
+from artifact_operations.providers import DirectPythonOperationProvider
+from scripts.artifact_oci_package import execute_oci_package_stage
 
 GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
@@ -88,6 +91,7 @@ def selected_path(env_name: str, global_default: Path, legacy_default: Path | No
 
 def main() -> int:
     checks: list[dict[str, Any]] = []
+    provider = DirectPythonOperationProvider()
 
     python = selected_path("ARTIFACT_PYTHON", Path("/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python"))
     snippet = (
@@ -119,70 +123,74 @@ def main() -> int:
         if isinstance(value, dict) and value.get("profileVersion") == 1 and isinstance(value.get("artifactClass"), str):
             profile_candidates.append(candidate)
     for profile in profile_candidates:
-        proc = run([python, "scripts/artifact_delivery.py", "validate-profile", str(profile)])
-        try:
-            value = json.loads(proc.stdout)
-        except Exception:
-            value = {"status": "ERROR", "stdout": proc.stdout[-2000:], "stderr": proc.stderr[-1000:]}
+        value = validate_profile_v1(profile)
+        return_code = 0 if value.get("status") == "PASS" else 1
         profile_results[profile.name] = {
-            "returnCode": proc.returncode,
+            "returnCode": return_code,
             "status": value.get("status"),
             "artifactClass": value.get("profile", {}).get("artifactClass"),
             "primaryFormat": value.get("profile", {}).get("primaryOutput", {}).get("format"),
         }
-        profile_ok = profile_ok and proc.returncode == 0 and value.get("status") == "PASS"
+        profile_ok = profile_ok and value.get("status") == "PASS"
     record(checks, "delivery-profile-matrix", profile_ok, profiles=profile_results)
 
     request_example = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"
     with tempfile.TemporaryDirectory(prefix="artifact-delivery-request-doctor-") as tmp_text:
         tmp = Path(tmp_text)
-        validation = run([python, "scripts/artifact_delivery.py", "validate-request", str(request_example)])
-        compiled = run([python, "scripts/artifact_delivery.py", "compile-request", str(request_example)])
-        built = run([python, "scripts/artifact_delivery.py", "build-request", str(request_example), "--output-directory", str(tmp)])
+        validation = provider.validate_delivery_request(request_example)
+        compiled = provider.compile_delivery_plan(request_example)
+        built = provider.execute_build_stage(request_example, tmp)
         details: dict[str, Any] = {
-            "validateReturnCode": validation.returncode,
-            "compileReturnCode": compiled.returncode,
-            "buildReturnCode": built.returncode,
+            "validateReturnCode": 0 if validation.get("status") == "PASS" else 1,
+            "compileReturnCode": 0 if compiled.get("status") == "PASS" else 1,
+            "buildReturnCode": 0 if built.get("status") == "PASS" else 1,
         }
-        request_ok = validation.returncode == 0 and compiled.returncode == 0 and built.returncode == 0
+        request_ok = all(
+            value.get("status") == "PASS" for value in (validation, compiled, built)
+        )
         if request_ok:
             try:
-                build_value = json.loads(built.stdout)
-                artifact_path = Path(build_value["artifact"]["path"])
-                details["artifact"] = build_value["artifact"]
-                validator = selected_path("ARTIFACT_OPENXML_VALIDATOR", Path(OPENXML_LOCK["stableValidator"]))
+                artifact_path = Path(built["artifact"]["path"])
+                details["artifact"] = built["artifact"]
+                validator = selected_path(
+                    "ARTIFACT_OPENXML_VALIDATOR", Path(OPENXML_LOCK["stableValidator"])
+                )
                 if Path(validator).exists():
                     validated = run([validator, str(artifact_path)])
                     details["openXmlReturnCode"] = validated.returncode
                     details["openXmlStdout"] = validated.stdout[-3000:]
                     request_ok = request_ok and validated.returncode == 0
                     verify_dir = tmp / "verify"
-                    verify_stage = run([
-                        python,
-                        "scripts/artifact_delivery.py",
-                        "verify-stage",
-                        "--profile",
-                        str(ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"),
-                        "--artifact",
-                        str(artifact_path),
-                        "--output-directory",
-                        str(verify_dir),
-                    ])
-                    details["verifyStageReturnCode"] = verify_stage.returncode
-                    try:
-                        verify_value = json.loads(verify_stage.stdout)
-                    except Exception:
-                        verify_value = {"status": "ERROR", "stdout": verify_stage.stdout[-3000:], "stderr": verify_stage.stderr[-2000:]}
+                    verify_value = provider.execute_verify_stage(
+                        ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+                        artifact_path,
+                        verify_dir,
+                    )
+                    details["verifyStageReturnCode"] = (
+                        0 if verify_value.get("status") == "PASS" else 1
+                    )
                     details["verifyStageStatus"] = verify_value.get("status")
-                    details["verifyStagePending"] = verify_value.get("pendingRequiredGates")
+                    details["verifyStagePending"] = verify_value.get(
+                        "pendingRequiredGates"
+                    )
                     required_local = {"profileSchema", "structural", "semantic"}
-                    receipts = verify_value.get("receipts", {}) if isinstance(verify_value.get("receipts"), dict) else {}
+                    receipts = (
+                        verify_value.get("receipts", {})
+                        if isinstance(verify_value.get("receipts"), dict)
+                        else {}
+                    )
                     vsa_ok = (
-                        verify_stage.returncode == 0
-                        and verify_value.get("status") == "PASS"
+                        verify_value.get("status") == "PASS"
                         and required_local.issubset(receipts)
-                        and all(receipts[name].get("verificationResult") == "PASSED" for name in required_local)
-                        and all(receipts[name].get("vsaValidation", {}).get("status") == "PASS" for name in required_local)
+                        and all(
+                            receipts[name].get("verificationResult") == "PASSED"
+                            for name in required_local
+                        )
+                        and all(
+                            receipts[name].get("vsaValidation", {}).get("status")
+                            == "PASS"
+                            for name in required_local
+                        )
                         and verify_value.get("profileVerificationComplete") is False
                     )
                     details["localVsaReceiptsPass"] = vsa_ok
@@ -194,10 +202,15 @@ def main() -> int:
                 details["parseError"] = str(error)
                 request_ok = False
         else:
-            details["validateStderr"] = validation.stderr[-1000:]
-            details["compileStderr"] = compiled.stderr[-1000:]
-            details["buildStderr"] = built.stderr[-1000:]
-        record(checks, "digest-bound-request-presentation-source-build", request_ok, **details)
+            details["validationFailures"] = validation.get("failures")
+            details["compileFailures"] = compiled.get("failures")
+            details["buildFailures"] = built.get("failures")
+        record(
+            checks,
+            "digest-bound-request-presentation-source-build",
+            request_ok,
+            **details,
+        )
 
     with tempfile.TemporaryDirectory(prefix="artifact-delivery-package-doctor-") as tmp_text:
         tmp = Path(tmp_text)
@@ -212,78 +225,94 @@ def main() -> int:
         package_profile = tmp / "profile.json"
         package_profile.write_text(json.dumps(base_profile))
         artifact_path = tmp / "artifact.pptx"
-        built = run([
-            python,
-            "scripts/artifact_delivery.py",
-            "build-presentation-source",
-            "--source",
-            str(ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json"),
-            "--profile",
-            str(ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"),
-            "--pptx",
-            str(artifact_path),
-        ])
+        built = provider.build_presentation_source(
+            ROOT / "artifact-delivery/examples/presentation-native-smoke-source-r1.json",
+            ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+            artifact_path,
+        )
         verify_dir = tmp / "verify"
-        verified = run([
-            python,
-            "scripts/artifact_delivery.py",
-            "verify-stage",
-            "--profile",
-            str(package_profile),
-            "--artifact",
-            str(artifact_path),
-            "--output-directory",
-            str(verify_dir),
-        ]) if built.returncode == 0 else None
+        verified = (
+            provider.execute_verify_stage(
+                package_profile, artifact_path, verify_dir
+            )
+            if built.get("status") == "PASS"
+            else None
+        )
         verify_report = tmp / "verify-stage.json"
-        if verified is not None and verified.returncode == 0:
-            verify_report.write_text(verified.stdout)
+        if verified is not None and verified.get("status") == "PASS":
+            verify_report.write_text(
+                json.dumps(verified, indent=2, sort_keys=True) + "\n"
+            )
         package_dir = tmp / "package"
-        packaged = run([
-            python,
-            "scripts/artifact_oci_package.py",
-            "--profile",
-            str(package_profile),
-            "--primary",
-            str(artifact_path),
-            "--verify-report",
-            str(verify_report),
-            "--output-directory",
-            str(package_dir),
-            "--allow-local-unsigned",
-        ]) if verify_report.is_file() else None
+        packaged = (
+            execute_oci_package_stage(
+                package_profile,
+                artifact_path,
+                verify_report,
+                package_dir,
+                allow_local_unsigned=True,
+            )
+            if verify_report.is_file()
+            else None
+        )
         details = {
-            "buildReturnCode": built.returncode,
-            "verifyReturnCode": verified.returncode if verified is not None else None,
-            "packageReturnCode": packaged.returncode if packaged is not None else None,
+            "buildReturnCode": 0 if built.get("status") == "PASS" else 1,
+            "verifyReturnCode": (
+                0
+                if verified is not None and verified.get("status") == "PASS"
+                else None if verified is None else 1
+            ),
+            "packageReturnCode": (
+                0
+                if packaged is not None and packaged.get("status") == "PASS"
+                else None if packaged is None else 1
+            ),
         }
         package_ok = False
-        if packaged is not None and packaged.returncode == 0:
+        if packaged is not None and packaged.get("status") == "PASS":
             try:
-                package_value = json.loads(packaged.stdout)
+                package_value = packaged
                 layout = package_dir / "layout"
-                refs = package_value.get("oci", {}).get("discover", {}).get("referrers", [])
+                refs = package_value.get("oci", {}).get("discover", {}).get(
+                    "referrers", []
+                )
                 package_ok = (
                     package_value.get("status") == "PASS"
                     and package_value.get("releaseReady") is False
-                    and package_value.get("trustStanding") == "LOCAL_UNSIGNED_DEVELOPMENT"
+                    and package_value.get("trustStanding")
+                    == "LOCAL_UNSIGNED_DEVELOPMENT"
                     and (layout / "index.json").is_file()
                     and (layout / "oci-layout").is_file()
                     and not (package_dir / "package-index.json").exists()
                     and not (package_dir / "release-manifest.json").exists()
                     and len(refs) == 4
                 )
-                details["packageTrustStanding"] = package_value.get("trustStanding")
+                details["packageTrustStanding"] = package_value.get(
+                    "trustStanding"
+                )
                 details["packageReleaseReady"] = package_value.get("releaseReady")
-                details["ociSubjectDigest"] = package_value.get("oci", {}).get("subject", {}).get("digest")
+                details["ociSubjectDigest"] = (
+                    package_value.get("oci", {}).get("subject", {}).get("digest")
+                )
                 details["ociReferrerCount"] = len(refs)
-                details["legacyPackageIndexPresent"] = (package_dir / "package-index.json").exists()
-                details["legacyReleaseManifestPresent"] = (package_dir / "release-manifest.json").exists()
+                details["legacyPackageIndexPresent"] = (
+                    package_dir / "package-index.json"
+                ).exists()
+                details["legacyReleaseManifestPresent"] = (
+                    package_dir / "release-manifest.json"
+                ).exists()
             except Exception as error:
                 details["parseError"] = str(error)
         else:
-            details["packageStderr"] = packaged.stderr[-2000:] if packaged is not None else "package not run"
-        record(checks, "digest-bound-development-oci-package", package_ok, **details)
+            details["packageFailures"] = (
+                packaged.get("failures") if isinstance(packaged, dict) else None
+            )
+        record(
+            checks,
+            "digest-bound-development-oci-package",
+            package_ok,
+            **details,
+        )
 
     pandoc = selected_path("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
     proc = run([pandoc, "--version"])
@@ -482,69 +511,125 @@ wb = xlsxwriter.Workbook(xlsx_path); ws = wb.add_worksheet(); fmt = wb.add_forma
         record(checks, "web-browser-matrix", False, error="node not found")
 
     web_request = ROOT / "artifact-delivery/examples/web-smoke-request-r1.json"
-    with tempfile.TemporaryDirectory(prefix="artifact-delivery-web-profile-doctor-") as tmp_text:
+    with tempfile.TemporaryDirectory(
+        prefix="artifact-delivery-web-profile-doctor-"
+    ) as tmp_text:
         tmp = Path(tmp_text)
         build_dir = tmp / "build"
         verify_dir = tmp / "verify"
-        built = run([python, "scripts/artifact_delivery.py", "build-request", str(web_request), "--output-directory", str(build_dir)])
-        details: dict[str, Any] = {"buildReturnCode": built.returncode}
-        web_profile_ok = built.returncode == 0
+        built = provider.execute_build_stage(web_request, build_dir)
+        details: dict[str, Any] = {
+            "buildReturnCode": 0 if built.get("status") == "PASS" else 1
+        }
+        web_profile_ok = built.get("status") == "PASS"
         if web_profile_ok:
             try:
-                build_value = json.loads(built.stdout)
-                artifact_path = Path(build_value["artifact"]["path"])
-                verified = run([
-                    python,
-                    "scripts/artifact_delivery.py",
-                    "verify-stage",
-                    "--profile",
-                    str(ROOT / "artifact-delivery/examples/web-r1.json"),
-                    "--artifact",
-                    str(artifact_path),
-                    "--output-directory",
-                    str(verify_dir),
-                ], timeout=120)
-                details["verifyReturnCode"] = verified.returncode
-                verify_value = json.loads(verified.stdout)
+                artifact_path = Path(built["artifact"]["path"])
+                verify_value = provider.execute_verify_stage(
+                    ROOT / "artifact-delivery/examples/web-r1.json",
+                    artifact_path,
+                    verify_dir,
+                )
+                details["verifyReturnCode"] = (
+                    0 if verify_value.get("status") == "PASS" else 1
+                )
                 receipts = verify_value.get("receipts", {})
-                local_pass_gates = {"profileSchema", "structural", "conformance", "accessibility"}
+                local_pass_gates = {
+                    "profileSchema",
+                    "structural",
+                    "conformance",
+                    "accessibility",
+                }
                 common_ok = (
                     local_pass_gates.issubset(receipts)
-                    and all(receipts[name].get("verificationResult") == "PASSED" for name in local_pass_gates)
-                    and all(receipts[name].get("vsaValidation", {}).get("status") == "PASS" for name in local_pass_gates)
+                    and all(
+                        receipts[name].get("verificationResult") == "PASSED"
+                        for name in local_pass_gates
+                    )
+                    and all(
+                        receipts[name].get("vsaValidation", {}).get("status")
+                        == "PASS"
+                        for name in local_pass_gates
+                    )
                 )
                 target = receipts.get("target", {})
-                target_raw_path = Path(target.get("rawEvidence", {}).get("path", ""))
-                target_raw = json.loads(target_raw_path.read_text()) if target_raw_path.is_file() else {}
-                chromium_target = target_raw.get("browserResults", {}).get("Chromium", {})
-                firefox_target = target_raw.get("browserResults", {}).get("Firefox", {})
-                webkit_target = target_raw.get("browserResults", {}).get("WebKit", {})
-                primary_ok = chromium_target.get("status") == "PASS" and firefox_target.get("status") == "PASS"
-                target_full_pass = target.get("verificationResult") == "PASSED" and webkit_target.get("status") == "PASS"
+                target_raw_path = Path(
+                    target.get("rawEvidence", {}).get("path", "")
+                )
+                target_raw = (
+                    json.loads(target_raw_path.read_text())
+                    if target_raw_path.is_file()
+                    else {}
+                )
+                chromium_target = target_raw.get("browserResults", {}).get(
+                    "Chromium", {}
+                )
+                firefox_target = target_raw.get("browserResults", {}).get(
+                    "Firefox", {}
+                )
+                webkit_target = target_raw.get("browserResults", {}).get(
+                    "WebKit", {}
+                )
+                primary_ok = (
+                    chromium_target.get("status") == "PASS"
+                    and firefox_target.get("status") == "PASS"
+                )
+                target_full_pass = (
+                    target.get("verificationResult") == "PASSED"
+                    and webkit_target.get("status") == "PASS"
+                )
                 expected_local_block = (
                     target.get("verificationResult") == "FAILED"
-                    and webkit_target.get("status") in {"FAIL", "NOT_INSTALLED", "LOCAL_HOST_COMPATIBILITY_NOT_PROVEN"}
-                    and verify_value.get("failures") == ["executed verifier gate(s) failed: target"]
+                    and webkit_target.get("status")
+                    in {
+                        "FAIL",
+                        "NOT_INSTALLED",
+                        "LOCAL_HOST_COMPATIBILITY_NOT_PROVEN",
+                    }
+                    and verify_value.get("failures")
+                    == ["executed verifier gate(s) failed: target"]
                 )
-                web_profile_ok = common_ok and primary_ok and (target_full_pass or expected_local_block)
-                details.update({
-                    "verifyStatus": verify_value.get("status"),
-                    "profileVerificationComplete": verify_value.get("profileVerificationComplete"),
-                    "pendingRequiredGates": verify_value.get("pendingRequiredGates"),
-                    "receipts": {name: item.get("verificationResult") for name, item in sorted(receipts.items())},
-                    "targetBrowsers": {
-                        "Chromium": chromium_target.get("status"),
-                        "Firefox": firefox_target.get("status"),
-                        "WebKit": webkit_target.get("status"),
-                    },
-                    "acceptedBoundary": "FULL_TARGET_PASS" if target_full_pass else "WEBKIT_SUPPORTED_RUNNER_REQUIRED" if expected_local_block else "UNEXPECTED",
-                })
+                web_profile_ok = common_ok and primary_ok and (
+                    target_full_pass or expected_local_block
+                )
+                details.update(
+                    {
+                        "verifyStatus": verify_value.get("status"),
+                        "profileVerificationComplete": verify_value.get(
+                            "profileVerificationComplete"
+                        ),
+                        "pendingRequiredGates": verify_value.get(
+                            "pendingRequiredGates"
+                        ),
+                        "receipts": {
+                            name: item.get("verificationResult")
+                            for name, item in sorted(receipts.items())
+                        },
+                        "targetBrowsers": {
+                            "Chromium": chromium_target.get("status"),
+                            "Firefox": firefox_target.get("status"),
+                            "WebKit": webkit_target.get("status"),
+                        },
+                        "acceptedBoundary": (
+                            "FULL_TARGET_PASS"
+                            if target_full_pass
+                            else "WEBKIT_SUPPORTED_RUNNER_REQUIRED"
+                            if expected_local_block
+                            else "UNEXPECTED"
+                        ),
+                    }
+                )
             except Exception as error:
                 details["parseError"] = str(error)
                 web_profile_ok = False
         else:
-            details["buildStderr"] = built.stderr[-2000:]
-        record(checks, "web-profile-local-verification-boundary", web_profile_ok, **details)
+            details["buildFailures"] = built.get("failures")
+        record(
+            checks,
+            "web-profile-local-verification-boundary",
+            web_profile_ok,
+            **details,
+        )
 
     status = "PASS" if all(item["status"] == "PASS" for item in checks) else "FAIL"
     result = {

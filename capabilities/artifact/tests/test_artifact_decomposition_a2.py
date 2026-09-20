@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-import importlib.util
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
-
-from artifact_core.contracts import sha256_file
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,11 +19,6 @@ class ArtifactDecompositionA2Tests(unittest.TestCase):
         self.assertEqual(ppt.capability_id, "artifact.presentation.python-pptx.build")
         self.assertEqual(doc.adapter_id, "pandoc-docx")
         self.assertEqual(doc.capability_id, "artifact.document.pandoc.build")
-
-    def test_delivery_planner_uses_data_registry_not_inline_adapter_map(self) -> None:
-        source = (ROOT / "scripts/artifact_delivery.py").read_text(encoding="utf-8")
-        self.assertNotIn("adapter_map = {", source)
-        self.assertIn("BUILD_BINDING_REGISTRY", source)
 
     def test_request_admission_is_owned_by_core_module(self) -> None:
         source = (ROOT / "artifact_operations/providers/direct_python.py").read_text(encoding="utf-8")
@@ -75,84 +65,12 @@ class ArtifactDecompositionA2Tests(unittest.TestCase):
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(result["source"]["digest"]["sha256"], result["artifact"]["digest"]["sha256"])
 
-    def test_delivery_evidence_functions_are_owned_by_artifact_evidence_package(self) -> None:
-        from artifact_evidence.delivery import verify_readback
-
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            source = root / "source.bin"
-            readback = root / "readback.bin"
-            source.write_bytes(b"same")
-            readback.write_bytes(b"same")
-            result = verify_readback(source, readback, "local", "ref:1", "primary")
-            self.assertEqual(result["status"], "PASS")
-            self.assertTrue(result["digestMatched"])
-
-        legacy_source = (ROOT / "scripts/artifact_delivery.py").read_text(encoding="utf-8")
-        self.assertIn("from artifact_evidence.delivery import", legacy_source)
-
-    def test_existing_document_build_stage_still_delegates_to_new_provider(self) -> None:
-        spec = importlib.util.spec_from_file_location("artifact_delivery_a2", ROOT / "scripts/artifact_delivery.py")
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
-
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            source = root / "source.md"
-            source.write_text("# document\n", encoding="utf-8")
-            profile = ROOT / "artifact-delivery/examples/document-r1.json"
-            request = root / "request.json"
-            request.write_text(json.dumps({
-                "schemaVersion": 1,
-                "kind": "artifact-delivery-request",
-                "requestId": "artifact-request:a2-document",
-                "profile": {"id": "document-r1", "path": str(profile), "sha256": sha256_file(profile)},
-                "source": {"kind": "markdown", "path": source.name, "sha256": sha256_file(source)},
-                "materials": [],
-                "outputDirectory": "out",
-                "builder": {
-                    "id": "https://ordivon.local/builders/artifact-delivery/pandoc-v1",
-                    "buildType": "https://ordivon.local/build-types/artifact-delivery/markdown-docx-v1"
-                }
-            }), encoding="utf-8")
-            pandoc = root / "pandoc"
-            pandoc.write_text(
-                "#!/usr/bin/env python3\n"
-                "import sys\n"
-                "from pathlib import Path\n"
-                "Path(sys.argv[sys.argv.index('-o')+1]).write_bytes(b'docx')\n",
-                encoding="utf-8",
-            )
-            pandoc.chmod(0o755)
-            if importlib.util.find_spec("jsonschema") is None:
-                self.skipTest("jsonschema unavailable")
-            with mock.patch.dict(os.environ, {"ARTIFACT_PANDOC": str(pandoc)}, clear=False):
-                result = module.execute_build_stage(request, root / "build")
-            self.assertEqual(result["status"], "PASS", result)
-            self.assertEqual(result["plan"]["buildCapabilityId"], "artifact.document.pandoc.build")
-            self.assertEqual(result["adapterResult"]["provider"], "pandoc")
-
 
     def test_build_stage_dispatch_is_owned_by_capability_layer(self) -> None:
         source = (ROOT / "artifact_operations/providers/direct_python.py").read_text(encoding="utf-8")
         self.assertNotIn('if adapter == "python-pptx-presentation-source-v1"', source)
         self.assertIn("execute_build_adapter", source)
 
-
-    def test_profile_v1_validation_is_owned_by_core_module(self) -> None:
-        from artifact_core.profile_v1 import validate_profile_v1
-
-        result = validate_profile_v1(
-            ROOT / "artifact-delivery/examples/document-r1.json",
-            ROOT / "artifact-delivery/profile-v1.schema.json",
-        )
-        if result["jsonSchema"]["validator"] == "unavailable":
-            self.assertEqual(result["status"], "FAIL")
-        else:
-            self.assertEqual(result["status"], "PASS", result)
-        legacy_source = (ROOT / "scripts/artifact_delivery.py").read_text(encoding="utf-8")
-        self.assertNotIn("def validate_profile(", legacy_source)
 
     def test_slsa_release_provenance_is_owned_by_trust_module(self) -> None:
         from artifact_trust.provenance import slsa_statement, verify_release_provenance

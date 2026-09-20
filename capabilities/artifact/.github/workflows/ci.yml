@@ -29,7 +29,7 @@ jobs:
           uv run ruff check
           artifact_core artifact_capabilities artifact_evidence artifact_operations
           artifact_trust artifact_verification artifact_verifiers
-          scripts/artifact_delivery.py scripts/artifact_agent_surface.py
+          scripts/artifact_agent_surface.py
           scripts/artifact_delivery_toolchain_doctor.py scripts/artifact_verify.py
           scripts/artifact_oci_package.py scripts/artifact_delivery_temporal_support.py
           scripts/temporal_artifact_delivery.py scripts/temporal_artifact_delivery_launch.py

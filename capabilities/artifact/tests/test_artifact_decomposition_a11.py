@@ -4,7 +4,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OCI = ROOT / "scripts/artifact_oci_package.py"
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 
 
 class ArtifactOciDecouplingA11Tests(unittest.TestCase):
@@ -13,13 +12,6 @@ class ArtifactOciDecouplingA11Tests(unittest.TestCase):
         self.assertTrue(module.is_file())
         source = module.read_text(encoding="utf-8")
         self.assertIn("def validate_json_document(", source)
-
-    def test_delivery_json_validator_is_only_a_thin_compatibility_wrapper(self):
-        tree = ast.parse(DELIVERY.read_text(encoding="utf-8"))
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        node = funcs.get("validate_json_document")
-        self.assertIsNotNone(node)
-        self.assertLessEqual(node.end_lineno - node.lineno + 1, 4)
 
     def test_oci_has_zero_delivery_import_or_delivery_facade_projection(self):
         source = OCI.read_text(encoding="utf-8")

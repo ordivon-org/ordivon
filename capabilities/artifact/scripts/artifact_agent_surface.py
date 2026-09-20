@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Thin Agent-facing semantic surface over existing Artifact R1 CLIs.
 
-The surface compiles bounded Artifact intent into exact Runtime-ready process plans.
-It does not execute effects, invent a universal document model, or duplicate family
-verifier semantics. Runtime remains physical execution authority.
+The surface exposes bounded Artifact intent as canonical ArtifactOperation data or exact
+verification-service process plans. It does not execute effects, invent a universal
+document model, or duplicate family verifier semantics. Runtime remains physical
+execution authority.
 """
 from __future__ import annotations
 
@@ -21,11 +22,11 @@ if str(ROOT) not in sys.path:
 
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.profiles import ProfileRegistry
+from artifact_operations import operation_envelope, operation_file_fact
 
 ART = ROOT / "artifact-delivery"
 TAXONOMY = ART / "taxonomy-v1.json"
 VERIFY = ROOT / "scripts/artifact_verify.py"
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 DOCTOR = ROOT / "scripts/artifact_delivery_toolchain_doctor.py"
 ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python"))
 BINDING_REGISTRY = CapabilityBindingRegistry(ART)
@@ -202,25 +203,28 @@ def verify_proposal(request: str) -> dict[str, Any]:
     }
 
 
-def build_proposal(request: str, output_directory: str) -> dict[str, Any]:
+def build_proposal(request: str) -> dict[str, Any]:
     request_path = Path(request)
     if not request_path.is_absolute():
         request_path = (ROOT / request_path).resolve()
-    out = Path(output_directory)
-    if not out.is_absolute():
-        out = (ROOT / out).resolve()
     blockers = [] if request_path.is_file() else ["REQUEST_ABSENT"]
-    base = _plan(DELIVERY, ["build-request", str(request_path), "--output-directory", str(out)], postcondition="require Artifact build result PASS and independently continue profile-required target/visual/delivery gates")
-    blockers.extend(base["blockers"])
-    ready = not blockers
+    operation = None
+    if not blockers:
+        request_fact = operation_file_fact(request_path)
+        operation = operation_envelope(
+            f"agent/build/{request_fact['sha256'][:16]}",
+            "build",
+            {"request": request_fact},
+        )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.artifact-operation-proposal",
         "operation": "build",
-        "ready": ready,
+        "ready": not blockers,
         "blockers": blockers,
-        "plan": base["plan"] if ready else None,
-        "boundary": "Build PASS does not imply target rendering, visual acceptance, accessibility, publication or delivery/read-back PASS unless the selected profile closes those gates separately."
+        "artifactOperation": operation,
+        "executionOwner": "artifact_operations.ArtifactOperationExecutor",
+        "boundary": "Build is expressed directly as the canonical ArtifactOperation contract. Runtime remains physical execution authority. Build PASS does not imply target rendering, visual acceptance, accessibility, publication or delivery/read-back PASS.",
     }
 
 
@@ -266,7 +270,7 @@ def tool_definitions() -> list[dict[str, Any]]:
         {"name": "artifact_family_status", "description": "Read Artifact families, current profiles and which profiles are actually routed through the verification service.", "inputSchema": {"type": "object", "properties": {"familyId": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_profile_coverage", "description": "Project current Artifact profiles into a conservative eight-gate contract matrix without claiming occurrence-level PASS.", "inputSchema": {"type": "object", "properties": {"profileId": {"type": "string"}, "familyId": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_verify_propose", "description": "Compile one exact Artifact verification request into the supported Runtime-ready verifier plan without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
-        {"name": "artifact_build_propose", "description": "Compile one exact Artifact build request into the supported Runtime-ready build plan without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}, "outputDirectory": {"type": "string", "minLength": 1}}, "required": ["request", "outputDirectory"], "additionalProperties": False}},
+        {"name": "artifact_build_propose", "description": "Compile one exact Artifact build request into the canonical ArtifactOperation contract without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
         {"name": "artifact_toolchain_doctor_propose", "description": "Compile the cross-format Artifact toolchain doctor into a Runtime-ready read/verification plan.", "inputSchema": {"type": "object", "properties": {"output": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_cad_admission_status", "description": "Read the explicit boundary between current GLB design-3D support and ungraduated CAD/BIM/manufacturing support.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     ]
@@ -286,7 +290,7 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any]) -> dict[str,
     if name == "artifact_verify_propose":
         return verify_proposal(str(arguments["request"]))
     if name == "artifact_build_propose":
-        return build_proposal(str(arguments["request"]), str(arguments["outputDirectory"]))
+        return build_proposal(str(arguments["request"]))
     if name == "artifact_toolchain_doctor_propose":
         value = arguments.get("output")
         return doctor_proposal(str(value) if value is not None else None)
@@ -306,7 +310,7 @@ def surface_projection() -> dict[str, Any]:
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,
         "mcpRequired": False,
-        "boundary": "Artifact owns format/profile verification and build/delivery semantics. The surface compiles intent into existing CLI entrypoints; Runtime remains process authority and mature format/target tools remain format truth authorities."
+        "boundary": "Artifact owns format/profile verification and build/delivery semantics. Build intent is expressed as ArtifactOperation; verification-service and doctor actions retain explicit process plans where they remain distinct execution surfaces. Runtime remains process authority and mature format/target tools remain format truth authorities."
     }
 
 

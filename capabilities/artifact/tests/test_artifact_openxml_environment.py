@@ -40,11 +40,12 @@ class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
         self.assertEqual(spec['dotnetNixNarHash'],'sha256-example')
         self.assertEqual(spec['observedDotnetSdk'],'8.0.424')
 
-    def test_production_defaults_do_not_point_to_repo_local_dotnet_or_validator_build(self):
-        delivery=(ROOT/'scripts/artifact_delivery.py').read_text();doctor=(ROOT/'scripts/artifact_delivery_toolchain_doctor.py').read_text();toolchain=(ROOT/'artifact_verifiers/openxml/toolchain.py').read_text()
-        self.assertNotIn('.cache/dotnet/dotnet',delivery);self.assertNotIn('openxml-validator/bin/Release/net8.0/ArtifactOpenXmlValidator.dll',delivery)
+    def test_production_defaults_use_managed_openxml_carrier(self):
+        doctor=(ROOT/'scripts/artifact_delivery_toolchain_doctor.py').read_text()
+        toolchain=(ROOT/'artifact_verifiers/openxml/toolchain.py').read_text()
+        self.assertNotIn('.cache/dotnet/dotnet',doctor)
+        self.assertNotIn('openxml-validator/bin/Release/net8.0/ArtifactOpenXmlValidator.dll',doctor)
         self.assertIn('artifact-openxml-v1/current/bin/validate-openxml',toolchain)
-        self.assertNotIn('artifact-openxml-v1/current/bin/validate-openxml',delivery)
         self.assertIn('OPENXML_LOCK',doctor)
     def test_external_evidence_prepublication_gate_requires_bounded_pass_without_ivv_claim(self):
         payload={

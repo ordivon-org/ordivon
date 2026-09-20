@@ -1,10 +1,8 @@
-import ast
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DELIVERY = ROOT / "scripts/artifact_delivery.py"
 
 
 class ArtifactVerificationDecompositionA5Tests(unittest.TestCase):
@@ -16,17 +14,6 @@ class ArtifactVerificationDecompositionA5Tests(unittest.TestCase):
         ):
             with self.subTest(relative=relative):
                 self.assertTrue((ROOT / relative).is_file(), relative)
-
-    def test_delivery_no_longer_owns_verify_stage_or_raw_vsa_implementation(self):
-        source = DELIVERY.read_text(encoding="utf-8")
-        tree = ast.parse(source)
-        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
-        self.assertNotIn("_write_raw_and_vsa", funcs)
-        self.assertIn("execute_verify_stage", funcs)
-        wrapper = funcs["execute_verify_stage"]
-        self.assertLessEqual(wrapper.end_lineno - wrapper.lineno + 1, 18)
-        self.assertNotIn('elif artifact_class == "web"', ast.get_source_segment(source, wrapper) or "")
-        self.assertNotIn('artifact_class in {"fixed-view", "archive", "accessible"}', ast.get_source_segment(source, wrapper) or "")
 
     def test_verification_package_does_not_import_delivery_monolith(self):
         for relative in ("artifact_verification/evidence.py", "artifact_verification/stage.py"):

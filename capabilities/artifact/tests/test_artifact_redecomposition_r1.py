@@ -18,7 +18,7 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         )
         self.assertEqual(
             self.plan["project"]["sourceRevision"],
-            "10d0f076c32621f50f7c60ef6f847e19ea2cc9ec",
+            "3d4184a0289cc407dbb221a3919d26e5e97dedfc",
         )
 
     def test_node_ids_are_unique_and_evidence_paths_exist(self) -> None:
@@ -66,7 +66,8 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         topology = self.plan["observedTopology"]
         self.assertEqual(topology["projectPythonPackageCycles"], 0)
         self.assertEqual(topology["capabilityVerifyBindings"], 19)
-        self.assertEqual(topology["deliveryFacadeLines"], 750)
+        self.assertEqual(topology["deliveryFacadeLines"], 0)
+        self.assertEqual(topology["deliveryCliProviderLines"], 0)
         self.assertEqual(topology["directPythonProviderProjectFanout"], 17)
 
 

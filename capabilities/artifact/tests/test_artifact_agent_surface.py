@@ -57,6 +57,18 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
             self.assertEqual(result["plan"]["executable"], str(M.ARTIFACT_PYTHON))
             self.assertEqual(result["plan"]["args"][0], "scripts/artifact_verify.py")
 
+    def test_build_proposal_uses_artifact_operation_not_delivery_cli(self):
+        request = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"
+        result = M.build_proposal(str(request))
+        self.assertTrue(result["ready"], result)
+        operation = result["artifactOperation"]
+        self.assertEqual(operation["kind"], "ordivon.artifact-operation")
+        self.assertEqual(operation["operationKind"], "build")
+        self.assertEqual(operation["inputs"]["request"]["path"], str(request.resolve()))
+        source = (ROOT / "scripts/artifact_agent_surface.py").read_text(encoding="utf-8")
+        self.assertNotIn("scripts/artifact_delivery.py", source)
+        self.assertNotIn("build-request", source)
+
     def test_cad_boundary_does_not_promote_glb(self):
         status = M.cad_boundary_status()
         self.assertFalse(status["graduated"])
