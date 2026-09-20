@@ -5,7 +5,12 @@ import argparse
 import asyncio
 import hashlib
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from temporal_artifact_delivery import ARTIFACT_DELIVERY_WORKFLOW, TRUST_MATERIAL_SIGNAL
 from temporalio.client import Client
