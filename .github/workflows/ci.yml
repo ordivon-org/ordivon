@@ -25,12 +25,7 @@ jobs:
       - run: uv lock --check
       - run: uv sync --locked
       - run: uv run ruff check .
-      - run: bash scripts/test-structure.sh
-      - run: uv run python scripts/test-temporal-integration-boundary.py
-      - run: uv run python scripts/test-approval-request.py
-      - run: uv run python scripts/test-effect-authority-producer.py
-      - run: bash scripts/test-effect-authority-entrypoint.sh
-      - run: bash scripts/test-bound-entrypoint.sh
+      - run: bash scripts/test-all.sh
 
   shellcheck:
     runs-on: ubuntu-latest

@@ -87,6 +87,12 @@ native provider interface
   -> cross-provider abstraction only after demonstrated duplication
 ```
 
+Repository correctness and external carrier availability are separate gates:
+
+- `bash scripts/test-all.sh` is the deterministic repository/source contract and is required by CI;
+- `bash scripts/test-external-carriers.sh` is an on-demand observation suite for provider/tool surfaces and may depend on network access, credentials, local binaries, or container registries;
+- an unavailable optional carrier does not invalidate source correctness, and a passing carrier smoke does not grant provider or domain authority.
+
 ## Historical R2-R7 material
 
 R2-R7 document the path by which the repository learned to separate caller intent, provider observation, exact effect authority, Runtime-bound input experiments, Artifact release standing and provider read-back.

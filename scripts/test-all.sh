@@ -9,8 +9,4 @@ bash scripts/test-effect-authority-entrypoint.sh
 bash scripts/test-bound-entrypoint.sh
 uv run python scripts/test-reconciliation.py
 bash scripts/test-github-read-positive-control.sh
-bash scripts/test-github-provider-readback.sh
-bash scripts/test-rclone.sh
-bash scripts/test-postiz-surface.sh
-bash scripts/test-openapi-generator.sh
-printf 'PASS Distribution optional effect-safety reference suite\n'
+printf 'PASS Distribution deterministic repository reference suite\n'

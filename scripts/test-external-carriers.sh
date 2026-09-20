@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+bash scripts/test-github-provider-readback.sh
+bash scripts/test-rclone.sh
+bash scripts/test-postiz-surface.sh
+bash scripts/test-openapi-generator.sh
+printf 'PASS Distribution optional external carrier smoke suite\n'
