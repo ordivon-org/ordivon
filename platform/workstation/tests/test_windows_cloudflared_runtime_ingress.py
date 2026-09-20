@@ -9,7 +9,7 @@ def test_windows_runtime_ingress_uses_upstream_package_and_scm_resource():
     assert "Microsoft.WinGet/Package" in text
     assert "Cloudflare.cloudflared" in text
     assert "Microsoft.Windows/Service" in text
-    assert "OrdivonCloudflaredWindowsRuntime" in text
+    assert "name: Cloudflared" in text
     assert "logonAccount: LocalSystem" in text
     assert "startType: Automatic" in text
     assert "status: Running" in text
@@ -17,6 +17,7 @@ def test_windows_runtime_ingress_uses_upstream_package_and_scm_resource():
 def test_windows_runtime_ingress_uses_token_file_without_secret_bytes():
     text = CONFIG.read_text()
     assert "--token-file" in text
+    assert "run --token-file" in text
     assert "C:\\ProgramData\\Ordivon\\Cloudflare\\windows-runtime-canary.token" in text
     assert "TUNNEL_TOKEN=" not in text
     assert "--token " not in text
