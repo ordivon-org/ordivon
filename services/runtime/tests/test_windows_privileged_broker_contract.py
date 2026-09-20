@@ -38,6 +38,7 @@ def test_broker_surface_is_capture_plus_elevated_runtime_spawn_not_generic_admin
     assert 'operation == "jobObjectPresent"' not in text
     assert 'ContainsPair(args, "--authority", "elevated")' in text
     assert 'ValueAfter(args, "--runtime-bundle")' in text
+    assert 'Contains(args, "--runtime-request-digest")' in text
     assert "IsUnderRoot(fullBundle, options.AllowedBundleRoot)" in text
     assert "broker spawn omitted required Runtime launcher identity" in text
     assert 'Contains(args, "--emit-launcher-start")' in text

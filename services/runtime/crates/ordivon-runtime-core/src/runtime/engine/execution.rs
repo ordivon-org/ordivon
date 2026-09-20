@@ -1453,6 +1453,8 @@ impl Runtime {
                         "executionPlan.env",
                     )?)
                 };
+                let runner_request_digest =
+                    sha256_file(&bundle_path.join(RUNNER_REQUEST_FILE)).map_err(map_universal_error)?;
                 if windows.wsl_distribution.is_none() {
                     let dispatch = match spawn_windows_native(&WindowsNativeRunSpec {
                         config: windows,
@@ -1460,6 +1462,7 @@ impl Runtime {
                         job_id: &starting.job_id,
                         attempt_id: &starting.attempt_id,
                         launch_token_digest: &starting.launch_token_digest,
+                        request_digest: &runner_request_digest,
                         authority: plan.windows_authority,
                         expected_privileged_broker_digest: plan
                             .windows_execution_context
@@ -1503,6 +1506,7 @@ impl Runtime {
                     job_id: &starting.job_id,
                     attempt_id: &starting.attempt_id,
                     launch_token_digest: &starting.launch_token_digest,
+                    request_digest: &runner_request_digest,
                     authority: plan.windows_authority,
                     executable: Path::new(&plan.executable),
                     args: &plan.args,
@@ -1569,6 +1573,8 @@ impl Runtime {
             job_id: attempt.job_id.clone(),
             attempt_id: attempt.attempt_id.clone(),
             launch_token_digest: attempt.launch_token_digest.clone(),
+            request_digest: sha256_file(&Path::new(&attempt.bundle_path).join(RUNNER_REQUEST_FILE))
+                .map_err(map_universal_error)?,
             job_name: format!("Ordivon.{}", attempt.attempt_id),
             launcher_process_id: dispatch.launcher_process_id,
             launcher_process_creation_time_file_time:
@@ -1729,10 +1735,14 @@ impl Runtime {
                 )
             })?;
         let expected_job_name = format!("Ordivon.{}", attempt.attempt_id);
+        let expected_request_digest =
+            sha256_file(&Path::new(&attempt.bundle_path).join(RUNNER_REQUEST_FILE))
+                .map_err(map_universal_error)?;
         if evidence.schema_version != RUNTIME_SCHEMA_VERSION
             || evidence.job_id != attempt.job_id
             || evidence.attempt_id != attempt.attempt_id
             || evidence.launch_token_digest != attempt.launch_token_digest
+            || evidence.request_digest != expected_request_digest
             || evidence.job_name != expected_job_name
             || evidence.launcher_process_id == 0
             || evidence.launcher_process_creation_time_file_time == 0
@@ -1837,8 +1847,28 @@ impl Runtime {
                 .verify_digest(expected_broker_digest)?;
         }
         let expected_job_name = format!("Ordivon.{}", attempt.attempt_id);
-        let expected_image =
-            windows_visible_path(windows, Path::new(&plan.executable), "execution.executable")?;
+        let expected_request_digest =
+            sha256_file(&Path::new(&attempt.bundle_path).join(RUNNER_REQUEST_FILE))
+                .map_err(map_universal_error)?;
+        let (expected_executable, expected_executable_digest, expected_executable_field) =
+            if let Some(first_step) = plan.steps.first() {
+                (
+                    first_step.executable.as_str(),
+                    first_step.executable_digest.as_str(),
+                    "execution.steps[0].executable",
+                )
+            } else {
+                (
+                    plan.executable.as_str(),
+                    plan.executable_digest.as_str(),
+                    "execution.executable",
+                )
+            };
+        let expected_image = windows_visible_path(
+            windows,
+            Path::new(expected_executable),
+            expected_executable_field,
+        )?;
         let observed_image = evidence
             .image_path
             .strip_prefix("\\\\?\\")
@@ -1896,11 +1926,12 @@ impl Runtime {
             || evidence.job_id != attempt.job_id
             || evidence.attempt_id != attempt.attempt_id
             || evidence.launch_token_digest != attempt.launch_token_digest
+            || evidence.request_digest != expected_request_digest
             || evidence.job_name != expected_job_name
             || evidence.launcher_process_id == 0
             || evidence.process_id == 0
             || evidence.process_creation_time_file_time == 0
-            || evidence.image_digest != plan.executable_digest
+            || evidence.image_digest != expected_executable_digest
             || evidence.token_user_sid != context.token_user_sid
             || evidence.token_type != 1
             || !token_authority_matches

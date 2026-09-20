@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -64,12 +65,21 @@ def runtime_launcher_args(
     *options: str,
     target_args: list[str],
 ) -> list[str]:
+    request_bytes = json.dumps(
+        {'schemaVersion': 1, 'jobId': job_id, 'attemptId': attempt_id},
+        sort_keys=True,
+        separators=(',', ':'),
+    ).encode('utf-8')
+    request_path = bundle / 'request.json'
+    request_path.write_bytes(request_bytes)
+    request_digest = 'sha256:' + hashlib.sha256(request_bytes).hexdigest()
     command = [
         str(launcher),
         '--runtime-bundle', windows_path(bundle),
         '--runtime-job-id', job_id,
         '--runtime-attempt-id', attempt_id,
         '--runtime-launch-token-digest', 'sha256:' + ('a' * 64),
+        '--runtime-request-digest', request_digest,
         '--job-name', 'Ordivon.' + attempt_id,
         '--authority', 'limited',
         '--timeout-ms', '10000',
@@ -296,6 +306,34 @@ def main() -> int:
             'sameEnvironment': True,
         }
 
+        mismatch_bundle = temp / 'request digest mismatch'
+        mismatch_bundle.mkdir()
+        mismatch_command = runtime_launcher_args(
+            launcher,
+            POWERSHELL,
+            mismatch_bundle,
+            'job-accept-request-mismatch',
+            'attempt-accept-request-mismatch',
+            context_env,
+            '--emit-launcher-start',
+            target_args=['-NoProfile', '-Command', 'exit 0'],
+        )
+        (mismatch_bundle / 'request.json').write_bytes(b'corrupted-after-commit')
+        mismatch = run(mismatch_command)
+        if mismatch.returncode == 0:
+            fail('runtime request digest mismatch was accepted')
+        if (mismatch_bundle / 'windows-launcher-start.json').exists():
+            fail('request digest mismatch reached launcher-start evidence')
+        mismatch_error_path = mismatch_bundle / 'launcher-error.json'
+        if not mismatch_error_path.is_file():
+            fail('request digest mismatch omitted launcher error evidence')
+        mismatch_error = json.loads(mismatch_error_path.read_text(encoding='utf-8'))
+        if mismatch_error.get('requestDigest') is None:
+            fail('request digest mismatch error omitted committed request digest')
+        summary['requestDigestBinding'] = {
+            'mismatchRejectedBeforeLauncherStart': True,
+        }
+
         native_bundle = temp / 'native direct bundle'
         native_bundle.mkdir()
         native_command = runtime_launcher_args(
@@ -332,11 +370,18 @@ def main() -> int:
             wait_for_file(target_start_path)
             target_start = json.loads(target_start_path.read_text(encoding='utf-8'))
             for field in [
-                'jobId', 'attemptId', 'launchTokenDigest', 'jobName',
+                'jobId', 'attemptId', 'launchTokenDigest', 'requestDigest', 'jobName',
                 'launcherProcessId', 'launcherProcessCreationTimeFileTime', 'launcherImageDigest',
             ]:
                 if launcher_start.get(field) != target_start.get(field):
                     fail(f'native direct launcher/start identity mismatch for {field}')
+            expected_request_digest = 'sha256:' + hashlib.sha256(
+                (native_bundle / 'request.json').read_bytes()
+            ).hexdigest()
+            if launcher_start.get('requestDigest') != expected_request_digest:
+                fail('native direct launcher evidence did not bind request.json digest')
+            if target_start.get('requestDigest') != expected_request_digest:
+                fail('native direct target evidence did not bind request.json digest')
             native_process.wait(timeout=8)
             if native_process.returncode != 0:
                 stderr = native_process.stderr.read() if native_process.stderr is not None else ''

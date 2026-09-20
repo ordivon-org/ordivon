@@ -482,8 +482,8 @@ internal static class OrdivonWindowsPrivilegedBroker
         string bundle = ValueAfter(args, "--runtime-bundle");
         if (bundle == null) throw new InvalidOperationException("broker spawn requires --runtime-bundle");
         if (!Contains(args, "--runtime-job-id") || !Contains(args, "--runtime-attempt-id")
-            || !Contains(args, "--runtime-launch-token-digest") || !Contains(args, "--job-name")
-            || !Contains(args, "--executable"))
+            || !Contains(args, "--runtime-launch-token-digest") || !Contains(args, "--runtime-request-digest")
+            || !Contains(args, "--job-name") || !Contains(args, "--executable"))
             throw new InvalidOperationException("broker spawn omitted required Runtime launcher identity");
         if (Contains(args, "--emit-launcher-start"))
             throw new InvalidOperationException("broker spawn requires parent-owned launcher-start evidence");

@@ -281,6 +281,7 @@ internal static class OrdivonWindowsJobLauncher
         public string RuntimeJobId;
         public string RuntimeAttemptId;
         public string RuntimeLaunchTokenDigest;
+        public string RuntimeRequestDigest;
         public string JobName;
         public string InputSourceRoot;
         public string InputSetId;
@@ -510,6 +511,7 @@ internal static class OrdivonWindowsJobLauncher
                 "\"jobId\":" + JsonString(options.RuntimeJobId) + "," +
                 "\"attemptId\":" + JsonString(options.RuntimeAttemptId) + "," +
                 "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
+                "\"requestDigest\":" + JsonString(options.RuntimeRequestDigest) + "," +
                 "\"exceptionType\":" + JsonString(typeName) + "," +
                 "\"message\":" + JsonString(message) + "," +
                 "\"observedUnixMs\":" + UnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture) +
@@ -539,7 +541,7 @@ internal static class OrdivonWindowsJobLauncher
             }
             if (current == "--help")
             {
-                throw new InvalidOperationException("usage: --executable PATH [--cwd PATH] [--inherit-environment true|false] [--env NAME=VALUE] [--memory-max-bytes N] [--active-process-limit N] [--cpu-quota-percent N] [--runtime-bundle PATH --runtime-job-id ID --runtime-attempt-id ID --runtime-launch-token-digest DIGEST --job-name NAME --timeout-ms N --stdout-limit-bytes N --stderr-limit-bytes N] [--diagnostics] [-- ARGS...]");
+                throw new InvalidOperationException("usage: --executable PATH [--cwd PATH] [--inherit-environment true|false] [--env NAME=VALUE] [--memory-max-bytes N] [--active-process-limit N] [--cpu-quota-percent N] [--runtime-bundle PATH --runtime-job-id ID --runtime-attempt-id ID --runtime-launch-token-digest DIGEST --runtime-request-digest DIGEST --job-name NAME --timeout-ms N --stdout-limit-bytes N --stderr-limit-bytes N] [--diagnostics] [-- ARGS...]");
             }
             if (current == "--describe-runtime-context")
             {
@@ -645,6 +647,10 @@ internal static class OrdivonWindowsJobLauncher
             else if (current == "--runtime-launch-token-digest")
             {
                 options.RuntimeLaunchTokenDigest = value;
+            }
+            else if (current == "--runtime-request-digest")
+            {
+                options.RuntimeRequestDigest = value;
             }
             else if (current == "--job-name")
             {
@@ -798,6 +804,7 @@ internal static class OrdivonWindowsJobLauncher
             if (String.IsNullOrWhiteSpace(options.RuntimeJobId)
                 || String.IsNullOrWhiteSpace(options.RuntimeAttemptId)
                 || String.IsNullOrWhiteSpace(options.RuntimeLaunchTokenDigest)
+                || String.IsNullOrWhiteSpace(options.RuntimeRequestDigest)
                 || String.IsNullOrWhiteSpace(options.JobName)
                 || !options.TimeoutMs.HasValue
                 || !options.StdoutLimitBytes.HasValue
@@ -808,6 +815,10 @@ internal static class OrdivonWindowsJobLauncher
             if (!IsSha256Digest(options.RuntimeLaunchTokenDigest))
             {
                 throw new InvalidOperationException("runtime launch-token digest is invalid");
+            }
+            if (!IsSha256Digest(options.RuntimeRequestDigest))
+            {
+                throw new InvalidOperationException("runtime request digest is invalid");
             }
             bool hasInputSource = !String.IsNullOrWhiteSpace(options.InputSourceRoot);
             bool hasInputSet = !String.IsNullOrWhiteSpace(options.InputSetId);
@@ -1478,6 +1489,7 @@ internal static class OrdivonWindowsJobLauncher
         bool cancelled = false;
         try
         {
+            VerifyRuntimeRequestDigest(options);
             job = CreateJobObject(IntPtr.Zero, options.JobName);
             if (job == IntPtr.Zero)
             {
@@ -1872,6 +1884,7 @@ internal static class OrdivonWindowsJobLauncher
             "\"jobId\":" + JsonString(options.RuntimeJobId) + "," +
             "\"attemptId\":" + JsonString(options.RuntimeAttemptId) + "," +
             "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
+            "\"requestDigest\":" + JsonString(options.RuntimeRequestDigest) + "," +
             "\"jobName\":" + JsonString(options.JobName) + "," +
             "\"launcherProcessId\":" + GetCurrentProcessId().ToString(CultureInfo.InvariantCulture) + "," +
             "\"launcherProcessCreationTimeFileTime\":" + creationValue.ToString(CultureInfo.InvariantCulture) + "," +
@@ -1921,6 +1934,7 @@ internal static class OrdivonWindowsJobLauncher
             "\"jobId\":" + JsonString(options.RuntimeJobId) + "," +
             "\"attemptId\":" + JsonString(options.RuntimeAttemptId) + "," +
             "\"launchTokenDigest\":" + JsonString(options.RuntimeLaunchTokenDigest) + "," +
+            "\"requestDigest\":" + JsonString(options.RuntimeRequestDigest) + "," +
             "\"jobName\":" + JsonString(options.JobName) + "," +
             "\"launcherProcessId\":" + GetCurrentProcessId().ToString(CultureInfo.InvariantCulture) + "," +
             "\"launcherProcessCreationTimeFileTime\":" + launcherCreationValue.ToString(CultureInfo.InvariantCulture) + "," +
@@ -2284,6 +2298,20 @@ internal static class OrdivonWindowsJobLauncher
             }
         }
         return true;
+    }
+
+    private static void VerifyRuntimeRequestDigest(Options options)
+    {
+        string requestPath = Path.Combine(options.RuntimeBundle, "request.json");
+        if (!File.Exists(requestPath))
+        {
+            throw new InvalidOperationException("runtime request file does not exist: " + requestPath);
+        }
+        string observed = Sha256File(requestPath);
+        if (!String.Equals(observed, options.RuntimeRequestDigest, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("runtime request digest mismatch");
+        }
     }
 
     private static string Sha256File(string path)
