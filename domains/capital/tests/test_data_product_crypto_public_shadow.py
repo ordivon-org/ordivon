@@ -61,3 +61,10 @@ def test_public_access_is_not_promoted_to_redistribution_license():
     assert a['brokerCredentialsUsed'] is False
     assert a['privateAccountDataUsed'] is False
     assert a['externalFinancialWritesAttempted'] is False
+
+
+def test_domain_owner_is_not_provider_rights_claim():
+    prod=load("odps.json")
+    assert prod["team"]["name"]=="Ordivon Capital market-observation domain"
+    cp={x["property"]:x["value"] for x in prod["team"]["customProperties"]}
+    assert cp["ownershipScope"]=="PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP"

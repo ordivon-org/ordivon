@@ -177,5 +177,15 @@
         ]
       }
     }
-  ]
+  ],
+  "team": {
+    "name": "Ordivon Capital market-observation domain",
+    "description": "Domain-level owner of this data-product metadata and lifecycle. This does not assert ownership of provider market-data intellectual-property or redistribution rights.",
+    "customProperties": [
+      {
+        "property": "ownershipScope",
+        "value": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP"
+      }
+    ]
+  }
 }
