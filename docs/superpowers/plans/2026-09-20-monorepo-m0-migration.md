@@ -14,7 +14,8 @@
 
 - The monorepo root is a Git/repository-mechanics owner only.
 - Do not create a root uv workspace, root `uv.lock`, or root Python package.
-- Harness remains Python `>=3.12,<3.13`; Python 3.14.7 owners keep their own project environments.
+- Python owners target the latest stable Python accepted by their owner-native gates; Harness's accepted migration candidate is pinned to Python `3.14.7`. Common runtime currency does not merge owner environments or lockfiles.
+- All language runtimes/toolchains follow latest-stable-by-default: exact accepted version pinned after verification; prereleases are opt-in; older-version exceptions require a reproduced blocker and explicit exit condition.
 - Runtime keeps its Cargo workspace inside `services/runtime`; do not create a root Cargo workspace in M0.
 - Media and Game keep separate pnpm workspaces/lockfiles in M0.
 - Source relocation and semantic refactoring are separate commits.
@@ -351,7 +352,27 @@ sha256sum -c /root/ordivon-migration-backups/2026-09-20/SHA256SUMS
 
 Expected: every bundle verifies and every SHA-256 check passes.
 
-- [ ] **Step 3: Prove the accepted cleanup refs are inside their corresponding bundles**
+- [ ] **Step 3: Capture non-clean source state outside Git bundles**
+
+A Git bundle does not contain the index/worktree. Before any cleanup, freeze workstation-lab's currently staged semantic delta:
+
+```bash
+backup=/root/ordivon-migration-backups/2026-09-20
+git -C /root/workstation-lab status --porcelain=v1 \
+  >"$backup/workstation-lab.status"
+git -C /root/workstation-lab diff --binary \
+  >"$backup/workstation-lab.unstaged.patch"
+git -C /root/workstation-lab diff --cached --binary \
+  >"$backup/workstation-lab.staged.patch"
+git -C /root/workstation-lab ls-files --others --exclude-standard -z \
+  >"$backup/workstation-lab.untracked.zlist"
+sha256sum "$backup"/workstation-lab.{status,unstaged.patch,staged.patch,untracked.zlist} \
+  >>"$backup/SHA256SUMS"
+```
+
+Expected: the status records exactly the four known staged Creative Library paths; the staged patch is non-empty; the unstaged patch and untracked list are empty at the M0 baseline. If reality differs, stop and refresh the baseline before continuing.
+
+- [ ] **Step 4: Prove the accepted cleanup refs are inside their corresponding bundles**
 
 Run:
 
@@ -360,13 +381,13 @@ git bundle list-heads /root/ordivon-migration-backups/2026-09-20/next.bundle \
   | grep -F migration/monorepo-m0-next
 git bundle list-heads /root/ordivon-migration-backups/2026-09-20/network.bundle \
   | grep -F migration/monorepo-preclean
-git bundle list-heads /root/ordivon-migration-backups/2026-09-20/distribution.bundle \
-  | grep -F migration/monorepo-preclean
 git bundle list-heads /root/ordivon-migration-backups/2026-09-20/media.bundle \
   | grep -F migration/monorepo-preclean
 ```
 
-Expected: all four grep commands find the accepted migration refs.
+Distribution is checked here only after its full candidate validation has created `migration/monorepo-preclean`. Until then, its bundle may be created, but the candidate must not be used as an import revision.
+
+Expected: every accepted migration ref is present in its source bundle.
 
 ---
 
@@ -1050,14 +1071,14 @@ Expected: production still resolves to the previously deployed immutable Host re
 
 ---
 
-### Task 15: M4 import Harness unchanged, then reconstruct reduction separately
+### Task 15: M4 import the accepted Python 3.14.7 Harness candidate, then reconstruct reduction separately
 
 **Files:**
 - Import `services/harness/**`
 - Later semantic CL may remove owner-misplaced capability islands.
 - Do not extract Skills in the import commit.
 
-- [ ] **Step 1: Import the current stable Harness main exactly**
+- [ ] **Step 1: Import the independently accepted Harness Python 3.14.7 candidate exactly**
 
 Run:
 
@@ -1065,11 +1086,11 @@ Run:
 cd /root/projects/ordivon
 tools/repo/migration/import-owner.sh harness \
   /root/projects/ordivon-harness \
-  4b428b4f3bd69f4df1955b290b7cb5d85d59d287 \
+  88452cf9a4a4844095f49c6c5fa389345ef7bbd0 \
   services/harness /root/projects/ordivon
 ```
 
-- [ ] **Step 2: Verify Harness from its own Python 3.12 environment**
+- [ ] **Step 2: Verify Harness from its own pinned Python 3.14.7 environment**
 
 Run:
 
@@ -1087,7 +1108,7 @@ uv run python scripts/check_evidence.py
 uv run python scripts/demo_deterministic_run.py
 ```
 
-Expected: PASS without using any Python 3.14 owner environment.
+Expected: PASS on Python 3.14.7 using Harness's own locked environment; no sibling owner's virtual environment or lockfile is used.
 
 - [ ] **Step 3: Create a separate reduction branch from the imported monorepo**
 
@@ -1614,7 +1635,7 @@ AUTHORITY-SEPARATION TEST: PASS
   Runtime/Host/Harness/platform/domain/study truth boundaries remain independent.
 
 ENVIRONMENT-SEPARATION TEST: PASS
-  Harness 3.12 and Python 3.14.7 owners run from independent locked environments.
+  Harness and other Python owners may converge on Python 3.14.7 while still running from independent locked environments.
 
 HISTORY-PRESERVATION TEST: PASS
   Every imported source has verified bundle + commit-map + tree-equality evidence.

@@ -46,7 +46,15 @@
       "head": "4b428b4f3bd69f4df1955b290b7cb5d85d59d287",
       "worktree": "CLEAN",
       "target": "services/harness",
-      "preImport": "IMPORT_STABLE_MAIN_UNCHANGED_UNLESS_66091559_REDUCTION_IS_INDEPENDENTLY_ACCEPTED_FIRST; OTHERWISE_REAPPLY_REDUCTION_POST_IMPORT"
+      "preImport": "IMPORT_ACCEPTED_PYTHON_3_14_7_CANDIDATE; REAPPLY_DIVERGED_66091559_REDUCTION_POST_IMPORT_AS_SEPARATE_SEMANTIC_CHANGE",
+      "importRef": "migration/python-3.14.7",
+      "importRevision": "88452cf9a4a4844095f49c6c5fa389345ef7bbd0",
+      "languageRuntime": {
+        "language": "python",
+        "acceptedVersion": "3.14.7",
+        "policy": "LATEST_STABLE_EXACT_PIN",
+        "acceptance": "PASS_909_TESTS_156_SUBTESTS_LOCAL_ACCEPTANCE_WHEEL_SCALE_NO_UNCLOSED_DB_WARNING"
+      }
     },
     {
       "id": "workstation",
