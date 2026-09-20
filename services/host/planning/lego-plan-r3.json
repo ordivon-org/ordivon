@@ -79,7 +79,7 @@
       "owner": "RFC 8785 implementation"
     },
     {
-      "capability": "MCP protocol / HTTP transport",
+      "capability": "MCP protocol / HTTP transport / tool discovery (tools/list)",
       "owner": "official MCP Python SDK"
     },
     {
@@ -105,7 +105,12 @@
     "GenericExtensionState",
     "GenericActivityLog",
     "HydratedTaskListDuplicatePath",
-    "OSPathPinnedPythonInterpreter"
+    "OSPathPinnedPythonInterpreter",
+    "StatusInterfaceCatalog",
+    "StatusDeploymentPlaceholder",
+    "StatusContinuityDuplicate",
+    "StatusRecentActivityProjection",
+    "StatusLeasePlaceholder"
   ],
   "nonSubstitutions": [
     {

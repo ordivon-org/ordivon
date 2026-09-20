@@ -92,3 +92,20 @@ def test_python_pin_matches_project_requirement() -> None:
     pinned = (root / ".python-version").read_text().strip()
     project = tomllib.loads((root / "pyproject.toml").read_text())
     assert project["project"]["requires-python"] == f"=={pinned}"
+
+def test_host_status_does_not_duplicate_foreign_or_mcp_authorities() -> None:
+    root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
+    service = (root / "service.py").read_text()
+    contracts = (root / "contracts.py").read_text()
+    for retired in (
+        '"interface":',
+        '"surfaceVersion":',
+        '"toolNames":',
+        '"leases": 0',
+        '"deployment": {',
+        '"continuity": {',
+        '"recentActivity":',
+        '"terminalTasks":',
+    ):
+        assert retired not in service
+    assert "HostInterfaceWire" not in contracts

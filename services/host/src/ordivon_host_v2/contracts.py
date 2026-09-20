@@ -29,23 +29,12 @@ class DoctorWire(TypedDict):
     checks: list[DoctorCheckWire]
 
 
-class HostInterfaceWire(TypedDict):
-    surfaceVersion: int
-    toolCount: int
-    toolNames: list[str]
-    readTools: list[str]
-    writeTools: list[str]
-    runtimeProxy: bool
-
-
 class HostAuthorityWire(TypedDict):
     journalBackend: Literal["postgresql"]
     journalSchema: int
     events: int
     tasks: int
-    terminalTasks: int
     tasksByState: dict[str, int]
-    leases: int
 
 
 class HostStatusResponse(TypedDict):
@@ -53,12 +42,8 @@ class HostStatusResponse(TypedDict):
     kind: Literal["ordivon.host-status"]
     observedAtMs: int
     detail: Literal["summary", "integrity", "history"]
-    interface: HostInterfaceWire
     authority: HostAuthorityWire
     board: dict[str, Any]
-    deployment: dict[str, Any]
-    continuity: dict[str, int]
-    recentActivity: list[dict[str, Any]]
     doctor: DoctorWire | None
     truthBoundary: dict[str, str]
 
