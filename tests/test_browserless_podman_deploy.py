@@ -321,6 +321,19 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
             self.assertTrue(instance.is_symlink())
             self.assertEqual(instance.readlink(), Path(template.name))
 
+    def test_agent_birth_config_projects_verified_cloudflare_handoff_origins(self):
+        import browserless_podman_deploy as deploy
+
+        cfg = deploy.render_config(self.binding())
+        self.assertEqual(
+            cfg["browserlessHumanPublicOrigins"],
+            {
+                "chatgpt-carrier-11": "https://handoff-11.ordivon.com",
+                "chatgpt-carrier-12": "https://handoff-12.ordivon.com",
+                "chatgpt-carrier-13": "https://handoff-13.ordivon.com",
+            },
+        )
+
     def test_only_declared_warm_chatgpt_instance_is_boot_materialized(self):
         import browserless_podman_deploy as deploy
 

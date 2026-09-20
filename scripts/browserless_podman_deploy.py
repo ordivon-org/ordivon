@@ -371,6 +371,10 @@ def render_config(binding: dict | None = None) -> dict:
         "browserlessStartTimeoutSeconds": 20,
         "browserlessIdleTtlSeconds": 900,
         "browserlessWarmEndpointIds": [f"chatgpt-carrier-{instance}" for instance in WARM_CHATGPT_INSTANCES],
+        "browserlessHumanPublicOrigins": {
+            f"chatgpt-carrier-{instance}": f"https://handoff-{instance}.ordivon.com"
+            for instance in CHATGPT_INSTANCES
+        },
         "browserNetworkAuthority": {
             k: binding[k] for k in ("kind", "name", "generationDigest", "serviceUnit")
         },
