@@ -18,11 +18,11 @@
     "verifier": {
       "function": "verify_wave",
       "relativePath": "scripts/artifact_wave.py",
-      "sha256": "9e8356ac6bf9ef55b44ce1f9c21bf84520f9d74681ef247751d283ec81ee62a5"
+      "sha256": "1b2dc9f935219391c955115deb795441b6bc2bd4467e1c1d61a1c59d5ed4fa55"
     }
   },
   "artifactSource": {
-    "baseRevision": "dfd55b4045f2140e231429c0dbc4863f4c95424f",
+    "baseRevision": "0bf3e57f7954921b429e0b6a05f13867cf3f7c04",
     "repository": "/root/projects/ordivon-artifact-v2"
   },
   "consumer": {
@@ -45,14 +45,15 @@
     "This does not make Artifact authoritative for Game semantics, audio quality, artistic intent, rights, or player value.",
     "The consumer-local subject path is observation evidence, not an Artifact transport contract."
   ],
-  "observedAt": "2026-09-13",
+  "observedAt": "2026-09-20",
   "request": {
-    "canonicalSha256": "55c5a271ee52ab3c63b556a0df77b1ceb6c649b03410c83c29d3a85c46744b94",
-    "id": "game:veilwild:vr-orient-tick-wave:20260913-r1"
+    "canonicalSha256": "9a04ef31edce11315df4fec8f1ee85be5062becef552ea81d1ce017821dcb24d",
+    "id": "game:veilwild:vr-orient-tick-wave:20260920-r2"
   },
   "runtimeEvidence": {
-    "jobId": "job-01a09a22-3174-7981-8b9d-6832a2d44ffd",
-    "operationDigest": "sha256:7d2bb77319b43d9d6d785739446ca8c37770c7da3fcad9044dd25f7d805d895d"
+    "jobId": "job-01a0bda1-6761-7cc2-b808-8ca6d937258e",
+    "operationDigest": "sha256:35bbd4c3469ab54ff2b6b5421dfe8b6179e63427e8ac1f45979331202bf0d54f",
+    "replayStanding": "FROZEN_CONSUMER_BYTES_REPLAYED_FROM_GIT_OBJECT"
   },
   "schemaVersion": 1,
   "standing": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
@@ -73,6 +74,14 @@
     "independentTechnicalViewStatus": "PASS",
     "referenceContainerViewStatus": "PASS",
     "serviceStatus": "PASS",
-    "soxTechnicalViewStatus": "PASS"
+    "soxTechnicalViewStatus": "PASS",
+    "claimStatuses": {
+      "contractSchema": "PASS",
+      "decoderMatrix": "PASS",
+      "independentTechnicalView": "PASS",
+      "pcmIdentity": "PASS",
+      "referenceContainerView": "PASS"
+    },
+    "nativeClaimResultsComplete": true
   }
 }

@@ -14,11 +14,11 @@
     "verifier": {
       "function": "verify_png_srgb",
       "relativePath": "scripts/artifact_still_image.py",
-      "sha256": "936718da6ee64f7166b89a7f825e548ff02ad35d12626d88fdf07f1ba0d3a473"
+      "sha256": "0e2860621f3266b1219e01585a60232f2eecf10900027be49a5f8102f0ea1123"
     }
   },
   "artifactSource": {
-    "baseRevision": "39b6281b9b59c5d9d372a04e36f845758a7c93cf",
+    "baseRevision": "0bf3e57f7954921b429e0b6a05f13867cf3f7c04",
     "repository": "/root/projects/ordivon-artifact-v2"
   },
   "consumer": {
@@ -42,14 +42,15 @@
     "The consumer-local subject path is observation evidence, not an Artifact transport contract.",
     "A later consumer revision must rebind and reverify changed subject bytes."
   ],
-  "observedAt": "2026-09-13",
+  "observedAt": "2026-09-20",
   "request": {
-    "canonicalSha256": "1fe94e111af8789e4bf0c005ede6b561c383cbdad06613930320df805b3c8043",
-    "id": "game:station-zero-v3:rescue-expression:20260913-r1"
+    "canonicalSha256": "6eb3e5737f43f8f034672e0eeb7c33a7d63830e3552da66abbe41c9195945f46",
+    "id": "game:station-zero-v3:rescue-expression:20260920-r2"
   },
   "runtimeEvidence": {
-    "jobId": "job-01a09a17-9e15-7123-870e-fec6db3ae666",
-    "operationDigest": "sha256:23842212e789cbc6e5f6dd41ad95a48a0506938743d11137165a01eab7a528bb"
+    "jobId": "job-01a0bda1-6761-7cc2-b808-8ca6d937258e",
+    "operationDigest": "sha256:35bbd4c3469ab54ff2b6b5421dfe8b6179e63427e8ac1f45979331202bf0d54f",
+    "replayStanding": "FROZEN_CONSUMER_BYTES_REPLAYED_FROM_GIT_OBJECT"
   },
   "schemaVersion": 1,
   "standing": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
@@ -70,6 +71,13 @@
       "IDAT",
       "IEND"
     ],
-    "serviceStatus": "PASS"
+    "serviceStatus": "PASS",
+    "claimStatuses": {
+      "datastreamValidity": "PASS",
+      "decoderMatrix": "PASS",
+      "metadataObservation": "PASS",
+      "profileFacts": "PASS"
+    },
+    "nativeClaimResultsComplete": true
   }
 }
