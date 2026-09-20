@@ -755,7 +755,7 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
         for mode in ("zero", "multiple"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 runtime = FakeRuntime(mode)
-                _, _, _, continuity, bridge = self.initialize(
+                store, _, _, continuity, bridge = self.initialize(
                     Path(directory) / "state",
                     mode,
                     runtime,
@@ -790,11 +790,12 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
                 retained = continuity.load_current_tool_step()
                 self.assertEqual(retained.receipt.status, HarnessToolStepStatus.UNKNOWN)
                 self.assertTrue(retained.receipt.reconciled)
+                store.close()
 
     def test_precommit_runtime_rejection_is_model_correctable_observation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runtime = FakeRuntime("reject")
-            _, _, _, continuity, bridge = self.initialize(
+            store, _, _, continuity, bridge = self.initialize(
                 Path(directory) / "state",
                 "reject",
                 runtime,
@@ -818,6 +819,7 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
             retained = continuity.load_current_tool_step()
             self.assertEqual(retained.receipt.status, HarnessToolStepStatus.REJECTED)
             self.assertIsNone(retained.receipt.runtime_job_ref)
+            store.close()
 
     def test_modules_have_no_host_compatibility_imports(self) -> None:
         root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"

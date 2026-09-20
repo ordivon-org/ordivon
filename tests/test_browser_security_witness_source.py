@@ -70,7 +70,8 @@ class BrowserSecurityWitnessSourceTests(unittest.TestCase):
     def test_profile_cookie_metadata_reads_counts_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "Cookies"
-            with sqlite3.connect(path) as db:
+            db = sqlite3.connect(path)
+            try:
                 db.execute("CREATE TABLE cookies(host_key TEXT, name TEXT, value TEXT)")
                 db.executemany(
                     "INSERT INTO cookies(host_key,name,value) VALUES(?,?,?)",
@@ -80,6 +81,9 @@ class BrowserSecurityWitnessSourceTests(unittest.TestCase):
                         ("b.example", "session", "secret-three"),
                     ],
                 )
+                db.commit()
+            finally:
+                db.close()
             value = profile_cookie_metadata(path)
             self.assertEqual(value, {"cookieRows": 3, "cookieHosts": 2})
             self.assertNotIn("secret", json.dumps(value).lower())

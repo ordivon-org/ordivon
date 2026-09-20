@@ -198,7 +198,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
         fail("uv is required")
     with tempfile.TemporaryDirectory(prefix="ordivon-harness-wheel-") as directory:
         root = Path(directory)
-        checked([uv, "venv", "--python", "3.12", str(root)])
+        checked([uv, "venv", "--python", "3.14.7", str(root)])
         python = root / "bin/python"
         cli = root / "bin/ordivon-harness"
         checked([uv, "pip", "install", "--link-mode", "copy", "--python", str(python), str(wheel)])

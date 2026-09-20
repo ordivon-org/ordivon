@@ -42,8 +42,11 @@ def profile_cookie_metadata(path: Path) -> dict[str, int]:
     if not path.is_file():
         return {"cookieRows": 0, "cookieHosts": 0}
     uri = f"file:{path}?mode=ro"
-    with sqlite3.connect(uri, uri=True, timeout=2) as db:
+    db = sqlite3.connect(uri, uri=True, timeout=2)
+    try:
         row = db.execute("SELECT COUNT(*), COUNT(DISTINCT host_key) FROM cookies").fetchone()
+    finally:
+        db.close()
     if row is None:
         return {"cookieRows": 0, "cookieHosts": 0}
     return {"cookieRows": int(row[0]), "cookieHosts": int(row[1])}

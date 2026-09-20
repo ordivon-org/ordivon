@@ -14,7 +14,7 @@ EOF
 }
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-python_bin=${PYTHON_BIN:-$(command -v python3.12 || true)}
+python_bin=${PYTHON_BIN:-$(command -v python3.14 || true)}
 uv_bin=${UV_BIN:-$(command -v uv || true)}
 env_dir=${ORDIVON_OWNER_ENV_DIR:-"$repo/.venv"}
 owner_environment="$repo/scripts/owner-environment"

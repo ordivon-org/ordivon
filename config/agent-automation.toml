@@ -8,7 +8,7 @@ mcp_token_file = "/etc/ordivon/agent-automation-mcp.token"
 mcp_bind = "127.0.0.1"
 mcp_port = 8896
 mcp_runtime_python = "/root/.local/share/ordivon-workstation/agent-automation-mcp-v1/.venv/bin/python"
-mcp_python_version = "3.12.13"
+mcp_python_version = "3.14.7"
 mcp_requirements = "config/agent-automation-mcp-requirements.txt"
 mcp_unit = "ordivon-agent-automation-mcp.service"
 

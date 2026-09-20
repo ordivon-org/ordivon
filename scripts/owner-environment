@@ -28,8 +28,8 @@ import importlib.metadata as md
 import sys
 for module in ("ordivon_harness", "anc_canonical", "jsonschema", "yaml", "pytest", "ruff"):
     __import__(module)
-if sys.version_info[:2] != (3, 12):
-    raise SystemExit(f"Harness requires Python 3.12, got {sys.version.split()[0]}")
+if sys.version_info[:3] != (3, 14, 7):
+    raise SystemExit(f"Harness requires Python 3.14.7, got {sys.version.split()[0]}")
 if md.version("PyYAML") != "6.0.3":
     raise SystemExit("unexpected PyYAML version")
 if md.version("pytest") != "9.1.1":
