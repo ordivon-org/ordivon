@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "witnessId": "browserless-prod-r2-20260918",
+  "browserBinaryDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+  "controlLayer": {
+    "routeFamily": "browserless/chromium",
+    "browserlessImage": "ghcr.io/browserless/chromium@sha256:b1ba7b054af2891a8199f884d4bd249cf8c3bd2fa8a97b339077e40f92803ba8",
+    "agentAutomationRelease": "6864da68310753dd04295b7749b9cc16973fef4a",
+    "browserVersion": "153.0.8010.12",
+    "launchOwner": "browserless-puppeteer",
+    "controlClient": "playwright-connect-over-cdp",
+    "headless": false,
+    "userDataDir": "/data",
+    "networkNamespace": "nv2-browserless-prod",
+    "observedLaunchPresentation": {
+      "enableAutomation": true
+    }
+  },
+  "networkAuthority": {
+    "generationDigest": "sha256:643ae566ae3343f869c25e43920aa9ef741e8f0fa2a4f031767ef9f1853425be",
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "serviceUnit": "network-v2-browserless.target"
+  },
+  "readings": [
+    {
+      "detectorId": "cf02-transport-normalized",
+      "family": "CF02",
+      "detectorVersion": "r2-20260918",
+      "coverage": "normalized browser TLS/HTTP2 transport fields stable across R1 repeated Browserless/direct samples; excludes noisy one-shot JA3",
+      "publicObservation": {
+        "httpVersion": "h2",
+        "ja4": "t13d1518h2_8daaf6152771_4980c97edce0",
+        "peetprintHash": "493a80d6a4267c7820685d29d92aa946",
+        "http2AkamaiFingerprintHash": "52d84b11737d980aef856699f885ca86",
+        "ja3WithinArmVariable": true
+      }
+    },
+    {
+      "detectorId": "cf03-main-document-headers",
+      "family": "CF03",
+      "detectorVersion": "r2-20260918",
+      "coverage": "main-document request header set and order from neutral local HTTP lab",
+      "publicObservation": {
+        "headerOrder": [
+          "Host",
+          "Connection",
+          "sec-ch-ua",
+          "sec-ch-ua-mobile",
+          "sec-ch-ua-platform",
+          "Accept-Language",
+          "Upgrade-Insecure-Requests",
+          "User-Agent",
+          "Accept",
+          "Sec-Fetch-Site",
+          "Sec-Fetch-Mode",
+          "Sec-Fetch-User",
+          "Sec-Fetch-Dest",
+          "Accept-Encoding"
+        ],
+        "browserlessVsDirect": "same-in-r2-lab"
+      }
+    },
+    {
+      "detectorId": "cf04-browser-js-presentation",
+      "family": "CF04",
+      "detectorVersion": "r2-20260918",
+      "coverage": "page-visible browser identity and automation presentation",
+      "publicObservation": {
+        "browserVersion": "153.0.8010.12",
+        "platform": "Linux x86_64",
+        "language": "en-US",
+        "languages": ["en-US"],
+        "navigatorWebdriver": true,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+      }
+    },
+    {
+      "detectorId": "cf05-control-observability",
+      "family": "CF05",
+      "detectorVersion": "r2-20260918",
+      "coverage": "console/Error.stack side-effect probe plus execution-context/world shape; broader protocol-domain subscriptions remain uncovered",
+      "publicObservation": {
+        "consoleErrorStackGetterReads": {
+          "log": 0,
+          "dir": 0,
+          "debug": 0
+        },
+        "pageGlobalMatches": [],
+        "executionContextCount": 4,
+        "executionContextShape": [
+          "main-default",
+          "main-playwright-utility",
+          "iframe-default",
+          "iframe-playwright-utility"
+        ],
+        "extraBrowserlessWorldObserved": false,
+        "broaderProtocolDomainStateCovered": false
+      }
+    },
+    {
+      "detectorId": "cf06-cross-layer-consistency",
+      "family": "CF06",
+      "detectorVersion": "r2-20260918",
+      "coverage": "network geography vs browser timezone plus browser geometry and system-verified font environment",
+      "publicObservation": {
+        "network": {
+          "country": "KR",
+          "cloudflareColo": "ICN",
+          "http": "http/2",
+          "tls": "TLSv1.3",
+          "warp": "off"
+        },
+        "browser": {
+          "timezone": "Asia/Shanghai",
+          "timezoneOffsetMinutes": -480,
+          "screen": [1440, 1000],
+          "devicePixelRatio": 1,
+          "hardwareConcurrency": 16,
+          "deviceMemoryGiB": 8,
+          "maxTouchPoints": 0,
+          "windowInner": [1288, 764],
+          "windowOuter": [1288, 851]
+        },
+        "networkGeoVsTimezoneMismatch": true,
+        "fontResolution": {
+          "DejaVu Sans": "DejaVu Sans",
+          "Arial": "Liberation Sans",
+          "Segoe UI": "Selawik",
+          "Noto Sans": "Ubuntu fallback"
+        }
+      }
+    },
+    {
+      "detectorId": "cf07-profile-metadata",
+      "family": "CF07",
+      "detectorVersion": "r2-20260918",
+      "coverage": "non-secret persistent-profile metadata counts across three carriers; no cookie values",
+      "publicObservation": {
+        "carrier11": {"cookieRows": 37, "cookieHosts": 4},
+        "carrier12": {"cookieRows": 35, "cookieHosts": 4},
+        "carrier13": {"cookieRows": 32, "cookieHosts": 3},
+        "singleProfileExplanation": "weakened"
+      }
+    },
+    {
+      "detectorId": "cf08-provider-outcome",
+      "family": "CF08",
+      "detectorVersion": "r2-20260918",
+      "coverage": "read-only provider preflight outcome only; never used as detector oracle",
+      "publicObservation": {
+        "carrier11": "CHALLENGE_GATED",
+        "carrier12": "CHALLENGE_GATED",
+        "carrier13": "CHALLENGE_GATED",
+        "allSubstratesHealthy": true,
+        "providerEffectAttempted": false
+      }
+    }
+  ],
+  "challengeStanding": "CHALLENGE_GATED"
+}

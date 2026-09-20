@@ -1,0 +1,19 @@
+title = "Old Security migration-only Gitleaks adjudication"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Non-product research/history surfaces are outside the old Security product differential."
+paths = [
+  '''(^|/)(research|evidence|docs|fixtures|scenarios)/''',
+  '''(^|/)(\.git|\.venv|__pycache__|artifacts)/'''
+]
+
+[[allowlists]]
+description = "Exact generic-api-key false positive: Python keyword argument forwards the run_token variable; no literal credential is present on this line. Migration-local only."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''run_token\s*=\s*run_token''']
+paths = ['''src/ordivon_security/range/windows_fabric_recovery_ownership\.py$''']

@@ -1,0 +1,53 @@
+name: security-v2-contracts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-waist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.16"
+      - run: uv python install 3.14.7
+      - run: uv sync --frozen --python 3.14.7
+      - run: uv run --frozen --python 3.14.7 ruff check .
+      - run: uv run --frozen --python 3.14.7 python -m unittest discover -s tests -v
+      - name: Validate canonical threat model binding
+        run: uv run --frozen --python 3.14.7 python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
+      - name: Validate TM-BOM schema
+        run: ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
+      - name: OPA policy tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          image=$(uv run --frozen --python 3.14.7 python - <<'PY'
+          import json
+          value = json.load(open("providers.lock.json", encoding="utf-8"))
+          opa = next(row for row in value["providers"] if row["name"] == "opa")
+          print(f'{opa["ciContainer"]["image"]}@{opa["ciContainer"]["digest"]}')
+          PY
+          )
+          docker run --rm --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # v2.0.0
+        with:
+          version: v0.11.0

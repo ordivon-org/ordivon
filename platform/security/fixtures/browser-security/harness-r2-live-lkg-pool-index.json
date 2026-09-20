@@ -1,0 +1,67 @@
+{
+  "carriers": [
+    {
+      "browserBinaryDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+      "bundle": "fixtures/browser-security/harness-r2-live-lkg-carrier11-bundle.json",
+      "bundleSha256": "sha256:a5edb47e67570cee733e18db7371d671fcd28fe4a7a44b38ad6d3e6b8fb0dc80",
+      "carrierId": "chatgpt-carrier-11",
+      "challengeStanding": null,
+      "controlLayerEndpointId": "chatgpt-carrier-11",
+      "detectorVersion": "harness-browser-security-r2",
+      "manifest": "fixtures/browser-security/harness-r2-live-lkg-carrier11-manifest.json",
+      "manifestSha256": "sha256:24ed74939bd9e529a4b6d79688e70d79576478203193c698cf14f77a3f2bfbc7",
+      "networkAuthority": {
+        "generationDigest": "sha256:643ae566ae3343f869c25e43920aa9ef741e8f0fa2a4f031767ef9f1853425be",
+        "kind": "network-v2",
+        "name": "browserless-prod",
+        "serviceUnit": "network-v2-browserless.target"
+      },
+      "witnessId": "browserless-prod-carrier11-live-r2-run1-20260918"
+    },
+    {
+      "browserBinaryDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+      "bundle": "fixtures/browser-security/harness-r2-live-lkg-carrier12-bundle.json",
+      "bundleSha256": "sha256:da7b9496da7b7430a733e48a3dd12f0026a4d555ba0308a5deaa8d358f5957a2",
+      "carrierId": "chatgpt-carrier-12",
+      "challengeStanding": null,
+      "controlLayerEndpointId": "chatgpt-carrier-12",
+      "detectorVersion": "harness-browser-security-r2",
+      "manifest": "fixtures/browser-security/harness-r2-live-lkg-carrier12-manifest.json",
+      "manifestSha256": "sha256:083a1f82e8160360b2a8eb40869c176893b347889b97c43d63929f345783721e",
+      "networkAuthority": {
+        "generationDigest": "sha256:643ae566ae3343f869c25e43920aa9ef741e8f0fa2a4f031767ef9f1853425be",
+        "kind": "network-v2",
+        "name": "browserless-prod",
+        "serviceUnit": "network-v2-browserless.target"
+      },
+      "witnessId": "browserless-prod-carrier12-live-r2-lkg-20260918"
+    },
+    {
+      "browserBinaryDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+      "bundle": "fixtures/browser-security/harness-r2-live-lkg-carrier13-bundle.json",
+      "bundleSha256": "sha256:daf798c3b7f84172aff765c444b9c9ccd31522fac16f103d6a05b197da2687a3",
+      "carrierId": "chatgpt-carrier-13",
+      "challengeStanding": null,
+      "controlLayerEndpointId": "chatgpt-carrier-13",
+      "detectorVersion": "harness-browser-security-r2",
+      "manifest": "fixtures/browser-security/harness-r2-live-lkg-carrier13-manifest.json",
+      "manifestSha256": "sha256:c8ae3904f1edb4552f4a2a117bd5cb51adf4c368becad251c8ba6db31886b444",
+      "networkAuthority": {
+        "generationDigest": "sha256:643ae566ae3343f869c25e43920aa9ef741e8f0fa2a4f031767ef9f1853425be",
+        "kind": "network-v2",
+        "name": "browserless-prod",
+        "serviceUnit": "network-v2-browserless.target"
+      },
+      "witnessId": "browserless-prod-carrier13-live-r2-lkg-20260918"
+    }
+  ],
+  "comparisonLaw": {
+    "crossCarrierAsSubjectDrift": "FORBIDDEN",
+    "crossCarrierUse": "DESCRIPTIVE_DIFFERENTIAL_ONLY",
+    "sameCarrierCandidateVsSameCarrierLkg": "ALLOWED"
+  },
+  "kind": "ordivon.browser-security-pool-lkg-index",
+  "poolId": "browserless-prod-r2-20260918",
+  "schemaVersion": 1,
+  "standing": "LKG_PER_CARRIER"
+}

@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-security-v2",
+    "purpose": "Bind exact security subjects to provider-native evidence, freshness/applicability, policy decisions, and standing projections while external tools own scanning/vulnerability/policy mechanics.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/TECHNOLOGY-SELECTION-R2.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "S01",
+      "label": "SubjectIdentity",
+      "kind": "identity",
+      "responsibility": "Bind the exact code/package/system subject under security evaluation.",
+      "authority": "Security",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "project ownership"
+      ],
+      "acceptance": [
+        "Evidence cannot silently drift to another subject."
+      ]
+    },
+    {
+      "id": "S02",
+      "label": "ProviderEvidence",
+      "kind": "evidence_binding",
+      "responsibility": "Retain provider-native SARIF/SBOM/OSV/decision outputs through digest-bound EvidenceRef records.",
+      "authority": "Security",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "proprietary normalized finding truth"
+      ],
+      "acceptance": [
+        "Provider-native artifacts remain resolvable."
+      ]
+    },
+    {
+      "id": "S03",
+      "label": "Applicability",
+      "kind": "domain_context",
+      "responsibility": "Bind freshness/applicability/admission context supplied by owner/provider.",
+      "authority": "Security",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "invented currentness"
+      ],
+      "acceptance": [
+        "Standing can distinguish stale/inapplicable evidence."
+      ]
+    },
+    {
+      "id": "S04",
+      "label": "PolicyDecision",
+      "kind": "policy",
+      "responsibility": "Compose bounded policy input and external OPA/Rego decision without cloning the policy engine.",
+      "authority": "Security + policy owner",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "OPA mechanics"
+      ],
+      "acceptance": [
+        "Policy effect is traceable to exact evidence/context."
+      ]
+    },
+    {
+      "id": "S05",
+      "label": "StandingProjection",
+      "kind": "projection",
+      "responsibility": "Project current security standing without claiming that tool installation/selection equals admission.",
+      "authority": "Security",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L11"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/TECHNOLOGY-SELECTION-R2.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "consumer acceptance"
+      ],
+      "acceptance": [
+        "Selected providers remain distinct from admitted/accepted coverage."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "S01",
+      "to": "S02",
+      "type": "IDENTITY",
+      "label": "evidence bound to exact subject"
+    },
+    {
+      "from": "S02",
+      "to": "S03",
+      "type": "EVIDENCE",
+      "label": "freshness/applicability context"
+    },
+    {
+      "from": "S03",
+      "to": "S04",
+      "type": "POLICY",
+      "label": "bounded policy input"
+    },
+    {
+      "from": "S04",
+      "to": "S05",
+      "type": "DATA",
+      "label": "standing projection"
+    }
+  ],
+  "slices": [
+    {
+      "id": "SS1",
+      "objective": "Admit additional selected P0 providers only from a concrete consumer/security gap, keeping selection distinct from production admission.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "S02",
+        "S05"
+      ],
+      "acceptance": [
+        "The next provider addition names a consumer need, exact evidence contract, admission boundary, and independent acceptance; otherwise it remains selected-only."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Use current Scorecard selected/accepted-but-not-admitted standing as the first policy pressure test."
+    }
+  ],
+  "gaps": [
+    "Selected P0/P1 providers are not automatically active/admitted capabilities."
+  ],
+  "doNotOwn": [
+    "scanner/vulnerability database mechanics",
+    "consumer project semantic acceptance",
+    "generic policy engine"
+  ],
+  "review": {
+    "sourceRevision": "24564910f5ab18fd298df7ece85c4fdd709469fa",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  }
+}

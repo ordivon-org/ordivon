@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "providers": [
+    {
+      "name": "gitleaks",
+      "version": "build-metadata-unavailable",
+      "executable": "/usr/bin/gitleaks",
+      "sha256": "sha256:ef931a755d99f66e78923685cde6b475e16f2eda0e044ede2f396421d1984ef3"
+    },
+    {
+      "name": "osv-scanner",
+      "version": "2.5.0",
+      "executable": "/usr/bin/osv-scanner",
+      "sha256": "sha256:014e2857698dbcd566b3221865686b183e4ed87922bac4083689f3fc7d0e1d39"
+    },
+    {
+      "name": "trivy",
+      "version": "0.73.0",
+      "executable": "/usr/bin/trivy",
+      "sha256": "sha256:ab81f5882c4950fa6eca9a2e746e6582aba891a72013824d4976674fb9942112"
+    },
+    {
+      "name": "syft",
+      "version": "1.50.0",
+      "executable": "/usr/bin/syft",
+      "sha256": "sha256:e95df1c4a37e7bc4ae26a520f7e57589574bef3fb810d4a548550f36dc9ab038"
+    },
+    {
+      "name": "opa",
+      "version": "1.20.2",
+      "executable": "/usr/bin/opa",
+      "sha256": "sha256:ae0171e1b8cfed38f39c435660924c06a313868dd5d34bf5f5869d6dbe78d21b",
+      "ciContainer": {
+        "image": "docker.io/openpolicyagent/opa",
+        "digest": "sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f"
+      }
+    },
+    {
+      "name": "semgrep",
+      "version": "1.177.0",
+      "execution": "uvx --from semgrep==1.177.0 semgrep",
+      "sha256": null
+    }
+  ]
+}

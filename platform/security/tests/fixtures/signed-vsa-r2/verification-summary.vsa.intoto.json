@@ -1,0 +1,73 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "predicate": {
+    "dependencyLevels": {},
+    "inputAttestations": [
+      {
+        "digest": {
+          "sha256": "c2e9da61cb467bcab6b6248267ea6fc3602b94d96db05bb3b8a63280e51cd6c2"
+        },
+        "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/artifacts/signed-vsa-r2/attestations/input-00-gitleaks.reference.intoto.json"
+      },
+      {
+        "digest": {
+          "sha256": "02e18b1871aef2a7fdf2a8fdd4fc566ae255e637b9b9adbbf04a09162ab7b21e"
+        },
+        "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/artifacts/signed-vsa-r2/attestations/input-01-semgrep.reference.intoto.json"
+      },
+      {
+        "digest": {
+          "sha256": "4a8cdd8a10015854636e892abd0b7462657dd23f38bce31e7db4451e08ecc77a"
+        },
+        "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/artifacts/signed-vsa-r2/attestations/input-02-trivy.reference.intoto.json"
+      },
+      {
+        "digest": {
+          "sha256": "e0fbfee8dc981a0ef93773c45777cf4f8d0311f2c0411fb27086492249bdd3f8"
+        },
+        "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/artifacts/signed-vsa-r2/attestations/input-03-syft.reference.intoto.json"
+      },
+      {
+        "digest": {
+          "sha256": "fba43702ad24574dbefce8ffe9c13cfbfd3ddb86ac49a6749eedcfe41fd88251"
+        },
+        "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/artifacts/signed-vsa-r2/attestations/input-04-osv-scanner.reference.intoto.json"
+      },
+      {
+        "digest": {
+          "sha256": "97c3fd60464015b45c1e3ff60d73cc0b8bc3074189499e47613de3438b9c6ca8"
+        },
+        "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/artifacts/signed-vsa-r2/attestations/input-05-ordivon-runner.reference.intoto.json"
+      }
+    ],
+    "policy": {
+      "digest": {
+        "sha256": "09119fb74fc515af020de5c80dd938dd21bc03a1f2fab9fd6093b3a31589f198"
+      },
+      "uri": "file:///var/lib/ordivon/runtime/workspaces/ws-security-v2-greenfield-r1-20260911/policies/admission.rego"
+    },
+    "resourceUri": "git+file:///root/projects/ordivon-security@5e3142b92fc5aed3259295b63c0300f01b45e04a",
+    "slsaVersion": "1.2",
+    "verificationResult": "PASSED",
+    "verifiedLevels": [
+      "SECURITY_PRODUCT_POLICY"
+    ],
+    "verifier": {
+      "id": "https://ordivon.local/security-v2",
+      "version": {
+        "gitleaks-config": "sha256:084c8f1a2d2b2d26534d13e33dfc4fc24e45b2908b28323a13e6d0835508076f",
+        "ordivon-security-v2": "558eda72479d0531c9be1e5d8fded4eb96bfef93",
+        "profile": "product"
+      }
+    }
+  },
+  "predicateType": "https://slsa.dev/verification_summary/v1",
+  "subject": [
+    {
+      "digest": {
+        "gitCommit": "5e3142b92fc5aed3259295b63c0300f01b45e04a"
+      },
+      "name": "/root/projects/ordivon-security"
+    }
+  ]
+}
