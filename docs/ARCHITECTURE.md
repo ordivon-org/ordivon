@@ -95,3 +95,7 @@ The reference lane lives under `reference/linux/` and requires a dedicated, priv
 The lane proves deterministic packet impairment, a real two-node containerlab topology, and kernel-vs-userspace WireGuard lifecycle behavior. The graduated reference run used a clean immutable Arch Linux KVM base and a disposable qcow2 overlay; the guest shut down cleanly after acceptance and the base digest remained unchanged. A WSL host is rejected by preflight rather than treated as a failed reference implementation.
 
 For CI, the repository carries a GitHub Actions workflow targeting a dedicated self-hosted runner with `[self-hosted, linux, x64, network-e2e]`. The repository currently has no Git remote, so the workflow is a ready contract rather than an executed remote proof.
+
+## Consumer lifecycle boundary
+
+Browserless provider/consumer migration may fail closed when an observed upper-layer workflow is actively using the path, but Network does not start, restart, enable, or require an Agent Automation/Temporal consumer service as part of network cutover or acceptance. Consumer lifecycle belongs to its own owner. A successful Network Browserless cutover proves the network/provider path and leaves upper-layer reconciliation to the consumer.

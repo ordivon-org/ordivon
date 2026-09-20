@@ -47,8 +47,7 @@ restore_after_lease() {
 }
 
 accept_restored_production() {
-  for u in ordivon-runtime.service temporal.service ordivon-agent-temporal-worker.service \
-    ordivon-agent-automation-mcp.service ordivon-exterior-anchor-chatgpt-browserless-r1.service \
+  for u in ordivon-runtime.service temporal.service ordivon-exterior-anchor-chatgpt-browserless-r1.service \
     ordivon-browserless-anchor-recover.path ordivon-browserless-netns-reconcile.path \
     ordivon-browserless@11.service ordivon-browserless@12.service ordivon-browserless@13.service; do
     [ "$(systemctl is-active "$u" 2>/dev/null)" = active ]
