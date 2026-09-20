@@ -28,6 +28,12 @@ git -C "$SOURCE" add nested/b.txt evidence.sha
 git -C "$SOURCE" commit -m "add beta and evidence binding" >/dev/null
 SOURCE_HEAD="$(git -C "$SOURCE" rev-parse HEAD)"
 
+# Force bundle head enumeration beyond a pipe buffer so early-exit consumers
+# surface SIGPIPE under set -o pipefail.
+for i in $(seq 1 5000); do
+  git -C "$SOURCE" update-ref "refs/heads/noise-$i" "$OLD_SHA"
+done
+
 git init -b main "$TARGET_ROOT" >/dev/null
 git -C "$TARGET_ROOT" config user.name "Ordivon Migration Test"
 git -C "$TARGET_ROOT" config user.email "migration-test@localhost"

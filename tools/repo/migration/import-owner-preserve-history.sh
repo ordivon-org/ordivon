@@ -50,7 +50,12 @@ BUNDLE_SHA="$(sha256sum "$BUNDLE" | awk '{print $1}')"
 
 SOURCE_REF="$(
   git bundle list-heads "$BUNDLE" |
-    awk -v revision="$REVISION" '$1 == revision && $2 != "HEAD" { print $2; exit }'
+    awk -v revision="$REVISION" '
+      $1 == revision && $2 != "HEAD" && !found {
+        print $2
+        found = 1
+      }
+    '
 )"
 if [ -z "$SOURCE_REF" ]; then
   echo "bundle does not advertise exact revision $REVISION; create a source ref for the accepted import revision and refresh the bundle" >&2
