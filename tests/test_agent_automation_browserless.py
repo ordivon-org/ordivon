@@ -947,6 +947,38 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertEqual(result["effectId"], request.request_id)
             self.assertEqual(result["receipt"]["standing"], "bound")
 
+    def test_config_accepts_https_public_handoff_origin(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = config(Path(d))
+            cfg["browserlessHumanPublicOrigins"] = {
+                "carrier-a": "https://handoff-11.ordivon.com"
+            }
+            parsed = BrowserlessAutomationConfig.from_dict(cfg)
+            self.assertEqual(
+                parsed.browserless_human_public_origins["carrier-a"],
+                "https://handoff-11.ordivon.com",
+            )
+
+    def test_config_rejects_non_https_public_handoff_origin(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = config(Path(d))
+            cfg["browserlessHumanPublicOrigins"] = {
+                "carrier-a": "http://handoff-11.ordivon.com"
+            }
+            with self.assertRaisesRegex(ValueError, "HTTPS origin"):
+                BrowserlessAutomationConfig.from_dict(cfg)
+
+    def test_public_handoff_url_uses_https_origin_without_mutating_receipt(self):
+        from agent_automation_browserless import _project_public_handoff_url
+
+        local = "http://127.0.0.1:16011/vnc.html?host=127.0.0.1&port=16011&path=websockify&autoconnect=1&resize=scale"
+        projected = _project_public_handoff_url("https://handoff-11.ordivon.com", local)
+        self.assertEqual(
+            projected,
+            "https://handoff-11.ordivon.com/vnc.html?host=handoff-11.ordivon.com&port=443&path=websockify&autoconnect=1&resize=scale&encrypt=1",
+        )
+        self.assertIn("127.0.0.1:16011", local)
+
     def test_human_resume_admits_temporal_only_for_human_required(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
