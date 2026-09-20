@@ -696,6 +696,13 @@
       ],
       "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
       "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.environment.python-3.14.7-upgrade",
+      "file": "harness-python-3.14.7-upgrade-20260921.json",
+      "status": "verified",
+      "implementationRevision": "dfe099d7d7725089c270aaf2acf08a6688c8c045",
+      "scope": "Current owner/release-profile acceptance for the Harness Python 3.14.7 upgrade at dfe099d7: locked environment, runtime-search profile, compile, Ruff, 909 pytest cases plus 156 subtests, dependency/docs/evidence contracts, deterministic demo, pip-audit, wheel build/install smoke, normal owner environment, fresh cold-start owner environment, local acceptance presence, and diff-check. This receipt does not revalidate historical Adaptive Edit/LSP/DAP live claims whose former runtime dependency closure is now historical."
     }
   ]
 }

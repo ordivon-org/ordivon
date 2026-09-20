@@ -350,6 +350,33 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(any("ancestor" in error for error in errors))
 
+    def test_python_3147_upgrade_receipt_is_current_without_rebinding_old_live_evidence(self) -> None:
+        entries = self._entries()
+        upgrade = entries["harness.environment.python-3.14.7-upgrade"]
+        self.assertEqual(upgrade["status"], "verified")
+        self.assertEqual(
+            upgrade["implementationRevision"],
+            "dfe099d7d7725089c270aaf2acf08a6688c8c045",
+        )
+        receipt = json.loads(
+            (ROOT / "evidence" / "harness-python-3.14.7-upgrade-20260921.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(receipt["python"]["version"], "3.14.7")
+        self.assertEqual(receipt["checks"]["pytest"]["cases"], 909)
+        self.assertEqual(receipt["checks"]["pytest"]["subtests"], 156)
+        self.assertEqual(receipt["checks"]["pipAudit"]["knownVulnerabilities"], 0)
+        self.assertEqual(
+            receipt["runtimeDependencyClosureDigest"],
+            "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
+        )
+        current, invalidating = check_evidence._verified_revision_is_current(
+            str(upgrade["implementationRevision"])
+        )
+        self.assertTrue(current, invalidating)
+        self.assertEqual(invalidating, [])
+
     def test_complete_evidence_contract_is_green(self) -> None:
         completed = subprocess.run(
             [sys.executable, str(SCRIPT)],
