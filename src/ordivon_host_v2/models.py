@@ -50,11 +50,3 @@ class MutationResult(BaseModel):
 
     admission: Admission
     task: TaskView
-
-
-class HostStatus(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    service: str = "ordivon-host-v2"
-    authority: str = "postgresql"
-    schema_version: int = 5

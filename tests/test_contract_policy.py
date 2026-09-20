@@ -109,3 +109,20 @@ def test_host_status_does_not_duplicate_foreign_or_mcp_authorities() -> None:
     ):
         assert retired not in service
     assert "HostInterfaceWire" not in contracts
+
+def test_psycopg_owns_jsonb_adaptation() -> None:
+    root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
+    service = (root / "service.py").read_text()
+    assert "from psycopg.types.json import Jsonb" in service
+    assert "Jsonb(" in service
+    assert "json.dumps" not in service
+    assert "json.loads" not in service
+    assert "%s::jsonb" not in service
+
+
+def test_dead_host_status_model_is_absent() -> None:
+    root = Path(__file__).parents[1] / "src" / "ordivon_host_v2"
+    models = (root / "models.py").read_text()
+    exports = (root / "__init__.py").read_text()
+    assert "class HostStatus(" not in models
+    assert "HostStatus" not in exports
