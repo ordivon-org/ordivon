@@ -1,0 +1,292 @@
+{
+  "actionLaw": {
+    "attach": {
+      "consequence": "process-lifecycle",
+      "intentDigest": "sha256:9b6141abd3bbfb18a71d9d663c403608a088cd6edd5d8e1a1d8cebb133870c23"
+    },
+    "continueFromAttach": {
+      "consequence": "execution-control",
+      "intentDigest": "sha256:48fb43686b9ca93962e3d965c7b1f1f23dfd73338d3a9f727aa430c05e6ec1c7"
+    },
+    "continueToExit": {
+      "consequence": "execution-control",
+      "intentDigest": "sha256:2d6ea72c166347d1fb8504be47498e8f1756622a4a800c6428149bc76efcc6fe"
+    },
+    "evaluate": {
+      "consequence": "effect-capable",
+      "intentDigest": "sha256:f210dea1476d2123816912e34dff102bce097318b17b61f89f28bc8d4c2038b6"
+    },
+    "setBreakpoints": {
+      "consequence": "debugger-configuration",
+      "intentDigest": "sha256:ee8ae7f8e8ee471b584ab60ff7ae05819a1f0b25742cda98aba436f558031527"
+    },
+    "stackTrace": {
+      "consequence": "observation",
+      "intentDigest": "sha256:26828c8f7417adf1ca545c482dafde7c211746f584a109609ff0132344babd0a"
+    },
+    "threads": {
+      "consequence": "observation",
+      "intentDigest": "sha256:86e6ca719eac926865e18ccf3113c5d276de8526b45fd05f27a1b77297605ac3"
+    },
+    "variables": {
+      "consequence": "observation",
+      "intentDigest": "sha256:6bc4ef980e8f3ecec80e8fbbbb1fa75e3626a3ba68ab0d6ace153c1d085ab8f6"
+    }
+  },
+  "authority": {
+    "attachConsequence": "process-lifecycle",
+    "continueConsequence": "execution-control",
+    "dapProviderCreatedInferior": false,
+    "effectExecutor": "dap-provider",
+    "evaluateConsequence": "effect-capable",
+    "processOwner": "runtime",
+    "processOwnershipEqualsEffectExecutor": false,
+    "runtimeJobCreatedInferior": true,
+    "stopScopedHandleFreshnessEnforced": true
+  },
+  "date": "2026-09-14",
+  "implementationRevision": "4d6e7163d8ad977423d6c4ecf7c8a78691d3f442",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:6fbcd4e8a34ffacddbd7b96c8a473d3632b0e2632803e531cb1a6f7517c26a64"
+  },
+  "kind": "ordivon.dap-r8-runtime-owned-attach-evidence",
+  "observations": {
+    "arguments": {
+      "value": "0"
+    },
+    "breakpointRequestResult": {
+      "breakpoints": [
+        {
+          "id": 1,
+          "reason": "pending",
+          "verified": false
+        }
+      ]
+    },
+    "breakpointStopped": {
+      "allThreadsStopped": true,
+      "hitBreakpointIds": [
+        1
+      ],
+      "reason": "breakpoint",
+      "threadId": 1
+    },
+    "clearBreakpointsResult": {
+      "breakpoints": []
+    },
+    "evaluateResult": {
+      "result": "0",
+      "type": "int",
+      "variablesReference": 0
+    },
+    "eventNames": [
+      "initialized",
+      "output",
+      "output",
+      "breakpoint",
+      "process",
+      "thread",
+      "breakpoint",
+      "stopped",
+      "output",
+      "breakpoint",
+      "stopped",
+      "thread",
+      "exited",
+      "terminated"
+    ],
+    "exited": {
+      "exitCode": 0
+    },
+    "initialStopped": {
+      "allThreadsStopped": true,
+      "reason": "attach",
+      "threadId": 1
+    },
+    "locals": {
+      "next": "0"
+    },
+    "phaseTrace": [
+      {
+        "elapsedMs": 0,
+        "phase": "start"
+      },
+      {
+        "elapsedMs": 186,
+        "phase": "initialize"
+      },
+      {
+        "elapsedMs": 187,
+        "phase": "initialized-event"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "set-breakpoint"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "configuration-done"
+      },
+      {
+        "elapsedMs": 66,
+        "phase": "attach-response"
+      },
+      {
+        "elapsedMs": 66,
+        "phase": "initial-stopped-event"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "threads-initial"
+      },
+      {
+        "elapsedMs": 4,
+        "phase": "continue-to-breakpoint"
+      },
+      {
+        "elapsedMs": 56,
+        "phase": "breakpoint-stopped-event"
+      },
+      {
+        "elapsedMs": 7,
+        "phase": "stackTrace"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "scopes"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "variables:Arguments"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "variables:Locals"
+      },
+      {
+        "elapsedMs": 0,
+        "phase": "evaluate"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "clear-breakpoints"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "continue-to-exit"
+      },
+      {
+        "elapsedMs": 10096,
+        "phase": "exited-event"
+      },
+      {
+        "elapsedMs": 10096,
+        "phase": "terminated-event"
+      },
+      {
+        "elapsedMs": 1,
+        "phase": "stop"
+      }
+    ],
+    "stackFrames": [
+      {
+        "column": 0,
+        "id": 0,
+        "instructionPointerReference": "0x555555555150",
+        "line": 7,
+        "moduleId": "/var/lib/ordivon/runtime/workspaces/ws-harness-dap-r8-runtime-target-20260914/.dap-r8-target/target",
+        "name": "tick",
+        "source": {
+          "name": "target.c",
+          "path": "/var/lib/ordivon/runtime/workspaces/ws-harness-dap-r8-runtime-target-20260914/.dap-r8-target/target.c"
+        }
+      },
+      {
+        "column": 0,
+        "id": 1,
+        "instructionPointerReference": "0x555555555171",
+        "line": 13,
+        "moduleId": "/var/lib/ordivon/runtime/workspaces/ws-harness-dap-r8-runtime-target-20260914/.dap-r8-target/target",
+        "name": "main",
+        "source": {
+          "name": "target.c",
+          "path": "/var/lib/ordivon/runtime/workspaces/ws-harness-dap-r8-runtime-target-20260914/.dap-r8-target/target.c"
+        }
+      }
+    ],
+    "terminated": {}
+  },
+  "provider": {
+    "clientDonor": "@vscode/debugadapter-testsupport",
+    "clientDonorVersion": "1.68.0",
+    "identity": {
+      "implementation": "gdb",
+      "providerId": "dap:gdb-remote",
+      "version": "17.2"
+    },
+    "nativeAdapter": "gdb -i dap",
+    "productionDependencyAdmitted": false
+  },
+  "runtimeTarget": {
+    "attemptState": "succeeded",
+    "clientRequestId": "harness-dap-r8-runtime-owned-gdbserver-r2-20260914",
+    "durationMs": 34058,
+    "executionDisposition": "succeeded",
+    "exitCode": 0,
+    "gdbserverPid": 1465935,
+    "remoteEndpoint": "127.0.0.1:57706",
+    "runtimeJobId": "job-01a09f54-250c-76c3-8a9c-08663941be9b",
+    "runtimeOperationDigest": "sha256:e6797f5d45900000434aaccf9cdc6064207865f7a005bcd081b6426d6f3eb343",
+    "sourceRevision": "4d6e7163d8ad977423d6c4ecf7c8a78691d3f442",
+    "stdoutFinal": "counter=1000",
+    "targetBinaryDigest": "sha256:8de52bcb336bceaf1da707a3a70e97d60d7bcf70a7dbb8b6b8057cf56f770e6c",
+    "targetSourceDigest": "sha256:ed6b68d81662a4beef421834bcb6692b49de0bd3ccd9ae469e80d0c315f0ccdb",
+    "workspaceId": "ws-harness-dap-r8-runtime-target-20260914",
+    "workspaceSourceDigest": "sha256:ec117740983259df0bec178d8b368689ab02d9cf0e01425a1af2129c6252134b"
+  },
+  "schemaVersion": 1,
+  "scope": "Revision-bound DAP R8 ownership-separation occurrence. Runtime created and owned a gdbserver+inferior process tree; an independent GDB 17.2 DAP provider loaded symbols and attached via target remote, controlled execution, observed target state, and returned the process to natural exit. This distinguishes process ownership from debugger effect execution.",
+  "standing": {
+    "nextEvidence": [
+      "DAP cancellation/fault lifecycle",
+      "compact Agent-facing debug surface with consequence-aware Run/Tool grants"
+    ],
+    "ownershipSeparation": "SUPPORTED",
+    "providerOwnedLaunchAlsoVerifiedSeparately": true,
+    "publicAgentDebugTool": "NOT_ADMITTED",
+    "runtimeOwnedTargetAttach": "SUPPORTED",
+    "standing": "VERIFIED_RUNTIME_OWNED_TARGET_REMOTE_ATTACH",
+    "stopEpochFreshnessModel": "SUPPORTED_ACROSS_TWO_REAL_STOPS"
+  },
+  "stopEpochs": {
+    "attach": {
+      "allThreadsStopped": true,
+      "epoch": 1,
+      "kind": "ordivon.harness-dap-stop-epoch",
+      "reason": "attach",
+      "schemaVersion": 1,
+      "sessionId": "dap-session:r8-runtime-attach",
+      "threadId": 1
+    },
+    "breakpoint": {
+      "allThreadsStopped": true,
+      "epoch": 2,
+      "kind": "ordivon.harness-dap-stop-epoch",
+      "reason": "breakpoint",
+      "schemaVersion": 1,
+      "sessionId": "dap-session:r8-runtime-attach",
+      "threadId": 1
+    },
+    "epochOneFrameHandleRejectedAgainstEpochTwo": true
+  },
+  "targetBinding": {
+    "effectExecutor": "dap-provider",
+    "kind": "ordivon.harness-dap-target-binding",
+    "processOwner": "runtime",
+    "schemaVersion": 1,
+    "sessionId": "dap-session:r8-runtime-attach",
+    "targetRef": "runtime-job:job-01a09f54-250c-76c3-8a9c-08663941be9b"
+  }
+}

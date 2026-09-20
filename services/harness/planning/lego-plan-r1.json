@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-harness",
+    "purpose": "Own one bounded Agent Run's durable cognition, provider/tool interaction, action admission, effect binding, recovery, and completion proposal without owning caller Task meaning or Runtime physical truth.",
+    "sourceEvidence": [
+      "README.md",
+      "ARCHITECTURE.md",
+      "docs/authority.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "H01",
+      "label": "RunContract",
+      "kind": "state_authority",
+      "responsibility": "Bind one exact Harness Run contract, provider/tool affordances, budgets, and caller context.",
+      "authority": "Harness",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L01"
+      ],
+      "evidence": [
+        "README.md",
+        "ARCHITECTURE.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Task/Goal truth"
+      ],
+      "acceptance": [
+        "A run is independently identifiable and bounded."
+      ]
+    },
+    {
+      "id": "H02",
+      "label": "ContextProjection",
+      "kind": "transform",
+      "responsibility": "Compile current model cognition from durable working set, current ingress, and attempt context rather than replaying complete history.",
+      "authority": "Harness",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L02"
+      ],
+      "evidence": [
+        "README.md",
+        "ARCHITECTURE.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "global memory authority"
+      ],
+      "acceptance": [
+        "Context can be rebuilt from bounded owned sources."
+      ]
+    },
+    {
+      "id": "H03",
+      "label": "ActionAdmission",
+      "kind": "decision_router",
+      "responsibility": "Turn model/tool proposals into exact admitted actions without treating intent as authority.",
+      "authority": "Harness",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L03"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Runtime execution truth"
+      ],
+      "acceptance": [
+        "Unadmitted proposals cannot become tool effects."
+      ]
+    },
+    {
+      "id": "H04",
+      "label": "EffectBinding",
+      "kind": "evidence_binding",
+      "responsibility": "Bind admitted tool intents to physical evidence while preserving ambiguous-effect semantics.",
+      "authority": "Harness with Runtime foreign evidence",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "provider/domain semantic success"
+      ],
+      "acceptance": [
+        "Lost response does not cause blind duplicate effect."
+      ]
+    },
+    {
+      "id": "H05",
+      "label": "HarnessProviderSPI",
+      "kind": "replacement_seam",
+      "responsibility": "Expose a prepared-attempt executor seam so alternate mature harness engines can be integrated without moving Task/Runtime authority.",
+      "authority": "Harness integration boundary",
+      "state": "DESIGNED",
+      "sharedRefs": [
+        "L01",
+        "L22",
+        "L23"
+      ],
+      "evidence": [],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Agent Service",
+        "Runtime lifecycle"
+      ],
+      "acceptance": [
+        "A second harness implementation can run behind the same caller-facing contract.",
+        "A replacement adapter must not require stronger caller/environment authority assumptions than the admitted HarnessRunContract and provider binding declare.",
+        "A replacement adapter must preserve required guarantees: admitted Tool surface cannot widen, UNKNOWN cannot become retry permission, Provider transport success cannot become semantic completion, and Runtime/Task authority cannot move into the adapter."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "H01",
+      "to": "H02",
+      "type": "DATA",
+      "label": "bounded run/cognition inputs"
+    },
+    {
+      "from": "H02",
+      "to": "H03",
+      "type": "CONTROL",
+      "label": "model response enters action admission"
+    },
+    {
+      "from": "H03",
+      "to": "H04",
+      "type": "EFFECT",
+      "label": "admitted action binds physical evidence"
+    },
+    {
+      "from": "H05",
+      "to": "H01",
+      "type": "DEPENDENCY",
+      "label": "provider executes prepared run contract"
+    }
+  ],
+  "slices": [
+    {
+      "id": "HS1",
+      "objective": "Prove a Harness Provider SPI with one alternate executor adapter while preserving Run/Task/Runtime authority boundaries.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "H01",
+        "H05"
+      ],
+      "acceptance": [
+        "Native/current harness and one alternate adapter satisfy the same prepared-run contract without schema changes in caller Task or Runtime.",
+        "Assume-guarantee review shows every replacement assumption is already discharged by the existing Run/provider environment or is explicitly rejected.",
+        "Fault/ambiguity characterization shows the alternate adapter does not weaken no-blind-redispatch, Tool-authority, completion, or Runtime/Task ownership guarantees."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Freeze the H05 assume-guarantee obligations, then test one alternate adapter for both positive compatibility and negative substitutability before promoting the SPI."
+    }
+  ],
+  "gaps": [
+    "A general alternate-harness adapter has not yet been accepted by evidence in this plan."
+  ],
+  "doNotOwn": [
+    "Host Task truth",
+    "Runtime Workspace/Job/Attempt truth",
+    "domain completion",
+    "global capability registry"
+  ],
+  "review": {
+    "sourceRevision": "11c4aa9ef825dea871180e1376e39c779d5d13e9",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence. Wave-2 compositional-contract review strengthened H05 substitutability: same API/run success is insufficient unless replacement assumptions are discharged and authority/effect guarantees are preserved."
+  },
+  "sharedCatalog": {
+    "catalogId": "agent-architecture-lego-catalog-r1",
+    "note": "Optional shared coordinates only; project-native semantics remain authoritative."
+  }
+}

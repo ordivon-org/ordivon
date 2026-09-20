@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "ttlMs": 30000,
+  "workspaces": {
+    "ordivon-next": {
+      "path": "/root/projects/ordivon-next",
+      "trusted": true
+    }
+  },
+  "additionalSources": [
+    {
+      "sourceId": "obra-superpowers",
+      "root": "/root/.local/share/ordivon/vendor/obra-superpowers-main/skills",
+      "scope": "vendor",
+      "trust": "APPROVED"
+    }
+  ],
+  "compatibilitySources": [
+    {
+      "sourceId": "codex-user",
+      "root": "/root/.codex/skills",
+      "scope": "user",
+      "trust": "APPROVED",
+      "implicitDenyPrefixes": [
+        ".system"
+      ],
+      "eligibilityAdapter": "openclaw-metadata"
+    },
+    {
+      "sourceId": "hermes-user",
+      "root": "/root/.hermes/skills",
+      "scope": "user",
+      "trust": "UNTRUSTED"
+    }
+  ]
+}

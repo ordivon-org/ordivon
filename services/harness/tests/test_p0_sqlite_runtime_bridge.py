@@ -1,0 +1,843 @@
+from __future__ import annotations
+
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from pathlib import Path
+import tempfile
+import threading
+import unittest
+
+from anc_canonical import JsonValue, canonical_digest
+
+from ordivon_harness.core_contracts import HarnessBoundReference, HarnessRunContract
+from ordivon_harness.execution_binding import (
+    HarnessExecutionBinding,
+)
+from ordivon_harness.ordivon.loop import OrdivonAgentLoop, RunBudget, RunStopCode
+from ordivon_harness.ordivon.model import (
+    AgentRunConclusion,
+    AgentToolCall,
+    AgentToolDefinition,
+    AgentTurnResult,
+    ScriptedTurnAdapter,
+)
+from ordivon_harness.ordivon.sqlite_run_store import (
+    SQLiteHarnessRunContinuityStore,
+)
+from ordivon_harness.ordivon.sqlite_runtime_bridge import (
+    INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
+    INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
+    SQLiteHarnessRuntimeBridge,
+    _runtime_delivery_state,
+)
+from ordivon_harness.protocol import HarnessRecoveryConsequence, HarnessToolStepStatus
+from ordivon_harness.run_state import HarnessRunState
+from ordivon_harness.runtime_port import (
+    HarnessRuntimeClientError,
+    HarnessRuntimeErrorDetail,
+    HarnessRuntimeToolRejected,
+)
+from ordivon_harness.sqlite_store import SQLiteHarnessStore
+
+DIGEST_A = "sha256:" + "a" * 64
+DIGEST_B = "sha256:" + "b" * 64
+DIGEST_C = "sha256:" + "c" * 64
+
+PATCH_WORKSPACE_DEFINITION = AgentToolDefinition(
+    name="patch_workspace",
+    description="Apply one exact digest-bound Workspace Patch.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "files": {"type": "array", "minItems": 1},
+            "maxDiffBytes": {"type": "integer", "minimum": 1},
+        },
+        "required": ["files"],
+        "additionalProperties": False,
+    },
+)
+PATCH_TOOL_SURFACE_DIGEST = canonical_digest(
+    {
+        "schemaVersion": 1,
+        "kind": "ordivon.test-patch-tool-surface",
+        "tools": [PATCH_WORKSPACE_DEFINITION.to_dict()],
+    }
+)
+PATCH_TOOL_GRANT_DIGEST = canonical_digest(
+    {
+        "schemaVersion": 1,
+        "kind": "ordivon.test-patch-tool-grant",
+        "tools": ["patch_workspace"],
+        "runtimeOperations": ["workspace.patch", "workspace.patch.get"],
+        "workspaceMutationAllowed": True,
+    }
+)
+
+
+class PatchGrant:
+    allow_opaque_exec = False
+
+    def allows_path(self, name: str, relative_path: str) -> bool:
+        return name == "patch_workspace" and relative_path == "README.md"
+
+    def execution_check(self, check_id: str):
+        raise KeyError(check_id)
+
+
+class WorkspaceChangeRuntimeBridge(SQLiteHarnessRuntimeBridge):
+    recovery_consequence = HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE
+
+
+class FakePatchRuntime:
+    def __init__(self, mode: str = "direct") -> None:
+        self.mode = mode
+        self.calls: list[tuple[str, dict[str, JsonValue]]] = []
+        self.client_request_id: str | None = None
+        self.patch_count = 0
+
+    def call_tool(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
+        self.calls.append((name, arguments))
+        if name == "workspace.patch":
+            self.patch_count += 1
+            request_id = arguments.get("clientRequestId")
+            assert isinstance(request_id, str)
+            self.client_request_id = request_id
+            if self.mode.startswith("loss_"):
+                raise HarnessRuntimeClientError("injected Patch response loss")
+            if self.mode == "reject":
+                raise HarnessRuntimeToolRejected(
+                    name,
+                    HarnessRuntimeErrorDetail(
+                        code="revision_mismatch",
+                        message="source digest changed",
+                        commit_state="not_committed",
+                        retryable=False,
+                        field="files[0].expectedDigest",
+                    ),
+                )
+            return {
+                "operationId": "patch:test:direct",
+                "clientRequestId": request_id,
+                "requestDigest": DIGEST_A,
+                "replayed": False,
+                "patch": {"workspaceId": "ws", "files": []},
+            }
+        if name == "workspace.patch.get":
+            request_id = arguments.get("clientRequestId")
+            assert isinstance(request_id, str)
+            state = self.mode.removeprefix("loss_")
+            result: dict[str, JsonValue] = {
+                "operationId": "patch:test:status",
+                "clientRequestId": request_id,
+                "requestDigest": DIGEST_A,
+                "workspaceId": "ws",
+                "state": state,
+            }
+            if state == "committed":
+                result["patch"] = {"workspaceId": "ws", "files": []}
+            return result
+        raise AssertionError(f"unexpected Runtime tool: {name}")
+
+
+
+class FixedClock:
+    def __init__(self, value: int = 1_000) -> None:
+        self.value = value
+
+    def __call__(self) -> int:
+        return self.value
+
+    def advance(self, delta: int = 1) -> int:
+        self.value += delta
+        return self.value
+
+
+class FakeRuntime:
+    def __init__(self, mode: str = "direct") -> None:
+        self.mode = mode
+        self.calls: list[tuple[str, dict[str, JsonValue]]] = []
+        self.workspace_exec_count = 0
+        self.job_id = "job:p0-independent-search-001"
+        self.client_request_id: str | None = None
+        self.recovery_observations_remaining = 0
+
+    def terminal(self) -> dict[str, JsonValue]:
+        assert self.client_request_id is not None
+        recovery_required = self.recovery_observations_remaining > 0
+        return {
+            "schemaVersion": 1,
+            "jobId": self.job_id,
+            "clientRequestId": self.client_request_id,
+            "status": "succeeded",
+            "executionTerminal": True,
+            "executionDisposition": "succeeded",
+            "deliveryDisposition": (
+                "reconciliation_required" if recovery_required else "committed"
+            ),
+            "recoveryRequired": recovery_required,
+            "semanticCompletionEvaluated": False,
+            "resultAvailable": True,
+            "artifacts": [],
+            "stdoutTail": (
+                '{"type":"match","data":{"path":{"text":"src/demo.py"},'
+                '"lines":{"text":"class HarnessExecutionBinding:\\n"},'
+                '"line_number":12,"absolute_offset":180,'
+                '"submatches":[{"start":6,"end":29}]}}\n'
+            ),
+            "stderrTail": "",
+        }
+
+    @staticmethod
+    def assert_task_list_arguments(arguments: dict[str, JsonValue]) -> None:
+        if set(arguments) - {"limit", "clientRequestId", "cursor"}:
+            raise AssertionError(f"task.list received unsupported fields: {arguments}")
+        if arguments.get("limit") != 100:
+            raise AssertionError("task.list limit differs")
+        if not isinstance(arguments.get("clientRequestId"), str):
+            raise AssertionError("task.list clientRequestId differs")
+
+    def call_tool(
+        self,
+        name: str,
+        arguments: dict[str, JsonValue],
+    ) -> dict[str, JsonValue]:
+        self.calls.append((name, arguments))
+        if name == "workspace.exec":
+            self.workspace_exec_count += 1
+            request_id = arguments.get("clientRequestId")
+            assert isinstance(request_id, str)
+            self.client_request_id = request_id
+            if self.mode == "loss":
+                raise HarnessRuntimeClientError(
+                    "injected transport response loss after Runtime admission"
+                )
+            if self.mode == "reject":
+                raise HarnessRuntimeToolRejected(
+                    name,
+                    HarnessRuntimeErrorDetail(
+                        code="invalid_argument",
+                        message="scripted request rejection",
+                        commit_state="not_committed",
+                        retryable=False,
+                        field="execution.args",
+                    ),
+                )
+            return self.terminal()
+        if name == "task.list":
+            self.assert_task_list_arguments(arguments)
+            request_id = arguments.get("clientRequestId")
+            assert isinstance(request_id, str)
+            if self.mode == "zero":
+                jobs: list[JsonValue] = []
+            elif self.mode == "multiple":
+                jobs = [
+                    {
+                        "jobId": self.job_id,
+                        "clientRequestId": request_id,
+                        "status": "succeeded",
+                    },
+                    {
+                        "jobId": "job:p0-independent-search-duplicate",
+                        "clientRequestId": request_id,
+                        "status": "succeeded",
+                    },
+                ]
+            else:
+                jobs = [
+                    {
+                        "jobId": self.job_id,
+                        "clientRequestId": request_id,
+                        "status": "succeeded",
+                    }
+                ]
+            return {
+                "schemaVersion": 1,
+                "jobs": jobs,
+                "nextCursor": None,
+            }
+        if name == "task.observe":
+            if self.recovery_observations_remaining > 0:
+                self.recovery_observations_remaining -= 1
+            return self.terminal()
+        raise AssertionError(f"unexpected Runtime tool: {name}")
+
+
+def contract(suffix: str) -> HarnessRunContract:
+    return HarnessRunContract(
+        harness_run_id=f"harness-run:p0-runtime-{suffix}",
+        harness_implementation_id="ordivon-harness@0.7.0-dev",
+        caller_id="caller:p0-independent-runtime",
+        caller_run_ref=f"trial:p0-runtime-{suffix}",
+        objective_ref=HarnessBoundReference(
+            f"objective:p0-runtime-{suffix}", "objective", DIGEST_A
+        ),
+        context_refs=(HarnessBoundReference(f"context:p0-runtime-{suffix}", "context", DIGEST_B),),
+        provider_id="provider:scripted",
+        adapter_id=ScriptedTurnAdapter.adapter_id,
+        requested_model_id=ScriptedTurnAdapter.model_id,
+        tool_catalog_digest=INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
+        tool_grant_digest=INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
+        budget={
+            "maxModelCalls": 3,
+            "maxToolCalls": 2,
+            "maxWallTimeMs": 10_000,
+        },
+        completion_contract={"mode": "record"},
+        system_manifest_ref=HarnessBoundReference(
+            f"system-manifest:p0-runtime-{suffix}",
+            "system-manifest",
+            DIGEST_C,
+        ),
+        created_at_ms=1_000,
+    )
+
+
+def patch_contract(suffix: str) -> HarnessRunContract:
+    return replace(
+        contract(suffix),
+        tool_catalog_digest=PATCH_TOOL_SURFACE_DIGEST,
+        tool_grant_digest=PATCH_TOOL_GRANT_DIGEST,
+    )
+
+
+def patch_call(suffix: str) -> AgentToolCall:
+    return AgentToolCall(
+        tool_call_id=f"tool-call:p0-runtime-{suffix}-patch",
+        name="patch_workspace",
+        arguments={
+            "files": [
+                {
+                    "relativePath": "README.md",
+                    "expectedDigest": DIGEST_A,
+                    "edits": [
+                        {
+                            "range": {
+                                "start": {"line": 1, "column": 0},
+                                "end": {"line": 1, "column": 5},
+                            },
+                            "expectedText": "alpha",
+                            "replacement": "omega",
+                        }
+                    ],
+                }
+            ],
+            "maxDiffBytes": 4096,
+        },
+    )
+
+
+def patch_bridge(root: Path, suffix: str, runtime: FakePatchRuntime, *, change_consequence=True):
+    run_contract = patch_contract(suffix)
+    store = SQLiteHarnessStore.initialize(root)
+    store.create_run(run_contract)
+    clock = FixedClock()
+    continuity = SQLiteHarnessRunContinuityStore(store, run_contract, clock_ms=clock)
+    bridge_type = WorkspaceChangeRuntimeBridge if change_consequence else SQLiteHarnessRuntimeBridge
+    bridge = bridge_type(
+        run_contract,
+        continuity,
+        execution_binding(run_contract, continuity),
+        runtime,
+        tool_definitions=(PATCH_WORKSPACE_DEFINITION,),
+        tool_surface_digest=PATCH_TOOL_SURFACE_DIGEST,
+        tool_grant_digest=PATCH_TOOL_GRANT_DIGEST,
+        tool_grant=PatchGrant(),
+    )
+    state = bound_state()
+    bridge.bind_run_state(
+        messages=state.messages,
+        observations=(),
+        remaining_budget=state.remaining_budget,
+        requested_model_id=state.requested_model_id,
+        effective_model_id=None,
+        active_elapsed_ms=0,
+    )
+    return store, continuity, bridge
+
+
+def execution_binding(
+    run_contract: HarnessRunContract,
+    continuity: SQLiteHarnessRunContinuityStore,
+) -> HarnessExecutionBinding:
+    binding = continuity.binding
+    references = (
+        dict(
+            namespace="ordivon.harness",
+            type="harness_run",
+            id=run_contract.harness_run_id,
+            generation=str(binding.assignment_generation),
+            digest=binding.digest,
+        ),
+        dict(
+            namespace="ordivon.harness",
+            type="run_contract",
+            id=f"harness-run-contract:{run_contract.digest[7:31]}",
+            generation="1",
+            digest=run_contract.digest,
+        ),
+        dict(
+            namespace="ordivon.harness",
+            type="tool_grant",
+            id=f"tool-grant:{run_contract.tool_grant_digest[7:31]}",
+            generation="1",
+            digest=run_contract.tool_grant_digest,
+        ),
+    )
+    return HarnessExecutionBinding(
+        harness_run_id=run_contract.harness_run_id,
+        workspace_ref=f"workspace:{run_contract.harness_run_id.removeprefix('harness-run:')}",
+        runtime_references=references,
+    )
+
+
+def budget() -> RunBudget:
+    return RunBudget(
+        max_model_calls=3,
+        max_tool_calls=2,
+        max_observation_bytes=16_384,
+        max_wall_time_ms=10_000,
+        max_total_tokens=10_000,
+        max_model_retries=1,
+    )
+
+
+def tool_turn(suffix: str) -> AgentTurnResult:
+    return AgentTurnResult(
+        model_call_id=f"model-call:p0-runtime-{suffix}-1",
+        model_id=ScriptedTurnAdapter.model_id,
+        content=None,
+        tool_calls=(
+            AgentToolCall(
+                tool_call_id=f"tool-call:p0-runtime-{suffix}-search",
+                name="search_workspace",
+                arguments={
+                    "query": "HarnessExecutionBinding",
+                    "relativePath": "src",
+                    "maxMatches": 20,
+                },
+            ),
+        ),
+        conclusion=None,
+        usage={"inputTokens": 12, "outputTokens": 8},
+        finish_reason="tool_calls",
+        raw_response_digest=canonical_digest({"turn": suffix, "kind": "tool"}),
+    )
+
+
+def completed_turn(suffix: str) -> AgentTurnResult:
+    return AgentTurnResult(
+        model_call_id=f"model-call:p0-runtime-{suffix}-2",
+        model_id=ScriptedTurnAdapter.model_id,
+        content="located the execution binding",
+        tool_calls=(),
+        conclusion=AgentRunConclusion(
+            status="candidate_completed",
+            summary="Independent Runtime search completed.",
+        ),
+        usage={"inputTokens": 24, "outputTokens": 7},
+        finish_reason="stop",
+        raw_response_digest=canonical_digest({"turn": suffix, "kind": "completed"}),
+    )
+
+
+def bound_state() -> HarnessRunState:
+    return HarnessRunState(
+        messages=({"role": "user", "content": "search the workspace"},),
+        observations=(),
+        remaining_budget={
+            "modelCalls": 3,
+            "modelRetries": 1,
+            "toolCalls": 2,
+            "wallTimeMs": 10_000,
+            "observationOnlyTurns": 3,
+            "noProgressTurns": 3,
+        },
+        requested_model_id=ScriptedTurnAdapter.model_id,
+        effective_model_id=None,
+        active_elapsed_ms=0,
+    )
+
+
+class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
+    def test_workspace_patch_requires_explicit_workspace_change_consequence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("direct")
+            store, _, bridge = patch_bridge(
+                Path(directory) / "state",
+                "patch-wrong-consequence",
+                runtime,
+                change_consequence=False,
+            )
+            with self.assertRaisesRegex(
+                Exception, "WORKSPACE_CHANGE_POSSIBLE"
+            ):
+                bridge.execute(
+                    patch_call("patch-wrong-consequence"),
+                    step_id="turn-1-patch",
+                )
+            self.assertEqual(runtime.patch_count, 0)
+            store.close()
+
+    def test_workspace_patch_commits_through_existing_durable_tool_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("direct")
+            store, continuity, bridge = patch_bridge(
+                Path(directory) / "state", "patch-direct", runtime
+            )
+            observation = bridge.execute(
+                patch_call("patch-direct"),
+                step_id="turn-1-patch",
+            )
+            self.assertEqual(observation.status, "observed")
+            self.assertFalse(observation.reconciled)
+            self.assertEqual(runtime.patch_count, 1)
+            retained = continuity.load_current_tool_step()
+            self.assertEqual(
+                retained.intent.recovery_consequence,
+                HarnessRecoveryConsequence.WORKSPACE_CHANGE_POSSIBLE,
+            )
+            self.assertEqual(retained.intent.runtime_operation, "workspace.patch")
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            store.close()
+
+    def test_workspace_patch_response_loss_uses_patch_get_not_redispatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakePatchRuntime("loss_committed")
+            store, continuity, bridge = patch_bridge(
+                Path(directory) / "state", "patch-loss", runtime
+            )
+            observation = bridge.execute(
+                patch_call("patch-loss"),
+                step_id="turn-1-patch",
+            )
+            self.assertEqual(observation.status, "observed")
+            self.assertTrue(observation.reconciled)
+            self.assertEqual(runtime.patch_count, 1)
+            self.assertEqual(
+                [name for name, _ in runtime.calls],
+                ["workspace.patch", "workspace.patch.get"],
+            )
+            retained = continuity.load_current_tool_step()
+            self.assertTrue(retained.receipt.reconciled)
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            store.close()
+
+    def test_workspace_patch_prepared_and_unknown_have_distinct_recovery_standing(self) -> None:
+        for mode, expected_status, safe in (
+            ("loss_prepared", "rejected", True),
+            ("loss_unknown", "unknown", False),
+        ):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                runtime = FakePatchRuntime(mode)
+                store, continuity, bridge = patch_bridge(
+                    Path(directory) / "state", mode, runtime
+                )
+                observation = bridge.execute(
+                    patch_call(mode),
+                    step_id="turn-1-patch",
+                )
+                self.assertEqual(observation.status, expected_status)
+                self.assertEqual(observation.structured_content["safeToCorrect"], safe)
+                self.assertEqual(runtime.patch_count, 1)
+                self.assertEqual(
+                    [name for name, _ in runtime.calls].count("workspace.patch"), 1
+                )
+                retained = continuity.load_current_tool_step()
+                self.assertEqual(retained.receipt.status.value, expected_status)
+                store.close()
+
+    def test_status_only_runtime_projection_fails_closed(self) -> None:
+        with self.assertRaisesRegex(HarnessRuntimeClientError, "executionTerminal"):
+            _runtime_delivery_state({"status": "succeeded"})
+
+    def initialize(self, root: Path, suffix: str, runtime: FakeRuntime):
+        run_contract = contract(suffix)
+        store = SQLiteHarnessStore.initialize(root)
+        store.create_run(run_contract)
+        clock = FixedClock()
+        continuity = SQLiteHarnessRunContinuityStore(
+            store,
+            run_contract,
+            clock_ms=clock,
+        )
+        bridge = SQLiteHarnessRuntimeBridge(
+            run_contract,
+            continuity,
+            execution_binding(run_contract, continuity),
+            runtime,
+        )
+        return store, clock, run_contract, continuity, bridge
+
+    def test_concurrent_workers_dispatch_one_physical_runtime_call(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "state"
+            run_contract = contract("tool-race")
+            with SQLiteHarnessStore.initialize(root) as store:
+                store.create_run(run_contract)
+
+            class CountingRuntime(FakeRuntime):
+                def __init__(self) -> None:
+                    super().__init__("direct")
+                    self.lock = threading.Lock()
+
+                def call_tool(self, name, arguments):
+                    if name == "workspace.exec":
+                        with self.lock:
+                            return super().call_tool(name, arguments)
+                    return super().call_tool(name, arguments)
+
+            runtime = CountingRuntime()
+            workers = 12
+            barrier = threading.Barrier(workers)
+
+            def execute(worker: int) -> str:
+                try:
+                    with SQLiteHarnessStore(root) as store:
+                        clock = FixedClock()
+                        continuity = SQLiteHarnessRunContinuityStore.open(
+                            store, run_contract.harness_run_id, clock_ms=clock
+                        )
+                        bridge = SQLiteHarnessRuntimeBridge(
+                            run_contract,
+                            continuity,
+                            execution_binding(run_contract, continuity),
+                            runtime,
+                        )
+                        state = bound_state()
+                        bridge.bind_run_state(
+                            messages=state.messages,
+                            observations=(),
+                            remaining_budget=state.remaining_budget,
+                            requested_model_id=state.requested_model_id,
+                            effective_model_id=None,
+                            active_elapsed_ms=0,
+                        )
+                        barrier.wait()
+                        bridge.execute(
+                            tool_turn("tool-race").tool_calls[0],
+                            step_id="turn-1-tool-race",
+                        )
+                    return "ok"
+                except Exception as error:
+                    return type(error).__name__
+
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                outcomes = list(pool.map(execute, range(workers)))
+
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            self.assertEqual(outcomes.count("ok"), 1)
+            with SQLiteHarnessStore(root) as store:
+                report = store.doctor(full=True)
+                event_kinds = [
+                    event.event_kind
+                    for event in store.list_run_events(run_contract.harness_run_id)
+                ]
+                self.assertTrue(report["healthy"])
+                self.assertEqual(event_kinds.count("harness.tool-step-prepared"), 1)
+                self.assertEqual(event_kinds.count("harness.tool-step-recorded"), 1)
+
+    def test_real_agent_loop_searches_runtime_and_completes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakeRuntime("direct")
+            store, clock, run_contract, continuity, bridge = self.initialize(
+                Path(directory) / "state",
+                "direct",
+                runtime,
+            )
+            adapter = ScriptedTurnAdapter((tool_turn("direct"), completed_turn("direct")))
+            result = OrdivonAgentLoop(
+                adapter,
+                bridge,
+                budget=budget(),
+                clock_ms=clock,
+                monotonic_ms=clock,
+            ).run(
+                harness_run_id=run_contract.harness_run_id,
+                assignment_id=continuity.binding.assignment_id,
+                context_digest=run_contract.context_refs[0].digest,
+                initial_messages=({"role": "user", "content": "search the workspace"},),
+            )
+            self.assertTrue(result.candidate_completed)
+            self.assertEqual(result.stop_code, RunStopCode.CANDIDATE_COMPLETED)
+            self.assertEqual(result.model_calls, 2)
+            self.assertEqual(result.tool_calls, 1)
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            request = next(
+                arguments for name, arguments in runtime.calls if name == "workspace.exec"
+            )
+            references = request["execution"]["foreignReferences"]
+            self.assertEqual(
+                {item["namespace"] for item in references},
+                {"ordivon.harness"},
+            )
+            self.assertIn("dispatch_fence", {item["type"] for item in references})
+            retained = continuity.load_current_tool_step()
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            self.assertFalse(retained.receipt.reconciled)
+            self.assertIsNotNone(retained.receipt.observation_digest)
+            self.assertIsNone(retained.observation)
+            self.assertIsNone(retained.observation_object)
+            store.close()
+
+    def test_succeeded_status_continues_observing_until_delivery_converges(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakeRuntime("direct")
+            runtime.recovery_observations_remaining = 1
+            store, _, _, continuity, bridge = self.initialize(
+                Path(directory) / "state",
+                "recovery-required",
+                runtime,
+            )
+            value = bound_state()
+            bridge.bind_run_state(
+                messages=value.messages,
+                observations=(),
+                remaining_budget=value.remaining_budget,
+                requested_model_id=value.requested_model_id,
+                effective_model_id=None,
+                active_elapsed_ms=0,
+            )
+            observation = bridge.execute(
+                tool_turn("recovery-required").tool_calls[0],
+                step_id="turn-1-tool-recovery-required",
+            )
+            self.assertEqual(observation.status, "observed")
+            self.assertEqual(
+                observation.structured_content["deliveryDisposition"],
+                "committed",
+            )
+            self.assertFalse(observation.structured_content["recoveryRequired"])
+            self.assertEqual(
+                [name for name, _ in runtime.calls].count("workspace.exec"), 1
+            )
+            self.assertEqual(
+                [name for name, _ in runtime.calls].count("task.observe"), 1
+            )
+            retained = continuity.load_current_tool_step()
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            store.close()
+
+    def test_transport_response_loss_reconciles_without_redispatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakeRuntime("loss")
+            store, clock, run_contract, continuity, bridge = self.initialize(
+                Path(directory) / "state",
+                "loss",
+                runtime,
+            )
+            adapter = ScriptedTurnAdapter((tool_turn("loss"), completed_turn("loss")))
+            result = OrdivonAgentLoop(
+                adapter,
+                bridge,
+                budget=budget(),
+                clock_ms=clock,
+                monotonic_ms=clock,
+            ).run(
+                harness_run_id=run_contract.harness_run_id,
+                assignment_id=continuity.binding.assignment_id,
+                context_digest=run_contract.context_refs[0].digest,
+                initial_messages=({"role": "user", "content": "search after response loss"},),
+            )
+            self.assertTrue(result.candidate_completed)
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            self.assertEqual(
+                [name for name, _ in runtime.calls].count("workspace.exec"),
+                1,
+            )
+            self.assertIn("task.list", [name for name, _ in runtime.calls])
+            self.assertIn("task.observe", [name for name, _ in runtime.calls])
+            retained = continuity.load_current_tool_step()
+            self.assertTrue(retained.receipt.reconciled)
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
+            store.close()
+
+    def test_zero_or_multiple_reconciliation_matches_are_unknown(self) -> None:
+        for mode in ("zero", "multiple"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                runtime = FakeRuntime(mode)
+                store, _, _, continuity, bridge = self.initialize(
+                    Path(directory) / "state",
+                    mode,
+                    runtime,
+                )
+                bridge.bind_run_state(
+                    messages=bound_state().messages,
+                    observations=(),
+                    remaining_budget=bound_state().remaining_budget,
+                    requested_model_id=bound_state().requested_model_id,
+                    effective_model_id=None,
+                    active_elapsed_ms=0,
+                )
+                call = tool_turn(mode).tool_calls[0]
+                runtime.mode = "loss"
+                # Preserve the requested reconciliation cardinality after response loss.
+                original = runtime.call_tool
+
+                def call_tool(name, arguments):
+                    if name == "workspace.exec":
+                        runtime.workspace_exec_count += 1
+                        request_id = arguments.get("clientRequestId")
+                        assert isinstance(request_id, str)
+                        runtime.client_request_id = request_id
+                        raise HarnessRuntimeClientError("injected response loss")
+                    runtime.mode = mode
+                    return original(name, arguments)
+
+                runtime.call_tool = call_tool  # type: ignore[method-assign]
+                observation = bridge.execute(call, step_id=f"turn-1-tool-{mode}")
+                self.assertEqual(observation.status, "unknown")
+                self.assertEqual(runtime.workspace_exec_count, 1)
+                retained = continuity.load_current_tool_step()
+                self.assertEqual(retained.receipt.status, HarnessToolStepStatus.UNKNOWN)
+                self.assertTrue(retained.receipt.reconciled)
+                store.close()
+
+    def test_precommit_runtime_rejection_is_model_correctable_observation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = FakeRuntime("reject")
+            store, _, _, continuity, bridge = self.initialize(
+                Path(directory) / "state",
+                "reject",
+                runtime,
+            )
+            value = bound_state()
+            bridge.bind_run_state(
+                messages=value.messages,
+                observations=(),
+                remaining_budget=value.remaining_budget,
+                requested_model_id=value.requested_model_id,
+                effective_model_id=None,
+                active_elapsed_ms=0,
+            )
+            observation = bridge.execute(
+                tool_turn("reject").tool_calls[0],
+                step_id="turn-1-tool-reject",
+            )
+            self.assertEqual(observation.status, "rejected")
+            self.assertTrue(observation.structured_content["safeToCorrect"])
+            self.assertEqual(runtime.workspace_exec_count, 1)
+            retained = continuity.load_current_tool_step()
+            self.assertEqual(retained.receipt.status, HarnessToolStepStatus.REJECTED)
+            self.assertIsNone(retained.receipt.runtime_job_ref)
+            store.close()
+
+    def test_modules_have_no_host_compatibility_imports(self) -> None:
+        root = Path(__file__).resolve().parents[1] / "src" / "ordivon_harness"
+        for relative in (
+            "runtime_port.py",
+            "agent_tool_observation.py",
+            "ordivon/sqlite_runtime_bridge.py",
+        ):
+            source = (root / relative).read_text(encoding="utf-8")
+            for forbidden in (
+                "ordivon_host",
+                "_host_compat",
+                "CommittedHarnessAssignment",
+                "HostHarnessRunStore",
+                "from .._host_compat.effects import ArtifactRef",
+            ):
+                self.assertNotIn(forbidden, source)
+
+
+if __name__ == "__main__":
+    unittest.main()

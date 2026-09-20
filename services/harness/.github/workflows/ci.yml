@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14.7"
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: false
+      - name: Materialize runtime-search physical test profile
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends ripgrep gawk
+          /usr/bin/rg --version | head -n 1
+          /usr/bin/awk --version | head -n 1
+      - run: uv sync --locked
+      - run: uv run python scripts/check_runtime_search_profile.py
+      - run: uv lock --check
+      - run: uv run python -m compileall -q src tests scripts evals
+      - run: uvx ruff==0.15.17 check src tests scripts
+      - run: uv run python -W error::ResourceWarning -m pytest -q tests
+      - run: uv run python scripts/check_dependencies.py
+      - run: uv run python scripts/check_docs.py
+      - run: uv run python scripts/check_evidence.py
+      - run: uv run python scripts/demo_deterministic_run.py
+      - run: uv build --wheel --out-dir /tmp/ordivon-harness-wheel
+      - run: uv run python scripts/check_wheel.py /tmp/ordivon-harness-wheel
+
+  dependency-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14.7"
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: false
+      - run: uv sync --locked
+      - run: uv run python scripts/check_dependencies.py
+      - name: Audit declared third-party PyPI runtime dependencies
+        run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

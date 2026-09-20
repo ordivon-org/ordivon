@@ -1,0 +1,102 @@
+---
+schema_version: 1
+id: harness.compatibility
+title: Harness Compatibility
+type: policy
+profile: engineering
+lifecycle: active
+source_role: canonical
+visibility: public
+owners:
+  - ordivon-harness
+audience:
+  - builder
+  - operator
+  - maintainer
+  - agent
+updated: 2026-09-21
+summary: Dependency graph, source-level Host boundary, persistent object compatibility and upgrade rules.
+evidence_status: verified
+readiness: READY
+applies_to:
+  - ordivon-harness
+related:
+  - harness.status
+  - harness.releases
+  - harness.verification
+---
+# Harness Compatibility
+
+## Dependency graph
+
+The current Harness runtime dependency graph is intentionally small and Host-free: the package depends on the exact Ordivon Protocol revision, pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport, and `jsonschema` for opt-in local structured-result conformance verification. The exact third-party transitive graph is pinned by `uv.lock` and mirrored in `requirements-audit.txt`. There is no Host dependency, optional Host extra, or Host development group.
+
+Python support is `>=3.14.7,<3.15`; the owner environment pins exact Python `3.14.7`. Harness follows the newest stable GA Python feature line by default. Preview releases (alpha/beta/RC/nightly) are evaluation targets only; once a newer feature line reaches GA, the default upgrade path is to move to that stable line after owner-native tests, wheel checks, dependency audit, durable-state reopen/recovery checks, and evidence-currentness review pass. A lower-version pin is temporary compatibility debt and must name the blocking dependency/evidence plus an exit condition. Runtime integration is structural through the caller-supplied `HarnessRuntimeClient`; a Runtime server/version is not a Python package dependency.
+
+## Public API
+
+Current `HarnessRunContract` authoring is schema v2 and no longer embeds transport-only `correlation` in execution authority or its digest. Schema-v1 Contracts remain exactly readable and re-encode their historical `traceparent`/`tracestate`/link bytes for digest verification, but `HarnessCorrelationContext` is no longer a public/current authoring type. W3C Trace Context belongs to the caller/transport/observability boundary rather than the Harness Run authority waist.
+
+The duplicate public `HarnessRuntimeReference` value object is retired. `HarnessExecutionBinding.runtime_references` now accepts and freezes Runtime-native `ForeignReference` wire mappings directly, preserving the exact `foreignReferences` JSON shape and Harness Run/Contract/Tool Grant preflight. Runtime remains the schema owner; no persisted Harness execution-binding reader format changed.
+
+The broken historical H5 live replacement worker `scripts/harness_replacement_h5_worker.py` is retired. It had no current consumer and already failed import because its former Codex/Hermes driver exports no longer exist. The frozen H5 fixture, support validators, committed receipt, and receipt checker remain as historical failure/verification assets; historical evidence bytes are unchanged.
+
+The specialized `ordivon_harness.domain_tools` module no longer secondarily re-exports `AgentLoopResult`, `AgentRunConclusion`, `AgentToolCall`, `AgentTurnAdapter`, `CancellationToken`, or `RunStopCode`. Estate-wide current-code analysis found no consumer of those secondary names; callers use the canonical Agent/control owners instead. DomainTool-specific contracts and `RunBudget` remain available.
+
+`HarnessToolObservation` is the canonical durable Tool Observation type. The temporary supported-API `ToolObservation` compatibility alias is retired after Ordivon Security commit `5e3142b` migrated all five dynamic consumers to `HarnessToolObservation` and an estate-wide current-code census found no remaining short-name consumer. The internal core alias and secondary `ordivon_harness.ordivon` aggregation export remain retired. Durable `ordivon.tool-observation` schema, digests, Runtime/Artifact references, reconciliation semantics and stored bytes are unchanged.
+`HarnessExecutionBinding` schema v2 is deliberately smaller: it carries only one Harness Run identity, Runtime Workspace identity, and the foreign references actually sent to Runtime. Assignment identity/generation/digest, Tool catalog/grant digests, deadline, and the synthetic `runtimeBindingDigest` were duplicate facts already owned by the Run Contract/continuity path and are removed. This is a destructive current-surface migration; there were no persisted binding objects and no external current-code consumers at the cut. Runtime commit-state errors and reconciliation semantics remain unchanged.
+
+The secondary lazy aggregation facade on `ordivon_harness.ordivon` is retired. Estate-wide current-code search found no external consumer; the only package-root imports were Harness tests/demo code, while real integrations already import exact owner submodules. `ordivon_harness.api` remains the supported application facade. The `ordivon_harness.ordivon` package remains as a namespace for implementation submodules but exports no aggregate symbol set.
+
+The internal `StandaloneToolBridge` protocol is retired in favor of the canonical `ordivon.tool_bridge.ToolBridge`; it was not part of the recommended API and carried no persisted identity. This is a type-surface subtraction only; Tool execution and recovery semantics are unchanged.
+
+The zero-consumer `HarnessCognitionSource` public alias is retired. It was exactly `HarnessWorkingViewSource`, had no external current-code consumer and no persisted identity obligation. Current callers use the canonical `HarnessWorkingViewSource` directly; cognition seed/WorkingSet semantics and stored data are unchanged.
+
+The former `capabilities` CLI command and `ordivon.harness-cli-capabilities` self-description projection are retired. They had no current external consumer or persisted state and duplicated facts already owned by the CLI parser, `HarnessRunContract`, stable Python API and request-bound Agent turn. Installed-package self-description is not an authority surface.
+
+The former `ordivon_harness.telemetry` projection and `telemetry` CLI command are retired. They had no independent product consumer or persisted state and only derived a second presentation from the exact `inspect` result. `inspect` remains the single durable Run evidence view; `explain` adds explicit proof boundaries without creating another persisted read model.
+
+The former advanced `ordivon_harness.deliberation` module and H1/H2 two-phase lifecycle helpers are retired. Exact current cross-repository product-source census found no independent consumer; current Security owner code already performs no-Tool deliberation locally with `AgentTurnRequest` and then supplies its own cognition record to `DomainToolLoopRunner`. Historical H1/H2 documents and the legacy `deliberation_phase_completed` event reader remain historical evidence/read compatibility; current execution does not emit that event.
+
+`DomainToolCatalog` remains a current public value object because real Security integrations consume it together with `DomainToolLoopPlan` and `DomainToolLoopRunner`. Its former public `select()` and `granted_digest()` convenience methods are retired; Tool selection and grant hashing are internal to the Runner. This does not change the current `execution_identity()` schema/digest, granted Tool definitions, trace `toolCatalogDigest`, or Security-owned effect/admission boundary.
+
+The former `ordivon_harness.loop_driver` module plus `HarnessLoopDriverRef`, `SEQUENTIAL_LOOP_DRIVER`, and `DELIBERATE_THEN_ACT_LOOP_DRIVER` stable exports are retired. No current authoritative Harness state contains LoopDriver declarations, and exact cross-repository census found no independent caller selecting either public morphology. Current DomainToolLoopRunner consumers retain the same default sequential execution identity (`schedulingMode=sequential`); explicit deliberation remains available through the separate deliberation composition. Historical morphology evidence remains historical.
+
+The former `ordivon_harness.mandate` module and `CompiledHarnessAttempt` / `HarnessExecutionMandate` / `HarnessMandateConsumption` / `HarnessExecutionProfile` / `HarnessExecutionStrategy` / `compile_harness_attempt` stable exports are retired. Current authoritative state contains no serialized objects of those kinds and no independent runtime consumer was found. Higher-level orchestration now supplies one exact `HarnessRunContract`; historical research/evidence is not rewritten. The later experimental LoopDriver wrapper was also retired after its independent consumer census remained zero.
+
+The former `ordivon_harness.strategy_selection` module and its `Harness*StrategySelection*`, prior-attempt/Strategy-evidence aggregation, and selected-attempt helpers are retired. They had no current persisted objects or cross-repository runtime consumer beyond Harness' own acceptance/research surfaces. Higher-level orchestration now binds one exact `HarnessRunContract` directly; historical evidence remains historical and is not rewritten.
+
+`ordivon_harness.api` is the supported application facade. The package root exposes only `package_version` and deliberately does not mirror the application API. Advanced Host-free integration uses explicit owner modules for persistence, continuity, Provider, Runtime, recovery, cognition, and Tool composition; the duplicate `ordivon_harness.core` aggregation facade is retired. `HarnessAgentRun.explain()` remains on the recommended Run handle. The former capability catalog/discovery, InteractionContext, knowledge-topology and specialized `observation_tool_surface` wrappers are retired rather than preserved as generic owner/currentness/presentation ontologies. Externally selected exact `HarnessWorkingViewSource` values still enter through the cognition seed path; observation-only `search_workspace` / `workspace.read` lowering, exact Runtime references and digest fences remain in the core Runtime bridge; bounded programmatic Tool composition/recovery remains in advanced `ordivon_harness.tool_program` and `ordivon_harness.tool_program_recovery`; the unconsumed derived durable-recovery projection is retired. Caller/domain code owns source selection, authority-publication schemas and semantic projection. None of these mechanics grants domain standing merely by existing.
+
+H3 intentionally removed historical package-root aliases, `host_api`, `HarnessRunner`, `HarnessHost`, Assignment/TaskContract objects, cutover APIs and Host source compatibility modules. New code must not depend on them.
+
+## Durable state
+
+Current writers own only independent Harness state: `HarnessRunContract`, Run projection/events, Provider Call records, Tool-step intents/fences/receipts, Run snapshots, Trace, recovery assessment, Run Receipt and CompletionProposal. The former Host-era `NativeRunAbandonment`, `NativeRunDisposition`, `HarnessRunStatus.ABANDONED` and `harness.run-abandoned` application semantics are retired: current recovery records evidence and derives `safeToAbandon`, then the caller either retries/resumes or reconciles remaining UNKNOWN without a second abandonment commit. A retained schema-v1 SQLite `runs.status` CHECK may still contain the unused literal `abandoned`; that physical DDL superset is not a supported writer/decoder contract and is intentionally left unchanged rather than creating two incompatible schema-v1 DDLs.
+
+`AgentRunConclusion` now has one optional `structuredResult` object containing the versioned `ordivon.agent-structured-result` carrier. Absence preserves the exact legacy unstructured serialization and digest. Current writers keep `summary` bounded to 8,000 UTF-8 bytes and bound the carrier value to one MiB. Current readers accept both the dedicated carrier and historical `structured-result-v1` conclusions whose canonical JSON was stored directly in `summary`; no old durable object is silently reinterpreted. The legacy summary encoder now fails closed above 8,000 bytes and directs current callers to the carrier.
+
+Pre-H3 Host-backed state is not a current compatibility obligation. Historical receipts remain evidence of the implementation that produced them; they are not a decoder requirement for H3.
+
+The former `ordivon_harness.tool_semantics` / `NativeToolCatalogSnapshot` line is also retired from current code. An exact current-source and cross-repository consumer census found no imports or callers; its remaining mentions are historical design/closeout documentation. Runtime Tool admission, correlation, idempotency and effect semantics now come from the retained caller/tool contracts and Runtime-facing execution paths rather than a parallel Harness-owned native Tool catalog.
+
+The former Harness-local Finance observe/research Runtime bridge modules are not current compatibility surfaces. Finance owns the current Runtime-domain interface and its semantic operation schemas; current Finance/Workstation composition invokes that owner domain through Runtime directly. Harness retains generic Runtime execution/recovery mechanics rather than shadow Finance-specific grants/parsers. Historical source/evidence references to the retired bridges remain historical evidence.
+
+The former `ordivon_harness.claim_standing` module and its `OperationalClaim*` / `project_operational_claim_standing_view` exports are retired from the current compatibility surface. They had no production downstream consumer beyond the public re-export and encoded a generic evidence-role-to-standing inference that belongs to the semantic/domain owner, not Harness execution mechanics. Historical research Markdown, experiment source and Campaign-3 evidence JSON remain immutable historical material; their old `ordivon.harness-operational-claim-*` values are not rewritten or promoted to current standing.
+
+Current Provider Call writes use schema v4. Schema v3 remains a narrow typed historical reader because the authoritative S0 freeze contains live historical v3 objects. The earlier caller-neutral schema-v2 typed codec is retired: the current estate scan found no v2 object in the S0 freeze and no current Provider head or code consumer requiring it. Older completed experiment roots may still retain immutable v2 CAS bytes and their event references; generic store doctor/events/inspect/status continue to read those Runs without reinterpreting or deleting those historical bytes.
+
+Schema-v1 caller-neutral `HarnessRunContract` keeps one narrow compatibility rule
+because it is part of the independent line: budget fields present in the Contract
+are exact authority; omitted known fields use the historical defaults; unknown
+fields fail closed. `maxConclusionCorrections` is a later known budget field with
+historical default 3 when absent. An older Contract that explicitly binds
+`maxToolCorrections` does not thereby bind conclusion correction: Tool-call
+correction and caller/domain conclusion correction are separate execution
+mechanics.
+
+## Upgrade rule
+
+Before upgrading active independent work, inspect nonterminal Runs and unresolved Provider/Tool delivery, back up the Harness root, and prove the candidate can reopen current independent state. Do not reinterpret UNKNOWN or resend an ambiguous effect merely because code changed.
+
+Pre-1.0 breaking changes may deliberately drop unused schemas or APIs. Such deletion must be explicit in the Changelog and current tests/docs must describe only the retained authority.

@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import os
+from pathlib import Path
+import stat
+import tempfile
+import unittest
+
+_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "configure_deepseek_api.py"
+_SPEC = importlib.util.spec_from_file_location("configure_deepseek_api", _SCRIPT)
+assert _SPEC is not None and _SPEC.loader is not None
+_MODULE = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_MODULE)
+
+
+class ConfigureDeepSeekApiTests(unittest.TestCase):
+    def test_validate_key_rejects_short_or_whitespace_values(self) -> None:
+        for value in ("", "short", "sk-valid-but-has whitespace"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    _MODULE._validate_key(value)
+
+    def test_write_and_load_secret_use_private_permissions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "nested" / "deepseek.json"
+            payload = _MODULE._secret_payload("sk-" + "a" * 40, "deepseek-flash")
+            _MODULE._write_secret(path, payload)
+            self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(_MODULE._load_secret(path), payload)
+            self.assertFalse(any(path.parent.glob("*.tmp")))
+
+    def test_load_rejects_group_readable_secret(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            path.write_text(
+                json.dumps(_MODULE._secret_payload("sk-" + "b" * 40, "deepseek-v4-flash")),
+                encoding="utf-8",
+            )
+            os.chmod(path, 0o640)
+            with self.assertRaises(PermissionError):
+                _MODULE._load_secret(path)
+
+    def test_canonical_default_and_legacy_models_remain_supported(self) -> None:
+        self.assertEqual(_MODULE.DEFAULT_MODEL, "deepseek-flash")
+        self.assertIn("deepseek-flash", _MODULE.SUPPORTED_MODELS)
+        for model in ("deepseek-v4-flash", "deepseek-v4-pro"):
+            with self.subTest(model=model):
+                payload = _MODULE._secret_payload("sk-" + "d" * 40, model)
+                self.assertEqual(payload["model"], model)
+
+    def test_legacy_flash_alias_loads_with_private_permissions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            payload = _MODULE._secret_payload("sk-" + "e" * 40, "deepseek-v4-flash")
+            _MODULE._write_secret(path, payload)
+            self.assertEqual(_MODULE._load_secret(path)["model"], "deepseek-v4-flash")
+
+    def test_current_secret_shape_with_credential_scope_is_accepted(self) -> None:
+        payload = {
+            "schemaVersion": 1,
+            "provider": "deepseek",
+            "apiKey": "sk-" + "f" * 40,
+            "baseUrl": _MODULE.DEFAULT_BASE_URL,
+            "model": "deepseek-flash",
+            "credentialScopeId": "credential-scope:deepseek:flash:0",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            path.chmod(0o600)
+            loaded = _MODULE._load_secret(path)
+        self.assertEqual(loaded, payload)
+
+    def test_unexpected_secret_field_still_fails_closed(self) -> None:
+        payload = {
+            "schemaVersion": 1,
+            "provider": "deepseek",
+            "apiKey": "sk-" + "g" * 40,
+            "baseUrl": _MODULE.DEFAULT_BASE_URL,
+            "model": "deepseek-flash",
+            "unexpected": True,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deepseek.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            path.chmod(0o600)
+            with self.assertRaisesRegex(ValueError, "unexpected fields"):
+                _MODULE._load_secret(path)
+
+    def test_payload_is_fixed_to_official_base_url(self) -> None:
+        payload = _MODULE._secret_payload("sk-" + "c" * 40, "deepseek-flash")
+        self.assertEqual(payload["baseUrl"], "https://api.deepseek.com")
+        self.assertEqual(payload["provider"], "deepseek")
+        self.assertFalse(hasattr(_MODULE, "_fingerprint"))
+
+
+if __name__ == "__main__":
+    unittest.main()

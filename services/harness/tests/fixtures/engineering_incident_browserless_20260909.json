@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.engineering.incident-request",
+  "incidentId": "01993c7a-1234-7abc-8def-1234567890ab",
+  "title": "Browserless provider admission and human-interaction incident",
+  "detectedAt": "2026-09-09T20:10:00+08:00",
+  "affectedCapabilities": [
+    "agent-automation",
+    "browser-provider-access",
+    "provider-human-verification"
+  ],
+  "signals": [
+    {
+      "signalId": "network-generation-drift",
+      "domain": "E2_NETWORK",
+      "standing": "OBSERVED",
+      "observation": "WSL restart replaced the surfpath namespace generation; Browserless was subsequently rebound to the current exterior-anchor authority.",
+      "evidenceRefs": ["git:cae3597", "runtime:surfpath-247306-172"]
+    },
+    {
+      "signalId": "operator-bridge-websocket",
+      "domain": "E2_NETWORK",
+      "standing": "FALSIFIED",
+      "observation": "The localhost operator bridge successfully carried HTTP and CDP WebSocket traffic after the manual parked session was removed.",
+      "evidenceRefs": ["runtime:browserless-ws-bridge-probe-pass"]
+    },
+    {
+      "signalId": "persistent-profile",
+      "domain": "E3_SUBSTRATE",
+      "standing": "FALSIFIED",
+      "observation": "Production Browserless launch was observed with userDataDir=/data; missing persistent profile binding is not supported as the current failure explanation.",
+      "evidenceRefs": ["runtime:production-user-data-dir-data"]
+    },
+    {
+      "signalId": "human-interaction-transport",
+      "domain": "E3_SUBSTRATE",
+      "standing": "OBSERVED",
+      "observation": "Browserless OSS 2.56.0 session viewer routes an existing page to DevTools Inspector while its interactive Runner creates a new browser session; this does not satisfy exact parked-session human interaction.",
+      "evidenceRefs": ["image:browserless-2.56.0", "runtime:debugger-source-map-audit"]
+    },
+    {
+      "signalId": "provider-challenge",
+      "domain": "E5_EXTERNAL_PROVIDER",
+      "standing": "OBSERVED",
+      "observation": "ChatGPT provider preflight returned CHALLENGE_GATED with providerEffectAttempted=false and no composer fill or SEND.",
+      "evidenceRefs": ["runtime:chatgpt-carrier-11-preflight"]
+    },
+    {
+      "signalId": "browserless-secret-journal",
+      "domain": "E8_SECURITY_TRUST",
+      "standing": "OBSERVED",
+      "observation": "A fresh production Browserless connection caused the current Browserless bearer token to appear in the carrier system journal.",
+      "evidenceRefs": ["runtime:journal-token-presence-current-probe"]
+    }
+  ],
+  "hypotheses": [
+    {
+      "hypothesisId": "H1",
+      "statement": "The current provider failure is caused by a broken localhost HTTP/WebSocket bridge.",
+      "domains": ["E2_NETWORK"],
+      "standing": "FALSIFIED",
+      "falsifier": "Release the manual diagnostic holder and establish about:blank CDP connections through both root and /chromium operator bridge endpoints.",
+      "supportingEvidenceRefs": [],
+      "contradictingEvidenceRefs": ["runtime:browserless-ws-bridge-probe-pass"]
+    },
+    {
+      "hypothesisId": "H2",
+      "statement": "The current provider failure is caused by Browserless not using the persistent profile.",
+      "domains": ["E3_SUBSTRATE", "E4_IDENTITY_AUTH"],
+      "standing": "FALSIFIED",
+      "falsifier": "Run the production connection endpoint inside the bound network namespace and observe the browser launch user-data-dir.",
+      "supportingEvidenceRefs": [],
+      "contradictingEvidenceRefs": ["runtime:production-user-data-dir-data"]
+    },
+    {
+      "hypothesisId": "H3",
+      "statement": "The self-hosted Browserless Debugger can serve as an exact-session interactive human handoff for a parked Browserless session.",
+      "domains": ["E3_SUBSTRATE"],
+      "standing": "FALSIFIED",
+      "falsifier": "Inspect Browserless 2.56.0 debugger session-viewer and Runner implementations and verify whether input is attached to the existing tracked session.",
+      "supportingEvidenceRefs": [],
+      "contradictingEvidenceRefs": ["runtime:debugger-source-map-audit"]
+    },
+    {
+      "hypothesisId": "H4",
+      "statement": "Browserless bearer-token logging is a current local security defect.",
+      "domains": ["E8_SECURITY_TRUST"],
+      "standing": "SUPPORTED",
+      "falsifier": "Execute a fresh production Browserless connection after logging hardening and prove the current bearer token is absent from new journal entries.",
+      "supportingEvidenceRefs": ["runtime:journal-token-presence-current-probe"],
+      "contradictingEvidenceRefs": []
+    },
+    {
+      "hypothesisId": "H5",
+      "statement": "The exact reason the external provider presented a challenge at this time is known.",
+      "domains": ["E4_IDENTITY_AUTH", "E5_EXTERNAL_PROVIDER"],
+      "standing": "UNRESOLVED",
+      "falsifier": "Obtain provider-authoritative evidence linking the challenge to one specific client condition rather than temporal correlation.",
+      "supportingEvidenceRefs": [],
+      "contradictingEvidenceRefs": []
+    }
+  ],
+  "explicitUnknowns": [
+    "The provider-authoritative reason for the challenge is unavailable.",
+    "A compliant exact-session human interaction transport is not yet integrated into the current self-hosted Browserless path."
+  ],
+  "impact": {
+    "scope": "MULTI_CAPABILITY",
+    "serviceBlocked": true,
+    "credentialOrSecretExposure": true,
+    "externalEffectAmbiguity": false,
+    "dataLossOrCorruption": false,
+    "safetyCritical": false,
+    "recurring": true
+  },
+  "humanAuthoritySignals": ["IDENTITY_OWNER"],
+  "requestedRepairScope": "DURABLE_SOURCE",
+  "sourceRefs": [
+    "git:b1cffd04a12d73a29918b70c9819a7f1f466551c",
+    "git:8648c579a0236e9cd6a65968588d48611670b441"
+  ],
+  "notes": "Founding Engineer E2E Autonomous Incident Closure case. Provider challenge handling must not bypass or evade provider controls; only the irreducible account-owner action may escalate to the owner."
+}

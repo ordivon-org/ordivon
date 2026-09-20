@@ -1,0 +1,89 @@
+name: Release acceptance
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  portable-release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14.7"
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: false
+      - name: Materialize runtime-search physical test profile
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends ripgrep gawk
+          /usr/bin/rg --version | head -n 1
+          /usr/bin/awk --version | head -n 1
+      - run: uv sync --locked
+      - run: uv run python scripts/check_runtime_search_profile.py
+      - run: uv lock --check
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          test "${GITHUB_REF_NAME}" = "v${version}"
+      - run: uv run python -m compileall -q src tests scripts evals
+      - run: uvx ruff==0.15.17 check src tests scripts
+      - run: uv run python -W error::ResourceWarning -m pytest -q tests
+      - run: uv run python scripts/check_dependencies.py
+      - run: uv run python scripts/check_docs.py
+      - run: uv run python scripts/check_evidence.py
+      - run: uv run python scripts/demo_deterministic_run.py
+      - run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
+      - run: uv build --wheel --out-dir /tmp/ordivon-harness-wheel
+      - run: uv run python scripts/check_wheel.py /tmp/ordivon-harness-wheel
+      - name: Locate tagged wheel
+        id: tagged-wheel
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel=$(find /tmp/ordivon-harness-wheel -maxdepth 1 -name '*.whl' -type f -print -quit)
+          test -n "$wheel"
+          echo "path=$wheel" >> "$GITHUB_OUTPUT"
+      - name: Generate SPDX SBOM
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          file: ${{ steps.tagged-wheel.outputs.path }}
+          format: spdx-json
+          output-file: /tmp/ordivon-harness-wheel/sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Attest wheel build provenance
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.tagged-wheel.outputs.path }}
+      - name: Attest wheel SPDX SBOM
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.tagged-wheel.outputs.path }}
+          sbom-path: /tmp/ordivon-harness-wheel/sbom.spdx.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ordivon-harness-wheel-${{ github.sha }}
+          path: /tmp/ordivon-harness-wheel/*.whl
+          if-no-files-found: error
+          retention-days: 30

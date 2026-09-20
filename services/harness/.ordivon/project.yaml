@@ -1,0 +1,35 @@
+schema_version: 1
+id: ordivon-harness
+name: Ordivon Harness
+repository: https://github.com/zycxfyh/ordivon-harness
+kind: engineering
+default_profiles:
+  - engineering
+  - organization
+documentation_roots:
+  - README.md
+  - ARCHITECTURE.md
+  - CONTRIBUTING.md
+  - SECURITY.md
+  - CHANGELOG.md
+  - docs
+managed_paths:
+  - README.md
+  - ARCHITECTURE.md
+  - docs/QUICKSTART.md
+  - docs/STATUS.md
+  - docs/COMPATIBILITY.md
+  - docs/VERIFICATION.md
+  - docs/OPERATIONS.md
+  - docs/DATA_AND_PRIVACY.md
+  - docs/RELEASES.md
+  - docs/DOMAIN-TOOL-BRIDGE-P0.md
+  - docs/DELIBERATION-BEFORE-TOOLS-H0.md
+  - docs/DELIBERATION-COMPOSITION-H1.md
+  - docs/DELIBERATION-LIFECYCLE-H2.md
+  - docs/authority.md
+enforcement: strict
+maintainers:
+  - zycxfyh
+public_projection: ordivon-web
+description: Durable cognitive execution substrate for Agent Runs, with explicit cognition, Provider/Tool continuity, evidence, Runtime effects, resume, and recovery.

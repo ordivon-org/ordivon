@@ -1,0 +1,35 @@
+{
+  "agreement": 3,
+  "cleanRebuildTrials": 3,
+  "environmentDigest": "sha256:3128b0211734114eb5d90a664ec729218dcf14e401d7157b259d3999b314ebb5",
+  "hiddenVerifierDigest": "sha256:231bb0106851b4b7bc2e846b47bd8090c16b2a9113de79a6a495949288e46e62",
+  "hiddenVerifierOutsideWorkspace": true,
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:2929cde63c7601c0ebd0991368d7c9478ac9403aa6c87c9e1acb8d9be4112db4"
+  },
+  "kind": "ordivon.evaluation-task-qa-result",
+  "oracleDigest": "sha256:970943c12c5f09183c3ec4e1c9e74ddde95cd52515fe019e19ea7f2a62149e14",
+  "oracleOutsideWorkspace": true,
+  "outcomes": {
+    "baseline": [
+      false,
+      false
+    ],
+    "both-enabled": [
+      true,
+      false
+    ],
+    "oracle": [
+      true,
+      true
+    ]
+  },
+  "passed": true,
+  "requiredAgreement": 3,
+  "schemaVersion": 1,
+  "taskDefinitionDigest": "sha256:8d33d90d6e4d131bf5c3884f2d3d5997d9c68945c7a94b8d08e4aa7a9f01b665",
+  "taskId": "HARNESS-EDIT-ADDRESSING-002",
+  "taskVersion": 1
+}

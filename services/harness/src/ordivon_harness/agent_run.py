@@ -1,0 +1,507 @@
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, TypeAlias
+
+from anc_canonical import JsonValue, validate_json_value
+
+from .completion import structured_completion_contract_digest
+from .core_contracts import HarnessRunContract
+from .execution_binding import HarnessExecutionBinding
+from .ordivon.model import AgentTurnAdapter
+from .ordivon.sqlite_agent_bridge import (
+    NO_TOOL_AGENT_GRANT_DIGEST,
+    NO_TOOL_AGENT_SURFACE_DIGEST,
+    SQLiteHarnessAgentBridge,
+)
+from .ordivon.sqlite_run_store import SQLiteHarnessRunContinuityStore
+from .ordivon.sqlite_runtime_bridge import (
+    INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST,
+    INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST,
+    SQLiteHarnessRuntimeBridge,
+)
+from .runtime_port import HarnessRuntimeClient
+from .sqlite_store import SQLiteHarnessStore
+from .standalone import (
+    HarnessAgentExecution,
+    HarnessCognitionProfile,
+    HarnessCognitionSeed,
+    HarnessCognitionSeedSource,
+    StandaloneHarnessRunner,
+)
+from .store import HarnessRunStatus
+from .ordivon.loop import CancellationToken, RunBudget
+from .ordivon.tool_bridge import ToolBridge
+
+
+
+HarnessAgentAdapterFactory: TypeAlias = Callable[[HarnessRunContract], AgentTurnAdapter]
+
+
+class HarnessAgentRunCompositionError(ValueError):
+    """The exact Run Contract cannot be composed by this supported surface."""
+
+
+@dataclass(slots=True)
+class HarnessAgentRun:
+    """One caller-bound Agent Run over current independent Harness authority.
+
+    This supported surface hides mechanical Store/Continuity/Bridge/Runner wiring.
+    It does not author Contracts, choose Providers, infer Runtime bindings, discover
+    cognition, rank sources, or admit caller/domain completion truth.
+    """
+
+    state_root: Path
+    contract: HarnessRunContract
+    adapter: AgentTurnAdapter
+    clock_ms: Callable[[], int]
+    monotonic_ms: Callable[[], int]
+    cognition_profile: HarnessCognitionProfile | None = None
+    execution_binding: HarnessExecutionBinding | None = None
+    runtime: HarnessRuntimeClient | None = None
+
+    @classmethod
+    def create(
+        cls,
+        state_root: str | Path,
+        contract: HarnessRunContract,
+        adapter_factory: HarnessAgentAdapterFactory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        clock_ms: Callable[[], int] | None = None,
+        monotonic_ms: Callable[[], int] | None = None,
+    ) -> HarnessAgentRun:
+        cls._validate_structure(
+            contract,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+        )
+        adapter = cls._resolve_adapter(contract, adapter_factory)
+        root = Path(state_root).expanduser().resolve()
+        with SQLiteHarnessStore.initialize(root) as store:
+            try:
+                projection = store.load_run(contract.harness_run_id)
+            except KeyError:
+                store.create_run(contract)
+            else:
+                if (
+                    projection.contract_digest != contract.digest
+                    or projection.caller_id != contract.caller_id
+                    or projection.caller_run_ref != contract.caller_run_ref
+                ):
+                    raise HarnessAgentRunCompositionError(
+                        "existing Harness Run differs from supplied Contract"
+                    )
+        return cls._bind(
+            root,
+            contract,
+            adapter,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
+        )
+
+    @classmethod
+    def open(
+        cls,
+        state_root: str | Path,
+        harness_run_id: str,
+        adapter_factory: HarnessAgentAdapterFactory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        clock_ms: Callable[[], int] | None = None,
+        monotonic_ms: Callable[[], int] | None = None,
+    ) -> HarnessAgentRun:
+        root = Path(state_root).expanduser().resolve()
+        with SQLiteHarnessStore(root) as store:
+            continuity = SQLiteHarnessRunContinuityStore.open(
+                store, harness_run_id, clock_ms=clock_ms
+            )
+            contract = continuity.contract
+        cls._validate_structure(
+            contract,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+        )
+        adapter = cls._resolve_adapter(contract, adapter_factory)
+        return cls._bind(
+            root,
+            contract,
+            adapter,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
+        )
+
+    @classmethod
+    def _bind(
+        cls,
+        state_root: Path,
+        contract: HarnessRunContract,
+        adapter: AgentTurnAdapter,
+        *,
+        cognition_profile: HarnessCognitionProfile | None,
+        execution_binding: HarnessExecutionBinding | None,
+        runtime: HarnessRuntimeClient | None,
+        clock_ms: Callable[[], int] | None,
+        monotonic_ms: Callable[[], int] | None,
+    ) -> HarnessAgentRun:
+        wall_clock = clock_ms or (lambda: time.time_ns() // 1_000_000)
+        mono_clock = monotonic_ms or (lambda: time.monotonic_ns() // 1_000_000)
+        value = cls(
+            state_root=state_root,
+            contract=contract,
+            adapter=adapter,
+            clock_ms=wall_clock,
+            monotonic_ms=mono_clock,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+        )
+        return value
+
+    @property
+    def harness_run_id(self) -> str:
+        return self.contract.harness_run_id
+
+    def status(self) -> dict[str, JsonValue]:
+        with SQLiteHarnessStore(self.state_root) as store:
+            return store.load_run(self.harness_run_id).to_dict()
+
+    def explain(self) -> dict[str, JsonValue]:
+        """Project the validated in-process Harness composition."""
+
+        if self.cognition_profile is None:
+            cognition: dict[str, JsonValue] = {
+                "supplied": False,
+                "mechanisms": [],
+                "proofRole": "process-local",
+            }
+        else:
+            mechanisms: list[str] = []
+            if self.cognition_profile.working_set_transitions:
+                mechanisms.append("working-set-transition")
+            if self.cognition_profile.caller_ingress_promotions:
+                mechanisms.append("caller-ingress-promotion")
+            if self.cognition_profile.working_set_history:
+                mechanisms.append("working-set-history")
+            cognition = {
+                "supplied": True,
+                "mechanisms": mechanisms,
+                "profile": {
+                    "workingSetTransitions": self.cognition_profile.working_set_transitions,
+                    "callerIngressPromotions": self.cognition_profile.caller_ingress_promotions,
+                    "workingSetHistory": self.cognition_profile.working_set_history,
+                },
+                "proofRole": "process-local",
+            }
+
+        if self.execution_binding is None:
+            binding: dict[str, JsonValue] = {
+                "supplied": False,
+                "proofRole": "process-local",
+            }
+        else:
+            binding = {
+                "supplied": True,
+                "proofRole": "process-local-and-contract-checked",
+                "bindingDigest": self.execution_binding.digest,
+                "runtimeReferenceCount": len(self.execution_binding.runtime_references),
+            }
+
+        value: dict[str, JsonValue] = {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-process-composition-projection",
+            "truthRole": "derived-read-only-composition-projection",
+            "run": {
+                "harnessRunId": self.contract.harness_run_id,
+                "contractDigest": self.contract.digest,
+                "providerId": self.contract.provider_id,
+                "adapterId": self.contract.adapter_id,
+                "requestedModelId": self.contract.requested_model_id,
+                "toolCatalogDigest": self.contract.tool_catalog_digest,
+                "toolGrantDigest": self.contract.tool_grant_digest,
+                "privacy": self.contract.privacy.to_dict(),
+                "budget": dict(self.contract.budget),
+            },
+            "processLocal": {
+                "adapter": {
+                    "supplied": True,
+                    "proofRole": "process-local-and-contract-checked",
+                    "adapterId": getattr(self.adapter, "adapter_id", "unknown"),
+                    "modelId": getattr(self.adapter, "model_id", "unknown"),
+                    "liveness": "not-probed",
+                },
+                "cognition": cognition,
+                "executionBinding": binding,
+                "runtimeClient": {
+                    "supplied": self.runtime is not None,
+                    "proofRole": "process-local",
+                    "liveness": "not-probed",
+                },
+            },
+            "proofBoundary": (
+                "process-local objects are reported as supplied/validated only; this projection "
+                "does not grant authority or prove Provider/Runtime liveness"
+            ),
+            "durableRun": self.status(),
+        }
+        validate_json_value(value)
+        return value
+
+    def run(
+        self,
+        initial_messages: tuple[dict[str, JsonValue], ...],
+        *,
+        cancellation: CancellationToken | None = None,
+        cognition_seed: HarnessCognitionSeed | None = None,
+    ) -> HarnessAgentExecution:
+        with SQLiteHarnessStore(self.state_root) as store:
+            projection = store.load_run(self.harness_run_id)
+            if projection.status is HarnessRunStatus.PAUSED:
+                raise RuntimeError("paused Harness Agent Run requires resume")
+            return self._runner(store, provider_source=None).run(
+                initial_messages,
+                cancellation=cancellation,
+                cognition_seed=cognition_seed,
+            )
+
+    def resume(
+        self,
+        *,
+        additional_messages: tuple[dict[str, JsonValue], ...] = (),
+        cancellation: CancellationToken | None = None,
+    ) -> HarnessAgentExecution:
+        with SQLiteHarnessStore(self.state_root) as store:
+            continuity = self._continuity(store)
+            retained = continuity.load_current_snapshot()
+            provider_source = continuity.snapshot_provider_source(retained)
+            return self._runner(
+                store, continuity=continuity, provider_source=provider_source
+            ).resume(
+                additional_messages=additional_messages,
+                cancellation=cancellation,
+            )
+
+    def inspect_terminal(self):
+        with SQLiteHarnessStore(self.state_root) as store:
+            return self._runner(store, provider_source=None).inspect_terminal()
+
+    def doctor(self) -> dict[str, JsonValue]:
+        with SQLiteHarnessStore(self.state_root) as store:
+            projection = store.load_run(self.harness_run_id)
+            provider_source = None
+            if projection.status is HarnessRunStatus.PAUSED:
+                continuity = self._continuity(store)
+                retained = continuity.load_current_snapshot()
+                provider_source = continuity.snapshot_provider_source(retained)
+                return self._runner(
+                    store, continuity=continuity, provider_source=provider_source
+                ).doctor()
+            return self._runner(store, provider_source=None).doctor()
+
+    def _continuity(self, store: SQLiteHarnessStore) -> SQLiteHarnessRunContinuityStore:
+        return SQLiteHarnessRunContinuityStore.open(
+            store, self.harness_run_id, clock_ms=self.clock_ms
+        )
+
+    def _runner(
+        self,
+        store: SQLiteHarnessStore,
+        *,
+        continuity: SQLiteHarnessRunContinuityStore | None = None,
+        provider_source=None,
+    ) -> StandaloneHarnessRunner:
+        active = continuity or self._continuity(store)
+        bridge = self._bridge(active, provider_source=provider_source)
+        return StandaloneHarnessRunner(
+            self.contract,
+            active,
+            self.adapter,
+            bridge,
+            budget=RunBudget.from_contract_dict(self.contract.budget),
+            clock_ms=self.clock_ms,
+            monotonic_ms=self.monotonic_ms,
+            cognition_profile=self.cognition_profile,
+        )
+
+    def _bridge(
+        self,
+        continuity: SQLiteHarnessRunContinuityStore,
+        *,
+        provider_source=None,
+    ) -> ToolBridge:
+        if self._no_tool_surface:
+            return SQLiteHarnessAgentBridge(
+                self.contract, continuity, provider_source=provider_source
+            )
+        assert self.execution_binding is not None
+        assert self.runtime is not None
+        return SQLiteHarnessRuntimeBridge(
+            self.contract,
+            continuity,
+            self.execution_binding,
+            self.runtime,
+            provider_source=provider_source,
+        )
+
+    @property
+    def _no_tool_surface(self) -> bool:
+        return (
+            self.contract.tool_catalog_digest == NO_TOOL_AGENT_SURFACE_DIGEST
+            and self.contract.tool_grant_digest == NO_TOOL_AGENT_GRANT_DIGEST
+        )
+
+    @property
+    def _runtime_search_surface(self) -> bool:
+        return (
+            self.contract.tool_catalog_digest == INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
+            and self.contract.tool_grant_digest == INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
+        )
+
+    @staticmethod
+    def _resolve_adapter(
+        contract: HarnessRunContract,
+        adapter_factory: HarnessAgentAdapterFactory,
+    ) -> AgentTurnAdapter:
+        adapter = adapter_factory(contract)
+        if adapter.adapter_id != contract.adapter_id:
+            raise HarnessAgentRunCompositionError(
+                "Harness Agent Run Adapter differs from its Contract"
+            )
+        if adapter.model_id != contract.requested_model_id:
+            raise HarnessAgentRunCompositionError(
+                "Harness Agent Run requested model differs from its Contract"
+            )
+        expected_completion_digest = structured_completion_contract_digest(
+            contract.completion_contract
+        )
+        if (
+            expected_completion_digest is not None
+            and getattr(adapter, "structured_completion_contract_digest", None)
+            != expected_completion_digest
+        ):
+            raise HarnessAgentRunCompositionError(
+                "Harness Agent Run structured completion differs from its Contract"
+            )
+        return adapter
+
+    @staticmethod
+    def _validate_structure(
+        contract: HarnessRunContract,
+        *,
+        cognition_profile: HarnessCognitionProfile | None,
+        execution_binding: HarnessExecutionBinding | None,
+        runtime: HarnessRuntimeClient | None,
+    ) -> None:
+        """Admit every supported composition fact provable before state creation.
+
+        This does not probe Provider or Runtime availability. It only rejects exact
+        caller inputs that cannot lawfully compose the persisted Contract.
+        """
+
+        RunBudget.from_contract_dict(contract.budget)
+        if cognition_profile is not None:
+            if not contract.privacy.allow_model_content:
+                raise HarnessAgentRunCompositionError(
+                    "Harness cognition requires Contract permission to retain model content"
+                )
+            if (
+                cognition_profile.working_set_history
+                and not contract.privacy.allow_tool_content
+            ):
+                raise HarnessAgentRunCompositionError(
+                    "Harness cognition history requires Tool-content authority"
+                )
+
+        no_tool = (
+            contract.tool_catalog_digest == NO_TOOL_AGENT_SURFACE_DIGEST
+            and contract.tool_grant_digest == NO_TOOL_AGENT_GRANT_DIGEST
+        )
+        runtime_search = (
+            contract.tool_catalog_digest == INDEPENDENT_SEARCH_TOOL_SURFACE_DIGEST
+            and contract.tool_grant_digest == INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
+        )
+        if no_tool:
+            if execution_binding is not None or runtime is not None:
+                raise HarnessAgentRunCompositionError(
+                    "no-Tool Harness Agent Run must not receive Runtime execution authority"
+                )
+            return
+        if runtime_search:
+            if execution_binding is None or runtime is None:
+                raise HarnessAgentRunCompositionError(
+                    "Runtime Tool Harness Agent Run requires exact execution binding and Runtime client"
+                )
+            HarnessAgentRun._validate_execution_binding(contract, execution_binding)
+            return
+        raise HarnessAgentRunCompositionError(
+            "Harness Agent Run does not implement the Contract's exact Tool surface; "
+            "use advanced core composition for custom Tool bridges"
+        )
+
+    @staticmethod
+    def _validate_execution_binding(
+        contract: HarnessRunContract,
+        execution_binding: HarnessExecutionBinding,
+    ) -> None:
+        if execution_binding.harness_run_id != contract.harness_run_id:
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding differs from the independent Run binding"
+            )
+        references = execution_binding.runtime_references
+        if not references:
+            raise HarnessAgentRunCompositionError(
+                "independent Runtime execution requires foreign references"
+            )
+        if any(reference["namespace"] != "ordivon.harness" for reference in references):
+            raise HarnessAgentRunCompositionError(
+                "independent Runtime execution may reference only ordivon.harness authority"
+            )
+        run_refs = [reference for reference in references if reference["type"] == "harness_run"]
+        if len(run_refs) != 1 or run_refs[0]["id"] != contract.harness_run_id:
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding Run reference differs"
+            )
+        contract_refs = [
+            reference for reference in references if reference["type"] == "run_contract"
+        ]
+        if len(contract_refs) != 1 or contract_refs[0].get("digest") != contract.digest:
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding Contract reference differs"
+            )
+        grant_refs = [
+            reference for reference in references if reference["type"] == "tool_grant"
+        ]
+        if (
+            len(grant_refs) != 1
+            or grant_refs[0].get("digest") != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
+            or contract.tool_grant_digest != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
+        ):
+            raise HarnessAgentRunCompositionError(
+                "Harness Execution Binding Tool Grant reference differs"
+            )
+
+
+
+__all__ = [
+    "HarnessAgentAdapterFactory",
+    "HarnessAgentExecution",
+    "HarnessAgentRun",
+    "HarnessAgentRunCompositionError",
+    "HarnessCognitionProfile",
+    "HarnessCognitionSeed",
+    "HarnessCognitionSeedSource",
+]

@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-domain-lego-plan",
+  "truthRole": "planning-projection-not-runtime-truth",
+  "purpose": "Select one exact ready browser-domain route from explicit caller requirements without moving provider authorization, browser effects, Harness Run truth, or Runtime execution truth into the router.",
+  "nodes": [
+    {
+      "id": "BCR01",
+      "label": "RequirementInput",
+      "kind": "caller_contract",
+      "state": "IMPLEMENTED",
+      "owns": ["providerFlow", "requiredFeatures", "preferredFeatures", "explicitRouteId"],
+      "mustNotOwn": ["natural-language intent inference", "provider authorization"]
+    },
+    {
+      "id": "BCR02",
+      "label": "RoutePolicy",
+      "kind": "replaceable_data_policy",
+      "state": "IMPLEMENTED",
+      "evidence": ["config/browser-capability-routes.json"],
+      "mustNotOwn": ["global capability registry", "Harness Run authority"]
+    },
+    {
+      "id": "BCR03",
+      "label": "ReadinessProjection",
+      "kind": "observation",
+      "state": "IMPLEMENTED",
+      "dependencies": ["Workstation Jev status", "Browserless health", "Agent Automation doctor", "systemd mask state"],
+      "mustNotOwn": ["browser effects", "operator policy mutation"]
+    },
+    {
+      "id": "BCR04",
+      "label": "DeterministicRoutePlan",
+      "kind": "decision_router",
+      "state": "IMPLEMENTED",
+      "mustNotOwn": [
+        "semantic success",
+        "Runtime execution truth",
+        "sibling readiness probes for explicitRouteId"
+      ]
+    },
+    {
+      "id": "BCR05",
+      "label": "ExecutorDispatch",
+      "kind": "effect_boundary",
+      "state": "PROPOSAL_BOUNDARY_IMPLEMENTED",
+      "evidence": [
+        "scripts/browser_benchmark_runner.py",
+        "scripts/browser_benchmark_route_adapter.py"
+      ],
+      "mustNotOwn": [
+        "Runtime admission",
+        "effect fencing already owned by selected adapter"
+      ]
+    },
+    {
+      "id": "BCR06",
+      "label": "BenchmarkContract",
+      "kind": "measurement_boundary",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR04"],
+      "evidence": [
+        "config/browser-benchmark-suite.json",
+        "scripts/browser_benchmark_contract.py",
+        "docs/BROWSER_BENCHMARK_CONTRACT_S2.md"
+      ],
+      "mustNotOwn": [
+        "browser effects",
+        "provider authorization",
+        "Runtime execution truth",
+        "semantic success inference"
+      ]
+    },
+    {
+      "id": "BCR07",
+      "label": "RouteRunnerAdapters",
+      "kind": "replaceable_effect_adapter",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR06"],
+      "evidence": [
+        "scripts/browser_benchmark_route_adapter.py",
+        "tests/test_browser_benchmark_route_adapter.py"
+      ],
+      "mustNotOwn": [
+        "route fallback",
+        "Runtime physical truth",
+        "task authorization"
+      ]
+    },
+    {
+      "id": "BCR08",
+      "label": "RuntimeExecutionProposal",
+      "kind": "authority_preserving_handoff",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR06", "BCR07"],
+      "evidence": [
+        "scripts/browser_benchmark_runner.py",
+        "tests/test_browser_benchmark_runner.py"
+      ],
+      "mustNotOwn": [
+        "Runtime admission",
+        "secret value storage",
+        "semantic success"
+      ]
+    },
+    {
+      "id": "BCR09",
+      "label": "RuntimeAdmissionTemplate",
+      "kind": "authority_preserving_handoff",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR08"],
+      "evidence": [
+        "scripts/browser_benchmark_runtime_handoff.py",
+        "tests/test_browser_benchmark_runtime_handoff.py"
+      ],
+      "mustNotOwn": [
+        "Runtime admission",
+        "secret value storage",
+        "provider authorization"
+      ]
+    },
+    {
+      "id": "BCR10",
+      "label": "RuntimeResultReconciliation",
+      "kind": "truth_reconciliation",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR07", "BCR09"],
+      "evidence": [
+        "scripts/browser_benchmark_runtime_handoff.py",
+        "tests/test_browser_benchmark_runtime_handoff.py",
+        "docs/BROWSER_BENCHMARK_RUNTIME_HANDOFF_S4.md"
+      ],
+      "mustNotOwn": [
+        "Runtime physical truth",
+        "semantic success inference without witness"
+      ]
+    },
+    {
+      "id": "BCR11",
+      "label": "ProspectivePairManifest",
+      "kind": "measurement_design",
+      "state": "IMPLEMENTED",
+      "dependencies": ["BCR06"],
+      "evidence": [
+        "scripts/browser_benchmark_prospective.py",
+        "tests/test_browser_benchmark_prospective.py",
+        "docs/BROWSER_BENCHMARK_PROSPECTIVE_S5.md"
+      ],
+      "mustNotOwn": [
+        "route readiness",
+        "Runtime admission",
+        "model intelligence ranking"
+      ]
+    },
+    {
+      "id": "BCR12",
+      "label": "DualNormalReadinessGate",
+      "kind": "prospective_admission_gate",
+      "state": "IMPLEMENTED_BLOCKED_LIVE",
+      "dependencies": ["BCR04", "BCR09", "BCR11"],
+      "evidence": [
+        "scripts/browser_benchmark_prospective.py",
+        "tests/test_browser_benchmark_prospective.py"
+      ],
+      "mustNotOwn": [
+        "credential injection",
+        "operator mask mutation",
+        "Runtime Job creation"
+      ]
+    },
+    {
+      "id": "BCR13",
+      "label": "GenericBrowserColdOnDemand",
+      "kind": "normal_readiness_lifecycle",
+      "state": "DEPLOYED_LIVE_VERIFIED",
+      "dependencies": ["BCR03", "BCR04"],
+      "evidence": [
+        "scripts/browserless_substrate.py",
+        "scripts/browser_use_browserless.py",
+        "scripts/browserless_podman_deploy.py",
+        "docs/BROWSER_READINESS_OPS_R6.md"
+      ],
+      "mustNotOwn": [
+        "legacy browser-agent-21 unmask",
+        "ChatGPT carrier reuse",
+        "benchmark-specific route enablement"
+      ]
+    }
+  ],
+  "edges": [
+    {"from": "BCR01", "to": "BCR04", "type": "DATA"},
+    {"from": "BCR02", "to": "BCR04", "type": "POLICY"},
+    {"from": "BCR03", "to": "BCR04", "type": "READINESS"},
+    {"from": "BCR04", "to": "BCR05", "type": "SELECTED_ROUTE"},
+    {"from": "BCR04", "to": "BCR06", "type": "ROUTE_PLAN"},
+    {"from": "BCR06", "to": "BCR08", "type": "PREPARE"},
+    {"from": "BCR08", "to": "BCR07", "type": "RUNTIME_EXECUTION_PROPOSAL"},
+    {"from": "BCR07", "to": "BCR06", "type": "BOUND_EXECUTION_OBSERVATION"},
+    {"from": "BCR08", "to": "BCR09", "type": "ADMISSION_TEMPLATE"},
+    {"from": "BCR09", "to": "BCR10", "type": "RUNTIME_OBSERVATION"},
+    {"from": "BCR07", "to": "BCR10", "type": "ROUTE_RESULT"},
+    {"from": "BCR10", "to": "BCR06", "type": "RECONCILED_MEASUREMENT"},
+    {"from": "BCR06", "to": "BCR11", "type": "FROZEN_MEASUREMENT_CONTRACT"},
+    {"from": "BCR04", "to": "BCR12", "type": "NORMAL_READINESS"},
+    {"from": "BCR11", "to": "BCR12", "type": "FROZEN_PAIR_SCHEDULE"},
+    {"from": "BCR12", "to": "BCR09", "type": "PAIRED_ADMISSION_TEMPLATES"},
+    {"from": "BCR03", "to": "BCR13", "type": "NORMAL_READINESS"},
+    {"from": "BCR13", "to": "BCR04", "type": "READY_ON_DEMAND"}
+  ],
+  "currentRoutes": [
+    "jev-fast-windows-v1",
+    "browser-use-browserless-v1",
+    "chatgpt-agent-automation-browserless-v1",
+    "visual-browser-v1"
+  ],
+  "currentStanding": {
+    "jev-fast-windows-v1": "CREDENTIAL_MISSING",
+    "browser-use-browserless-v1": "READY_ON_DEMAND",
+    "chatgpt-agent-automation-browserless-v1": "READY",
+    "visual-browser-v1": "NOT_MATERIALIZED"
+  },
+  "nextSlice": {
+    "id": "BCR-R7-JEV-CREDENTIAL",
+    "objective": "Materialize a secure operator-provided TypeSafe credential binding for the Jev Windows route without serializing the secret into Router, benchmark, Runtime proposal, or repository state; then re-evaluate the frozen S5 paired gate.",
+    "status": "BLOCKED_BY_OPERATOR_CREDENTIAL_INPUT"
+  }
+}

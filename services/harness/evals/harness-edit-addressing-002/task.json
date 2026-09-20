@@ -1,0 +1,63 @@
+{
+  "acceptanceContract": {
+    "assertions": [
+      "visible beta suite passes",
+      "hidden verifier preserves alpha false while beta becomes true",
+      "SPEC.md and test_feature_flags.py are unchanged",
+      "only feature_flags.py may change"
+    ],
+    "requiredArtifacts": [],
+    "verifierId": "HARNESS-EDIT-ADDRESSING-002-verifier",
+    "verifierRevision": "1"
+  },
+  "allowedCapabilities": [
+    "read_workspace",
+    "edit_workspace"
+  ],
+  "budgetProfile": {
+    "maxInputTokens": 1000000,
+    "maxModelCalls": 6,
+    "maxObservationBytes": 262144,
+    "maxOutputTokens": 100000,
+    "maxRuntimeJobs": 8,
+    "maxToolCalls": 8,
+    "maxWallTimeMs": 90000
+  },
+  "expertTimeEstimateMinutes": null,
+  "family": "edit_addressing",
+  "initialState": {
+    "environmentDigest": "sha256:3128b0211734114eb5d90a664ec729218dcf14e401d7157b259d3999b314ebb5",
+    "fixturePath": "fixtures/harness-edit-addressing-repeated-v1",
+    "sourceRepositoryId": "ordivon-harness",
+    "sourceRevision": "6126ad25204c59dee92ae9175f48742000c6551f"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:8d33d90d6e4d131bf5c3884f2d3d5997d9c68945c7a94b8d08e4aa7a9f01b665"
+  },
+  "kind": "ordivon.evaluation-task",
+  "knownLimitations": [
+    "This is a compact repeated-target addressing workload, not a broad repository-repair benchmark.",
+    "Exact replacement remains expressible by expanding unique surrounding context; the task measures interaction behavior, not theoretical codec expressiveness."
+  ],
+  "labels": [
+    "adaptive-edit-r2",
+    "repeated-target",
+    "addressing",
+    "deterministic"
+  ],
+  "objective": "Repair feature_flags.py so beta_enabled() returns True while alpha_enabled() remains False. Preserve the public function names and modify only feature_flags.py.",
+  "oracle": {
+    "digest": "sha256:970943c12c5f09183c3ec4e1c9e74ddde95cd52515fe019e19ea7f2a62149e14",
+    "kind": "reference-source",
+    "path": "evals/harness-edit-addressing-002/oracle/feature_flags.py"
+  },
+  "reproducibility": {
+    "cleanRebuildTrials": 3,
+    "requiredAgreement": 3
+  },
+  "schemaVersion": 1,
+  "taskId": "HARNESS-EDIT-ADDRESSING-002",
+  "taskVersion": 1
+}

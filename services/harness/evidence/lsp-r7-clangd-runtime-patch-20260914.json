@@ -1,0 +1,75 @@
+{
+  "date": "2026-09-14",
+  "harness": {
+    "adapter": "ordivon_harness.lsp_workspace_edit.workspace_edit_to_canonical_plan",
+    "canonicalCodec": "lsp-workspace-edit-v1",
+    "canonicalEditCount": 2,
+    "canonicalFileCount": 1,
+    "canonicalPlanDigest": "sha256:62cf2b5862208fecfc67be8e61a7e6deda1dc16ce8615f27366b13b322ea4055",
+    "documentVersionFenceCoveredOffline": true,
+    "expectedTexts": [
+      "square",
+      "square"
+    ],
+    "offlineAliasConflictAndDedupFalsifiersCovered": true,
+    "positionEncodingConversionCoveredOffline": true,
+    "replacements": [
+      "quad",
+      "quad"
+    ],
+    "sourceUnchangedBeforeRuntime": true,
+    "uriAuthorityBindingRequired": true
+  },
+  "implementationRevision": "9c774b3336707852bd964e9053587f09671f6f05",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:f16757f66ebfae75a815b5002c50a97e7aee50574639be1841bb5a55c949328d"
+  },
+  "kind": "ordivon.lsp-r7-clangd-runtime-patch-evidence",
+  "protocol": {
+    "negotiatedPositionEncoding": "utf-8",
+    "operation": "textDocument/rename",
+    "renameFrom": "square",
+    "renameTo": "quad",
+    "serverUriCount": 1,
+    "workspaceEditForm": "changes"
+  },
+  "provider": {
+    "languageServer": "clangd",
+    "languageServerVersion": "22.1.8",
+    "protocolTypesPackage": "lsprotocol",
+    "protocolTypesVersion": "2025.0.0",
+    "serverDirectWriteAuthority": false,
+    "transportDonor": "pygls",
+    "transportDonorVersion": "2.1.1",
+    "transportProductionDependencyAdmitted": false
+  },
+  "runtime": {
+    "afterDigest": "sha256:0bbf5c459448b66e3a4b7624820c81c8f594d49e9fca55ae7c99a9769c931fac",
+    "beforeDigest": "sha256:59f92d40809853654b25d0ba5c3c9692021b2820d6f927818b1a952d8f33b286",
+    "clientRequestId": "request:harness-patch:d8b7b215b74d50b31c0c6dbb5fbe1b5a",
+    "finalContentVerified": true,
+    "operation": "workspace.patch",
+    "operationId": "patch-01a09ee4-bc37-71a3-b203-525e80e3b39a",
+    "physicalMutationOwner": "Ordivon Runtime",
+    "requestDigest": "sha256:1e966382e20c89b21d7933e3e56ca3893a91ca185239e0d2cdfe46a96d1bffab",
+    "state": "committed",
+    "workspaceId": "ws-harness-lsp-r7-evidence-20260914"
+  },
+  "schemaVersion": 1,
+  "scope": "Revision-bound local E2E proving clangd rename proposal -> pygls transport donor -> Harness WorkspaceEdit adapter -> CanonicalEditPlan -> durable Runtime workspace.patch. This validates one C++/clangd provider path only; it does not admit pygls as a production dependency or authorize LSP servers to write files directly.",
+  "standing": {
+    "canonicalPlanToDurableRuntimePatch": "SUPPORTED",
+    "lspProposalBoundary": "SUPPORTED",
+    "nextEvidence": [
+      "second language server/provider",
+      "provider lifecycle/diagnostic handling",
+      "Run/Tool Grant integration before public Agent Tool exposure"
+    ],
+    "pyglsProductionProvider": "NOT_ADMITTED",
+    "serverDirectMutation": "NOT_ADMITTED",
+    "standing": "VERIFIED_LOCAL_PROVIDER_PATH",
+    "workspaceEditToCanonicalPlan": "SUPPORTED"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-domain-route-policy",
+  "routes": [
+    {
+      "routeId": "jev-fast-windows-v1",
+      "providerFlow": "generic",
+      "executor": "jev_fast",
+      "substrate": "windows_chrome",
+      "priority": 10,
+      "provides": [
+        "navigate",
+        "observe-dom",
+        "click",
+        "text-entry",
+        "select",
+        "scroll",
+        "persistent-profile",
+        "freshness-guard",
+        "provider-internal-decision",
+        "low-latency"
+      ],
+      "readiness": {
+        "kind": "jev_windows",
+        "workstationStatusCommand": "/root/tools/bin/workstation-windows-jev-provider",
+        "requiredEnvironment": [
+          "TYPESAFE_API_KEY"
+        ],
+        "featureEnvironment": {
+          "text-entry": [
+            "TEXT_MODEL_API_KEY"
+          ]
+        }
+      },
+      "evidence": [
+        "docs/JEV_FASTPATH_PROVIDER.md",
+        "scripts/jev_fastpath_adapter.py"
+      ]
+    },
+    {
+      "routeId": "browser-use-browserless-v1",
+      "providerFlow": "generic",
+      "executor": "browser_use_structured",
+      "substrate": "browserless",
+      "priority": 20,
+      "provides": [
+        "navigate",
+        "observe-structured",
+        "click",
+        "text-entry",
+        "scroll",
+        "tabs",
+        "back",
+        "persistent-profile",
+        "caller-directed",
+        "browserless-isolation"
+      ],
+      "readiness": {
+        "kind": "browser_use_browserless",
+        "configPath": "/etc/ordivon/browser-use-browserless.json"
+      },
+      "evidence": [
+        "scripts/browser_use_browserless.py",
+        "scripts/browserless_substrate.py"
+      ]
+    },
+    {
+      "routeId": "cft-human-session-v1",
+      "providerFlow": "generic",
+      "executor": "cft_human_session",
+      "substrate": "systemd_cft",
+      "priority": 25,
+      "provides": [
+        "navigate",
+        "observe-dom",
+        "click",
+        "text-entry",
+        "scroll",
+        "tabs",
+        "back",
+        "persistent-profile",
+        "caller-directed",
+        "human-handoff",
+        "headful"
+      ],
+      "readiness": {
+        "kind": "cft_human_session",
+        "scriptPath": "scripts/cft_human_session.py"
+      },
+      "evidence": [
+        "planning/human-handoff-lego-r1.json",
+        "docs/superpowers/plans/2026-09-19-durable-human-handoff-standards-replacement.md"
+      ]
+    },
+    {
+      "routeId": "chatgpt-agent-automation-browserless-v1",
+      "providerFlow": "chatgpt_agent_automation",
+      "executor": "chatgpt_provider_flow",
+      "substrate": "browserless",
+      "priority": 10,
+      "provides": [
+        "chatgpt-birth",
+        "chatgpt-continuation",
+        "provider-send-fence",
+        "human-handoff",
+        "authenticated-profile",
+        "persistent-profile",
+        "browserless-isolation"
+      ],
+      "readiness": {
+        "kind": "agent_automation_browserless",
+        "configPath": "/etc/ordivon/agent-automation-browserless.json"
+      },
+      "evidence": [
+        "scripts/agent_automation_browserless.py",
+        "scripts/agent_automation_browserless_effects.py"
+      ]
+    },
+    {
+      "routeId": "visual-browser-v1",
+      "providerFlow": "generic",
+      "executor": "visual",
+      "substrate": "unbound",
+      "priority": 30,
+      "provides": [
+        "visual-understanding",
+        "screenshot-reasoning",
+        "canvas-interaction"
+      ],
+      "readiness": {
+        "kind": "not_materialized"
+      },
+      "evidence": []
+    }
+  ]
+}

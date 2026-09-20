@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-python-stable-upgrade-acceptance",
+  "date": "2026-09-21",
+  "implementationRevision": "dfe099d7d7725089c270aaf2acf08a6688c8c045",
+  "python": {
+    "version": "3.14.7",
+    "channel": "stable-ga",
+    "releaseDate": "2026-08-05"
+  },
+  "runtimeDependencyClosureDigest": "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
+  "priorRuntimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
+  "runtimeClosureChange": {
+    "removedCompatibilityBackport": "typing-extensions==4.16.0",
+    "interpretation": "Python 3.14.7 no longer requires typing-extensions in the Harness runtime closure. Historical receipts bound to the prior closure were retained byte-for-byte and reclassified as historical rather than rebound."
+  },
+  "checks": {
+    "runtimeSearchProfile": "PASS",
+    "uvLock": "PASS",
+    "compileall": "PASS",
+    "ruff": "PASS",
+    "pytest": {
+      "status": "PASS",
+      "cases": 909,
+      "subtests": 156
+    },
+    "dependencyContract": "PASS",
+    "documentationContract": "PASS",
+    "evidenceContract": {
+      "status": "PASS",
+      "historicalReceiptsBeforeThisReceipt": 89,
+      "verifiedReceiptsBeforeThisReceipt": 0
+    },
+    "deterministicDemo": "PASS",
+    "pipAudit": {
+      "status": "PASS",
+      "knownVulnerabilities": 0
+    },
+    "wheel": {
+      "status": "PASS",
+      "file": "ordivon_harness-0.6.0-py3-none-any.whl",
+      "sha256": "6a78ac78f215f6a97c0efa36ad230d7f317e0255f9c61a11e406c009cf23ca0a",
+      "cliCommandsVerified": 12,
+      "hostFreeHarnessVerified": true
+    },
+    "ownerEnvironment": {
+      "status": "PASS",
+      "python": "3.14.7"
+    },
+    "coldStartOwnerEnvironment": {
+      "status": "PASS",
+      "python": "3.14.7",
+      "cases": 909,
+      "subtests": 156
+    },
+    "localAcceptanceContract": "PASS",
+    "diffCheck": "PASS"
+  },
+  "authorityBoundary": {
+    "proves": [
+      "the exact Harness revision runs its owner and release-quality gates on Python 3.14.7",
+      "the locked dependency graph and built wheel are mechanically acceptable under the tested profile",
+      "fresh environment materialization succeeds on Python 3.14.7"
+    ],
+    "doesNotProve": [
+      "historical Adaptive Edit live-model results were rerun under the new runtime closure",
+      "historical LSP or DAP provider receipts were rerun under the new runtime closure",
+      "Python 3.15 prerelease compatibility",
+      "domain or external-effect semantic completion"
+    ]
+  },
+  "standing": "VERIFIED_CURRENT_PYTHON_3_14_7_OWNER_RELEASE_PROFILE"
+}

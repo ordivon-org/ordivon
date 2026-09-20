@@ -1,0 +1,161 @@
+{
+  "authority": {
+    "convenienceMutationApisOutsideHarnessPort": true,
+    "providerMayAnswerConfigurationMechanics": true,
+    "providerMayDirectlyMutateWorkspace": false,
+    "providerMayPublishDiagnostics": true,
+    "providerMayReturnWorkspaceEditProposal": true,
+    "runtimeRemainsPhysicalMutationOwner": true
+  },
+  "date": "2026-09-14",
+  "diagnosticObservations": [
+    {
+      "diagnostics": [
+        {
+          "count": 0
+        }
+      ],
+      "documentVersion": null,
+      "uri": "file:///var/lib/ordivon/runtime/cache/tmp/ws-harness-lsp-r7-lifecycle-evidence-20260914/tmp_rcwlxxs/taplo.toml"
+    },
+    {
+      "diagnostics": [
+        {
+          "count": 0
+        }
+      ],
+      "documentVersion": null,
+      "uri": "file:///var/lib/ordivon/runtime/cache/tmp/ws-harness-lsp-r7-lifecycle-evidence-20260914/tmp_rcwlxxs/taplo.toml"
+    },
+    {
+      "diagnostics": [
+        {
+          "count": 1
+        }
+      ],
+      "documentVersion": null,
+      "uri": "file:///var/lib/ordivon/runtime/cache/tmp/ws-harness-lsp-r7-lifecycle-evidence-20260914/tmp_rcwlxxs/taplo.toml"
+    },
+    {
+      "diagnostics": [
+        {
+          "count": 0
+        }
+      ],
+      "documentVersion": null,
+      "uri": "file:///var/lib/ordivon/runtime/cache/tmp/ws-harness-lsp-r7-lifecycle-evidence-20260914/tmp_rcwlxxs/taplo.toml"
+    }
+  ],
+  "donor": {
+    "licenseClassifiers": [
+      "License :: OSI Approved :: MIT License"
+    ],
+    "metadataLicenseField": null,
+    "package": "lsp-client",
+    "productionDependencyAdmitted": false,
+    "projectUrls": [],
+    "role": "replaceable external lifecycle provider candidate",
+    "version": "0.3.9"
+  },
+  "harnessPort": {
+    "lspCharacter": 1,
+    "mutationMethodsExposed": [],
+    "positionEncoding": "utf-16",
+    "proposalDigest": "sha256:bcb44b0d970623482181adc636d9723288e8f9e2314addb22e162211fe106b8b",
+    "readyDigest": "sha256:bc7c70042fe2df32875d0c69d63fd5332b6c71db5597b0b7c72fbefc050ca4e1",
+    "requestDigest": "sha256:d626862a77b631da8615574ad495a5b1ba8ec2890bf923b754a137dbb87507b2",
+    "runtimeProtocolSatisfiedByFixture": true
+  },
+  "implementationRevision": "c7df6ef991443e97e5eedb56bec072cef65e3f4d",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:6981aec36c5b90c8063894fbd0d94bf88e1130bb729e81c8bad22c7e663effc7"
+  },
+  "kind": "ordivon.lsp-r7-lifecycle-provider-evidence",
+  "languageServer": {
+    "name": "taplo",
+    "versionOutput": "taplo 0.10.0"
+  },
+  "lifecycle": {
+    "configurationRequestsHandled": 1,
+    "convenienceMutatingRenameApiPresent": true,
+    "diagnosticCounts": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "diagnosticNotificationCount": 4,
+    "diskUnchangedAfterShutdown": true,
+    "diskUnchangedInsideContext": true,
+    "proposalRenameApiPresent": true,
+    "respondApplyEditMixedIn": false
+  },
+  "proposal": {
+    "canonicalPlan": {
+      "codec": "lsp-workspace-edit-v1",
+      "files": [
+        {
+          "edits": [
+            {
+              "expectedText": "name",
+              "range": {
+                "end": {
+                  "column": 4,
+                  "line": 2
+                },
+                "start": {
+                  "column": 0,
+                  "line": 2
+                }
+              },
+              "replacement": "title"
+            }
+          ],
+          "expectedDigest": "sha256:291c2536d2d7fff1c726f0f11b9b286d717eca3b6da650330ed9187a6eade5cd",
+          "relativePath": "taplo.toml"
+        }
+      ],
+      "kind": "ordivon.harness-canonical-edit-plan",
+      "schemaVersion": 1
+    },
+    "canonicalPlanDigest": "sha256:68ef25126f10d61c99cf18cf3eca742ecf47e4da210dc869a8c42c673ab8f528",
+    "workspaceEditJson": {
+      "changes": {
+        "file:///var/lib/ordivon/runtime/cache/tmp/ws-harness-lsp-r7-lifecycle-evidence-20260914/tmp_rcwlxxs/taplo.toml": [
+          {
+            "newText": "title",
+            "range": {
+              "end": {
+                "character": 4,
+                "line": 1
+              },
+              "start": {
+                "character": 0,
+                "line": 1
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "schemaVersion": 1,
+  "scope": "Revision-bound lifecycle-provider evaluation of lsp-client 0.3.9 with local Taplo. The experiment verifies configuration-request handling, diagnostics receipt, proposal-only rename, typed WorkspaceEdit serialization into the existing Harness adapter, clean initialize/shutdown behavior, and absence of provider-owned physical mutation in the tested composition. It does not admit lsp-client as a Harness core dependency.",
+  "standing": {
+    "configurationLifecycle": "SUPPORTED_LOCAL_TAPLO",
+    "defaultProviderSelection": "NOT_FINAL",
+    "diagnosticsLifecycle": "SUPPORTED_LOCAL_TAPLO",
+    "harnessCoreDependency": "NOT_ADMITTED",
+    "nextEvidence": [
+      "integration packaging outside Harness core dependency surface",
+      "Run/Tool Grant binding before public Agent Tool exposure",
+      "cancellation and abnormal server-exit behavior"
+    ],
+    "proposalOnlyRename": "SUPPORTED",
+    "providerOwnedPhysicalMutation": "NOT_ADMITTED",
+    "standing": "SUPPORTED_AS_REPLACEABLE_LIFECYCLE_PROVIDER_CANDIDATE",
+    "typedWorkspaceEditToHarnessJson": "SUPPORTED"
+  }
+}

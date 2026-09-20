@@ -1,0 +1,708 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-evidence-index",
+  "entries": [
+    {
+      "claimId": "harness.runtime-correlation.h2",
+      "file": "harness-h2-runtime-r2-live-d50f609-20260731.json",
+      "status": "historical",
+      "implementationRevision": "d50f609ef2d269b5adc36e7e2088400c1971d0eb",
+      "scope": "Host Assignment references, Runtime idempotency and terminal evidence"
+    },
+    {
+      "claimId": "harness.provider.codex-app.h3",
+      "file": "codex-app-h3-live-64ab44b-20260731.json",
+      "status": "historical",
+      "implementationRevision": "64ab44be667fa172027150a152b2f4660538ef00",
+      "scope": "Codex App Server lifecycle, events, usage and read-only Tool evidence"
+    },
+    {
+      "claimId": "harness.provider.hermes-acp.h4",
+      "file": "hermes-acp-h4-live-3d9a559-20260731.json",
+      "status": "historical",
+      "implementationRevision": "3d9a55904c735b388d8acf617262f0322174ba9a",
+      "scope": "Hermes ACP lifecycle, session provenance and read-only Tool evidence"
+    },
+    {
+      "claimId": "harness.replacement.h5",
+      "file": "harness-replacement-h5-live-76420e4-20260731.json",
+      "status": "historical",
+      "implementationRevision": "76420e4f1ab2d20799b09aad6497f195bd951aa7",
+      "scope": "Provider replacement orderings and failure trajectories"
+    },
+    {
+      "claimId": "harness.deepseek.oh3",
+      "file": "ordivon-harness-oh3-deepseek-live-20260801.json",
+      "status": "historical",
+      "implementationRevision": "79507fb6a000d241df19947de550610ebef6b8b1",
+      "scope": "DeepSeek Agent loop and Runtime read observation"
+    },
+    {
+      "claimId": "harness.completion.oh4",
+      "file": "ordivon-harness-oh4-deepseek-live-20260801.json",
+      "status": "historical",
+      "implementationRevision": "fb10eae6c178eb76dda51ab1baeb258da4682c38",
+      "scope": "Host-integrated Run receipt, verification, decision and outcome"
+    },
+    {
+      "claimId": "harness.recovery.oh5",
+      "file": "ordivon-harness-oh5-recovery-live-20260801.json",
+      "status": "historical",
+      "implementationRevision": "264d96cb2325e4a418c98459e05c74d482001fd8",
+      "scope": "lost-process assessment, abandonment, replacement and stale-result fencing"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-scale-workspace",
+      "file": "hho-p0-scale-1000x100-50cb9b5.json",
+      "status": "historical",
+      "implementationRevision": "50cb9b587d53dd24fc40655145fbcb18f24d5b0d",
+      "scope": "Historical isolated-workspace proof of atomic bounded Event admission at 1,000 Runs and 100,000 Events before landing on main"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-fault-matrix",
+      "file": "hho-p0-fault-matrix-50cb9b5.json",
+      "status": "historical",
+      "implementationRevision": "50cb9b587d53dd24fc40655145fbcb18f24d5b0d",
+      "scope": "Independent persistence, response-loss, UNKNOWN, batch atomicity, lease, backup, cutover and rollback fault gates"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-production-preflight",
+      "file": "hho-p0-production-preflight-43d7820.json",
+      "status": "historical",
+      "implementationRevision": "43d782082beae2921ad4dcea635b93e2aab2b0fc",
+      "scope": "Read-only production root, release reachability, dependency pin and cutover readiness observation"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-local-host-compatibility",
+      "file": "hho-p0-local-host-compat-73f7150.json",
+      "status": "historical",
+      "implementationRevision": "73f715073b0f3a659fe9f8ec1296e6ba9fa447ee",
+      "scope": "Current local Host external-Run response-loss and cutover compatibility before reachable release pin update"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-scale-pre-host-pin",
+      "file": "hho-p0-scale-1000x100-73f7150.json",
+      "status": "historical",
+      "implementationRevision": "73f715073b0f3a659fe9f8ec1296e6ba9fa447ee",
+      "scope": "Historical current-main scale proof before the exact Host integration pin advanced to 7b17807784cc52f0be4f1786719f6dc20deb92c8"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-scale",
+      "file": "hho-p0-scale-1000x100-f7e03aa.json",
+      "status": "historical",
+      "implementationRevision": "f7e03aa78fec63237df6690c0c8f85e4a2ef76c1",
+      "scope": "Exact Host-pinned release graph: atomic bounded Event admission, 1,000 Runs, 100,000 Events, full-history reopen Doctor and sampled Run inspection"
+    },
+    {
+      "claimId": "harness.persistence.hho-p0-release-h2",
+      "file": "hho-p0-release-h2-f7e03aa.json",
+      "status": "historical",
+      "implementationRevision": "f7e03aa78fec63237df6690c0c8f85e4a2ef76c1",
+      "scope": "Exact remote Host pin with live Host→Harness→Runtime H2 journey, checked Tool evidence and closed Runtime Workspace"
+    },
+    {
+      "claimId": "harness.observation.exporter.b2-a",
+      "file": "observation-exporter-e3cb34b.json",
+      "status": "historical",
+      "implementationRevision": "e3cb34b4991b5f52e1c0ed0151ea17b067e88e16",
+      "scope": "Read-only global Harness Journal export with caller, Runtime request and Runtime Job correlation"
+    },
+    {
+      "claimId": "harness.repository-repair-runtime-bridge.pre-conclusion-gate",
+      "file": "repository-repair-runtime-bridge-7664240.json",
+      "status": "historical",
+      "implementationRevision": "7664240791dfb984338aa72e4c74ce8459ec7c98",
+      "scope": "Historical independent repository-repair Tool surface before candidate conclusion evidence gating"
+    },
+    {
+      "claimId": "harness.repository-repair-runtime-bridge.b4-b5",
+      "file": "repository-repair-conclusion-gate-b23d5fa.json",
+      "status": "historical",
+      "implementationRevision": "b23d5fa6c820c10f937f48cc16c2d8e03d3e18ae",
+      "scope": "Historical frozen B4/B5 evidence gate at b23d5fa: premature conclusion correction, five bounded V1 Tool steps, one Runtime Job, durable receipts and closed Workspace; superseded only as current Harness verification by the separate V2 edit implementation"
+    },
+    {
+      "claimId": "harness.repository-repair-edit-runtime-bridge.v2-pre-a0-u1",
+      "file": "repository-repair-edit-runtime-bridge-dd50136.json",
+      "status": "historical",
+      "implementationRevision": "dd50136ef722b9df3dfb0fef195fcc1a137fd8ed",
+      "scope": "Historical verified V2 edit Runtime bridge before A0-U1 token normalization and terminal Observation measurement projection changed current Harness implementation paths"
+    },
+    {
+      "claimId": "harness.repository-repair-edit-runtime-bridge.v2",
+      "file": "repository-repair-edit-runtime-bridge-e625671.json",
+      "status": "historical",
+      "implementationRevision": "e6256714f92fff9b66c998328da870e8ac3b50e9",
+      "scope": "Historical verified V2 edit Runtime bridge after A0-U1 normalization; superseded only as current verification by I0 source integration, while the exact retained receipt remains unchanged"
+    },
+    {
+      "claimId": "harness.api.c3-agent-first",
+      "file": "harness-c3-agent-first-api-be7200a.json",
+      "status": "historical",
+      "implementationRevision": "be7200ab54033f82d587ae5451c3c6c88dc65866",
+      "scope": "Historical C3 caller-neutral Host-free API acceptance before A0-U1 and I0 source-line reconciliation; retained unchanged as exact C3 evidence"
+    },
+    {
+      "claimId": "harness.integration.i0-source-lines",
+      "file": "harness-i0-source-integration-0ec4f1b.json",
+      "status": "historical",
+      "implementationRevision": "0ec4f1b3b91eafb74db624d5914a0a15e61d834d",
+      "scope": "Historical I0 source-line integration; superseded as current verification by H0 budget-authority hardening and H1 independent-first CLI acceptance while the exact I0 receipt remains unchanged"
+    },
+    {
+      "claimId": "harness.operational.h1-independent-cli",
+      "file": "harness-h1-independent-cli-e9612fa.json",
+      "status": "historical",
+      "implementationRevision": "e9612fa1d62592e2cf8e01c780ce2ec920560a91",
+      "scope": "Historical H1 independent-first transition; superseded by H3 removal of the Host-backed product line while the exact H1 receipt remains unchanged"
+    },
+    {
+      "claimId": "harness.operational.h3-independent-product",
+      "file": "harness-h3-independent-product-1577610.json",
+      "implementationRevision": "1577610e3aa3cf28d09c89aeab64833c6fd6c628",
+      "scope": "Historical H3 single independent-product acceptance; superseded as current verification by H4 concurrency, physical-dispatch fencing, CAS publication and targeted-reopen hardening while the exact H3 receipt remains unchanged",
+      "status": "historical"
+    },
+    {
+      "claimId": "harness.operational.h4-stress-hardening",
+      "file": "harness-h4-stress-ce7e861.json",
+      "implementationRevision": "ce7e861f59cccb43bcb78b3d7aa05dacf90ebe73",
+      "scope": "Historical H4 high-intensity acceptance for multi-process shared-root Runs, physical Provider/Tool fencing, immutable CAS publication and targeted reopen; retained unchanged after H-A1 re-regression and superseded as current implementation verification by H-A5 structured-completion acceptance.",
+      "status": "historical"
+    },
+    {
+      "claimId": "harness.cognition.ha5-structured-completion",
+      "file": "harness-ha5-structured-completion-d7d5417.json",
+      "status": "historical",
+      "implementationRevision": "d7d5417c055f08d4d37b571cb7c9983adf37ddb7",
+      "scope": "Historical H-A5 acceptance for generic structured completion and Host semantic admission; retained unchanged after the Agent-first terminality and Mandate/attempt reforms superseded its source revision as current implementation evidence."
+    },
+    {
+      "claimId": "harness.execution.agent-first-mandate-attempts",
+      "file": "harness-agent-first-mandate-6daeee4.json",
+      "status": "historical",
+      "implementationRevision": "6daeee4b2345850cf193fb3edfe2ac7653634e3b",
+      "scope": "Historical Agent-first Mandate/attempt acceptance retained unchanged after the DeepSeek mixed-turn correction advanced implementation source; the Mandate result remains valid for its tested revision but no longer serves as current whole-implementation verification."
+    },
+    {
+      "claimId": "harness.deepseek.mixed-turn-correction",
+      "file": "harness-deepseek-mixed-turn-6124cd2.json",
+      "status": "historical",
+      "implementationRevision": "6124cd22b182264cfd0acbcf6ddd3a0c5ccda964",
+      "scope": "Historical DeepSeek mixed-turn correction acceptance retained unchanged after P-C1.1 advanced current Harness implementation paths; the correction remains valid for its tested revision but no longer serves as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc11-working-view-separation",
+      "file": "harness-pc11-working-view-ea38f34.json",
+      "status": "historical",
+      "implementationRevision": "ea38f34ca092dd9ad2fcc5fb4defe5c3e499f047",
+      "scope": "Historical P-C1.1 WorkingView separation acceptance retained unchanged after P-C1.2a advanced current Harness persistence paths. Its one-turn History/WorkingSet/WorkingView/Provider-request separation proof remains valid for ea38f34, while the newer Privacy-authority acceptance supersedes it as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc12a-privacy-state-authority",
+      "file": "harness-pc12a-privacy-authority-a8a6a2f.json",
+      "status": "historical",
+      "implementationRevision": "a8a6a2f14d2c1d8fe1e09a5f4f79daa026f8c31f",
+      "scope": "Historical P-C1.2a Privacy/state-authority acceptance retained unchanged after P-C1.2b advanced the mature Agent Loop request-construction path. Its durable-content authority, metadata-only sentinel and response-loss fencing proof remains valid for a8a6a2f, while P-C1.2b supersedes it as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc12b-multiturn-working-view",
+      "file": "harness-pc12b-multiturn-working-view-fd13fab.json",
+      "status": "historical",
+      "implementationRevision": "fd13fabae6f26154b4c2fd2e7735313091ee0580",
+      "scope": "Historical P-C1.2b multi-turn WorkingView acceptance retained unchanged after P-C1.3 added Agent-owned successor transitions. Its canonical-history/model-view separation, stale-view fencing, response-loss replay and metadata-only ephemeral-projection proof remain valid for fd13fab, while P-C1.3 supersedes it as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc13-agent-owned-working-set",
+      "file": "harness-pc13-agent-owned-working-set-fa23bfc.json",
+      "status": "historical",
+      "implementationRevision": "fa23bfc817ce4c63fc5eadc398d044eb6817b7ae",
+      "scope": "Historical P-C1.3 Agent-owned WorkingSet acceptance retained unchanged after P-C1.4 established the discovery-selection boundary. Its Agent successor-selection, non-Tool cognition, atomic transition, concurrency and replay proofs remain valid for fa23bfc, while P-C1.4 supersedes it as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc14-discovery-selection-boundary",
+      "file": "harness-pc14-discovery-selection-55cfe64.json",
+      "status": "historical",
+      "implementationRevision": "55cfe64197f2605a9db26776d4b5cf7112e6267b",
+      "scope": "Historical P-C1.4 discovery-selection acceptance retained unchanged after P-C1.5 real-Provider experiments corrected its observation-only transient projection to complete Provider-authored Tool exchanges. Its discovery/materialization/Agent-selection, Runtime response-loss and provenance-boundary results remain valid for 55cfe64, while P-C1.5 supersedes it as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc15-epistemic-control",
+      "file": "harness-pc15-epistemic-control-9e65feb.json",
+      "status": "historical",
+      "implementationRevision": "9e65feb5045aa64ab2da69dc2645bb80bfa93866",
+      "scope": "Historical P-C1.5 epistemic-control acceptance retained unchanged after P-C1.6 added bounded fresh-process restoration of current-attempt Tool exchanges. Its Provider-faithful Tool transcript, execution-control, effect-gate and Agent-authored closure results remain valid for 9e65feb, while P-C1.6 supersedes it as whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.cognition.pc16-cross-process-tool-exchange",
+      "file": "harness-pc16-cross-process-tool-exchange-253f792.json",
+      "status": "historical",
+      "implementationRevision": "253f7927ce7d62ecaa77013b5b40c5b2f4d2f116",
+      "scope": "Historical P-C1.6 cross-process Tool cognition acceptance retained unchanged after P-C1.7 generalized the same authority reconstruction from active Tool-effect recovery to ordinary clean pause/resume and proved durable knowledge promotion is WorkingSet selection rather than a new Memory subsystem."
+    },
+    {
+      "claimId": "harness.cognition.pc17-durable-knowledge-promotion",
+      "file": "harness-pc17-durable-knowledge-promotion-5a0530a.json",
+      "status": "historical",
+      "implementationRevision": "5a0530a247acdd2a8695643d65b9f5609bb4ef09",
+      "scope": "Historical P-C1.7 durable-knowledge-promotion acceptance retained unchanged after P-C1.8 added an Agent-visible bounded catalog over earlier committed WorkingSet identities. Its storage-vs-cognition, explicit promotion/drop and attempt-local resume laws remain valid for 5a0530a, while P-C1.8 supersedes it as whole-current cognition verification."
+    },
+    {
+      "claimId": "harness.cognition.pc18-historical-cognition-recall",
+      "file": "harness-pc18-historical-cognition-recall-fceb781.json",
+      "status": "historical",
+      "implementationRevision": "fceb781d5b2f0ecc9acbc11d9e1fbcbec0fabfca",
+      "scope": "Historical P-C1.8 historical-cognition-recall acceptance retained unchanged after P-C1.9 separated attempt reset from progress authority. Its bounded history catalog, exact-pin recall, no-Runtime-effect, clean-resume and Journal-forgery laws remain valid for 9d9eb92, while P-C1.9 supersedes it as whole-current cognition verification."
+    },
+    {
+      "claimId": "harness.cognition.pc19-cognition-transition-progress",
+      "file": "harness-pc19-cognition-transition-progress-8b0f025.json",
+      "status": "historical",
+      "implementationRevision": "8b0f0252cef1597a13be06adccea86fd63b5ce0f",
+      "scope": "Historical P-C1.9 cognition-transition-progress acceptance retained unchanged after P-C1.10 supplied the previously missing model-visible projected caller ingress. Its attempt-reset-vs-progress, durable soft-gate and global hard-Tool-budget laws remain valid for 98314d3; the prior projected-caller non-claim is superseded by P-C1.10."
+    },
+    {
+      "claimId": "harness.cognition.pc110-caller-cognition-ingress",
+      "file": "harness-pc110-caller-cognition-ingress-b640f2d.json",
+      "status": "historical",
+      "implementationRevision": "b640f2dbbd78cbd645f4adbedc9465fd2218876f",
+      "scope": "Historical P-C1.10 projected caller-ingress acceptance retained unchanged after P-C1.11 added an explicit Agent-owned path from interaction cognition to durable WorkingSet cognition. Its Snapshot interaction boundary, caller-vs-Tool authority, role admission, process-loss and Provider-response-loss laws remain valid for b640f2d."
+    },
+    {
+      "claimId": "harness.cognition.pc111-interaction-durable-promotion",
+      "file": "harness-pc111-interaction-durable-promotion-9e6f7dd.json",
+      "status": "historical",
+      "implementationRevision": "9e6f7dd891276474ed217f81ca7355c58b20a6b7",
+      "scope": "Historical P-C1.11 interaction-to-durable promotion acceptance retained unchanged after P-C1.12 exposed exact current WorkingSet addressability for ordinary retain/drop transitions. Its exact caller promotion, provenance visibility, projection suppression, dynamic capability and later-interaction reuse laws remain valid for 9e6f7dd."
+    },
+    {
+      "claimId": "harness.cognition.pc112-durable-cognition-supersession",
+      "file": "harness-pc112-durable-cognition-supersession-425373c.json",
+      "status": "historical",
+      "implementationRevision": "425373cef659177c2a564242560c9061dd6bb22c",
+      "scope": "Historical P-C1.12 current-cognition-addressability acceptance retained unchanged after R0 composed the cognition mechanisms into the Standalone product path. Its correction/addressability and real DeepSeek supersession proofs remain valid for 425373c, while R0 supersedes it as whole-current cognition/product-composition verification."
+    },
+    {
+      "claimId": "harness.cognition.r0-product-composition",
+      "file": "harness-r0-cognition-product-composition-debb576.json",
+      "status": "historical",
+      "implementationRevision": "debb5760b6352eaaaed25aeb51432f0e882d38f8",
+      "scope": "Historical R0 cognition product-composition acceptance retained unchanged after R1 made the concrete per-turn action surface request-bound and removed DeepSeek-local cognition feature flags. Its Standalone bootstrap/composition and live promotion/transition proofs remain valid for debb576, while R1 supersedes it as whole-current cognition/action-surface verification."
+    },
+    {
+      "claimId": "harness.capability.r1-single-turn-truth",
+      "file": "harness-r1-single-capability-truth-716cc4b.json",
+      "status": "historical",
+      "implementationRevision": "716cc4b4c4bcd34584df362d3c268899fadeca92",
+      "scope": "Historical R1 single-turn capability-truth acceptance retained after the DeepSeek physical transport gained bounded loopback CONNECT support. Its request-bound action-authority and capability-digest laws remain valid for 716cc4b; the 51825aa GLOBAL_SECONDARY acceptance supersedes it as current implementation verification."
+    },
+    {
+      "claimId": "harness.transport.global-secondary-deepseek",
+      "file": "harness-global-secondary-deepseek-51825aa.json",
+      "status": "historical",
+      "implementationRevision": "51825aaef6f68f2cae491f8ab77d5cbc89c2ad9a",
+      "scope": "Historical live acceptance for the initial bounded loopback DeepSeek transport at 51825aa. A later Harness implementation changed src/ordivon_harness/ordivon/loop.py, so this receipt remains historical evidence rather than current verification; the a38f4cf receipt-bound replan acceptance supersedes it for current implementation truth."
+    },
+    {
+      "claimId": "harness.execution.conclusion-correction-separation",
+      "file": "harness-conclusion-correction-separation-9e47ee6.json",
+      "status": "historical",
+      "implementationRevision": "9e47ee615b2db77e274921ef5a043e429ba04c56",
+      "scope": "Historical conclusion-correction separation acceptance retained unchanged after R2 was composed on top of exact 9e47ee6. Its independent correction-budget and Finance final-admission proof remain exact; lineage-final R2 supersedes it only as whole-current Harness verification."
+    },
+    {
+      "claimId": "harness.strategy.global-secondary-replan",
+      "file": "harness-global-secondary-replan-a38f4cf.json",
+      "status": "historical",
+      "implementationRevision": "a38f4cfde3b20c64219ab00d911cac738da8961e",
+      "scope": "Historical explicit GLOBAL_SECONDARY replan acceptance retained unchanged after R2 was layered onto the same a38f4cf implementation lineage. Its mandate/receipt/strategy/network-profile Runtime lowering and live route proof remain exact; lineage-final R2 supersedes it only as whole-current Harness verification."
+    },
+    {
+      "claimId": "harness.recomposition.r2-proven-kernel-extraction",
+      "file": "harness-r2-proven-kernel-extraction-a983c1a.json",
+      "status": "historical",
+      "implementationRevision": "a983c1a6189191ff758572619c20659de365b119",
+      "scope": "Current lineage-final R2 acceptance over bounded secondary DeepSeek egress, independent conclusion correction, and explicit GLOBAL_SECONDARY replan evidence: Agent-turn projection and source-current cognition admission have friction-proven internal owners; SQLite Continuity remains independent; a983c1a src/tests/docs are byte-identical to fully validated f599df9, which passed 282 tests and real direct deepseek-v4-flash promotion/transition probes. Superseded as current-source verification by the complete three-kernel R2 lineage; this receipt remains historical evidence for its bound implementation."
+    },
+    {
+      "claimId": "harness.execution.no-progress-conclusion-ownership",
+      "file": "harness-no-progress-conclusion-ownership-8170e65.json",
+      "status": "historical",
+      "implementationRevision": "8170e65778ba40a1e6cdc2b526b2b753f7387317",
+      "scope": "Verified ownership boundary for Harness no_progress: deterministic structured-result-v1 reproduction proved the old plain-text needs_input fallback was non-decodable; current implementation leaves NO_PROGRESS as stop detail/Trace with no synthesized AgentRunConclusion, while PC1.9 observation-gate/WorkingSet behavior and full Harness regression remain intact. Superseded as current-source verification by the complete three-kernel R2 lineage; this receipt remains historical evidence for its bound implementation."
+    },
+    {
+      "claimId": "harness.recomposition.r2-three-kernel-lineage",
+      "file": "harness-r2-three-kernel-lineage-badae55.json",
+      "status": "historical",
+      "implementationRevision": "badae5543261678a836d1f410c188743f53ac87a",
+      "scope": "Current Harness R2 acceptance: AgentTurnProjector + CognitionAdmissionKernel + ProviderCallLifecycle are distinct internal seams; Loop keeps policy/action semantics; Continuity remains independent Journal/CAS verifier; inherited no-progress conclusion ownership and conclusion-correction authority are preserved; 287 discovered tests/full build gate pass; exact current source completed a real deepseek-v4-flash caller-promotion trajectory through native-a. Superseded as current-source verification after R3 application-surface changes; the receipt remains historical evidence for its bound implementation."
+    },
+    {
+      "claimId": "harness.transport.no-vpn-tool-continuity",
+      "file": "harness-no-vpn-tool-continuity-49a3882.json",
+      "status": "historical",
+      "implementationRevision": "49a388238ed5df9d50be182f06bb86e3e2ff2e5b",
+      "scope": "Current-source live acceptance composing the existing bounded native-a DeepSeek transport with one real observation-only Runtime workspace Tool: two DeepSeek turns, one committed Runtime rg Job with Harness dispatch fence, Tool observation consumed by the second turn, and candidate_completed. This proves functional Provider+Tool continuity without claiming an OpenAI secondary, physical Surfshark shutdown, generic destination reachability, or automatic failover. Superseded as current-source verification after R3 application-surface changes; the receipt remains historical evidence for its bound implementation."
+    },
+    {
+      "claimId": "harness.product.r3-supported-agent-surface",
+      "file": "harness-r3-supported-agent-surface-fe6fc1a.json",
+      "status": "historical",
+      "implementationRevision": "fe6fc1a589aace5b695f817501b66d69ea5b49e0",
+      "scope": "Current R3.1 product acceptance: HarnessAgentRun is the recommended state-root execution handle; it hides Store/Continuity/Bridge/RunBudget/provider-source wiring, performs structural/Adapter admission before durable create, keeps Contract/Provider/Runtime/cognition authority explicit, is used by CLI run/resume, keeps R2 kernels internal, passes 294 tests/full wheel/local acceptance on a byte-identical validated tree, and completes real deepseek-v4-flash pause/reopen/resume through the public API. Superseded as current-source verification by R3.2 static composition admission; this receipt remains historical evidence for its bound implementation."
+    },
+    {
+      "claimId": "harness.product.r3-static-composition-admission",
+      "file": "harness-r3-static-composition-admission-4e9d4b9.json",
+      "status": "historical",
+      "implementationRevision": "4e9d4b91d34ea39cdd8e2f7d7a11729b99b303c5",
+      "scope": "Current R3.2 acceptance: HarnessAgentRun owns static supported-composition admission before durable Run creation; cognition privacy/history and exact Runtime-binding incompatibilities fail before Adapter construction, structured completion binding fails before state creation, lower layers retain defense-in-depth, 298 tests/full build gate pass, and a fresh real deepseek-v4-flash pause/open/resume trajectory succeeds through the recommended public API."
+    },
+    {
+      "claimId": "harness.cognition.h0-deliberation-before-tools",
+      "file": "harness-h0-deliberation-authority-9576039.json",
+      "status": "historical",
+      "implementationRevision": "95760397caea9785b5374cd7f0a134e618c2cad5",
+      "scope": "Harness-native neutral 2+2 research experiment independently reproducing one Tool-first/later-correct-reasoning mismatch in the immediate-Tool baseline while both no-domain-Tool-deliberation-first replicates later submit the unique mechanical oracle. This is scoped research evidence, not whole-product verification or a population-level causal estimate."
+    },
+    {
+      "claimId": "harness.cognition.h1-deliberation-composition",
+      "file": "harness-h1-deliberation-composition-89a7fa1.json",
+      "status": "historical",
+      "implementationRevision": "89a7fa125bb8b1facc51bd89cb7eb1cdae3f0b4e",
+      "scope": "Two predeclared H1 replicates reuse the exact H0 neutral task and caller-owned ChoiceBridge through the generic DeliberationThenToolRunner; both choose cobalt and all 10 gates pass. This validates the narrow composition in the H0 consumer, not a recommended universal API, aggregate budget model or cross-phase cancellation contract."
+    },
+    {
+      "claimId": "harness.cognition.h2-deliberation-lifecycle",
+      "file": "harness-h2-deliberation-lifecycle-8100879.json",
+      "status": "historical",
+      "implementationRevision": "8100879e8ea7823b9ae231a681598dada2ea5c3c",
+      "scope": "Deterministic H2 acceptance validating one aggregate RunBudget, one cancellation authority and one absolute deadline across no-Tool deliberation and the later caller-owned Tool loop; all 12 gates pass. H2 remains advanced/internal and does not make deliberation a hidden default or move domain strategy/admission into Harness."
+    },
+    {
+      "claimId": "harness.cognition.h2-deliberation-lifecycle-p0",
+      "file": "harness-h2-deliberation-lifecycle-ae02d6b.json",
+      "status": "historical",
+      "implementationRevision": "ae02d6beeac8e618f6659a2bea8c5b181d6d4841",
+      "scope": "Current committed H2 deterministic acceptance after RSI P0 hardening: all 12 aggregate-budget/cancellation/deadline gates pass on ae02d6b, while the separate regression proves phase-A PRE_DISPATCH_SAFE Provider failures retain known failure taxonomy instead of false UNKNOWN. H2 remains advanced/internal and assignment-deadline scope across phase A is not newly claimed. Historical after RSI P1 advanced current Harness implementation paths; retained unchanged for its exact P0 revision."
+    },
+    {
+      "claimId": "harness.rsi.p0-agent-owned-multi-attempt",
+      "file": "harness-rsi-p0-agent-owned-multi-attempt-ae02d6b.json",
+      "status": "historical",
+      "implementationRevision": "ae02d6beeac8e618f6659a2bea8c5b181d6d4841",
+      "scope": "Current RSI P0 acceptance: exact prior CompiledAttempt/terminal-Receipt evidence mechanically reconstructs Mandate consumption and remaining authority; an Agent selects the next Strategy from a digest-bound selection context; Host Task-per-attempt lineage survives exact replay, conflicting adoption and fresh recovery without forcing a Goal stream; one Harness self-change is accepted by baseline-red/candidate-green evidence plus 326-test, static-contract, H2 and isolated-wheel post-commit gates. Historical after RSI P1 advanced current Harness implementation paths; retained unchanged for its exact P0 revision."
+    },
+    {
+      "claimId": "harness.cognition.h2-deliberation-lifecycle-p1",
+      "file": "harness-h2-deliberation-lifecycle-6c0defb.json",
+      "status": "historical",
+      "implementationRevision": "6c0defb8d696f30a5d9431344f6d4f9bd050d2be",
+      "scope": "Current deterministic H2 lifecycle evidence: 13/13 gates including Assignment-wide phase-A expiry fencing, shared cancellation/budget/deadline authority, and no domain-strategy ownership. Historical after RSI P2 changed current Mandate/completion source authority; retained unchanged for its exact P1 revision."
+    },
+    {
+      "claimId": "harness.rsi.p1-live-multi-attempt",
+      "file": "harness-rsi-p1-live-multi-attempt-6c0defb.json",
+      "status": "historical",
+      "implementationRevision": "6c0defb8d696f30a5d9431344f6d4f9bd050d2be",
+      "scope": "Current live DeepSeek RSI P1 falsifier: Agent autonomously switches partial→full Profile after exact independent verification, adopts prior CompletionProposal plus StrategyEvidence, and remains inside Harness economic/Context authority; final unresolved semantic closure is intentionally not claimed and the raw receipt remains falsified on that gate. Historical after RSI P2 changed current Mandate/completion source authority; retained unchanged for its exact P1 revision."
+    },
+    {
+      "claimId": "harness.cognition.h2-deliberation-lifecycle-p2",
+      "file": "harness-h2-deliberation-lifecycle-64f58c7.json",
+      "status": "historical",
+      "implementationRevision": "64f58c7ca0f5cffda9e32e5a62a553a8679fac79",
+      "scope": "Current deterministic H2 lifecycle evidence on the P2 source/test lineage: 13/13 gates remain accepted after Agent-authored authority hardening. Historical after RSI P3 changed current delegated-digest source authority and improvement-loop evidence; retained unchanged for its exact P2 revision."
+    },
+    {
+      "claimId": "harness.rsi.p2-self-modification",
+      "file": "harness-rsi-p2-self-modification-5360130.json",
+      "status": "historical",
+      "implementationRevision": "53601304283971f22fb059788ebdab58481b5614",
+      "scope": "Current RSI P2/R9 evidence for one bounded Agent-authored Harness source improvement: exact prior failure evidence -> failed source attempts -> exact-edit candidate -> independent evaluation -> independent promote decision; does not claim automatic indefinite self-improvement. Historical after RSI P3 changed current delegated-digest source authority and improvement-loop evidence; retained unchanged for its exact P2 revision."
+    },
+    {
+      "claimId": "harness.cognition.h2-deliberation-lifecycle-p3",
+      "file": "harness-h2-deliberation-lifecycle-28d3a28.json",
+      "status": "historical",
+      "implementationRevision": "28d3a28b53db96cc7237f0cf838f580236623dd8",
+      "scope": "Historical P3 H2 lifecycle evidence retained exactly after P5 Provider lifecycle source hardening changed current Harness implementation paths; its 13/13 gates remain valid for 28d3a28, while the P5 H2 receipt supersedes it as current implementation verification."
+    },
+    {
+      "claimId": "harness.rsi.p3-recursive-improvement",
+      "file": "harness-rsi-p3-recursive-improvement-aea4ec1.json",
+      "status": "historical",
+      "implementationRevision": "aea4ec10b0e9f37122054fe0723f96c85f7a7991",
+      "scope": "Historical RSI P3/R10 bounded improvement-of-improvement evidence retained unchanged after P4 capability-composition/no-change acceptance superseded it as the current RSI research claim; its Agent-owned target/falsifier, falsifier admission, Working-View projection, Runtime-native exact materialization and separate promotion evidence remain exact for its bound source revision."
+    },
+    {
+      "claimId": "harness.rsi.p4-capability-composition-no-change",
+      "file": "harness-rsi-p4-capability-composition-9032d0f.json",
+      "status": "historical",
+      "implementationRevision": "9032d0f3784317fa2cbab1da399bb0720c2d8d43",
+      "scope": "Historical bounded RSI P4/R11 capability-composition/no-change evidence retained unchanged after P5 evidence-driven high-information discovery superseded it as the current RSI research claim. Its 203-observation Agent-owned discovery, causal target admission and lawful abstention semantics remain exact for its bound implementation."
+    },
+    {
+      "claimId": "harness.rsi.p5-high-information-discovery",
+      "file": "harness-rsi-p5-high-information-discovery-999d753.json",
+      "status": "historical",
+      "implementationRevision": "999d7535242b14c432cd14527ec109f2c6749969",
+      "scope": "Historical exact P5/R12 discovery receipt bound to the unchanged 999d753 discovery baseline: 203→8 observations, external Host/World evidence, compact Working View and lawful abstention. A later independent release acceptance found a separate Provider concurrency defect and changed current source, so this receipt is preserved rather than rewritten."
+    },
+    {
+      "claimId": "harness.cognition.h2-deliberation-lifecycle-p5",
+      "file": "harness-h2-deliberation-lifecycle-89fc499.json",
+      "status": "historical",
+      "implementationRevision": "89fc49921ee292c7f0a79af32f3ec28b7692574a",
+      "scope": "Historical deterministic H2 lifecycle evidence bound to 89fc499: all 13 aggregate-budget/cancellation/deadline gates passed on that implementation. Operational closeout later changed current Provider-use and claim-to-dispatch source, so the receipt remains immutable historical evidence rather than claiming current-source verification."
+    },
+    {
+      "claimId": "harness.rsi.p5-final-acceptance",
+      "file": "harness-rsi-p5-final-acceptance-89fc499.json",
+      "status": "historical",
+      "implementationRevision": "89fc49921ee292c7f0a79af32f3ec28b7692574a",
+      "scope": "Historical final P5 acceptance bound to 89fc499: preserves the Agent-owned 203→8 evidence-driven discovery result and the Provider concurrency hardening forced by later release acceptance. Operational closeout subsequently changed current Provider-use and claim-to-dispatch source; the P5 receipt remains unchanged historical evidence and no longer claims whole-current implementation verification."
+    },
+    {
+      "claimId": "harness.tool-surface.ts11-turn-working-set",
+      "file": "ts11-tool-surface-ablation.json",
+      "status": "historical",
+      "implementationRevision": "a57963c476d366aea0d73d96cddd223f3bd5dbaf",
+      "scope": "Historical TS11 turn-level WorkingSet receipt retained at a57963c; later verified implementation paths changed, so it no longer certifies current code."
+    },
+    {
+      "claimId": "harness.research.campaign3-rich-effect-owner-capture-v1",
+      "file": "harness-campaign3-rich-effect-owner-v1-capture.json",
+      "implementationRevision": "786d64a7cfb21d52e9e541331c3db67a9edd4f29",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical immutable Campaign-3 rich-effect Runtime owner-fact capture bound externally to the prebound validator/source revision; later Harness source changes prevent current implementation certification."
+    },
+    {
+      "claimId": "harness.research.campaign3-rich-effect-owner-result-v1",
+      "file": "harness-campaign3-rich-effect-owner-v1-result.json",
+      "implementationRevision": "786d64a7cfb21d52e9e541331c3db67a9edd4f29",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical immutable Campaign-3 rich-effect validated Claim Standing result bound to the same prebound implementation revision; scoped research standing remains in closeout 139."
+    },
+    {
+      "claimId": "harness.research.campaign5-provider-route-preservation-v1",
+      "file": "harness-campaign5-provider-route-preservation-v1-result.json",
+      "implementationRevision": "a1a61430047dfa0c43fb2f32d1d2529d57c19018",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical immutable Campaign-5 provider-route/use-policy direct result bound to its prebound implementation revision; later Harness source changes prevent current whole-implementation certification."
+    },
+    {
+      "claimId": "harness.execution.current-no-tool-conclusion-control-repair-v1",
+      "file": "harness-current-no-tool-conclusion-control-repair-v1.json",
+      "implementationRevision": "8925fdba026cdef4f9d8969fae244ee3e5e46730",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical post-contraction no-Tool conclusion/control repair summary retained unchanged after owner-composition, Runtime Artifact transport hardening and Atlas first-interface source changes invalidated whole-current implementation verification; its acceptance remains exact for 8925fdb."
+    },
+    {
+      "claimId": "harness.execution.first-interface-owner-composition-atlas-v1",
+      "file": "harness-first-interface-owner-composition-atlas-v1.json",
+      "implementationRevision": "792cd48cc9fbdddb7431462876d8e57d8f003643",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical exact acceptance for 792cd48: Atlas first-look plus application-owned Finance/Workstation composition before the supported Finance observe bridge changed Harness src; bytes remain immutable and exact for that implementation revision."
+    },
+    {
+      "claimId": "harness.execution.first-interface-owner-bridges-v2",
+      "file": "harness-first-interface-owner-bridges-v2.json",
+      "implementationRevision": "0cfed2338a28be428c11816668651463cd9ccb8b",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical exact acceptance for 0cfed23 owner bridges. Later verified implementation paths changed in Finance research/SQLite bridge work, so this immutable receipt no longer certifies current Harness source."
+    },
+    {
+      "claimId": "harness.execution.first-interface-owner-bridges-v3",
+      "file": "harness-first-interface-owner-bridges-v3.json",
+      "implementationRevision": "00edab4e4f6aeac395c9de3ab6a300162e56f6c1",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical exact owner-bridge/environment acceptance for 00edab4. Later Finance-research representation work proved that live float-rich owner results could not be embedded directly into Harness JsonValue, so this receipt remains exact for its narrower graph but no longer certifies current source."
+    },
+    {
+      "claimId": "harness.execution.first-interface-owner-bridges-v4",
+      "file": "harness-first-interface-owner-bridges-v4.json",
+      "implementationRevision": "f4b05bb38ef7bff10f889df69611de6aaff3a40c",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical exact current-owner-bridge receipt for f4b05bb. The later Finance observe Agent-facing surface removed optional ungrounded goalId, so v4 bytes remain immutable but no longer certify current source."
+    },
+    {
+      "claimId": "harness.execution.first-interface-owner-bridges-v5",
+      "file": "harness-first-interface-owner-bridges-v5.json",
+      "implementationRevision": "233bb6354f81eff070996cef898b91726857ca8e",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical exact first-interface owner-bridge evidence for 233bb63. Later structured-result carrier and observation-recovery/source-reconciliation changes advanced current Harness implementation paths, so the immutable v5 receipt no longer certifies whole-current source."
+    },
+    {
+      "claimId": "harness.execution.source-reconciliation-structured-observation-v1",
+      "file": "harness-source-reconciliation-structured-observation-v1.json",
+      "implementationRevision": "e983c79f5582160b37ac56c1898efa80e486880d",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical portable acceptance for the reconciled Harness source graph at e983c79: structured-result carrier plus authority-fenced observation recovery. The later DeepSeek HTTPX transport/dependency change at 917087e modified verified implementation paths (pyproject.toml, deepseek.py, uv.lock), so this immutable receipt no longer certifies whole-current source."
+    },
+    {
+      "claimId": "harness.execution.capability-environment-v1",
+      "file": "harness-capability-environment-v1.json",
+      "implementationRevision": "830dd160b1025928521204f4713cbe0e1bbbf589",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical portable acceptance for bounded capability discovery, exact inspection, supplied-standing/current-admission affordance compilation, First Interface projection and package/wheel regression at 830dd16; retained unchanged after compact current-affordance projection and the independently developed HTTPX transport line advanced current Harness implementation paths."
+    },
+    {
+      "claimId": "harness.execution.current-affordance-compact-v2",
+      "file": "harness-current-affordance-compact-v2.json",
+      "implementationRevision": "17e8943edb16c0f586d5a8d022c63590755a7d6b",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical portable acceptance for compact model-facing capability affordances at 17e8943. Its currentness-dependent carrier result remains exact for that implementation line, but the independently developed DeepSeek HTTPX transport/dependency line changes verified implementation paths and therefore requires fresh integrated-source acceptance before whole-current certification."
+    },
+    {
+      "claimId": "harness.recovery.unreachable-abandonment-retirement-v1",
+      "file": "harness-unreachable-abandonment-retirement-v1.json",
+      "implementationRevision": "46030ae7d5725cffcad4686707d391ba29fd7f01",
+      "revisionBinding": "index-creation-lineage",
+      "status": "historical",
+      "scope": "Historical deletion proof for 46030ae: unreachable Host-era Abandonment/Disposition application semantics were retired after the bounded source/store/survivor evidence recorded by the immutable receipt. Later canonical batch-search composition 51b942c modified the verified implementation paths loop.py, run_recovery.py, runtime_lowering.py, and sqlite_runtime_bridge.py, so the immutable receipt remains exact evidence for its tested revision but no longer certifies whole-current Harness source."
+    },
+    {
+      "claimId": "harness.edit.adaptive-r2-live-deepseek-flash",
+      "file": "adaptive-edit-r2-live-ab-deepseek-flash-20260914.json",
+      "status": "historical",
+      "implementationRevision": "33ac4a891441c565371767f02905361dd1d5fe55",
+      "scope": "Current model/task-specific Adaptive Edit R2 live profile at 33ac4a8: DeepSeek Flash on HARNESS-REPO-REPAIR-001 under equal corrected 64k token authority; exact replacement is provisional preferred for this profile only, while anchored addressing remains required by the deterministic repeated-text falsifier. No global codec default is authorized. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/runtime_port.py",
+        "src/ordivon_harness/ordivon/"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-addressing",
+      "file": "adaptive-edit-r2-live-ab-deepseek-flash-addressing-20260914.json",
+      "status": "historical",
+      "implementationRevision": "6126ad25204c59dee92ae9175f48742000c6551f",
+      "scope": "Current second Adaptive Edit R2 live profile bound to 6126ad2: DeepSeek Flash on HARNESS-EDIT-ADDRESSING-002 under equal 64k token authority. Exact replacement and anchored-line are both 5/5 hidden-pass and 5/5 candidate-completed with identical model/tool call totals; standing is NO_CLEAR_WINNER_BOTH_VIABLE and no global codec default is authorized. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/runtime_port.py",
+        "src/ordivon_harness/ordivon/"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.edit.adaptive-r2-live-deepseek-flash-multiregion",
+      "file": "adaptive-edit-r2-live-ab-deepseek-flash-multiregion-20260914.json",
+      "status": "historical",
+      "implementationRevision": "9d936e98d8c02772aa2becc924ba9006c71aa989",
+      "scope": "Current third Adaptive Edit R2 live profile bound to 9d936e9: DeepSeek Flash on HARNESS-EDIT-MULTIREGION-003. Both codecs are 5/5 hidden-pass and candidate-completed within the unchanged 6-model/8-tool authority; anchored-line uses fewer calls/tokens, while the current one-semantic-edit-per-call boundary survives this task and an atomic multi-edit Agent wire format is not justified by current evidence. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/runtime_port.py",
+        "src/ordivon_harness/ordivon/"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.lsp.r7.clangd-runtime-patch",
+      "file": "lsp-r7-clangd-runtime-patch-20260914.json",
+      "status": "historical",
+      "implementationRevision": "9c774b3336707852bd964e9053587f09671f6f05",
+      "scope": "Revision-bound local R7 provider-path receipt: clangd 22.1.8 rename via experimental pygls 2.1.1 transport was converted by Harness WorkspaceEdit adapter into one CanonicalEditPlan with two exact edits and committed only through Runtime workspace.patch. LSP direct write authority and pygls production dependency remain not admitted. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/lsp_workspace_edit.py"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.lsp.r7.taplo-runtime-patch",
+      "file": "lsp-r7-taplo-runtime-patch-20260914.json",
+      "status": "historical",
+      "implementationRevision": "d75617d7ea61cc5b4cc4ffc33ed482544fa38811",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/execution_binding.py",
+        "src/ordivon_harness/lsp_workspace_edit.py"
+      ],
+      "scope": "Second local R7 provider-path receipt: Taplo 0.10.0 rename returned WorkspaceEdit, the same Harness adapter compiled it under default UTF-16 position semantics, and Runtime committed the exact patch. Bare pygls lifecycle gaps for workspace/configuration and diagnostics remain observed, so no default transport is selected. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.lsp.r7.lsp-client-lifecycle",
+      "file": "lsp-r7-lsp-client-lifecycle-20260914.json",
+      "status": "historical",
+      "implementationRevision": "c7df6ef991443e97e5eedb56bec072cef65e3f4d",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/adaptive_edit.py",
+        "src/ordivon_harness/lsp_provider_port.py",
+        "src/ordivon_harness/lsp_workspace_edit.py"
+      ],
+      "scope": "Revision-bound R7 lifecycle donor receipt: lsp-client 0.3.9 handled Taplo configuration and diagnostics, returned rename as a proposal, serialized directly into the Harness WorkspaceEdit adapter, and left disk unchanged. It remains a replaceable provider candidate, not a Harness core dependency. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.lsp.r7.lifecycle-faults",
+      "file": "lsp-r7-lifecycle-faults-20260914.json",
+      "status": "historical",
+      "implementationRevision": "cd4507032204e807e3d0acf4fb974c2c0122e033",
+      "implementationPaths": [
+        "src/ordivon_harness/lsp_provider_port.py"
+      ],
+      "scope": "Negative R7 lifecycle receipt: caller cancellation and language-server crash preserved the proposal-only/no-write boundary, but lsp-client 0.3.9 did not emit an observed $/cancelRequest and cleanup ended through bounded timeout/error paths. Default provider admission remains blocked. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.dap.r8.gdb-launch",
+      "file": "dap-r8-gdb-launch-20260914.json",
+      "status": "historical",
+      "implementationRevision": "bd8aeec146f4db9e3cf4dd91f88541447ba78004",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/dap_provider_port.py"
+      ],
+      "scope": "Revision-bound DAP R8 receipt: GDB 17.2 native DAP launched a C inferior, stopped at a breakpoint, exposed stack/scopes/variables, evaluated a+b=5, and continued to termination. GDB/provider owns this target process path; evaluate remains effect-capable and mutation capabilities are not read-only authority. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.dap.r8.runtime-owned-attach",
+      "file": "dap-r8-runtime-owned-attach-20260914.json",
+      "status": "historical",
+      "implementationRevision": "4d6e7163d8ad977423d6c4ecf7c8a78691d3f442",
+      "implementationPaths": [
+        "src/anc_canonical/",
+        "src/ordivon_harness/dap_provider_port.py"
+      ],
+      "scope": "Revision-bound DAP R8 ownership receipt: Runtime started and owned the gdbserver+inferior Job; GDB 17.2 DAP attached remotely, hit a breakpoint, observed stack/variables, then continued to exit. processOwner=runtime and effectExecutor=dap-provider are physically separated; stop-epoch handle freshness is validated across attach and breakpoint stops. Historical currentness note: Python 3.14.7 removes the no-longer-required typing-extensions compatibility backport from the resolved Harness runtime dependency closure. This immutable receipt remains exact for its bound implementation revision, but it is not current evidence for the Python 3.14.7 dependency closure.",
+      "runtimeDependencyClosureDigest": "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
+    },
+    {
+      "claimId": "harness.environment.python-3.14.7-upgrade",
+      "file": "harness-python-3.14.7-upgrade-20260921.json",
+      "status": "verified",
+      "implementationRevision": "dfe099d7d7725089c270aaf2acf08a6688c8c045",
+      "scope": "Current owner/release-profile acceptance for the Harness Python 3.14.7 upgrade at dfe099d7: locked environment, runtime-search profile, compile, Ruff, 909 pytest cases plus 156 subtests, dependency/docs/evidence contracts, deterministic demo, pip-audit, wheel build/install smoke, normal owner environment, fresh cold-start owner environment, local acceptance presence, and diff-check. This receipt does not revalidate historical Adaptive Edit/LSP/DAP live claims whose former runtime dependency closure is now historical."
+    }
+  ]
+}

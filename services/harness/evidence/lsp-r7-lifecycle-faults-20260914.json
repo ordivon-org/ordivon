@@ -1,0 +1,162 @@
+{
+  "abnormalExit": {
+    "contextError": {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "module": "builtins",
+              "text": "",
+              "type": "TimeoutError"
+            }
+          ],
+          "module": "builtins",
+          "text": "unhandled errors in a TaskGroup (1 sub-exception)",
+          "type": "ExceptionGroup"
+        }
+      ],
+      "module": "builtins",
+      "text": "unhandled errors in a TaskGroup (1 sub-exception)",
+      "type": "ExceptionGroup"
+    },
+    "diskUnchanged": true,
+    "elapsedMs": 4021,
+    "eventTrace": [
+      {
+        "event": "server_start",
+        "mode": "crash"
+      },
+      {
+        "event": "message",
+        "id": "initialize",
+        "method": "initialize"
+      },
+      {
+        "event": "message",
+        "id": null,
+        "method": "initialized"
+      },
+      {
+        "event": "message",
+        "id": null,
+        "method": "textDocument/didOpen"
+      },
+      {
+        "event": "message",
+        "id": "1a56a0e549f24ba382f7f97d4f49cec4",
+        "method": "textDocument/rename"
+      },
+      {
+        "event": "crash_on_rename",
+        "id": "1a56a0e549f24ba382f7f97d4f49cec4"
+      }
+    ],
+    "proposalReturned": false,
+    "requestError": {
+      "children": [
+        {
+          "children": [],
+          "module": "anyio",
+          "text": "",
+          "type": "BrokenResourceError"
+        }
+      ],
+      "module": "builtins",
+      "text": "unhandled errors in a TaskGroup (1 sub-exception)",
+      "type": "ExceptionGroup"
+    },
+    "serverCrashObserved": true
+  },
+  "authority": {
+    "physicalMutationObserved": false,
+    "runtimeMutationBoundaryPreserved": true,
+    "workspaceEditProposalProducedAfterCancellation": false,
+    "workspaceEditProposalProducedAfterServerCrash": false
+  },
+  "cancellation": {
+    "cancelRequestObservedByServer": false,
+    "cancelScopeTriggered": true,
+    "contextError": {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "module": "builtins",
+              "text": "",
+              "type": "TimeoutError"
+            }
+          ],
+          "module": "builtins",
+          "text": "unhandled errors in a TaskGroup (1 sub-exception)",
+          "type": "ExceptionGroup"
+        }
+      ],
+      "module": "builtins",
+      "text": "unhandled errors in a TaskGroup (1 sub-exception)",
+      "type": "ExceptionGroup"
+    },
+    "diskUnchanged": true,
+    "elapsedMs": 3528,
+    "eventTrace": [
+      {
+        "event": "server_start",
+        "mode": "slow"
+      },
+      {
+        "event": "message",
+        "id": "initialize",
+        "method": "initialize"
+      },
+      {
+        "event": "message",
+        "id": null,
+        "method": "initialized"
+      },
+      {
+        "event": "message",
+        "id": null,
+        "method": "textDocument/didOpen"
+      },
+      {
+        "event": "message",
+        "id": "48b337d5b14e4364bb617711097b1556",
+        "method": "textDocument/rename"
+      }
+    ],
+    "exitNotificationObserved": false,
+    "gracefulShutdownResponseObserved": false,
+    "proposalReturned": false
+  },
+  "date": "2026-09-14",
+  "donor": {
+    "package": "lsp-client",
+    "productionDependencyAdmitted": false,
+    "version": "0.3.9"
+  },
+  "implementationRevision": "cd4507032204e807e3d0acf4fb974c2c0122e033",
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "ordivon-canonical-json-v1",
+    "payloadDigest": "sha256:0677bc871733bf260e78bec3c10350cf597c4f26918ac3823f90849d66997acd"
+  },
+  "kind": "ordivon.lsp-r7-lifecycle-fault-evidence",
+  "schemaVersion": 1,
+  "scope": "Controlled negative lifecycle evidence for lsp-client 0.3.9 behind the proposal-only Harness LSP port. A local fake LSP server delayed rename to exercise caller cancellation and exited during rename to exercise abnormal transport loss. The test evaluates bounded failure behavior and physical non-mutation, not language-server semantic quality.",
+  "standing": {
+    "abnormalServerExit": "SURFACED_BUT_CLEANUP_TIMEOUT_OBSERVED",
+    "callerCancellation": "BOUNDED_BUT_NOT_PROTOCOL_CLEAN",
+    "defaultProviderSelection": "BLOCKED_ON_FAULT_LIFECYCLE",
+    "harnessCoreDependency": "NOT_ADMITTED",
+    "lspCancelRequestObserved": "NO",
+    "nextEvidence": [
+      "compare another mature lifecycle client/provider before writing custom cleanup glue",
+      "if no mature replacement succeeds, isolate cleanup/cancellation adaptation outside Harness core",
+      "Run/Tool Grant integration remains blocked until provider fault semantics are selected"
+    ],
+    "normalLifecycle": "SUPPORTED_BY_PRIOR_RECEIPT",
+    "physicalMutationSafety": "SUPPORTED_IN_TESTED_FAILURES",
+    "standing": "FUNCTIONAL_CANDIDATE_FAULT_LIFECYCLE_INCOMPLETE"
+  }
+}
