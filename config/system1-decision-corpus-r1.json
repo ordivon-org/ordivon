@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-corpus",
+  "corpusId": "opportunity-r0-smoke",
+  "standing": "SYNTHETIC_SMOKE_ONLY",
+  "nonClaims": [
+    "representative_external_population",
+    "production_calibration",
+    "provider_superiority"
+  ],
+  "questions": {
+    "category": {
+      "type": "choice",
+      "instructions": "Classify the primary kind of item described in the state.",
+      "criteria": {
+        "research": "undergraduate research, research assistantship, research fellowship, or faculty-led research",
+        "internship": "employment-like internship or work placement",
+        "competition": "competition, hackathon, challenge, contest, or tournament",
+        "scholarship": "scholarship, bursary, grant, or financial award for a student",
+        "event": "conference, workshop, seminar, symposium, fair, or other event to attend",
+        "other": "not one of these opportunity categories"
+      }
+    },
+    "actionable_for_student": {
+      "type": "noul",
+      "instructions": "Does this describe a current opportunity or event that a university student could plausibly apply to, enter, receive, join, or attend?"
+    }
+  },
+  "cases": [
+    {
+      "caseId": "r1",
+      "state": {
+        "text": "A university lab invites second-year computing students to join a summer software engineering research project with faculty mentoring and a research poster."
+      },
+      "expected": {
+        "category": "research",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "r2",
+      "state": {
+        "text": "Undergraduate research assistant positions are open for students interested in empirical software engineering, repository mining, and reproducibility."
+      },
+      "expected": {
+        "category": "research",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "r3",
+      "state": {
+        "text": "A professor is recruiting students for an academic study on testing flaky software; participants will conduct experiments and co-author a manuscript."
+      },
+      "expected": {
+        "category": "research",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "r4",
+      "state": {
+        "text": "The department offers a funded undergraduate research experience in machine learning systems, including weekly lab meetings and a final paper."
+      },
+      "expected": {
+        "category": "research",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "r5",
+      "state": {
+        "text": "Applications are open for a research fellowship pairing undergraduates with faculty on open-source software analysis projects."
+      },
+      "expected": {
+        "category": "research",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "i1",
+      "state": {
+        "text": "A technology company seeks software engineering interns for a twelve-week paid placement building backend services with a product team."
+      },
+      "expected": {
+        "category": "internship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "i2",
+      "state": {
+        "text": "Summer developer internship: work with engineers on production code, code reviews, and deployment; compensation is provided."
+      },
+      "expected": {
+        "category": "internship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "i3",
+      "state": {
+        "text": "The data platform team is hiring undergraduate interns to implement internal tools and APIs from June through August."
+      },
+      "expected": {
+        "category": "internship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "i4",
+      "state": {
+        "text": "Paid cybersecurity internship for current students, focused on security operations, scripting, and incident response."
+      },
+      "expected": {
+        "category": "internship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "i5",
+      "state": {
+        "text": "A startup offers a part-time remote software internship with mentorship and commercial product development."
+      },
+      "expected": {
+        "category": "internship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "c1",
+      "state": {
+        "text": "Teams of up to four university students can enter a 48-hour hackathon and compete for prizes by building an AI prototype."
+      },
+      "expected": {
+        "category": "competition",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "c2",
+      "state": {
+        "text": "Registration opens for an international mathematical modeling contest in which student teams submit a solution report."
+      },
+      "expected": {
+        "category": "competition",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "c3",
+      "state": {
+        "text": "Student programming competition: solve algorithmic problems during a timed regional qualifier, with top teams advancing to finals."
+      },
+      "expected": {
+        "category": "competition",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "c4",
+      "state": {
+        "text": "A university innovation challenge awards prizes to teams that pitch and demonstrate working sustainability solutions."
+      },
+      "expected": {
+        "category": "competition",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "c5",
+      "state": {
+        "text": "Cybersecurity capture-the-flag competition for students, with ranked challenges and awards for the highest-scoring teams."
+      },
+      "expected": {
+        "category": "competition",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "s1",
+      "state": {
+        "text": "A scholarship provides tuition support to undergraduate computer science students with strong academic records and financial need."
+      },
+      "expected": {
+        "category": "scholarship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "s2",
+      "state": {
+        "text": "Applications are invited for a merit award worth $5,000 for second-year engineering students; recipients receive financial support."
+      },
+      "expected": {
+        "category": "scholarship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "s3",
+      "state": {
+        "text": "The foundation offers study grants to enrolled undergraduates pursuing technology degrees, selected on academic achievement."
+      },
+      "expected": {
+        "category": "scholarship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "s4",
+      "state": {
+        "text": "A travel scholarship funds student attendance at an academic conference, covering registration and accommodation."
+      },
+      "expected": {
+        "category": "scholarship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "s5",
+      "state": {
+        "text": "Need-based bursaries are available to full-time university students; successful applicants receive a cash award."
+      },
+      "expected": {
+        "category": "scholarship",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "e1",
+      "state": {
+        "text": "The software engineering conference announces its student research symposium and opens registration for attendees."
+      },
+      "expected": {
+        "category": "event",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "e2",
+      "state": {
+        "text": "A two-day academic workshop on reproducible software engineering will be held in November with talks and tutorials."
+      },
+      "expected": {
+        "category": "event",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "e3",
+      "state": {
+        "text": "University students are invited to attend a career and research networking fair featuring laboratories and technology employers."
+      },
+      "expected": {
+        "category": "event",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "e4",
+      "state": {
+        "text": "Registration is open for an online seminar series on software testing, with weekly invited research talks."
+      },
+      "expected": {
+        "category": "event",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "e5",
+      "state": {
+        "text": "The annual developer conference offers technical sessions, tutorials, and community networking for registered participants."
+      },
+      "expected": {
+        "category": "event",
+        "actionable_for_student": true
+      }
+    },
+    {
+      "caseId": "o1",
+      "state": {
+        "text": "The department library will close at 6 PM on Friday for routine maintenance."
+      },
+      "expected": {
+        "category": "other",
+        "actionable_for_student": false
+      }
+    },
+    {
+      "caseId": "o2",
+      "state": {
+        "text": "A news article summarizes last year's advances in software testing research."
+      },
+      "expected": {
+        "category": "other",
+        "actionable_for_student": false
+      }
+    },
+    {
+      "caseId": "o3",
+      "state": {
+        "text": "The university published an updated privacy policy for its student portal."
+      },
+      "expected": {
+        "category": "other",
+        "actionable_for_student": false
+      }
+    },
+    {
+      "caseId": "o4",
+      "state": {
+        "text": "Course lecture notes for week five explain binary search trees and graph traversal."
+      },
+      "expected": {
+        "category": "other",
+        "actionable_for_student": false
+      }
+    },
+    {
+      "caseId": "o5",
+      "state": {
+        "text": "The campus network will undergo scheduled maintenance overnight on Sunday."
+      },
+      "expected": {
+        "category": "other",
+        "actionable_for_student": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-benchmark-score",
+  "provider": {
+    "providerId": "laya-local",
+    "packageVersion": "0.3.4",
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "device": "cuda",
+    "python": "3.14.6",
+    "torch": "2.14.0+cu130"
+  },
+  "corpusId": "opportunity-r0-smoke",
+  "corpusDigest": "sha256:d937f4838e8a26197f7e72085086c6a6d01a2dcac8d96b5f5bc4d5112a61358d",
+  "coverage": {
+    "totalCases": 30,
+    "executedCases": 30,
+    "fraction": 1.0,
+    "standings": {
+      "EXECUTED": 30,
+      "ERROR": 0,
+      "BLOCKED": 0
+    }
+  },
+  "choice": {
+    "n": 30,
+    "accuracy": 0.9,
+    "meanBrier": 0.12380582799999999,
+    "meanNll": 0.2764236386305472,
+    "ece10MaxProbability": 0.08004000000000001
+  },
+  "noul": {
+    "n": 30,
+    "accuracyAt0_5": 1,
+    "meanBrier": 0.025067388333333333,
+    "meanNll": 0.1595819112372215,
+    "ece10": 0.14508333333333334
+  },
+  "latencyMs": {
+    "median": 36.5695385,
+    "mean": 82.85156286666667,
+    "p95": 39.943774
+  },
+  "nonClaims": [
+    "production_calibration",
+    "provider_superiority",
+    "representative_external_population"
+  ],
+  "scoreDigest": "sha256:4c87af1379d2270685c30b62f053bdaf449fba853f22e58934d3b9657260df31"
+}

@@ -1,0 +1,676 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-benchmark-observation",
+  "corpusDigest": "sha256:d937f4838e8a26197f7e72085086c6a6d01a2dcac8d96b5f5bc4d5112a61358d",
+  "provider": {
+    "providerId": "laya-local",
+    "packageVersion": "0.3.4",
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "device": "cuda",
+    "python": "3.14.6",
+    "torch": "2.14.0+cu130"
+  },
+  "cases": [
+    {
+      "caseId": "r1",
+      "caseDigest": "sha256:ef4e93c81fcd0f05633d5b67e3ad29afed24b2af30708519b809793aa68c7ed3",
+      "standing": "EXECUTED",
+      "latencyMs": 1508.634651,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.8865,
+            "internship": 0.0478,
+            "competition": 0.0027,
+            "scholarship": 0.0108,
+            "event": 0.0309,
+            "other": 0.0213
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9086
+        }
+      }
+    },
+    {
+      "caseId": "r2",
+      "caseDigest": "sha256:d58ce071499d657b436b694080d760f8723e5a9cad8130d807223cc5ad3f4d88",
+      "standing": "EXECUTED",
+      "latencyMs": 27.164722,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.9471,
+            "internship": 0.0275,
+            "competition": 0.0019,
+            "scholarship": 0.0035,
+            "event": 0.0031,
+            "other": 0.0169
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8553
+        }
+      }
+    },
+    {
+      "caseId": "r3",
+      "caseDigest": "sha256:3d1acc0a9a41b2bea9e01a6453142b72e2f7a818f998ef0f6abac7ea1ca5bc01",
+      "standing": "EXECUTED",
+      "latencyMs": 37.342958,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.9852,
+            "internship": 0.005,
+            "competition": 0.0012,
+            "scholarship": 0.0019,
+            "event": 0.003,
+            "other": 0.0037
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8939
+        }
+      }
+    },
+    {
+      "caseId": "r4",
+      "caseDigest": "sha256:eda31c2f375520e045d32039d898cf5c0e25a3fbca42f4878f7cf995371892d1",
+      "standing": "EXECUTED",
+      "latencyMs": 39.88858,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.9824,
+            "internship": 0.0004,
+            "competition": 0.0002,
+            "scholarship": 0.0165,
+            "event": 0.0002,
+            "other": 0.0003
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8733
+        }
+      }
+    },
+    {
+      "caseId": "r5",
+      "caseDigest": "sha256:e8a0f4d9354fe282c12753e2372983da594acd1291e00b740ecd7cdc019268dc",
+      "standing": "EXECUTED",
+      "latencyMs": 36.724557,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.8938,
+            "internship": 0.0229,
+            "competition": 0.0165,
+            "scholarship": 0.0378,
+            "event": 0.0088,
+            "other": 0.0202
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9185
+        }
+      }
+    },
+    {
+      "caseId": "i1",
+      "caseDigest": "sha256:cd4e6b0671ae39c440dca2b554d4c9ca1c0d0ed025beb57a9e708d64f8a38251",
+      "standing": "EXECUTED",
+      "latencyMs": 36.243906,
+      "answers": {
+        "category": {
+          "choice": "internship",
+          "probabilities": {
+            "research": 0.0001,
+            "internship": 0.9998,
+            "competition": 0.0,
+            "scholarship": 0.0,
+            "event": 0.0,
+            "other": 0.0
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8538
+        }
+      }
+    },
+    {
+      "caseId": "i2",
+      "caseDigest": "sha256:68366d64c553395b06e07bf36614e41a784e54a732e5ad7d8c3e59240e5b7c3d",
+      "standing": "EXECUTED",
+      "latencyMs": 35.94729,
+      "answers": {
+        "category": {
+          "choice": "internship",
+          "probabilities": {
+            "research": 0.0,
+            "internship": 1.0,
+            "competition": 0.0,
+            "scholarship": 0.0,
+            "event": 0.0,
+            "other": 0.0
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8357
+        }
+      }
+    },
+    {
+      "caseId": "i3",
+      "caseDigest": "sha256:c7ff3057c33c3e8164823339b7e711ad8b00a6fb9cc52f507cda0148f91b4106",
+      "standing": "EXECUTED",
+      "latencyMs": 36.506031,
+      "answers": {
+        "category": {
+          "choice": "internship",
+          "probabilities": {
+            "research": 0.0108,
+            "internship": 0.9874,
+            "competition": 0.0005,
+            "scholarship": 0.0002,
+            "event": 0.0003,
+            "other": 0.0007
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9118
+        }
+      }
+    },
+    {
+      "caseId": "i4",
+      "caseDigest": "sha256:4356033908d0f44030e9d88712e9f0f0144677709088af768f510da6e9e8b9c1",
+      "standing": "EXECUTED",
+      "latencyMs": 36.481311,
+      "answers": {
+        "category": {
+          "choice": "internship",
+          "probabilities": {
+            "research": 0.0001,
+            "internship": 0.9876,
+            "competition": 0.0,
+            "scholarship": 0.0122,
+            "event": 0.0,
+            "other": 0.0
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8368
+        }
+      }
+    },
+    {
+      "caseId": "i5",
+      "caseDigest": "sha256:be98bb0f7a81f1a21de92ed68f46634290dec73a658dbae49794a98ec9987804",
+      "standing": "EXECUTED",
+      "latencyMs": 38.241707,
+      "answers": {
+        "category": {
+          "choice": "internship",
+          "probabilities": {
+            "research": 0.0001,
+            "internship": 0.9998,
+            "competition": 0.0,
+            "scholarship": 0.0,
+            "event": 0.0,
+            "other": 0.0001
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8675
+        }
+      }
+    },
+    {
+      "caseId": "c1",
+      "caseDigest": "sha256:9f670cc133597e24d07d9741b22f33aa5d4167d4fc5b69089e7ab4b9a560edba",
+      "standing": "EXECUTED",
+      "latencyMs": 37.017136,
+      "answers": {
+        "category": {
+          "choice": "competition",
+          "probabilities": {
+            "research": 0.0178,
+            "internship": 0.0076,
+            "competition": 0.9257,
+            "scholarship": 0.0051,
+            "event": 0.03,
+            "other": 0.0138
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9223
+        }
+      }
+    },
+    {
+      "caseId": "c2",
+      "caseDigest": "sha256:a27ccfaf3ae37e0589267a002a73c0c7e70df6c866e9d3b2856a95760f1e1d8c",
+      "standing": "EXECUTED",
+      "latencyMs": 36.633046,
+      "answers": {
+        "category": {
+          "choice": "competition",
+          "probabilities": {
+            "research": 0.0003,
+            "internship": 0.0001,
+            "competition": 0.9977,
+            "scholarship": 0.0001,
+            "event": 0.0015,
+            "other": 0.0003
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9164
+        }
+      }
+    },
+    {
+      "caseId": "c3",
+      "caseDigest": "sha256:62fd2fe1b77c132b3530332dd4f1e0b1d4e7b5ef134dc953fa77b7df3e4b750c",
+      "standing": "EXECUTED",
+      "latencyMs": 37.611374,
+      "answers": {
+        "category": {
+          "choice": "competition",
+          "probabilities": {
+            "research": 0.0001,
+            "internship": 0.0001,
+            "competition": 0.9996,
+            "scholarship": 0.0001,
+            "event": 0.0001,
+            "other": 0.0001
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8862
+        }
+      }
+    },
+    {
+      "caseId": "c4",
+      "caseDigest": "sha256:561de88801120fe8afa7a9ba554fc65add4c423fe489c9660852179fcedc9113",
+      "standing": "EXECUTED",
+      "latencyMs": 36.968066,
+      "answers": {
+        "category": {
+          "choice": "competition",
+          "probabilities": {
+            "research": 0.0253,
+            "internship": 0.0094,
+            "competition": 0.7939,
+            "scholarship": 0.1446,
+            "event": 0.0182,
+            "other": 0.0085
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8123
+        }
+      }
+    },
+    {
+      "caseId": "c5",
+      "caseDigest": "sha256:700985347f328a54d454b3a560e857e2e913c07678e2aae5b1150e8ca0171fb9",
+      "standing": "EXECUTED",
+      "latencyMs": 39.478789,
+      "answers": {
+        "category": {
+          "choice": "competition",
+          "probabilities": {
+            "research": 0.0001,
+            "internship": 0.0001,
+            "competition": 0.9993,
+            "scholarship": 0.0001,
+            "event": 0.0001,
+            "other": 0.0003
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.7723
+        }
+      }
+    },
+    {
+      "caseId": "s1",
+      "caseDigest": "sha256:94e9f42c505864b77c03b8fba7c8d133416465b7944020d0ecf43ae649fda4e0",
+      "standing": "EXECUTED",
+      "latencyMs": 37.262956,
+      "answers": {
+        "category": {
+          "choice": "scholarship",
+          "probabilities": {
+            "research": 0.0,
+            "internship": 0.0,
+            "competition": 0.0,
+            "scholarship": 1.0,
+            "event": 0.0,
+            "other": 0.0
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9049
+        }
+      }
+    },
+    {
+      "caseId": "s2",
+      "caseDigest": "sha256:69eb47aa61d958928992c2acc7de1e7afbddfd6776ed2df94a8af2c7dada5b23",
+      "standing": "EXECUTED",
+      "latencyMs": 37.70245,
+      "answers": {
+        "category": {
+          "choice": "scholarship",
+          "probabilities": {
+            "research": 0.002,
+            "internship": 0.0019,
+            "competition": 0.0014,
+            "scholarship": 0.9909,
+            "event": 0.0013,
+            "other": 0.0025
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8498
+        }
+      }
+    },
+    {
+      "caseId": "s3",
+      "caseDigest": "sha256:8377f971a966994ba7be121fb852bb2895803d31d496432183fdee04d7c51597",
+      "standing": "EXECUTED",
+      "latencyMs": 36.495326,
+      "answers": {
+        "category": {
+          "choice": "scholarship",
+          "probabilities": {
+            "research": 0.0071,
+            "internship": 0.0004,
+            "competition": 0.0002,
+            "scholarship": 0.9916,
+            "event": 0.0002,
+            "other": 0.0004
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8965
+        }
+      }
+    },
+    {
+      "caseId": "s4",
+      "caseDigest": "sha256:7e79eea5cb5175557f7b19deddc6a10e5f4a1ae04ec66511463d4dbce5a573c2",
+      "standing": "EXECUTED",
+      "latencyMs": 39.608282,
+      "answers": {
+        "category": {
+          "choice": "scholarship",
+          "probabilities": {
+            "research": 0.0004,
+            "internship": 0.0005,
+            "competition": 0.0003,
+            "scholarship": 0.9952,
+            "event": 0.0028,
+            "other": 0.0007
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8129
+        }
+      }
+    },
+    {
+      "caseId": "s5",
+      "caseDigest": "sha256:57035c59123377bc7156270b92cbb55cca13b554d745d376c26fc6ef41115639",
+      "standing": "EXECUTED",
+      "latencyMs": 37.364122,
+      "answers": {
+        "category": {
+          "choice": "scholarship",
+          "probabilities": {
+            "research": 0.0411,
+            "internship": 0.0368,
+            "competition": 0.0223,
+            "scholarship": 0.8221,
+            "event": 0.0216,
+            "other": 0.0561
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.7288
+        }
+      }
+    },
+    {
+      "caseId": "e1",
+      "caseDigest": "sha256:a682e8187ed4c01aa7e5d8599699744a615d2e9bccb79968871f7074ff569ffd",
+      "standing": "EXECUTED",
+      "latencyMs": 39.943774,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.4911,
+            "internship": 0.005,
+            "competition": 0.0027,
+            "scholarship": 0.0028,
+            "event": 0.4873,
+            "other": 0.0112
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.7369
+        }
+      }
+    },
+    {
+      "caseId": "e2",
+      "caseDigest": "sha256:49e085f1fd39b5e4165204dfcbbb1263ca5f544b17d9c008160391dafac4a6eb",
+      "standing": "EXECUTED",
+      "latencyMs": 34.045841,
+      "answers": {
+        "category": {
+          "choice": "event",
+          "probabilities": {
+            "research": 0.0003,
+            "internship": 0.0001,
+            "competition": 0.0001,
+            "scholarship": 0.0001,
+            "event": 0.9992,
+            "other": 0.0002
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.7656
+        }
+      }
+    },
+    {
+      "caseId": "e3",
+      "caseDigest": "sha256:f92cce65a019054b38f951066b09c374632fdd0136ce6e43389530a084eb7ea6",
+      "standing": "EXECUTED",
+      "latencyMs": 24.332668,
+      "answers": {
+        "category": {
+          "choice": "event",
+          "probabilities": {
+            "research": 0.0122,
+            "internship": 0.0118,
+            "competition": 0.0048,
+            "scholarship": 0.004,
+            "event": 0.9525,
+            "other": 0.0147
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.8171
+        }
+      }
+    },
+    {
+      "caseId": "e4",
+      "caseDigest": "sha256:eeb5f91a8b8253ec8a4824ccaacba1b253f00e90c4d9e57ca844f0151e9814df",
+      "standing": "EXECUTED",
+      "latencyMs": 23.513183,
+      "answers": {
+        "category": {
+          "choice": "event",
+          "probabilities": {
+            "research": 0.0785,
+            "internship": 0.0053,
+            "competition": 0.0032,
+            "scholarship": 0.0039,
+            "event": 0.9014,
+            "other": 0.0077
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.9018
+        }
+      }
+    },
+    {
+      "caseId": "e5",
+      "caseDigest": "sha256:0f7fc93ee1abcf229e7e78990c9e08c93e590847ad6a991267648a0850db5d90",
+      "standing": "EXECUTED",
+      "latencyMs": 23.458853,
+      "answers": {
+        "category": {
+          "choice": "event",
+          "probabilities": {
+            "research": 0.0004,
+            "internship": 0.0005,
+            "competition": 0.0002,
+            "scholarship": 0.0003,
+            "event": 0.9978,
+            "other": 0.0008
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.7214
+        }
+      }
+    },
+    {
+      "caseId": "o1",
+      "caseDigest": "sha256:e705a958ad20a6961de6395433ee8aa3a7fb2331fc9cda491853d98246c2cc61",
+      "standing": "EXECUTED",
+      "latencyMs": 26.376407,
+      "answers": {
+        "category": {
+          "choice": "other",
+          "probabilities": {
+            "research": 0.1039,
+            "internship": 0.1477,
+            "competition": 0.0317,
+            "scholarship": 0.0522,
+            "event": 0.1159,
+            "other": 0.5486
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.0384
+        }
+      }
+    },
+    {
+      "caseId": "o2",
+      "caseDigest": "sha256:9db64f12d538d7ecd74d46e9d1f2d6ed9985806dc10aae444d19c4329d0ef18a",
+      "standing": "EXECUTED",
+      "latencyMs": 24.19551,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.9332,
+            "internship": 0.0093,
+            "competition": 0.0045,
+            "scholarship": 0.0029,
+            "event": 0.034,
+            "other": 0.0162
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.1593
+        }
+      }
+    },
+    {
+      "caseId": "o3",
+      "caseDigest": "sha256:e61d432641fb2065d1f1e0be37cbff25d873500a15413c8e2a0cd35485dae718",
+      "standing": "EXECUTED",
+      "latencyMs": 23.393831,
+      "answers": {
+        "category": {
+          "choice": "other",
+          "probabilities": {
+            "research": 0.1572,
+            "internship": 0.0835,
+            "competition": 0.0447,
+            "scholarship": 0.0221,
+            "event": 0.0737,
+            "other": 0.6188
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.1548
+        }
+      }
+    },
+    {
+      "caseId": "o4",
+      "caseDigest": "sha256:c93d1dbafcbdc099c56bba4bfce976d1c6897cb1e7b249463ae029363c524ba8",
+      "standing": "EXECUTED",
+      "latencyMs": 28.226588,
+      "answers": {
+        "category": {
+          "choice": "research",
+          "probabilities": {
+            "research": 0.509,
+            "internship": 0.0423,
+            "competition": 0.0158,
+            "scholarship": 0.0191,
+            "event": 0.0429,
+            "other": 0.3709
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.1663
+        }
+      }
+    },
+    {
+      "caseId": "o5",
+      "caseDigest": "sha256:f1c7a5fa43524fd7c6bb0851e3c1838ac8013f214496509622494aa8bdfa7a69",
+      "standing": "EXECUTED",
+      "latencyMs": 28.742971,
+      "answers": {
+        "category": {
+          "choice": "other",
+          "probabilities": {
+            "research": 0.0376,
+            "internship": 0.0834,
+            "competition": 0.0491,
+            "scholarship": 0.0302,
+            "event": 0.0938,
+            "other": 0.7058
+          }
+        },
+        "actionable_for_student": {
+          "noul": 0.0341
+        }
+      }
+    }
+  ]
+}
