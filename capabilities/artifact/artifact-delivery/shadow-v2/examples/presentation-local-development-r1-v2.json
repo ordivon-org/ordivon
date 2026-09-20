@@ -1,0 +1,127 @@
+{
+  "classification": {
+    "family": "presentation",
+    "format": {
+      "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "name": "pptx"
+    },
+    "purposes": [
+      "editable-windows-powerpoint"
+    ],
+    "representation": "office-package"
+  },
+  "construction": {
+    "authorityMode": "generated-managed",
+    "locale": "zh-CN"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "local-development-only"
+    ]
+  },
+  "id": "presentation-local-development-r1",
+  "nonClaims": [],
+  "notes": "DEVELOPMENT-ONLY acceptance profile. It validates local schema, OOXML structure, and presentation semantics only. It does not claim target rendering, visual acceptance, accessibility, companion PDF, destination delivery/read-back, provenance release readiness, or production publication.",
+  "outputs": [
+    {
+      "editable": true,
+      "format": {
+        "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "name": "pptx"
+      },
+      "purpose": "editable-windows-powerpoint",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "presentation": {
+      "aspectRatio": "16:9",
+      "fontPolicy": "REQUIRED",
+      "fonts": [
+        {
+          "embeddingPermission": "unknown",
+          "family": "Microsoft YaHei",
+          "licenseReference": "Resolve embedding rights before any embedded-font delivery; target installation is the R1 default.",
+          "required": true,
+          "targetFiles": [
+            "msyh.ttc",
+            "msyhbd.ttc",
+            "msyhl.ttc"
+          ]
+        },
+        {
+          "embeddingPermission": "unknown",
+          "family": "Arial",
+          "licenseReference": "Target installation is the R1 default; resolve embedding rights separately before embedded-font delivery.",
+          "required": true,
+          "targetFiles": [
+            "arial.ttf",
+            "arialbd.ttf",
+            "ariali.ttf",
+            "arialbi.ttf"
+          ]
+        }
+      ],
+      "renderEvidence": {
+        "heightPx": 1080,
+        "widthPx": 1920
+      },
+      "semanticPolicy": {
+        "minimumSlideCount": 1,
+        "placeholderPatterns": [
+          "TODO",
+          "TBD",
+          "XXX",
+          "PLACEHOLDER"
+        ]
+      }
+    },
+    "unsupportedTargets": [
+      "Not evaluated by this development-only acceptance profile"
+    ]
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "companionPdf": {
+      "claim": "required companion PDF exists and is accepted",
+      "required": false
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": false
+    },
+    "dependency": {
+      "claim": "declared build/render dependencies are satisfied",
+      "required": false
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "semantic": {
+      "claim": "profile-specific semantic checks",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": false
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": false
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Microsoft PowerPoint Desktop",
+      "platform": "Windows",
+      "required": false
+    }
+  ]
+}

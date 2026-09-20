@@ -1,0 +1,13 @@
+{
+  "contractVersion": 1,
+  "id": "audio-flac-pcm16-smoke-r1",
+  "profileId": "audio-flac-pcm16-r1",
+  "audio": {
+    "sampleRateHz": 48000,
+    "channels": 2,
+    "bitsPerSample": 16,
+    "totalSamples": 48000,
+    "expectedPcmSha256": "ba1d2877f8fea56cb5c8c8b37be25d0b3910408e8ecf0e58559dacf8eb8b7507"
+  },
+  "notes": "One-second deterministic stereo smoke object; expectedPcmSha256 binds decoded audio semantics independent of FLAC compression bytes."
+}

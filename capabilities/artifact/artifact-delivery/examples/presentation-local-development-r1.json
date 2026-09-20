@@ -1,0 +1,76 @@
+{
+  "$schema": "../profile-v1.schema.json",
+  "profileVersion": 1,
+  "id": "presentation-local-development-r1",
+  "artifactClass": "presentation",
+  "authorityMode": "generated-managed",
+  "locale": "zh-CN",
+  "aspectRatio": "16:9",
+  "primaryOutput": {
+    "format": "pptx",
+    "purpose": "editable-windows-powerpoint",
+    "required": true,
+    "editable": true
+  },
+  "targetRenderer": {
+    "name": "Microsoft PowerPoint Desktop",
+    "platform": "Windows",
+    "required": false
+  },
+  "unsupportedRenderers": [
+    "Not evaluated by this development-only acceptance profile"
+  ],
+  "fontPolicy": "REQUIRED",
+  "fonts": [
+    {
+      "family": "Microsoft YaHei",
+      "required": true,
+      "targetFiles": [
+        "msyh.ttc",
+        "msyhbd.ttc",
+        "msyhl.ttc"
+      ],
+      "embeddingPermission": "unknown",
+      "licenseReference": "Resolve embedding rights before any embedded-font delivery; target installation is the R1 default."
+    },
+    {
+      "family": "Arial",
+      "required": true,
+      "targetFiles": [
+        "arial.ttf",
+        "arialbd.ttf",
+        "ariali.ttf",
+        "arialbi.ttf"
+      ],
+      "embeddingPermission": "unknown",
+      "licenseReference": "Target installation is the R1 default; resolve embedding rights separately before embedded-font delivery."
+    }
+  ],
+  "gates": {
+    "profileSchema": true,
+    "structural": true,
+    "dependency": false,
+    "semantic": true,
+    "visual": false,
+    "target": false,
+    "companionPdf": false,
+    "deliveryReadback": false
+  },
+  "deliveryTargets": [
+    "local-development-only"
+  ],
+  "semanticPolicy": {
+    "placeholderPatterns": [
+      "TODO",
+      "TBD",
+      "XXX",
+      "PLACEHOLDER"
+    ],
+    "minimumSlideCount": 1
+  },
+  "renderEvidence": {
+    "widthPx": 1920,
+    "heightPx": 1080
+  },
+  "notes": "DEVELOPMENT-ONLY acceptance profile. It validates local schema, OOXML structure, and presentation semantics only. It does not claim target rendering, visual acceptance, accessibility, companion PDF, destination delivery/read-back, provenance release readiness, or production publication."
+}

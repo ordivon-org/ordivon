@@ -1,0 +1,36 @@
+{
+  "boundary": "Standards and evidence/quality responsibilities are durable. Concrete tool versions are replaceable selections and may be upgraded through compatibility testing.",
+  "lockVersion": 1,
+  "profile": "presentation-r1",
+  "renderers": {
+    "primary": {
+      "implementation": "Microsoft PowerPoint Desktop",
+      "platform": "Windows",
+      "versionPolicy": "capture actual version and executable digest per render; do not freeze Office patch version as an architecture contract"
+    }
+  },
+  "standards": {
+    "officeNativeFormat": "OOXML / ISO/IEC 29500",
+    "profileSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+    "provenancePredicate": "https://slsa.dev/provenance/v1",
+    "provenanceStatement": "https://in-toto.io/Statement/v1"
+  },
+  "validators": {
+    "jsonSchema": {
+      "implementation": "python-jsonschema",
+      "version": "4.26.0"
+    },
+    "openXml": {
+      "buildSdk": "8.0.424",
+      "execution": "target Windows/.NET validation step",
+      "implementation": "DocumentFormat.OpenXml",
+      "statusOnCurrentNode": "restore-build-and-smoke-validation-verified",
+      "version": "3.5.1"
+    },
+    "pdfStructure": {
+      "implementation": "qpdf",
+      "observedVersion": "12.3.2",
+      "role": "structural PDF check only; not PDF/A or PDF/UA conformance"
+    }
+  }
+}

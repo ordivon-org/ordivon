@@ -1,0 +1,105 @@
+{
+  "classification": {
+    "conformanceProfile": "OCI Image Format 1.1 bounded single-platform Linux/amd64 image profile",
+    "family": "software-release",
+    "format": {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "name": "OCI Image Layout"
+    },
+    "purposes": [
+      "release",
+      "deployment"
+    ],
+    "representation": "container-image"
+  },
+  "id": "software-release-oci-image-r1",
+  "nonClaims": [
+    "that Artifact E2E built the software; build authorship remains Engineer-side",
+    "that SPDX 2.3 is ISO/IEC 5962:2021; that ISO standard corresponds to SPDX 2.2.1",
+    "absence of vulnerabilities outside the exact frozen Trivy DB snapshot",
+    "absence of runtime vulnerabilities not detectable from static rootfs/package evidence",
+    "production deployment safety, scalability or service reliability",
+    "signature/provenance trust beyond the separate common SLSA/in-toto/Sigstore release envelope",
+    "multi-platform image-index semantics",
+    "registry authorization, replication or retention policy"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "software-release-oci-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/software-release-oci-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "name": "OCI Image Layout"
+      },
+      "purpose": "release",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "artifactIdentity": "OCI manifest descriptor digest from the final OCI layout",
+      "configMediaType": "application/vnd.oci.image.config.v1+json",
+      "layerMediaTypes": [
+        "application/vnd.oci.image.layer.v1.tar+gzip"
+      ],
+      "manifestMediaType": "application/vnd.oci.image.manifest.v1+json",
+      "platform": "linux/amd64",
+      "runtimeReadback": "Skopeo imports final OCI layout into an isolated temporary Podman tag; Podman executes with network=none",
+      "sbom": "Syft SPDX 2.3 JSON bound to exact OCI manifest digest",
+      "secretScanning": "Trivy secret scan over rootfs exported from final OCI-layout read-back image",
+      "singleManifest": true,
+      "standard": "OCI Image Format 1.1.1 / OCI Image Layout",
+      "transportBoundary": "builder/container-storage identities are source evidence only; final Artifact identity is taken after Skopeo normalization into OCI layout",
+      "vulnerabilityIntelligence": "Trivy 0.73 scan bound to frozen DB snapshot 20260912-r1"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "software-release object contract is valid under software-release-oci-contract-v1",
+      "required": true
+    },
+    "ociIdentity": {
+      "claim": "OCI layout/index/manifest/config/layer descriptors are internally digest/size consistent and manifest identity matches the contract",
+      "required": true
+    },
+    "platformConfig": {
+      "claim": "OCI config platform, entrypoint and working directory match the object contract",
+      "required": true
+    },
+    "rootfsReadback": {
+      "claim": "final OCI layout can be imported independently and exported rootfs files match contract digests",
+      "required": true
+    },
+    "runtimeReadback": {
+      "claim": "final OCI-layout read-back image executes with network disabled and exact contract exit/stdout/stderr behavior",
+      "required": true
+    },
+    "sbom": {
+      "claim": "Syft emits SPDX 2.3 JSON whose CONTAINER root is bound to the exact final manifest digest and required packages are present",
+      "required": true
+    },
+    "secretScan": {
+      "claim": "Trivy secret scan over final rootfs remains within contract count",
+      "required": true
+    },
+    "vulnerabilityScan": {
+      "claim": "Trivy offline vulnerability scan over final rootfs uses the exact frozen DB snapshot and remains within contract count",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "OCI independent-toolchain matrix",
+      "required": true
+    }
+  ]
+}

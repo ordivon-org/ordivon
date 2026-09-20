@@ -1,0 +1,20 @@
+{
+  "distSpecVersion": "1.1.1",
+  "storage": {
+    "rootDirectory": "/var/lib/zot",
+    "commit": false,
+    "dedupe": true,
+    "gc": true,
+    "gcDelay": "1h",
+    "gcInterval": "1h"
+  },
+  "http": {
+    "address": "127.0.0.1",
+    "port": "5080",
+    "readTimeout": "1m",
+    "writeTimeout": "1m"
+  },
+  "log": {
+    "level": "info"
+  }
+}

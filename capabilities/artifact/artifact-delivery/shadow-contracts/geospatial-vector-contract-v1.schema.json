@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Geospatial Vector Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "layer", "primaryKey"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "geospatial-geopackage-point-r1"},
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "fidColumn", "geometry", "fields"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "fidColumn": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["column", "type", "nullable", "srs"],
+          "properties": {
+            "column": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+            "type": {"const": "POINT"},
+            "nullable": {"type": "boolean"},
+            "srs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["authority", "code"],
+              "properties": {
+                "authority": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+$"},
+                "code": {"type": "integer"}
+              }
+            }
+          }
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "nullable"],
+            "properties": {
+              "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+              "type": {"enum": ["integer", "string", "real", "boolean"]},
+              "nullable": {"type": "boolean"}
+            }
+          }
+        },
+        "minimumFeatures": {"type": "integer", "minimum": 0},
+        "maximumFeatures": {"type": "integer", "minimum": 0}
+      }
+    },
+    "primaryKey": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+      "uniqueItems": true
+    },
+    "notes": {"type": "string"}
+  }
+}

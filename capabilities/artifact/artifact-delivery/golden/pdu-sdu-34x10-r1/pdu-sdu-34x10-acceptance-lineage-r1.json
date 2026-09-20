@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-acceptance-lineage-evidence",
+  "id": "pdu-sdu-34x10-golden-r2-acceptance-lineage-r1",
+  "capturedOn": "2026-09-11",
+  "standing": "ONE_CANONICAL_ACCEPTANCE_WITH_HISTORICAL_METADATA_VARIANT",
+  "logicalArtifact": {
+    "profileId": "presentation-ultrawide-34x10-r1",
+    "sourceAuthoritySha256": "b50ab3025c4b285c728d029416492b4c7a03de1fc9e0bfe3f05293bfaf5f468c",
+    "slideCount": 8,
+    "aspectRatio": "34:10"
+  },
+  "historicalAcceptedRun": {
+    "boardSequence": 15544,
+    "standing": "HISTORICAL_ACCEPTED_RUN_NONCANONICAL_CURRENTNESS",
+    "pptx": {
+      "sha256": "589829d2a7e510e125baaaac3f7c8dd1ec834c3632bf918a1d9f4fa63a3681ab",
+      "sizeBytes": 2745582,
+      "driveFileId": "external-gdrive:file:1na35juEbDCAGg0oRwK4SI_kejyhcRjBm"
+    },
+    "pdf": {
+      "sha256": "22dcd6f238734beec565d309cb269acf2fe910a99a64e875d649cb700ac92d38",
+      "sizeBytes": 1149721,
+      "driveFileId": "external-gdrive:file:1OTt8c3vAnQLsu2rRX0x4QALOwn_jakXP"
+    }
+  },
+  "canonicalAcceptedTuple": {
+    "sourceManifest": "artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-acceptance-r2.json",
+    "sourceCommit": "e8e8c20bbcdf404a548024415d1090694375d384",
+    "standing": "CANONICAL_ACCEPTED_IN_PROFILE",
+    "pptx": {
+      "sha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+      "sizeBytes": 2745582,
+      "driveFileId": "external-gdrive:file:1AZ9qdZpix0yxGioi17dTFiMq4USdoFoY"
+    },
+    "pdf": {
+      "sha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe",
+      "sizeBytes": 1149721,
+      "driveFileId": "external-gdrive:file:1t2c4akOyk1YGlVv6ZcpAgMG1h44AwuVr"
+    }
+  },
+  "pptxComparison": {
+    "relation": "CONTENT_IDENTICAL_ZIP_TIMESTAMP_VARIANT",
+    "memberCount": 60,
+    "wholeFileByteIdentical": false,
+    "allMemberUncompressedContentEqual": true,
+    "allMemberCompressedPayloadEqual": true,
+    "nonTimeZipMetadataDifferenceCount": 0,
+    "timestampDifferenceCount": 60,
+    "historicalTimestamp": [2026, 9, 11, 3, 14, 12],
+    "canonicalTimestamp": [2026, 9, 11, 4, 28, 38],
+    "interpretation": "The two PPTX files carry identical OOXML member bytes and identical compressed payload bytes. Their whole-file SHA-256 differs only because the ZIP local and central headers contain different DOS timestamps."
+  },
+  "pdfComparison": {
+    "relation": "PAGE_CONTENT_AND_RENDER_IDENTICAL_EXPORT_METADATA_VARIANT",
+    "pageCount": 8,
+    "wholeFileByteIdentical": false,
+    "wholeFileDifferingByteCount": 260,
+    "allPageContentStreamsEqual": true,
+    "allPageXObjectPayloadsEqual": true,
+    "allExtractedTextEqual": true,
+    "allRenderedPagePixelsEqualAt72Dpi": true,
+    "historicalCreationDate": "2026-09-11T03:14:45+08:00",
+    "canonicalCreationDate": "2026-09-11T04:29:08+08:00",
+    "metadataDifferences": [
+      "PDF Info CreationDate/ModDate",
+      "XMP CreateDate/ModifyDate",
+      "XMP DocumentID/InstanceID",
+      "PDF trailer and XRef stream /ID values"
+    ],
+    "interpretation": "The two native PowerPoint PDF exports are page-content and render equivalent. The observed byte variation is export-run metadata identity/current-time material rather than page content."
+  },
+  "deterministicSuccessor": {
+    "evidence": "artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-determinism-evidence-r1.json",
+    "pptxSha256": "4021405d0391e6f5602c378c3b5aef6e5770db23f2304cfb9a598eb16164ed41",
+    "standing": "BUILDER_REPLAY_EVIDENCE_NOT_ACCEPTED_TUPLE",
+    "relationship": "The deterministic successor normalizes ZIP timestamps and reproduces the same 60 member payloads and the same eight PowerPoint PNG renders; it does not replace the canonical accepted fa48aa4a tuple."
+  },
+  "currentnessRule": {
+    "canonicalAcceptedTupleCount": 1,
+    "canonicalPptxSha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+    "canonicalPdfSha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe",
+    "rule": "Historical successful runs remain durable evidence but do not become parallel current acceptance identities unless a source-current acceptance manifest explicitly promotes them. Content-equivalent metadata variants are linked by lineage rather than treated as competing canonical artifacts."
+  },
+  "nonClaims": [
+    "BYTE_IDENTITY_BETWEEN_HISTORICAL_AND_CANONICAL_RUNS_IS_NOT_CLAIMED",
+    "PDF_EXPORT_BYTE_DETERMINISM_IS_NOT_CLAIMED",
+    "DETERMINISTIC_SUCCESSOR_4021405D_IS_NOT_A_NEW_ACCEPTED_TUPLE",
+    "HISTORICAL_BOARD_SUCCESS_IS_NOT_ERASED_OR_RELABELED_AS_FAILURE"
+  ]
+}

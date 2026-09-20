@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  hermetic-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ARTIFACT_OPENXML_VALIDATOR: /nonexistent/validate-openxml
+      ARTIFACT_DOTNET: /nonexistent/dotnet
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: false
+      - run: uv python install 3.14.7
+      - run: uv lock --check
+      - run: uv sync --locked
+      - run: >-
+          uv run ruff check
+          artifact_core artifact_capabilities artifact_evidence artifact_operations
+          artifact_trust artifact_verification artifact_verifiers
+          scripts/artifact_agent_surface.py
+          scripts/artifact_delivery_toolchain_doctor.py scripts/artifact_verify.py
+          scripts/artifact_python_environment.py scripts/artifact_python_wrapper.py
+          scripts/artifact_oci_package.py scripts/artifact_temporal_support.py
+          scripts/artifact_temporal_workflow.py scripts/artifact_temporal_launch.py
+          scripts/artifact_temporal_worker.py scripts/artifact_temporal_deploy.py
+          tests
+      - run: uv run python -m pytest -m "not integration"

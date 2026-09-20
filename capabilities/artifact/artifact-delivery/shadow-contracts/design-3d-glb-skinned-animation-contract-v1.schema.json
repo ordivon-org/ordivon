@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "assimp": {
+      "additionalProperties": false,
+      "properties": {
+        "animationChannelCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "animationCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "boneCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "boundsMax": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        "boundsMin": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        "cameraCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lightCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "materialCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "meshCount": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "nodeCount": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "primitiveTriangles": {
+          "const": true
+        },
+        "textureCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "triangleCount": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "vertexCount": {
+          "minimum": 3,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nodeCount",
+        "meshCount",
+        "animationCount",
+        "textureCount",
+        "materialCount",
+        "cameraCount",
+        "lightCount",
+        "vertexCount",
+        "triangleCount",
+        "boneCount",
+        "animationChannelCount",
+        "primitiveTriangles",
+        "boundsMin",
+        "boundsMax"
+      ],
+      "type": "object"
+    },
+    "blender": {
+      "additionalProperties": false,
+      "properties": {
+        "actionCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "actions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "armatureBones": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "armatureObjectCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "materialCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "meshObjectCount": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "meshTotals": {
+          "additionalProperties": false,
+          "properties": {
+            "materialSlots": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "polygons": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "vertices": {
+              "minimum": 3,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "vertices",
+            "polygons",
+            "materialSlots"
+          ],
+          "type": "object"
+        },
+        "objectCount": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "objectCount",
+        "meshObjectCount",
+        "armatureObjectCount",
+        "materialCount",
+        "actionCount",
+        "armatureBones",
+        "actions",
+        "meshTotals"
+      ],
+      "type": "object"
+    },
+    "contractVersion": {
+      "const": 1
+    },
+    "godot": {
+      "additionalProperties": false,
+      "properties": {
+        "animationNames": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "animations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "classes": {
+          "additionalProperties": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "skeletonBones": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "classes",
+        "animations",
+        "animationNames",
+        "skeletonBones"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "profileId": {
+      "const": "design-3d-glb-skinned-animation-r1"
+    },
+    "validator": {
+      "additionalProperties": false,
+      "properties": {
+        "animationCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "drawCallCount": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "hasDefaultScene": {
+          "type": "boolean"
+        },
+        "hasMorphTargets": {
+          "type": "boolean"
+        },
+        "hasSkins": {
+          "type": "boolean"
+        },
+        "hasTextures": {
+          "type": "boolean"
+        },
+        "materialCount": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxInfluences": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "triangleCount": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "vertexCount": {
+          "minimum": 3,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "animationCount",
+        "materialCount",
+        "hasMorphTargets",
+        "hasSkins",
+        "hasTextures",
+        "hasDefaultScene",
+        "drawCallCount",
+        "vertexCount",
+        "triangleCount",
+        "maxInfluences"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "contractVersion",
+    "id",
+    "profileId",
+    "validator",
+    "assimp",
+    "blender",
+    "godot"
+  ],
+  "title": "Artifact Design-3D GLB Skinned Animation Contract v1 (shadow)",
+  "type": "object"
+}

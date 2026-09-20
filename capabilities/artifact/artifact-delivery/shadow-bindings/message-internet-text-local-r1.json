@@ -1,0 +1,39 @@
+{
+  "bindingVersion": 1,
+  "id": "message-internet-text-local-r1",
+  "profileId": "message-internet-text-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "pythonParser": {
+      "tool": "Python email package",
+      "version": "Python 3.14.7 stdlib",
+      "pythonPath": "/root/.local/share/mise/installs/python/3.14.7/bin/python3.14",
+      "pythonSha256": "241bf774a81580bb760adf960b48df7e6b23b1de026c9c912d4ca6be1a08241e",
+      "modulePath": "/root/.local/share/mise/installs/python/3.14.7/lib/python3.14/email/__init__.py",
+      "moduleSha256": "dafca994154b9a6eb2b69d0e6e69e7596f397c2aec9bc62702259f4b39bd111a"
+    },
+    "nodeParser": {
+      "tool": "mailparser",
+      "version": "3.9.26",
+      "nodePath": "/root/.local/share/mise/installs/node/26.9.0/bin/node",
+      "nodeSha256": "05757b064ad2a221b41874794da42361c9bab033c7c33c1f1b458c25a7de7e59",
+      "packagePath": "/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser",
+      "packageLockSha256": "91b52f0709bc90453e38b42197405233324afbc2d41d148a45272721b6854d9e"
+    }
+  },
+  "proof": {
+    "focusedTests": "8 PASS / 0 FAIL",
+    "validInternetMessage": "PASS",
+    "wrongSubjectContract": "PARSERS_AGREE_BUT_OBJECT_CONTRACT_FAIL",
+    "lfOnlyMessage": "PARSABLE_BUT_RAW_CRLF_PROFILE_FAIL",
+    "duplicateMessageId": "RAW_SINGLETON_HEADER_POLICY_FAIL",
+    "multipartMessage": "VALID_MIME_BUT_R1_PROFILE_FAIL",
+    "changedBody": "PARSERS_AGREE_BUT_BODY_IDENTITY_FAIL",
+    "htmlMessage": "VALID_MIME_BUT_TEXT_PLAIN_PROFILE_FAIL",
+    "liveSmokeRuntimeJobId": "job-01a09630-eb77-7103-9e88-f3add42b0f6f",
+    "liveSmokeArtifactSha256": "803f9fa067a0d558fcbaa829fccb929fa469ebd9d4edc95fbfbd013b3405df8b",
+    "liveSmokeContractCanonicalDigest": "7378e4bc43bffc8b1502858c8a3664241edc965a490ed924677c5647e0e0a706",
+    "liveSmokeBodySha256": "55b312a3ebddd6b9e7fe6b281c29fe7e57b93625041010e329944290ed298377",
+    "liveSmokeVerificationEvidenceSha256": "e141a50bdcb99b1cc18afb06188b306166fc4f7ce3e2b8512063467291e31a9c"
+  }
+}

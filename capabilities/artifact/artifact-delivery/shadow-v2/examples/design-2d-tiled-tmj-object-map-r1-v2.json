@@ -1,0 +1,98 @@
+{
+  "classification": {
+    "conformanceProfile": "Tiled finite orthogonal object-layer-only map subset",
+    "family": "design-2d",
+    "format": {
+      "mediaType": "application/json",
+      "name": "Tiled JSON Map (TMJ)"
+    },
+    "purposes": [
+      "editable-authoring",
+      "game-runtime-source",
+      "exchange"
+    ],
+    "representation": "structured-map-authoring-source"
+  },
+  "id": "design-2d-tiled-tmj-object-map-r1",
+  "nonClaims": [
+    "Game meaning of layer names, object type strings, custom properties or topology",
+    "tile-layer, tileset, image-layer, group-layer, world-file or infinite-map support",
+    "external templates, external tilesets or file-valued property resolution",
+    "visual or artistic correctness of the map",
+    "runtime navigation, collision, pathfinding or gameplay correctness",
+    "full Tiled format support outside the bounded R1 subset"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "design-2d-tiled-tmj-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/design-2d-tiled-tmj-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/json",
+        "name": "Tiled JSON Map (TMJ)"
+      },
+      "purpose": "editable-authoring",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "canonicality": "source JSON semantics must equal a native Tiled TMJ export and a TMJ-to-TMX-to-TMJ cross-format round-trip",
+      "externalFileProperties": "forbidden in R1",
+      "externalTemplates": "forbidden in R1",
+      "formatAuthority": "Tiled JSON Map Format / TMX Map Format semantics",
+      "infinite": false,
+      "layerSubset": [
+        "objectgroup"
+      ],
+      "mapType": "map",
+      "objectShapes": [
+        "rectangle",
+        "polyline"
+      ],
+      "orientation": "orthogonal",
+      "referenceImplementation": "Tiled 1.12.2",
+      "renderReadback": "tmxrasterizer must produce a non-empty RGBA PNG at map width*tilewidth by height*tileheight",
+      "tilesets": "forbidden in R1"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "boundedObjectMap": {
+      "claim": "JSON structure stays inside the finite orthogonal object-layer-only R1 subset without external resources",
+      "required": true
+    },
+    "canonicalSemanticIdentity": {
+      "claim": "canonical sorted JSON SHA-256 equals the object contract expectation",
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "TMJ object-map contract validates under design-2d-tiled-tmj-contract-v1",
+      "required": true
+    },
+    "nativeCrossFormatRoundTrip": {
+      "claim": "Tiled TMJ→TMX→TMJ preserves the exact canonical JSON semantics",
+      "required": true
+    },
+    "nativeRasterReadback": {
+      "claim": "tmxrasterizer renders a non-empty RGBA image at the contract-derived map pixel dimensions",
+      "required": true
+    },
+    "nativeTmjRoundTrip": {
+      "claim": "Tiled 1.12.2 loads the source and exports semantically identical TMJ JSON",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Tiled-native-editor-exporter",
+      "required": true
+    }
+  ]
+}

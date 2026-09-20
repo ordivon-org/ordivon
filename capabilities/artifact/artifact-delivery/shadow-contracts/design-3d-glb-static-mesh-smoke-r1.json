@@ -1,0 +1,15 @@
+{
+  "contractVersion": 1,
+  "id": "design-3d-glb-static-mesh-smoke-r1",
+  "profileId": "design-3d-glb-static-mesh-r1",
+  "scene": {
+    "nodeCount": 1,
+    "meshCount": 1,
+    "primitiveCount": 1,
+    "vertexCount": 3,
+    "triangleCount": 1,
+    "boundsMin": [0.0, 0.0, 0.0],
+    "boundsMax": [1.0, 1.0, 0.0]
+  },
+  "notes": "Deterministic one-triangle GLB smoke scene."
+}

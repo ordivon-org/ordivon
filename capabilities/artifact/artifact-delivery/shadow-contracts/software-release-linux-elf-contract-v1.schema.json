@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "byteLength": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "executable": {
+          "const": true
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byteLength",
+        "executable"
+      ],
+      "type": "object"
+    },
+    "contractVersion": {
+      "const": 1
+    },
+    "elf": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "const": "ELF64"
+        },
+        "data": {
+          "const": "2's complement, little endian"
+        },
+        "interpreter": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "machine": {
+          "const": "Advanced Micro Devices X86-64"
+        },
+        "osAbi": {
+          "const": "UNIX - System V"
+        },
+        "type": {
+          "enum": [
+            "EXEC (Executable file)",
+            "DYN (Position-Independent Executable file)"
+          ]
+        }
+      },
+      "required": [
+        "class",
+        "data",
+        "osAbi",
+        "type",
+        "machine",
+        "interpreter"
+      ],
+      "type": "object"
+    },
+    "fileInspection": {
+      "additionalProperties": false,
+      "properties": {
+        "requiredSubstrings": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "requiredSubstrings"
+      ],
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "profileId": {
+      "const": "software-release-linux-elf-executable-r1"
+    },
+    "runtime": {
+      "additionalProperties": false,
+      "properties": {
+        "args": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "exitCode": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stderrExact": {
+          "type": "string"
+        },
+        "stdoutContains": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "timeoutSeconds": {
+          "maximum": 120,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "args",
+        "exitCode",
+        "stdoutContains",
+        "stderrExact",
+        "timeoutSeconds"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "contractVersion",
+    "id",
+    "profileId",
+    "artifact",
+    "fileInspection",
+    "elf",
+    "runtime"
+  ],
+  "title": "Artifact Linux ELF Release Contract v1 (shadow)",
+  "type": "object"
+}

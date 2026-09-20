@@ -1,0 +1,43 @@
+{
+  "bindingVersion": 1,
+  "id": "moving-image-matroska-ffv1-local-r1",
+  "profileId": "moving-image-matroska-ffv1-v3-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "implementationChecker": {
+      "tool": "MediaConch CLI",
+      "version": "25.04",
+      "path": "/opt/ordivon/external/mediaconch/25.04-1/mediaconch",
+      "binaryPath": "/opt/ordivon/external/mediaconch/25.04-1/rootfs/usr/bin/mediaconch",
+      "binarySha256": "d89480c06f991c7d4085580704b480c08b0ad53d53f38a6a6d3e63d17f009eed",
+      "officialHttpsPackageSha256": "25be0269c5e7440e49d46e3ef19dba36f4979e6999cb75b9e73d405dc4c42e1a",
+      "signatureStanding": "UPSTREAM_DETACHED_SIGNATURE_UNAVAILABLE; exact official HTTPS package digest pinned; frozen Arch dependency packages signature-verified"
+    },
+    "technicalAndDecode": {
+      "tool": "FFmpeg / FFprobe",
+      "version": "9.0",
+      "package": "ffmpeg 2:9.0-5",
+      "ffmpegPath": "/usr/bin/ffmpeg",
+      "ffmpegSha256": "46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+      "ffprobePath": "/usr/bin/ffprobe",
+      "ffprobeSha256": "1e165ca6749e6343f71cf85eb3b90283db0e40e3e04ee3adfb703e81d8459a7c"
+    }
+  },
+  "proof": {
+    "focusedTests": "8 PASS / 0 FAIL",
+    "validMatroskaFfv1Contract": "PASS",
+    "wrongDimensionContract": "FAIL_AFTER_MEDIACONCH_IMPLEMENTATION_PASS",
+    "corruptFfv1Packet": "FAIL_CLOSED_WHILE_FFMPEG_PROCESS_EXITED_ZERO",
+    "ffv1Version1": "VALID_FILE_BUT_PROFILE_FAIL",
+    "extraAudioTrack": "VALID_CONTAINER_BUT_VIDEO_ONLY_PROFILE_FAIL",
+    "wrongExpectedRawVideoDigest": "FAIL_AFTER_IMPLEMENTATION_CHECKS_PASS",
+    "nonR1PixelFormatContract": "FAIL_BEFORE_EXTERNAL_EVIDENCE",
+    "liveSmokeRuntimeJobId": "job-01a095ed-cb2d-7c81-ad1d-42aa716a03e1",
+    "liveSmokeArtifactSha256": "c45b36677841f850f7eca665a0a7546165ab1f8a8d14fdab1bf25f85238b7d1e",
+    "liveSmokeContractCanonicalDigest": "288c3a03ef7287f2c6e110a9f048b1b0674c3a43e420d54e76b5f278dc234f8b",
+    "liveSmokeRawVideoSha256": "568441a6da6651e5f07c68d0e040ffbcc155298505b9248c08b7ae7e77ba229f",
+    "liveSmokeMatroskaImplementationEvidenceSha256": "cf639f2772ced215240f87f27d3c1a5b98db61d77a0fb2bd7dd00f308aee7c03",
+    "liveSmokeMediaInfoEvidenceSha256": "59552b6ced6b0875f629a2e23575d7f228d403af7c112fedee36244896c8dd8c",
+    "liveSmokeFfprobeEvidenceSha256": "9925889546ebc4eef5bd292dbbccc3aaa61c9a86bc78fe7947927294e7da95e2"
+  }
+}

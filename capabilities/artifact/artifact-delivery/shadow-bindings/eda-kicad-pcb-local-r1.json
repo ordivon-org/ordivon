@@ -1,0 +1,24 @@
+{
+  "bindingVersion": 1,
+  "id": "eda-kicad-pcb-local-r1",
+  "profileId": "eda-kicad-pcb-gerber-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "nativeCheckerExporter": {
+      "tool": "KiCad CLI",
+      "path": "/usr/bin/kicad-cli",
+      "version": "10.0.6",
+      "binarySha256": "5eb8710a81459103f25213402cf5942ad3e3e105c9287c1308334fa37175068c"
+    }
+  },
+  "proof": {
+    "prototypeRuntimeJobId": "job-01a0a39c-c39a-7cf1-b7b2-a9f475089a20",
+    "prototypeOperationDigest": "sha256:9be0b2693409d3cc1d2b8d36c4d6704e2fc972e5522fa75560a3c800b5d00daa",
+    "positiveDrc": "0 violations / exit 0",
+    "destructiveNegative": "overlapping different-net PTH pads produced 4 error violations / exit 5",
+    "gerber": "F.Cu+B.Cu+Edge.Cuts plus Gerber job metadata materialized",
+    "excellon": "drill file plus drill report materialized",
+    "focusedTests": "repository test_artifact_eda.py must remain green"
+  },
+  "boundary": "Local live proof establishes only the bounded mechanical profile. Electrical intent, schematic parity, manufacturing acceptance and product safety remain outside Artifact."
+}

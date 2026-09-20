@@ -1,0 +1,95 @@
+{
+  "classification": {
+    "conformanceProfile": "W3C PNG Third Edition bounded static-sRGB datastream profile",
+    "family": "still-image",
+    "format": {
+      "mediaType": "image/png",
+      "name": "PNG"
+    },
+    "purposes": [
+      "display",
+      "exchange"
+    ],
+    "representation": "raster"
+  },
+  "id": "still-image-png-srgb-r1",
+  "nonClaims": [
+    "visual or aesthetic quality",
+    "semantic/content correctness",
+    "human accessibility or suitability of alt text",
+    "print-production color accuracy",
+    "HDR or wide-gamut conformance",
+    "APNG animation behavior",
+    "encoder/decoder/editor implementation conformance beyond the observed datastream/tool checks",
+    "metadata truth or rights/legal validity"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "image/png",
+        "name": "PNG"
+      },
+      "purpose": "display",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "animated": false,
+      "bitDepth": 8,
+      "colorBoundary": "This profile deliberately selects SDR sRGB PNG. ICC/HDR/cICP workflows are separate still-image profiles rather than implicit extensions.",
+      "colorModel": [
+        "RGB",
+        "RGBA"
+      ],
+      "prohibitedChunks": [
+        "acTL",
+        "fcTL",
+        "fdAT",
+        "iCCP",
+        "cICP"
+      ],
+      "requiredChunks": [
+        "sRGB"
+      ],
+      "standard": "W3C Portable Network Graphics (PNG) Specification (Third Edition), Recommendation 2025-06-24"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "datastreamValidity": {
+      "claim": "PNG datastream validity under a Third-Edition-aware external checker",
+      "required": true
+    },
+    "decoderMatrix": {
+      "claim": "independent mature decoders agree on normalized decoded sample bytes",
+      "parameters": {
+        "acceptance": "exact decoded sample-byte equality",
+        "minimumIndependentDecoders": 2,
+        "normalization": "8-bit sRGB RGBA samples"
+      },
+      "required": true
+    },
+    "metadataObservation": {
+      "claim": "extract embedded technical/descriptive/rights metadata without asserting its truth",
+      "parameters": {
+        "policy": "no descriptive-field requirement in this generic display/exchange profile"
+      },
+      "required": true
+    },
+    "profileFacts": {
+      "claim": "static 8-bit RGB/RGBA, explicit sRGB chunk, no APNG/iCCP/cICP profile expansion",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "independent-decoder-matrix",
+      "required": true
+    }
+  ]
+}

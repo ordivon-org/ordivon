@@ -1,0 +1,82 @@
+{
+  "bindingVersion": 1,
+  "bindings": {
+    "browserMatrix": {
+      "chromium": {
+        "binarySha256": "8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+        "path": "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+        "version": "Google Chrome for Testing 153.0.8010.12"
+      },
+      "firefox": {
+        "binarySha256": "062272ac4d851eade5b75db2dc7c14569d96cb3ca38f949337cdc1b74367e35b",
+        "path": "/root/.cache/ms-playwright/firefox-1543/firefox/firefox",
+        "version": "Mozilla Firefox 155.0"
+      },
+      "nodePath": "/usr/bin/node",
+      "nodeSha256": "d51d79e0e04abfe366345496a8e1379d56493271af4e0d6f27dd6ba76be628ea",
+      "packageJsonSha256": "5439348ed4916a4caa41b8799826508c2476f721533fa0ac1ca3b1085157c0f9",
+      "packageRoot": "/opt/ordivon/external/artifact-toolchain/node/1.63.0",
+      "playwrightVersion": "1.63.0",
+      "tool": "Playwright Chromium + Firefox"
+    },
+    "referenceRenderer": {
+      "binarySha256": "dffdf54f9bdaa7d41ecd28baa65eefef4d81fd8857a9a639ca1ead9df9e43341",
+      "package": "librsvg 2:2.62.3-1",
+      "path": "/usr/bin/rsvg-convert",
+      "tool": "librsvg rsvg-convert",
+      "version": "2.62.3"
+    },
+    "xmlParser": {
+      "binarySha256": "1bd8970f25d14ecaa8982e1a6c3904add9a00e58dc3bc82fc4f55d5187e7d8f1",
+      "package": "libxml2 2.15.4-1",
+      "path": "/usr/bin/xmllint",
+      "tool": "libxml2 xmllint",
+      "version": "2.15.4"
+    }
+  },
+  "id": "still-image-svg-static-local-r1",
+  "profileId": "still-image-svg-static-r1",
+  "proof": {
+    "currentGameResults": {
+      "expression-signals": {
+        "artifactSha256": "ae0d652d0e58f417942ac8861a73c6bc9ff0386a04b4114936949fc7cf904aa0",
+        "chromiumPixelFNV32": "111fce88",
+        "firefoxPixelFNV32": "bbdb9e57",
+        "librsvgHeight": 64,
+        "librsvgWidth": 128,
+        "nonTransparentPixelCountAgreement": true,
+        "status": "PASS",
+        "targetStanding": "TARGET_RENDERER_PIXEL_DIVERGENCE_OBSERVED"
+      },
+      "hazard-signal": {
+        "artifactSha256": "fd2dffdfe6e9329e58a93fe6ec1fd9c14d49eb1a7ca6ae2b6fac78016ceb6958",
+        "chromiumPixelFNV32": "f32c65e2",
+        "firefoxPixelFNV32": "0f8f9d32",
+        "librsvgHeight": 50,
+        "librsvgWidth": 54,
+        "nonTransparentPixelCountAgreement": true,
+        "status": "PASS",
+        "targetStanding": "TARGET_RENDERER_PIXEL_DIVERGENCE_OBSERVED"
+      },
+      "system-signal": {
+        "artifactSha256": "a8bf1591afe1db5918a1534b9366b3c42ccbbd7ca5ba298d32e48788d01db46c",
+        "chromiumPixelFNV32": "1961ca0c",
+        "firefoxPixelFNV32": "9a90e18d",
+        "librsvgHeight": 48,
+        "librsvgWidth": 48,
+        "nonTransparentPixelCountAgreement": true,
+        "status": "PASS",
+        "targetStanding": "TARGET_RENDERER_PIXEL_DIVERGENCE_OBSERVED"
+      }
+    },
+    "currentGameRevision": "809a82b733e3b3c761847a72a6a7fb7a94502ae5",
+    "doctype": "FAIL_CLOSED",
+    "externalImageReference": "FAIL_CLOSED",
+    "focusedTests": "5 PASS / 0 FAIL",
+    "gameSmokeOperationDigest": "sha256:51564b1edd41b91c3123980a678c01bac92a2637f92d8e90e9e0006380f6e994",
+    "gameSmokeRuntimeJobId": "job-01a09a4f-238b-7bd0-b9ff-c78bdc8ac712",
+    "mismatchedViewBox": "FAIL_CLOSED",
+    "script": "FAIL_CLOSED"
+  },
+  "status": "LOCAL_LIVE_PROVEN"
+}

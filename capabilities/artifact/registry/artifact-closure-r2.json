@@ -1,0 +1,179 @@
+{
+  "cosign": {
+    "ambientSystemCosign": {
+      "authorityRole": "AMBIENT_NON_SELECTED_TOOL",
+      "packageVersion": "3.1.0-1",
+      "path": "/usr/bin/cosign",
+      "sha256": "sha256:ddc39e595d95f05a4bbddce66a59fc313bd6c56ee27dff1b0021f4f2094bbc73"
+    },
+    "keylessStanding": "NOT_EXERCISED_IDENTITY_ISSUER_TLOG_REQUIRED",
+    "livePublicKeyBundleProbe": {
+      "boundary": "PASS proves the selected provenance-locked Cosign can create and verify a standardized Sigstore v0.3 public-key bundle with no ambient Fulcio/OIDC/Rekor/TSA effects. It does not establish keyless identity/tlog trust or public release-signing policy.",
+      "bundleMediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+      "bundleSha256": "99dc66ada60ddba5edd593f8c263b8eace40b1aa27692fd40a79bbfebd7ee845",
+      "kind": "artifact-r2-cosign-live-probe",
+      "privateKeyPersisted": false,
+      "publicKeySha256": "281d32f732d388172f4866e4db08044050c6b9ec4c9b1b55fb07b616ff70c941",
+      "schemaVersion": 1,
+      "statementSha256": "b8efb22a6f510b00f8bfccdb6a70083744bbf931cc5c2de1cd1139aca3f75d0f",
+      "status": "PASS",
+      "subjectSha256": "c4a2745937be53678131df626c0d13f608baac98496eca055b59c1d8e77bcef7",
+      "tlogEntryCount": 0,
+      "tool": {
+        "lockedDigestMatched": true,
+        "lockedVersionMatched": true,
+        "packageSha256": "281c52a1020225d22638f46e4b687c18ecf06d4f796055604a90483d5e60cc69",
+        "packageSignatureSha256": "a9d4441f15bec19285722f1681256e6baca5929eb54e7266522ffd233052b47b",
+        "packageSignerFingerprint": "EB3D764FF5D87E0818A3E0E5F05E8C12131AEB5E",
+        "path": "/opt/ordivon/external/artifact-toolchain/cosign/3.1.3/bin/cosign",
+        "provenanceStatus": "PASS",
+        "sha256": "eeeb54d099d9ca2520e2cfd5068c9136b454bb1b7b1e027afda7938c497953e7",
+        "version": "3.1.3"
+      },
+      "verification": {
+        "authenticity": "VERIFIED",
+        "cosignStatus": "PASS",
+        "signedStatementMatches": true,
+        "status": "PASS"
+      }
+    },
+    "selectedVerifier": {
+      "lockedDigestMatched": true,
+      "lockedVersionMatched": true,
+      "packageSha256": "281c52a1020225d22638f46e4b687c18ecf06d4f796055604a90483d5e60cc69",
+      "packageSignatureSha256": "a9d4441f15bec19285722f1681256e6baca5929eb54e7266522ffd233052b47b",
+      "packageSignerFingerprint": "EB3D764FF5D87E0818A3E0E5F05E8C12131AEB5E",
+      "path": "/opt/ordivon/external/artifact-toolchain/cosign/3.1.3/bin/cosign",
+      "provenanceStatus": "PASS",
+      "sha256": "eeeb54d099d9ca2520e2cfd5068c9136b454bb1b7b1e027afda7938c497953e7",
+      "version": "3.1.3"
+    }
+  },
+  "date": "2026-09-13",
+  "decisions": [
+    "Keep the existing Zot registry and persistent store; do not introduce Harbor or another registry.",
+    "Promote Zot configuration and lifecycle ownership from an expired Runtime workspace to Artifact-v2 source control plus rootful Podman Quadlet/systemd materialization.",
+    "Keep exact digest-pinned Zot v2.1.20 until a deliberate upgrade is separately admitted.",
+    "Keep host networking only because this WSL substrate cannot create the default netavark bridge; constrain exposure with Zot address 127.0.0.1:5080.",
+    "Keep the provenance-locked Cosign 3.1.3 verifier; ambient /usr/bin/cosign is not selected authority.",
+    "Graduate standardized public-key Sigstore bundle verification only; keep keyless identity/tlog release trust ungraduated."
+  ],
+  "implementationRevision": "4216e8d87dc5c62a459616f98bb7ec62e4ab5195",
+  "initialRepositoryRevision": "ed688e6396ab6f1d50c41854ea1695e142cabdbb",
+  "kind": "ordivon.artifact.closure-r2",
+  "nonClaims": [
+    "The local Zot instance is not a public or multi-user registry and has no TLS/auth graduation claim.",
+    "No remote availability, HA, replication or disaster-recovery claim is made.",
+    "No keyless Fulcio/OIDC/Rekor signing trust path was exercised by R2.",
+    "Registry transport/storage success does not establish artifact scientific, visual, business or destination acceptance.",
+    "The host systemd manager being globally degraded is outside this Artifact closure; the Zot unit itself is active and doctor-verified."
+  ],
+  "ociRoundtrip": {
+    "closureSmokeRetained": true,
+    "discoverAfterRestartSha256": "sha256:7d90924e1d52c3f54695041ad13fc2e98de284d84e1accc549014270fb2979dd",
+    "discoverBeforeRestartSha256": "sha256:7d90924e1d52c3f54695041ad13fc2e98de284d84e1accc549014270fb2979dd",
+    "discoverByteIdenticalAcrossRestart": true,
+    "referrerArtifactType": "application/vnd.ordivon.artifact.r2.evidence.v1+json",
+    "referrerCount": 1,
+    "referrerManifestDigest": "sha256:ffb38f3fb680614d837a09e3d7ea1ad34f7d93f1948a6541eadc5fa331a90e9a",
+    "repository": "ordivon/artifact-r2-closure-smoke",
+    "subjectArtifactType": "application/vnd.ordivon.artifact.r2.subject.v1",
+    "subjectManifestDigest": "sha256:79b634b0500d769fdaf43d6284ce96004ea9802345226193f3a3a1979b9fc095",
+    "subjectPayloadSha256": "sha256:ce2fb16dd10090f3943d2e5c45185362882cffc450d02f62718b040ec1f1f950",
+    "subjectPullAfterRestartSha256": "sha256:ce2fb16dd10090f3943d2e5c45185362882cffc450d02f62718b040ec1f1f950",
+    "subjectPullBeforeRestartSha256": "sha256:ce2fb16dd10090f3943d2e5c45185362882cffc450d02f62718b040ec1f1f950",
+    "tag": "20260913-r1"
+  },
+  "schemaVersion": 1,
+  "standing": "ACCEPTED_BOUNDED",
+  "verification": {
+    "cosignLiveProbe": {
+      "jobId": "job-01a09ae2-051a-74f1-a142-4dcc3cadaf03",
+      "receiptSha256": "sha256:742e8d477f5f469c8af6300b5fba5d8f8a28002a470b779e4e8ddb157563ccda",
+      "status": "PASS"
+    },
+    "fullRepositoryTests": {
+      "jobId": "job-01a09adf-af0d-7670-ac53-2f53a5287a30",
+      "passed": 274,
+      "skipped": 2,
+      "status": "PASS",
+      "tests": 276
+    },
+    "registryDoctor": {
+      "checkCount": 11,
+      "jobId": "job-01a09ae1-86a7-7c13-8883-99cb253dee72",
+      "status": "PASS"
+    },
+    "targetedArtifactTests": {
+      "jobId": "job-01a09add-c172-7530-b52c-82e81dc6c2b6",
+      "passed": 83,
+      "skipped": 2,
+      "status": "PASS",
+      "tests": 85
+    },
+    "toolchainDoctor": {
+      "checkCount": 17,
+      "failedCount": 0,
+      "jobId": "job-01a09ade-5cf1-7290-af52-5efa640f6fe3",
+      "receiptSha256": "sha256:0a3a5979fd6b05bc1d8622d2fe4cb02018751dacad07bbb11e2408ea6fb88dd5",
+      "status": "PASS"
+    }
+  },
+  "zot": {
+    "catalogAfterClosureSmoke": [
+      "ordivon/artifact-r2-closure-smoke",
+      "ordivon/artifact-v2-smoke",
+      "ordivon/pdu-sdu-34x10-golden",
+      "ordivon/presentation-native-smoke",
+      "tools/apache-tika",
+      "tools/docling-serve-cpu"
+    ],
+    "catalogBeforeClosureSmoke": [
+      "ordivon/artifact-v2-smoke",
+      "ordivon/pdu-sdu-34x10-golden",
+      "ordivon/presentation-native-smoke",
+      "tools/apache-tika",
+      "tools/docling-serve-cpu"
+    ],
+    "image": "ghcr.io/project-zot/zot-linux-amd64@sha256:95a837a0afacf5b7edc0c92493f04beee6891989b8d2fd50a00cf65a1e6d4fd5",
+    "imageDigest": "sha256:95a837a0afacf5b7edc0c92493f04beee6891989b8d2fd50a00cf65a1e6d4fd5",
+    "materializedConfig": {
+      "path": "/etc/ordivon/artifact-v2/zot/config.json",
+      "sha256": "sha256:5ca8131f6096c63d872f2bd4dfd506efabbad32c12a25eaec483ae9e909d8b7f"
+    },
+    "materializedQuadlet": {
+      "path": "/etc/containers/systemd/ordivon-artifact-v2-zot-r1.container",
+      "sha256": "sha256:b8070d738ff819cc4a65b9daf0bcb803f345f813390eb2006a91e1d419a8c407"
+    },
+    "network": {
+      "podmanMode": "host",
+      "reason": "WSL netavark default bridge mechanically failed with Operation not supported; Zot remains loopback-bound.",
+      "zotBind": "127.0.0.1:5080"
+    },
+    "registryDoctor": {
+      "checkCount": 11,
+      "receiptSha256": "sha256:8c91cc05fa2edfdd1143a247a92cde57bad28a40e7a8506b24cdd389e59fd59a",
+      "status": "PASS"
+    },
+    "service": {
+      "active": "active",
+      "enablement": "generated",
+      "name": "ordivon-artifact-v2-zot-r1.service"
+    },
+    "sourceConfig": {
+      "path": "config/zot/local-registry-r1.json",
+      "sha256": "sha256:5ca8131f6096c63d872f2bd4dfd506efabbad32c12a25eaec483ae9e909d8b7f"
+    },
+    "sourceQuadlet": {
+      "path": "systemd/ordivon-artifact-v2-zot-r1.container",
+      "sha256": "sha256:b8070d738ff819cc4a65b9daf0bcb803f345f813390eb2006a91e1d419a8c407"
+    },
+    "storage": {
+      "bytesObservedAtClosure": 2418933399,
+      "containerPath": "/var/lib/zot",
+      "hostPath": "/root/.local/share/ordivon-workstation/artifact-v2-zot-r1",
+      "migratedOrCopied": false
+    },
+    "version": "2.1.20"
+  }
+}

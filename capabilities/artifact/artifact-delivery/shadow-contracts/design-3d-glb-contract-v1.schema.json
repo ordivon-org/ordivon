@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Design-3D GLB Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "scene"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "design-3d-glb-static-mesh-r1"},
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeCount", "meshCount", "primitiveCount", "vertexCount", "triangleCount", "boundsMin", "boundsMax"],
+      "properties": {
+        "nodeCount": {"const": 1},
+        "meshCount": {"const": 1},
+        "primitiveCount": {"const": 1},
+        "vertexCount": {"type": "integer", "minimum": 3},
+        "triangleCount": {"type": "integer", "minimum": 1},
+        "boundsMin": {"type": "array", "prefixItems": [{"type":"number"},{"type":"number"},{"type":"number"}], "minItems": 3, "maxItems": 3},
+        "boundsMax": {"type": "array", "prefixItems": [{"type":"number"},{"type":"number"},{"type":"number"}], "minItems": 3, "maxItems": 3}
+      }
+    },
+    "notes": {"type": "string"}
+  }
+}

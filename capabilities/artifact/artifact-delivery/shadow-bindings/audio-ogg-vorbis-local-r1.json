@@ -1,0 +1,84 @@
+{
+  "bindingVersion": 1,
+  "bindings": {
+    "browserMatrix": {
+      "chromium": {
+        "binarySha256": "8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+        "path": "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+        "version": "Google Chrome for Testing 153.0.8010.12"
+      },
+      "firefox": {
+        "binarySha256": "062272ac4d851eade5b75db2dc7c14569d96cb3ca38f949337cdc1b74367e35b",
+        "path": "/root/.cache/ms-playwright/firefox-1543/firefox/firefox",
+        "version": "Mozilla Firefox 155.0"
+      },
+      "nodePath": "/usr/bin/node",
+      "nodeSha256": "d51d79e0e04abfe366345496a8e1379d56493271af4e0d6f27dd6ba76be628ea",
+      "packageJsonSha256": "5439348ed4916a4caa41b8799826508c2476f721533fa0ac1ca3b1085157c0f9",
+      "packageRoot": "/opt/ordivon/external/artifact-toolchain/node/1.63.0",
+      "playwrightVersion": "1.63.0",
+      "tool": "Playwright Chromium + Firefox"
+    },
+    "independentDecoder": {
+      "ffmpegPath": "/usr/bin/ffmpeg",
+      "ffmpegSha256": "46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+      "ffprobePath": "/usr/bin/ffprobe",
+      "ffprobeSha256": "1e165ca6749e6343f71cf85eb3b90283db0e40e3e04ee3adfb703e81d8459a7c",
+      "package": "ffmpeg 2:9.0-5",
+      "tool": "FFmpeg / FFprobe",
+      "version": "9.0"
+    },
+    "xiphReference": {
+      "oggdecBinarySha256": "02a614484101dbcc808710c547d337f88e1e03dbc6c6ae3d0d7353682f6fe745",
+      "oggdecPath": "/usr/bin/oggdec",
+      "ogginfoBinarySha256": "8c9ca391de7626318513dd56496f516917067d2bc95629a52490281a21a8554b",
+      "ogginfoPath": "/usr/bin/ogginfo",
+      "package": "vorbis-tools 1.4.3-1",
+      "tool": "Xiph vorbis-tools",
+      "version": "1.4.3"
+    }
+  },
+  "id": "audio-ogg-vorbis-local-r1",
+  "profileId": "audio-ogg-vorbis-r1",
+  "proof": {
+    "corruptOgg": "FAIL_CLOSED_AT_XIPH_OGGINFO",
+    "currentGameCueResults": {
+      "aftermath": {
+        "artifactSha256": "d6a313a4e424eeb391d07e3e52e241d20cb626c11b9bd5c4305e62efa39e8271",
+        "browserStanding": "TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED",
+        "chromiumSamples": 14272,
+        "ffmpegSamples": 14272,
+        "firefoxSamples": 14400,
+        "referencePcmSha256": "1f5a63684378a5ea3507354609be5f3f416143f0721183702bfeb0c42011b38d",
+        "referenceSamples": 14400,
+        "status": "PASS"
+      },
+      "commit": {
+        "artifactSha256": "4dd7e06083056e63a82b54bd6f3e67410f193f72d3c006db8c6efe4410a57647",
+        "browserStanding": "TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED",
+        "chromiumSamples": 9472,
+        "ffmpegSamples": 9472,
+        "firefoxSamples": 9600,
+        "referencePcmSha256": "c135db346681f5546007e72b887d11e4ba3b7cc7615029f8aad5f1cebe5f5ba9",
+        "referenceSamples": 9600,
+        "status": "PASS"
+      },
+      "plan-ready": {
+        "artifactSha256": "622713bc61331f8d509f456dc464bac3b965f2e84dae0371ca3493de94dff668",
+        "browserStanding": "TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED",
+        "chromiumSamples": 10432,
+        "ffmpegSamples": 10432,
+        "firefoxSamples": 10560,
+        "referencePcmSha256": "76b33e2c99dc68aed461ab9803fde1d5dd65253c8087a92761e1859a79e846a1",
+        "referenceSamples": 10560,
+        "status": "PASS"
+      }
+    },
+    "currentGameRevision": "809a82b733e3b3c761847a72a6a7fb7a94502ae5",
+    "focusedTests": "3 PASS / 0 FAIL",
+    "gameTripleSmokeOperationDigest": "sha256:0d65d4d40e216fce02092975836a2d5995fcaa422d4555d3ce4df698f6930cb4",
+    "gameTripleSmokeRuntimeJobId": "job-01a09a45-3fcc-7783-b6e7-92758a810119",
+    "wrongPlaybackBoundary": "FAIL_BEFORE_TARGET_PROMOTION"
+  },
+  "status": "LOCAL_LIVE_PROVEN"
+}

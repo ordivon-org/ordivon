@@ -1,0 +1,59 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "design-3d-step-solid-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "design-3d",
+    "representation": "cad-brep-exchange",
+    "format": "STEP Part 21 clear text (.step/.stp)",
+    "mediaType": "model/step",
+    "conformanceProfile": "single-solid metric BREP STEP readback R1",
+    "targetAuthority": "FreeCAD 1.1.3 plus Open CASCADE 7.9.3",
+    "purpose": [
+      "cad-exchange",
+      "verification"
+    ]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "cad-step-solid-contract-v1",
+    "schemaReference": "shadow-contracts/cad-step-solid-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "sourceAuthority": "exact STEP Part 21 bytes",
+    "structuralAuthority": "system Open CASCADE 7.9.3 STEPControl+BRepCheck readback",
+    "targetAuthority": "official FreeCAD 1.1.3 Linux AppImage native STEP import",
+    "units": "millimetres for the bounded R1 contract",
+    "noUniversalCadAst": true,
+    "sharedKernelLineageExplicit": true
+  },
+  "requiredEvidence": {
+    "structural": {
+      "required": true,
+      "claim": "system OCCT imports exact STEP bytes into a valid non-null BREP and reports unique topology, bbox and volume"
+    },
+    "semantic": {
+      "required": true,
+      "claim": "OCCT and FreeCAD readbacks independently match the exact request-bound topology, bbox and volume contract within declared tolerances"
+    },
+    "target": {
+      "required": true,
+      "claim": "official FreeCAD 1.1.3 imports the exact STEP bytes and reports a valid shape"
+    },
+    "toolIdentity": {
+      "required": true,
+      "claim": "evidence binds the exact FreeCAD AppImage and exact OCCT inspector bytes/source"
+    }
+  },
+  "nonClaims": [
+    "cross-kernel interoperability beyond the proven FreeCAD/OCCT lineage",
+    "parametric feature-history preservation through STEP",
+    "assemblies or product structure",
+    "PMI, GD&T or semantic annotations",
+    "materials, colors or presentation fidelity",
+    "BIM/IFC semantics",
+    "mesh/STL/3MF manufacturing semantics",
+    "CAM, manufacturability, tolerances, strength, safety or regulatory fitness"
+  ]
+}

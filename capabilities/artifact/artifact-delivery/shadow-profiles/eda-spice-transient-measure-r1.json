@@ -1,0 +1,28 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "eda-spice-transient-measure-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "electronic-design",
+    "representation": "simulation-netlist",
+    "format": "SPICE-family text netlist",
+    "mediaType": "text/plain",
+    "conformanceProfile": "ngspice transient analysis with request-bound .measure ranges R1",
+    "targetAuthority": "ngspice 47",
+    "purpose": ["simulation", "verification"]
+  },
+  "objectContract": {"required": true, "kind": "eda-spice-transient-measure-contract-v1", "schemaReference": "shadow-contracts/eda-spice-transient-measure-contract-v1.schema.json", "binding": "request-digest"},
+  "formatPolicy": {
+    "parseAndSimulationAuthority": "ngspice batch mode with user init disabled",
+    "analysisSelection": "the exact netlist owns the selected analysis; R1 verifies a successful transient result only",
+    "measurementAuthority": "ngspice native .measure output",
+    "noCustomCircuitParser": true
+  },
+  "requiredEvidence": {
+    "nativeSimulation": {"required": true, "claim": "ngspice batch execution succeeds without fatal parse/simulation errors"},
+    "dataRows": {"required": true, "claim": "transient analysis produces at least the request-bound minimum data-row count"},
+    "measurements": {"required": true, "claim": "every request-bound named .measure result exists and lies within its numeric interval"},
+    "toolIdentity": {"required": true, "claim": "evidence binds exact ngspice bytes and version"}
+  },
+  "nonClaims": ["circuit design intent", "all SPICE dialects or device models", "global stability or convergence", "model/tolerance/corner fidelity", "signal or power integrity", "safety, regulatory compliance or physical hardware behavior"]
+}

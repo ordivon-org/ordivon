@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-migration-evidence",
+  "subject": "PDU/SDU 34:10 slide 01",
+  "profileId": "presentation-ultrawide-34x10-r1",
+  "visualAuthority": {
+    "artifactName": "75B93BA3-2B4A-429F-8F60-2EB9ACA0DFBD.jpeg",
+    "sha256": "97237ff50567e495b0ec56543dd644143fed4a5241dd038814c775c732ceb998",
+    "widthPx": 1536,
+    "heightPx": 452,
+    "observedAspectRatio": 3.398230088495575,
+    "targetAspectRatio": "34:10"
+  },
+  "approvedSemanticExtraction": {
+    "title": "面向敏捷交付的研发组织变革",
+    "subtitle": "——液态组织下 PDU / SDU 职责与举措",
+    "supportingLine": "应对全球汽车电动化浪潮，打造高效、敏捷、创新的研发组织",
+    "keywords": [
+      "创新",
+      "协同",
+      "效率",
+      "价值"
+    ],
+    "footer": "汽车研发中心  |  2026年9月",
+    "pageNumber": "01"
+  },
+  "migrationStanding": "REFERENCE_MAP_AND_NATIVE_SEMANTIC_OVERLAY_READY_FINAL_HYBRID_BLOCKED_ON_EXACT_RASTER_TRANSPORT",
+  "boundary": "Artifact E2E records approved source content and exact visual bytes; it does not validate or modify the organizational claims. A future native/hybrid build must bind the exact raster digest and preserve the approved wording unless upstream content authority changes.",
+  "semanticOverlay": {
+    "source": "pdu-sdu-34x10-slide01-semantic-overlay-r1.json",
+    "sourceSha256": "9e258e1ce5ade435b52cd3438fd0d03053d13a658aecfb0d196f68484cd05ccb",
+    "nativeTextElementCount": 9,
+    "visibility": "ZERO_OPACITY_MIGRATION_OVERLAY",
+    "drawingMlAlphaZeroCount": 9,
+    "smokeBuildPptxSha256": "b4940146db9dda07dfe7eaac29329bd46bbb3a80bdb0007185af67388b4ea379",
+    "openXmlValidation": "PASS",
+    "buildStanding": "SEMANTIC_OVERLAY_NATIVE_BUILD_PASS_VISUAL_COMPOSITION_NOT_YET_RUN",
+    "boundary": "The zero-opacity overlay proves native editable semantic geometry and standard DrawingML alpha without claiming the final hybrid raster composition, visual parity, accessibility acceptance, or Microsoft PowerPoint target acceptance."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "design-3d-glb-static-mesh-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "design-3d",
+    "representation": "scene-mesh",
+    "format": "GLB 2.0",
+    "mediaType": "model/gltf-binary",
+    "conformanceProfile": "ISO/IEC 12113:2022 / Khronos glTF 2.0 bounded static mesh profile",
+    "targetAuthority": "Khronos glTF standard-validator",
+    "purpose": ["interchange", "preview"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "design-3d-glb-contract-v1",
+    "schemaReference": "shadow-contracts/design-3d-glb-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "standard": "ISO/IEC 12113:2022 / Khronos glTF 2.0",
+    "container": "GLB version 2",
+    "sceneCount": 1,
+    "defaultSceneRequired": true,
+    "meshPrimitiveMode": "TRIANGLES",
+    "positionComponentType": "FLOAT",
+    "indicesComponentType": "UNSIGNED_SHORT",
+    "materials": false,
+    "textures": false,
+    "animations": false,
+    "skins": false,
+    "morphTargets": false,
+    "cameras": false,
+    "lights": false,
+    "extensionsUsed": [],
+    "externalResources": false,
+    "coordinateAuthority": "glTF source coordinate system; consumer-specific axis conversion is not source geometry authority"
+  },
+  "requiredEvidence": {
+    "contractSchema": {"required": true, "claim": "Design-3D object contract is valid under design-3d-glb-contract-v1"},
+    "khronosConformance": {"required": true, "claim": "Khronos glTF Validator accepts the exact GLB with zero errors and zero warnings"},
+    "boundedProfileFacts": {"required": true, "claim": "validator/profile facts show static untextured unskinned unanimated mesh content inside the bounded R1"},
+    "assimpScene": {"required": true, "claim": "Assimp independently imports the scene and agrees on node/mesh/vertex/triangle topology and source-coordinate bounds"},
+    "blenderImport": {"required": true, "claim": "Blender independently imports the GLB into one mesh object with expected topology; Blender coordinate conversion is treated as consumer behavior"}
+  },
+  "nonClaims": [
+    "visual or artistic quality",
+    "PBR material correctness",
+    "texture/color-management semantics",
+    "animation, skinning or morph-target behavior",
+    "CAD/BIM/manufacturing semantics",
+    "metric unit intent beyond glTF's standardized coordinate conventions",
+    "cross-renderer pixel equivalence",
+    "consumer-specific transformed coordinates as original glTF geometry"
+  ]
+}

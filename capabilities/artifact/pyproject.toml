@@ -1,0 +1,50 @@
+[project]
+name = "ordivon-artifact-v2"
+version = "0.0.0"
+description = "Repository environment for Ordivon Artifact Build & Delivery."
+requires-python = "==3.14.7"
+dependencies = [
+  "attrs==26.1.0",
+  "Pillow==12.3.0",
+  "typing-extensions==4.16.0",
+  "jsonschema==4.26.0",
+  "jsonschema-specifications==2025.9.1",
+  "opentelemetry-api==1.44.0",
+  "opentelemetry-sdk==1.44.0",
+  "opentelemetry-semantic-conventions==0.65b0",
+  "python-pptx==1.0.2",
+  "referencing==0.37.0",
+  "rpds-py==2026.6.3",
+  "XlsxWriter==3.2.9",
+  "lxml==6.1.3",
+  "temporalio==1.32.0",
+  "warcio>=1,<2",
+]
+
+[dependency-groups]
+dev = [
+  "ruff==0.16.8",
+]
+test = [
+  "pytest==9.1.1",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "test"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+markers = [
+  "integration: requires workstation-managed external tools, runtimes, or services",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E9", "F", "I", "UP"]
+ignore = ["UP022"] # external-tool boundaries intentionally spell out stdout/stderr capture

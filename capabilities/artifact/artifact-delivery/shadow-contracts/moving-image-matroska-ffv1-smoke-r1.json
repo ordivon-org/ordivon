@@ -1,0 +1,17 @@
+{
+  "contractVersion": 1,
+  "id": "moving-image-matroska-ffv1-smoke-r1",
+  "profileId": "moving-image-matroska-ffv1-v3-r1",
+  "video": {
+    "width": 64,
+    "height": 64,
+    "frameRate": {"numerator": 10, "denominator": 1},
+    "frameCount": 10,
+    "pixelFormat": "yuv422p",
+    "bitDepth": 8,
+    "chromaSubsampling": "4:2:2",
+    "scanType": "Progressive",
+    "expectedRawVideoSha256": "568441a6da6651e5f07c68d0e040ffbcc155298505b9248c08b7ae7e77ba229f"
+  },
+  "notes": "Deterministic one-second 64x64/10fps FFV1 v3.4 smoke object. Contract binds decoded frame sequence rather than Matroska byte identity."
+}

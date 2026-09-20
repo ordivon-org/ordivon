@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-build-capability-binding-registry",
+  "bindings": [
+    {
+      "artifactClass": "presentation",
+      "sourceKind": "presentation-source-v1",
+      "adapterId": "python-pptx-presentation-source-v1",
+      "capabilityId": "artifact.presentation.python-pptx.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-source-v1"
+    },
+    {
+      "artifactClass": "presentation",
+      "sourceKind": "presentation-semantic-svg-source-v1",
+      "adapterId": "ppt-master-semantic-svg-v1",
+      "capabilityId": "artifact.presentation.ppt-master.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/ppt-master-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-semantic-svg-source-v1"
+    },
+    {
+      "artifactClass": "document",
+      "sourceKind": "markdown",
+      "adapterId": "pandoc-docx",
+      "capabilityId": "artifact.document.pandoc.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/pandoc-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/markdown-docx-v1"
+    },
+    {
+      "artifactClass": "web",
+      "sourceKind": "html-source",
+      "adapterId": "standards-web-source",
+      "capabilityId": "artifact.web.source-copy.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/html-source-v1"
+    },
+    {
+      "artifactClass": "presentation",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    },
+    {
+      "artifactClass": "document",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    },
+    {
+      "artifactClass": "spreadsheet",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    },
+    {
+      "artifactClass": "fixed-view",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    },
+    {
+      "artifactClass": "archive",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    },
+    {
+      "artifactClass": "accessible",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    },
+    {
+      "artifactClass": "web",
+      "sourceKind": "native-file",
+      "adapterId": "native-artifact-pass-through",
+      "capabilityId": "artifact.native.pass-through.build",
+      "builderId": "https://ordivon.local/builders/artifact-delivery/file-copy-v1",
+      "buildType": "https://ordivon.local/build-types/artifact-delivery/native-pass-through-v1"
+    }
+  ]
+}

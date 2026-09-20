@@ -1,0 +1,12 @@
+{
+  "audio": {
+    "channels": 1,
+    "expectedReferencePcmSha256": "76b33e2c99dc68aed461ab9803fde1d5dd65253c8087a92761e1859a79e846a1",
+    "playbackSamplesPerChannel": 10560,
+    "sampleRateHz": 48000
+  },
+  "contractVersion": 1,
+  "id": "game-station-zero-plan-ready-r1",
+  "notes": "Current Station Zero v3 web cue exact reference-decode contract.",
+  "profileId": "audio-ogg-vorbis-r1"
+}

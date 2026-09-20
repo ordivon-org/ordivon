@@ -1,0 +1,163 @@
+{
+  "$schema": "../../presentation-source-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "presentation-source",
+  "presentationId": "presentation:pdu-sdu-34x10-slide01-semantic-overlay-r1",
+  "profileId": "presentation-ultrawide-34x10-r1",
+  "sourceMode": "native-composition",
+  "locale": "zh-CN",
+  "aspectRatio": "34:10",
+  "slideSizeInches": {
+    "width": 34.0,
+    "height": 10.0
+  },
+  "slides": [
+    {
+      "id": "slide-01",
+      "title": "面向敏捷交付的研发组织变革——液态组织下 PDU / SDU 职责与举措",
+      "purpose": "cover-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "brand-slogan",
+          "text": "更智能的出行   更美好的未来",
+          "box": {
+            "x": 1.05,
+            "y": 0.48,
+            "w": 7.2,
+            "h": 0.38
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "colorHex": "173E79",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "brand-slogan-en",
+          "text": "A CLEANER SMARTER BRIGHTER TOMORROW",
+          "box": {
+            "x": 1.05,
+            "y": 0.92,
+            "w": 7.2,
+            "h": 0.28
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 7.5,
+          "colorHex": "173E79",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "面向敏捷交付的\n研发组织变革",
+          "box": {
+            "x": 1.02,
+            "y": 1.56,
+            "w": 9.6,
+            "h": 2.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 64,
+          "bold": true,
+          "colorHex": "092B67",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "subtitle",
+          "text": "——液态组织下 PDU / SDU 职责与举措",
+          "box": {
+            "x": 1.08,
+            "y": 4.52,
+            "w": 12.6,
+            "h": 0.7
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "103A79",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "应对全球汽车电动化浪潮，打造高效、敏捷、创新的研发组织",
+          "box": {
+            "x": 1.08,
+            "y": 5.5,
+            "w": 12.6,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "colorHex": "1A3B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "keywords",
+          "text": "创新  |  协同  |  效率  |  价值",
+          "box": {
+            "x": 1.08,
+            "y": 6.72,
+            "w": 7.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "colorHex": "153A70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "footer",
+          "text": "汽车研发中心  |  2026年9月",
+          "box": {
+            "x": 1.08,
+            "y": 9.08,
+            "w": 6.8,
+            "h": 0.42
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "colorHex": "F5FAFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "01",
+          "box": {
+            "x": 32.35,
+            "y": 0.46,
+            "w": 0.8,
+            "h": 0.52
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 20,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "right-banner",
+          "text": "科技驱动出行\n共赴更美好的未来",
+          "box": {
+            "x": 30.38,
+            "y": 4.4,
+            "w": 3.05,
+            "h": 0.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "colorHex": "EAF5FF",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Zero-opacity native editable semantic overlay for the approved slide-1 visual authority. This file is intentionally buildable without the raster so the semantic geometry can be verified independently. It does not replace or modify the visual authority. Final hybrid composition remains blocked until exact raster bytes are available to Runtime."
+    }
+  ],
+  "notes": "Controlled slide-1 semantic overlay. All text is encoded as native PowerPoint text using standard DrawingML alpha=0 so the overlay carries editable semantics without affecting the frozen raster render when later composed. Accessibility acceptance is not implied."
+}

@@ -1,0 +1,46 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "audio-wave-pcm16-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "audio",
+    "representation": "uncompressed-audio-container",
+    "format": "RIFF/WAVE PCM",
+    "mediaType": "audio/vnd.wave",
+    "conformanceProfile": "RIFF/WAVE WAVE_FORMAT_PCM bounded 16-bit mono/stereo profile",
+    "targetAuthority": "independent-decoder-matrix",
+    "purpose": ["game-runtime", "interchange"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "audio-wave-pcm16-contract-v1",
+    "schemaReference": "shadow-contracts/audio-wave-pcm16-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "container": "Microsoft RIFF/WAVE",
+    "codecRegistry": "IANA historic WAVE registry / RFC 2361",
+    "codec": "WAVE_FORMAT_PCM",
+    "formatTag": "0x0001",
+    "bitsPerSample": 16,
+    "channels": [1, 2],
+    "canonicalDecodedPcm": "signed little-endian interleaved 16-bit PCM (s16le)",
+    "ancillaryChunks": "observed by mature parsers but not semantically interpreted by R1",
+    "broadcastWaveBoundary": "BWF/EBU metadata semantics are not implied by RIFF/WAVE PCM acceptance"
+  },
+  "requiredEvidence": {
+    "contractSchema": {"required": true, "claim": "WAVE PCM object contract is valid under audio-wave-pcm16-contract-v1"},
+    "referenceContainerView": {"required": true, "claim": "libsndfile identifies RIFF/WAVE WAVE_FORMAT_PCM and agrees with the object contract"},
+    "independentTechnicalView": {"required": true, "claim": "FFprobe independently identifies WAVE PCM s16le codec tag 0x0001 and agrees on sample rate, channels, bit depth and frame count"},
+    "decoderMatrix": {"required": true, "claim": "FFmpeg and SoX decode to exactly identical canonical s16le PCM bytes", "minimumIndependentDecoders": 2},
+    "pcmIdentity": {"required": true, "claim": "canonical decoded PCM byte count matches the contract and any expectedPcmSha256 matches decoded PCM SHA-256"}
+  },
+  "nonClaims": [
+    "factual or artistic correctness of the audio content",
+    "subjective sound quality, loudness or mastering quality",
+    "truth or completeness of LIST/INFO or other ancillary metadata",
+    "Broadcast Wave Format metadata conformance or EBU R 128 compliance",
+    "RF64/WAVE64 or compressed WAVE codec support",
+    "absence of clipping, silence, phase issues or other signal-quality defects"
+  ]
+}

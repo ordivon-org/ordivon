@@ -1,0 +1,18 @@
+{
+  "contractVersion": 1,
+  "export": {
+    "dataBasename": "rescue-specialists.native.json",
+    "dataFormat": "json-array",
+    "expectedNativeMetadataSha256": "70a566907617626cd87f70b0cdbb7353173753cdd023ba580bcf743bd6841eaf",
+    "expectedPngSha256": "f7e2f2c6f41055e618cc1e572a060bee112a9a848fa50910121341f9682842d9",
+    "frameCount": 1,
+    "height": 24,
+    "listTags": true,
+    "sheetBasename": "rescue-specialists.png",
+    "sheetType": "horizontal",
+    "width": 72
+  },
+  "id": "game-station-zero-specialists-aseprite-sheet-r1",
+  "notes": "Exact current Station Zero Aseprite native horizontal-sheet derivation contract. Game retains semantic authority for frame/tag/actor meaning and caller-owned metadata.",
+  "profileId": "design-2d-aseprite-horizontal-sheet-r1"
+}

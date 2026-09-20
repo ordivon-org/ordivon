@@ -1,0 +1,398 @@
+{
+  "cases": [
+    {
+      "claimBoundary": {
+        "nonClaims": [],
+        "requiredEvidence": {
+          "companionPdf": {
+            "claim": "required companion PDF exists and is accepted",
+            "required": true
+          },
+          "deliveryReadback": {
+            "claim": "delivered bytes are read back and identity-checked",
+            "required": true
+          },
+          "dependency": {
+            "claim": "declared build/render dependencies are satisfied",
+            "required": true
+          },
+          "profileSchema": {
+            "claim": "profile schema validation",
+            "required": true
+          },
+          "semantic": {
+            "claim": "profile-specific semantic checks",
+            "required": true
+          },
+          "structural": {
+            "claim": "artifact structural validity",
+            "required": true
+          },
+          "target": {
+            "claim": "required target authority acceptance",
+            "required": true
+          },
+          "visual": {
+            "claim": "visual evidence satisfies the profile",
+            "required": true
+          }
+        },
+        "targetAuthorities": [
+          {
+            "authorityClass": "native-consumer",
+            "name": "Microsoft PowerPoint Desktop",
+            "platform": "Windows",
+            "required": true
+          },
+          {
+            "authorityClass": "native-consumer",
+            "name": "PowerPoint Web",
+            "platform": "Web",
+            "required": false
+          }
+        ]
+      },
+      "currentResultMode": "MULTI_GATE_STAGE_RECEIPTS_PLUS_PROFILE_VERIFICATION_COMPLETE",
+      "evaluationRequest": {
+        "capabilityRef": {
+          "capabilityId": null,
+          "entrypoint": {
+            "callable": "execute_verify_stage",
+            "module": "artifact_verification.stage"
+          },
+          "mode": "COMPATIBILITY_ADAPTER_REQUIRED",
+          "objectContractRequired": false,
+          "operation": "verify",
+          "standing": "EXISTING_PRODUCTION_V1_ROUTE_NOT_CAPABILITY_REGISTERED",
+          "standingPath": null,
+          "standingSha256": null
+        },
+        "objectContract": null,
+        "profileCanonicalSha256": "c2bc333b7ee7a058fdb6d2a313507491e0228f466d11ed5c9edeafcd90625046",
+        "profileId": "pdu-sdu-presentation-r1",
+        "subjectCommitmentShape": [
+          "path",
+          "sha256",
+          "size"
+        ]
+      },
+      "family": "presentation",
+      "profile": {
+        "canonicalPath": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
+        "canonicalSha256": "c2bc333b7ee7a058fdb6d2a313507491e0228f466d11ed5c9edeafcd90625046",
+        "sourcePath": "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+        "sourceSha256": "a47be4b7d6098f76c32c2bbf587df9c4b172ffbe68a5144e0bb9bb318b0c8332"
+      },
+      "profileId": "pdu-sdu-presentation-r1",
+      "sourceKind": "production-v1-adapted"
+    },
+    {
+      "claimBoundary": {
+        "nonClaims": [],
+        "requiredEvidence": {
+          "accessibility": {
+            "claim": "accessibility evidence satisfies the profile",
+            "required": true
+          },
+          "companionPdf": {
+            "claim": "required companion PDF exists and is accepted",
+            "required": true
+          },
+          "conformance": {
+            "claim": "selected external conformance profile is satisfied",
+            "required": false
+          },
+          "deliveryReadback": {
+            "claim": "delivered bytes are read back and identity-checked",
+            "required": true
+          },
+          "dependency": {
+            "claim": "declared build/render dependencies are satisfied",
+            "required": true
+          },
+          "profileSchema": {
+            "claim": "profile schema validation",
+            "required": true
+          },
+          "releaseProvenance": {
+            "claim": "release provenance evidence is present and accepted",
+            "required": true
+          },
+          "semantic": {
+            "claim": "profile-specific semantic checks",
+            "required": true
+          },
+          "structural": {
+            "claim": "artifact structural validity",
+            "required": true
+          },
+          "target": {
+            "claim": "required target authority acceptance",
+            "required": true
+          },
+          "visual": {
+            "claim": "visual evidence satisfies the profile",
+            "required": true
+          }
+        },
+        "targetAuthorities": [
+          {
+            "authorityClass": "native-consumer",
+            "name": "Microsoft Word Desktop",
+            "platform": "Windows",
+            "required": true
+          }
+        ]
+      },
+      "currentResultMode": "MULTI_GATE_STAGE_RECEIPTS_PLUS_PROFILE_VERIFICATION_COMPLETE",
+      "evaluationRequest": {
+        "capabilityRef": {
+          "capabilityId": null,
+          "entrypoint": {
+            "callable": "execute_verify_stage",
+            "module": "artifact_verification.stage"
+          },
+          "mode": "COMPATIBILITY_ADAPTER_REQUIRED",
+          "objectContractRequired": false,
+          "operation": "verify",
+          "standing": "EXISTING_PRODUCTION_V1_ROUTE_NOT_CAPABILITY_REGISTERED",
+          "standingPath": null,
+          "standingSha256": null
+        },
+        "objectContract": null,
+        "profileCanonicalSha256": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40",
+        "profileId": "document-r1",
+        "subjectCommitmentShape": [
+          "path",
+          "sha256",
+          "size"
+        ]
+      },
+      "family": "text-document",
+      "profile": {
+        "canonicalPath": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+        "canonicalSha256": "62225db571a9a467cf62304ed8a0ac32cd35d805576099e8587c6c00e0315e40",
+        "sourcePath": "artifact-delivery/examples/document-r1.json",
+        "sourceSha256": "a7fd567d723128620e6bae52b1be47d98c00c84e65d022a5093ab697b7a38c97"
+      },
+      "profileId": "document-r1",
+      "sourceKind": "production-v1-adapted"
+    },
+    {
+      "claimBoundary": {
+        "nonClaims": [
+          "factual or artistic correctness of the audio content",
+          "subjective sound quality, loudness or mastering quality",
+          "truth or completeness of LIST/INFO or other ancillary metadata",
+          "Broadcast Wave Format metadata conformance or EBU R 128 compliance",
+          "RF64/WAVE64 or compressed WAVE codec support",
+          "absence of clipping, silence, phase issues or other signal-quality defects"
+        ],
+        "requiredEvidence": {
+          "contractSchema": {
+            "claim": "WAVE PCM object contract is valid under audio-wave-pcm16-contract-v1",
+            "required": true
+          },
+          "decoderMatrix": {
+            "claim": "FFmpeg and SoX decode to exactly identical canonical s16le PCM bytes",
+            "parameters": {
+              "minimumIndependentDecoders": 2
+            },
+            "required": true
+          },
+          "independentTechnicalView": {
+            "claim": "FFprobe independently identifies WAVE PCM s16le codec tag 0x0001 and agrees on sample rate, channels, bit depth and frame count",
+            "required": true
+          },
+          "pcmIdentity": {
+            "claim": "canonical decoded PCM byte count matches the contract and any expectedPcmSha256 matches decoded PCM SHA-256",
+            "required": true
+          },
+          "referenceContainerView": {
+            "claim": "libsndfile identifies RIFF/WAVE WAVE_FORMAT_PCM and agrees with the object contract",
+            "required": true
+          }
+        },
+        "targetAuthorities": [
+          {
+            "authorityClass": "independent-implementation-matrix",
+            "minimumIndependentImplementations": 2,
+            "name": "independent-decoder-matrix",
+            "required": true
+          }
+        ]
+      },
+      "currentResultMode": "DELEGATED_BOUNDED_FAMILY_RESULT",
+      "evaluationRequest": {
+        "capabilityRef": {
+          "capabilityId": "artifact.verify.audio-wave-pcm16-r1",
+          "entrypoint": {
+            "callable": "verify_wave",
+            "module": "scripts/artifact_wave.py"
+          },
+          "mode": "REGISTERED_BINDING",
+          "objectContractRequired": true,
+          "operation": "verify",
+          "standing": "LOCAL_LIVE_PROVEN",
+          "standingPath": "artifact-delivery/shadow-bindings/audio-wave-pcm16-local-r1.json",
+          "standingSha256": "4ea543345258f3c4c75385ae99edad52be2b0416345a3ad81b3e4ee518ffa621"
+        },
+        "objectContract": {
+          "binding": "request-digest",
+          "kind": "audio-wave-pcm16-contract-v1",
+          "required": true,
+          "schemaReference": "shadow-contracts/audio-wave-pcm16-contract-v1.schema.json"
+        },
+        "profileCanonicalSha256": "36cad5be83d2658b5c9869c687d62b05e70d5b9df8fcac0a03084db740a9149b",
+        "profileId": "audio-wave-pcm16-r1",
+        "subjectCommitmentShape": [
+          "path",
+          "sha256",
+          "size"
+        ]
+      },
+      "family": "audio",
+      "profile": {
+        "canonicalPath": "artifact-delivery/shadow-v2/examples/audio-wave-pcm16-r1-v2.json",
+        "canonicalSha256": "36cad5be83d2658b5c9869c687d62b05e70d5b9df8fcac0a03084db740a9149b",
+        "sourcePath": "artifact-delivery/shadow-v2/examples/audio-wave-pcm16-r1-v2.json",
+        "sourceSha256": "36cad5be83d2658b5c9869c687d62b05e70d5b9df8fcac0a03084db740a9149b"
+      },
+      "profileId": "audio-wave-pcm16-r1",
+      "sourceKind": "native-v2-shadow"
+    },
+    {
+      "claimBoundary": {
+        "nonClaims": [
+          "visual or aesthetic quality",
+          "semantic/content correctness",
+          "human accessibility or suitability of alt text",
+          "print-production color accuracy",
+          "HDR or wide-gamut conformance",
+          "APNG animation behavior",
+          "encoder/decoder/editor implementation conformance beyond the observed datastream/tool checks",
+          "metadata truth or rights/legal validity"
+        ],
+        "requiredEvidence": {
+          "datastreamValidity": {
+            "claim": "PNG datastream validity under a Third-Edition-aware external checker",
+            "required": true
+          },
+          "decoderMatrix": {
+            "claim": "independent mature decoders agree on normalized decoded sample bytes",
+            "parameters": {
+              "acceptance": "exact decoded sample-byte equality",
+              "minimumIndependentDecoders": 2,
+              "normalization": "8-bit sRGB RGBA samples"
+            },
+            "required": true
+          },
+          "metadataObservation": {
+            "claim": "extract embedded technical/descriptive/rights metadata without asserting its truth",
+            "parameters": {
+              "policy": "no descriptive-field requirement in this generic display/exchange profile"
+            },
+            "required": true
+          },
+          "profileFacts": {
+            "claim": "static 8-bit RGB/RGBA, explicit sRGB chunk, no APNG/iCCP/cICP profile expansion",
+            "required": true
+          }
+        },
+        "targetAuthorities": [
+          {
+            "authorityClass": "independent-implementation-matrix",
+            "minimumIndependentImplementations": 2,
+            "name": "independent-decoder-matrix",
+            "required": true
+          }
+        ]
+      },
+      "currentResultMode": "DELEGATED_BOUNDED_FAMILY_RESULT",
+      "evaluationRequest": {
+        "capabilityRef": {
+          "capabilityId": "artifact.verify.still-image-png-srgb-r1",
+          "entrypoint": {
+            "callable": "verify_png_srgb",
+            "module": "scripts/artifact_still_image.py"
+          },
+          "mode": "REGISTERED_BINDING",
+          "objectContractRequired": false,
+          "operation": "verify",
+          "standing": "LOCAL_LIVE_PROVEN",
+          "standingPath": "artifact-delivery/shadow-bindings/still-image-png-srgb-local-r1.json",
+          "standingSha256": "738098ee19c812452295c47aad03db57ee61e2ac7b7db11484506247539c5d38"
+        },
+        "objectContract": null,
+        "profileCanonicalSha256": "833743589a6665127deb4c26fdf66c394eace9d5ca94db8638b3c9e7a6dac067",
+        "profileId": "still-image-png-srgb-r1",
+        "subjectCommitmentShape": [
+          "path",
+          "sha256",
+          "size"
+        ]
+      },
+      "family": "still-image",
+      "profile": {
+        "canonicalPath": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
+        "canonicalSha256": "833743589a6665127deb4c26fdf66c394eace9d5ca94db8638b3c9e7a6dac067",
+        "sourcePath": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
+        "sourceSha256": "833743589a6665127deb4c26fdf66c394eace9d5ca94db8638b3c9e7a6dac067"
+      },
+      "profileId": "still-image-png-srgb-r1",
+      "sourceKind": "native-v2-shadow"
+    }
+  ],
+  "findings": [
+    "All four selected profiles project exact requiredEvidence, targetAuthorities and nonClaims into one request-level model without loss.",
+    "Production-v1 Presentation and Document currently have no verify capability-binding registry entry and require a compatibility adapter.",
+    "Native-v2 WAVE and PNG resolve through explicit LOCAL_LIVE_PROVEN verify bindings.",
+    "Legacy verification result shape and family-verifier result shape differ materially, so EvidenceObservation and StandingDecision are not yet proven common contracts.",
+    "No universal execution sequence is required by the provisional request model."
+  ],
+  "hypothesis": "One evaluation request can bind exact subject identity, profile semantics and one capability reference without requiring one universal workflow sequence.",
+  "kind": "artifact-evaluation-model-pressure-test",
+  "nextQuestion": "Can gate receipts and delegated family results be normalized into one EvidenceObservation set without weakening either profile boundary?",
+  "provisionalModel": {
+    "EvaluationRequest": {
+      "nonClaims": [
+        "workflow sequencing",
+        "transport authority",
+        "consumer-domain suitability"
+      ],
+      "optional": [
+        "objectContractCommitment"
+      ],
+      "required": [
+        "subjectCommitment",
+        "profileRef",
+        "capabilityRef"
+      ]
+    },
+    "EvidenceObservation": {
+      "requiredCandidateFields": [
+        "subjectDigest",
+        "capabilityIdentity",
+        "observationKind",
+        "status",
+        "evidenceRefs",
+        "nonClaims"
+      ],
+      "standing": "OPEN_PRESSURE_TEST_REQUIRED"
+    },
+    "StandingDecision": {
+      "requiredCandidateFields": [
+        "profileIdentity",
+        "subjectDigest",
+        "requiredClaimStatuses",
+        "overallStanding",
+        "nonClaims"
+      ],
+      "standing": "OPEN_PRESSURE_TEST_REQUIRED"
+    }
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "10d0f076c32621f50f7c60ef6f847e19ea2cc9ec",
+  "standing": "REQUEST_MODEL_PASS_EVIDENCE_AND_STANDING_NORMALIZATION_OPEN",
+  "truthRole": "planning-projection-not-production-contract"
+}

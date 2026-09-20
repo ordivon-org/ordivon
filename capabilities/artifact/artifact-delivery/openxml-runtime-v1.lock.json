@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-openxml-runtime-lock",
+  "methodId": "artifact.openxml.conformance.v1",
+  "targetFramework": "net8.0",
+  "dotnetPolicy": {
+    "sdkMajorMinor": "8.0",
+    "exactGenerationBindingRequired": true
+  },
+  "nugetPackages": [
+    {
+      "id": "DocumentFormat.OpenXml",
+      "version": "3.5.1",
+      "nupkgSha256": "71375a11a53eeb554005477ce6ca127909aebed474900e92298360b49a68307f"
+    },
+    {
+      "id": "DocumentFormat.OpenXml.Framework",
+      "version": "3.5.1",
+      "nupkgSha256": "d317d974986a90d8f6de1832a48fb1052d771ea475a37a2f4e3be85c497fa9c5"
+    },
+    {
+      "id": "System.IO.Packaging",
+      "version": "8.0.1",
+      "nupkgSha256": "c5fd0101fa90bc84e89a906cbdfa7188bb6cffab11404cdd8cd0377ffabfbd8e"
+    }
+  ],
+  "sourceProject": "artifact-delivery/openxml-validator/ArtifactOpenXmlValidator.csproj",
+  "sourceProgram": "artifact-delivery/openxml-validator/Program.cs",
+  "stableRoot": "/root/.local/share/ordivon-workstation/artifact-openxml-v1",
+  "stableDotnet": "/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/dotnet",
+  "stableValidator": "/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml",
+  "nonClaims": [
+    "stable carrier readiness does not imply OOXML subject conformance",
+    "OpenXmlValidator PASS does not imply target Office rendering/layout",
+    "OpenXmlValidator PASS does not imply business semantics, accessibility, human usability or delivery acceptance"
+  ],
+  "sdkRestoreSupportPackages": [
+    {
+      "id": "Microsoft.AspNetCore.App.Ref",
+      "version": "8.0.30",
+      "nupkgSha256": "f90fc703f81364b00e1db8b47d77b83b85de5901ff8d4582d1344213886ec931",
+      "reason": "exact offline restore support retained for bounded feed compatibility; not part of the OpenXML validator package claim"
+    }
+  ],
+  "nixDotnet": {
+    "flake": "artifact-delivery/openxml-nix",
+    "package": "dotnet-sdk",
+    "expectedSdkVersion": "8.0.424",
+    "nixpkgsRevision": "d58a46e3bc02d91ebe04667f8397752a749c0024",
+    "nixpkgsNarHash": "sha256-GB16oaxpsrnGNnGIE+0uYBqMRzB9X6FYDUvjvnJAYew=",
+    "flakeLockSha256": "sha256:f766347493e0bcbc5b1f85eb735c248a1d63cf9405ebf2dbbbc09184b8247296"
+  }
+}

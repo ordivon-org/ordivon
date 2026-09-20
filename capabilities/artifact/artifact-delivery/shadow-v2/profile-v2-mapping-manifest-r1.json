@@ -1,0 +1,302 @@
+{
+  "fullRegression": "PASS: 311 tests, 0 failures, 4 skipped; Runtime job job-01a0a56a-97f7-7b52-85ea-e22ca6b4688c; operation sha256:846844d07f10744a371260e827b950318be29a4272401688d17bc743aecfc69c. Pinned Chromium/Firefox authority is explicitly routed through the Artifact Playwright browser carrier.",
+  "kind": "artifact-profile-v2-shadow-mapping-manifest",
+  "mappingCount": 28,
+  "mappings": [
+    {
+      "family": "audio",
+      "mapped": "artifact-delivery/shadow-v2/examples/audio-flac-pcm16-r1-v2.json",
+      "mappedDigest": "ba6a12e1fedcf5e74862251ae9d34369b913f873a333542539b75a139519c7d8",
+      "profileId": "audio-flac-pcm16-r1",
+      "source": "artifact-delivery/shadow-profiles/audio-flac-pcm16-r1.json",
+      "sourceDigest": "c8f1eaaea67022dcdce764d97e557f2bcf01b08f37d9f55df152392e0f14b2e8",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "audio",
+      "mapped": "artifact-delivery/shadow-v2/examples/audio-ogg-vorbis-r1-v2.json",
+      "mappedDigest": "539eb5ebf47016c8b552090143e27486fb70ee15a9496d37d4141cee6bb887b6",
+      "profileId": "audio-ogg-vorbis-r1",
+      "source": "artifact-delivery/shadow-profiles/audio-ogg-vorbis-r1.json",
+      "sourceDigest": "4fde785d3fecea37d75f590c23ee55f7efd70036883e1b2442880de8ef77312f",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "audio",
+      "mapped": "artifact-delivery/shadow-v2/examples/audio-wave-pcm16-r1-v2.json",
+      "mappedDigest": "8d38502809fbe8c926494e235f2c4b4309d70653be94741c241c35bd2e36742c",
+      "profileId": "audio-wave-pcm16-r1",
+      "source": "artifact-delivery/shadow-profiles/audio-wave-pcm16-r1.json",
+      "sourceDigest": "6d6775eb87556317914f816e26df0150f212beb28bc6f72a6d9ad3c87ce7e632",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "dataset",
+      "mapped": "artifact-delivery/shadow-v2/examples/dataset-parquet-flat-r1-v2.json",
+      "mappedDigest": "23ce6392668418a5590b22d85d6b02defab7eb74bbb6381dea5275c0892dccb5",
+      "profileId": "dataset-parquet-flat-r1",
+      "source": "artifact-delivery/shadow-profiles/dataset-parquet-flat-r1.json",
+      "sourceDigest": "a5f9c4629ef0ba55f2d6618fe44335241a9dd569031ba012fb334be58e4145d7",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-2d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-2d-aseprite-horizontal-sheet-r1-v2.json",
+      "mappedDigest": "6dd1af94983f7156366c0da1b2f3d8010d9b63fd3bed70d9bff52eac09419abb",
+      "profileId": "design-2d-aseprite-horizontal-sheet-r1",
+      "source": "artifact-delivery/shadow-profiles/design-2d-aseprite-horizontal-sheet-r1.json",
+      "sourceDigest": "e0d280060d2a7d6741e864a6abc256e3fbd56b6706cfbe2d13c6f10da561a1dd",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-2d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-2d-tiled-tmj-object-map-r1-v2.json",
+      "mappedDigest": "f6e22c4190cb0c7e8d1b9d6f6f7b9500b1e6a7afd6896639e932b463824ad6a2",
+      "profileId": "design-2d-tiled-tmj-object-map-r1",
+      "source": "artifact-delivery/shadow-profiles/design-2d-tiled-tmj-object-map-r1.json",
+      "sourceDigest": "59421431352d12684c0a6228fc7f48bec5a708158e150550e4ffead70dd488d5",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-material-scene-r1-v2.json",
+      "mappedDigest": "c140df06219aceef5de86e68fd6231aeab5c78af6d979b975efca4a279a184b0",
+      "profileId": "design-3d-glb-material-scene-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-glb-material-scene-r1.json",
+      "sourceDigest": "57645f3e3989bb2d66cf8a8142512b42d0f3f5054db44687f8e8e4421271a20c",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-skinned-animation-r1-v2.json",
+      "mappedDigest": "ceb70f821b854a3d737ad8e3eb7f4a1a7425cc6a4f02a69a19c8c9e240fd4594",
+      "profileId": "design-3d-glb-skinned-animation-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-glb-skinned-animation-r1.json",
+      "sourceDigest": "6cbe1f0904b08041c7248209a6806d491cc5ac2dd24e1999a0f2eb748902ea10",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-glb-static-mesh-r1-v2.json",
+      "mappedDigest": "ae8bfa857b5efac85ab8900fc40c7fe4adc8a11979bfeab5a9d44d12e864ab5a",
+      "profileId": "design-3d-glb-static-mesh-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-glb-static-mesh-r1.json",
+      "sourceDigest": "8ed26fc4a63cf3632442cf376bae8feda4eb9b2ab5054235e432b2c220efbc0b",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "design-3d",
+      "mapped": "artifact-delivery/shadow-v2/examples/design-3d-step-solid-r1-v2.json",
+      "mappedDigest": "69b88c542a7d4f2f8a53128db7de78db820fbac55c34ec7799427be13793c045",
+      "profileId": "design-3d-step-solid-r1",
+      "source": "artifact-delivery/shadow-profiles/design-3d-step-solid-r1.json",
+      "sourceDigest": "d71850baba699af0a942e71f9d50be850efb19ec4eb2196c8c7e19b5a065ab0e",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "electronic-design",
+      "mapped": "artifact-delivery/shadow-v2/examples/eda-kicad-pcb-gerber-r1-v2.json",
+      "mappedDigest": "2a53f92df7ed7671b862d43fcbef6aac50da760cdaf2b074e992cb159b8bbde4",
+      "profileId": "eda-kicad-pcb-gerber-r1",
+      "source": "artifact-delivery/shadow-profiles/eda-kicad-pcb-gerber-r1.json",
+      "sourceDigest": "f76bc1dbdfb931a9fcffb317b4cba8de2af4f5b10bb98ce17db46c5a3b0f4b90",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "electronic-design",
+      "mapped": "artifact-delivery/shadow-v2/examples/eda-spice-transient-measure-r1-v2.json",
+      "mappedDigest": "257a7cd6885da9941687ebcbd5b5bcad425781c4093776a206cd0c93665688a0",
+      "profileId": "eda-spice-transient-measure-r1",
+      "source": "artifact-delivery/shadow-profiles/eda-spice-transient-measure-r1.json",
+      "sourceDigest": "b450a763fb4346e85e0ed4516cdc947ee28c64367de69c94f56442f2feac88f5",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-accessible-r1-v2.json",
+      "mappedDigest": "3b7dc2dec1acdd3b06f1b5399f0907dd22b356d41b7260521fff6a698e7e7721",
+      "profileId": "pdf-accessible-r1",
+      "source": "artifact-delivery/examples/pdf-accessible-r1.json",
+      "sourceDigest": "f2054e46d2a7bcdafa229dac4f7d9e00615723eec6b55df1416f4886b2b3b97e",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "fixed-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdf-fixed-r1-v2.json",
+      "mappedDigest": "bc99e245a814b2d84b10b32c12c47b057f9efdeb1b4a9f4310ea6014277ec06b",
+      "profileId": "pdf-fixed-r1",
+      "source": "artifact-delivery/examples/pdf-fixed-r1.json",
+      "sourceDigest": "4a3b897fed8dd17c223bc3f6281ea67f249fe6e3449bec58413969799b0087ed",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "geospatial",
+      "mapped": "artifact-delivery/shadow-v2/examples/geospatial-geopackage-point-r1-v2.json",
+      "mappedDigest": "8120f5e14489fbc645a4c62f0c7972ea17bf91e575bef50a7b6ae9b601ab9982",
+      "profileId": "geospatial-geopackage-point-r1",
+      "source": "artifact-delivery/shadow-profiles/geospatial-geopackage-point-r1.json",
+      "sourceDigest": "2f7eb9c61de29618392d9baf29830fce9c37e2cbb18d4e0d75ac506fe6c29960",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "message",
+      "mapped": "artifact-delivery/shadow-v2/examples/message-internet-text-r1-v2.json",
+      "mappedDigest": "717d0bb062512a780d842a65ae09511a99255aa8e562796d61456e68cbcfade0",
+      "profileId": "message-internet-text-r1",
+      "source": "artifact-delivery/shadow-profiles/message-internet-text-r1.json",
+      "sourceDigest": "04059d9ce46e639032f0b2dc2391c9077f3ce8ea5dc4c442714df17a4be1a6d9",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "moving-image",
+      "mapped": "artifact-delivery/shadow-v2/examples/moving-image-matroska-ffv1-v3-r1-v2.json",
+      "mappedDigest": "b2472b4d760329978b2e94557b51bf5a6ccbf6b88810b64f63a6bc722b0b8761",
+      "profileId": "moving-image-matroska-ffv1-v3-r1",
+      "source": "artifact-delivery/shadow-profiles/moving-image-matroska-ffv1-v3-r1.json",
+      "sourceDigest": "83e0d616e5f5aea5d3a5fde95351100e23b930642909923d1fc2b31bfefc4a9b",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
+      "mappedDigest": "fed993f4eba4dbbdffd91b619e15141d941f697f6ba5ff043b7bb13384cf05a9",
+      "profileId": "pdu-sdu-presentation-r1",
+      "source": "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+      "sourceDigest": "8cbfaf52493d764cffb54f95230b4d64fa2bca9d8b1c5815b2a63f08404cfde7",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/presentation-local-development-r1-v2.json",
+      "mappedDigest": "fea99dba228733fc6274771100b6d30df5ecd26eea8dc2599a140675d529d837",
+      "profileId": "presentation-local-development-r1",
+      "source": "artifact-delivery/examples/presentation-local-development-r1.json",
+      "sourceDigest": "a085f11f5bcd8daa6fe163cba34ec87ef6da72d6bfc7b21b36e314a7ddd08488",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "presentation",
+      "mapped": "artifact-delivery/shadow-v2/examples/presentation-ultrawide-34x10-r1-v2.json",
+      "mappedDigest": "b15ae5fb8487aaa7472b69654c055e02ad6d684b9ad318011722aecb9246d385",
+      "profileId": "presentation-ultrawide-34x10-r1",
+      "source": "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json",
+      "sourceDigest": "0c3db0c648f3d47169141a80a5e1e2a1107865b433318c795e390e8be0bd9d1f",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "software-release",
+      "mapped": "artifact-delivery/shadow-v2/examples/software-release-linux-elf-executable-r1-v2.json",
+      "mappedDigest": "a32d2dbc49aff90bdb2f014853c0baf7c94f5dd9b7f423fd87d21a9f06dd7dfc",
+      "profileId": "software-release-linux-elf-executable-r1",
+      "source": "artifact-delivery/shadow-profiles/software-release-linux-elf-executable-r1.json",
+      "sourceDigest": "ba58c827f6362a6fa9d05cce5c9fe93d7876b0b203a90641c9f5c49cb92f1fb9",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "software-release",
+      "mapped": "artifact-delivery/shadow-v2/examples/software-release-oci-image-r1-v2.json",
+      "mappedDigest": "61f38947015035558dccad104c95240b3a5d92e9d5ed59e6f9fffb707095150b",
+      "profileId": "software-release-oci-image-r1",
+      "source": "artifact-delivery/shadow-profiles/software-release-oci-image-r1.json",
+      "sourceDigest": "5e9f9c367fe47bddbeb6db7dce06fcd5d106d4471624e9d0f3d30d03ae7fd7be",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "spreadsheet",
+      "mapped": "artifact-delivery/shadow-v2/examples/spreadsheet-r1-v2.json",
+      "mappedDigest": "bac2f20b142bac6bc74138e3a42a76b498c7c63da33dba9e6d95cad4fc436ead",
+      "profileId": "spreadsheet-r1",
+      "source": "artifact-delivery/examples/spreadsheet-r1.json",
+      "sourceDigest": "ff089eb7c06da9d3ca8cb9a444c48e74eb3385de300ddcef774eff98d058cd32",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "still-image",
+      "mapped": "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json",
+      "mappedDigest": "1b56b51eef8c3703cf7125779c002e6b535d27fd6ccc8840af400841501cbd6a",
+      "profileId": "still-image-png-srgb-r1",
+      "source": "artifact-delivery/shadow-profiles/still-image-png-srgb-r1.json",
+      "sourceDigest": "d737e08bcce10116a24e6cae99ab5916112c56972b15caba5c027cce5348c8d9",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "still-image",
+      "mapped": "artifact-delivery/shadow-v2/examples/still-image-svg-static-r1-v2.json",
+      "mappedDigest": "66289e27e92bd2b3efd046c2c78ad168735954c56ad24f84ccf08eebe6a8d40e",
+      "profileId": "still-image-svg-static-r1",
+      "source": "artifact-delivery/shadow-profiles/still-image-svg-static-r1.json",
+      "sourceDigest": "da86bbc6a9c4c54829a7221fabd426a9729205f976cb0094d4e778485a79797a",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    },
+    {
+      "family": "text-document",
+      "mapped": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+      "mappedDigest": "1259f21c76c166b3505f79506de07fd60d743b8f98a9bfb780d6b9f1738da72c",
+      "profileId": "document-r1",
+      "source": "artifact-delivery/examples/document-r1.json",
+      "sourceDigest": "37e4829af8dd4fc0b5bf2297ea7fb63e5c9893dce81cb5215cdab0ece45b2137",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "web",
+      "mapped": "artifact-delivery/shadow-v2/examples/web-r1-v2.json",
+      "mappedDigest": "22870b78df128b558cfd01b4a8357f97e5dcf9d1060afe886c15c9eb7f676083",
+      "profileId": "web-r1",
+      "source": "artifact-delivery/examples/web-r1.json",
+      "sourceDigest": "4c038fed35c4dcb0ee4a82277972307290b4424e50d2268df763a055e76db273",
+      "sourceKind": "production-v1",
+      "validation": "PASS"
+    },
+    {
+      "family": "web-archive",
+      "mapped": "artifact-delivery/shadow-v2/examples/web-archive-warc-response-r1-v2.json",
+      "mappedDigest": "589b7ffd72768937ca43a092135fb9b27bf0afaaf4a81f53046a08f9497c7912",
+      "profileId": "web-archive-warc-response-r1",
+      "source": "artifact-delivery/shadow-profiles/web-archive-warc-response-r1.json",
+      "sourceDigest": "28d8a4c9a5830a8061a6d90a5c05216fb2f8de15c03ceed8c702f3ae89d75a8e",
+      "sourceKind": "standards-first-shadow",
+      "validation": "PASS"
+    }
+  ],
+  "pressureTests": [
+    "still-image",
+    "dataset",
+    "geospatial",
+    "audio",
+    "moving-image",
+    "design-2d",
+    "software-release",
+    "design-3d",
+    "web-archive",
+    "message",
+    "electronic-design"
+  ],
+  "schemaVersion": 1,
+  "status": "SHADOW_SCHEMA_PROVEN"
+}

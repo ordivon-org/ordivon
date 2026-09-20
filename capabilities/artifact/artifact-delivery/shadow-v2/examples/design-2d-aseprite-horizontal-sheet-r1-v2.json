@@ -1,0 +1,87 @@
+{
+  "classification": {
+    "conformanceProfile": "Aseprite native deterministic horizontal sprite-sheet export",
+    "family": "design-2d",
+    "format": {
+      "mediaType": "application/octet-stream",
+      "name": "Aseprite (.ase/.aseprite)"
+    },
+    "purposes": [
+      "editable-authoring",
+      "derived-raster-production",
+      "game-runtime-source"
+    ],
+    "representation": "layered-raster-authoring-source"
+  },
+  "id": "design-2d-aseprite-horizontal-sheet-r1",
+  "nonClaims": [
+    "Game meaning of frame tags, actor identities, roles or animation states",
+    "caller-owned JSON metadata that is not emitted by Aseprite itself",
+    "artistic quality or gameplay suitability of the sprite",
+    "all Aseprite export modes, packed sheets, split layers, slices, tilemaps or palette conversions",
+    "cross-version reproducibility outside the exact managed Aseprite capability binding",
+    "rights or licensing validity of source or derivative content"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "design-2d-aseprite-sheet-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/design-2d-aseprite-sheet-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/octet-stream",
+        "name": "Aseprite (.ase/.aseprite)"
+      },
+      "purpose": "editable-authoring",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "batchMode": true,
+      "callerMetadataBoundary": "domain-owned metadata may consume Aseprite frames/tags but is not interpreted by this profile",
+      "dataFormat": "json-array",
+      "derivativeIdentity": "generated PNG SHA-256 and native metadata SHA-256 must equal the exact object contract",
+      "derivedImageValidation": "generated PNG must separately pass still-image-png-srgb-r1",
+      "determinism": "two clean native exports with identical basenames must produce byte-identical PNG and native JSON metadata",
+      "fileFormatAuthority": "Aseprite official .ase/.aseprite file format specification",
+      "listTags": true,
+      "nativeExporter": "Workstation-managed Aseprite",
+      "sheetType": "horizontal"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "Aseprite export contract validates under design-2d-aseprite-sheet-contract-v1",
+      "required": true
+    },
+    "derivativeIdentity": {
+      "claim": "generated PNG and native metadata exact SHA-256 values equal the object contract",
+      "required": true
+    },
+    "derivedStillImageProfile": {
+      "claim": "the generated PNG independently passes still-image-png-srgb-r1",
+      "required": true
+    },
+    "nativeDeterministicExport": {
+      "claim": "two clean Aseprite batch exports produce byte-identical horizontal-sheet PNG and native JSON metadata",
+      "required": true
+    },
+    "nativeMetadataFacts": {
+      "claim": "Aseprite native metadata exposes the contracted sheet dimensions and frame count",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Aseprite-native-exporter",
+      "required": true
+    }
+  ]
+}

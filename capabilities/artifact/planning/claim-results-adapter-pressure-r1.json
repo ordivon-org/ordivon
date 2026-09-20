@@ -1,0 +1,46 @@
+{
+  "cases": {
+    "audio-wave-pcm16-r1": {
+      "safeMappedClaims": [
+        "contractSchema",
+        "referenceContainerView",
+        "independentTechnicalView",
+        "decoderMatrix",
+        "pcmIdentity"
+      ],
+      "standing": "ADAPTER_SUFFICIENT",
+      "unaddressableClaims": {},
+      "nativeClaimResults": "EXACT_PROFILE_REQUIRED_EVIDENCE_KEY_SET"
+    },
+    "legacy-verify-stage": {
+      "reason": "Profile claim keys can be enumerated exactly; emitted gate receipts map directly and absent gates can be represented as NOT_EVALUATED without inference.",
+      "standing": "ADAPTER_SUFFICIENT"
+    },
+    "still-image-png-srgb-r1": {
+      "safeMappedClaims": [
+        "datastreamValidity",
+        "metadataObservation",
+        "decoderMatrix",
+        "profileFacts"
+      ],
+      "standing": "ADAPTER_SUFFICIENT",
+      "unaddressableClaims": {},
+      "nativeClaimResults": "EXACT_PROFILE_REQUIRED_EVIDENCE_KEY_SET"
+    }
+  },
+  "contractRule": {
+    "claimResultsKeySet": "EXACTLY_PROFILE_REQUIRED_EVIDENCE_KEY_SET",
+    "missingClaim": "REJECT_OR_NOT_EVALUATED_NEVER_INFER_PASS",
+    "nativeFields": "PRESERVED_FOR_BACKWARD_COMPATIBILITY",
+    "routeChanges": "NONE_IN_PRESSURE_TEST"
+  },
+  "kind": "artifact-claim-results-adapter-pressure-test",
+  "nextSlice": {
+    "id": "R2-S1D",
+    "objective": "Extend exact-key explicit native claimResults to the remaining 17 bound family verifiers without changing verifier semantics or routing."
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "3437e8da2cab5fd2588daabb3564bb531b1cf114",
+  "standing": "R2_S1C_NATIVE_CLAIM_RESULTS_COMPLETE_FOR_WAVE_AND_PNG",
+  "truthRole": "planning-projection-not-production-contract"
+}

@@ -1,0 +1,81 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/design-3d-glb-material-scene-local-r1.json",
+      "sha256": "1692381138b1ab8494c45ca82bbce6e39dcdf0db14acbe7c2c756e2dce8bcb57",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "objectContract": {
+      "relativePath": "artifact-delivery/shadow-contracts/design-3d-glb-material-scene-game-smoke-r1.json",
+      "sha256": "fa0f232af86b700dbabd23ba5cdd564899b1ecd792500bd024d99176bd640d1a"
+    },
+    "profile": {
+      "id": "design-3d-glb-material-scene-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/design-3d-glb-material-scene-r1-v2.json",
+      "sha256": "d665df89577fb2b97766e884340501bddf421e48d0ad50249acecd0186fb934d",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_glb",
+      "relativePath": "scripts/artifact_design3d.py",
+      "sha256": "91473aa713b864904a9d321bfc943a860715a9dedeefecfdd15c9c702687c88f"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "7fa412b83792153c27074cf42a3c9f4d6aa5f113",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "id": "ordivon-game@b140635df89e5e2b27588fc1862af81a3aaa7a15",
+    "purpose": "Veilwild environment GLB bounded material-scene verification",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "b140635df89e5e2b27588fc1862af81a3aaa7a15"
+  },
+  "externalSubject": {
+    "consumerRelativePath": "experiments/veilwild-r1/godot/modules/f05/veilwild_forest_environment.glb",
+    "identityStanding": "EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED",
+    "sha256": "f980ea94b074de9001a72b10d19fd6a495dae73878ab157472a6a416a4e33143",
+    "size": 477944
+  },
+  "id": "game-veilwild-glb-material-scene-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nonClaims": [
+    "This does not graduate Profile v2 from shadow to production.",
+    "Artifact does not become authoritative for Game semantics, artistic intent, player value or rights.",
+    "The consumer-local subject path is observation evidence, not an Artifact transport contract."
+  ],
+  "observedAt": "2026-09-13",
+  "request": {
+    "id": "game:veilwild:f05:20260913-r1"
+  },
+  "runtimeEvidence": {
+    "directLiveProofJobId": "job-01a09aaf-f127-74b1-b6e2-24d2a6f318d2",
+    "directLiveProofOperationDigest": "sha256:2b568b6ff8b9bc9ebc0379af8e070bd266271adc8db8c49f34bc1b5d6c517ae7",
+    "serviceJobId": "job-01a09ab0-efce-7c73-93fd-9e7af5833248",
+    "serviceOperationDigest": "sha256:805dfb3aa88d248b49160e45ae6a0689388ac6c18ed8855824ec1ca25e658778",
+    "serviceResultSha256": "5c168dcb5e8234c02b2600106338b42e6f1bf1ca6153b5464454a5c277f5e88b"
+  },
+  "schemaVersion": 1,
+  "standing": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+  "verification": {
+    "assimpStatus": "PASS",
+    "blenderStatus": "PASS",
+    "familyStatus": "PASS",
+    "godotStatus": "PASS",
+    "khronos": {
+      "errors": 0,
+      "validatorVersion": "2.0.0-dev.3.10",
+      "warnings": 0
+    },
+    "serviceStatus": "PASS",
+    "validatorFacts": {
+      "animations": 0,
+      "drawCalls": 153,
+      "materials": 7,
+      "skins": false,
+      "textures": false,
+      "triangles": 7832,
+      "vertices": 11923
+    }
+  }
+}

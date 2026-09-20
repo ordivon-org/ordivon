@@ -1,0 +1,43 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "eda-kicad-pcb-gerber-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "electronic-design",
+    "representation": "pcb-layout-authoring-source",
+    "format": "KiCad PCB (.kicad_pcb)",
+    "mediaType": "application/x-kicad-pcb",
+    "conformanceProfile": "KiCad PCB error-DRC plus contract-bound Gerber/Excellon R1",
+    "targetAuthority": "KiCad CLI 10.0.x",
+    "purpose": ["editable-authoring", "verification", "manufacturing-exchange"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "eda-kicad-pcb-contract-v1",
+    "schemaReference": "shadow-contracts/eda-kicad-pcb-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "sourceAuthority": "KiCad native .kicad_pcb bytes",
+    "drcAuthority": "KiCad CLI native DRC at error severity",
+    "manufacturingOutputs": ["Gerber selected layers plus .gbrjob", "Excellon drill plus drill report"],
+    "exportAuthority": "KiCad CLI native manufacturing exporters",
+    "noUniversalEdaAst": true
+  },
+  "requiredEvidence": {
+    "nativeDrc": {"required": true, "claim": "exact PCB bytes produce zero KiCad error-severity DRC violations"},
+    "boardContract": {"required": true, "claim": "KiCad board statistics match exact request-bound dimensions, outline, through-hole pad count and minimum drill diameter"},
+    "gerberExport": {"required": true, "claim": "selected Gerber layers and Gerber job metadata materialize as non-empty files"},
+    "excellonExport": {"required": true, "claim": "non-empty Excellon drill output and drill report materialize"},
+    "toolIdentity": {"required": true, "claim": "evidence binds the exact observed kicad-cli bytes and version"}
+  },
+  "nonClaims": [
+    "schematic-to-PCB parity",
+    "electrical function or circuit correctness",
+    "signal integrity, power integrity or EMC behavior",
+    "manufacturing yield or fab-house acceptance",
+    "component availability, BOM correctness or sourcing",
+    "safety, regulatory compliance or product fitness",
+    "all KiCad PCB features or all EDA formats"
+  ]
+}

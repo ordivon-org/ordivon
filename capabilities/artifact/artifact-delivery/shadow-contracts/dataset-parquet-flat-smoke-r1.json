@@ -1,0 +1,14 @@
+{
+  "contractVersion": 1,
+  "id": "dataset-parquet-flat-smoke-r1",
+  "profileId": "dataset-parquet-flat-r1",
+  "columns": [
+    {"name": "id", "type": "int64", "nullable": false},
+    {"name": "name", "type": "string", "nullable": false},
+    {"name": "score", "type": "float64", "nullable": true},
+    {"name": "active", "type": "boolean", "nullable": false}
+  ],
+  "primaryKey": ["id"],
+  "minimumRows": 1,
+  "notes": "Smoke contract used to prove that concrete dataset schema/key authority remains separate from the generic Parquet family profile."
+}

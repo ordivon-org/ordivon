@@ -1,0 +1,41 @@
+{
+  "bindingVersion": 1,
+  "id": "software-release-linux-elf-executable-local-r1",
+  "profileId": "software-release-linux-elf-executable-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "formatInspection": {
+      "tool": "file/libmagic",
+      "version": "5.48",
+      "path": "/usr/bin/file",
+      "binarySha256": "9e9ecf9726c25145ef3589d207359f41aa0a43ead292807a8c42b174505e63d0"
+    },
+    "elfInspection": {
+      "tool": "GNU readelf",
+      "version": "GNU Binutils 2.47",
+      "path": "/usr/bin/readelf",
+      "binarySha256": "52f9c375576c77703c8b9c13cfd4136bf87cf5a461daa80c6e9e975a75bf6876"
+    },
+    "runtimeReadback": {
+      "tool": "Bubblewrap",
+      "version": "0.11.2",
+      "path": "/usr/bin/bwrap",
+      "binarySha256": "6ad2138a73d592acb43525432965e3c66f6fad8a2f3d610c6ca0b6855e993cbe"
+    }
+  },
+  "proof": {
+    "directLiveProof": "PASS",
+    "runtimeJobId": "job-01a09ae9-a395-70a3-abb5-a0ee89b129ce",
+    "operationDigest": "sha256:915710bbca3a0c3941116e85ae913ecc0264d862eb06e1bda3f851641b908439",
+    "subjectSha256": "ed7906d6641f30afcecd142e8fe8716720bab5b317c24dfeebc19ddcb09af30c",
+    "subjectByteLength": 73473208,
+    "fileEvidenceSha256": "4ecb77fe267e7a547b4dfe6a41f9957fcedae842d6203ff2e0317dcc63a95203",
+    "readelfHeaderEvidenceSha256": "1518f4a67b9ff4e345846dc9b7a6a5db7c02e41550aca2a213d781e0181ff977",
+    "readelfProgramEvidenceSha256": "aa7f65aca2b25733294bbababbb4c6d17119f5df1018a8ae10a08858f031ff1f",
+    "runtimeStdoutSha256": "7e96c634a7dfd91a0add47182eafcfd5f5b17933f2a10a64e6bc025cbdf178a6",
+    "runtimeStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "networkNamespace": "UNSHARED",
+    "releaseMount": "READ_ONLY",
+    "userState": "EPHEMERAL_TMPFS"
+  }
+}

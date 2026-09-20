@@ -1,0 +1,14 @@
+{
+  "contractVersion": 1,
+  "id": "web-archive-warc-response-smoke-r1",
+  "profileId": "web-archive-warc-response-r1",
+  "capture": {
+    "targetUri": "https://example.invalid/archive-r1",
+    "warcDate": "2026-09-12T10:00:00Z",
+    "recordId": "<urn:uuid:11111111-2222-4333-8444-555555555555>",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "payloadSha256": "e16b28b7a997b1cfa6288bbc31491580ebc750f7381731aaafe4bd74c10c040b"
+  },
+  "notes": "Single deterministic WARC/1.1 HTTP response capture."
+}

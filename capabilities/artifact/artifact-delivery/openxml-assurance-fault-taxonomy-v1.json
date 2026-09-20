@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-openxml-assurance-fault-taxonomy",
+  "methodId": "artifact.openxml.conformance.v1",
+  "classes": [
+    {
+      "id": "F-OPEN-001",
+      "fault": "not-a-zip / unreadable OOXML package",
+      "expectedDisposition": "FAIL",
+      "claimBoundary": "in-scope"
+    },
+    {
+      "id": "F-OPEN-002",
+      "fault": "required OOXML package/part relationship removed or malformed",
+      "expectedDisposition": "FAIL",
+      "claimBoundary": "in-scope"
+    },
+    {
+      "id": "F-OPEN-003",
+      "fault": "schema-invalid element/attribute/value in PresentationML/WordprocessingML/SpreadsheetML",
+      "expectedDisposition": "FAIL",
+      "claimBoundary": "in-scope"
+    },
+    {
+      "id": "F-OPEN-004",
+      "fault": "unsupported artifact extension",
+      "expectedDisposition": "REFUSE",
+      "claimBoundary": "in-scope interface"
+    },
+    {
+      "id": "F-OPEN-005",
+      "fault": "same path but different subject bytes with stale PASS evidence",
+      "expectedDisposition": "REJECT_EVIDENCE",
+      "claimBoundary": "exact-subject binding"
+    },
+    {
+      "id": "F-OPEN-101",
+      "fault": "schema-valid slide with visually clipped/overlapping content",
+      "expectedDisposition": "OPENXML_MAY_PASS_BUT_OVERALL_MUST_NOT_PROMOTE",
+      "claimBoundary": "explicit non-claim"
+    },
+    {
+      "id": "F-OPEN-102",
+      "fault": "schema-valid spreadsheet requiring formula recalculation/data refresh",
+      "expectedDisposition": "OPENXML_MAY_PASS_BUT_OVERALL_MUST_NOT_PROMOTE",
+      "claimBoundary": "explicit non-claim"
+    },
+    {
+      "id": "F-OPEN-103",
+      "fault": "schema-valid document with wrong business content",
+      "expectedDisposition": "OPENXML_MAY_PASS_BUT_OVERALL_MUST_NOT_PROMOTE",
+      "claimBoundary": "explicit non-claim"
+    },
+    {
+      "id": "F-OPEN-104",
+      "fault": "schema-valid but inaccessible or poor human reading order/alt semantics",
+      "expectedDisposition": "OPENXML_MAY_PASS_BUT_OVERALL_MUST_NOT_PROMOTE",
+      "claimBoundary": "explicit non-claim"
+    }
+  ],
+  "promotionRule": "Only in-scope conformance evidence may promote the OpenXML claim. Out-of-scope counterexamples are expected to demonstrate non-laundering, not validator failure."
+}

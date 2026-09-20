@@ -1,0 +1,117 @@
+{
+  "classification": {
+    "conformanceProfile": "RFC 9639 native FLAC bounded 16-bit mono/stereo PCM profile",
+    "family": "audio",
+    "format": {
+      "mediaType": "audio/flac",
+      "name": "FLAC"
+    },
+    "purposes": [
+      "interchange"
+    ],
+    "representation": "lossless-encoded-audio"
+  },
+  "id": "audio-flac-pcm16-r1",
+  "nonClaims": [
+    "factual or artistic correctness of the audio content",
+    "subjective sound quality",
+    "loudness compliance or mastering quality",
+    "truth or completeness of Vorbis comments/tags",
+    "semantics of metadata block families excluded from R1",
+    "preservation-policy compliance beyond the bounded RFC 9639/profile checks",
+    "absence of clipping, silence, phase issues or other signal-quality defects"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "audio-flac-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/audio-flac-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "audio/flac",
+        "name": "FLAC"
+      },
+      "purpose": "interchange",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "allowedMetadataBlockTypes": [
+        0,
+        1,
+        3,
+        4
+      ],
+      "allowedMetadataBlocks": [
+        "STREAMINFO",
+        "PADDING",
+        "SEEKTABLE",
+        "VORBIS_COMMENT"
+      ],
+      "bitsPerSample": 16,
+      "canonicalDecodedPcm": "signed little-endian interleaved 16-bit PCM (s16le)",
+      "channels": [
+        1,
+        2
+      ],
+      "forbiddenInR1": [
+        "APPLICATION",
+        "CUESHEET",
+        "PICTURE",
+        "unknown/reserved metadata blocks",
+        "Ogg FLAC",
+        "FLAC in MP4/other containers"
+      ],
+      "nativeFlacOnly": true,
+      "requireNonZeroStreamInfoMd5": true,
+      "standard": "IETF RFC 9639"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "audio object contract is valid under audio-flac-contract-v1",
+      "required": true
+    },
+    "decoderMatrix": {
+      "claim": "reference FLAC decoder and independent FFmpeg decoder produce exactly identical canonical s16le PCM bytes",
+      "parameters": {
+        "minimumIndependentDecoders": 2
+      },
+      "required": true
+    },
+    "independentTechnicalView": {
+      "claim": "FFprobe independently identifies native FLAC and agrees on sample rate, channels, bit depth and sample count",
+      "required": true
+    },
+    "metadataBlockPolicy": {
+      "claim": "all FLAC metadata block types are within the bounded R1 allow-list",
+      "required": true
+    },
+    "pcmIdentity": {
+      "claim": "STREAMINFO MD5 matches canonical decoded PCM MD5 and any contract expectedPcmSha256 matches decoded PCM SHA-256",
+      "required": true
+    },
+    "referenceIntegrity": {
+      "claim": "reference FLAC implementation decodes/tests the complete stream without error",
+      "required": true
+    },
+    "streamInfo": {
+      "claim": "native STREAMINFO technical facts and decoded-audio MD5 satisfy the object contract and R1 profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "independent-decoder-matrix",
+      "required": true
+    }
+  ]
+}

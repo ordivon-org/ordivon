@@ -1,0 +1,72 @@
+{
+  "$id": "https://ordivon.local/schemas/artifact-r2-mailbox-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "content": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "mediaType": {
+          "minLength": 3,
+          "type": "string"
+        },
+        "size": {
+          "maximum": 8388608,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mediaType",
+        "digest",
+        "size"
+      ],
+      "type": "object"
+    },
+    "kind": {
+      "const": "ordivon.artifact-r2-mailbox-transfer-intent"
+    },
+    "relativeObject": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "targetAuthority": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "transport": {
+      "additionalProperties": false,
+      "properties": {
+        "objectKey": {
+          "pattern": "^objects/sha256/[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "provider": {
+          "const": "cloudflare-r2"
+        }
+      },
+      "required": [
+        "provider",
+        "objectKey"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "content",
+    "targetAuthority",
+    "relativeObject",
+    "transport"
+  ],
+  "title": "Artifact R2 mailbox transport descriptor",
+  "type": "object"
+}

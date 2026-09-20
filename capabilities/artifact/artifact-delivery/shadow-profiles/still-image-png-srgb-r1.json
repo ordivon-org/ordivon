@@ -1,0 +1,55 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "still-image-png-srgb-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "still-image",
+    "representation": "raster",
+    "format": "PNG",
+    "mediaType": "image/png",
+    "conformanceProfile": "W3C PNG Third Edition bounded static-sRGB datastream profile",
+    "targetAuthority": "independent-decoder-matrix",
+    "purpose": ["display", "exchange"]
+  },
+  "formatPolicy": {
+    "standard": "W3C Portable Network Graphics (PNG) Specification (Third Edition), Recommendation 2025-06-24",
+    "animated": false,
+    "bitDepth": 8,
+    "colorModel": ["RGB", "RGBA"],
+    "requiredChunks": ["sRGB"],
+    "prohibitedChunks": ["acTL", "fcTL", "fdAT", "iCCP", "cICP"],
+    "colorBoundary": "This profile deliberately selects SDR sRGB PNG. ICC/HDR/cICP workflows are separate still-image profiles rather than implicit extensions."
+  },
+  "requiredEvidence": {
+    "datastreamValidity": {
+      "required": true,
+      "claim": "PNG datastream validity under a Third-Edition-aware external checker"
+    },
+    "profileFacts": {
+      "required": true,
+      "claim": "static 8-bit RGB/RGBA, explicit sRGB chunk, no APNG/iCCP/cICP profile expansion"
+    },
+    "metadataObservation": {
+      "required": true,
+      "claim": "extract embedded technical/descriptive/rights metadata without asserting its truth",
+      "policy": "no descriptive-field requirement in this generic display/exchange profile"
+    },
+    "decoderMatrix": {
+      "required": true,
+      "claim": "independent mature decoders agree on normalized decoded sample bytes",
+      "minimumIndependentDecoders": 2,
+      "normalization": "8-bit sRGB RGBA samples",
+      "acceptance": "exact decoded sample-byte equality"
+    }
+  },
+  "nonClaims": [
+    "visual or aesthetic quality",
+    "semantic/content correctness",
+    "human accessibility or suitability of alt text",
+    "print-production color accuracy",
+    "HDR or wide-gamut conformance",
+    "APNG animation behavior",
+    "encoder/decoder/editor implementation conformance beyond the observed datastream/tool checks",
+    "metadata truth or rights/legal validity"
+  ]
+}

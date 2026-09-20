@@ -1,0 +1,24 @@
+{
+  "$schema": "../profile-v1.schema.json",
+  "profileVersion": 1,
+  "id": "spreadsheet-r1",
+  "artifactClass": "spreadsheet",
+  "authorityMode": "generated-managed",
+  "locale": "en-US",
+  "primaryOutput": {"format": "xlsx", "purpose": "editable-microsoft-excel", "required": true, "editable": true},
+  "targetRenderer": {"name": "Microsoft Excel Desktop", "platform": "Windows", "required": true},
+  "gates": {
+    "profileSchema": true,
+    "structural": true,
+    "dependency": true,
+    "semantic": true,
+    "visual": true,
+    "target": true,
+    "accessibility": true,
+    "conformance": false,
+    "deliveryReadback": true,
+    "releaseProvenance": true
+  },
+  "deliveryTargets": ["google-drive", "windows-workstation"],
+  "notes": "Generated-managed XLSX production profile. Formula/recalculation and target workbook behavior remain Excel-owned acceptance facts."
+}

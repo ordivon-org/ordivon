@@ -1,0 +1,37 @@
+{
+  "bindingVersion": 1,
+  "id": "web-archive-warc-response-local-r1",
+  "profileId": "web-archive-warc-response-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "pythonWarc": {
+      "tool": "warcio Python",
+      "version": "1.8.1",
+      "path": "/opt/ordivon/external/warcio-py/1.8.1/warcio",
+      "metadataSha256": "810bccd0f85463a2b9b816ecf040917bae024bce286704361f141df8e540956a",
+      "wrapperSha256": "149a49e3c3cc46e9f34353a9284a988eeb0c29360f1bdf29257cfeca98050f2d",
+      "role": "WARC writer/parser/digest checker"
+    },
+    "jsWarc": {
+      "tool": "warcio.js",
+      "version": "2.4.12",
+      "path": "/opt/ordivon/external/warcio-js/2.4.12/node_modules/warcio",
+      "packageLockSha256": "5ce61bc0b09b2cd9e797a64481ba2bb4802e2c20c11bb6863f56fb2b9d3b047a",
+      "role": "independent streaming WARC parser/read-back"
+    }
+  },
+  "proof": {
+    "focusedTests": "7 PASS / 0 FAIL",
+    "validWarc11Response": "PASS",
+    "wrongTargetContract": "WARC_INTEGRITY_PASS_BUT_OBJECT_CONTRACT_FAIL",
+    "warc10": "WARC_INTEGRITY_PASS_BUT_PROFILE_FAIL",
+    "extraRecord": "WARC_INTEGRITY_PASS_BUT_SINGLE_RECORD_PROFILE_FAIL",
+    "corruptPayload": "WARC_DIGEST_CHECK_FAIL",
+    "wrongPayloadDigestContract": "BOTH_PARSERS_AGREE_BUT_OBJECT_CONTRACT_FAIL",
+    "liveSmokeRuntimeJobId": "job-01a0962a-2971-76e1-87ba-48627d054292",
+    "liveSmokeArtifactSha256": "8ee5c7be3e806e18f266346dbcfd03618bd55898e5f3a521d916d127f8e2c356",
+    "liveSmokeContractCanonicalDigest": "a07d75dac4d47241ccf86f65f4206cf5634b4bc39bbe6a3e10b1dc4c72d26212",
+    "liveSmokePayloadSha256": "e16b28b7a997b1cfa6288bbc31491580ebc750f7381731aaafe4bd74c10c040b",
+    "liveSmokeVerificationEvidenceSha256": "844ffaa90a8a59b9cacb27fdcf5e27f551336babc945173d98de781f2f4b6799"
+  }
+}

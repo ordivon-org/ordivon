@@ -1,0 +1,95 @@
+{
+  "classification": {
+    "conformanceProfile": "ISO/IEC 12113:2022 / Khronos glTF 2.0 bounded static mesh profile",
+    "family": "design-3d",
+    "format": {
+      "mediaType": "model/gltf-binary",
+      "name": "GLB 2.0"
+    },
+    "purposes": [
+      "interchange",
+      "preview"
+    ],
+    "representation": "scene-mesh"
+  },
+  "id": "design-3d-glb-static-mesh-r1",
+  "nonClaims": [
+    "visual or artistic quality",
+    "PBR material correctness",
+    "texture/color-management semantics",
+    "animation, skinning or morph-target behavior",
+    "CAD/BIM/manufacturing semantics",
+    "metric unit intent beyond glTF's standardized coordinate conventions",
+    "cross-renderer pixel equivalence",
+    "consumer-specific transformed coordinates as original glTF geometry"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "design-3d-glb-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/design-3d-glb-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "model/gltf-binary",
+        "name": "GLB 2.0"
+      },
+      "purpose": "interchange",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "animations": false,
+      "cameras": false,
+      "container": "GLB version 2",
+      "coordinateAuthority": "glTF source coordinate system; consumer-specific axis conversion is not source geometry authority",
+      "defaultSceneRequired": true,
+      "extensionsUsed": [],
+      "externalResources": false,
+      "indicesComponentType": "UNSIGNED_SHORT",
+      "lights": false,
+      "materials": false,
+      "meshPrimitiveMode": "TRIANGLES",
+      "morphTargets": false,
+      "positionComponentType": "FLOAT",
+      "sceneCount": 1,
+      "skins": false,
+      "standard": "ISO/IEC 12113:2022 / Khronos glTF 2.0",
+      "textures": false
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "assimpScene": {
+      "claim": "Assimp independently imports the scene and agrees on node/mesh/vertex/triangle topology and source-coordinate bounds",
+      "required": true
+    },
+    "blenderImport": {
+      "claim": "Blender independently imports the GLB into one mesh object with expected topology; Blender coordinate conversion is treated as consumer behavior",
+      "required": true
+    },
+    "boundedProfileFacts": {
+      "claim": "validator/profile facts show static untextured unskinned unanimated mesh content inside the bounded R1",
+      "required": true
+    },
+    "contractSchema": {
+      "claim": "Design-3D object contract is valid under design-3d-glb-contract-v1",
+      "required": true
+    },
+    "khronosConformance": {
+      "claim": "Khronos glTF Validator accepts the exact GLB with zero errors and zero warnings",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "standard-validator",
+      "name": "Khronos glTF standard-validator",
+      "required": true
+    }
+  ]
+}

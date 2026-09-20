@@ -1,0 +1,1858 @@
+{
+  "$schema": "../../presentation-source-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "presentation-source",
+  "presentationId": "presentation:pdu-sdu-34x10-deck-semantic-overlay-r1",
+  "profileId": "presentation-ultrawide-34x10-r1",
+  "sourceMode": "native-composition",
+  "locale": "zh-CN",
+  "aspectRatio": "34:10",
+  "slideSizeInches": {
+    "width": 34.0,
+    "height": 10.0
+  },
+  "slides": [
+    {
+      "id": "slide-01",
+      "title": "面向敏捷交付的研发组织变革——液态组织下 PDU / SDU 职责与举措",
+      "purpose": "cover-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "brand-slogan",
+          "text": "更智能的出行   更美好的未来",
+          "box": {
+            "x": 1.05,
+            "y": 0.48,
+            "w": 7.2,
+            "h": 0.38
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "colorHex": "173E79",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "brand-slogan-en",
+          "text": "A CLEANER SMARTER BRIGHTER TOMORROW",
+          "box": {
+            "x": 1.05,
+            "y": 0.92,
+            "w": 7.2,
+            "h": 0.28
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 7.5,
+          "colorHex": "173E79",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "面向敏捷交付的\n研发组织变革",
+          "box": {
+            "x": 1.02,
+            "y": 1.56,
+            "w": 9.6,
+            "h": 2.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 64,
+          "bold": true,
+          "colorHex": "092B67",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "subtitle",
+          "text": "——液态组织下 PDU / SDU 职责与举措",
+          "box": {
+            "x": 1.08,
+            "y": 4.52,
+            "w": 12.6,
+            "h": 0.7
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "103A79",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "应对全球汽车电动化浪潮，打造高效、敏捷、创新的研发组织",
+          "box": {
+            "x": 1.08,
+            "y": 5.5,
+            "w": 12.6,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "colorHex": "1A3B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "keywords",
+          "text": "创新  |  协同  |  效率  |  价值",
+          "box": {
+            "x": 1.08,
+            "y": 6.72,
+            "w": 7.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "colorHex": "153A70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "footer",
+          "text": "汽车研发中心  |  2026年9月",
+          "box": {
+            "x": 1.08,
+            "y": 9.08,
+            "w": 6.8,
+            "h": 0.42
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "colorHex": "F5FAFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "01",
+          "box": {
+            "x": 32.35,
+            "y": 0.46,
+            "w": 0.8,
+            "h": 0.52
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 20,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "right-banner",
+          "text": "科技驱动出行\n共赴更美好的未来",
+          "box": {
+            "x": 30.38,
+            "y": 4.4,
+            "w": 3.05,
+            "h": 0.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "colorHex": "EAF5FF",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Zero-opacity native editable semantic overlay for the approved slide-1 visual authority. This file is intentionally buildable without the raster so the semantic geometry can be verified independently. It does not replace or modify the visual authority. Final hybrid composition remains blocked until exact raster bytes are available to Runtime."
+    },
+    {
+      "id": "slide-02",
+      "title": "智能电动时代 重塑汽车研发",
+      "purpose": "context-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "智能电动时代 重塑汽车研发",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "竞争焦点正从“造出一辆车”转向“持续快速迭代一套产品体系”",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "02",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "driver-1",
+          "text": "BEV浪潮",
+          "box": {
+            "x": 1.2,
+            "y": 2.55,
+            "w": 4.1,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "driver-2",
+          "text": "软件定义汽车",
+          "box": {
+            "x": 6.1,
+            "y": 2.55,
+            "w": 4.1,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "driver-3",
+          "text": "AI与数据驱动",
+          "box": {
+            "x": 11.0,
+            "y": 2.55,
+            "w": 4.1,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "driver-4",
+          "text": "开发周期压缩",
+          "box": {
+            "x": 15.9,
+            "y": 2.55,
+            "w": 4.1,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "driver-5",
+          "text": "全球竞争加剧",
+          "box": {
+            "x": 20.8,
+            "y": 2.55,
+            "w": 4.1,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "comparison-new",
+          "text": "≈24个月\n新一代EV玩家 概念到上市",
+          "box": {
+            "x": 2.3,
+            "y": 5.05,
+            "w": 8.4,
+            "h": 1.08
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 30,
+          "bold": true,
+          "colorHex": "0B4A8B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "comparison-traditional",
+          "text": "40–50+个月\n传统汽车开发周期",
+          "box": {
+            "x": 12.3,
+            "y": 5.05,
+            "w": 8.4,
+            "h": 1.08
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 30,
+          "bold": true,
+          "colorHex": "556778",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "keywords",
+          "text": "电动化  |  智能化  |  软件定义  |  全球竞争",
+          "box": {
+            "x": 1.2,
+            "y": 8.55,
+            "w": 14.0,
+            "h": 0.45
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "23466F",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Major approved text only; zero-opacity native migration overlay. Detailed chart/body transcription remains upstream-approved-content work and is not inferred here."
+    },
+    {
+      "id": "slide-03",
+      "title": "当前挑战：SDU 液态组织面临三重压力",
+      "purpose": "problem-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "当前挑战：SDU 液态组织面临三重压力",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "现有组织能力已难以完全支撑新的业务复杂度",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "03",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "resource-number",
+          "text": "01 资源压力",
+          "box": {
+            "x": 1.15,
+            "y": 2.55,
+            "w": 8.7,
+            "h": 0.42
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "resource-headline",
+          "text": "项目多 × 人少",
+          "box": {
+            "x": 1.15,
+            "y": 3.05,
+            "w": 8.7,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 22,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "resource-body",
+          "text": "多项目并行：同时推进多个研发项目，资源分散、优先级冲突\n关键资源紧张：核心人才与专家资源有限，难以满足快速增长需求",
+          "box": {
+            "x": 1.15,
+            "y": 4.05,
+            "w": 8.7,
+            "h": 2.0
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": false,
+          "colorHex": "3E536B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "capability-number",
+          "text": "02 能力压力",
+          "box": {
+            "x": 11.25,
+            "y": 2.55,
+            "w": 8.7,
+            "h": 0.42
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "capability-headline",
+          "text": "能力不足 × 新技术不够 × 智能化弱",
+          "box": {
+            "x": 11.25,
+            "y": 3.05,
+            "w": 8.7,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 22,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "capability-body",
+          "text": "系统与跨专业能力不足：复杂系统工程能力、跨领域协同和整体架构能力待提升\n软件、数据、AI能力偏弱：在软件开发、数据工程、AI应用等技术领域积累不足",
+          "box": {
+            "x": 11.25,
+            "y": 4.05,
+            "w": 8.7,
+            "h": 2.0
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": false,
+          "colorHex": "3E536B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "operation-number",
+          "text": "03 经营压力",
+          "box": {
+            "x": 21.35,
+            "y": 2.55,
+            "w": 8.7,
+            "h": 0.42
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "operation-headline",
+          "text": "BEV转向下迭代快 × 成本高",
+          "box": {
+            "x": 21.35,
+            "y": 3.05,
+            "w": 8.7,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 22,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "operation-body",
+          "text": "开发节奏压缩：电动化浪潮下产品迭代速度快，研发周期持续缩短\n重复开发与协同摩擦抬高成本：多团队并行、标准不统一导致重复投入和协同效率损耗",
+          "box": {
+            "x": 21.35,
+            "y": 4.05,
+            "w": 8.7,
+            "h": 2.0
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": false,
+          "colorHex": "3E536B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "conclusion",
+          "text": "任务复杂度增长快于组织能力增长",
+          "box": {
+            "x": 7.4,
+            "y": 8.35,
+            "w": 19.2,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0B3E7A",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Approved major and body text carried as zero-opacity native semantics; Artifact E2E does not evaluate the organizational diagnosis."
+    },
+    {
+      "id": "slide-04",
+      "title": "外部对标：领先车企的共同方向",
+      "purpose": "benchmark-summary-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "外部对标：领先车企的共同方向",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "Tesla、BYD、Toyota 的实践表明：项目速度必须建立在平台能力之上",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "04",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "tesla-name",
+          "text": "Tesla",
+          "box": {
+            "x": 1.3,
+            "y": 2.45,
+            "w": 8.6,
+            "h": 0.52
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "0C4D89",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "tesla-headline",
+          "text": "高度集成",
+          "box": {
+            "x": 1.3,
+            "y": 3.05,
+            "w": 8.6,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "tesla-body",
+          "text": "核心能力内部化\n设计 / 测试 / 仿真协同\n快速工程迭代",
+          "box": {
+            "x": 1.3,
+            "y": 4.0,
+            "w": 8.6,
+            "h": 1.65
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "40566D",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "byd-name",
+          "text": "BYD",
+          "box": {
+            "x": 11.45,
+            "y": 2.45,
+            "w": 8.6,
+            "h": 0.52
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "0C4D89",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "byd-headline",
+          "text": "平台 + 模块集成",
+          "box": {
+            "x": 11.45,
+            "y": 3.05,
+            "w": 8.6,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "byd-body",
+          "text": "e平台与电子电气架构\n软硬件协同集成\n功能快速迭代",
+          "box": {
+            "x": 11.45,
+            "y": 4.0,
+            "w": 8.6,
+            "h": 1.65
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "40566D",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "toyota-name",
+          "text": "Toyota",
+          "box": {
+            "x": 21.6,
+            "y": 2.45,
+            "w": 8.6,
+            "h": 0.52
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "0C4D89",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "toyota-headline",
+          "text": "平台 + 共用 + 稳定体系",
+          "box": {
+            "x": 21.6,
+            "y": 3.05,
+            "w": 8.6,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "toyota-body",
+          "text": "TNGA\n模块化与共用化\n标准化工程体系",
+          "box": {
+            "x": 21.6,
+            "y": 4.0,
+            "w": 8.6,
+            "h": 1.65
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "40566D",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "common-directions",
+          "text": "平台化  |  模块化  |  快速迭代  |  跨域协同  |  长期能力沉淀",
+          "box": {
+            "x": 4.0,
+            "y": 6.65,
+            "w": 26.0,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 19,
+          "bold": true,
+          "colorHex": "174979",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "conclusion",
+          "text": "形式不同，共同规律相同：项目速度必须建立在平台能力之上",
+          "box": {
+            "x": 3.5,
+            "y": 8.45,
+            "w": 27.0,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "0A3F78",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Carries only approved deck wording. External-company factual validation belongs to Research/Evidence, not Artifact E2E."
+    },
+    {
+      "id": "slide-05",
+      "title": "核心模式：液态组织 + PDU / SDU 双单元设计",
+      "purpose": "operating-model-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "核心模式：液态组织 + PDU / SDU 双单元设计",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "打通交付结果与长期能力，构建更灵活高效的研发组织",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "05",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "top-demand",
+          "text": "市场 / 品牌 / 项目需求",
+          "box": {
+            "x": 12.1,
+            "y": 2.05,
+            "w": 9.8,
+            "h": 0.52
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "285687",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "sdu-title",
+          "text": "SDU：交付结果负责",
+          "box": {
+            "x": 3.0,
+            "y": 3.18,
+            "w": 8.6,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "0C477F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "sdu-body",
+          "text": "面向市场与项目\n快速响应市场需求\n端到端交付负责",
+          "box": {
+            "x": 3.0,
+            "y": 4.0,
+            "w": 8.6,
+            "h": 1.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "3B526B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "center",
+          "text": "液态组织\n协同共进 / 快速闭环",
+          "box": {
+            "x": 12.25,
+            "y": 3.55,
+            "w": 9.4,
+            "h": 1.3
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 21,
+          "bold": true,
+          "colorHex": "135B91",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "pdu-title",
+          "text": "PDU：能力资产负责",
+          "box": {
+            "x": 22.2,
+            "y": 3.18,
+            "w": 8.6,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "0C477F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "pdu-body",
+          "text": "聚焦技术与平台能力\n标准化 · 模块化 · 通用化\n支撑多产品快速开发",
+          "box": {
+            "x": 22.2,
+            "y": 4.0,
+            "w": 8.6,
+            "h": 1.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "3B526B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "bottom-assets",
+          "text": "平台 / 模块 / 技术 / 标准",
+          "box": {
+            "x": 12.1,
+            "y": 6.4,
+            "w": 9.8,
+            "h": 0.52
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "285687",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "bottom-detail",
+          "text": "技术能力  |  平台资产  |  模块方案  |  标准体系",
+          "box": {
+            "x": 8.0,
+            "y": 7.05,
+            "w": 18.0,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 14,
+          "bold": false,
+          "colorHex": "3B526B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "conclusion",
+          "text": "SDU 把能力变成结果，PDU 把项目经验变成能力",
+          "box": {
+            "x": 7.2,
+            "y": 8.55,
+            "w": 19.8,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "0A3F78",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Native semantic carrier only; it does not assert that the operating model is correct."
+    },
+    {
+      "id": "slide-06",
+      "title": "SDU：围绕品牌与项目，对交付结果负责",
+      "purpose": "sdu-role-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "SDU：围绕品牌与项目，对交付结果负责",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "以市场与项目为牵引，强化端到端交付责任，提升组织响应速度",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "06",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-1-title",
+          "text": "需求定义",
+          "box": {
+            "x": 1.4,
+            "y": 2.55,
+            "w": 4.7,
+            "h": 0.5
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-1-body",
+          "text": "面向市场与品牌，洞察需求并定义任务",
+          "box": {
+            "x": 1.4,
+            "y": 3.12,
+            "w": 4.7,
+            "h": 0.9
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-2-title",
+          "text": "项目统筹",
+          "box": {
+            "x": 6.8,
+            "y": 2.55,
+            "w": 4.7,
+            "h": 0.5
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-2-body",
+          "text": "统筹进度、资源、质量与成本",
+          "box": {
+            "x": 6.8,
+            "y": 3.12,
+            "w": 4.7,
+            "h": 0.9
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-3-title",
+          "text": "跨域协同",
+          "box": {
+            "x": 12.2,
+            "y": 2.55,
+            "w": 4.7,
+            "h": 0.5
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-3-body",
+          "text": "打通研发、制造、供应链等横向协同",
+          "box": {
+            "x": 12.2,
+            "y": 3.12,
+            "w": 4.7,
+            "h": 0.9
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-4-title",
+          "text": "交付结果",
+          "box": {
+            "x": 17.6,
+            "y": 2.55,
+            "w": 4.7,
+            "h": 0.5
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "responsibility-4-body",
+          "text": "对端到端交付结果负责",
+          "box": {
+            "x": 17.6,
+            "y": 3.12,
+            "w": 4.7,
+            "h": 0.9
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-1-title",
+          "text": "管理统筹",
+          "box": {
+            "x": 4.0,
+            "y": 5.15,
+            "w": 5.4,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-1-body",
+          "text": "战略洞察 / 资源整合 / 全局把控",
+          "box": {
+            "x": 4.0,
+            "y": 5.72,
+            "w": 5.4,
+            "h": 0.75
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-2-title",
+          "text": "横向协同",
+          "box": {
+            "x": 10.2,
+            "y": 5.15,
+            "w": 5.4,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-2-body",
+          "text": "跨域联动 / 打破壁垒 / 共创共赢",
+          "box": {
+            "x": 10.2,
+            "y": 5.72,
+            "w": 5.4,
+            "h": 0.75
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-3-title",
+          "text": "快速反应",
+          "box": {
+            "x": 16.4,
+            "y": 5.15,
+            "w": 5.4,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-3-body",
+          "text": "敏捷决策 / 高效推进 / 闭环解决",
+          "box": {
+            "x": 16.4,
+            "y": 5.72,
+            "w": 5.4,
+            "h": 0.75
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-4-title",
+          "text": "精益精细",
+          "box": {
+            "x": 22.6,
+            "y": 5.15,
+            "w": 5.4,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 16,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "upgrade-4-body",
+          "text": "数据驱动 / 过程管控 / 持续优化",
+          "box": {
+            "x": 22.6,
+            "y": 5.72,
+            "w": 5.4,
+            "h": 0.75
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "chief-engineer",
+          "text": "打造全面型、综合攻坚型 SDU 总师",
+          "box": {
+            "x": 8.4,
+            "y": 7.0,
+            "w": 17.2,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 22,
+          "bold": true,
+          "colorHex": "0B477F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "bottom-note",
+          "text": "面向复杂项目场景，提升资源组织、问题解决与跨域协同能力",
+          "box": {
+            "x": 7.0,
+            "y": 7.72,
+            "w": 20.0,
+            "h": 0.45
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": false,
+          "colorHex": "506377",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "conclusion",
+          "text": "让 SDU 更快识别需求、更强组织资源、更稳实现交付",
+          "box": {
+            "x": 5.3,
+            "y": 8.65,
+            "w": 23.4,
+            "h": 0.58
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 22,
+          "bold": true,
+          "colorHex": "0A3F78",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Approved role wording only; responsibility design belongs upstream."
+    },
+    {
+      "id": "slide-07",
+      "title": "PDU：围绕技术与平台，对长期能力负责",
+      "purpose": "pdu-role-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "PDU：围绕技术与平台，对长期能力负责",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "聚焦平台、模块、技术和标准，沉淀可复用能力，支撑多产品快速开发",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "07",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "outcomes",
+          "text": "更强的平台能力  |  更快的开发效率  |  更高的复用价值",
+          "box": {
+            "x": 5.2,
+            "y": 2.28,
+            "w": 23.6,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 18,
+          "bold": true,
+          "colorHex": "174979",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "platform-title",
+          "text": "平台化",
+          "box": {
+            "x": 2.1,
+            "y": 3.35,
+            "w": 8.5,
+            "h": 0.56
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 21,
+          "bold": true,
+          "colorHex": "0D4D87",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "platform-body",
+          "text": "形成稳定技术底座",
+          "box": {
+            "x": 2.1,
+            "y": 3.98,
+            "w": 8.5,
+            "h": 0.52
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "module-title",
+          "text": "模块化",
+          "box": {
+            "x": 12.75,
+            "y": 3.35,
+            "w": 8.5,
+            "h": 0.56
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 21,
+          "bold": true,
+          "colorHex": "0D4D87",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "general-title",
+          "text": "通用化",
+          "box": {
+            "x": 23.4,
+            "y": 3.35,
+            "w": 8.5,
+            "h": 0.56
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 21,
+          "bold": true,
+          "colorHex": "0D4D87",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "general-body",
+          "text": "提升跨产品复用效率",
+          "box": {
+            "x": 23.4,
+            "y": 3.98,
+            "w": 8.5,
+            "h": 0.52
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 13,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "support-1",
+          "text": "流程标准化\n减少协同摩擦",
+          "box": {
+            "x": 3.0,
+            "y": 5.55,
+            "w": 8.2,
+            "h": 0.98
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "support-2",
+          "text": "平台一体化\n工具、技术、数据协同",
+          "box": {
+            "x": 12.9,
+            "y": 5.55,
+            "w": 8.2,
+            "h": 0.98
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "support-3",
+          "text": "信息可视化\n状态、成熟度、风险透明",
+          "box": {
+            "x": 22.8,
+            "y": 5.55,
+            "w": 8.2,
+            "h": 0.98
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 17,
+          "bold": true,
+          "colorHex": "0E4C84",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "conclusion",
+          "text": "PDU 让能力沉淀为资产，持续支撑业务增长",
+          "box": {
+            "x": 7.2,
+            "y": 8.55,
+            "w": 19.8,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "0A3F78",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Major approved text only. One small module-description line is intentionally omitted because exact wording is not sufficiently established; Artifact E2E preserves UNKNOWN rather than guessing."
+    },
+    {
+      "id": "slide-08",
+      "title": "实施路径：推动组织变革落地见效",
+      "purpose": "roadmap-semantic-overlay",
+      "layoutId": "Blank",
+      "elements": [
+        {
+          "kind": "text",
+          "id": "title",
+          "text": "实施路径：推动组织变革落地见效",
+          "box": {
+            "x": 1.05,
+            "y": 0.62,
+            "w": 19.8,
+            "h": 0.72
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 28,
+          "bold": true,
+          "colorHex": "0A2D69",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "supporting-line",
+          "text": "以职责清晰、机制协同、平台沉淀和能力升级为抓手，分阶段推进",
+          "box": {
+            "x": 1.05,
+            "y": 1.42,
+            "w": 22.5,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": false,
+          "colorHex": "46617F",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "page-number",
+          "text": "08",
+          "box": {
+            "x": 32.25,
+            "y": 0.46,
+            "w": 0.82,
+            "h": 0.48
+          },
+          "fontFamily": "Arial",
+          "fontSizePt": 19,
+          "bold": false,
+          "colorHex": "FFFFFF",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-01-period",
+          "text": "0–3个月",
+          "box": {
+            "x": 1.2,
+            "y": 2.38,
+            "w": 6.8,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-01-title",
+          "text": "职责与边界",
+          "box": {
+            "x": 1.2,
+            "y": 3.0,
+            "w": 6.8,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-01-body",
+          "text": "明确PDU / SDU定位、接口与责任机制",
+          "box": {
+            "x": 1.2,
+            "y": 3.72,
+            "w": 6.8,
+            "h": 0.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-02-period",
+          "text": "3–6个月",
+          "box": {
+            "x": 9.2,
+            "y": 2.38,
+            "w": 6.8,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-02-title",
+          "text": "试点运行",
+          "box": {
+            "x": 9.2,
+            "y": 3.0,
+            "w": 6.8,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-02-body",
+          "text": "围绕重点项目试点液态组织协同模式",
+          "box": {
+            "x": 9.2,
+            "y": 3.72,
+            "w": 6.8,
+            "h": 0.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-03-period",
+          "text": "6–12个月",
+          "box": {
+            "x": 17.2,
+            "y": 2.38,
+            "w": 6.8,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-03-title",
+          "text": "平台与机制固化",
+          "box": {
+            "x": 17.2,
+            "y": 3.0,
+            "w": 6.8,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-03-body",
+          "text": "固化平台能力、标准流程与信息机制",
+          "box": {
+            "x": 17.2,
+            "y": 3.72,
+            "w": 6.8,
+            "h": 0.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-04-period",
+          "text": "12个月+",
+          "box": {
+            "x": 25.2,
+            "y": 2.38,
+            "w": 6.8,
+            "h": 0.48
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 15,
+          "bold": true,
+          "colorHex": "35699B",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-04-title",
+          "text": "持续迭代",
+          "box": {
+            "x": 25.2,
+            "y": 3.0,
+            "w": 6.8,
+            "h": 0.55
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 20,
+          "bold": true,
+          "colorHex": "183B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "phase-04-body",
+          "text": "形成滚动优化、持续复盘与规模化推广",
+          "box": {
+            "x": 25.2,
+            "y": 3.72,
+            "w": 6.8,
+            "h": 0.92
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 12,
+          "bold": false,
+          "colorHex": "465B70",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "outcomes",
+          "text": "交付更敏捷  |  技术更可复用  |  成本结构更优  |  组织能力持续积累",
+          "box": {
+            "x": 4.4,
+            "y": 6.45,
+            "w": 25.2,
+            "h": 0.62
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 18,
+          "bold": true,
+          "colorHex": "174979",
+          "opacity": 0.0
+        },
+        {
+          "kind": "text",
+          "id": "conclusion",
+          "text": "以 PDU / SDU 双轮驱动，支撑智能电动时代长期竞争",
+          "box": {
+            "x": 5.0,
+            "y": 8.48,
+            "w": 24.0,
+            "h": 0.64
+          },
+          "fontFamily": "Microsoft YaHei",
+          "fontSizePt": 24,
+          "bold": true,
+          "colorHex": "0A3F78",
+          "opacity": 0.0
+        }
+      ],
+      "speakerNotes": "Approved roadmap wording only; implementation feasibility/strategy remains upstream."
+    }
+  ],
+  "notes": "Deck-wide zero-opacity native semantic migration overlay for the approved 34:10 visual deck. It carries major approved wording without changing raster appearance when later composed. It is intentionally not a claim of exhaustive transcription, visual parity, accessibility or business correctness."
+}

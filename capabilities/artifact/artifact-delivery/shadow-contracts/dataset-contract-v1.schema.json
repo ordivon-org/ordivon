@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Dataset Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "columns", "primaryKey"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "dataset-parquet-flat-r1"},
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type", "nullable"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+          "type": {"enum": ["int64", "string", "float64", "boolean"]},
+          "nullable": {"type": "boolean"}
+        }
+      }
+    },
+    "primaryKey": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+      "uniqueItems": true
+    },
+    "minimumRows": {"type": "integer", "minimum": 0},
+    "maximumRows": {"type": "integer", "minimum": 0},
+    "notes": {"type": "string"}
+  }
+}

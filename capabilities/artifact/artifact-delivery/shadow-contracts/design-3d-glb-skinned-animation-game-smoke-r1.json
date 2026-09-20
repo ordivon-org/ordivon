@@ -1,0 +1,88 @@
+{
+  "assimp": {
+    "animationChannelCount": 161,
+    "animationCount": 7,
+    "boneCount": 88,
+    "boundsMax": [
+      0.590505,
+      0.96,
+      1.44
+    ],
+    "boundsMin": [
+      -0.590505,
+      -0.505622,
+      -1.70776
+    ],
+    "cameraCount": 0,
+    "lightCount": 0,
+    "materialCount": 3,
+    "meshCount": 20,
+    "nodeCount": 37,
+    "primitiveTriangles": true,
+    "textureCount": 0,
+    "triangleCount": 7408,
+    "vertexCount": 5131
+  },
+  "blender": {
+    "actionCount": 7,
+    "actions": [
+      "VW_MOTION_CONCEAL",
+      "VW_MOTION_EVADE-loop",
+      "VW_MOTION_FORAGE-loop",
+      "VW_MOTION_FREEZE",
+      "VW_MOTION_IDLE-loop",
+      "VW_MOTION_ORIENT",
+      "VW_MOTION_RECOVER"
+    ],
+    "armatureBones": [
+      23
+    ],
+    "armatureObjectCount": 1,
+    "materialCount": 3,
+    "meshObjectCount": 12,
+    "meshTotals": {
+      "materialSlots": 20,
+      "polygons": 7488,
+      "vertices": 5173
+    },
+    "objectCount": 14
+  },
+  "contractVersion": 1,
+  "godot": {
+    "animationNames": [
+      "VW_MOTION_CONCEAL",
+      "VW_MOTION_EVADE-loop",
+      "VW_MOTION_FORAGE-loop",
+      "VW_MOTION_FREEZE",
+      "VW_MOTION_IDLE-loop",
+      "VW_MOTION_ORIENT",
+      "VW_MOTION_RECOVER"
+    ],
+    "animations": 7,
+    "classes": {
+      "AnimationPlayer": 1,
+      "BoneAttachment3D": 1,
+      "ImporterMeshInstance3D": 11,
+      "Node3D": 3,
+      "Skeleton3D": 1
+    },
+    "skeletonBones": [
+      23
+    ]
+  },
+  "id": "design-3d-glb-skinned-animation-game-smoke-r1",
+  "notes": "Exact mechanical contract for current zero-warning Veilwild F10 successor; names are technical identities only.",
+  "profileId": "design-3d-glb-skinned-animation-r1",
+  "validator": {
+    "animationCount": 7,
+    "drawCallCount": 20,
+    "hasDefaultScene": true,
+    "hasMorphTargets": false,
+    "hasSkins": true,
+    "hasTextures": false,
+    "materialCount": 3,
+    "maxInfluences": 4,
+    "triangleCount": 7408,
+    "vertexCount": 5131
+  }
+}

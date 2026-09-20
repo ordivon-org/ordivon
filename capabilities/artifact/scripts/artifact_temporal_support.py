@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Temporal adapter for canonical Artifact operation envelopes."""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from artifact_operations import ArtifactOperationExecutor, operation_envelope
+from artifact_operations.providers import DirectPythonOperationProvider
+
+
+class ReceiptFencedArtifactExecutor:
+    """Adapter from Temporal activity payloads to ArtifactOperation."""
+
+    def __init__(self, state_root: Path) -> None:
+        self.provider = DirectPythonOperationProvider()
+        self.executor = ArtifactOperationExecutor(state_root, provider=self.provider)
+
+    def execute_operation(self, value: dict[str, Any]) -> dict[str, Any]:
+        return self.executor.execute(value)
+
+    def prepare(self, value: dict[str, Any]) -> dict[str, Any]:
+        return self.execute_operation(
+            operation_envelope(
+                str(value["operationId"]),
+                "prepare",
+                {"request": dict(value["request"])},
+            )
+        )
+
+    def build(self, value: dict[str, Any]) -> dict[str, Any]:
+        return self.execute_operation(
+            operation_envelope(
+                str(value["operationId"]),
+                "build",
+                {"request": dict(value["request"])},
+            )
+        )
+
+    def verify(self, value: dict[str, Any]) -> dict[str, Any]:
+        return self.execute_operation(
+            operation_envelope(
+                str(value["operationId"]),
+                "verify",
+                {
+                    "profile": dict(value["profile"]),
+                    "artifact": dict(value["artifact"]),
+                },
+            )
+        )
+
+    def _validate_trust_material(self, value: dict[str, Any]) -> dict[str, Any]:
+        return self.provider.validate_trust_material(value)
+
+    def verify_trust(self, value: dict[str, Any]) -> dict[str, Any]:
+        return self.execute_operation(
+            operation_envelope(
+                str(value["operationId"]),
+                "verify-trust",
+                {
+                    "profile": dict(value["profile"]),
+                    "artifact": dict(value["artifact"]),
+                    "gateVsas": dict(value["gateVsas"]),
+                    "trustMaterial": dict(value["trustMaterial"]),
+                },
+            )
+        )
+
+    def package(self, value: dict[str, Any]) -> dict[str, Any]:
+        inputs: dict[str, Any] = {
+            "profile": dict(value["profile"]),
+            "artifact": dict(value["artifact"]),
+            "verifyReport": dict(value["verifyReport"]),
+        }
+        local = bool(value.get("allowLocalUnsignedDevelopment", False))
+        if not local and value.get("trustMaterial") is not None:
+            inputs["trustMaterial"] = dict(value["trustMaterial"])
+        return self.execute_operation(
+            operation_envelope(
+                str(value["operationId"]),
+                "package",
+                inputs,
+                {"allowLocalUnsignedDevelopment": local},
+            )
+        )

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "boundary": "Standards, contracts and acceptance evidence are durable. Writers, renderers and converters are replaceable tools selected per profile.",
+  "shared": {
+    "contract": {
+      "standard": "JSON Schema Draft 2020-12",
+      "tool": "python-jsonschema",
+      "version": "4.26.0",
+      "status": "CROSS_FORMAT_PROFILE_MATRIX_PASS",
+      "profiles": ["presentation", "document", "spreadsheet", "fixed-view-pdf", "accessible-pdf", "web"]
+    },
+    "workflow": {"paradigm": "Durable Execution", "tool": "Temporal", "sdk": "temporalio", "version": "1.32.0", "reuseExistingOrdivonSubstrate": true, "status": "REUSE_EXISTING"},
+    "observability": {"standard": "OpenTelemetry", "pythonSdk": "1.44.0", "nodeApi": "1.9.1", "nodeSdk": "0.222.0", "status": "IMPORT_SMOKE_PASS"},
+    "sourceVersioning": {"standard": "Git", "tool": "Git/GitHub"},
+    "buildProvenance": {"statement": "in-toto Statement v1", "predicate": "SLSA Provenance v1", "releaseManifest": "digest-bound assembly manifest"}
+  },
+  "presentation": {
+    "nativeFormat": "OOXML / ISO/IEC 29500",
+    "writer": {"tool": "python-pptx", "version": "1.0.2", "status": "OPENXML_AND_POWERPOINT_TARGET_SMOKE_PASS"},
+    "structuralValidator": {"tool": "DocumentFormat.OpenXml", "version": "3.5.1", "sdk": ".NET 8.0.424"},
+    "referenceRenderer": {"tool": "Microsoft PowerPoint Desktop", "platform": "Windows", "observedVersion": "16.0", "versionPolicy": "capture per run"},
+    "templateSystem": ["THMX", "POTX", "Slide Master", "Slide Layout", "Placeholder"],
+    "rejectedWriterCandidates": [
+      {"tool": "PptxGenJS", "version": "4.0.1", "reason": "generated PPTX fails DocumentFormat.OpenXml 3.5.1 because presentation.xml places notesMasterIdLst before sldSz/notesSz"},
+      {"tool": "pptxgenjs-plus", "version": "4.3.2", "reason": "same strict Open XML schema failure"}
+    ]
+  },
+  "document": {
+    "profile": "document-r1",
+    "structuredConverter": {"tool": "Pandoc", "version": "3.10.2", "status": "DOWNLOAD_DIGEST_AND_DOCX_OPENXML_PASS"},
+    "officeFormat": "DOCX / OOXML / ISO/IEC 29500",
+    "referenceRenderer": {"tool": "Microsoft Word", "platform": "Windows", "versionPolicy": "capture per run", "status": "TARGET_SMOKE_PENDING_WINDOWS_SUBSTRATE"}
+  },
+  "spreadsheet": {
+    "profile": "spreadsheet-r1",
+    "writer": {"tool": "XlsxWriter", "version": "3.2.9", "status": "MINIMAL_AND_STYLED_OPENXML_PASS"},
+    "officeFormat": "XLSX / OOXML / ISO/IEC 29500",
+    "referenceRenderer": {"tool": "Microsoft Excel", "platform": "Windows", "versionPolicy": "capture per run", "status": "TARGET_SMOKE_PENDING_WINDOWS_SUBSTRATE"},
+    "rejectedFinalEmissionCandidates": [
+      {"tool": "openpyxl", "version": "3.1.5", "reason": "minimal and styled generated XLSX fail DocumentFormat.OpenXml 3.5.1 validation in xl/styles.xml; may remain an import/edit utility only if final bytes are normalized and revalidated"}
+    ]
+  },
+  "pdf": {
+    "profiles": ["pdf-fixed-r1", "pdf-accessible-r1"],
+    "standard": "ISO 32000-2",
+    "accessibleStandard": "ISO 14289-2 / PDF-UA-2",
+    "structureTool": {"tool": "qpdf", "version": "12.3.2", "status": "PASS"},
+    "conformanceTool": {"tool": "veraPDF", "version": "1.30.2", "status": "OFFICIAL_SIGNATURE_VERIFIED_INSTALLED_AND_PROFILE_GATE_ACTIVE"},
+    "conformanceEvidence": {"ordinaryPowerPointPdfAsPdfUa2": "EXPECTED_FAIL_CONFIRMED"},
+    "humanReference": "Adobe Acrobat Pro"
+  },
+  "web": {
+    "profile": "web-r1",
+    "standards": ["WHATWG HTML", "CSS", "SVG", "WCAG 2.2"],
+    "automation": {"tool": "Playwright", "version": "1.63.0"},
+    "conformance": {"tool": "Nu Html Checker", "version": "26.9.7 (d73d94b)", "status": "OFFICIAL_RELEASE_ASSET_DIGEST_VERIFIED_AND_PROFILE_GATE_ACTIVE"},
+    "accessibility": {"tool": "axe-core Playwright", "version": "4.13.0"},
+    "renderers": [
+      {"tool": "Chromium", "version": "153.0.8010.12", "role": "primary", "status": "HEADLESS_LAUNCH_AND_AXE_SMOKE_PASS"},
+      {"tool": "Firefox", "version": "155.0", "role": "secondary", "status": "HEADLESS_LAUNCH_SMOKE_PASS"},
+      {"tool": "WebKit", "version": "26.6", "role": "secondary", "status": "LOCAL_ARCH_ABI_BLOCKED", "runnerPolicy": "Use an officially supported Playwright Ubuntu/CI/container runner; do not fake Ubuntu SONAMEs with ABI symlinks."}
+    ]
+  },
+  "design": {
+    "tool": "Figma",
+    "role": "external design-system and component source; not canonical Office document authority"
+  },
+  "orchestration": {
+    "requestContract": {"schema": "artifact-delivery/request-v1.schema.json", "status": "DIGEST_BOUND_REQUEST_VALIDATION_PASS"},
+    "presentationSource": {"schema": "artifact-delivery/presentation-source-v1.schema.json", "builder": "python-pptx 1.0.2", "status": "SOURCE_TO_NATIVE_PPTX_AND_OPENXML_PASS"},
+    "derivedPlan": {"stages": ["build", "verify", "package", "release"], "standing": "STATELESS_PROJECTION", "durableExecutionOwner": "Temporal"},
+    "gateAggregation": {"policy": "fail-closed required profile gates", "standing": "COMPOSER_ONLY_NOT_VALIDATOR"},
+    "verificationSummary": {"statement": "in-toto Statement v1", "predicate": "SLSA Verification Summary v1", "slsaVersion": "1.2", "resourceIdentity": "RFC 6920 ni SHA-256 URI", "localAuthenticity": "PUBLIC_KEY_SIGNATURE_VERIFICATION_PASS", "productionPolicy": "preconfigured signer-to-verifier trust policy + standardized Sigstore bundle"},
+    "sigstoreTrust": {"tool": "cosign", "observedVersion": "3.1.3", "selection": "GPG_VERIFIED_ARCH_REPOSITORY_PACKAGE_3.1.3-1", "bundleMediaType": "application/vnd.dev.sigstore.bundle.v0.3+json", "trustPolicySchema": "artifact-delivery/vsa-trust-policy-v1.schema.json", "publicKeyMode": "PASS_STANDARD_BUNDLE_EXACT_KEY_DIGEST", "localSigningConfig": "SERVICE_EMPTY_NO_AMBIENT_FULCIO_OIDC_REKOR_TSA", "keylessMode": "NOT_EXERCISED_STANDARD_BUNDLE_ONLY_IDENTITY_ISSUER_TLOG_REQUIRED"},
+    "packageStage": {"status": "DIGEST_BOUND_DEVELOPMENT_AND_SIGNED_RELEASE_PACKAGE_PASS", "gateSplit": "verification-vsa vs assembly-provenance", "localUnsignedReleaseReady": false, "signedTrustedReleaseReady": true},
+    "releaseAssembly": {"manifest": "digest-bound", "provenance": ["in-toto Statement v1", "SLSA Provenance v1"]}
+  }
+}

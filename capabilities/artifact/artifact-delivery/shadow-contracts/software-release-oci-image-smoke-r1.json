@@ -1,0 +1,33 @@
+{
+  "contractVersion": 1,
+  "id": "software-release-oci-image-smoke-r1",
+  "profileId": "software-release-oci-image-r1",
+  "image": {
+    "manifestDigest": "sha256:974f718df05cab8852f96363b0404d51777748d5bbc6e665cb36a58f961af018",
+    "os": "linux",
+    "architecture": "amd64",
+    "entrypoint": ["/app"],
+    "workingDir": "/",
+    "expectedFiles": [
+      {"path": "/app", "sha256": "23b4d1eeede0beafe83efee19c141fca536ac98fc936014f6217f65459f6f135"}
+    ]
+  },
+  "runtime": {
+    "network": "none",
+    "exitCode": 0,
+    "stdoutExact": "ordivon-artifact-software-release-r1\n",
+    "stderrExact": ""
+  },
+  "security": {
+    "trivyDbSnapshot": "20260912-r1",
+    "maximumVulnerabilities": 0,
+    "maximumSecrets": 0
+  },
+  "sbom": {
+    "format": "SPDX-2.3-json",
+    "requiredPackages": [
+      {"name": "stdlib", "version": "go1.26.6"}
+    ]
+  },
+  "notes": "Smoke contract for a deterministic Linux/amd64 scratch OCI image built with patched Go 1.26.6."
+}

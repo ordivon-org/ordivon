@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/artifact-delivery-request-v1.json",
+  "title": "Artifact Delivery Request v1",
+  "description": "A digest-bound build/release request envelope. It selects a delivery profile and exact source/material bytes without defining cross-format document semantics or workflow state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "requestId", "profile", "source", "outputDirectory", "builder"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "artifact-delivery-request"},
+    "requestId": {"type": "string", "minLength": 1},
+    "profile": {"$ref": "#/$defs/profileRef"},
+    "source": {"$ref": "#/$defs/sourceRef"},
+    "materials": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/fileRef"},
+      "uniqueItems": true
+    },
+    "outputDirectory": {"type": "string", "minLength": 1},
+    "builder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "buildType"],
+      "properties": {
+        "id": {"type": "string", "format": "uri"},
+        "buildType": {"type": "string", "format": "uri"}
+      }
+    },
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "purpose": {"type": "string"}
+      }
+    },
+    "profileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "purpose": {"type": "string"}
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "sha256"],
+      "properties": {
+        "kind": {
+          "enum": ["presentation-source-v1", "presentation-semantic-svg-source-v1", "markdown", "html-source", "native-file"]
+        },
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "purpose": {"type": "string"}
+      }
+    }
+  }
+}

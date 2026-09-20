@@ -1,0 +1,93 @@
+{
+  "classification": {
+    "conformanceProfile": "ISO 28500:2017 bounded single HTTP response capture",
+    "family": "web-archive",
+    "format": {
+      "mediaType": "application/warc",
+      "name": "WARC/1.1"
+    },
+    "purposes": [
+      "preservation",
+      "evidence"
+    ],
+    "representation": "capture-container"
+  },
+  "id": "web-archive-warc-response-r1",
+  "nonClaims": [
+    "complete website capture",
+    "browser-executed DOM state",
+    "JavaScript/network dependency completeness",
+    "replay fidelity",
+    "robots/policy/legal compliance",
+    "semantic truth of captured content",
+    "WACZ packaging or CDX index correctness"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "web-archive-warc-response-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/web-archive-warc-response-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/warc",
+        "name": "WARC/1.1"
+      },
+      "purpose": "preservation",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "compressedContainer": false,
+      "externalResources": false,
+      "httpVersion": "HTTP/1.1",
+      "metadataRecords": false,
+      "recordCount": 1,
+      "recordType": "response",
+      "requestRecords": false,
+      "requiredDigests": [
+        "WARC-Payload-Digest",
+        "WARC-Block-Digest"
+      ],
+      "revisitRecords": false,
+      "standard": "ISO 28500:2017 WARC",
+      "warcVersion": "WARC/1.1",
+      "warcinfoRecords": false
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "web-archive object contract validates",
+      "required": true
+    },
+    "jsRecordView": {
+      "claim": "warcio.js independently exposes the same response facts and payload bytes",
+      "required": true
+    },
+    "payloadIdentity": {
+      "claim": "both parser views produce the exact contract payload SHA-256",
+      "required": true
+    },
+    "pythonRecordView": {
+      "claim": "warcio Python parser exposes exactly one WARC/1.1 response matching capture facts",
+      "required": true
+    },
+    "warcIntegrity": {
+      "claim": "warcio digest checker accepts the exact WARC",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "independent-parser-matrix",
+      "required": true
+    }
+  ]
+}

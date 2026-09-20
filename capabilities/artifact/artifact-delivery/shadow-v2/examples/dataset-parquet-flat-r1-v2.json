@@ -1,0 +1,96 @@
+{
+  "classification": {
+    "conformanceProfile": "bounded flat primitive tabular Parquet profile",
+    "family": "dataset",
+    "format": {
+      "mediaType": "application/vnd.apache.parquet",
+      "name": "Apache Parquet"
+    },
+    "purposes": [
+      "interchange",
+      "analysis"
+    ],
+    "representation": "columnar"
+  },
+  "id": "dataset-parquet-flat-r1",
+  "nonClaims": [
+    "truth or provenance of field values",
+    "statistical quality, representativeness or absence of bias",
+    "domain semantic correctness",
+    "unit/ontology correctness not encoded by the concrete contract",
+    "schema evolution compatibility",
+    "nested Parquet semantics",
+    "encryption policy",
+    "warehouse/catalog transaction semantics",
+    "database constraints beyond the declared Artifact dataset contract"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "dataset-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/dataset-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/vnd.apache.parquet",
+        "name": "Apache Parquet"
+      },
+      "purpose": "interchange",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "allowedLogicalTypes": [
+        "int64",
+        "string",
+        "float64",
+        "boolean"
+      ],
+      "flatColumnsOnly": true,
+      "listsMapsStructs": false,
+      "nestedTypes": false,
+      "nonFiniteFloatValues": false,
+      "rowOrderSemantics": "row order is not authoritative in R1; canonical comparison is by the declared primary key",
+      "schemaEvolution": "outside R1; one exact dataset contract is bound per verification",
+      "standard": "Apache Parquet file format specification"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "contractSchema": {
+      "claim": "dataset contract is valid under the shadow dataset-contract-v1 JSON Schema",
+      "required": true
+    },
+    "keyIntegrity": {
+      "claim": "declared primary-key columns exist, are non-null and unique",
+      "required": true
+    },
+    "parquetSchema": {
+      "claim": "native Parquet physical/logical/repetition schema agrees with the concrete dataset contract",
+      "required": true
+    },
+    "readerMatrix": {
+      "claim": "independent mature readers agree on row count, schema-relevant facts and canonical logical rows",
+      "parameters": {
+        "minimumIndependentReaders": 2
+      },
+      "required": true
+    },
+    "rowBounds": {
+      "claim": "row count satisfies any contract minimum/maximum bounds",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "independent-implementation-matrix",
+      "minimumIndependentImplementations": 2,
+      "name": "independent-reader-matrix",
+      "required": true
+    }
+  ]
+}

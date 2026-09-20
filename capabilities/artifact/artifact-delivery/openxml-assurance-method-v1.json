@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-openxml-assurance-method-claim-boundary",
+  "methodId": "artifact.openxml.conformance.v1",
+  "claimType": "ooxml-structural-schema-conformance",
+  "standards": [
+    {
+      "id": "ISO/IEC 29500-1:2016",
+      "role": "published OOXML fundamentals/markup baseline; edition 5 is FDIS in approval and is not yet treated as published production authority"
+    },
+    {
+      "id": "ISO/IEC 29500-2:2021",
+      "role": "Open Packaging Conventions"
+    },
+    {
+      "id": "ISO/IEC 29500-3:2015",
+      "role": "Markup Compatibility and Extensibility"
+    }
+  ],
+  "implementation": {
+    "package": "DocumentFormat.OpenXml",
+    "version": "3.5.1",
+    "api": "OpenXmlValidator",
+    "targetFramework": "net8.0"
+  },
+  "supportedArtifactTypes": [
+    "pptx",
+    "docx",
+    "xlsx"
+  ],
+  "positiveClaims": [
+    "the exact digest-bound OOXML subject can be opened by the selected Open XML SDK package type",
+    "OpenXmlValidator reports no validation errors for the selected OOXML format/version rules applied by SDK 3.5.1",
+    "validator evidence identifies the exact subject SHA-256, document type, implementation, package version and API"
+  ],
+  "nonClaims": [
+    "Microsoft Office application behavior or target rendering is correct",
+    "PowerPoint/Word layout is visually correct",
+    "Excel formulas have recalculated to correct values or external data refreshed",
+    "business/domain semantics are correct",
+    "accessibility or human usability is correct",
+    "delivery/read-back preserved the accepted bytes",
+    "using the SDK to construct or manipulate a document guarantees document validity",
+    "a future ISO/IEC 29500 edition still in FDIS is already the production standard"
+  ],
+  "productionGraduationRequires": [
+    "stable-dotnet-carrier",
+    "exact-nuget-closure",
+    "stable-validator-output",
+    "known-good-positive-oracle",
+    "known-bad-negative-fault-corpus",
+    "non-claim-counterexamples",
+    "doctor-current",
+    "latest-main-integration",
+    "production-current",
+    "external-source-reproducible-corpus",
+    "known-oracle-limitation-counterexample",
+    "ivv-explicitly-not-claimed"
+  ],
+  "sourceAnchors": [
+    "ISO/IEC 29500-1:2016 published edition 4",
+    "ISO/IEC 29500-2:2021 published edition 4",
+    "Microsoft Open XML SDK design considerations",
+    "dotnet/Open-XML-SDK v3.5.1 latest stable release as of 2026-09-10"
+  ],
+  "graduationTailoring": {
+    "integrityClass": "bounded deterministic structural gate inside larger Artifact acceptance",
+    "requiredIndependence": "external evidence-source/corpus independence from Ordivon implementation claims",
+    "organizationalIVV": "NOT_CLAIMED",
+    "rationale": "another Agent or another tool operated by the same controller would not satisfy organizational IV&V; bounded method graduation instead requires reproducible upstream-source evidence and explicit oracle limitations while final Artifact acceptance retains independent target/visual/accessibility/delivery gates"
+  }
+}

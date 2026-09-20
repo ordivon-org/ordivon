@@ -1,0 +1,54 @@
+{
+  "shadowProfileVersion": 1,
+  "id": "message-internet-text-r1",
+  "status": "SHADOW_NOT_PRODUCTION_PROFILE",
+  "classification": {
+    "family": "message",
+    "representation": "internet-message",
+    "format": "RFC 5322 Internet Message + MIME text/plain",
+    "mediaType": "message/rfc822",
+    "conformanceProfile": "RFC 5322 + RFC 2045/2046 bounded UTF-8 single-part text message",
+    "targetAuthority": "independent-parser-matrix",
+    "purpose": ["interchange", "preservation"]
+  },
+  "objectContract": {
+    "required": true,
+    "kind": "message-internet-text-contract-v1",
+    "schemaReference": "shadow-contracts/message-internet-text-contract-v1.schema.json",
+    "binding": "request-digest"
+  },
+  "formatPolicy": {
+    "lineEndings": "CRLF",
+    "maximumPhysicalLineLength": 998,
+    "requiredHeaders": ["Date", "From", "To", "Subject", "Message-ID", "MIME-Version", "Content-Type", "Content-Transfer-Encoding"],
+    "singletonHeaders": ["Date", "From", "To", "Subject", "Message-ID", "MIME-Version", "Content-Type", "Content-Transfer-Encoding"],
+    "mimeVersion": "1.0",
+    "contentType": "text/plain",
+    "charset": "utf-8",
+    "contentTransferEncoding": "8bit",
+    "fromAddressCount": 1,
+    "toAddressCount": 1,
+    "multipart": false,
+    "attachments": false,
+    "html": false,
+    "cc": false,
+    "bcc": false
+  },
+  "requiredEvidence": {
+    "contractSchema": {"required": true, "claim": "message object contract validates"},
+    "rawSyntaxPolicy": {"required": true, "claim": "raw message uses bounded RFC line/header structure with required singleton headers"},
+    "pythonParser": {"required": true, "claim": "Python email parser reports no defects and exposes bounded MIME/message facts"},
+    "nodeParser": {"required": true, "claim": "mailparser independently exposes matching header/address/body facts"},
+    "bodyIdentity": {"required": true, "claim": "both parsers decode exactly the expected UTF-8 text body SHA-256"}
+  },
+  "nonClaims": [
+    "SMTP transport/delivery success",
+    "sender identity authentication",
+    "DKIM, SPF, DMARC or ARC validity",
+    "mailbox-container semantics such as mbox/PST/MSG",
+    "multipart/attachment correctness",
+    "HTML rendering safety or fidelity",
+    "semantic truth of message content",
+    "spam/malware classification"
+  ]
+}

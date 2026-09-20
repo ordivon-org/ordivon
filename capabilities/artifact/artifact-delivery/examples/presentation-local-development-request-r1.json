@@ -1,0 +1,25 @@
+{
+  "$schema": "../request-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-request",
+  "requestId": "artifact-request:presentation-local-development-r1",
+  "profile": {
+    "id": "presentation-local-development-r1",
+    "path": "presentation-local-development-r1.json",
+    "sha256": "ade7f3ffc0e6461e92febfd646506ed89f5307320bcc9c334bec31f99204b0e5",
+    "purpose": "development-only local acceptance; never a release profile"
+  },
+  "source": {
+    "kind": "presentation-source-v1",
+    "path": "presentation-local-development-source-r1.json",
+    "sha256": "385b16c6f19912dc6822b331eb0530d73ab9d1cbe8d247ce565cd523ce6c0d51",
+    "purpose": "development-only deterministic native presentation smoke source"
+  },
+  "materials": [],
+  "outputDirectory": "../../.cache/artifact-delivery-orchestration/development-smoke-r1",
+  "builder": {
+    "id": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
+    "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-source-v1"
+  },
+  "notes": "Development-only end-to-end acceptance request. Local unsigned packaging must remain releaseReady=false and must not be published."
+}

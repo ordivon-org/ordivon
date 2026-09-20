@@ -1,0 +1,56 @@
+{
+  "bindingVersion": 1,
+  "id": "software-release-oci-image-local-r1",
+  "profileId": "software-release-oci-image-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "ociTransport": {
+      "tool": "Skopeo", "version": "1.24.0", "path": "/usr/bin/skopeo",
+      "binarySha256": "954b7e2b2798edba844f63d9abae83214089cf11ed03483e620f06f974bd158a"
+    },
+    "runtimeReadback": {
+      "tool": "Podman", "version": "6.1.1", "path": "/usr/bin/podman",
+      "binarySha256": "7cb41329d29492d78f0292a6d0244d5c994a71350201e7a3bb4c298b76408402"
+    },
+    "sbom": {
+      "tool": "Syft", "version": "1.50.0", "path": "/usr/bin/syft",
+      "binarySha256": "e95df1c4a37e7bc4ae26a520f7e57589574bef3fb810d4a548550f36dc9ab038"
+    },
+    "security": {
+      "tool": "Trivy", "version": "0.73.0", "path": "/usr/bin/trivy",
+      "binarySha256": "ab81f5882c4950fa6eca9a2e746e6582aba891a72013824d4976674fb9942112",
+      "dbSnapshot": "20260912-r1", "dbPath": "/opt/ordivon/external/trivy-db/20260912-r1/cache",
+      "dbSha256": "63b60b5493b28e6ce5b3a45753865055f890cea750b7138922963e25446975bf",
+      "dbMetadataSha256": "ad131f125e7913b23abbbe563e79920c333e52e290beb33a050bb640073a10b4"
+    },
+    "smokeBuilderEvidence": {
+      "tool": "Go", "version": "1.26.6", "path": "/opt/ordivon/external/go/1.26.6/bin/go",
+      "archiveSha256": "708effb774be8237570d0add163225abbdfaf4fca28b2611df167beba4feef89",
+      "goBinarySha256": "29e6e0b8be61beb1489ceae62b304343566de8a1dc700af74bde7aeb9c80ad45",
+      "boundary": "builder evidence only; build authorship and source-to-binary correctness remain Engineer-side"
+    }
+  },
+  "proof": {
+    "focusedTests": "9 PASS / 0 FAIL",
+    "validOciRelease": "PASS",
+    "wrongManifestContract": "FAIL_AS_OBJECT_CONTRACT_EXPECTED",
+    "tamperedLayer": "FAIL_DESCRIPTOR_INTEGRITY",
+    "wrongEntrypointContract": "FAIL_AFTER_OCI_BYTES_REMAIN_VALID",
+    "syntheticSecretReportPolicy": "COUNT_ABOVE_ZERO_FAILS_POLICY_WITHOUT_CREATING_REAL_SECRET_FIXTURE",
+    "hostGo1265NegativeControl": "FROZEN_DB_DETECTS_VULNERABILITIES_AND_RELEASE_FAILS",
+    "runtimeOutputMismatch": "STATIC_GATES_PASS_BUT_RUNTIME_READBACK_FAILS",
+    "nonLinuxContract": "FAIL_BEFORE_EXTERNAL_EVIDENCE_PROMOTION",
+    "patchedBuilderDoubleRun": "TWO_INDEPENDENT_BUILD_PLUS_SKOPEO_NORMALIZATION_RUNS_PRODUCED_BYTE_IDENTICAL_OCI_LAYOUTS",
+    "liveSmokeRuntimeJobId": "job-01a09612-aefe-7050-9b7c-48f219b42016",
+    "liveSmokeManifestDigest": "sha256:974f718df05cab8852f96363b0404d51777748d5bbc6e665cb36a58f961af018",
+    "liveSmokeConfigDigest": "sha256:c69aaec3d29824d684c24ed268536e3d7ce4c6a026aa9012eb62c526681e817d",
+    "liveSmokeLayerDigest": "sha256:d26bb946928facdcdf8de9b80bd07e0ae70dd2bdc1b2f01af4aa5170c804e9d8",
+    "liveSmokeRootfsAppSha256": "23b4d1eeede0beafe83efee19c141fca536ac98fc936014f6217f65459f6f135",
+    "liveSmokeContractCanonicalDigest": "045b648dde505cb39b5f9fcb8919786028def3ba50394127f6c021120e5f9c10",
+    "liveSmokeSbomSha256": "33dce89348e8ff280aa137deffc325a1c2ef620cb56fe8dedfa4ba50d5a07a56",
+    "liveSmokeVulnerabilityReportSha256": "d6fc6f56c31f262af063076e7dcb6c6aae343726ec2e3ee7745e61a38972e86f",
+    "liveSmokeSecretReportSha256": "a6c5d8891d95f2f82a12531c7401dfc0a7c453af08427fa997befa0226e6e370",
+    "liveSmokeVulnerabilityCount": 0,
+    "liveSmokeSecretCount": 0
+  }
+}

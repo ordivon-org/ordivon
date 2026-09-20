@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-delivery-external-authoring-provider-lock",
+  "providerId": "https://github.com/hugohe3/ppt-master",
+  "role": "replaceable-svg-to-native-powerpoint-authoring-provider",
+  "source": {
+    "repository": "https://github.com/hugohe3/ppt-master.git",
+    "commit": "7879bbc811f86ed9e43df0053169d885cff942c7"
+  },
+  "entrypoints": {
+    "qualityChecker": "skills/ppt-master/scripts/svg_quality_checker.py",
+    "exporter": "skills/ppt-master/scripts/svg_to_pptx.py"
+  },
+  "boundary": "This lock identifies external authoring-provider source. Artifact still owns independent profile, OpenXML, target, visual, accessibility, package and delivery gates."
+}

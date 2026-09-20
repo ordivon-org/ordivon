@@ -1,0 +1,315 @@
+{
+  "candidateEvidenceObservation": {
+    "required": [
+      "observationKind",
+      "status",
+      "subjectRef",
+      "profileRef",
+      "evaluatorRef",
+      "facts",
+      "evidenceRefs",
+      "nonClaims"
+    ],
+    "rule": "Facts remain verifier-specific opaque structured data; the common envelope binds identity, method, bounded status, references and non-claims without inventing a universal artifact AST."
+  },
+  "candidateStandingDecision": {
+    "axes": {
+      "evidenceCompleteness": [
+        "COMPLETE",
+        "PARTIAL",
+        "PENDING",
+        "NOT_EVALUATED"
+      ],
+      "profileAuthority": [
+        "PRODUCTION",
+        "SHADOW",
+        "UNKNOWN"
+      ],
+      "releaseStatus": [
+        "READY",
+        "NOT_READY",
+        "NOT_EVALUATED"
+      ],
+      "trustStatus": [
+        "UNSIGNED_LOCAL",
+        "AUTHENTICATED",
+        "UNTRUSTED",
+        "NOT_EVALUATED"
+      ],
+      "verificationStatus": [
+        "PASS",
+        "FAIL",
+        "PENDING",
+        "NOT_EVALUATED"
+      ]
+    },
+    "externalAxes": [
+      "consumerDomainAcceptance",
+      "humanPreference"
+    ],
+    "rule": "Consumer-domain acceptance and human preference remain external inputs/decisions and never become Artifact kernel standing axes.",
+    "shape": "MULTI_AXIS_VECTOR"
+  },
+  "cases": [
+    {
+      "id": "presentation-golden-r2",
+      "observations": [
+        {
+          "evidenceRefs": [
+            "edab86242cded837679a987cf8374393c436c45431898f93b7372b033e543e5e"
+          ],
+          "facts": {
+            "api": "OpenXmlValidator",
+            "implementation": "DocumentFormat.OpenXml",
+            "packageVersion": "3.5.1",
+            "validationErrorCount": 0
+          },
+          "observationKind": "structural",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [
+            "bebeaf8e11aac03a2fa16797cefe3c2e270cbe858bd94e7c3debcb6c7805bff3"
+          ],
+          "facts": {
+            "renderer": "Microsoft PowerPoint Desktop",
+            "sourceDigestStableAcrossRender": true,
+            "version": "16.0"
+          },
+          "observationKind": "target",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [
+            "76bc1d7c23de6cfb319d4ef3de47bb2c55623a305bfb65d471866519627a509a"
+          ],
+          "facts": {
+            "blockingDefects": [],
+            "maxMeanAbsChannelDiff255": 2.175923845409292,
+            "maxRmsChannelDiff255": 4.731309788609054
+          },
+          "observationKind": "visual",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [
+            "3b17018191fa41e7db236e8d5a45075abb7e22d2c4cced269ac9fb45596cfccb",
+            "652e70edcd59c4fd867e9cad62730c1c7720c4379577a6e09971ec6e9f1d7cd6"
+          ],
+          "facts": {
+            "companionReadbackSha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe",
+            "primaryReadbackSha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03"
+          },
+          "observationKind": "deliveryReadback:google-drive",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [
+            "4dcc2b797db889042cc7882f825fc6b15b2b8f4b49852a1091b351a978ad48a3",
+            "1cf32508365df2b295dda2c9051f2d60a31c97aeb2bd527859227dd15f02075f"
+          ],
+          "facts": {
+            "companionReadbackSha256": "bea385bfc2d78b82498315c251203c4ee54f0112fe24430a8142cd1aebb850fe",
+            "primaryReadbackSha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03"
+          },
+          "observationKind": "deliveryReadback:windows-workstation",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [
+            "c3e9666b287f7dc29d1eb6371f1aaa088c0eb56b9708e3d29658f9ca29feeecd"
+          ],
+          "facts": {
+            "requiredGateFailures": []
+          },
+          "observationKind": "aggregateFinalGate",
+          "status": "PASS"
+        }
+      ],
+      "profileAuthority": "PRODUCTION",
+      "profileId": "presentation-ultrawide-34x10-r1",
+      "sourceReceipt": "artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-acceptance-r2.json",
+      "standingProjection": {
+        "evidenceCompleteness": "COMPLETE",
+        "nonClaims": [
+          "BUSINESS_CONTENT_CORRECTNESS_NOT_ESTABLISHED",
+          "ACCESSIBILITY_AND_HUMAN_USABILITY_NOT_ACCEPTED",
+          "CROSS_WORKSPACE_BYTE_DETERMINISM_NOT_PROVEN",
+          "FORMAL_THIRD_PARTY_INDEPENDENT_IVV_NOT_CLAIMED",
+          "POWERPOINT_WEB_OPTIONAL_TARGET_NOT_REQUIRED",
+          "BROWSERLESS_MOUNTED_DRIVE_SEARCH_CONVERGENCE_NOT_REQUIRED"
+        ],
+        "profileAuthority": "PRODUCTION",
+        "releaseStatus": "NOT_EVALUATED",
+        "sourceStanding": "ACCEPTED_IN_PROFILE",
+        "trustStatus": "NOT_EVALUATED",
+        "verificationStatus": "PASS"
+      },
+      "subject": {
+        "aspectRatio": "34:10",
+        "format": "pptx",
+        "sha256": "fa48aa4a513f7ab04e05cc374b80592903acae8c39d727cf3c9737d68f2f1d03",
+        "sizeBytes": 2745582,
+        "slideCount": 8
+      }
+    },
+    {
+      "id": "wave-consumer-smoke",
+      "observations": [
+        {
+          "evidenceRefs": [],
+          "facts": {
+            "bitsPerSample": 16,
+            "channels": 1,
+            "formatName": "WAVE_FORMAT_PCM",
+            "formatTag": "0x1",
+            "frameCount": 8880,
+            "sampleRateHz": 48000,
+            "wave": true
+          },
+          "observationKind": "referenceContainerView",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [],
+          "facts": {
+            "bitsPerSample": 16,
+            "channels": 1,
+            "formatName": "WAVE_FORMAT_PCM",
+            "formatTag": "0x1",
+            "frameCount": 8880,
+            "sampleRateHz": 48000,
+            "wave": true
+          },
+          "observationKind": "independentTechnicalView",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [],
+          "facts": {
+            "canonicalPcmSha256": "2d4382d8e8d1f6d071c1147d18a5f40166fa9cc51702840b503b861680c5ad73",
+            "decoderExactMatch": true
+          },
+          "observationKind": "decoderMatrix",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [],
+          "facts": {},
+          "observationKind": "familyVerifier",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [],
+          "facts": {},
+          "observationKind": "verificationService",
+          "status": "PASS"
+        }
+      ],
+      "profileAuthority": "SHADOW",
+      "profileId": "audio-wave-pcm16-r1",
+      "sourceReceipt": "artifact-delivery/consumer-acceptance/game-veilwild-wave-pcm16-r1.json",
+      "standingProjection": {
+        "consumerDomainAcceptance": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+        "consumerDomainAcceptanceKernelStanding": "EXTERNAL_NOT_KERNEL",
+        "evidenceCompleteness": "COMPLETE",
+        "nonClaims": [
+          "This does not graduate Profile v2 from shadow to production.",
+          "This does not establish Ogg/Vorbis, SVG, Tiled, Aseprite, richer glTF or Godot release coverage.",
+          "This does not make Artifact authoritative for Game semantics, audio quality, artistic intent, rights, or player value.",
+          "The consumer-local subject path is observation evidence, not an Artifact transport contract."
+        ],
+        "profileAuthority": "SHADOW",
+        "releaseStatus": "NOT_EVALUATED",
+        "sourceStanding": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+        "trustStatus": "NOT_EVALUATED",
+        "verificationStatus": "PASS"
+      },
+      "subject": {
+        "consumerRelativePath": "experiments/veilwild-r1/godot/modules/f16/audio/vr_orient_tick_a.wav",
+        "identityStanding": "EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED",
+        "sha256": "8eba035f053a9525aa28cd017c32c9d25d791d8d4e8b49b35b509aa17d1c9e23",
+        "size": 17838
+      }
+    },
+    {
+      "id": "png-consumer-smoke",
+      "observations": [
+        {
+          "evidenceRefs": [],
+          "facts": {
+            "decoderExactMatch": true
+          },
+          "observationKind": "decoderMatrix",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [],
+          "facts": {
+            "image": {
+              "channelsNormalized": "srgba 4.0",
+              "colorspace": "sRGB",
+              "depth": 8,
+              "format": "PNG",
+              "height": 24,
+              "width": 72
+            },
+            "pngChunks": [
+              "IHDR",
+              "sRGB",
+              "IDAT",
+              "IEND"
+            ]
+          },
+          "observationKind": "profileFacts",
+          "status": "PASS"
+        },
+        {
+          "evidenceRefs": [],
+          "facts": {},
+          "observationKind": "verificationService",
+          "status": "PASS"
+        }
+      ],
+      "profileAuthority": "SHADOW",
+      "profileId": "still-image-png-srgb-r1",
+      "sourceReceipt": "artifact-delivery/consumer-acceptance/game-station-zero-still-image-r1.json",
+      "standingProjection": {
+        "consumerDomainAcceptance": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+        "consumerDomainAcceptanceKernelStanding": "EXTERNAL_NOT_KERNEL",
+        "evidenceCompleteness": "COMPLETE",
+        "nonClaims": [
+          "This does not graduate Artifact Profile v2 from shadow to production.",
+          "This does not establish full Game asset-format coverage or a generic Game asset pipeline.",
+          "This does not make Artifact authoritative for Game semantics, artistic quality, player value, or rights.",
+          "The consumer-local subject path is observation evidence, not an Artifact transport contract.",
+          "A later consumer revision must rebind and reverify changed subject bytes."
+        ],
+        "profileAuthority": "SHADOW",
+        "releaseStatus": "NOT_EVALUATED",
+        "sourceStanding": "CONSUMER_SMOKE_PASS_SHADOW_PROFILE",
+        "trustStatus": "NOT_EVALUATED",
+        "verificationStatus": "PASS"
+      },
+      "subject": {
+        "consumerRelativePath": "web-v3/assets/rescue-expression.png",
+        "identityStanding": "EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED",
+        "sha256": "3c06b38a623cf89119562a0c9573de77e4e6752d92f336891acf371c9dda36d5",
+        "size": 247
+      }
+    }
+  ],
+  "findings": [
+    "A common EvidenceObservation envelope can preserve these heterogeneous receipts if verifier-specific facts remain opaque structured payloads.",
+    "A single scalar standing cannot distinguish verification result, profile authority, evidence completeness, trust authenticity, release readiness and consumer-domain acceptance.",
+    "Consumer smoke standing is external to Artifact kernel even when it embeds Artifact verification PASS.",
+    "Presentation frozen acceptance can be projected as multiple observations, but the selected manifest is an aggregate acceptance artifact rather than the raw verify-stage receipt set; this projection must not be treated as proof that every historical raw receipt shares one schema.",
+    "Document remains represented at request-model level in this slice because no selected frozen document receipt was used; no evidence-shape claim is inferred for it."
+  ],
+  "kind": "artifact-evidence-standing-pressure-test",
+  "nextQuestion": "Can raw verify-stage gate receipts and raw family verifier outputs be adapted to the candidate EvidenceObservation envelope with lossless round-trip projections?",
+  "schemaVersion": 1,
+  "sourceRevision": "10d0f076c32621f50f7c60ef6f847e19ea2cc9ec",
+  "standing": "COMMON_OBSERVATION_ENVELOPE_PLAUSIBLE_SINGLE_SCALAR_STANDING_REJECTED",
+  "truthRole": "planning-projection-not-production-contract"
+}

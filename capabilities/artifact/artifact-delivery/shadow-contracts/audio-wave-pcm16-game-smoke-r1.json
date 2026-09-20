@@ -1,0 +1,12 @@
+{
+  "audio": {
+    "bitsPerSample": 16,
+    "channels": 1,
+    "expectedPcmSha256": "2d4382d8e8d1f6d071c1147d18a5f40166fa9cc51702840b503b861680c5ad73",
+    "frameCount": 8880,
+    "sampleRateHz": 48000
+  },
+  "contractVersion": 1,
+  "id": "game-veilwild-vr-orient-tick-r1",
+  "profileId": "audio-wave-pcm16-r1"
+}

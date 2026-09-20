@@ -1,0 +1,93 @@
+{
+  "$schema": "../profile-v1.schema.json",
+  "profileVersion": 1,
+  "id": "pdu-sdu-presentation-r1",
+  "artifactClass": "presentation",
+  "authorityMode": "generated-managed",
+  "locale": "zh-CN",
+  "aspectRatio": "16:9",
+  "primaryOutput": {
+    "format": "pptx",
+    "purpose": "editable-windows-powerpoint",
+    "required": true,
+    "editable": true
+  },
+  "companions": [
+    {
+      "format": "pdf",
+      "purpose": "portable-mobile-view",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "targetRenderer": {
+    "name": "Microsoft PowerPoint Desktop",
+    "platform": "Windows",
+    "required": true
+  },
+  "secondaryRenderers": [
+    {
+      "name": "PowerPoint Web",
+      "platform": "Web",
+      "required": false
+    }
+  ],
+  "unsupportedRenderers": [
+    "iOS Quick Look PPT preview",
+    "WeChat PPT renderer"
+  ],
+  "fontPolicy": "REQUIRED",
+  "fonts": [
+    {
+      "family": "Microsoft YaHei",
+      "required": true,
+      "targetFiles": [
+        "msyh.ttc",
+        "msyhbd.ttc",
+        "msyhl.ttc"
+      ],
+      "embeddingPermission": "unknown",
+      "licenseReference": "Resolve embedding rights before any embedded-font delivery; target installation is the R1 default."
+    },
+    {
+      "family": "Arial",
+      "required": true,
+      "targetFiles": [
+        "arial.ttf",
+        "arialbd.ttf",
+        "ariali.ttf",
+        "arialbi.ttf"
+      ],
+      "embeddingPermission": "unknown",
+      "licenseReference": "Target installation is the R1 default; resolve embedding rights separately before embedded-font delivery."
+    }
+  ],
+  "gates": {
+    "profileSchema": true,
+    "structural": true,
+    "dependency": true,
+    "semantic": true,
+    "visual": true,
+    "target": true,
+    "companionPdf": true,
+    "deliveryReadback": true
+  },
+  "deliveryTargets": [
+    "google-drive",
+    "windows-workstation"
+  ],
+  "semanticPolicy": {
+    "placeholderPatterns": [
+      "TODO",
+      "TBD",
+      "XXX",
+      "PLACEHOLDER"
+    ],
+    "minimumSlideCount": 1
+  },
+  "renderEvidence": {
+    "widthPx": 1920,
+    "heightPx": 1080
+  },
+  "notes": "Golden R1 case. PPTX is editable authority output for Windows PowerPoint; companion PDF is portable visual delivery. Mobile PPT preview parity is not promised."
+}

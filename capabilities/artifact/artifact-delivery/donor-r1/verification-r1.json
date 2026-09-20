@@ -1,0 +1,50 @@
+{
+  "baseRevision": "2d0f06c23df09f3f098ec36ffa49d7d532dac3b0",
+  "boundary": "PASS establishes deterministic donor generation, exact source-reference digests, complete current Artifact family/profile coverage including the bounded electronic-design slice, preserved live-proven shadow bindings, profile-specific validator ownership, non-promotion of execution wiring, and no regression in the canonical Artifact source cut. KiCad/ngspice remain external semantic authorities; PCB DRC/export and bounded SPICE measures do not claim electrical correctness, manufacturability, safety, hardware behavior, or a universal EDA ontology. Linux ELF release verification remains final-byte identity/structure/readback knowledge only; producer build/reproducibility, security isolation, signing/provenance and store release remain separate authorities.",
+  "coverage": {
+    "isolatedValidatorImplementations": 19,
+    "liveProvenShadowBindings": 19,
+    "normalizedProfiles": 27,
+    "representedFamilies": 16,
+    "taxonomyFamilies": 16
+  },
+  "donorManifestSha256": "8006ee20d710f89e33211280fde1e2faaa640a4adc20ddaa2391f895f6752080",
+  "focusedDonorTests": {
+    "failed": 0,
+    "passed": 10,
+    "total": 10,
+    "runtimeJobId": "job-01a0a4b1-f0c7-7f51-b34d-3ec2fd495fc8",
+    "operationDigest": "sha256:b26a8a24bed80bd27ff54fd788765e8ffeb0e26b5bd82f220144430ba3397399"
+  },
+  "fullRegression": {
+    "failed": 0,
+    "passed": 293,
+    "skipped": 4,
+    "total": 297,
+    "runtimeJobId": "job-01a0a4ad-22a7-7972-89ad-7e0da1d5abad",
+    "operationDigest": "sha256:69f69ae9eca62a3af3915b2b9ecc401c750a57ef25a464e882b5ebd16f04e5f2"
+  },
+  "profileV2Mapping": {
+    "familyCount": 16,
+    "mappingCount": 27,
+    "manifestSha256": "f17b0eba2682344899cabbb031d4012232ccf2d498eb051d2ba306c6c720b566",
+    "semanticByteRevalidationJobId": "job-01a0a4b2-4fb8-7df2-ba99-6293efcd5d08",
+    "semanticByteRevalidationOperationDigest": "sha256:ee359dac3174a15d0e0b7d6676948de3da9cc91705a2245285e54e84fdf91c98"
+  },
+  "toolchainDoctor": {
+    "status": "PASS",
+    "runtimeJobId": "job-01a0a4af-ee36-75d3-b17a-54d46d14cee6",
+    "operationDigest": "sha256:0e7aa2d46416f32c08606f6fd3d53058ee85fbadce9c86eb17bda515bdd398db",
+    "webkitBoundary": "WEBKIT_SUPPORTED_RUNNER_REQUIRED"
+  },
+  "donorRegeneration": {
+    "runtimeJobId": "job-01a0a4b1-a366-76e0-a2e3-6a6de0008cf9",
+    "operationDigest": "sha256:e9bc9ec230692e66efd5b1c9264132669c2b614c8ed80a1bee4a0ac58f05a17f"
+  },
+  "id": "artifact-k2a-donor-r1-verification-r1",
+  "kind": "artifact-k2a-donor-verification",
+  "operationDigest": "sha256:69f69ae9eca62a3af3915b2b9ecc401c750a57ef25a464e882b5ebd16f04e5f2",
+  "runtimeJobId": "job-01a0a4ad-22a7-7972-89ad-7e0da1d5abad",
+  "schemaVersion": 1,
+  "standing": "PASS"
+}

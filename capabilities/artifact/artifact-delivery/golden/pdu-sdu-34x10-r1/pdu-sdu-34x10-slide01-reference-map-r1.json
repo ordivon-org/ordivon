@@ -1,0 +1,29 @@
+{
+  "$schema": "../../presentation-source-v1.schema.json",
+  "schemaVersion": 1,
+  "kind": "presentation-source",
+  "presentationId": "presentation:pdu-sdu-34x10-slide01-migration-r1",
+  "profileId": "presentation-ultrawide-34x10-r1",
+  "sourceMode": "reference-map",
+  "locale": "zh-CN",
+  "aspectRatio": "34:10",
+  "slideSizeInches": {
+    "width": 34.0,
+    "height": 10.0
+  },
+  "slides": [
+    {
+      "id": "slide-01",
+      "title": "面向敏捷交付的研发组织变革——液态组织下 PDU / SDU 职责与举措",
+      "purpose": "cover",
+      "layoutId": "Blank",
+      "legacySource": {
+        "artifactName": "75B93BA3-2B4A-429F-8F60-2EB9ACA0DFBD.jpeg",
+        "sha256": "97237ff50567e495b0ec56543dd644143fed4a5241dd038814c775c732ceb998",
+        "slideIndex": 1
+      },
+      "speakerNotes": "Approved visual authority from the current 34:10 deck. This reference-map does not claim native reconstruction or buildability until the exact committed raster bytes are materialized through a mature input authority. Approved business content must not be changed by Artifact E2E."
+    }
+  ],
+  "notes": "Controlled migration source map for slide 1 only. Image dimensions observed from the provided authority: 1536x452. Raster transport into Runtime is currently unavailable; no false native-build PASS is claimed."
+}

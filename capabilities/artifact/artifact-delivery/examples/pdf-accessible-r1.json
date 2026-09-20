@@ -1,0 +1,23 @@
+{
+  "$schema": "../profile-v1.schema.json",
+  "profileVersion": 1,
+  "id": "pdf-accessible-r1",
+  "artifactClass": "accessible",
+  "authorityMode": "generated-managed",
+  "locale": "en-US",
+  "primaryOutput": {"format": "pdf-ua-2", "purpose": "accessible-portable-document", "required": true, "editable": false},
+  "targetRenderer": {"name": "Adobe Acrobat Pro", "platform": "Windows/macOS", "required": true},
+  "gates": {
+    "profileSchema": true,
+    "structural": true,
+    "visual": true,
+    "target": true,
+    "accessibility": true,
+    "conformance": true,
+    "deliveryReadback": true,
+    "releaseProvenance": true
+  },
+  "conformancePolicy": {"pdfFlavour": "ua2"},
+  "deliveryTargets": ["google-drive", "windows-workstation"],
+  "notes": "PDF/UA-2 profile. veraPDF ua2 validation is required but does not replace human accessibility/use review."
+}

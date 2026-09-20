@@ -1,0 +1,145 @@
+{
+  "classification": {
+    "family": "presentation",
+    "format": {
+      "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "name": "pptx"
+    },
+    "purposes": [
+      "editable-windows-powerpoint"
+    ],
+    "representation": "office-package"
+  },
+  "construction": {
+    "authorityMode": "generated-managed",
+    "locale": "zh-CN"
+  },
+  "deliveryDefaults": {
+    "targets": [
+      "google-drive",
+      "windows-workstation"
+    ]
+  },
+  "id": "presentation-ultrawide-34x10-r1",
+  "nonClaims": [],
+  "notes": "Generic 34:10 editable PowerPoint delivery profile. 3400x1000 is a canonical QA render size, not a claim about a physical LED/display pixel matrix. Target-render, visual, PDF companion and delivery read-back remain independent gates.",
+  "outputs": [
+    {
+      "editable": true,
+      "format": {
+        "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "name": "pptx"
+      },
+      "purpose": "editable-windows-powerpoint",
+      "required": true,
+      "role": "primary"
+    },
+    {
+      "editable": false,
+      "format": {
+        "mediaType": "application/pdf",
+        "name": "pdf"
+      },
+      "purpose": "portable-mobile-view",
+      "required": true,
+      "role": "companion"
+    }
+  ],
+  "profilePolicy": {
+    "presentation": {
+      "aspectRatio": "34:10",
+      "fontPolicy": "REQUIRED",
+      "fonts": [
+        {
+          "embeddingPermission": "unknown",
+          "family": "Microsoft YaHei",
+          "licenseReference": "Resolve embedding rights before any embedded-font delivery; target installation is the R1 default.",
+          "required": true,
+          "targetFiles": [
+            "msyh.ttc",
+            "msyhbd.ttc",
+            "msyhl.ttc"
+          ]
+        },
+        {
+          "embeddingPermission": "unknown",
+          "family": "Arial",
+          "licenseReference": "Target installation is the R1 default; resolve embedding rights separately before embedded-font delivery.",
+          "required": true,
+          "targetFiles": [
+            "arial.ttf",
+            "arialbd.ttf",
+            "ariali.ttf",
+            "arialbi.ttf"
+          ]
+        }
+      ],
+      "renderEvidence": {
+        "heightPx": 1000,
+        "widthPx": 3400
+      },
+      "semanticPolicy": {
+        "minimumSlideCount": 1,
+        "placeholderPatterns": [
+          "TODO",
+          "TBD",
+          "XXX",
+          "PLACEHOLDER"
+        ]
+      }
+    },
+    "unsupportedTargets": [
+      "iOS Quick Look PPT preview",
+      "WeChat PPT renderer"
+    ]
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "companionPdf": {
+      "claim": "required companion PDF exists and is accepted",
+      "required": true
+    },
+    "deliveryReadback": {
+      "claim": "delivered bytes are read back and identity-checked",
+      "required": true
+    },
+    "dependency": {
+      "claim": "declared build/render dependencies are satisfied",
+      "required": true
+    },
+    "profileSchema": {
+      "claim": "profile schema validation",
+      "required": true
+    },
+    "semantic": {
+      "claim": "profile-specific semantic checks",
+      "required": true
+    },
+    "structural": {
+      "claim": "artifact structural validity",
+      "required": true
+    },
+    "target": {
+      "claim": "required target authority acceptance",
+      "required": true
+    },
+    "visual": {
+      "claim": "visual evidence satisfies the profile",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "Microsoft PowerPoint Desktop",
+      "platform": "Windows",
+      "required": true
+    },
+    {
+      "authorityClass": "native-consumer",
+      "name": "PowerPoint Web",
+      "platform": "Web",
+      "required": false
+    }
+  ]
+}

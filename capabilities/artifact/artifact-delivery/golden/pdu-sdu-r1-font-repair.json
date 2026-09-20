@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-golden-source-repair-receipt-index",
+  "truthRole": "candidate-source-repair-not-target-acceptance",
+  "profileId": "pdu-sdu-presentation-r1",
+  "policy": {
+    "scope": "render-relevant OOXML parts only: slides, slideLayouts, slideMasters",
+    "mapping": {
+      "latin:Aptos": "Arial",
+      "ea:Aptos": "Microsoft YaHei",
+      "cs:Aptos": "Arial"
+    },
+    "themeSymbolicReferences": "retained; +mj-* and +mn-* are not concrete font dependencies",
+    "silentFallback": "forbidden"
+  },
+  "candidates": [
+    {
+      "source": {"name": "PDU_SDU_解释版_8页.pptx", "sha256": "4534bce68f184b6f841b8f07b82312b3137344775145e015019bb299c198f329"},
+      "output": {"name": "PDU_SDU_解释版_8页_fontfixed_r1.pptx", "sha256": "fdd1aca9c4cef977a2c1f447987f5ab66ee1c9bab6f13c056ccc8f4a784e8bf1", "sizeBytes": 388602},
+      "replacementCount": 33,
+      "concreteRenderTypefaces": ["Arial", "Microsoft YaHei"],
+      "aptosRemaining": 0,
+      "slideCount": 8,
+      "aspectRatio": "16:9",
+      "driveFileId": "external-gdrive:file:1X-cHFpJ_vE5V4PnAVoUDwiBtRnO4EU7q",
+      "driveReadbackExact": true
+    },
+    {
+      "source": {"name": "PDU_SDU_论证版_8页.pptx", "sha256": "1b407368a7ceb008a44ac002a2b8c2fdf29e829a432c193b434719986597dcfa"},
+      "output": {"name": "PDU_SDU_论证版_8页_fontfixed_r1.pptx", "sha256": "c66b873650657131144ab373dc3ac13f7740ec16a3889aee7cceec905d2fa98c", "sizeBytes": 352790},
+      "replacementCount": 27,
+      "concreteRenderTypefaces": ["Arial", "Microsoft YaHei"],
+      "aptosRemaining": 0,
+      "slideCount": 8,
+      "aspectRatio": "16:9",
+      "driveFileId": "external-gdrive:file:1SJKq8x9UGTdevA0fkgHM_NdRZZQ09PeT",
+      "driveReadbackExact": true
+    }
+  ],
+  "repairReceiptSha256": "36d6a48d9dd5a55e99bd49d053969dbb8e1be06a98ca82ef7469658d6260b708",
+  "secondaryEvidenceSha256": "bbca6f81927eadddada97e0b7d482febbb2143630efa07cf144d4f3d0aaeac75",
+  "boundary": "These source transformations are not Microsoft PowerPoint target acceptance and do not establish final recipient usability."
+}

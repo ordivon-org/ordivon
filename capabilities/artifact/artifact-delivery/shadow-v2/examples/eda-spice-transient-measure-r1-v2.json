@@ -1,0 +1,76 @@
+{
+  "classification": {
+    "conformanceProfile": "ngspice transient analysis with request-bound .measure ranges R1",
+    "family": "electronic-design",
+    "format": {
+      "mediaType": "text/plain",
+      "name": "SPICE-family text netlist"
+    },
+    "purposes": [
+      "simulation",
+      "verification"
+    ],
+    "representation": "simulation-netlist"
+  },
+  "id": "eda-spice-transient-measure-r1",
+  "nonClaims": [
+    "circuit design intent",
+    "all SPICE dialects or device models",
+    "global stability or convergence",
+    "model/tolerance/corner fidelity",
+    "signal or power integrity",
+    "safety, regulatory compliance or physical hardware behavior"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "eda-spice-transient-measure-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/eda-spice-transient-measure-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "text/plain",
+        "name": "SPICE-family text netlist"
+      },
+      "purpose": "simulation",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "analysisSelection": "the exact netlist owns the selected analysis; R1 verifies a successful transient result only",
+      "measurementAuthority": "ngspice native .measure output",
+      "noCustomCircuitParser": true,
+      "parseAndSimulationAuthority": "ngspice batch mode with user init disabled"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "dataRows": {
+      "claim": "transient analysis produces at least the request-bound minimum data-row count",
+      "required": true
+    },
+    "measurements": {
+      "claim": "every request-bound named .measure result exists and lies within its numeric interval",
+      "required": true
+    },
+    "nativeSimulation": {
+      "claim": "ngspice batch execution succeeds without fatal parse/simulation errors",
+      "required": true
+    },
+    "toolIdentity": {
+      "claim": "evidence binds exact ngspice bytes and version",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "ngspice 47",
+      "required": true
+    }
+  ]
+}

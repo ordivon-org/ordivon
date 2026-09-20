@@ -1,0 +1,31 @@
+{
+  "bindingVersion": 1,
+  "id": "cad-step-solid-local-r1",
+  "profileId": "design-3d-step-solid-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "targetCadConsumer": {
+      "tool": "FreeCAD",
+      "version": "1.1.3",
+      "path": "/opt/ordivon/external/freecad/1.1.3/root/usr/bin/freecadcmd",
+      "appImageSha256": "3a853eb69ee595f779f2255dbf80a765926981d8ff68903cefee4dfb03a8f5ef"
+    },
+    "structuralReader": {
+      "tool": "Open CASCADE",
+      "version": "7.9.3",
+      "path": "/opt/ordivon/external/occt-step-inspector/1/cad_step_inspect",
+      "binarySha256": "529b9e38508030a9e3db0e7b84e3ad185dd0cb2ea5d2e365657991a5adcdc652"
+    }
+  },
+  "proof": {
+    "parametricPositiveRuntimeJobId": "job-01a0a4c9-30ba-70b1-b251-06f7232d6d73",
+    "parametricPositiveOperationDigest": "sha256:eef075aa5da39c0c0b320d5a0d6fddc57f531e1f863cc78540c0a6f3095ce085",
+    "occtReadbackRuntimeJobId": "job-01a0a4f0-f0e1-7943-9def-088b786c82ba",
+    "occtReadbackOperationDigest": "sha256:57c2bb35fbb012dbeae40d1df2469ab669930b6cfae62514ac6766185b773ced",
+    "destructiveNegativeRuntimeJobId": "job-01a0a4fa-2772-7350-ab0d-a75e0fac0809",
+    "destructiveNegativeOperationDigest": "sha256:aa0e41a2fb48b326df0f57a14759359557abbc7bdc528498e19478c2b9afc7af",
+    "positive": "40x30x20 mm block with centered Ø10 mm through-hole; one valid solid, 7 faces, 15 unique edges, volume 22429.2036732051 mm3",
+    "destructiveNegatives": "truncated STEP rejected by OCCT native parser; valid STEP with deliberately wrong xmax contract rejected after successful geometry readback"
+  },
+  "boundary": "Local proof establishes one bounded single-solid metric STEP exchange profile across FreeCAD 1.1.3 and system OCCT 7.9.3. Both share OCCT lineage; no universal cross-kernel, assembly, PMI, BIM or manufacturing claim is created."
+}

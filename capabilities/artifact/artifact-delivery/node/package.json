@@ -1,0 +1,20 @@
+{
+  "name": "@ordivon/artifact-delivery-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Replaceable mature web/observability tooling for Artifact Build & Delivery E2E profiles; not a domain ontology.",
+  "scripts": {
+    "probe": "node ./probe.mjs"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-node": "0.222.0",
+    "@playwright/test": "1.63.0"
+  },
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": "26.9.0"
+  }
+}

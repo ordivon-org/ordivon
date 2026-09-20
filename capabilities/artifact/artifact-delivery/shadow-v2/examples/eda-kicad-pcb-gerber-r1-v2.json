@@ -1,0 +1,86 @@
+{
+  "classification": {
+    "conformanceProfile": "KiCad PCB error-DRC plus contract-bound Gerber/Excellon R1",
+    "family": "electronic-design",
+    "format": {
+      "mediaType": "application/x-kicad-pcb",
+      "name": "KiCad PCB (.kicad_pcb)"
+    },
+    "purposes": [
+      "editable-authoring",
+      "verification",
+      "manufacturing-exchange"
+    ],
+    "representation": "pcb-layout-authoring-source"
+  },
+  "id": "eda-kicad-pcb-gerber-r1",
+  "nonClaims": [
+    "schematic-to-PCB parity",
+    "electrical function or circuit correctness",
+    "signal integrity, power integrity or EMC behavior",
+    "manufacturing yield or fab-house acceptance",
+    "component availability, BOM correctness or sourcing",
+    "safety, regulatory compliance or product fitness",
+    "all KiCad PCB features or all EDA formats"
+  ],
+  "notes": "Mapped from standards-first shadow profile; remains non-production until profile-v2 graduation.",
+  "objectContract": {
+    "binding": "request-digest",
+    "kind": "eda-kicad-pcb-contract-v1",
+    "required": true,
+    "schemaReference": "shadow-contracts/eda-kicad-pcb-contract-v1.schema.json"
+  },
+  "outputs": [
+    {
+      "format": {
+        "mediaType": "application/x-kicad-pcb",
+        "name": "KiCad PCB (.kicad_pcb)"
+      },
+      "purpose": "editable-authoring",
+      "required": true,
+      "role": "primary"
+    }
+  ],
+  "profilePolicy": {
+    "formatPolicy": {
+      "drcAuthority": "KiCad CLI native DRC at error severity",
+      "exportAuthority": "KiCad CLI native manufacturing exporters",
+      "manufacturingOutputs": [
+        "Gerber selected layers plus .gbrjob",
+        "Excellon drill plus drill report"
+      ],
+      "noUniversalEdaAst": true,
+      "sourceAuthority": "KiCad native .kicad_pcb bytes"
+    }
+  },
+  "profileVersion": 2,
+  "requiredEvidence": {
+    "boardContract": {
+      "claim": "KiCad board statistics match exact request-bound dimensions, outline, through-hole pad count and minimum drill diameter",
+      "required": true
+    },
+    "excellonExport": {
+      "claim": "non-empty Excellon drill output and drill report materialize",
+      "required": true
+    },
+    "gerberExport": {
+      "claim": "selected Gerber layers and Gerber job metadata materialize as non-empty files",
+      "required": true
+    },
+    "nativeDrc": {
+      "claim": "exact PCB bytes produce zero KiCad error-severity DRC violations",
+      "required": true
+    },
+    "toolIdentity": {
+      "claim": "evidence binds the exact observed kicad-cli bytes and version",
+      "required": true
+    }
+  },
+  "targetAuthorities": [
+    {
+      "authorityClass": "native-consumer",
+      "name": "KiCad CLI 10.0.x",
+      "required": true
+    }
+  ]
+}

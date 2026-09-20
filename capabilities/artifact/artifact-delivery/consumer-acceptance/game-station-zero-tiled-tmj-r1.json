@@ -1,0 +1,111 @@
+{
+  "artifactOwnedAuthorities": {
+    "capabilityBinding": {
+      "relativePath": "artifact-delivery/shadow-bindings/design-2d-tiled-tmj-local-r1.json",
+      "sha256": "e1a9132fb35aa272a6a4efa20d9f2cac04e64b425ec57b7a3f2e5b1f156552df",
+      "standing": "LOCAL_LIVE_PROVEN"
+    },
+    "objectContract": {
+      "relativePath": "artifact-delivery/shadow-contracts/game-station-zero-tiled-tmj-r1.json",
+      "sha256": "b6a8501fbe10bb999e0811280b2b3f3d9a46f5b1c149e85483582681c669bf09"
+    },
+    "profile": {
+      "id": "design-2d-tiled-tmj-object-map-r1",
+      "relativePath": "artifact-delivery/shadow-v2/examples/design-2d-tiled-tmj-object-map-r1-v2.json",
+      "sha256": "9852ae811fc691dc1159cb084aebcd9bdb359cb15780e4a71852f9e60d86b772",
+      "standing": "SHADOW_PROFILE_LIVE_VERIFIER"
+    },
+    "verifier": {
+      "function": "verify_tiled_tmj",
+      "relativePath": "scripts/artifact_tiled.py",
+      "sha256": "d0d1628c49c4653eb2752998462f98ed60ece07a4b3db341f56cf4e5085f954f"
+    }
+  },
+  "artifactSource": {
+    "baseRevision": "f696ad3ada655d1bd3bd2fc66fda8ceea945e34f",
+    "repository": "/root/projects/ordivon-artifact-v2"
+  },
+  "consumer": {
+    "purpose": "Station Zero v3 non-authoritative spatial authoring source",
+    "repository": "/root/projects/ordivon-game",
+    "revision": "14dfc8cf479468025ba786f5451df36ce91bfd58"
+  },
+  "gameMigrationEvidence": {
+    "gameCheck": "432 PASS / 0 FAIL",
+    "layoutDigest": "21efdf5b69858953aaef55abd0bb143f5eb24f5be8f3a3c3bcfe6cb86cc5b527",
+    "operationDigest": "sha256:618cd12022d8b705b25c97490c0323f30986dd5afd8dea3393ae24cca72a42ad",
+    "revision": "14dfc8cf479468025ba786f5451df36ce91bfd58",
+    "runtimeJobId": "job-01a09a64-88a1-7cc0-b691-bb9215e82c34"
+  },
+  "id": "game-station-zero-tiled-tmj-r1",
+  "kind": "artifact-consumer-acceptance-evidence",
+  "nativeCrossFormatRoundTrip": {
+    "backCanonicalJsonSha256": "d696373f58d2b1df95e49c3a35b5efd7c4508eef1d77d6edceeafc6aa04ba2bc",
+    "evidenceStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "failures": [],
+    "status": "PASS"
+  },
+  "nativeRasterReadback": {
+    "evidenceStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "failures": [],
+    "render": {
+      "alphaBoundingBox": [
+        59,
+        79,
+        1132,
+        652
+      ],
+      "height": 768,
+      "nonEmptyAlpha": true,
+      "pngSha256": "d63a67b3b2b672439d28e31b4eb22454c451121ed5c13eba77ecc466f00b9624",
+      "width": 1216
+    },
+    "status": "PASS"
+  },
+  "nativeTmjRoundTrip": {
+    "evidenceStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "failures": [],
+    "roundTripCanonicalJsonSha256": "d696373f58d2b1df95e49c3a35b5efd7c4508eef1d77d6edceeafc6aa04ba2bc",
+    "status": "PASS"
+  },
+  "nonClaims": [
+    "This does not graduate Profile v2 from shadow to production.",
+    "Artifact does not define the meaning of Zones, Passages, object type strings, custom properties or Game topology.",
+    "This does not establish pathfinding, collision, navigation, gameplay or artistic correctness.",
+    "The profile does not claim support for Tiled tile layers, tilesets, image/group layers, infinite maps or external templates/resources."
+  ],
+  "observedAt": "2026-09-13",
+  "schemaVersion": 1,
+  "serviceEvidence": {
+    "jobId": "job-01a09a69-2215-75a2-a260-d689d851a4e6",
+    "operationDigest": "sha256:ecfb8f6406a104bb5ff3e53140190666e66a8ea2da64ae4b5357c6df5996d306",
+    "requestDigest": "db29802e53c0c0134d845093710bb26e4eaaf381472bb2c223aa0a16168c1dbe"
+  },
+  "standing": "CONSUMER_SMOKE_PASS_NATIVE_CANONICAL_ROUNDTRIP",
+  "subject": {
+    "relativePath": "experiments/station-zero-v3/assets/station-zero-layout.tmj",
+    "sha256": "5f4e572b8ad0de05c1532bab37f115281c18c37b6f79077ba2d90c54b9f0a2f7",
+    "size": 30930
+  },
+  "technicalFacts": {
+    "canonicalJsonSha256": "d696373f58d2b1df95e49c3a35b5efd7c4508eef1d77d6edceeafc6aa04ba2bc",
+    "formatVersion": "1.10",
+    "height": 24,
+    "layerCount": 2,
+    "layerTypes": [
+      "objectgroup",
+      "objectgroup"
+    ],
+    "objectCount": 40,
+    "objectShapeCounts": {
+      "polyline": 20,
+      "rectangle": 20,
+      "unsupported": 0
+    },
+    "orientation": "orthogonal",
+    "tileHeight": 32,
+    "tileWidth": 32,
+    "tiledVersion": "1.12.2",
+    "width": 38
+  }
+}

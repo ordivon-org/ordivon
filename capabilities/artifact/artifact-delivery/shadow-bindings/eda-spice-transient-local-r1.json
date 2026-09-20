@@ -1,0 +1,15 @@
+{
+  "bindingVersion": 1,
+  "id": "eda-spice-transient-local-r1",
+  "profileId": "eda-spice-transient-measure-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {"nativeSimulator": {"tool": "ngspice", "path": "/usr/bin/ngspice", "version": "47", "binarySha256": "3e0f126c93dc66ac2b80ac3043eba5c57b0ee545aa323cdc06f59b3d86f6a70e"}},
+  "proof": {
+    "prototypeRuntimeJobId": "job-01a0a3a7-a276-7d82-b190-4b18a676fdca",
+    "prototypeOperationDigest": "sha256:803e5661a345c0ae10ab7127dc4787a0e4744a6505d90e39e6d37cf93c1a685c",
+    "positive": "RC transient: exit 0, 453 data rows, vmax=0.717983, vend=0.264563",
+    "destructiveNegativeRuntimeJobId": "job-01a0a3a6-28d2-7c81-a4a2-ad1f721ad236",
+    "destructiveNegative": "malformed element: exit 1, unknown parameter, simulation interrupted"
+  },
+  "boundary": "Local proof establishes one transient-measure profile only; no circuit-design or physical-hardware correctness claim is created."
+}

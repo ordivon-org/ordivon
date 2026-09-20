@@ -1,0 +1,52 @@
+{
+  "bindingVersion": 1,
+  "bindings": {
+    "ffmpeg": {
+      "binarySha256": "46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+      "package": "ffmpeg 2:9.0-5",
+      "path": "/usr/bin/ffmpeg",
+      "tool": "FFmpeg",
+      "version": "9.0"
+    },
+    "ffprobe": {
+      "binarySha256": "1e165ca6749e6343f71cf85eb3b90283db0e40e3e04ee3adfb703e81d8459a7c",
+      "package": "ffmpeg 2:9.0-5",
+      "path": "/usr/bin/ffprobe",
+      "tool": "FFprobe",
+      "version": "9.0"
+    },
+    "sndfileInfo": {
+      "binarySha256": "5ce1c1a91f743186413607f62ac5eef8e839ce4c028218e07e30dfbbc334bb50",
+      "package": "libsndfile 1.2.2-4",
+      "path": "/usr/bin/sndfile-info",
+      "tool": "libsndfile sndfile-info",
+      "version": "1.2.2"
+    },
+    "sox": {
+      "binarySha256": "646d899b53c1c3fb94d8f48032a1e5eee549df75b22b4819a6be896af0d36947",
+      "package": "sox 14.8.0.1-1",
+      "path": "/usr/bin/sox",
+      "tool": "SoX_ng",
+      "version": "14.8.0.1"
+    }
+  },
+  "id": "audio-wave-pcm16-local-r1",
+  "profileId": "audio-wave-pcm16-r1",
+  "proof": {
+    "decoderMatrix": "FFmpeg and SoX exact canonical s16le byte equality",
+    "focusedTests": "5 PASS / 0 FAIL",
+    "gameConsumerArtifactSha256": "8eba035f053a9525aa28cd017c32c9d25d791d8d4e8b49b35b509aa17d1c9e23",
+    "gameConsumerContractCanonicalDigest": "fa3df5f605af0d7baeca95bdcea6f98bea4ae0052a6bf017069f1681238af48a",
+    "gameConsumerPcmSha256": "2d4382d8e8d1f6d071c1147d18a5f40166fa9cc51702840b503b861680c5ad73",
+    "gameConsumerRelativePath": "experiments/veilwild-r1/godot/modules/f16/audio/vr_orient_tick_a.wav",
+    "gameConsumerRevision": "413882d197c672c22898d8c7d3c0316f9eaf6997",
+    "gameConsumerSmokeRuntimeJobId": "job-01a09a1f-d464-7833-9293-5d2383c7220e",
+    "independentTechnicalView": "FFprobe wav/pcm_s16le codec tag 0x0001",
+    "invalidWave": "FAIL_CLOSED",
+    "referenceContainerView": "libsndfile WAVE_FORMAT_PCM 0x0001",
+    "validWavePcm16Contract": "PASS",
+    "wrongExpectedPcmDigest": "FAIL_AFTER_DECODER_MATRIX_PASS",
+    "wrongSampleRateContract": "FAIL_AFTER_CONTAINER_REMAINS_READABLE"
+  },
+  "status": "LOCAL_LIVE_PROVEN"
+}

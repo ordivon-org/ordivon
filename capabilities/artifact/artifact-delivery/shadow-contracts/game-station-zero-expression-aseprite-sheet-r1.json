@@ -1,0 +1,18 @@
+{
+  "contractVersion": 1,
+  "export": {
+    "dataBasename": "rescue-expression.json",
+    "dataFormat": "json-array",
+    "expectedNativeMetadataSha256": "0fdadf83d876b77e774e085dbd7a8ee50336a333e082f833360a8ca666f32189",
+    "expectedPngSha256": "3c06b38a623cf89119562a0c9573de77e4e6752d92f336891acf371c9dda36d5",
+    "frameCount": 3,
+    "height": 24,
+    "listTags": true,
+    "sheetBasename": "rescue-expression.png",
+    "sheetType": "horizontal",
+    "width": 72
+  },
+  "id": "game-station-zero-expression-aseprite-sheet-r1",
+  "notes": "Exact current Station Zero Aseprite native horizontal-sheet derivation contract. Game retains semantic authority for frame/tag/actor meaning and caller-owned metadata.",
+  "profileId": "design-2d-aseprite-horizontal-sheet-r1"
+}

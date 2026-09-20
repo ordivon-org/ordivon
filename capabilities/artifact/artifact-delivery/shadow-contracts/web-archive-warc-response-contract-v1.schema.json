@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact WARC Response Contract v1 (shadow)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "id", "profileId", "capture"],
+  "properties": {
+    "contractVersion": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "profileId": {"const": "web-archive-warc-response-r1"},
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targetUri", "warcDate", "recordId", "httpStatus", "contentType", "payloadSha256"],
+      "properties": {
+        "targetUri": {"type": "string", "format": "uri"},
+        "warcDate": {"type": "string", "format": "date-time"},
+        "recordId": {"type": "string", "pattern": "^<urn:uuid:[0-9a-fA-F-]{36}>$"},
+        "httpStatus": {"type": "integer", "minimum": 100, "maximum": 599},
+        "contentType": {"type": "string", "minLength": 1},
+        "payloadSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "notes": {"type": "string"}
+  }
+}

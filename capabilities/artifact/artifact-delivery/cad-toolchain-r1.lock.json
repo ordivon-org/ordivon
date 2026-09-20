@@ -1,0 +1,27 @@
+{
+  "freecad": {
+    "appImagePath": "/opt/ordivon/external/freecad/1.1.3/FreeCAD_1.1.3-Linux-x86_64-py311.AppImage",
+    "appImageSha256": "3a853eb69ee595f779f2255dbf80a765926981d8ff68903cefee4dfb03a8f5ef",
+    "freecadAppLibraryPath": "usr/lib/libFreeCADApp.so",
+    "freecadAppLibrarySha256": "5c55278b18bbd155c2e822a77527c537b588b4e124d2670ab0302ae6633ffdf3",
+    "freecadBaseLibraryPath": "usr/lib/libFreeCADBase.so",
+    "freecadBaseLibrarySha256": "47f0d886c4e3423d3cfba835b85cf26bbb7efae875aeec27e262f8ea9b15d950",
+    "freecadCmdPath": "usr/bin/freecadcmd",
+    "freecadCmdSha256": "26390efaa5f21653c583315bf67124e31a2767165cbfcd29aaf96370a868d153",
+    "partModulePath": "usr/lib/Part.so",
+    "partModuleSha256": "6041e6c34c3f668433f5d26a24994731a6e00c89a6676de4b4abab857dba5b18",
+    "rootPath": "/opt/ordivon/external/freecad/1.1.3/root",
+    "version": "1.1.3"
+  },
+  "kind": "artifact-cad-toolchain-lock",
+  "occtInspector": {
+    "binarySha256": "529b9e38508030a9e3db0e7b84e3ad185dd0cb2ea5d2e365657991a5adcdc652",
+    "occtPackage": "opencascade 1:7.9.3-3",
+    "path": "/opt/ordivon/external/occt-step-inspector/1/cad_step_inspect",
+    "sourcePath": "scripts/cad_step_inspect.cpp",
+    "sourceSha256": "923d8f71f529a9f5cf420d71aad5cd2cfc188b79016e62c48408b543b1af3fb6",
+    "version": "1"
+  },
+  "profileId": "design-3d-step-solid-r1",
+  "schemaVersion": 1
+}

@@ -1,0 +1,42 @@
+{
+  "bindingVersion": 1,
+  "id": "audio-flac-pcm16-local-r1",
+  "profileId": "audio-flac-pcm16-r1",
+  "status": "LOCAL_LIVE_PROVEN",
+  "bindings": {
+    "referenceDecoder": {
+      "tool": "FLAC reference tools",
+      "version": "1.5.0",
+      "flacPath": "/opt/ordivon/external/flac/1.5.0-1/flac",
+      "flacBinarySha256": "73091e774fa7c80e6c97b6efe9ba9b1b8fb01ed27cba83e377f320b4ce7d42d9",
+      "metaflacPath": "/opt/ordivon/external/flac/1.5.0-1/metaflac",
+      "metaflacBinarySha256": "db558716cd01aca0b5b807b5f5377079f82cfe0a119d5c8e2e1bd2405222ebc6",
+      "packageSha256": "7c8dce6bde402b9d243fd240847722a57b94df1dbf53e0cabc9119219dd04735",
+      "packageSignatureVerification": "PASS"
+    },
+    "independentDecoder": {
+      "tool": "FFmpeg / FFprobe",
+      "version": "9.0",
+      "package": "ffmpeg 2:9.0-5",
+      "ffmpegPath": "/usr/bin/ffmpeg",
+      "ffmpegSha256": "46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+      "ffprobePath": "/usr/bin/ffprobe",
+      "ffprobeSha256": "1e165ca6749e6343f71cf85eb3b90283db0e40e3e04ee3adfb703e81d8459a7c",
+      "installedPackageValidation": "Arch package database reports Signature"
+    }
+  },
+  "proof": {
+    "focusedTests": "7 PASS / 0 FAIL",
+    "validNativeFlacContract": "PASS",
+    "wrongSampleRateContract": "FAIL_AFTER_REFERENCE_INTEGRITY_PASS",
+    "corruptAudioFrame": "FAIL_CLOSED",
+    "validFlacPictureMetadata": "REFERENCE_INTEGRITY_PASS_BUT_PROFILE_FAIL",
+    "wrongExpectedPcmDigest": "FAIL_AFTER_TWO_DECODERS_EXACTLY_AGREE",
+    "nonR1BitDepthContract": "FAIL_BEFORE_DECODER_PROMOTION",
+    "liveSmokeRuntimeJobId": "job-01a095e3-7945-75c0-a9e4-2ca26be99637",
+    "liveSmokeArtifactSha256": "033007e2f17db0b5a9a9a020f3fa1a2de1b485d0f87fabbcb5cbd8f75c670a3d",
+    "liveSmokeContractCanonicalDigest": "f28d14db8a76b5b069bff6a7883869715fe4901ed4f5c03b8fd852cedcb8efbb",
+    "liveSmokePcmSha256": "ba1d2877f8fea56cb5c8c8b37be25d0b3910408e8ecf0e58559dacf8eb8b7507",
+    "liveSmokePcmMd5": "bd4ab533291afc436287daaa424b7c6a"
+  }
+}
