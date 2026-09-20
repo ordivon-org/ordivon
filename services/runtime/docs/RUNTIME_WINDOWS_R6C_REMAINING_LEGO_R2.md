@@ -1,6 +1,6 @@
 # Native Windows R6c Remaining LEGO Plan R2
 
-Status: C1/C2 PASS; C3/C4/C5 pending
+Status: C1/C2/C3 PASS; C4/C5 pending
 Date: 2026-09-19
 Candidate service: OrdivonRuntimeR6Candidate
 Candidate node: windows-main-r6-candidate
@@ -110,44 +110,42 @@ Acceptance-tooling residual, not a C1/C2 blocker:
 
 ## LEGO C3 — WSL independence
 
+Verified on 2026-09-20 against release 00ae7525ff0d444f91f6250d5f055c635c0e092e: **PASS**.
+
 Authority owner:
 - Windows SCM / OrdivonRuntimeR6Candidate owns candidate lifecycle and observation;
 - the interactive Windows user that owns the Lxss registration owns WSL distribution lifecycle;
-- Microsoft wsl.exe remains the mechanism, but it must run under the owning user identity.
+- Microsoft wsl.exe remains the fault mechanism and runs under the owning interactive-user identity;
+- Workstation owns the node-local Cloudflare connector realization; Runtime Core does not.
 
-Preflight evidence on 2026-09-20:
-- archlinux is registered as WSL2 in an interactive-user hive;
-- limited candidate service identity can invoke wsl.exe but sees no user-owned running distributions;
-- elevated Runtime authority is LocalSystem and direct wsl.exe execution fails with
-  WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED;
-- therefore neither Runtime service authority is the correct owner for destructive user-WSL
-  lifecycle operations;
-- the existing linux-local/windows-native provider was then probed read-only and confirmed to run
-  under the interactive Windows user identity, not SYSTEM, and to see archlinux as running;
-- that carrier Job was job-01a0bd7d-7e9d-7003-b3a9-1be52ee7a433 and is qualified to issue the
-  future C3 fault without broadening Runtime service authority;
-- frozen C3/C4 preflight v3 digest:
+Preflight established that neither the limited Windows Runtime service identity nor LocalSystem is
+the correct authority for destructive user-WSL lifecycle operations. The qualified interactive-user
+carrier was therefore used only to inject the fault.
+
+Accepted experiment:
+1. native OrdivonRuntimeR6Candidate was Running/Auto at PID 7032;
+2. native Windows Cloudflared was Running/Auto at PID 7464 with four provider-native HA connections;
+3. the interactive-user fault executed exact wsl.exe --terminate archlinux and returned exit code 0;
+4. archlinux was absent from the post-fault running-distribution observation;
+5. Runtime remained Running/Auto at PID 7032;
+6. Cloudflared remained Running/Auto at PID 7464 with four HA connections;
+7. authenticated remote runtime.describe and a new native Windows Runtime Job both succeeded while
+   archlinux was still offline.
+
+Evidence:
+- machine-readable witness: docs/evidence/windows-r6c-c3-pass-20260920.json;
+- fault evidence digest:
+  sha256:75c1b06c9b649ea46f78732e1f8d8a8be724455e22784867ff3fd3957f982d83;
+- frozen preflight digest:
   sha256:dfa42acb7aa34ad98cfd0addbd796ccd5ef29ccb0488e87818d29f582156e41a.
 
-Precondition:
-- observation of windows-main must not depend on a WSL-hosted Windows provider;
-- the fault-injection command must run under the interactive user identity that owns archlinux.
+Post-acceptance, the WSL-only ordivon-cloudflare-canary.service was disabled and stopped while
+production Cloudflare A/B remained active. The Windows Runtime connector remained remotely
+reachable after that retirement. This deletes the WSL dependency from the Windows Runtime ingress
+without moving Linux Runtime/Host ingress to Windows.
 
-Experiment:
-1. prove candidate RUNNING and authenticated MCP reachable from the native Windows control plane;
-2. under the owning interactive-user authority invoke exact wsl.exe --terminate archlinux;
-3. from that same user authority prove archlinux is offline;
-4. independently prove candidate SCM state remains RUNNING and authenticated MCP remains reachable;
-5. repeat later with wsl.exe --shutdown only after all WSL-dependent work has an explicit
-   disposition.
-
-Important:
-- terminating WSL can interrupt the current live Linux Runtime and other conversations. Therefore
-  C3 destructive execution is deferred until the candidate can become the observation/control
-  carrier for the acceptance itself and all active WSL-dependent work has an explicit disposition.
-
-Acceptance:
-- Windows-main remains available while WSL is genuinely offline.
+A later wsl.exe --shutdown experiment remains an optional broader workstation fault and is not
+required to establish this C3 distribution-independence result.
 
 ## LEGO C4 — cold boot / auto start
 
@@ -226,5 +224,5 @@ C2 reconciliation   C3 WSL independence
               v
      compatibility deletion
 
-C1 and C2 are now closed by native candidate evidence. C3 and C4 remain deliberately gated
+C1, C2, and C3 are now closed by native candidate evidence. C4 remains deliberately gated
 because they can disrupt unrelated active work. Production 8897/windows-main remains untouched.

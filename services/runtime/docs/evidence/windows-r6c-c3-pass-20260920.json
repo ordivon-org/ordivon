@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime.windows-r6c-c3-acceptance",
+  "observedAt": "2026-09-20",
+  "release": "00ae7525ff0d444f91f6250d5f055c635c0e092e",
+  "nodeId": "windows-main-r6-candidate",
+  "fault": {
+    "mechanism": "wsl.exe --terminate archlinux",
+    "authority": "interactive Windows user owning the WSL registration",
+    "exitCode": 0,
+    "archlinuxVisibleAfter": false
+  },
+  "nativeRuntime": {
+    "service": "OrdivonRuntimeR6Candidate",
+    "stateBefore": "Running",
+    "stateAfter": "Running",
+    "startModeBefore": "Auto",
+    "startModeAfter": "Auto",
+    "pidBefore": 7032,
+    "pidAfter": 7032
+  },
+  "remoteIngress": {
+    "provider": "cloudflared",
+    "windowsService": "Cloudflared",
+    "stateBefore": "Running",
+    "stateAfter": "Running",
+    "startModeBefore": "Auto",
+    "startModeAfter": "Auto",
+    "pidBefore": 7464,
+    "pidAfter": 7464,
+    "providerNativeHaConnectionsAfter": 4,
+    "authenticatedRuntimeDescribeWhileWslOffline": true
+  },
+  "faultEvidence": {
+    "windowsPath": "C:\\Users\\Public\\Documents\\ordivon-r6c-c3-r2-evidence.json",
+    "sha256": "75c1b06c9b649ea46f78732e1f8d8a8be724455e22784867ff3fd3957f982d83"
+  },
+  "postAcceptanceRetirement": {
+    "wslCanaryUnit": "ordivon-cloudflare-canary.service",
+    "enabled": false,
+    "active": false,
+    "linuxProductionAActive": true,
+    "linuxProductionBActive": true,
+    "windowsRuntimeConnectorReachableAfterRetirement": true
+  },
+  "nonClaims": [
+    "C4 cold-boot acceptance",
+    "C5 production cutover",
+    "wsl.exe --shutdown acceptance",
+    "Cloudflare credential contents or validity beyond the observed working connector"
+  ]
+}
