@@ -7257,6 +7257,131 @@ fn native_windows_runtime_release_rejects_missing_broker_digest() {
 }
 
 #[test]
+fn deployed_runtime_release_receipt_recovers_orphaned_attempt_and_releases_capacity() {
+    let sandbox = Sandbox::new("runtime-release-orphan-recovery", 5_000);
+    let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+    let release_request = RuntimeReleaseRequest {
+        schema_version: RUNTIME_SCHEMA_VERSION,
+        client_request_id: "request:runtime-release-orphan-recovery".to_string(),
+        principal: "principal:test".to_string(),
+        workspace_id: "workspace:test".to_string(),
+        commit: "e".repeat(40),
+        candidate_manifest_digest: digest(b"orphan-release-candidate"),
+        expected_tool_count: 23,
+    };
+    let request_digest = runtime_release_request_identity_digest(&release_request).unwrap();
+    let effect_id = runtime_release_effect_id(&release_request);
+    let receipt = sandbox.root.join(format!("effect-{effect_id}"));
+    let binding = RuntimeReleaseEffectBinding {
+        contract: RuntimeReleaseContract::RuntimeReleaseV1,
+        effect_id: effect_id.clone(),
+        request_digest: request_digest.clone(),
+        workspace_id: release_request.workspace_id.clone(),
+        commit: release_request.commit.clone(),
+        candidate_manifest_digest: release_request.candidate_manifest_digest.clone(),
+        expected_tool_count: release_request.expected_tool_count,
+        receipt_path: receipt.to_string_lossy().into_owned(),
+    };
+    let mut submission = request(&sandbox, &release_request.client_request_id, 1);
+    submission.request_identity_digest = Some(request_digest.clone());
+    submission.execution_provider = Some(ExecutionProviderSnapshot {
+        contract: ExecutionProviderContract::LocalLinuxRunnerV1,
+        executable_digest: file_digest(Path::new("/usr/bin/true")),
+        wsl_distribution: None,
+    });
+    submission.runtime_release_effect = Some(binding);
+    let created = created(sandbox.registry.submit(&submission).unwrap());
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"self-replacement-orphan"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"supervisor-lost-during-restart")),
+            finished_at_ms: 20,
+            artifacts: Vec::new(),
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 1);
+
+    fs::create_dir_all(&receipt).unwrap();
+    let release_effect_json = serde_json::json!({
+        "contract": "runtime_release_v1",
+        "effectId": effect_id,
+        "requestDigest": request_digest,
+        "commit": release_request.commit,
+        "candidateManifestDigest": release_request.candidate_manifest_digest,
+        "expectedToolCount": release_request.expected_tool_count,
+    });
+    fs::write(
+        receipt.join("effect-request.json"),
+        serde_json::to_vec_pretty(&release_effect_json).unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        receipt.join("result.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "schemaVersion": 2,
+            "status": "deployed",
+            "commit": release_request.commit,
+            "releaseEffect": release_effect_json,
+            "probe": {
+                "toolCount": release_request.expected_tool_count,
+                "toolCatalogDigest": digest(b"catalog"),
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let report = runtime.reconcile_recoverable_orphans().unwrap();
+    assert_eq!(report.recovered_orphans, 1);
+    let projection = sandbox
+        .registry
+        .job_snapshot(&created.job.job_id)
+        .unwrap()
+        .projection;
+    assert_eq!(projection.status, "succeeded");
+    assert_eq!(projection.attempt_state, Some(AttemptState::Succeeded));
+    assert_eq!(
+        projection.execution_disposition,
+        Some(JobResolution::Succeeded)
+    );
+    assert_eq!(
+        projection.execution_reason_code.as_deref(),
+        Some("RUNTIME_RELEASE_RECEIPT_DEPLOYED")
+    );
+    assert!(!projection.recovery_required);
+    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 0);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::Released
+    );
+
+    let release = runtime
+        .get_runtime_release_effect(&RuntimeReleaseGetRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            principal: release_request.principal,
+            client_request_id: release_request.client_request_id,
+        })
+        .unwrap();
+    assert_eq!(
+        release.effect_disposition,
+        RuntimeReleaseDisposition::Deployed
+    );
+    assert!(release.effect_terminal);
+    assert_eq!(release.attempt_state, Some(AttemptState::Succeeded));
+    assert!(!release.recovery_required);
+}
+
+#[test]
 fn runtime_release_effect_binds_operation_and_receipt_truth_overrides_job_progress() {
     let sandbox = Sandbox::new("runtime-release-effect", 5_000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
