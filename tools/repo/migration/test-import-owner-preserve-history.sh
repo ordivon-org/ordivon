@@ -6,6 +6,7 @@ IMPORTER="$SCRIPT_DIR/import-owner-preserve-history.sh"
 TMP_ROOT="$(mktemp -d /root/ordivon-migration-tmp/preserve-history-test.XXXXXX)"
 SOURCE="$TMP_ROOT/source"
 TARGET_ROOT="$TMP_ROOT/target"
+TARGET_EXPLICIT="$TMP_ROOT/target-explicit"
 BACKUP="/root/ordivon-migration-backups/2026-09-20/preserve-sample.bundle"
 
 cleanup() {
@@ -69,5 +70,32 @@ test -s "$MAP"
 grep -F "$SOURCE_HEAD $SOURCE_HEAD" "$MAP" >/dev/null
 grep -F "$SOURCE_HEAD" "$RECEIPT" >/dev/null
 grep -F 'historyMode: identity-preserving-merge' "$RECEIPT" >/dev/null
+
+# An explicitly supplied frozen bundle must be consumed in place rather than
+# copied or recreated under the default backup date.
+git init -b main "$TARGET_EXPLICIT" >/dev/null
+git -C "$TARGET_EXPLICIT" config user.name "Ordivon Migration Test"
+git -C "$TARGET_EXPLICIT" config user.email "migration-test@localhost"
+mkdir -p "$TARGET_EXPLICIT/docs/migration/receipts"
+printf '# target explicit\n' >"$TARGET_EXPLICIT/README.md"
+git -C "$TARGET_EXPLICIT" add README.md
+git -C "$TARGET_EXPLICIT" commit -m "initialize explicit target" >/dev/null
+
+"$IMPORTER" explicit-sample "$SOURCE" "$SOURCE_HEAD" capabilities/sample "$TARGET_EXPLICIT" "$BACKUP"
+EXPLICIT_AFTER="$(git -C "$TARGET_EXPLICIT" rev-parse HEAD)"
+git -C "$TARGET_EXPLICIT" merge-base --is-ancestor "$SOURCE_HEAD" "$EXPLICIT_AFTER"
+test -f "$TARGET_EXPLICIT/capabilities/sample/a.txt"
+EXPLICIT_RECEIPT="$TARGET_EXPLICIT/docs/migration/receipts/explicit-sample.md"
+grep -F -- "- Bundle: $BACKUP" "$EXPLICIT_RECEIPT" >/dev/null
+grep -F -- "- Bundle SHA-256: $(sha256sum "$BACKUP" | awk '{print $1}')" "$EXPLICIT_RECEIPT" >/dev/null
+git -C "$TARGET_EXPLICIT" add docs/migration/receipts
+git -C "$TARGET_EXPLICIT" commit -m "record explicit import" >/dev/null
+
+set +e
+"$IMPORTER" missing-explicit "$SOURCE" "$SOURCE_HEAD" capabilities/missing "$TARGET_EXPLICIT"   "$TMP_ROOT/does-not-exist.bundle" >/dev/null 2>"$TMP_ROOT/missing.err"
+missing_rc=$?
+set -e
+test "$missing_rc" -eq 66
+grep -F 'explicit bundle does not exist' "$TMP_ROOT/missing.err" >/dev/null
 
 echo "PASS preserve-history import smoke"

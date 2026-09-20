@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 5 ]; then
-  echo "usage: $0 ID SOURCE REVISION TARGET TARGET_ROOT" >&2
+if [ "$#" -ne 5 ] && [ "$#" -ne 6 ]; then
+  echo "usage: $0 ID SOURCE REVISION TARGET TARGET_ROOT [BUNDLE]" >&2
   exit 64
 fi
 
@@ -12,7 +12,12 @@ REVISION="$3"
 TARGET="$4"
 TARGET_ROOT="$5"
 BACKUP_ROOT="/root/ordivon-migration-backups/2026-09-20"
-BUNDLE="$BACKUP_ROOT/$ID.bundle"
+DEFAULT_BUNDLE="$BACKUP_ROOT/$ID.bundle"
+BUNDLE="${6:-$DEFAULT_BUNDLE}"
+EXPLICIT_BUNDLE=0
+if [ "$#" -eq 6 ]; then
+  EXPLICIT_BUNDLE=1
+fi
 RECEIPT_DIR="$TARGET_ROOT/docs/migration/receipts"
 TEMP_REF="refs/ordivon/import-sources/$ID"
 
@@ -42,7 +47,12 @@ fi
 install -d -m 0700 "$BACKUP_ROOT"
 mkdir -p "$RECEIPT_DIR"
 
-if [ ! -f "$BUNDLE" ]; then
+if [ "$EXPLICIT_BUNDLE" -eq 1 ]; then
+  if [ ! -f "$BUNDLE" ]; then
+    echo "explicit bundle does not exist: $BUNDLE" >&2
+    exit 66
+  fi
+elif [ ! -f "$BUNDLE" ]; then
   git -C "$SOURCE" bundle create "$BUNDLE" --all
 fi
 git -C "$SOURCE" bundle verify "$BUNDLE" >/dev/null
