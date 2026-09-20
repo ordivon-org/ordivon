@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.enterprise-operating-model-r1-acceptance",
+  "standing": "PASS_REAL_INTERNAL_WORK_DOGFOOD",
+  "work": "Standard-Native Enterprise Environment R2",
+  "qualityPlanCriteria": 8,
+  "risksTreated": 7,
+  "activatedProviders": [
+    "check-jsonschema-0.38.0",
+    "git-ordivon-next",
+    "ordivon-runtime",
+    "standard-native-enterprise-r2",
+    "strictdoc-0.29.0"
+  ],
+  "dormantProvidersPreserved": [
+    "erpnext",
+    "flowable-bpmn-cmmn-dmn",
+    "n8n",
+    "plane-openproject",
+    "temporal"
+  ],
+  "boundary": "Acceptance proves a bounded operating-model composition over a real internal improvement project. It does not prove ISO certification, external customer acceptance, or universal provider applicability."
+}

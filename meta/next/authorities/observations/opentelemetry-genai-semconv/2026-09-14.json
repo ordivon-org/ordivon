@@ -1,0 +1,11 @@
+{
+  "authorityId": "opentelemetry-genai-semconv",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "development-moving-source",
+  "note": "OpenTelemetry marks semantic conventions as Development and has moved GenAI conventions to a dedicated repository. Treat field names and stability as current observations, not a frozen ontology.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://opentelemetry.io/docs/specs/semconv/gen-ai/",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

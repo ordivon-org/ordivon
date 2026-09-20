@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-iec-29500-1-2016",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-to-be-revised",
+  "note": "Current published Edition 4; ISO/IEC FDIS 29500-1 Edition 5 is in approval and is expected to replace it.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/71691.html",
+  "schemaVersion": 1,
+  "versionObserved": "2016"
+}

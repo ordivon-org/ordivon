@@ -1,0 +1,11 @@
+{
+  "authorityId": "openlineage-spec",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "OpenLineage documentation site observed at project/docs version 1.53.0; individual facet schemas remain independently versioned, so catalog identity stays rolling-source.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://openlineage.io/docs/spec/",
+  "schemaVersion": 1,
+  "versionObserved": "1.53.0"
+}

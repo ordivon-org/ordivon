@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "qudt-units-3.5.1",
+  "identity": {
+    "issuer": {
+      "id": "qudt",
+      "name": "QUDT.org"
+    },
+    "title": "QUDT Units Vocabulary 3.5.1",
+    "authorityKind": "open-vocabulary",
+    "identityMode": "versioned",
+    "versionLabel": "3.5.1",
+    "officialSource": "https://www.qudt.org/doc/DOC_VOCAB-UNITS.html",
+    "publicationDate": "2026-08-29"
+  },
+  "discovery": {
+    "aliases": [
+      "QUDT Units 3.5.1",
+      "QUDT unit vocabulary"
+    ],
+    "topics": [
+      "units",
+      "quantities",
+      "dimensions",
+      "measurement",
+      "semantic-units"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research",
+      "engineering"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "QUDT publishes machine-readable vocabularies and documentation publicly."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "ucum-spec",
+      "sdmx-3.1"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-semantics-externalization-r1",
+      "official QUDT Units 3.5.1 documentation checked 2026-09-20"
+    ]
+  }
+}

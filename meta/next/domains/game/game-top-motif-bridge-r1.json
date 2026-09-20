@@ -1,0 +1,2718 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-next.game-top-motif-bridge.r1",
+  "observedDate": "2026-09-14",
+  "standing": "EXTERNAL_LOCAL_EVIDENCE_BRIDGE_R1",
+  "authorityBoundary": [
+    "External recurrence does not establish causation.",
+    "Local structural/counterfactual evidence does not establish Human Player Value.",
+    "Bridge priority only identifies claims worth testing because external recurrence and local evidence touch related mechanism elements.",
+    "A bridge is not a product recommendation and does not upgrade either source evidence class."
+  ],
+  "sourceTopSpecimens": "game-top-mechanism-specimens-r3.json",
+  "sourceLocalEvidence": "game-mechanism-evidence-r2.json",
+  "motifCount": 33,
+  "motifs": [
+    {
+      "id": "m07",
+      "name": "Multiple timescales create durable loops",
+      "claim": "Top specimens often couple second-to-second actions, session commitments and long-horizon progression/economy so one timescale changes another.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-cs2",
+        "top-dota2",
+        "top-factorio",
+        "top-hades",
+        "top-stardew",
+        "top-civ6"
+      ],
+      "supportCount": 6,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "bottleneck",
+            "required-goal"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "automatic-resource-growth"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "feedback-control",
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation",
+            "required-goal"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 14,
+      "bridgePriorityScore": 17
+    },
+    {
+      "id": "m04",
+      "name": "Path dependence creates build identity",
+      "claim": "Earlier choices should alter the value or availability of later choices; otherwise progression becomes a linear shopping list.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-dota2",
+        "top-slay-spire",
+        "top-balatro",
+        "top-hades",
+        "top-bg3",
+        "top-civ6"
+      ],
+      "supportCount": 6,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "build-path-dependency",
+            "drafting",
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "upgrade-choice"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "required-goal",
+            "route-network-building"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence",
+            "required-goal"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "required-goal",
+            "route-network-building"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 13,
+      "bridgePriorityScore": 17
+    },
+    {
+      "id": "m02",
+      "name": "Persistent consequence turns actions into authorship",
+      "claim": "When actions persist and later systems acknowledge them, choices become material for future play rather than isolated transactions.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-minecraft",
+        "top-bg3",
+        "top-stardew",
+        "top-sims4",
+        "top-rimworld",
+        "top-factorio"
+      ],
+      "supportCount": 6,
+      "sharedElements": [],
+      "highFrequencyElements": [
+        "self-authored-goal",
+        "world-state-persistence"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "bottleneck"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "automatic-resource-growth"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "collect"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "feedback-control"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "adaptive-opponent"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 9,
+      "bridgePriorityScore": 17
+    },
+    {
+      "id": "m12",
+      "name": "Meta systems should recontextualize core play",
+      "claim": "Progression is strongest when it changes future possibility or strategy, not when it only increases scalar output.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-hades",
+        "top-slay-spire",
+        "top-civ6",
+        "top-stardew",
+        "top-dota2"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "build-path-dependency",
+            "drafting",
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "automatic-resource-growth"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "required-goal",
+            "route-network-building"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "required-goal",
+            "route-network-building"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 12,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m08",
+      "name": "Randomness works best upstream of decisions",
+      "claim": "Randomized offers, layouts and events create adaptation when players respond to them; opaque random outcome resolution weakens attribution.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-slay-spire",
+        "top-balatro",
+        "top-hades",
+        "top-fortnite",
+        "top-rimworld"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "build-path-dependency",
+            "drafting",
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "upgrade-choice"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "adaptive-opponent"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 10,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m03",
+      "name": "Failure must preserve information",
+      "claim": "Retry loops are strongest when failure yields an attributable model update, route/build knowledge or strategic information.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-elden-ring",
+        "top-hades",
+        "top-into-breach",
+        "top-cs2",
+        "top-slay-spire"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [
+        "risk-reward"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "build-path-dependency",
+            "drafting",
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c08",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+          "sharedElements": [
+            "telegraphing"
+          ],
+          "claim": "Visible telegraphs add little depth when changing them rarely changes the best action."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation",
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 9,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m01",
+      "name": "Stable grammar, changing context",
+      "claim": "A small stable action grammar can support long-term depth when goals, state, topology, resources or modifiers repeatedly revalue the same actions.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-minecraft",
+        "top-slay-spire",
+        "top-balatro",
+        "top-into-breach",
+        "top-stardew"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "build-path-dependency",
+            "drafting",
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "automatic-resource-growth",
+            "upgrade-choice"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "c08",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+          "sharedElements": [
+            "telegraphing"
+          ],
+          "claim": "Visible telegraphs add little depth when changing them rarely changes the best action."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "collect"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 8,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m05",
+      "name": "General-purpose mechanics outperform bespoke interactions when rules stay consistent",
+      "claim": "A few composable, consistently simulated verbs can generate large solution/content spaces without enumerating every interaction.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-minecraft",
+        "top-factorio",
+        "top-totk",
+        "top-rimworld",
+        "top-sims4"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "bottleneck"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "collect"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "feedback-control"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "adaptive-opponent"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 8,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m06",
+      "name": "Scarcity creates choice only when alternatives stay legible",
+      "claim": "Time, information, life, inventory or currency scarcity creates strategy only when tradeoffs are understandable rather than merely deprivation.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-cs2",
+        "top-fortnite",
+        "top-stardew",
+        "top-elden-ring",
+        "top-slay-spire"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [
+        "risk-reward"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "build-path-dependency",
+            "drafting",
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "automatic-resource-growth"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "c08",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+          "sharedElements": [
+            "telegraphing"
+          ],
+          "claim": "Visible telegraphs add little depth when changing them rarely changes the best action."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "route-network-building"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 8,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m10",
+      "name": "Systemic freedom still needs pressure",
+      "claim": "Open possibility spaces gain direction from survival pressure, scarcity, self-authored goals, events or consequences; freedom alone is not a loop.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-minecraft",
+        "top-factorio",
+        "top-totk",
+        "top-rimworld",
+        "top-sims4"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "bottleneck"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "collect"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "feedback-control"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "adaptive-opponent"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 8,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m11",
+      "name": "Readable causality is the foundation of mastery",
+      "claim": "Intentional improvement requires system response to expose cause, constraint and consequence sufficiently well.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-factorio",
+        "top-elden-ring",
+        "top-into-breach",
+        "top-cs2",
+        "top-totk"
+      ],
+      "supportCount": 5,
+      "sharedElements": [],
+      "highFrequencyElements": [
+        "risk-reward"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "bottleneck"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c08",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+          "sharedElements": [
+            "telegraphing"
+          ],
+          "claim": "Visible telegraphs add little depth when changing them rarely changes the best action."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "feedback-control",
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation",
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 6,
+      "bridgePriorityScore": 15
+    },
+    {
+      "id": "m09",
+      "name": "Role depth requires non-substitutable responsibility",
+      "claim": "Roles matter when players possess different capabilities, information or responsibilities that cannot be trivially replaced.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-cs2",
+        "top-dota2",
+        "top-bg3"
+      ],
+      "supportCount": 3,
+      "sharedElements": [],
+      "highFrequencyElements": [
+        "risk-reward",
+        "team-based-play"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 5,
+      "bridgePriorityScore": 11
+    },
+    {
+      "id": "m30",
+      "name": "Indirect control needs delayed causality to remain legible",
+      "claim": "Management play works when policy, people and resource choices produce delayed simulated consequences that can still be explained well enough for model revision.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-football-manager",
+        "top-rimworld"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "simulation-emergence"
+      ],
+      "highFrequencyElements": [
+        "simulation-emergence"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c07",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "CHEAPER_BASELINE_PARITY",
+          "sharedElements": [
+            "agent-policy"
+          ],
+          "claim": "Responsive-other value does not by itself establish a need for LLM/model cognition; deterministic policy already produced the tested distinction."
+        },
+        {
+          "claimId": "c09",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "delegate",
+            "prediction-preview"
+          ],
+          "claim": "Delegation can produce distinct outcomes but creates interpretation/review cost; it needs enough strategic leverage to repay administration burden."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "command"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "command"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c23",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "TIMING_DEPENDENT",
+          "sharedElements": [
+            "prediction-preview"
+          ],
+          "claim": "Information timing determines which planning decision it can affect."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "command",
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c25",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "agent-policy",
+            "delegate"
+          ],
+          "claim": "Delegated specialists became behaviorally distinguishable when roles changed selected-action distributions."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "adaptive-opponent",
+            "agent-policy"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "variable-setup"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation",
+            "variable-setup"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 13,
+      "bridgePriorityScore": 11
+    },
+    {
+      "id": "m32",
+      "name": "Failure can produce content instead of reset",
+      "claim": "Failure becomes less punitive when it generates new narrative/state information rather than merely denying progress or forcing repetition.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-disco-elysium",
+        "top-hades"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "dynamic-narration"
+      ],
+      "highFrequencyElements": [
+        "dynamic-narration"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        }
+      ],
+      "localStrongOverlapCount": 4,
+      "bridgePriorityScore": 10
+    },
+    {
+      "id": "m22",
+      "name": "Automation can move agency upward instead of deleting it",
+      "claim": "Automating low-level actions can create value when meaningful agency remains in positioning, routing, composition or architecture; it fails when automation removes the remaining consequential choices.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-vampire-survivors",
+        "top-factorio"
+      ],
+      "supportCount": 2,
+      "sharedElements": [],
+      "highFrequencyElements": [],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c03",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "synergy-combos"
+          ],
+          "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice."
+        },
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "bottleneck"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c05",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "upgrade-choice"
+          ],
+          "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order."
+        },
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "feedback-control"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        }
+      ],
+      "localStrongOverlapCount": 5,
+      "bridgePriorityScore": 9
+    },
+    {
+      "id": "m15",
+      "name": "Mundane actions can generate social evidence",
+      "claim": "A low-complexity task layer can support a richer social-deduction layer when routes, timing and visible behavior create evidence/alibis.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-among-us"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "clues-evidence",
+        "communication-limits",
+        "deception",
+        "partial-observation",
+        "required-goal",
+        "secret-role",
+        "team-based-play",
+        "voting"
+      ],
+      "highFrequencyElements": [
+        "clues-evidence",
+        "communication-limits",
+        "deception",
+        "partial-observation",
+        "required-goal",
+        "secret-role",
+        "team-based-play",
+        "voting"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c02",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "clues-evidence"
+          ],
+          "claim": "Abundant evidence can collapse epistemic play toward checklist completion when access choices no longer matter."
+        },
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "clues-evidence",
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "clues-evidence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation",
+            "required-goal"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 13,
+      "bridgePriorityScore": 9
+    },
+    {
+      "id": "m16",
+      "name": "Asymmetric pursuit turns attention into a team resource",
+      "claim": "In one-versus-many designs, occupying the powerful role’s attention can be valuable even without direct objective progress because it frees teammates elsewhere.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-dbd"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "asymmetric-roles",
+        "communication-limits",
+        "required-goal",
+        "risk-reward",
+        "role-asymmetry",
+        "stealth-detection",
+        "team-based-play",
+        "variable-player-powers"
+      ],
+      "highFrequencyElements": [
+        "asymmetric-roles",
+        "communication-limits",
+        "required-goal",
+        "risk-reward",
+        "role-asymmetry",
+        "stealth-detection",
+        "team-based-play",
+        "variable-player-powers"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c25",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "role-asymmetry"
+          ],
+          "claim": "Delegated specialists became behaviorally distinguishable when roles changed selected-action distributions."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 10,
+      "bridgePriorityScore": 9
+    },
+    {
+      "id": "m29",
+      "name": "Rule growth can revalue routine work",
+      "claim": "A repetitive verb can remain deep when the governing rules change and speed, accuracy and morality share one constrained workflow.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-papers-please"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "clues-evidence",
+        "currency",
+        "deadline-time-limit",
+        "deduction",
+        "inspect",
+        "moral-value-choice",
+        "pattern-recognition",
+        "persistent-consequence",
+        "rule-changing",
+        "select-choose"
+      ],
+      "highFrequencyElements": [
+        "clues-evidence",
+        "currency",
+        "deadline-time-limit",
+        "deduction",
+        "inspect",
+        "moral-value-choice",
+        "pattern-recognition",
+        "persistent-consequence",
+        "rule-changing",
+        "select-choose"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c01",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "deduction"
+          ],
+          "claim": "Scarce/costly observation can make evidence selection strategically consequential."
+        },
+        {
+          "claimId": "c02",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "clues-evidence",
+            "deduction"
+          ],
+          "claim": "Abundant evidence can collapse epistemic play toward checklist completion when access choices no longer matter."
+        },
+        {
+          "claimId": "c08",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+          "sharedElements": [
+            "select-choose"
+          ],
+          "claim": "Visible telegraphs add little depth when changing them rarely changes the best action."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "clues-evidence",
+            "deduction"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "clues-evidence",
+            "deduction",
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "select-choose"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "select-choose"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "select-choose"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "deadline-time-limit"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        }
+      ],
+      "localStrongOverlapCount": 10,
+      "bridgePriorityScore": 9
+    },
+    {
+      "id": "m14",
+      "name": "Dangerous capability can create cooperation",
+      "claim": "Cooperation can be strengthened when powerful tools have friendly externalities/collateral risk, forcing players to coordinate intent and position rather than merely stack buffs.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-helldivers2"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "communication-limits",
+        "cooperation",
+        "friendly-fire",
+        "loadout-building",
+        "required-goal",
+        "risk-reward",
+        "shared-resource",
+        "team-based-play"
+      ],
+      "highFrequencyElements": [
+        "communication-limits",
+        "cooperation",
+        "friendly-fire",
+        "loadout-building",
+        "required-goal",
+        "risk-reward",
+        "shared-resource",
+        "team-based-play"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c04",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints."
+        },
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        },
+        {
+          "claimId": "r2-c27",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SEMANTIC_OBJECTIVE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Behavioral divergence does not admit an enemy doctrine unless its named objective improves."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        },
+        {
+          "claimId": "r2-c29",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "SUCCESSOR_COHERENCE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Multi-step goals need successor actions to keep honoring upstream commitment near completion."
+        },
+        {
+          "claimId": "r2-c30",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTENT_AXIS_GATE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "A content dimension earns use only after evidence shows it changes the decision problem."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "required-goal"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 9,
+      "bridgePriorityScore": 9
+    },
+    {
+      "id": "m13",
+      "name": "Extraction makes ownership conditional on safe return",
+      "claim": "Value acquired inside a session can become dramatically more consequential when it is only banked after a voluntary, contestable exit decision.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-hunt-showdown"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "clues-evidence",
+        "collect",
+        "inventory",
+        "map-reveal",
+        "partial-observation",
+        "permadeath",
+        "risk-reward",
+        "survive"
+      ],
+      "highFrequencyElements": [
+        "clues-evidence",
+        "collect",
+        "inventory",
+        "map-reveal",
+        "partial-observation",
+        "permadeath",
+        "risk-reward",
+        "survive"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c02",
+          "standing": "STRUCTURAL_MEASURED",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "clues-evidence"
+          ],
+          "claim": "Abundant evidence can collapse epistemic play toward checklist completion when access choices no longer matter."
+        },
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "clues-evidence",
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "clues-evidence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "collect"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 6,
+      "bridgePriorityScore": 9
+    },
+    {
+      "id": "m33",
+      "name": "Choice itself can become a mechanic under interpretation",
+      "claim": "Choice gains another layer when the system or characters explicitly interpret the player act, not only branch the next content node.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-stanley-parable",
+        "top-bg3"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "branching-choice",
+        "choices-matter"
+      ],
+      "highFrequencyElements": [
+        "branching-choice",
+        "choices-matter"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c17",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "PGP-D supports committed causal determination before reveal; earned aha/fairness unobserved."
+        },
+        {
+          "claimId": "r2-c28",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONSEQUENCE_GATE",
+          "sharedElements": [
+            "persistent-consequence"
+          ],
+          "claim": "Placement differences must survive into objective-relevant consequence."
+        }
+      ],
+      "localStrongOverlapCount": 2,
+      "bridgePriorityScore": 8
+    },
+    {
+      "id": "m25",
+      "name": "Information architecture can manufacture cooperation",
+      "claim": "Splitting task-relevant information across roles can make communication itself a mechanic rather than a support channel.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-keep-talking"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "asymmetric-information",
+        "communication-limits",
+        "coordination-timing",
+        "deadline-time-limit",
+        "partial-observation",
+        "signal-communicate",
+        "solve-puzzle",
+        "team-based-play"
+      ],
+      "highFrequencyElements": [
+        "asymmetric-information",
+        "communication-limits",
+        "coordination-timing",
+        "deadline-time-limit",
+        "partial-observation",
+        "signal-communicate",
+        "solve-puzzle",
+        "team-based-play"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c10",
+          "standing": "LOCAL_MECHANISM_EVIDENCE",
+          "relation": "REINFORCES",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "deadline-time-limit"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        },
+        {
+          "claimId": "r2-c32",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_VARIATION",
+          "sharedElements": [
+            "partial-observation"
+          ],
+          "claim": "Initial/acquired knowledge is a content dimension only when it changes later planning."
+        }
+      ],
+      "localStrongOverlapCount": 4,
+      "bridgePriorityScore": 8
+    },
+    {
+      "id": "m28",
+      "name": "Pause can be a cognition mechanic",
+      "claim": "Real-time-with-pause can preserve crisis pressure while giving explicit time to inspect state, allocate resources and issue commands.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-ftl"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "capacity-limit",
+        "command",
+        "energy-mana",
+        "permadeath",
+        "random-events",
+        "real-time-with-pause",
+        "resource-pool-storage",
+        "risk-reward",
+        "target-priority"
+      ],
+      "highFrequencyElements": [
+        "capacity-limit",
+        "command",
+        "energy-mana",
+        "permadeath",
+        "random-events",
+        "real-time-with-pause",
+        "resource-pool-storage",
+        "risk-reward",
+        "target-priority"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c21",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CAUSAL_BANDWIDTH_GATE",
+          "sharedElements": [
+            "command"
+          ],
+          "claim": "Player-facing controls should earn surface area through relevant-state causal leverage."
+        },
+        {
+          "claimId": "r2-c22",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "NO_LEVERAGE_CURRENT_CONTEXT",
+          "sharedElements": [
+            "command"
+          ],
+          "claim": "Loot policy had 46 relevant opportunities and changed zero decisions."
+        },
+        {
+          "claimId": "r2-c24",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "LEGIBILITY_BEFORE_RULE_CHANGE",
+          "sharedElements": [
+            "command"
+          ],
+          "claim": "If a coherent intervention looks ineffective because prerequisites are hidden, expose bounded condition before changing the rule."
+        },
+        {
+          "claimId": "r2-c26",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "CONTEXT_DEPENDENT",
+          "sharedElements": [
+            "capacity-limit"
+          ],
+          "claim": "Topology is useful when it changes decisions while preserving useful viability; high divergence alone may be destructive."
+        }
+      ],
+      "localStrongOverlapCount": 4,
+      "bridgePriorityScore": 8
+    },
+    {
+      "id": "m20",
+      "name": "Tiny verb sets can support extreme physical mastery",
+      "claim": "Continuous physics plus immediate feedback can generate a high skill ceiling from very few inputs when repeated practice is cheap and outcomes are attributable.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-rocket-league",
+        "top-trackmania"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "drive",
+        "fast-retry",
+        "practice-training",
+        "steer"
+      ],
+      "highFrequencyElements": [
+        "drive",
+        "fast-retry",
+        "practice-training",
+        "steer"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        }
+      ],
+      "localStrongOverlapCount": 1,
+      "bridgePriorityScore": 7
+    },
+    {
+      "id": "m26",
+      "name": "Boss mastery works on two parallel channels",
+      "claim": "Pattern learning and equipment/build preparation can coexist as separate ways to convert repeated failure into future advantage.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-monster-hunter",
+        "top-elden-ring"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "block",
+        "dodge",
+        "strike"
+      ],
+      "highFrequencyElements": [
+        "block",
+        "dodge",
+        "strike"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "c08",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+          "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+          "sharedElements": [
+            "telegraphing"
+          ],
+          "claim": "Visible telegraphs add little depth when changing them rarely changes the best action."
+        }
+      ],
+      "localStrongOverlapCount": 1,
+      "bridgePriorityScore": 7
+    },
+    {
+      "id": "m27",
+      "name": "Difficulty can be a configurable contract",
+      "claim": "Assist/difficulty controls can tune timing, complexity or procedure while preserving a recognizable core grammar.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-celeste",
+        "top-msfs2024"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "immediate-action-feedback",
+        "practice-training"
+      ],
+      "highFrequencyElements": [
+        "immediate-action-feedback",
+        "practice-training"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry",
+            "jump",
+            "timing-window"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        }
+      ],
+      "localStrongOverlapCount": 1,
+      "bridgePriorityScore": 7
+    },
+    {
+      "id": "m31",
+      "name": "High-fidelity simulation reuses one grammar across many contexts",
+      "claim": "Stable continuous rules can support long-term mastery when environment/scenario changes the problem without replacing the control model.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-msfs2024",
+        "top-rocket-league"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "immediate-action-feedback",
+        "practice-training"
+      ],
+      "highFrequencyElements": [
+        "immediate-action-feedback",
+        "practice-training"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        }
+      ],
+      "localStrongOverlapCount": 1,
+      "bridgePriorityScore": 7
+    },
+    {
+      "id": "m17",
+      "name": "Persistent groups are gameplay infrastructure",
+      "claim": "Guild/corporation structures become mechanics when they pool resources, assign responsibilities, create trust/reputation and persist beyond a single session.",
+      "standing": "EXTERNAL_MULTI_SPECIMEN_DESK_SYNTHESIS",
+      "supportingSpecimens": [
+        "top-ffxiv",
+        "top-eve"
+      ],
+      "supportCount": 2,
+      "sharedElements": [
+        "reputation",
+        "shared-resource",
+        "trading"
+      ],
+      "highFrequencyElements": [
+        "reputation",
+        "shared-resource",
+        "trading"
+      ],
+      "localStrongEvidenceOverlaps": [],
+      "localStrongOverlapCount": 0,
+      "bridgePriorityScore": 6
+    },
+    {
+      "id": "m24",
+      "name": "Knowledge can be the only permanent upgrade",
+      "claim": "A game can reset world/inventory state while preserving player knowledge, making understanding the primary progression resource.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-outer-wilds"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "deadline-time-limit",
+        "environmental-clue",
+        "gating-by-knowledge",
+        "map-reveal",
+        "memory-knowledge-persistence",
+        "route-hypothesis",
+        "time-loop",
+        "world-transformation-opens-route"
+      ],
+      "highFrequencyElements": [
+        "deadline-time-limit",
+        "environmental-clue",
+        "gating-by-knowledge",
+        "map-reveal",
+        "memory-knowledge-persistence",
+        "route-hypothesis",
+        "time-loop",
+        "world-transformation-opens-route"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c23",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "TIMING_DEPENDENT",
+          "sharedElements": [
+            "memory-knowledge-persistence"
+          ],
+          "claim": "Information timing determines which planning decision it can affect."
+        },
+        {
+          "claimId": "r2-c31",
+          "standing": "MEASURED_LOCAL_COMPOSITION_EVIDENCE",
+          "relation": "REINFORCES_CONTEXTUAL_PRESSURE",
+          "sharedElements": [
+            "deadline-time-limit"
+          ],
+          "claim": "Time budget can be a real content axis when it changes viability basins before terminal failure."
+        }
+      ],
+      "localStrongOverlapCount": 2,
+      "bridgePriorityScore": 6
+    },
+    {
+      "id": "m19",
+      "name": "Live-service breadth must expand possibility space",
+      "claim": "Long-lived progression is healthier when new content creates alternative builds/roles/scenarios rather than only a higher scalar power tier.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-warframe"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "collection",
+        "dash",
+        "equipment-progression",
+        "jump",
+        "loadout-building",
+        "mission-scenario",
+        "move",
+        "skill-build",
+        "team-based-play",
+        "variable-player-powers"
+      ],
+      "highFrequencyElements": [
+        "collection",
+        "dash",
+        "equipment-progression",
+        "jump",
+        "loadout-building",
+        "mission-scenario",
+        "move",
+        "skill-build",
+        "team-based-play",
+        "variable-player-powers"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "jump"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        }
+      ],
+      "localStrongOverlapCount": 1,
+      "bridgePriorityScore": 5
+    },
+    {
+      "id": "m21",
+      "name": "Asynchronous opponents can be compressed into benchmarks",
+      "claim": "Ghosts, times and leaderboards let other players function as persistent practice targets without requiring simultaneous matchmaking.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-trackmania"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "drive",
+        "fast-retry",
+        "ghost",
+        "leaderboards-rank",
+        "level-editor",
+        "practice-training",
+        "share-publish",
+        "steer",
+        "time-trial"
+      ],
+      "highFrequencyElements": [
+        "drive",
+        "fast-retry",
+        "ghost",
+        "leaderboards-rank",
+        "level-editor",
+        "practice-training",
+        "share-publish",
+        "steer",
+        "time-trial"
+      ],
+      "localStrongEvidenceOverlaps": [
+        {
+          "claimId": "r2-c16",
+          "standing": "AUTOMATED_CARRIER_VALIDATED",
+          "relation": "CARRIER_VALIDATED_HUMAN_PENDING",
+          "sharedElements": [
+            "fast-retry"
+          ],
+          "claim": "PGP-A has a real timing distinction and completable path, but no Human mastery evidence."
+        }
+      ],
+      "localStrongOverlapCount": 1,
+      "bridgePriorityScore": 5
+    },
+    {
+      "id": "m18",
+      "name": "Player economy needs institutions, logistics and trust",
+      "claim": "A deep player economy is not merely trading UI: transport, territorial access, contracts, reputation and organizational authority determine who can create and capture value.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-eve"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "betrayal-traitor",
+        "contracts-promises",
+        "currency",
+        "market-price",
+        "network-flow",
+        "reputation",
+        "resource-source",
+        "shared-resource",
+        "territory-control",
+        "trading",
+        "transport"
+      ],
+      "highFrequencyElements": [
+        "betrayal-traitor",
+        "contracts-promises",
+        "currency",
+        "market-price",
+        "network-flow",
+        "reputation",
+        "resource-source",
+        "shared-resource",
+        "territory-control",
+        "trading",
+        "transport"
+      ],
+      "localStrongEvidenceOverlaps": [],
+      "localStrongOverlapCount": 0,
+      "bridgePriorityScore": 4
+    },
+    {
+      "id": "m23",
+      "name": "Creator loops can sit above player loops",
+      "claim": "UGC platforms add a higher-order loop—create/publish/discover/play/reinvest—where the player population also becomes the content-production system.",
+      "standing": "EXTERNAL_SINGLE_SPECIMEN_PATTERN_HYPOTHESIS",
+      "supportingSpecimens": [
+        "top-roblox"
+      ],
+      "supportCount": 1,
+      "sharedElements": [
+        "character-customization",
+        "collection",
+        "freeform-building",
+        "level-editor",
+        "modding",
+        "self-authored-goal",
+        "share-publish",
+        "ugc"
+      ],
+      "highFrequencyElements": [
+        "character-customization",
+        "collection",
+        "freeform-building",
+        "level-editor",
+        "modding",
+        "self-authored-goal",
+        "share-publish",
+        "ugc"
+      ],
+      "localStrongEvidenceOverlaps": [],
+      "localStrongOverlapCount": 0,
+      "bridgePriorityScore": 4
+    }
+  ]
+}

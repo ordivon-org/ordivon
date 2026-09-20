@@ -1,0 +1,315 @@
+{
+  "apiVersion": "v3.2.0",
+  "authoritativeDefinitions": [
+    {
+      "description": "Exact Git source revision used for acquisition.",
+      "type": "canonical",
+      "url": "https://github.com/rfordatascience/tidytuesday/blob/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-19/member_participation_stats_by_country.csv"
+    }
+  ],
+  "customProperties": [
+    {
+      "property": "sourceSha256",
+      "value": "0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af"
+    },
+    {
+      "property": "derivedParquetSha256",
+      "value": "e46ac005911a8d6b17214d1bd4cce82e28cf00ee1b9bd69cdcb25b54f63f4a8e"
+    },
+    {
+      "property": "sourceGitCommit",
+      "value": "f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+    },
+    {
+      "property": "semanticProfile",
+      "value": "evidence/data-lifecycle/github-pilot-r1/semantics/external-semantic-profile.json"
+    },
+    {
+      "property": "statisticalStructureOwner",
+      "value": "sdmx-3.1"
+    },
+    {
+      "property": "unitCodeOwner",
+      "value": "ucum-spec"
+    },
+    {
+      "property": "qualityMeasureOwner",
+      "value": "iso-iec-5259-2-2024"
+    }
+  ],
+  "dataProduct": "crossref-metadata-country",
+  "description": {
+    "limitations": "Descriptive pilot contract; upstream source semantics and causal interpretation remain outside this contract.",
+    "purpose": "External GitHub dataset used to exercise the Ordivon data lifecycle pilot.",
+    "usage": "Reproducible data-lifecycle validation and descriptive analysis."
+  },
+  "domain": "external-public-data",
+  "id": "a70b76a6-c7c7-5d01-84c6-c1bbc0cd10ad",
+  "kind": "DataContract",
+  "name": "crossref-member-participation",
+  "schema": [
+    {
+      "description": "Crossref member participation statistics by country",
+      "name": "crossref-member-participation",
+      "physicalName": "crossref-member-participation.parquet",
+      "physicalType": "parquet",
+      "properties": [
+        {
+          "classification": "public",
+          "logicalType": "date",
+          "name": "current_up_to",
+          "physicalName": "current_up_to",
+          "physicalType": "date",
+          "primaryKey": true,
+          "primaryKeyPosition": 1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "region_id",
+          "physicalName": "region_id",
+          "physicalType": "varchar",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "column"
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "iso3_code",
+          "physicalName": "iso3_code",
+          "physicalType": "varchar",
+          "primaryKey": true,
+          "primaryKeyPosition": 2,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "total_members",
+          "physicalName": "total_members",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_ref",
+          "physicalName": "deposits_ref",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_abstract",
+          "physicalName": "deposits_abstract",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_license",
+          "physicalName": "deposits_license",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_crossmark",
+          "physicalName": "deposits_crossmark",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_updates",
+          "physicalName": "deposits_updates",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_textmining",
+          "physicalName": "deposits_textmining",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_status_info",
+          "physicalName": "deposits_status_info",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "acknowledges_funding",
+          "physicalName": "acknowledges_funding",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_funder_id",
+          "physicalName": "deposits_funder_id",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_grant_id",
+          "physicalName": "deposits_grant_id",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_orcid",
+          "physicalName": "deposits_orcid",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_orcid_for_authors",
+          "physicalName": "deposits_orcid_for_authors",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_orcid_for_chairs",
+          "physicalName": "deposits_orcid_for_chairs",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_orcid_for_editors",
+          "physicalName": "deposits_orcid_for_editors",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_orcid_for_translators",
+          "physicalName": "deposits_orcid_for_translators",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_ror_id",
+          "physicalName": "deposits_ror_id",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_ror_id_for_affiliations",
+          "physicalName": "deposits_ror_id_for_affiliations",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_ror_id_for_funders",
+          "physicalName": "deposits_ror_id_for_funders",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "deposits_ror_id_for_institutions",
+          "physicalName": "deposits_ror_id_for_institutions",
+          "physicalType": "bigint",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "measure"
+        }
+      ]
+    }
+  ],
+  "status": "active",
+  "version": "1.0.0"
+}

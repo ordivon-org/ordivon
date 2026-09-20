@@ -1,0 +1,80 @@
+{
+  "addedCount": 28,
+  "addedIds": [
+    "cpmi-iosco-pfmi-2012",
+    "fix-4.4-errata-20030618",
+    "iso-14289-2-2024",
+    "iso-17442-1-2020",
+    "iso-19005-4-2020",
+    "iso-20022-1-2026",
+    "iso-28500-2017",
+    "iso-32000-2-2020",
+    "iso-iec-12113-2022",
+    "iso-iec-29500-1-2016",
+    "oasis-opendocument-1.3",
+    "ogc-geopackage-1.4.0",
+    "openid-connect-core-1.0-errata2",
+    "rfc-1034",
+    "rfc-1035",
+    "rfc-6749",
+    "rfc-7858",
+    "rfc-8310",
+    "rfc-8484",
+    "rfc-8707",
+    "rfc-9000",
+    "rfc-9110",
+    "rfc-9113",
+    "rfc-9114",
+    "rfc-9700",
+    "rfc-9846",
+    "w3c-png-3-2025",
+    "xbrl-2.1"
+  ],
+  "batch": "2026-09-14-batch3",
+  "boundary": "Batch registers concrete externally identifiable standards/protocols actually relevant to local Artifact, Network/Distribution and Market-Capital compositions. Draft successors and broad families remain observations/deferred candidates, not replacement truth.",
+  "deferredCandidates": [
+    "OAuth 2.1 draft/current work until it becomes a stable RFC or a real task explicitly binds a draft",
+    "FIX Latest rolling authority until a task uses it rather than FIX 4.4",
+    "CFA curriculum/GIPS until a concrete professional standard is actually bound",
+    "full OOXML multi-part family beyond Part 1",
+    "full ISO 20022 multi-part family/message catalogue beyond current Part 1 reference"
+  ],
+  "families": {
+    "artifact": [
+      "iso-32000-2-2020",
+      "iso-19005-4-2020",
+      "iso-14289-2-2024",
+      "iso-iec-29500-1-2016",
+      "oasis-opendocument-1.3",
+      "w3c-png-3-2025",
+      "iso-iec-12113-2022",
+      "ogc-geopackage-1.4.0",
+      "iso-28500-2017"
+    ],
+    "finance-market": [
+      "cpmi-iosco-pfmi-2012",
+      "iso-20022-1-2026",
+      "xbrl-2.1",
+      "fix-4.4-errata-20030618",
+      "iso-17442-1-2020"
+    ],
+    "network-identity": [
+      "rfc-1034",
+      "rfc-1035",
+      "rfc-9110",
+      "rfc-9113",
+      "rfc-9114",
+      "rfc-9000",
+      "rfc-9846",
+      "rfc-8484",
+      "rfc-7858",
+      "rfc-8310",
+      "rfc-6749",
+      "rfc-9700",
+      "rfc-8707",
+      "openid-connect-core-1.0-errata2"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch",
+  "schemaVersion": 1
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.data-temporal-evolution-plan",
+  "asOf": "2026-09-20",
+  "externalOwners": {
+    "identifierResolution": [
+      "iso-8000-115-2024"
+    ],
+    "metadataItemMapping": [
+      "iso-iec-11179-3-2023",
+      "iso-iec-11179-3-amd1-2026"
+    ],
+    "tableSchemaSnapshotEvolution": [
+      "apache-iceberg-spec-v3",
+      "apache-iceberg-1.11.0"
+    ],
+    "databaseCdc": [
+      "debezium-stable-cdc"
+    ],
+    "eventTimeLateData": [
+      "apache-beam-programming-model"
+    ]
+  },
+  "principles": [
+    "A byte revision is not automatically a logical-data revision.",
+    "A schema rename must not be inferred from drop+add without stable field identity or an explicit mapping.",
+    "Reference identifiers outrank labels for joins; fuzzy label matching never creates authoritative identity.",
+    "Source/revision time and processing/observation time are distinct.",
+    "Git history is the natural change log for Git-hosted source data; Debezium is not applied to Git.",
+    "Streaming watermarks are not applied to bounded historical revision ingestion.",
+    "Iceberg is activated only when table-level snapshot/evolution/concurrent-writer/time-travel requirements exceed Git+Parquet+manifest."
+  ],
+  "pilot": {
+    "dataset": "rfordatascience/tidytuesday data/2026/2026-02-24/sfi_grants.csv",
+    "revisions": [
+      {
+        "role": "old",
+        "commit": "51504577572c78cf4908371d6eff5d99f53b0698",
+        "commitTime": "2026-02-22T13:27:21Z",
+        "message": "Science Foundation Ireland Grant Commitments (#997)",
+        "expectedSha256": "1f961db4f51d081134f4cf9777786229e89e6292ba5b0f2fd405179dd8b2d0c0"
+      },
+      {
+        "role": "new",
+        "commit": "bb24566e57c7ac138650b23d8183ae31d351f817",
+        "commitTime": "2026-02-22T15:49:44Z",
+        "message": "Properly encode data. (#1004)",
+        "expectedSha256": "417b7ed1c49be76e767f3f3a413ccd9d9cb33eacda25494d16946e35399b9064"
+      }
+    ],
+    "expectedTransitionClass": "REPRESENTATION_ONLY_REVISION"
+  },
+  "activationGates": {
+    "iceberg": "Do not activate for the current pilot: immutable Git revisions already supply snapshot identity and there is no multi-writer table state. Activate only for real table-level schema/partition evolution, atomic snapshots/time travel, concurrent writers or row-level lineage/update needs.",
+    "debezium": "Do not activate for Git sources. Activate at a database boundary when transaction-log CDC is required.",
+    "beam": "Do not activate for bounded Git history. Activate when an unbounded source requires event-time windows/watermarks/late-data handling.",
+    "redpandaKafka": "Do not activate merely to transport bounded revision files; require a proven decoupled event-stream/replay/fan-out workload."
+  }
+}

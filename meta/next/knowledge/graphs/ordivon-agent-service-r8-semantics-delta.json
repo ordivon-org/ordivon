@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r8-semantics-delta",
+  "baseGraph": "knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "e3453718b54eb715b8a564d525a5f9dfd7014ff2",
+  "implementedBaseNodes": [
+    {
+      "nodeId": "N07",
+      "label": "SessionStore",
+      "symbol": "agent_service.semantics.SessionStore",
+      "refinement": "Semantic continuity anchor independent of transport connection/process identity."
+    }
+  ],
+  "clarifiedDeferredBaseNodes": [
+    {
+      "nodeId": "N12",
+      "label": "ServiceRouter",
+      "status": "DEFERRED",
+      "clarification": "Must route an already-valid DelegationEnvelope; it must not invent identity/session/capability semantics."
+    },
+    {
+      "nodeId": "N16",
+      "label": "IdentityAdapter",
+      "status": "DEFERRED",
+      "clarification": "External/authenticated identity proof adapter remains distinct from AgentIdentityStore semantic identity."
+    },
+    {
+      "nodeId": "N17",
+      "label": "PolicyAdapter",
+      "status": "DEFERRED",
+      "clarification": "Authorization evaluates delegation intent later; Session initiator and CapabilityAdvertisement do not grant permission."
+    },
+    {
+      "nodeId": "N20",
+      "label": "A2AAdapter",
+      "status": "DEFERRED",
+      "clarification": "A2A is a delivery/discovery transport over semantic identity/capability/delegation objects."
+    },
+    {
+      "nodeId": "N21",
+      "label": "MCPAdapter",
+      "status": "DEFERRED",
+      "clarification": "MCP is a capability transport; MCP connection identity is not Session identity."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N39",
+      "label": "AgentIdentityStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.semantics.AgentIdentityStore",
+      "reason": "Stable semantic identity must survive AgentRevision and AgentInstance turnover without becoming a credential store."
+    },
+    {
+      "nodeId": "N40",
+      "label": "CapabilityAdvertisementStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.semantics.CapabilityAdvertisementStore",
+      "reason": "Discoverable capability metadata is immutable and revision-scoped, but is not authorization state."
+    },
+    {
+      "nodeId": "N41",
+      "label": "SessionItemStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.semantics.SessionItemStore",
+      "reason": "Conversation/continuity history is append-only ordered state separate from Session identity/lifecycle."
+    },
+    {
+      "nodeId": "N42",
+      "label": "DelegationEnvelopeStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.semantics.DelegationEnvelopeStore",
+      "reason": "Delegation intent needs durable exact identity before policy or transport binding and is distinct from local Assignment."
+    },
+    {
+      "nodeId": "N43",
+      "label": "A2AAgentCardProjector",
+      "kind": "DERIVED_PROJECTION",
+      "symbol": "agent_service.semantics.A2AAgentCardProjector",
+      "reason": "A2A discovery metadata is a public projection of identity/capability/interface declarations, not a dump of internal Instance/Session state."
+    }
+  ],
+  "flow": [
+    "N39 AgentIdentityStore",
+    "AgentRevisionStore",
+    "N40 CapabilityAdvertisementStore",
+    "N07 SessionStore",
+    "N41 SessionItemStore",
+    "N42 DelegationEnvelopeStore",
+    "future N17 PolicyAdapter",
+    "future N12 ServiceRouter",
+    "future N20 A2AAdapter or N21 MCPAdapter"
+  ],
+  "discoveryFlow": [
+    "N39 AgentIdentityStore",
+    "N40 CapabilityAdvertisementStore",
+    "declared transport interfaces",
+    "N43 A2AAgentCardProjector",
+    "public Agent Card"
+  ],
+  "authorityLaws": [
+    "AgentIdentity is stable semantic identity and is not AgentInstance, placement, credential, or authenticated principal proof.",
+    "CapabilityAdvertisement describes what one AgentRevision exposes; it does not grant authority to invoke it.",
+    "Session is semantic continuity and is not an MCP connection, HTTP session, process, A2A Task, or authorization principal.",
+    "Session initiator is provenance metadata and does not grant or restrict delegation authority.",
+    "SessionItem history is append-only ordered continuity with exact client-item replay identity.",
+    "DelegationEnvelope is immutable transport-neutral intent and is not Assignment or remote transport Task state.",
+    "Exact DelegationEnvelope replay resolves historical identity before consulting current Session state.",
+    "A source AgentInstance must belong to the declared source AgentIdentity.",
+    "Target AgentRevision must belong to the target AgentIdentity and advertise the requested capability.",
+    "A Goal-bound Session may delegate only Tasks belonging to that Goal.",
+    "A2A Agent Card projection must not expose internal AgentInstance, Session, birth request, credential, or policy state."
+  ],
+  "standardsBasis": [
+    {
+      "standard": "A2A Protocol 1.0.0",
+      "use": "Agent Card separates discoverable identity/capabilities/interfaces from opaque internal agent implementation."
+    },
+    {
+      "standard": "Model Context Protocol 2026-07-28",
+      "use": "Transport connection/process identity is not conversation/session continuity."
+    },
+    {
+      "standard": "OpenAI Agents SDK sessions and handoffs",
+      "use": "Session continuity/memory and delegation/handoff are separate primitives."
+    }
+  ]
+}

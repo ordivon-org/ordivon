@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 3,
+  "kind": "ordivon.data-lifecycle-census",
+  "asOf": "2026-09-20",
+  "predecessor": "planning/data-lifecycle-census-r2.json",
+  "sourceRevision": "06a39f62ee7ffb727871ff287970aa654b976248",
+  "standing": "PARTIAL_CROSS_DOMAIN_LIFECYCLE_R3",
+  "thesis": "Research and Finance now own validated ODPS/ODCS products and are federated through DCAT 3 with bounded PROV-O derivation. Remaining P0 debt is rights/privacy/retention plus exact post-registration claim/decision/outcome feedback binding, not catalog or product-definition infrastructure.",
+  "majorChangesSinceR1": [
+    "Entity/reference resolution moved from MISSING to PILOT_PROVEN_CROSS_DOMAIN_PARTIAL using ROR/ISO mapping semantics.",
+    "DCAT, ODCS and OpenLineage moved from design-only to real GitHub pilot evidence.",
+    "Raw/derived/runtime evidence moved from reacquirable-only to accepted local AIP preservation with master+replica+fixity.",
+    "Temporal revision/schema/late-arrival semantics were externalized to Git identity, ISO mapping, Iceberg conformance rules and Beam/Debezium activation gates.",
+    "Heavy infrastructure remains workload-gated.",
+    "Research owns an ODPS 1.1.0 + ODCS 3.2.0 product for the Paper1 frozen benchmark; source hash and 61 observed downstream digest references prove a real consumer chain.",
+    "Finance owns an ODPS 1.1.0 + ODCS 3.2.0 consumer-aligned product for the read-only Binance+OKX public shadow; no credentials/private data/external financial writes are admitted.",
+    "A two-domain DCAT 3 federation now exposes both domain-owned products without moving ownership into ordivon-next.",
+    "PROV-O now records source-to-product derivation for both domains and dataset-to-result derivation for Paper1; Finance post-registration decision consumption is intentionally still unproven."
+  ],
+  "lifecycle": [
+    {
+      "id": 0,
+      "name": "information-decision-requirement",
+      "standing": "PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 1,
+      "name": "source-discovery",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 2,
+      "name": "acquisition",
+      "standing": "PILOT_PROVEN_DOMAIN_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 3,
+      "name": "ingestion",
+      "standing": "PARTIAL",
+      "priority": "P2"
+    },
+    {
+      "id": 4,
+      "name": "raw-preservation",
+      "standing": "PASS_LOCAL_DURABLE_PRESERVATION",
+      "priority": "P1",
+      "boundary": "No independent offsite/site failure domain is proven."
+    },
+    {
+      "id": 5,
+      "name": "parse-normalize",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 6,
+      "name": "clean-validate",
+      "standing": "KEEP",
+      "priority": "P1"
+    },
+    {
+      "id": 7,
+      "name": "integration-entity-resolution",
+      "standing": "PILOT_PROVEN_CROSS_DOMAIN_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 8,
+      "name": "metadata-catalog",
+      "standing": "PASS_TWO_DOMAIN_FEDERATED_DCAT",
+      "priority": "P1"
+    },
+    {
+      "id": 9,
+      "name": "provenance-lineage",
+      "standing": "PROV_PRODUCT_SOURCE_PASS_RESEARCH_DERIVATION_PASS_CROSS_DOMAIN_RUNTIME_PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "id": 10,
+      "name": "data-contract-product",
+      "standing": "PASS_TWO_DOMAIN_ODPS_1_1_ODCS_3_2",
+      "priority": "P1"
+    },
+    {
+      "id": 11,
+      "name": "exploration-analytics",
+      "standing": "KEEP",
+      "priority": "P1"
+    },
+    {
+      "id": 12,
+      "name": "modeling-synthesis",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "id": 13,
+      "name": "serving-retrieval",
+      "standing": "PARTIAL",
+      "priority": "P2"
+    },
+    {
+      "id": 14,
+      "name": "decision-action",
+      "standing": "RESEARCH_HISTORICAL_CONSUMER_BOUND_FINANCE_POST_REGISTRATION_MISSING",
+      "priority": "P0"
+    },
+    {
+      "id": 15,
+      "name": "outcome-measurement",
+      "standing": "PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "id": 16,
+      "name": "feedback-recollection",
+      "standing": "MISSING",
+      "priority": "P0"
+    }
+  ],
+  "fabrics": [
+    {
+      "name": "governance-rights-retention",
+      "standing": "PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "name": "metadata-catalog",
+      "standing": "PASS_TWO_DOMAIN_FEDERATED_DCAT",
+      "priority": "P1"
+    },
+    {
+      "name": "quality",
+      "standing": "KEEP_PARTIAL",
+      "priority": "P1"
+    },
+    {
+      "name": "provenance-lineage",
+      "standing": "PROV_PRODUCT_SOURCE_PASS_OPENLINEAGE_CROSS_DOMAIN_PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "name": "security-privacy",
+      "standing": "PARTIAL",
+      "priority": "P0"
+    },
+    {
+      "name": "preservation",
+      "standing": "PASS_LOCAL_FAILURE_DOMAIN_BOUNDARY",
+      "priority": "P1"
+    },
+    {
+      "name": "observability",
+      "standing": "PARTIAL",
+      "priority": "P1"
+    }
+  ],
+  "p0Queue": [
+    {
+      "id": "semantic-provenance",
+      "goal": "Extend PROV beyond product/source registration to exact claim/decision/action consumption in Finance and future domains; keep OpenLineage for runtime Job/Run/Dataset events."
+    },
+    {
+      "id": "rights-privacy-retention",
+      "goal": "Bind owner/license/permitted-use/PII/sensitivity/retention/deletion policy to products before social-platform collection expands."
+    },
+    {
+      "id": "decision-outcome-feedback",
+      "goal": "Bind exact consumed product/version to claim/decision/action, then persist outcome-driven changes back to collection/quality/model policy."
+    }
+  ],
+  "p1Queue": [
+    {
+      "id": "independent-preservation-copy",
+      "goal": "Add a genuinely independent failure-domain/offsite copy when an approved storage target exists; current replica is same-host."
+    },
+    {
+      "id": "provider-liveness",
+      "goal": "Make preservation provider liveness observable so scheduled fixity cannot silently fail when Archivematica is stopped."
+    },
+    {
+      "id": "artifact-odcs-mapping",
+      "goal": "Map proven Artifact Dataset Contract facts to ODCS without replacing Artifact's bounded verifier."
+    },
+    {
+      "id": "data-observability",
+      "goal": "Expose freshness/volume/schema/quality/lineage-break metrics through existing Prometheus/OTel before adding a new observability platform."
+    },
+    {
+      "id": "federation-scale-gate",
+      "goal": "Keep DCAT as file-based federated metadata while two-domain discovery is sufficient; activate a catalog service only when query/collaboration/scale proves the need."
+    }
+  ],
+  "workloadGated": [
+    "Apache Iceberg",
+    "Debezium",
+    "Apache Beam runtime",
+    "Kafka/Redpanda",
+    "ClickHouse",
+    "QuestDB",
+    "Dagster",
+    "Great Expectations",
+    "OCFL"
+  ],
+  "preservationEvidence": "evidence/data-lifecycle/preservation-r1/acceptance.json",
+  "dataProductEvidence": "evidence/data-lifecycle/data-products-r1/acceptance.json"
+}

@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "C2PA",
+      "Content Credentials",
+      "C2PA 2.4"
+    ],
+    "domains": [
+      "media",
+      "artifact",
+      "provenance"
+    ],
+    "topics": [
+      "content-provenance",
+      "authenticity",
+      "media",
+      "content-credentials"
+    ]
+  },
+  "id": "c2pa-2.4",
+  "identity": {
+    "authorityKind": "content-provenance-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "c2pa",
+      "name": "Coalition for Content Provenance and Authenticity (C2PA)"
+    },
+    "officialSource": "https://spec.c2pa.org/specifications/specifications/2.4/index.html",
+    "publicationDate": null,
+    "title": "C2PA Specifications 2.4",
+    "versionLabel": "2.4"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/media.md",
+      "C2PA official specification site checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

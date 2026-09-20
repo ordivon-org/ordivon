@@ -1,0 +1,64 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r8-semantics-delta.json",
+  "authorityAssertions": {
+    "a2aCardExportsCredentialState": false,
+    "a2aCardExportsInternalInstanceState": false,
+    "a2aCardExportsSessionState": false,
+    "agentIdentityEqualsAgentInstance": false,
+    "capabilityAdvertisementGrantsPermission": false,
+    "delegationContainsTransportBinding": false,
+    "delegationEqualsAssignment": false,
+    "delegationExactReplayPrecedesCurrentSessionState": true,
+    "goalBoundSessionConstrainsTaskGoal": true,
+    "sessionEqualsTransportConnection": false,
+    "sessionInitiatorGrantsDelegationAuthority": false
+  },
+  "baseImplementationCommit": "e3453718b54eb715b8a564d525a5f9dfd7014ff2",
+  "date": "2026-09-18",
+  "deferredBaseNodes": [
+    "N12",
+    "N16",
+    "N17",
+    "N20",
+    "N21"
+  ],
+  "discoveredNodes": [
+    "N39",
+    "N40",
+    "N41",
+    "N42",
+    "N43"
+  ],
+  "implementedBaseNodes": [
+    "N07"
+  ],
+  "kind": "ordivon.agent-service-semantics-r8-acceptance",
+  "schemaVersion": 1,
+  "semanticDogfood": {
+    "agentCardLeaksInstance": false,
+    "agentCardLeaksSession": false,
+    "agentCardProtocolVersion": "1.0.0",
+    "agentCardSkills": [
+      "review"
+    ],
+    "delegationCapability": "review",
+    "delegationContainsTransportBinding": false,
+    "sessionState": "OPEN",
+    "status": "PASS"
+  },
+  "standardsBasis": {
+    "a2a": "1.0.0 Agent Card discovery model",
+    "mcp": "2026-07-28 transport connection is not semantic session continuity",
+    "openaiAgentsSdk": "Sessions and Handoffs are separate primitives"
+  },
+  "verification": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "publicApiTests": 1,
+    "repositoryFailures": 0,
+    "repositoryTests": 122,
+    "resourceWarningsAsErrors": "PASS",
+    "semanticTests": 11
+  },
+  "verificationState": "PASS"
+}

@@ -1,0 +1,4685 @@
+{
+  "boundary": "Generated Level-0 discovery projection only. It does not establish task applicability, compliance, certification, authorization or domain acceptance.",
+  "entries": [
+    {
+      "aliases": [
+        "SIGSOFT Benchmarking Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-benchmarking",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:a6d21758471bc485597a25cbaba25b38dd941b146152c2536ed2f000fe5a88e2",
+      "recordDigest": "sha256:ffb8904f6fcad5413f76743c7e0154f5ed234e21cecb7d2183a0b848cc264cfe",
+      "title": "ACM SIGSOFT Empirical Standards — Benchmarking",
+      "topics": [
+        "benchmarking",
+        "empirical-software-engineering",
+        "performance-evaluation"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "SIGSOFT Data Science Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-data-science",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:96dcdb85ffe250f2e4b4bc2291c91417a77611a421a403c2a8646da1bcc6604a",
+      "recordDigest": "sha256:c71c0f0392ad4a078084a375b3ce66e981943a98a8042a6980c4276b9d7ed58e",
+      "title": "ACM SIGSOFT Empirical Standards — Data Science",
+      "topics": [
+        "data-science",
+        "empirical-software-engineering",
+        "machine-learning"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ACM SIGSOFT Empirical Standards",
+        "SIGSOFT General Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-general",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:9a667380d3c7028e078752d1f7ccf31fd34eadbb3b9b08d827afec78c51f0f8e",
+      "recordDigest": "sha256:b5909ee688a48a148653338089dd3fa190762b869ad7ff2f7e300a99958c172f",
+      "title": "ACM SIGSOFT Empirical Standards — General Standard",
+      "topics": [
+        "empirical-software-engineering",
+        "reporting",
+        "research-methods"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "SIGSOFT Replication Standard"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research",
+        "software-engineering"
+      ],
+      "id": "acm-sigsoft-replication",
+      "identityMode": "rolling-source",
+      "issuer": "ACM SIGSOFT",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2c91ea4b3ed7de01fc58b7cf3f341e9cb7dd1cb921435566da0e6a5759888217",
+      "recordDigest": "sha256:99e9479660f4ffa8ad0ca7f125cac4f481f819970807c64302a6e78ef926bbb0",
+      "title": "ACM SIGSOFT Empirical Standards — Replication",
+      "topics": [
+        "empirical-software-engineering",
+        "replication",
+        "reproduction"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Agent Skills",
+        "Agent Skills spec",
+        "SKILL.md specification"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "agent",
+        "ai",
+        "engineering",
+        "knowledge"
+      ],
+      "id": "agent-skills-spec",
+      "identityMode": "rolling-source",
+      "issuer": "Agent Skills",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:540c97dff9e33d3fb586b31553cc45e7e3edec330d7bd8e4def710ff00b53593",
+      "recordDigest": "sha256:6d06d06af9f0be10e1d84412f5c7cdccceb5b8069277745930d5417552104a00",
+      "title": "Agent Skills Specification",
+      "topics": [
+        "agent-skills",
+        "procedural-knowledge",
+        "progressive-disclosure",
+        "skill-discovery",
+        "skill-loading"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ANSI/NISO Z39.104-2022",
+        "Contributor Roles Taxonomy",
+        "CRediT"
+      ],
+      "authorityKind": "national-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "authorship",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "ansi-niso-z39.104-2022-credit",
+      "identityMode": "versioned",
+      "issuer": "National Information Standards Organization (NISO)",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:5605f878a7269f74d377034266b72fe751030484cc5e45fe4596bc67ec32be30",
+      "recordDigest": "sha256:41647989ee7b1223cef6f956ea3ce0aecb2f10eae6fbdc57a9ecfc08def45523",
+      "title": "ANSI/NISO Z39.104-2022 — CRediT, Contributor Roles Taxonomy",
+      "topics": [
+        "authorship",
+        "contributor-roles",
+        "research-contributions",
+        "scholarly-metadata"
+      ],
+      "versionLabel": "Z39.104-2022"
+    },
+    {
+      "aliases": [
+        "Apache Arrow",
+        "Arrow Columnar Format",
+        "Arrow Format 1.5"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "data",
+        "research"
+      ],
+      "id": "apache-arrow-format-1.5",
+      "identityMode": "versioned",
+      "issuer": "Apache Arrow",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:5dcf51c1b675631bd253f5142a64d20d503725c8604edc1ace59a6ac526ab819",
+      "recordDigest": "sha256:59ade79a21e5134cb874310eab05dc76e025cc14fe09267619ac6d5ca50f3128",
+      "title": "Apache Arrow Columnar Format 1.5",
+      "topics": [
+        "analytics",
+        "columnar",
+        "data-interchange",
+        "in-memory",
+        "ipc"
+      ],
+      "versionLabel": "1.5"
+    },
+    {
+      "aliases": [
+        "Apache Beam programming guide",
+        "Beam event-time model"
+      ],
+      "authorityKind": "mature-open-source-pattern",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "streaming"
+      ],
+      "id": "apache-beam-programming-model",
+      "identityMode": "rolling-source",
+      "issuer": "Apache Beam",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:fa83bf59ee7d22fa8ef893b0136426e9bae1e70baa05da3b9f80cfcd5e88a942",
+      "recordDigest": "sha256:b284f20638797a491de837fb6c8398f76abfddb424bd28d559caec41a8d10319",
+      "title": "Apache Beam Programming Model — Event Time, Watermarks, Windowing and Late Data",
+      "topics": [
+        "event-time",
+        "late-data",
+        "processing-time",
+        "triggers",
+        "watermark",
+        "windowing"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Iceberg 1.11.0"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "storage"
+      ],
+      "id": "apache-iceberg-1.11.0",
+      "identityMode": "versioned",
+      "issuer": "Apache Iceberg",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:ea65966068cce72238182c356e73386d5f742f2a54bf98e83716cace85aec5dd",
+      "recordDigest": "sha256:4c492343fbc265eb683e875092c75a80f0dd8b8c4b2d6c24d39e61cbce59c442",
+      "title": "Apache Iceberg 1.11.0",
+      "topics": [
+        "row-lineage",
+        "schema-evolution",
+        "snapshots",
+        "table-format"
+      ],
+      "versionLabel": "1.11.0"
+    },
+    {
+      "aliases": [
+        "Apache Iceberg specification v3",
+        "Iceberg v3 spec"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "storage"
+      ],
+      "id": "apache-iceberg-spec-v3",
+      "identityMode": "versioned",
+      "issuer": "Apache Iceberg",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:df6bec0b97a5a6a6bbb9ea3cb496c08064ee27da2378fe84996f1bee3d01af26",
+      "recordDigest": "sha256:899b3a81a537176c13de3c42717c5043cb3a99eb01d982a6ae8eddd492288d39",
+      "title": "Apache Iceberg Table Specification — Version 3",
+      "topics": [
+        "partition-evolution",
+        "row-lineage",
+        "schema-evolution",
+        "snapshots",
+        "table-format",
+        "time-travel"
+      ],
+      "versionLabel": "3"
+    },
+    {
+      "aliases": [
+        "Apache Parquet",
+        "Parquet 2.13.0",
+        "Parquet Format"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "apache-parquet-format-2.13.0",
+      "identityMode": "versioned",
+      "issuer": "Apache Parquet",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1509724a8e8955730144f067372dd2849c0f2d1fd1f6e4217a89d5e4521a2161",
+      "recordDigest": "sha256:b275d6fb5d74ed71b5a55a6fe6dc7337046d255f08e496e026db10541db10b7c",
+      "title": "Apache Parquet Format 2.13.0",
+      "topics": [
+        "analytics",
+        "columnar",
+        "data-storage",
+        "file-format"
+      ],
+      "versionLabel": "2.13.0"
+    },
+    {
+      "aliases": [
+        "ArchiMate",
+        "ArchiMate 3.2",
+        "ArchiMate Specification"
+      ],
+      "authorityKind": "enterprise-architecture-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "architecture",
+        "enterprise",
+        "management"
+      ],
+      "id": "archimate-3.2",
+      "identityMode": "versioned",
+      "issuer": "The Open Group",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:e0e8c92ad65fa3857b3dc0abe2792a0bf128c90ff96262aa5d8049d02892e99a",
+      "recordDigest": "sha256:a41da4fc9dc27ec9b5dbfe8c7c6c4624d6dbfcf8a6c2e98cde25e3b7c7666a05",
+      "title": "ArchiMate Specification, Version 3.2",
+      "topics": [
+        "application-architecture",
+        "architecture-modeling",
+        "business-architecture",
+        "enterprise-architecture",
+        "technology-architecture"
+      ],
+      "versionLabel": "3.2"
+    },
+    {
+      "aliases": [
+        "Archivematica 1.18.0"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "archivematica-1.18.0",
+      "identityMode": "versioned",
+      "issuer": "Artefactual Systems Inc.",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4faf0c67851fb0c65b6b938bc34723c6add45e8e7a852ee95fc24cc9fb8b6960",
+      "recordDigest": "sha256:5df15e9bcbc197f600549185130a572e8e92c54ecfe58812abca14e0f144aa2b",
+      "title": "Archivematica 1.18.0",
+      "topics": [
+        "aip",
+        "digital-preservation",
+        "fixity",
+        "mets",
+        "premis",
+        "storage-service"
+      ],
+      "versionLabel": "1.18.0"
+    },
+    {
+      "aliases": [
+        "Archivematica Fixity 0.8.0",
+        "Fixity 0.8.0"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "artefactual-fixity-0.8.0",
+      "identityMode": "versioned",
+      "issuer": "Artefactual Systems Inc.",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:aaaba5302a608daf17686e4cb48d3b39828b3f8da0ecfbbfe071bfa87024c253",
+      "recordDigest": "sha256:50d1b59f850bdb0d2d7c1cea5b98a8991ca4ad0f245bd1cdfc1b461f1428b4a5",
+      "title": "Artefactual Fixity 0.8.0",
+      "topics": [
+        "aip",
+        "checksum",
+        "digital-preservation",
+        "fixity",
+        "storage-service"
+      ],
+      "versionLabel": "0.8.0"
+    },
+    {
+      "aliases": [
+        "AsyncAPI",
+        "AsyncAPI 3.1.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "api",
+        "engineering",
+        "events",
+        "integration"
+      ],
+      "id": "asyncapi-3.1.0",
+      "identityMode": "versioned",
+      "issuer": "AsyncAPI Initiative",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:400bb66397ee15580527d304f32fd388fd03911794eb4d76e999abd3d5e32abb",
+      "recordDigest": "sha256:267f6fc1ac8624565dd423bcb115b4aa3e66e6b59eae72ca995f01de2763ac75",
+      "title": "AsyncAPI Specification 3.1.0",
+      "topics": [
+        "api-description",
+        "channels",
+        "event-driven-api",
+        "events",
+        "message-driven-api"
+      ],
+      "versionLabel": "3.1.0"
+    },
+    {
+      "aliases": [
+        "ODCS 3.2.0",
+        "Open Data Contract Standard 3.2.0"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "governance"
+      ],
+      "id": "bitol-odcs-3.2.0",
+      "identityMode": "versioned",
+      "issuer": "Bitol",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:505e1f686fb681683c8b97a10250c07bc1eb4532e76c51567a619f108f3318d9",
+      "recordDigest": "sha256:66775525a2554dd83e21223d7cb64fff2fabe67d854260e739c28fb90f3b8600",
+      "title": "Open Data Contract Standard (ODCS) v3.2.0",
+      "topics": [
+        "data-contract",
+        "data-quality",
+        "governance",
+        "interoperability",
+        "producer-consumer",
+        "schema",
+        "service-level"
+      ],
+      "versionLabel": "3.2.0"
+    },
+    {
+      "aliases": [
+        "ODPS 1.1.0",
+        "Open Data Product Standard 1.1.0"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "governance"
+      ],
+      "id": "bitol-odps-1.1.0",
+      "identityMode": "versioned",
+      "issuer": "Bitol",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:1333545023bb245e537414d65f6a99aafa1da18e0bcdeb75b71e9d254e0b2392",
+      "recordDigest": "sha256:7625ded8071c654713eaa1e94805dbb0a70e66d1a2933489352805df0bb1d38b",
+      "title": "Open Data Product Standard (ODPS) v1.1.0",
+      "topics": [
+        "consumption",
+        "data-product",
+        "governance",
+        "interoperability",
+        "ownership",
+        "ports",
+        "quality"
+      ],
+      "versionLabel": "1.1.0"
+    },
+    {
+      "aliases": [
+        "C2PA",
+        "C2PA 2.4",
+        "Content Credentials"
+      ],
+      "authorityKind": "content-provenance-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "media",
+        "provenance"
+      ],
+      "id": "c2pa-2.4",
+      "identityMode": "versioned",
+      "issuer": "Coalition for Content Provenance and Authenticity (C2PA)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:607eceb50a162935726590ab6067899164db8006889b89a2bae96600f7a254c2",
+      "recordDigest": "sha256:e93e6048eace749afffb7f94e8682bb8f6f6575937ed1a5ffc62aa82888961b4",
+      "title": "C2PA Specifications 2.4",
+      "topics": [
+        "authenticity",
+        "content-credentials",
+        "content-provenance",
+        "media"
+      ],
+      "versionLabel": "2.4"
+    },
+    {
+      "aliases": [
+        "CloudEvents",
+        "CloudEvents 1.0.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "engineering",
+        "integration",
+        "operations"
+      ],
+      "id": "cloudevents-1.0.2",
+      "identityMode": "versioned",
+      "issuer": "CNCF CloudEvents",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:a3ecc08abb1a5b2a530327c0e0c4a80b35995a75e043e541f6a08b6af82dd73a",
+      "recordDigest": "sha256:325fce6077eb616d405e9506b4c13a4e888d7659c834e114c53591aacae09b6a",
+      "title": "CloudEvents Core Specification 1.0.2",
+      "topics": [
+        "distributed-systems",
+        "event-envelope",
+        "events",
+        "interoperability"
+      ],
+      "versionLabel": "1.0.2"
+    },
+    {
+      "aliases": [
+        "Commons-IP 2.11.3",
+        "commons-ip2 2.11.3"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "commons-ip-2.11.3",
+      "identityMode": "versioned",
+      "issuer": "KEEP Solutions / Commons-IP project",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:8f475ee813d69832c716a76f08d6135c0418a6d792aa6ebdd1195f543aeab097",
+      "recordDigest": "sha256:d14ef172a3a53674b418b5f230f1d946bd68400997570039b251700198ae2f07",
+      "title": "Commons-IP 2.11.3",
+      "topics": [
+        "creation",
+        "eark",
+        "information-package",
+        "sip",
+        "validation"
+      ],
+      "versionLabel": "2.11.3"
+    },
+    {
+      "aliases": [
+        "CoreTrustSeal",
+        "CTS Requirements 2026-2028"
+      ],
+      "authorityKind": "repository-certification-requirements",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation",
+        "repository"
+      ],
+      "id": "coretrustseal-requirements-2026-2028",
+      "identityMode": "versioned",
+      "issuer": "CoreTrustSeal",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0e739f5b48f062494df1d5631f448192ab08c70bb32b7f7dc7671f03bd37d7ab",
+      "recordDigest": "sha256:a8d2763e0731281a5ff82a717d4fe37052db234d8ab4ce2a7f90518d08cb60cf",
+      "title": "CoreTrustSeal Trustworthy Data Repositories Requirements 2026–2028",
+      "topics": [
+        "digital-preservation",
+        "governance",
+        "repository-certification",
+        "trustworthy-repository"
+      ],
+      "versionLabel": "2026-2028"
+    },
+    {
+      "aliases": [
+        "CPMI-IOSCO PFMI",
+        "PFMI",
+        "Principles for Financial Market Infrastructures"
+      ],
+      "authorityKind": "international-financial-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "market-capital",
+        "post-trade"
+      ],
+      "id": "cpmi-iosco-pfmi-2012",
+      "identityMode": "versioned",
+      "issuer": "CPMI-IOSCO",
+      "lifecycleStatus": "current-international-standard",
+      "observationDigest": "sha256:a30a91db20970c7e3354a84aeb4ed77fd2f3e2aa2630653c5fdfbf1e079ed2cc",
+      "recordDigest": "sha256:81e0ca7fa19c1d458f422131f72c9c55768fe66fa667ffcd92d427c3c3a9fa35",
+      "title": "Principles for financial market infrastructures (PFMI)",
+      "topics": [
+        "clearing",
+        "finality",
+        "financial-market-infrastructure",
+        "risk-management",
+        "settlement"
+      ],
+      "versionLabel": "2012"
+    },
+    {
+      "aliases": [
+        "Crossref",
+        "Crossref 5.5.0",
+        "Crossref metadata deposit schema"
+      ],
+      "authorityKind": "scholarly-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "metadata",
+        "publication",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "crossref-metadata-deposit-schema-5.5.0",
+      "identityMode": "versioned",
+      "issuer": "Crossref",
+      "lifecycleStatus": "current-recommended",
+      "observationDigest": "sha256:c8a40e0942155476e77776e3fe985b59d8c417b797f8417b5280a22b022de32f",
+      "recordDigest": "sha256:d46f7c38a738b2dda9af8466067261c1d744d4e90633d8e301c4a8bd9f3a417c",
+      "title": "Crossref Metadata Deposit Schema 5.5.0",
+      "topics": [
+        "citation-metadata",
+        "doi",
+        "metadata-deposit",
+        "publisher-metadata",
+        "scholarly-metadata"
+      ],
+      "versionLabel": "5.5.0"
+    },
+    {
+      "aliases": [
+        "Citation Style Language",
+        "CSL",
+        "CSL 1.0.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "publication",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "csl-1.0.2",
+      "identityMode": "versioned",
+      "issuer": "Citation Style Language",
+      "lifecycleStatus": "current-stable",
+      "observationDigest": "sha256:746a7f8778c316cadf5a645802336a073dc370364dba1dc3861ae8d0ce082ae7",
+      "recordDigest": "sha256:808eee723f1264f361a2c90ee9f7d7a40fe2d3199c39be2690b8cbb5b37b6260",
+      "title": "Citation Style Language (CSL) 1.0.2 Specification",
+      "topics": [
+        "bibliography",
+        "citation-rendering",
+        "citation-style",
+        "references",
+        "scholarly-writing"
+      ],
+      "versionLabel": "1.0.2"
+    },
+    {
+      "aliases": [
+        "CycloneDX",
+        "CycloneDX 1.7",
+        "ECMA-424",
+        "Software Bill of Materials"
+      ],
+      "authorityKind": "interchange-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "cyclonedx-1.7",
+      "identityMode": "versioned",
+      "issuer": "OWASP Foundation / Ecma International",
+      "lifecycleStatus": "stable",
+      "observationDigest": "sha256:40bbce4fe1ffcca54567506b992eb6b32af6f3ba47fe359709ee52aef31869ab",
+      "recordDigest": "sha256:eca102a258be2b69544e3cf001ba21fa31f3392d1305f07663bd37a149c26294",
+      "title": "CycloneDX 1.7 / ECMA-424 2nd Edition",
+      "topics": [
+        "bill-of-materials",
+        "sbom",
+        "software-supply-chain",
+        "transparency",
+        "vulnerability-management"
+      ],
+      "versionLabel": "1.7"
+    },
+    {
+      "aliases": [
+        "DataCite",
+        "DataCite 4.7",
+        "DataCite Metadata Schema"
+      ],
+      "authorityKind": "scholarly-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "datacite-metadata-schema-4.7",
+      "identityMode": "versioned",
+      "issuer": "DataCite",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:ec9c24afc47551747abe004a94c9c207f5074c4c5cc635814b827492bfc86903",
+      "recordDigest": "sha256:f60c2bca3a4550bea90f31d79b79d3f3cb7aacc17e514369b293bc9796ef7a96",
+      "title": "DataCite Metadata Schema 4.7",
+      "topics": [
+        "citation-metadata",
+        "dataset-metadata",
+        "doi",
+        "persistent-identifiers",
+        "research-output-metadata"
+      ],
+      "versionLabel": "4.7"
+    },
+    {
+      "aliases": [
+        "Debezium CDC",
+        "Debezium stable"
+      ],
+      "authorityKind": "mature-open-source-pattern",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "databases",
+        "streaming"
+      ],
+      "id": "debezium-stable-cdc",
+      "identityMode": "rolling-source",
+      "issuer": "Debezium",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:8684e3aebb1fbf1b8f7c7f82507cd0fe2993c38706654b02357f5a8d50bfa03e",
+      "recordDigest": "sha256:43c657d6200ef50f9e83a63a88ccc181e15953be45b3bc73ce3f143bc0e61895",
+      "title": "Debezium Stable Documentation — Change Data Capture and Delivery Semantics",
+      "topics": [
+        "change-data-capture",
+        "database-changes",
+        "delivery-semantics",
+        "transaction-log"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "DPC RAM",
+        "Rapid Assessment Model"
+      ],
+      "authorityKind": "maturity-assessment",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "operations",
+        "preservation"
+      ],
+      "id": "dpc-ram-3",
+      "identityMode": "versioned",
+      "issuer": "Digital Preservation Coalition",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:6fc135dc313b66d9e9655e4ae2bf56426e88a7f8b6f6d1e60b5c8d2583eb9f54",
+      "recordDigest": "sha256:b3c9586f5ceb1ead8f5af2aab97c92a6d1d0688606e0de9a533f79a61e8ee09c",
+      "title": "Digital Preservation Coalition Rapid Assessment Model (DPC RAM) Version 3",
+      "topics": [
+        "benchmarking",
+        "continuous-improvement",
+        "digital-preservation",
+        "organizational-maturity"
+      ],
+      "versionLabel": "3"
+    },
+    {
+      "aliases": [
+        "CSIP 2.2.0",
+        "E-ARK CSIP"
+      ],
+      "authorityKind": "interchange-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "artifact",
+        "preservation"
+      ],
+      "id": "e-ark-csip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:aa84dfed7bae16593032b1b3a90b04fccb625adc9ef6b9a9a7b88a9b618da864",
+      "recordDigest": "sha256:3dccd89c18397fcecb25247a8da44707f849c14a92180615c5cf33dd9ec80d9e",
+      "title": "E-ARK Common Specification for Information Packages (CSIP) 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "information-package",
+        "interoperability",
+        "mets"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "E-ARK SIP",
+        "SIP 2.2.0"
+      ],
+      "authorityKind": "interchange-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "artifact",
+        "preservation"
+      ],
+      "id": "e-ark-sip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:599e1686435ba9bbe0573d68678eb263f1e8e538d073dcbaf2b5128cf92fcb66",
+      "recordDigest": "sha256:b2e994cd81b24ce08821a5ee1706df4232ad3668c0e306dddaea66169b3ce0de",
+      "title": "E-ARK Specification for Submission Information Packages (SIP) 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "interoperability",
+        "mets",
+        "sip",
+        "submission-information-package"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "CSIP 2.2.0",
+        "E-ARK CSIP 2.2.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "eark-csip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4081c3bd65ecf17ea7b6d94b32e95151f2f093492936de92bd72acbc06e4bbd4",
+      "recordDigest": "sha256:8f1a0034aa70dc3bd1c6e5ee9f016549e1339629735075796ee9c421bab18619",
+      "title": "E-ARK Common Specification for Information Packages (CSIP) 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "information-package",
+        "interoperability",
+        "mets"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "E-ARK SIP 2.2.0",
+        "SIP 2.2.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "eark-sip-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "DILCIS Board",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4e304482fc003803e88fc8882130ebb90ae287bce6f1d51b4343284d47a73d7c",
+      "recordDigest": "sha256:07961fda3a4d79c28f4168cd5bcb41eccb2c688c30fbff418ede6458b7147946",
+      "title": "E-ARK Submission Information Package (SIP) Specification 2.2.0",
+      "topics": [
+        "digital-preservation",
+        "interoperability",
+        "mets",
+        "submission-information-package"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
+        "EMSE submission guidelines"
+      ],
+      "authorityKind": "venue-rule",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "publication",
+        "research"
+      ],
+      "id": "emse-submission-guidelines",
+      "identityMode": "rolling-source",
+      "issuer": "Springer Nature",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:f7f9da3e26342a2941e69035d03f8abc6b5db1818654d0a2a40a677dbe433ad4",
+      "recordDigest": "sha256:37676f6d47ee71ac3a644e5ebfb66558ca3c0bbd91ec6818483076c92f46d425",
+      "title": "Empirical Software Engineering — Submission Guidelines",
+      "topics": [
+        "journal-policy",
+        "manuscript-submission",
+        "software-engineering"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ERPNext Budget",
+        "ERPNext Budget Variance"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "enterprise",
+        "finance"
+      ],
+      "id": "erpnext-budget-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:3fe95a5d653488c7c496df95aa5c0138037a4505ecdf78ac4329381d416bae23",
+      "recordDigest": "sha256:30463851d9e55673d444a9b3c01500982d94371f48428b91b9d153dbeb435840",
+      "title": "ERPNext Budget provider documentation",
+      "topics": [
+        "budget",
+        "budget-control",
+        "budget-variance",
+        "budgeting",
+        "financial-planning",
+        "project-budget"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ERPNext CRM"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "enterprise"
+      ],
+      "id": "erpnext-crm-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "scheduled-for-removal-v17",
+      "observationDigest": "sha256:7745fd6f2177da026aca5828adb76809af6f7a371cfc561a744bdc815dbe5c70",
+      "recordDigest": "sha256:cf6901d8d69d972785a1e20139043a4ac6d35338421cd731be2bf9f4c85bb25f",
+      "title": "ERPNext CRM provider documentation",
+      "topics": [
+        "crm",
+        "opportunity",
+        "sales",
+        "sales-pipeline"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "FAIR",
+        "FAIR data principles"
+      ],
+      "authorityKind": "guiding-principles",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "research"
+      ],
+      "id": "fair-principles",
+      "identityMode": "rolling-source",
+      "issuer": "GO FAIR",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:1bd081df12c88fc99ba91d2d2bfca8b0d7d4d699133fdf032e1ed9f87b2fd430",
+      "recordDigest": "sha256:ec6e15a5f39f761e3e060260073af1a8884103af7529e0bf6eae14c1176f1ac6",
+      "title": "FAIR Guiding Principles",
+      "topics": [
+        "accessible",
+        "findable",
+        "interoperable",
+        "research-data",
+        "reusable"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "FIX 4.4",
+        "FIX 4.4 Errata",
+        "FIX44"
+      ],
+      "authorityKind": "industry-protocol-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "market-capital",
+        "trading"
+      ],
+      "id": "fix-4.4-errata-20030618",
+      "identityMode": "versioned",
+      "issuer": "FIX Trading Community",
+      "lifecycleStatus": "supported-legacy",
+      "observationDigest": "sha256:46e9c6de404e0fc2c91397f25d2a06c12a334cac3f1eca1e224bde345d5b21f3",
+      "recordDigest": "sha256:ba7b128a3c0352c5bade07d9d5bce2d39843e2fa485b7aa1dcebdbbc581adb99",
+      "title": "FIX 4.4 Specification with 20030618 Errata",
+      "topics": [
+        "electronic-trading",
+        "execution-reports",
+        "market-data",
+        "messaging",
+        "orders"
+      ],
+      "versionLabel": "4.4+Errata20030618"
+    },
+    {
+      "aliases": [
+        "Frappe CRM"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "enterprise"
+      ],
+      "id": "frappe-crm-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:6bc83684138ae3fe65964f5024b2811112b4f4c10e44ca33aee697287b1357d5",
+      "recordDigest": "sha256:c8ca0bc30d39425e9591c1345f7c6a8ec7c2fb01be4caa1959aeca1adcde984a",
+      "title": "Frappe CRM provider documentation",
+      "topics": [
+        "crm",
+        "deal-pipeline",
+        "lead-management",
+        "sales"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Frappe Helpdesk"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "customer-support",
+        "enterprise",
+        "service"
+      ],
+      "id": "frappe-helpdesk-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:ad58ebd8ff17cf9d2d398ce482f2148f3405c0a099c3a800aed5a9318313ecb8",
+      "recordDigest": "sha256:7da5bc64e46f236eb1e094784ca0e178ed05664b0a1d0ac100f37174e738e6f4",
+      "title": "Frappe Helpdesk provider documentation",
+      "topics": [
+        "customer-support",
+        "helpdesk",
+        "knowledge-base",
+        "sla",
+        "ticketing"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Frappe HR Payroll",
+        "Frappe Payroll"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "enterprise",
+        "human-resources"
+      ],
+      "id": "frappe-hr-payroll-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Frappe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2d375ed8ce762ab642b54b997c350cac96fe60c8b3224f0cc63324c2cb5d3c54",
+      "recordDigest": "sha256:4a61db4d7a71c7072dcd9d6e8d67dfbc204737b8924044de4495b0882537b3f3",
+      "title": "Frappe HR Payroll provider documentation",
+      "topics": [
+        "employee-records",
+        "payroll",
+        "payroll-entry",
+        "salary",
+        "salary-slip"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Games User Research",
+        "GUR"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "game",
+        "research"
+      ],
+      "id": "games-user-research-practice",
+      "identityMode": "rolling-source",
+      "issuer": "Games User Research",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:abc2f4b60b2480d360621922efdf905a2d3a5c699c5c783e820385d92884dd32",
+      "recordDigest": "sha256:820ba238adccb8a68b575799edbaaaa542f3cf6b94d26d3a7216230b9363d0d1",
+      "title": "Games User Research — playtest method selection guidance",
+      "topics": [
+        "game-research",
+        "method-selection",
+        "playtesting",
+        "user-research"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Godot",
+        "Godot release archive"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "game"
+      ],
+      "id": "godot-provider",
+      "identityMode": "rolling-source",
+      "issuer": "Godot Engine",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c7dbb589a1c5d6eeb8af10f146a99e7e367544dd8fe182e3cfb9fc15e1ee834b",
+      "recordDigest": "sha256:645ddd81915c077aab49f6c51e07f571dfa465758a88eb6e4b7255b2fdda2cf3",
+      "title": "Godot official engine documentation and release archive",
+      "topics": [
+        "game-engine",
+        "provider-version",
+        "release-currentness"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "GA4 Traffic Source",
+        "Google Analytics Attribution",
+        "Google Analytics Traffic Source Dimensions"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "analytics",
+        "marketing",
+        "measurement"
+      ],
+      "id": "google-analytics-traffic-source",
+      "identityMode": "rolling-source",
+      "issuer": "Google Analytics",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:aaeab8dc9c75a0824c6fcccdf6c5fcc2a926680de28871be7340ca292f2969fa",
+      "recordDigest": "sha256:2b6d360e35ed9f4fc3545d6d21f0d2cba74451af95a3758f63507e9f5a1da3f5",
+      "title": "Google Analytics traffic-source dimensions and attribution guidance",
+      "topics": [
+        "attribution",
+        "campaign",
+        "channel",
+        "medium",
+        "source",
+        "traffic-source",
+        "utm"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Google Search Essentials",
+        "Search Essentials"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "distribution",
+        "marketing",
+        "web"
+      ],
+      "id": "google-search-essentials",
+      "identityMode": "rolling-source",
+      "issuer": "Google Search Central",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:9ca0d28385e11bac78ea42b70b13846e19803c7fd0a83e9d0792341c97388072",
+      "recordDigest": "sha256:75fd83238f1306bbd83c5525d1fc7fba69c1c68df0992e53799100ee4f8a7673",
+      "title": "Google Search Essentials",
+      "topics": [
+        "content-distribution",
+        "search",
+        "search-engine-optimization",
+        "seo",
+        "spam-policy"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Global Privacy Protocol",
+        "GPP",
+        "IAB Tech Lab Privacy Standards"
+      ],
+      "authorityKind": "industry-specification",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "advertising",
+        "marketing",
+        "privacy"
+      ],
+      "id": "iab-privacy-standards",
+      "identityMode": "rolling-source",
+      "issuer": "IAB Tech Lab",
+      "lifecycleStatus": "current-portfolio",
+      "observationDigest": "sha256:855ce03ea45f4f6fc5762a09653620ef36719980b2d10780d061572cab6d072e",
+      "recordDigest": "sha256:65b1c7e673b106dd8e24b9c83ac5f67c92a3fc6915a4213c8f44d5668087ace1",
+      "title": "IAB Tech Lab Privacy Standards Portfolio",
+      "topics": [
+        "adtech",
+        "consent",
+        "privacy",
+        "privacy-signals",
+        "targeted-advertising"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "ICC ESOMAR Code",
+        "ICC/ESOMAR International Code 2025"
+      ],
+      "authorityKind": "professional-code",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "data-analytics",
+        "market-research",
+        "research"
+      ],
+      "id": "icc-esomar-code-2025",
+      "identityMode": "versioned",
+      "issuer": "International Chamber of Commerce / ESOMAR",
+      "lifecycleStatus": "current-fifth-edition",
+      "observationDigest": "sha256:365d6c13ce1749b078b1da12996d538f21c2e80aea65d4a89f24f595bc6ec72f",
+      "recordDigest": "sha256:e2cc94a4468f31a81ddc8f06cd0aff25f58ff64f0e1b87342055fe179059efa0",
+      "title": "ICC/ESOMAR International Code on Market, Opinion and Social Research and Data Analytics",
+      "topics": [
+        "data-protection",
+        "market-research",
+        "research-ethics",
+        "research-governance",
+        "transparency"
+      ],
+      "versionLabel": "Fifth Edition (2025)"
+    },
+    {
+      "aliases": [
+        "ICC Advertising and Marketing Communications Code",
+        "ICC Marketing Code 2024"
+      ],
+      "authorityKind": "professional-code",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "advertising",
+        "business",
+        "marketing"
+      ],
+      "id": "icc-marketing-code-2024",
+      "identityMode": "versioned",
+      "issuer": "International Chamber of Commerce",
+      "lifecycleStatus": "current-eleventh-edition",
+      "observationDigest": "sha256:6497374a067facac4cd35a30835dc418f77c8b21aefb3366e40857e6b87dd29e",
+      "recordDigest": "sha256:b4a13cc25e0a9bcc7a1a5dc94a34c6bde2c6cee4d0c6ff7a03c13676e609a11e",
+      "title": "ICC Advertising and Marketing Communications Code",
+      "topics": [
+        "advertising",
+        "ai-marketing",
+        "direct-marketing",
+        "marketing-communications",
+        "responsible-marketing",
+        "social-media"
+      ],
+      "versionLabel": "11th Edition (2024)"
+    },
+    {
+      "aliases": [
+        "in-toto",
+        "in-toto v1.0",
+        "software supply chain attestation"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "in-toto-1.0",
+      "identityMode": "versioned",
+      "issuer": "in-toto",
+      "lifecycleStatus": "stable",
+      "observationDigest": "sha256:8f0ffc1640378b2c702c390ca373f870d7ff26108f787391b3b004a29662f9ea",
+      "recordDigest": "sha256:12568d327bb6f28738af8b1881e8c90467809f38e5d2ce5b0b62c41bcd0d1a71",
+      "title": "in-toto Stable Specification v1.0",
+      "topics": [
+        "attestation",
+        "integrity",
+        "layout",
+        "provenance",
+        "software-supply-chain"
+      ],
+      "versionLabel": "1.0"
+    },
+    {
+      "aliases": [
+        "IPTC 2025.1",
+        "IPTC Photo Metadata"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "media",
+        "metadata"
+      ],
+      "id": "iptc-photo-metadata-2025.1",
+      "identityMode": "versioned",
+      "issuer": "International Press Telecommunications Council (IPTC)",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:21a4de4906f5dfdb3d64a8d1b12423f62934aa2330eeff7f08e5afc6f9690ee8",
+      "recordDigest": "sha256:f2f769f1e75250294592195d55721d9e9104f4c7c7f20583552f722abee990e3",
+      "title": "IPTC Photo Metadata Standard 2025.1",
+      "topics": [
+        "accessibility",
+        "descriptive-metadata",
+        "media",
+        "photo-metadata",
+        "rights"
+      ],
+      "versionLabel": "2025.1"
+    },
+    {
+      "aliases": [
+        "Complaints handling",
+        "ISO 10002"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "customer",
+        "customer-success",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-10002-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current-confirmed",
+      "observationDigest": "sha256:e9f7929d9908a4751fc7963a7d9a845bc8f92f55cb1c5942920340b28a74df04",
+      "recordDigest": "sha256:3c194e8193020cb53ff1280f718d0533b724eedbd46b738b09524fd5e8a49f63",
+      "title": "ISO 10002:2018 — Quality management — Customer satisfaction — Guidelines for complaints handling in organizations",
+      "topics": [
+        "complaints",
+        "customer-feedback",
+        "customer-satisfaction",
+        "customer-success",
+        "quality-management"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "Customer satisfaction monitoring",
+        "ISO 10004"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "customer",
+        "customer-success",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-10004-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current-confirmed",
+      "observationDigest": "sha256:f445f2a01b7bc1bbe5835ed29e8e089c5c286b4d7ba0cc13f1020a7b8f12f606",
+      "recordDigest": "sha256:0b80876a4173a1789a0cb378d6bb5418069ce59b2c41a0df1463e2096df6d1bf",
+      "title": "ISO 10004:2018 — Quality management — Customer satisfaction — Guidelines for monitoring and measuring",
+      "topics": [
+        "customer-feedback",
+        "customer-satisfaction",
+        "customer-success",
+        "measurement",
+        "quality-management"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 10005",
+        "Quality plans"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-10005-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:86b86b82e0cdddbf8eca8f70663b93c1fa9a413df3f5ddc96f09fa592f04e3b0",
+      "recordDigest": "sha256:707c8d7b42d7e9c14496b6a568719dc9441e96f4b7685b3167285b1ae0f8b724",
+      "title": "ISO 10005:2018 — Quality management — Guidelines for quality plans",
+      "topics": [
+        "delivery",
+        "quality-management",
+        "quality-plan"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 10006"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-10006-2017",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:fa447482c16cecbd18d766a92bd64910edeff10930bbad9095f8c17799cc856c",
+      "recordDigest": "sha256:33571aa9b859d3dacc94359c8426a157297398d9519916b289dca4faee896764",
+      "title": "ISO 10006:2017 — Quality management — Guidelines for quality management in projects",
+      "topics": [
+        "project-management",
+        "project-quality",
+        "quality-management"
+      ],
+      "versionLabel": "2017"
+    },
+    {
+      "aliases": [
+        "ISO 14289-2",
+        "PDF accessibility",
+        "PDF/UA-2"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "accessibility",
+        "artifact",
+        "document"
+      ],
+      "id": "iso-14289-2-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:24dd7409573c3c53ae7966dbc3679914ac30ae12dc524722ab8bf27727b7131a",
+      "recordDigest": "sha256:4afc2c412d9a9d3fa27907d0c12fe2e94d6b5c7ecde388a43b7fd187a5c428d9",
+      "title": "ISO 14289-2:2024 — Electronic document file format enhancement for accessibility — Part 2: PDF/UA-2",
+      "topics": [
+        "accessibility",
+        "accessible-document",
+        "pdf",
+        "pdf-ua"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
+        "ISO 14721",
+        "ISO 14721:2025",
+        "OAIS"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "iso-14721-2025",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:73aef357ad2a0dfec69d0ed93506152c6bd3329c4c24b5a9a881e936a051e553",
+      "recordDigest": "sha256:a85e790e52fa6619675e3cdded8647793cef8e43ac68237c3cf2a569b226a88e",
+      "title": "ISO 14721:2025 — Space Data System Practices — Reference model for an open archival information system (OAIS)",
+      "topics": [
+        "archive-reference-model",
+        "designated-community",
+        "digital-preservation",
+        "oais"
+      ],
+      "versionLabel": "2025"
+    },
+    {
+      "aliases": [
+        "ISO 15489",
+        "ISO 15489-1:2016"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "preservation",
+        "records"
+      ],
+      "id": "iso-15489-1-2016",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:334fe296ebde6dd2888424b99c8c17bc6055f7ca6fa8ef7353886badd687e0c0",
+      "recordDigest": "sha256:f049d181a8f2676333b4abc82bc4a74cc60c7d9cb621cad4d9351c1ed789293d",
+      "title": "ISO 15489-1:2016 — Information and documentation — Records management — Part 1: Concepts and principles",
+      "topics": [
+        "disposition",
+        "metadata",
+        "records-management",
+        "records-requirements",
+        "retention"
+      ],
+      "versionLabel": "2016"
+    },
+    {
+      "aliases": [
+        "ISO 17442-1",
+        "Legal Entity Identifier",
+        "LEI standard"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "identity",
+        "market-capital"
+      ],
+      "id": "iso-17442-1-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:91c27061e9c284170692b9326fe993e9f2ec900bb49180cf3590bddc04a134b8",
+      "recordDigest": "sha256:8247cd25b4551e105d5776abf6e0421b7c48b20c80b900848fd61f43131c7717",
+      "title": "ISO 17442-1:2020 — Financial services — Legal entity identifier (LEI) — Part 1: Assignment",
+      "topics": [
+        "entity-identity",
+        "financial-services",
+        "legal-entity-identifier",
+        "lei"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "ISO 19005-4",
+        "PDF archival",
+        "PDF/A-4"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document",
+        "preservation"
+      ],
+      "id": "iso-19005-4-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:265dfa15c8158f28c88b9e10100efe121cbcdb5789ea14ff9d1fe84b32452d03",
+      "recordDigest": "sha256:6b5c795e448df9bbdc28a1ae97ce971c3f856a8d74d1f10066ee43a13c676651",
+      "title": "ISO 19005-4:2020 — Electronic document file format for long-term preservation — Part 4: PDF/A-4",
+      "topics": [
+        "archival-document",
+        "long-term-preservation",
+        "pdf",
+        "pdf-a"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "ISO 19011"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "audit",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-19011-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:00dd824369a7e80e5ba9ead5f1e5c9cb1554962131e84fd796d0bc9e2e1cdbbc",
+      "recordDigest": "sha256:c7effa3dac18bc7bd66bc24972e40792cd525341e135b4fb61c92229dfbc2d08",
+      "title": "ISO 19011:2026 — Guidelines for auditing management systems",
+      "topics": [
+        "assurance",
+        "audit",
+        "management-system-audit"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 20022",
+        "ISO 20022-1",
+        "Universal financial industry message scheme"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "finance",
+        "market-capital",
+        "post-trade"
+      ],
+      "id": "iso-20022-1-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:4f202b4d63a05e983e2cc0452976014b5b3d0282adca18191593cd8558969a66",
+      "recordDigest": "sha256:4086838bb52e4bd624c8e750e4d3619832a8ef29d8257c5580ef38bc819bff81",
+      "title": "ISO 20022-1:2026 — Financial services — Universal financial industry message scheme — Part 1: Metamodel",
+      "topics": [
+        "financial-messaging",
+        "financial-services",
+        "metamodel",
+        "payments",
+        "securities"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 20104",
+        "ISO 20104:2015",
+        "PAIS"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "iso-20104-2015",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "confirmed",
+      "observationDigest": "sha256:f61c1cd5c498bf35b36629753094be7d77fc27462c5fa15202f0bed97b6fabe9",
+      "recordDigest": "sha256:77a8b5db38e055330945fa6980963ffe44ca82b1a96ac9f20662cf4d9f92e28b",
+      "title": "ISO 20104:2015 — Space data and information transfer systems — Producer-Archive Interface Specification (PAIS)",
+      "topics": [
+        "producer-archive",
+        "sip",
+        "submission-information-package",
+        "validation"
+      ],
+      "versionLabel": "2015"
+    },
+    {
+      "aliases": [
+        "ISO 20252:2026",
+        "Market opinion and social research"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "market-research",
+        "research"
+      ],
+      "id": "iso-20252-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:124de744ee47d31b3adc0cc3300660130643f8c2688aa7f5119b130255a0d135",
+      "recordDigest": "sha256:1714a80bd502ed0d6ade5034d4fbe8ac24c82fe755a56852d434d0670c44bc9c",
+      "title": "ISO 20252:2026 — Market, opinion and social research, including insights and data analytics — Vocabulary and service requirements",
+      "topics": [
+        "data-analytics",
+        "insights",
+        "market-research",
+        "opinion-research",
+        "research-service"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 20400:2017",
+        "Sustainable procurement"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "management",
+        "procurement"
+      ],
+      "id": "iso-20400-2017",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current-confirmed",
+      "observationDigest": "sha256:1e65a04d3f8fd010b93f43f3b98e1e7a313e8fac227d0c4019085fe5bab7cd6c",
+      "recordDigest": "sha256:7977a41c97136d2d23caa51c411fa996aa9ca7c7c06a4a12790c8a3421916989",
+      "title": "ISO 20400:2017 — Sustainable procurement — Guidance",
+      "topics": [
+        "procurement",
+        "supplier-management",
+        "sustainable-procurement"
+      ],
+      "versionLabel": "2017"
+    },
+    {
+      "aliases": [
+        "ISO 20652",
+        "ISO 20652:2006",
+        "PAIMAS"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "iso-20652-2006",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "confirmed",
+      "observationDigest": "sha256:4195badb683dd1f5dc2bc3a072fac4ac35782b403040b27a8ae2f9cf5e530b62",
+      "recordDigest": "sha256:0de8cef2a62ff93b9118dcf0e536f743c6356af068a29be5166e5cd3bd1dc86b",
+      "title": "ISO 20652:2006 — Space data and information transfer systems — Producer-archive interface — Methodology abstract standard (PAIMAS)",
+      "topics": [
+        "ingest",
+        "producer-archive",
+        "submission-agreement",
+        "validation"
+      ],
+      "versionLabel": "2006"
+    },
+    {
+      "aliases": [
+        "Brand evaluation",
+        "ISO 20671-1:2021"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "brand",
+        "business",
+        "marketing"
+      ],
+      "id": "iso-20671-1-2021",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:1c3c7dcecd9798cc01fc8f2d3ef42cbee0218524ac2896f16d6612956e2f6b6f",
+      "recordDigest": "sha256:dad360c37771e66e789f93795baa7b80ed837a1fd6dd18181aeb285ff7c1cab6",
+      "title": "ISO 20671-1:2021 — Brand evaluation — Part 1: Principles and fundamentals",
+      "topics": [
+        "brand",
+        "brand-evaluation",
+        "brand-indicators"
+      ],
+      "versionLabel": "2021"
+    },
+    {
+      "aliases": [
+        "ISO 21502",
+        "Project management guidance"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "project"
+      ],
+      "id": "iso-21502-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:de02a82f6ca0efbc9acfb97e236fa8cb4893bbd02fc2dd2a2ae1637d6c4d9c23",
+      "recordDigest": "sha256:4ccb887d2616e85c37a20891ccc216a6acee140ee679d1af51292c57e9b03870",
+      "title": "ISO 21502:2020 — Project, programme and portfolio management — Guidance on project management",
+      "topics": [
+        "adaptive-delivery",
+        "governance",
+        "project-management"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "BCMS",
+        "business continuity management system",
+        "ISO 22301"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "operations",
+        "resilience"
+      ],
+      "id": "iso-22301-2019-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:8f1a0e781db54e1301bc6f3043f426116e9e68510fb5eb5f5e11f10e629885c6",
+      "recordDigest": "sha256:54df18c51a2df10a7b798ff9ce0787571ba93b6c33d8bbd605f2767c9f177bf4",
+      "title": "ISO 22301:2019 with Amendment 1:2024 — Business continuity management systems — Requirements",
+      "topics": [
+        "business-continuity",
+        "disruption-recovery",
+        "management-system",
+        "resilience"
+      ],
+      "versionLabel": "2019+Amd1:2024"
+    },
+    {
+      "aliases": [
+        "ISO 28500",
+        "WARC",
+        "WARC file format"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "preservation",
+        "web"
+      ],
+      "id": "iso-28500-2017",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:d4f139dde0b568a388a80f2d80d3b163974850631b8e3c07d48abd84e94c2ff2",
+      "recordDigest": "sha256:70b7263190395cdab1c0286d45fc8e30c350c4d689cb3008c7ec5c7bbe861b69",
+      "title": "ISO 28500:2017 — Information and documentation — WARC file format",
+      "topics": [
+        "archive-format",
+        "preservation",
+        "web-archive",
+        "web-capture"
+      ],
+      "versionLabel": "2017"
+    },
+    {
+      "aliases": [
+        "ISO 30401",
+        "KMS requirements",
+        "knowledge management system"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "knowledge",
+        "management"
+      ],
+      "id": "iso-30401-2018-amd1-2022-amd2-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:d6dbe2b5d422822d3d38699093f67b46d384f18634809d6604d179c0d9c3d700",
+      "recordDigest": "sha256:eb4f3392b7688b5098fd906390b33bbef96f752b57cb0fb325fdfdf163ab03e1",
+      "title": "ISO 30401:2018 with Amendments 1:2022 and 2:2024 — Knowledge management systems — Requirements",
+      "topics": [
+        "knowledge-management",
+        "learning",
+        "management-system",
+        "organizational-knowledge"
+      ],
+      "versionLabel": "2018+Amd1:2022+Amd2:2024"
+    },
+    {
+      "aliases": [
+        "Guidelines on recruitment",
+        "ISO 30405:2023"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "human-resources",
+        "management"
+      ],
+      "id": "iso-30405-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:c0c9914961099e032e9d8b78325e8fad29d1a45d0d7c98d4216849f2f62a4e5b",
+      "recordDigest": "sha256:e15e1bc49f0ffd5829fdebf3dc0dbfc4fc5796d1da00f7da89c8ce93f9eb15e3",
+      "title": "ISO 30405:2023 — Human resource management — Guidelines on recruitment",
+      "topics": [
+        "candidate-experience",
+        "hiring",
+        "recruitment",
+        "selection"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISO 31000",
+        "Risk management guidelines"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "risk"
+      ],
+      "id": "iso-31000-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:5f7ede93d5ee41e078edd9565069cf5d1cad302721767ab6e06ae53b494bc389",
+      "recordDigest": "sha256:4c2f0092a4c64d93a4aad3aedbdd7e0006db833a2f3b370457cc5d4b3a028e94",
+      "title": "ISO 31000:2018 — Risk management — Guidelines",
+      "topics": [
+        "governance",
+        "risk",
+        "risk-management",
+        "uncertainty"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 32000-2",
+        "ISO 32000-2:2020",
+        "PDF 2.0"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document"
+      ],
+      "id": "iso-32000-2-2020",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:b9fcc91a003e36eccb9cd402d9755a09c641420f7eef8e875d3c2acafcda48b2",
+      "recordDigest": "sha256:d84d556c8ad84a1f281e593f5401e7c517fa344945fe3a5f56fcd89596d27541",
+      "title": "ISO 32000-2:2020 — Document management — Portable document format — Part 2: PDF 2.0",
+      "topics": [
+        "document-format",
+        "fixed-document",
+        "pdf",
+        "portable-document"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "ISO 37301"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "compliance",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-37301-2021",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d2ca1ff7e4b97d91ba524561018ad4ea47f2de4fd268888df6348be4a37e3866",
+      "recordDigest": "sha256:b827449c69125b5f958c9c6f1cbbfff1a6c387d68baab9648da1b1ea95b9b13d",
+      "title": "ISO 37301:2021 — Compliance management systems — Requirements with guidance for use",
+      "topics": [
+        "compliance",
+        "compliance-management",
+        "governance"
+      ],
+      "versionLabel": "2021"
+    },
+    {
+      "aliases": [
+        "Guidance on outsourcing",
+        "ISO 37500:2014"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-37500-2014",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:f4401dff12497e4b465d60c4e2454f658c3a7cf6ae3d7acec3d964187916e52f",
+      "recordDigest": "sha256:0c189afdf6306a987161bf4077620c56cb204a05f13a1b7f607174e6be5e029c",
+      "title": "ISO 37500:2014 — Guidance on outsourcing",
+      "topics": [
+        "outsourcing",
+        "outsourcing-governance",
+        "supplier-management"
+      ],
+      "versionLabel": "2014"
+    },
+    {
+      "aliases": [
+        "innovation management system",
+        "ISO 56001"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "innovation",
+        "management"
+      ],
+      "id": "iso-56001-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:e2cb8e679cfb681a71cb2e8c14993b901b13c677150db48fe8170b5fcd32d18b",
+      "recordDigest": "sha256:0e569f6e281bda64e9362d845eef8ca66e337015ce0e1de8b188a4ddcf8e8027",
+      "title": "ISO 56001:2024 — Innovation management system — Requirements",
+      "topics": [
+        "innovation",
+        "innovation-management",
+        "management-system",
+        "organizational-capability"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
+        "ISO 8000-115:2024",
+        "Master Data Quality Identifiers"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "metadata"
+      ],
+      "id": "iso-8000-115-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:879bc850c8b4ae404ba2865a75ff1db5464486237c81ab8e23a9482d06e2f723",
+      "recordDigest": "sha256:ae44ace63bb13a1b5697cf741b377332c8e4c369754468a8c28869f2d156810f",
+      "title": "ISO 8000-115:2024 — Data quality — Part 115: Master data: Exchange of quality identifiers",
+      "topics": [
+        "data-quality",
+        "identifier-resolution",
+        "identifiers",
+        "master-data",
+        "reference-data"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
+        "ISO 9001:2015",
+        "ISO 9001:2015/Amd 1:2024"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-9001-2015-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "superseded",
+      "observationDigest": "sha256:637f2b1c54e1d9cda64804266d98755f9fbd39272db7f774cce4e234cac0f744",
+      "recordDigest": "sha256:1f5727005e8612271b9850a99947e703de5e32f070713e6eaf09240281f20d75",
+      "title": "ISO 9001:2015 with Amendment 1:2024 — Quality management systems — Requirements",
+      "topics": [
+        "qms",
+        "quality",
+        "quality-management-system"
+      ],
+      "versionLabel": "2015+Amd1:2024"
+    },
+    {
+      "aliases": [
+        "ISO 9001:2026"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-9001-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:412d8a49af5e71b0669117c7aaa031c5ca3714799d1adc72c26c895e3ff95a0b",
+      "recordDigest": "sha256:f377fb16c6c86d7b2270da16ff927dbfa725cd73006cb011c223fef25ce2b17b",
+      "title": "ISO 9001:2026 — Quality management systems — Requirements",
+      "topics": [
+        "qms",
+        "quality",
+        "quality-management-system"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 9004"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "quality"
+      ],
+      "id": "iso-9004-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1e7d4250739b482ff4033b44abe1919ebe9f6b8a9d92fd26ad092c6b48635a5f",
+      "recordDigest": "sha256:a7eb09b3d87c8b2ddf4c8aabd636dc452e882f51e3afa0909b37bdb854272421",
+      "title": "ISO 9004:2018 — Quality management — Quality of an organization — Guidance to achieve sustained success",
+      "topics": [
+        "quality-management",
+        "self-assessment",
+        "sustained-success"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "ISO 9241-11",
+        "Usability definitions"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "design",
+        "game",
+        "product"
+      ],
+      "id": "iso-9241-11-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:caede7c2e673a731d194f5abc21f287236f67f1d18e7db81581c8ceb8f5f0b52",
+      "recordDigest": "sha256:0c03a2b45c70d1b106177f7df99a67f41e4f0c74d9c0b810e40a561001b3d20f",
+      "title": "ISO 9241-11:2018 — Usability: Definitions and concepts",
+      "topics": [
+        "effectiveness",
+        "efficiency",
+        "satisfaction",
+        "usability"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "Human-centred design",
+        "ISO 9241-210"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "design",
+        "game",
+        "product"
+      ],
+      "id": "iso-9241-210-2019",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:cc2c0e28ef73845f4f8c335b48eed751f3a9e28699d0fd61ab2e78d44791c80c",
+      "recordDigest": "sha256:93cb33eff15ef0ee98f3ccdea8b957acfe25d75c53c67ea462c1308f21a72a91",
+      "title": "ISO 9241-210:2019 — Human-centred design for interactive systems",
+      "topics": [
+        "human-centred-design",
+        "interactive-systems",
+        "ux"
+      ],
+      "versionLabel": "2019"
+    },
+    {
+      "aliases": [
+        "ISO/IEC 11179-3:2023",
+        "Metadata Registry Part 3"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "metadata"
+      ],
+      "id": "iso-iec-11179-3-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:b645169123bfc169fe5d948c64cd822774d7b82ceca690d0003024b1030fb45d",
+      "recordDigest": "sha256:e792001106319945bdd12346ccab01325bf8fd2fb3dd8cbc4c695cae95264fae",
+      "title": "ISO/IEC 11179-3:2023 — Information technology — Metadata registries (MDR) — Part 3: Metamodel for registry common facilities",
+      "topics": [
+        "classification",
+        "data-elements",
+        "identification",
+        "mapping",
+        "metadata-registry"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "11179 Item Mapping Amendment",
+        "ISO/IEC 11179-3 Amendment 1:2026"
+      ],
+      "authorityKind": "international-standard-amendment",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "metadata"
+      ],
+      "id": "iso-iec-11179-3-amd1-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:f079d1b62f3b3320cf2dba38d5e6487b766e3c70e9cc23affd8a53fd1b6d683e",
+      "recordDigest": "sha256:0d5bb1cf733241439de36465756bd558c5ff311af410c98a567b8eae2bfdafa6",
+      "title": "ISO/IEC 11179-3:2023/Amd 1:2026 — Enhancements to Item Mapping",
+      "topics": [
+        "entity-mapping",
+        "item-mapping",
+        "metadata-mapping",
+        "metadata-registry"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "GL Transmission Format",
+        "glTF 2.0",
+        "ISO/IEC 12113"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "3d",
+        "artifact",
+        "game",
+        "media"
+      ],
+      "id": "iso-iec-12113-2022",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:593e8a08844064e534b25d8aed8b15e303c80a3102f11c368d5a7abe47a0b686",
+      "recordDigest": "sha256:4e8da390a839f83a60db435fff3f541d6bcea182e506059d25dbafb5b05ea180",
+      "title": "ISO/IEC 12113:2022 — Runtime 3D asset delivery format — Khronos glTF 2.0",
+      "topics": [
+        "3d",
+        "asset-delivery",
+        "gltf",
+        "runtime-3d"
+      ],
+      "versionLabel": "2022"
+    },
+    {
+      "aliases": [
+        "ISO 20000-1",
+        "ISO/IEC 20000-1",
+        "IT service management",
+        "service management system"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "enterprise",
+        "management",
+        "operations",
+        "service"
+      ],
+      "id": "iso-iec-20000-1-2018-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:04746ef9626b7ced8f48b2db3869c4a836c374f800e2abbbab3ef6bfcf418b8f",
+      "recordDigest": "sha256:91617ebaf927354e2abd09b9c12d22e9df0eb58a1731b06471f8becf6f5c6cb7",
+      "title": "ISO/IEC 20000-1:2018 with Amendment 1:2024 — Service management system requirements",
+      "topics": [
+        "it-service-management",
+        "management-system",
+        "service-management",
+        "service-quality"
+      ],
+      "versionLabel": "2018+Amd1:2024"
+    },
+    {
+      "aliases": [
+        "ISO 25010",
+        "ISO/IEC 25010:2023"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "software"
+      ],
+      "id": "iso-iec-25010-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:74e07fba0f2e169c21512afe37876c95e9c5d8fb831f38af09043341f7650f72",
+      "recordDigest": "sha256:8c668faddc39f2dc29ff13481784eaa153f45c60154a438067ccfa71307ea15e",
+      "title": "ISO/IEC 25010:2023 — Product quality model",
+      "topics": [
+        "product-quality",
+        "quality-model",
+        "software-quality"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISMS",
+        "ISO 27001",
+        "ISO/IEC 27001",
+        "ISO/IEC 27001:2022/Amd 1:2024"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "security"
+      ],
+      "id": "iso-iec-27001-2022-amd1-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:73e1336e0fe40a2ea688035a2d516d41fb24e305fdd96fa8377e034baaa56f0e",
+      "recordDigest": "sha256:321c11855dd7d159fbed97e28a853774e40e7c6f6adc736bca2988f3ba126698",
+      "title": "ISO/IEC 27001:2022 with Amendment 1:2024 — Information security management systems — Requirements",
+      "topics": [
+        "cybersecurity",
+        "information-security-management",
+        "isms",
+        "management-system",
+        "risk-management"
+      ],
+      "versionLabel": "2022+Amd1:2024"
+    },
+    {
+      "aliases": [
+        "ISO/IEC 29500-1",
+        "Office Open XML",
+        "OOXML"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document",
+        "office"
+      ],
+      "id": "iso-iec-29500-1-2016",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published-to-be-revised",
+      "observationDigest": "sha256:6f33aeeb4d58a7d2b3bcc8c770f067c13eabb794f8c71474dbba0312d02c123b",
+      "recordDigest": "sha256:82924a41c02254629f8a43bab6c687cfae9976c0ba5026f60ec0da816308274c",
+      "title": "ISO/IEC 29500-1:2016 — Office Open XML File Formats — Part 1: Fundamentals and Markup Language Reference",
+      "topics": [
+        "office-document",
+        "presentation",
+        "spreadsheet",
+        "word-processing",
+        "xml"
+      ],
+      "versionLabel": "2016"
+    },
+    {
+      "aliases": [
+        "AI management system",
+        "AIMS",
+        "ISO 42001",
+        "ISO/IEC 42001"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "ai",
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-iec-42001-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:00213bb370f161ed3c4ce0bd3850997c94525745e286aa0e4378b694273db9b1",
+      "recordDigest": "sha256:a24531a1f43d9d132fd6bb40c209f126a2562b76a4cea71808e2ded7084f4abb",
+      "title": "ISO/IEC 42001:2023 — Artificial intelligence — Management system",
+      "topics": [
+        "ai-governance",
+        "ai-management-system",
+        "artificial-intelligence",
+        "responsible-ai",
+        "risk-management"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISO 5259-2",
+        "ISO/IEC 5259-2:2024"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "ai",
+        "analytics",
+        "data",
+        "research"
+      ],
+      "id": "iso-iec-5259-2-2024",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:894dbd632962ccf6a8e855a80172658f53904f4761b57c83e2fe6855cfe06139",
+      "recordDigest": "sha256:e30804694f2dab4d6dd98b32d51c5f4fbf7658d58ef657653fa389cc48b09cd4",
+      "title": "ISO/IEC 5259-2:2024 — Artificial intelligence — Data quality for analytics and machine learning (ML) — Part 2: Data quality measures",
+      "topics": [
+        "analytics",
+        "data-quality",
+        "fitness-for-purpose",
+        "machine-learning",
+        "quality-measures"
+      ],
+      "versionLabel": "2024"
+    },
+    {
+      "aliases": [
+        "ISO 12207",
+        "ISO/IEC/IEEE 12207:2026"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "software"
+      ],
+      "id": "iso-iec-ieee-12207-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC/IEEE",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:82003094c7106b96052e141b8e25395c56d3b6fcdbd9014b1f9c4b2906704195",
+      "recordDigest": "sha256:c08428865c91b21dab8d2697df5cadb632bdc2b8b16b0431ac683c8501890419",
+      "title": "ISO/IEC/IEEE 12207:2026 — Software life cycle processes",
+      "topics": [
+        "software-engineering",
+        "software-lifecycle",
+        "systems-engineering"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "ISO 15288",
+        "ISO/IEC/IEEE 15288:2023"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "systems"
+      ],
+      "id": "iso-iec-ieee-15288-2023",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC/IEEE",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1b503c2fae95ff41462878621e14e4a5bc6e290208d3973a6c41e4b476749582",
+      "recordDigest": "sha256:e5f0d3c85410174c13b10953c948d4f653c52edbde447f08814401232e8b8a6a",
+      "title": "ISO/IEC/IEEE 15288:2023 — Systems and software engineering — System life cycle processes",
+      "topics": [
+        "system-lifecycle",
+        "system-of-systems",
+        "systems-engineering"
+      ],
+      "versionLabel": "2023"
+    },
+    {
+      "aliases": [
+        "ISO 29148",
+        "ISO/IEC/IEEE 29148:2018",
+        "Requirements engineering"
+      ],
+      "authorityKind": "international-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "game",
+        "systems"
+      ],
+      "id": "iso-iec-ieee-29148-2018",
+      "identityMode": "versioned",
+      "issuer": "ISO/IEC/IEEE",
+      "lifecycleStatus": "published-confirmed",
+      "observationDigest": "sha256:62cd4bdc790573b93baafb98749f5434ed95fa7271897c7dbd02eaf52a890531",
+      "recordDigest": "sha256:374f54f5ad50d4cb9c1d43e459d05d5f797bb6c942a87153a8f20f2082b26c9e",
+      "title": "ISO/IEC/IEEE 29148:2018 — Systems and software engineering — Life cycle processes — Requirements engineering",
+      "topics": [
+        "lifecycle",
+        "requirements",
+        "requirements-engineering",
+        "software-requirements",
+        "system-requirements"
+      ],
+      "versionLabel": "2018"
+    },
+    {
+      "aliases": [
+        "IMS practical guide",
+        "ISO Integrated Management Systems Guide"
+      ],
+      "authorityKind": "management-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management"
+      ],
+      "id": "iso-integrated-management-systems-guide-2026",
+      "identityMode": "versioned",
+      "issuer": "ISO",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:76091242bcd10556cfb8098f9e799ed9fc75e0dfecf5e91efa81c3d454a5c338",
+      "recordDigest": "sha256:cb7650849eb19b012da645b5399071d7a6a43ca41ff8855f6f9c8a103589e8b0",
+      "title": "Integrated management systems — A practical guide, 3rd edition",
+      "topics": [
+        "governance",
+        "integrated-management-system",
+        "management-system"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "Draft 2020-12",
+        "JSON Schema",
+        "JSON Schema 2020-12"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "api",
+        "artifact",
+        "data",
+        "engineering"
+      ],
+      "id": "json-schema-draft-2020-12",
+      "identityMode": "versioned",
+      "issuer": "JSON Schema",
+      "lifecycleStatus": "published-current-draft",
+      "observationDigest": "sha256:e8fc56fce7276b4dc9eea8d8e85eb38461255b6932325ff09293f14374658d16",
+      "recordDigest": "sha256:56a01323d5a0dc9d2b6d0cf61bfe67c9a9072605d085b82b7284a0414104e66f",
+      "title": "JSON Schema Draft 2020-12",
+      "topics": [
+        "data-contract",
+        "json",
+        "machine-readable-contract",
+        "schema",
+        "validation"
+      ],
+      "versionLabel": "2020-12"
+    },
+    {
+      "aliases": [
+        "Build Measure Learn",
+        "Lean Startup Principles"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "lean-startup-principles",
+      "identityMode": "rolling-source",
+      "issuer": "Lean Startup Co.",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:d341ffbf495d92e20952893c8bb0a39df28b4333ea1a0011e90efb4832516481",
+      "recordDigest": "sha256:93189857f99576306ee52ce93dd139973052f49f253606281bfc5aeec21799de",
+      "title": "The Lean Startup Principles",
+      "topics": [
+        "build-measure-learn",
+        "experimentation",
+        "innovation-accounting",
+        "validated-learning"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "MCP",
+        "MCP 2026-07-28",
+        "Model Context Protocol"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "agent",
+        "ai",
+        "engineering",
+        "integration"
+      ],
+      "id": "mcp-spec-2026-07-28",
+      "identityMode": "versioned",
+      "issuer": "Model Context Protocol",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:4c104be27cf8d5e493207c39a6b8fc2673e3e364a7b8d33e7d77cc9ad9b3bf30",
+      "recordDigest": "sha256:2b4daa66870b7186b9c564478d622755480a5e7ae50d242b49bc5ab7ee44df96",
+      "title": "Model Context Protocol Specification 2026-07-28",
+      "topics": [
+        "agent-protocol",
+        "authorization",
+        "interoperability",
+        "prompts",
+        "resources",
+        "tools"
+      ],
+      "versionLabel": "2026-07-28"
+    },
+    {
+      "aliases": [
+        "Metadata Encoding and Transmission Standard",
+        "METS",
+        "METS 2"
+      ],
+      "authorityKind": "digital-library-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "metadata",
+        "preservation"
+      ],
+      "id": "mets-2",
+      "identityMode": "versioned",
+      "issuer": "METS Editorial Board / Library of Congress",
+      "lifecycleStatus": "current-major-version",
+      "observationDigest": "sha256:6f1c411bed44f14198bce74be8384015806eee19aad8ccdc9531b1ad52f8c820",
+      "recordDigest": "sha256:e2f4ddb677382a703e0c68985149a589b8e156537be2aa790558bfbed1ad533d",
+      "title": "Metadata Encoding and Transmission Standard (METS) Version 2",
+      "topics": [
+        "administrative-metadata",
+        "descriptive-metadata",
+        "digital-library",
+        "information-package",
+        "structural-metadata"
+      ],
+      "versionLabel": "2"
+    },
+    {
+      "aliases": [
+        "Media Rating Council Outcomes Standards",
+        "MRC Outcomes and Data Quality Standards"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "advertising",
+        "marketing",
+        "measurement"
+      ],
+      "id": "mrc-outcomes-data-quality-2022",
+      "identityMode": "versioned",
+      "issuer": "Media Rating Council",
+      "lifecycleStatus": "listed-current",
+      "observationDigest": "sha256:f995732214304ea8687a21e3e5c2c1cca5b97ee006a0ce6844d72fecefe1f7ff",
+      "recordDigest": "sha256:3a157ddf1a5179e765cc6e4173dafc3b060a0a04caaa38d00d87fc037f1a4367",
+      "title": "MRC Outcomes and Data Quality Standards",
+      "topics": [
+        "ad-measurement",
+        "attribution",
+        "conversion",
+        "data-quality",
+        "outcomes"
+      ],
+      "versionLabel": "2022"
+    },
+    {
+      "aliases": [
+        "Levels of Digital Preservation",
+        "LoDP 2.1",
+        "NDSA Levels"
+      ],
+      "authorityKind": "maturity-assessment",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "archive",
+        "preservation"
+      ],
+      "id": "ndsa-levels-digital-preservation-2.1",
+      "identityMode": "versioned",
+      "issuer": "National Digital Stewardship Alliance",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:06ff61bd2acebc14e852b5730bd4a055a975c06a4cba46540774d031f45ae3e8",
+      "recordDigest": "sha256:51b4eee6c84a3e84ef9bfcf25879895fec6919eec4bba9d519d8402f9ab00d77",
+      "title": "NDSA Levels of Digital Preservation 2.1",
+      "topics": [
+        "content",
+        "control",
+        "digital-preservation",
+        "integrity",
+        "maturity",
+        "metadata",
+        "storage"
+      ],
+      "versionLabel": "2.1"
+    },
+    {
+      "aliases": [
+        "AI RMF 1.0",
+        "NIST AI 100-1",
+        "NIST AI RMF"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "ai",
+        "enterprise",
+        "risk",
+        "security"
+      ],
+      "id": "nist-ai-rmf-1.0",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "current-revision-in-progress",
+      "observationDigest": "sha256:f904c04914d1af3f4d70c098070008142eedda2845bc88d898bd264213d3b260",
+      "recordDigest": "sha256:85c3e8ddb3b838410fdcb7b955cbcad34883b76c791b57b718aae366fd979585",
+      "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0) — NIST AI 100-1",
+      "topics": [
+        "ai-risk",
+        "artificial-intelligence",
+        "responsible-ai",
+        "risk-management",
+        "trustworthy-ai"
+      ],
+      "versionLabel": "1.0"
+    },
+    {
+      "aliases": [
+        "CSF 2.0",
+        "NIST CSF"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "risk",
+        "security"
+      ],
+      "id": "nist-csf-2.0",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:fd0ecd9b32220917603c77189a1c146c8b5ccc9b60c64caa9c20c8b91be5429f",
+      "recordDigest": "sha256:c0651c18f0cd00599fee95befece41182cf84967ab94e67007bcc4c66a87514d",
+      "title": "NIST Cybersecurity Framework (CSF) 2.0",
+      "topics": [
+        "cybersecurity",
+        "governance",
+        "risk-management",
+        "security-outcomes"
+      ],
+      "versionLabel": "2.0"
+    },
+    {
+      "aliases": [
+        "OSCAL",
+        "OSCAL 1.1.3"
+      ],
+      "authorityKind": "government-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "compliance",
+        "enterprise",
+        "security"
+      ],
+      "id": "nist-oscal-1.1.3",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d9edc89efcd5ff0d9852efea0bdc976d690c5631992a0a9719353f6272d63f57",
+      "recordDigest": "sha256:2aa1095234ed384321a2f0aea4486b782695cf2cdbef3dfdf02a678439b7ac53",
+      "title": "Open Security Controls Assessment Language (OSCAL) 1.1.3",
+      "topics": [
+        "assessment",
+        "compliance-automation",
+        "machine-readable-controls",
+        "security-controls"
+      ],
+      "versionLabel": "1.1.3"
+    },
+    {
+      "aliases": [
+        "NIST PF 1.0",
+        "NIST Privacy Framework",
+        "Privacy Framework 1.0"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "enterprise",
+        "privacy",
+        "risk"
+      ],
+      "id": "nist-privacy-framework-1.0",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0f40544e431a468d3def1c2b9886c3b8543731466279a247156ad2b11494a51a",
+      "recordDigest": "sha256:d0fb5f4d627723ce78c755fcde1b78f47cf170e03bf80939311e3b4bbe894e58",
+      "title": "NIST Privacy Framework: A Tool for Improving Privacy through Enterprise Risk Management, Version 1.0",
+      "topics": [
+        "data-processing",
+        "governance",
+        "privacy-engineering",
+        "privacy-risk",
+        "risk-management"
+      ],
+      "versionLabel": "1.0"
+    },
+    {
+      "aliases": [
+        "NIST SSDF",
+        "SP 800-218",
+        "SSDF 1.1"
+      ],
+      "authorityKind": "government-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "security",
+        "software"
+      ],
+      "id": "nist-sp-800-218-ssdf-1.1",
+      "identityMode": "versioned",
+      "issuer": "NIST",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:3c4a8025505be5d49847b7f676ad5c3836e817bfc342bd04901be2a31c15db0e",
+      "recordDigest": "sha256:0c3f3e491af9f2bf2cae0a982f30ef83e6a87c5a881c8c6391064ea41dc75f63",
+      "title": "NIST SP 800-218 Secure Software Development Framework (SSDF) Version 1.1",
+      "topics": [
+        "secure-software",
+        "security",
+        "software-development",
+        "software-supply-chain"
+      ],
+      "versionLabel": "1.1"
+    },
+    {
+      "aliases": [
+        "ODF",
+        "OpenDocument",
+        "OpenDocument 1.3"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "document",
+        "office"
+      ],
+      "id": "oasis-opendocument-1.3",
+      "identityMode": "versioned",
+      "issuer": "OASIS Open",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1f373c22c24b3cd18cafc9e24eeac881e133742ea2fb96d398c60b41e882dc44",
+      "recordDigest": "sha256:362a1ba19ab3c18f0ad9398a9d10692519e011007ca35a563c82620ce0c6de33",
+      "title": "Open Document Format for Office Applications (OpenDocument) Version 1.3",
+      "topics": [
+        "office-document",
+        "presentation",
+        "spreadsheet",
+        "word-processing",
+        "xml"
+      ],
+      "versionLabel": "1.3"
+    },
+    {
+      "aliases": [
+        "SARIF",
+        "SARIF 2.1.0"
+      ],
+      "authorityKind": "interchange-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "engineering",
+        "security"
+      ],
+      "id": "oasis-sarif-2.1.0",
+      "identityMode": "versioned",
+      "issuer": "OASIS",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d9fb2d2dab097edb3f213f17e085f74ddddeff15ee858b9c6d4547d36b408720",
+      "recordDigest": "sha256:9cd01546fc83bb16270d7b17a67f0009461ad32659fdaf2657bfc9f4c7ddf427",
+      "title": "Static Analysis Results Interchange Format (SARIF) Version 2.1.0",
+      "topics": [
+        "code-analysis",
+        "interchange",
+        "security-findings",
+        "static-analysis"
+      ],
+      "versionLabel": "2.1.0"
+    },
+    {
+      "aliases": [
+        "OCI Distribution",
+        "OCI Distribution Spec 1.1.1"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering"
+      ],
+      "id": "oci-distribution-spec-1.1.1",
+      "identityMode": "versioned",
+      "issuer": "Open Container Initiative",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:bc4a50d300121806adeeaeb7724d89f9a1067718853c59e892c8870d175738d9",
+      "recordDigest": "sha256:f6d582f407914eaeb43212a4e414438c9782116b765e7735547b875d16ca0d48",
+      "title": "OCI Distribution Specification 1.1.1",
+      "topics": [
+        "artifacts",
+        "content-addressing",
+        "distribution",
+        "registry"
+      ],
+      "versionLabel": "1.1.1"
+    },
+    {
+      "aliases": [
+        "OCI Image",
+        "OCI Image Spec 1.1.1"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering"
+      ],
+      "id": "oci-image-spec-1.1.1",
+      "identityMode": "versioned",
+      "issuer": "Open Container Initiative",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:ae5544f2061d1bdae656bacf0bd392fbff4b06040d69e32091cc4f1c4f69b533",
+      "recordDigest": "sha256:1a56ff6f7dbc6ec88716437efd37e206834145b8adfb245b7c827856c3e8522b",
+      "title": "OCI Image Format Specification 1.1.1",
+      "topics": [
+        "artifact",
+        "container-image",
+        "content-addressing",
+        "manifest"
+      ],
+      "versionLabel": "1.1.1"
+    },
+    {
+      "aliases": [
+        "OCI Runtime",
+        "OCI Runtime Spec 1.3.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "engineering",
+        "operations"
+      ],
+      "id": "oci-runtime-spec-1.3.0",
+      "identityMode": "versioned",
+      "issuer": "Open Container Initiative",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:587d5ca1dbd6c1672853599d813af6dd9c1e7a586980e13c9b3b7a5a7dc02188",
+      "recordDigest": "sha256:abb2aecf4d2131b384a15d4cd8937b13e3cd4bcb4a4a5b23aceeb29e12df7088",
+      "title": "OCI Runtime Specification 1.3.0",
+      "topics": [
+        "container-lifecycle",
+        "container-runtime",
+        "execution-environment"
+      ],
+      "versionLabel": "1.3.0"
+    },
+    {
+      "aliases": [
+        "GeoPackage",
+        "GeoPackage 1.4.0",
+        "GPKG"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "geospatial"
+      ],
+      "id": "ogc-geopackage-1.4.0",
+      "identityMode": "versioned",
+      "issuer": "Open Geospatial Consortium",
+      "lifecycleStatus": "current-standard",
+      "observationDigest": "sha256:0392130ac244df566cd3f9c8183f6471013c9d25031fb41fcde099e78d687629",
+      "recordDigest": "sha256:31e9e6c4842d5320981469fc00f079150927375c618192d8de22f4f75943ab8e",
+      "title": "OGC GeoPackage Encoding Standard 1.4.0",
+      "topics": [
+        "geospatial",
+        "raster",
+        "sqlite",
+        "tiles",
+        "vector"
+      ],
+      "versionLabel": "1.4.0"
+    },
+    {
+      "aliases": [
+        "BPMN",
+        "BPMN 2.0.2"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "workflow"
+      ],
+      "id": "omg-bpmn-2.0.2",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:b253100ff0bef6569030bd51b3e9d5b421f3589b674df133f106529553d2ce89",
+      "recordDigest": "sha256:400339472a16757d848dbe1d9ac423fa45ca164cdff7e1c28ca993193cd25e06",
+      "title": "Business Process Model and Notation (BPMN) 2.0.2",
+      "topics": [
+        "business-process",
+        "process-modeling",
+        "workflow"
+      ],
+      "versionLabel": "2.0.2"
+    },
+    {
+      "aliases": [
+        "CMMN",
+        "CMMN 1.1"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "enterprise",
+        "management",
+        "workflow"
+      ],
+      "id": "omg-cmmn-1.1",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:c250339f38f943528fd30c7d84b2c43289c725bc79efce77f543fe4fb58ed5d9",
+      "recordDigest": "sha256:e54c3e61ab60fee30ffa4372203896a50a857bd517ce41745b98c2e5e63ba19b",
+      "title": "Case Management Model and Notation (CMMN) 1.1",
+      "topics": [
+        "adaptive-case",
+        "case-management",
+        "case-modeling"
+      ],
+      "versionLabel": "1.1"
+    },
+    {
+      "aliases": [
+        "DMN",
+        "DMN 1.5"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "decision",
+        "enterprise",
+        "management"
+      ],
+      "id": "omg-dmn-1.5",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:ed366c665e1fbb95554595de9ac76a7dcd19e52db6d0e1eb7c40dcd6c648075d",
+      "recordDigest": "sha256:7bb26b037de66f2efc4c530dd816e7039f1f4a44c782b867d38d4d092c45c050",
+      "title": "Decision Model and Notation (DMN) 1.5",
+      "topics": [
+        "business-rules",
+        "decision-modeling",
+        "decision-tables"
+      ],
+      "versionLabel": "1.5"
+    },
+    {
+      "aliases": [
+        "ReqIF",
+        "ReqIF 1.2"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "enterprise",
+        "requirements"
+      ],
+      "id": "omg-reqif-1.2",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:b3c4961fad3b4bfe7eb7707cbb857ab2c928c99e4295e7efe2cb78d5eb492064",
+      "recordDigest": "sha256:8d607a500d555b74916a2e1c5ab8cc2cbf3dfebad082d8da20f81da7ca944f5a",
+      "title": "Requirements Interchange Format (ReqIF) 1.2",
+      "topics": [
+        "interchange",
+        "requirements",
+        "traceability"
+      ],
+      "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "OAS 3.2.0",
+        "OpenAPI",
+        "OpenAPI 3.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "api",
+        "engineering",
+        "integration",
+        "web"
+      ],
+      "id": "openapi-3.2.0",
+      "identityMode": "versioned",
+      "issuer": "OpenAPI Initiative",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0341539e141c3807b3a5ebbeb9a26d6bb4cd0242918d1e5e97e7aab8196cac40",
+      "recordDigest": "sha256:1058d044daf8649fa86b75e7356a556199eb696c67310bc5f959a49c4cbc2e3b",
+      "title": "OpenAPI Specification 3.2.0",
+      "topics": [
+        "api-description",
+        "http-api",
+        "interface-contract",
+        "rest"
+      ],
+      "versionLabel": "3.2.0"
+    },
+    {
+      "aliases": [
+        "OIDC",
+        "OIDC Core 1.0",
+        "OpenID Connect Core"
+      ],
+      "authorityKind": "identity-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "openid-connect-core-1.0-errata2",
+      "identityMode": "versioned",
+      "issuer": "OpenID Foundation",
+      "lifecycleStatus": "final-specification",
+      "observationDigest": "sha256:cc5e368d709dc3188ebc63d1ee28f956ab77d5f76ec4a7e0177d921ec4640997",
+      "recordDigest": "sha256:809062110e6f403f02242c1f4cb9304e96a17cff29e3dd6d3b8848c8f51178b1",
+      "title": "OpenID Connect Core 1.0 incorporating errata set 2",
+      "topics": [
+        "authentication",
+        "identity",
+        "oauth",
+        "oidc",
+        "openid-connect"
+      ],
+      "versionLabel": "1.0 Errata 2"
+    },
+    {
+      "aliases": [
+        "OpenLineage",
+        "OpenLineage spec"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "data",
+        "operations"
+      ],
+      "id": "openlineage-spec",
+      "identityMode": "rolling-source",
+      "issuer": "OpenLineage",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:3fa16b9c449140187641d0bd5f3c45857f28dd057ad9f210ba113ff89144b28c",
+      "recordDigest": "sha256:9161e04be03a88412c9177dda89c69157117150fe448a0dd5dc946f7275c6c4a",
+      "title": "OpenLineage specification",
+      "topics": [
+        "data-lineage",
+        "datasets",
+        "jobs",
+        "metadata",
+        "provenance"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "gen_ai semantic conventions",
+        "OpenTelemetry GenAI",
+        "OTel GenAI semantic conventions"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "agent",
+        "ai",
+        "observability",
+        "operations"
+      ],
+      "id": "opentelemetry-genai-semconv",
+      "identityMode": "rolling-source",
+      "issuer": "OpenTelemetry",
+      "lifecycleStatus": "development-moving-source",
+      "observationDigest": "sha256:a5873b27b793688122707b3da7fbf12cfc9ea48f331f85873c050a1e5916fff9",
+      "recordDigest": "sha256:42a263a4e2aba8124d18c1e4c7d28128695699db9b098d3a5a56d40e66b88478",
+      "title": "OpenTelemetry Generative AI Semantic Conventions",
+      "topics": [
+        "agents",
+        "generative-ai",
+        "model-inference",
+        "semantic-conventions",
+        "telemetry",
+        "tracing"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "OpenTelemetry",
+        "OpenTelemetry Specification",
+        "OTel"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "observability",
+        "operations"
+      ],
+      "id": "opentelemetry-spec-1.60.0",
+      "identityMode": "versioned",
+      "issuer": "OpenTelemetry",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:f00156ba5ebf1bcfedc2c54201aec030bb2f94695a0fb4a485d1eb1c57d93385",
+      "recordDigest": "sha256:601c5efdb7c0c3ba55262c6c8a6000584736c03bfa05d8ce89200ffe962e8480",
+      "title": "OpenTelemetry Specification 1.60.0",
+      "topics": [
+        "context-propagation",
+        "logs",
+        "metrics",
+        "telemetry",
+        "tracing"
+      ],
+      "versionLabel": "1.60.0"
+    },
+    {
+      "aliases": [
+        "ORCID",
+        "ORCID iD",
+        "ORCID Identifier"
+      ],
+      "authorityKind": "identifier-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "identity",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "orcid-id-structure",
+      "identityMode": "rolling-source",
+      "issuer": "ORCID",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:d4ab6a5a51d997f1b9bb618ef6b763f1e7ee7b5fd3d1cddef1d65155b7154a2a",
+      "recordDigest": "sha256:293688756deaf378b4e49159142f031e6c25d9a7954bc8f75b49244c2fbe627c",
+      "title": "Structure of the ORCID Identifier",
+      "topics": [
+        "contributor-identity",
+        "persistent-identifier",
+        "researcher-identifier",
+        "scholarly-identity"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "OpenTelemetry Protocol",
+        "OTLP"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "observability",
+        "operations"
+      ],
+      "id": "otlp-1.11.0",
+      "identityMode": "versioned",
+      "issuer": "OpenTelemetry",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:1d3d49020ae9cf1055007111b1e5e8e84851986d35cd51cc0d66f0d01a309ebf",
+      "recordDigest": "sha256:8bc190ad9312e848823f71838aed25900a92afe06f5fb1d893907efb90c71157",
+      "title": "OpenTelemetry Protocol (OTLP) Specification 1.11.0",
+      "topics": [
+        "export",
+        "logs",
+        "metrics",
+        "protocol",
+        "telemetry",
+        "traces"
+      ],
+      "versionLabel": "1.11.0"
+    },
+    {
+      "aliases": [
+        "ASVS 5.0.0",
+        "OWASP ASVS"
+      ],
+      "authorityKind": "application-security-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "engineering",
+        "security",
+        "web"
+      ],
+      "id": "owasp-asvs-5.0.0",
+      "identityMode": "versioned",
+      "issuer": "OWASP Foundation",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:18a922f7ff5fc121b390e9d6fdf5b61b4e9119f9e3a3521115adf17a10acbbd6",
+      "recordDigest": "sha256:662e3999f54355073f8143d5d35b9e9c29476e3b7bdc43089f9b07f5b80b966a",
+      "title": "OWASP Application Security Verification Standard 5.0.0",
+      "topics": [
+        "application-security",
+        "security-requirements",
+        "verification",
+        "web-security"
+      ],
+      "versionLabel": "5.0.0"
+    },
+    {
+      "aliases": [
+        "PREMIS",
+        "PREMIS 3.0",
+        "PREMIS Data Dictionary"
+      ],
+      "authorityKind": "preservation-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "metadata",
+        "preservation"
+      ],
+      "id": "premis-3.0",
+      "identityMode": "versioned",
+      "issuer": "Library of Congress / PREMIS Editorial Committee",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:d49c9786f6c10cb2bbfb222748d64b04265ef542c90b0ed3c8111d58f9275b1f",
+      "recordDigest": "sha256:54e2207bdfe0029d7a6034a63daf177d5a10e61d3a11ea77218651dbcaeb5e9a",
+      "title": "PREMIS Data Dictionary for Preservation Metadata, Version 3.0",
+      "topics": [
+        "agents",
+        "digital-preservation",
+        "events",
+        "objects",
+        "preservation-metadata",
+        "rights"
+      ],
+      "versionLabel": "3.0"
+    },
+    {
+      "aliases": [
+        "PRISMA 2020"
+      ],
+      "authorityKind": "reporting-guideline",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "research"
+      ],
+      "id": "prisma-2020",
+      "identityMode": "versioned",
+      "issuer": "PRISMA",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:c0857d601d9b529100da46375ef4aceb4073b0da15be4404d3e77b1d6be37223",
+      "recordDigest": "sha256:d834c983e5703e20f115960ccc283866e18b834ae45e29e82ba0d70f1082aee3",
+      "title": "PRISMA 2020 Statement",
+      "topics": [
+        "evidence-synthesis",
+        "reporting",
+        "systematic-review"
+      ],
+      "versionLabel": "2020"
+    },
+    {
+      "aliases": [
+        "PRONOM",
+        "PRONOM registry",
+        "PUID"
+      ],
+      "authorityKind": "technical-registry",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "metadata",
+        "preservation"
+      ],
+      "id": "pronom-registry",
+      "identityMode": "rolling-source",
+      "issuer": "The National Archives (UK)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c9ee29619a9a95facf42a70b3056ff11bf446030d812354258be2419e5fc7c0d",
+      "recordDigest": "sha256:e1e39b48320ebcfb02447258f90a684a459961d19693b7d40b3b8adffbb413d4",
+      "title": "PRONOM technical information registry",
+      "topics": [
+        "digital-preservation",
+        "file-format-registry",
+        "format-identification",
+        "puid",
+        "software-registry"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "QUDT unit vocabulary",
+        "QUDT Units 3.5.1"
+      ],
+      "authorityKind": "open-vocabulary",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "engineering",
+        "research"
+      ],
+      "id": "qudt-units-3.5.1",
+      "identityMode": "versioned",
+      "issuer": "QUDT.org",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:8906621f782f1e7186096fdf952b9405d97c0d02e6617d9fcc0a71f27e65af10",
+      "recordDigest": "sha256:fa14321a68657a150276e71d8d55e6a2af37da485db43fa17cd9a3851d15309e",
+      "title": "QUDT Units Vocabulary 3.5.1",
+      "topics": [
+        "dimensions",
+        "measurement",
+        "quantities",
+        "semantic-units",
+        "units"
+      ],
+      "versionLabel": "3.5.1"
+    },
+    {
+      "aliases": [
+        "DNS concepts",
+        "RFC 1034",
+        "STD 13 DNS"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network"
+      ],
+      "id": "rfc-1034",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "internet-standard",
+      "observationDigest": "sha256:e8e1e1a29284921da88bf40fe3c0892c6b36e46929d28875c0e750d00c0c9ef5",
+      "recordDigest": "sha256:bb4f67b1d77ede54e1eedbc05711ebd2a78af6642a17be1c94651eeceb1f16b5",
+      "title": "RFC 1034 / STD 13 — Domain names — concepts and facilities",
+      "topics": [
+        "dns",
+        "domain-name-system",
+        "name-resolution"
+      ],
+      "versionLabel": "RFC 1034"
+    },
+    {
+      "aliases": [
+        "DNS implementation",
+        "RFC 1035",
+        "STD 13 DNS"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network"
+      ],
+      "id": "rfc-1035",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "internet-standard",
+      "observationDigest": "sha256:0a49936f054b22832b5a1730f04f4870551c77356da4ce3de685c2f4a398722d",
+      "recordDigest": "sha256:ed77cde815de3ed1be0e0eafbb58718c599b4232b864e86eac0f55a6894be2e6",
+      "title": "RFC 1035 / STD 13 — Domain names — implementation and specification",
+      "topics": [
+        "dns",
+        "domain-name-system",
+        "name-resolution",
+        "wire-format"
+      ],
+      "versionLabel": "RFC 1035"
+    },
+    {
+      "aliases": [
+        "OAuth 2.0",
+        "OAuth2",
+        "RFC 6749"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-6749",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:0981242ab318e77a4dab9c1b23a53a16b83fa04cb9947115f881046c5c4b7712",
+      "recordDigest": "sha256:870ecd122399f258b2de5555eb66171352a61f4f66d0b9e63e1630686f447ebc",
+      "title": "RFC 6749 — The OAuth 2.0 Authorization Framework",
+      "topics": [
+        "authorization",
+        "delegated-access",
+        "http-api",
+        "oauth"
+      ],
+      "versionLabel": "RFC 6749"
+    },
+    {
+      "aliases": [
+        "DNS over TLS",
+        "DoT",
+        "RFC 7858"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-7858",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:6fc2441d09b7a1b99cf8dc54974dad2526f254cf78c4ec721a6809a4916428b5",
+      "recordDigest": "sha256:95e0bee26f2be8c2fd0597a6505a143f85955811899e2a5539fe370d2c3a4ba4",
+      "title": "RFC 7858 — Specification for DNS over Transport Layer Security (TLS)",
+      "topics": [
+        "dns",
+        "dot",
+        "privacy",
+        "tls"
+      ],
+      "versionLabel": "RFC 7858"
+    },
+    {
+      "aliases": [
+        "DNS TLS usage profiles",
+        "RFC 8310"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-8310",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:c65d3e12d8937c0c953b3a2675206ffdbc81f1b0ca205fd10ff5ef11479ae06b",
+      "recordDigest": "sha256:4b18bbc6bf8e234961eeb895313cdfaf0f1d004c10822c81ea83f3e9ab18129b",
+      "title": "RFC 8310 — Usage Profiles for DNS over TLS and DNS over DTLS",
+      "topics": [
+        "authentication-profile",
+        "dns",
+        "dot",
+        "dtls",
+        "privacy"
+      ],
+      "versionLabel": "RFC 8310"
+    },
+    {
+      "aliases": [
+        "authorization server metadata",
+        "OAuth Authorization Server Metadata",
+        "RFC 8414"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-8414",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:f9fe078c2577dca41bf768c97acb84668b0e5446eedd0428bd7c495739c925d8",
+      "recordDigest": "sha256:e31a09564c1387c734e0d4d52ad72005057ad52714005a18cd3977fd2a7c8aa4",
+      "title": "RFC 8414 — OAuth 2.0 Authorization Server Metadata",
+      "topics": [
+        "authorization-server",
+        "discovery",
+        "issuer",
+        "metadata",
+        "oauth"
+      ],
+      "versionLabel": "RFC 8414"
+    },
+    {
+      "aliases": [
+        "DNS over HTTPS",
+        "DoH",
+        "RFC 8484"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-8484",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:eb631fffd8497835097919af6d1cf3502c7aa2474d35762ee2e6e3fdd5dde9cf",
+      "recordDigest": "sha256:e28821df3b3964f5f16595c2d93c1bdafd807cf58b78917605c111a193cc8271",
+      "title": "RFC 8484 — DNS Queries over HTTPS (DoH)",
+      "topics": [
+        "dns",
+        "doh",
+        "https",
+        "privacy"
+      ],
+      "versionLabel": "RFC 8484"
+    },
+    {
+      "aliases": [
+        "BagIt 1.0",
+        "RFC 8493"
+      ],
+      "authorityKind": "informational-rfc",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "archives",
+        "data",
+        "preservation"
+      ],
+      "id": "rfc-8493-bagit-1.0",
+      "identityMode": "versioned",
+      "issuer": "IETF / RFC Editor",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:59cf23fb54063e843ee8d4c4a07ed8b3652a17b04b029ae58c758a8f93d5c1c8",
+      "recordDigest": "sha256:6c98ebf9ca406f2cb6e69d1eba3902d1da41687cc946d35415c740abd0e962e0",
+      "title": "RFC 8493 — The BagIt File Packaging Format (V1.0)",
+      "topics": [
+        "bagit",
+        "file-packaging",
+        "fixity",
+        "manifest",
+        "transfer"
+      ],
+      "versionLabel": "1.0"
+    },
+    {
+      "aliases": [
+        "OAuth Resource Indicator",
+        "OAuth Resource Indicators",
+        "resource parameter",
+        "RFC 8707"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "mcp",
+        "security"
+      ],
+      "id": "rfc-8707",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:002c9600833b0dc0fba94f6312d28fe9be13a1e1e7dfeb460c7e446182523fdb",
+      "recordDigest": "sha256:9409df58b785700e1df4f4f5e6a80701aabbc9962fbbf9836c19beda104a0fb2",
+      "title": "RFC 8707 — Resource Indicators for OAuth 2.0",
+      "topics": [
+        "audience",
+        "authorization",
+        "oauth",
+        "resource-binding"
+      ],
+      "versionLabel": "RFC 8707"
+    },
+    {
+      "aliases": [
+        "QUIC",
+        "QUIC v1",
+        "RFC 9000"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network"
+      ],
+      "id": "rfc-9000",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:8c09d7ea96311f85f8f24499722f063319c00ae31d1a5ea63e5cb247d31f4e17",
+      "recordDigest": "sha256:cb5e365ad9090d4d861c878f0b8dadd738604cc6d06b3941b7889dd7f3fcf9eb",
+      "title": "RFC 9000 — QUIC: A UDP-Based Multiplexed and Secure Transport",
+      "topics": [
+        "multiplexing",
+        "path-migration",
+        "quic",
+        "transport",
+        "udp"
+      ],
+      "versionLabel": "RFC 9000"
+    },
+    {
+      "aliases": [
+        "HTTP Semantics",
+        "RFC 9110",
+        "STD 97"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "network",
+        "web"
+      ],
+      "id": "rfc-9110",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "internet-standard",
+      "observationDigest": "sha256:cc29a738064c38ff1b7cbb5aa07879cc381e4bbbbaeeff1635d04aebe8f9bd2b",
+      "recordDigest": "sha256:a2e77cc747ee8a8d31f632a5f90cb4959fd862c042f8916dfc5fc1c66e172545",
+      "title": "RFC 9110 / STD 97 — HTTP Semantics",
+      "topics": [
+        "http",
+        "request-response",
+        "semantics",
+        "web"
+      ],
+      "versionLabel": "RFC 9110"
+    },
+    {
+      "aliases": [
+        "HTTP 2",
+        "HTTP/2",
+        "RFC 9113"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "network",
+        "web"
+      ],
+      "id": "rfc-9113",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:31d2247a442f6195dd9751d4f5e4565d9168d425116e317fd1b283490e2a83d7",
+      "recordDigest": "sha256:8c69cd95065c19a6243bb6d66a81c8c34eaba26dcb3401fae60587830dba1950",
+      "title": "RFC 9113 — HTTP/2",
+      "topics": [
+        "http",
+        "http2",
+        "multiplexing",
+        "web-transport"
+      ],
+      "versionLabel": "RFC 9113"
+    },
+    {
+      "aliases": [
+        "HTTP 3",
+        "HTTP/3",
+        "RFC 9114"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "network",
+        "web"
+      ],
+      "id": "rfc-9114",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:90b1fe4a986cbac3d4e46c2167582457066e11a8e102485c777cae7fc9340761",
+      "recordDigest": "sha256:e1b26ff468f675ea97823adb14751b83b488d0c51ee8c1be5f70a75acddb7b45",
+      "title": "RFC 9114 — HTTP/3",
+      "topics": [
+        "http",
+        "http3",
+        "quic",
+        "web-transport"
+      ],
+      "versionLabel": "RFC 9114"
+    },
+    {
+      "aliases": [
+        "BCP 240",
+        "OAuth 2.0 Security BCP",
+        "RFC 9700"
+      ],
+      "authorityKind": "best-current-practice",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-9700",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "best-current-practice",
+      "observationDigest": "sha256:e8f6319fcbb70b67dc96af2a82629f21d97674ebc8badef09dfddc006a05ddfa",
+      "recordDigest": "sha256:c389a56e94830862041b2f2543c2f0095fdb5fd91b49c680cf596d5971b0ac33",
+      "title": "RFC 9700 / BCP 240 — Best Current Practice for OAuth 2.0 Security",
+      "topics": [
+        "authorization",
+        "best-current-practice",
+        "oauth",
+        "security"
+      ],
+      "versionLabel": "RFC 9700"
+    },
+    {
+      "aliases": [
+        "OAuth Protected Resource Metadata",
+        "protected resource metadata",
+        "RFC 9728"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "distribution",
+        "identity",
+        "security",
+        "web"
+      ],
+      "id": "rfc-9728",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:963a34239ccd062ddbe17f3967a2570d3d5b52d906335c7690e6d9d5b2873e5f",
+      "recordDigest": "sha256:c518c7539c0359377a688b1f5f328e49ae1ce3d58cf891f0de10f331942ba9a5",
+      "title": "RFC 9728 — OAuth 2.0 Protected Resource Metadata",
+      "topics": [
+        "authorization",
+        "metadata",
+        "oauth",
+        "protected-resource",
+        "resource"
+      ],
+      "versionLabel": "RFC 9728"
+    },
+    {
+      "aliases": [
+        "RFC 9846",
+        "TLS 1.3",
+        "Transport Layer Security 1.3"
+      ],
+      "authorityKind": "internet-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "internet",
+        "network",
+        "security"
+      ],
+      "id": "rfc-9846",
+      "identityMode": "versioned",
+      "issuer": "IETF",
+      "lifecycleStatus": "proposed-standard",
+      "observationDigest": "sha256:1d5d39f341c067539d255f5c3e90394ac97584cddee328ce74d138a85d8463b5",
+      "recordDigest": "sha256:887957e7b9b2ec5d872047faea9b9f0138882eb246396fd784b9d24ce15ba64d",
+      "title": "RFC 9846 — The Transport Layer Security (TLS) Protocol Version 1.3",
+      "topics": [
+        "authentication",
+        "encryption",
+        "tls",
+        "transport-security"
+      ],
+      "versionLabel": "RFC 9846"
+    },
+    {
+      "aliases": [
+        "RO Crate 1.3",
+        "RO-Crate"
+      ],
+      "authorityKind": "interchange-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "ro-crate-1.3",
+      "identityMode": "versioned",
+      "issuer": "Research Object community",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:d8b749cf86abc1aebf26341052809e0826e45e19c74c6179348bfa5ad09a4d5e",
+      "recordDigest": "sha256:1e11074bdc01ef9a74f37674f4cc937837b5dc03c2e735c2b5ca81425ad1b099",
+      "title": "RO-Crate Metadata Specification 1.3",
+      "topics": [
+        "metadata",
+        "packaging",
+        "provenance",
+        "research-object"
+      ],
+      "versionLabel": "1.3"
+    },
+    {
+      "aliases": [
+        "Playing to Win strategy cascade",
+        "Roger Martin strategy choices",
+        "Strategy Choice Cascade"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "strategy"
+      ],
+      "id": "roger-martin-strategy-choice-cascade",
+      "identityMode": "rolling-source",
+      "issuer": "Roger L. Martin",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:09d8eef0989c2865c17dbde2255fc50dbde80360732b67865e8c49e5fc2e8803",
+      "recordDigest": "sha256:143ad00fa83901b73a8a41910f81e7bcb32b7aa161b66af3a6869ac8ae78fa51",
+      "title": "Strategy",
+      "topics": [
+        "capabilities",
+        "how-to-win",
+        "management-systems",
+        "strategic-choice",
+        "where-to-play",
+        "winning-aspiration"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Research Organization Registry",
+        "ROR",
+        "ROR 2.1"
+      ],
+      "authorityKind": "identifier-metadata-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "identity",
+        "metadata",
+        "research",
+        "scholarly-communication"
+      ],
+      "id": "ror-schema-2.1",
+      "identityMode": "versioned",
+      "issuer": "Research Organization Registry (ROR)",
+      "lifecycleStatus": "current-recommended-stable",
+      "observationDigest": "sha256:63ac0dfaeeb7ac02ac70e9d48288da3815acdc08bc093c3bf9c2307a7f8e11e0",
+      "recordDigest": "sha256:7777e278ee0662a8748636c7deb45094aeb6f9a9292cb91ab24436973e989d24",
+      "title": "ROR Schema 2.1",
+      "topics": [
+        "affiliation",
+        "institution-metadata",
+        "organization-identifier",
+        "research-organization"
+      ],
+      "versionLabel": "2.1"
+    },
+    {
+      "aliases": [
+        "国市监注发〔2026〕5号",
+        "经营主体登记文书规范和提交材料规范（2026年版）"
+      ],
+      "authorityKind": "government-specification",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "company-formation",
+        "prc"
+      ],
+      "id": "samr-registration-materials-2026",
+      "identityMode": "versioned",
+      "issuer": "State Administration for Market Regulation",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:dbe0c48f8df2507e9d78019f63c3646ea7dd0b6086446419091727328b6c481f",
+      "recordDigest": "sha256:636c22ad0d1700646e6c7cba795798debd87b3466469ca9a260895fbea60cddb",
+      "title": "经营主体登记文书规范和提交材料规范（2026年版）",
+      "topics": [
+        "company-registration",
+        "filing-materials",
+        "market-entity-registration"
+      ],
+      "versionLabel": "2026"
+    },
+    {
+      "aliases": [
+        "SDMX 3.1",
+        "Statistical Data and Metadata eXchange 3.1"
+      ],
+      "authorityKind": "statistical-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "research",
+        "statistics"
+      ],
+      "id": "sdmx-3.1",
+      "identityMode": "versioned",
+      "issuer": "Statistical Data and Metadata eXchange (SDMX)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:da86e4f6db715dc0ff6e230b07fd83239014378d6f1c47634f231d3be0da90dd",
+      "recordDigest": "sha256:e357e1f6cb64cc5f007af2c9c49c23691c275393314689b1073c0334a0766734",
+      "title": "SDMX 3.1 Technical Specifications",
+      "topics": [
+        "attribute",
+        "data-structure-definition",
+        "dimension",
+        "measure",
+        "metadata",
+        "statistical-data",
+        "unit-of-measure"
+      ],
+      "versionLabel": "3.1"
+    },
+    {
+      "aliases": [
+        "CL_OBS_STATUS 2.3",
+        "SDMX Observation Status"
+      ],
+      "authorityKind": "statistical-codelist",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "research",
+        "statistics"
+      ],
+      "id": "sdmx-cl-obs-status-2.3",
+      "identityMode": "versioned",
+      "issuer": "Statistical Data and Metadata eXchange (SDMX)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2c0bbfc486bb97be931560ae051368d35fb09b405bc00eb53705bdbd35f34e0a",
+      "recordDigest": "sha256:e39b1d3544b955d632ff72966416631f04e93320c8ec54fe85178d8fefe513f8",
+      "title": "SDMX Cross-Domain Code List — Observation Status (CL_OBS_STATUS) v2.3",
+      "topics": [
+        "estimated-values",
+        "missing-values",
+        "observation-status",
+        "provisional-values",
+        "statistical-metadata"
+      ],
+      "versionLabel": "2.3"
+    },
+    {
+      "aliases": [
+        "SLSA",
+        "SLSA 1.2"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "slsa-1.2",
+      "identityMode": "versioned",
+      "issuer": "SLSA",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:3e143cc5c081924a03c9d5758121d7ea766c442adfc2b4a9d34b3cf34148e021",
+      "recordDigest": "sha256:de7ffebfdd1e1e0b58f01fe1470a24483dfeb56d0cb74bb7c9fd08925d59914e",
+      "title": "Supply-chain Levels for Software Artifacts Specification 1.2",
+      "topics": [
+        "build-integrity",
+        "provenance",
+        "security",
+        "software-supply-chain"
+      ],
+      "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "ISO/IEC 5962:2021",
+        "Software Bill of Materials",
+        "SPDX",
+        "SPDX 3.0"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "distribution",
+        "engineering",
+        "security"
+      ],
+      "id": "spdx-3.0",
+      "identityMode": "versioned",
+      "issuer": "Linux Foundation / SPDX",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:b8cc40b82d5eda99cfb6b8a65e5ac28aa703cee792629538a8447fea27b7a394",
+      "recordDigest": "sha256:4799dac1f82e97dd4377ce8213f06681f7ad01e40368043390ca529ba3a8f0e1",
+      "title": "SPDX Specification 3.0",
+      "topics": [
+        "licensing",
+        "package-metadata",
+        "sbom",
+        "software-supply-chain"
+      ],
+      "versionLabel": "3.0"
+    },
+    {
+      "aliases": [
+        "Springer research data policy"
+      ],
+      "authorityKind": "publisher-policy",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "publication",
+        "research"
+      ],
+      "id": "springer-research-data-policy",
+      "identityMode": "rolling-source",
+      "issuer": "Springer Nature",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:2bde7b31331e9556a25ff1c3121c64e21751fe82d17153fa9762305e8ef20ac8",
+      "recordDigest": "sha256:6883bbed1eed68b2918901846f2b1db7ba3c22a1e37a82d6c6495d84cea5736d",
+      "title": "Springer Nature Research Data Policy",
+      "topics": [
+        "data-availability",
+        "publication-policy",
+        "research-data"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "BMC",
+        "Business Model Canvas"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "strategyzer-business-model-canvas",
+      "identityMode": "rolling-source",
+      "issuer": "Strategyzer",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:776ab27c04c931f5abe312def101ee5c38a070929cc22e6b154d2a3f29d7ba28",
+      "recordDigest": "sha256:be19a17d3f3d7ec1eb0fd102422a11a99c60dd7f974e0641f9e8beb839504e3c",
+      "title": "The Business Model Canvas",
+      "topics": [
+        "business-model",
+        "cost-structure",
+        "customer-segments",
+        "revenue-model"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Value Proposition Canvas",
+        "VPC"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "strategyzer-value-proposition-canvas",
+      "identityMode": "rolling-source",
+      "issuer": "Strategyzer",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:10b2518e9380df36357cd46bb87c230a5776f9c5824634b8ec15217462c92b62",
+      "recordDigest": "sha256:9cd18423bb70cc822b248660916ff05fc00c7dbd74a8e0b0486c73cf20134615",
+      "title": "The Value Proposition Canvas",
+      "topics": [
+        "customer-profile",
+        "jobs-pains-gains",
+        "problem-solution-fit",
+        "value-proposition"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "SaaS Pricing and Packaging",
+        "Stripe SaaS Pricing Guide"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "software"
+      ],
+      "id": "stripe-saas-pricing-packaging",
+      "identityMode": "rolling-source",
+      "issuer": "Stripe",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:84be6369b5fb126da0009fc8bfd091e5e0d23610194a7023971d51cb37dfae45",
+      "recordDigest": "sha256:9acf728eccf3179ffe1943d93985717830b01e189cdf984a0480dfe90f7b4b87",
+      "title": "A Guide to SaaS Pricing and Packaging",
+      "topics": [
+        "packaging",
+        "pricing",
+        "saas-pricing",
+        "value-metric"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Software Heritage persistent identifier",
+        "swh:1",
+        "SWHID"
+      ],
+      "authorityKind": "persistent-identifier-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "preservation",
+        "research",
+        "scholarly-communication",
+        "software"
+      ],
+      "id": "swhid-scheme-v1",
+      "identityMode": "versioned",
+      "issuer": "Software Heritage",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:595b954b21e2934b965c4052c6e01e598355c57fdbd28dc4b91de833b09f32d1",
+      "recordDigest": "sha256:1b8854b93b17da8c1a40e444ea1ac3a5c51b3ac656e12439829421d2d035a258",
+      "title": "SoftWare Hash persistent IDentifiers (SWHIDs) — identifier scheme version 1",
+      "topics": [
+        "persistent-identifier",
+        "software-archive",
+        "software-citation",
+        "software-identifier",
+        "source-code"
+      ],
+      "versionLabel": "1"
+    },
+    {
+      "aliases": [
+        "TOGAF",
+        "TOGAF 10",
+        "TOGAF Standard 10th Edition"
+      ],
+      "authorityKind": "enterprise-architecture-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "architecture",
+        "enterprise",
+        "management"
+      ],
+      "id": "togaf-standard-10th-edition",
+      "identityMode": "versioned",
+      "issuer": "The Open Group",
+      "lifecycleStatus": "current-with-corrigendum",
+      "observationDigest": "sha256:17d83108c90fdff9639829de4bd2baa7c7da6014c5f10fbcb29fcc23e104ad9a",
+      "recordDigest": "sha256:91737f9eb559c1c147cf93b4e78507b24b89e5ce4a35a8122092a78ccfb135b2",
+      "title": "TOGAF Standard, 10th Edition",
+      "topics": [
+        "architecture-development",
+        "architecture-method",
+        "enterprise-architecture",
+        "enterprise-transformation"
+      ],
+      "versionLabel": "10th Edition"
+    },
+    {
+      "aliases": [
+        "UCUM",
+        "Unified Code for Units of Measure"
+      ],
+      "authorityKind": "open-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "engineering",
+        "research"
+      ],
+      "id": "ucum-spec",
+      "identityMode": "rolling-source",
+      "issuer": "Unified Code for Units of Measure (UCUM)",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:59b552251bf1a7d0078aa7e1d63597a192f4d58ced7b14377ec78e917166af7a",
+      "recordDigest": "sha256:8391eee5bbbad9b8d3364781905cbcf978b5f927bebc77b6e93f1033b05a392c",
+      "title": "Unified Code for Units of Measure Specification",
+      "topics": [
+        "interoperability",
+        "measurement",
+        "unit-codes",
+        "units"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "Data Catalog Vocabulary v3",
+        "DCAT 3",
+        "W3C DCAT 3"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "analytics",
+        "data",
+        "governance",
+        "research"
+      ],
+      "id": "w3c-dcat-3-2024",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:c2cfe5a1caf27d9119ef39aa72433e4a5d5614e3a8567d4606bd449b267fb6e1",
+      "recordDigest": "sha256:60f855880d4c114d04b29d763835db941458ad2db29763725dfcf8bb3c31f2a3",
+      "title": "Data Catalog Vocabulary (DCAT) - Version 3",
+      "topics": [
+        "data-catalog",
+        "data-service",
+        "dataset",
+        "dataset-series",
+        "interoperability",
+        "metadata",
+        "versioning"
+      ],
+      "versionLabel": "3"
+    },
+    {
+      "aliases": [
+        "ODRL 2.2",
+        "Open Digital Rights Language 2.2"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-20",
+      "domains": [
+        "data",
+        "governance",
+        "rights"
+      ],
+      "id": "w3c-odrl-2.2-2018",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:be5ac6e40d4620e4abfa6d9feed730272bed0cd4ffcd4d2766db196a8b74a6a2",
+      "recordDigest": "sha256:3b25e7062263a7f0c6e7d34e444150003d5198f2404d251ab5ac7d501832db23",
+      "title": "ODRL Information Model 2.2 and Vocabulary & Expression 2.2",
+      "topics": [
+        "asset-use",
+        "deletion",
+        "distribution",
+        "duty",
+        "permission",
+        "prohibition",
+        "rights-policy"
+      ],
+      "versionLabel": "2.2"
+    },
+    {
+      "aliases": [
+        "PNG",
+        "PNG Third Edition",
+        "Portable Network Graphics"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "media",
+        "web"
+      ],
+      "id": "w3c-png-3-2025",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "recommendation",
+      "observationDigest": "sha256:a09d95658893803b9232ccc3cb6ed8d9f45b03102e999f9253739ddb5bee7f26",
+      "recordDigest": "sha256:35b798e8815733eef05d226cfe4c06965864117486887d3f643050c14e64a265",
+      "title": "Portable Network Graphics (PNG) Specification (Third Edition)",
+      "topics": [
+        "animation",
+        "image-format",
+        "lossless",
+        "raster-image"
+      ],
+      "versionLabel": "2025-06-24"
+    },
+    {
+      "aliases": [
+        "PROV Ontology",
+        "PROV-O",
+        "W3C PROV"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "w3c-prov-o-2013",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:f2f73f4aa1eb87b1188e37f27c3721ecc2787566e8192c97df34cf29d3d8d2c7",
+      "recordDigest": "sha256:36d8f241653f05cfb1a1c01fb09065e9272ecf03316c8d041fd25597cbe093a9",
+      "title": "PROV-O: The PROV Ontology — W3C Recommendation 30 April 2013",
+      "topics": [
+        "data-lineage",
+        "interchange",
+        "ontology",
+        "provenance"
+      ],
+      "versionLabel": "2013-04-30"
+    },
+    {
+      "aliases": [
+        "WCAG",
+        "WCAG 2.2"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "accessibility",
+        "artifact",
+        "web"
+      ],
+      "id": "wcag-2.2",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:2dd0edac0d27d8e348034904218161684118c277720bd35490854cd78127bb58",
+      "recordDigest": "sha256:31ae27aebb6efa2ca7079db29432bfe842d4d4a48f9cea021cda3656d88f47ef",
+      "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
+      "topics": [
+        "accessibility",
+        "web",
+        "web-accessibility"
+      ],
+      "versionLabel": "2.2"
+    },
+    {
+      "aliases": [
+        "CMS Fourth Edition",
+        "Contract Management Standard",
+        "WorldCC Contract Management Standard"
+      ],
+      "authorityKind": "professional-standard",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "contract-management"
+      ],
+      "id": "worldcc-contract-management-standard-4e",
+      "identityMode": "versioned",
+      "issuer": "Commerce & Contract Management Institute / World Commerce & Contracting",
+      "lifecycleStatus": "current-fourth-edition",
+      "observationDigest": "sha256:433b6e728559d3c24b1912ab6e95082f61bdb03140ee4043762bb0f37bd067d3",
+      "recordDigest": "sha256:169ecf14e797a3e01805fe8833c883a80b30aed9075752c17872fad02c4a82a9",
+      "title": "Contract Management Standard — Fourth Edition",
+      "topics": [
+        "award",
+        "contract-lifecycle",
+        "contract-management",
+        "contracting",
+        "post-award",
+        "pre-award"
+      ],
+      "versionLabel": "Fourth Edition"
+    },
+    {
+      "aliases": [
+        "XAG",
+        "Xbox Accessibility Guidelines"
+      ],
+      "authorityKind": "provider-guidance",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "accessibility",
+        "game"
+      ],
+      "id": "xbox-accessibility-guidelines-3.2",
+      "identityMode": "versioned",
+      "issuer": "Microsoft Xbox",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:634eea1e3bc034be3136a2f83c46120e049af9101e68aaa562d6fa20fa33b182",
+      "recordDigest": "sha256:b1ee0d18f8044552cdee7a35ccbbcd22bad743188c2d6211001938073c390d79",
+      "title": "Xbox Accessibility Guidelines Version 3.2",
+      "topics": [
+        "accessibility",
+        "controls",
+        "game-accessibility",
+        "ux"
+      ],
+      "versionLabel": "3.2"
+    },
+    {
+      "aliases": [
+        "XBRL",
+        "XBRL 2.1"
+      ],
+      "authorityKind": "industry-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "data",
+        "finance",
+        "market-capital",
+        "reporting"
+      ],
+      "id": "xbrl-2.1",
+      "identityMode": "versioned",
+      "issuer": "XBRL International",
+      "lifecycleStatus": "recommendation",
+      "observationDigest": "sha256:4b4b0d87f92f6ad9d6c64b363aa0d0f2ea06490ccd4e74a666a8f8096cc24ad8",
+      "recordDigest": "sha256:832e642c078a53ceb5fe0b3e6a02e7f608402dd38076316f45b797ca3669e430",
+      "title": "XBRL 2.1 Specification",
+      "topics": [
+        "business-reporting",
+        "financial-reporting",
+        "issuer-disclosure",
+        "taxonomy"
+      ],
+      "versionLabel": "2.1"
+    },
+    {
+      "aliases": [
+        "Y Combinator Essential Startup Advice",
+        "YC Essential Startup Advice"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "yc-essential-startup-advice",
+      "identityMode": "versioned",
+      "issuer": "Y Combinator",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:bb565704c4b9aafb9273605d74e463f1e04dce370bdada8e86e2084c07883fc9",
+      "recordDigest": "sha256:d2ac924564cc0057e8549ca1011e333e2ba209220d134ad2c52c266aeb85b751",
+      "title": "YC's Essential Startup Advice",
+      "topics": [
+        "customer-discovery",
+        "early-stage",
+        "founder-led-learning",
+        "product-market-fit"
+      ],
+      "versionLabel": "2017-09-25"
+    },
+    {
+      "aliases": [
+        "How to Sell by Tyler Bosmeny",
+        "YC How to Sell"
+      ],
+      "authorityKind": "professional-guidance",
+      "currentnessChecked": "2026-09-19",
+      "domains": [
+        "business",
+        "commercialization",
+        "startup"
+      ],
+      "id": "yc-how-to-sell-2018",
+      "identityMode": "versioned",
+      "issuer": "Y Combinator",
+      "lifecycleStatus": "current-reference",
+      "observationDigest": "sha256:83425d0778eabaa970c1373a2e3414028c92b533f9de79d8be925afec4d68ad1",
+      "recordDigest": "sha256:95580ca3156e14beb3bcb70a1151a3f0dcb4b4e7f23847d91b67472c09770a3e",
+      "title": "How to Sell by Tyler Bosmeny",
+      "topics": [
+        "b2b-sales",
+        "founder-led-sales",
+        "sales",
+        "sales-process"
+      ],
+      "versionLabel": "2018-09-26"
+    }
+  ],
+  "kind": "ordivon.external-authority-discovery-index",
+  "recordCount": 168,
+  "recordsDigest": "sha256:8058a80bb041b9930b9f1d44b380cb3b83d51151ef552bfd6cc8bae0f434bfad",
+  "schemaVersion": 1
+}

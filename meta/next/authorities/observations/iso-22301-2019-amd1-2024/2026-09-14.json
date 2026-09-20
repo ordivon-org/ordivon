@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-22301-2019-amd1-2024",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-to-be-revised",
+  "note": "Current published baseline carries Amendment 1:2024. ISO/CD 22301 Edition 3 is under development to replace it.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/75106.html",
+  "schemaVersion": 1,
+  "versionObserved": "2019+Amd1:2024"
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "sdmx-cl-obs-status-2.3",
+  "identity": {
+    "issuer": {
+      "id": "sdmx",
+      "name": "Statistical Data and Metadata eXchange (SDMX)"
+    },
+    "title": "SDMX Cross-Domain Code List — Observation Status (CL_OBS_STATUS) v2.3",
+    "authorityKind": "statistical-codelist",
+    "identityMode": "versioned",
+    "versionLabel": "2.3",
+    "officialSource": "https://sdmx.org/sdmx_cdcl/",
+    "publicationDate": "2025-11-05"
+  },
+  "discovery": {
+    "aliases": [
+      "CL_OBS_STATUS 2.3",
+      "SDMX Observation Status"
+    ],
+    "topics": [
+      "missing-values",
+      "observation-status",
+      "estimated-values",
+      "provisional-values",
+      "statistical-metadata"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research",
+      "statistics"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Cross-domain code list and implementation guidance are publicly linked from SDMX."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "sdmx-3.1"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-semantics-externalization-r1",
+      "official SDMX cross-domain code-list page checked 2026-09-20"
+    ]
+  }
+}

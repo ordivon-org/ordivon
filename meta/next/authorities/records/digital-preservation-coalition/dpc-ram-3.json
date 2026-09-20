@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "DPC RAM",
+      "Rapid Assessment Model"
+    ],
+    "domains": [
+      "preservation",
+      "archive",
+      "operations"
+    ],
+    "topics": [
+      "digital-preservation",
+      "organizational-maturity",
+      "benchmarking",
+      "continuous-improvement"
+    ]
+  },
+  "id": "dpc-ram-3",
+  "identity": {
+    "authorityKind": "maturity-assessment",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "digital-preservation-coalition",
+      "name": "Digital Preservation Coalition"
+    },
+    "officialSource": "https://www.dpconline.org/digipres/implement-digipres/dpc-ram/download-dpc-ram",
+    "publicationDate": null,
+    "title": "Digital Preservation Coalition Rapid Assessment Model (DPC RAM) Version 3",
+    "versionLabel": "3"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

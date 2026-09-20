@@ -1,0 +1,58 @@
+{
+  "analyzedImplementationCommit": "0721009237365ea61cd975bd187be5171f1dcd52",
+  "authorityAssertions": {
+    "credentialExpiryStillFailsClosed": true,
+    "failureDomainMadeAuthoritative": false,
+    "firstRecommendedProductionChange": "FRESHNESS_CONSERVATION",
+    "genericReadinessHysteresisAdded": false,
+    "productionR14SemanticsChanged": false,
+    "quiescenceAndReplaySafetyStillSeparate": true,
+    "secondRuntimeExecutionLedgerAdded": false,
+    "singleExecutionOwnerStillEnforced": true
+  },
+  "date": "2026-09-18",
+  "expected": {
+    "classificationCounts": {
+      "CONTRACT_DEPENDENCY_EXPOSED": 1,
+      "CONVERGES": 2,
+      "FAILURE_DOMAIN_UNMODELED_EXPOSED": 1,
+      "FAIL_CLOSED": 3,
+      "OSCILLATION_EXPOSED": 1,
+      "STALE_OBSERVATION_EXPOSED": 1
+    },
+    "scenarioCount": 9
+  },
+  "experimentEvidence": "evidence/analysis/agent-service-control-stability-r1.json",
+  "graph": "knowledge/graphs/ordivon-agent-service-control-stability-r1.json",
+  "harnessSourceClean": true,
+  "harnessSourceRevision": "8e291f2af2912af37572a09e8f0ed4daece733f6",
+  "kind": "ordivon.agent-service-control-stability-r1-acceptance",
+  "lesson": "knowledge/lessons/ordivon-agent-service-control-stability-r1.md",
+  "liveRuntimeDogfood": {
+    "sameAttemptId": true,
+    "sameClientRequestIdSubmittedTwice": true,
+    "sameJobId": true,
+    "sameOperationDigest": true,
+    "status": "PASS"
+  },
+  "runner": "scripts/run_agent_service_control_stability_r1.py",
+  "schemaVersion": 1,
+  "sourceFindings": {
+    "campaignCensusProjectsFreshnessCoordinate": false,
+    "materializationLedgerCarriesEffectGeneration": true,
+    "materializationLedgerCarriesUpdatedAtMs": true,
+    "providerObservationCarriesFreshnessCoordinate": false
+  },
+  "tests": "tests/test_agent_service_control_stability_r1.py",
+  "verification": {
+    "compileall": "PASS",
+    "experimentRegenerationByteExact": "PASS",
+    "freshnessSourceContract": "PASS",
+    "gitDiffCheck": "PASS",
+    "repositoryFailures": 0,
+    "repositoryTests": 223,
+    "resourceWarningsAsErrors": "PASS",
+    "stabilityTests": 9
+  },
+  "verificationState": "PASS"
+}

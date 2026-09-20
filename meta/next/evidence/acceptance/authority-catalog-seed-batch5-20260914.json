@@ -1,0 +1,33 @@
+{
+  "addedCount": 7,
+  "addedIds": [
+    "ansi-niso-z39.104-2022-credit",
+    "crossref-metadata-deposit-schema-5.5.0",
+    "csl-1.0.2",
+    "datacite-metadata-schema-4.7",
+    "orcid-id-structure",
+    "ror-schema-2.1",
+    "swhid-scheme-v1"
+  ],
+  "batch": "2026-09-14-batch5",
+  "boundary": "Batch registers scholarly identity, contribution, citation and persistent-output metadata authorities already referenced by the Research capability. Service APIs and deposit side effects remain workload-specific.",
+  "deferredCandidates": [
+    "ORCID API/message schema 3.0 until an actual record read/write integration is needed",
+    "Crossref resource-only schema because current Research use is metadata lookup/deposit identity rather than resource-only update",
+    "DataCite DOI registration API details until an authorized deposit workload exists",
+    "CITATION.cff specification until a released software citation workload binds it"
+  ],
+  "families": {
+    "research-scholarly-infrastructure": [
+      "ansi-niso-z39.104-2022-credit",
+      "crossref-metadata-deposit-schema-5.5.0",
+      "csl-1.0.2",
+      "datacite-metadata-schema-4.7",
+      "orcid-id-structure",
+      "ror-schema-2.1",
+      "swhid-scheme-v1"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch",
+  "schemaVersion": 1
+}

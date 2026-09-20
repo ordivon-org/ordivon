@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 30405:2023",
+      "Guidelines on recruitment"
+    ],
+    "domains": [
+      "enterprise",
+      "human-resources",
+      "management"
+    ],
+    "topics": [
+      "candidate-experience",
+      "hiring",
+      "recruitment",
+      "selection"
+    ]
+  },
+  "id": "iso-30405-2023",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/79488.html",
+    "publicationDate": null,
+    "title": "ISO 30405:2023 — Human resource management — Guidelines on recruitment",
+    "versionLabel": "2023"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r2"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

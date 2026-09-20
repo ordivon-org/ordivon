@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.data-product-federation-acceptance",
+  "standing": "PASS_TWO_DOMAIN_ODPS_ODCS_DCAT_PROV",
+  "asOf": "2026-09-20",
+  "externalOwners": {
+    "product": "bitol-odps-1.1.0",
+    "contract": "bitol-odcs-3.2.0",
+    "catalog": "w3c-dcat-3-2024",
+    "semanticProvenance": "w3c-prov-o-2013"
+  },
+  "research": {
+    "repositoryRevision": "18a8afae92ae2ef3b89d645bbcccf6db51db1b9d",
+    "productId": "94d0bf2c-036b-53b1-b733-14d3a5536a74",
+    "productVersion": "1.0.0",
+    "contractId": "4596a0eb-a009-53a6-af75-02189195225b",
+    "sourceSha256": "6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+    "robustnessResultSha256": "37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+    "consumerBinding": "PASS_POST_REGISTRATION_OPENLINEAGE_PRODUCT_AND_EXISTING_RESULT_TO_VERIFICATION",
+    "domainOwner": "Ordivon Research domain",
+    "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_SOURCE_IP",
+    "governancePolicyUid": "urn:uuid:2bbc6d0e-8d2c-5dfc-93b4-c1e6db873694",
+    "governancePolicySha256": "11d51bcb4528e2fc01a1e1f6695a22ac15db7e8ab4313582fc251bf263a6ddd5",
+    "sourceLicenseStatus": "UNRESOLVED",
+    "redistributionStatus": "NOT_AUTHORIZED_BY_PRODUCT_METADATA",
+    "retentionScheduleStatus": "UNASSIGNED",
+    "privacyAssessmentStatus": "NOT_FORMALLY_ASSESSED",
+    "openLineageRunId": "b07502e6-b0da-58ba-91e8-6e85043f8f31",
+    "openLineageSha256": "581ff0b17cd4b762dca9d4e954af9b28dfb814be0eabb73ca0a8b8f940d7d8c4",
+    "consumptionReceiptSha256": "811f207d1d74ec101223b8f76a871215d5eb1c4640fae5849f0b61c4e381afbd",
+    "verificationArtifactSha256": "6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+    "generationClaim": "EXPLICITLY_NOT_CLAIMED"
+  },
+  "finance": {
+    "repositoryRevision": "14885beb2b566458123dd9f273a66884fb337017",
+    "productId": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+    "productVersion": "2026.09.14",
+    "contractId": "5de34add-dca7-54eb-ada3-5e657a7c3ff3",
+    "sourceSha256": "ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+    "consumerBinding": "PASS_POST_REGISTRATION_PRODUCT_TO_DECISION_OUTCOME_FEEDBACK_NO_EXTERNAL_EFFECT",
+    "externalFinancialWritesAttempted": false,
+    "privateAccountDataUsed": false,
+    "brokerCredentialsUsed": false,
+    "domainOwner": "Ordivon Capital market-observation domain",
+    "ownershipScope": "PRODUCT_METADATA_AND_LIFECYCLE_NOT_PROVIDER_IP",
+    "governancePolicyUid": "urn:uuid:33b9c6e5-23e4-576a-8fb1-59977a40e200",
+    "governancePolicySha256": "99248894b157e214ab505ea0301f29b5ccdc99ce8209f92fe667802d800562d0",
+    "sourceLicenseStatus": "UNRESOLVED",
+    "redistributionStatus": "NOT_AUTHORIZED_BY_PRODUCT_METADATA",
+    "retentionScheduleStatus": "UNASSIGNED",
+    "privacyAssessmentStatus": "BOUNDED_NO_PRIVATE_ACCOUNT_DATA_PROVEN_FORMAL_ASSESSMENT_NOT_COMPLETE",
+    "openLineageRunId": "db63ce70-d168-5dfd-b76f-55419d25bea6",
+    "openLineageSha256": "698a937a712cb6a3eed3596972b1bbb988b5274e862735b4c64737c6c2912570",
+    "consumptionReceiptSha256": "d650e4065c193d915e3bc48a98265abafa2c55b0b51e30536cdd19375ae28bbc",
+    "decisionArtifactSha256": "6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+    "decisionStanding": "NO_EXECUTION_OR_DIRECTIONAL_ACTION_ADMITTED",
+    "actionStanding": "NO_EXTERNAL_EFFECT",
+    "outcomeStanding": "PASS_BOUNDARY_PRESERVED",
+    "feedbackChangeRequired": false,
+    "feedbackDisposition": {
+      "collectionPolicyDisposition": "KEEP_CURRENT_PUBLIC_OBSERVATION_BOUNDARY",
+      "qualityGateDisposition": "KEEP_FROZEN_1200MS_SOURCE_AND_RECEIVE_SPAN_GATES",
+      "modelPolicyDisposition": "NO_DIRECTIONAL_MODEL_UPDATE_FROM_THIS_PRODUCT",
+      "governanceDisposition": "KEEP_FAIL_CLOSED_RIGHTS_AND_RETENTION_POLICY",
+      "changeRequired": false,
+      "reason": "All three measured windows satisfy the frozen coherence gates and the product contains no evidence that justifies expanding execution, rights, privacy, or directional-model claims."
+    }
+  },
+  "catalog": {
+    "datasetCount": 2,
+    "distributionCount": 2,
+    "dcatJsonldSha256": "9acbc862c62e7c7a87634ffcb130349042d582c596edb40fcede18d3830c731a",
+    "provJsonldSha256": "439ac60abae4e81ae6ee8953405f942f07104480374375fa4bcd18743f4a2144"
+  },
+  "claimBoundary": "DCAT federation, fail-closed governance, OpenLineage runtime consumption, and PROV semantic derivation are proven for the selected Research and Finance products. Research verification explicitly does not claim to generate the pre-existing scientific result. Finance proves a bounded no-external-effect decision/outcome/feedback disposition; a non-trivial outcome that actually changes collection, quality, or model policy is not yet proven.",
+  "rdfValidation": {
+    "parser": "rdflib",
+    "catalogTriples": 41,
+    "provenanceTriples": 48,
+    "standing": "PASS"
+  },
+  "governance": {
+    "standing": "PASS_FAIL_CLOSED_TWO_DOMAIN_RIGHTS_RETENTION_PRIVACY_BOUND",
+    "rightsPolicyModel": "w3c-odrl-2.2-2018",
+    "privacyRiskBaseline": "nist-privacy-framework-1.0",
+    "recordsManagementAuthority": "iso-15489-1-2016",
+    "rule": "Unknown source rights do not imply redistribution permission; unassigned retention does not imply indefinite retention or automatic deletion; bounded privacy observations do not imply formal privacy assessment.",
+    "sourceRightsResolved": false,
+    "formalPrivacyAssessmentComplete": false,
+    "retentionSchedulesAssigned": false
+  },
+  "semanticProvenance": {
+    "standing": "PASS_SELECTED_TWO_DOMAIN_OPENLINEAGE_PLUS_PROV",
+    "operationalOwner": "openlineage-spec",
+    "semanticOwner": "w3c-prov-o-2013",
+    "researchGenerationOverclaimPrevented": true
+  },
+  "feedback": {
+    "standing": "PASS_SELECTED_FINANCE_EXPLICIT_NO_CHANGE_DISPOSITION",
+    "decision": "NO_EXECUTION_OR_DIRECTIONAL_ACTION_ADMITTED",
+    "action": "NO_EXTERNAL_EFFECT",
+    "outcome": "PASS_BOUNDARY_PRESERVED",
+    "changeRequired": false,
+    "collectionPolicyDisposition": "KEEP_CURRENT_PUBLIC_OBSERVATION_BOUNDARY",
+    "qualityGateDisposition": "KEEP_FROZEN_1200MS_SOURCE_AND_RECEIVE_SPAN_GATES",
+    "modelPolicyDisposition": "NO_DIRECTIONAL_MODEL_UPDATE_FROM_THIS_PRODUCT",
+    "claimBoundary": "A real post-registration product consumption and feedback disposition is proven. A non-trivial outcome that actually changes collection, quality or model policy is not yet proven."
+  }
+}

@@ -1,0 +1,182 @@
+# Package: Data & Analytics
+
+Last census: 2026-09-20
+
+Project-scoped data work: **READY_FOR_REAL_WORK**
+
+Selected Research+Finance lifecycle P0: **CLOSED_WITH_BOUNDED_EVIDENCE**
+
+Cross-domain data lifecycle: **PARTIAL**
+
+## Outcome scope
+
+Turn source data into a trustworthy query, transformation, analysis, model, visualization or decision-support result with enough identity, quality, provenance and preservation evidence to understand what the result means and reproduce it when required.
+
+This package does not imply one universal data platform. Research analytics, operational analytics, BI, geospatial work, ML and organizational data management may activate different working sets.
+
+## Mature external knowledge owners
+
+Use according to context:
+
+- DAMA-DMBOK for broad organizational data-management/governance knowledge when that scope is relevant;
+- FAIR principles for findability, accessibility, interoperability and reuse;
+- W3C DCAT 3 for dataset/data-service catalog metadata;
+- Bitol ODCS/ODPS for data contracts and data products;
+- OpenLineage for operational Job/Run/Dataset lineage and W3C PROV for semantic derivation where needed;
+- SDMX, UCUM/QUDT and domain-native vocabularies for source semantics;
+- ISO/IEC 5259-2 and domain-specific acceptance rules for data quality;
+- ISO 14721 OAIS, E-ARK SIP/CSIP, PREMIS/METS and mature preservation tooling for selected durable evidence;
+- Apache Arrow / Parquet for analytical interchange and storage;
+- applicable privacy, security, rights and records-management regimes for the actual data.
+
+## Observed local capability
+
+Proven project-scoped substrate includes:
+
+- Python + uv;
+- DuckDB;
+- SQLite and PostgreSQL;
+- PyArrow / Parquet;
+- Pandera and JSON Schema;
+- GDAL/OGR for geospatial data;
+- Research workflows for reproducible analysis;
+- Artifact dataset/table/figure verification;
+- Git/content digests and source/version binding;
+- ODCS 3.2.0 contracts owned by real Research and Finance products;
+- ODPS 1.1.0 products owned by Research and Finance;
+- DCAT 3 two-domain federated projection;
+- W3C PROV-O source/product derivation, including a real Paper1 dataset-to-result edge;
+- OpenLineage runtime-event emission;
+- explicit source semantics, revision/vintage and reference-identifier handling;
+- local durable preservation through E-ARK submission -> Archivematica PREMIS/METS AIP -> Storage Service master/replica -> scheduled fixity.
+
+Preservation evidence is bounded: the current master and replica occupy distinct Storage Service locations but the same machine/WSL failure domain. This is **not** an offsite/disaster-resilience claim.
+
+## Current lifecycle evidence
+
+Authoritative current projection:
+
+- `planning/data-lifecycle-census-r5.json`
+- `docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md`
+- `docs/DATA_PRODUCTS_FEDERATION_R1.md`
+- `docs/DATA_DURABLE_PRESERVATION_R1.md`
+- `evidence/data-lifecycle/preservation-r1/acceptance.json`
+
+R1–R4 census files remain historical evidence; R5 is current.
+
+Current shape:
+
+```text
+source identity
+  -> acquisition
+  -> immutable/raw evidence
+  -> semantics + quality contract
+  -> ODCS contract + ODPS product
+  -> DCAT discovery + ODRL governance
+  -> analysis / bounded decision support
+  -> OpenLineage runtime consumption
+  -> PROV semantic derivation
+  -> action + outcome + feedback disposition
+  -> selected durable preservation
+```
+
+For the selected Research and Finance products, the lifecycle P0 is closed with bounded evidence.
+
+The remaining gaps are **P1 and broader-scope gaps**, not generic compute/storage gaps:
+
+```text
+source-right resolution
++ formal privacy assessment
++ authorized retention schedules
++ independent/offsite preservation
++ broader real-domain adoption
++ business-value outcomes
++ one non-trivial feedback event that actually changes policy
+```
+
+The current Finance feedback result is explicitly `NO_CHANGE_REQUIRED`; it proves an auditable feedback disposition, not adaptive-policy maturity.
+
+## Data orchestration routing
+
+Use orchestration according to the durable semantic object being maintained:
+
+```text
+scientific/project file DAG
+  -> Snakemake
+
+API/SaaS/webhook integration edge
+  -> n8n
+
+general long-lived durable process
+  -> Temporal
+
+persistent data-product/asset graph
+with partitions, lineage, backfills, freshness/checks
+  -> Dagster candidate
+```
+
+Dagster remains workload-gated. Do not migrate accepted project DAGs merely to obtain a catalog/UI.
+
+## Heavy-substrate activation policy
+
+Absence of the following is **not** lifecycle debt:
+
+- Iceberg;
+- Debezium;
+- Beam runtime;
+- Kafka / Redpanda;
+- ClickHouse;
+- QuestDB;
+- Dagster;
+- Great Expectations;
+- OCFL;
+- dedicated vector databases.
+
+Activate one only when a real workload proves a requirement that the current thin substrate cannot satisfy.
+
+Examples:
+
+- Iceberg: atomic multi-file table snapshots, real schema/partition evolution, concurrent writers or table-native time travel/row lineage.
+- Debezium: database transaction-log CDC.
+- Beam: unbounded event-time/window/watermark/late-data processing.
+- Kafka/Redpanda: decoupled unbounded replay/fan-out/consumer-offset workload.
+- Dagster: persistent asset graph with partitions/backfills/freshness/materialization state.
+- ClickHouse/QuestDB: measured latency/concurrency/ingestion limits beyond DuckDB/PostgreSQL.
+
+## Vector / similarity retrieval routing
+
+Vector search remains a retrieval method, not a base platform requirement.
+
+Use the thinnest adequate implementation:
+
+```text
+small/local exact similarity
+  -> memory / SQL
+
+local analytical prototype
+  -> DuckDB
+
+authoritative PostgreSQL application/domain data
+  -> pgvector candidate
+
+dedicated production filtered/hybrid ANN
+  -> Qdrant candidate
+```
+
+Do not duplicate authoritative records into a separate vector service without measured retrieval benefit and explicit source/version linkage.
+
+## Acceptance boundary
+
+`ProjectScopedDataWork = READY`.
+
+`SelectedResearchFinanceLifecycleP0 = CLOSED_WITH_BOUNDED_EVIDENCE`.
+
+That selected closure proves real ODPS/ODCS products, DCAT federation, fail-closed ODRL governance, runtime OpenLineage product-version consumption, PROV semantic derivation, a Research verification chain, and a Finance no-effect decision/outcome/feedback disposition.
+
+It does **not** mean the cross-domain lifecycle is complete.
+
+`CrossDomainDataLifecycle = PARTIAL` remains because other domains are not yet adopted, source rights/privacy/retention are not fully resolved, preservation lacks an independent failure domain, business-value outcomes are not yet measured, and no real outcome has yet forced a non-trivial collection/quality/model policy change.
+
+## External references
+
+See Authority Catalog records rather than maintaining another private standards list. Key owners include DCAT, ODCS/ODPS, OpenLineage, W3C PROV, SDMX, UCUM/QUDT, ISO/IEC 5259, ISO 14721, E-ARK, PREMIS and the selected mature implementations.

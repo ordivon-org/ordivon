@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.enterprise-operating-model-r1-provider-observation",
+  "observedDate": "2026-09-14",
+  "hostV2": {"serviceActive": "active", "serviceEnabled": "enabled"},
+  "erpNext": {"loopbackPingHttp": "200", "loopbackPingBody": {"message":"pong"}},
+  "flowable": {"materializedImage": "localhost/ordivon-flowable-rest:8.0.0 49480a54bd98", "activatedForDogfood": false},
+  "temporal": {"cliObserved": false, "activatedForDogfood": false},
+  "strictDoc": "0.29.0",
+  "jsonSchemaValidator": "check-jsonschema, version 0.38.0",
+  "boundary": "Provider availability/currentness observation only. Availability does not imply activation, business truth, semantic completion or production readiness."
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.reasoning-waist-r1-acceptance",
+  "observedDate": "2026-09-14",
+  "standing": "PASS_LOCAL_COMPOSED_SMOKE",
+  "pythonBinding": "/root/.local/share/ordivon/reasoning-waist/.venv/bin/python",
+  "packageVersions": {
+    "ortools": "9.15.6755",
+    "z3-solver": "5.1.0.0",
+    "unified-planning": "1.3.0",
+    "up-pyperplan": "1.1.0",
+    "rdflib": "7.6.0",
+    "pyshacl": "0.40.1"
+  },
+  "checks": {
+    "rdfShaclProblemShape": {
+      "validCaseConforms": true,
+      "invalidCaseRejected": true,
+      "triples": 3
+    },
+    "ortoolsConfiguration": {
+      "selected": {
+        "retrieve": 1,
+        "verify": 1,
+        "plan": 1,
+        "diagnose": 0,
+        "visualize": 1
+      },
+      "objective": 13.0
+    },
+    "z3LogicCrosscheck": {
+      "selectedConfigurationSatisfiable": true,
+      "knownContradictionRejected": true
+    },
+    "unifiedPlanning": {
+      "engine": "pyperplan",
+      "actions": [
+        "retrieve_case_and_methods",
+        "configure_solution",
+        "verify_solution",
+        "deliver_verified_outcome"
+      ]
+    }
+  },
+  "executionHandoff": "NOT_EXERCISED_BY_THIS_SMOKE",
+  "taskShapeSpecificProcessDecisionCaseProvider": {
+    "provider": "Flowable",
+    "version": "8.0.0",
+    "image": "localhost/ordivon-flowable-rest:8.0.0",
+    "manifestDigest": "sha256:b67720807e7b091ef46b5e96f191541e1aa67ba0eb284504b5c6e2771d6a5ae2",
+    "standing": "MATERIALIZED_ENGINE_BOOT_SMOKE_PASS_PRODUCTION_HOLD_UNTIL_WORKLOAD",
+    "partOfCoreWaist": false
+  },
+  "boundary": "PASS proves only that mature local reasoning providers compose mechanically on a tiny bounded case. It does not establish domain model correctness, universal planning competence, business decision authority, workflow durability or physical execution success."
+}

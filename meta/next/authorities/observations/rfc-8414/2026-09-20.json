@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-8414",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "OAuth 2.0 Authorization Server Metadata Standards Track RFC; issuer and server metadata owner for OAuth-based integrations.",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.rfc-editor.org/info/rfc8414/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 8414"
+}

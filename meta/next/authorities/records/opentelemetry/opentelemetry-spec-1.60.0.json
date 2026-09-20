@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OpenTelemetry",
+      "OTel",
+      "OpenTelemetry Specification"
+    ],
+    "domains": [
+      "operations",
+      "observability",
+      "engineering"
+    ],
+    "topics": [
+      "telemetry",
+      "tracing",
+      "metrics",
+      "logs",
+      "context-propagation"
+    ]
+  },
+  "id": "opentelemetry-spec-1.60.0",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "opentelemetry",
+      "name": "OpenTelemetry"
+    },
+    "officialSource": "https://opentelemetry.io/docs/specs/otel/",
+    "publicationDate": null,
+    "title": "OpenTelemetry Specification 1.60.0",
+    "versionLabel": "1.60.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/providers/opentelemetry.md",
+      "capabilities/packages/operations.md",
+      "OpenTelemetry official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.web-interaction-routing-profile",
+  "profileId": "web-interaction-r1",
+  "truthRole": "provider-routing-policy-not-provider-availability-truth",
+  "principle": "Select the thinnest currently available provider that satisfies the explicit task needs; provider success never substitutes for domain acceptance.",
+  "routes": [
+    {
+      "id": "native_connector",
+      "rank": 10,
+      "semanticObject": "provider-native structured capability",
+      "useWhen": [
+        "an already connected native connector, API, SDK, or MCP tool directly satisfies the task"
+      ],
+      "escalateWhen": [
+        "the native surface cannot express the required operation or evidence"
+      ],
+      "availabilityAuthority": "caller/application connection state"
+    },
+    {
+      "id": "direct_http",
+      "rank": 20,
+      "semanticObject": "public/read-only HTTP resource",
+      "useWhen": [
+        "the desired result is readable public content and no browser interaction is required"
+      ],
+      "escalateWhen": [
+        "HTTP returns only a shell/challenge or required content needs rendering/interaction",
+        "site-scale discovery/crawl/normalization is the primary workload"
+      ],
+      "availabilityAuthority": "local HTTP client plus network authority"
+    },
+    {
+      "id": "firecrawl",
+      "rank": 30,
+      "semanticObject": "public-web acquisition/context job",
+      "useWhen": [
+        "search/scrape/map/crawl/cleaned context is the primary result",
+        "site-scale acquisition or provider-owned rendering/normalization materially reduces glue"
+      ],
+      "escalateWhen": [
+        "the primary task is deterministic browser operation",
+        "the Agent must repeatedly reason over stateful/logged-in UI"
+      ],
+      "availabilityAuthority": "actual connected/installed Firecrawl provider state"
+    },
+    {
+      "id": "playwright",
+      "rank": 40,
+      "semanticObject": "deterministic browser flow",
+      "useWhen": [
+        "browser interaction is required and selectors/assertions/control flow are known or should be deterministic"
+      ],
+      "escalateWhen": [
+        "the current page state or changing affordances must determine the next action"
+      ],
+      "availabilityAuthority": "Workstation v2 exact Playwright CLI binding or caller/application equivalent; library presence alone is insufficient"
+    },
+    {
+      "id": "browser_use",
+      "rank": 50,
+      "semanticObject": "adaptive browser interaction",
+      "useWhen": [
+        "browser interaction is required and the exact path/affordances are not known in advance",
+        "logged-in or stateful UI requires observe-act-reobserve reasoning"
+      ],
+      "escalateWhen": [
+        "the task crosses outside browser semantics into desktop/native GUI"
+      ],
+      "availabilityAuthority": "isolated Browser Use provider lane health"
+    },
+    {
+      "id": "computer_use",
+      "rank": 60,
+      "semanticObject": "desktop/native GUI interaction",
+      "useWhen": [
+        "required interaction is outside browser semantics or spans desktop applications"
+      ],
+      "escalateWhen": [
+        "no authorized Computer Use carrier is available"
+      ],
+      "availabilityAuthority": "caller/application Computer Use capability state"
+    }
+  ],
+  "invariants": [
+    "Do not infer provider availability from documentation or installed libraries alone.",
+    "Do not route a simple readable HTTP task through a browser.",
+    "Do not route a known deterministic browser regression through Browser Use merely because Browser Use is available.",
+    "Browser Use current-state element indexes are ephemeral; re-observe after meaningful state change.",
+    "A provider action succeeding is not semantic completion; verify the relevant provider/domain state.",
+    "Do not automatically retry an ambiguous consequential external effect without owner-native idempotency or authoritative absence evidence."
+  ]
+}

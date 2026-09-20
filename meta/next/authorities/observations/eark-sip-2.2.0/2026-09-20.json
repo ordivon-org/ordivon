@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "eark-sip-2.2.0",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://github.com/DILCISBoard/E-ARK-SIP/releases/tag/v2.2.0",
+  "versionObserved": "2.2.0",
+  "note": "E-ARK SIP v2.2.0 was released 17 May 2024 and is the specification used for the R1 submission package."
+}

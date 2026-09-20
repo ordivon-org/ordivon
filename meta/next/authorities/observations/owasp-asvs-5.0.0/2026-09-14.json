@@ -1,0 +1,11 @@
+{
+  "authorityId": "owasp-asvs-5.0.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://owasp.org/www-project-application-security-verification-standard/",
+  "schemaVersion": 1,
+  "versionObserved": "5.0.0"
+}

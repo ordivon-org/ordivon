@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "archivematica-1.18.0",
+  "identity": {
+    "issuer": {
+      "id": "artefactual",
+      "name": "Artefactual Systems Inc."
+    },
+    "title": "Archivematica 1.18.0",
+    "authorityKind": "open-source-release",
+    "identityMode": "versioned",
+    "versionLabel": "1.18.0",
+    "officialSource": "https://www.archivematica.org/en/docs/archivematica-1.18/",
+    "publicationDate": "2025-09-26"
+  },
+  "discovery": {
+    "aliases": [
+      "Archivematica 1.18.0"
+    ],
+    "topics": [
+      "digital-preservation",
+      "aip",
+      "premis",
+      "mets",
+      "storage-service",
+      "fixity"
+    ],
+    "domains": [
+      "data",
+      "preservation",
+      "archives"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Archivematica documentation and source are public."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "iso-14721-2025",
+      "premis-3.0",
+      "artefactual-fixity-0.8.0"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-durable-preservation-r1",
+      "provider-native local preservation execution"
+    ]
+  }
+}

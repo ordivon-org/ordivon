@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Frappe CRM"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "enterprise"
+    ],
+    "topics": [
+      "crm",
+      "deal-pipeline",
+      "lead-management",
+      "sales"
+    ]
+  },
+  "id": "frappe-crm-provider",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "frappe",
+      "name": "Frappe"
+    },
+    "officialSource": "https://docs.frappe.io/crm/introduction",
+    "publicationDate": null,
+    "title": "Frappe CRM provider documentation",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r2"
+    ]
+  },
+  "relations": {
+    "related": [
+      "erpnext-crm-provider"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "CoreTrustSeal",
+      "CTS Requirements 2026-2028"
+    ],
+    "domains": [
+      "preservation",
+      "archive",
+      "repository"
+    ],
+    "topics": [
+      "trustworthy-repository",
+      "repository-certification",
+      "digital-preservation",
+      "governance"
+    ]
+  },
+  "id": "coretrustseal-requirements-2026-2028",
+  "identity": {
+    "authorityKind": "repository-certification-requirements",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "coretrustseal",
+      "name": "CoreTrustSeal"
+    },
+    "officialSource": "https://www.coretrustseal.org/why-certification/requirements/",
+    "publicationDate": null,
+    "title": "CoreTrustSeal Trustworthy Data Repositories Requirements 2026–2028",
+    "versionLabel": "2026-2028"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

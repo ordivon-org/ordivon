@@ -1,0 +1,129 @@
+{
+  "datasets": {
+    "crossref-member-participation": {
+      "columns": 23,
+      "depositCountExceedsTotalMembersRows": 0,
+      "duplicatePrimaryKeyRows": 0,
+      "nullPrimaryKeyRows": 0,
+      "parquetSha256": "e46ac005911a8d6b17214d1bd4cce82e28cf00ee1b9bd69cdcb25b54f63f4a8e",
+      "rows": 6001,
+      "sourceProvidesObservationStatus": false,
+      "sourceSha256": "0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af"
+    },
+    "crossref-metadata-coverage": {
+      "columns": 50,
+      "duplicatePrimaryKeyRows": 0,
+      "nullPrimaryKeyRows": 0,
+      "parquetSha256": "5f05a22f1edb829b1cdeb7faaf6ea1fbffab596b7c70b6550d182576d4206e6b",
+      "rows": 53820,
+      "sourceNullSemantics": {
+        "document_subtype": {
+          "observationStatusPolicy": "Do not assign CL_OBS_STATUS; this is source-defined dimension applicability, not an observation-value status.",
+          "physicalKeyNormalization": {
+            "derivedColumn": "document_subtype_key",
+            "nullReplacement": ""
+          },
+          "sourceMeaning": "Applicable only when document_type is posted-content; null is retained for other document types."
+        }
+      },
+      "sourceProvidesObservationStatus": false,
+      "sourceSha256": "2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4",
+      "withMetricExceedsNDoisRows": 0
+    },
+    "se4all-energy": {
+      "columns": 52,
+      "duplicatePrimaryKeyRows": 0,
+      "missingObservationStatus": {
+        "externalOwner": "sdmx-cl-obs-status-2.3",
+        "policy": "Source NA values are preserved as null. No SDMX CL_OBS_STATUS code is invented because the source does not provide one.",
+        "sourceProvidesStatus": false
+      },
+      "nullPrimaryKeyRows": 0,
+      "parquetSha256": "141fdab942b23cac74c595f8d2618021a74c83f4feb532c9ef4348038d693f91",
+      "rows": 5271,
+      "semanticMeasureChecks": {
+        "access_electricity_total_pop_pct": {
+          "basis": "Source definition is percentage of total population with electricity access; tolerance is pilot fitness-for-use policy for source rounding.",
+          "maximum": 100,
+          "minimum": 0,
+          "observedMax": 100.0,
+          "observedMin": 0.1,
+          "quantitySemantics": "population-share",
+          "tolerance": 0.1,
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "unitUcum": "%",
+          "violationRows": 0
+        },
+        "access_non_solid_fuel_urban_pop_pct": {
+          "basis": "Source definition is percentage of urban population with access; tolerance is pilot fitness-for-use policy for source rounding.",
+          "maximum": 100,
+          "minimum": 0,
+          "observedMax": 100.0180988,
+          "observedMin": 5.0,
+          "quantitySemantics": "population-share",
+          "tolerance": 0.1,
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "unitUcum": "%",
+          "violationRows": 0
+        },
+        "final_to_primary_energy_ratio_pct": {
+          "basis": "No universal upper bound is inferred from percent unit alone.",
+          "maximum": null,
+          "minimum": 0,
+          "observedMax": 99.51511029,
+          "observedMin": 18.27673017,
+          "quantitySemantics": "energy-ratio",
+          "tolerance": 0,
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "unitUcum": "%",
+          "violationRows": 0
+        },
+        "renewable_energy_consumption_tfec_pct": {
+          "basis": "Source definition is renewable-energy share of TFEC.",
+          "maximum": 100,
+          "minimum": 0,
+          "observedMax": 100.0,
+          "observedMin": 0.0,
+          "quantitySemantics": "share-of-total-final-energy-consumption",
+          "tolerance": 0.1,
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "unitUcum": "%",
+          "violationRows": 0
+        },
+        "share_of_renewable_capacity_in_total_capacity_pct": {
+          "basis": "Source definition is share of renewable capacity in total capacity.",
+          "maximum": 100,
+          "minimum": 0,
+          "observedMax": 100.0,
+          "observedMin": 0.0,
+          "quantitySemantics": "share-of-total-capacity",
+          "tolerance": 0.1,
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "unitUcum": "%",
+          "violationRows": 0
+        },
+        "transmission_and_distribution_losses_pct": {
+          "basis": "No universal upper bound is inferred from percent unit alone; source values above 100 are preserved.",
+          "maximum": null,
+          "minimum": 0,
+          "observedMax": 213.0434783,
+          "observedMin": 0.0,
+          "quantitySemantics": "derived-loss-ratio",
+          "tolerance": 0,
+          "unitQudt": "http://qudt.org/vocab/unit/PERCENT",
+          "unitUcum": "%",
+          "violationRows": 0
+        }
+      },
+      "semanticMeasureViolationRows": 0,
+      "sourceProvidesObservationStatus": false,
+      "sourceSha256": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b"
+    }
+  },
+  "fitnessForUse": "descriptive-analytics-pilot",
+  "kind": "ordivon.data-lifecycle-quality-report",
+  "qualityModelOwner": "iso-iec-5259-2-2024",
+  "schemaVersion": 1,
+  "sourceCommit": "f4d1b35ca09d8c0d875451635daef9179adfc9e0",
+  "standing": "PASS"
+}

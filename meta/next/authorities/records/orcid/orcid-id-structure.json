@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ORCID",
+      "ORCID iD",
+      "ORCID Identifier"
+    ],
+    "domains": [
+      "research",
+      "scholarly-communication",
+      "identity",
+      "metadata"
+    ],
+    "topics": [
+      "researcher-identifier",
+      "contributor-identity",
+      "persistent-identifier",
+      "scholarly-identity"
+    ]
+  },
+  "id": "orcid-id-structure",
+  "identity": {
+    "authorityKind": "identifier-specification",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "orcid",
+      "name": "ORCID"
+    },
+    "officialSource": "https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier",
+    "publicationDate": null,
+    "title": "Structure of the ORCID Identifier",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "ORCID official identifier guidance checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

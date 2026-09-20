@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-6749",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "OAuth 2.0 Authorization Framework; updated by RFC 8252, RFC 8996 and RFC 9700.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc6749/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 6749"
+}

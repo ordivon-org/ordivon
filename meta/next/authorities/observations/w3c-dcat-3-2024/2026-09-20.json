@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "w3c-dcat-3-2024",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.w3.org/TR/vocab-dcat-3/",
+  "versionObserved": "W3C Recommendation 22 August 2024",
+  "note": "DCAT 3 is the current W3C Recommendation for interoperable catalog metadata; W3C states new implementations are expected to adopt DCAT 3."
+}

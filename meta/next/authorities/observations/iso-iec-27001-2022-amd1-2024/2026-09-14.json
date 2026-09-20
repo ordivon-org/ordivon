@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-iec-27001-2022-amd1-2024",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current",
+  "note": "ISO/IEC 27001:2022 is published and carries Amendment 1:2024.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/27001",
+  "schemaVersion": 1,
+  "versionObserved": "2022+Amd1:2024"
+}

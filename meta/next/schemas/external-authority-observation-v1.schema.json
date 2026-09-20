@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:external-authority-observation:v1",
+  "title": "External Authority Currentness Observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "authorityId", "observedDate", "officialSource", "lifecycleStatus", "versionObserved", "note", "basis"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.external-authority-observation"},
+    "authorityId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "observedDate": {"type": "string", "format": "date"},
+    "officialSource": {"type": "string", "format": "uri"},
+    "lifecycleStatus": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "versionObserved": {"type": ["string", "null"]},
+    "note": {"type": ["string", "null"]},
+    "basis": {
+      "oneOf": [
+        {"const": "official-source"},
+        {"const": "migrated-verified-profile"},
+        {
+          "enum": [
+            "official-source-currentness-check",
+            "official-provider-documentation-check",
+            "official-industry-source-currentness-check"
+          ],
+          "deprecated": true
+        }
+      ]
+    }
+  }
+}

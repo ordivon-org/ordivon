@@ -1,0 +1,71 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r13-provider-adapters-delta.json",
+  "authorityAssertions": {
+    "a2aCancelSuccessEqualsQuiescence": false,
+    "a2aCompletedRoutesToSemanticVerification": true,
+    "a2aProtocolVersionExplicit": true,
+    "a2aTaskNotCancelableReconcilesWithGetTask": true,
+    "a2aTaskNotFoundProvesQuiescence": false,
+    "adapterCreatesShadowEffectAuthority": false,
+    "committedEffectRequiresExactTargetIdempotency": true,
+    "completeEmptyEffectSnapshotMeansNoEffects": true,
+    "effectSnapshotTargetBound": true,
+    "emptyUnsealedEffectSetMeansNoEffects": false,
+    "loopbackPlainHttpAllowed": true,
+    "mcpCancelAckEqualsQuiescence": false,
+    "mcpTaskRoutingNameBoundToTaskId": true,
+    "mcpTasksCapabilityAttachedPerRequest": true,
+    "mcpTasksGetRequiredAfterCancel": true,
+    "partialEffectsReplaySafe": false,
+    "productionEffectLedgerBackendImplemented": false,
+    "providerCredentialStoredInSemanticState": false,
+    "r11SemanticCompletionAuthorityChanged": false,
+    "r12DurableFailoverAuthorityChanged": false,
+    "remotePlainHttpAllowed": false,
+    "universalBusinessExactlyOnceGuaranteed": false
+  },
+  "baseImplementationCommit": "5915c494c8ecabd97fc9a5233e1d76a3a18fa44a",
+  "date": "2026-09-18",
+  "discoveredNodes": [
+    "N74",
+    "N75",
+    "N76",
+    "N77",
+    "N78",
+    "N79",
+    "N80"
+  ],
+  "kind": "ordivon.agent-service-provider-adapters-r13-acceptance",
+  "refinedPriorNodes": [
+    "N67",
+    "N69"
+  ],
+  "schemaVersion": 1,
+  "semanticDogfood": {
+    "a2aCancelMethod": "CancelTask",
+    "claimOwnerAfter": true,
+    "effectLedgerReads": 1,
+    "fallbackReceiptMatches": true,
+    "quiescenceProviderStatus": "TASK_STATE_CANCELED",
+    "quiescent": true,
+    "replayClassification": "NO_EFFECTS",
+    "replaySafe": true,
+    "sourceOwnerBefore": true,
+    "status": "PASS",
+    "taskState": "RUNNING"
+  },
+  "standardsBasis": {
+    "a2a": "Current A2A specification: CancelTask is idempotent but cancellation success is not guaranteed; GetTask is idempotent; A2A-Version is explicit.",
+    "mcp": "MCP 2026-07-28 Tasks extension: per-request capability metadata; tasks/cancel cooperative ACK; tasks/get observable state; Mcp-Name routes task operations."
+  },
+  "verification": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "providerAdapterTests": 20,
+    "publicApiTests": 1,
+    "repositoryFailures": 0,
+    "repositoryTests": 193,
+    "resourceWarningsAsErrors": "PASS"
+  },
+  "verificationState": "PASS"
+}

@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "SWHID",
+      "Software Heritage persistent identifier",
+      "swh:1"
+    ],
+    "domains": [
+      "research",
+      "software",
+      "preservation",
+      "scholarly-communication"
+    ],
+    "topics": [
+      "software-identifier",
+      "persistent-identifier",
+      "source-code",
+      "software-citation",
+      "software-archive"
+    ]
+  },
+  "id": "swhid-scheme-v1",
+  "identity": {
+    "authorityKind": "persistent-identifier-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "software-heritage",
+      "name": "Software Heritage"
+    },
+    "officialSource": "https://docs.softwareheritage.org/devel/swh-model/persistent-identifiers.html",
+    "publicationDate": null,
+    "title": "SoftWare Hash persistent IDentifiers (SWHIDs) — identifier scheme version 1",
+    "versionLabel": "1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "Software Heritage official documentation checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

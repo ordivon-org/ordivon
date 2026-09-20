@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "iso-iec-11179-3-amd1-2026",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://www.iso.org/standard/89914.html",
+  "versionObserved": "2026",
+  "note": "ISO records the item-mapping amendment as published 2026-05-22."
+}

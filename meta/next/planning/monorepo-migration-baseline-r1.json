@@ -1,0 +1,231 @@
+{
+  "kind": "ordivon.monorepo-migration-baseline",
+  "version": 1,
+  "asOf": "2026-09-20",
+  "truthRole": "temporary-migration-inventory-not-authority",
+  "status": "FROZEN_M0_SOURCE_BASELINE",
+  "targetRepository": "/root/projects/ordivon",
+  "sunsetCondition": "Delete this working-tree planning record after all listed sources have either been imported and cut over, explicitly archived without import, or superseded by owner-native migration evidence. Git history remains the historical record.",
+  "laws": [
+    "One Git repository does not imply one authority, environment, lockfile, release, database or service.",
+    "No semantic refactor in the same commit as a history import/path relocation.",
+    "Create and verify a full git bundle before rewriting/importing a source.",
+    "Run git-filter-repo only on disposable clones.",
+    "Do not retire an old source path until release and consumer cutover evidence exists.",
+    "Do not normalize, deduplicate or recompute scientific data during relocation.",
+    "Do not create a repository-wide planning, registry, task, gate, evidence or state ontology."
+  ],
+  "sources": [
+    {
+      "id": "next",
+      "source": "/root/projects/ordivon-next",
+      "head": "ae1ac43130f95b264d908f7c73f268809300c0ea",
+      "worktree": "CLEAN",
+      "target": "meta/next",
+      "preImport": "DELIVER_OR_REVALIDATE_fcca32e1_AGENT_SERVICE_RETIREMENT"
+    },
+    {
+      "id": "runtime",
+      "source": "/root/projects/ordivon-runtime",
+      "head": "9d8bf81b446aca5cf675e49af52a9d65c04533ab",
+      "worktree": "CLEAN",
+      "target": "services/runtime",
+      "preImport": "KEEP_INDEPENDENT_CARGO_RELEASE_AND_STATE"
+    },
+    {
+      "id": "host",
+      "source": "/root/projects/ordivon-host-v2",
+      "head": "a95a8e112edfbe85582ff8e6fa25bb268038ea48",
+      "worktree": "CLEAN",
+      "target": "services/host",
+      "preImport": "KEEP_POSTGRES_ALEMBIC_SERVICE_RELEASE_INDEPENDENT"
+    },
+    {
+      "id": "harness",
+      "source": "/root/projects/ordivon-harness",
+      "head": "4b428b4f3bd69f4df1955b290b7cb5d85d59d287",
+      "worktree": "CLEAN",
+      "target": "services/harness",
+      "preImport": "IMPORT_ACCEPTED_PYTHON_3_14_7_MAIN; REAPPLY_DIVERGED_66091559_REDUCTION_POST_IMPORT_AS_SEPARATE_SEMANTIC_CHANGE",
+      "importRef": "migration/python-3.14.7",
+      "importRevision": "f747f6d3f513e76530d9777725a6727351c47dc8",
+      "languageRuntime": {
+        "language": "python",
+        "acceptedVersion": "3.14.7",
+        "policy": "LATEST_STABLE_EXACT_PIN",
+        "acceptance": "PASS_FINAL_909_TESTS_156_SUBTESTS_OWNER_TEST_AND_COLD_START_WHEEL_INSTALL_PIP_AUDIT_EVIDENCE_CURRENT_RECEIPT",
+        "currentVerifiedEvidence": "harness.environment.python-3.14.7-upgrade",
+        "acceptedRevision": "f747f6d3f513e76530d9777725a6727351c47dc8"
+      }
+    },
+    {
+      "id": "workstation",
+      "source": "/root/projects/ordivon-workstation-v2",
+      "head": "1ee414a9fcf40ce69c8fe53235134e3f55a5eee7",
+      "worktree": "CLEAN",
+      "target": "platform/workstation",
+      "preImport": "REVALIDATE_DIVERGED_AGENT_AUTOMATION_RETIREMENT_AND_RECORD_LIVE_EDGE_GC_PATH"
+    },
+    {
+      "id": "network",
+      "source": "/root/projects/ordivon-network-v2",
+      "head": "869b73a7859bead08dc9aaadb70a74e12ee59b2f",
+      "worktree": "CLEAN",
+      "target": "platform/network",
+      "preImport": "DELIVER_OR_REVALIDATE_9aec70bb_BROWSERLESS_LIFECYCLE_DECOUPLING"
+    },
+    {
+      "id": "security",
+      "source": "/root/projects/ordivon-security-v2",
+      "head": "f5db8508857ee844323f145891fb9cb832b12785",
+      "worktree": "CLEAN",
+      "target": "platform/security",
+      "preImport": "LOW_RISK_CANARY"
+    },
+    {
+      "id": "artifact",
+      "source": "/root/projects/ordivon-artifact-v2",
+      "head": "3762b3f033f1173aa93609c79284980610301d37",
+      "worktree": "CLEAN",
+      "target": "capabilities/artifact",
+      "preImport": "REVALIDATE_MAILBOX_RETIREMENT_AND_RECORD_LIVE_TEMPORAL_WORKER_PATH"
+    },
+    {
+      "id": "distribution",
+      "source": "/root/projects/ordivon-distribution-v2",
+      "head": "d579eb56d0ee26289159d3addfa8130d5b07ce60",
+      "worktree": "CLEAN",
+      "target": "capabilities/distribution",
+      "preImport": "DELIVER_OR_REVALIDATE_3f206409_OPTIONAL_EFFECT_DOWNGRADE"
+    },
+    {
+      "id": "media",
+      "source": "/root/projects/ordivon-media",
+      "head": "300ce04ea669c0f029f7a67277a5f2e1bdb6f817",
+      "worktree": "CLEAN",
+      "target": "capabilities/media",
+      "preImport": "DELIVER_OR_REVALIDATE_30f6d122_TASK_ACTIVATED_SCOPE"
+    },
+    {
+      "id": "research",
+      "source": "/root/projects/ordivon-research-v2",
+      "head": "39f586bd1d956f7206c9e0e04f8b02e30fa1eab0",
+      "worktree": "CLEAN",
+      "target": "capabilities/research",
+      "preImport": "FREEZE_DATA_AND_PROVENANCE_MAPPING_BEFORE_IMPORT"
+    },
+    {
+      "id": "game",
+      "source": "/root/projects/ordivon-game",
+      "head": "a4fdaa065f8daee963154c4647a920c6bc9e75a5",
+      "worktree": "CLEAN",
+      "target": "domains/game",
+      "preImport": "NONE_BEYOND_STANDARD_BACKUP_AND_VERIFY"
+    },
+    {
+      "id": "capital",
+      "source": "/root/projects/ordivon-market-capital-next",
+      "head": "8590c3eeb7d2712a1f796a70c839a7d3cbda0ff8",
+      "worktree": "CLEAN",
+      "target": "domains/capital",
+      "preImport": "NONE_BEYOND_STANDARD_BACKUP_AND_VERIFY"
+    },
+    {
+      "id": "paper2",
+      "source": "/root/projects/ordivon-paper2",
+      "head": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "worktree": "CLEAN",
+      "target": "studies/paper2",
+      "preImport": "PRESERVE_SCIENTIFIC_BYTES_PROTOCOL_AND_CAMPAIGN_LINEAGE"
+    },
+    {
+      "id": "paper1",
+      "source": "/root/projects/ordivon-paper1-emse-r3-frozen",
+      "head": "d9022b15bc34467e5843ef2a30f75c8f2b27f0e1",
+      "worktree": "UNTRACKED_SUPERPOWERS_ONLY",
+      "target": "studies/paper1",
+      "preImport": "DO_NOT_IMPORT_AS_SEPARATE_HISTORY_SHARED_WITH_RESEARCH"
+    },
+    {
+      "id": "workstation-lab",
+      "source": "/root/workstation-lab",
+      "head": "c45aa22ca9b4632dd98fdacef539bf167db61ab0",
+      "worktree": "DIRTY_4_STAGED_PATHS_AT_BASELINE",
+      "dirtyPaths": [
+        "M  artifacts/creative-library/catalog-v1.json",
+        "D  artifacts/creative-library/evidence/geospatial-carrier-friction-resolution-r1.json",
+        "M  scripts/creative_library.py",
+        "M  tests/test_creative_library.py"
+      ],
+      "dirtySummary": "7 insertions, 437 deletions; removes the geospatial presentation-kind/carrier path and contracts the Creative Library catalog. Treat as an independent semantic change, not migration cleanup.",
+      "target": null,
+      "preImport": "DO_NOT_WHOLESALE_IMPORT_BUNDLE_ARCHIVE_AND_SELECTIVELY_MIGRATE_LIVE_RESIDUE"
+    }
+  ],
+  "knownLiveOldPathConsumers": [
+    {
+      "consumer": "ordivon-edge-gc.service",
+      "oldPath": "/root/projects/ordivon-workstation-v2/providers/cloudflare",
+      "cutoverClass": "SERVICE_WORKING_DIRECTORY"
+    },
+    {
+      "consumer": "ordivon-artifact-temporal-worker.service",
+      "oldPath": "/root/projects/ordivon-artifact-v2",
+      "cutoverClass": "SERVICE_WORKING_DIRECTORY_AND_EXECSTART"
+    },
+    {
+      "consumer": "skills-mcp-current",
+      "oldPath": "/root/projects/ordivon-next/.agents/skills",
+      "cutoverClass": "SKILL_SOURCE_BINDING"
+    },
+    {
+      "consumer": "skills-mcp-current",
+      "oldPath": "/root/projects/ordivon-harness",
+      "cutoverClass": "HARNESS_SOURCE_BINDING"
+    }
+  ],
+  "cleanupCandidates": [
+    {
+      "owner": "next",
+      "commit": "fcca32e1384e869fece1e506e14b991ed87e99ac",
+      "relationToBaselineMain": "DESCENDS_MAIN",
+      "intent": "retire legacy Agent Service"
+    },
+    {
+      "owner": "network",
+      "commit": "9aec70bbfa3c8847dbd52c03a939c61f45e2f338",
+      "relationToBaselineMain": "DESCENDS_MAIN",
+      "intent": "decouple Browserless from Agent Automation lifecycle"
+    },
+    {
+      "owner": "distribution",
+      "commit": "3f206409989e9274c1645ec25416df61b1662bff",
+      "relationToBaselineMain": "DESCENDS_MAIN",
+      "intent": "downgrade Distribution to optional effect profile"
+    },
+    {
+      "owner": "media",
+      "commit": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+      "relationToBaselineMain": "DESCENDS_MAIN",
+      "intent": "scope Media to task-activated mediation"
+    },
+    {
+      "owner": "harness",
+      "commit": "660915590357d7122d7466a23cacd14f1a40bda9",
+      "relationToBaselineMain": "DIVERGED",
+      "intent": "retire owner-misplaced capability layers"
+    },
+    {
+      "owner": "workstation",
+      "commit": "f13d764099745ac3b8d498c9b108061b59984194",
+      "relationToBaselineMain": "DIVERGED",
+      "intent": "retire Agent Automation carrier"
+    },
+    {
+      "owner": "artifact",
+      "commit": "fceeee35784504e34d6b1ffc28a5b4e7fe1185ab",
+      "relationToBaselineMain": "DIVERGED",
+      "intent": "finish Artifact mailbox retirement disposition"
+    }
+  ]
+}

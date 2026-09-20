@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-28500-2017",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-confirmed",
+  "note": "ISO records this edition as confirmed/current after the 2023 review.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/68004.html",
+  "schemaVersion": 1,
+  "versionObserved": "2017"
+}

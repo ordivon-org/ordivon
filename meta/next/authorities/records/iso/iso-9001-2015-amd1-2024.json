@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 9001:2015",
+      "ISO 9001:2015/Amd 1:2024"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "quality"
+    ],
+    "topics": [
+      "quality-management-system",
+      "qms",
+      "quality"
+    ]
+  },
+  "id": "iso-9001-2015-amd1-2024",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/9001",
+    "publicationDate": null,
+    "title": "ISO 9001:2015 with Amendment 1:2024 — Quality management systems — Requirements",
+    "versionLabel": "2015+Amd1:2024"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [
+      "iso-9001-2026"
+    ],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

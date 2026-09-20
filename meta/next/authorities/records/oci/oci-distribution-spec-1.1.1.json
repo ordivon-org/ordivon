@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OCI Distribution",
+      "OCI Distribution Spec 1.1.1"
+    ],
+    "domains": [
+      "distribution",
+      "artifact",
+      "engineering"
+    ],
+    "topics": [
+      "registry",
+      "distribution",
+      "content-addressing",
+      "artifacts"
+    ]
+  },
+  "id": "oci-distribution-spec-1.1.1",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "oci",
+      "name": "Open Container Initiative"
+    },
+    "officialSource": "https://github.com/opencontainers/distribution-spec/releases/tag/v1.1.1",
+    "publicationDate": null,
+    "title": "OCI Distribution Specification 1.1.1",
+    "versionLabel": "1.1.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/distribution.md",
+      "OCI official release checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

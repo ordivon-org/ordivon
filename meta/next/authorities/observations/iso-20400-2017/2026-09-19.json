@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-20400-2017",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-confirmed",
+  "note": "ISO official metadata states ISO 20400:2017 was reviewed and confirmed in 2023 and remains current.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.iso.org/standard/63026.html",
+  "schemaVersion": 1,
+  "versionObserved": "2017"
+}

@@ -1,0 +1,56 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 29148",
+      "ISO/IEC/IEEE 29148:2018",
+      "Requirements engineering"
+    ],
+    "domains": [
+      "engineering",
+      "game",
+      "systems"
+    ],
+    "topics": [
+      "requirements-engineering",
+      "requirements",
+      "system-requirements",
+      "software-requirements",
+      "lifecycle"
+    ]
+  },
+  "id": "iso-iec-ieee-29148-2018",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso-iec-ieee",
+      "name": "ISO/IEC/IEEE"
+    },
+    "officialSource": "https://www.iso.org/standard/72089.html",
+    "publicationDate": "2018-11",
+    "title": "ISO/IEC/IEEE 29148:2018 — Systems and software engineering — Life cycle processes — Requirements engineering",
+    "versionLabel": "2018"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/game.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-iec-ieee-15288-2023",
+      "iso-iec-ieee-12207-2026"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

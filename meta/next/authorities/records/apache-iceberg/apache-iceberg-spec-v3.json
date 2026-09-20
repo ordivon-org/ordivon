@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "apache-iceberg-spec-v3",
+  "identity": {
+    "issuer": {
+      "id": "apache-iceberg",
+      "name": "Apache Iceberg"
+    },
+    "title": "Apache Iceberg Table Specification — Version 3",
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "versionLabel": "3",
+    "officialSource": "https://iceberg.apache.org/spec/",
+    "publicationDate": null
+  },
+  "discovery": {
+    "aliases": [
+      "Iceberg v3 spec",
+      "Apache Iceberg specification v3"
+    ],
+    "topics": [
+      "table-format",
+      "schema-evolution",
+      "snapshots",
+      "row-lineage",
+      "partition-evolution",
+      "time-travel"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "storage"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Apache Iceberg specification is publicly available."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "apache-iceberg-1.11.0"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "official Iceberg specification checked 2026-09-20"
+    ]
+  }
+}

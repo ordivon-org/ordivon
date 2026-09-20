@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Ad-tech privacy interoperability standards; dormant until paid/ad-tech integrations make them relevant. They do not replace privacy law."
+  },
+  "discovery": {
+    "aliases": [
+      "IAB Tech Lab Privacy Standards",
+      "Global Privacy Protocol",
+      "GPP"
+    ],
+    "domains": [
+      "advertising",
+      "marketing",
+      "privacy"
+    ],
+    "topics": [
+      "adtech",
+      "consent",
+      "privacy",
+      "privacy-signals",
+      "targeted-advertising"
+    ]
+  },
+  "id": "iab-privacy-standards",
+  "identity": {
+    "authorityKind": "industry-specification",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "iab-tech-lab",
+      "name": "IAB Tech Lab"
+    },
+    "officialSource": "https://iabtechlab.com/standards/privacy/",
+    "publicationDate": null,
+    "title": "IAB Tech Lab Privacy Standards Portfolio",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

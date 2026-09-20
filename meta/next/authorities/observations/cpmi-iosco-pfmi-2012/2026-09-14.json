@@ -1,0 +1,11 @@
+{
+  "authorityId": "cpmi-iosco-pfmi-2012",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-international-standard",
+  "note": "BIS CPMI describes PFMI as the international standards for financial market infrastructures and maintains related implementation guidance separately.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.bis.org/committees/cpmi/pfmi/overview",
+  "schemaVersion": 1,
+  "versionObserved": "2012"
+}

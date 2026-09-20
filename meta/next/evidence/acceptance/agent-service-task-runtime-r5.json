@@ -1,0 +1,79 @@
+{
+  "architectureDelta": "knowledge/graphs/ordivon-agent-service-r5-task-runtime-delta.json",
+  "authorityAssertions": {
+    "assignmentClientRequestIdPersistedBeforeRuntimeAdmission": true,
+    "lostJobBindingRecoveredByExactReplay": true,
+    "runtimeExitZeroImpliesTaskSuccess": false,
+    "runtimeSemanticCompletionEvaluated": false,
+    "taskIdentityEqualsRuntimeJobIdentity": false
+  },
+  "baseImplementationCommit": "1744076b10616d74460c2bb51a428339c4dc2991",
+  "date": "2026-09-18",
+  "discoveredNodes": [
+    "N25"
+  ],
+  "implementedNodes": [
+    "N05",
+    "N06",
+    "N11",
+    "N13",
+    "N15",
+    "N19"
+  ],
+  "kind": "ordivon.agent-service-task-runtime-r5-acceptance",
+  "liveSmokes": [
+    {
+      "id": "semantic-success",
+      "runtimeJobId": "job-01a0b03b-9442-7972-9c8b-62538fc5cf8e",
+      "runtimeMechanical": "succeeded",
+      "semanticAcceptance": "satisfied",
+      "status": "PASS",
+      "taskState": "SUCCEEDED"
+    },
+    {
+      "failureReason": "acceptance:stdout_contains:not_satisfied",
+      "id": "exit-zero-semantic-mismatch",
+      "runtimeJobId": "job-01a0b03b-96d7-7082-b1be-adae955a2091",
+      "runtimeMechanical": "succeeded",
+      "semanticAcceptance": "not_satisfied",
+      "status": "PASS",
+      "taskState": "FAILED"
+    },
+    {
+      "failureReason": "runtime:failed",
+      "id": "mechanical-failure-even-with-marker",
+      "runtimeJobId": "job-01a0b03b-990a-7c51-b0c5-01838c8c247a",
+      "runtimeMechanical": "failed",
+      "semanticAcceptance": "not_authorized_to_override_runtime_failure",
+      "status": "PASS",
+      "taskState": "FAILED"
+    },
+    {
+      "id": "response-loss-runtime-replay",
+      "runtimeJobId": "job-01a0b03b-9b5c-7682-8234-9b6c481e60d3",
+      "sameRuntimeJobRecovered": true,
+      "status": "PASS",
+      "taskState": "SUCCEEDED"
+    }
+  ],
+  "liveTargetWorkspace": "ws-agent-service-r5-live-target-20260918",
+  "runtimeProvider": {
+    "observe": "task.observe",
+    "protocol": "MCP 2026-07-28",
+    "semanticCompletionOwnedByRuntime": false,
+    "submit": "workspace.exec"
+  },
+  "schemaVersion": 1,
+  "verification": {
+    "carrierRegressionTests": 18,
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS",
+    "repositoryFailures": 0,
+    "repositoryTests": 76,
+    "resourceWarningsAsErrors": "PASS",
+    "runtimeMcpTests": 6,
+    "slice1RegressionTests": 9,
+    "taskRuntimeTests": 10
+  },
+  "verificationState": "PASS"
+}

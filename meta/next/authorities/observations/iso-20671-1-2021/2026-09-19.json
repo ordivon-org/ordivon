@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-20671-1-2021",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current",
+  "note": "ISO lists ISO 20671-1:2021 as the published current brand-evaluation principles/fundamentals edition observed on this date.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.iso.org/standard/81739.html",
+  "schemaVersion": 1,
+  "versionObserved": "2021"
+}

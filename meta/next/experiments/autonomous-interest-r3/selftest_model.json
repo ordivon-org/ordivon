@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "selftest",
+  "candidateId": "R3SELFTEST",
+  "humanSignalUsed": false,
+  "actions": ["a", "b", "c"],
+  "causalCouplings": ["coupling-one", "coupling-two", "coupling-three"],
+  "contexts": {
+    "0": {"trainInitialStates": ["t0", "t1", "t2", "t3"], "evalInitialStates": ["e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7"]},
+    "1": {"trainInitialStates": ["t0", "t1", "t2", "t3"], "evalInitialStates": ["e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7"]},
+    "2": {"trainInitialStates": ["t0", "t1", "t2", "t3"], "evalInitialStates": ["e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7"]},
+    "3": {"trainInitialStates": ["t0", "t1", "t2", "t3"], "evalInitialStates": ["e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7"]}
+  },
+  "states": {
+    "t0": {"observation": {"id": "t0"}, "status": "ONGOING", "transitions": {"a": {"next": "win", "couplingId": "coupling-one", "withoutCouplingNext": "loss"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "t1": {"observation": {"id": "t1"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}}},
+    "t2": {"observation": {"id": "t2"}, "status": "ONGOING", "transitions": {"b": {"next": "win"}}},
+    "t3": {"observation": {"id": "t3"}, "status": "ONGOING", "transitions": {"a": {"next": "win", "couplingId": "coupling-two", "withoutCouplingNext": "loss"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "e0": {"observation": {"id": "e0"}, "status": "ONGOING", "transitions": {"a": {"next": "win", "couplingId": "coupling-three", "withoutCouplingNext": "loss"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "e1": {"observation": {"id": "e1"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}}},
+    "e2": {"observation": {"id": "e2"}, "status": "ONGOING", "transitions": {"b": {"next": "win"}}},
+    "e3": {"observation": {"id": "e3"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "e4": {"observation": {"id": "e4"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "e5": {"observation": {"id": "e5"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "e6": {"observation": {"id": "e6"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "e7": {"observation": {"id": "e7"}, "status": "ONGOING", "transitions": {"a": {"next": "win"}, "b": {"next": "win"}, "c": {"next": "loss"}}},
+    "win": {"observation": {"terminal": "win"}, "status": "WIN", "transitions": {}},
+    "loss": {"observation": {"terminal": "loss"}, "status": "LOSS", "transitions": {}}
+  }
+}

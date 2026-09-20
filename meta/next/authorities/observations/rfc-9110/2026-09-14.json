@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-9110",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "internet-standard",
+  "note": "STD 97 HTTP Semantics.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc9110/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 9110"
+}

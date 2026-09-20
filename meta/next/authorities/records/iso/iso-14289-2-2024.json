@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PDF/UA-2",
+      "ISO 14289-2",
+      "PDF accessibility"
+    ],
+    "domains": [
+      "artifact",
+      "document",
+      "accessibility"
+    ],
+    "topics": [
+      "pdf",
+      "pdf-ua",
+      "accessibility",
+      "accessible-document"
+    ]
+  },
+  "id": "iso-14289-2-2024",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/82278.html",
+    "publicationDate": "2024-03",
+    "title": "ISO 14289-2:2024 — Electronic document file format enhancement for accessibility — Part 2: PDF/UA-2",
+    "versionLabel": "2024"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/artifact.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-32000-2-2020"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

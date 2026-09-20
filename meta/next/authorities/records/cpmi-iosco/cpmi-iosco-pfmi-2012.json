@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PFMI",
+      "Principles for Financial Market Infrastructures",
+      "CPMI-IOSCO PFMI"
+    ],
+    "domains": [
+      "finance",
+      "market-capital",
+      "post-trade"
+    ],
+    "topics": [
+      "financial-market-infrastructure",
+      "clearing",
+      "settlement",
+      "finality",
+      "risk-management"
+    ]
+  },
+  "id": "cpmi-iosco-pfmi-2012",
+  "identity": {
+    "authorityKind": "international-financial-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "cpmi-iosco",
+      "name": "CPMI-IOSCO"
+    },
+    "officialSource": "https://www.bis.org/committees/cpmi/pfmi/overview",
+    "publicationDate": "2012-04-16",
+    "title": "Principles for financial market infrastructures (PFMI)",
+    "versionLabel": "2012"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-market-capital-next/docs/ARCHITECTURE.md",
+      "BIS/CPMI official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

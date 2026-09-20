@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-lens-router-acceptance",
+  "date": "2026-09-18",
+  "standing": "PROSPECTIVELY_VALIDATED_MINIMUM_SUFFICIENT_ROUTER_R1",
+  "registry": "knowledge/registries/lego-lens-registry-r1.json",
+  "method": "docs/LEGO_LENS_ROUTER_R1.md",
+  "skill": ".agents/skills/lego-lens-router/SKILL.md",
+  "cases": [
+    {
+      "id": "runtime-feedback",
+      "selected": ["feedback-control"],
+      "count": 1,
+      "result": "PASS_PRESERVED_PRIOR_MODEL_CORRECTION"
+    },
+    {
+      "id": "harness-replacement",
+      "selected": ["compositional-contracts"],
+      "count": 1,
+      "result": "PASS_PRESERVED_PRIOR_CONTRACT_CORRECTION"
+    },
+    {
+      "id": "game-concept-generation",
+      "selected": ["ck-design"],
+      "count": 1,
+      "result": "PASS_REJECTED_INAPPLICABLE_SEARCH_LENSES"
+    },
+    {
+      "id": "agent-security-pipeline",
+      "selected": ["agent-security"],
+      "count": 1,
+      "suppressedConsumedLenses": ["information-flow", "feedback-control", "stpa"],
+      "result": "PASS_COMPOSITE_PROFILE_DOMINANCE"
+    },
+    {
+      "id": "agent-service-r16-readonly-canary",
+      "selected": [],
+      "count": 0,
+      "handoff": "DOMAIN_METHOD",
+      "result": "PASS_NO_LENS"
+    }
+  ],
+  "properties": {
+    "allowNoLens": true,
+    "defaultMaxSelected": 2,
+    "keywordActivationForbidden": true,
+    "domainNativePreemption": true,
+    "compositeProfileSuppression": true,
+    "coreSchemaChanged": false
+  },
+  "nonClaims": [
+    "The router does not prove a globally optimal method set.",
+    "The router does not automate semantic problem classification in R1.",
+    "The router does not rank academic disciplines by intrinsic value.",
+    "A discipline may be valuable yet still be redundant for a specific Ordivon decision."
+  ]
+}

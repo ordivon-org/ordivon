@@ -1,0 +1,11 @@
+{
+  "authorityId": "openapi-3.2.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Official OpenAPI source-of-truth specification lists Version 3.2.0 dated 2025-09-19.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://spec.openapis.org/oas/v3.2.0.html",
+  "schemaVersion": 1,
+  "versionObserved": "3.2.0"
+}

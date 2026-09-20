@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Professional self-regulatory code; applicable law still controls."
+  },
+  "discovery": {
+    "aliases": [
+      "ICC ESOMAR Code",
+      "ICC/ESOMAR International Code 2025"
+    ],
+    "domains": [
+      "data-analytics",
+      "market-research",
+      "research"
+    ],
+    "topics": [
+      "data-protection",
+      "market-research",
+      "research-ethics",
+      "research-governance",
+      "transparency"
+    ]
+  },
+  "id": "icc-esomar-code-2025",
+  "identity": {
+    "authorityKind": "professional-code",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "icc-esomar",
+      "name": "International Chamber of Commerce / ESOMAR"
+    },
+    "officialSource": "https://iccwbo.org/news-publications/business-solutions/iccesomar-international-code-market-opinion-social-research-data-analytics/",
+    "publicationDate": "2025-09-29",
+    "title": "ICC/ESOMAR International Code on Market, Opinion and Social Research and Data Analytics",
+    "versionLabel": "Fifth Edition (2025)"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-20252-2026"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

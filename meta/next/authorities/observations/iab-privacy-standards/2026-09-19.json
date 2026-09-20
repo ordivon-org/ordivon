@@ -1,0 +1,11 @@
+{
+  "authorityId": "iab-privacy-standards",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-portfolio",
+  "note": "IAB Tech Lab currently maintains a privacy-standards portfolio including Global Privacy Protocol, TCF technical specifications, data-deletion and accountability/privacy-taxonomy work. Use only where ad-tech integration makes the specifications applicable; law remains authoritative.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://iabtechlab.com/standards/privacy/",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

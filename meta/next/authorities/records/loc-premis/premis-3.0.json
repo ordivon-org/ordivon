@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "PREMIS",
+      "PREMIS 3.0",
+      "PREMIS Data Dictionary"
+    ],
+    "domains": [
+      "preservation",
+      "artifact",
+      "metadata"
+    ],
+    "topics": [
+      "preservation-metadata",
+      "digital-preservation",
+      "events",
+      "rights",
+      "agents",
+      "objects"
+    ]
+  },
+  "id": "premis-3.0",
+  "identity": {
+    "authorityKind": "preservation-metadata-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "loc-premis",
+      "name": "Library of Congress / PREMIS Editorial Committee"
+    },
+    "officialSource": "https://www.loc.gov/standards/premis/v3/index.html",
+    "publicationDate": "2015-11",
+    "title": "PREMIS Data Dictionary for Preservation Metadata, Version 3.0",
+    "versionLabel": "3.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/preservation.md",
+      "Library of Congress PREMIS official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

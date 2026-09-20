@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "sdmx-cl-obs-status-2.3",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://sdmx.org/sdmx_cdcl/",
+  "versionObserved": "2.3",
+  "note": "SDMX lists CL_OBS_STATUS v2.3 as formally adopted 5 November 2025 and describes it as coded information on value quality or unusual/missing values."
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "yc-how-to-sell-2018",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-reference",
+  "note": "YC continues to publish the early-stage sales class; use as professional guidance, not as proof that a sales motion fits a particular customer.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.ycombinator.com/blog/how-to-sell-by-tyler-bosmeny/",
+  "schemaVersion": 1,
+  "versionObserved": "2018-09-26"
+}

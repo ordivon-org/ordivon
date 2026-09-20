@@ -1,0 +1,718 @@
+{
+  "apiVersion": "v3.2.0",
+  "authoritativeDefinitions": [
+    {
+      "description": "Exact Git source revision used for acquisition.",
+      "type": "canonical",
+      "url": "https://github.com/rfordatascience/tidytuesday/blob/f4d1b35ca09d8c0d875451635daef9179adfc9e0/data/2026/2026-05-26/energy_cleaned.csv"
+    }
+  ],
+  "customProperties": [
+    {
+      "property": "sourceSha256",
+      "value": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b"
+    },
+    {
+      "property": "derivedParquetSha256",
+      "value": "141fdab942b23cac74c595f8d2618021a74c83f4feb532c9ef4348038d693f91"
+    },
+    {
+      "property": "sourceGitCommit",
+      "value": "f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+    },
+    {
+      "property": "semanticProfile",
+      "value": "evidence/data-lifecycle/github-pilot-r1/semantics/external-semantic-profile.json"
+    },
+    {
+      "property": "statisticalStructureOwner",
+      "value": "sdmx-3.1"
+    },
+    {
+      "property": "unitCodeOwner",
+      "value": "ucum-spec"
+    },
+    {
+      "property": "qualityMeasureOwner",
+      "value": "iso-iec-5259-2-2024"
+    }
+  ],
+  "dataProduct": "se4all-energy-country-year",
+  "description": {
+    "limitations": "Descriptive pilot contract; upstream source semantics and causal interpretation remain outside this contract.",
+    "purpose": "External GitHub dataset used to exercise the Ordivon data lifecycle pilot.",
+    "usage": "Reproducible data-lifecycle validation and descriptive analysis."
+  },
+  "domain": "external-public-data",
+  "id": "fab118e6-6e09-5490-8fa8-5435e1bcd292",
+  "kind": "DataContract",
+  "name": "se4all-energy",
+  "schema": [
+    {
+      "description": "Sustainable Energy for All country historical indicators",
+      "name": "se4all-energy",
+      "physicalName": "se4all-energy.parquet",
+      "physicalType": "parquet",
+      "properties": [
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "country_name",
+          "physicalName": "country_name",
+          "physicalType": "varchar",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "public",
+          "logicalType": "string",
+          "name": "country_code",
+          "physicalName": "country_code",
+          "physicalType": "varchar",
+          "primaryKey": true,
+          "primaryKeyPosition": 1,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "public",
+          "logicalType": "integer",
+          "name": "yr",
+          "physicalName": "yr",
+          "physicalType": "bigint",
+          "primaryKey": true,
+          "primaryKeyPosition": 2,
+          "required": true,
+          "semanticType": "dimension"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "access_non_solid_fuel_rural_pop_pct",
+          "physicalName": "access_non_solid_fuel_rural_pop_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "access_non_solid_fuel_total_pop_pct",
+          "physicalName": "access_non_solid_fuel_total_pop_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "population-share"
+            }
+          ],
+          "logicalType": "number",
+          "name": "access_non_solid_fuel_urban_pop_pct",
+          "physicalName": "access_non_solid_fuel_urban_pop_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "access_electricity_rural_pop_pct",
+          "physicalName": "access_electricity_rural_pop_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "population-share"
+            }
+          ],
+          "logicalType": "number",
+          "name": "access_electricity_total_pop_pct",
+          "physicalName": "access_electricity_total_pop_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "access_electricity_urban_pop_pct",
+          "physicalName": "access_electricity_urban_pop_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "biogas_consumption_tfec_pct",
+          "physicalName": "biogas_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "biogas_consumption_terajoules",
+          "physicalName": "biogas_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "divisia_decomp_analysis_activity_component_index",
+          "physicalName": "divisia_decomp_analysis_activity_component_index",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "divisia_decomp_analysis_energy_intensity_component_index",
+          "physicalName": "divisia_decomp_analysis_energy_intensity_component_index",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "divisia_decomp_analysis_structure_component_index",
+          "physicalName": "divisia_decomp_analysis_structure_component_index",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "energy_intensity_level_final_energy_megajoules_per_usd_2005_ppp",
+          "physicalName": "energy_intensity_level_final_energy_megajoules_per_usd_2005_ppp",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "energy_intensity_level_primary_energy_megajoules_per_usd_2005_ppp",
+          "physicalName": "energy_intensity_level_primary_energy_megajoules_per_usd_2005_ppp",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "energy_intensity_agricultural_sector_megajoules_per_usd_2005",
+          "physicalName": "energy_intensity_agricultural_sector_megajoules_per_usd_2005",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "energy_intensity_industrial_sector_megajoules_per_usd_2005",
+          "physicalName": "energy_intensity_industrial_sector_megajoules_per_usd_2005",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "energy_intensity_other_sectors_megajoules_per_usd_2005",
+          "physicalName": "energy_intensity_other_sectors_megajoules_per_usd_2005",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "energy_savings_primary_energy_terajoules",
+          "physicalName": "energy_savings_primary_energy_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "energy-ratio"
+            }
+          ],
+          "logicalType": "number",
+          "name": "final_to_primary_energy_ratio_pct",
+          "physicalName": "final_to_primary_energy_ratio_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "geothermal_energy_consumption_tfec_pct",
+          "physicalName": "geothermal_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "geothermal_energy_consumption_terajoules",
+          "physicalName": "geothermal_energy_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "hydro_energy_consumption_tfec_pct",
+          "physicalName": "hydro_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "hydro_energy_consumption_terajoules",
+          "physicalName": "hydro_energy_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "liquid_biofuels_energy_consumption_tfec_pct",
+          "physicalName": "liquid_biofuels_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "liquid_biofuels_consumption_terajoules",
+          "physicalName": "liquid_biofuels_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "marine_energy_consumption_tfec_pct",
+          "physicalName": "marine_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "marine_consumption_terajoules",
+          "physicalName": "marine_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "modern_biomass_energy_consumption_tfec_pct",
+          "physicalName": "modern_biomass_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "modern_biomass_consumption_terajoules",
+          "physicalName": "modern_biomass_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "perc_renewable_of_total_electricity_output",
+          "physicalName": "perc_renewable_of_total_electricity_output",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "renewable_energy_consumption_terajoules",
+          "physicalName": "renewable_energy_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "share-of-total-final-energy-consumption"
+            }
+          ],
+          "logicalType": "number",
+          "name": "renewable_energy_consumption_tfec_pct",
+          "physicalName": "renewable_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "renewable_energy_electricity_output_gigawatt_hours",
+          "physicalName": "renewable_energy_electricity_output_gigawatt_hours",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "renewable_energy_installed_capacity_gigawatts",
+          "physicalName": "renewable_energy_installed_capacity_gigawatts",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "share-of-total-capacity"
+            }
+          ],
+          "logicalType": "number",
+          "name": "share_of_renewable_capacity_in_total_capacity_pct",
+          "physicalName": "share_of_renewable_capacity_in_total_capacity_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "solar_energy_consumption_tfec_pct",
+          "physicalName": "solar_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "solar_energy_consumption_terajoules",
+          "physicalName": "solar_energy_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "thermal_efficiency_in_power_supply_pct",
+          "physicalName": "thermal_efficiency_in_power_supply_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "total_electricity_output_gigawatt_hours",
+          "physicalName": "total_electricity_output_gigawatt_hours",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "total_final_consumption_terajoules",
+          "physicalName": "total_final_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "total_final_energy_consumption_tfec",
+          "physicalName": "total_final_energy_consumption_tfec",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "total_installed_generation_capacity_gigawatts",
+          "physicalName": "total_installed_generation_capacity_gigawatts",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "total_primary_energy_supply_terajoules",
+          "physicalName": "total_primary_energy_supply_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "traditional_biomass_consumption_tfec_pct",
+          "physicalName": "traditional_biomass_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "traditional_biomass_consumption_terajoules",
+          "physicalName": "traditional_biomass_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "customProperties": [
+            {
+              "property": "unitUcum",
+              "value": "%"
+            },
+            {
+              "property": "unitQudt",
+              "value": "http://qudt.org/vocab/unit/PERCENT"
+            },
+            {
+              "property": "quantitySemantics",
+              "value": "derived-loss-ratio"
+            }
+          ],
+          "logicalType": "number",
+          "name": "transmission_and_distribution_losses_pct",
+          "physicalName": "transmission_and_distribution_losses_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "waste_energy_consumption_tfec_pct",
+          "physicalName": "waste_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "waste_energy_consumption_terajoules",
+          "physicalName": "waste_energy_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "wind_energy_consumption_tfec_pct",
+          "physicalName": "wind_energy_consumption_tfec_pct",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        },
+        {
+          "classification": "public",
+          "logicalType": "number",
+          "name": "wind_energy_consumption_terajoules",
+          "physicalName": "wind_energy_consumption_terajoules",
+          "physicalType": "double",
+          "primaryKey": false,
+          "primaryKeyPosition": -1,
+          "required": false,
+          "semanticType": "measure"
+        }
+      ]
+    }
+  ],
+  "status": "active",
+  "version": "1.0.0"
+}

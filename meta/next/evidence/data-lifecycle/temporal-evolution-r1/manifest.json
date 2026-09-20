@@ -1,0 +1,30 @@
+{
+  "files": {
+    "activation-decision.json": {
+      "bytes": 710,
+      "sha256": "f846bcf58c1da79991b552b1eaa86d1843e17f882318b8d30f178e8945afbfa5"
+    },
+    "bounded-replay-conformance.json": {
+      "bytes": 957,
+      "sha256": "14240ef7a1d327b20ac0aac4a58e0705c042dab2225e4a3f3d9c4e1b0173d5db"
+    },
+    "reference-identity-report.json": {
+      "bytes": 1924,
+      "sha256": "fb83f13c8362f7a078428e5920ad0dfcac1eef002904f23d5f98c80febafd19e"
+    },
+    "revision-ledger.json": {
+      "bytes": 4555,
+      "sha256": "bf9a11858d1c1f4f78d862a0c85eb65b39fd838c4f1137b0a54e485cdb121269"
+    },
+    "schema-evolution-conformance.json": {
+      "bytes": 3384,
+      "sha256": "569ed12edfe6400e79c1579192e476477d47bc69c38418df0c67ce293b8fe4a2"
+    },
+    "source/external-temporal-reference-profile.json": {
+      "bytes": 3269,
+      "sha256": "404439891ebfe4523e1c86c5eca2a225908de1271905c505c817744937f5e7db"
+    }
+  },
+  "kind": "temporal-evolution-pilot-manifest",
+  "schemaVersion": 1
+}

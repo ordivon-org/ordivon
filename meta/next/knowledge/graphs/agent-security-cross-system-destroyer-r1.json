@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "graphId": "agent-security-cross-system-destroyer-r1",
+  "graphKind": "security-lens-cross-system-validation",
+  "date": "2026-09-18",
+  "status": "PASS_AGENT_DOMAIN_NO_SHARED_KERNEL_PROMOTION",
+  "systems": [
+    {
+      "id": "zcode-desktop-reported",
+      "product": "ZCode",
+      "regimes": [
+        "desktop-reported-snapshot"
+      ],
+      "dominantPattern": "ambient workspace capture + snapshot egress + control-surface mismatch",
+      "evidenceClass": "public reverse-engineering case"
+    },
+    {
+      "id": "codex",
+      "product": "OpenAI Codex",
+      "regimes": [
+        "local-constrained",
+        "cloud-container"
+      ],
+      "dominantPattern": "sandbox boundary + approval policy + separately controlled network",
+      "evidenceClass": "official docs + official source/config schema"
+    },
+    {
+      "id": "claude-code",
+      "product": "Anthropic Claude Code",
+      "regimes": [
+        "local-manual",
+        "local-auto-or-bypass",
+        "cloud-session",
+        "remote-control"
+      ],
+      "dominantPattern": "fine-grained tool permission + sandbox/network boundary + execution/transcript location split",
+      "evidenceClass": "official docs"
+    },
+    {
+      "id": "cursor",
+      "product": "Cursor",
+      "regimes": [
+        "local-agent",
+        "cloud-agent"
+      ],
+      "dominantPattern": "local sandbox/run modes versus remote VM with explicit snapshot/transcript retention",
+      "evidenceClass": "official docs"
+    },
+    {
+      "id": "opencode",
+      "product": "OpenCode",
+      "regimes": [
+        "local-tool-centric",
+        "shared-session-optional"
+      ],
+      "dominantPattern": "tool/resource permissions + provider egress + optional public session persistence",
+      "evidenceClass": "official docs"
+    },
+    {
+      "id": "openclaw",
+      "product": "OpenClaw",
+      "regimes": [
+        "sandboxed-gateway",
+        "direct-host",
+        "elevated",
+        "multi-agent-session"
+      ],
+      "dominantPattern": "sandbox/tool/elevated/session visibility as independent authority axes",
+      "evidenceClass": "official docs"
+    }
+  ],
+  "matrix": {
+    "zcode": {
+      "AS01": "REPORTED",
+      "AS02": "REPORTED",
+      "AS03": "REPORTED_MANIFEST",
+      "AS04": "REPORTED",
+      "AS05": "REPORTED",
+      "AS06": "REPORTED",
+      "AS07": "CAPABILITY_PLUS_PARTIAL_OUTCOME_EVIDENCE",
+      "AS08": "STRONG_INFERENCE",
+      "AS09": "REPORTED_MISMATCH",
+      "AS10": "FORENSIC_DISCOVERY",
+      "AS11": "UNRESOLVED",
+      "AS12": "POTENTIAL_MISMATCH"
+    },
+    "codex": {
+      "AS01": "EXPLICIT",
+      "AS02": "EXPLICIT",
+      "AS03": "EXPLICIT",
+      "AS04": "STRUCTURAL_CONTEXT_DERIVATION",
+      "AS05": "SURFACE_DEPENDENT",
+      "AS06": "EXPLICIT",
+      "AS07": "CONDITIONAL_CLOUD_SERVICE",
+      "AS08": "SUBSYSTEM_SPECIFIC",
+      "AS09": "EXPLICIT",
+      "AS10": "PARTIAL_EXPLICIT",
+      "AS11": "REGIME_DEPENDENT",
+      "AS12": "EXPLICIT_DOCS"
+    },
+    "claudeCode": {
+      "AS01": "EXPLICIT",
+      "AS02": "EXPLICIT",
+      "AS03": "EXPLICIT",
+      "AS04": "EXPLICIT_CONTEXT_BOUNDARIES",
+      "AS05": "EXPLICIT_RULE_AND_SESSION_STATE",
+      "AS06": "EXPLICIT",
+      "AS07": "CONDITIONAL_CLOUD_OR_REMOTE_CONTROL",
+      "AS08": "SUBSYSTEM_SPECIFIC",
+      "AS09": "EXPLICIT",
+      "AS10": "PARTIAL_LOCAL_EXPLICIT_CLOUD",
+      "AS11": "REGIME_DEPENDENT",
+      "AS12": "EXPLICIT_DOCS"
+    },
+    "cursor": {
+      "AS01": "EXPLICIT",
+      "AS02": "EXPLICIT",
+      "AS03": "EXPLICIT",
+      "AS04": "EXPLICIT_LLM_INDEX_ARTIFACT_PATHS",
+      "AS05": "EXPLICIT",
+      "AS06": "EXPLICIT",
+      "AS07": "EXPLICIT_CLOUD_AND_DERIVED_STATE",
+      "AS08": "EXPLICIT_CLOUD_KEYS_CMEK",
+      "AS09": "EXPLICIT",
+      "AS10": "EXPLICIT_BY_REGIME",
+      "AS11": "EXPLICIT_CLASS_SPECIFIC",
+      "AS12": "EXPLICIT_WITH_CROSS_DOC_GRANULARITY_MISMATCH"
+    },
+    "openCode": {
+      "AS01": "EXPLICIT_LOCAL_AND_PROVIDER_CREDENTIAL",
+      "AS02": "EXPLICIT",
+      "AS03": "EXPLICIT",
+      "AS04": "EXPLICIT_SESSION_SUMMARY_SHARE",
+      "AS05": "EXPLICIT_LOCAL_STORAGE",
+      "AS06": "EXPLICIT_PROVIDER_WEB_SHARE",
+      "AS07": "OPTIONAL_SHARE_PROVIDER_DEPENDENT",
+      "AS08": "SUBSYSTEM_SPECIFIC",
+      "AS09": "EXPLICIT",
+      "AS10": "LOCAL_LOGS_PARTIAL",
+      "AS11": "EXPLICIT_LOCAL_SHARE_PROVIDER_EXTERNAL",
+      "AS12": "EXPLICIT_DOCS"
+    },
+    "openClaw": {
+      "AS01": "EXPLICIT_MULTI_AXIS",
+      "AS02": "EXPLICIT_MULTI_TRIGGER",
+      "AS03": "EXPLICIT_WORKSPACE_SCOPE",
+      "AS04": "EXPLICIT_MEMORY_TRANSCRIPT_EXPORT",
+      "AS05": "EXPLICIT_MULTI_CLASS",
+      "AS06": "EXPLICIT_MULTI_PLANE",
+      "AS07": "CONDITIONAL_PROVIDER_CHANNEL_REMOTE",
+      "AS08": "SUBSYSTEM_SPECIFIC",
+      "AS09": "EXPLICIT_LAYERED",
+      "AS10": "STRONG_AUDIT_SURFACES",
+      "AS11": "EXPLICIT_COMPLEX_LIFECYCLE",
+      "AS12": "EXPLICIT_NON_EQUIVALENCE_DOCS"
+    }
+  },
+  "primitives": {
+    "AS01": {
+      "label": "IdentityAuthority",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS02": {
+      "label": "Trigger",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS03": {
+      "label": "CaptureReadScope",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS04": {
+      "label": "Derivation",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS05": {
+      "label": "LocalPersistence",
+      "standing": "CORE_6_OF_6_OBJECT_CLASSES_DIFFER"
+    },
+    "AS06": {
+      "label": "EgressPath",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS07": {
+      "label": "RemotePersistence",
+      "standing": "CONDITIONAL_FIRST_CLASS"
+    },
+    "AS08": {
+      "label": "KeyAuthority",
+      "standing": "CONDITIONAL"
+    },
+    "AS09": {
+      "label": "CapabilityActuator",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS10": {
+      "label": "SideEffectObservation",
+      "standing": "CORE_REQUIREMENT_COMPLETENESS_VARIES"
+    },
+    "AS11": {
+      "label": "RetentionDeletion",
+      "standing": "CORE_6_OF_6"
+    },
+    "AS12": {
+      "label": "DisclosureAlignment",
+      "standing": "META_CORE_6_OF_6"
+    }
+  },
+  "newlyExposed": {
+    "XAS13": {
+      "label": "SecurityRegimeIdentity",
+      "definition": "Security posture is indexed by execution location, sandbox, permission mode, network posture, persistence mode, delegation mode, and managed constraints."
+    },
+    "XAS14": {
+      "label": "PolicyBindingTime",
+      "definition": "Record when a policy becomes effective and whether it applies retroactively to already-admitted work."
+    },
+    "XAS15": {
+      "label": "AuthorityDelegationInheritance",
+      "definition": "Record the exact authority propagation/clamping law from parent to subagent, worker, hook, automation, or remote run."
+    },
+    "XAS16": {
+      "label": "PersistenceClassVector",
+      "definition": "Track runtime workspace, transcript, artifact, snapshot, secret, derived index, memory, audit, provider copy, and archive independently."
+    }
+  },
+  "laws": [
+    "SECURITY_REGIME_NOT_PRODUCT_IDENTITY",
+    "APPROVAL_NOT_CONTAINMENT",
+    "EGRESS_PLANE_SEPARATION",
+    "PERSISTENCE_MULTIPLICITY",
+    "POLICY_BINDING_TIME",
+    "DELEGATION_MONOTONICITY_MUST_BE_PROVEN",
+    "DERIVATION_IS_A_BOUNDARY",
+    "DELETION_IS_A_GRAPH_OPERATION"
+  ],
+  "promotionDecision": {
+    "agentSecurityLens": "STABLE_R1_WITH_XAS13_XAS16_CANDIDATES",
+    "sharedLegoKernel": "NO_PROMOTION",
+    "reason": "multiple products but one broad coding-agent domain; require unrelated-domain validation"
+  },
+  "nextDestroyerDomains": [
+    "browser automation / Agent Birth",
+    "email/calendar connected agent",
+    "Artifact external-provider pipeline",
+    "finance/market read-only connector",
+    "long-running multi-agent Game workflow"
+  ]
+}

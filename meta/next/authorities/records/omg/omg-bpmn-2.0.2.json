@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "BPMN",
+      "BPMN 2.0.2"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "workflow"
+    ],
+    "topics": [
+      "business-process",
+      "workflow",
+      "process-modeling"
+    ]
+  },
+  "id": "omg-bpmn-2.0.2",
+  "identity": {
+    "authorityKind": "formal-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "omg",
+      "name": "Object Management Group"
+    },
+    "officialSource": "https://www.omg.org/spec/BPMN/2.0.2",
+    "publicationDate": null,
+    "title": "Business Process Model and Notation (BPMN) 2.0.2",
+    "versionLabel": "2.0.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md",
+      "OMG official specification checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

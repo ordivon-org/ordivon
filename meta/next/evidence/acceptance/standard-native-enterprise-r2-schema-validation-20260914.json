@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.standard-native.enterprise-r2-schema-validation",
+  "standing": "PASS",
+  "validator": "check-jsonschema, version 0.38.0",
+  "schema": "schemas/standard-native-profile-projection-v1.schema.json",
+  "instances": ["research", "runtime", "game"],
+  "boundary": "This validates the thin projection shape only. It does not validate domain semantics, authority applicability, compliance or domain verdict correctness."
+}

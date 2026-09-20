@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-1035",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "internet-standard",
+  "note": "STD 13; updated by later RFCs but not obsoleted.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc1035/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 1035"
+}

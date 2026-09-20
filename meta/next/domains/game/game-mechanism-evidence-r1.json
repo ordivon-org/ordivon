@@ -1,0 +1,1691 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-next.game-mechanism-evidence.r1",
+  "observedDate": "2026-09-14",
+  "standing": "INITIAL_MECHANISM_EVIDENCE_MIGRATION_COMPLETE",
+  "authorityBoundary": [
+    "External reference decompositions are hypotheses from desk teardown, not Human experience evidence.",
+    "Local structural experiments can support or weaken structural coupling claims but cannot establish fun, attachment, replay desire or market demand.",
+    "Historical Ordivon product names carry no product-selection authority after migration; only scoped mechanism/composition evidence survives.",
+    "Compatibility evidence remains context-bound and may be revised by future Human play or better controls."
+  ],
+  "sourceRevision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+  "specimenCount": 22,
+  "compatibilityClaimCount": 25,
+  "specimens": [
+    {
+      "id": "ref-cs2",
+      "title": "Counter-Strike 2",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://store.steampowered.com/app/730/CounterStrike_2/"
+      ],
+      "nodes": [
+        "aim",
+        "shoot",
+        "partial-observation",
+        "round-match",
+        "fast-retry",
+        "team-based-play",
+        "capture-control"
+      ],
+      "edges": [
+        {
+          "from": "partial-observation",
+          "relation": "modulates",
+          "to": "aim",
+          "claim": "Incomplete information is hypothesized to change positioning and engagement decisions.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "round-match",
+          "relation": "resets",
+          "to": "capture-control",
+          "claim": "Short round resets bound the cost of lethal commitment and make mistakes easier to compare.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "team-based-play",
+          "relation": "requires",
+          "to": "communication-limits",
+          "claim": "Team success depends partly on coordination under incomplete shared information.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "lethal-commitment-loop",
+          "claim": "Lethal commitment + information scarcity + short round reset may make spatial mistakes legible and costly.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "brand/esports/community/economy and production quality are major confounds",
+        "direct tension/feel not observed"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-dota2",
+      "title": "Dota 2",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://store.steampowered.com/app/570/Dota_2/"
+      ],
+      "nodes": [
+        "variable-player-powers",
+        "asymmetric-roles",
+        "team-based-play",
+        "shared-resource",
+        "equipment-progression",
+        "capture-control",
+        "trading"
+      ],
+      "edges": [
+        {
+          "from": "asymmetric-roles",
+          "relation": "amplifies",
+          "to": "team-based-play",
+          "claim": "Role asymmetry is hypothesized to increase interdependence around shared objectives.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "equipment-progression",
+          "relation": "modulates",
+          "to": "capture-control",
+          "claim": "Power curves and item timing may change when objectives can be contested.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "variable-player-powers",
+          "relation": "amplifies",
+          "to": "equipment-progression",
+          "claim": "Hero/item combinatorics may create match-specific adaptation rather than one fixed solution.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "delayed-team-consequence",
+          "claim": "Local choices may create delayed collective consequences through roles, economy and objectives.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "community/esports/content iteration are major confounds",
+        "no direct-play evidence"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-fortnite",
+      "title": "Fortnite Battle Royale",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://www.fortnite.com/@epic/battle-royale"
+      ],
+      "nodes": [
+        "permadeath",
+        "random-production",
+        "risk-reward",
+        "spatial-blocking",
+        "survive",
+        "inventory"
+      ],
+      "edges": [
+        {
+          "from": "random-production",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Uncertain loot changes route and engagement risk.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "spatial-blocking",
+          "relation": "constrains",
+          "to": "survive",
+          "claim": "Forced spatial convergence reduces safe space over time.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "permadeath",
+          "relation": "amplifies",
+          "to": "risk-reward",
+          "claim": "One-life stakes may increase the consequence of engagement timing.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "route-versus-engagement",
+          "claim": "One-life survival + uncertain loot + spatial convergence may repeatedly create route-versus-engagement decisions.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "creator/live/social ecosystem is a separate success cause",
+        "F2P/network effects/IP collaborations are confounds"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-minecraft",
+      "title": "Minecraft",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://www.minecraft.net/en-us/about-minecraft"
+      ],
+      "nodes": [
+        "collect",
+        "place",
+        "destroy",
+        "craft",
+        "self-authored-goal",
+        "world-state-persistence",
+        "freeform-building",
+        "map-reveal"
+      ],
+      "edges": [
+        {
+          "from": "destroy",
+          "relation": "produces",
+          "to": "collect",
+          "claim": "Breaking world elements yields materials that can be reused.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "collect",
+          "relation": "enables",
+          "to": "place",
+          "claim": "Obtained materials enable persistent spatial transformation.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "place",
+          "relation": "transforms",
+          "to": "world-state-persistence",
+          "claim": "Placed blocks persist and change later possibilities.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "self-authored-goal",
+          "relation": "modulates",
+          "to": "freeform-building",
+          "claim": "Player-authored intentions determine what persistent transformation means.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "persistent-authorship",
+          "claim": "A small composable manipulation grammar may let players translate self-authored intentions into persistent spatial state.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "cultural ubiquity/modding/multiplayer/creator ecosystem are confounds",
+        "self-authored intention not directly observed in this teardown"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-gtav",
+      "title": "Grand Theft Auto V",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://www.rockstargames.com/gta-v"
+      ],
+      "nodes": [
+        "move",
+        "drive",
+        "shoot",
+        "world-state-persistence",
+        "adaptive-opponent",
+        "escape",
+        "route-network-building"
+      ],
+      "edges": [
+        {
+          "from": "move",
+          "relation": "cooperates-with",
+          "to": "drive",
+          "claim": "Walking and driving share one persistent possibility space.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "shoot",
+          "relation": "modulates",
+          "to": "adaptive-opponent",
+          "claim": "Hostile/world response is hypothesized to escalate after player actions.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "adaptive-opponent",
+          "relation": "constrains",
+          "to": "escape",
+          "claim": "Escalating response changes escape planning and may create unscripted stories.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "cross-system-improvisation",
+          "claim": "Multiple verbs crossing subsystem boundaries in a dense persistent world may support improvised plans.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "massive production/content/live-ops scale is a major confound",
+        "cross-system improvisation not directly observed here"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-elden-ring",
+      "title": "ELDEN RING",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://en.bandainamcoent.eu/elden-ring/elden-ring"
+      ],
+      "nodes": [
+        "telegraphing",
+        "dodge",
+        "block",
+        "parry",
+        "strike",
+        "recovery-window",
+        "fast-retry",
+        "risk-reward",
+        "map-reveal",
+        "gating-by-tool"
+      ],
+      "edges": [
+        {
+          "from": "telegraphing",
+          "relation": "reveals",
+          "to": "dodge",
+          "claim": "Enemy telegraphs expose timing information for defensive response.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "recovery-window",
+          "relation": "enables",
+          "to": "strike",
+          "claim": "Opponent commitment/recovery windows create punish opportunities.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "fast-retry",
+          "relation": "amplifies",
+          "to": "telegraphing",
+          "claim": "Repeated attempts may turn observed telegraphs into motor/timing learning.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "map-reveal",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Route freedom can convert a difficulty wall into persistence versus exploration/return-later choice.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "commit-read-punish",
+          "claim": "Combat mastery may arise from reading telegraphs, accepting commitment and exploiting recovery windows.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "name": "difficulty-routing",
+          "claim": "Open routing may transform excessive difficulty into a strategic route choice rather than a pure execution wall.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "Souls legacy/worldbuilding/content/community are confounds",
+        "combat feel and mastery require direct play"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-bg3",
+      "title": "Baldur’s Gate 3",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://baldursgate3.game/about"
+      ],
+      "nodes": [
+        "dialogue-choice",
+        "environmental-destruction",
+        "persistent-consequence",
+        "relationship-state",
+        "branching-choice",
+        "choices-matter",
+        "turn-taking"
+      ],
+      "edges": [
+        {
+          "from": "branching-choice",
+          "relation": "produces",
+          "to": "persistent-consequence",
+          "claim": "Mechanically distinct approaches can create retained consequence state.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "persistent-consequence",
+          "relation": "modulates",
+          "to": "relationship-state",
+          "claim": "Later characters/companions may acknowledge earlier mechanical choices.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "environmental-destruction",
+          "relation": "enables",
+          "to": "branching-choice",
+          "claim": "Environmental systems broaden solution space beyond dialogue-only branching.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "acknowledged-agency",
+          "claim": "Agency may feel credible when mechanically different approaches leave state that later content acknowledges.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "D&D IP/writing/cinematic scale/co-op are confounds",
+        "perceived agency not directly observed"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-factorio",
+      "title": "Factorio",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://www.factorio.com/game/content"
+      ],
+      "nodes": [
+        "resource-source",
+        "transport",
+        "resource-converter",
+        "resource-drain-sink",
+        "automation",
+        "bottleneck",
+        "throughput",
+        "production-rate",
+        "programmable-automation",
+        "world-state-persistence"
+      ],
+      "edges": [
+        {
+          "from": "automation",
+          "relation": "persists-into",
+          "to": "world-state-persistence",
+          "claim": "Automation turns prior manual effort into persistent production capability.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "bottleneck",
+          "relation": "reveals",
+          "to": "throughput",
+          "claim": "Bottlenecks expose specific throughput constraints for diagnosis.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "throughput",
+          "relation": "modulates",
+          "to": "automation",
+          "claim": "Throughput feedback can motivate architecture redesign and expansion.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "transport",
+          "relation": "constrains",
+          "to": "bottleneck",
+          "claim": "Transport topology can create or relocate bottlenecks.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "automation-leverage",
+          "claim": "Automation may shift cognition from repetitive execution toward diagnosis and architecture.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "large recipe/technology graph, tuning, mods/co-op and simulation quality are confounds",
+        "human bottleneck diagnosis/ownership pending"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-mario-kart-8d",
+      "title": "Mario Kart 8 Deluxe",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://www.nintendo.com/sg/switch/aabp/about/index.html"
+      ],
+      "nodes": [
+        "drive",
+        "timing-window",
+        "immediate-action-feedback",
+        "catch-up-rubber-banding",
+        "risk-reward",
+        "round-match",
+        "fast-retry"
+      ],
+      "edges": [
+        {
+          "from": "timing-window",
+          "relation": "amplifies",
+          "to": "drive",
+          "claim": "Drift/boost timing adds a learnable mastery layer to driving.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "catch-up-rubber-banding",
+          "relation": "modulates",
+          "to": "risk-reward",
+          "claim": "Position-sensitive disruption/boosts may increase comeback volatility.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "round-match",
+          "relation": "amplifies",
+          "to": "fast-retry",
+          "claim": "Short races keep rematch cost low.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "mastery-plus-volatility",
+          "claim": "A stable driving mastery core may coexist with comeback volatility without deleting skill.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "Nintendo IP/polish/catalogue/social context are confounds",
+        "item effects on rematch and perceived fairness need direct play"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-animal-crossing-nh",
+      "title": "Animal Crossing: New Horizons",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://animalcrossing.nintendo.com/new-horizons/explore/"
+      ],
+      "nodes": [
+        "decoration-customization",
+        "collection",
+        "world-state-persistence",
+        "relationship-state",
+        "real-time",
+        "daily-weekly-challenge"
+      ],
+      "edges": [
+        {
+          "from": "decoration-customization",
+          "relation": "transforms",
+          "to": "world-state-persistence",
+          "claim": "Decoration changes a persistent place the player later revisits.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "real-time",
+          "relation": "modulates",
+          "to": "world-state-persistence",
+          "claim": "Real-time change creates differences between sessions.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "relationship-state",
+          "relation": "amplifies",
+          "to": "world-state-persistence",
+          "claim": "Resident acknowledgement may strengthen interpretation of the persistent place.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "place-attachment-return",
+          "claim": "Persistent decoration/collection plus real-time change may create place attachment and a low-pressure return promise.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "brand/characters/social sharing/content volume are confounds",
+        "attachment and return intent require Human evidence"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-candy-crush",
+      "title": "Candy Crush Saga",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://www.king.com/game/?language=en"
+      ],
+      "nodes": [
+        "select-choose",
+        "required-goal",
+        "deadline-time-limit",
+        "spatial-blocking",
+        "combo-chaining",
+        "fast-retry",
+        "round-match"
+      ],
+      "edges": [
+        {
+          "from": "required-goal",
+          "relation": "modulates",
+          "to": "select-choose",
+          "claim": "Level goals change the value of the same local swap/action grammar.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "spatial-blocking",
+          "relation": "constrains",
+          "to": "select-choose",
+          "claim": "Blockers change reachable matches and local evaluation.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "deadline-time-limit",
+          "relation": "constrains",
+          "to": "select-choose",
+          "claim": "Move/time scarcity increases opportunity cost of each action.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "combo-chaining",
+          "relation": "amplifies",
+          "to": "select-choose",
+          "claim": "Special-piece interactions can make local actions have nonlocal consequences.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "stable-grammar-recontextualization",
+          "claim": "A tiny action vocabulary may remain strategically variable when goals, blockers and move scarcity repeatedly change local action value.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "monetization/live-ops/user acquisition/years of tuning are confounds",
+        "retry reasons and perceived strategy pending"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "ref-beat-saber",
+      "title": "Beat Saber",
+      "kind": "external_reference",
+      "evidenceStanding": "DESK_TEARDOWN_HYPOTHESIS",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_R1_REFERENCE_TEARDOWN_WAVE1_20260911.md",
+        "digest": "sha256:59f9611a9406e0a5a351ccb2ffd53a11aa257b674da5e6f7a36955dd53c95b96"
+      },
+      "officialSources": [
+        "https://beatsaber.com/"
+      ],
+      "nodes": [
+        "timing-window",
+        "strike",
+        "dodge",
+        "immediate-action-feedback",
+        "accuracy-timing-grade",
+        "practice-training"
+      ],
+      "edges": [
+        {
+          "from": "timing-window",
+          "relation": "synchronizes",
+          "to": "strike",
+          "claim": "Beat timing synchronizes directional arm action to music structure.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "immediate-action-feedback",
+          "relation": "amplifies",
+          "to": "practice-training",
+          "claim": "Visual/audio/haptic feedback may make timing error legible for repeated learning.",
+          "standing": "HYPOTHESIS"
+        },
+        {
+          "from": "dodge",
+          "relation": "cooperates-with",
+          "to": "strike",
+          "claim": "Whole-body spatial obstacles combine with directional striking.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "embodied-rhythm-mastery",
+          "claim": "Directional whole-arm movement may bind beat prediction to motor learning more tightly than non-spatial rhythm input.",
+          "standing": "HYPOTHESIS"
+        }
+      ],
+      "limits": [
+        "VR novelty/hardware/music/fitness/polish are confounds",
+        "requires intended hardware/direct Human play"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-d02",
+      "title": "D02 Legible Tactical Puzzle v1",
+      "kind": "local_structural_experiment",
+      "evidenceStanding": "STRUCTURAL_MEASURED",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md",
+        "digest": "sha256:ef44a758de40d2b779df1b6cdb9915ebd3007df9e03cd526e6f841b2807c6487"
+      },
+      "officialSources": [],
+      "nodes": [
+        "telegraphing",
+        "prediction-preview",
+        "select-choose",
+        "grid-movement"
+      ],
+      "edges": [
+        {
+          "from": "telegraphing",
+          "relation": "modulates",
+          "to": "select-choose",
+          "claim": "Changing one visible enemy telegraph changed the optimal action in only 25% of generated states.",
+          "standing": "WEAKENS"
+        },
+        {
+          "from": "prediction-preview",
+          "relation": "requires",
+          "to": "select-choose",
+          "claim": "Visible future information must causally change preferred actions to matter as play.",
+          "standing": "SUPPORTS_GENERAL_DEDUCTION"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "weak-telegraph-causal-leverage",
+          "claim": "Visibility existed, but the telegraph often failed to change decisions; legibility alone was insufficient.",
+          "standing": "STRUCTURAL_MEASURED"
+        }
+      ],
+      "limits": [
+        "v1 realization only; broad tactical form remains open",
+        "no Human strategic-value claim"
+      ],
+      "metrics": {
+        "states": 320,
+        "telegraphCounterfactualBestActionChangeRate": 0.25,
+        "dominantActionFamilyRate": 0.497,
+        "meanNearOptimalActions": 3.119
+      },
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-d03",
+      "title": "D03 Epistemic Mystery",
+      "kind": "local_structural_experiment",
+      "evidenceStanding": "STRUCTURAL_MEASURED",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md",
+        "digest": "sha256:ef44a758de40d2b779df1b6cdb9915ebd3007df9e03cd526e6f841b2807c6487"
+      },
+      "officialSources": [],
+      "nodes": [
+        "clues-evidence",
+        "information-scarcity",
+        "inspection-cost",
+        "deduction",
+        "select-choose"
+      ],
+      "edges": [
+        {
+          "from": "information-scarcity",
+          "relation": "amplifies",
+          "to": "select-choose",
+          "claim": "Reducing inspection budget from 4 to 2 made evidence-selection order materially important.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "inspection-cost",
+          "relation": "amplifies",
+          "to": "deduction",
+          "claim": "Costly evidence access creates strategy about which uncertainty to resolve first.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "clues-evidence",
+          "relation": "conflicts-with",
+          "to": "deduction",
+          "claim": "When observation was abundant, clue choice became nearly irrelevant and play collapsed toward checklist completion.",
+          "standing": "CONTEXT_DEPENDENT_CONFLICT"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "epistemic-agency",
+          "claim": "Scarce/costly information created evidence-selection strategy; observation abundance destroyed that agency in this model.",
+          "standing": "STRUCTURAL_MEASURED"
+        }
+      ],
+      "limits": [
+        "human mental-model revision vs checklist completion still pending"
+      ],
+      "metrics": {
+        "inspectionBudgetRich": 4,
+        "inspectionBudgetScarce": 2,
+        "adaptiveSolvedRateScarce": 1.0,
+        "fixedOrderMeanRemainingScarce": 5.0,
+        "randomMeanRemainingScarce": 2.209
+      },
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-d04",
+      "title": "D04 Combinatorial Roguelike Buildcraft",
+      "kind": "local_structural_experiment",
+      "evidenceStanding": "STRUCTURAL_MEASURED",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md",
+        "digest": "sha256:ef44a758de40d2b779df1b6cdb9915ebd3007df9e03cd526e6f841b2807c6487"
+      },
+      "officialSources": [],
+      "nodes": [
+        "drafting",
+        "synergy-combos",
+        "build-path-dependency",
+        "randomized-encounters",
+        "run"
+      ],
+      "edges": [
+        {
+          "from": "drafting",
+          "relation": "constrains",
+          "to": "build-path-dependency",
+          "claim": "Constrained offers create path-dependent choices rather than free optimization.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "synergy-combos",
+          "relation": "amplifies",
+          "to": "build-path-dependency",
+          "claim": "Choice interactions across time produced measurable global-path value over local greed.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "randomized-encounters",
+          "relation": "modulates",
+          "to": "drafting",
+          "claim": "Changing encounter demands alters which draft trajectory is valuable.",
+          "standing": "SUPPORTS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "path-dependent-buildcraft",
+          "claim": "Global path reasoning beat greedy local choice and did not collapse to one build signature.",
+          "standing": "STRUCTURAL_MEASURED"
+        }
+      ],
+      "limits": [
+        "player perception of synergy/trajectory stakes remains pending"
+      ],
+      "metrics": {
+        "runs": 180,
+        "optimalVsGreedyMeanUplift": 0.052,
+        "runsAbove2PctUplift": 0.467,
+        "distinctTopTwoBuildSignatures": 11,
+        "largestSingleCardOptimalShare": 0.297
+      },
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-d05",
+      "title": "D05 Automation / Logistics",
+      "kind": "local_structural_experiment",
+      "evidenceStanding": "STRUCTURAL_MEASURED",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md",
+        "digest": "sha256:ef44a758de40d2b779df1b6cdb9915ebd3007df9e03cd526e6f841b2807c6487"
+      },
+      "officialSources": [],
+      "nodes": [
+        "resource-flow",
+        "machine-allocation",
+        "bottleneck",
+        "required-goal",
+        "throughput",
+        "capacity-limit"
+      ],
+      "edges": [
+        {
+          "from": "required-goal",
+          "relation": "modulates",
+          "to": "bottleneck",
+          "claim": "Science/ammo/circuit objectives produced different binding constraints.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "bottleneck",
+          "relation": "modulates",
+          "to": "machine-allocation",
+          "claim": "Changed bottlenecks required materially different allocation structures.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "capacity-limit",
+          "relation": "constrains",
+          "to": "machine-allocation",
+          "claim": "A shared 12-machine budget forces architectural tradeoffs.",
+          "standing": "SUPPORTS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "goal-to-architecture-diversity",
+          "claim": "Goal change → bottleneck change → architecture/allocation change in the measured model.",
+          "standing": "STRUCTURAL_MEASURED"
+        }
+      ],
+      "limits": [
+        "spreadsheet-like carrier; Human diagnosis/ownership/satisfaction not established"
+      ],
+      "metrics": {
+        "machineBudget": 12,
+        "machineTypes": 9,
+        "allocationsEvaluated": 125970,
+        "pairwiseOptimalLayoutJaccard": 0.0,
+        "universalOptimalLayouts": 0,
+        "bestBalancedGeometricMean": 0.63
+      },
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-d15",
+      "title": "D15 Incremental / Delegation Optimizer v1",
+      "kind": "local_structural_experiment",
+      "evidenceStanding": "STRUCTURAL_MEASURED_NEGATIVE",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md",
+        "digest": "sha256:ef44a758de40d2b779df1b6cdb9915ebd3007df9e03cd526e6f841b2807c6487"
+      },
+      "officialSources": [],
+      "nodes": [
+        "automatic-resource-growth",
+        "interest-compounding",
+        "upgrade-choice",
+        "time-as-resource",
+        "select-choose"
+      ],
+      "edges": [
+        {
+          "from": "interest-compounding",
+          "relation": "amplifies",
+          "to": "automatic-resource-growth",
+          "claim": "Compounding increased output but did not by itself create varied intervention policy.",
+          "standing": "WEAKENS"
+        },
+        {
+          "from": "upgrade-choice",
+          "relation": "modulates",
+          "to": "select-choose",
+          "claim": "Most scenarios still preferred the same generator-first opening, producing concentrated decision topology.",
+          "standing": "WEAKENS"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "rote-sparse-control",
+          "claim": "Low interaction frequency + compounding did not produce sufficiently state-sensitive strategy in this realization.",
+          "standing": "STRUCTURAL_MEASURED_NEGATIVE"
+        }
+      ],
+      "limits": [
+        "v1 realization only; incremental genre not rejected"
+      ],
+      "metrics": {
+        "upgradeOrders": 120,
+        "scenarios": 6,
+        "generatorFirstScenarios": 5,
+        "distinctScenarioOptimalOrders": 3,
+        "universalOrderMeanRegret": 0.074,
+        "maxRegret": 0.193
+      },
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-d14",
+      "title": "D14 Constraint-Based Co-Creation",
+      "kind": "local_structural_experiment",
+      "evidenceStanding": "STRUCTURAL_MEASURED",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_PRE_G0_DS1_CHEAP_FALSIFIERS.md",
+        "digest": "sha256:ef44a758de40d2b779df1b6cdb9915ebd3007df9e03cd526e6f841b2807c6487"
+      },
+      "officialSources": [],
+      "nodes": [
+        "create-edit",
+        "responsive-audience-opponent",
+        "hidden-information",
+        "rule-changing",
+        "save-revision",
+        "agent-policy"
+      ],
+      "edges": [
+        {
+          "from": "hidden-information",
+          "relation": "modulates",
+          "to": "responsive-audience-opponent",
+          "claim": "Hidden persona preferences create an inference target for creative adaptation.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "responsive-audience-opponent",
+          "relation": "modulates",
+          "to": "create-edit",
+          "claim": "Responsive novelty/repeat preferences changed optimal creation sequences for all tested personas.",
+          "standing": "SUPPORTS"
+        },
+        {
+          "from": "agent-policy",
+          "relation": "enables",
+          "to": "responsive-audience-opponent",
+          "claim": "A deterministic responsive policy already produced the tested distinction; expensive model cognition was not necessary.",
+          "standing": "CHEAPER_BASELINE_PARITY"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "responsive-creation-strategy",
+          "claim": "Creation becomes strategically differentiated when another participant has learnable, responsive preferences.",
+          "standing": "STRUCTURAL_MEASURED"
+        }
+      ],
+      "limits": [
+        "Human authorship/adaptation enjoyment remains pending",
+        "model/LLM necessity explicitly not established"
+      ],
+      "metrics": {
+        "completeSequences": 1296,
+        "personaProfiles": 5,
+        "responsivePolicyPersonasChangedOptimum": 5
+      },
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-station-zero",
+      "title": "Station Zero historical mechanism evidence",
+      "kind": "local_experiment",
+      "evidenceStanding": "LOCAL_MECHANISM_EVIDENCE",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_CORE_EXPERIMENT_FINDINGS.md",
+        "digest": "sha256:863cd1f092c5d99fffcd3e0f3d70211778194f23845dd326463ceed7d5014d95"
+      },
+      "officialSources": [],
+      "nodes": [
+        "command",
+        "delegate",
+        "partial-observation",
+        "prediction-preview",
+        "simultaneous-resolution",
+        "cause-effect-log",
+        "replay",
+        "adaptive-opponent"
+      ],
+      "edges": [
+        {
+          "from": "delegate",
+          "relation": "produces",
+          "to": "adaptive-opponent",
+          "claim": "Autonomous decisions produced materially different world trajectories in tested conditions.",
+          "standing": "SUPPORTS_LOCAL"
+        },
+        {
+          "from": "partial-observation",
+          "relation": "requires",
+          "to": "cause-effect-log",
+          "claim": "Bounded observation increases the need for legible reconciliation of cause and consequence.",
+          "standing": "SUPPORTS_LOCAL"
+        },
+        {
+          "from": "replay",
+          "relation": "amplifies",
+          "to": "cause-effect-log",
+          "claim": "Recovery/replay preserved causal evidence for later inspection.",
+          "standing": "SUPPORTS_LOCAL"
+        },
+        {
+          "from": "delegate",
+          "relation": "conflicts-with",
+          "to": "prediction-preview",
+          "claim": "Rich delegation plus plan/config/review created recurring interpretive/administrative burden.",
+          "standing": "CONTEXT_DEPENDENT_CONFLICT"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "delegation-value-debt",
+          "claim": "Delegation can create distinct consequence, but must repay plan/config/review burden with responsibility, surprise or strategic leverage.",
+          "standing": "LOCAL_MECHANISM_EVIDENCE"
+        }
+      ],
+      "limits": [
+        "mechanism evidence only; no Human fun/retention/market claim",
+        "historical product momentum explicitly not inherited"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-casefile",
+      "title": "Casefile historical epistemic treatment",
+      "kind": "local_experiment",
+      "evidenceStanding": "LOCAL_MECHANISM_EVIDENCE",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_CORE_EXPERIMENT_FINDINGS.md",
+        "digest": "sha256:863cd1f092c5d99fffcd3e0f3d70211778194f23845dd326463ceed7d5014d95"
+      },
+      "officialSources": [],
+      "nodes": [
+        "partial-observation",
+        "clues-evidence",
+        "deduction",
+        "deception",
+        "inspection-cost",
+        "dialogue",
+        "agent-policy"
+      ],
+      "edges": [
+        {
+          "from": "partial-observation",
+          "relation": "amplifies",
+          "to": "deduction",
+          "claim": "Separating reality, observation, belief, statement and player inference produced actionable contradictions.",
+          "standing": "SUPPORTS_LOCAL"
+        },
+        {
+          "from": "inspection-cost",
+          "relation": "modulates",
+          "to": "clues-evidence",
+          "claim": "Fresh blind play exposed a breadth-versus-depth investigation tradeoff.",
+          "standing": "SUPPORTS_LOCAL"
+        },
+        {
+          "from": "agent-policy",
+          "relation": "enables",
+          "to": "dialogue",
+          "claim": "Live-model testimony did not materially outperform cheaper fixed/policy testimony in the matched slice.",
+          "standing": "CHEAPER_BASELINE_PARITY"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "epistemic-separation",
+          "claim": "Hidden state becomes playable when evidence is legible enough for the player to form and revise a model.",
+          "standing": "LOCAL_MECHANISM_EVIDENCE"
+        }
+      ],
+      "limits": [
+        "human fun/retention not established",
+        "live model dialogue not required by current evidence"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-last-light",
+      "title": "Last Light historical relationship treatment",
+      "kind": "local_experiment",
+      "evidenceStanding": "INCONCLUSIVE",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_CORE_EXPERIMENT_FINDINGS.md",
+        "digest": "sha256:863cd1f092c5d99fffcd3e0f3d70211778194f23845dd326463ceed7d5014d95"
+      },
+      "officialSources": [],
+      "nodes": [
+        "relationship-state",
+        "shared-resource",
+        "scarcity",
+        "persistent-consequence",
+        "select-choose"
+      ],
+      "edges": [
+        {
+          "from": "shared-resource",
+          "relation": "conflicts-with",
+          "to": "relationship-state",
+          "claim": "Resource optimization dominated behavior, so the treatment failed to isolate dependency/trust value.",
+          "standing": "CONFOUND_DOMINANCE"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "relationship-value-unresolved",
+          "claim": "Current carrier has low discriminative power for relationship/dependency value.",
+          "standing": "INCONCLUSIVE"
+        }
+      ],
+      "limits": [
+        "does not reject relationship games",
+        "requires a cleaner treatment if relationship mechanisms become important"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    },
+    {
+      "id": "local-echo-hunt",
+      "title": "Echo Hunt historical adversarial treatment",
+      "kind": "local_experiment",
+      "evidenceStanding": "LOCAL_NEGATIVE_ABLATION",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "path": "docs/GAME_CORE_EXPERIMENT_FINDINGS.md",
+        "digest": "sha256:863cd1f092c5d99fffcd3e0f3d70211778194f23845dd326463ceed7d5014d95"
+      },
+      "officialSources": [],
+      "nodes": [
+        "adaptive-opponent",
+        "agent-policy",
+        "partial-observation",
+        "risk-reward",
+        "move"
+      ],
+      "edges": [
+        {
+          "from": "agent-policy",
+          "relation": "enables",
+          "to": "adaptive-opponent",
+          "claim": "Richer/model cognition and a cheap pursuit/adaptive policy produced effectively similar fresh-player trajectories in the tested slice.",
+          "standing": "CHEAPER_BASELINE_PARITY"
+        }
+      ],
+      "dynamics": [
+        {
+          "name": "expensive-cognition-not-earned",
+          "claim": "Adversarial adaptation may matter, but current evidence rejects the claim that this slice requires richer/model cognition.",
+          "standing": "LOCAL_NEGATIVE_ABLATION"
+        }
+      ],
+      "limits": [
+        "does not reject adversarial adaptation as a mechanic",
+        "scope limited to tested predator slice"
+      ],
+      "metrics": {},
+      "humanExperienceStanding": "PENDING_OR_NOT_ESTABLISHED"
+    }
+  ],
+  "compatibilityEvidence": [
+    {
+      "id": "c01",
+      "elements": [
+        "information-scarcity",
+        "inspection-cost",
+        "deduction"
+      ],
+      "relation": "REINFORCES",
+      "standing": "STRUCTURAL_MEASURED",
+      "claim": "Scarce/costly observation can make evidence selection strategically consequential.",
+      "sources": [
+        "local-d03"
+      ]
+    },
+    {
+      "id": "c02",
+      "elements": [
+        "clues-evidence",
+        "deduction"
+      ],
+      "relation": "CONTEXT_DEPENDENT",
+      "standing": "STRUCTURAL_MEASURED",
+      "claim": "Abundant evidence can collapse epistemic play toward checklist completion when access choices no longer matter.",
+      "sources": [
+        "local-d03"
+      ]
+    },
+    {
+      "id": "c03",
+      "elements": [
+        "drafting",
+        "synergy-combos",
+        "build-path-dependency"
+      ],
+      "relation": "REINFORCES",
+      "standing": "STRUCTURAL_MEASURED",
+      "claim": "Constrained drafting plus synergies can create path-dependent global decisions that outperform local greedy choice.",
+      "sources": [
+        "local-d04"
+      ]
+    },
+    {
+      "id": "c04",
+      "elements": [
+        "required-goal",
+        "bottleneck",
+        "machine-allocation"
+      ],
+      "relation": "REINFORCES",
+      "standing": "STRUCTURAL_MEASURED",
+      "claim": "Changing production goals can move bottlenecks and force different architectures under shared capacity constraints.",
+      "sources": [
+        "local-d05"
+      ]
+    },
+    {
+      "id": "c05",
+      "elements": [
+        "automatic-resource-growth",
+        "interest-compounding",
+        "upgrade-choice"
+      ],
+      "relation": "CONTEXT_DEPENDENT",
+      "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+      "claim": "Sparse interaction plus compounding is insufficient when most states preserve one strong upgrade order.",
+      "sources": [
+        "local-d15"
+      ]
+    },
+    {
+      "id": "c06",
+      "elements": [
+        "create-edit",
+        "responsive-audience-opponent",
+        "hidden-information"
+      ],
+      "relation": "REINFORCES",
+      "standing": "STRUCTURAL_MEASURED",
+      "claim": "Creation choices become strategically differentiated when the audience has hidden but learnable responsive preferences.",
+      "sources": [
+        "local-d14"
+      ]
+    },
+    {
+      "id": "c07",
+      "elements": [
+        "responsive-audience-opponent",
+        "agent-policy"
+      ],
+      "relation": "CHEAPER_BASELINE_PARITY",
+      "standing": "STRUCTURAL_MEASURED",
+      "claim": "Responsive-other value does not by itself establish a need for LLM/model cognition; deterministic policy already produced the tested distinction.",
+      "sources": [
+        "local-d14"
+      ]
+    },
+    {
+      "id": "c08",
+      "elements": [
+        "telegraphing",
+        "select-choose"
+      ],
+      "relation": "WEAK_IF_LOW_CAUSAL_LEVERAGE",
+      "standing": "STRUCTURAL_MEASURED_NEGATIVE",
+      "claim": "Visible telegraphs add little depth when changing them rarely changes the best action.",
+      "sources": [
+        "local-d02"
+      ]
+    },
+    {
+      "id": "c09",
+      "elements": [
+        "delegate",
+        "prediction-preview",
+        "cause-effect-log"
+      ],
+      "relation": "CONTEXT_DEPENDENT",
+      "standing": "LOCAL_MECHANISM_EVIDENCE",
+      "claim": "Delegation can produce distinct outcomes but creates interpretation/review cost; it needs enough strategic leverage to repay administration burden.",
+      "sources": [
+        "local-station-zero"
+      ]
+    },
+    {
+      "id": "c10",
+      "elements": [
+        "partial-observation",
+        "deduction",
+        "clues-evidence"
+      ],
+      "relation": "REINFORCES",
+      "standing": "LOCAL_MECHANISM_EVIDENCE",
+      "claim": "Hidden state becomes playable when player-legible evidence supports model formation and revision.",
+      "sources": [
+        "local-casefile",
+        "local-station-zero"
+      ]
+    },
+    {
+      "id": "c11",
+      "elements": [
+        "dialogue",
+        "agent-policy"
+      ],
+      "relation": "CHEAPER_BASELINE_PARITY",
+      "standing": "LOCAL_NEGATIVE_ABLATION",
+      "claim": "Live-model testimony did not outperform a cheaper fixed/policy testimony baseline in the tested Casefile slice.",
+      "sources": [
+        "local-casefile"
+      ]
+    },
+    {
+      "id": "c12",
+      "elements": [
+        "adaptive-opponent",
+        "agent-policy"
+      ],
+      "relation": "CHEAPER_BASELINE_PARITY",
+      "standing": "LOCAL_NEGATIVE_ABLATION",
+      "claim": "Richer cognition is not automatically needed for adaptive opposition when a cheap policy produces similar player trajectories.",
+      "sources": [
+        "local-echo-hunt"
+      ]
+    },
+    {
+      "id": "c13",
+      "elements": [
+        "relationship-state",
+        "shared-resource"
+      ],
+      "relation": "CONFOUND_RISK",
+      "standing": "INCONCLUSIVE",
+      "claim": "Resource optimization can dominate a relationship treatment and prevent clean inference about trust/dependency value.",
+      "sources": [
+        "local-last-light"
+      ]
+    },
+    {
+      "id": "c14",
+      "elements": [
+        "automation",
+        "bottleneck",
+        "throughput"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Automation plus legible bottlenecks may shift player work from repetition toward diagnosis and architecture.",
+      "sources": [
+        "ref-factorio"
+      ]
+    },
+    {
+      "id": "c15",
+      "elements": [
+        "telegraphing",
+        "recovery-window",
+        "fast-retry"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Telegraphing, commitment/recovery windows and cheap retry may form a mastery loop when failure is attributable.",
+      "sources": [
+        "ref-elden-ring"
+      ]
+    },
+    {
+      "id": "c16",
+      "elements": [
+        "self-authored-goal",
+        "place",
+        "world-state-persistence"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Self-authored goals plus persistent world transformation may support ownership and authorship.",
+      "sources": [
+        "ref-minecraft"
+      ]
+    },
+    {
+      "id": "c17",
+      "elements": [
+        "branching-choice",
+        "persistent-consequence",
+        "relationship-state"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Mechanically distinct approaches may feel more agentic when later state/relationships acknowledge the consequence.",
+      "sources": [
+        "ref-bg3"
+      ]
+    },
+    {
+      "id": "c18",
+      "elements": [
+        "required-goal",
+        "spatial-blocking",
+        "deadline-time-limit",
+        "select-choose"
+      ],
+      "relation": "RECONTEXTUALIZES",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "A stable action grammar can remain variable when goals, blockers and scarcity repeatedly change local action value.",
+      "sources": [
+        "ref-candy-crush"
+      ]
+    },
+    {
+      "id": "c19",
+      "elements": [
+        "timing-window",
+        "strike",
+        "immediate-action-feedback"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Spatially embodied timing plus immediate feedback may strengthen motor learning and anticipation.",
+      "sources": [
+        "ref-beat-saber"
+      ]
+    },
+    {
+      "id": "c20",
+      "elements": [
+        "drive",
+        "catch-up-rubber-banding",
+        "round-match"
+      ],
+      "relation": "CONTEXT_DEPENDENT_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Mastery and comeback volatility may coexist in short social races, but fairness/noise tradeoffs require Human evidence.",
+      "sources": [
+        "ref-mario-kart-8d"
+      ]
+    },
+    {
+      "id": "c21",
+      "elements": [
+        "permadeath",
+        "random-production",
+        "risk-reward"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "One-life stakes and uncertain resources may increase route/engagement consequence.",
+      "sources": [
+        "ref-fortnite"
+      ]
+    },
+    {
+      "id": "c22",
+      "elements": [
+        "decoration-customization",
+        "world-state-persistence",
+        "real-time"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Persistent place transformation plus real-time change may support attachment and return rhythms.",
+      "sources": [
+        "ref-animal-crossing-nh"
+      ]
+    },
+    {
+      "id": "c23",
+      "elements": [
+        "asymmetric-roles",
+        "team-based-play",
+        "equipment-progression"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Role asymmetry plus team objectives and power curves may create delayed interdependence.",
+      "sources": [
+        "ref-dota2"
+      ]
+    },
+    {
+      "id": "c24",
+      "elements": [
+        "partial-observation",
+        "round-match",
+        "team-based-play"
+      ],
+      "relation": "REINFORCES_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Incomplete information plus lethal/short-round team structure may make spatial mistakes and information work consequential.",
+      "sources": [
+        "ref-cs2"
+      ]
+    },
+    {
+      "id": "c25",
+      "elements": [
+        "move",
+        "drive",
+        "shoot",
+        "adaptive-opponent"
+      ],
+      "relation": "CROSS_SYSTEM_HYPOTHESIS",
+      "standing": "DESK_TEARDOWN_HYPOTHESIS",
+      "claim": "Multiple verbs coupled through a shared responsive world may create improvised cross-system plans.",
+      "sources": [
+        "ref-gtav"
+      ]
+    }
+  ],
+  "nextMigrationTargets": [
+    "Product Thesis Sprint sample compositions",
+    "Station Zero detailed Product Value audit",
+    "remaining Pre-G0 playable packets",
+    "direct-play Human sessions when available"
+  ]
+}

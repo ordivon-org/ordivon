@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "eark-csip-2.2.0",
+  "identity": {
+    "issuer": {
+      "id": "dilcis-board",
+      "name": "DILCIS Board"
+    },
+    "title": "E-ARK Common Specification for Information Packages (CSIP) 2.2.0",
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "versionLabel": "2.2.0",
+    "officialSource": "https://csip.openpreservation.org/",
+    "publicationDate": "2024-05-17"
+  },
+  "discovery": {
+    "aliases": [
+      "E-ARK CSIP 2.2.0",
+      "CSIP 2.2.0"
+    ],
+    "topics": [
+      "digital-preservation",
+      "information-package",
+      "mets",
+      "interoperability"
+    ],
+    "domains": [
+      "data",
+      "preservation",
+      "archives"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "DILCIS Board publishes the versioned specification publicly."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "eark-sip-2.2.0",
+      "iso-14721-2025",
+      "premis-3.0"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-durable-preservation-r1",
+      "Commons-IP validation against CSIP/SIP 2.2.0"
+    ]
+  }
+}

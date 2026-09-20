@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 10004",
+      "Customer satisfaction monitoring"
+    ],
+    "domains": [
+      "customer",
+      "customer-success",
+      "enterprise",
+      "management"
+    ],
+    "topics": [
+      "customer-feedback",
+      "customer-success",
+      "customer-satisfaction",
+      "measurement",
+      "quality-management"
+    ]
+  },
+  "id": "iso-10004-2018",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/71582.html",
+    "publicationDate": null,
+    "title": "ISO 10004:2018 — Quality management — Customer satisfaction — Guidelines for monitoring and measuring",
+    "versionLabel": "2018"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

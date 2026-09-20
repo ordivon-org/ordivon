@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 20022",
+      "ISO 20022-1",
+      "Universal financial industry message scheme"
+    ],
+    "domains": [
+      "finance",
+      "market-capital",
+      "post-trade"
+    ],
+    "topics": [
+      "financial-messaging",
+      "financial-services",
+      "metamodel",
+      "payments",
+      "securities"
+    ]
+  },
+  "id": "iso-20022-1-2026",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/20022-1",
+    "publicationDate": "2026-04",
+    "title": "ISO 20022-1:2026 — Financial services — Universal financial industry message scheme — Part 1: Metamodel",
+    "versionLabel": "2026"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-market-capital-next/docs/ARCHITECTURE.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

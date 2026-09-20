@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.acceptance-evidence",
+  "subject": "lego-theory-layer-r1",
+  "date": "2026-09-18",
+  "sourceRevision": "6aee69c74dae24d28fa48b975e510873fc2973ab",
+  "integratedMainRevision": "c3b5afaae706bd9b3a91a0187d76fc0e054a2d55",
+  "workspaceId": "ws-lego-theory-r1-20260918",
+  "standing": "PASS_WAVE1_PROSPECTIVE_VALIDATED_WITH_FOLLOWUPS",
+  "checks": [
+    {
+      "id": "existing-plan-schema-compatibility",
+      "result": "PASS",
+      "evidence": "scripts/check_project_lego_plan_r1.py planning/lego-plan-r1.json returned ok=true"
+    },
+    {
+      "id": "skill-package-shape",
+      "result": "PASS",
+      "evidence": "lego-project-planning plus four Wave 1 lens SKILL.md files contain valid Agent Skills frontmatter"
+    },
+    {
+      "id": "core-schema-freeze",
+      "result": "PASS",
+      "evidence": "schemas/project-lego-plan-r1.schema.json unchanged"
+    },
+    {
+      "id": "reflexive-analysis",
+      "result": "PASS_WITH_CONSTRAINTS",
+      "evidence": "knowledge/lessons/lego-self-analysis-wave1-r1.md"
+    },
+    {
+      "id": "project-skill-source-discovery",
+      "result": "PASS",
+      "evidence": "Skill service project-ordivon-next source refreshed READY with discovered=11, valid=11, invalid=0, admitted=11. modelVisible=0 in the current non-project context is expected context scoping, not a package failure."
+    },
+    {
+      "id": "wave1-prospective-cross-domain",
+      "result": "PASS_WITH_FOLLOWUPS",
+      "evidence": "evidence/acceptance/lego-theory-wave1-prospective-r1.json"
+    }
+  ],
+  "wave1": [
+    "systems-engineering",
+    "design-structure-matrix",
+    "feedback-control",
+    "stpa-stamp"
+  ],
+  "wave1Standing": {
+    "systems-engineering": "KEEP_OPTIONAL_FOUNDATION",
+    "design-structure-matrix": "KEEP_CONDITIONAL_MORE_DENSE_SYSTEM_EVIDENCE_NEEDED",
+    "feedback-control": "PROSPECTIVELY_VALIDATED_OPTIONAL_LENS",
+    "stpa-stamp": "PROSPECTIVELY_VALIDATED_HIGH_CONSEQUENCE_LENS"
+  },
+  "corePromotion": {
+    "schemaChanged": false,
+    "newMandatoryFields": []
+  },
+  "nonClaims": [
+    "This acceptance does not certify professional STPA or control-theory analysis.",
+    "The external disciplines remain the intellectual authorities.",
+    "Prospective validation of a lens does not make it mandatory for every project.",
+    "The Agent Service authority-lifetime finding is an unresolved contract question, not an automatic bug verdict."
+  ]
+}

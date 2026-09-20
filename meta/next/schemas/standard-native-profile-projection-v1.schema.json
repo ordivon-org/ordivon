@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:standard-native-profile-projection:v1",
+  "title": "Standard-native profile projection v1",
+  "description": "Minimal read-only interoperability projection over a domain-owned standards-native profile. It is not a domain requirement schema, authority source, verdict ontology, or compliance model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "caseId",
+    "domain",
+    "source",
+    "subject",
+    "authorityDecisions",
+    "requirementIdentity",
+    "verdict",
+    "claimBoundary"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.standard-native.profile-projection" },
+    "caseId": { "type": "string", "minLength": 1 },
+    "domain": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "headRevision", "profile", "report", "requirements"],
+      "properties": {
+        "repo": { "type": "string", "minLength": 1 },
+        "headRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "profile": { "$ref": "#/$defs/fileIdentity" },
+        "report": { "$ref": "#/$defs/fileIdentity" },
+        "requirements": { "$ref": "#/$defs/fileIdentity" }
+      }
+    },
+    "subject": {
+      "description": "Opaque domain-owned subject metadata. Enterprise tooling may display it but must not infer universal semantics from its keys.",
+      "type": "object"
+    },
+    "profileModel": { "type": ["string", "null"] },
+    "authorityDecisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/authorityDecision" }
+    },
+    "requirementIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "uids"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1 },
+        "uids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "summary"],
+      "properties": {
+        "owner": { "const": "domain" },
+        "summary": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "claimBoundary": { "type": "string", "minLength": 1 },
+    "workSemantics": {
+      "description": "Opaque task-local workflow/process applicability metadata; no universal process ontology is inferred.",
+      "type": "object"
+    },
+    "currentnessSignals": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "nonClaims": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "fileIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "lastCommit"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "lastCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "authorityDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "disposition"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "disposition": { "enum": ["BOUND", "EXCLUDED", "DEFERRED"] },
+        "role": { "type": ["string", "null"] },
+        "source": { "type": ["string", "null"] },
+        "currentnessChecked": { "type": ["string", "null"] },
+        "rationale": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

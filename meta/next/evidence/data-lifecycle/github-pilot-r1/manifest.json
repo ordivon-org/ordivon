@@ -1,0 +1,105 @@
+{
+  "files": {
+    ".gitignore": {
+      "bytes": 52,
+      "sha256": "f46884dd84bd76b3f0e29a5d28c932112556a882090c55f2c14993d5e72e9bc5"
+    },
+    "analysis/analysis-summary.json": {
+      "bytes": 378,
+      "sha256": "bfa82f405a71c034fc06bab4a87ccafac02a879a19ad7f62eed985d5b18f0641"
+    },
+    "analysis/crossref-country-metadata-rates.csv": {
+      "bytes": 11026,
+      "sha256": "7afbc415dd98c920a3bf531a1cdd07ae45d78a339c17301a87d6591511c9a027"
+    },
+    "analysis/se4all-yearly-country-means.csv": {
+      "bytes": 1165,
+      "sha256": "37126bb9e1459cfd9062f0cc252cd81cb186cc27a0d34a29cdb5f14a040d9aa6"
+    },
+    "catalog/catalog.dcat.jsonld": {
+      "bytes": 4573,
+      "sha256": "76515da858589b6c225e732b020982cbc047b08e8fd9ecc213d952d1e816cdeb"
+    },
+    "contracts/crossref-member-participation.odcs.json": {
+      "bytes": 10107,
+      "sha256": "064a0b502c663b113e2dd151166dd561cb62fc4bb6f79447496e76939d000397"
+    },
+    "contracts/crossref-metadata-coverage.odcs.json": {
+      "bytes": 20481,
+      "sha256": "5605e85db827d81be2000252db5885aa3ca9b42b3cdef95703de12946a65c6b8"
+    },
+    "contracts/se4all-energy.odcs.json": {
+      "bytes": 24578,
+      "sha256": "abb9ac17264e51301bae749d3f9a482a74bb471acd1ef38da4c3e0b3e1ba203b"
+    },
+    "derived/crossref-member-participation.parquet": {
+      "bytes": 87388,
+      "sha256": "e46ac005911a8d6b17214d1bd4cce82e28cf00ee1b9bd69cdcb25b54f63f4a8e"
+    },
+    "derived/crossref-metadata-coverage.parquet": {
+      "bytes": 1398263,
+      "sha256": "5f05a22f1edb829b1cdeb7faaf6ea1fbffab596b7c70b6550d182576d4206e6b"
+    },
+    "derived/se4all-energy.parquet": {
+      "bytes": 809005,
+      "sha256": "141fdab942b23cac74c595f8d2618021a74c83f4feb532c9ef4348038d693f91"
+    },
+    "lineage/crossref-transform.openlineage.json": {
+      "bytes": 2217,
+      "sha256": "5e9a59e31db35aaed72a73b269040640f54326fd2149a6758bc8b05b9e93052e"
+    },
+    "lineage/se4all-transform.openlineage.json": {
+      "bytes": 1518,
+      "sha256": "0a6c983f3bf3361d36418fe8695d7e32a3432d8eadafa34e4aa9d352ad6d2a23"
+    },
+    "quality-report.json": {
+      "bytes": 5298,
+      "sha256": "ba73974ab50c1b4691c5b841c88442f31cc494f57218ae405855a3429d48d06b"
+    },
+    "raw/crossref-member-participation.csv": {
+      "bytes": 399206,
+      "sha256": "0f220075cedec9443c1a7343771cff7cce1c3892d6e0717f7e6fecbcdb0ad2af"
+    },
+    "raw/crossref-metadata-coverage.csv": {
+      "bytes": 7379471,
+      "sha256": "2e37a30acc28f47bf724ca1038fbe840ab1be84cd66790ae69aa62a6731f0ad4"
+    },
+    "raw/se4all-energy.csv": {
+      "bytes": 1733061,
+      "sha256": "87ad1ef2d9713693c17ab57f9e2d995cf427b6c32a088597877301a15f307f0b"
+    },
+    "semantics/external-semantic-profile.json": {
+      "bytes": 5237,
+      "sha256": "f3b43eb5150e2bb0d02c1a5e6d0d846745f9f8d4644df15f50f5e75e7a1cfb8d"
+    },
+    "source/acquisition-policy.json": {
+      "bytes": 2711,
+      "sha256": "d05b1986e3a2e0aa6197e39fc81490fb8dfa4f60e2565395e48e6918e336ad14"
+    },
+    "source/repository.txt": {
+      "bytes": 51,
+      "sha256": "d45ae52b6df827d7beac0040622705bc970b507e7f07eefa03e9a4afdcc42204"
+    },
+    "source/standards.json": {
+      "bytes": 776,
+      "sha256": "1e6b9e46b6d60d365ebd22f1e48408ffed66f86f03313ebe99a007feb2dd5e68"
+    },
+    "source/tidytuesday-main.sha": {
+      "bytes": 41,
+      "sha256": "b14fae1465096c61312989db538111833a1202514178b4b5b87a86445fcfc5d4"
+    },
+    "standards/OpenLineage-2.0.2.json": {
+      "bytes": 9155,
+      "sha256": "69f68bee00b9beac88a87059c0102410e7bb05f3f43c46d02a0409831eceb0d2"
+    },
+    "standards/odcs-json-schema-v3.2.0.json": {
+      "bytes": 110505,
+      "sha256": "edb41f33ec46e84780e99872ab2bd67f074959d2bf3e9c9fc54e61f8982b0d93"
+    }
+  },
+  "kind": "ordivon.data-lifecycle-github-pilot",
+  "qualityStanding": "PASS",
+  "schemaVersion": 1,
+  "sourceCommit": "f4d1b35ca09d8c0d875451635daef9179adfc9e0",
+  "sourceRepository": "https://github.com/rfordatascience/tidytuesday"
+}

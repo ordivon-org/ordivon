@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-security-experiment",
+  "experimentId": "cloudflare-provider-security-exp-r1-20260917",
+  "date": "2026-09-17",
+  "status": "PASS_WITH_OPEN_HYPOTHESES",
+  "purpose": "Mechanism-level baseline and ablation for CF02/CF04/CF05 without solving, clicking, or bypassing a provider challenge and without crossing ChatGPT SEND.",
+  "productionBaseline": {
+    "jobId": "job-01a0b011-24fb-7bd1-bb92-2ec4c241c00c",
+    "endpointId": "chatgpt-carrier-11",
+    "substrateHealthy": true,
+    "providerStanding": "CHALLENGE_GATED",
+    "providerEffectAttempted": false,
+    "clicked": false,
+    "composerFilled": false,
+    "sendAttempted": false,
+    "interpretation": "Browser substrate availability and provider security-boundary admissibility are empirically distinct states."
+  },
+  "browserIdentity": {
+    "jobId": "job-01a0b013-2a65-7e12-be33-b9a82fb3849f",
+    "browserVersion": "153.0.8010.12",
+    "hostBinary": "/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome",
+    "browserlessBinary": "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+    "sha256": "8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "sameBinary": true
+  },
+  "cf04Cf05Ablation": {
+    "neutralTarget": "https://example.com/",
+    "networkAuthority": "nv2-browserless-prod",
+    "browserlessArm": {
+      "jobId": "job-01a0b014-91e3-7160-8f45-0f4bf2cf9480",
+      "route": "Playwright connect_over_cdp -> Browserless /chromium -> Puppeteer launch -> Chromium",
+      "navigatorWebdriver": true,
+      "observedLaunchFlag": "--enable-automation",
+      "browserVersion": "153.0.8010.12"
+    },
+    "directLateAttachArm": {
+      "jobId": "job-01a0b014-f6a4-72a3-b5c7-69c9330a7daa",
+      "route": "direct Chromium launch -> first navigation -> Playwright connect_over_cdp",
+      "navigatorWebdriver": false,
+      "enableAutomationFlag": false,
+      "browserVersion": "153.0.8010.12"
+    },
+    "directLateAttachEnableAutomationArm": {
+      "jobId": "job-01a0b015-6529-7352-9fa4-8803b8866485",
+      "route": "direct Chromium + --enable-automation -> first navigation -> late Playwright attach",
+      "navigatorWebdriver": true
+    },
+    "directEarlyAttachNoEnableAutomationArm": {
+      "jobId": "job-01a0b015-6529-7352-9fa4-8803b8866485",
+      "route": "direct Chromium without --enable-automation -> Playwright attach -> navigation",
+      "navigatorWebdriverBeforeNavigation": false,
+      "navigatorWebdriverAfterNavigation": false
+    },
+    "finding": "For navigator.webdriver specifically, --enable-automation is sufficient to reproduce the observed Browserless value, while early-vs-late CDP attachment did not change the value in the direct-Chromium arms.",
+    "standing": {
+      "launchPresentationContribution": "SUPPORTED",
+      "attachmentTimingContributionToNavigatorWebdriver": "FALSIFIED_IN_THIS_MECHANISM",
+      "broaderControlLayerContribution": "UNRESOLVED"
+    }
+  },
+  "cf02TransportExperiment": {
+    "neutralTarget": "https://tls.peet.ws/api/all",
+    "networkAuthority": "nv2-browserless-prod",
+    "browserVersion": "153.0.8010.12",
+    "firstPairJobId": "job-01a0b016-d3e4-7bc2-bbad-5a9b08c56712",
+    "repeatJobId": "job-01a0b017-68f5-7f70-b6ac-4ddcef078244",
+    "repetitionsPerArm": 3,
+    "stableAcrossBothArms": {
+      "ja4": "t13d1518h2_8daaf6152771_4980c97edce0",
+      "peetprintHash": "493a80d6a4267c7820685d29d92aa946",
+      "http2AkamaiFingerprintHash": "52d84b11737d980aef856699f885ca86",
+      "httpVersion": "h2",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+    },
+    "browserlessJa3Hashes": [
+      "e7e23faeb4e3052f80db02c98e4c3924",
+      "90a1760c6cf03b1c138ccaf815675393",
+      "ced6958daccf21351950fb66d826bd1c"
+    ],
+    "directJa3Hashes": [
+      "b7d155ae014b7bee2f071ec36f1e1dc2",
+      "a464f16a719ca213db12765f0a1cdca2",
+      "707f54ff928334feb2facc7058290e62"
+    ],
+    "finding": "JA3 changed on every fresh connection in both arms; a one-shot JA3 difference is therefore not path-attribution evidence here. JA4, PeetPrint and HTTP/2 fingerprint were stable and identical across both arms.",
+    "standing": {
+      "ja4PathDifference": "FALSIFIED_IN_THIS_SAMPLE",
+      "http2FingerprintPathDifference": "FALSIFIED_IN_THIS_SAMPLE",
+      "peetprintPathDifference": "FALSIFIED_IN_THIS_SAMPLE",
+      "ja3PathDifference": "UNRESOLVED_DUE_TO_WITHIN_ARM_VARIABILITY"
+    }
+  },
+  "currentModelUpdate": {
+    "CF02": "No stable Browserless-vs-direct difference observed in JA4, PeetPrint or HTTP/2 fingerprint under same Chromium/network. JA3 is noisy and must not be treated as a one-shot discriminator.",
+    "CF04": "navigator.webdriver difference is real and reproducible; launch presentation via --enable-automation is a sufficient mechanism for this observable.",
+    "CF05": "Attachment timing alone did not affect navigator.webdriver, but other control-protocol/execution-context side channels remain unmeasured and open.",
+    "CF08": "Production challenge remains observed; no experiment here establishes that CF04 or CF05 caused that challenge."
+  },
+  "explicitNonClaims": [
+    "The experiment does not identify the provider-authoritative cause of the ChatGPT Cloudflare challenge.",
+    "The experiment does not show that changing --enable-automation would make ChatGPT admissible.",
+    "The experiment does not test or automate challenge solving.",
+    "The experiment does not cross ChatGPT SEND.",
+    "The experiment does not establish that Browserless-specific CDP listeners are irrelevant; those side channels remain unmeasured."
+  ],
+  "nextExperiments": [
+    "CF05 execution-context/protocol-domain observability A/B on a neutral authorized lab page",
+    "CF03 exact browser request-header/order differential under same Chromium/network",
+    "CF06 cross-layer consistency witness for geometry, timezone, locale, WebGL/GPU and network presentation",
+    "repeat production read-only preflight only after witness collection; do not use challenge outcome as the sole detector"
+  ]
+}

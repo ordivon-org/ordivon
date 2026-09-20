@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-19011-2026",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/19011",
+  "schemaVersion": 1,
+  "versionObserved": "2026"
+}

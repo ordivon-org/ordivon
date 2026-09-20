@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "YC How to Sell",
+      "How to Sell by Tyler Bosmeny"
+    ],
+    "domains": [
+      "business",
+      "commercialization",
+      "startup"
+    ],
+    "topics": [
+      "b2b-sales",
+      "founder-led-sales",
+      "sales",
+      "sales-process"
+    ]
+  },
+  "id": "yc-how-to-sell-2018",
+  "identity": {
+    "authorityKind": "professional-guidance",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "y-combinator",
+      "name": "Y Combinator"
+    },
+    "officialSource": "https://www.ycombinator.com/blog/how-to-sell-by-tyler-bosmeny/",
+    "publicationDate": "2018-09-26",
+    "title": "How to Sell by Tyler Bosmeny",
+    "versionLabel": "2018-09-26"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r2"
+    ]
+  },
+  "relations": {
+    "related": [
+      "yc-essential-startup-advice"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

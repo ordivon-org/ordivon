@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-10002-2018",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.iso.org/standard/71580.html",
+  "schemaVersion": 1,
+  "versionObserved": "2018"
+}

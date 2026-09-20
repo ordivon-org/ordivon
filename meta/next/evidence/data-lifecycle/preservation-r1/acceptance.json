@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.data-durable-preservation-acceptance",
+  "asOf": "2026-09-20",
+  "sourceRepository": "/root/projects/ordivon-next",
+  "sourceRevision": "06a39f62ee7ffb727871ff287970aa654b976248",
+  "externalOwners": {
+    "preservationReferenceModel": "iso-14721-2025",
+    "preservationMetadata": "premis-3.0",
+    "maturityAssessment": "ndsa-levels-digital-preservation-2.1",
+    "submissionProfile": [
+      "eark-csip-2.2.0",
+      "eark-sip-2.2.0"
+    ],
+    "submissionImplementation": "commons-ip-2.11.3",
+    "preservationEngine": "archivematica-1.18.0",
+    "fixityClient": "artefactual-fixity-0.8.0",
+    "bagitStandardsBoundary": "rfc-8493-bagit-1.0"
+  },
+  "submission": {
+    "canonicalInterchange": {
+      "format": "E-ARK SIP / CSIP",
+      "version": "2.2.0",
+      "sha256": "1ab52c7380baaa6dd06af7955bfe1f992f1b1223e59dae618f28e9fc919b37ce",
+      "sourcePayloadManifestSha256": "9614bca272aff410d24f5d8f1a75c47959456e7eff4b104b3d2bb026bb645665",
+      "payloadFileCountBeforeSourceManifest": 49,
+      "validator": "Commons-IP 2.11.3",
+      "validation": {
+        "passed": 135,
+        "skipped": 30,
+        "failedShould": 3,
+        "failedMust": 0,
+        "standing": "PASS_WITH_BOUNDED_SHOULD_WARNINGS"
+      },
+      "claimBoundary": "The E-ARK SIP is the standards-native interchange package. Archivematica later extracts package content during ingest; OAIS ingest does not require AIP bytes to equal SIP bytes."
+    },
+    "archivematicaAdapter": {
+      "transferType": "zipped bag",
+      "bagItVersion": "0.97",
+      "bagZipSha256": "96f97c3631bbe811ccff703ce2e9b920bbfa61e1d8a2e56a9e363dd320173494",
+      "standing": "PROVIDER_ADAPTER_ONLY_NOT_RFC8493_CONFORMANCE",
+      "reason": "bagit-python 1.9.0 and Archivematica currently use BagIt-Version 0.97; RFC 8493 specifies BagIt 1.0."
+    }
+  },
+  "falsifier": {
+    "transferUuid": "2d04cdc7-42f9-4cc9-93ad-e0e38360e378",
+    "masterAipUuid": "cbf5ba8e-19ed-47bd-bc30-ca9189c9e172",
+    "replicaAipUuid": "20a0897b-ff13-492f-9493-89ccc696ad43",
+    "transferType": "zipfile",
+    "sourceFileChecks": {
+      "expected": 49,
+      "exact": 47,
+      "missing": [
+        "evidence/github-pilot-r1/.gitignore",
+        "evidence/temporal-evolution-r1/.gitignore"
+      ]
+    },
+    "standing": "REJECTED_FOR_EXACT_PRESERVATION_CLAIM",
+    "cause": "Archivematica hidden-file cleanup acts before ordinary zip package extraction.",
+    "action": "Retained as negative evidence; replaced by the already-proven zipped-bag provider path."
+  },
+  "accepted": {
+    "transferUuid": "3e436ef8-1e33-4dd3-94e4-cdb01faba513",
+    "sipUuid": "b482022d-9be3-44a4-847f-496adcb9014d",
+    "processingConfiguration": "automated",
+    "master": {
+      "aipUuid": "b482022d-9be3-44a4-847f-496adcb9014d",
+      "locationUuid": "b9817a62-7b80-47a5-9b04-7150a6f3c214",
+      "storageServicePath": "b482/022d/9be3/44a4/847f/496a/dcb9/014d/data-lifecycle-preservation-bag-r1-20260920-b482022d-9be3-44a4-847f-496adcb9014d.7z"
+    },
+    "replica": {
+      "aipUuid": "e2d63905-7355-4654-99d0-b1024de995c9",
+      "locationUuid": "f507e370-3249-4a3f-a88b-246b69ddf7d1",
+      "storageServicePath": "e2d6/3905/7355/4654/99d0/b102/4de9/95c9/data-lifecycle-preservation-bag-r1-20260920-e2d63905-7355-4654-99d0-b1024de995c9.7z"
+    },
+    "aipBytes": 9664701,
+    "aipSha256": "43cd27dc86634fa64be4b56cf0d4720e81c7ee73c214be588cf6ce54eb2dfc15",
+    "masterReplicaByteEqual": true,
+    "payloadExactFiles": {
+      "expected": 49,
+      "verified": 49,
+      "standing": "PASS"
+    },
+    "hiddenGitignoreFilesObserved": 4,
+    "metsXml": "PASS",
+    "premisNamespace": "PASS",
+    "premisEventTokensObserved": 13152,
+    "aipBagItValidation": "PASS",
+    "fixity": {
+      "client": "Artefactual Fixity 0.8.0",
+      "scanTimeUtc": "2026-09-20T00:24:30Z",
+      "allAipsScanned": 6,
+      "allAipsPassed": 6,
+      "masterPassed": true,
+      "replicaPassed": true,
+      "schedule": "ordivon-preservation-fixity-r7.timer"
+    },
+    "standing": "PASS_LOCAL_DURABLE_PRESERVATION"
+  },
+  "operationalBoundary": {
+    "independentFailureDomain": false,
+    "note": "Master and replica are separate Archivematica Storage Service locations but reside on the same machine/WSL failure domain. This is not offsite/disaster resilience.",
+    "providerLivenessIncident": {
+      "observed": true,
+      "priorFixityFailure": "2026-09-20T03:27:03+08:00",
+      "cause": "Archivematica/Storage Service containers were stopped, so scheduled fixity could not connect.",
+      "recovery": "Existing Archivematica compose stack restarted; manual Fixity scan then passed all six AIPs."
+    }
+  },
+  "standing": "PASS_WITH_LOCAL_FAILURE_DOMAIN_BOUNDARY"
+}

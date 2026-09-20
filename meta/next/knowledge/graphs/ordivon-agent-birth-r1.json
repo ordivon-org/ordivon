@@ -1,0 +1,824 @@
+{
+  "acceptance": {
+    "atomicityGate": "PASS_AT_ARCHITECTURAL_LEVEL",
+    "behavioralAcceptanceTest": "PASS_SPECIFIED_FROM_EXISTING_TESTS",
+    "browserSecurityR9Binding": "REFERENCE_ONLY_NOT_LIVE_ASSERTION",
+    "edgeTyping": "PASS",
+    "minimalCloneSpecTest": "PASS",
+    "moduleCompletenessTest": "PASS",
+    "nodeGraphCoverage": "PASS",
+    "oneSentenceTest": "PASS",
+    "providerBoundaryDiagnosis": "PRODUCTION_ACTIVE_POST_CUTOVER_VERIFIED",
+    "providerBoundaryProductionRelease": "3f10f7bb7cb732e3b873fcc2aacb6ae7e9cf52f4",
+    "providerBoundaryRepairNonConflation": "PASS",
+    "reassemblySufficiency": "PASS"
+  },
+  "assemblies": {
+    "admissionAndDurability": [
+      "AB10",
+      "AB11",
+      "AB12",
+      "AB13",
+      "AB14"
+    ],
+    "carrierRouting": [
+      "AB15",
+      "AB16",
+      "AB17",
+      "AB37",
+      "AB18"
+    ],
+    "effectFence": [
+      "AB19",
+      "AB20",
+      "AB21"
+    ],
+    "interfaceShell": [
+      "AB01",
+      "AB02",
+      "AB36"
+    ],
+    "postBirthSessionExtension": [
+      "AB31",
+      "AB32",
+      "AB33",
+      "AB34"
+    ],
+    "projection": [
+      "AB05",
+      "AB35"
+    ],
+    "providerEffect": [
+      "AB22",
+      "AB23",
+      "AB24",
+      "AB25"
+    ],
+    "recovery": [
+      "AB26",
+      "AB27",
+      "AB28",
+      "AB29",
+      "AB30"
+    ],
+    "specAndIdentity": [
+      "AB03",
+      "AB04",
+      "AB06",
+      "AB07",
+      "AB08",
+      "AB09"
+    ]
+  },
+  "currentNonDependencies": [
+    "Host v2 is not currently on the production Birth effect path",
+    "Runtime is not currently on the production Birth effect path",
+    "Agent Service Slice 1 is not yet cut over to production Birth"
+  ],
+  "edges": [
+    {
+      "from": "AB01",
+      "label": "campaign request",
+      "to": "AB03",
+      "type": "DATA"
+    },
+    {
+      "from": "AB02",
+      "label": "operator campaign request",
+      "to": "AB03",
+      "type": "DATA"
+    },
+    {
+      "from": "AB03",
+      "label": "register exact current spec",
+      "to": "AB04",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB04",
+      "label": "frozen CampaignSpec",
+      "to": "AB09",
+      "type": "DATA"
+    },
+    {
+      "from": "AB09",
+      "label": "role unit",
+      "to": "AB06",
+      "type": "DATA"
+    },
+    {
+      "from": "AB06",
+      "label": "taskPromptDigest + roleDigest",
+      "to": "AB07",
+      "type": "DATA"
+    },
+    {
+      "from": "AB07",
+      "label": "effect identity",
+      "to": "AB08",
+      "type": "DATA"
+    },
+    {
+      "from": "AB08",
+      "label": "bootstrap/preparation digests",
+      "to": "AB19",
+      "type": "DATA"
+    },
+    {
+      "from": "AB20",
+      "label": "effect standing projection",
+      "to": "AB05",
+      "type": "DATA"
+    },
+    {
+      "from": "AB09",
+      "label": "birth units",
+      "to": "AB10",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB20",
+      "label": "existing standing",
+      "to": "AB10",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "AB10",
+      "label": "new/retry/reconcile/human-resume path",
+      "to": "AB11",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB11",
+      "label": "workflow identity",
+      "to": "AB12",
+      "type": "IDENTITY"
+    },
+    {
+      "from": "AB12",
+      "label": "Temporal admission",
+      "to": "AB13",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB13",
+      "label": "Activity task",
+      "to": "AB14",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB14",
+      "label": "provider activity",
+      "to": "AB15",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB15",
+      "label": "selected carrier candidate",
+      "to": "AB16",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB16",
+      "label": "leased read-only preflight",
+      "to": "AB17",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB15",
+      "label": "bind admissible carrier",
+      "to": "AB18",
+      "type": "IDENTITY"
+    },
+    {
+      "from": "AB18",
+      "label": "exact carrier binding",
+      "to": "AB22",
+      "type": "IDENTITY"
+    },
+    {
+      "from": "AB19",
+      "label": "durable materialization intent",
+      "to": "AB20",
+      "type": "DATA"
+    },
+    {
+      "from": "AB20",
+      "label": "current standing",
+      "to": "AB21",
+      "type": "DATA"
+    },
+    {
+      "from": "AB21",
+      "label": "single admitted effect attempt",
+      "to": "AB22",
+      "type": "EFFECT"
+    },
+    {
+      "from": "AB22",
+      "label": "Playwright Browserless submission",
+      "to": "AB23",
+      "type": "EFFECT"
+    },
+    {
+      "from": "AB23",
+      "label": "handle/pre-effect/handoff/process evidence",
+      "to": "AB24",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "AB24",
+      "label": "provider coordinate when proven",
+      "to": "AB25",
+      "type": "DATA"
+    },
+    {
+      "from": "AB24",
+      "label": "standing/evidence update",
+      "to": "AB20",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "AB25",
+      "label": "canonical provider resource",
+      "to": "AB20",
+      "type": "IDENTITY"
+    },
+    {
+      "from": "AB20",
+      "label": "ambiguous standing requires reconcile",
+      "to": "AB26",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB18",
+      "label": "same physical carrier only",
+      "to": "AB26",
+      "type": "IDENTITY"
+    },
+    {
+      "from": "AB26",
+      "label": "reconnect/read-back",
+      "to": "AB27",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "AB27",
+      "label": "reconciled standing",
+      "to": "AB20",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "AB23",
+      "label": "pre-SEND human blocker",
+      "to": "AB28",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "AB28",
+      "label": "handoff session state",
+      "to": "AB29",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "AB29",
+      "label": "resume eligibility",
+      "to": "AB30",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB30",
+      "label": "same-effect human resume claim",
+      "to": "AB21",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB20",
+      "label": "BOUND providerResource prerequisite",
+      "to": "AB31",
+      "type": "IDENTITY"
+    },
+    {
+      "from": "AB31",
+      "label": "turn request identity",
+      "to": "AB32",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB32",
+      "label": "admitted turn SEND",
+      "to": "AB33",
+      "type": "EFFECT"
+    },
+    {
+      "from": "AB33",
+      "label": "exact-turn output/read-back",
+      "to": "AB34",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "AB20",
+      "label": "ledger health projection",
+      "to": "AB35",
+      "type": "DATA"
+    },
+    {
+      "from": "AB17",
+      "label": "read-only carrier/provider standing",
+      "to": "AB37",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "AB37",
+      "label": "carrier routing / preserve-or-failover policy",
+      "to": "AB15",
+      "type": "CONTROL"
+    },
+    {
+      "from": "AB37",
+      "label": "provider-boundary policy projection",
+      "to": "AB35",
+      "type": "DATA"
+    }
+  ],
+  "graphId": "ordivon-agent-birth-r1",
+  "graphKind": "architecture",
+  "identityAlgebra": [
+    "campaignId != campaignRef",
+    "agentId != future AgentInstanceId",
+    "agentId != effectId",
+    "effectId != Temporal workflow execution id on retry/reconcile",
+    "effectId != Browserless endpoint identity",
+    "effectId != providerResource",
+    "providerResource != carrier binding",
+    "handoffDigest != effectId",
+    "turnRequestId != effectId"
+  ],
+  "method": "project-kernel-decomposition/lego-node-graph",
+  "migration": {
+    "keepThinShell": [
+      "AB01",
+      "AB02",
+      "AB35",
+      "AB36"
+    ],
+    "moveToAgentService": [
+      "AB03",
+      "AB06",
+      "AB07",
+      "AB08",
+      "AB09",
+      "AB10",
+      "AB05"
+    ],
+    "moveToSessionLayer": [
+      "AB31",
+      "AB32",
+      "AB33",
+      "AB34"
+    ],
+    "registryDecision": "AB04 may be subsumed by Agent Service revision/input authority only after exact content-addressed replay semantics are preserved",
+    "retainAsProviderEffectAdapter": [
+      "AB15",
+      "AB16",
+      "AB17",
+      "AB37",
+      "AB18",
+      "AB19",
+      "AB20",
+      "AB21",
+      "AB22",
+      "AB23",
+      "AB24",
+      "AB25",
+      "AB26",
+      "AB27",
+      "AB28",
+      "AB29",
+      "AB30"
+    ],
+    "retainAsTemporalSubstrateAdapter": [
+      "AB11",
+      "AB12",
+      "AB13",
+      "AB14"
+    ]
+  },
+  "nodes": [
+    {
+      "authority": "interface only",
+      "id": "AB01",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "AutomationMCPFacade",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service API / client adapter"
+    },
+    {
+      "authority": "interface only",
+      "id": "AB02",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "AutomationCLI",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "thin operator adapter"
+    },
+    {
+      "authority": "CampaignSpec v2 syntax/limits",
+      "id": "AB03",
+      "kind": "TRANSFORM",
+      "label": "CampaignSpecValidator",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service request admission"
+    },
+    {
+      "authority": "content-addressed frozen CampaignSpec bytes",
+      "id": "AB04",
+      "kind": "STATE_AUTHORITY",
+      "label": "CampaignRegistry",
+      "ownsDurableTruth": true,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service input/revision registry or retained thin CAS"
+    },
+    {
+      "authority": "derived view only",
+      "id": "AB05",
+      "kind": "PROJECTION_SINK",
+      "label": "CampaignCensusProjector",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service/Board projection"
+    },
+    {
+      "authority": "deterministic task prompt bytes",
+      "id": "AB06",
+      "kind": "TRANSFORM",
+      "label": "RolePromptCompiler",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service Birth preparation"
+    },
+    {
+      "authority": "effectId/preparation identity derivation",
+      "id": "AB07",
+      "kind": "TRANSFORM",
+      "label": "BirthIdentityCompiler",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service BirthCoordinator"
+    },
+    {
+      "authority": "frozen bootstrap bytes and digest",
+      "id": "AB08",
+      "kind": "TRANSFORM",
+      "label": "BootstrapCompiler",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service Birth preparation"
+    },
+    {
+      "authority": "roster to independent Birth units",
+      "id": "AB09",
+      "kind": "DECISION_ROUTER",
+      "label": "CampaignFanoutPlanner",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service planner"
+    },
+    {
+      "authority": "whether a new/retry/reconcile path may be admitted",
+      "id": "AB10",
+      "kind": "DECISION_ROUTER",
+      "label": "BirthAdmissionGate",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service lifecycle policy"
+    },
+    {
+      "authority": "workflow execution identity only",
+      "id": "AB11",
+      "kind": "TRANSFORM",
+      "label": "TemporalWorkflowIdentityPlanner",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Temporal adapter"
+    },
+    {
+      "authority": "Temporal workflow admission/read-back",
+      "id": "AB12",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "TemporalAdmissionAdapter",
+      "ownsDurableTruth": "delegated",
+      "state": "ATOMIC",
+      "targetOwner": "Temporal adapter"
+    },
+    {
+      "authority": "durable workflow sequencing/retry policy",
+      "id": "AB13",
+      "kind": "DECISION_ROUTER",
+      "label": "BirthWorkflow",
+      "ownsDurableTruth": "delegated-to-Temporal",
+      "state": "ATOMIC",
+      "targetOwner": "Temporal"
+    },
+    {
+      "authority": "Activity-to-provider boundary and worker concurrency",
+      "id": "AB14",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "BirthActivityWorker",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Temporal worker/provider adapter"
+    },
+    {
+      "authority": "deterministic candidate ordering and pre-SEND failover eligibility",
+      "id": "AB15",
+      "kind": "DECISION_ROUTER",
+      "label": "CarrierCandidateRouter",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter / Network v2 binding"
+    },
+    {
+      "authority": "exclusive interactive use of one persistent profile",
+      "id": "AB16",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "CarrierLease",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "read-only provider/carrier admission observation",
+      "id": "AB17",
+      "kind": "VERIFIER_OBSERVER",
+      "label": "ProviderPreflightObserver",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "effectId to exact endpointId+endpointIdentityDigest binding",
+      "id": "AB18",
+      "kind": "STATE_AUTHORITY",
+      "label": "CarrierBindingStore",
+      "ownsDurableTruth": true,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "carrier-neutral immutable materialization request",
+      "id": "AB19",
+      "kind": "TRANSFORM",
+      "label": "MaterializationRequestBuilder",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider effect contract"
+    },
+    {
+      "authority": "provider-effect request/standing/evidence/effectGeneration",
+      "id": "AB20",
+      "kind": "STATE_AUTHORITY",
+      "label": "BirthEffectLedger",
+      "ownsDurableTruth": true,
+      "state": "ATOMIC",
+      "targetOwner": "provider effect adapter"
+    },
+    {
+      "authority": "atomic permission to cross ambiguous external-effect boundary",
+      "id": "AB21",
+      "kind": "DECISION_ROUTER",
+      "label": "EffectAttemptClaimer",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider effect adapter"
+    },
+    {
+      "authority": "carrier-neutral request to Browserless/Playwright target translation",
+      "id": "AB22",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "BrowserlessMaterializationAdapter",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "raw ChatGPT Web composer/SEND effect",
+      "id": "AB23",
+      "kind": "EFFECT_EXECUTOR",
+      "label": "ChatGPTSubmitExecutor",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider-specific executor"
+    },
+    {
+      "authority": "pre-effect/human/submit/bound evidence interpretation",
+      "id": "AB24",
+      "kind": "VERIFIER_OBSERVER",
+      "label": "SubmitEvidenceInterpreter",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "canonical provider conversation coordinate",
+      "id": "AB25",
+      "kind": "TRANSFORM",
+      "label": "ProviderResourceCanonicalizer",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "same-effect observation without resend",
+      "id": "AB26",
+      "kind": "RECONCILER",
+      "label": "BirthReconciler",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter, invoked by Agent Service"
+    },
+    {
+      "authority": "reconnect/read-back of previously attempted provider conversation",
+      "id": "AB27",
+      "kind": "VERIFIER_OBSERVER",
+      "label": "ReconnectObserver",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "private proof that human verification is required and SEND not crossed",
+      "id": "AB28",
+      "kind": "STATE_AUTHORITY",
+      "label": "HumanHandoffReceipt",
+      "ownsDurableTruth": true,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "current bounded interactive-session liveness",
+      "id": "AB29",
+      "kind": "VERIFIER_OBSERVER",
+      "label": "HumanHandoffLivenessObserver",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter"
+    },
+    {
+      "authority": "same-effect re-entry after proven human verification boundary",
+      "id": "AB30",
+      "kind": "RECONCILER",
+      "label": "HumanResumeCoordinator",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter + Agent Service lifecycle"
+    },
+    {
+      "authority": "post-Birth continuation admission",
+      "id": "AB31",
+      "kind": "DECISION_ROUTER",
+      "label": "TurnAdmissionCoordinator",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Agent Service Session/Message layer"
+    },
+    {
+      "authority": "continuation turn effect identity and receipt",
+      "id": "AB32",
+      "kind": "STATE_AUTHORITY",
+      "label": "TurnEffectLedger",
+      "ownsDurableTruth": true,
+      "state": "ATOMIC",
+      "targetOwner": "Session/provider effect adapter"
+    },
+    {
+      "authority": "one provider-bound continuation SEND",
+      "id": "AB33",
+      "kind": "EFFECT_EXECUTOR",
+      "label": "ContinuationExecutor",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Session/provider executor"
+    },
+    {
+      "authority": "read-only exact-turn provider output observation",
+      "id": "AB34",
+      "kind": "VERIFIER_OBSERVER",
+      "label": "ConversationOutputObserver",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "Session/provider observer"
+    },
+    {
+      "authority": "health/backlog projection only",
+      "id": "AB35",
+      "kind": "PROJECTION_SINK",
+      "label": "AutomationDoctor",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "operations/observability"
+    },
+    {
+      "authority": "stable node-local release invocation",
+      "id": "AB36",
+      "kind": "ADAPTER_GATEWAY",
+      "label": "ReleaseCarrier",
+      "ownsDurableTruth": "delegated",
+      "state": "ATOMIC",
+      "targetOwner": "Workstation v2 + Harness release"
+    },
+    {
+      "authority": "classify read-only provider preflight into provider admission, carrier routing, human-verification eligibility, re-entry policy, and automatic repair prohibitions",
+      "id": "AB37",
+      "kind": "DECISION_ROUTER",
+      "label": "ProviderBoundaryDiagnosis",
+      "ownsDurableTruth": false,
+      "state": "ATOMIC",
+      "targetOwner": "provider adapter / Agent Service policy"
+    }
+  ],
+  "notPrimarily": "a browser script, a generic workflow engine, an Agent semantic registry, or a model loop",
+  "oneSentence": "Agent Birth deterministically compiles one campaign role into one stable provider-effect identity, durably fences that identity before any non-idempotent SEND, uses Temporal to orchestrate execution and recovery, and binds observed provider conversation evidence back to that same identity without blind resend.",
+  "schemaVersion": 1,
+  "stateMachine": {
+    "birthEffectStanding": [
+      "UNRECORDED",
+      "PREPARED",
+      "UNKNOWN",
+      "PRE_EFFECT_FAILED",
+      "HUMAN_REQUIRED",
+      "SUBMIT_OBSERVED",
+      "BOUND",
+      "READY_CONFIRMED"
+    ],
+    "providerBoundaryRoutingRules": [
+      "carrier/transport-local pre-SEND unavailability may fail over to the next deterministic carrier candidate",
+      "READY preserves the selected carrier and may continue materialization",
+      "CHALLENGE_GATED, AUTH_REQUIRED, and PROVIDER_RATE_LIMITED do not authorize carrier rotation or infrastructure mutation",
+      "CHALLENGE_GATED and AUTH_REQUIRED remain eligible for the existing bounded human-verification handoff",
+      "provider-boundary observations alone forbid automatic carrier restart, profile clearing, launcher mutation, and network-authority mutation",
+      "browser-security-r9 constrains repair policy as a reference-only knowledge artifact and is not a live preflight assertion"
+    ],
+    "providerBoundaryStanding": [
+      "CARRIER_PRE_EFFECT_UNAVAILABLE",
+      "PROVIDER_ADMISSIBLE",
+      "SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE",
+      "PROVIDER_NOT_ADMISSIBLE_SUBSTRATE_UNKNOWN",
+      "PROVIDER_NOT_ADMISSIBLE_SUBSTRATE_UNHEALTHY",
+      "PROVIDER_UI_OR_CONTROL_UNRESOLVED",
+      "PREFLIGHT_UNRESOLVED"
+    ],
+    "safeRetryRules": [
+      "PRE_EFFECT_FAILED may explicitly re-enter the same effectId because SEND is proven not crossed",
+      "HUMAN_REQUIRED may re-enter only through human-resume after the handoff/liveness contract",
+      "UNKNOWN and SUBMIT_OBSERVED may reconcile only; blind resend is forbidden",
+      "BOUND and READY_CONFIRMED are terminal immutable provider-effect standings"
+    ]
+  },
+  "subject": {
+    "name": "Ordivon Agent Birth",
+    "observedDate": "2026-09-17",
+    "productionReleaseRevision": "6864da68310753dd04295b7749b9cc16973fef4a",
+    "sourceRepo": "/root/projects/ordivon-harness",
+    "sourceRevision": "a8bce1376a848c197abcd9d3c1c565ed75cb1617"
+  },
+  "substrates": [
+    {
+      "copyLocally": false,
+      "name": "Temporal",
+      "role": "durable workflow history, retries, worker recovery and task queues"
+    },
+    {
+      "copyLocally": false,
+      "name": "Browserless",
+      "role": "persistent browser carrier/session lifecycle"
+    },
+    {
+      "copyLocally": false,
+      "name": "Playwright",
+      "role": "deterministic browser actions and inspection"
+    },
+    {
+      "copyLocally": false,
+      "name": "Network v2",
+      "role": "Browserless network namespace, DNS/proxy/path health"
+    },
+    {
+      "copyLocally": false,
+      "name": "SQLite",
+      "role": "small local provider-effect and turn ledgers"
+    },
+    {
+      "copyLocally": false,
+      "name": "systemd/Podman",
+      "role": "service/process/container lifecycle"
+    },
+    {
+      "copyLocally": false,
+      "name": "Workstation v2",
+      "role": "stable node-local carrier and service bindings"
+    }
+  ]
+}

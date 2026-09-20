@@ -1,0 +1,11 @@
+{
+  "authorityId": "icc-marketing-code-2024",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-eleventh-edition",
+  "note": "ICC lists the 2024 11th edition as its current Advertising and Marketing Communications Code, covering digital/social marketing, AI, influencer marketing, sponsorship and sales promotion.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://iccwbo.org/business-solutions/the-icc-advertising-and-marketing-communications-code/",
+  "schemaVersion": 1,
+  "versionObserved": "11th Edition (2024)"
+}

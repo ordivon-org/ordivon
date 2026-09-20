@@ -1,0 +1,11 @@
+{
+  "authorityId": "frappe-crm-provider",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Frappe CRM is documented as the focused CRM product for leads, deals and pipeline management.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://docs.frappe.io/crm/introduction",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

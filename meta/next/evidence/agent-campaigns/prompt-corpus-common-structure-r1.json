@@ -1,0 +1,46 @@
+{
+  "campaignId": "campaign:github-prompt-corpus-common-structure-20260914-r1",
+  "sharedPrompt": "You are one independent research occurrence in a parallel Ordivon study of x1xhlol/system-prompts-and-models-of-ai-tools and the underlying AI Agent products represented there. Work independently: do not assume other agents' conclusions and do not optimize for consensus. Use the public GitHub corpus as a secondary discovery source, then prefer canonical upstream repositories, official documentation, reproducible vendor exports, or directly inspectable open-source implementations for important claims. Distinguish observed facts from inference. The goal is not to copy prompt prose; it is to identify mechanisms and system structure. Analyze Prompt, Tool surface, control loop, context acquisition, state/memory, permissions/authority, execution environment, verification/feedback, model specialization, and provenance where your role makes them relevant. Treat a static prompt snapshot as evidence of one effective instruction surface, not automatically as the whole architecture.\n\nReturn a structured report with exactly these top-level sections: SCOPE_AND_SOURCES; OBSERVED_MECHANISMS; TOOL_AND_EFFECT_SURFACE; STATE_CONTEXT_AND_LOOP; AUTHORITY_AND_SAFETY; VERIFICATION_AND_FEEDBACK; UNIQUE_MECHANISMS; COMMONALITY_CANDIDATES; COUNTEREVIDENCE_AND_SELECTION_BIAS; PROVENANCE_CONFIDENCE; SYNTHESIS_INPUT. In SYNTHESIS_INPUT, provide a compact table-like list of candidate primitives in the form `primitive | evidence | confidence(high/medium/low) | likely-common-or-unique | natural-owner`. Do not claim industry prevalence from corpus frequency alone. Do not give operational instructions for bypassing access controls or extracting non-public secrets. Research and architectural comparison are the task.",
+  "roster": [
+    {
+      "agentId": "A01",
+      "roleCard": "PRODUCT-FAMILY: Anthropic / Claude / Claude Code. Examine the corpus' Claude-related snapshots, then verify against current official Anthropic/Claude Code public source/docs where possible. Focus on coding-agent loop, tools, subagents/tasks, planning/todo, hooks/plugins/skills, permission and verification boundaries. Identify which mechanisms are prompt-level versus host-enforced."
+    },
+    {
+      "agentId": "A02",
+      "roleCard": "PRODUCT-FAMILY: Cursor + VS Code/Copilot + Augment-style IDE agents. Compare IDE-integrated agent architecture: code/search/LSP context, edit/terminal tools, dynamic prompt rendering, memory/preferences, mode switching, parallelism, diagnostics and repository verification. Prefer official VS Code Copilot source/docs for corroboration and clearly label weaker Cursor/Augment evidence."
+    },
+    {
+      "agentId": "A03",
+      "roleCard": "PRODUCT-FAMILY: Devin + Replit + Manus-style autonomous/cloud agents. Focus on broader execution authority beyond repository editing: shell, browser, deployment, databases/secrets, progress state, long-running task behavior, external communications and environment ownership. Identify what makes these products structurally different from a coding-agent harness."
+    },
+    {
+      "agentId": "A04",
+      "roleCard": "PRODUCT-FAMILY: v0 + Lovable + Same/Bolt/other app-building agents. Focus on product-generation workflow, web/design/artifact preview, integrations, deployment, feedback loops, user-question/approval surfaces, design context, and publishable application output. Separate app-builder product shell mechanisms from generic agent primitives."
+    },
+    {
+      "agentId": "A05",
+      "roleCard": "PRODUCT-FAMILY: canonical/open-source agent references in the corpus, especially Codex CLI, Gemini CLI, Cline and RooCode. Use upstream source as primary evidence. Study prompt construction/rendering, tool registration, project instructions, skills/subagents, context selection, plan state, permissions and verification. This role establishes the strongest provenance baseline for comparison with extracted snapshots."
+    },
+    {
+      "agentId": "B01",
+      "roleCard": "MECHANISM: TOOL-SURFACE TAXONOMY. Ignore product branding as much as possible. Build a cross-product taxonomy of model-visible tools and map each to semantic effect classes: observe/search/read, mutate/edit, execute/shell, web/browser, plan/progress, subagent/delegate, database/deploy/integration, artifact/preview, memory/context. Identify minimal common tool waist versus product-specific extensions."
+    },
+    {
+      "agentId": "B02",
+      "roleCard": "MECHANISM: PROMPT/CONTEXT/STATE COMPILATION. Study how mature agents assemble effective instructions from base policy, model family, available tools, project instructions, skills, memory, mode and current context. Identify static versus dynamic prompt construction, transcript versus explicit state, context pruning/compression, and what should belong to host code instead of prose."
+    },
+    {
+      "agentId": "B03",
+      "roleCard": "MECHANISM: CONTROL LOOP + VERIFICATION. Compare plan-act-observe-verify/replan patterns, todo/progress state, continuation/termination rules, test/build/lint/read-back expectations, parallel tool use, correction loops and completion criteria. Identify which parts recur across products and which are merely prompt style."
+    },
+    {
+      "agentId": "B04",
+      "roleCard": "MECHANISM: AUTHORITY / PERMISSIONS / SAFETY. Analyze the boundary between natural-language instructions and deterministic host enforcement. Compare approvals, destructive-action handling, secrets, external communication, sandbox/filesystem/network authority, tool availability and effect validation. Produce explicit examples of `prompt rule != permission system` and what authority must live outside the model."
+    },
+    {
+      "agentId": "B05",
+      "roleCard": "RED TEAM / PROVENANCE / FALSIFIER. Attack the study itself. Classify corpus artifacts by likely provenance quality, identify static-snapshot and selection-bias failures, challenge false commonality caused by shared prompt conventions or copied frameworks, and list mechanisms that cannot be inferred from prompt/tool dumps (backend authorization, persistence, routing, sandbox implementation, provider reconciliation, evals). Propose criteria required before any common structure is accepted."
+    }
+  ]
+}

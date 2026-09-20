@@ -1,0 +1,11 @@
+{
+  "authorityId": "opentelemetry-spec-1.60.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://opentelemetry.io/docs/specs/otel/",
+  "schemaVersion": 1,
+  "versionObserved": "1.60.0"
+}

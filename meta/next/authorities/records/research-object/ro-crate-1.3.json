@@ -1,0 +1,50 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RO-Crate",
+      "RO Crate 1.3"
+    ],
+    "domains": [
+      "research",
+      "data",
+      "artifact"
+    ],
+    "topics": [
+      "research-object",
+      "metadata",
+      "provenance",
+      "packaging"
+    ]
+  },
+  "id": "ro-crate-1.3",
+  "identity": {
+    "authorityKind": "interchange-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "research-object",
+      "name": "Research Object community"
+    },
+    "officialSource": "https://www.researchobject.org/ro-crate/specification",
+    "publicationDate": null,
+    "title": "RO-Crate Metadata Specification 1.3",
+    "versionLabel": "1.3"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/projects/ordivon-research-v2/profiles/paper1_standard_native_r2.toml"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

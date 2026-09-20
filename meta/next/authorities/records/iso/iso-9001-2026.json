@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 9001:2026"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "quality"
+    ],
+    "topics": [
+      "quality-management-system",
+      "qms",
+      "quality"
+    ]
+  },
+  "id": "iso-9001-2026",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/9001",
+    "publicationDate": "2026-09-16",
+    "title": "ISO 9001:2026 — Quality management systems — Requirements",
+    "versionLabel": "2026"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": [
+      "iso-9001-2015-amd1-2024"
+    ]
+  },
+  "schemaVersion": 1
+}

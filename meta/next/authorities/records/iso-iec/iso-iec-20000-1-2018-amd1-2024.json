@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 20000-1",
+      "ISO/IEC 20000-1",
+      "IT service management",
+      "service management system"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "operations",
+      "service"
+    ],
+    "topics": [
+      "service-management",
+      "it-service-management",
+      "management-system",
+      "service-quality"
+    ]
+  },
+  "id": "iso-iec-20000-1-2018-amd1-2024",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso-iec",
+      "name": "ISO/IEC"
+    },
+    "officialSource": "https://www.iso.org/standard/70636.html",
+    "publicationDate": "2018-09",
+    "title": "ISO/IEC 20000-1:2018 with Amendment 1:2024 — Service management system requirements",
+    "versionLabel": "2018+Amd1:2024"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "ISO base and Amendment 1 official sources checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

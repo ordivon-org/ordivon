@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "iso-15489-1-2016",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/62542.html",
+    "publicationDate": "2016-04",
+    "title": "ISO 15489-1:2016 — Information and documentation — Records management — Part 1: Concepts and principles",
+    "versionLabel": "2016"
+  },
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": "Edition 2; reviewed and confirmed in 2021, so ISO lists it as current."
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 15489",
+      "ISO 15489-1:2016"
+    ],
+    "domains": [
+      "records",
+      "governance",
+      "data",
+      "preservation"
+    ],
+    "topics": [
+      "records-management",
+      "retention",
+      "disposition",
+      "records-requirements",
+      "metadata"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "Data Lifecycle R3 rights/privacy/retention P0",
+      "ISO official metadata checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "iso-14721-2025"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  }
+}

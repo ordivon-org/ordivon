@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-lego-regime-shift-lens-acceptance",
+  "date": "2026-09-18",
+  "status": "CANARY_A_PASS__B_C_PENDING",
+  "truthRole": "acceptance-evidence-not-domain-truth",
+  "artifacts": [
+    "docs/LEGO_REGIME_SHIFT_DECISION_R1.md",
+    ".agents/skills/lego-regime-shift/SKILL.md",
+    "templates/LEGO_REGIME_CARD_R1.md",
+    "planning/lego-regime-shift-validation-r1.md",
+    "knowledge/lessons/agent-service-regime-card-r1.md",
+    "evidence/analysis/agent-service-regime-card-r1.json"
+  ],
+  "checks": {
+    "thinCorePreserved": true,
+    "newMandatoryPlanningSchemaFields": false,
+    "warningSeparatedFromForecast": true,
+    "forecastSeparatedFromDecision": true,
+    "competingHypothesesRequired": true,
+    "falsifiersRequired": true,
+    "buffersAndDelaysRequired": true,
+    "robustActionAndSignpostsRequired": true,
+    "externalFoundationsRecorded": true,
+    "prospectiveCanaryPlanFrozen": true,
+    "canaryAUsedFreshCurrentObservation": true,
+    "canaryASeparatedHistoricalFromCurrentEvidence": true,
+    "canaryAChangedBoundedDecision": true,
+    "canaryARejectedInapplicableOperators": true
+  },
+  "knownLimits": [
+    "Generic early-warning statistics are model-dependent and can produce false positives or misses.",
+    "The lens does not establish a universal tipping-point detector.",
+    "Skill MCP cannot treat a Runtime-isolated workspace ID as a pre-registered Skill workspace; global discoverability is not yet established.",
+    "Canary A does not measure current accepted end-to-end Agent Service throughput because the live surface lacks a unified intent-to-semantic-acceptance funnel.",
+    "Cross-domain promotion requires the original prospective validation rule; Canary B and Canary C remain pending."
+  ],
+  "prospectiveValidation": {
+    "domains": [
+      "Agent Service",
+      "Research",
+      "Game"
+    ],
+    "passRule": "At least two of three canaries must expose a decision-relevant buffer/delay/constraint-migration fact not already explicit in baseline, with at least one concept rejected or simplified.",
+    "status": "CANARY_A_COMPLETE__B_C_PENDING",
+    "results": {
+      "Agent Service": {
+        "status": "PASS",
+        "evidence": [
+          "knowledge/lessons/agent-service-regime-card-r1.md",
+          "evidence/analysis/agent-service-regime-card-r1.json"
+        ],
+        "incrementalValue": [
+          "implementation-stock versus integration/deployment-flow separation",
+          "legacy live-system buffer",
+          "stale historical ledger versus fresh current observation separation",
+          "healthy substrate versus challenge-gated provider divergence",
+          "clean mergeability as a discriminating integration observation"
+        ],
+        "decisionChange": "Pause broad R15 expansion; integrate R14 in a staged candidate and instrument end-to-end accepted-throughput before choosing the next capability investment.",
+        "rejectedOrSimplifiedConcepts": [
+          "critical-transition statistics",
+          "critical-slowing-down alarm",
+          "generic tipping-point threshold"
+        ]
+      },
+      "Research": {
+        "status": "PENDING"
+      },
+      "Game": {
+        "status": "PENDING"
+      }
+    }
+  }
+}

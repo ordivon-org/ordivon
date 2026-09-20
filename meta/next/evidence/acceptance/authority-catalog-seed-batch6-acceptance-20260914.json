@@ -1,0 +1,52 @@
+{
+  "addedCount": 7,
+  "baseRecordCount": 110,
+  "batch": "2026-09-14-batch6",
+  "boundary": "Acceptance proves Batch 6 explicit package authority registration, currentness observations and lexical discovery. It does not promote providers, broad standards families or unbound security taxonomies into authority truth.",
+  "currentObservationCount": 117,
+  "currentRecordCount": 117,
+  "deferredCandidates": [
+    "METS 1.12.1 as a supported compatibility line; register when a workload explicitly targets METS 1 rather than METS 2",
+    "Siegfried because it is a provider/tool, not semantic authority",
+    "DAMA-DMBOK until a concrete organizational data-governance workload binds that body of knowledge",
+    "Design Council Double Diamond until a real product-discovery profile needs a stable reference identity",
+    "RIPE Atlas because it is a measurement service/provider rather than a protocol standard",
+    "SMPTE family until an actual media deliverable identifies the specific standard number",
+    "CVSS/CWE/CVE/ATT&CK/CIS/SAMM until a Security workload actually binds them"
+  ],
+  "discoverySmokes": {
+    "enterprise architecture method": "togaf-standard-10th-edition",
+    "enterprise architecture modeling": "archimate-3.2",
+    "file format registry": "pronom-registry",
+    "genai semantic conventions": "opentelemetry-genai-semconv",
+    "metadata encoding transmission": "mets-2",
+    "preservation metadata premis": "premis-3.0",
+    "requirements engineering": "iso-iec-ieee-29148-2018"
+  },
+  "families": {
+    "engineering": [
+      "iso-iec-ieee-29148-2018"
+    ],
+    "enterprise-architecture": [
+      "archimate-3.2",
+      "togaf-standard-10th-edition"
+    ],
+    "observability-ai": [
+      "opentelemetry-genai-semconv"
+    ],
+    "preservation": [
+      "premis-3.0",
+      "mets-2",
+      "pronom-registry"
+    ]
+  },
+  "kind": "ordivon.external-authority-catalog-seed-batch-acceptance",
+  "schemaValidation": {
+    "index": "PASS",
+    "observations": "PASS",
+    "records": "PASS",
+    "validator": "check-jsonschema 0.38.0"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_VERIFIED_SEED_EXPANSION"
+}

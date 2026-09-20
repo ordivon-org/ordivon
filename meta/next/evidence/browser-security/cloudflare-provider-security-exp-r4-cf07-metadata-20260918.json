@@ -1,0 +1,251 @@
+{
+  "birthLedgerAggregate": {
+    "available": true,
+    "createdInterarrivalSeconds": {
+      "count": 312,
+      "max": 50174.969,
+      "median": 12.453,
+      "min": 0.0,
+      "p90": 779.011
+    },
+    "createdWithin": {
+      "1h": 0,
+      "24h": 0,
+      "6h": 0,
+      "72h": 165
+    },
+    "effectGeneration": {
+      "max": 5,
+      "mean": 1.3419,
+      "nonZeroCount": 313,
+      "zeroCount": 0
+    },
+    "requestAgeSeconds": {
+      "newest": 137082,
+      "newestUpdate": 134113,
+      "oldest": 412392
+    },
+    "selectedColumns": [
+      "standing",
+      "effect_generation",
+      "created_at_ms",
+      "updated_at_ms"
+    ],
+    "standingCounts": {
+      "bound": 150,
+      "human-required": 1,
+      "pre-effect-failed": 129,
+      "submit-observed": 6,
+      "unknown": 27
+    },
+    "totalRequests": 313,
+    "updatedWithin": {
+      "1h": 0,
+      "24h": 0,
+      "6h": 0,
+      "72h": 170
+    }
+  },
+  "carrierPolicy": {
+    "idleTtlSeconds": 900,
+    "warmEndpointIds": [
+      "chatgpt-carrier-11"
+    ]
+  },
+  "carriers": [
+    {
+      "active": true,
+      "containerExists": true,
+      "endpointId": "chatgpt-carrier-11",
+      "humanTransportActive": false,
+      "lastUse": {
+        "ageSeconds": 842,
+        "idleTtlSeconds": 900,
+        "olderThanIdleTtl": false,
+        "stampExists": true
+      },
+      "leaseStanding": "AVAILABLE",
+      "lifecycleConsistency": "CONSISTENT",
+      "managedServiceUnit": "ordivon-browserless@11.service",
+      "occurrenceMetadata": {
+        "attemptReceiptAges": {
+          "count": 113,
+          "newestAgeSeconds": 145536,
+          "oldestAgeSeconds": 397780
+        },
+        "bindingFileAges": {
+          "count": 114,
+          "newestAgeSeconds": 145541,
+          "oldestAgeSeconds": 397935
+        },
+        "boundOccurrenceCount": 114,
+        "humanHandoffReceiptAges": {
+          "count": 0,
+          "newestAgeSeconds": null,
+          "oldestAgeSeconds": null
+        },
+        "preEffectReceiptAges": {
+          "count": 60,
+          "newestAgeSeconds": 145536,
+          "oldestAgeSeconds": 309176
+        },
+        "turnReceiptAges": {
+          "count": 25,
+          "newestAgeSeconds": 220066,
+          "oldestAgeSeconds": 332003
+        }
+      },
+      "profileFilesystemMetadata": {
+        "defaultDirectoryExists": true,
+        "defaultDirectoryMtimeAgeSeconds": 437,
+        "exists": true,
+        "rootCtimeAgeSeconds": 437,
+        "rootMtimeAgeSeconds": 437,
+        "semanticCreationAgeKnown": false
+      },
+      "sessionCount": 0,
+      "sessionObservation": "OBSERVED_COUNT_ONLY",
+      "warmFloor": true
+    },
+    {
+      "active": false,
+      "containerExists": false,
+      "endpointId": "chatgpt-carrier-12",
+      "humanTransportActive": false,
+      "lastUse": {
+        "ageSeconds": 826,
+        "idleTtlSeconds": 900,
+        "olderThanIdleTtl": false,
+        "stampExists": true
+      },
+      "leaseStanding": "AVAILABLE",
+      "lifecycleConsistency": "CONSISTENT",
+      "managedServiceUnit": "ordivon-browserless@12.service",
+      "occurrenceMetadata": {
+        "attemptReceiptAges": {
+          "count": 98,
+          "newestAgeSeconds": 145542,
+          "oldestAgeSeconds": 412338
+        },
+        "bindingFileAges": {
+          "count": 98,
+          "newestAgeSeconds": 145547,
+          "oldestAgeSeconds": 412392
+        },
+        "boundOccurrenceCount": 98,
+        "humanHandoffReceiptAges": {
+          "count": 0,
+          "newestAgeSeconds": null,
+          "oldestAgeSeconds": null
+        },
+        "preEffectReceiptAges": {
+          "count": 49,
+          "newestAgeSeconds": 145542,
+          "oldestAgeSeconds": 308994
+        },
+        "turnReceiptAges": {
+          "count": 14,
+          "newestAgeSeconds": 225418,
+          "oldestAgeSeconds": 388396
+        }
+      },
+      "profileFilesystemMetadata": {
+        "defaultDirectoryExists": true,
+        "defaultDirectoryMtimeAgeSeconds": 823,
+        "exists": true,
+        "rootCtimeAgeSeconds": 824,
+        "rootMtimeAgeSeconds": 824,
+        "semanticCreationAgeKnown": false
+      },
+      "sessionCount": null,
+      "sessionObservation": "NOT_NEEDED_SLEEPING",
+      "warmFloor": false
+    },
+    {
+      "active": false,
+      "containerExists": false,
+      "endpointId": "chatgpt-carrier-13",
+      "humanTransportActive": false,
+      "lastUse": {
+        "ageSeconds": 814,
+        "idleTtlSeconds": 900,
+        "olderThanIdleTtl": false,
+        "stampExists": true
+      },
+      "leaseStanding": "AVAILABLE",
+      "lifecycleConsistency": "CONSISTENT",
+      "managedServiceUnit": "ordivon-browserless@13.service",
+      "occurrenceMetadata": {
+        "attemptReceiptAges": {
+          "count": 101,
+          "newestAgeSeconds": 134716,
+          "oldestAgeSeconds": 412335
+        },
+        "bindingFileAges": {
+          "count": 101,
+          "newestAgeSeconds": 136400,
+          "oldestAgeSeconds": 412392
+        },
+        "boundOccurrenceCount": 101,
+        "humanHandoffReceiptAges": {
+          "count": 1,
+          "newestAgeSeconds": 134113,
+          "oldestAgeSeconds": 134113
+        },
+        "preEffectReceiptAges": {
+          "count": 55,
+          "newestAgeSeconds": 137077,
+          "oldestAgeSeconds": 314406
+        },
+        "turnReceiptAges": {
+          "count": 37,
+          "newestAgeSeconds": 229313,
+          "oldestAgeSeconds": 391561
+        }
+      },
+      "profileFilesystemMetadata": {
+        "defaultDirectoryExists": true,
+        "defaultDirectoryMtimeAgeSeconds": 811,
+        "exists": true,
+        "rootCtimeAgeSeconds": 812,
+        "rootMtimeAgeSeconds": 812,
+        "semanticCreationAgeKnown": false
+      },
+      "sessionCount": null,
+      "sessionObservation": "NOT_NEEDED_SLEEPING",
+      "warmFloor": false
+    }
+  ],
+  "harnessRevision": "11c4aa9ef825dea871180e1376e39c779d5d13e9",
+  "interpretationGuard": {
+    "lastUseStampIsLifecycleUseNotProviderSessionCreation": true,
+    "profileFilesystemTimesAreNotSemanticCreationTimes": true,
+    "providerCausalityEstablished": false,
+    "requestCadenceIsAggregateAgentAutomationCadenceNotProviderBehavior": true
+  },
+  "kind": "ordivon.browser-security-cf07-metadata-r4",
+  "privacyBoundary": {
+    "forbiddenDataClasses": [
+      "cookie values",
+      "browser history contents",
+      "saved credentials/tokens",
+      "prompt text",
+      "turn text",
+      "handoff URLs",
+      "attempt receipt bodies",
+      "SQLite request_json",
+      "SQLite detail",
+      "SQLite provider_coordinate",
+      "provider page content"
+    ],
+    "forbiddenDataClassesRead": [],
+    "metadataOnly": true,
+    "providerEffectAttempted": false,
+    "providerSendAttempted": false,
+    "providerVisited": false,
+    "sleepingCarrierWoken": false
+  },
+  "schemaVersion": 1,
+  "snapshotNowMs": 1789706100049,
+  "standing": "NON_SECRET_METADATA_SNAPSHOT"
+}

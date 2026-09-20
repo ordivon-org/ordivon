@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 1034",
+      "DNS concepts",
+      "STD 13 DNS"
+    ],
+    "domains": [
+      "network",
+      "internet"
+    ],
+    "topics": [
+      "dns",
+      "domain-name-system",
+      "name-resolution"
+    ]
+  },
+  "id": "rfc-1034",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc1034/",
+    "publicationDate": "1987-11",
+    "title": "RFC 1034 / STD 13 — Domain names — concepts and facilities",
+    "versionLabel": "RFC 1034"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-1035"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

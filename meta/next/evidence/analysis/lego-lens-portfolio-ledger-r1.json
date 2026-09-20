@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-lens-portfolio-ledger-r1",
+  "date": "2026-09-18",
+  "truthRole": "derived-method-governance",
+  "cases": [
+    {
+      "id": "agent-service-readiness-damping",
+      "source": "4f4942e428bbf24c58e3bc4e360805c93ed82fc6",
+      "originalActiveCount": 8,
+      "projectTruthChanged": false,
+      "methods": [
+        {"id": "feedback-control", "role": "LENS", "selected": true, "uniqueContribution": "asymmetric dynamic response"},
+        {"id": "stpa", "role": "LENS", "selected": true, "uniqueContribution": "false-ready loss hard constraint"},
+        {"id": "distributed-systems", "role": "DOMAIN_METHOD", "selected": true, "uniqueContribution": "freshness and ordering"},
+        {"id": "signal-processing", "role": "DOMAIN_METHOD", "selected": true, "uniqueContribution": "one-sided filtering"},
+        {"id": "real-time-systems", "role": "DOMAIN_METHOD", "selected": true, "uniqueContribution": "time-dwell semantics"},
+        {"id": "optimization-or", "role": "DOMAIN_METHOD", "selected": true, "uniqueContribution": "Pareto comparison"},
+        {"id": "experimental-design", "role": "DOMAIN_METHOD", "selected": true, "uniqueContribution": "benchmark identifiability"},
+        {"id": "formal-reachability", "role": "DOMAIN_METHOD", "selected": true, "uniqueContribution": "bad-state reachability"},
+        {"id": "complexity-nonlinear", "role": "INFORMATIVE_ONLY", "selected": false, "uniqueContribution": "no unique decision delta"},
+        {"id": "bayesian-decision", "role": "DEFERRED", "selected": false, "uniqueContribution": "likelihood model absent"},
+        {"id": "game-theory", "role": "REJECTED", "selected": false, "uniqueContribution": "no strategic actor"}
+      ]
+    },
+    {
+      "id": "game-experiment-allocation",
+      "source": "knowledge/lessons/lego-wave3-prospective-validation-r1.md",
+      "projectTruthChanged": false,
+      "methods": [
+        {"id": "exploration-policy", "role": "LENS", "selected": true, "uniqueContribution": "scope guard against invalid bandit allocation"}
+      ]
+    },
+    {
+      "id": "game-concept-expansion",
+      "source": "knowledge/lessons/lego-wave3-prospective-validation-r1.md",
+      "projectTruthChanged": false,
+      "methods": [
+        {"id": "ck-design", "role": "LENS", "selected": true, "uniqueContribution": "concept-space boundary correction"}
+      ]
+    },
+    {
+      "id": "game-evolutionary-product-search",
+      "source": "knowledge/lessons/lego-wave3-prospective-validation-r1.md",
+      "projectTruthChanged": false,
+      "methods": [
+        {"id": "evolutionary-search", "role": "LENS", "selected": true, "uniqueContribution": "evaluator-validity guard"}
+      ]
+    }
+  ]
+}

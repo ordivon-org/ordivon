@@ -1,0 +1,47 @@
+[
+  {
+    "eventTime": "2026-09-19T19:57:05.490018Z",
+    "eventType": "START",
+    "inputs": [
+      {
+        "name": "data/2026/2026-05-26/energy_cleaned.csv",
+        "namespace": "https://github.com/rfordatascience/tidytuesday/tree/f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+      }
+    ],
+    "job": {
+      "name": "se4all-transform",
+      "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+    },
+    "outputs": [],
+    "producer": "urn:ordivon:data-lifecycle:github-pilot-r1",
+    "run": {
+      "runId": "cd9ef2fd-5a5a-5d8f-84f6-b57945192c0f"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  },
+  {
+    "eventTime": "2026-09-19T19:57:05.490027Z",
+    "eventType": "COMPLETE",
+    "inputs": [
+      {
+        "name": "data/2026/2026-05-26/energy_cleaned.csv",
+        "namespace": "https://github.com/rfordatascience/tidytuesday/tree/f4d1b35ca09d8c0d875451635daef9179adfc9e0"
+      }
+    ],
+    "job": {
+      "name": "se4all-transform",
+      "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+    },
+    "outputs": [
+      {
+        "name": "se4all-energy.parquet@sha256:141fdab942b23cac74c595f8d2618021a74c83f4feb532c9ef4348038d693f91",
+        "namespace": "urn:ordivon:data-lifecycle:github-pilot-r1"
+      }
+    ],
+    "producer": "urn:ordivon:data-lifecycle:github-pilot-r1",
+    "run": {
+      "runId": "cd9ef2fd-5a5a-5d8f-84f6-b57945192c0f"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  }
+]

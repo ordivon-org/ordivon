@@ -1,0 +1,11 @@
+{
+  "authorityId": "csl-1.0.2",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current-stable",
+  "note": "CSL official stable documentation exposes the 1.0.2 specification; developer release history lists 1.0.2 as the latest schema/specification release.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://docs.citationstyles.org/en/v1.0.2/specification.html",
+  "schemaVersion": 1,
+  "versionObserved": "1.0.2"
+}

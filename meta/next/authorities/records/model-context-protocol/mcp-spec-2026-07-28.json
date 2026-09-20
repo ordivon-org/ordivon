@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "MCP",
+      "Model Context Protocol",
+      "MCP 2026-07-28"
+    ],
+    "domains": [
+      "ai",
+      "agent",
+      "integration",
+      "engineering"
+    ],
+    "topics": [
+      "agent-protocol",
+      "tools",
+      "resources",
+      "prompts",
+      "authorization",
+      "interoperability"
+    ]
+  },
+  "id": "mcp-spec-2026-07-28",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "model-context-protocol",
+      "name": "Model Context Protocol"
+    },
+    "officialSource": "https://modelcontextprotocol.io/specification/2026-07-28",
+    "publicationDate": "2026-07-28",
+    "title": "Model Context Protocol Specification 2026-07-28",
+    "versionLabel": "2026-07-28"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/providers/mcp.md",
+      "MCP official specification/release announcement checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,48 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 37301"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "compliance"
+    ],
+    "topics": [
+      "compliance",
+      "compliance-management",
+      "governance"
+    ]
+  },
+  "id": "iso-37301-2021",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/75080.html",
+    "publicationDate": null,
+    "title": "ISO 37301:2021 — Compliance management systems — Requirements with guidance for use",
+    "versionLabel": "2021"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

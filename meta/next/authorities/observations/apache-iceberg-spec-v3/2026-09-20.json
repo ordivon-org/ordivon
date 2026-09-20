@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "apache-iceberg-spec-v3",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://iceberg.apache.org/spec/",
+  "versionObserved": "3",
+  "note": "Current specification documents schema/partition evolution and v3 row-lineage fields including _row_id and _last_updated_sequence_number."
+}

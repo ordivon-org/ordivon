@@ -1,0 +1,56 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "E-ARK SIP",
+      "SIP 2.2.0"
+    ],
+    "domains": [
+      "preservation",
+      "archive",
+      "artifact"
+    ],
+    "topics": [
+      "digital-preservation",
+      "submission-information-package",
+      "sip",
+      "mets",
+      "interoperability"
+    ]
+  },
+  "id": "e-ark-sip-2.2.0",
+  "identity": {
+    "authorityKind": "interchange-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "dilcis-board",
+      "name": "DILCIS Board"
+    },
+    "officialSource": "https://earksip.dilcis.eu/",
+    "publicationDate": "2024-05-17",
+    "title": "E-ARK Specification for Submission Information Packages (SIP) 2.2.0",
+    "versionLabel": "2.2.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "/root/workstation-lab/docs/creative-preservation-operations-r7.md",
+      "/var/lib/ordivon/creative-preservation/r8-eark/reports/creative-preservation-r8-eark-sip-r1.zip_validation-report_2026-09-14.json"
+    ]
+  },
+  "relations": {
+    "related": [
+      "e-ark-csip-2.2.0",
+      "iso-20104-2015",
+      "iso-20652-2006"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "ansi-niso-z39.104-2022-credit",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": "ANSI approved the CRediT standard on 2022-01-14; NISO published it on 2022-02-08.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.niso.org/publications/z39104-2022-credit",
+  "schemaVersion": 1,
+  "versionObserved": "Z39.104-2022"
+}

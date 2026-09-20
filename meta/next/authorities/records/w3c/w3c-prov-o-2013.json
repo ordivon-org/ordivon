@@ -1,0 +1,52 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "W3C PROV",
+      "PROV-O",
+      "PROV Ontology"
+    ],
+    "domains": [
+      "research",
+      "data",
+      "artifact"
+    ],
+    "topics": [
+      "provenance",
+      "ontology",
+      "data-lineage",
+      "interchange"
+    ]
+  },
+  "id": "w3c-prov-o-2013",
+  "identity": {
+    "authorityKind": "web-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "w3c",
+      "name": "W3C"
+    },
+    "officialSource": "https://www.w3.org/TR/prov-o/",
+    "publicationDate": "2013-04-30",
+    "title": "PROV-O: The PROV Ontology — W3C Recommendation 30 April 2013",
+    "versionLabel": "2013-04-30"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "W3C official Recommendation checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 15288",
+      "ISO/IEC/IEEE 15288:2023"
+    ],
+    "domains": [
+      "engineering",
+      "systems"
+    ],
+    "topics": [
+      "system-lifecycle",
+      "systems-engineering",
+      "system-of-systems"
+    ]
+  },
+  "id": "iso-iec-ieee-15288-2023",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso-iec-ieee",
+      "name": "ISO/IEC/IEEE"
+    },
+    "officialSource": "https://www.iso.org/standard/81702.html",
+    "publicationDate": "2023-05",
+    "title": "ISO/IEC/IEEE 15288:2023 — Systems and software engineering — System life cycle processes",
+    "versionLabel": "2023"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/engineering.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

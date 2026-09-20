@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "OTLP",
+      "OpenTelemetry Protocol"
+    ],
+    "domains": [
+      "operations",
+      "observability",
+      "engineering"
+    ],
+    "topics": [
+      "telemetry",
+      "protocol",
+      "export",
+      "traces",
+      "metrics",
+      "logs"
+    ]
+  },
+  "id": "otlp-1.11.0",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "opentelemetry",
+      "name": "OpenTelemetry"
+    },
+    "officialSource": "https://opentelemetry.io/docs/specs/",
+    "publicationDate": null,
+    "title": "OpenTelemetry Protocol (OTLP) Specification 1.11.0",
+    "versionLabel": "1.11.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/providers/opentelemetry.md",
+      "capabilities/packages/operations.md",
+      "OpenTelemetry official specification summary checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "archimate-3.2",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "The Open Group identifies ArchiMate 3.2, released October 2022, as the latest ArchiMate Specification.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.opengroup.org/archimate-licensed-downloads",
+  "schemaVersion": 1,
+  "versionObserved": "3.2"
+}

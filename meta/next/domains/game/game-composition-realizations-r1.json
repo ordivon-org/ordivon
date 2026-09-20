@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-next.game-composition-realizations.r1",
+  "observedDate": "2026-09-14",
+  "standing": "REALIZATION_LEDGER_ACTIVE",
+  "sourceSearch": "game-composition-search-r2.json",
+  "entries": [
+    {
+      "candidateId": "cs2-03-upstream-random-buildcraft",
+      "realizationStanding": "APPARATUS_READY_HUMAN_UNOBSERVED",
+      "repo": "/root/projects/ordivon-game",
+      "revision": "7abb5856ad32a86a16c5555b54642022c5c64329",
+      "apparatusPath": "experiments/composition-r2/cs2-03-upstream-random-buildcraft",
+      "acceptanceReceiptPath": "evidence/acceptance/game-cs2-03-upstream-random-buildcraft-apparatus-20260914.json",
+      "acceptanceReceiptDigest": "sha256:e2a874bc7b7a300af137a81b92939c9fecde3af606087e505d310acf4819bb73",
+      "structuralPrecheckPath": "experiments/composition-r2/cs2-03-upstream-random-buildcraft/evidence/structural-precheck.json",
+      "structuralPrecheckDigest": "sha256:cff3787ef372e2027a78a4e479175b83e12ece479d3526be05be3e2170e032ce",
+      "structuralStanding": "STRUCTURAL_PRECHECK_PASS",
+      "metrics": {
+        "allEncounterSequences": 625,
+        "allBuildPaths": 81,
+        "uniqueOptimalBuildSignatures": 17,
+        "largestOptimalSignatureShare": 0.3488,
+        "largestFirstPickShare": 0.5616,
+        "adaptiveVsUniversalUplift": 0.13175418994413426,
+        "optimalVsGreedyMeanUplift": 0.19066735313226105,
+        "over2PctOptimalVsGreedyShare": 0.8656
+      },
+      "humanEvidence": "UNOBSERVED",
+      "next": "RUN_HUMAN_C0_EXPORT_SESSION_JSON"
+    }
+  ],
+  "authorityBoundary": [
+    "Search snapshots remain unchanged; realization state is tracked separately.",
+    "Structural apparatus readiness does not establish Human Player Value.",
+    "Only explicit Human session evidence may advance Human standing."
+  ]
+}

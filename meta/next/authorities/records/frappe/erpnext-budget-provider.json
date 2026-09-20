@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Provider-native budget control and variance evidence; not a complete FP&A methodology or cash-flow forecast."
+  },
+  "discovery": {
+    "aliases": [
+      "ERPNext Budget",
+      "ERPNext Budget Variance"
+    ],
+    "domains": [
+      "business",
+      "enterprise",
+      "finance"
+    ],
+    "topics": [
+      "budget",
+      "budget-control",
+      "budget-variance",
+      "budgeting",
+      "financial-planning",
+      "project-budget"
+    ]
+  },
+  "id": "erpnext-budget-provider",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "rolling-source",
+    "issuer": {
+      "id": "frappe",
+      "name": "Frappe"
+    },
+    "officialSource": "https://docs.frappe.io/erpnext/budget",
+    "publicationDate": null,
+    "title": "ERPNext Budget provider documentation",
+    "versionLabel": null
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r3",
+      "migrations/records/business-operations-erpnext-r1.md"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

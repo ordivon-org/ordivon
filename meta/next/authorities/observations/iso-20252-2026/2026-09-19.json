@@ -1,0 +1,11 @@
+{
+  "authorityId": "iso-20252-2026",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published-current",
+  "note": "ISO lists ISO 20252:2026 Edition 4 as published in 2026-09. The scope covers market, opinion and social research, insights and data analytics, and explicitly excludes non-research activities such as direct marketing.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://www.iso.org/standard/88881.html",
+  "schemaVersion": 1,
+  "versionObserved": "2026"
+}

@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "经营主体登记文书规范和提交材料规范（2026年版）",
+      "国市监注发〔2026〕5号"
+    ],
+    "domains": [
+      "business",
+      "company-formation",
+      "prc"
+    ],
+    "topics": [
+      "company-registration",
+      "filing-materials",
+      "market-entity-registration"
+    ]
+  },
+  "id": "samr-registration-materials-2026",
+  "identity": {
+    "authorityKind": "government-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "samr",
+      "name": "State Administration for Market Regulation"
+    },
+    "officialSource": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/djzcj/art/2026/art_3321d681741f48cfa3a8e6ef4b15cccd.html",
+    "publicationDate": "2026-01-12",
+    "title": "经营主体登记文书规范和提交材料规范（2026年版）",
+    "versionLabel": "2026"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-practice-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

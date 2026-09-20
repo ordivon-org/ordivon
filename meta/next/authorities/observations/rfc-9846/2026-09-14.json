@@ -1,0 +1,11 @@
+{
+  "authorityId": "rfc-9846",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "proposed-standard",
+  "note": "Current TLS 1.3 Standards Track specification; obsoletes RFC 8446 and older TLS specifications listed by RFC Editor.",
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.rfc-editor.org/info/rfc9846/",
+  "schemaVersion": 1,
+  "versionObserved": "RFC 9846"
+}

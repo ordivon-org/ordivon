@@ -1,0 +1,167 @@
+{
+  "dataset": "data/2026/2026-02-24/sfi_grants.csv",
+  "externalOwners": {
+    "databaseCdc": "debezium-stable-cdc",
+    "eventTimeLateData": "apache-beam-programming-model",
+    "identifierResolution": "iso-8000-115-2024",
+    "metadataItemMapping": [
+      "iso-iec-11179-3-2023",
+      "iso-iec-11179-3-amd1-2026"
+    ],
+    "organizationReferenceRegistry": "ror-schema-2.1",
+    "schemaEvolution": "apache-iceberg-spec-v3"
+  },
+  "kind": "data-revision-ledger",
+  "revisionOrderingAuthority": "Git commit ancestry/time; processing arrival is non-authoritative",
+  "revisions": [
+    {
+      "columnCount": 12,
+      "commit": "51504577572c78cf4908371d6eff5d99f53b0698",
+      "commitTime": "2026-02-22T13:27:21Z",
+      "encoding": {
+        "declaredEncoding": "latin-1",
+        "firstUtf8Error": {
+          "bytes": "d8",
+          "end": 66485,
+          "reason": "invalid continuation byte",
+          "start": 66484
+        },
+        "strictUtf8Valid": false
+      },
+      "logicalContentSha256": "0db159e16919302f363478c458b3a1f66eb9b48667fba3a8a3a3040a24a7a242",
+      "message": "Science Foundation Ireland Grant Commitments (#997)",
+      "rawBytes": 1934115,
+      "rawSha256": "1f961db4f51d081134f4cf9777786229e89e6292ba5b0f2fd405179dd8b2d0c0",
+      "role": "old",
+      "rowCountIncludingHeader": 7270,
+      "schema": [
+        {
+          "name": "start_date",
+          "type": "DATE"
+        },
+        {
+          "name": "end_date",
+          "type": "DATE"
+        },
+        {
+          "name": "proposal_id",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "programme_name",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "sub_programme",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "supplement",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "research_body",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "research_body_ror_id",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "funder_name",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "crossref_funder_registry_id",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "proposal_title",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "current_total_commitment",
+          "type": "DOUBLE"
+        }
+      ],
+      "schemaSha256": "4c38ced38dbaa06adb95647e16907ff42a531f8579a32725fbca344b745a7e08"
+    },
+    {
+      "columnCount": 12,
+      "commit": "bb24566e57c7ac138650b23d8183ae31d351f817",
+      "commitTime": "2026-02-22T15:49:44Z",
+      "encoding": {
+        "declaredEncoding": "utf-8",
+        "firstUtf8Error": null,
+        "strictUtf8Valid": true
+      },
+      "logicalContentSha256": "0db159e16919302f363478c458b3a1f66eb9b48667fba3a8a3a3040a24a7a242",
+      "message": "Properly encode data. (#1004)",
+      "rawBytes": 1934366,
+      "rawSha256": "417b7ed1c49be76e767f3f3a413ccd9d9cb33eacda25494d16946e35399b9064",
+      "role": "new",
+      "rowCountIncludingHeader": 7270,
+      "schema": [
+        {
+          "name": "start_date",
+          "type": "DATE"
+        },
+        {
+          "name": "end_date",
+          "type": "DATE"
+        },
+        {
+          "name": "proposal_id",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "programme_name",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "sub_programme",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "supplement",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "research_body",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "research_body_ror_id",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "funder_name",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "crossref_funder_registry_id",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "proposal_title",
+          "type": "VARCHAR"
+        },
+        {
+          "name": "current_total_commitment",
+          "type": "DOUBLE"
+        }
+      ],
+      "schemaSha256": "4c38ced38dbaa06adb95647e16907ff42a531f8579a32725fbca344b745a7e08"
+    }
+  ],
+  "schemaVersion": 1,
+  "transition": {
+    "classification": "REPRESENTATION_ONLY_REVISION",
+    "expectedClassification": "REPRESENTATION_ONLY_REVISION",
+    "from": "51504577572c78cf4908371d6eff5d99f53b0698",
+    "logicalRowsEqual": true,
+    "rawBytesEqual": false,
+    "schemaEqual": true,
+    "to": "bb24566e57c7ac138650b23d8183ae31d351f817"
+  }
+}

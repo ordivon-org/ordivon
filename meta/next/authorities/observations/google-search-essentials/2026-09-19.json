@@ -1,0 +1,11 @@
+{
+  "authorityId": "google-search-essentials",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "Current Google Search Essentials organize provider guidance into technical requirements, spam policies and key best practices. Google separately recommends helpful, reliable, people-first content rather than search-engine-first mass content.",
+  "observedDate": "2026-09-19",
+  "officialSource": "https://developers.google.com/search/docs/essentials",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

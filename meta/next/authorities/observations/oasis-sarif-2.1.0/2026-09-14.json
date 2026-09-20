@@ -1,0 +1,11 @@
+{
+  "authorityId": "oasis-sarif-2.1.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "published",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://www.oasis-open.org/standard/sarif-v2-1-0/",
+  "schemaVersion": 1,
+  "versionObserved": "2.1.0"
+}

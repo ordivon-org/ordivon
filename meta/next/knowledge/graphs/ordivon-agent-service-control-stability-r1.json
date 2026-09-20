@@ -1,0 +1,115 @@
+{
+  "analyzedImplementationCommit": "0721009237365ea61cd975bd187be5171f1dcd52",
+  "controlLoops": [
+    {
+      "finding": "Placement readiness has conservative immediate loss, but no freshness coordinate and no asymmetric recovery damping.",
+      "id": "L1_AGENT_PRESENCE",
+      "perturbations": [
+        "S1_PLACEMENT_FLAP",
+        "S2_STALE_PLACEMENT_OBSERVATION"
+      ],
+      "result": "EXPOSED"
+    },
+    {
+      "finding": "Single-owner fencing works. Response-loss recovery converges when Runtime honors exact clientRequest replay; otherwise Agent Service cannot discover the orphan external Job.",
+      "id": "L2_TASK_EXECUTION",
+      "perturbations": [
+        "S3_RUNTIME_RESPONSE_LOSS_IDEMPOTENT",
+        "S4_RUNTIME_RESPONSE_LOSS_NONIDEMPOTENT",
+        "S6_SINGLE_OWNER_BLOCKS_REMOTE_OVERLAP"
+      ],
+      "result": "CONDITIONAL_STABLE"
+    },
+    {
+      "finding": "Replay/failover exactness and historical-success fencing converge, but fallback diversity is not modeled.",
+      "id": "L3_PROVED_SAFE_FAILOVER",
+      "perturbations": [
+        "S7_FAILOVER_EXACT_REPLAY",
+        "S8_SHARED_FAILURE_DOMAIN_FALLBACK",
+        "S9_REMOTE_SUCCESS_THEN_FAILURE"
+      ],
+      "result": "SEMANTICALLY_SAFE_RESILIENCE_GAP"
+    },
+    {
+      "finding": "Credential proof freshness is rechecked before material resolution on each call.",
+      "id": "L5_TRANSPORT_AUTHORITY",
+      "perturbations": [
+        "S5_CREDENTIAL_EXPIRES_BETWEEN_CALLS"
+      ],
+      "result": "FAIL_CLOSED"
+    }
+  ],
+  "harnessSourceClean": true,
+  "harnessSourceRevision": "8e291f2af2912af37572a09e8f0ed4daece733f6",
+  "kind": "ordivon.agent-service-control-stability-r1",
+  "nonActions": [
+    "Do not create a second Runtime execution ledger in Agent Service.",
+    "Do not add generic symmetric hysteresis to readiness before observation freshness is preserved.",
+    "Do not make same-host fallback universally illegal; failure-domain semantics need domain/provider evidence.",
+    "Do not weaken immediate fail-closed credential expiry checks.",
+    "Do not change R12 quiescence/replay-safety separation."
+  ],
+  "recommendedOrder": [
+    {
+      "action": "Propagate a monotonic natural-provider observation coordinate from the materialization ledger through census and CarrierProviderAdapter into Agent Service; reject stale regressions/recoveries before changing readiness.",
+      "name": "FRESHNESS_CONSERVATION",
+      "priority": 1,
+      "whyBeforeHysteresis": "Damping without freshness can preserve obsolete READY evidence longer."
+    },
+    {
+      "action": "After freshness exists, test immediate downgrade plus delayed/stable re-upgrade rather than symmetric hysteresis.",
+      "name": "ASYMMETRIC_READINESS_DAMPING_EXPERIMENT",
+      "priority": 2,
+      "standing": "EXPERIMENT_ONLY"
+    },
+    {
+      "action": "Derive provider/account/host/network/credential failure-domain evidence for primary/fallback comparisons without creating a universal FailureDomain authority yet.",
+      "name": "FAILURE_DOMAIN_DERIVATION",
+      "priority": 3,
+      "standing": "ANALYSIS_ONLY"
+    },
+    {
+      "action": "Require new retry/recovery features to declare the unique layer owning replay, backoff and cancellation.",
+      "name": "CONTROLLER_OWNERSHIP_GATE",
+      "priority": 4
+    }
+  ],
+  "scenarioClassifications": {
+    "CONTRACT_DEPENDENCY_EXPOSED": 1,
+    "CONVERGES": 2,
+    "FAILURE_DOMAIN_UNMODELED_EXPOSED": 1,
+    "FAIL_CLOSED": 3,
+    "OSCILLATION_EXPOSED": 1,
+    "STALE_OBSERVATION_EXPOSED": 1
+  },
+  "schemaVersion": 1,
+  "sourceFindings": [
+    {
+      "agentServiceSurface": "agent_service.slice1.ProviderObservation",
+      "agentServiceSurfaceCarriesFreshness": false,
+      "id": "FRESHNESS_LOST_IN_PROJECTION",
+      "naturalAuthority": "/root/projects/ordivon-harness/scripts/sqlite_conversation_materializer.py",
+      "projection": "/root/projects/ordivon-harness/scripts/campaign_birth.py::campaign_census",
+      "projectionDrops": [
+        "effect_generation",
+        "updated_at_ms"
+      ],
+      "sourceTruth": [
+        "effect_generation",
+        "updated_at_ms"
+      ]
+    },
+    {
+      "id": "RUNTIME_EXACT_REPLAY_DOGFOOD",
+      "meaning": "The current local Runtime satisfies the exact-replay dependency exposed by S4; Agent Service should not duplicate Runtime execution truth.",
+      "naturalAuthority": "Ordivon Runtime",
+      "result": {
+        "sameAttemptId": true,
+        "sameClientRequestIdSubmittedTwice": true,
+        "sameJobId": true,
+        "sameOperationDigest": true
+      }
+    }
+  ],
+  "standing": "DYNAMIC_ANALYSIS_NOT_RUNTIME_PROMOTION"
+}

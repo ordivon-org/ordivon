@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Apache Arrow",
+      "Arrow Columnar Format",
+      "Arrow Format 1.5"
+    ],
+    "domains": [
+      "data",
+      "analytics",
+      "research"
+    ],
+    "topics": [
+      "columnar",
+      "in-memory",
+      "ipc",
+      "analytics",
+      "data-interchange"
+    ]
+  },
+  "id": "apache-arrow-format-1.5",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "apache-arrow",
+      "name": "Apache Arrow"
+    },
+    "officialSource": "https://arrow.apache.org/docs/format/Columnar.html",
+    "publicationDate": null,
+    "title": "Apache Arrow Columnar Format 1.5",
+    "versionLabel": "1.5"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/data-analytics.md",
+      "Apache Arrow official documentation checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 1035",
+      "DNS implementation",
+      "STD 13 DNS"
+    ],
+    "domains": [
+      "network",
+      "internet"
+    ],
+    "topics": [
+      "dns",
+      "domain-name-system",
+      "name-resolution",
+      "wire-format"
+    ]
+  },
+  "id": "rfc-1035",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc1035/",
+    "publicationDate": "1987-11",
+    "title": "RFC 1035 / STD 13 — Domain names — implementation and specification",
+    "versionLabel": "RFC 1035"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/network.md",
+      "RFC Editor checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-1034"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

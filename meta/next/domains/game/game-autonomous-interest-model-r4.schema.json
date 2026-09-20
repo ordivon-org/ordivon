@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/game-autonomous-interest-model-r4.schema.json",
+  "title": "Autonomous Game Interest R4 Declarative Finite Game Model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "candidateId", "humanSignalUsed", "actions", "causalCouplings", "contexts", "states"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"enum": ["candidate", "selftest"]},
+    "candidateId": {"type": "string"},
+    "humanSignalUsed": {"const": false},
+    "actions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,23}$"}
+    },
+    "causalCouplings": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$"}
+    },
+    "contexts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["0", "1", "2", "3"],
+      "properties": {
+        "0": {"$ref": "#/$defs/context"},
+        "1": {"$ref": "#/$defs/context"},
+        "2": {"$ref": "#/$defs/context"},
+        "3": {"$ref": "#/$defs/context"}
+      }
+    },
+    "states": {
+      "type": "object",
+      "minProperties": 12,
+      "maxProperties": 512,
+      "propertyNames": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$"},
+      "additionalProperties": {"$ref": "#/$defs/state"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "candidate"}}},
+      "then": {"properties": {"candidateId": {"enum": ["R4C01", "R4C02", "R4C03"]}}},
+      "else": {"properties": {"candidateId": {"const": "R4SELFTEST"}}}
+    }
+  ],
+  "$defs": {
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trainInitialStates", "evalInitialStates"],
+      "properties": {
+        "trainInitialStates": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "evalInitialStates": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observation", "status", "transitions"],
+      "properties": {
+        "observation": {"type": "object", "maxProperties": 12},
+        "status": {"enum": ["ONGOING", "WIN", "LOSS"]},
+        "transitions": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": {"$ref": "#/$defs/transition"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "ONGOING"}}},
+          "then": {"properties": {"transitions": {"minProperties": 1}}},
+          "else": {"properties": {"transitions": {"maxProperties": 0}}}
+        }
+      ]
+    },
+    "transition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["next"],
+          "properties": {"next": {"type": "string"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["next", "couplingId", "withoutCouplingNext"],
+          "properties": {
+            "next": {"type": "string"},
+            "couplingId": {"type": "string"},
+            "withoutCouplingNext": {"type": "string"}
+          }
+        }
+      ]
+    }
+  }
+}

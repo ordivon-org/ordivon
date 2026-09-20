@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "graphId": "zcode-workspace-snapshot-security-lego-r1",
+  "graphKind": "agent-security-dataflow-case",
+  "date": "2026-09-18",
+  "status": "PROSPECTIVE_CASE_R1",
+  "sourceBoundary": "Public reverse-engineering report plus previously reviewed public product/privacy material; not independently reproduced by Ordivon in this case.",
+  "primarySource": "https://blog.ferstar.org/en/posts/zcode-silent-workspace-snapshot-upload/",
+  "nodes": [
+    {
+      "id": "AS01",
+      "label": "AuthenticatedClientIdentity",
+      "kind": "IDENTITY_AUTHORITY",
+      "standing": "REPORTED_STATIC_AND_RUNTIME",
+      "question": "Does login imply snapshot/egress authority or is there a separate grant?"
+    },
+    {
+      "id": "AS02",
+      "label": "CaptureTrigger",
+      "kind": "CONTROL_TRIGGER",
+      "standing": "REPORTED_STATIC",
+      "question": "Which prompt/task/startup events cause capture?"
+    },
+    {
+      "id": "AS03",
+      "label": "RepositoryCaptureScope",
+      "kind": "DATA_SCOPE",
+      "standing": "REPORTED_MANIFEST",
+      "question": "What exact files/history classes are included or excluded?"
+    },
+    {
+      "id": "AS04",
+      "label": "SnapshotDerivation",
+      "kind": "DERIVATION",
+      "standing": "REPORTED_STATIC",
+      "question": "What manifests/archives/hashes are created from workspace data?"
+    },
+    {
+      "id": "AS05",
+      "label": "LocalCheckpointPersistence",
+      "kind": "LOCAL_PERSISTENCE",
+      "standing": "REPORTED_RUNTIME",
+      "question": "What persists locally and what drives retry/cleanup?"
+    },
+    {
+      "id": "AS06",
+      "label": "SnapshotEgressPath",
+      "kind": "EGRESS",
+      "standing": "REPORTED_STATIC_AND_NETWORK",
+      "question": "Which backend/object-store routes carry snapshot data?"
+    },
+    {
+      "id": "AS07",
+      "label": "RemoteSnapshotPersistence",
+      "kind": "REMOTE_PERSISTENCE",
+      "standing": "CAPABILITY_SUPPORTED_OUTCOME_INSTANCE_PARTIAL",
+      "question": "Which uploads succeed and how long does remote state persist?"
+    },
+    {
+      "id": "AS08",
+      "label": "ServerCompatibleKeyAuthority",
+      "kind": "KEY_AUTHORITY",
+      "standing": "STRONG_INFERENCE_FROM_REPORTED_CRYPTO_TOPOLOGY",
+      "question": "Which principal can decrypt and under what lifecycle?"
+    },
+    {
+      "id": "AS09",
+      "label": "UserControlActuator",
+      "kind": "CONTROL_ACTUATOR",
+      "standing": "REPORTED_SCOPE_MISMATCH",
+      "question": "Which stage does each visible setting actually control?"
+    },
+    {
+      "id": "AS10",
+      "label": "SideEffectObservation",
+      "kind": "VERIFIER_OBSERVER",
+      "standing": "FORENSICALLY_DISCOVERABLE_USER_VISIBLE_LEDGER_UNPROVEN",
+      "question": "Can normal users see capture/bytes/destination/retry/remote standing?"
+    },
+    {
+      "id": "AS11",
+      "label": "RetentionDeletionSemantics",
+      "kind": "LIFECYCLE_POLICY",
+      "standing": "UNRESOLVED",
+      "question": "What deletes local, remote and derived copies?"
+    },
+    {
+      "id": "AS12",
+      "label": "DisclosureMentalModel",
+      "kind": "DISCLOSURE_CONTRACT",
+      "standing": "POTENTIAL_MISMATCH_REQUIRES_VERSIONED_POLICY_REVIEW",
+      "question": "Do UI/policy claims match the actual dataflow?"
+    }
+  ],
+  "edges": [
+    {
+      "from": "AS01",
+      "to": "AS02",
+      "type": "IDENTITY",
+      "label": "authenticated session enables backend-capable flow"
+    },
+    {
+      "from": "AS02",
+      "to": "AS03",
+      "type": "CONTROL",
+      "label": "event triggers repository capture"
+    },
+    {
+      "from": "AS03",
+      "to": "AS04",
+      "type": "DERIVATION",
+      "label": "captured repository becomes manifest/archive"
+    },
+    {
+      "from": "AS04",
+      "to": "AS05",
+      "type": "PERSISTENCE",
+      "label": "snapshot/checkpoint state retained locally"
+    },
+    {
+      "from": "AS04",
+      "to": "AS06",
+      "type": "DATA",
+      "label": "derived snapshot prepared for outbound transfer"
+    },
+    {
+      "from": "AS08",
+      "to": "AS04",
+      "type": "AUTHORITY",
+      "label": "cryptographic topology defines who can recover plaintext"
+    },
+    {
+      "from": "AS06",
+      "to": "AS07",
+      "type": "EGRESS",
+      "label": "object-store transfer may create remote durable copy"
+    },
+    {
+      "from": "AS09",
+      "to": "AS02",
+      "type": "POLICY",
+      "label": "capture actuator should bind here if control means snapshot-off",
+      "standing": "REQUIRED_DESIGN_TEST"
+    },
+    {
+      "from": "AS09",
+      "to": "AS06",
+      "type": "POLICY",
+      "label": "egress actuator should bind here if control means upload-off",
+      "standing": "REQUIRED_DESIGN_TEST"
+    },
+    {
+      "from": "AS09",
+      "to": "AS07",
+      "type": "POLICY",
+      "label": "retention/index controls may bind downstream",
+      "standing": "REPORTED_PARTIAL"
+    },
+    {
+      "from": "AS05",
+      "to": "AS10",
+      "type": "OBSERVATION",
+      "label": "local snapshot/retry evidence"
+    },
+    {
+      "from": "AS06",
+      "to": "AS10",
+      "type": "OBSERVATION",
+      "label": "network effect evidence"
+    },
+    {
+      "from": "AS07",
+      "to": "AS11",
+      "type": "PERSISTENCE",
+      "label": "remote object requires deletion/retention semantics"
+    },
+    {
+      "from": "AS12",
+      "to": "AS09",
+      "type": "DISCLOSURE",
+      "label": "visible setting semantics should match actuator placement"
+    },
+    {
+      "from": "AS12",
+      "to": "AS03",
+      "type": "DISCLOSURE",
+      "label": "disclosed collection scope should match capture scope"
+    }
+  ],
+  "sets": {
+    "read": [
+      "workspace source",
+      "repository metadata",
+      ".git objects (reported sample)",
+      ".git logs/reflog (reported class)",
+      "LFS objects (reported class)"
+    ],
+    "write": [
+      "local checkpoint state",
+      "snapshot/archive state",
+      "retry metadata"
+    ],
+    "derive": [
+      "manifest",
+      "archive",
+      "encrypted snapshot",
+      "identifiers/hashes",
+      "possible downstream index/wiki material"
+    ],
+    "network": [
+      "ZCode backend credential/registration plane",
+      "object storage upload plane",
+      "ordinary model/provider plane is separate"
+    ],
+    "persist": [
+      "local checkpoint/retry state",
+      "remote object storage on successful upload",
+      "possible downstream derived state"
+    ]
+  },
+  "failurePatterns": [
+    "AMBIENT_AUTHORITY_EXPANSION",
+    "TRIGGER_INTENT_MISMATCH",
+    "SCOPE_INFLATION",
+    "ACTUATOR_MISPLACEMENT",
+    "HIDDEN_EGRESS_PLANE",
+    "PERSISTENCE_AMBIGUITY",
+    "KEY_AUTHORITY_AMBIGUITY",
+    "UNOBSERVABLE_SIDE_EFFECT",
+    "DISCLOSURE_DRIFT"
+  ],
+  "falsificationPlan": {
+    "fixture": [
+      "current file",
+      "deleted committed secret",
+      "uncommitted file",
+      "ignored file",
+      "reflog-only operation",
+      "LFS object",
+      "unpushed branch",
+      "symlink edge case"
+    ],
+    "factors": [
+      "loggedIn",
+      "promptSubmitted",
+      "snapshotIndexingEnabled",
+      "experienceOptimizationEnabled"
+    ],
+    "outcomes": [
+      "capture",
+      "manifestMembership",
+      "archiveCreation",
+      "credentialRequest",
+      "bytesSent",
+      "objectStoreSuccess",
+      "callbackRegistration",
+      "downstreamIndexUse"
+    ]
+  },
+  "promotionCandidates": [
+    "TRIGGER_FIRST_CLASS",
+    "DERIVE_SET",
+    "EGRESS_PLANE_SEPARATION",
+    "REMOTE_PERSISTENCE_STATE",
+    "ACTUATOR_PLACEMENT",
+    "SIDE_EFFECT_LEDGER",
+    "DISCLOSURE_ALIGNMENT"
+  ],
+  "nonClaims": [
+    "malicious intent",
+    "legal judgment",
+    "universal behavior across versions/platforms",
+    "successful upload of every attempted snapshot",
+    "exact server retention or access",
+    "encryption weakness"
+  ],
+  "acceptance": {
+    "systemBoundaryDefined": "PASS",
+    "authorityGraphDefined": "PASS",
+    "triggerGraphDefined": "PASS",
+    "fiveSetsDefined": "PASS",
+    "actuatorMappingDefined": "PASS_WITH_UNRESOLVED_PRODUCT_SEMANTICS",
+    "persistenceMapDefined": "PASS_WITH_REMOTE_UNKNOWNS",
+    "observationMapDefined": "PASS",
+    "disclosureComparisonDefined": "PASS_AS_TEST_NOT_VERDICT",
+    "falsificationPlanDefined": "PASS",
+    "motiveNonConflation": "PASS"
+  }
+}

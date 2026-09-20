@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "DataCite",
+      "DataCite Metadata Schema",
+      "DataCite 4.7"
+    ],
+    "domains": [
+      "research",
+      "scholarly-communication",
+      "metadata",
+      "data"
+    ],
+    "topics": [
+      "doi",
+      "research-output-metadata",
+      "dataset-metadata",
+      "persistent-identifiers",
+      "citation-metadata"
+    ]
+  },
+  "id": "datacite-metadata-schema-4.7",
+  "identity": {
+    "authorityKind": "scholarly-metadata-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "datacite",
+      "name": "DataCite"
+    },
+    "officialSource": "https://schema.datacite.org/meta/kernel-4.7/",
+    "publicationDate": "2026-03-03",
+    "title": "DataCite Metadata Schema 4.7",
+    "versionLabel": "4.7"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "DataCite official schema checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

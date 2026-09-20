@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ROR",
+      "ROR 2.1",
+      "Research Organization Registry"
+    ],
+    "domains": [
+      "research",
+      "scholarly-communication",
+      "identity",
+      "metadata"
+    ],
+    "topics": [
+      "research-organization",
+      "organization-identifier",
+      "affiliation",
+      "institution-metadata"
+    ]
+  },
+  "id": "ror-schema-2.1",
+  "identity": {
+    "authorityKind": "identifier-metadata-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ror",
+      "name": "Research Organization Registry (ROR)"
+    },
+    "officialSource": "https://ror.readme.io/docs/schema-v2-1",
+    "publicationDate": "2024-12",
+    "title": "ROR Schema 2.1",
+    "versionLabel": "2.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "capabilities/packages/research.md",
+      "docs/RESEARCH_CAPABILITY_PACKAGE_R1.md",
+      "ROR official schema documentation checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

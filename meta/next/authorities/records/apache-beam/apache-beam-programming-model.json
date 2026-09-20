@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-record",
+  "id": "apache-beam-programming-model",
+  "identity": {
+    "issuer": {
+      "id": "apache-beam",
+      "name": "Apache Beam"
+    },
+    "title": "Apache Beam Programming Model — Event Time, Watermarks, Windowing and Late Data",
+    "authorityKind": "mature-open-source-pattern",
+    "identityMode": "rolling-source",
+    "versionLabel": null,
+    "officialSource": "https://beam.apache.org/documentation/programming-guide/",
+    "publicationDate": null
+  },
+  "discovery": {
+    "aliases": [
+      "Beam event-time model",
+      "Apache Beam programming guide"
+    ],
+    "topics": [
+      "event-time",
+      "processing-time",
+      "watermark",
+      "late-data",
+      "windowing",
+      "triggers"
+    ],
+    "domains": [
+      "data",
+      "streaming",
+      "analytics"
+    ]
+  },
+  "access": {
+    "metadata": "public",
+    "fullText": "public",
+    "note": "Apache Beam programming guide is public."
+  },
+  "relations": {
+    "supersedes": [],
+    "supersededBy": [],
+    "related": [
+      "debezium-stable-cdc",
+      "apache-iceberg-spec-v3"
+    ]
+  },
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "data-temporal-evolution-r1",
+      "Apache Beam programming guide checked 2026-09-20"
+    ]
+  }
+}

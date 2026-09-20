@@ -1,0 +1,51 @@
+{
+  "externalOwners": {
+    "identifierResolution": "iso-8000-115-2024",
+    "metadataItemMapping": [
+      "iso-iec-11179-3-2023",
+      "iso-iec-11179-3-amd1-2026"
+    ]
+  },
+  "kind": "reference-identity-report",
+  "report": {
+    "crossref_funder_registry_id": {
+      "ambiguousLabelsMappingToMultipleIdentifiers": {},
+      "identifierLabelVariants": {},
+      "identityRule": "Identifier is authoritative; multiple labels for one identifier are label variants, not identity conflicts.",
+      "rowsWithMissingIdentifier": 0,
+      "scheme": "Crossref Funder Registry DOI",
+      "standing": "PASS_IDENTIFIER_STABLE",
+      "uniqueIdentifiers": 1,
+      "uniqueLabelsWithIdentifier": 1
+    },
+    "research_body_ror_id": {
+      "ambiguousLabelsMappingToMultipleIdentifiers": {},
+      "identifierLabelVariants": {
+        "https://ror.org/01zgghk09": [
+          "CoderDojo Ireland Foundation",
+          "Hello World Foundation t/a CoderDojo Foundation"
+        ]
+      },
+      "identityRule": "Identifier is authoritative; multiple labels for one identifier are label variants, not identity conflicts.",
+      "rowsWithMissingIdentifier": 334,
+      "scheme": "ROR",
+      "standing": "PASS_IDENTIFIER_STABLE",
+      "uniqueIdentifiers": 69,
+      "uniqueLabelsWithIdentifier": 70
+    },
+    "rowIdentityCandidate": {
+      "column": "proposal_id",
+      "duplicateRows": 0,
+      "rows": 7269,
+      "unique": 7269
+    }
+  },
+  "rules": [
+    "Use an explicit source/reference identifier as identity when present.",
+    "Treat human-readable names as labels, not authoritative identity.",
+    "One stable identifier may legitimately have multiple labels or historical/source names.",
+    "One label mapping to multiple identifiers is ambiguous and requires explicit mapping/review.",
+    "Fuzzy matching may generate review candidates only and never creates an authoritative mapping."
+  ],
+  "schemaVersion": 1
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "artefactual-fixity-0.8.0",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://pypi.org/project/fixity/0.8.0/",
+  "versionObserved": "0.8.0",
+  "note": "PyPI records Fixity 0.8.0 released 3 January 2025; R1 used a provenance-pinned local 0.8.0 deployment to scan all six Storage Service AIPs successfully."
+}

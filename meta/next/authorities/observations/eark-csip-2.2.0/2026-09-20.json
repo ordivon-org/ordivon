@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-authority-observation",
+  "authorityId": "eark-csip-2.2.0",
+  "basis": "official-source",
+  "lifecycleStatus": "current",
+  "observedDate": "2026-09-20",
+  "officialSource": "https://csip.openpreservation.org/",
+  "versionObserved": "2.2.0",
+  "note": "DILCIS Board published CSIP 2.2.0 in May 2024; this version was used by the data preservation R1 validation."
+}

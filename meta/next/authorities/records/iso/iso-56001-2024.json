@@ -1,0 +1,51 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 56001",
+      "innovation management system"
+    ],
+    "domains": [
+      "enterprise",
+      "management",
+      "innovation"
+    ],
+    "topics": [
+      "innovation-management",
+      "management-system",
+      "innovation",
+      "organizational-capability"
+    ]
+  },
+  "id": "iso-56001-2024",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/79278.html",
+    "publicationDate": "2024-09",
+    "title": "ISO 56001:2024 — Innovation management system — Requirements",
+    "versionLabel": "2024"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-14",
+    "registrationBasis": [
+      "docs/ENTERPRISE_OPERATING_MODEL_R1.md",
+      "ISO official source checked 2026-09-14"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

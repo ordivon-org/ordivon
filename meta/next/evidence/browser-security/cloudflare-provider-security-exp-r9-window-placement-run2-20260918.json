@@ -1,0 +1,299 @@
+{
+  "comparisons": {
+    "r8FreshBaselineToSeededFresh": {
+      "browserChangedPaths": [],
+      "leftGeometry": {
+        "inner": [
+          800,
+          600
+        ],
+        "outer": [
+          1050,
+          980
+        ]
+      },
+      "leftTargetTypeCounts": {
+        "page": 2
+      },
+      "managedLauncherFlagsEqual": true,
+      "pageChangedPaths": [
+        "$.windowOuter[0]",
+        "$.windowOuter[1]"
+      ],
+      "rightGeometry": {
+        "inner": [
+          800,
+          600
+        ],
+        "outer": [
+          1288,
+          851
+        ]
+      },
+      "rightTargetTypeCounts": {
+        "page": 2
+      }
+    }
+  },
+  "date": "2026-09-18",
+  "interpretationGuard": {
+    "challengeOutcomeUsedAsDetectorOracle": false,
+    "note": "Synthetic window-placement sufficiency localizes the measured production outer-window geometry to Chromium profile-restored window state. It does not explain how that state was historically created or establish provider relevance.",
+    "providerCausalityEstablished": false,
+    "rootCauseEstablished": false
+  },
+  "kind": "ordivon.browser-security-neutral-window-placement-r9",
+  "mechanismCheck": {
+    "innerViewportPreserved": true,
+    "outerReproducedExactly": true,
+    "productionReferenceOuter": [
+      1288,
+      851
+    ],
+    "projectedPlacementOuter": [
+      1288,
+      851
+    ],
+    "seededObservedOuter": [
+      1288,
+      851
+    ],
+    "targetTopologyPreserved": true
+  },
+  "productionOuterReference": [
+    1288,
+    851
+  ],
+  "productionWindowPlacementProjection": {
+    "bottom": 851,
+    "left": 0,
+    "maximized": false,
+    "right": 1288,
+    "top": 0,
+    "work_area_bottom": 1000,
+    "work_area_left": 0,
+    "work_area_right": 1440,
+    "work_area_top": 0
+  },
+  "reference": {
+    "r8Run1Path": "evidence/browser-security/cloudflare-provider-security-exp-r8-fresh-service-run1-20260918.json",
+    "r8Run1Sha256": "sha256:d6c59d1efb230c445caea36ac4501ee3a579a0e05f670523714181c650198b9b",
+    "r8Standing": "NEUTRAL_FRESH_SERVICE_ATTRIBUTION_ONLY_ROOT_CAUSE_OPEN"
+  },
+  "safetyBoundary": {
+    "challengeInteracted": false,
+    "cookieValuesRead": false,
+    "productionBrowserConnected": false,
+    "productionProfileCopied": false,
+    "projectedProductionProfileFields": [
+      "left",
+      "top",
+      "right",
+      "bottom",
+      "maximized",
+      "work_area_left",
+      "work_area_top",
+      "work_area_right",
+      "work_area_bottom"
+    ],
+    "protectedProviderVisited": false,
+    "providerSendAttempted": false
+  },
+  "schemaVersion": 1,
+  "seededFreshService": {
+    "arm": {
+      "browser": {
+        "browserContextCount": 0,
+        "commandLineArguments": [
+          "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+          "--allow-pre-commit-input",
+          "--disable-background-networking",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-breakpad",
+          "--disable-client-side-phishing-detection",
+          "--disable-component-extensions-with-background-pages",
+          "--disable-crash-reporter",
+          "--disable-default-apps",
+          "--disable-dev-shm-usage",
+          "--disable-hang-monitor",
+          "--disable-infobars",
+          "--disable-ipc-flooding-protection",
+          "--disable-popup-blocking",
+          "--disable-prompt-on-repost",
+          "--disable-renderer-backgrounding",
+          "--disable-search-engine-choice-screen",
+          "--disable-sync",
+          "--enable-automation",
+          "--export-tagged-pdf",
+          "--force-color-profile=srgb",
+          "--generate-pdf-document-outline",
+          "--metrics-recording-only",
+          "--no-first-run",
+          "--password-store=basic",
+          "--use-mock-keychain",
+          "--disable-features=Translate,AcceptCHFrame,MediaRouter,OptimizationHints,WebUIReloadButton,WebUIOmniboxPopup,WebUIOmniboxAimPopup,ProcessPerSiteUpToMainFrameThreshold,IsolateSandboxedIframes,LocalNetworkAccessChecks",
+          "--enable-features=PdfOopif",
+          "--user-data-dir=<profile>",
+          "--disable-extensions",
+          "--remote-debugging-port=<ephemeral>",
+          "--no-sandbox",
+          "--no-first-run",
+          "--disable-component-update",
+          "--user-data-dir=<profile>",
+          "--ozone-platform=x11",
+          "--flag-switches-begin",
+          "--flag-switches-end",
+          "about:blank"
+        ],
+        "systemInfo": {
+          "commandLine": [
+            "/usr/local/bin/playwright-browsers/chromium-1243/chrome-linux64/chrome",
+            "--allow-pre-commit-input",
+            "--disable-background-networking",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-breakpad",
+            "--disable-client-side-phishing-detection",
+            "--disable-component-extensions-with-background-pages",
+            "--disable-crash-reporter",
+            "--disable-default-apps",
+            "--disable-dev-shm-usage",
+            "--disable-hang-monitor",
+            "--disable-infobars",
+            "--disable-ipc-flooding-protection",
+            "--disable-popup-blocking",
+            "--disable-prompt-on-repost",
+            "--disable-renderer-backgrounding",
+            "--disable-search-engine-choice-screen",
+            "--disable-sync",
+            "--enable-automation",
+            "--export-tagged-pdf",
+            "--force-color-profile=srgb",
+            "--generate-pdf-document-outline",
+            "--metrics-recording-only",
+            "--no-first-run",
+            "--password-store=basic",
+            "--use-mock-keychain",
+            "--disable-features=Translate,AcceptCHFrame,MediaRouter,OptimizationHints,WebUIReloadButton,WebUIOmniboxPopup,WebUIOmniboxAimPopup,ProcessPerSiteUpToMainFrameThreshold,IsolateSandboxedIframes,LocalNetworkAccessChecks",
+            "--enable-features=PdfOopif",
+            "--user-data-dir=<profile>",
+            "--disable-extensions",
+            "--remote-debugging-port=<ephemeral>",
+            "--no-sandbox",
+            "--no-first-run",
+            "--disable-component-update",
+            "--user-data-dir=<profile>",
+            "--ozone-platform=x11",
+            "--flag-switches-begin",
+            "--flag-switches-end",
+            "about:blank"
+          ],
+          "gpuDevices": [
+            {
+              "deviceId": 0,
+              "deviceString": "ANGLE (Mesa, llvmpipe (LLVM 20.1.2 256 bits), OpenGL 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2)",
+              "vendorId": 0,
+              "vendorString": "Google Inc. (Mesa)"
+            }
+          ],
+          "modelName": "",
+          "modelVersion": ""
+        },
+        "targetTypeCounts": {
+          "page": 2
+        },
+        "version": {
+          "jsVersion": "15.3.76.4",
+          "product": "Chrome/153.0.8010.12",
+          "protocolVersion": "1.3",
+          "revision": "@971a7443b0c9b0a9b2860529b33331b76077ec62",
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
+        }
+      },
+      "browserVersion": "153.0.8010.12",
+      "page": {
+        "canvasTextWidths": {
+          "Arial": 239.2266,
+          "DejaVu Sans": 269.7656,
+          "Liberation Sans": 239.2266,
+          "Noto Sans": 220.8594,
+          "Segoe UI": 234.2188,
+          "Selawik": 234.2188,
+          "Ubuntu": 240.6564,
+          "Verdana": 220.8594
+        },
+        "deviceMemoryGiB": null,
+        "devicePixelRatio": 1,
+        "fontChecks": {
+          "Arial": true,
+          "DejaVu Sans": true,
+          "Liberation Sans": true,
+          "Noto Sans": true,
+          "Segoe UI": true,
+          "Selawik": true,
+          "Ubuntu": true,
+          "Verdana": true
+        },
+        "hardwareConcurrency": 16,
+        "language": "en-US",
+        "languages": [
+          "en-US"
+        ],
+        "maxTouchPoints": 0,
+        "platform": "Linux x86_64",
+        "prefersColorSchemeDark": false,
+        "prefersReducedMotion": false,
+        "screen": [
+          1440,
+          1000,
+          1440,
+          1000,
+          24,
+          24
+        ],
+        "timezone": "Asia/Shanghai",
+        "timezoneOffsetMinutes": -480,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "webdriver": true,
+        "webgl": {
+          "available": false
+        },
+        "windowInner": [
+          800,
+          600
+        ],
+        "windowOuter": [
+          1288,
+          851
+        ]
+      }
+    },
+    "cleanup": {
+      "containerAbsent": true,
+      "profileAbsent": true,
+      "xSocketAbsent": true,
+      "xauthAbsent": true
+    },
+    "preCollectionPageCount": 1
+  },
+  "standing": "NEUTRAL_WINDOW_PLACEMENT_CAUSAL_ATTRIBUTION_ROOT_CAUSE_OPEN",
+  "syntheticProfile": {
+    "containsProductionCredentialsOrSessionData": false,
+    "preferences": {
+      "browser": {
+        "window_placement": {
+          "bottom": 851,
+          "left": 0,
+          "maximized": false,
+          "right": 1288,
+          "top": 0,
+          "work_area_bottom": 1000,
+          "work_area_left": 0,
+          "work_area_right": 1440,
+          "work_area_top": 0
+        }
+      }
+    }
+  }
+}

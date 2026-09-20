@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.lego-regime-shift-canary-acceptance",
+  "canary": "A_AGENT_SERVICE",
+  "date": "2026-09-18",
+  "truthRole": "acceptance-evidence-not-domain-truth",
+  "baseline": "LEGO Theory Wave 1",
+  "treatment": "LEGO Regime Shift & Deep-Uncertainty Decision R1",
+  "verdict": "PASS",
+  "decisionRelevantIncrementalValue": true,
+  "evidence": [
+    "knowledge/lessons/agent-service-regime-card-r1.md",
+    "evidence/analysis/agent-service-regime-card-r1.json"
+  ],
+  "acceptanceQuestions": {
+    "stockFlowDivergenceNew": true,
+    "bufferDelayChangedInterpretation": true,
+    "constraintMigrationChangedWorkAllocation": true,
+    "competingHypothesesPreventedPrematureConclusion": true,
+    "falsifiersAndSignpostsExplicit": true,
+    "actionBecameStagedReversibleInformationSeeking": true,
+    "inapplicableConceptRejectedOrSimplified": true
+  },
+  "keyObservations": {
+    "r14ValidatedButDetached": true,
+    "r14RepositoryTests": 214,
+    "currentMainAgentServiceTreeObserved": false,
+    "r14CurrentMainMergeTreeRc": 0,
+    "liveLegacyAutomationObserved": true,
+    "freshProviderPreflight": "CHALLENGE_GATED",
+    "freshBrowserlessSubstrateHealthy": true,
+    "historicalLedgerFreshness": "NO_UPDATES_IN_LAST_24H_AT_OBSERVATION",
+    "historicalLedgerRequests": 313
+  },
+  "decisionChange": "Pause broad R15 feature expansion; prioritize staged R14 integration plus end-to-end accepted-throughput instrumentation before choosing the next capability investment.",
+  "rejectedOrSimplifiedOperators": [
+    "critical-transition statistics",
+    "critical-slowing-down alarm",
+    "generic tipping-point threshold"
+  ],
+  "crossDomainPromotion": "BLOCKED_PENDING_CANARIES_B_AND_C"
+}

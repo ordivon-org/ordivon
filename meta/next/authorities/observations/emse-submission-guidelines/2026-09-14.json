@@ -1,0 +1,11 @@
+{
+  "authorityId": "emse-submission-guidelines",
+  "basis": "migrated-verified-profile",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": null,
+  "observedDate": "2026-09-14",
+  "officialSource": "https://link.springer.com/journal/10664/submission-guidelines",
+  "schemaVersion": 1,
+  "versionObserved": null
+}

@@ -1,0 +1,49 @@
+{
+  "access": {
+    "fullText": "licensed",
+    "metadata": "public",
+    "note": "Brand-evaluation principles; dormant until brand evaluation is a real decision need."
+  },
+  "discovery": {
+    "aliases": [
+      "ISO 20671-1:2021",
+      "Brand evaluation"
+    ],
+    "domains": [
+      "brand",
+      "business",
+      "marketing"
+    ],
+    "topics": [
+      "brand",
+      "brand-evaluation",
+      "brand-indicators"
+    ]
+  },
+  "id": "iso-20671-1-2021",
+  "identity": {
+    "authorityKind": "international-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "iso",
+      "name": "ISO"
+    },
+    "officialSource": "https://www.iso.org/standard/81739.html",
+    "publicationDate": "2021-11",
+    "title": "ISO 20671-1:2021 — Brand evaluation — Part 1: Principles and fundamentals",
+    "versionLabel": "2021"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-19",
+    "registrationBasis": [
+      "commercial-marketing-externalization-r1"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
