@@ -89,7 +89,6 @@ rollback_after_lease() {
     sleep .25
   done
   systemctl start ordivon-browserless-operator-proxy@11.service ordivon-browserless-operator-proxy@12.service ordivon-browserless-operator-proxy@13.service >/dev/null 2>&1 || true
-  systemctl restart ordivon-agent-temporal-worker.service ordivon-agent-automation-mcp.service >/dev/null 2>&1 || true
   verify_browserless >/dev/null 2>&1 || true
   rm -f "$STATE"
   set -e
@@ -242,10 +241,10 @@ systemctl start ordivon-browserless@11.service ordivon-browserless@12.service or
 systemctl start ordivon-browserless-operator-proxy@11.service ordivon-browserless-operator-proxy@12.service ordivon-browserless-operator-proxy@13.service
 verify_browserless
 
-systemctl restart ordivon-agent-temporal-worker.service ordivon-agent-automation-mcp.service
-for u in ordivon-agent-temporal-worker.service ordivon-agent-automation-mcp.service; do [ "$(systemctl is-active "$u")" = active ]; done
 systemctl enable network-v2-browserless.target >/dev/null
 systemctl disable "$RECOVER_PATH" "$RECON_PATH" "$RECOVER_SERVICE" "$RECON_SERVICE" >/dev/null 2>&1 || true
+
+# Consumer services are deliberately not restarted or required here. Network owns the Browserless path; upper-layer consumers observe/reconcile the new generation through their own lifecycle.
 
 # Egress-IP collection is supplemental evidence only. Core production acceptance above
 # already proved the provider path and a real Browserless ChatGPT navigation.

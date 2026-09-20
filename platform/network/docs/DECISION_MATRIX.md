@@ -44,3 +44,5 @@ requires_topology_lab
 ```
 
 Consumer policies belong under `consumers/`; provider material belongs under `providers/`. They may compose generic mechanisms but must not redefine generic Network behavior.
+
+Consumer-specific migration may observe active workload state to avoid disrupting a live effect, but it must not make consumer service lifecycle part of Network acceptance.
