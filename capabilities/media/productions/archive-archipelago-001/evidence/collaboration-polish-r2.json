@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-collaboration-evidence",
+  "workId": "media:archive-archipelago-001",
+  "standing": "DESIGN_REVIEW_INPUT_NOT_AUTHORITY",
+  "boardInputs": [
+    {
+      "sequence": 16875,
+      "input": "Keep Archive Archipelago distinct from System Constellation; pulse only the 45 already-real relation routes; keep owner labels persistent and move dense work labels to interaction."
+    },
+    {
+      "sequence": 16877,
+      "input": "Preserve archive topology vs present repository snapshot as different semantic layers; prioritize owner islands and selected works/routes over simultaneous labels."
+    },
+    {
+      "sequence": 16981,
+      "input": "Accessible Publication peer classified 303 ordinary Tab stops as a freeze blocker and recommended one map stop plus a keyboard-equivalent search/result path because spatial adjacency is not semantically stable."
+    },
+    {
+      "sequence": 17048,
+      "input": "Accessible Publication peer PASS_BOUNDED a nearest-visible-node pointer convenience only if it stays out of the semantic focus model, uses <=22 CSS px screen-space distance, visible-only candidates, deterministic ties, and drag suppression; required five destructive mobile gates."
+    },
+    {
+      "sequence": 17068,
+      "input": "Relation Passages peer recommended one reciprocal parent↔guided doorway only, preserving explorer vs guided-reading separation; implementation deferred until the sibling accessibility blocker is repaired and a refreshed exact source exists."
+    },
+    {
+      "sequence": 17066,
+      "input": "Independent source re-entry found the currently registered Relation Passages sibling still has 303 node-level Tab stops, so parent must not bind its guided doorway to that blocked exact carrier yet."
+    }
+  ],
+  "adopted": [
+    "Archive and System Constellation remain separate works and ontologies.",
+    "Only exact catalogued DERIVATIVE_OF / CONSUMER_OF routes receive optional motion.",
+    "Static map labels only eight representative works; full item detail moves to interactive focus/selection.",
+    "Owner archipelagos remain spatially stable during route pulse mode.",
+    "303 map-node Tab stops are rejected; the map is one Tab stop and individual keyboard selection is carried by bounded native search-result buttons.",
+    "Conceptual spatial adjacency is not promoted into arrow-key semantic navigation.",
+    "Mobile pointer convenience resolves only currently visible Works within <=22 CSS px and is suppressed after drag; it does not create a second semantic focus model.",
+    "Reciprocal parent↔guided navigation is deferred until Relation Passages publishes a refreshed accessibility-safe exact revision."
+  ],
+  "outboundCollaboration": [
+    {
+      "sequence": 16897,
+      "purpose": "intermediate polish status back to collaborating agents"
+    },
+    {
+      "sequence": 16898,
+      "purpose": "Playwright binding invocation friction handoff to browser/tooling lane"
+    },
+    {
+      "sequence": 16913,
+      "purpose": "reusable interaction/accessibility grammar shared with Data Atlas agent"
+    }
+  ],
+  "boundary": "Board records are collaboration/design input only. Frozen catalog bytes, Git, Works DB, Artifact validators and Runtime execution retain their own authority."
+}

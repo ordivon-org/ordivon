@@ -1,0 +1,1062 @@
+{
+  "schemaVersion": 1,
+  "productionId": "ordivon-book-v0",
+  "claims": [
+    {
+      "id": "reality-representation-nonidentity",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-18-19-research-understanding/worldview.md"
+      },
+      "meaning": "Current cross-owner synthesis explicitly preserves Reality != Representation, Evidence != Conclusion, HistoricalValidity != Currentness, and Projection != Authority; Ordivon uses these as anti-collapse distinctions rather than as one universal ontology.",
+      "evidence": [
+        "synthesis/2026-08-18-19-research-understanding/worldview.md"
+      ],
+      "allowedWording": [
+        "Reality is not identical to its current representation",
+        "projection does not mint authority",
+        "historical validity and currentness are distinct"
+      ],
+      "avoid": [
+        "representation is always false",
+        "Atlas is the truth source",
+        "the anti-collapse list is a complete ontology"
+      ]
+    },
+    {
+      "id": "research-standing-currentness",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-18-19-research-understanding/research-method-v1.md"
+      },
+      "meaning": "Ordivon's current research-method synthesis requires explicit evidence scope, result standing, provenance/currentness, scoped reopenable closure, and allows Research-to-Engineering outcomes including NO_CHANGE, narrowing, deletion, repair, implementation change, or further experiment.",
+      "evidence": [
+        "synthesis/2026-08-18-19-research-understanding/research-method-v1.md"
+      ],
+      "allowedWording": [
+        "research does not automatically imply feature creation",
+        "closure is scoped and reopenable",
+        "standing and currentness must remain explicit"
+      ],
+      "avoid": [
+        "every research result must be implemented",
+        "a completed task proves whole-domain closure",
+        "Git recency alone establishes semantic currentness"
+      ]
+    },
+    {
+      "id": "standing-action-nonidentity",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/research-process-lineage/episodes/2026-08-19-rsi-pal-standing-action-governance.md"
+      },
+      "meaning": "Cross-owner process reconstruction separates epistemic support from intervention authority and separates admission, selection, commitment, effect, propagation reach, control reach, observation reach, and amplification; the episode is process memory, not a universal law source.",
+      "evidence": [
+        "synthesis/research-process-lineage/episodes/2026-08-19-rsi-pal-standing-action-governance.md"
+      ],
+      "allowedWording": [
+        "epistemic support does not automatically authorize intervention",
+        "selection, commitment, and effect are distinct",
+        "feedback is not identical to gain"
+      ],
+      "avoid": [
+        "high confidence authorizes action",
+        "all consequences are controllable from the first mutation",
+        "this process episode is a universal governance theory"
+      ]
+    },
+    {
+      "id": "future-problem-generation",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/README.md"
+      },
+      "meaning": "Current cross-owner synthesis distinguishes future consequence/problem revelation, activation, and generation; capabilities, institutions, metrics, and deployed representations can create new consequential regimes, so a representation is safe only relative to a declared continuation family rather than every possible future task.",
+      "evidence": [
+        "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/README.md"
+      ],
+      "allowedWording": [
+        "action can change the future problem space",
+        "new capabilities or representations can generate new consequential regimes",
+        "representation sufficiency is continuation-relative"
+      ],
+      "avoid": [
+        "every action necessarily creates a new problem",
+        "future problem spaces are fully predictable",
+        "one representation is losslessly sufficient for unrestricted future use"
+      ]
+    },
+    {
+      "id": "ppd-open-pressure",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/proactive-pressure-discovery-ppd/README.md"
+      },
+      "meaning": "PPD treats the evidence/question/measurement/representation/generator interface itself as revisable and preserves NoNaturalContradiction != NoReachablePressure and OpenWorldCompleteness = NOT_ESTABLISHED.",
+      "evidence": [
+        "synthesis/proactive-pressure-discovery-ppd/README.md"
+      ],
+      "allowedWording": [
+        "lack of a natural contradiction does not imply lack of reachable discriminating pressure",
+        "the search interface itself may be changed",
+        "PPD is generative rather than a mandatory checklist"
+      ],
+      "avoid": [
+        "PPD guarantees discovery",
+        "PPD exhausts open-world epistemology",
+        "every local PPD application defines generic PPD"
+      ]
+    },
+    {
+      "id": "atlas-projection-not-authority",
+      "source": {
+        "binding": "atlas",
+        "path": "README.md"
+      },
+      "meaning": "Atlas is a generated exploration/history/recovery projection over owner-native authority surfaces; stale retained bytes remain useful history/recovery material but are not current truth, and curated synthesis is explicitly non-authoritative.",
+      "evidence": [
+        "README.md"
+      ],
+      "allowedWording": [
+        "Atlas preserves map, history, recovery, and currentness health without becoming owner truth",
+        "a Book may consume Atlas synthesis without inheriting truth authority"
+      ],
+      "avoid": [
+        "Atlas owns all Ordivon truth",
+        "recoverable history is current truth",
+        "Book claims become authoritative because Atlas indexed them"
+      ]
+    },
+    {
+      "id": "writing-expression-not-truth",
+      "source": {
+        "binding": "media",
+        "path": "research/expression/profiles/writing.md"
+      },
+      "meaning": "The active Studio Writing profile owns cross-publication writing craft while source-domain facts and publication authority remain elsewhere; it explicitly treats structural rhetoric, compression, title/body certainty, chronology/causality, historical/current tense, and fluent overstatement as semantic failure modes.",
+      "evidence": [
+        "research/expression/profiles/writing.md",
+        "docs/production-cognition.md"
+      ],
+      "allowedWording": [
+        "Studio owns expression, not source-domain truth",
+        "writing structure can change the reader's inferred model",
+        "Book cognition is an index of current judgment rather than a second truth ledger"
+      ],
+      "avoid": [
+        "good prose makes a claim true",
+        "Media may override domain standing for narrative coherence",
+        "one permanent house style is already established"
+      ]
+    },
+    {
+      "id": "problem-representation-search-geometry",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-20-finite-intelligence-open-interface-formation/README.md"
+      },
+      "meaning": "Current non-authoritative Open Interface synthesis distinguishes problem solving, problem finding, question generation and problem-space expansion; representation/candidate/transformation/comparability bases can change reachable search geometry, while maximum resolution is not maximum epistemic power and no finite basis establishes open-world completeness.",
+      "evidence": [
+        "synthesis/2026-08-20-finite-intelligence-open-interface-formation/README.md"
+      ],
+      "allowedWording": [
+        "representation can change which problem/search distinctions are reachable",
+        "problem solving is not identical to problem-space expansion",
+        "maximum resolution is not maximum epistemic power"
+      ],
+      "avoid": [
+        "representation determines Reality",
+        "every task needs reframing",
+        "a single open-interface ontology is established"
+      ]
+    },
+    {
+      "id": "continuation-relative-representation-sufficiency",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/core-results.md"
+      },
+      "meaning": "For a declared continuation family, representation sufficiency can be defined relative to distinctions that affect allowed continuation outcomes; current-task irrelevance is not future irrelevance, predictive sufficiency is not interventional sufficiency, and compression is not an irrelevance proof. Unrestricted future use defeats any nontrivial universal lossy-sufficiency claim.",
+      "evidence": [
+        "synthesis/2026-08-20-finite-intelligence-open-consequence-decomposition/core-results.md"
+      ],
+      "allowedWording": [
+        "representation sufficiency is continuation-relative",
+        "a safe merge can become unsafe when the continuation family expands",
+        "lossy does not by itself mean insufficient"
+      ],
+      "avoid": [
+        "one representation is sufficient for every future use",
+        "all compressed distinctions must be retained",
+        "predictive sufficiency automatically authorizes intervention"
+      ]
+    },
+    {
+      "id": "problem-solution-representation-nonprivilege",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-19-generalization-and-epistemic-space/open-problem-handoff.md"
+      },
+      "meaning": "The retained open-problem handoff rejects assuming that one external task has one uniquely privileged internal problem/solution representation; question, representation, search and evaluation structure may shape expressible questions, candidate answers, reachable neighbors, generated evidence and visible anomalies. This remains open-problem pressure, not a universal theorem.",
+      "evidence": [
+        "synthesis/2026-08-19-generalization-and-epistemic-space/open-problem-handoff.md"
+      ],
+      "allowedWording": [
+        "one task need not have one privileged internal problem/solution representation",
+        "problem and solution representations can be coordinate-dependent working structures"
+      ],
+      "avoid": [
+        "all decompositions are equally good",
+        "ProblemDomain and SolutionDomain are universal ontology classes",
+        "human knowledge is globally wrong"
+      ]
+    },
+    {
+      "id": "observer-relative-projection-conservation",
+      "source": {
+        "binding": "media-current",
+        "path": "research/media/engineering-consumption/OMPC-v0.md"
+      },
+      "meaning": "Current OMPC-v0 permits observer-relative projections of the same source while conserving source authority/currentness, forbidding standing lifting, requiring material loss/omission disclosure and separating displayed affordance from external admission/execution authority.",
+      "evidence": [
+        "research/media/engineering-consumption/OMPC-v0.md",
+        "README.md"
+      ],
+      "allowedWording": [
+        "different observers may receive different representations of the same source",
+        "projection does not transfer source authority",
+        "material omission should remain discoverable"
+      ],
+      "avoid": [
+        "same source requires identical representation",
+        "Media projection is source truth",
+        "affordance implies authorization"
+      ]
+    },
+    {
+      "id": "representation-challenge-minority-control",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/research-methodology-observation/MECHANISMS.md"
+      },
+      "meaning": "Current methodology observation treats Problem/Representation Challenge as recurrent qualitative but explicitly notes that most work occurs under stable frames; reframing is a minority mode rather than a constant requirement.",
+      "evidence": [
+        "synthesis/research-methodology-observation/MECHANISMS.md"
+      ],
+      "allowedWording": [
+        "representation challenge is sometimes necessary",
+        "stable-frame work is often sufficient"
+      ],
+      "avoid": [
+        "every problem requires representation escape",
+        "reframing is universally superior",
+        "stable representations imply epistemic failure"
+      ]
+    },
+    {
+      "id": "action-standing-admission-selection-nonlifting",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      },
+      "meaning": "Current non-authoritative action/governance synthesis separates Evidence, Claim, Standing, UseDisposition and ActionPermission, and separately distinguishes ActionAdmission from ActionSelection; stronger evidence may expand, shrink or restructure action freedom rather than monotonically increasing it.",
+      "evidence": [
+        "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      ],
+      "allowedWording": [
+        "standing does not automatically authorize action",
+        "action admission is not action selection",
+        "more evidence does not necessarily mean more action freedom"
+      ],
+      "avoid": [
+        "high confidence creates permission",
+        "admitted action must be selected",
+        "this synthesis is a universal Action service"
+      ]
+    },
+    {
+      "id": "finance-decision-proposal-nonaction",
+      "source": {
+        "binding": "finance-ch3",
+        "path": "design/DECISION-PROPOSAL-KERNEL.md"
+      },
+      "meaning": "At the exact Chapter-3 Finance admission cut, Decision semantics require an explicit NO-OP baseline; research, wait and abstain are complete Decisions rather than failed trade generation; a Proposal is a separate immutable capital-transition intent and proposal-ready never means authorized or submitted.",
+      "evidence": [
+        "design/DECISION-PROPOSAL-KERNEL.md"
+      ],
+      "allowedWording": [
+        "non-action can be a complete Finance Decision",
+        "NO-OP is an explicit decision baseline",
+        "Proposal is distinct from authority and external effect"
+      ],
+      "avoid": [
+        "abstain is decision failure",
+        "every coherent decision creates a Proposal",
+        "proposal-ready means executable now"
+      ]
+    },
+    {
+      "id": "finance-authority-current-admission-effect-separation",
+      "source": {
+        "binding": "finance-ch3",
+        "path": "design/C2-AUTHORITY-REFORM.md"
+      },
+      "meaning": "At the exact Chapter-3 Finance admission cut, C2 authority separates owner-native capital authority from semantic/deployment/effect admission and preserves Decision/Proposal/world-bound request/effect reservation/dispatch/receipt/reconciliation as distinct boundaries; owner-native authority removes self-leasing but does not authorize every future effect automatically.",
+      "evidence": [
+        "design/C2-AUTHORITY-REFORM.md",
+        "docs/runtime-domain.md",
+        "design/AUTHORITY-EXECUTION-KERNEL.md"
+      ],
+      "allowedWording": [
+        "owner-native authority still requires current action-specific admission",
+        "Decision, Proposal, reserved Effect and reconciled effect truth are distinct",
+        "authority source does not by itself make every action executable now"
+      ],
+      "avoid": [
+        "Primary Finance Agent needs per-effect Human approval",
+        "owner-native authority means every trade is currently admitted",
+        "Proposal is execution authority"
+      ]
+    },
+    {
+      "id": "normative-power-capability-control-nonidentity",
+      "source": {
+        "binding": "normative-current",
+        "path": "DERIVED-LAWS.md"
+      },
+      "meaning": "Current Normative owner law explicitly separates NormativePower, physical capability, ordinary permission and effective control; Normative does not own generic effective control/enforcement or a universal action ontology.",
+      "evidence": [
+        "DERIVED-LAWS.md",
+        "OWNER-CONTRACT.md",
+        "BOUNDARIES-NEGATIVE.md"
+      ],
+      "allowedWording": [
+        "normative power is not physical capability",
+        "ordinary permission and effective control are distinct",
+        "Normative does not own generic enforcement/control truth"
+      ],
+      "avoid": [
+        "permission proves physical capability",
+        "effective control proves normative power",
+        "Normative is a global permission engine"
+      ]
+    },
+    {
+      "id": "harness-capability-admission-authority",
+      "source": {
+        "binding": "harness-current",
+        "path": "README.md"
+      },
+      "meaning": "Current Harness separates installed, Run-admitted and turn-admitted capabilities; Agent selection of current evidence/action occurs within delegated authority; installed mechanisms and bounded Run conclusions do not silently become external/domain authority.",
+      "evidence": [
+        "README.md",
+        "docs/P0-CAPABILITY-COMPOSITION-CLOSEOUT.md"
+      ],
+      "allowedWording": [
+        "installed capability is not Run or turn authority",
+        "Agent selection is bounded by delegated authority",
+        "Harness Run completion does not automatically complete an external domain objective"
+      ],
+      "avoid": [
+        "installed Tool implies permission",
+        "Harness chooses domain priority or grants external authority",
+        "model-correct conclusion is universally authoritative"
+      ]
+    },
+    {
+      "id": "runtime-commitment-effect-semantic-completion",
+      "source": {
+        "binding": "runtime-current",
+        "path": "docs/effect-kernel.md"
+      },
+      "meaning": "Current Runtime Effect Kernel separates Proposal from commitment and Execution Result from External Effect Receipt and Semantic Completion Claim; it preserves ambiguous physical outcomes explicitly, uses reconciliation before unsafe redispatch, and invalidates a bound commitment when enforceable world/authority preconditions drift before dispatch.",
+      "evidence": [
+        "docs/effect-kernel.md",
+        "README.md",
+        "docs/agent-ux.md"
+      ],
+      "allowedWording": [
+        "proposal is not physical commitment",
+        "execution success is not external-effect receipt or semantic completion",
+        "unknown effect state must remain explicit and may require reconciliation"
+      ],
+      "avoid": [
+        "exit code zero proves domain completion",
+        "missing receipt proves no effect",
+        "opaque effects are safe to blindly retry"
+      ]
+    },
+    {
+      "id": "effect-propagation-control-observation-frontiers",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      },
+      "meaning": "The non-authoritative cross-owner action synthesis distinguishes immediate effect, propagation, control and observation frontiers and preserves LocalEffectBound != CausalReachBound; small mutations need not imply small downstream consequences.",
+      "evidence": [
+        "synthesis/2026-08-19-rsi-pal-action-governance/README.md"
+      ],
+      "allowedWording": [
+        "local effect bounds do not automatically bound downstream causal reach",
+        "effect, propagation, control and observation frontiers can differ",
+        "small mutation need not mean small consequence"
+      ],
+      "avoid": [
+        "all downstream consequences are enumerable",
+        "local action magnitude determines consequence magnitude",
+        "sandboxed action always means sandboxed influence"
+      ]
+    },
+    {
+      "id": "consequence-benefit-attribution-nonidentity",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-21-result-achievement-value-materialization/README.md"
+      },
+      "meaning": "Current non-authoritative Result/Achievement/Value synthesis separates Consumption from RealizedBenefit and Occurrence from OwnerOutcome, Evaluation and BeneficiaryBenefit; realized benefit requires observed beneficial downstream consequence plus adequate attribution standing for a named beneficiary/use scope.",
+      "evidence": [
+        "synthesis/2026-08-21-result-achievement-value-materialization/README.md"
+      ],
+      "allowedWording": [
+        "effect or consumption does not by itself prove benefit",
+        "occurrence, owner outcome, evaluation and beneficiary benefit are distinct",
+        "benefit claims require consequence and attribution evidence appropriate to scope"
+      ],
+      "avoid": [
+        "successful execution proves value",
+        "admission delta proves benefit",
+        "one universal utility score is implied"
+      ]
+    },
+    {
+      "id": "finance-historical-decision-current-action-nonidentity",
+      "source": {
+        "binding": "finance-current",
+        "path": "kernel/decision_kernel.py"
+      },
+      "meaning": "Current Finance Decision evaluation preserves an immutable Decision's historical validity while an expired review epoch can require fresh review before any new action progression; past rationality is not silently rewritten into current commitment authority.",
+      "evidence": [
+        "kernel/decision_kernel.py",
+        "capabilities/decision.evaluate.json"
+      ],
+      "allowedWording": [
+        "a historically valid Decision may be non-actionable now",
+        "Decision review expiry can require fresh action review without rewriting history",
+        "HistoricalDecisionValidity is distinct from CommitmentCurrentness"
+      ],
+      "avoid": [
+        "expired means the historical Decision was false",
+        "historical validity authorizes new action progression",
+        "all domain facts use Finance review epochs"
+      ]
+    },
+    {
+      "id": "host-continuity-current-work-nonidentity",
+      "source": {
+        "binding": "host-current",
+        "path": "src/ordivon_host/mcp_server.py"
+      },
+      "meaning": "Current Host task.list/resume/checkpoint surfaces own semantic continuity only: READY means continuity remains open; recovered frontier/nextActions are retained working claims rather than current work admission, priority, Git truth or domain authority.",
+      "evidence": [
+        "src/ordivon_host/mcp_server.py",
+        "tests/test_mcp_server.py"
+      ],
+      "allowedWording": [
+        "continuity is not current work",
+        "resume does not re-admit a historical frontier as present priority",
+        "Host source-revision hints require owner revalidation"
+      ],
+      "avoid": [
+        "READY means work should continue now",
+        "Host continuity owns cross-owner currentness",
+        "checkpoint recovery proves current Git/domain truth"
+      ]
+    },
+    {
+      "id": "runtime-recovery-reconciliation-unknown",
+      "source": {
+        "binding": "runtime-current",
+        "path": "docs/recovery.md"
+      },
+      "meaning": "Current Runtime preserves uncertain execution/delivery/commit outcomes and recovers the same durable operation identity before any new effect; reconciliation is distinct from retry, and UNKNOWN must not be guessed into success or failure when Reality evidence cannot establish either side.",
+      "evidence": [
+        "docs/recovery.md",
+        "docs/runtime.md",
+        "research/engineering/RUNTIME-FOUNDATIONS-V1-ENGINEERING-CONSUMPTION.md"
+      ],
+      "allowedWording": [
+        "response loss is not permission to re-execute",
+        "reconciliation is not blind retry",
+        "UNKNOWN can be positive boundary information"
+      ],
+      "avoid": [
+        "missing response proves failure",
+        "Runtime UNKNOWN is a domain success state",
+        "all external effects are generically reconcilable"
+      ]
+    },
+    {
+      "id": "media-currentness-nonfabrication",
+      "source": {
+        "binding": "media-current",
+        "path": "research/media/engineering-consumption/OMPC-v0.md"
+      },
+      "meaning": "Current Media projection semantics prohibit a projection from declaring its source current merely because the projection is recent, available or re-rendered; source-owner authority/currentness remains external and exact-fence traceable.",
+      "evidence": [
+        "research/media/engineering-consumption/OMPC-v0.md"
+      ],
+      "allowedWording": [
+        "recent rendering does not currentize source truth",
+        "projection currentness cannot be fabricated from availability",
+        "Book currentness remains source-fenced"
+      ],
+      "avoid": [
+        "latest Media render is current source truth",
+        "Book prose may override a changed owner",
+        "one Media freshness flag governs all source domains"
+      ]
+    },
+    {
+      "id": "actionable-now-bounded-book-synthesis",
+      "source": {
+        "binding": "atlas",
+        "path": "synthesis/2026-08-18-19-research-understanding/worldview.md"
+      },
+      "meaning": "Chapter 4's Actionable Now is a non-authoritative Book integration: a finite agent has recovered enough owner-local evidence, currentness/authority/admission boundaries and explicit unresolved state to choose the next action or non-action without treating historical/unknown coordinates as current. It assumes only a currently discovered load-bearing dependency frontier, not complete dependency knowledge.",
+      "evidence": [
+        "synthesis/2026-08-18-19-research-understanding/worldview.md",
+        "src/ordivon_atlas/atlas.py"
+      ],
+      "allowedWording": [
+        "Actionable Now is operation-relative rather than one global synchronized semantic state",
+        "recovery may legitimately end in wait, research, reconcile, abstain or NO_CHANGE",
+        "finite revalidation begins from a currently discovered load-bearing frontier"
+      ],
+      "avoid": [
+        "Actionable Now is an owner-native universal law",
+        "Ordivon knows every dependency relevant to an action",
+        "a global Currentness service or dependency graph is established"
+      ]
+    },
+    {
+      "id": "selective-currentness-regrounding",
+      "source": {
+        "binding": "finance-current",
+        "path": "capabilities/decision.evaluate.json"
+      },
+      "meaning": "Current Ordivon witnesses support bounded revalidation rather than whole-world refresh: action-specific owner dependencies, expiry, uncertainty, changed operation or source-resolution failure can require reacquisition, while unchanged load-bearing boundaries may legitimately yield NO_CHANGE.",
+      "evidence": [
+        "capabilities/decision.evaluate.json",
+        "capabilities/execution.reserve.v4.json",
+        "kernel/context_compiler.py",
+        "kernel/execution_kernel.py"
+      ],
+      "allowedWording": [
+        "revalidation can be selective and action-specific",
+        "expiry can require revalidation without an observed change notification",
+        "NO_CHANGE is a valid revalidation result"
+      ],
+      "avoid": [
+        "revalidate only after explicit change notifications",
+        "refresh every known source before every action",
+        "bounded revalidation proves the dependency frontier is complete"
+      ]
+    },
+    {
+      "id": "standing-environmentalization-nonidentity",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      },
+      "meaning": "Current Computing audit separates preservation, discoverability, consumer binding, environmentalization and consequence validation; a Result/Standing, document, Host checkpoint, Atlas pointer or canonical Knowledge page does not by itself establish that a future consumer's default environment or behavior changed.",
+      "evidence": [
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "preserved standing is not identical to environmentalized standing",
+        "document presence does not prove future default consumption",
+        "historical integration may fail to remain currently inhabited"
+      ],
+      "avoid": [
+        "every durable result should become a default",
+        "Host or Atlas persistence proves environmentalization",
+        "S0-S6 is a mandatory Ordivon lifecycle schema"
+      ]
+    },
+    {
+      "id": "correct-standing-default-nonidentity",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "knowledge/research-methods/ordivon-research-method-and-paradigm-canon.md"
+      },
+      "meaning": "Current Computing research method separates destination adjudication from task closeout and reusable Knowledge from Core/default authority; surviving content may truthfully remain owner-local, Research, Knowledge, implementation-only, negative history, or require no new materialization.",
+      "evidence": [
+        "knowledge/research-methods/ordivon-research-method-and-paradigm-canon.md",
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "correct does not automatically mean default-worthy",
+        "NO_CHANGE or Knowledge-only can be a mature destination",
+        "task closeout does not decide environmentalization"
+      ],
+      "avoid": [
+        "every reusable result belongs in Core",
+        "importance creates default visibility",
+        "promotion decision automatically materializes a consumer interface"
+      ]
+    },
+    {
+      "id": "responsibility-relative-primacy",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "knowledge/agents/capability-externalization-and-responsibility-placement.md"
+      },
+      "meaning": "Current Computing places responsibilities relation-by-relation with the entity or mechanism whose current capability, evidence relation, authority relation, precision/recovery properties and Reality coupling make it structurally best suited; Human-first and Agent-first are not universal placement rules, and one historical role bundle may split across several carriers.",
+      "evidence": [
+        "knowledge/agents/capability-externalization-and-responsibility-placement.md",
+        "core/stack.md"
+      ],
+      "allowedWording": [
+        "responsibility placement is relation-relative rather than globally Human-first or Agent-first",
+        "one actor may own evidence while another owns authority and another owns exact mechanics",
+        "historical role bundles are not architectural invariants"
+      ],
+      "avoid": [
+        "one scalar optimizer determines every responsibility",
+        "the coordinating Agent owns all truth",
+        "Ordivon invented human-machine function allocation"
+      ]
+    },
+    {
+      "id": "finance-semantic-responsibility-decomposition",
+      "source": {
+        "binding": "finance-ch5",
+        "path": "kernel/primary_agent_surface.py"
+      },
+      "meaning": "Current Finance Primary-Agent surface exposes semantic responsibilities observe/research/decide/execute/reconcile/performance/owner while retaining distinct provider Reality, external-effect, reconciliation, performance and owner-root boundaries; implementation-operation identities stay behind the semantic surface and ordinary Primary-Agent risk policy is explicitly not Human governance.",
+      "evidence": [
+        "kernel/primary_agent_surface.py"
+      ],
+      "allowedWording": [
+        "Finance decomposes a historical role bundle into semantic responsibilities without making the Primary Agent owner of every fact or effect",
+        "semantic compression can reduce Agent plumbing while preserving owner boundaries",
+        "ordinary Agent risk policy need not become Human governance"
+      ],
+      "avoid": [
+        "Finance proves humans are unnecessary",
+        "Primary Agent owns venue truth or reconciliation truth",
+        "the seven Finance semantic operations are a universal ontology"
+      ]
+    },
+    {
+      "id": "reusable-knowledge-current-cognition-nonidentity",
+      "source": {
+        "binding": "harness-ch5",
+        "path": "src/ordivon_harness/knowledge_topology.py"
+      },
+      "meaning": "Current Harness can resolve exact externally owned reusable Knowledge/procedure sources into the existing cognition-seed path but deliberately does not discover, rank, evaluate, promote, persist or automatically inject them; source presence and external semantic promotion do not imply current Run cognition.",
+      "evidence": [
+        "src/ordivon_harness/knowledge_topology.py"
+      ],
+      "allowedWording": [
+        "reusable source presence does not imply current cognition",
+        "future cognition admission can require explicit application or Agent selection",
+        "environmentalization does not require universal knowledge injection"
+      ],
+      "avoid": [
+        "Harness should automatically inject all relevant Knowledge",
+        "stored Knowledge becomes current cognition by existing",
+        "procedure classification grants Tool authority"
+      ]
+    },
+    {
+      "id": "first-interface-subtractive-nonauthority",
+      "source": {
+        "binding": "harness-ch5",
+        "path": "src/ordivon_harness/interaction_context.py"
+      },
+      "meaning": "Current experimental Harness Interaction Context accepts already-fenced owner facts and already-admitted Tools, compiles a compact ephemeral presentation, and subtracts Provider-visible Tools to caller-established AVAILABLE affordances; it explicitly does not mint owner truth, infer priority or expand Tool authority, and preserves a raw escape path.",
+      "evidence": [
+        "src/ordivon_harness/interaction_context.py",
+        "tests/test_first_interface_finance_workstation_composition.py"
+      ],
+      "allowedWording": [
+        "a current default or Tool surface can be selectively recompiled without minting authority",
+        "First Interface is a downstream environmentalization witness",
+        "BLOCKED or UNKNOWN can remain visible context without becoming callable"
+      ],
+      "avoid": [
+        "Tool visibility creates authority",
+        "Harness discovers semantic priority",
+        "First Interface alone is the complete theory of environmentalization"
+      ]
+    },
+    {
+      "id": "environmentalized-placement-challengeability",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "knowledge/agents/capability-externalization-and-responsibility-placement.md"
+      },
+      "meaning": "Current Computing treats repeated responsibility placement as a candidate for environmentalization but explicitly keeps placement challengeable: changed capability, owner/currentness, new evidence or harmful consequence can reopen the assignment rather than turning a historically useful default into eternal authority.",
+      "evidence": [
+        "knowledge/agents/capability-externalization-and-responsibility-placement.md",
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "environmentalized placement is not eternal placement",
+        "challengeability can reopen a default without rewriting its historical validity",
+        "current structural fit can change"
+      ],
+      "avoid": [
+        "every default must be re-derived every turn",
+        "historical usefulness grants permanent placement",
+        "challengeability requires deleting history"
+      ]
+    },
+    {
+      "id": "sedimentation-consequence-validation",
+      "source": {
+        "binding": "computing-ch5",
+        "path": "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      },
+      "meaning": "Current sedimentation audit does not infer benefit from preservation or environment change alone: stronger evidence of successful sedimentation requires a concrete future consumer/environment change plus observed consequence, or a justified NO_CHANGE/no-default result; not every standing should advance to a constitutive environment stage.",
+      "evidence": [
+        "research/WORLD-MODEL-SEDIMENTATION-AUDIT-20260824.md"
+      ],
+      "allowedWording": [
+        "environment change does not by itself establish benefit",
+        "NO_CHANGE can be a successful environmentalization judgment",
+        "sedimentation claims need future-consumer or consequence evidence"
+      ],
+      "avoid": [
+        "a new default is automatically an improvement",
+        "every standing must reach S5 or S6",
+        "document promotion proves downstream gain"
+      ]
+    },
+    {
+      "id": "retention-succession-ratchet-nonidentity",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "The completed Continuity synthesis separates Retention, Succession/Re-entry and cumulative Ratchet: preserving artifacts does not establish successor capability, and successful successor handoff does not establish repeated retained capability improvement.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md",
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/anti-rediscovery.md"
+      ],
+      "allowedWording": [
+        "Retention is not Succession and Succession is not cumulative Ratchet",
+        "successful handoff does not by itself establish cumulative intelligence",
+        "stored knowledge is not identical to a higher future capability frontier"
+      ],
+      "avoid": [
+        "Atlas×Host×Harness already forms a persistent-intelligence substrate",
+        "every durable handoff is cumulative intelligence",
+        "more stored history monotonically means more capability"
+      ]
+    },
+    {
+      "id": "successor-reentry-not-predecessor-replay",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "The bounded successor target is semantic re-entry under independently changing owner truth/Reality, not exact restoration of predecessor cognition. A successor may need different reasoning after current owners, effects, authority or world state change.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      ],
+      "allowedWording": [
+        "successor continuity need not restore predecessor cognition",
+        "preserve what must constrain successor cognition rather than predecessor cognition itself",
+        "worker replay and semantic succession are different problems"
+      ],
+      "avoid": [
+        "replay is the universal correct cognition-recovery target",
+        "Agent identity must persist for work continuity",
+        "different successor reasoning implies continuity failure"
+      ]
+    },
+    {
+      "id": "no-action-now-completion-nonidentity",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "The natural Finance→Workstation successor episode reached an open obligation with a current blocked Workstation environment and no currently admitted continuation. No selected Tool/current action therefore does not establish Task or domain completion.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md",
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/assimilation-manifest.md"
+      ],
+      "allowedWording": [
+        "NoActionNow is not Complete",
+        "an obligation may remain open while the current environment admits no continuation",
+        "blocked/no-tool state must not be promoted into domain completion"
+      ],
+      "avoid": [
+        "an empty selected Tool set means the objective is done",
+        "blocked environment means retry is automatically safe",
+        "the historical Finance blocker is current Finance truth forever"
+      ]
+    },
+    {
+      "id": "effect-recovery-owner-relative",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "Ambiguous operation outcomes must be reconciled against the owner of occurrence/effect truth for that operation; a shared UNKNOWN label does not imply one shared recovery action, and Harness is not a global effect oracle.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      ],
+      "allowedWording": [
+        "effect recovery is operation-owner-relative",
+        "the same UNKNOWN label can require different owner-native reconciliation",
+        "response loss is not generic retry permission"
+      ],
+      "avoid": [
+        "Harness owns every ambiguous effect",
+        "UNKNOWN proves the operation did not happen",
+        "one global retry/reconcile policy is established"
+      ]
+    },
+    {
+      "id": "information-necessity-consumability-nonidentity",
+      "source": {
+        "binding": "atlas-ch6",
+        "path": "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      },
+      "meaning": "Counterfactual twins can prove that a carrier contains action-distinguishing information even when the tested finite Agent fails to turn that information into a stable behavioral advantage; information necessity and finite-Agent consumability are separate claims.",
+      "evidence": [
+        "synthesis/2026-08-25-successor-continuity-ratchet-closeout/README.md"
+      ],
+      "allowedWording": [
+        "information can be logically necessary yet poorly consumed by a finite Agent",
+        "deletion non-identifiability is distinct from observed model-score improvement",
+        "Atlas currentness was information-bearing in the twin but not consumption-positive in the tested representation"
+      ],
+      "avoid": [
+        "equal Full/deletion score proves the deleted information is irrelevant",
+        "logical necessity proves the representation is already good",
+        "one Agent benchmark establishes universal consumability"
+      ]
+    },
+    {
+      "id": "continuity-cojc-dormant-four-gate-reopen",
+      "source": {
+        "binding": "computing-cojc",
+        "path": "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      },
+      "meaning": "Canonical COJC standing does not establish Atlas×Host×Harness joint capability or emergence. A future physical candidate reopens only under natural pressure, a residual beyond fair mature generic composition, an identifiable same-cut deletion and an independent owner-native consequence.",
+      "evidence": [
+        "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      ],
+      "allowedWording": [
+        "current Continuity COJC is dormant rather than promoted",
+        "future reopen requires NaturalPressure, MatureBaselineResidual, IdentifiableDeletion and IndependentConsequence",
+        "generic-composition reproduction blocks escalation to joint irreducibility"
+      ],
+      "avoid": [
+        "current COJC proves persistent intelligence",
+        "deletion-essentiality alone proves joint capability",
+        "interesting owner combinations should stay on an experiment queue"
+      ]
+    },
+    {
+      "id": "workstation-egress-observation-mutation-separation",
+      "source": {
+        "binding": "workstation-ch6",
+        "path": "mcp/workstation-semantic-contracts.mjs"
+      },
+      "meaning": "At the exact Chapter-6 Workstation source cut, `workstation.egress.observe` is READ_ONLY with no environment/financial mutation, while egress ensure/pool-ensure are separately typed RECONCILABLE environment-mutation operations; observing a blocker does not grant repair authority.",
+      "evidence": [
+        "mcp/workstation-semantic-contracts.mjs",
+        "scripts/workstation-domain.mjs"
+      ],
+      "allowedWording": [
+        "read-only egress observation is distinct from egress environment mutation",
+        "observation does not grant Workstation repair authority",
+        "the natural successor trial did not earn an ensure operation from read-only evidence"
+      ],
+      "avoid": [
+        "observing no eligible member authorizes starting the egress pool",
+        "Workstation read-only observation mutates network state",
+        "Chapter 6 proves the current egress profile remains unavailable now"
+      ]
+    },
+    {
+      "id": "composition-promotion-nonidentities",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "The completed COJC campaign preserves explicit anti-promotion guards: participation is not causal contribution; deletion-essentiality is not joint irreducibility; interaction is not novel capability; complementarity is not emergence.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md",
+        "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      ],
+      "allowedWording": [
+        "participation does not establish causal credit",
+        "deletion-essentiality does not by itself establish joint capability",
+        "interaction/complementarity may be real without constituting emergence"
+      ],
+      "avoid": [
+        "A+B succeeds while A and B fail therefore emergence is proven",
+        "all components on a successful path share causal credit",
+        "non-additivity automatically establishes a new capability class"
+      ]
+    },
+    {
+      "id": "generic-composition-subtraction-ch7",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "A joint-capability candidate must leave a qualified residual beyond a fair primitive-parity mature generic + owner-local composition baseline that receives no hidden oracle/future information and pays its own construction/currentness/maintenance/recovery cost.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      ],
+      "allowedWording": [
+        "fair mature generic composition is a required subtraction pressure before joint-capability promotion",
+        "generic reproduction preserves useful composition while blocking joint-irreducibility promotion"
+      ],
+      "avoid": [
+        "single-owner failure is enough to prove cross-owner novelty",
+        "a deliberately weak baseline can justify a new owner",
+        "generic mechanisms are disallowed merely because Ordivon owners participated"
+      ]
+    },
+    {
+      "id": "intervention-footprint-and-natural-bypass",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "Requested intervention is not realized target-relevant footprint. A natural fallback that prevents the requested deletion from reaching the target makes the causal intervention unidentifiable; deliberately disabling that natural fallback to manufacture a positive deletion tests a crippled world instead of current capability ecology.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md",
+        "research/COJC-INITIAL-CAMPAIGN-CLOSEOUT-20260825.md"
+      ],
+      "allowedWording": [
+        "natural fallback can make a deletion unidentifiable",
+        "manufactured bypass removal is not valid evidence of current-system necessity",
+        "realized footprint must be checked when causal credit matters"
+      ],
+      "avoid": [
+        "the name of a deletion command proves the target was removed",
+        "natural redundancy should be disabled to obtain a cleaner positive result",
+        "compound failure automatically allocates component-level causal credit"
+      ]
+    },
+    {
+      "id": "representation-effect-owner-attribution-separation",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/experiments/representation-cross-world-reconciliation-v0/CROSS-WORLD-PPD-SYNTHESIS.md"
+      },
+      "meaning": "The same broad representation family can help a high cross-source-join workload and harm source-local scoped judgements. A finite-consumer representation effect is therefore conditional on operation/consumer/support topology and does not itself establish Media/SCD/Harness causal ownership or joint capability.",
+      "evidence": [
+        "research/experiments/representation-cross-world-reconciliation-v0/CROSS-WORLD-PPD-SYNTHESIS.md",
+        "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      ],
+      "allowedWording": [
+        "representation can change effective finite-Agent capability without creating a new semantic owner",
+        "representation benefit is conditional rather than globally monotone",
+        "representation effect does not establish owner synergy"
+      ],
+      "avoid": [
+        "more compression means more capability",
+        "any representation improvement proves Media×SCD×Harness joint capability",
+        "source completeness guarantees finite-consumer completeness"
+      ]
+    },
+    {
+      "id": "j3-aic-strong-effect-below-emergence",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/J3-AIC-INSTITUTIONAL-CURRENTNESS-STANDING-20260825.md"
+      },
+      "meaning": "J3-AIC establishes a bounded institutional-currentness/representation result, including LINEARIZATION_COLLAPSE_HARM and safer set-valued binding reasoning, but explicitly does not establish Game×Security×Normative higher-order irreducibility, institution emergence, or phase transition.",
+      "evidence": [
+        "research/J3-AIC-INSTITUTIONAL-CURRENTNESS-STANDING-20260825.md",
+        "research/experiments/joint-capability-j3-aic-v0/J3-AIC-CLOSEOUT.md"
+      ],
+      "allowedWording": [
+        "J3-AIC is a strong system/representation-currentness result below joint irreducibility",
+        "forced linearization can create unsafe fictitious uniqueness",
+        "MULTIPLE is not HOLD and ONE is not ALLOW for the tested action class"
+      ],
+      "avoid": [
+        "J3-AIC proves institution emergence",
+        "programme label J3 proves higher-order irreducibility",
+        "a determinate binding is automatically safe"
+      ]
+    },
+    {
+      "id": "joint-capability-reopen-four-gates-ch7",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "Future physical COJC work is dormant and reopens only from a materially new natural blocked/capability-limited owner-native outcome satisfying NaturalPressure, MatureBaselineResidual, IdentifiableDeletion and IndependentConsequence. Interesting owner combinations alone are not a reopen trigger.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md",
+        "research/PORTFOLIO.md"
+      ],
+      "allowedWording": [
+        "COJC is dormant natural-pressure-first",
+        "owner coalition names are hypothesis generators rather than causal units",
+        "NO_JOINT_CAPABILITY can be a high-value stopping result"
+      ],
+      "avoid": [
+        "keep enumerating owner subsets for momentum",
+        "open scientific residuals are an active experiment backlog",
+        "four gates constitute an emergence detector"
+      ]
+    },
+    {
+      "id": "current-emergence-nonclaim",
+      "source": {
+        "binding": "computing-ch7",
+        "path": "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      },
+      "meaning": "Current canonical Computing standing explicitly leaves COJC emergence and phase transition not established and admits no new shared Composition/Capability/Representation infrastructure from the completed campaign.",
+      "evidence": [
+        "research/COJC-SEDIMENTATION-CANON-20260825.md"
+      ],
+      "allowedWording": [
+        "current Ordivon emergence is not established",
+        "joint-capability and emergence labels remain bounded evidence claims",
+        "no new Composition owner or emergence detector is earned"
+      ],
+      "avoid": [
+        "Ordivon has demonstrated emergence",
+        "the evidence ladder is a universal ontology",
+        "cross-owner composition should automatically create shared infrastructure"
+      ]
+    },
+    {
+      "id": "book-capability-exposure-representation-effect",
+      "source": {
+        "binding": "computing-capability-exposure",
+        "path": "research/experiments/book-capability-exposure-v0/RESULT.md"
+      },
+      "meaning": "A frozen seven-chapter Book experiment found that the existing Book already contained constructive capability content but fresh-Agent recovery of the seven capability families was variable. Adding one bounded chapter-end capability gestalt without moving/deleting existing distinction or non-claim prose produced 7/7 family recovery in 3/3 tested replicates with no observed authority/routing regression in a ceilinged safety battery. This establishes a representation/self-model recovery effect only; underlying owner capability and action-quality gain were not established.",
+      "evidence": [
+        "research/experiments/book-capability-exposure-v0/RESULT.md",
+        "research/experiments/book-capability-exposure-v0/decision.json"
+      ],
+      "allowedWording": [
+        "bounded capability gestalts made already-earned capability structure more reliably recoverable for the tested fresh Agent",
+        "capability exposure improved without deleting the existing anti-collapse boundaries",
+        "the admitted repair is representational and does not establish new owner capability or action gain"
+      ],
+      "avoid": [
+        "the Book experiment proved new underlying Ordivon capability",
+        "positive wording is universally better than distinction language",
+        "chapter reordering was necessary",
+        "capability exposure creates authority"
+      ]
+    }
+  ]
+}

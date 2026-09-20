@@ -1,0 +1,21 @@
+{
+  "authorityBranch": "refs/heads/main",
+  "authorityVersionRef": "sha256:e26649a077eacfd0964e0d6ace7a3454d27c60ebcc96251dbb9b1861d867823e",
+  "controls": [
+    "Source fence is current Media main and linearly contains historical research closeout→canonical materialization→owner identity migration→OMPC Phase-1 dogfood.",
+    "MF0-MF9 frozen; MF10 UNKNOWN/NOT_ADMITTED.",
+    "FoundationReopen(MF0-MF9)=NONE; strong current closure does not imply absolute whole-Media exhaustion.",
+    "Derived realities remain derived and first-class without primitive promotion.",
+    "Historical MF10-MF19 roadmap remains de-canonicalized.",
+    "OMPC reference/conformance evidence does not become Foundation authority.",
+    "Shared Media implementation remains NOT_ADMITTED.",
+    "Studio remains a retained capability plane; neighboring projects remain autonomous owners."
+  ],
+  "current": "research/media/authority/CURRENT.json",
+  "date": "2026-08-19",
+  "kind": "ordivon.media-owner-publication-acceptance",
+  "publication": "research/media/authority/publications/e26649a077eacfd0964e0d6ace7a3454d27c60ebcc96251dbb9b1861d867823e.json",
+  "schemaVersion": 1,
+  "sourceFence": "5b5dbb4145ca91b575e517b6d56fe119f0853a18",
+  "truthRole": "OWNER_PUBLICATION_MATERIALIZATION_EVIDENCE"
+}

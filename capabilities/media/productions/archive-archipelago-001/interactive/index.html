@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archive Archipelago 001 — Interactive</title>
+<meta name="description" content="Interactive cartographic portrait of a frozen Ordivon Creative Library snapshot.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<a class="skip" href="#map">Skip to map</a>
+<header>
+  <div><p class="eyebrow">ORDIVON / CREATIVE ARCHIVE</p><h1>Archive Archipelago 001</h1><p class="deck">A frozen Creative Library rendered as four owner islands and 45 catalogued relation routes. Spatial proximity is composition, not semantic similarity.</p></div>
+  <div class="stats" role="group" aria-label="Snapshot summary"><strong>303</strong><span>works</span><strong>45</strong><span>relations</span><strong>4</strong><span>owners</span></div>
+</header>
+<main>
+  <section class="controls" aria-label="Map controls">
+    <label>Search <input id="search" type="search" placeholder="work id or title" autocomplete="off" aria-controls="searchResults" aria-describedby="searchHelp"></label>
+    <fieldset><legend>Owners</legend><div id="ownerFilters"></div></fieldset>
+    <label class="toggle"><input id="routes" type="checkbox"> pulse registered relation routes</label>
+    <label class="toggle"><input id="featured" type="checkbox"> featured works only</label>
+    <p id="resultCount" class="micro" aria-live="polite"></p>
+    <p id="searchHelp" class="sr-only">Type a work title or work ID. Matching result buttons appear below and provide the keyboard path to individual works.</p>
+    <div id="searchResults" class="search-results" role="group" aria-label="Matching works"></div>
+  </section>
+  <section class="stage" id="map" aria-label="Interactive archive map">
+    <div class="map-viewport" role="group" aria-label="Scrollable map viewport">
+    <svg id="svg" viewBox="0 0 1600 1000" role="group" tabindex="0" aria-labelledby="mapTitle mapDesc" aria-describedby="mapKeys">
+      <title id="mapTitle">Archive Archipelago 001</title>
+      <desc id="mapDesc">A conceptual archive map. Four colored owner islands contain work points. Curved lines show only catalogued DERIVATIVE_OF and CONSUMER_OF relations. Use Search above for keyboard selection of individual works.</desc>
+      <rect width="1600" height="1000" class="canvas" />
+      <g id="contours"></g><g id="relations"></g><g id="nodes"></g>
+    </svg>
+    </div>
+    <p id="mapKeys" class="sr-only">The map is one keyboard stop. Use Search and the matching result buttons to reach individual works without tabbing through all 303 points.</p>
+    <aside id="detail" aria-live="polite"><p class="eyebrow">SELECTED WORK</p><h2>No work selected</h2><p>Hover or click a point, or use Search and its result buttons to select a work by keyboard.</p></aside>
+    <div id="tooltip" role="status" hidden></div>
+  </section>
+  <div class="notes">
+    <article><p class="eyebrow">BOUNDARY</p><h2>What this map means</h2><p>Owner labels, work identities, metadata and the 45 route records come from the bundled frozen Creative Library catalog. Point coordinates and island shape are deterministic composition only.</p></article>
+    <article><p class="eyebrow">ROUTES</p><h2>Motion has one job</h2><p>The pulse mode animates only relations already present in that catalog: 35 <code>DERIVATIVE_OF</code> and 10 <code>CONSUMER_OF</code>. It does not invent dependency or influence.</p></article>
+  </div>
+</main>
+<footer><span>source-frozen cartographic work</span><span id="digest"></span><span>keyboard + reduced-motion aware</span></footer>
+<script src="data.js"></script><script src="app.js"></script>
+</body>
+</html>

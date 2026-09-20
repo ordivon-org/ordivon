@@ -1,0 +1,5711 @@
+# Ordivon Book v0
+
+> 当前非权威整合版。每章的 source/claim ceiling 由同目录的 `claims.json`、`source-map.md` 与 `cognition.md` 约束。
+
+## 目录
+
+1. 有限智能如何在 Reality 中形成可行动认识
+2. 表征不是容器：问题、解与未来可达空间
+3. 行动不是命令：从 Standing 到 Reality 改变
+4. 现在不是一个时间戳：History, Currentness and Recovery
+5. 环境不是背景：Standing 如何成为未来的默认
+6. 继承不是复制：Succession, Re-entry and Cumulative Ratchet
+7. 组合不是涌现：Interaction, Irreducibility and Joint Capability
+
+**Future Horizon — 实验室与 Reality 中的 Ordivon**：[`future-horizon-laboratory.mdx`](future-horizon-laboratory.mdx)
+
+---
+
+# 有限智能如何在 Reality 中形成可行动认识
+
+一张地图可以非常准确，却仍然不是你下一步需要的那张地图。
+
+如果目标只是保存“我们知道什么”，Ordivon 已经拥有大量更适合这件事的结构：owner-native source、Result、Standing、Task lineage、Atlas projection、Git history、Runtime evidence。Book 没有必要再复制一遍。
+
+真正困难的问题是另一个：**一个有限的 Human 或 Agent，在没有重新经历全部研究历史的情况下，怎样恢复足以继续判断和行动的整体认识？**
+
+这也是本章要处理的问题。
+
+最容易写出的答案是一条闭环：
+
+```text
+observe → think → act → feedback → learn
+```
+
+它很顺，也几乎肯定太粗。
+
+Ordivon 最近的研究反复遇到的，恰恰是这种“看起来合理的等号”造成的错误：Reality 不是 Representation；Evidence 不是 Conclusion；Standing 不是 Action authority；Intent 不是 Effect；Historical validity 不是 Currentness；一个结果被保存，也不等于它已经被后续决策真正消费。
+
+所以，如果要把认知—实践—反馈—更新写成一个真正可工作的循环，第一步不是给这条线增加更多节点，而是先拒绝那些会让不同世界看起来相同的坍缩。
+
+## 1. Reality 不会以“原样”进入有限智能
+
+有限智能从来不是直接把 Reality 整体装进内部状态。
+
+它通过传感器、API、网页、市场报价、实验装置、日志、语言、查询、数据结构、已有理论和问题表述接触 Reality。每一条通路都在保留一些差异，同时丢掉另一些差异。
+
+因此，Ordivon 当前更安全的起点不是：
+
+```text
+Reality → Knowledge
+```
+
+而是：
+
+```text
+Reality
+   ↓ access / measurement / query / encounter
+Representation
+```
+
+这里的 `Representation` 不是“错误的 Reality”。它是有限智能能够操作 Reality 的必要媒介。但它也不能因为可操作，就被升级成 Reality 本身。
+
+这就是 `Reality != Representation` 的实际含义：不是要求永远怀疑一切，而是要求在重要判断上知道**哪一个区分来自世界，哪一个区分只存在于当前的表示方式中**。
+
+例如 Finance 看到一个 ticker，不等于已经表示了完整的经济 exposure；Media 看到源文件正确，不等于已经表示了最终 perceptual encounter；Atlas 能恢复一段历史，不等于那段历史仍然是 current standing。这些项目里的具体问题不同，但错误结构相似：一个局部可用的投影，被误当成了它所投影的对象。
+
+## 2. 问题本身也是被形成出来的
+
+如果 Representation 决定了当前可以区分什么，那么“问题是什么”也不会总是在研究开始前完整存在。
+
+一个异常可能最初被表示成实现错误，后来才暴露为 currentness 问题；一个看似缺工具的问题，可能真正缺的是不同的 measurement basis；一个研究方向在既有 query 和 generator 中已经非常成熟，却仍可能只是因为搜索界面把其他方向排除在外。
+
+这就是 PPD 最重要的用途之一。
+
+PPD 不只是“多找几个反例”。它允许改变产生判别力的接口本身：换 source、换 query、换 measurement、换 representation、换 hypothesis generator、构造 countermodel，甚至从 first principles 重新生成可能空间。
+
+因此：
+
+```text
+No natural contradiction
+!=
+No reachable discriminating pressure
+```
+
+“现在没有新证据”也不能自动推出“只能等待”。有时真正需要修改的是我们向 Reality 提问的方式。
+
+这一步已经把普通闭环改写了。有限智能并不只是接收 observation；它还必须维护一种能力：**发现当前 observation interface 本身可能是问题的一部分。**
+
+## 3. Evidence 到 Standing 之间不能省略
+
+Reality contact 产生了 observation，也不等于产生了一个可以直接行动的结论。
+
+Ordivon 当前把这段关系拆得更细：
+
+```text
+Observation
+   ↓ interpretation / source scope
+Evidence
+   ↓ evaluation against rivals, falsifiers, context
+Standing
+```
+
+这里的 `Standing` 不是一个统一的“真/假”位。研究结果可能是 admitted、falsified、underdetermined、repaired、not admitted、historical only；某条 evidence 可能在当时有效，却因为 owner source 已经前进而不再足以支持 current claim。
+
+所以 `HistoricalValidity != Currentness`。
+
+这也是为什么 Atlas 的存在不能替代 owner authority。Atlas 可以告诉我们某个结果从哪里来、曾经是什么 standing、当前 source fence 是否健康；它甚至可以保留 stale bytes 作为恢复材料。但“能恢复”不等于“仍然为真”，更不等于“现在可以据此行动”。
+
+Book 的责任也一样。Book 能把这些 standing 编译成连续可读的模型，但它不能因为一段文字写得完整，就获得比 source 更高的 epistemic status。
+
+## 4. Standing 也不是 Action
+
+这是闭环里最危险的一次跳跃。
+
+即使我们已经有了很强的 epistemic support，也仍然没有得到：
+
+```text
+therefore act
+```
+
+Ordivon 的跨 owner 经验不断迫使这一步继续拆开：
+
+```text
+Standing
+   ↓ admissibility / authority / objective / constraints
+Selection
+   ↓ commitment
+Authorized action
+   ↓ realization
+Effect
+```
+
+为什么需要这么麻烦？
+
+因为“有证据支持”与“有权改变世界”回答的是不同的问题。
+
+一个 Agent 可以正确判断某个 Finance opportunity，却没有 capital authority；Security 可以检测到威胁，却仍要区分观察、隔离、删除等不同 effect authority；Runtime 可以证明某段 computation 成功执行，却不能因此宣布上层 Task 的 semantic objective 已完成。
+
+所以：
+
+```text
+Evidence != Standing
+Standing != Authority
+Capability != Authority
+Intent != Effect
+```
+
+这些都不是形式主义。每一个等号如果被偷换，都可能让一个局部正确的认识非法地获得更大的 causal reach。
+
+## 5. Consequence 的 evaluator 必须跟着 claim 走
+
+行动之后，我们终于“得到反馈”了吗？
+
+还是不能直接这么说。
+
+一个变化只有相对于某个 target claim，才构成有判别力的 consequence。
+
+如果 claim 是“Web 已经进入独立搜索发现系统”，搜索引擎 crawl/index behavior 就是合适的 Reality pressure；如果 claim 是“这个旁白对人听起来自然”，机器 hash、waveform 或另一个 Agent 的偏好都不能替代 Human auditory response；如果 claim 是“订单真的成交”，市场/account/execution state 比人的主观满意更接近目标变量；如果 claim 是 Security containment 是否生效，OS/filesystem/process state 可能比任何 Human review 都更直接。
+
+因此：
+
+```text
+Independent pressure != Human pressure
+External != independent
+Human present != high discriminability
+```
+
+Human 仍然有不可替代的位置——尤其是 consent、normative authority，以及真正关于 Human comprehension、preference、welfare、experience 的 claim。但 Human 不是所有系统的通用终点。
+
+同样，一个 Agent/self-evaluator 也不能被换成新的通用终点。关键不是 evaluator 属于哪个物种，而是：**它是否能在这个 claim 上区分当前真正竞争的世界，而且它的错误是否独立于被测试的 representation/policy。**
+
+## 6. Feedback 不等于 Learning，更不等于 Gain
+
+现在可以把 consequence 送回认知系统，但仍然不能写：
+
+```text
+feedback → learning
+```
+
+至少有三种不同情形。
+
+第一，feedback 到达了，却没有被语义消费。日志存在、文件被保存、某个团队成员知道，都不自动意味着它进入了当前 decision surface。
+
+第二，feedback 被消费了，却没有改变 standing。这可能完全正确：新 evidence 与当前模型一致，最好的更新就是 `NO_CHANGE`。
+
+第三，standing 改变了，却不应该改变工程。研究可能只要求缩小 claim、删除一个错误 abstraction、修正文档边界，或者明确继续实验，而不是新增 feature。
+
+因此，一个成熟的更新链更像：
+
+```text
+Consequence
+   ↓ observed under a declared target
+Discriminating evidence
+   ↓ semantic uptake
+Standing revision (or NO_CHANGE)
+   ↓ only if action-relevant and authorized
+Decision / system revision
+```
+
+这也是“学习”为什么不能只看系统有没有变化。一个系统每次遇到 evidence 都改代码，可能比一个知道什么时候不改的系统更差。
+
+## 7. 更深的一层：Action 会改变下一次认知的空间
+
+到这里，普通反馈模型仍然有一个隐蔽假设：世界被行动改变了，但“下一次要解决什么问题”的空间基本不变。
+
+这个假设并不可靠。
+
+新的 capability 会创造以前不存在的 affordance；新的 metric 会让以前不可见的状态进入决策；新的 institution 会产生新的 permission、obligation 和 failure mode；新的 representation 会让某些 distinction 变得自然，也可能让另一些 distinction 从日常问题表述中消失。
+
+因此，action 的后果不仅是：
+
+```text
+World_t → World_{t+1}
+```
+
+还可能是：
+
+```text
+ProblemSpace_t        → ProblemSpace_{t+1}
+ObservationInterface_t → ObservationInterface_{t+1}
+Affordance_t          → Affordance_{t+1}
+AuthorityContext_t    → AuthorityContext_{t+1}
+```
+
+这解释了为什么 terminal Result 不是所有未来 consumer 的充分状态。
+
+有时只保留 Result 太少：未来会出现当时根本不存在的问题，需要知道哪些 distinction、repair route 或 source relation 曾经存在。
+
+但保存全部历史又太多。一个有限智能不可能为无限未来 consumer 无损保存一切。
+
+更合理的原则是：**保留什么，必须相对于可预见的 continuation family、consumer 和 future option 来判断；同时保留重新接触 Reality、重新获得 discriminability 的能力。**
+
+## 8. Environmentalization：成功的认识会沉到环境里
+
+当某个 standing 被反复使用，它往往不再以“每次都重新推导”的形式出现。
+
+它可能变成默认配置、工具边界、protocol、admission rule、UI affordance、生产习惯，或者一个 Agent 开始工作时已经存在的 context。也就是说，过去的显式认知被编译进了未来的环境。
+
+这通常是好事。有限智能正是靠这种 sedimentation 才不需要每天从零开始。
+
+但它也改变了 future problem placement：过去需要显式讨论的问题，后来可能从局部视野中消失。只有在异常、反例、新能力或新的 Reality pressure 出现时，它才重新成为问题。
+
+因此 Ordivon 不应该把“沉下去”写成单向退化：environmentalization 既可能隐藏假设，也可能通过监控、guard、alarm 让异常更容易被看见。
+
+真正需要保留的是 challengeability：当现实不再支持旧 standing 时，我们是否还有路径让它重新浮上来？
+
+## 9. 于是，Ordivon 的循环不是一个圆
+
+如果把目前这些 distinction 压缩起来，一个更接近实际的图是：
+
+```text
+Reality_t
+   ↓
+access / encounter / measurement / query
+   ↓
+Representation_t
+   ↓
+problem & rival formation
+   ↓
+discriminating pressure
+   ↓
+Evidence_t
+   ↓
+evaluation + scope + currentness
+   ↓
+Standing_t
+   ↓
+authority + objective + constraints
+   ↓
+Decision / commitment_t
+   ↓
+realization
+   ↓
+Effect_t
+   ↓
+claim-relative observation
+   ↓
+Consequence_t
+   ↓
+Standing / Representation revision
+```
+
+但这还不是完整图，因为从 `Effect_t` 还要分出另外一组箭头：
+
+```text
+Effect_t
+   ├→ Reality_{t+1}
+   ├→ reachable ProblemSpace_{t+1}
+   ├→ ObservationInterface_{t+1}
+   ├→ Affordance_{t+1}
+   └→ Authority / Environment_{t+1}
+```
+
+所以它更像一个不断改变自己搜索空间和作用空间的开放递归系统，而不是沿固定状态变量反复旋转的控制环。
+
+这也意味着没有一个节点天然是终点：Research 不是终点，Standing 不是终点，Engineering 不是终点，Human approval 不是终点，甚至“成功 consequence”也不是终点。终点只存在于被明确限定的 claim、decision 或 episode 中。
+
+## 10. Book 在这个循环里的位置
+
+Book 不处于循环之外。
+
+如果外部 representation 的结构会影响一个有限智能能看见什么、比较什么、恢复什么，那么把分散研究重新组织成一条可连续消费的解释，本身就是一次 epistemic operation。
+
+Book 的作用不是把 owner truth 重新复制一份，而是做一次受约束的编译：
+
+```text
+owner standing + provenance + genealogy + practice + consequence
+                              ↓
+                    integrated explanation
+                              ↓
+                      Human / Agent model
+                              ↓
+                     later judgment / action
+```
+
+这也是为什么 Book 的“写得顺”不能成为最高目标。
+
+如果连续叙事让不同 standing 看起来像一个理论，让历史顺序看起来像因果，让一个外部理论的相似概念看起来像 Ordivon 已经接受的 standing，Book 就会成为新的 representation collapse machine。
+
+反过来，如果 Book 为了避免一切坍缩而保留所有 Task、所有 branch、所有 caveat，它又失去了有限智能真正需要的 compression。
+
+因此 Book 的工作可以压成一句话：
+
+> **最大化会改变正确判断和行动的 distinction，同时最小化消费这些 distinction 所需的永久结构。**
+
+这不是一条已经证明的宇宙规律。它是当前 Ordivon 跨 owner synthesis 最适合 Book 的工程—认识论约束。
+
+## 11. 这一章没有证明什么
+
+为了避免正文的流畅感越过证据边界，以下结论明确不由本章建立：
+
+- 没有证明一种完整或普适的 epistemology；
+- 没有证明当前 representation 能覆盖所有未来 Reality pressure；
+- 没有证明所有问题都应该通过 PPD 主动展开；
+- 没有证明高 Standing 自动产生行动义务；
+- 没有证明 Human 或 Agent 是通用 evaluator；
+- 没有证明任何 feedback 都产生 learning 或 positive gain；
+- 没有证明每次 intervention 都一定生成新的问题域；
+- 没有证明 Book 应该成为新的 Ordivon semantic owner；
+- 没有证明 Book 需要独立 repository、database、schema 或 service。
+
+这些边界不是附录。它们是这一章所表达模型的一部分。
+
+## 12. 当前最重要的改变
+
+如果只保留一个模型变化，那就是：
+
+Ordivon 不应被理解成“一个不断积累正确知识，然后把知识执行出去的系统”。
+
+更接近当前研究的表述是：
+
+> Ordivon 试图让有限的 Human 与 Agent，在无法拥有完整 Reality、无法保证当前问题表述完备、也无法预先知道所有未来 consequence 的条件下，仍能反复形成足够好的 distinctions，获得有判别力的 pressure，形成有范围和 currentness 的 standing，在正确 authority 下作用于 Reality，并让作用产生的新 evidence、环境和问题空间重新约束下一轮认识。
+
+如果这个表述最终经不起新的 Reality pressure，它也应该被改写。
+
+这正是 Book 存在的理由。
+
+---
+
+本章的精确 source fences、claim ceilings、Host research-pressure inputs 与外部方法对照见 [`source-map.md`](source-map.md) 和 [`external-methods.md`](external-methods.md)。Book Constitution 见 [`constitution.md`](constitution.md)。
+
+---
+
+## Capability gestalt — Scoped Standing Formation
+
+在本章已经保留的边界内，有限智能可以改变 access、query、measurement、representation 或 hypothesis generator 来制造新的判别压力，并把 observation/evidence 形成 scoped、current、可修订的 Standing。这个能力不把 Standing 升级成 Authority，也不保证每次 revision 都产生 engineering change。
+
+# 表征不是容器：问题、解与未来可达空间
+
+一个问题可以没有变，解决它的难度却因为换了一张图、一个符号系统、一组可调用动作而突然改变。
+
+这不是一个新的发现。问题求解研究、认知科学、统计学、程序分析和机器学习早已以不同方式证明：**表示什么、怎样表示，会改变哪些结构可以被直接利用，哪些计算被省去，哪些性质被保留，哪些性质被故意忽略。**
+
+Ordivon 真正需要处理的不是再次证明“representation matters”。更具体的问题是：
+
+> 当一个有限智能不断把 Reality 压缩成问题，把问题压缩成解，再把解压缩或投影给下一位 consumer 时，怎样判断一次表征变换究竟保留了什么，又悄悄改变了什么？
+
+这个问题尤其容易在“问题已经解决”之后被忽略。
+
+我们通常会非常认真地讨论问题空间：状态、约束、目标、可用动作、证据、假设、未知量、竞争解释。等一个结果出现后，却很容易把它压成一句结论、一个 Result、一个 API、一个状态标签、一组数字，甚至一个绿色的 `PASS`。
+
+于是出现一种不对称：
+
+```text
+Reality
+  ↓
+rich problem representation
+  ↓
+search / experiment / reasoning
+  ↓
+thin solution / result representation
+  ↓
+future consumer
+```
+
+这个不对称本身不一定是错的。压缩正是有限智能能够继续工作的原因。
+
+危险只在于：**我们常常忘记，所谓“解”仍然是一种 representation。**
+
+它不是表征问题的终结，而是下一轮认知与行动的输入界面。
+
+## 1. 有限智能从来不是在“问题本身”里搜索
+
+设 Reality 为 \(\mathcal R\)。一个有限智能并不能直接在整个 \(\mathcal R\) 上搜索。它首先形成某种可操作表示：
+
+```text
+Reality
+  ↓ perception / measurement / language / schema / interface
+Representation
+  ↓
+Problem space
+```
+
+Problem space 中有哪些状态、动作、邻居、目标、约束和比较关系，取决于当前表示允许什么被区分和操纵。
+
+这并不意味着 Reality 被 representation 任意创造。相反，同一个 Reality 会对不同 representation 施加约束；一个坏表示可能被实验、失败或不可解性迅速击穿。
+
+但在击穿之前，representation 决定了一个有限智能**现在能够形成什么问题**。
+
+因此至少要分开：
+
+```text
+Reality difference
+!=
+Represented difference
+!=
+Problem-forming difference
+!=
+Reachable discriminating pressure
+```
+
+两个 Reality 状态可以真实不同，却在当前传感器和语言下不可区分；一个 distinction 可以已经写进资料，却没有进入当前 query/generator，因此不会成为 reachable candidate；一个 candidate 可以被生成，却没有可执行的 probe，因此仍然不能对 standing 产生压力。
+
+这也是为什么“已有信息”不能自动等价于“已有认知能力”。
+
+## 2. 表征改变的不只是答案，也可能是搜索几何
+
+Herbert Simon 与后来的 problem-space tradition 很早就展示过：同一个形式问题在不同表示下可以从困难变得容易，因为搜索空间、operator 和可见关系发生了变化。
+
+外部表征研究又进一步说明，图、符号、布局和环境中的结构并不只是记忆辅助；它们可以让某些信息直接可见，让某些推理步骤变成感知或简单操作。
+
+Ordivon 最近一个很小但很有判别力的 PPD episode 给出了类似的工程压力。
+
+一个 task-local PPD projection 在命题层面是正确的：它没有明显说错 PPD 是什么，也保留了当前任务需要的局部结论。但 fresh Agent 从这个投影出发时，很少形成 generator-space、representation-change 和 first-principles construction 等路径。恢复一个更紧凑、source-fenced 的 generic PPD scope 后，这些搜索坐标重新进入了可达区域。
+
+这里最重要的不是那一个 PPD 文档，而是它暴露出的 distinction：
+
+```text
+Projection truth preservation
+!=
+Search geometry preservation
+```
+
+一个摘要可以不撒谎，却让某些后续问题不再自然出现。
+
+但是反例同样重要。另一个 Research Method control 中，本地 compact projection 已经足以支持当前决策；强行恢复更深 source 只增加上下文和控制成本，并没有改变正确 standing。
+
+所以不能从 PPD episode 推出：
+
+```text
+summary = bad
+full source = good
+```
+
+更可靠的结论是：
+
+> **是否需要更丰富的 representation，要看当前 operation 是否依赖被压掉的 distinction。**
+
+## 3. 即使“语义边界”保留了，行动路由仍可能改变
+
+第二个 heterogeneous witness 来自 Media。
+
+Media 的 source/currentness/action 边界原本已经写得相当正确：source owner 仍拥有 truth，projection 不应伪造 currentness，affordance 不等于 authorization。
+
+但旧的 first object 里，一个更具体、更可调用的 Studio capability narrative 紧跟在抽象 Media owner 定义之后。fresh Agent 因而反复把一个 generic structured-mediation problem 直接解释成 Studio Production 问题。
+
+也就是说，它保留了很多正确句子，却把责任放错了地方。
+
+最小修复不是新增 router、ontology 或 Tool，而只是把：
+
+```text
+Media owner boundary
+→ optional Studio production lowering
+```
+
+明确放到 first interface 前面。
+
+于是另一个 distinction 出现了：
+
+```text
+Boundary semantics preserved
+!=
+Responsibility / action routing preserved
+```
+
+这和 PPD 不是同一种 failure。
+
+PPD 丢的是一部分搜索几何；Media 丢的是 owner / action routing。把两者统称成“context 不够”反而会遮住真正需要修的东西。
+
+## 4. 因此不存在脱离目标的“高保真 representation”
+
+说一个 representation “好”或“完整”，如果没有说明它必须支持什么，信息很少。
+
+更准确的问题是：
+
+> 它对哪个 target、operation、consumer 或 continuation family 足够？
+
+统计学里的 sufficient statistic 是一个成熟例子。一个统计量可以比原始观测小得多，却仍然保留关于指定参数族所需的全部统计推断信息。它不需要保存原始数据的一切性质。
+
+Abstract Interpretation 也是类似思想的工程化版本：程序状态被映射到一个更粗的抽象域，例如只关心数值符号，而不是精确数值；如果目标问题只是证明某个符号性质，这种“丢信息”恰恰是正确的计算策略。
+
+Information Bottleneck 则更明确地把 compression 与“关于什么是 relevant”绑定起来：寻找对 \(X\) 的短表示，同时尽可能保留关于指定 \(Y\) 的信息。
+
+这些成熟理论共同提供一个重要 subtraction：
+
+```text
+Lossy
+!=
+Insufficient
+```
+
+只要被丢掉的差异对当前目标真的不重要。
+
+但反方向也成立：
+
+```text
+Truth-preserving
+!=
+Sufficient-for-every-operation
+```
+
+因此 Ordivon 不能用一个单一 fidelity score 判断 representation。
+
+至少可以遇到完全不同的 sufficiency 问题：
+
+```text
+claim / standing sufficiency
+predictive sufficiency
+interventional sufficiency
+search-opportunity sufficiency
+responsibility / action-routing sufficiency
+currentness sufficiency
+recovery sufficiency
+future-continuation sufficiency
+```
+
+它们可能相关，却不是同一个量。
+
+## 5. 一个严格一点的表达：相对于 continuation family 的充分性
+
+假设未来允许的一组 continuation 为 \(\Gamma\)。
+
+如果两个状态 \(x\) 与 \(x'\) 在 \(\Gamma\) 中所有允许 continuation 下产生完全相同的相关 outcome law，那么相对于这个 \(\Gamma\)，我们可以把它们视为等价。
+
+如果 representation \(R\) 只合并这类等价状态，它就是对 \(\Gamma\) 的安全压缩。
+
+直观地：
+
+```text
+R(x) = R(x')
+    only when
+no continuation we currently care about can make x/x' matter
+```
+
+这给“信息能不能删”提供了一个比“未来也许有用”更精确的方向。
+
+同时它也揭示了边界。
+
+当 \(\Gamma\) 扩大时，原来安全的合并可能需要被拆开：
+
+```text
+Current-task irrelevance
+!=
+Future irrelevance
+```
+
+而如果允许的未来任务完全不受限制，任何被压掉的差异几乎都可以被某个未来任务重新变成 consequential。
+
+所以：
+
+> **不存在一个有限、非平凡、lossy 的 representation，可以在毫无 future-family 限制的情况下被证明对所有未来用途都充分。**
+
+这不是要求保存一切。它恰恰说明为什么“保存一切”也不是答案：无限或极高维 raw history 会把有限 consumer 淹没，取消抽象本身的价值。
+
+## 6. Maximum resolution 也不是 maximum epistemic power
+
+如果 aggressive compression 会丢 distinction，是不是就应该永远提高分辨率？
+
+不是。
+
+零压缩会让每个瞬间、每个字节、每个 event 都成为独立对象。这样虽然“信息很多”，却可能失去概念、规律、模式、可比较性和可搜索性。
+
+因此：
+
+```text
+MaximumResolution
+!=
+MaximumEpistemicPower
+```
+
+好的 representation 往往同时做两件事：
+
+1. 合并当前 operation 不需要区分的东西；
+2. 保留或提供重新拆开的路径，使未来出现新 pressure 时能够恢复 discriminability。
+
+第二条很重要。
+
+有限智能无法预先知道所有未来用途，因此它不可能只靠一次完美压缩解决问题。它更需要的是：
+
+```text
+compact current projection
++
+source / provenance fence
++
+known omission boundary
++
+re-entry / challenge path
+```
+
+这比“永远给 Agent 全量上下文”便宜，也比“只保留最终摘要”安全。
+
+## 7. 现在再看 Problem → Solution 的不对称
+
+传统叙事常隐含这样一个方向：
+
+```text
+Problem
+  ↓ solve
+Solution
+```
+
+其中 Problem 像一个高维空间，而 Solution 像一个终点。
+
+但对后续 consumer 来说，Solution 更像：
+
+```text
+Solution / Result
+  ↓ projection
+new interface for another consumer
+  ↓
+new reachable actions / questions / assumptions
+```
+
+一个 Result 可能对当前 closeout 完全充分，却不足以回答未来 debugging、transfer、policy、counterfactual、reproduction 或 challenge 问题。
+
+反过来，完整保留所有探索路径也通常过度。
+
+因此：
+
+```text
+Terminal Result
+!=
+Universal future sufficient state
+
+Full history
+!=
+Necessary future state
+```
+
+真正的问题变成：
+
+> 对一组可预见的 continuation 和 consumer，我们需要保留哪些 relation；对于不可预见的 future pressure，我们需要保留什么重新进入 source / Reality 的能力？
+
+这比“到底保存 Result 还是保存过程”更接近实际工程问题。
+
+## 8. Solution 还会反过来改变 future Problem Space
+
+事情还没有结束。
+
+当一个 solution 被实现、制度化、写进工具、指标、接口或默认环境，它不仅表示过去的答案，也可能改变下一轮问题形成的条件。
+
+一个新 API 产生新的 action affordance；一个 metric 产生新的优化对象；一个 owner boundary 改变责任路由；一个 instrumentation capability 让以前不可见的差异可被测量；一个压缩的 first interface 则可能让某些问题不再自然出现。
+
+于是：
+
+```text
+Problem_t
+  ↓
+Solution / intervention_t
+  ↓
+Changed Reality / Interface / Environment
+  ↓
+ProblemSpace_{t+1}
+```
+
+这里至少要区分：
+
+```text
+Problem revelation
+Problem activation
+Problem generation
+```
+
+有些问题一直存在，只是以前没看见；有些 distinction 原本不 consequential，因为我们没有对应能力；还有一些 consequence class 是新技术、制度、metric 或 deployed representation 真正创造出来的。
+
+因此 solution 并不是从 problem space 里“拿走一个问题”那么简单。它可能改写下一轮什么东西能够成为问题。
+
+## 9. 一个 source 可以有多个正确 projection
+
+如果 representation adequacy 是 observer / operation relative，那么同一个 source 不应该被强制编译成唯一视图。
+
+Media 的 OMPC 已经采用这种思路：source owner 保留 truth/currentness authority，不同 observer 可以拥有不同 ProjectionEnvelope 和 RepresentationBody。
+
+例如：
+
+```text
+same source
+   ├→ Human explanation
+   ├→ Agent structured context
+   ├→ operator status surface
+   └→ audit / recovery view
+```
+
+这些 projection 可以在形式、细节、顺序和 affordance 上非常不同。
+
+关键不是字节一致，而是它们不能偷偷改变 source standing、authority、currentness，并且对各自 operation 必需的 omission/loss 必须可发现。
+
+因此：
+
+```text
+Same source
+!=
+Same observer representation
+
+Different representation
+!=
+Different source truth
+```
+
+这比寻找“一个最好的 representation”更符合有限智能系统。
+
+## 10. 表征修复的目标不是 richness，而是 operation-relative fidelity
+
+现在可以重新解释最近一些 Ordivon first-interface repair。
+
+它们不是简单把上下文变多。
+
+PPD repair 增加的是 generator/search coordinates；Media repair 改的是 responsibility routing；Studio production context 增加的是 source-bound standing；Finance 的一些 currentness repair 改的是决策所依赖的 Reality state；很多其他 owner 则不需要类似修复。
+
+因此，一个更可操作的诊断不是：
+
+```text
+How much context does the Agent have?
+```
+
+而是：
+
+```text
+For this operation,
+which distinctions must remain reachable?
+```
+
+如果 defect 是 search geometry，就修 generator / first-look representation；如果 defect 是 owner routing，就修 first object；如果 defect 是 currentness，就重新绑定 source；如果 compact representation 已经支撑正确 decision，就 `NO_CHANGE`。
+
+这避免了一个很诱人的新错误：把“representation 很重要”变成“所有地方都需要一个更复杂的 Representation Layer”。
+
+## 11. Book 自己也逃不过这个规律
+
+Book 正在做的事情就是大规模 compression。
+
+它把数以百计的 Task、Result、Standing、source、repair 和 episode 编译成连续文字。
+
+所以 Book 自己很可能成为最危险的 representation collapse surface 之一。
+
+它如果只追求流畅，就可能：
+
+- 把不同 owner 的 scoped result 写成一个统一理论；
+- 把历史发展写成必然逻辑；
+- 把某个当前 useful representation 写成最终 ontology；
+- 把 source disagreement 压成一句 consensus；
+- 把 open problem 写成“已经理解”。
+
+Book 的防护不是“把所有 source 原样放进正文”。
+
+而是：
+
+```text
+integrated projection
++
+claim/source ceiling
++
+currentness fence
++
+explicit non-claims
++
+recoverable deeper source
+```
+
+也就是说，Book 应该成为一个**可压缩，也可重新打开的 representation**。
+
+## 12. 这一章真正保留的原则
+
+如果把整章压到最小，不是：
+
+> Representation 决定 Reality。
+
+也不是：
+
+> 更丰富的 Representation 总是更好。
+
+而是：
+
+> **Representation 的充分性只能相对于它必须保留的关系来判断；有限智能需要压缩，也需要在新的 Reality pressure 出现时重新获得被压掉 distinction 的路径。**
+
+或者写成：
+
+```text
+Useful representation
+=
+selective compression
+relative to a declared use
++
+recoverable challenge / re-entry
+when that use changes
+```
+
+这个表达同样不是一个普适定理。它是当前 Ordivon 将多个 owner-local witness、形式化 sufficiency 结果和成熟外部理论编译成工程判断后的最小交集。
+
+## 13. 这一章没有证明什么
+
+本章明确没有建立：
+
+- 一个 universal Representation ontology；
+- 一个统一的 representation-fidelity score；
+- 所有问题都需要 reframing；
+- 所有摘要都会破坏搜索；
+- 所有丢失的 distinction 都有未来价值；
+- 更多细节总是更好；
+- full source injection 优于 compact projection；
+- 一个 representation 对 prediction 足够就对 intervention/action/search 也足够；
+- 每个 Problem 都有一个独立存在的 Solution Domain；
+- Problem / Solution 是 Reality 的天然、唯一分解；
+- Book 是比 owner source 更高层的真理；
+- 当前 Ordivon representation 已经覆盖未来所有 pressure。
+
+真正应该保留的是一个更小的警觉：
+
+> **当一个未来 consumer 做错事时，不要只问“它有没有读到正确事实”；还要问，它得到的 representation 是否保留了这次 operation 真正需要的区别、邻接关系、责任边界和重新接触 Reality 的路径。**
+
+---
+
+## Capability gestalt — Operation-relative Representation
+
+有限智能可以针对具体 consumer / operation 选择或构造保留 load-bearing distinctions、search geometry 与 action routing 的 representation，而不要求一个全局最丰富或唯一最优的表示。正确 proposition 本身仍不保证 operation sufficiency。
+
+# 行动不是命令：从 Standing 到 Reality 改变
+
+知道一件事之后，会发生什么？
+
+最诱人的答案是：如果判断足够可靠，就去行动。
+
+这句话在日常语言里没有问题，但对于一个能够修改代码、调用服务、配置环境、发布内容、隔离进程，甚至管理真实资本的 Agent 系统，它压掉了太多边界。
+
+一个判断可以有很高的 epistemic standing，却没有改变 Reality 的 authority；一个动作可以被允许，却没有被当前 policy 选中；一个动作可以被选中，却还没有形成 durable commitment；一个 Runtime process 可以成功退出，却没有证明外部 effect 发生；一个 effect 可以真实发生，却没有证明它产生了我们关心的 consequence；一个 consequence 可以被观察到，也仍然不等于 benefit。
+
+所以 Chapter 1 中那句：
+
+```text
+Standing != Action
+```
+
+只是入口。
+
+这一章真正要展开的是其中被压缩掉的空间：
+
+```text
+Standing
+  ↓
+Authority / Admission
+  ↓
+Admissible actions
+  ↓
+Selection
+  ↓
+Commitment
+  ↓
+Realization
+  ↓
+Effect
+  ↓
+Consequence
+  ↓
+Re-adjudication
+```
+
+这不是一个 universal Action ontology。不同 owner 对这些阶段有不同对象、证据与 authority。这个图的用途只是防止一种危险的 lifting：**上一层获得的 standing，不应无成本地升级成下一层的权力、发生性或价值。**
+
+## 1. 知道不等于有权让世界改变
+
+从 evidence 形成 standing，回答的是类似：
+
+> 在当前 source、scope、evidence 与 currentness 下，我们对某个 claim 有什么支持？
+
+它没有自动回答：
+
+> 谁可以据此改变 Reality？
+
+Atlas 对多个 owner 的 action/governance episode 做过一个很有用的非权威压缩：
+
+```text
+Evidence
+!=
+Claim
+!=
+Standing
+!=
+UseDisposition
+!=
+ActionPermission
+```
+
+这里最重要的不是增加术语，而是阻断自动升级。
+
+例如，一个 Security Agent 可以非常确定某个文件有害，但“检测到”“隔离”“删除”“向外部系统报告”仍可能对应不同的 authority 与 consequence surface。一个 Finance Agent 可以形成很强的经济判断，但该 standing 并不会自己生成 capital scope、execution authority 或一个当前可执行的 Proposal。Runtime 可以证明一个程序在受控 process tree 中退出为 0，也没有因此获得上层 domain 对“任务完成”的语义 authority。
+
+因此：
+
+```text
+EpistemicStanding
+!=
+PracticalAuthority
+```
+
+同样：
+
+```text
+Capability
+!=
+Authority
+```
+
+这不是因为 capability 可疑，而是因为“能做”与“有资格让它发生”回答的是不同问题。
+
+## 2. 可能、允许、可选与被选中是不同状态
+
+在一个 Agent-facing environment 中，我们很容易把 Tool presence 当作 action space：能看见一个 Tool，就意味着“这是一个当前可以做的动作”。
+
+Harness 的当前设计明确拒绝这种等号。
+
+它区分：
+
+```text
+installed capability
+!=
+Run-admitted capability
+!=
+turn-admitted capability
+```
+
+一个 mechanism 被安装，只说明系统具有这种 capability；一个 Run Contract 是否允许它、当前 turn 是否实际暴露它，是另外两层事实。即使 action 已进入 admissible set，下一步做什么仍由 Agent/application 在 delegated authority 内选择，而不是由 capability catalog 自动决定。
+
+所以还要保留：
+
+```text
+ActionAdmission
+!=
+ActionSelection
+```
+
+以及：
+
+```text
+ActionFeasibility
+!=
+ActionSelection
+!=
+ExecutionState
+!=
+Consequence
+```
+
+这也解释了为什么 Ordivon 后来没有把 `NOW / WAIT / HOLD / RESUME / SUPERSEDED` 做成一个全局 Task state machine。这样的标签可以作为方便的 consumer projection，但它们不是 action 的内在属性。
+
+同一个 action 可以同时满足：
+
+- 在 owner 语义上可行；
+- 在当前 authority 下允许；
+- 在当前资源分配下没有被选中；
+- 在另一个 consumer objective 下反而是第一优先级。
+
+因此，一个更准确的问题不是：
+
+> 这个 Task 现在是不是 NOW？
+
+而是：
+
+> 对这个 consumer、目标、authority 与当前 Reality，哪些 candidate actions 仍然 admissible；其中哪一个值得被选中？
+
+## 3. Authority 不是 intelligence 的副产品
+
+这一点在多 Agent 系统里尤其容易被侵蚀。
+
+当一个 Agent 越来越强，它会自然获得越来越多可实现 capability。但从：
+
+```text
+Agent can do X
+```
+
+不能推出：
+
+```text
+Agent may do X
+```
+
+Ordivon Normative 当前 owner contract 把相关 distinction 写得非常硬：
+
+```text
+NormativePower
+!=
+physical capability
+!=
+ordinary permission
+!=
+effective control
+```
+
+它甚至明确拒绝把 generic effective control / enforcement 吸收到 Normative owner 中。原因很直接：一个规范性 power 是否成立、一个 actor 是否物理上能做到、一个 permission 是否存在、一个 actor 是否实际上控制某个资源，是四种不同事实。
+
+Finance 的 current authority architecture 提供了一个具体例子。
+
+Primary Finance Agent 现在不需要向自己租赁 `trade.execute` authority。Owner Constitution 可以直接赋予 owner-native capital authority；AuthorityLease 回到更自然的位置：跨 actor delegation。
+
+但这完全没有变成：
+
+```text
+owner-native authority
+=> every trade executable now
+```
+
+当前 execution chain 仍然要求 current Decision / Proposal、当前 semantic admission、world-bound execution basis、effect reservation，以及独立的 deployment/effect admission。authority 解决“谁有权进入这类行动”，而不是提前替所有未来行动完成 adjudication。
+
+这是一条重要的 anti-collapse：
+
+```text
+AuthoritySource
+!=
+CurrentActionAdmission
+```
+
+## 4. Decision 不是 Tool call，Proposal 也不是 Effect
+
+Finance 把这一条边界做得非常具体。
+
+它的稳定结构不是：
+
+```text
+reasoning
+→ trade tool
+```
+
+而更接近：
+
+```text
+Decision
+→ Proposal
+→ current assessment / authority / world binding
+→ ExecutionRequest
+→ effect reservation
+→ dispatch
+→ provider evidence
+→ receipt
+→ reconciliation
+```
+
+每一层都能合法地停下来。
+
+`finance.decide` 可以记录一个 Decision 和 current assessment，却不会自动创建 Proposal；Proposal 即使存在，也不等于 authorized 或 submitted；当前 Primary-Agent surface 即使进入 execution，也有意停在 effect reservation 之前，把 dispatch claim、签名和真实 venue POST 留在内部 effect machinery。
+
+这一设计不是为了增加 ceremony。它在回答一个有限智能很难逃避的问题：
+
+> 如果 Agent 在不同时间点改变判断、进程在网络边界附近中断、source/currentness 在执行前改变，我们如何知道“候选动作”“已经承诺”“已经发生”分别是什么？
+
+Runtime 对更一般的 physical execution 给出了类似界线：
+
+```text
+Proposal
+!=
+Commitment
+```
+
+一个 model output、Tool-call draft 或 Agent plan 只是 candidate action。只有 exact operation 被 canonicalize、durably admit，并跨过相应 dispatch/effect boundary 后，才出现不同强度的 Reality commitment。
+
+## 5. 不行动也可以是一个完整 Decision
+
+如果这一章只讨论怎样让行动发生，它很快会制造一种新的 action bias：
+
+> 更多认识应该产生更多行动。
+
+Finance 的 Decision kernel 是一个很好的 negative control。
+
+它要求所有 capital-changing candidate 都与显式 NO-OP baseline 比较，并把：
+
+```text
+research
+wait
+abstain
+```
+
+定义为完整 Decisions，而不是“没有成功找到交易”的失败状态。
+
+这意味着：
+
+```text
+NoEffect
+!=
+NoDecision
+```
+
+以及：
+
+```text
+Abstain
+!=
+DecisionFailure
+```
+
+这不是纯设计原则。当前 Finance Reality 也给出了一个很干净的现场例子。
+
+当前 owner-native capital authority 仍然 active；然而当前保存的 managed-scope Decision 是一个历史 `abstain`，它的 review epoch 已经到期。Finance 的 current evaluation 保留其历史 validity，同时明确要求在任何新的 action progression 前重新 review。当前没有 Proposal，也没有 active financial effect。
+
+所以现实同时给出：
+
+```text
+AuthorityPresent
+!=
+ActionNow
+```
+
+以及：
+
+```text
+HistoricalDecisionValidity
+!=
+CommitmentCurrentness
+```
+
+如果一个系统把“authority active”直接投影成“现在可以交易”，它会错误扩张 action freedom；如果把“Decision expired”写成“过去 Decision 是错的”，它又会篡改历史 epistemic state。
+
+## 6. Commitment 有自己的 currentness
+
+一个行动在开始探索时合法，不保证它在真正付出成本或改变 Reality 时仍然合法。
+
+Ordivon 的自然 episode 已经出现过这种差异：研究开始时 source/current standing 是合法的，但在 preregistration freeze、昂贵 Provider batch、durable commit、merge/push 或 deployment 之前，上游已经前进。旧工作不一定因此变错，但“继续跨过下一个 consequential boundary”可能需要重新判断。
+
+于是：
+
+```text
+AdmissionCurrentness
+!=
+CommitmentCurrentness
+```
+
+正确修复也不是“每一步重读整个世界”。
+
+更小的 pattern 是：
+
+```text
+consequential commitment ahead
++
+concrete reason a load-bearing fact may have changed
+→
+bounded revalidation
+→
+owner-native re-adjudication
+```
+
+它可以得到：
+
+```text
+CONTINUE
+NARROW
+REBASE
+WAIT
+SUPERSEDED
+NO_CHANGE
+```
+
+而不是预先保证某一个方向。
+
+Runtime 的 current Effect Kernel 在物理层也有同样约束：一个已经 committed 的 operation 只能针对它绑定的 world/contract facts dispatch；如果 required revision、resource version、Tool contract、authority 等 enforceable precondition 在 dispatch 前漂移，旧 commitment 必须 fail closed，形成新的 operation。
+
+这不是“世界变化就全部重来”。它只阻止一个旧 commitment 偷渡穿过一个已经改变的 load-bearing boundary。
+
+## 7. Execution success 不是 Effect receipt，更不是 semantic completion
+
+一个 process 返回 exit code 0，看起来已经很接近“成功”。
+
+Runtime 刻意拒绝把这几件事合并：
+
+```text
+Execution Result
+!=
+External Effect Receipt
+!=
+Semantic Completion Claim
+```
+
+原因很现实。
+
+一个程序只被 physical dispatch 一次，内部仍可能产生零个、一个或多个 external effects。一次网络响应丢失，也可能让 Runtime 不知道远端 effect 是否已经发生。如果这时把“没看到成功响应”解释成“没有发生”，然后自动再发一次，可能直接复制 Reality effect。
+
+因此 Runtime 保存：
+
+```text
+lost
+orphaned
+unknown
+reconciliation_required
+```
+
+这样的状态，而不是强行翻译成 success/failure。
+
+对 effect-aware operation，正确动作取决于 effect owner 能证明什么：read-only 可能可重复；idempotent effect 需要稳定 deduplication identity；reconcilable effect 应先 query receipt/state；opaque effect 在 ambiguity 后不能自动重发。
+
+所以：
+
+```text
+PhysicalTerminality
+!=
+EffectCertainty
+!=
+DomainCompletion
+```
+
+这也是为什么 Runtime 自己一直明确：它拥有 Job / Attempt / process tree / Artifact / execution recovery truth，但不拥有上层 Task 或 domain semantic completion。
+
+## 8. 一个局部 Effect 也不能替下游 Consequence 划边界
+
+即使 effect 已经被证明发生，仍然不能把它当作整个 consequence surface。
+
+Atlas 的 action/governance synthesis 保留了这组 distinction：
+
+```text
+EffectFrontier
+!=
+PropagationFrontier
+!=
+ControlFrontier
+!=
+ObservationFrontier
+```
+
+一个本地 mutation 的 bytes 很少，不代表它的 downstream causal reach 很小。一次 publish 可以被 feed、cache、crawler、search engine、external Agent 继续传播；一次 authority delegation 可以改变未来谁能生成 effect；一个 metric 可以改变长期优化方向；一次小的 financial position change 可以进入新的 exposure、margin 和 market path。
+
+所以：
+
+```text
+SmallMutation
+!=
+SmallConsequence
+```
+
+以及：
+
+```text
+LocalEffectBound
+!=
+CausalReachBound
+```
+
+反过来，也不能因为 downstream consequence 可能很大，就假装我们可以完整枚举它。
+
+有限智能面对的经常是 structural uncertainty：相关 actor、dependency、interaction、externality 或 observation channel 可能根本还没有进入当前 representation。
+
+因此，比“算一个完整 risk distribution”更稳健的策略往往是：限制初始 commitment、限制已知传播渠道、保留 maneuverability、保持 Reality re-contact，并把 UNKNOWN 保留下来。
+
+这依然不是 universal safety algorithm，只是一种拒绝伪造 causal closure 的纪律。
+
+## 9. Consequence 也不是 Benefit
+
+一个 effect 被证明发生之后，最容易发生的下一次 lifting 是：
+
+```text
+Effect happened
+→ therefore it helped
+```
+
+Atlas 对 Result / Achievement / Value 的跨域审查明确拒绝这种跳跃：
+
+```text
+Consumption
+!=
+Benefit
+```
+
+并进一步拆开：
+
+```text
+Occurrence
+!=
+OwnerOutcome
+!=
+Evaluation
+!=
+BeneficiaryBenefit
+```
+
+例如一个 Normative contact surface 真正改变了 action admission，只能证明 `AdmissionDelta`。它不能自己证明该 intervention 带来 benefit。Finance 的一次真实交易、Media 的一次 render、Web 的一次 publication、Security 的一次 quarantine 同样如此。
+
+Benefit claim 至少需要适合本 domain 的 outcome、cost、comparator 和 attribution evidence。哪一个结果算“好”，也继续由目标 claim 与 domain owner 决定，而不是由 Action 层创造一个统一 utility scalar。
+
+所以：
+
+```text
+Effect
+!=
+Benefit
+```
+
+以及：
+
+```text
+GoodOutcome
+!=
+GoodDecision
+```
+
+一个合法而理性的 Decision 可能遇到坏的 stochastic outcome；一个糟糕 procedure 也可能偶然得到好结果。结果证据可以重新约束未来 standing，却不能自动重写过去 decision quality。
+
+## 10. Consequence 的 evaluator 仍然跟着 claim 走
+
+Chapter 1 已经建立了这个原则，这里不再重建一遍。
+
+关键只是在 action chain 中把它放对位置。
+
+如果 claim 是 Runtime execution correctness，relevant pressure 可能来自 process/evidence/recovery；如果 claim 是 Finance effect truth，应该看 provider/account/order/fill/bill/portfolio evidence；如果 claim 是 Web discoverability，crawler/search/feed 等独立系统就可以成为 evaluator；如果 claim 真正关于 Human comprehension、preference、consent 或 welfare，Human evidence 才不可替代。
+
+所以：
+
+```text
+ExternalPressure
+!=
+HumanPressure
+```
+
+同样：
+
+```text
+HumanAuthority
+!=
+HumanObservation
+!=
+HumanEvaluation
+!=
+HumanBenefit
+```
+
+Action chain 不需要一个 universal terminal evaluator。它需要的是：每个 consequence claim 都回到能够约束它的 Reality pressure。
+
+## 11. Action 结束以后，未来的 Action Space 也会变
+
+这一章到这里可以停在 consequence，但 Reality 不会停。
+
+反复成立的 action/standing 往往被编译进未来环境：
+
+```text
+manual reasoning
+→ default
+→ guard
+→ protocol
+→ affordance
+→ environment
+```
+
+一旦如此，未来 Agent 不再每次显式重建“为什么这个 action 可以做”。它面对的是已经重构过的 action surface。
+
+这也是 operation-relative affordance recompilation 的位置：owner standing/currentness 变化之后，环境应该重新决定哪些 affordance 仍值得暴露，哪些机械 coordinate 可以沉下去，哪些旧 freedom 应该撤回，哪些 semantic choice 必须继续交给 Agent。
+
+但“环境如何成为认知的一部分”是另一个足够大的问题。这一章只保留桥梁：
+
+> **行动不仅改变外部 state，也可能改变未来什么行动变得可见、可达、可授权和自然。**
+
+## 12. 这一章真正保留的最小模型
+
+如果必须把整章压缩成一句话，不是：
+
+> 有充分证据就应该行动。
+
+而是：
+
+> **行动是把 scoped standing 转换成 Reality commitment 的受约束过程；这个转换必须分别经过合适的 authority、current admission、selection 与 commitment，并用 effect evidence 和 claim-relative consequence 重新接受 Reality 的约束。**
+
+可以把它画成：
+
+```text
+Standing
+   ↓ does not self-authorize
+Authority + current admission + constraints
+   ↓
+Admissible actions
+   ↓ does not self-select
+Consumer / policy selection
+   ↓
+Commitment
+   ↓ does not prove occurrence
+Realization / Effect evidence
+   ↓ does not bound all propagation
+Claim-relative Consequence
+   ↓ does not imply benefit
+Re-adjudication / NO_CHANGE / new action frontier
+```
+
+这仍然只是 Book 的 integration projection。
+
+不同 owner 可以合法地省略、合并或细化其中某些阶段，只要它们没有因此抹掉对当前 operation 真正 load-bearing 的 distinction。
+
+## 13. 这一章没有证明什么
+
+本章没有建立：
+
+- 一个 universal Action ontology 或 `ActionState` schema；
+- 一个全局 permission / authority engine；
+- 一个全局 scheduler、priority score 或 current-work database；
+- 高 epistemic standing 自动产生行动义务；
+- capability 自动产生 authority；
+- normative permission、physical capability、effective control 是同一个东西；
+- action admitted 就一定应该被 selected；
+- action selected 就说明 effect 已经发生；
+- Runtime/Tool/process success 就说明 domain objective 完成；
+- stronger evidence 单调增加 action freedom；
+- `NO_OP / wait / abstain` 是失败；
+- action 在开始时 current 就不需要在 consequential commitment 前重新检查 load-bearing premise；
+- 所有 premise 每一步都应该重新验证；
+- local effect 小就意味着 downstream consequence 小；
+- consequence 可以完整枚举；
+- effect occurrence 自动证明 benefit；
+- good outcome 自动证明 good decision；
+- Human 是所有 action 的 universal approval gate 或 evaluator；
+- 当前的 action chain 已经解决 constitutional rule change、agenda power 或 institutional legitimacy；
+- Ordivon 需要一个新的全局 Action/Authority/Consequence service。
+
+真正需要留下的是一个更小但更实用的警觉：
+
+> **当一个 Agent 看起来“已经知道该做什么”时，继续问：它现在拥有什么 standing、什么 authority、哪个 action 被 admitted、谁选择了它、什么已经 committed、什么 effect 真正发生、我们实际观察到了什么 consequence，以及这些证据究竟允许下一步走多远。**
+
+---
+
+## Capability gestalt — Legitimate Action Progression
+
+有限智能可以把 Standing、admission、selection、commitment、physical execution、Effect 与 Consequence 分开推进，并在高代价 commitment 前重新检查真正 load-bearing 的 currentness。这个能力不允许 capability 或 Standing 自行产生 Authority。
+
+# 现在不是一个时间戳：History, Currentness and Recovery
+
+一个判断可以一直没有变错，却已经不能继续拿来行动。
+
+这句话听起来有些反直觉。我们习惯把知识状态想成一条线：过去形成判断，后来出现更新，于是旧判断被新判断替代。只要找到“最新”的那一个，就应该知道现在该相信什么。
+
+现实系统并不总是这样工作。
+
+一个 Finance Decision 可以在它形成的那个 decision epoch 中完全合理，后来也没有任何证据证明它当时是错的，但 review epoch 已经过期，因此不能直接进入新的 action progression。一个 Host Task 可以完整保留过去的 objective、frontier 和 next actions，却不因此成为当前应该继续的工作。一个 Runtime Job 可以已经产生了外部 effect，但响应在返回前丢失，此时既不能宣布失败，也不能因为“没有成功响应”而重新执行。一个 Atlas projection 可以完整保存过去 owner 的 Result、Standing 和 recovery path，却明确标记这些 bytes 不再是 current owner truth。
+
+更极端的是，在准备这一章时我们自己就遇到了一个这样的例子。
+
+一个叫做 `ordivon-book-ch4-host-20260824` 的 Workspace 看起来几乎拥有所有“当前”的表面特征：它创建得很近，名字明确写着 Chapter 4，目的也正是为当前工作准备 Host source。可是它绑定的 Host revision 已经落后于当前部署 authority。
+
+如果我们按照名字、创建时间或“这是刚才为这个任务开的 Workspace”来判断 currentness，就会直接拿一个 stale source 写一章关于 currentness 的章节。
+
+因此：
+
+```text
+recent
+!=
+current
+```
+
+更重要的是：
+
+```text
+historically valid
+!=
+currently actionable
+```
+
+Chapter 1 已经解释了 Reality、Representation、Evidence、Standing 与 Revision 为什么不能相互替代；Chapter 2 解释了一个正确的 representation 为什么仍可能改变 future search geometry；Chapter 3 解释了 Standing 为什么不能自动升级成 Authority、Commitment、Effect 和 Consequence。
+
+但这三章之间仍然缺少一个问题：
+
+> **当时间过去、owner 前进、环境变化、effect 变得不确定以后，过去形成的那些正确对象，怎样重新获得“现在还能不能用于这次行动”的资格？**
+
+这不是“怎样保存历史”的问题。
+
+也不是“怎样找到最新版本”的问题。
+
+它更接近：**一个有限智能怎样重新获得一个可行动的 Now。**
+
+## 1. 最危险的旧事实，往往仍然是真的
+
+很多系统喜欢把状态压成：
+
+```text
+current
+stale
+invalid
+```
+
+这种分类对缓存、protocol 或 UI 可能足够，但一进入认知与行动，就很容易制造错误含义。
+
+`stale` 常常被读成：
+
+> 这个东西已经不对了。
+
+但真正需要区分的至少有两件事：
+
+```text
+Was this claim valid then?
+
+Can this claim support this action now?
+```
+
+它们可以给出不同答案。
+
+Finance 当前 Decision kernel 给出了一个非常干净的例子。
+
+一个 Decision 被记录以后，它是一个 immutable point-in-time assessment。后来 review epoch 到期，系统不会把这个旧 Decision 改写成“错误 Decision”。历史对象仍然保留，过去的 evidence、rationale、NO-OP comparison 和当时的 current world 都仍然可以被恢复。
+
+变化的是另一件事：
+
+```text
+HistoricalDecisionValidity = preserved
+CurrentActionProgression = requires fresh review
+```
+
+因此：
+
+```text
+old != wrong
+```
+
+同时：
+
+```text
+old + valid-then
+!=
+actionable-now
+```
+
+这条 distinction 很重要，因为如果系统把“不能继续行动”解释成“过去判断错误”，它会篡改 epistemic history；如果反过来把“过去判断仍然合理”解释成“现在仍然可以执行”，它又会把历史 standing 偷渡成当前 authority。
+
+同一个对象在两个时间坐标上可以同时满足：
+
+```text
+historically valid
+historically useful
+currently non-actionable
+```
+
+没有矛盾。
+
+真正错误的是强迫它只能属于一个状态。
+
+## 2. History 解决记忆问题，却不自动生成 Now
+
+如果旧事实仍然值得保存，那么答案是不是把历史保存得更完整？
+
+这一步外界已经有非常成熟的解。
+
+Event Sourcing 可以把变化保存为 append-only event history，并从事件重建过去状态。Temporal database 可以区分事实在 Reality 中何时成立，以及系统何时记录它；bitemporal model 甚至可以同时查询这两个时间维度。Provenance system 可以保留 revision、derivation、agent、activity 和 source lineage。
+
+这些方法都非常重要。
+
+但它们主要回答：
+
+```text
+What happened?
+What was known then?
+How was this object derived?
+What state can be reconstructed?
+```
+
+Chapter 4 的问题在它们之后才出现：
+
+```text
+Which reconstructed fact may still support this claim/action now?
+```
+
+Atlas 正好暴露了这个差异。
+
+当一个 owner source 变得 unresolved 或已经前进时，Atlas 不需要删除过去 projection。它可以保留旧 owner row、历史 Result、recovery locator 和 genealogy；这些材料对解释“当时为什么这样判断”、恢复 research lineage、重新找到 owner source 都非常有价值。
+
+但 retained projection 会携带自己的 currentness health，而不是因为“还能读取”就继续冒充 current truth。
+
+所以：
+
+```text
+History preservation
+→ recovery value
+```
+
+不能推出：
+
+```text
+History preservation
+→ current authority
+```
+
+这条边界也说明为什么 `Recovery = Replay` 太弱。
+
+Replay 可以重建过去。
+
+而一个有限智能真正需要的是重新知道：
+
+> **过去的哪些东西仍然能进入现在，哪些只能作为历史，哪些必须重新接触 Reality。**
+
+## 3. “最新”也不是答案
+
+既然历史不够，那是不是总应该取最新版本？
+
+也不行。
+
+版本系统定义的是某种 ordering；semantic supersession 却是 claim-relative 的关系。
+
+假设一个 repository 的最新 commit 是：
+
+```text
+C_new
+```
+
+它比：
+
+```text
+C_old
+```
+
+晚。
+
+但如果 `C_new` 只修改 docs，而当前决策依赖的是 API connectivity，那么：
+
+```text
+newer(C_new, C_old)
+```
+
+成立，却不能推出：
+
+```text
+C_new supersedes API-connectivity claim from C_old
+```
+
+Runtime 的 Workspace 模型也故意保留类似区别：
+
+```text
+sourceRevision
+!=
+currentHeadRevision
+!=
+sourceStateDigest
+```
+
+Workspace 从哪个 commit 打开、现在 checkout 到哪个 HEAD、当前 tracked/untracked bytes 到底是什么，是三种不同事实。
+
+在这一章的准备过程中，那个 stale Host Workspace 更直接地证明了：
+
+```text
+purpose-specific
++
+recently-created
++
+correctly-named
+```
+
+也不能推出：
+
+```text
+current owner source
+```
+
+正确的恢复动作是重新解析 owner：
+
+```text
+recover intended owner
+→ resolve current owner fence
+→ compare retained source
+→ continue only from the revalidated fence
+```
+
+因此：
+
+```text
+Latest
+!=
+Current-for-this-claim
+```
+
+以及：
+
+```text
+Newer
+!=
+Superseding
+```
+
+如果忽略这一区别，一个系统会在两个方向上都浪费：一方面无意义地重验证所有“变过”的东西，另一方面漏掉那些版本号没显著变化但 action relevance 已经改变的 dependency。
+
+## 4. 也不存在一个单一的 semantic Now
+
+这里很容易滑向另一个成熟问题：分布式系统没有一个简单的全球时钟。
+
+Lamport 已经非常深地处理了事件的因果/partial ordering；Chandy–Lamport 也已经处理了怎样获得一个一致的 distributed global state。
+
+Chapter 4 不是重新发明这两件事。
+
+即使我们拥有一个机械上一致的 snapshot，仍然可能不知道它对当前行动是否足够。
+
+因为一个 Ordivon action 可能同时依赖多个彼此独立的 Reality coordinate：
+
+```text
+Host continuity revision
+Runtime physical Job / Workspace state
+Git / owner source fence
+Finance Decision epoch
+Venue World / market basis
+authority / policy state
+Media projection fence
+```
+
+这些坐标没有必要共享一个 semantic clock。
+
+例如，Host 的 checkpoint 可以完全 current-to-Host，同时它里面记录的 `observedHeadRevision` 只是一个历史 navigation hint；Runtime Workspace 可以 physical state 完全健康，同时上层 Finance Decision 已经过期；Media 可以刚刚重新 render 一份 projection，但它绑定的 source owner 已经前进。
+
+所以：
+
+```text
+consistent snapshot
+!=
+semantically sufficient action surface
+```
+
+更准确地说，一个行动并不需要“整个世界的 Now”。
+
+它需要的是：
+
+> **足以改变这个行动正确性、admission 或 effect semantics 的那些 Reality 坐标，现在处于什么状态。**
+
+这也是为什么两个 Agent 在同一物理时刻，可以合法地需要不同的 Now。
+
+一个 Agent 正在写 Book，它需要 revalidate 的主要是 source-owner currentness、claim boundary 和 representation contract；另一个 Agent 正在提交金融 effect，它需要的可能是 Decision epoch、capital state、authority、instrument metadata、Venue World、market basis 和 effect reservation。
+
+它们不是活在两个时间里。
+
+它们拥有不同的 **action-relevant present surface**。
+
+## 5. Currentness 属于 claim 和 operation，而不是对象本身
+
+于是，“这个东西 current 吗？”这个问题本身常常太粗。
+
+更有意义的是：
+
+> 对哪个 claim？对哪个 operation？在谁的 authority 下？依赖哪些 Reality coordinate？
+
+一开始我们很容易写出一个完整 dependency set：
+
+```text
+D(a) = all dependencies of action a
+```
+
+然后定义一个漂亮的 `ActionableNow(a,t)`。
+
+但这又偷偷假设了一个有限智能最不应该假设的东西：**我们已经知道全部 dependency。**
+
+开放 Reality 里，这通常不成立。
+
+因此更安全的对象不是完整 dependency graph，而是一个开放 frontier：
+
+```text
+D_hat(a,t)
+=
+currently discovered load-bearing dependency frontier
+```
+
+同时保留：
+
+```text
+U(a,t)
+=
+unresolved dependencies / supersession paths
+```
+
+`D_hat` 不是一个新的 Ordivon schema。它只是帮助我们记住：现在被检查的 dependency surface 是有限智能当前已经发现的，而不是 Reality 的封闭全集。
+
+如果 `U(a,t)` 中出现 material unknown，正确结果不一定是“继续多查直到全部知道”。它可能是：
+
+```text
+WAIT
+RESEARCH
+RECONCILE
+ABSTAIN
+BLOCK
+```
+
+同样，如果当前已知 boundary 已经足够，并且真正 load-bearing 的 owner facts 没有改变，那么：
+
+```text
+NO_CHANGE
+```
+
+也是成熟结果。
+
+这给 currentness 一个比 freshness 更窄的定义：
+
+> **Currentness 不是对象有多新，而是当前已知 evidence 是否仍足以支撑目标 claim/operation 的下一步。**
+
+## 6. Revalidation 也不能变成“每次刷新整个世界”
+
+一旦接受 currentness 是 operation-relative，另一个极端也必须拒绝：
+
+```text
+before every action
+→ refresh everything
+```
+
+这对有限智能既昂贵，也经常没有意义。
+
+Book 自己就提供一个 negative control：如果一个章节只修改 Representation 段落，而 Finance owner 没有承载这个 changed claim，就没有理由因为“Book revision”而把整个 Finance Reality 重跑一次。
+
+当前 Book source rule 更小：
+
+```text
+consequential changed claim
+→ identify exact upstream owner/source fence
+→ revalidate that boundary
+```
+
+Finance 的 capabilities 也采用类似方向：不同 operation 声明不同 freshness dependencies。一个 read-only dataset query、一个 Decision evaluation、一个 execution reservation，不会被迫共享一个 `globalFresh=true`。
+
+Runtime 的 recovery 同样是 targeted：`task.observe(jobId)` 针对一个 exact Job reconcile，而 projection-only list/get 不应该顺手推进 unrelated work。
+
+所以一个更合理的原则是：
+
+> **从当前已知、会改变目标 action 的最小 boundary 开始 revalidate；当 owner contract、expiry、unknown、changed operation、source failure 或新的 Reality pressure 证明这个 boundary 不足时，再扩大。**
+
+这不是“只有收到变化通知才检查”。
+
+有些 currentness 会因为时间本身失效：Decision review epoch 到期；某些 observation 有明确 maximum age；某个 authority lease 或 policy 有自己的 validity window。也有些 currentness 会因为 operation 改变而变化：同一份 source 对 read-only explanation 足够，却不足以授权 destructive effect。
+
+因此：
+
+```text
+Selective revalidation
+!=
+Lazy caching
+```
+
+它更接近：
+
+```text
+Selective re-grounding
+```
+
+## 7. Recovery 不是回到过去
+
+现在可以重新定义 Recovery。
+
+Host 的核心价值是 semantic continuity。它可以让一个 Agent 恢复：
+
+```text
+objective
+frontier
+established
+unresolved
+rejected
+constraints
+next actions
+```
+
+但 Host 当前接口写得很明确：`READY` 只说明 continuity remains open；`task.resume` 恢复的是 retained working claim，不是 current work admission 或 priority。
+
+所以：
+
+```text
+Resume
+!=
+Re-admit
+```
+
+Atlas 也类似。它能恢复 owner map、history、genealogy、retained evidence 和 recovery path，却不因为 recoverability 获得 owner authority。
+
+Runtime 则处理另一种 recovery：response loss、process interruption、Workspace state、Job/Attempt reconciliation。它要做的是重新找到**同一个 durable physical operation**的 Reality，而不是因为 connection 断掉就新建另一个 operation。
+
+Finance 又提供了第三种恢复：旧 Decision 可以恢复，但恢复以后可能得到的结论是“需要 fresh review”，而不是“继续执行旧 Proposal”。
+
+这些机制不同，却共同压力出一个更窄的 cross-owner synthesis：
+
+```text
+Recovery
+!=
+RestorePreviousStateAndContinue
+```
+
+有限智能真正需要恢复的是：
+
+```text
+what remains usable
+what became historical-only
+what must be revalidated
+who owns that revalidation
+what remains unknown
+what next action / non-action is admissible
+```
+
+因此：
+
+```text
+Recovery target
+=
+decision capability
+```
+
+不是：
+
+```text
+previous state identity
+```
+
+一个成功 recovery 甚至可能让系统决定**不要继续过去的工作**。
+
+这并不是 recovery 失败。
+
+恰恰相反，它说明系统恢复了判断能力，而不是只恢复了惯性。
+
+## 8. UNKNOWN 是一种正面的边界信息
+
+Recovery 最容易被破坏的地方，是系统无法忍受 `UNKNOWN`。
+
+假设一个 external effect 请求已经提交：
+
+```text
+send effect
+→ remote side may execute
+→ response lost
+```
+
+此时有多个世界仍然兼容现有 evidence：
+
+```text
+A. effect never reached remote side
+B. effect happened exactly once
+C. effect partially happened
+D. effect happened but receipt path failed
+```
+
+如果系统把它强行写成：
+
+```text
+FAILURE
+```
+
+下一步很可能是 retry。
+
+而 retry 本身可能制造第二个 effect。
+
+Runtime 因此保留 `lost`、`orphaned`、`unknown`、`reconciliation_required` 等状态，并明确要求 effect-aware recovery 依据对应 owner 能证明什么来处理。Finance 的 financial-resource semantics 也把 `UNKNOWN` 与 `STALE` 保留下来：两者都可能 fail closed，却不是同一个事实，更不应该被翻译成普通 `FAIL`。
+
+因此：
+
+```text
+Unknown
+!=
+Failure
+```
+
+同样：
+
+```text
+Unknown
+!=
+Success
+```
+
+`UNKNOWN` 的价值不是“我们什么都不知道”。
+
+它表达的是：
+
+> **当前 Reality evidence 无法合法地区分至少两个会改变下一步行动的世界。**
+
+这是一种有行动意义的信息。
+
+它告诉有限智能：现在最危险的不是缺少答案，而是制造一个并不存在的答案。
+
+所以在这一章里：
+
+```text
+uncertainty preserved
+>
+certainty fabricated
+```
+
+不是价值判断，而是 recovery correctness 的条件之一。
+
+## 9. 一个 Actionable Now 是什么
+
+到这里才有必要给 `Actionable Now` 一个非常弱的定义。
+
+它不是一个 timestamp。
+
+不是一个 global state object。
+
+不是 `latest=true`。
+
+也不是一个所有 owner 都必须填的 `currentness` schema。
+
+可以把它暂时写成：
+
+```text
+ActionableNow(a,t)
+=
+finite agent has recovered enough owner-local evidence,
+currentness / authority / admission boundaries,
+and explicit unresolved state
+to make the next action-or-non-action decision
+without pretending that historical or unknown coordinates are current
+```
+
+这个定义里最重要的词是：
+
+```text
+enough
+```
+
+而不是：
+
+```text
+complete
+```
+
+因为有限智能通常无法证明它已经覆盖 Reality 中所有可能相关 dependency。
+
+因此一个 Actionable Now 可以导向：
+
+```text
+ACTION
+WAIT
+RESEARCH
+RECONCILE
+ABSTAIN
+NO_CHANGE
+```
+
+它不保证 action。
+
+它只表示：**当前系统已经恢复了足以诚实决定下一步的 boundary。**
+
+这也解释了为什么 `NO_CHANGE` 很重要。一个成熟系统不应该因为执行了 recovery/revalidation 就强迫自己生成 revision。重新接触 owner 后发现过去 projection 仍足够，正确结果就是保持原 standing/action surface。
+
+## 10. Now 不是系统状态，而是有限智能与 Reality 的一次重新对齐
+
+如果把这一章压得更深，真正变化的不是时间模型，而是我们对“现在”的理解。
+
+传统直觉容易把 Now 想成：
+
+```text
+WorldState(t)
+```
+
+但有限智能永远接触不到完整 WorldState。
+
+它实际拥有的是一组有 source、有 latency、有 authority、有 omission、有 uncertainty 的 Reality contact。
+
+因此对它来说：
+
+```text
+Now
+```
+
+更像一次 operation-relative alignment：
+
+```text
+past retained knowledge
++
+current owner contact
++
+known action dependency frontier
++
+explicit unresolved state
++
+current authority/admission
+→
+next admissible decision
+```
+
+这里没有要求所有 Reality coordinate 同步到同一时间。
+
+也没有要求 history 被删掉。
+
+相反，一个健壮的 system 往往同时保留：
+
+```text
+historical truth
+current projection
+unresolved currentness
+future recovery path
+```
+
+它们都是真的，只是在不同 claim 上承担不同角色。
+
+所以问题从来不是：
+
+> 哪一个版本才是真的？
+
+而是：
+
+> **对这个 claim 和这次 action，哪一个 coordinate 现在仍有 action relevance？**
+
+## 11. 当 Now 被重新获得以后，环境也会变
+
+Currentness 如果只存在于 audit report 中，价值有限。
+
+一旦系统知道某个 source stale、某个 Decision expired、某个 effect unknown、某个 owner fence current，这些事实最终会改变 consumer 看到什么。
+
+旧 context 可能被降到 history；current owner evidence 可能进入 first interface；某个 Tool 可以从默认 surface 暂时消失；某个 destructive affordance 可以因为 authority/currentness 不足而不再暴露；一个 `reconcile` action 可能取代 `retry` 成为最自然的 next step。
+
+于是：
+
+```text
+Recovered Actionable Now
+→
+selective projection
+→
+affordance / default-context change
+```
+
+这就是 Chapter 4 与下一类问题的连接。
+
+但这里必须停住。
+
+“环境怎样根据 standing/currentness 重新编译 affordance”，已经是 Agent–Environment / Environmentalization 的问题。Chapter 4 不需要借此发明 environment manager、global router 或 universal currentness service。
+
+它只保留一个后果：
+
+> **如果 currentness 真正进入系统，未来 Agent 的环境应该能够体现它，而不是要求 Agent 每次从 raw history 手工重新发现。**
+
+## 12. 这一章真正保留的最小模型
+
+如果必须把整章压成一条 recovery path，它不是：
+
+```text
+load latest state
+→ continue
+```
+
+而更接近：
+
+```text
+recover exact history / continuity
+→ resolve current owner(s)
+→ identify currently known load-bearing frontier
+→ revalidate the smallest sufficient boundary
+→ preserve UNKNOWN / historical-only state
+→ re-admit action, non-action, or NO_CHANGE
+```
+
+这里每一步都可以停下来。
+
+`History` 保证我们不会因为现在变化就伪造过去。
+
+`Current owner` 保证 projection/recovery 不会自己铸造 authority。
+
+`Known dependency frontier` 承认有限智能不知道全部 Reality。
+
+`Selective revalidation` 避免把 currentness 变成全世界刷新仪式。
+
+`UNKNOWN` 保留 Reality 仍未被区分的部分。
+
+`Re-admission` 则让过去的正确对象重新接受现在的行动条件，而不是自动续期。
+
+所以这一章最重要的三句话可以压成：
+
+```text
+History preserves what was knowable.
+Currentness asks what still bears on this claim.
+Recovery restores the ability to make that distinction again.
+```
+
+## 13. 这一章没有证明什么
+
+本章没有建立：
+
+- 一个 universal Time ontology；
+- 一个 global semantic clock；
+- 一个 universal `CurrentnessService`；
+- 一个全局 dependency graph；
+- 一个 normalized cross-owner Standing object；
+- `latest` 自动等于 `current`；
+- 所有 data 都必须始终 maximally fresh；
+- distributed global snapshot 足以证明 semantic actionability；
+- recoverable history 自动拥有 current authority；
+- `READY` 自动等于 current work；
+- `resume` 自动等于 re-admission；
+- response loss 自动等于 failure；
+- `UNKNOWN` 是等待被 success/failure 消除的坏状态；
+- replay 是所有 recovery 的正确方法；
+- every action 都必须 refresh the entire world；
+- finite agent 已知全部 action dependencies；
+- `ActionableNow(a,t)` 是一个应该在所有 owner 中实现的 schema；
+- Book/Atlas/Host 可以替 source owner 判断 current semantic truth；
+- 当前 Ordivon 已经拥有完整 autonomous environment recompilation machinery。
+
+这些 non-claims 不是附带保守。
+
+如果未来 evidence 迫使我们建立其中某一种更强机制，它应该由具体 owner pressure 和 consumer failure 重新赚取，而不是因为 Chapter 4 需要一个漂亮的统一理论就提前建立。
+
+真正应该留给未来 consumer 的警觉只有这个：
+
+> **当你恢复一个过去的判断、Task、Result、Workspace、Decision 或 Effect 时，不要先问“怎样继续”；先问“它对当前哪一个 claim 仍然有 action relevance，谁拥有这件事的 current truth，什么必须重新接触 Reality，以及什么仍然应该保持 UNKNOWN”。**
+
+这时，Recovery 才不是回到过去。
+
+它是在重新获得现在。
+
+
+---
+
+## Capability gestalt — Actionable-Now Recovery
+
+有限智能可以从 bounded history、current owner evidence、currentness fences 与明确 UNKNOWN 中恢复足以决定下一步的 Actionable Now，而不要求重播全部历史或构造全局一致 snapshot。Recovery 仍不是 current authority。
+
+# 环境不是背景：Standing 如何成为未来的默认
+
+一个系统可以已经“学会”一件事，却在下一次遇到同类问题时重新从零开始。
+
+这不是修辞上的矛盾。
+
+一条研究结论可能已经被证明、写进文件、提交到 Git、保存进 Host、被 Atlas 索引，甚至曾经短暂进入某个 canonical Knowledge；而未来的 Agent 仍可能没有在正确时刻看到它，没有把它用于当前判断，或者继续沿着那个结论本来已经排除的错误路径行动。
+
+Ordivon 最近遇到过一个几乎为这一章量身定做的例子。
+
+我们已经研究过：成熟外部理论不应该只被用来削减 Ordivon 的 novelty；它们本身是可直接消费的 solution-domain content。我们也已经研究过：一个 Task closeout 不等于 surviving result 的 destination 已经被判定。甚至这些规则一度被写进 Research Method Canon，并被放到 Research first look。
+
+后来 owner split 与 Git lineage 前进，那条修复没有进入新的 current main，只留在 archive branch。几天后，一个新的 Chapter 5 selection 又自然犯了同一种错误：看到外界已经有 affordance、function allocation、distributed cognition 等成熟理论，于是把更大的问题域一起减掉，只留下一个较窄的 First Interface 工程残差。
+
+因此：
+
+```text
+Historically integrated
+!=
+currently inhabited
+```
+
+更一般地：
+
+```text
+Preserved
+!=
+Environmentalized
+```
+
+Chapter 1 已经说过，反复成立的认识会沉进 default、Tool boundary、protocol、admission rule、UI affordance、生产习惯和 Agent 起始 Context；Chapter 2 说明 representation 与 interface 会改变未来可达的问题与行动；Chapter 3 说明 standing 不能自动升级成 authority、commitment 与 effect；Chapter 4 说明历史正确也不能自动获得当前 action relevance。
+
+但它们之间还缺一个问题：
+
+> **一条已经成立的 Standing，什么时候有资格不再被未来有限智能每次显式重建，而是被编译进它所处的环境？它应该沉到哪里、由谁承担、为哪个 consumer 服务，又怎样在 Reality 改变时重新浮上来？**
+
+这就是这一章真正处理的对象。
+
+不是 Environment 本身。
+
+而是：
+
+```text
+Standing
+→
+Environment
+```
+
+之间那段不能被省略的 admission 与 placement。
+
+## 1. 保存知识，只解决了“以后还能不能找到它”
+
+外部组织研究早就说明，知识的 retention、retrieval 与实际使用不是同一件事。
+
+organizational memory 研究关心过去经验怎样被获得、保存、取回，并影响现在与未来的组织行为；absorptive capacity 进一步区分外部知识是否被识别为有价值、是否被吸收、是否真正应用；organizational learning 则长期把 learning 与 history、routine、target 联系起来。
+
+这些成熟研究已经足以消除一个错误直觉：
+
+```text
+Knowledge stored
+=>
+Organization learned
+```
+
+并不成立。
+
+在 Ordivon 中也一样。
+
+Git 可以保证一条历史 derivation 仍然存在；Host 可以保证一个 semantic checkpoint 能被恢复；Atlas 可以让过去的 Result、Standing、owner source 与 genealogy 可发现；Computing Knowledge 可以保存一个跨 owner 可复用的解释。
+
+这些都很重要。
+
+但它们主要回答：
+
+```text
+Can a future consumer recover this?
+```
+
+而不是：
+
+```text
+Will the future consumer naturally reason and act differently because of it?
+```
+
+因此至少要保留：
+
+```text
+Retention
+!=
+Retrieval
+!=
+Consumption
+!=
+Environmentalization
+```
+
+这不是要求每条知识都继续升级。
+
+恰恰相反，它让我们第一次能够诚实地说：某条 standing 已经被保存，但还没有进入 future environment；或者它已经足够可恢复，因此没有必要再沉得更深。
+
+## 2. 正确，也不等于应该成为默认
+
+如果“保存还不够”，最危险的反应就是：那就把重要知识全部塞进默认 Context。
+
+这只是把 under-consumption 换成 over-injection。
+
+一个 standing 可以完全正确，却只服务一个很窄的 consumer；它可以具有很高研究价值，却很少在日常决策中被重复重建；它也可以在一个 owner 中是 load-bearing invariant，在另一个 owner 中毫无行动意义。
+
+所以：
+
+```text
+Correct
+!=
+ShouldBeDefault
+```
+
+同样：
+
+```text
+Important
+!=
+ShouldBeAlwaysVisible
+```
+
+Chapter 2 已经说明 representation 必须相对于 operation 与 consumer 判断。这里把这个原则推进一步：**环境化本身也是一种 representation / responsibility decision。**
+
+当我们把一条 standing 写成默认配置、semantic operation、Tool surface、guard、protocol 或 first-look 时，我们实际上在决定：
+
+> 未来哪些 distinction 不再需要由当前 Agent 自己重新发现，而由环境预先保留；哪些选择仍必须留给 Agent；哪些更深的 source 与 challenge path 可以暂时沉下去。
+
+因此，一个 niche standing 在没有 repeated reconstruction burden、没有第二类 consumer、也没有 default change benefit evidence 时，最成熟的结果可以只是：
+
+```text
+Knowledge retained
++
+NO_DEFAULT
+```
+
+这不是沉淀失败。
+
+这是正确地拒绝结构膨胀。
+
+## 3. “谁来做”是一个旧问题，但历史角色不是天然边界
+
+Human 与 machine 应该怎样分配功能，并不是 Agent 时代才出现的问题。
+
+从早期 human-machine function allocation，到 levels of automation、automation ironies、complementary allocation，再到 distributed cognition，外部研究已经用很多方式说明：不能只按“人擅长什么 / 机器擅长什么”做一次静态切分；自动化会改变剩余工作、协调负担、监督难度、技能保持和整个系统的组织形态。
+
+所以 Ordivon 不需要再次证明：
+
+> 有些工作给 Human，有些工作给 machine。
+
+真正需要保留的 residual 更窄。
+
+一个现代 Agent 系统里的“角色”，经常只是过去能力边界留下的 bundle。
+
+例如传统 portfolio manager 可能同时负责：
+
+```text
+open-world research
+semantic synthesis
+exact arithmetic
+constraint solving
+capital-state tracking
+decision
+execution
+reconciliation
+monitoring
+owner communication / consent
+```
+
+这些责任历史上集中到 Human，并不证明它们在结构上属于同一个 owner。
+
+过去更可能只是：Human 是唯一足够 general、能够跨越所有接口的 substrate。
+
+一旦 Agent、solver、database、venue API、executor、reconciler 和 owner authority 都能独立承担一部分 responsibility，旧角色本身就失去天然优先级。
+
+因此，比 `Human-first` 或 `Agent-first` 更稳定的原则是：
+
+> **对每一个具体 relation 与 responsibility，把它放到当前 capability、evidence relation、authority relation、precision/recovery 属性和 Reality coupling 最适合的 entity 或 mechanism；再让实际 consequence 判断这种组合。**
+
+这就是这里所说的 responsibility-relative primacy。
+
+它不是一个全局分数，也不是“让最强 Agent 赢”。
+
+同一个 operation 中完全可能：
+
+```text
+Agent        owns semantic synthesis
+Venue        owns current market/account observation
+Database     owns canonical ledger mechanics
+Solver       owns exact optimization/calculation
+Executor     owns bounded physical submission mechanics
+Reconciler   owns effect reconstruction from provider evidence
+Owner        owns irreducible capital-scope / consent boundary
+```
+
+没有一个参与者因为处在流程中央，就自动成为其他事实的 owner。
+
+所以：
+
+```text
+Coordinator
+!=
+Truth owner
+```
+
+以及：
+
+```text
+Automation
+!=
+Responsibility reassignment by default
+```
+
+## 4. Finance 已经比我们的共享世界模型更早学会了这件事
+
+当前 Finance 的 Primary Agent surface 是一个很好的压力案例。
+
+它不再把底层 implementation operation 全部丢给 Agent，而是给 Agent 暴露：
+
+```text
+finance.observe
+finance.research
+finance.decide
+finance.execute
+finance.reconcile
+finance.performance
+finance.owner
+```
+
+这些不是七个新 ontology class。
+
+它们是为了让当前 consumer 不必每次从 provider call、数据库表、execution primitive 和 reconciliation plumbing 中重新推导 Finance 的 semantic responsibility boundary。
+
+与此同时，Finance 没有因为做了 semantic compression 就把 authority 一起压进 Primary Agent。
+
+`finance.observe` 可以刷新并解释当前 Finance world，却不让 provider schema 获得 Finance meaning authority；`finance.execute` 可以推进已经决定的 capital transition，却仍要求 world-bound revalidation、effect identity 与 reconcile-first；`finance.reconcile` 独立观察 venue consequence，而不是相信 execution success；`finance.performance` 可以测量 owner-capital outcome，却没有 execution authority；`finance.owner` 只处理真正的 owner-root boundary，并明确拒绝把 ordinary Primary-Agent risk policy 重新路由成人类 governance。
+
+这里真正重要的是：
+
+> **过去的研究已经不再只存在于 Finance 文档里。它改变了一个未来 Agent 开始工作时所面对的 responsibility surface。**
+
+这就是 environmentalization 的一个正例。
+
+Agent 不需要先学习“为什么 execution success 不是 financial truth”，再手工决定是否需要 reconciliation；这个 distinction 已经进入了 semantic operation 与 effect boundary。
+
+但如果未来 venue、Agent capability、owner delegation 或 execution mechanism 发生改变，这个 placement 仍然可以被重新审查。
+
+所以：
+
+```text
+Environmentalized placement
+!=
+Eternal placement
+```
+
+## 5. 一个 Standing 要沉到哪里，不能由它自己决定
+
+Chapter 3 已经说明 Standing 不能自授权 Action。
+
+这里有一个平行问题：Standing 也不能自授权自己的 materialization destination。
+
+一条研究结果关闭以后，可能有很多合法去向：
+
+```text
+owner-local current truth
+Research / unresolved falsifier
+reusable Knowledge
+compact shared Core
+implementation invariant / test
+negative history
+no new durable materialization
+```
+
+这就是为什么：
+
+```text
+TaskCloseout
+!=
+DestinationAdjudicated
+```
+
+而 destination 之后还没有结束。
+
+即使某条结果正确地进入 reusable Knowledge，也不能推出：
+
+```text
+Knowledge
+=>
+Default Context
+```
+
+还需要一个具体 consumer。
+
+谁在重复付出 reconstruction cost？
+
+哪一个 operation 因为看不到这条 standing 而反复犯错？
+
+如果把它前置成 default，会减少什么 burden？会不会遮住另一个 owner 的 current truth？会不会把只在一种 regime 下成立的 heuristic 写成永久 guard？
+
+因此，Standing → Environment 至少要经过一个 bounded consumer question：
+
+> **如果这条 standing 不进入当前 consumer 的环境，现实中会反复损失什么？**
+
+如果答案只是：
+
+> “这条理论很重要。”
+
+那还不够。
+
+重要性不是环境席位。
+
+## 6. Environment 不是一份“预先塞好的知识包”
+
+这里最容易产生一个新的架构诱惑：既然 Knowledge 需要被 future Agent 消费，那就让系统自动搜索、排序并注入所有 relevant Knowledge。
+
+当前 Harness 恰好提供了一个很强的 negative control。
+
+它已经可以把一个外部 owner 持有的 exact reusable Knowledge / procedure source 解析成 reusable cognition reference，并进入现有 cognition seed / WorkingSet path。
+
+但 Harness 源码刻意声明：它不负责：
+
+```text
+discover
+rank
+evaluate
+promote
+automatically inject
+```
+
+因为这些行为会偷偷创造新的 relevance / semantic authority。
+
+所以：
+
+```text
+ReusableSourcePresent
+!=
+CurrentCognition
+```
+
+一个 source 可以真实存在、可恢复、甚至已经通过外部 promotion，却仍然只有在 application / Host / domain / Agent 做出合法 selection 后才进入当前 cognition。
+
+这并不是“沉淀得不够深”。
+
+这是责任放置正确。
+
+环境化不是把所有知识从 cognition 移到 infrastructure。
+
+它是在正确 owner 边界下，把**反复需要而且已经赚得默认地位的 distinction**放到未来 consumer 最低成本就能自然利用的位置。
+
+有时那个位置是一个 default Context；有时是 Tool contract；有时是一个 semantic operation；有时是数据库 invariant；有时只是 Research `Start here` 的第一条链接。
+
+没有必要存在一个统一的 Environment Store。
+
+## 7. First Interface 是环境化的下游表现，不是全部理论
+
+当前 Harness 的 experimental Interaction Context 让这个关系非常具体。
+
+caller 先提供已经 source-fenced 的 owner facts，以及已经 admitted 的 Tool definitions；compiler 不重新判断 Reality，也不扩大 authority。它只做两件事：
+
+1. 编译一个 compact ephemeral interaction source；
+2. 把 Provider-visible Tool surface **减到**当前 caller 已经证明为 `AVAILABLE` 的 affordance。
+
+`BLOCKED` 与 `UNKNOWN` 仍然可以作为 context 被模型看到，却不会因此变成可调用 Tool。
+
+而且输出明确声明：
+
+```text
+ownerTruthMinted = false
+priorityInferred = false
+toolAuthorityExpanded = false
+```
+
+这给 Chapter 5 一个非常好的 implementation witness：
+
+```text
+current owner standing
+→
+selective environment projection
+→
+current affordance
+```
+
+但它没有回答 Standing 为什么应该成为一个长期 default，也没有回答某个 responsibility 为什么应该迁移到这个 carrier。
+
+因此 First Interface 只是 environmentalization 的最后几米。
+
+它让已经完成的 placement 对未来 Agent 变得自然可用。
+
+真正的 Chapter 5 还必须解释前面的 admission：
+
+```text
+What deserves to become default?
+Who should carry it?
+For which consumer?
+Under what challenge path?
+```
+
+## 8. 自动化常常不是删除工作，而是重写剩余工作
+
+automation literature 给这一章提供了一个重要反例。
+
+Bainbridge 很早就指出：自动化工业过程可能扩大而不是消除 Human operator 的问题。后来的 function-allocation / levels-of-automation 工作也不断强调，自动化选择会改变 Human activity、coordination demand、decision authority 与 whole-system flexibility。
+
+这意味着一个系统不能只观察：
+
+```text
+Agent/tool now performs X
+```
+
+就宣布：
+
+```text
+Human responsibility for X disappeared
+```
+
+责任可能只是变形了。
+
+生产者变成 evaluator；日常操作者变成 rare-event supervisor；手工执行负担消失，却出现异常接管、monitoring、verification、skill decay 或 coordination burden。
+
+Agent 时代同样如此。
+
+把 Finance research 交给 Agent 以后，Human 不一定还应该逐条做研究；但这也不能自动推出 Human 变成所有 Agent 输出的 approval gate。真正需要重新检查的是：**哪些不可替代 relation 仍然存在？**
+
+如果 claim 是 Human preference、consent 或 welfare，Human relation 仍然 load-bearing；如果 claim 是 market/account Reality，Human review 反而可能是更弱的 evaluator；如果 responsibility 是 exact arithmetic，一个 deterministic solver 可能比 Human 与 Agent 都更合适。
+
+所以 responsibility placement 必须允许旧 bundle 被拆开，也允许新的 residual burden 被发现。
+
+这也是为什么：
+
+```text
+More automation
+!=
+Monotonic better responsibility placement
+```
+
+## 9. Environment 的力量，恰恰来自它不再被每次注意
+
+为什么值得把一些 standing 沉进环境？
+
+因为有限智能很贵。
+
+如果每次使用 Git 都要重新推导“commit history 应该持久保存”；每次下单都要重新证明“response loss 不能等同 failure”；每次研究都要重新发现“成熟外部理论是可消费解，不只是 novelty blocker”，系统会把大量 cognition 浪费在已经稳定的问题上。
+
+成功的 environmentalization 会把这些重复推导变成：
+
+```text
+default
+constraint
+guard
+semantic Tool
+first-look
+protocol
+routine
+```
+
+于是 future Agent 的 search space 被重新塑形。
+
+它不再需要把所有历史 possibility 都看成同等开放。
+
+这正是 infrastructure 为什么有力量：一旦某个 arrangement 真正进入 practice，它往往从显式对象退到背景，成为“工作本来就是这样进行的”。
+
+但这也是风险所在。
+
+一个错误 assumption 如果同样沉到底层，也会从“一个可以争论的命题”变成“一个从来不进入问题空间的前提”。
+
+因此 environment 不是中性的背景。
+
+它是过去选择对未来 cognition 的持续作用。
+
+## 10. Challengeability 不是每次重新推导
+
+如果环境化会隐藏 assumption，是不是应该让 Agent 每次都重新检查所有 standing？
+
+那会取消 environmentalization 的意义。
+
+Chapter 4 已经给出更好的方向：selective re-grounding。
+
+这里可以把它应用到沉淀后的 placement。
+
+一个 default 不需要因为“时间过去了”就每天重新辩论；但当 load-bearing condition 改变时，它必须有路径重新浮上来。
+
+例如：
+
+```text
+owner currentness changed
+capability frontier changed
+a new consumer appeared
+observed consequence became harmful
+a previously hidden dependency surfaced
+a responsibility carrier failed or disappeared
+a strong simpler replacement became available
+```
+
+这些 pressure 都可能触发：
+
+```text
+retain
+narrow
+rebind
+demote
+remove
+re-open research
+NO_CHANGE
+```
+
+而不是把历史 rewrite 成“过去做错了”。
+
+所以：
+
+```text
+Environmentalized
+!=
+Eternal
+```
+
+同时：
+
+```text
+Challengeability
+!=
+Re-derive every time
+```
+
+真正成熟的环境不是永远不变，而是**大多数时候让稳定知识沉下去，在 Reality 对其假设产生 material pressure 时又能重新把它变成显式问题。**
+
+## 11. Demotion 和 NO_CHANGE 与 Promotion 一样重要
+
+如果这一章只有“怎样把知识沉下去”，它会制造新的 promotion bias。
+
+环境化有成本：
+
+- 它占据 first-look / interface attention；
+- 它缩小 future search space；
+- 它可能创造 compatibility burden；
+- 它可能隐藏 historical assumptions；
+- 它可能把局部成功写成跨 owner doctrine；
+- 它可能让未来更强的 Agent 被旧 scaffolding 限制。
+
+因此，一个 standing 能进入 Knowledge，并不意味着它应该进入 Core；能进入 Core，也不意味着它需要成为每个 owner 的 Tool；某个 Tool 在今天适合默认暴露，也不意味着未来 model capability 改变后还应继续存在。
+
+Environmentalization admission 必须允许：
+
+```text
+KEEP EXPLICIT
+KNOWLEDGE ONLY
+OWNER-LOCAL DEFAULT
+CONSUMER-SPECIFIC FIRST LOOK
+SEMANTIC ADAPTER
+GUARD / TEST
+DEMOTE
+DELETE FROM ACTIVE PATH
+NO_CHANGE
+```
+
+这些不是一个新的系统状态 enum。
+
+它们只是提醒我们：**“学会了”并不意味着“增加永久结构”。**
+
+一个很好的结果，可能就是确认现有 environment 已经足够，因此什么都不改。
+
+## 12. 什么才算真正“沉进去了”
+
+到这里，可以重新看上一轮审计中的 S0–S6。
+
+它们不是 lifecycle schema，却给“已经沉淀”提供了一个很有用的 falsifier。
+
+如果一条 standing 只有：
+
+```text
+file exists
+Host checkpoint exists
+Atlas can find it
+```
+
+我们最多知道它被保存、可恢复、可能可发现。
+
+如果未来 consumer 已经自然得到它，并且 default/interface/routine/responsibility placement 因此改变，我们才开始有理由说它进入了 environment。
+
+而如果还观察到：这种改变减少了重复错误、降低了 cognition burden、改善了 consequence，或者在 revalidation 后正确产生 `NO_CHANGE`，才有更强证据说这种沉淀值得保留。
+
+因此：
+
+```text
+Document changed
+!=
+Environment changed
+```
+
+以及：
+
+```text
+Environment changed
+!=
+Benefit established
+```
+
+这和 Chapter 1 的 `Feedback != Learning != Gain` 是同一纪律在更晚阶段的应用。
+
+环境也必须接受 Reality feedback。
+
+## 13. 一个最小的 Environmentalization Admission 问法
+
+这一章不需要新的 `EnvironmentalizationService`。
+
+真正需要的是未来 consumer 遇到稳定 standing 时，能够恢复一组更好的问题。
+
+可以把它压成八问：
+
+```text
+1. What exactly survived?
+2. Where is its truthful destination?
+3. Who / what should carry this responsibility now?
+4. Which concrete consumer repeatedly needs it?
+5. What repeated burden or consequence earns default status?
+6. What is the smallest environment change that removes that burden?
+7. What truth / currentness / authority must remain with its original owner?
+8. What pressure can challenge, demote or delete this default later?
+```
+
+第九个隐含问题永远是：
+
+```text
+Would NO_CHANGE be better?
+```
+
+这个问法不是 ontology，也不是 checklist authority。
+
+它只是在 Standing 与 Environment 之间保留那些一旦被省略，就最容易制造错误 permanence 的 distinction。
+
+## 14. 这一章真正保留的最小模型
+
+如果把整章压缩成一条链，它不是：
+
+```text
+Research
+→
+Knowledge
+→
+Automation
+```
+
+而更接近：
+
+```text
+validated Standing
+   ↓ destination / responsibility placement
+concrete consumer + repeated burden
+   ↓ bounded environmentalization admission
+smallest useful default / routine / interface / guard
+   ↓ owner/currentness/authority preserved
+future affordance / reduced reconstruction
+   ↓ consequence
+retain / narrow / re-ground / demote / NO_CHANGE
+```
+
+这里没有一个中心 owner。
+
+不同责任可以由不同 carrier 承担；不同 consumer 可以看到同一 standing 的不同 projection；同一个 default 可以在今天成立、明天被 currentness 或 consequence 重新打开。
+
+所以“环境”在这里不是世界外面额外加的一层。
+
+它是：
+
+> **过去已经被验证、并且值得重复利用的部分认识，以一种对当前 consumer 有用、对 owner authority 保守、对未来 Reality 仍可挑战的形式，持续存在于下一次 cognition 开始之前。**
+
+这就是 finite intelligence 为什么需要 environment。
+
+不是为了不用再思考。
+
+而是为了把思考留给仍然值得思考的地方。
+
+## 15. 这一章没有证明什么
+
+本章没有建立：
+
+- 一个 universal Environment ontology；
+- 一个 `EnvironmentalizationState` 全局 schema；
+- 一个自动 Research→Knowledge→Core→Environment pipeline；
+- 一个全局 relevance engine、knowledge recommender 或 consumer graph；
+- 所有正确 standing 都应该成为 default；
+- 所有 reusable Knowledge 都应该自动进入 Agent cognition；
+- Human-first、Agent-first 或任何 entity 的普遍优先级；
+- Ordivon 发明了 human-machine function allocation、levels of automation、organizational memory、organizational learning、distributed cognition、affordance 或 infrastructure theory；
+- responsibility-relative primacy 是一个可由单一 scalar optimizer 求解的全局分配问题；
+- 自动化越多越好；
+- default visibility 产生 action authority；
+- 一个环境一旦正确就应该永久保持；
+- challengeability 要求每次从 first principles 重建全部 standing；
+- First Interface 就等于完整 environmentalization；
+- 一个 document、commit、Host checkpoint 或 Atlas projection 的存在已经证明 future behavior 改变；
+- environment change 已经证明 benefit；
+- 每一条 standing 都必须走到 S5/S6；
+- 当前 Ordivon 已经拥有完整自动环境重编译能力。
+
+这一章真正希望 future consumer 留下的警觉只有一个：
+
+> **当一条认识看起来已经稳定到“不值得再想”时，不要只问它是否正确；还要问它应该沉到哪里、由谁承担、为谁成为默认、它从未来认知中拿走了哪些选择，以及 Reality 以后怎样让它重新成为问题。**
+
+只有这样，沉淀才不是遗忘。
+
+它才是有限智能把过去的学习真正变成未来能力的一种方式。
+
+---
+
+## Capability gestalt — Challengeable Environmentalization
+
+有限智能可以把反复成立且值得默认化的 Standing 放入合适的 future interface、routine、guard 或 responsibility position，从而降低重复认知成本，同时保留 Reality-triggered challenge、demotion 与 re-grounding。Default 不因此获得新的 Authority。
+
+# 继承不是复制：Succession, Re-entry and Cumulative Ratchet
+
+一个系统可以让所有文件都活下来，却仍然没有真正的长期智能。
+
+它也可以让一个新 Agent 接着旧 Agent 的工作继续，却仍然没有产生“文明式”的积累。
+
+这两个差异在直觉上很容易被压在一起。
+
+我们常说：
+
+```text
+memory
+continuity
+long-term intelligence
+cumulative capability
+```
+
+仿佛只是同一个东西不断做大。
+
+但在 Atlas × Host × Harness 的 Continuity 研究中，这种表示不断被真实实验和外部成熟理论拆开。最终最重要的结果，反而不是发现一个新的 persistent-intelligence primitive，而是第一次比较稳定地看见：**保存、继承和累积是三个不同的问题。**
+
+可以先写成：
+
+```text
+Retention
+!=
+Succession
+!=
+Ratchet
+```
+
+`Retention` 问的是：过去留下的东西还在不在。
+
+`Succession` 问的是：前一个 cognition 消失以后，新的有限智能能不能重新进入一个仍然有效的责任、知识、行动与 Reality 关系中。
+
+`Ratchet` 则更强：后来的 generation 是否不仅恢复过去，而且真的从更高的 capability frontier 出发，并把新的改进继续留给下一代。
+
+Chapter 4 已经处理 History、Currentness 和 Recovery：怎样从过去重新获得一个可行动的 Now。Chapter 5 处理 Standing 怎样有条件地沉进 future Environment，让未来 cognition 不必重复推导已经稳定的 distinction。
+
+但这两章之间仍然留下一个更长时间尺度的问题：
+
+> **如果具体 Agent 本身会消失，那么“现在已经获得的能力”究竟怎样越过 Agent replacement？什么只是被保存，什么真的被 successor 继承，而什么才有资格叫累积？**
+
+这就是这一章的对象。
+
+它不是“Memory Architecture”。
+
+也不是“把上下文做得更长”。
+
+它更接近：**有限智能的 succession 与 cumulative capability。**
+
+## 1. 保存下来，只证明过去没有完全消失
+
+最弱的一层很容易做到。
+
+一个系统可以拥有：
+
+```text
+Git history
+append-only events
+archives
+databases
+checkpoints
+transcripts
+snapshots
+books
+Atlas projections
+Host journals
+```
+
+只要这些对象没有丢，过去至少在某种意义上仍然可恢复。
+
+这就是 Retention。
+
+Retention 很重要，因为没有它，successor 只能重新发现。
+
+但：
+
+```text
+Retained
+!=
+InheritedAsCapability
+```
+
+一个未来 Agent 面对一百万个完整保存的文件，可能仍然不知道：
+
+- 哪些问题已经解决？
+- 哪些只是历史上曾经相信？
+- 哪些 route 已经被证伪？
+- 哪些 standing 仍然 current？
+- 哪些责任仍然 open？
+- 哪个 owner 现在有资格回答下一步？
+- 某个 effect 到底发生了没有？
+- 现在甚至是否存在一个可执行 action？
+
+因此一个无限完整的 archive，也可能把 succession burden 原样交给下一代。
+
+这和 Chapter 5 的：
+
+```text
+Preserved != Environmentalized
+```
+
+是同一个问题在更长时间尺度上的版本。
+
+保存解决的是：
+
+```text
+Can the past still be recovered?
+```
+
+而 Succession 解决的是：
+
+```text
+Can a successor enter the present without reconstructing the whole past?
+```
+
+## 2. Successor 不应该恢复前任的脑子
+
+如果目标是“连续”，最自然的工程直觉之一是 replay。
+
+保存完整 transcript、event history、checkpoint，然后让 replacement 从旧状态继续。
+
+在大量软件系统里，这非常正确。
+
+Durable execution、event sourcing、workflow replay、checkpoint recovery 都已经成熟地解决：
+
+```text
+process dies
+→ persistent history remains
+→ local state reconstructed
+→ execution continues
+```
+
+因此 Ordivon 不需要再次发明：
+
+```text
+worker replacement + checkpoint + resume
+```
+
+更重要的是，有限智能的 succession 与普通 process restart 之间存在一个关键差异。
+
+一个 deterministic workflow 希望 replay 后重新得到同一条控制路径。
+
+但 successor cognition 不一定应该这样。
+
+在 Agent A 消失以后：
+
+```text
+owner source may advance
+Reality may change
+authority may change
+Tool capability may change
+an effect may become reconciled
+a previous standing may become stale
+Agent B may reason differently
+```
+
+如果我们要求 B 精确恢复 A 的 cognition，反而可能把旧世界冻结进新 Agent。
+
+因此：
+
+```text
+Continuity
+!=
+Restore predecessor cognition
+```
+
+更准确的目标是：
+
+> **让 successor 恢复那些今天仍然应该约束它的东西，同时重新接触已经变化的 Reality。**
+
+所以 Succession 更接近：
+
+```text
+inherit qualified residues
++
+recover surviving obligations
++
+resolve current owners
++
+reconcile ambiguous effects
++
+re-observe changed Reality
+→
+form successor's own present cognition
+```
+
+可以把它压成一句话：
+
+> **Preserve what must constrain successor cognition, not predecessor cognition itself.**
+
+## 3. Agent Identity 不是长期能力的正确单位
+
+这进一步改变了“谁在持续”的问题。
+
+如果 Agent A 被 Agent B 替换，真正需要延续的未必是：
+
+```text
+Agent A identity
+```
+
+而可能是：
+
+```text
+work identity
+obligation
+institutional role
+owner relation
+open frontier
+source/effect identity
+```
+
+Host 当前的 semantic continuity 就是一个很好的工程例子。
+
+它保存的不是“某个模型的灵魂”，而是一个 named Task 的：
+
+```text
+objective
+frontier
+established
+unresolved
+rejected
+constraints
+nextActions
+```
+
+同时又明确拒绝：
+
+```text
+Host Task READY
+=> current priority / domain truth / current Git state
+```
+
+于是：
+
+```text
+persistent responsibility
+!=
+persistent Agent
+```
+
+这和人类机构非常相似。
+
+一个职位、实验室、法院、学科、公司项目或者科研问题可以跨越具体成员存在。新成员进入的不是前任个人意识，而是一个已经有：
+
+- duties；
+- records；
+- procedures；
+- unresolved cases；
+- authority boundaries；
+- expectations；
+- historical failures；
+
+的 role environment。
+
+所以 Succession 的基本单位往往更像：
+
+> **可被新 occupant 重新占据的 responsibility position。**
+
+而不是一个永远不替换的 cognition instance。
+
+## 4. “现在没有下一步”不等于“事情已经结束”
+
+这轮 Continuity 研究里最有价值的自然 case，来自 Finance 与 Workstation。
+
+历史 Finance observation 已经产生：
+
+```text
+EGRESS_NOT_CURRENT
+externalFinancialWriteAttempted = false
+```
+
+Fresh successor 面对 Host continuity、Finance owner error 与 Harness 已经 admitted 的 tool projection，需要决定下一步。
+
+在五次 FULL replicate 中，它 5/5 选择：
+
+```text
+OBSERVE_WORKSTATION_EGRESS
+```
+
+而不是直接 retry Finance 或修改环境。
+
+之后我们真的执行了当前 Workstation owner 的只读 observation。
+
+观察得到：
+
+```text
+finance-okx
+status              = UNKNOWN
+listenerReachable   = false
+serviceActive       = false
+parentHealthOk      = false
+watchdogDisposition = no-eligible-member
+activeMember        = null
+eligibleMembers     = []
+```
+
+并且 effect contract 明确：
+
+```text
+READ_ONLY
+environmentMutation = false
+externalFinancialWrite = false
+```
+
+现有 Finance↔Workstation composition 随后重新编译当前 interaction surface，结果是：
+
+```text
+selectedTools = []
+toolAuthorityExpanded = false
+toolExecuted = false
+```
+
+此时一个非常重要的状态自然出现：
+
+```text
+obligation = OPEN
+environment = BLOCKED
+admitted action = NONE
+```
+
+如果把长期智能想成一个“next action queue”，它很容易把这个状态解释成：
+
+```text
+没有 action
+→ 工作结束
+```
+
+但这是错误的。
+
+正确 distinction 是：
+
+```text
+NoActionNow
+!=
+Complete
+```
+
+任务仍然 open，只是 Reality 当前没有给出合法 continuation。
+
+之后再次自然执行同一个 read-only Workstation observation，得到完全相同的 owner-native bytes。
+
+正确行为仍然不是：
+
+- 强行修复网络；
+- 为实验启动 service；
+- retry Finance；
+- 把 blocked 写成 failure；
+- 把没有 Tool 写成 complete。
+
+而是：
+
+```text
+preserve obligation
++
+preserve current blocker
++
+wait for material Reality change
+```
+
+这说明长期能力里有一种非常重要的能力不是“做什么”，而是：
+
+> **在没有合法动作时，仍然保持正确的未完成关系。**
+
+## 5. 但 WAIT 也不是 Ordivon 的新发明
+
+这一点马上需要 prior-art subtraction。
+
+Azure Durable Functions 已经允许 orchestration 长期等待 external event；worker 可以停掉，事件到来后再唤醒。AWS durable execution 也有 `Wait`、`Callback` 和 `waitForCondition`，能够自动 checkpoint、poll、backoff、suspend，并在外部 resource/state 改变后继续。
+
+所以：
+
+```text
+open work
++
+no current action
++
+wait for condition/event
++
+resume later
+```
+
+已经是成熟 workflow capability。
+
+Case Management 又把问题推进了一步。
+
+CMMN 本来就是为运行时路径不完全预定、activity 顺序依赖 evolving case information 的 knowledge-intensive work 设计的；Guard–Stage–Milestone 之类 declarative lifecycle 同样可以表达：
+
+```text
+case remains active
+stage may be open/closed
+milestone may be achieved/invalidated
+next task depends on event/condition
+```
+
+因此：
+
+```text
+OpenButNoAction
+```
+
+本身也不是一个新的 Continuity primitive。
+
+这条 subtraction 很重要，因为它阻止我们因为 Ordivon 第一次自然遇到一个 blocked successor case，就建立：
+
+- universal WAIT state；
+- Continuity daemon；
+- global wake-up scheduler；
+- successor state machine；
+- new shared workflow owner。
+
+成熟系统已经有大量正确解。
+
+Ordivon 真正需要保留的 residual 只可能出现在：
+
+> **谁定义 wake condition，谁拥有 condition 的 current truth，重新唤醒后哪些 inherited standing 仍然有效，以及 successor 应该向哪些不同 owner 重新取得什么。**
+
+## 6. Effect recovery 也不能交给一个全局 continuity owner
+
+在研究过程中，最初一个很自然的 shorthand 是：
+
+```text
+X = Harness effect/recovery standing
+```
+
+真实故障很快证明它太窄。
+
+我们曾经遇到 Runtime Workspace mutation response 不确定；也遇到 Host checkpoint response 不确定。
+
+这两种情况里 Harness 都不是 effect owner。
+
+一个操作可能：
+
+```text
+已经发生
+但响应丢了
+```
+
+也可能：
+
+```text
+根本没有发生
+```
+
+如果 caller 看见 `UNKNOWN` 就直接 retry，可能制造重复 effect。
+
+成熟 distributed systems 早已用 idempotency、transaction recovery、durable receipt、in-doubt state 等机制处理这一问题。
+
+因此 Continuity 不需要一个全局 effect oracle。
+
+更合理的是：
+
+```text
+EffectStanding(
+  operation,
+  effectOwner,
+  evidenceFence
+)
+```
+
+Runtime-owned operation 向 Runtime reconcile。
+
+Host-owned semantic checkpoint 向 Host revision / Journal reconcile。
+
+Harness-owned Provider/Tool continuation 向 Harness 对应 Run/effect evidence reconcile。
+
+Finance/venue effect 则继续由 Finance/venue owner contract 负责。
+
+于是：
+
+```text
+same UNKNOWN label
+!=
+same recovery operation
+```
+
+Succession 的一个重要能力不是“知道 UNKNOWN”，而是知道：
+
+> **这个 UNKNOWN 属于哪一个 responsibility boundary。**
+
+## 7. Atlas、Host、Harness 都有作用，但不是一个新超级 owner
+
+经过 deletion experiments，可以比较清楚地看到三类信息作用。
+
+Host behavioral twin 中，两个世界只在 open work identity 上不同：一个应该继续 Finance，另一个应该继续 Media。删掉 Host 以后，两个 successor packet 在 bytes 上完全相同，而正确 action 相反。
+
+Harness twin 中，两个 Provider world 分别是：
+
+```text
+dispatch ambiguous
+vs
+failed before dispatch safely
+```
+
+正确动作分别是 resume 与 safe retry。删掉 recovery carrier 后，两个 packet 同样变得不可区分。
+
+Atlas/currentness twin 则把 inherited candidate 分成 current 与 source-advanced-stale；删除 currentness carrier 后两个世界也变得完全相同。
+
+所以三类信息都有一种严格的信息必要性：
+
+```text
+without the relevant coordinate
+→ at least two action-distinct worlds become observationally identical
+```
+
+但这不能推出：
+
+```text
+Atlas + Host + Harness
+= new central intelligence substrate
+```
+
+因为 responsibility 仍然分散在：
+
+```text
+Atlas       = qualified history / retrieval / currentness health projection
+Host        = work identity / obligation / frontier continuity
+Harness     = bounded Run / Provider / Tool recovery
+Runtime     = physical execution/recovery where Runtime owns the operation
+Domain owner= current semantic/world truth in its own scope
+```
+
+组合价值来自这些边界能被 successor 正确消费。
+
+它们没有因此合并成一个新的 truth owner。
+
+## 8. Information necessity 也不等于 finite-Agent 能稳定用好
+
+Atlas twin 给了一个很重要的 negative result。
+
+从信息论意义上，current 与 stale world 在删除 Atlas/currentness carrier 后确实不可辨识。
+
+但是 fresh Agent 的五次实验里：
+
+```text
+FULL       7/10
+NO_ATLAS   7/10
+```
+
+FULL 没有形成稳定行为优势。
+
+这说明：
+
+```text
+InformationNecessary
+!=
+FiniteAgentConsumable
+```
+
+一个 representation 可以携带 logically essential information，却仍然：
+
+- 排序不好；
+- distinction 不够 salient；
+- 与其他 evidence 竞争注意力；
+- 让 Agent 过早补全缺失语义；
+- 不能稳定改变 action selection。
+
+这和 Chapter 2 的 representation 结论直接连接。
+
+Successor substrate 的问题从来不是“信息有没有”。
+
+还包括：
+
+> **在 replacement 的有限 token、attention、tool budget 下，这些 distinction 是否以足够好的几何进入 successor cognition。**
+
+这也是为什么把所有历史完整塞进 Context 不是答案。
+
+## 9. Currentness 也必须允许历史继续有用
+
+Succession 还有一个容易被忽略的双向风险。
+
+我们通常担心 future Agent 忘掉过去：
+
+```text
+under-retention
+→ rediscovery
+→ repeated failure
+```
+
+但组织学习与 currentness 实验同时提醒：另一个方向同样危险。
+
+```text
+over-retention
+→ stale authority
+→ competency trap
+→ obsolete routines
+```
+
+因此长期智能不能只优化 retention fidelity。
+
+一个 historical episode 可以：
+
+```text
+仍然是历史
++
+今天仍然支持某个 claim
+```
+
+也可以：
+
+```text
+今天仍能恢复
++
+已经不能支持当前 action
+```
+
+所以至少要保留：
+
+```text
+TemporalRole
+!=
+PresentClaimSupport
+!=
+Authority
+```
+
+这意味着 successor 的任务不是把过去全部带进现在。
+
+而是重新决定：
+
+```text
+what to inherit as current constraint
+what to inherit as history
+what to revalidate
+what to reject
+what to leave unknown
+```
+
+真正的 continuity 因此同时需要：
+
+```text
+selective retention
++
+selective invalidation / forgetting
+```
+
+## 10. 人类组织为什么能跨成员继续
+
+这里终于可以重新回答最初的文明类比。
+
+组织研究里，routines 与 transactive memory systems 提供了两个很不同的 continuity carrier。
+
+Routine 可以把一组 interdependent action patterns 固化成不同成员都能执行的结构，因此相对能承受 member turnover。
+
+Transactive memory system 更像：
+
+```text
+who knows what
+```
+
+它依赖成员的 specialized knowledge 与彼此之间的 routing knowledge，因此在 turnover 后更容易失配，但在 uncertainty 和 innovation 环境中又非常重要。
+
+这两个机制甚至可以互相转化：
+
+```text
+TMS
+→ repeated coordination
+→ routine
+```
+
+以及：
+
+```text
+routine
+→ recurring expertise relations
+→ new TMS
+```
+
+这给 Ordivon 一个比“Memory”更好的类比。
+
+长期能力至少需要两种东西：
+
+### 稳定结构
+
+```text
+procedures
+guards
+semantic operations
+institutional roles
+routines
+```
+
+让 successor 不需要每次重新发现全部工作结构。
+
+### 动态 routing
+
+```text
+which owner knows this now?
+which source advanced?
+which effect owner can reconcile?
+which expert / capability is currently available?
+```
+
+让系统在 Reality 与成员变化后仍能重新找到正确关系。
+
+如果只有 routine，系统可能僵化。
+
+如果只有 routing，每一代都要重新协调。
+
+这也是为什么文明不是一个 database。
+
+它更像一个由：
+
+```text
+archives
+roles
+institutions
+routines
+expert networks
+procedures
+criticism
+revision
+succession
+```
+
+共同形成的 distributed capability environment。
+
+## 11. Succession 仍然不是 Ratchet
+
+即使一个 successor 能很好地进入前任位置，我们仍然不能说系统发生了 cumulative intelligence。
+
+这是这一章最重要的第二次收缩。
+
+Succession 只要求：
+
+```text
+later Agent
+can recover and continue
+```
+
+Ratchet 要求更强：
+
+```text
+generation A leaves something useful
+→ B inherits it
+→ B produces a genuine improvement
+→ improvement survives transmission
+→ C begins from that improved frontier
+→ process repeats
+```
+
+累计文化研究把这种现象称为 cumulative culture / ratchet effect。
+
+它通常要求的不只是 social transmission，而是反复发生：
+
+```text
+change
++
+transmission
++
+performance improvement
++
+iteration
+```
+
+所以：
+
+```text
+SuccessfulHandoff
+!=
+CumulativeCapability
+```
+
+以及：
+
+```text
+MoreStoredKnowledge
+!=
+HigherCapabilityFrontier
+```
+
+这一点对 Ordivon 特别重要。
+
+如果 A→B→C→D 每一代都能恢复同样的 workflow，但没有一代真正留下更好的 representation、procedure、standing、tool、environment 或 decision capability，那么系统只是 durable。
+
+它没有 ratchet。
+
+## 12. 高 fidelity 也可能把错误一起锁死
+
+Ratchet 又引入一个非常有意思的 tension。
+
+累计文化理论强调 transmission fidelity：如果每一代都把前代成果丢掉很多，复杂能力很难累积。
+
+但是有限智能系统又不能追求：
+
+```text
+perfectly preserve everything
+```
+
+因为 Reality 会变化，standing 会失效，工具会变化，旧 routine 会变成 competency trap。
+
+所以长期积累更像在两个轴上同时优化：
+
+```text
+Inheritance Fidelity
+×
+Current-Reality Adaptability
+```
+
+可以得到四个直观区域：
+
+| Inheritance | Adaptability | 结果 |
+| --- | --- | --- |
+| 低 | 低 | 既忘记又不会适应 |
+| 低 | 高 | 每一代都聪明，但反复 rediscover |
+| 高 | 低 | bureaucracy / dogma / stale routine |
+| 高 | 高 | 最接近 cumulative intelligence |
+
+因此：
+
+```text
+continuity quality
+!=
+maximum copying fidelity
+```
+
+更接近：
+
+> **足够忠实地保留已经赚得约束力的结构，同时让 Reality 有能力推翻已经失效的 standing。**
+
+可以把它写成：
+
+```text
+high-enough fidelity
++
+nonzero plasticity
+```
+
+而不是 perfect replay。
+
+## 13. 我们原本以为的“联合能力”，被 generic baseline 大量解释了
+
+COJC Continuity 研究最重要的科学纪律，是不断把看似新的能力还给已经成熟的领域。
+
+我们先后发现：
+
+- Event Sourcing 已经解决大量历史/replay；
+- indexed retrieval/materialized view 已经解决大量 history scaling；
+- build/incremental systems 已经有 selective invalidation 与 change pruning；
+- TMS/ATMS、AGM、MCS 已经覆盖很多 belief/context revision；
+- durable workflow 已经覆盖 process replacement、wait、resume；
+- distributed transactions/idempotency 已经覆盖 effect ambiguity；
+- case management 已经覆盖 non-preplanned open work；
+- commitment protocols 已经覆盖 Agent-independent obligation lifecycle；
+- organizational routines/TMS 已经覆盖 member turnover 下的知识/协调；
+- cumulative-culture research 已经覆盖 transmission 与 ratchet。
+
+在 Ordivon 自己的实验里，generic indexed retrieval + typed policy composition 甚至复现了一个 H=256 multi-stage ratchet control 的 33/33；16-world recursive successor state 也可以被 generic transition model 零 mismatch 重现。
+
+因此我们不能再说：
+
+> “Atlas×Host×Harness 的组合本身就是新的 Persistent Intelligence substrate。”
+
+当前证据只允许一个更窄的 standing：
+
+> **Ordivon 正在形成一套 responsibility-preserving reactivation discipline。**
+
+它要求 successor 在 discontinuity 后：
+
+```text
+recover named obligation
+→ recover qualified history
+→ resolve current owners
+→ reconcile owner-relative ambiguous effects
+→ re-observe load-bearing Reality
+→ recompile current action / non-action
+```
+
+这个工程纪律可能很有价值。
+
+但它的 constituents 大量来自成熟机制，当前也没有自然 deletion-positive consequence 证明 Atlas×Host×Harness 作为组合产生了不可替代的新 capability class。
+
+## 14. 所以 COJC 最后选择了停止，而不是继续找正结果
+
+一个研究 programme 很容易因为已经投入很多实验，就不断制造下一组 workload。
+
+这条线最后反过来给出了一个更成熟的停止规则。
+
+未来只有当一个新的自然 cross-owner successor/recovery case 同时满足：
+
+```text
+NaturalPressure
+AND
+MatureBaselineResidual
+AND
+IdentifiableDeletion
+AND
+IndependentConsequence
+```
+
+才重新打开 physical COJC experiment。
+
+这里每个 gate 都有意义。
+
+### NaturalPressure
+
+真实 owner workload 自然卡住，而不是为了测试而制造一个坏世界。
+
+### MatureBaselineResidual
+
+最强的成熟 generic mechanism 与 owner-local composition 仍然解释不了问题。
+
+### IdentifiableDeletion
+
+可以做一个不会破坏自然 bypass、不会偷偷改 Reality 的 same-cut intervention。
+
+### IndependentConsequence
+
+删除以后有独立 owner-native downstream consequence，而不是只有 evaluator score 变了。
+
+这意味着当前 Continuity standing 是：
+
+```text
+DORMANT_NATURAL_PRESSURE_REOPEN_ONLY
+```
+
+不是因为问题不重要。
+
+而是因为继续主动制造实验，已经不再增加足够的信息。
+
+## 15. 一个更准确的 Continuity Capability Map
+
+经过这些 subtraction，Continuity 不需要一个巨大 ontology。
+
+保留六个问题已经足够：
+
+| 能力 | 核心问题 |
+| --- | --- |
+| Retention | 什么跨时间仍然存在？ |
+| Qualification | 过去留下的对象现在具有什么 standing？ |
+| Responsibility | 谁现在仍然负责什么？ |
+| Recovery | 不确定 occurrence/effect 应向谁 reconcile？ |
+| Re-entry | successor 如何以有限成本进入当前 Reality？ |
+| Ratchet | successor 是否留下真正更高的未来 capability？ |
+
+它们不是六个必须实现的 shared service。
+
+它们只是六种如果被压成一个 `memory`，就很容易制造错误的 pressure。
+
+## 16. 现在再看 Atlas、Host 和 Harness
+
+经过整个研究之后，它们最合理的位置反而更朴素。
+
+### Atlas
+
+Atlas 不是长期大脑。
+
+它更像一种：
+
+```text
+qualified institutional / historical navigation
+```
+
+帮助 successor 找到：
+
+- owner；
+- historical result；
+- currentness health；
+- negative history；
+- recovery locator；
+- curated synthesis。
+
+但 semantic equivalence、novelty、owner truth 仍然不由 Atlas 自动决定。
+
+### Host
+
+Host 不是全局 current state。
+
+它更像：
+
+```text
+persistent semantic office / obligation handoff
+```
+
+保证一个 named work identity 可以跨 Agent replacement 存在，同时用 revision fencing 防止 stale successor 覆盖新的 continuation state。
+
+### Harness
+
+Harness 不是长期 world model。
+
+它更像：
+
+```text
+recoverable bounded cognitive/execution substrate
+```
+
+保存 Run 内 current cognition、Provider/Tool effects、budgets、receipts 与 recovery semantics，却不自动把整个 transcript 变成未来 cognition。
+
+### Owner-native Reality
+
+而真正决定：
+
+```text
+what is true now
+```
+
+的仍然是当前 owner / Reality surface。
+
+这四者加在一起可以支持 successor re-entry。
+
+但当前没有证据让我们把它们重新命名为一个新的 central substrate。
+
+## 17. 文明最值得借鉴的不是“记得多”，而是让历史成为 affordance
+
+人类文明真正惊人的地方，并不是任何一个人拥有几千年的 memory。
+
+恰恰相反，一个今天进入实验室、工程团队、法律体系或数学学科的人，通常不需要重新经历：
+
+- 每个失败实验；
+- 每次旧争论；
+- 每个工具发明过程；
+- 每一代人的完整 cognition。
+
+他直接进入：
+
+```text
+books
+notations
+instruments
+institutions
+roles
+standards
+routines
+methods
+libraries
+peer criticism
+training
+```
+
+也就是说：
+
+```text
+historical cognition
+→
+present affordance
+```
+
+这和 Chapter 5 的 Environmentalization 连接起来。
+
+成功的 succession 并不要求未来 Agent “读懂全部历史”。
+
+更高层的积累，是让一些已经稳定、值得保留的过去选择成为未来 cognition 的 starting condition，同时保留 source、challenge、revision 与 escape path。
+
+因此文明式能力不是：
+
+```text
+perfect memory
+```
+
+而更像：
+
+```text
+distributed inheritance
++
+role succession
++
+selective environmentalization
++
+continued criticism
++
+retained improvement
+```
+
+## 18. 这一章真正保留的最小模型
+
+如果一定要把整章压成一条链，它不是：
+
+```text
+store memory
+→ load memory
+→ continue
+```
+
+而更接近：
+
+```text
+past capability leaves qualified residues
+→ predecessor cognition disappears
+→ successor recovers the named responsibility position
+→ current owners re-establish load-bearing Reality
+→ ambiguous effects are reconciled owner-relatively
+→ current action / non-action is recompiled
+→ successor acts, waits, revises, or abstains
+→ only validated improvement is sedimented for the next successor
+```
+
+前半段解决：
+
+```text
+Succession / Re-entry
+```
+
+最后一步才开始接近：
+
+```text
+Ratchet
+```
+
+所以长期智能最危险的两个错误恰好相反：
+
+```text
+forget too much
+→ perpetual rediscovery
+```
+
+以及：
+
+```text
+preserve too much authority
+→ inherited blindness
+```
+
+真正的 cumulative capability 必须同时抵抗这两种失败。
+
+## 19. 这一章没有证明什么
+
+本章没有建立：
+
+- Atlas × Host × Harness 是新的 Persistent Intelligence Substrate；
+- 一个 universal Continuity owner/service/schema；
+- 一个 global successor state machine；
+- 一个 global `WAIT` / `OPEN_BLOCKED` ontology；
+- 一个 universal currentness graph；
+- Agent identity 必须跨 replacement 保持；
+- replay 是 cognition continuity 的正确目标；
+- Host Task lifecycle 等于 domain lifecycle；
+- no selected Tool 自动等于 completion；
+- 所有 `UNKNOWN` 都由 Harness 负责；
+- Information necessity 已经保证 Agent 能稳定消费；
+- Atlas currentness representation 当前已经行为最优；
+- generic durable workflows 不足；
+- CMMN/GSM、social commitments、organizational routines/TMS、cumulative-culture research 是 Ordivon 发明的；
+- 高 transmission fidelity 单调提高长期智能；
+- succession 已经证明 cumulative ratchet；
+- 当前 Ordivon 已经实现 autonomous cumulative intelligence；
+- current Continuity COJC 应继续主动制造实验。
+
+当前最强 standing 只是：
+
+> **Ordivon 已经拥有多种 successor-supporting institutional mechanisms，并形成了 responsibility-preserving reactivation 的工程纪律；但它们是否构成不可由成熟 generic composition 解释的新 joint capability，以及系统是否具备真正 cumulative ratchet，当前都没有建立。**
+
+所以未来 Agent 遇到这类问题时，不应该先问：
+
+> “Memory 应该存在哪里？”
+
+而应该先问：
+
+> **什么只是需要保存？什么需要由 successor 重新取得当前 standing？什么责任必须跨 Agent 存续？什么 effect 只能由特定 owner reconcile？什么当前只能 WAIT？以及这次 succession 之后，究竟有没有留下一个真实更高的 capability frontier？**
+
+只有最后一个问题反复得到肯定答案，长期 continuity 才开始接近真正的 cumulative intelligence。
+
+---
+
+## Capability gestalt — Successor Re-entry
+
+替代 Agent 可以通过 current owner state、bounded history、reopen conditions 与 effect/recovery evidence 重新进入一个 responsibility position，而不复制前任上下文或把 retained history 当作 current cognition。Succession 本身仍不证明 cumulative ratchet。
+
+# 组合不是涌现：Interaction, Irreducibility and Joint Capability
+
+当两个本来独立的能力组合之后，系统做成了一件任何一个部分单独都做不到的事，我们很容易说：
+
+```text
+new capability
+synergy
+emergence
+phase transition
+```
+
+这些词都可能有意义。
+
+但它们绝不是同一个判断。
+
+一把钥匙和一把锁共同决定一扇门能不能打开；CPU、内存、操作系统和程序共同决定一个计算能不能完成；传感器、执行器、控制器和电源共同决定机器人能不能移动。删掉其中一个部分，系统都可能失败。
+
+这并不意味着每一次“缺一不可”都产生了 emergent capability。
+
+成熟 systems engineering 本来就在研究这样的系统：系统级结果来自多个元素以及它们之间的关系。经济学里的 complementarity / supermodularity 也早已能描述“一个变量增加以后，另一个变量的边际价值也上升”的系统效应。因果推断则更进一步：如果要讨论两个因素是否存在 causal interaction，就必须定义联合 intervention 和对应的 counterfactual outcome，而不是仅仅观察两个因素同时出现。
+
+所以这一章不能从：
+
+```text
+whole > sum(parts)
+```
+
+开始，并把它当成一个新发现。
+
+真正困难的问题是：
+
+> **一个有限智能面对多个相互作用的能力、owner、制度、接口和环境时，怎样知道自己看到的只是普通 composition、必要串联、coordination/representation gain，还是一个成熟 generic composition 无法复现的新的 joint reachability？**
+
+这也是前六章没有直接回答的问题。
+
+Chapter 1 问怎样从 Reality 形成 Standing。
+
+Chapter 2 问 representation 怎样改变可达的问题与判断。
+
+Chapter 3 问 Standing 怎样跨过 authority、commitment、effect 到达 Reality。
+
+Chapter 4 问怎样在多个时间坐标里恢复 Actionable Now。
+
+Chapter 5 问什么 standing 值得沉进未来 environment。
+
+Chapter 6 问这些结构怎样跨 Agent replacement 被 successor 重新进入，并在什么条件下才接近 cumulative ratchet。
+
+它们主要沿着一条纵向链展开：
+
+```text
+Reality
+→ cognition
+→ representation
+→ action
+→ currentness
+→ environment
+→ succession
+```
+
+但当 Ordivon 的 owner 越来越多、每个 owner 自己又越来越成熟以后，一个新的横向问题出现了：
+
+```text
+Capability_A
+× Capability_B
+× Capability_C
+→ ?
+```
+
+这一章处理的就是这个问号。
+
+它不是一章“复杂系统概论”。
+
+也不是一章“涌现理论”。
+
+它更像一套防止 finite intelligence 在组合系统里**过早给因果、能力与新颖性升级**的判断纪律。
+
+## 1. 共同出现，不等于共同产生
+
+一个最常见的错误是把 participation 当成 causal contribution。
+
+假设一个成功 workload 同时经过：
+
+```text
+Atlas
+Host
+Harness
+Runtime
+Domain owner
+```
+
+然后任务成功了。
+
+我们可以安全地说：
+
+> 这些 component 出现在这条实现路径里。
+
+但不能直接说：
+
+> 它们共同产生了一个不可由其他组合复现的新 capability。
+
+因为：
+
+```text
+Participation
+!=
+CausalContribution
+```
+
+一个 component 可能只是：
+
+- carrier；
+- transport；
+- convenience layer；
+- representation layer；
+- redundant path；
+- historical implementation choice；
+- generic mechanism 的一个具体实现；
+- 当前实验里存在，但对 target outcome 没有 deletion-essential contribution。
+
+这在今天的 Representation 实验中非常清楚。
+
+一个自然 workload 里，operation-relative projection 显著提高了 fresh Agent 的 relation reconstruction：
+
+```text
+FULL_SOURCE          93 / 120
+OPERATION_PROJECTION 111 / 120
+paired wins          3 / 3
+prompt tokens        -74.31%
+```
+
+如果只看参与者，很容易把结果写成：
+
+```text
+Media × SCD × Harness
+→ Representation capability
+```
+
+但 mechanism audit 发现：
+
+- source owners 提供事实；
+- Computing 手工编译 treatment；
+- Harness 只是 carrier / measurement apparatus；
+- Media-specific experimental role = NULL；
+- SCD-specific experimental role = NULL。
+
+于是这个 positive result 仍然成立，但它支持的是：
+
+> **这个 operation-relative representation 在这个 workload 上有价值。**
+
+它不支持：
+
+> **Media × SCD × Harness 作为 owner coalition 产生了新的 joint capability。**
+
+把一个局部效果错误地归给所有在场 component，是组合研究最危险的第一步。
+
+## 2. 缺一个就失败，也还不够
+
+更强的证据似乎是 deletion。
+
+如果：
+
+```text
+FULL succeeds
+remove A -> fails
+remove B -> fails
+```
+
+那么 A、B 看起来都必不可少。
+
+但这里仍然有一个重要 distinction：
+
+```text
+DeletionEssential
+!=
+JointIrreducible
+```
+
+为什么？
+
+因为普通串联系统本来就可能是 deletion-essential 的。
+
+例如：
+
+```text
+source
+→ parser
+→ planner
+→ executor
+```
+
+删掉 parser，系统失败。
+
+删掉 executor，也失败。
+
+这只能说明它们在这个 implementation path 里必要。
+
+不能说明：
+
+> parser + executor 之间产生了一个成熟系统工程无法表示的新能力类别。
+
+同样，两个 factor 都是 necessary condition，也不等于它们存在一个新的 interaction mechanism。
+
+在 causal inference 里，interaction 必须相对于一个明确的 outcome、intervention 与 effect scale 定义。单纯看到两个因素都重要，并不足以回答“联合效果是否超出各自效果可以解释的范围”。
+
+所以 deletion 是必要的因果工具，却不是 emergence detector。
+
+## 3. Complementarity 也不是 Emergence
+
+另一个容易被升级的词是 synergy。
+
+当：
+
+```text
+Value(A+B)
+>
+Value(A) + Value(B)
+```
+
+或者一个 factor 提高了另一个 factor 的 marginal value，我们可以合理讨论 complementarity。
+
+这已经有成熟的 supermodularity 理论。
+
+它非常重要，因为现实中的组织、技术系统、生产过程和策略组合经常不是可加的。
+
+但：
+
+```text
+Complementarity
+!=
+Emergence
+```
+
+一个系统可以具有强烈 complementarity，同时它的联合结果仍然完全能够由已有 primitive、relation 和成熟模型解释。
+
+例如一个测量系统里：
+
+```text
+high-resolution sensor
++
+precise timestamp synchronization
+```
+
+二者可能互相提高价值。
+
+没有同步，高分辨率数据无法正确对齐；没有足够精度，同步也没有太多意义。
+
+这可以是很强的 complementarity。
+
+但没有必要因此创建：
+
+```text
+Emergent Measurement Intelligence
+```
+
+这对 Ordivon 特别重要。
+
+我们希望研究 owner 之间的组合效应，正是因为项目独立深入以后，可能出现单 owner 无法提供的 capability。
+
+但如果“组合以后更好”就自动叫 emergence，那么几乎所有成熟系统都能被重新命名成 emergence。
+
+概念会失去判别力。
+
+## 4. Interaction 也只是更强的一个问题，不是终点
+
+相比 complementarity，causal interaction 更接近我们真正想知道的东西。
+
+可以把一个最简单的二因素问题写成：
+
+```text
+Y(a,b)
+```
+
+然后比较：
+
+```text
+Y(1,1)
+Y(1,0)
+Y(0,1)
+Y(0,0)
+```
+
+问题变成：
+
+> A 的 effect 是否依赖 B 的取值？A+B 的联合 effect 是否不同于选定 effect scale 下的独立组合预期？
+
+这迫使实验者明确：
+
+- treatment 是什么；
+- target outcome 是什么；
+- baseline 是什么；
+- 哪些世界真的被干预；
+- 哪种 joint comparison 有意义。
+
+因此：
+
+```text
+Co-occurrence
+→ insufficient
+
+Deletion
+→ stronger
+
+Joint intervention
+→ stronger again
+```
+
+但即使观测到 interaction，也仍然不能自动推出新 capability。
+
+因为 interaction 本身可以是成熟机制的预期结果。
+
+例如：
+
+```text
+cache × memory locality
+redundancy × failure correlation
+training × data quality
+permission × physical capability
+```
+
+都可能存在明确 interaction。
+
+如果已有理论已经完整解释它，那么正确的 standing 是：
+
+```text
+identified interaction
+```
+
+而不是：
+
+```text
+new irreducible capability
+```
+
+## 5. 真正需要被 subtract 的，是最强 mature composition
+
+这就是 COJC 最后形成的一个关键修正。
+
+不能只问：
+
+> 单 owner 能不能做到？
+
+因为现实系统里本来就允许组合。
+
+真正应该问：
+
+> **在 primitive、information、authority 与 resource 条件公平的情况下，一个成熟 generic composition 能不能复现这个结果？**
+
+这条 baseline 很苛刻。
+
+一个 fair generic baseline 可以使用：
+
+- owner-native facts；
+- mature search / indexing；
+- ordinary policy composition；
+- workflow；
+- provenance；
+- currentness revalidation；
+- retry / reconciliation；
+- standard systems engineering；
+- domain-standard algorithms。
+
+但它不能得到：
+
+- hidden oracle；
+- future labels；
+- treatment 的答案；
+- 被实验者偷偷移除的 natural bypass；
+- 实际系统没有的 authority。
+
+同时它必须支付真实成本：
+
+```text
+construction
+currentness
+maintenance
+recovery
+representation
+coordination
+```
+
+如果这个 baseline 能复现 candidate，那么：
+
+```text
+Candidate works
++
+Generic composition works too
+→
+Operational composition / scoped interaction
+```
+
+而不是：
+
+```text
+Joint irreducibility
+```
+
+## 6. Continuity 给了一个很干净的 Generic Composition negative control
+
+Chapter 6 里，我们看到 Atlas × Host × Harness 很容易被想象成：
+
+> persistent intelligence substrate。
+
+因为 successor 需要：
+
+- historical/currentness navigation；
+- work identity / obligation continuity；
+- bounded cognition / recovery；
+
+这些 component 看起来确实互补。
+
+但 COJC 后续加入了更强 generic control。
+
+用：
+
+```text
+generic indexed retrieval
++
+generic typed policy composition
+```
+
+三个新的 H=256 multi-stage ratchet replicate 得到：
+
+```text
+33 / 33
+```
+
+复现了此前 operation-compiled successor representation 的优势。
+
+随后 16-world Recursive Successor State control 也全部 converged，并与 generic transition implementation：
+
+```text
+0 mismatch
+```
+
+这并没有让 Atlas、Host、Harness 失去价值。
+
+相反，它把它们的价值放回了更准确的位置：
+
+```text
+valuable Ordivon components
++
+useful composition
+!=
+proven novel joint capability
+```
+
+当前留下的是 responsibility-preserving reactivation discipline，而不是一个新 central substrate。
+
+这正是 Generic Composition Subtraction 的意义：
+
+> **它不是为了证明组合“不特别”，而是为了把真正特别的 residual 从普通工程价值里分离出来。**
+
+## 7. 不能为了得到 deletion-positive 结果而破坏 Reality
+
+当实验非常想证明某个 component 必不可少时，还有一个更危险的诱惑：
+
+```text
+把 bypass 关掉
+```
+
+例如一个自然系统原本有：
+
+```text
+A path
+or
+B path
+```
+
+为了证明 A 重要，实验者关闭 B，然后删除 A，系统失败。
+
+这当然可以制造 deletion-essentiality。
+
+但它回答的是一个人为构造的新世界：
+
+```text
+World_without_B
+```
+
+而不是原来的 Reality。
+
+因此今天 COJC 很重要的一条 negative rule 是：
+
+> **不能禁用一个自然存在的 bypass，只为了让某个 owner deletion 变成 positive。**
+
+这不仅是实验伦理问题，也是因果识别问题。
+
+真正关心的是：
+
+```text
+what capability exists in the current system
+```
+
+而不是：
+
+```text
+what capability would become necessary after we intentionally cripple the system
+```
+
+Finance × Workstation 的 successor case 就因此被关闭。
+
+当时历史 Finance observation 暴露 `EGRESS_NOT_CURRENT`，看起来很适合测试某个跨 owner continuation。
+
+但当前 Workstation Reality 没有自然提供一个可比较的 same-cut positive。要获得 positive factorial，必须主动改变网络/服务状态。
+
+于是正确结果不是“把环境修好再测”。
+
+而是：
+
+```text
+EXPERIMENT_NOT_CURRENTLY_IDENTIFIABLE
+```
+
+然后停止。
+
+这是研究质量，不是缺乏积极性。
+
+## 8. Requested intervention 也不等于 Realized causal footprint
+
+即使实验没有故意破坏 Reality，一个 intervention 的实际 footprint 也可能与实验者想象不同。
+
+例如我们写：
+
+```text
+remove owner A
+```
+
+实际系统可能发生：
+
+- fallback 被激活；
+- cached data 继续存在；
+-另一个 owner 重建了同样 information；
+- treatment 同时改变了 representation；
+- shared state 被连带修改；
+- currentness 在 intervention 期间前进；
+- downstream consumer 没有真的读取被删除的 coordinate。
+
+因此：
+
+```text
+AttemptedIntervention
+!=
+RealizedTargetRelevantFootprint
+```
+
+这里还必须把两种看起来相似、因果意义却相反的情况分开。
+
+第一种是 **natural fallback**：实验者只请求删除 A，但系统本来就存在的 B 自然接管，在 consumer 行动前恢复了同一个 load-bearing premise。此时不是“实验者制造了一个坏世界”，而是：
+
+```text
+requested deletion
+→ target-relevant deletion never realized
+→ INTERVENTION_NOT_IDENTIFIED
+```
+
+它告诉我们：当前 Reality 没有提供一个能隔离 A 的 intervention footprint。
+
+第二种才是 **manufactured deletion**：实验者为了让 A 显得必要，先主动关闭原本存在的 B，再删除 A。此时：
+
+```text
+natural bypass deliberately disabled
+→ experimental world differs from live capability ecology
+→ INVALID_MANUFACTURED_DELETION
+```
+
+因此：
+
+```text
+NaturalFallbackPreventsDeletion
+!=
+ExperimenterDisablesFallback
+```
+
+前者要求停止因果归因，因为 treatment 没有真正落到 target；后者要求拒绝把人为瘫痪后的 failure 当作当前系统的必要性证据。
+
+COJC 的 causal-unit 研究最后没有创建一个新的 global causal graph。
+
+留下的是一个更朴素的要求：
+
+> 当 causal credit 真正重要时，要用 owner-native / Runtime evidence 确认实际改变了什么，而不是用实验命令的名字替代 causal treatment。
+
+这也意味着：
+
+```text
+compound treatment success
+!=
+component causal credit
+```
+
+如果 A+B 一起删除会失败，而 A、B 没有可识别的独立 intervention，我们只能对 compound effect 负责。
+
+不能因为系统图里画着两个框，就把 causal credit 平分给它们。
+
+## 9. Owner subset 不是最好的默认 search coordinate
+
+COJC 最初很自然地从 owner combination 开始：
+
+```text
+Security × Interlocus
+Media × SCD × Harness
+Finance × World × CP × Interlocus
+Game × Security × Normative
+Atlas × Host × Harness
+```
+
+这种方式很适合生成 hypothesis。
+
+但它也有一个严重副作用：
+
+> 组合名称本身会让研究者预设“这些 owner 之间应该存在一个东西”。
+
+最终 campaign 反过来修改了 search geometry。
+
+未来更好的起点是：
+
+```text
+NaturalBlockedOutcome
+```
+
+然后问：
+
+```text
+这个 outcome 的 binding responsibility cut 在哪里？
+哪些 owner-native premise 真正 load-bearing？
+最强成熟机制已经解释了多少？
+剩下哪一个 deletion / intervention 是可识别的？
+有什么独立 consequence 会改变？
+```
+
+所以：
+
+```text
+OwnerCoalition
+!=
+CausalUnit
+```
+
+更好的 causal unit 往往是：
+
+```text
+operation
++
+obligation
++
+load-bearing responsibility path
++
+realized intervention footprint
+```
+
+这并不要求建立一个全局 Responsibility Graph。
+
+它只是告诉 finite intelligence：
+
+> 不要因为系统在 repository 里被分成若干 owner，就假定 Reality 的因果结构也按照同样的边界切开。
+
+## 10. Representation effect 是组合研究里的一个巨大混淆变量
+
+今天 Representation 研究给 COJC 施加了一个特别强的压力。
+
+同一个 Agent、同样 semantic atoms、同样 Tools，仅改变 representation，结果就可能发生显著变化。
+
+更重要的是，这种变化**甚至不稳定同号**。
+
+两个 independently frozen natural workloads 给出：
+
+### World P：cross-source join burden 高
+
+```text
+FULL_SOURCE          93 / 120
+OPERATION_PROJECTION 111 / 120
+prompt tokens        -74.31%
+```
+
+主要改善发生在需要跨 artifact 重建 downstream-use lineage 的 relation。
+
+### World N：判断对象主要 source-local
+
+```text
+FULL_SOURCE       79 / 90
+SOURCE_BOUND_CECB 75 / 90
+prompt tokens     -67.6%
+```
+
+context 大幅减少，但 protected `ObjectiveAchievement` / `BoundedImprovement` 等 local scoped distinction 发生退化。
+
+所以：
+
+```text
+MoreCompression
+!=
+MoreCapability
+
+CECBPresent
+!=
+ProjectionBeneficial
+
+SourceComplete
+!=
+ConsumerComplete
+
+TaskRelevantSummary
+!=
+SufficientStatistic
+```
+
+对组合研究而言，这意味着一个非常重要的警告：
+
+> **如果 Full system 比 deletion baseline 表现好，先检查是否只是 representation/search geometry 改变，而不是 owner capability 本身发生了不可替代 interaction。**
+
+否则 finite consumer 的注意力/检索优势会被错误地记在 owner causal credit 上。
+
+## 11. 一个 representation 可以改变能力表现，却仍不产生新的 owner
+
+这里还有一个更细的 distinction。
+
+如果 representation 改变 finite Agent 的可达判断，我们完全可以说：
+
+```text
+Representation changed effective capability on this workload
+```
+
+这在 Chapter 2 已经成立。
+
+但：
+
+```text
+CapabilityEffect
+!=
+NewSemanticOwner
+```
+
+更不等于：
+
+```text
+Emergence
+```
+
+一个 compiler、index、diagram、query plan 或 evidence card 可以显著改变 finite computation。
+
+它仍然可以只是一个 mature representation mechanism。
+
+这也是为什么今天没有创建：
+
+- Representation service；
+- CECB registry；
+- global card schema；
+- new Harness representation owner。
+
+系统可以因为 representation 变强，而不需要把每一次能力变化都本体化成新的项目边界。
+
+## 12. J3-AIC：强系统效应，不等于 Institution Emergence
+
+Game × Security × Normative 是今天最容易被“涌现”叙事吸引的一条线。
+
+Synthetic institutional world 里确实存在：
+
+- world transitions；
+- authority；
+- effective control；
+- sanctions；
+- elections；
+- partial-order events；
+- precedence policy；
+- consequential action。
+
+而实验结果也很强。
+
+S4B 中，对已经证明 institutionally equivalent 的 history pair：
+
+```text
+RAW_HISTORY
+both-response-correct = 48.4%
+invariance            = 61.3%
+safety-error pairs    = 16.1%
+
+ORTHOGONAL_FRONTIER
+both-response-correct = 100%
+invariance            = 100%
+safety-error pairs    = 0%
+```
+
+S5B-B v2 的 34 个完整 paired blocks 中：
+
+```text
+Binding Set
+safe action       = 94.1%
+multiplicity      = 88.2%
+strict            = 73.5%
+safety errors     = 0
+
+Forced Linearization
+safe action       = 67.6%
+multiplicity      = 32.4%
+strict            = 11.8%
+safety errors     = 3
+
+Raw Partial Order
+safe action       = 61.8%
+multiplicity      = 67.6%
+strict            = 5.9%
+safety errors     = 1
+```
+
+而且 earned 了预注册结果：
+
+```text
+LINEARIZATION_COLLAPSE_HARM
+```
+
+这是真正有价值的系统结果。
+
+但它仍然不是：
+
+```text
+institution emergence demonstrated
+```
+
+为什么？
+
+因为实验真正识别的是：
+
+> forced linearization 会把 evidence 只支持的 partial order 错误压成一个 fictitious unique Now，从而增加 finite-Agent semantic safety error。
+
+它没有识别：
+
+> Game、Security、Normative 三个 owner 的 proper-subset deletion 下，一个新的 institution-level capability 只有 full coalition 才存在。
+
+因此：
+
+```text
+StrongCrossOwnerResult
+!=
+HigherOrderIrreducibility
+```
+
+Programme Track 名字里有 `J3`，也不能被误读成 evidence ladder 的 `J3 higher-order irreducibility`。
+
+名字不是 standing。
+
+## 13. Partial order 告诉我们：组合后的“Now”也可能不是一个点
+
+J3-AIC 还给出了一个很适合这一章的更一般性结果。
+
+多个 component 各自提供真实 evidence，并不意味着它们组合后自动形成一个唯一 current state。
+
+在 partial-order world 中：
+
+```text
+OccurrenceOrder
+!=
+ObservationOrder
+!=
+AuthenticatedOrderEvidence
+!=
+InstitutionalPrecedence
+```
+
+而且：
+
+```text
+Authenticated
+!=
+Authoritative
+```
+
+这意味着 composition 不是把多个 owner 的“最新值”简单 join 起来。
+
+有时真正正确的 composite representation 是：
+
+```text
+set of admissible bindings
+```
+
+而不是一个被伪造出来的 single state。
+
+这与 Chapter 4 的 Actionable Now 连接，但问题更横向：
+
+> 当多个 owner 的 current evidence 不能被一个全序合法压平时，组合系统必须保存 unresolved relation，而不是为了方便 consumer 发明唯一世界。
+
+这也是为什么：
+
+```text
+Determinate
+!=
+Safe
+```
+
+九个 order-witness race 里，即使 admitted precedence 消除了 ordering ambiguity，仍有 case 选出了 determinate 但 unsafe 的结果。
+
+所以组合系统的安全性不能用“终于只剩一个答案”衡量。
+
+## 14. MULTIPLE 不是 HOLD，ONE 也不是 ALLOW
+
+S5D 进一步把这个问题推到 action。
+
+一个常见 heuristic 是：
+
+```text
+有多个可能世界
+→ HOLD
+
+只有一个可能世界
+→ ALLOW
+```
+
+实验直接 falsify 了这两个等号。
+
+```text
+MULTIPLE != HOLD
+ONE      != ALLOW
+```
+
+真正决定 immediate action safety 的，是 admissible consequence envelope。
+
+在 frozen action class 中：
+
+```text
+ALLOW
+iff
+all admissible bindings are AUTHORIZED
+and all preserve the same holder/controller principal
+```
+
+因此一个组合系统可能有多个 unresolved binding，却在目标 consequence 上完全等价，仍然可以安全行动。
+
+也可能只有一个 binding，但那个唯一 binding 本身不安全。
+
+这给 joint capability 一个很好的提醒：
+
+> **不要用 representation cardinality、component count 或 uncertainty count 代替 target-relative consequence analysis。**
+
+## 15. Capability 必须相对于一个 target 定义
+
+我们经常说：
+
+```text
+System has capability C
+```
+
+但组合研究越深入，这句话越需要补全。
+
+至少要问：
+
+```text
+capability for what target?
+under what resource envelope?
+with what authority?
+against what Reality state?
+for which consumer?
+with what validity/safety constraint?
+```
+
+Constructive Capability Environment 研究也给出了同一个方向的修正：
+
+```text
+AssetExists
+!=
+CurrentCapability(target,time)
+```
+
+以及：
+
+```text
+LatentAffordance
+!=
+RealizedCapability
+```
+
+一个 GRAPH 里可以存在三步 feasible route，而 live finite Agent 仍然 0/4 找不到或执行不了它。
+
+所以组合以后“理论上有路径”，也不等于当前 consumer 已经获得实际 capability。
+
+反过来，一个系统为了 safety/authority 删除一些 raw actions，也可能保留更多未来 valid reachability：
+
+```text
+MoreRawActions
+!=
+MoreValidCapability
+```
+
+这使 joint capability 不再是一个简单的 action-set union。
+
+## 16. Joint capability 最少要跨过哪些怀疑？
+
+经过今天的 destructive subtraction，COJC 最后保留了四个 gate：
+
+```text
+NaturalPressure
+AND
+MatureBaselineResidual
+AND
+IdentifiableDeletion
+AND
+IndependentConsequence
+```
+
+这四个 gate 不是一个 universal schema。
+
+它们更像四个不同方向的怀疑。
+
+### 16.1 Natural Pressure
+
+这个 capability question 是否来自真实 owner-native blocked / limited outcome？
+
+如果没有，一个漂亮组合很可能只是 hypothesis generator。
+
+### 16.2 Mature Baseline Residual
+
+成熟 systems engineering、search、workflow、control、decision theory、distributed systems、representation、owner-local composition 已经能解决多少？
+
+如果最强 baseline 能复现，就没有必要为了 novelty 再造一个 owner。
+
+### 16.3 Identifiable Deletion
+
+是否存在一个不会偷偷改变其他 load-bearing coordinate、不会禁用 natural bypass、不会制造目标 failure 的 intervention？
+
+如果没有，应该保留 `NOT_IDENTIFIED`，而不是用更多 replicas 把不可识别包装成统计显著。
+
+### 16.4 Independent Consequence
+
+删除以后，是否有一个独立 owner-native downstream consequence 改变？
+
+如果只有：
+
+```text
+LLM score +5
+```
+
+而没有 target capability / decision / reachability / effect / owner outcome 的变化，证据仍然弱。
+
+这四个问题合起来，是为了防止一种常见升级路径：
+
+```text
+interesting combination
+→ benchmark delta
+→ name a capability
+→ name an owner
+→ call it emergence
+```
+
+## 17. 四个 gate 不是一个“发现涌现”的算法
+
+这里必须立即自我限制。
+
+即使一个 candidate 同时通过四 gate，我们最多获得：
+
+> **一个值得认真研究的 joint-irreducibility candidate。**
+
+并不自动获得：
+
+```text
+emergence
+phase transition
+new institution
+new ontology
+```
+
+为什么？
+
+因为 emergence 在成熟文献里本来就有多种含义。
+
+一些定义强调：
+
+- system-level property 不存在于单个 component；
+- whole property 对 micro-components 有 dependence；
+- 同时具有某种 autonomy / non-aggregativity / multiple realizability / distinctive efficacy；
+- 或者只是从 interaction 中产生难以由局部行为直接预测的 collective behavior。
+
+这些定义并不等价。
+
+所以 Book 不应该选择一个词义，然后把整个 Ordivon programme 绑定在它上面。
+
+当前更安全的做法是：
+
+> **先精确说清楚观测到了哪一种 relation：composition、complementarity、causal interaction、deletion-essentiality、generic-composition residual、new reachability、system-level autonomous behavior。**
+
+只有当某个更强 emergence claim 真正需要时，再明确它采用哪一个定义。
+
+## 18. Evidence ladder 可以辅助思考，但不能变成 Reality 的阶梯
+
+为了研究方便，我们当然可以写出一个直观 progression：
+
+```text
+composition
+→ complementarity
+→ interaction
+→ joint irreducibility
+→ emergence
+→ phase transition
+```
+
+但这个顺序非常容易被误解成：
+
+```text
+每一个系统都应该沿着它升级
+```
+
+这不是当前 standing。
+
+有些系统的最高、最正确描述就是：
+
+```text
+ordinary composition
+```
+
+有些只有：
+
+```text
+strong complementarity
+```
+
+有些存在 causal interaction，但没有任何理由叫 emergence。
+
+还有些系统可能有宏观 emergent behavior，却不适合用 owner deletion 来表示。
+
+因此 evidence ladder 只是 research navigation。
+
+它不是：
+
+- universal ontology；
+- maturity score；
+- capability hierarchy；
+- architecture roadmap。
+
+Finite intelligence 的目标不是把每一个结果推到最高 label。
+
+而是让 label 的强度不超过 evidence。
+
+## 19. False positive 往往来自把不同坐标压成一个坐标
+
+今天大量看似“联合能力”的 false positive，可以归结成同一种 representation error：把多个不同问题压成一个词。
+
+例如：
+
+```text
+works together
+```
+
+可能意味着：
+
+- components are serially necessary；
+- one improves another's marginal value；
+- one removes search burden；
+- one transports another's result；
+- one grants authority；
+- one changes currentness；
+- one changes effective control；
+- one changes consumer representation；
+- one changes actual world reachability。
+
+这些不是同一种 relation。
+
+所以：
+
+```text
+CompositionClaim
+```
+
+至少必须知道自己在说哪一个 target relation。
+
+否则系统会把：
+
+```text
+representation gain
+```
+
+误叫：
+
+```text
+causal owner synergy
+```
+
+把：
+
+```text
+shared transport
+```
+
+误叫：
+
+```text
+joint capability
+```
+
+把：
+
+```text
+institutional constraint
+```
+
+误叫：
+
+```text
+emergent norm
+```
+
+这与 Chapter 2 的基本规律完全一致：
+
+> Representation 不只是描述结果，也会改变什么 relation 对有限智能可见。
+
+## 20. 一个更好的 Joint Capability 实验从 blocked outcome 开始
+
+如果未来再次出现一个很有潜力的 cross-owner case，更好的实验路径不是：
+
+```text
+选三四个 owner
+→ 枚举 subset
+→ 跑 benchmark
+```
+
+而是：
+
+```text
+1. 找到自然出现的 blocked / limited owner-native outcome
+2. 明确 target capability / consequence
+3. 找到 load-bearing responsibility cut
+4. 建立最强 mature generic + owner-local baseline
+5. 冻结 source/currentness/resource/authority cut
+6. 设计一个不会制造 failure 的 admissible intervention
+7. 验证 realized causal footprint
+8. 测量独立 owner-native consequence
+9. 如果 generic baseline 仍无法解释，再升级 standing
+```
+
+这不是为了让实验变慢。
+
+恰恰相反，它减少大量没有 discriminative value 的组合搜索。
+
+一旦：
+
+```text
+mature baseline reproduces
+```
+
+就应该停止。
+
+一旦：
+
+```text
+delete cannot be identified naturally
+```
+
+也应该停止。
+
+一旦：
+
+```text
+only representation score changes
+```
+
+就把问题送回 Representation，而不是继续挖 owner synergy。
+
+这种 ability to stop，是 finite research system 的重要能力。
+
+## 21. NO_JOINT_CAPABILITY 可以是一个高价值结果
+
+传统研发叙事很容易偏好 positive novelty。
+
+但对一个长期自我扩展的系统来说，negative composition result 价值很高。
+
+因为它可以阻止：
+
+- 新 owner；
+- 新 service；
+- 新 schema；
+- 新 registry；
+- 新 monitoring loop；
+- 新长期 maintenance burden；
+- 错误的 causal credit；
+- 后续研究沿错误 ontology 继续生长。
+
+今天 COJC 的很多最重要结果都是这种形式：
+
+```text
+Media × SCD × Harness
+→ useful scoped representation effect
+→ NO joint-owner attribution
+
+Atlas × Host × Harness
+→ useful succession composition
+→ generic baseline reproduces
+→ NO persistent-intelligence joint capability
+
+Finance × World × CP × Interlocus
+→ Finance remains consequential consumer
+→ World deleted, CP unearned
+→ NO four-owner irreducibility
+
+SCD × CP
+→ generic diagnosis/repair mature
+→ no natural Diagnostic Separation Witness
+→ DORMANT
+```
+
+这些关闭不是“没找到东西”。
+
+它们让 Ordivon 的 project topology 没有被每一次组合兴趣继续膨胀。
+
+## 22. 真正新的 capability 应该改变 reachability，而不只是描述
+
+如果一个 joint capability 最终真的值得这个名字，它最有说服力的证据之一应该是：
+
+```text
+Reachable_full
+≠
+Reachable_strongest_generic_baseline
+```
+
+而且这个 difference 必须发生在一个具体、受约束的 target 上。
+
+例如未来可能出现：
+
+- 某个实验只有多个 owner 的独立 authority/evidence/action relation 正确组合后才合法可执行；
+- 某个 adversarial environment 只有新的制度 structure 才能维持此前不存在的 strategy space；
+- 某个 physical Lab setup 通过新的 measurement/action composition 使原本不可辨识的 rival worlds 变得可辨识；
+- 某个 multi-Agent environment 出现系统级行为，强 generic composition 无法在 primitive/authority parity 下复现。
+
+这时我们才开始接近：
+
+```text
+new joint reachability
+```
+
+而不是“组合后更方便”。
+
+这里也要保留：
+
+```text
+ReachabilityExpansion
+!=
+RealizedBenefit
+```
+
+Chapter 3 和 Chapter 5 仍然要求 consequence / benefit 另行验证。
+
+## 23. Institution 也应该被当作 capability hypothesis，而不是神秘宏观对象
+
+Game × Security × Normative 的一个长期问题是：
+
+> 什么时候一个人工世界不再只是 simulation，而开始拥有 authority、incentives、adversaries、institutions 与 norms？
+
+这一章给它一个更稳的入口。
+
+不要先问：
+
+```text
+institution emerged?
+```
+
+先问：
+
+```text
+哪一种 system-level capability / constraint / strategy space 改变了？
+```
+
+例如：
+
+- rule 是否保护了 future valid reachability？
+- authority 是否改变了哪些 transition 可以合法发生？
+- adversarial adaptation 是否产生了只有 institutional response 才能处理的新 pressure？
+- precedence 是否解决了真实 conflict，而不是只是把事件排序？
+- incentive structure 是否稳定产生新的 strategy family？
+
+然后再做 mature subtraction。
+
+Game 的 critical-item constraint 就给过一个很小的正例：限制一个 primitive-legal pickup，反而保留了未来 sealing reachability。
+
+但经典 safe-state / deadlock-avoidance 已经解释一般机制。
+
+所以这个结果正确的 standing 是：
+
+```text
+option-preserving constraint witness
+```
+
+不是：
+
+```text
+institution emergence
+```
+
+如果以后某个 institutional structure 真正留下 mature baseline 无法解释的 residual，再继续升级。
+
+## 24. 组合系统里的 authority 不能随 capability 一起“涌现”出来
+
+组合研究还有一个特别危险的 normative collapse。
+
+假设 A 有 information，B 有 physical capability，C 有 execution mechanism。
+
+把它们连起来以后，系统突然“能做”一件以前做不到的事。
+
+这绝不意味着：
+
+```text
+new physical capability
+→
+new authority
+```
+
+Chapter 3 已经明确：
+
+```text
+Capability
+!=
+Authority
+!=
+Commitment
+!=
+Effect
+```
+
+组合系统只会让这条边界更重要。
+
+尤其在 Future Lab 中：
+
+```text
+sensor
++
+robot
++
+fabrication
++
+model
++
+Runtime
+```
+
+可能迅速扩大 physical reachability。
+
+但 permission、safety interlock、consent、institutional authority、emergency stop responsibility 都必须独立存在。
+
+所以任何所谓 joint capability 都不能把 authority 当作 composition 的副产品。
+
+## 25. 这一章真正增加给前六章的是什么
+
+如果把 Chapter 7 删掉，前六章仍然可以很好地解释：
+
+- 一个 claim 怎样形成；
+- representation 怎样适配 consumer；
+- action 怎样被授权和执行；
+- currentness 怎样恢复；
+- standing 怎样进入 environment；
+- successor 怎样重新进入。
+
+但它们还缺一个问题：
+
+> **当这些已经正确分工的机制组合起来以后，我们怎样判断系统是真的拥有了一个新的 joint capability，而不是普通系统工程、representation gain、necessary series composition 或已知 complementarity？**
+
+这一章增加的就是这个判别层。
+
+它的核心不是一个新 object。
+
+而是一组 anti-promotion distinctions：
+
+```text
+Participation
+!=
+CausalContribution
+
+DeletionEssential
+!=
+JointIrreducible
+
+Complementarity
+!=
+Emergence
+
+Interaction
+!=
+NovelCapability
+
+RepresentationEffect
+!=
+OwnerSynergy
+
+Determinate
+!=
+Safe
+
+NaturalBypass
+!=
+ExperimentalNuisance
+
+StrongSystemResult
+!=
+HigherOrderIrreducibility
+```
+
+以及一个研究顺序：
+
+```text
+NaturalBlockedOutcome
+→ responsibility cut
+→ mature baseline subtraction
+→ identifiable intervention
+→ independent consequence
+→ bounded promotion
+```
+
+## 26. 当前 Ordivon 没有证明 emergence，这反而让这章成立
+
+这章最容易被误解的地方是：
+
+> 如果 Ordivon 还没有证明一个真正 emergent joint capability，为什么要写这一章？
+
+因为这章的对象不是“我们已经拥有的 emergent capability catalog”。
+
+它的对象是：
+
+> **有限智能怎样在强系统效应面前保持 epistemic restraint。**
+
+如果今天 COJC 找到十个漂亮 positive，然后直接各自建立新 owner，这章反而不可信。
+
+真正让它值得进入 Book 的，是一整天的研究最后不断得到：
+
+```text
+interesting
+→ test
+→ stronger baseline
+→ narrower standing
+→ sometimes delete
+→ sometimes preserve a scoped effect
+→ stop before stronger label
+```
+
+这使“组合判断”从研究兴趣变成了一个稳定的 finite-intelligence problem。
+
+一个会不断扩展自己的系统，不仅需要发现新的能力。
+
+它也需要阻止自己把每一次协调、压缩、串联和共同成功都误认为新能力。
+
+## 27. 当前最小 Composition Capability Map
+
+不需要建立一个新的 ontology。
+
+保留以下问题已经足够：
+
+| 问题 | 要防止的错误 |
+| --- | --- |
+| Target | 不知道“能力”到底相对什么目标 |
+| Participation | 把在场当因果 |
+| Baseline | 用弱 baseline 制造 novelty |
+| Intervention | 把请求删除当真实 causal footprint |
+| Bypass | 为了 positive result 人为破坏自然系统 |
+| Representation | 把 finite-consumer geometry 当 owner capability |
+| Consequence | 只有 benchmark delta，没有独立 Reality outcome |
+| Promotion | 把 complementarity/interaction 直接升级成 emergence |
+
+它们不是八个 shared service。
+
+只是八个如果被压成一个 `synergy`，就很容易造成错误的维度。
+
+## 28. Reopen：什么时候才值得重新追逐 Joint Capability
+
+当前 COJC campaign 已经进入 dormant。
+
+未来不是定期重新跑 owner combination matrix。
+
+真正的 reopen condition 是：
+
+```text
+一个新的自然 owner-native workload
+```
+
+同时出现：
+
+1. **真实 capability limitation**：当前 outcome 真的被限制，而不是研究者想测组合；
+2. **强 baseline 仍失败**：成熟 generic composition 与 owner-local solution 都不能复现；
+3. **可识别 intervention**：存在 same-cut deletion / treatment，不需要禁用 natural bypass；
+4. **独立 consequence**：真实 downstream owner outcome / reachability / effect 改变；
+5. **standing 会被反例改变**：失败结果能够让我们放弃或收窄 candidate，而不是无论如何都继续调 benchmark。
+
+第五点不是 canonical four-gate 的一个新硬 gate。
+
+它只是这本 Book 对 research integrity 的补充提醒：
+
+> 一个不会被反例改变的 emergence programme，不是在测 emergence。
+
+## 29. 这一章没有证明什么
+
+本章没有建立：
+
+- Ordivon 已经观察到 emergence；
+- Ordivon 已经观察到 phase transition；
+- Game × Security × Normative 已经形成不可约 institution capability；
+- Media × SCD × Harness 已经形成 Representation joint capability；
+- Atlas × Host × Harness 已经形成 Persistent Intelligence Substrate；
+- Finance × World × CP × Interlocus 已经形成四 owner 决策能力；
+- owner subset 是 Reality 的自然 causal unit；
+- component deletion automatically proves causal contribution；
+- complementarity automatically means synergy in every effect scale；
+- interaction automatically means novelty；
+- `whole > sum(parts)` 是 Ordivon 的新理论；
+- 一套 universal emergence ontology / evidence ladder / scalar score；
+- 一个 Composition Owner、Capability Graph、Interaction Registry 或 Emergence Detector；
+- representation efficiency 可以替代 owner causal attribution；
+- 一个唯一 current binding 总比 set-valued standing 好；
+- 更多 raw actions、更多 components、更多 Tools 或更多 information 单调增加 capability；
+- physical capability 可以通过 composition 自动获得 authority；
+- 关闭 COJC campaign 等于否定未来 joint capability。
+
+当前最强 standing 更克制：
+
+> **Ordivon 已经证明，cross-owner interaction、representation gain、complementarity、deletion-essentiality 与 strong system-level effects 都可能真实存在，却仍不足以单独建立 joint irreducibility 或 emergence。一个 finite intelligence 如果要把“组合成功”提升为“新联合能力”，必须从自然 blocked outcome 出发，在公平的成熟 baseline 下获得可识别的 causal residual，并让这个 residual 改变独立的 downstream consequence。**
+
+所以未来遇到一个令人兴奋的组合时，第一句话不应该是：
+
+> “这里是不是涌现了？”
+
+而应该是：
+
+> **到底有什么新的 target-relative reachability 出现了？谁真的造成了它？最强的普通组合为什么做不到？删掉什么以后，哪个独立 consequence 真的改变？**
+
+如果这些问题还答不出来，最成熟的 standing 往往不是 `emergence`。
+
+而是：
+
+```text
+interesting interaction
++
+keep testing
++
+do not promote yet
+```
+
+对于一个会长期扩张、会不断把能力沉进未来环境的系统，这种“不急着升级”的能力，本身就是一种重要能力。
+
+## Capability gestalt — Joint-Capability Adjudication
+
+有限智能可以在 mature composition baseline、realized causal footprint、target-relative reachability 与 independent consequence 之间做 subtraction，判断某个组合是否真正获得单独成分未能可靠达到的 joint capability。这个能力不是通用 emergence detector，也不会让 Authority 随 capability 自动出现。

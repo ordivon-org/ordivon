@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "productionId": "studio-expression-card",
+  "assets": [
+    {
+      "id": "studio-expression-card-svg",
+      "role": "editable-vector-source",
+      "origin": "generated",
+      "selectedBlob": {
+        "digest": "sha256:a8ed35e9f9e4ab993a9e62ad6935e4a111eba3c391ea1854e954036364824128",
+        "sizeBytes": 4532,
+        "mediaType": "image/svg+xml"
+      },
+      "source": {
+        "tool": "agent-authored-svg",
+        "settings": {
+          "canvas": "1200x630",
+          "designTokenSource": "packages/identity/tokens/baseline.tokens.json"
+        }
+      },
+      "technical": {
+        "width": 1200,
+        "height": 630,
+        "format": "svg"
+      },
+      "rights": {
+        "status": "owned",
+        "notes": "Original Ordivon Studio visual assembled from owner-authored Studio claims and identity tokens."
+      }
+    },
+    {
+      "id": "studio-expression-card-png",
+      "role": "selected-publishable-card",
+      "origin": "rendered",
+      "selectedBlob": {
+        "digest": "sha256:fc19d4cf27982fd177c9411245fb994a970551e105866348ee03e9deed6bcce4",
+        "sizeBytes": 115196,
+        "mediaType": "image/png"
+      },
+      "parents": [
+        "studio-expression-card-svg"
+      ],
+      "source": {
+        "tool": "rsvg-convert",
+        "inputAssets": [
+          "studio-expression-card-svg"
+        ],
+        "settings": {
+          "width": 1200,
+          "height": 630
+        }
+      },
+      "technical": {
+        "width": 1200,
+        "height": 630,
+        "format": "png"
+      },
+      "rights": {
+        "status": "owned",
+        "notes": "Rendered from the owned editable SVG source."
+      }
+    }
+  ]
+}

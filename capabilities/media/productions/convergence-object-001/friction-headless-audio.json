@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:convergence-object-001:headless-openal-pipewire-noise",
+  "title": "Headless Blender emits irrelevant PipeWire/OpenAL connection errors",
+  "category": "USABILITY",
+  "surface": "Blender background execution logs",
+  "tool": "Blender 5.2.1 LTS / OpenAL Soft",
+  "workflow": "headless Blender build and GLB import",
+  "observed_during": "media:convergence-object-001 build and import",
+  "related_work": "media:convergence-object-001",
+  "symptom": "Successful headless 3D jobs emitted '[ALSOFT] Failed to connect PipeWire event context', adding misleading error-looking noise to stderr.",
+  "expected_behavior": "A render/import job that does not consume audio should not attempt a real audio backend.",
+  "actual_behavior": "Default OpenAL probing attempted PipeWire even though no audio was used.",
+  "evidence": {
+    "noisyJobId": "job-01a0a59e-9a24-71c0-85a4-504c39e7f5ee",
+    "verifiedQuietJobId": "job-01a0a5a0-49f7-75c2-ab31-994c34a98657"
+  },
+  "severity": "LOW",
+  "frequency": "REPEATABLE_IN_HEADLESS_PROVIDER",
+  "owner": "Media Blender headless invocation recipe",
+  "status": "VERIFIED",
+  "proposed_fix": "Set mature OpenAL Soft environment switch ALSOFT_DRIVERS=null for Blender jobs that do not require audio.",
+  "fix_attempt": "Repeated build and GLB import with step-local ALSOFT_DRIVERS=null.",
+  "verification": "PipeWire/OpenAL connection error disappeared while Blender render/export/import behavior remained successful."
+}

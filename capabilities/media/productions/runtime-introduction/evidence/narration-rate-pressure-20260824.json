@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-narration-rate-pressure-receipt",
+  "truthRole": "scoped-production-diagnostic-not-human-quality-standing",
+  "productionId": "runtime-introduction",
+  "sourceRevision": "4690328578db2f12e260bdb2f873bad9e9956f45",
+  "runtimeJobs": {
+    "counterfactualBuilds": "job-01a02faf-aca9-7081-a05c-56729110dd95",
+    "rateComparison": "job-01a02fb0-34ac-7360-b133-81d9b2971159",
+    "installedVoiceProbe": "job-01a02fa8-19a3-7513-8c67-8d5dce8d9f1a",
+    "installedRecognizerProbe": "job-01a02fac-d5e4-7a80-8561-a2e4059a0528",
+    "localAsrPackageProbe": "job-01a02fa8-cfcf-7e80-83cf-4d59a9b36e25"
+  },
+  "selectedRate1": {
+    "voice": "Microsoft Zira Desktop",
+    "rate": 1,
+    "digest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+    "weightedSpeechRateWpm": 142.2,
+    "tightestObservedCue": {
+      "cueId": "en-008",
+      "slackSeconds": 0.072063
+    }
+  },
+  "counterfactuals": {
+    "rate0": {
+      "disposition": "infeasible-under-current-timed-text",
+      "firstBlockingCue": "en-005",
+      "voiceSeconds": 11.252472,
+      "slotSeconds": 11.0
+    },
+    "rate2": {
+      "disposition": "feasible-mechanical-counterfactual",
+      "independentBuilds": 2,
+      "exactOutputDigestEqual": true,
+      "digest": "sha256:d6b24d1e59db38ff410cca6c3ef3a71824034e4b841fbb5aa4155c7104951151",
+      "weightedSpeechRateWpm": 158.1,
+      "tightestObservedCue": {
+        "cueId": "en-008",
+        "slackSeconds": 0.786621
+      }
+    }
+  },
+  "mechanicalComparison": {
+    "audioStructuralDistance": 0.32193961367613927,
+    "rate1BoundarySilenceContrastZ": 2.6762552787706118,
+    "rate2BoundarySilenceContrastZ": 2.1406775945084116,
+    "interpretation": "The two feasible rates materially differ in audio timing/structure; these signals do not rank human naturalness or preference."
+  },
+  "currentLocalApparatus": {
+    "englishSapiVoices": [
+      "Microsoft Zira Desktop"
+    ],
+    "otherObservedSapiVoices": [
+      "Microsoft Huihui Desktop (zh-CN)"
+    ],
+    "englishSystemSpeechRecognizerObserved": false,
+    "observedSystemSpeechRecognizer": "Microsoft Speech Recognizer 8.0 for Windows (Chinese Simplified - PRC)",
+    "studioVenvAsrStacksObserved": [],
+    "asrStacksChecked": [
+      "whisper",
+      "faster_whisper",
+      "torch",
+      "torchaudio",
+      "librosa",
+      "speech_recognition",
+      "transformers"
+    ]
+  },
+  "claimDecomposition": [
+    "exact synthesis / bytes / technical format",
+    "cue feasibility and temporal slack",
+    "pronunciation and intelligibility",
+    "prosody / rhythm / voice plausibility",
+    "observer-specific naturalness and preference",
+    "audience-specific publication fit"
+  ],
+  "interpretationBoundary": "This receipt deletes some timing-rate hypotheses and records current local evaluator availability. It does not establish human naturalness, intelligibility, audience preference, publication worthiness, or a universal optimal speech rate. Component evidence must not be promoted to the aggregate human-response claim."
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.v2.runtime-introduction-audio-declaration-parity",
+  "observedAt": "2026-09-13",
+  "assetId": "runtime-introduction-narration-en-sapi",
+  "sourceRevision": "dc447ccd99cbef8d33af3d36b11937b4bf2b57ff",
+  "artifact": {
+    "digest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+    "sizeBytes": 11232102,
+    "localCasObject": "objects/sha256/79/798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d"
+  },
+  "freshMeasurement": {
+    "codec": "pcm_s24le",
+    "sampleRate": 48000,
+    "channels": 1,
+    "durationSeconds": 78.0,
+    "integratedLoudnessLufs": -20.52,
+    "truePeakDbfs": -2.18
+  },
+  "historicalDeclaration": {
+    "codec": "pcm_s24le",
+    "sampleRate": 48000,
+    "channels": 1,
+    "durationSeconds": 78.0,
+    "integratedLoudnessLufs": -20.5,
+    "truePeakDbfs": -2.2
+  },
+  "checks": {
+    "digestExact": true,
+    "sizeExact": true,
+    "codecExact": true,
+    "sampleRateExact": true,
+    "channelsExact": true,
+    "durationWithin0_001Seconds": true,
+    "integratedLoudnessWithin0_1Lu": true,
+    "truePeakWithin0_1Db": true
+  },
+  "ok": true,
+  "runtimeJob": "job-01a09a1b-6464-7cd0-b8af-e0c9fc668331",
+  "boundary": "Fresh FFprobe/FFmpeg measurement establishes parity with the historical exact-Blob declaration. It does not establish listening quality, semantic quality, accessibility outcome, mastering suitability for every destination, or publication acceptance."
+}

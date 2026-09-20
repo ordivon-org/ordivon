@@ -1,0 +1,4 @@
+# Tool-produced evidence is hash-bound by receipts; preserve original bytes exactly.
+evidence/obs-session-final.json -text
+artifact-evidence/verifier/mediaconch-implementation.xml -text
+artifact-evidence/verifier/mediainfo.xml -text

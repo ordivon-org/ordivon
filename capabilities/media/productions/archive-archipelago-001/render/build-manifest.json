@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.cartographic-work-build",
+  "workId": "media:archive-archipelago-001",
+  "title": "Archive Archipelago 001",
+  "sourceCatalogDigest": "sha256:cfbd3ff1533b7b2d52a1ce3067b1065e7c95a77ff73567104d9a8f41a03e9b21",
+  "sourceWorkCount": 303,
+  "ownerCounts": {
+    "Game": 33,
+    "Media": 136,
+    "Web": 56,
+    "Workstation": 78
+  },
+  "mappedRelationCount": 45,
+  "relationTypes": {
+    "CONSUMER_OF": 10,
+    "DERIVATIVE_OF": 35
+  },
+  "staticLabelCount": 8,
+  "coordinateSemantics": "conceptual Cartesian archive plane; no geographic location or semantic-distance claim",
+  "outputs": [
+    "render/works.geojson",
+    "render/owners.geojson",
+    "render/relations.geojson",
+    "render/archive-archipelago-001.svg",
+    "render/archive-archipelago-001.gpkg",
+    "render/archive-archipelago-001.png",
+    "interactive/index.html"
+  ]
+}

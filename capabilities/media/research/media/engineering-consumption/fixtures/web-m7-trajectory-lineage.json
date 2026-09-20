@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 0,
+  "kind": "ordivon.media.ompc-fixture",
+  "truthRole": "derived-read-only-cross-owner-trajectory-projection-fixture",
+  "fixture": "C",
+  "sourceBinding": {
+    "owner": "ordivon-web",
+    "observedRevision": "407d151f0939de87286be50ec24ca35fc2c04bb4",
+    "m7RunnerIntroducedAt": "fa3b00c210a14bb58a50350870eb4322fcabed37",
+    "runner": "scripts/run-m7-interaction.mjs",
+    "evidenceDigest": "sha256:1469ce31fc89f064087ca12a4db163ac1975d84bde4bd115b9dd5d38f25cd14e",
+    "authorityRule": "Web owns the browser interaction fixture/evidence. Media records only a bounded OMPC interpretation."
+  },
+  "observerScope": {
+    "observer": "media-contract-falsifier",
+    "purpose": "test temporal coverage and encounter equivalence"
+  },
+  "projectionEnvelope": {
+    "sourceProposition": "The response was lost. The operation outcome is unknown. Recover the same operation identity before concluding success or failure.",
+    "operationId": "op-recovery-42",
+    "variants": ["lawful", "premature-success", "silent-delay"],
+    "endpointAblation": "initial + final static states"
+  },
+  "representationBody": {
+    "lawfulTransient": "checking",
+    "prematureSuccessTransient": "success",
+    "silentDelayTransient": "idle",
+    "allInitialFinalStaticEquivalent": true,
+    "commonFinalScreenshotDigest": "sha256:d2b7d88af0ecffd3d96b25a21df53604a6998ee3f98f87db78750ff5f4dae84e"
+  },
+  "transformationProvenanceTrace": {
+    "observedTrajectory": ["initial", "transient", "settled", "recovering", "recovered", "final"],
+    "registeredDefects": {
+      "premature-success": ["feedback-claims-success-before-evidence"],
+      "silent-delay": ["latency-without-feedback"]
+    },
+    "allRegisteredDefectsRequireTrajectory": true,
+    "lossDisclosure": "Freezing the encounter to initial+final static states removes every registered defect in the two defective variants."
+  },
+  "actionExposureDisclosure": {
+    "operationIdentityPreserved": "op-recovery-42",
+    "notClaimed": ["human usability preference", "non-Web transfer", "game interaction quality", "execution truth from displayed feedback"]
+  }
+}

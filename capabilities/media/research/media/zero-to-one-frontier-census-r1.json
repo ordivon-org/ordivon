@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.zero-to-one-frontier-census",
+  "principle": "Prioritize capabilities that have not yet crossed discover -> execute -> verify -> reuse. Do not deepen already-closed paths merely because they are available.",
+  "closedThisWave": [
+    {
+      "frontier": "dataset",
+      "producer": "pyarrow",
+      "capability": "dataset.export.parquet",
+      "artifactProfile": "dataset-parquet-flat-r1"
+    },
+    {
+      "frontier": "geospatial",
+      "producer": "gdal-ogr",
+      "capability": "geospatial.export.geopackage",
+      "artifactProfile": "geospatial-geopackage-point-r1"
+    },
+    {
+      "frontier": "web-archive",
+      "producer": "warcio",
+      "capability": "web.capture.response.warc",
+      "artifactProfile": "web-archive-warc-response-r1"
+    },
+    {
+      "frontier": "message",
+      "producer": "python-email",
+      "capability": "message.compose.rfc5322",
+      "artifactProfile": "message-internet-text-r1"
+    },
+    {
+      "frontier": "sonic-identity",
+      "producer": "procedural-audio-production",
+      "capability": "first-class-audio-work",
+      "artifactProfile": "audio-wave/flac/ogg",
+      "currentness": "closed concurrently by canonical commit 9b64d58; production convergence-sonic-ident exists with consumption/friction evidence"
+    },
+    {
+      "frontier": "2d-world-authoring",
+      "producer": "tiled",
+      "capability": "world2d.canonicalize.tmj",
+      "artifactProfile": "design-2d-tiled-tmj-object-map-r1",
+      "currentness": "Tiled 1.12.2 headless canonical export plus Artifact TMJ/TMX native round-trip and raster readback live-proven."
+    },
+    {
+      "frontier": "live-broadcast-performance",
+      "producer": "obs-studio",
+      "capability": "authenticated-live-programme-recording-and-switching",
+      "artifactProfile": "moving-image-matroska-ffv1-v3-r1",
+      "currentness": "Closed by canonical Media revision d6eb5112f6d11dcd383ec35673ae5bed79bf3582 and Creative Archive work media:live-relay-001. A real authenticated OBS 32.2.2 / obs-websocket 5.7.4 local episode live-switched three exact registered Works, recorded a peer-paced ~22s programme, restored scene/audio/config/process/listener state, retained an H.264/AAC event-source MP4, passed the existing Matroska v4/FFV1 3.4 Artifact verifier with 718 implementation passes / 0 fail / 0 warning, registered 34 exact occurrences + roles + 3 CONSUMER_OF relations, and passed fresh Creative Library hero/launch plus HTTP full/range consumption.",
+      "boundary": "Bounded local broadcast closure only; public internet streaming, audience reach, 24/7 unattended stability, and physical control surfaces remain outside this closure."
+    },
+    {
+      "frontier": "accessible-publication-authoring",
+      "producer": "typst",
+      "capability": "accessible-publication.author.pdfua1-plus-semantic-html",
+      "artifactProfile": "external-standard PDF/UA-1 + semantic HTML; current Artifact pdf-accessible-r1 remains PDF/UA-2 and is explicitly not claimed",
+      "currentness": "Already closed by registered Work media:friction-loop-field-zine-accessible at exact Media revision 73322200c11d2ef14cf7eff49649ad7a1152bc34. Exact PDF/UA-1 carrier SHA256 4808826e9441cf296f5b2345648f2acae84bf56f899bc55f4a292a2fc352b5ea is tagged, qpdf-clean, and independently rechecked PASS under veraPDF 1.30.2 ua1; exact carrier FAILS ua2 as retained boundary. Semantic HTML companion SHA256 954c1e7e7a4296b5dd3cbd3769fbc73b3eac795b03f89aa9284ac7ad15f22bd3 has retained HTML/browser/axe and Creative Library consumption evidence. Archive registry has 23 exact occurrences + roles and assert PASS.",
+      "boundary": "This closes Media accessible authoring at PDF/UA-1 + semantic HTML. It does not satisfy Artifact pdf-accessible-r1 (PDF/UA-2), Adobe Acrobat Pro target acceptance, WebKit, or human assistive-technology usability."
+    }
+  ],
+  "remainingEquipmentWithNoDeliveryBridge": [
+    {
+      "equipmentId": "ffprobe",
+      "retention": "core-equipment",
+      "capabilities": [
+        "media.probe",
+        "stream.inspect",
+        "duration.inspect",
+        "codec.inspect"
+      ]
+    },
+    {
+      "equipmentId": "davinci-resolve",
+      "retention": "external-workstation",
+      "capabilities": [
+        "timeline.create",
+        "timeline.conform.otio",
+        "media.import",
+        "project.inspect",
+        "color.finish",
+        "fusion.compose",
+        "audio.fairlight",
+        "deliver.render"
+      ]
+    },
+    {
+      "equipmentId": "obs-studio",
+      "retention": "external-workstation",
+      "capabilities": [
+        "live.scene.switch",
+        "live.source.update",
+        "record.start",
+        "record.stop",
+        "stream.start",
+        "stream.stop",
+        "live.state.observe",
+        "event.subscribe"
+      ]
+    },
+    {
+      "equipmentId": "figma",
+      "retention": "external-workstation",
+      "capabilities": [
+        "design.node.read",
+        "design.node.write.plugin",
+        "design.variables",
+        "design.prototype",
+        "design.export",
+        "design.collaborate"
+      ]
+    },
+    {
+      "equipmentId": "touchdesigner",
+      "retention": "candidate",
+      "capabilities": [
+        "realtime.visual",
+        "realtime.audio",
+        "sensor.integrate",
+        "control.osc",
+        "control.midi",
+        "python.script",
+        "projection.mapping"
+      ]
+    },
+    {
+      "equipmentId": "stream-deck",
+      "retention": "challenger",
+      "capabilities": [
+        "human.action.low-latency",
+        "state.display",
+        "dial.input",
+        "plugin.node",
+        "plugin.cli"
+      ]
+    },
+    {
+      "equipmentId": "bhaptics",
+      "retention": "challenger",
+      "capabilities": [
+        "haptic.play",
+        "haptic.stop",
+        "haptic.pattern",
+        "body-location.output"
+      ]
+    },
+    {
+      "equipmentId": "duckdb",
+      "retention": "specialist-on-demand",
+      "capabilities": [
+        "dataset.sql.execute",
+        "dataset.query",
+        "dataset.transform"
+      ]
+    }
+  ],
+  "nextFrontiers": [
+    {
+      "priority": "S2",
+      "frontier": "print-prepress-color-managed-output",
+      "classification": "TRUE_ZERO_TO_ONE",
+      "reason": "Current PDF/image tooling exists, but no explicit CMYK/ICC/bleed/imposition delivery family or production closure was found."
+    },
+    {
+      "priority": "S3",
+      "frontier": "physical-embodied-output",
+      "classification": "TRUE_ZERO_TO_ONE_REQUIRES_PHYSICAL_AUTHORITY",
+      "reason": "Stream Deck, bHaptics, XR/realtime/sensor capabilities remain challenger/candidate; no physical device closure or embodied Work exists."
+    }
+  ],
+  "integrationGapsNotZeroToOne": [
+    {
+      "frontier": "office-native-authoring",
+      "reason": "PowerPoint, Word and Excel Desktop are physically present and Artifact has PPTX/DOCX/XLSX production profiles; missing Media projection is integration/discoverability, not capability birth."
+    },
+    {
+      "frontier": "web-authoring-publication",
+      "reason": "Artifact web-r1 is already a source-authored production profile with browser/accessibility gates; missing Media bridge is integration, not a true zero."
+    },
+    {
+      "frontier": "dataset-query-to-publication",
+      "reason": "DuckDB query/transform is now available and PyArrow closes strict Parquet writing; richer analysis/visualization is 1->100 after this wave."
+    },
+    {
+      "frontier": "music-composition",
+      "reason": "Canonical production Convergence — Ordivon Sonic Ident 001 now exists with WAV/FLAC/OGG and consumption evidence; music is no longer zero."
+    }
+  ]
+}

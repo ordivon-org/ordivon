@@ -1,0 +1,11 @@
+{
+  "name": "@ordivon/identity",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./dist/tokens.css",
+    "./tokens": "./dist/tokens.ts"
+  },
+  "files": ["dist", "tokens"]
+}

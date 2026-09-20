@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.live-relay-source-provenance",
+  "workId": "media:live-relay-001",
+  "sourceWorks": [
+    {
+      "workId": "media:archive-archipelago-001",
+      "revision": "a9f48d07d5ff18ebda2cb9f39d79d1797abd53d7",
+      "path": "productions/archive-archipelago-001/render/archive-archipelago-001.png",
+      "sha256": "2f0a7c9d6b8ca497f72eb3e72b9a893e3b98a7f1be892ed910ec429a5e773bbe",
+      "relation": "CONSUMER_OF"
+    },
+    {
+      "workId": "media:convergence-object-001",
+      "revision": "b6b9f2bb1f060981ee7a3c56a2148b1e2ed5a058",
+      "path": "productions/convergence-object-001/render/convergence-object-001.png",
+      "sha256": "9c987354341caa0f72608f284eece5900cee7cabfb29cea08e94e990b846503e",
+      "relation": "CONSUMER_OF"
+    },
+    {
+      "workId": "media:system-constellation-poster-001",
+      "revision": "13444cc55fcc6c0ee3be70f8165885f3e11ed3f6",
+      "path": "productions/system-constellation-poster-001/render/system-constellation-poster-001.png",
+      "sha256": "40bfdb7fc2953380afa8dc943771fe1ae8eafdb9fe37a269513fba4bc5891a9e",
+      "relation": "CONSUMER_OF"
+    }
+  ],
+  "sourceCapture": {
+    "path": "render/live-relay-001-source.mp4",
+    "sha256": "d78adcac09885dab71678c742061c83dd24ee2c0e768b9c84d5e5e9f97bb19b5",
+    "origin": "peer-paced real OBS Studio 32.2.2 Take 6, controlled over authenticated obs-websocket 5.7.4"
+  },
+  "preservationMaster": {
+    "path": "render/live-relay-001-master.mkv",
+    "sha256": "05763a34936df0af7e58737711477a86b9b0b1043a22c109752feb6e363f1f65",
+    "profileId": "moving-image-matroska-ffv1-v3-r1",
+    "normalizedDecodedVideoSha256": "a16ff5cf17693ce1f3e4fcce1f9400df89715702fca53eaea43bf5a1be38c863"
+  },
+  "boundary": "Source work identities and bytes are frozen inputs to a new authored live programme. Live Relay 001 does not update, supersede, or inherit authority from any source Work. The Constellation crop is compositional only and explicitly does not introduce hierarchy, geography, dependency, or live-system status."
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-studio-sapi-narration-receipt",
+  "source": {
+    "timedText": "timed-text/narration.en.json",
+    "timedTextDigest": "sha256:a6d515aa8e2aabeec7db6a832dd2d8a63c814ae10b7c474b808174e1fd47ba74"
+  },
+  "generator": {
+    "provider": "Windows System.Speech",
+    "voice": "Microsoft Zira Desktop",
+    "culture": "en-US",
+    "rate": 1,
+    "rawFormat": {
+      "codec": "pcm_s16le",
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16
+    }
+  },
+  "repeatability": {
+    "independentBuilds": 2,
+    "exactOutputDigestEqual": true
+  },
+  "cues": [
+    {
+      "id": "en-001",
+      "slotSeconds": 6.0,
+      "voiceSeconds": 4.913605
+    },
+    {
+      "id": "en-002",
+      "slotSeconds": 7.0,
+      "voiceSeconds": 5.673469
+    },
+    {
+      "id": "en-003",
+      "slotSeconds": 11.0,
+      "voiceSeconds": 7.352971
+    },
+    {
+      "id": "en-004",
+      "slotSeconds": 13.0,
+      "voiceSeconds": 9.947392
+    },
+    {
+      "id": "en-005",
+      "slotSeconds": 11.0,
+      "voiceSeconds": 9.742449
+    },
+    {
+      "id": "en-006",
+      "slotSeconds": 11.0,
+      "voiceSeconds": 10.462222
+    },
+    {
+      "id": "en-007",
+      "slotSeconds": 8.0,
+      "voiceSeconds": 7.18322
+    },
+    {
+      "id": "en-008",
+      "slotSeconds": 7.0,
+      "voiceSeconds": 6.927937
+    },
+    {
+      "id": "en-009",
+      "slotSeconds": 4.0,
+      "voiceSeconds": 3.613968
+    }
+  ],
+  "output": {
+    "digest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+    "sizeBytes": 11232102,
+    "mediaType": "audio/x-wav",
+    "durationSeconds": 78.0,
+    "sampleRate": 48000,
+    "channels": 1,
+    "codec": "pcm_s24le",
+    "bitsPerSample": 24,
+    "integratedLoudnessLufs": -20.5,
+    "truePeakDbfs": -2.2
+  },
+  "archive": {
+    "objectKey": "objects/sha256/79/798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+    "verified": true
+  },
+  "boundary": "This receipt proves exact local synthesis inputs, cue fit, repeatability, output bytes and technical audio facts. It does not establish naturalness, preference, intelligibility for a human audience, or publication approval."
+}

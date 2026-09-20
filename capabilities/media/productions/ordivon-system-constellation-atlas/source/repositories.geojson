@@ -1,0 +1,310 @@
+{
+  "type": "FeatureCollection",
+  "name": "ordivon_repositories",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -47.40186,
+          28.30215
+        ]
+      },
+      "properties": {
+        "name": "ordivon-artifact-v2",
+        "path": "/root/projects/ordivon-artifact-v2",
+        "head": "02b3aab611b13941bf1582234426d8d50fd8e0ab",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "02b3aab61",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -61.27629,
+          50.1396
+        ]
+      },
+      "properties": {
+        "name": "ordivon-harness",
+        "path": "/root/projects/ordivon-harness",
+        "head": "0400157eb8295a26e7c12d1fa7d13d76e6cd18aa",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "0400157eb",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.96928,
+          43.6629
+        ]
+      },
+      "properties": {
+        "name": "ordivon-host-v2",
+        "path": "/root/projects/ordivon-host-v2",
+        "head": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "b5cf31f9a",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -96.57834,
+          29.03216
+        ]
+      },
+      "properties": {
+        "name": "ordivon-next",
+        "path": "/root/projects/ordivon-next",
+        "head": "5101682eebde9b9964651da735912ac0f1e05205",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "5101682ee",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -86.66055,
+          8.2458
+        ]
+      },
+      "properties": {
+        "name": "ordivon-runtime",
+        "path": "/root/projects/ordivon-runtime",
+        "head": "c9535c39f8f674bb5fe33a79dd93f97c5b46e548",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "c9535c39f",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.28821,
+          3.62075
+        ]
+      },
+      "properties": {
+        "name": "ordivon-workstation-v2",
+        "path": "/root/projects/ordivon-workstation-v2",
+        "head": "cf4b267c2e3269b50633acf0dc2408a31567d8dd",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "cf4b267c2",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -54.80777,
+          10.40491
+        ]
+      },
+      "properties": {
+        "name": "workstation-lab",
+        "path": "/root/workstation-lab",
+        "head": "dd7e60d6aa90c0967ba208a0c16354eb9fad850a",
+        "dirty_tracked": false,
+        "cluster": "execution",
+        "head_short": "dd7e60d6a",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.21471,
+          44.27273
+        ]
+      },
+      "properties": {
+        "name": "ordivon-research-v2",
+        "path": "/root/projects/ordivon-research-v2",
+        "head": "ab743ba97cc52c4f6375810b2cedc7f59b7779a7",
+        "dirty_tracked": false,
+        "cluster": "knowledge",
+        "head_short": "ab743ba97",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -13.48427,
+          -20.82626
+        ]
+      },
+      "properties": {
+        "name": "ordivon-game",
+        "path": "/root/projects/ordivon-game",
+        "head": "621e66417b0ebcfcafcdf34a0d0eb402dab4b336",
+        "dirty_tracked": false,
+        "cluster": "creative",
+        "head_short": "621e66417",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -38.7396,
+          -40.74823
+        ]
+      },
+      "properties": {
+        "name": "ordivon-media",
+        "path": "/root/projects/ordivon-media",
+        "head": "26b1cd61588709872e799dca92967884835ef0da",
+        "dirty_tracked": false,
+        "cluster": "creative",
+        "head_short": "26b1cd615",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -26.36745,
+          -52.84296
+        ]
+      },
+      "properties": {
+        "name": "ordivon-web",
+        "path": "/root/projects/ordivon-web",
+        "head": "32a2a1ca14a7bb837551e5ef30f37d551cb28b83",
+        "dirty_tracked": false,
+        "cluster": "creative",
+        "head_short": "32a2a1ca1",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          93.91787,
+          -22.93237
+        ]
+      },
+      "properties": {
+        "name": "ordivon-distribution-v2",
+        "path": "/root/projects/ordivon-distribution-v2",
+        "head": "9ab83f0440007b3dd303ae37aef79311f638897b",
+        "dirty_tracked": false,
+        "cluster": "external",
+        "head_short": "9ab83f044",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          62.33241,
+          -17.63934
+        ]
+      },
+      "properties": {
+        "name": "ordivon-market-capital-next",
+        "path": "/root/projects/ordivon-market-capital-next",
+        "head": "dc73af47ed618b27bc9caf4bc33f0978c8048b37",
+        "dirty_tracked": false,
+        "cluster": "external",
+        "head_short": "dc73af47e",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.25104,
+          -44.25378
+        ]
+      },
+      "properties": {
+        "name": "ordivon-network-v2",
+        "path": "/root/projects/ordivon-network-v2",
+        "head": "f62179b2907cea26ce6b028e225a134c96ce1d99",
+        "dirty_tracked": false,
+        "cluster": "external",
+        "head_short": "f62179b29",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.06372,
+          4.05516
+        ]
+      },
+      "properties": {
+        "name": "ordivon-paper2",
+        "path": "/root/projects/ordivon-paper2",
+        "head": "4692609a75caa016134e8686ebfa4da49a4ae20f",
+        "dirty_tracked": false,
+        "cluster": "other",
+        "head_short": "4692609a7",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          4.86943,
+          -14.82055
+        ]
+      },
+      "properties": {
+        "name": "ordivon-security-v2",
+        "path": "/root/projects/ordivon-security-v2",
+        "head": "17ebfb63f71090eef33c7ac21060374382a28d5d",
+        "dirty_tracked": false,
+        "cluster": "other",
+        "head_short": "17ebfb63f",
+        "coordinate_semantics": "abstract-layout-not-geographic"
+      }
+    }
+  ]
+}

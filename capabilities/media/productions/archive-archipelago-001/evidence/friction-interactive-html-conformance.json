@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:archive-archipelago-001:html-conformance",
+  "title": "Nu Html Checker rejected ARIA on generic divs and surfaced avoidable HTML syntax/info messages",
+  "category": "FORMAT",
+  "surface": "Archive Archipelago standalone interactive HTML",
+  "tool": "Artifact pinned Nu Html Checker 26.9.7",
+  "workflow": "standalone HTML build -> standards conformance verification",
+  "observed_during": "quality polish of media:archive-archipelago-001",
+  "related_work": "media:archive-archipelago-001",
+  "related_task": null,
+  "symptom": "Formal conformance returned 10 messages: 2 ARIA errors on generic divs, 7 trailing-slash informational findings on void elements, and 1 section-without-heading warning.",
+  "expected_behavior": "The standalone delivery carrier should produce zero Nu Html Checker messages under the existing strict Artifact wrapper.",
+  "actual_behavior": "Browser execution was functional, but standards validation exposed avoidable markup debt.",
+  "evidence": {
+    "failedJobId": "job-01a0a5c2-d203-7c23-9a0f-4fcc0bf17ae3",
+    "validator": "Nu Html Checker 26.9.7 (d73d94b)"
+  },
+  "severity": "LOW",
+  "frequency": "DETERMINISTIC_ON_R2_PRE_FIX",
+  "owner": "Media creative production source",
+  "status": "VERIFIED",
+  "proposed_fix": "Use explicit non-interactive group roles where labels are needed, remove XHTML-style slashes from HTML void elements, and use a generic notes container where no section heading is intended.",
+  "fix_attempt": "Patched source index.html and rebuilt the standalone carrier.",
+  "verification": "Repeat Artifact Nu Html Checker 26.9.7 returned PASS with messageCount=0 for the exact standalone carrier."
+}

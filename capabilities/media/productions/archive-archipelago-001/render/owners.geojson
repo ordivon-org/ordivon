@@ -1,0 +1,61 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          40.0,
+          260.0
+        ]
+      },
+      "properties": {
+        "owner": "Game",
+        "work_count": 33
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -500.0,
+          120.0
+        ]
+      },
+      "properties": {
+        "owner": "Media",
+        "work_count": 136
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          530.0,
+          100.0
+        ]
+      },
+      "properties": {
+        "owner": "Web",
+        "work_count": 56
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          190.0,
+          -300.0
+        ]
+      },
+      "properties": {
+        "owner": "Workstation",
+        "work_count": 78
+      }
+    }
+  ]
+}

@@ -1,0 +1,950 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            83.213,
+            242.04
+          ],
+          [
+            -423.076,
+            138.623
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:braess-toll-bench",
+        "to_id": "media:braess-gate",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            88.26,
+            234.899
+          ],
+          [
+            -639.499,
+            83.463
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:dice-ring",
+        "to_id": "media:nontransitive-dice",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            85.2,
+            309.84
+          ],
+          [
+            -624.057,
+            129.088
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:latch-hall-commitment-bench",
+        "to_id": "media:latch-hall",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            113.435,
+            255.819
+          ],
+          [
+            86.721,
+            -261.281
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:memory-weave-repair-bench",
+        "to_id": "workstation:memory-weave",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -42.605,
+            304.786
+          ],
+          [
+            -16.554,
+            202.291
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:seen-not-approved-pcb",
+        "to_id": "game:seen-not-approved",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -47.381,
+            270.913
+          ],
+          [
+            -333.552,
+            166.899
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:signal-garden-evidence-petals",
+        "to_id": "media:signal-garden",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -33.34,
+            315.476
+          ],
+          [
+            -333.552,
+            166.899
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "game:signal-garden-rc-evidence-twin",
+        "to_id": "media:signal-garden",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -531.151,
+            111.701
+          ],
+          [
+            625.701,
+            175.774
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:0919-office-talisman",
+        "to_id": "web:the-office-is-thinking",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -500.059,
+            34.093
+          ],
+          [
+            -596.125,
+            144.086
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:drift-compass-causal-seam",
+        "to_id": "media:drift-compass",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -515.883,
+            36.679
+          ],
+          [
+            -596.125,
+            144.086
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:drift-compass-error-audio",
+        "to_id": "media:drift-compass",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -416.511,
+            171.803
+          ],
+          [
+            -515.883,
+            36.679
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:drift-compass-error-phase-audio",
+        "to_id": "media:drift-compass-error-audio",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -450.672,
+            212.472
+          ],
+          [
+            -393.895,
+            77.749
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:hysteresis-lantern-analog-gate",
+        "to_id": "media:hysteresis-lantern",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -575.084,
+            43.393
+          ],
+          [
+            -487.154,
+            18.888
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:last-store-open-relay-text",
+        "to_id": "media:last-store-open",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -616.231,
+            61.516
+          ],
+          [
+            -531.709,
+            233.648
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:opaque-seed-response-01",
+        "to_id": "media:opaque-seed-01",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -414.89,
+            29.578
+          ],
+          [
+            -528.473,
+            233.865
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:pendulum-choir-sonification",
+        "to_id": "media:pendulum-choir",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -357.723,
+            82.435
+          ],
+          [
+            -345.11,
+            110.163
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:reaction-token",
+        "to_id": "media:reaction-orrery",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -487.8,
+            -12.508
+          ],
+          [
+            -333.748,
+            138.102
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:runtime-introduction-review",
+        "to_id": "media:runtime-introduction",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -664.623,
+            110.931
+          ],
+          [
+            -16.554,
+            202.291
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:seen-not-approved-pcb",
+        "to_id": "game:seen-not-approved",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -620.008,
+            15.093
+          ],
+          [
+            -16.554,
+            202.291
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:seen-not-approved-spice",
+        "to_id": "game:seen-not-approved",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -681.687,
+            127.67
+          ],
+          [
+            -333.552,
+            166.899
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:signal-garden-evidence-twin",
+        "to_id": "media:signal-garden",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -548.749,
+            247.365
+          ],
+          [
+            -333.552,
+            166.899
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:signal-garden-sonification",
+        "to_id": "media:signal-garden",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -649.025,
+            182.998
+          ],
+          [
+            -537.731,
+            -19.587
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:skill-ecosystem-atlas-r4",
+        "to_id": "media:skill-ecosystem-atlas",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -323.201,
+            150.623
+          ],
+          [
+            20.819,
+            173.447
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:three-color-night-trial",
+        "to_id": "game:three-color-night-shift",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -469.297,
+            -24.435
+          ],
+          [
+            -493.28,
+            -25.585
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:twin-veil",
+        "to_id": "media:twin-veil-study",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -675.473,
+            86.943
+          ],
+          [
+            -684.685,
+            157.076
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "media:visible-field-history-lens",
+        "to_id": "media:visible-field",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            445.554,
+            97.565
+          ],
+          [
+            35.091,
+            176.642
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "web:article:station-zero-alpha-1",
+        "to_id": "game:station-zero",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            454.845,
+            36.966
+          ],
+          [
+            402.311,
+            87.732
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "web:balance-field-card",
+        "to_id": "web:kinetic-balance",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            643.803,
+            52.507
+          ],
+          [
+            402.311,
+            87.732
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "web:kinetic-balance-desk-toy",
+        "to_id": "web:kinetic-balance",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            402.849,
+            60.87
+          ],
+          [
+            -333.552,
+            166.899
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "web:signal-garden-sketch",
+        "to_id": "media:signal-garden",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            242.256,
+            -315.907
+          ],
+          [
+            168.22,
+            -255.636
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:brewster-detector-headroom-gate",
+        "to_id": "workstation:brewster-lockin-observer-protocol",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            142.673,
+            -269.088
+          ],
+          [
+            168.22,
+            -255.636
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:brewster-lockin-headroom-gate",
+        "to_id": "workstation:brewster-lockin-observer-protocol",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            168.22,
+            -255.636
+          ],
+          [
+            180.596,
+            -244.502
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:brewster-lockin-observer-protocol",
+        "to_id": "workstation:brewster-null",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            168.22,
+            -255.636
+          ],
+          [
+            246.625,
+            -241.916
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:brewster-lockin-observer-protocol",
+        "to_id": "workstation:lock-in-lantern",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            257.315,
+            -255.578
+          ],
+          [
+            -523.174,
+            35.098
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:feedback-loom-analog-ring",
+        "to_id": "media:feedback-loom",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            112.051,
+            -305.475
+          ],
+          [
+            242.256,
+            -315.907
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:headroom-noise-gain-time-envelope",
+        "to_id": "workstation:brewster-detector-headroom-gate",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            112.051,
+            -305.475
+          ],
+          [
+            99.95,
+            -316.291
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:headroom-noise-gain-time-envelope",
+        "to_id": "workstation:lock-in-noise-clock",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            102.176,
+            -296.678
+          ],
+          [
+            -410.558,
+            54.226
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:living-field-numerical-fossil",
+        "to_id": "media:living-field",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            99.95,
+            -316.291
+          ],
+          [
+            246.625,
+            -241.916
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:lock-in-noise-clock",
+        "to_id": "workstation:lock-in-lantern",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            92.726,
+            -294.05
+          ],
+          [
+            111.694,
+            -366.482
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:measured-pair",
+        "to_id": "workstation:polarity-pair",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            217.939,
+            -222.971
+          ],
+          [
+            147.818,
+            -355.325
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:measurement-front-end-protocol",
+        "to_id": "workstation:driven-guard",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            217.939,
+            -222.971
+          ],
+          [
+            267.916,
+            -255.856
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:measurement-front-end-protocol",
+        "to_id": "workstation:kelvin-four-wire",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            217.939,
+            -222.971
+          ],
+          [
+            278.474,
+            -367.505
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:measurement-front-end-protocol",
+        "to_id": "workstation:probe-burden",
+        "relation_type": "CONSUMER_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            154.631,
+            -207.487
+          ],
+          [
+            219.431,
+            -196.291
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:relay-moth-optical-readout-envelope",
+        "to_id": "workstation:relay-moth",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            183.537,
+            -199.951
+          ],
+          [
+            111.694,
+            -366.482
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:reversal-window",
+        "to_id": "workstation:polarity-pair",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            316.994,
+            -233.06
+          ],
+          [
+            -469.297,
+            -24.435
+          ]
+        ]
+      },
+      "properties": {
+        "from_id": "workstation:twin-veil-registration-gate",
+        "to_id": "media:twin-veil",
+        "relation_type": "DERIVATIVE_OF"
+      }
+    }
+  ]
+}

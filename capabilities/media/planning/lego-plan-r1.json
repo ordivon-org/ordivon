@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-media",
+    "purpose": "Own observer-relative mediation and optional Studio production that binds source-owned reality into editable medium-specific expression without creating a second truth authority.",
+    "sourceEvidence": [
+      "README.md",
+      "MEDIA.md",
+      "STUDIO.md",
+      "docs/media-model.md",
+      "docs/authority.md"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "V01",
+      "label": "MediaProjection",
+      "kind": "domain_projection",
+      "responsibility": "Define bounded observer-facing representation while source owners retain truth/currentness.",
+      "authority": "Media",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "MEDIA.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "source truth"
+      ],
+      "acceptance": [
+        "Projection names its source/observer boundary."
+      ]
+    },
+    {
+      "id": "V02",
+      "label": "ClaimBinding",
+      "kind": "domain_contract",
+      "responsibility": "Bind allowed expression to exact source revision/claim scope.",
+      "authority": "Studio/Media",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/media-model.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "current source truth"
+      ],
+      "acceptance": [
+        "Later source change does not silently float historical expression."
+      ]
+    },
+    {
+      "id": "V03",
+      "label": "ProductionState",
+      "kind": "state_authority",
+      "responsibility": "Own editable creative production state only when actual authoring/rendering work is required.",
+      "authority": "Studio",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/media-model.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "generic representation"
+      ],
+      "acceptance": [
+        "Multiple valid productions do not imply a unique current one."
+      ]
+    },
+    {
+      "id": "V04",
+      "label": "RenderQC",
+      "kind": "verifier",
+      "responsibility": "Produce render/mechanical/factual evidence for exact selected outputs.",
+      "authority": "Studio tooling",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md",
+        "STUDIO.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "human preference"
+      ],
+      "acceptance": [
+        "Mechanical/factual pass is distinguishable from craft/human-response claims."
+      ]
+    },
+    {
+      "id": "V05",
+      "label": "OutputIdentity",
+      "kind": "artifact_binding",
+      "responsibility": "Bind exact selected bytes/outputs to appropriate durable byte authority and provenance.",
+      "authority": "Media/Artifact boundary",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [
+        "L18",
+        "L19"
+      ],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "Distribution publication effect"
+      ],
+      "acceptance": [
+        "Output identity remains stable independently of publication."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "V01",
+      "to": "V02",
+      "type": "DATA",
+      "label": "projection may require source-bound claim"
+    },
+    {
+      "from": "V02",
+      "to": "V03",
+      "type": "CONTROL",
+      "label": "claim admits optional production"
+    },
+    {
+      "from": "V03",
+      "to": "V04",
+      "type": "EVIDENCE",
+      "label": "render/review candidate"
+    },
+    {
+      "from": "V04",
+      "to": "V05",
+      "type": "EVIDENCE",
+      "label": "selected output standing"
+    }
+  ],
+  "slices": [
+    {
+      "id": "VS1",
+      "objective": "Pressure-test Media-owner projection paths that do not require Studio Production, preserving Studio as optional lowering.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "V01",
+        "V03"
+      ],
+      "acceptance": [
+        "At least one non-Studio observer projection is produced/verified without creating unnecessary Production state."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Use an existing status/tool-result representation as the first bounded case."
+    }
+  ],
+  "gaps": [
+    "Cross-medium ArtifactObservation integration can be evaluated after Artifact ProducerRef is proven."
+  ],
+  "doNotOwn": [
+    "source-owner current truth",
+    "external distribution effect authority",
+    "unmeasured human response"
+  ],
+  "review": {
+    "sourceRevision": "757c7e4b08879e386f683f56674763f544984be3",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  }
+}

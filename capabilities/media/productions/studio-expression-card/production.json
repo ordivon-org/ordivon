@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "studio-expression-card",
+  "title": "Ordivon Studio Expression Card",
+  "status": "review",
+  "intent": "Produce a publishable 1200×630 still that communicates Studio's source-owner/expression-owner boundary at a glance and proves ordinary consumer use of the existing Studio Production path without adding infrastructure.",
+  "audiences": [
+    "technical-reader",
+    "prospective-collaborator",
+    "link-preview-reader"
+  ],
+  "sourceBindings": [
+    {
+      "id": "studio",
+      "repository": "ordivon-studio",
+      "revision": "90e2b5d46b0f16171d242633454714017a14f2f2",
+      "role": "studio-responsibility-and-identity-owner"
+    }
+  ],
+  "workingProfile": {
+    "canvas": {
+      "width": 1200,
+      "height": 630
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "assets": "assets.json",
+    "cognition": "cognition.md"
+  },
+  "outputs": [
+    {
+      "id": "studio-expression-card-publishable",
+      "kind": "image",
+      "status": "approved",
+      "profile": "social-card-1200x630",
+      "blobDigest": "sha256:fc19d4cf27982fd177c9411245fb994a970551e105866348ee03e9deed6bcce4"
+    }
+  ]
+}

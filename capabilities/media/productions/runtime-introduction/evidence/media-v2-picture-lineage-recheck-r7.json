@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.v2.runtime-introduction-picture-lineage-recheck",
+  "observedAt": "2026-09-13",
+  "sourceRevision": "dc447ccd99cbef8d33af3d36b11937b4bf2b57ff",
+  "currentRecipe": {
+    "composition": "apps/motion-remotion/src/runtime-introduction-master-composition.tsx",
+    "compositionDigest": "sha256:213a0b58fa495455174f257f327b9bad7f7cd5201baa900a2297b47f420bf723",
+    "lockfileDigest": "sha256:bc3781b6f91e1d0118b8b41a40cb9b31b7cca751a163f810f0ed2575252e86c8",
+    "remotion": "4.0.502"
+  },
+  "currentPictureOccurrence": {
+    "digest": "sha256:9f476ded056358b95008e8bb5cb2cfbbc14610e5a0a94ae00db8fd3533d9bb6b",
+    "sizeBytes": 2258932,
+    "durationSeconds": 78.0,
+    "width": 1920,
+    "height": 1080,
+    "frameRate": "30/1",
+    "codec": "h264",
+    "pixelFormat": "yuv420p",
+    "colorRange": "tv",
+    "colorSpace": "bt709",
+    "audioStreamCount": 0,
+    "runtimeJob": "job-01a09a1c-0244-7231-a6dc-24a55e9773a7"
+  },
+  "priorR2FreshPictureOccurrence": {
+    "digest": "sha256:9f476ded056358b95008e8bb5cb2cfbbc14610e5a0a94ae00db8fd3533d9bb6b",
+    "sizeBytes": 2258932
+  },
+  "historicalAcceptedPictureOccurrence": {
+    "assetId": "runtime-introduction-master-motion",
+    "digest": "sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+    "sizeBytes": 2326600,
+    "localCasPresentAndDigestVerified": true
+  },
+  "historicalNarrationOccurrence": {
+    "assetId": "runtime-introduction-narration-en-sapi",
+    "digest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+    "localCasPresentAndDigestVerified": true
+  },
+  "historicalFinalAvOccurrence": {
+    "assetId": "runtime-introduction-en-av-candidate",
+    "digest": "sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430",
+    "parents": [
+      "runtime-introduction-master-motion",
+      "runtime-introduction-narration-en-sapi"
+    ],
+    "localCasPresentAndDigestVerified": true
+  },
+  "judgment": {
+    "currentRerenderMatchesPriorR2FreshPicture": true,
+    "currentRerenderMatchesHistoricalAcceptedPicture": false,
+    "originalR2ComparedDifferentProductionStages": true,
+    "historicalAcceptedPictureMutated": false,
+    "currentRerenderPromotedToHistoricalBlob": false,
+    "standing": "CURRENT_RECIPE_REPRODUCIBLE_HISTORICAL_OCCURRENCE_DISTINCT"
+  },
+  "boundary": "Byte inequality is preserved as occurrence identity. The picture-only rerender is not compared as though it were the final picture+narration A/V output, and no historical digest is rewritten to force equality."
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:archive-archipelago-001:mobile-pointer-target-density",
+  "title": "Mobile map points were visually legible but pointer targets were only 2.58–8.79 CSS px",
+  "category": "USABILITY",
+  "surface": "Archive Archipelago parent explorer / narrow mobile map",
+  "tool": "Workstation-bound Chromium 1243 + Accessible Publication peer review",
+  "workflow": "390x844 real browser measurement -> peer contract review -> source repair -> destructive touch/filter/pan tests -> mature web re-gate",
+  "observed_during": "R4 polish of media:archive-archipelago-001",
+  "related_work": "media:archive-archipelago-001",
+  "related_task": null,
+  "symptom": "At exact 390x844, all 303 SVG work marks measured below 24 CSS px; min=2.58, median=3.89, max=8.79. Pointer hit-testing therefore required near-pixel precision even though search provided a complete keyboard-equivalent route.",
+  "expected_behavior": "Pointer/touch exploration should tolerate an imprecise tap without creating 303 giant overlapping semantic controls or selecting after horizontal pan.",
+  "actual_behavior": "303/303 direct SVG mark boxes were below 24px and below 44px in the mobile viewport.",
+  "evidence": {
+    "baselineJobId": "job-01a0a614-a858-7eb2-8674-0d79a1e98f48",
+    "peerReviewBoardSequence": 17048,
+    "finalTouchGateJobId": "job-01a0a61a-feea-7c61-87d3-437d1f779ee4",
+    "artifactGateJobId": "job-01a0a61b-9d12-7892-a328-b9d2d31ef228"
+  },
+  "severity": "MEDIUM",
+  "frequency": "EVERY_NARROW_VIEWPORT_PRE_FIX",
+  "owner": "Media creative production source",
+  "status": "VERIFIED",
+  "proposed_fix": "Keep SVG marks pointer/visual-only and the keyboard model unchanged. On background click after pointer-up, resolve the strict nearest currently-visible/non-dim node within <=22 CSS px; lexical Work-ID breaks exact ties. Suppress selection after >8 CSS px pointer displacement so panning remains a pan.",
+  "fix_attempt": "Added nearestVisibleNode screen-space resolver, pointer-up capture, deterministic tie-break, visible-only filtering, and drag suppression. No giant hit circles or new ARIA/button semantics were added.",
+  "verification": "Exact 390x844 Chromium destructive gates PASS: a 20px off-mark tap selected workstation:six-touch-nest even though a filtered/dim node was only 5.61px away; a 30px tap selected nothing; a >20px drag ending within the capture radius left selection unchanged; exact-ID keyboard reachability remained 303/303; map Tab stops remained O(1); page overflow=0; horizontal internal pan preserved; console errors=0. Mature Nu/axe/Chromium/Firefox gates re-PASS."
+}

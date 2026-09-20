@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.work-consumption-evidence",
+  "workId": "media:live-relay-001",
+  "consumedAt": "2026-09-16T01:48:00+08:00",
+  "consumer": [
+    "OBS Studio 32.2.2",
+    "obs-websocket 5.7.4",
+    "FFmpeg 9.0",
+    "FFprobe 9.0",
+    "ImageMagick 7.1.2-29",
+    "Artifact moving-image verifier / MediaConch 25.04-1",
+    "Runtime native image transport"
+  ],
+  "evidence": {
+    "finalEpisodeJobId": "job-01a0a636-232d-73e0-8928-a54ed27f0b89",
+    "finalQcAndMasterJobId": "job-01a0a636-f49f-7c92-89b9-c2b517944a64",
+    "artifactVerifierJobId": "job-01a0a637-6940-7f22-8c02-4cdc543c071b",
+    "durationSeconds": 21.933333,
+    "frameRate": 30,
+    "frameCount": 657,
+    "canvas": "1280x720",
+    "programme": [
+      "SIGNAL (~3s)",
+      "ARCHIVE (~6s)",
+      "CONVERGENCE OBJECT (~4s)",
+      "CONSTELLATION (~6s)",
+      "SIGNAL (~3s)"
+    ],
+    "sourceCapture": {
+      "path": "render/live-relay-001-source.mp4",
+      "sha256": "d78adcac09885dab71678c742061c83dd24ee2c0e768b9c84d5e5e9f97bb19b5",
+      "video": "H.264 High / yuv420p / BT.709 / 1280x720 / 30fps",
+      "audio": "AAC LC / 48kHz / stereo / digital silence",
+      "fullDecode": "PASS",
+      "completeAudioPeakDb": "-inf",
+      "completeAudioRmsDb": "-inf",
+      "containerNbFramesObservation": 658,
+      "decodedFrameCountUsedForPreservationContract": 657
+    },
+    "preservationMaster": {
+      "path": "render/live-relay-001-master.mkv",
+      "sha256": "05763a34936df0af7e58737711477a86b9b0b1043a22c109752feb6e363f1f65",
+      "artifactProfile": "moving-image-matroska-ffv1-v3-r1",
+      "artifactStatus": "PASS",
+      "matroskaImplementation": "718 pass / 0 fail / 0 warning",
+      "ffv1": "version 3.4",
+      "fullDecode": "PASS",
+      "decodedYuv422pSha256": "a16ff5cf17693ce1f3e4fcce1f9400df89715702fca53eaea43bf5a1be38c863",
+      "matchesSourceAfterYuv422pNormalization": true
+    },
+    "poster": {
+      "path": "render/live-relay-001-poster.png",
+      "sha256": "2ea8fabed997b2c89e3ae07ff0e551420bb112e677e0858738a5eab9f54de3b2",
+      "origin": "dedicated whole-program hero composed only from five frames decoded from the actual final Take 6 OBS source capture"
+    },
+    "contactSheet": {
+      "path": "evidence/final-qc/contact-sheet.png",
+      "sha256": "0fa98d56226de94ccd01626573fb70c13287d858c57ff317441d6fcdebf1c996",
+      "inspection": "Five checkpoints inspected from final peer-paced Take 6: signal open, Archive hold, Object hold, Constellation hold, signal close."
+    },
+    "obsSession": {
+      "path": "evidence/obs-session-final.json",
+      "sha256": "75b42c947a345323c771acb3e4d2bf4843b0065d36e8c77033d7909235b35ee0",
+      "episodeSucceeded": true,
+      "stopRecordSettledAfterPolls": 3,
+      "obsProcessCountAfter": 0,
+      "listener4455After": false,
+      "preSessionStateRestoredByteExact": true,
+      "temporarySceneCount": 4,
+      "audioInputsFencedAndRestored": 2
+    },
+    "artifactVerification": {
+      "path": "artifact-evidence/moving-image-verification.json",
+      "sha256": "6646d0d984672e84f48fa876fabfd49a1f1a65aea831fce260308401a526ffd1",
+      "status": "PASS"
+    },
+    "friction": {
+      "path": "evidence/friction-controller-pre-finally-r1.json",
+      "sha256": "407644c70090978990a4d8ed87fef6f45ef4ff4ec4f078921d42a4ecf2169449",
+      "note": "Failed takes and a final verifier false negative were retained as recoverability/interop/lifecycle evidence; failed takes are not Work carriers."
+    }
+  },
+  "boundary": "This proves one real bounded local OBS recording/replay episode, its exact cleanup and replay/preservation carriers. It does not claim public streaming, audience reception, long-duration unattended stability, or artistic preference."
+}

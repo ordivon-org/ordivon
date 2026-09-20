@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "id": "ordivon-book-v0",
+  "title": "Ordivon Book v0 — Finite Intelligence, Reality, and Revision",
+  "status": "review",
+  "intent": "Create a bounded, source-fenced, non-authoritative explanatory projection of Ordivon's current cross-owner understanding, and pressure-test whether one Human or Agent can recover an actionable whole-system model without reconstructing research chronology.",
+  "audiences": [
+    "ordivon-agent",
+    "ordivon-human",
+    "researcher",
+    "agent-system-builder"
+  ],
+  "sourceBindings": [
+    {
+      "id": "atlas",
+      "repository": "ordivon-atlas",
+      "revision": "c0ba3c7d22e217d3d38553542050aa0360a1e3f8",
+      "role": "non-authoritative cross-owner synthesis, provenance, genealogy, and currentness projection"
+    },
+    {
+      "id": "media",
+      "repository": "ordivon-media",
+      "revision": "69ab3a4d781ccc6d9718b7e66fc6d34a531a0935",
+      "role": "pre-Book Writing profile, expression constraints, and Production authority"
+    },
+    {
+      "id": "media-current",
+      "repository": "ordivon-media",
+      "revision": "710270d9aa4660519f7d6aa3a6007f76aec173ba",
+      "role": "current Media owner/OMPC representation and observer-projection semantics used by Chapter 2"
+    },
+    {
+      "id": "finance-ch3",
+      "repository": "ordivon-finance",
+      "revision": "913d7b22b2474465da6a7b6ebcc9406b2b1032dd",
+      "role": "exact historical Chapter-3 Finance Decision/Proposal/authority/effect source fence at admission"
+    },
+    {
+      "id": "finance-current",
+      "repository": "ordivon-finance",
+      "revision": "8e0ace04f3472c336db30d10c9f437812c712a36",
+      "role": "current Finance decision, Reality-acquisition, execution and reconciliation semantics revalidated for Chapter 4"
+    },
+    {
+      "id": "normative-current",
+      "repository": "ordivon-normative",
+      "revision": "68826a3b256da0bba8d540102528721a3e338c25",
+      "role": "current Normative admission/power boundary semantics used by Chapter 3"
+    },
+    {
+      "id": "harness-current",
+      "repository": "ordivon-harness",
+      "revision": "d72413de62c01d7b5124861d9028495707e01d5d",
+      "role": "current Harness capability/admission/selection/execution boundary semantics used by Chapter 3"
+    },
+    {
+      "id": "runtime-current",
+      "repository": "ordivon-runtime",
+      "revision": "fd6765c20981461f1a29508d97225b96971cc389",
+      "role": "current Runtime commitment/effect/evidence/reconciliation boundary semantics used by Chapter 3"
+    },
+    {
+      "id": "host-current",
+      "repository": "ordivon-host",
+      "revision": "b40c7e6a56011dad3ccb595b332ab0edf9fa200a",
+      "role": "current Host semantic-continuity and revision-fenced recovery boundary used by Chapter 4"
+    },
+    {
+      "id": "computing-ch5",
+      "repository": "ordivon-computing",
+      "revision": "e90b0aaaa7877d6c3164f0cfa47b06a78d6d6f28",
+      "role": "current Computing sedimentation, destination-adjudication and responsibility-relative placement standing used by Chapter 5"
+    },
+    {
+      "id": "finance-ch5",
+      "repository": "ordivon-finance",
+      "revision": "06d9f9ba90a8d674f413675d145ed2f954aedb88",
+      "role": "current Finance semantic responsibility decomposition and owner/effect/reconciliation boundaries used by Chapter 5"
+    },
+    {
+      "id": "harness-ch5",
+      "repository": "ordivon-harness",
+      "revision": "684333be5146d4f705a91edb396e83c6a1150e1f",
+      "role": "current Harness reusable-cognition admission and subtractive First-Interface semantics used by Chapter 5"
+    },
+    {
+      "id": "computing-constructive-environment",
+      "repository": "ordivon-computing",
+      "revision": "d6017c19da90ac63f6fd95ddd07f464a61a37119",
+      "role": "completed constructive capability-environment closeout used to narrow the Future Laboratory Horizon"
+    },
+    {
+      "id": "atlas-ch6",
+      "repository": "ordivon-atlas",
+      "revision": "47dfb9b476ffa54914def99e9e808bbf9f2ad3b3",
+      "role": "current non-authoritative successor continuity/re-entry/ratchet closeout and anti-rediscovery synthesis used by Chapter 6"
+    },
+    {
+      "id": "computing-cojc",
+      "repository": "ordivon-computing",
+      "revision": "069dc0a7fdb955dfbf2857c965da20350e4228d3",
+      "role": "canonical COJC initial-campaign closeout, mature Generic Composition subtraction and four-gate dormant reopen standing used by Chapter 6"
+    },
+    {
+      "id": "workstation-ch6",
+      "repository": "workstation-lab",
+      "revision": "dff14e2765a155fc789ef159cf4466fd5c628c80",
+      "role": "current Workstation semantic effect contracts for read-only egress observation versus separately authorized environment mutation used by Chapter 6 natural witness"
+    },
+    {
+      "id": "computing-ch7",
+      "repository": "ordivon-computing",
+      "revision": "fad943d0fb486c248832bda2f3e00d1673872e95",
+      "role": "current completed COJC sedimentation, representation cross-world reconciliation, J3-AIC institutional-currentness standing, promotion guards and dormant natural-pressure reopen boundary used by Chapter 7"
+    },
+    {
+      "id": "computing-capability-exposure",
+      "repository": "ordivon-computing",
+      "revision": "db1e63c96816d1789093ee269767a1f1e63f1964",
+      "role": "capability-exposure falsifier and canonical EOF-normalized confirmation establishing GESTALT_ONLY as a representation/self-model recovery repair while explicitly not establishing underlying action-capability gain"
+    }
+  ],
+  "workingProfile": {},
+  "sources": {
+    "claims": "claims.json",
+    "article": "book.mdx",
+    "cognition": "cognition.md",
+    "scripts": [
+      "portable/render_pdf.py"
+    ],
+    "receipts": [
+      "portable/portable-pdf.receipt.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "ordivon-book-v0-chapter-1-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:bb1a14412b98c576479f5fa6f0950314309a8d73a817b5e354e68fc6367cb8f1"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-2-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:af70e8b0f8a3f93943c25dd01fef10e6be1d8d84839fd7e99b9e5287d2bd097a"
+    },
+    {
+      "id": "ordivon-book-v0-current-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:14e5e15b9223cf6beee4ce3981eebc197c837f899948140e6daf96cfca6597c4"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-3-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:bcf33947a2aeff2867900a7126fe2a9c6d69a0122fbeed6b45856be36d08b0de"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-4-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:38cbcb4e3f0b8f8b00f401f554fd90505a43047a7bc2bcbb62c223dd1eeacba3"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-5-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:7ae8104ffc6b8b1af5f2207ad95046815017fed79b3013107d6203948944f442"
+    },
+    {
+      "id": "ordivon-book-v0-future-horizon-laboratory-zh",
+      "kind": "article",
+      "status": "rendered",
+      "profile": "writing",
+      "blobDigest": "sha256:4fdf905e5e759232e48c1dc5090a7ddc34cb015e631595380d66ae010815f89a"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-6-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:063a401e225f88f61af39c91225cc1273d4f87fdcd1a123bcf30459cfc49b218"
+    },
+    {
+      "id": "ordivon-book-v0-chapter-7-zh",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:3675074fada87e77d15538151b06f9397c6c222eeb4e913011868e8fafbd909e"
+    },
+    {
+      "id": "ordivon-book-v0-portable-pdf-zh",
+      "kind": "publication-package",
+      "status": "approved",
+      "profile": "private-local-a5-pdf",
+      "blobDigest": "sha256:174654d531bf75459d9627f73ac6daab1a13a212f09d36e1a17a328dda84a5f7"
+    }
+  ]
+}

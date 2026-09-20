@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.v2.timed-text-profile",
+  "id": "runtime-introduction-en-ttml",
+  "format": "ttml",
+  "expectedLanguage": "en",
+  "expectedCueCount": 9,
+  "maxEndSeconds": 78.0,
+  "requirePositiveDurations": true,
+  "requireNonemptyPackets": true
+}

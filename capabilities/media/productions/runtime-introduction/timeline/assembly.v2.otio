@@ -1,0 +1,169 @@
+{
+  "OTIO_SCHEMA": "Timeline.1",
+  "metadata": {
+    "ordivon": {
+      "frameRate": "30/1",
+      "productionId": "runtime-introduction",
+      "status": "av-review-candidate-v2",
+      "totalFrames": 2340,
+      "pictureBlob": "sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+      "audioBlob": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d"
+    }
+  },
+  "name": "Runtime Introduction · A/V Review Candidate v2",
+  "global_start_time": {
+    "OTIO_SCHEMA": "RationalTime.1",
+    "rate": 30.0,
+    "value": 108000.0
+  },
+  "tracks": {
+    "OTIO_SCHEMA": "Stack.1",
+    "metadata": {},
+    "name": "tracks",
+    "source_range": null,
+    "effects": [],
+    "markers": [],
+    "enabled": true,
+    "color": null,
+    "children": [
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "metadata": {},
+        "name": "V1 · Picture Master",
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "color": null,
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "metadata": {
+              "ordivon": {
+                "assetId": "runtime-introduction-master-motion",
+                "binName": "03_MASTERS",
+                "placeholder": false,
+                "segmentId": "runtime-introduction-picture-master"
+              }
+            },
+            "name": "runtime-introduction-picture-master",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30.0,
+                "value": 2340.0
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30.0,
+                "value": 0.0
+              }
+            },
+            "effects": [],
+            "markers": [],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "metadata": {
+                  "ordivon": {
+                    "assetId": "runtime-introduction-master-motion"
+                  }
+                },
+                "name": "",
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "rate": 30.0,
+                    "value": 2340.0
+                  },
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "rate": 30.0,
+                    "value": 0.0
+                  }
+                },
+                "available_image_bounds": null,
+                "target_url": "ordivon-asset://runtime-introduction-master-motion"
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          }
+        ],
+        "kind": "Video"
+      },
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "metadata": {},
+        "name": "A1 · English Narration",
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "color": null,
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "metadata": {
+              "ordivon": {
+                "assetId": "runtime-introduction-narration-en-sapi",
+                "binName": "04_AUDIO",
+                "placeholder": false,
+                "segmentId": "runtime-introduction-narration-en"
+              }
+            },
+            "name": "runtime-introduction-narration-en",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30.0,
+                "value": 2340.0
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30.0,
+                "value": 0.0
+              }
+            },
+            "effects": [],
+            "markers": [],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "metadata": {
+                  "ordivon": {
+                    "assetId": "runtime-introduction-narration-en-sapi"
+                  }
+                },
+                "name": "",
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "rate": 30.0,
+                    "value": 2340.0
+                  },
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "rate": 30.0,
+                    "value": 0.0
+                  }
+                },
+                "available_image_bounds": null,
+                "target_url": "ordivon-asset://runtime-introduction-narration-en-sapi"
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          }
+        ],
+        "kind": "Audio"
+      }
+    ]
+  }
+}

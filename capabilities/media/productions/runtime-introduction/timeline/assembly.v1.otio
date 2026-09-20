@@ -1,0 +1,99 @@
+{
+  "OTIO_SCHEMA": "Timeline.1",
+  "metadata": {
+    "ordivon": {
+      "frameRate": "30/1",
+      "productionId": "runtime-introduction",
+      "status": "picture-master-v1",
+      "totalFrames": 2340,
+      "replacesPlaceholderAssembly": "timeline/assembly.v0.otio"
+    }
+  },
+  "name": "Runtime Introduction · Picture Master v1",
+  "global_start_time": {
+    "OTIO_SCHEMA": "RationalTime.1",
+    "rate": 30.0,
+    "value": 108000.0
+  },
+  "tracks": {
+    "OTIO_SCHEMA": "Stack.1",
+    "metadata": {},
+    "name": "tracks",
+    "source_range": null,
+    "effects": [],
+    "markers": [],
+    "enabled": true,
+    "color": null,
+    "children": [
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "metadata": {},
+        "name": "V1 · Picture Master",
+        "source_range": null,
+        "effects": [],
+        "markers": [],
+        "enabled": true,
+        "color": null,
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "metadata": {
+              "ordivon": {
+                "assetId": "runtime-introduction-master-motion",
+                "binName": "03_MASTERS",
+                "placeholder": false,
+                "segmentId": "picture-master"
+              }
+            },
+            "name": "runtime-introduction-picture-master",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30.0,
+                "value": 2340.0
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30.0,
+                "value": 0.0
+              }
+            },
+            "effects": [],
+            "markers": [],
+            "enabled": true,
+            "color": null,
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "metadata": {
+                  "ordivon": {
+                    "assetId": "runtime-introduction-master-motion"
+                  }
+                },
+                "name": "",
+                "available_range": {
+                  "OTIO_SCHEMA": "TimeRange.1",
+                  "duration": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "rate": 30.0,
+                    "value": 2340.0
+                  },
+                  "start_time": {
+                    "OTIO_SCHEMA": "RationalTime.1",
+                    "rate": 30.0,
+                    "value": 0.0
+                  }
+                },
+                "available_image_bounds": null,
+                "target_url": "ordivon-asset://runtime-introduction-master-motion"
+              }
+            },
+            "active_media_reference_key": "DEFAULT_MEDIA"
+          }
+        ],
+        "kind": "Video"
+      }
+    ]
+  }
+}

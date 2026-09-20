@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "productionId": "archive-archipelago-001",
+  "claims": [
+    {
+      "id": "archive-cartography-boundary",
+      "source": {
+        "binding": "workstation-creative-library",
+        "path": "artifacts/creative-library/catalog-v1.json"
+      },
+      "meaning": "The work is a deterministic cartographic interpretation of the exact frozen Creative Library catalog snapshot bundled with the production. Points represent catalogued works, owner clusters represent owner labels, and route lines represent only catalogued DERIVATIVE_OF or CONSUMER_OF relations. Coordinates and curved route geometry are compositional and make no physical-geography, dependency, influence, chronology, or semantic-distance claim.",
+      "evidence": [
+        "source/creative-library-catalog-v1.json",
+        "render/build-manifest.json",
+        "evidence/consumption-evidence.json",
+        "evidence/collaboration-polish-r2.json",
+        "evidence/artifact-browser-matrix-r2.json",
+        "evidence/artifact-browser-matrix-r3.json",
+        "evidence/friction-interactive-keyboard-focus.json",
+        "evidence/artifact-browser-matrix-r4.json",
+        "evidence/friction-interactive-touch-targets.json"
+      ],
+      "allowedWording": [
+        "cartographic portrait of the frozen Creative Library snapshot",
+        "conceptual archive plane",
+        "303 source works and 45 catalogued relations in the frozen source snapshot",
+        "interactive archive companion"
+      ],
+      "avoid": [
+        "the coordinates are real-world locations",
+        "spatial proximity proves semantic similarity",
+        "a route line proves runtime dependency or causal influence",
+        "route animation invents archive history",
+        "the map is current beyond its frozen source revision"
+      ]
+    }
+  ]
+}

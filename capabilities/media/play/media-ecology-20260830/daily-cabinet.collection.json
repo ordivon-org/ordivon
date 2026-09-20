@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.collection",
+  "id": "collection:daily-cabinet:2026-08-30",
+  "title": "Daily Cabinet — 2026-08-30",
+  "publishedAtMs": 1788081983000,
+  "curatorLabel": "cross-dialogue-daily-cabinet",
+  "curatorialBoundary": "Imported works remain independent source artifacts. Collection membership, ordering, and notes are curatorial relations only and do not replace source-owner truth.",
+  "members": [
+    {
+      "memberId": "work:gesture-orrery",
+      "title": "Gesture Orrery",
+      "sourceOwner": "Media",
+      "sourceIdentity": "media:gesture-orrery",
+      "sourceRevision": "ec905f09dc193dfa5dd8384f3315f3b5a0c86832",
+      "sourceObjects": [
+        {
+          "path": "play/gesture-orrery/gesture-orrery.png",
+          "digest": "sha256:969221ecc59a4aef5c169ed942249fdc3f287c441cbd0bf1970161caf8e147e1"
+        },
+        {
+          "path": "play/gesture-orrery/README.md",
+          "digest": "sha256:098a2a3a4186b17bd6ee3462c8880f5d12a2486cf38097ae60bd9d9c97d04047"
+        }
+      ],
+      "note": null
+    },
+    {
+      "memberId": "work:one-bell-three-rooms",
+      "title": "One Bell, Three Rooms",
+      "sourceOwner": "Media",
+      "sourceIdentity": "media:one-bell-three-rooms",
+      "sourceRevision": "8c6d0bedd6c7742de1af0b3b2ae964654b1613a4",
+      "sourceObjects": [
+        {
+          "path": "play/one-bell-three-rooms/index.html",
+          "digest": "sha256:9063b34dba85d08f8dffa4581a8eac509d7bc8623c38226a091442de7f127557"
+        },
+        {
+          "path": "play/one-bell-three-rooms/one-bell.wav",
+          "digest": "sha256:6d3711b8225b531f83e9c14a754061f8300ce3cecd56bed70f092b286c409dcb"
+        }
+      ],
+      "note": null
+    },
+    {
+      "memberId": "work:blender-exit-zero",
+      "title": "Blender Exit Zero",
+      "sourceOwner": "Media",
+      "sourceIdentity": "media:blender-exit-zero",
+      "sourceRevision": "52d0be38d5642153f1c4e1f4ce17400966d55922",
+      "sourceObjects": [
+        {
+          "path": "play/blender-exit-zero-meme/blender-exit-zero.png",
+          "digest": "sha256:fdc0206049858cb8ed1ce6e1e78ac11f2c6bf7365d526615a15c5bebd0f0ec97"
+        },
+        {
+          "path": "play/blender-exit-zero-meme/make.sh",
+          "digest": "sha256:b3df863eac1a16ea2ac62a6d41189ff299a5af84e8722eef9c38ae02ac140b78"
+        }
+      ],
+      "note": null
+    },
+    {
+      "memberId": "work:one-button-gets-tired",
+      "title": "One Button Gets Tired",
+      "sourceOwner": "Game",
+      "sourceIdentity": "game:one-button-gets-tired",
+      "sourceRevision": "edc1f2dbee23e24fbf9bfa878b7531db87c45c8b",
+      "sourceObjects": [
+        {
+          "path": "scratch/playful-r122/one-button-gets-tired.py",
+          "digest": "sha256:dd0629d057c53831644cb3e5eb776c57f229b13927b9bd4bbb764c96ad242b3b"
+        }
+      ],
+      "note": null
+    },
+    {
+      "memberId": "work:reality-loop-beacon-v0",
+      "title": "Reality Loop Beacon v0",
+      "sourceOwner": "Workstation",
+      "sourceIdentity": "workstation:reality-loop-beacon-v0",
+      "sourceRevision": "ce9d12e04620d00ceaeb2e914e0c7dae68239183",
+      "sourceObjects": [
+        {
+          "path": "design/daily/reality-loop-beacon/preview/pcb-top-v0.png",
+          "digest": "sha256:46d052d4cccda2609fad4da7d58f45e12c84d580a03261935c207310f5828a59"
+        },
+        {
+          "path": "design/daily/reality-loop-beacon/validation-v0.json",
+          "digest": "sha256:3be79378ecd1ee80eb7f80d2c3eddf2f3c06f05923fbd7ebf9de63c7893d7db6"
+        }
+      ],
+      "note": null
+    }
+  ],
+  "truthRole": "curation-relation-not-member-truth"
+}

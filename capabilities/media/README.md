@@ -1,0 +1,155 @@
+# Ordivon Media
+
+Ordivon Media is an **optional media-domain capability** for intentional, reusable mediation and authored expression. It does not own every observer-facing representation across Ordivon, and it does not become a second truth authority.
+
+The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
+
+## Activation boundary
+
+The default representation remains with its natural source/client owner. A tool result, status card, metric, ordinary UI projection, browser view, repository view, or provider-native response does **not** enter Media merely because a human or Agent can observe it.
+
+Activate Media when the task actually requires a media-specific responsibility such as:
+
+- a durable/reusable observer-facing projection contract;
+- authored narrative or visual/audio/motion expression;
+- editable production state;
+- cross-medium composition/transformation;
+- media-specific technical QC or review preparation;
+- selected-asset provenance/rights needed by a production.
+
+Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) as an optional reference when those projection semantics materially matter. It is not a mandatory contract for every Ordivon projection.
+
+**Studio is an optional production capability.** A Studio Claim / Production is needed only when authoring, editing, rendering, packaging, or other Studio-owned production work is actually required. Consequential action remains with its external admission/execution owner.
+
+## Studio capability plane
+
+A Runtime fact is true at revision `R`. Studio turns it into a film. Runtime later changes.
+
+The film still expresses what was bound at `R`; it does **not** become the current Runtime authority because it is polished, approved, or published.
+
+**Ordivon Studio turns source-owned reality into editable medium-specific expression without creating a second truth store.**
+
+```text
+exact owner revision + bounded Claim
+→ editable writing / visual / audio / motion / interaction source
+→ selected Assets and exact bytes
+→ render or composition
+→ factual/mechanical review
+→ medium craft judgment
+→ human-response calibration only when the claim requires it
+→ Output / publication package
+```
+
+## Purpose
+
+Facts and code do not decide how a reader should encounter them. Studio owns the remaining creative responsibility: medium choice, narrative structure, editable production state, selected expression, rendering, review preparation, and replaceable delivery variants.
+
+The source owner keeps current product/research truth. Studio keeps the expression bound to the exact source revision.
+
+## One expression journey
+
+For a video explaining Runtime recovery:
+
+1. Runtime owns the fact and evidence.
+2. Studio binds an exact Runtime revision through a Claim that limits what may be said.
+3. Studio chooses narration, diagrams, pacing, typography, motion, sound, and edit structure.
+4. Render evidence proves what artifact was observed; decision context proves which Claim/Production boundary governed review.
+5. An Agent may revise or no-op; intermediate critique is transient unless its consequence matters later.
+6. A later Runtime change does not silently float the old Claim. Studio keeps a historical expression or explicitly rebases it.
+
+## Responsibility boundary
+
+| Responsibility | Owner |
+| --- | --- |
+| current product/research fact | source repository/native owner |
+| revision-bound allowed expression | Studio Claim |
+| creative intent and editable production state | Studio |
+| exact selected bytes | the named durable byte authority for that medium |
+| render/QC evidence | Studio tooling and retained receipts |
+| public site orientation/publication | Web or destination platform |
+| external publication/effect | destination/provider + caller IAM/policy; optional Distribution profile only for a demonstrated cross-provider gap |
+| human comprehension, preference, trust, recall, or other audience response | scoped human-response evidence |
+
+Persisting or presenting another owner's fact does not transfer that fact to Studio.
+
+## Human-response boundary
+
+Studio separates three claims:
+
+```text
+mechanical / factual → verify against source, bytes and render evidence
+medium craft         → conventions + explicit intent + bounded critique
+human experience     → human/expert evidence when uncertainty matters
+```
+
+A vision-capable Agent can falsify obvious semantic or visual problems. It cannot establish that people understood, preferred, trusted, remembered, or enjoyed the work. One person's preference is not universal taste authority either.
+
+This is why a Production may remain in `review` after technical, factual, storage, and Agent-perception checks pass when the unresolved decision is genuinely human-response dependent.
+
+## Current boundary
+
+Studio currently retains:
+
+- the cross-medium identity source and Art & Expression Laboratory;
+- Production, Claim, Asset/Blob, TimedText, Receipt, and Output contracts;
+- editable production sources and reusable expression primitives;
+- provenance/rights records for selected Assets;
+- deterministic media inspection, rendering, QC, review preparation, and selected-byte recovery;
+- optional Resolve/OTIO equipment behind explicit compatibility checks;
+- real motion and Writing-only Productions that pressure-test the model.
+
+Large media bytes, caches, proxies, and exports stay outside Git. Git stores identities, manifests, editable text/code, provenance, interchange snapshots, and checksums. Exact selected bytes use the durable authority appropriate to their medium and failure boundary; Git itself may already be sufficient for canonical tracked text/code.
+
+Current production status and storage evidence remain in the production and technical documents rather than this entry page.
+
+`studio_production_standing` deliberately does **not** infer a unique current Production from status, directory order, or recent Git activity. When several valid Productions exist, caller/owner intent must identify the work before `studio_production_context` is consumed. This preserves action relevance without turning a convenient index into a priority authority.
+
+## Start here
+
+For ordinary Agent work, start from the dependency-independent Studio semantic surface rather than reconstructing Production state from repository chronology or materializing the full authoring environment first. Running it with no action lists the bounded owner-native actions and their schemas:
+
+```bash
+python3 scripts/studio-agent-surface.py
+```
+
+| Need | Read / invoke |
+| --- | --- |
+| design or inspect a generic observer-facing Media projection without assuming Studio production | [`research/media/engineering-consumption/OMPC-v0.md`](research/media/engineering-consumption/OMPC-v0.md) |
+| discover the bounded Studio Agent surface without `.venv` or `node_modules` | `python3 scripts/studio-agent-surface.py` |
+| inspect Production standing before selecting current work | `python3 scripts/studio-agent-surface.py studio_production_standing --arguments '{}'` |
+| after caller/owner intent identifies one Production, inspect its bounded context | `python3 scripts/studio-agent-surface.py studio_production_context --arguments '{"productionId":"<id>"}'` |
+| inspect one Production, its Claims/Outputs, and optional source-binding Git relation through the lower-level CLI | `uv run ordivon-studio production-context <production-root> [--source-repo BINDING_ID=PATH]` |
+| hydrate scoped retained learning for the selected Production | `python3 scripts/studio-agent-surface.py studio_learning_context --arguments '{"currentProductionId":"<id>"}'` |
+| compile a truthful equipment proposal only when one exact capability is needed | `python3 scripts/studio-agent-surface.py studio_equipment_propose --arguments '{"capability":"<capability>","parameters":{}}'` |
+| use lower-level media inspection/render/QC/recovery operations after dependencies are materialized | `uv run ordivon-studio --help` |
+| understand the Media owner contract | [`MEDIA.md`](MEDIA.md) |
+| inspect Phase-1 closure / freeze / reopen posture | [`docs/media-phase1-construction-audit.md`](docs/media-phase1-construction-audit.md) |
+| understand why Studio exists | this README |
+| determine document/fact/evidence authority | [`docs/authority.md`](docs/authority.md) |
+| first-principles architecture and technical choices | [`STUDIO.md`](STUDIO.md) |
+| Production/Claim/Asset/Blob/Output model | [`docs/media-model.md`](docs/media-model.md) |
+| Agent review consumption and transient critique | [`docs/review-consumption.md`](docs/review-consumption.md) |
+| perception/model-view preparation | [`docs/artifact-perception.md`](docs/artifact-perception.md) |
+| Art & Expression research | [`research/expression/README.md`](research/expression/README.md) |
+| local render/review loop | [`docs/fast-inner-loop.md`](docs/fast-inner-loop.md) |
+| storage/recovery boundaries | [`docs/storage-layout.md`](docs/storage-layout.md) |
+
+## Fresh Workspace bootstrap
+
+```bash
+scripts/owner-environment bootstrap
+scripts/owner-environment doctor
+scripts/owner-environment test
+```
+
+The owner entrypoint consumes the existing pinned `mise.toml`, `pnpm-lock.yaml`, `uv.lock`, and Python materialization receipt. `cold-start` proves the same default check surface from a copied source fence with neither `node_modules` nor `.venv`.
+
+Resolve is optional equipment:
+
+```bash
+scripts/owner-environment test-resolve
+```
+
+## License
+
+Apache-2.0. Production assets may carry their own rights and usage records in Asset metadata.

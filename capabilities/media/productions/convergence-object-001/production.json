@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "convergence-object-001",
+  "title": "CONVERGENCE OBJECT 001",
+  "status": "review",
+  "intent": "Create a native editable Blender sculpture that develops the CONVERGENCE concept in spatial form, exports a real GLB, and proves a Blender re-import round trip without flattening the native source.",
+  "audiences": [
+    "ordivon-user",
+    "creative-library-consumer",
+    "3d-editor"
+  ],
+  "sourceBindings": [
+    {
+      "id": "media",
+      "repository": "ordivon-media",
+      "revision": "9b64d58fe4a2fd8e906426e3b4fdfa4fcd81a180",
+      "role": "convergence-series-context-and-creative-tooling"
+    }
+  ],
+  "workingProfile": {
+    "canvas": {
+      "width": 1400,
+      "height": 1400
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "scripts": [
+      "build.py",
+      "verify_import.py"
+    ],
+    "receipts": [
+      "roundtrip-receipt.json",
+      "consumption-evidence.json",
+      "friction-blender-engine.json",
+      "friction-headless-audio.json",
+      "friction-blender-backup-carriers.json",
+      "friction-production-3d-kind.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "convergence-object-001-key-render",
+      "kind": "image",
+      "status": "approved",
+      "profile": "png-1400-square-eevee",
+      "blobDigest": "sha256:9c987354341caa0f72608f284eece5900cee7cabfb29cea08e94e990b846503e"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.live-relay-final-qc-summary",
+  "workId": "media:live-relay-001",
+  "sourceCapture": {
+    "path": "render/live-relay-001-source.mp4",
+    "durationSeconds": 21.933333,
+    "containerNbFramesObservation": 658,
+    "decodedFrameCountUsedForPreservationContract": 657,
+    "width": 1280,
+    "height": 720,
+    "frameRate": "30/1",
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "fieldOrder": "progressive",
+    "audioCodec": "aac",
+    "audioSampleRate": 48000,
+    "audioChannels": 2,
+    "digitalSilencePeakDb": "-inf",
+    "digitalSilenceRmsDb": "-inf"
+  },
+  "programmeCheckpoints": [
+    {
+      "name": "signal-open",
+      "timestampSeconds": 1.5,
+      "expected": "00-signal.png"
+    },
+    {
+      "name": "archive",
+      "timestampSeconds": 6.0,
+      "expected": "01-archive.png"
+    },
+    {
+      "name": "object",
+      "timestampSeconds": 11.0,
+      "expected": "02-object.png"
+    },
+    {
+      "name": "constellation",
+      "timestampSeconds": 16.0,
+      "expected": "03-constellation.png"
+    },
+    {
+      "name": "signal-close",
+      "timestampSeconds": 20.5,
+      "expected": "00-signal.png"
+    }
+  ],
+  "rmseAgainstProgrammeCards": {
+    "signal-open": {
+      "absolute": 924.619,
+      "normalized": 0.0141088
+    },
+    "archive": {
+      "absolute": 1090.74,
+      "normalized": 0.0166437
+    },
+    "object": {
+      "absolute": 800.618,
+      "normalized": 0.0122166
+    },
+    "constellation": {
+      "absolute": 1062.75,
+      "normalized": 0.0162165
+    },
+    "signal-close": {
+      "absolute": 923.875,
+      "normalized": 0.0140974
+    }
+  },
+  "contactSheet": {
+    "path": "evidence/final-qc/contact-sheet.png"
+  },
+  "standing": "PASS",
+  "boundary": "H.264 compression prevents pixel identity against source cards; low normalized RMSE plus direct visual inspection establishes the intended five programme states. Preservation identity is separately bound by the Artifact FFV1 verifier."
+}

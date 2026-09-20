@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:convergence-object-001:blend1-backup-carriers",
+  "title": "Repeated automated Blender saves create .blend1 backup files that can leak into broad Git registration",
+  "category": "REGISTRATION",
+  "surface": "native Blender source bundle",
+  "tool": "Blender 5.2.1 LTS + Git",
+  "workflow": "repeat build/import -> git add production directory",
+  "observed_during": "commit preparation for media:convergence-object-001",
+  "related_work": "media:convergence-object-001",
+  "symptom": "Two .blend1 backup files were automatically created by repeated save_as_mainfile calls and were included by a broad git add.",
+  "expected_behavior": "The durable Work source bundle should contain intentional editable masters, not incidental rotating editor backups.",
+  "actual_behavior": "Blender's default save-version behavior emitted .blend1 carriers after repeated runs.",
+  "evidence": {
+    "initialCommit": "7c93e521a7e2b43b1b92ff04c1ecb9154d4ca19c",
+    "verifiedCleanupJobId": "job-01a0a5a3-3a2f-7572-bb1c-95ee8b4527e3"
+  },
+  "severity": "LOW",
+  "frequency": "REPEATABLE_ON_REPEATED_SAVE",
+  "owner": "Media Blender automated production recipe",
+  "status": "VERIFIED",
+  "proposed_fix": "Set bpy.context.preferences.filepaths.save_version = 0 in disposable automated build/import sessions and remove existing .blend1 files before registration.",
+  "fix_attempt": "Applied the existing Blender preference in build.py and verify_import.py, removed backup carriers, and repeated both native build and GLB import.",
+  "verification": "Final verification printed no-blend1:ok; the intended .blend sources, GLB and PNG remained valid."
+}

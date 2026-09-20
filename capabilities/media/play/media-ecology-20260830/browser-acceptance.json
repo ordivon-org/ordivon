@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-ecology-browser-acceptance",
+  "browserExecutable": "<workstation-managed-browser>",
+  "browserRole": "Workstation-managed physical equipment binding; not Media truth authority",
+  "checks": [
+    {
+      "name": "desktop",
+      "viewport": [
+        1440,
+        1000
+      ],
+      "horizontalOverflow": false,
+      "activityCards": 2,
+      "collectionWorks": 5,
+      "screenshotBytes": 100242,
+      "screenshotDigest": "sha256:142234a638330b9595f9aa5d1f49e9723cb0a65b8a9141db3556bf0f8ff369c8"
+    },
+    {
+      "name": "mobile",
+      "viewport": [
+        390,
+        844
+      ],
+      "horizontalOverflow": false,
+      "activityCards": 2,
+      "collectionWorks": 5,
+      "screenshotBytes": 54877,
+      "screenshotDigest": "sha256:ec232d7b6977c91d580d5682a3dc88f4c6dd8f8d5e63948401f23ce93a5fef78"
+    }
+  ]
+}

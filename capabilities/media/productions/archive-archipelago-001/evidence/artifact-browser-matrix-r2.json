@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "artifact-web-local-verification-evidence",
+  "status": "PASS",
+  "subject": {
+    "name": "archive-archipelago-001.html",
+    "path": "/var/lib/ordivon/runtime/workspaces/ws-archive-archipelago-polish-r2-20260915/productions/archive-archipelago-001/interactive/archive-archipelago-001.html",
+    "sha256": "4d8681e634491a9cb01941aac48888a99f0e2e0e41f76fcb664df36698e82f63"
+  },
+  "tooling": {
+    "playwright": "1.63.0",
+    "axePlaywright": "4.13.0"
+  },
+  "browsers": {
+    "chromium": {
+      "name": "Chromium",
+      "status": "PASS",
+      "version": "153.0.8010.12",
+      "executable": "/opt/ordivon/external/artifact-toolchain/playwright-browsers/1.63.0/chromium-1243/chrome-linux64/chrome",
+      "title": "Archive Archipelago 001 — Interactive",
+      "headingCount": 1,
+      "accessibility": {
+        "status": "PASS",
+        "violationCount": 0,
+        "violations": []
+      }
+    },
+    "firefox": {
+      "name": "Firefox",
+      "status": "PASS",
+      "version": "155.0",
+      "executable": "/opt/ordivon/external/artifact-toolchain/playwright-browsers/1.63.0/firefox-1543/firefox/firefox",
+      "title": "Archive Archipelago 001 — Interactive",
+      "headingCount": 1
+    },
+    "webkit": {
+      "name": "WebKit",
+      "status": "NOT_INSTALLED",
+      "executable": "/opt/ordivon/external/artifact-toolchain/playwright-browsers/1.63.0/webkit-2359/pw_run.sh"
+    }
+  },
+  "boundary": "Local browser/axe evidence only. Required renderer policy is evaluated by the delivery profile; unsupported WebKit host standing and deployed-origin behavior remain independent."
+}

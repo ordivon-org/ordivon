@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:convergence-sonic-ident:system-python-missing-project-dependency",
+  "title": "System Python cannot validate Studio production schema because project dependency is not on the ambient interpreter",
+  "category": "INVOCATION",
+  "surface": "production-schema-validation",
+  "tool": "Python / uv",
+  "workflow": "production.json -> JSON Schema validation",
+  "observed_during": "validation of media:convergence-sonic-ident",
+  "related_work": "media:convergence-sonic-ident",
+  "related_task": null,
+  "symptom": "Direct /usr/bin/python3 validation failed with ModuleNotFoundError: jsonschema.",
+  "expected_behavior": "Validation should use the repository's declared dependency environment.",
+  "actual_behavior": "Ambient Python lacked jsonschema even though pyproject.toml and uv.lock pin jsonschema 4.25.1.",
+  "evidence": {
+    "failedJobId": "job-01a0a58c-db03-7e92-ac8b-d8f13e43fb92",
+    "verifiedFixJobId": "job-01a0a58d-672d-7ab1-88fe-75a635043649"
+  },
+  "severity": "LOW",
+  "frequency": "REPEATABLE_FOR_AMBIENT_SYSTEM_PYTHON",
+  "owner": "Media repository invocation recipe",
+  "status": "VERIFIED",
+  "proposed_fix": "Use the existing repository dependency entrypoint: /usr/bin/uv run python ...",
+  "fix_attempt": "Repeated the same schema validation through uv run without installing new global packages.",
+  "verification": "Validation returned production-schema:ok; the same job also decoded FLAC and OGG outputs successfully."
+}

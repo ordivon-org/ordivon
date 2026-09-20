@@ -1,0 +1,35 @@
+1
+00:00:00,000 --> 00:00:06,000
+When a response disappears, reliable automation cannot guess whether the work happened.
+
+2
+00:00:06,000 --> 00:00:13,000
+Runtime separates source, Workspace, durable Job, owned Attempt, evidence, and recovery.
+
+3
+00:00:13,000 --> 00:00:24,000
+This proof starts from an exact source revision. A guarded Patch changes one file and binds the request to what was actually read.
+
+4
+00:00:24,000 --> 00:00:37,000
+The operation becomes a durable Job with a recorded Attempt. Observation exposes real progress—inspect, verify, report—until the process tree finishes cleanly.
+
+5
+00:00:37,000 --> 00:00:48,000
+If delivery is uncertain, the client reconnects and replays the exact request identity. Runtime returns the same recorded Job; it does not admit a second Job.
+
+6
+00:00:48,000 --> 00:00:59,000
+That Job retains bounded terminal evidence tied to its Workspace, source revision, and Attempt. The receipt records execution and delivery dispositions without claiming semantic completion.
+
+7
+00:00:59,000 --> 00:01:07,000
+The source effect remains one modified path. Compare-and-close succeeds only against the exact reviewed Workspace state.
+
+8
+00:01:07,000 --> 00:01:14,000
+Runtime does not prove external idempotency, hostile multi-tenant isolation, or semantic Task completion.
+
+9
+00:01:14,000 --> 00:01:18,000
+Recover the same work. Inspect the evidence.

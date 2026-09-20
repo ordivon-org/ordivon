@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.com/studio/schemas/runtime-demo-receipt-v1.json",
+  "title": "Ordivon Runtime Demo Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "status",
+    "protocolVersion",
+    "toolCatalogDigest",
+    "source",
+    "workspace",
+    "patch",
+    "execution",
+    "evidence",
+    "diff",
+    "close",
+    "presentation"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon-runtime-demo-receipt"},
+    "status": {"const": "passed"},
+    "protocolVersion": {"type": "string", "minLength": 1},
+    "toolCatalogDigest": {"$ref": "#/$defs/digest"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision"],
+      "properties": {
+        "revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "sourceRevision", "sourceStateDigest", "closed"],
+      "properties": {
+        "workspaceId": {"$ref": "#/$defs/id"},
+        "sourceRevision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "sourceStateDigest": {"$ref": "#/$defs/digest"},
+        "closed": {"const": true}
+      }
+    },
+    "patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientRequestId", "operationId", "requestDigest", "replayed", "files"],
+      "properties": {
+        "clientRequestId": {"type": "string", "minLength": 1},
+        "operationId": {"$ref": "#/$defs/id"},
+        "requestDigest": {"$ref": "#/$defs/digest"},
+        "replayed": {"const": false},
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clientRequestId",
+        "jobId",
+        "attemptId",
+        "sameJobAfterReplay",
+        "recoveredByTaskList",
+        "status",
+        "exitCode",
+        "elapsedMs",
+        "observations"
+      ],
+      "properties": {
+        "clientRequestId": {"type": "string", "minLength": 1},
+        "jobId": {"$ref": "#/$defs/id"},
+        "attemptId": {"$ref": "#/$defs/id"},
+        "sameJobAfterReplay": {"const": true},
+        "recoveredByTaskList": {"const": true},
+        "status": {"const": "succeeded"},
+        "exitCode": {"const": 0},
+        "elapsedMs": {"type": "integer", "minimum": 0},
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"$ref": "#/$defs/observation"}
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "jobId",
+        "attemptId",
+        "workspaceId",
+        "sourceRevision",
+        "executionProfile",
+        "startDisposition",
+        "cancellationDisposition",
+        "executionDisposition",
+        "deliveryDisposition",
+        "processTreeDisposition",
+        "reasonCode",
+        "terminalArtifactIds",
+        "observedAtMs",
+        "artifactId",
+        "digest"
+      ],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "jobId": {"$ref": "#/$defs/id"},
+        "attemptId": {"$ref": "#/$defs/id"},
+        "workspaceId": {"$ref": "#/$defs/id"},
+        "sourceRevision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "executionProfile": {"type": "string", "minLength": 1},
+        "startDisposition": {"type": "string", "minLength": 1},
+        "cancellationDisposition": {"type": "string", "minLength": 1},
+        "executionDisposition": {"type": "string", "minLength": 1},
+        "deliveryDisposition": {"type": "string", "minLength": 1},
+        "processTreeDisposition": {"type": "string", "minLength": 1},
+        "reasonCode": {"type": "string", "minLength": 1},
+        "terminalArtifactIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "observedAtMs": {"type": "integer", "minimum": 0},
+        "artifactId": {"$ref": "#/$defs/id"},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest", "changedPaths", "modifiedPaths", "truncated"],
+      "properties": {
+        "digest": {
+          "anyOf": [
+            {"$ref": "#/$defs/digest"},
+            {"type": "null"}
+          ]
+        },
+        "changedPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "modifiedPaths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "truncated": {"const": false}
+      }
+    },
+    "close": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["removed", "sourceStateDigest", "exactStateMatched"],
+      "properties": {
+        "removed": {"const": true},
+        "sourceStateDigest": {"$ref": "#/$defs/digest"},
+        "exactStateMatched": {"const": true}
+      }
+    },
+    "presentation": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "detail"],
+        "properties": {
+          "kind": {
+            "enum": ["source", "workspace", "patch", "job", "recover", "step", "evidence", "diff", "close"]
+          },
+          "detail": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "attemptId", "elapsedMs", "progressRevision", "completedSteps", "totalSteps"],
+      "properties": {
+        "status": {"type": "string", "minLength": 1},
+        "attemptId": {"$ref": "#/$defs/id"},
+        "elapsedMs": {"type": "integer", "minimum": 0},
+        "progressRevision": {"type": "integer", "minimum": 0},
+        "completedSteps": {"type": "integer", "minimum": 0},
+        "totalSteps": {"type": "integer", "minimum": 1},
+        "currentStepId": {"type": "string", "minLength": 1},
+        "currentStepIndex": {"type": "integer", "minimum": 0},
+        "failedStepId": {"type": "string", "minLength": 1},
+        "exitCode": {"type": "integer"}
+      }
+    }
+  }
+}

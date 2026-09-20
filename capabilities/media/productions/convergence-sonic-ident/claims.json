@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "productionId": "convergence-sonic-ident",
+  "claims": [
+    {
+      "id": "concept-boundary",
+      "source": {
+        "binding": "media",
+        "path": "STUDIO.md"
+      },
+      "meaning": "The work is a creative audio interpretation of convergence: distinct signals preserve separateness before resolving into a shared harmonic and spatial field. It is an expression-layer work, not a representation of current Runtime, Host, Research, or organizational state.",
+      "evidence": [
+        "STUDIO.md",
+        "productions/convergence-sonic-ident/generate.py",
+        "productions/convergence-sonic-ident/consumption-evidence.json"
+      ],
+      "allowedWording": [
+        "distinct signals converge without erasing their initial separation",
+        "procedural Ordivon sonic ident",
+        "creative audio interpretation of convergence"
+      ],
+      "avoid": [
+        "this audio encodes or proves current Runtime, Host, Research, or organizational state",
+        "technical decoding or waveform inspection proves universal listener preference",
+        "the sonic metaphor is itself factual system authority"
+      ]
+    }
+  ]
+}

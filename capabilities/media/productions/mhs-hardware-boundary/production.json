@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "mhs-hardware-boundary",
+  "title": "The Hardware Interface Is Not the Experiment",
+  "status": "review",
+  "intent": "Explain, through current MHS physical-agent cases, closest protocol prior art and mature metrology/V&V references, why standardized device operability should not be promoted into claims of physical understanding, measurement adequacy for a declared use, or sufficient evidence for a downstream experimental/operational decision, without treating those boundaries as defects MHS must own.",
+  "audiences": [
+    "agent-system-builder",
+    "lab-automation-engineer",
+    "robotics-engineer",
+    "scientific-software-engineer"
+  ],
+  "sourceBindings": [
+    {
+      "id": "mhs-evidence",
+      "repository": "ordivon-media",
+      "revision": "6dd8eba3e04f32f9a0f2cc4616d7f40cdccf0041",
+      "role": "revision-fenced-external-source-evidence-projection"
+    }
+  ],
+  "workingProfile": {},
+  "sources": {
+    "claims": "claims.json",
+    "article": "story.mdx",
+    "receipts": [
+      "evidence/revised-owner-audit.json",
+      "evidence/owner-disposition.json"
+    ],
+    "cognition": "cognition.md"
+  },
+  "outputs": [
+    {
+      "id": "mhs-hardware-boundary-article-en",
+      "kind": "article",
+      "status": "approved",
+      "profile": "writing",
+      "blobDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d"
+    }
+  ]
+}

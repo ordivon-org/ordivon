@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "archive-archipelago-001",
+  "title": "Archive Archipelago 001 — A Cartographic Portrait of Ordivon Works",
+  "status": "review",
+  "intent": "Render the exact bundled frozen Creative Library snapshot as a high-quality cartographic artwork and interactive archive companion: Works become stable conceptual points, owner families form islands, and only catalogued relations become routes. Coordinates are explicitly compositional rather than geographic or semantic-distance claims.",
+  "audiences": [
+    "ordivon-user",
+    "creative-library-consumer",
+    "archive-curator",
+    "data-art-reader"
+  ],
+  "sourceBindings": [
+    {
+      "id": "workstation-creative-library",
+      "repository": "workstation-lab",
+      "revision": "dd7e60d6aa90c0967ba208a0c16354eb9fad850a",
+      "role": "work-catalog-source"
+    }
+  ],
+  "workingProfile": {
+    "canvas": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "sources": {
+    "claims": "claims.json",
+    "scripts": [
+      "generate.py",
+      "build.sh",
+      "build_interactive.py"
+    ],
+    "receipts": [
+      "evidence/consumption-evidence.json",
+      "evidence/collaboration-polish-r2.json",
+      "evidence/artifact-browser-matrix-r2.json",
+      "evidence/friction.json",
+      "evidence/friction-production-schema.json",
+      "evidence/friction-gpkg-determinism.json",
+      "evidence/friction-interactive-svg-append.json",
+      "evidence/friction-interactive-mobile-density.json",
+      "evidence/friction-interactive-accessibility.json",
+      "evidence/friction-interactive-html-conformance.json",
+      "evidence/friction-playwright-config-cli.json",
+      "evidence/artifact-browser-matrix-r3.json",
+      "evidence/friction-interactive-keyboard-focus.json",
+      "evidence/artifact-browser-matrix-r4.json",
+      "evidence/friction-interactive-touch-targets.json"
+    ],
+    "evidence": [
+      "evidence/artifact-vnu-r2.json",
+      "evidence/chromium-interaction-r2.json",
+      "evidence/chromium-mobile-pan-r2.json",
+      "evidence/chromium-final-interaction-r2.json",
+      "evidence/chromium-final-console-r2.json",
+      "evidence/artifact-vnu-r3.json",
+      "evidence/keyboard-focus-baseline-r3.json",
+      "evidence/keyboard-focus-verified-r3.json",
+      "evidence/chromium-console-keyboard-r3.json",
+      "evidence/touch-target-baseline-r4.json",
+      "evidence/touch-accessibility-gates-r4.json",
+      "evidence/chromium-console-touch-r4.json",
+      "evidence/artifact-vnu-r4.json"
+    ]
+  },
+  "outputs": [
+    {
+      "id": "archive-archipelago-geopackage",
+      "kind": "publication-package",
+      "status": "approved",
+      "profile": "geospatial-geopackage-conceptual-cartesian-r1",
+      "blobDigest": "sha256:e000c6000126873cf908cdf1158b1cffe22c63ada3be97de592c56dbded4e361"
+    },
+    {
+      "id": "archive-archipelago-svg",
+      "kind": "image",
+      "status": "approved",
+      "profile": "svg-editable-map-1600x1000",
+      "blobDigest": "sha256:eff192e20aaa6614934c64b4c11e1d540341691558f33ba53aca9083eee7b136"
+    },
+    {
+      "id": "archive-archipelago-png",
+      "kind": "image",
+      "status": "approved",
+      "profile": "png-preview-1600x1000",
+      "blobDigest": "sha256:2f0a7c9d6b8ca497f72eb3e72b9a893e3b98a7f1be892ed910ec429a5e773bbe"
+    },
+    {
+      "id": "archive-archipelago-interactive",
+      "kind": "interactive",
+      "status": "approved",
+      "profile": "self-contained-html-local-browser-matrix-r4",
+      "blobDigest": "sha256:54e8269a11257e648aee56e1caa52aa0bdf0584f5dd72e4a98a97baa271765e5"
+    }
+  ]
+}

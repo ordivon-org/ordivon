@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:ordivon-system-constellation-atlas:ogr-sql-reserved-group-field",
+  "title": "GeoPackage attribute named group breaks ordinary OGR SQL consumption without quoting",
+  "category": "INTEROP",
+  "surface": "geospatial-query-consumption",
+  "tool": "GDAL/OGR GeoPackage + SQLite SQL",
+  "workflow": "generated GeoJSON -> GeoPackage -> OGR SQL grouped inspection",
+  "observed_during": "creation and consumption of media:ordivon-system-constellation-atlas",
+  "related_work": "media:ordivon-system-constellation-atlas",
+  "related_task": null,
+  "symptom": "The first real grouped SQL query failed near the field name group even though GeoPackage creation and layer inspection succeeded.",
+  "expected_behavior": "A normal unquoted attribute name should be convenient to query through the target GeoPackage/SQLite consumer.",
+  "actual_behavior": "SELECT group, COUNT(*) ... failed because group is a SQL keyword in the consumer surface.",
+  "evidence": {
+    "failedJobId": "job-01a0a5a3-6ce1-73f0-ab12-fa2540474f7f",
+    "verifiedFixJobId": "job-01a0a5a3-e28b-7292-aab8-5f220458afb7",
+    "finalRenderJobId": "job-01a0a5a5-3d5f-7e30-8e1e-151162fa3bbf"
+  },
+  "severity": "LOW",
+  "frequency": "REPEATABLE_FOR_UNQUOTED_OGR_SQL_ON_THIS_FIELD_NAME",
+  "owner": "Media creative production source schema",
+  "status": "VERIFIED",
+  "proposed_fix": "Expose the GeoPackage property as cluster rather than the internal generator key group.",
+  "fix_attempt": "Changed generated GeoJSON properties from group to cluster, rebuilt the GeoPackage from scratch, and repeated the original grouped SQL query without quoting.",
+  "verification": "OGR SQL returned all five clusters and counts successfully; final GeoPackage contains the cluster field and no group field."
+}

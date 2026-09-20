@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media.work-consumption-evidence",
+  "workId": "media:friction-loop-field-zine",
+  "consumedAt": "2026-09-15T23:18:11+08:00",
+  "consumer": [
+    "Typst 0.15.1",
+    "qpdf 12.3.2",
+    "Poppler pdfinfo/pdftoppm",
+    "ImageMagick 7.1.2-29",
+    "Runtime native image transport"
+  ],
+  "evidence": {
+    "successfulStructureBuildJobId": "job-01a0a5a4-f5ec-73a2-b468-e1eb915aa850",
+    "finalRenderAndInspectionJobId": "job-01a0a5a5-9c81-7ad0-a005-51f833ab710d",
+    "pdf": {
+      "path": "render/make-things-find-friction-field-note-001.pdf",
+      "sha256": "5da906509f9bd07c730f1b4d6aa91a14560a091e66ea14b0348b8d7c92ee54d6",
+      "bytes": 91412,
+      "version": "1.7",
+      "pages": 8,
+      "pageSizePoints": "419.528 x 595.276",
+      "qpdfCheck": "PASS"
+    },
+    "visualInspection": {
+      "method": "All eight PDF pages rendered with Poppler at 96 dpi, assembled into one ImageMagick contact sheet, then opened through digest-bound Runtime image transport.",
+      "contactSheetPath": "inspect/contact-sheet.png",
+      "contactSheetSha256": "311217924df2547da1fc41d55a28b59291bb0649842c870f304cfe91d76a35a2",
+      "standing": "PASS",
+      "notes": "Eight pages are present and legible; no observed clipping or broken glyphs; the escaped cover plus sign renders literally as + FIND FRICTION after revision."
+    }
+  },
+  "boundary": "This proves local compilation, PDF structural validity, raster consumption and visual inspection for the exact recorded bytes. It does not establish public publication, printing fidelity across all devices, or Human aesthetic preference."
+}

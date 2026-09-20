@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 0,
+  "kind": "ordivon.media.ompc-fixture",
+  "truthRole": "derived-read-only-cross-owner-metric-legibility-projection-fixture",
+  "fixture": "D",
+  "sourceBinding": {
+    "owner": "ordivon-finance",
+    "observedRevision": "6ed0730ce6f7b067ddb56d806a744e121b987402",
+    "firstChoice": {
+      "path": "evidence/qb6-owner-conditioned-agent-choice-20260812.json",
+      "fileDigest": "sha256:261887acd11177c43ed9e03f07003e8b586658bd485384fcc0a4910b928590bb",
+      "introducedAt": "ac882d94c94700e8558b39003c00cdf41271ca5b"
+    },
+    "followupChoice": {
+      "path": "evidence/qb6-owner-conditioned-agent-followup-20260812.json",
+      "fileDigest": "sha256:343f541d87e002be407f62d7d53e0dc7530ff9b813d44f94175b37602e732ccd",
+      "introducedAt": "ac882d94c94700e8558b39003c00cdf41271ca5b"
+    },
+    "supportingAntiLaws": {
+      "path": "evidence/apf-alpha-production-foundations-20260815.json",
+      "fileDigest": "sha256:1cc4cef93bceca95cfd4f74268707b79bd33e60e359ebb1bb61cfebe6e9bc717",
+      "introducedAt": "42c92b4ca539c0d0b1b93317bc7b5df8fb6ec34b"
+    },
+    "authorityRule": "Finance owns performance, attribution, applicability, portfolio and capital-transition semantics. Media only tests whether projections preserve those distinctions."
+  },
+  "observerScope": {
+    "observer": "decision-facing-human-or-agent",
+    "purpose": "test whether headline performance metrics can be projected without silently becoming alpha/applicability/transition truth"
+  },
+  "projectionEnvelope": {
+    "candidate": "QQQ-USDT-SWAP",
+    "unchangedHeadlineMetricsAcrossTurns": {
+      "standaloneCumulativeReturn": 0.07102910055267175,
+      "standaloneSharpe": 1.0162267790580375,
+      "ownerMarginalCumulativeReturnDelta": 0.007505753403190596,
+      "alphaAnnualized": -0.003023815943113368,
+      "alphaStatus": "descriptive-no-causal-alpha-claim"
+    },
+    "firstDisposition": "more_research",
+    "followupDisposition": "no_op"
+  },
+  "representationBody": {
+    "metricOnlyAblation": {
+      "visible": ["standalone cumulative return +7.1029%", "standalone Sharpe 1.0162", "owner-marginal cumulative return delta +0.7506%"],
+      "materiallyOmitted": ["known passive/growth exposure status", "descriptive no-causal-alpha status", "indeterminate research-only simulation standing", "minimum-notional expressibility", "live execution receipt status", "owner current notional/funding semantics"],
+      "conformanceClaim": "This ablated surface is insufficient to support a Finance transition conclusion even though every displayed metric is source-grounded."
+    },
+    "ownerBoundedProjection": {
+      "candidateStatus": "known-passive-exposure-chosen-to-falsify-novelty-not-new-alpha-search",
+      "researchStanding": "indeterminate / research-only candidate assessment",
+      "alphaInference": "descriptive-no-causal-alpha-claim",
+      "allowedRiskIncreaseMaxCandidateWeight": 0.1,
+      "minimumNotionalEquityFraction": 0.32907106079226595,
+      "minimumNotionalWithinAllowedIntentWeight": false,
+      "qualifyingLiveExecutionReceiptCount": 0,
+      "externalFinancialWriteAttempted": false,
+      "followupDisposition": "no_op"
+    }
+  },
+  "transformationProvenanceTrace": {
+    "ablation": "Hold headline candidate/owner-marginal/attribution metrics constant across QB6 turns; add read-only execution-suitability/minimum-notional evidence in the followup.",
+    "observedConclusionChange": "more_research -> no_op",
+    "metricChange": "none in the listed headline performance/attribution metrics",
+    "newMaterialEvidence": "minimum-notional equity fraction 0.329071... exceeds allowed maximum candidate weight 0.10; no qualifying live execution receipt exists",
+    "supportingFinanceAntiLaws": ["known-exposure-is-not-alpha", "historical-profitability-is-not-current-applicability", "backtest-cost-is-not-live-cost", "owner-capital-flow-is-not-agent-pnl"]
+  },
+  "actionExposureDisclosure": {
+    "transitionIntent": null,
+    "decisionStanding": "Finance evidence supports no capital-transition intent in the followup",
+    "notClaimed": ["positive return proves alpha", "metric visibility proves current applicability", "metric-only surface authorizes risk increase", "Media owns Finance decision semantics", "historical account snapshot is current live-account truth"]
+  }
+}

@@ -1,0 +1,721 @@
+{
+  "authorityRef": "authority:ordivon:research-owner:media",
+  "closeouts": [
+    {
+      "closure": [
+        {
+          "scope": "CURRENT_OWNER_BOUNDARY",
+          "status": "ESTABLISHED"
+        },
+        {
+          "scope": "MF0_MF9",
+          "status": "FROZEN"
+        },
+        {
+          "scope": "MF10",
+          "status": "UNKNOWN_NOT_ADMITTED"
+        },
+        {
+          "scope": "FOUNDATION_REOPEN_MF0_MF9",
+          "status": "NONE"
+        },
+        {
+          "scope": "MEDIA_FOUNDATIONS_CURRENT_RESEARCH_CLOSURE",
+          "status": "STRONG"
+        },
+        {
+          "scope": "ABSOLUTE_WHOLE_MEDIA_EXHAUSTION",
+          "status": "NOT_CLAIMED"
+        },
+        {
+          "scope": "NEXT_MEDIA_FOUNDATION",
+          "status": "UNKNOWN"
+        },
+        {
+          "scope": "NEXT_MEDIA_ROUTE",
+          "status": "UNKNOWN"
+        }
+      ],
+      "materialLineage": [
+        "MF0-MF9 deep reconstruction/falsification/freeze.",
+        "Round A whole-domain cartography.",
+        "Round B destructive reducibility/ownership tests.",
+        "Round C blind fresh-continent rescan.",
+        "Round D boundary/action/environment/presence/datafication tests.",
+        "Final closeout retained strong current closure without absolute exhaustion."
+      ],
+      "negativeRoute": "MF10-MF19 historical roadmap is de-canonicalized; no hidden automatic continuation.",
+      "profile": "NATIVE",
+      "reopenPolicy": "Do not infer MF10 or a next route from derived concepts, adjacent literature, implementation demand, old roadmap labels or symmetry.",
+      "researchRef": "research:media:core-current-20260819",
+      "residualState": "No named Foundation candidate is selected. Reopen only from exact falsifier or genuinely fresh high-information territory.",
+      "resultRefs": [
+        "result:media:owner-boundary-current",
+        "result:media:mf0-mf9-current-frozen",
+        "result:media:mf10-not-admitted",
+        "result:media:foundation-reopen-none",
+        "result:media:foundations-closure-strong",
+        "result:media:absolute-whole-exhaustion-not-claimed",
+        "result:media:next-route-unknown",
+        "result:media:derived-crosscutting-current",
+        "result:media:primitive-candidate-reductions-current",
+        "result:media:mf10-mf19-roadmap-decanonicalized",
+        "result:media:cross-owner-authority-firewall-current"
+      ]
+    },
+    {
+      "closure": [
+        {
+          "scope": "MEDIA_CONSTRUCTION_PHASE1_M0_M4",
+          "status": "CLOSED_STABLE_OWNER"
+        },
+        {
+          "scope": "OMPC_V0_REFERENCE_CONTRACT",
+          "status": "CURRENT_BASELINE"
+        },
+        {
+          "scope": "OMPC_CONFORMANCE_A_B_C_D",
+          "status": "BOUNDED_PASS"
+        },
+        {
+          "scope": "OMPC_ROLE_COUNT",
+          "status": "SIX_BASELINE"
+        },
+        {
+          "scope": "OMPC_INVARIANTS",
+          "status": "ELEVEN_CURRENT"
+        },
+        {
+          "scope": "SHARED_MEDIA_IMPLEMENTATION",
+          "status": "NOT_ADMITTED"
+        }
+      ],
+      "materialLineage": [
+        "M0 owner identity inversion Studio→Media.",
+        "M1 Constitution v0 + OMPC-v0 + Host projection dogfood.",
+        "M2 Studio identity/provenance dogfood.",
+        "M3 Web trajectory/time/state/feedback dogfood.",
+        "M4 Finance metric/proxy/legibility dogfood."
+      ],
+      "negativeRoute": "No Media Engine/Runtime/SDK/universal validator or serializer is admitted from semantic repetition alone.",
+      "profile": "NATIVE",
+      "reopenPolicy": "A real source-fenced failing consumer may revise OMPC. It does not automatically reopen MF0-MF9 or admit shared implementation.",
+      "researchRef": "research:media:phase1-ompc-current-20260819",
+      "residualState": "Future construction is consumer-pressure-driven only: OMPC falsifier, missing derived relation, demonstrated duplicated implementation machinery, Studio product constraint or Foundation counterevidence.",
+      "resultRefs": [
+        "result:media:phase1-owner-closure-current",
+        "result:media:ompc-v0-current",
+        "result:media:ompc-conformance-abcd-current",
+        "result:media:ompc-six-role-baseline-current",
+        "result:media:ompc-eleven-invariants-current",
+        "result:media:shared-implementation-not-admitted",
+        "result:media:studio-retained-capability-plane"
+      ]
+    },
+    {
+      "closure": [
+        {
+          "scope": "M7_MEDIUM_PROFILE_PROGRAMME",
+          "status": "HISTORICAL_CONSUMER_RESEARCH_RETAINED"
+        },
+        {
+          "scope": "ART_EXPRESSION",
+          "status": "ADJACENT_STUDIO_RESEARCH_NOT_MEDIA_CORE"
+        }
+      ],
+      "materialLineage": [
+        "M7 retains real experiments/ablations/artifact evidence by medium profile.",
+        "Art & Expression remains Studio laboratory research on creative validity and production cognition."
+      ],
+      "negativeRoute": "Do not collapse consumer profile research into Foundation authority.",
+      "profile": "NATIVE",
+      "reopenPolicy": "Changes in Studio production or consumer evidence do not silently alter Media Foundation standing.",
+      "researchRef": "research:media:historical-consumer-adjacent-current-20260819",
+      "residualState": "Retain production/consumer value and provenance without promotion into MF Core.",
+      "resultRefs": [
+        "result:media:m7-historical-consumer-research",
+        "result:media:art-expression-adjacent-not-core"
+      ]
+    }
+  ],
+  "currentRecovery": {
+    "locator": "research/media/README.md",
+    "targetRole": "OWNER_RESEARCH_CORPUS"
+  },
+  "kind": "ordivon.research-owner-publication",
+  "ownerResearchRef": "research-owner:media",
+  "profile": "NATIVE",
+  "schemaVersion": 1,
+  "source": {
+    "authorityBranch": "refs/heads/main",
+    "corpusRoot": "research/media",
+    "kind": "git",
+    "repository": "https://github.com/zycxfyh/ordivon-media.git",
+    "sourceRevision": "5b5dbb4145ca91b575e517b6d56fe119f0853a18"
+  },
+  "statements": [
+    {
+      "predicate": "OWNER_BINDING",
+      "scope": "OWNER",
+      "subjectRef": "research-owner:media",
+      "value": "media"
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "OWNER",
+      "subjectRef": "research-owner:media",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:owner-boundary-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:owner-boundary-current",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:owner-boundary-current",
+      "value": "Media owns structured mediation: representation/projection, composition, exposure, transformation and observer-facing interaction semantics while conserving source-owner truth. Studio remains the authoring/production capability plane; neighboring owners retain their own truth."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:owner-boundary-current",
+      "value": [
+        "OWNER_BOUNDARY"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf0-mf9-current-frozen",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:FROZEN",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf0-mf9-current-frozen",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf0-mf9-current-frozen",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf0-mf9-current-frozen",
+      "value": "MF0-MF9 are the exact current frozen Media Foundation substrate: Structured Mediation, Signal, Perception, Representation, Composition, Space, Time, State/Dynamics/Control, Agency/Action, Experience."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf0-mf9-current-frozen",
+      "value": [
+        "FOUNDATION_STANDING"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:NOT_ADMITTED",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-not-admitted",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-not-admitted",
+      "value": "MF10 remains UNKNOWN / NOT ADMITTED. Derived realities, old roadmap labels and implementation pressure do not constitute MF10."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-not-admitted",
+      "value": [
+        "NEGATIVE_FOUNDATION_RESULT"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundation-reopen-none",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundation-reopen-none",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundation-reopen-none",
+      "value": "FoundationReopen(MF0-MF9)=NONE at the current frontier. Reopen requires an exact concrete falsifier against a named frozen claim or genuinely fresh high-information territory."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundation-reopen-none",
+      "value": [
+        "REOPEN_REGISTER"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundations-closure-strong",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundations-closure-strong",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundations-closure-strong",
+      "value": "MediaFoundationsCurrentResearchClosure=STRONG after deep reconstruction, whole-domain cartography, destructive reducibility tests, blind rescan and final closeout."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:foundations-closure-strong",
+      "value": [
+        "LOCAL_CLOSURE_RESULT"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:absolute-whole-exhaustion-not-claimed",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:absolute-whole-exhaustion-not-claimed",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:absolute-whole-exhaustion-not-claimed",
+      "value": "AbsoluteWholeMediaExhaustion=NOT CLAIMED. Strong current closure is not metaphysical/exhaustive domain closure."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:absolute-whole-exhaustion-not-claimed",
+      "value": [
+        "OPEN_WORLD_CLOSURE"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:next-route-unknown",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:next-route-unknown",
+      "value": "UNDERDETERMINED"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:next-route-unknown",
+      "value": "NextMediaFoundation=UNKNOWN and NextMediaRoute=UNKNOWN. No alphabetic or symmetry-driven continuation is selected."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:next-route-unknown",
+      "value": [
+        "OPEN_FRONTIER"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:derived-crosscutting-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:derived-crosscutting-current",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:derived-crosscutting-current",
+      "value": "Communication, exposure, protocol, publication, work/variant identity, selection, meaning/context, fixation, authorship, archive, audience/public, mediation ecology, translation/remediation, infrastructural mediation, executable mediation, interface/action coupling, mediated presence and datafication/legibility/metricization survive as typed derived/cross-cutting realities without primitive promotion."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:derived-crosscutting-current",
+      "value": [
+        "DERIVED_RESEARCH"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:primitive-candidate-reductions-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:primitive-candidate-reductions-current",
+      "value": "FALSIFIED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:primitive-candidate-reductions-current",
+      "value": "Destructive tests did not justify an additional primitive/Foundation for the named Round-B/D/datafication candidate families; nonprimitive does not mean unreal or useless."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:primitive-candidate-reductions-current",
+      "value": [
+        "NEGATIVE_RESULT"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-mf19-roadmap-decanonicalized",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-mf19-roadmap-decanonicalized",
+      "value": "FALSIFIED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-mf19-roadmap-decanonicalized",
+      "value": "Historical MF10-MF19 roadmap labels are de-canonicalized and cannot silently return as implicit next steps."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:mf10-mf19-roadmap-decanonicalized",
+      "value": [
+        "SUPERSEDED_ROADMAP"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:phase1-owner-closure-current",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:FROZEN",
+      "scope": "RESULT",
+      "subjectRef": "result:media:phase1-owner-closure-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:phase1-owner-closure-current",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:phase1-owner-closure-current",
+      "value": "Construction Phase 1 M0-M4 is closed in a stable-owner / consumer-pressure-driven posture: owner inversion, frozen research substrate, OMPC reference contract and four real consumer fixtures are established without a speculative universal engine."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:phase1-owner-closure-current",
+      "value": [
+        "PROJECT_PHASE_CLOSEOUT"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-v0-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-v0-current",
+      "value": "SUPPORTED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-v0-current",
+      "value": "OMPC-v0 is the current technology-neutral shared reference contract/conformance discipline for truthful observer-relative projection of source-owned state/action without standing lifting. It is not a production schema, Media runtime or source authority."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-v0-current",
+      "value": [
+        "REFERENCE_CONTRACT"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-conformance-abcd-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-conformance-abcd-current",
+      "value": "SUPPORTED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-conformance-abcd-current",
+      "value": "OMPC-v0 has bounded conformance evidence from four materially different consumers: Host continuity/currentness, Studio transformation/provenance, Web interaction trajectory and Finance metric/proxy legibility."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-conformance-abcd-current",
+      "value": [
+        "CROSS_OWNER_DOGFOOD",
+        "FALSIFICATION_EVIDENCE"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-six-role-baseline-current",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:FROZEN",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-six-role-baseline-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-six-role-baseline-current",
+      "value": "SUPPORTED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-six-role-baseline-current",
+      "value": "Phase-1 OMPC baseline has six roles: SourceBinding, ObserverScope, ProjectionEnvelope, RepresentationBody, Transformation/ProvenanceTrace, ActionExposure/Disclosure. A seventh role requires a real failing consumer responsibility."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-six-role-baseline-current",
+      "value": [
+        "REFERENCE_CONTRACT_BASELINE"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-eleven-invariants-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-eleven-invariants-current",
+      "value": "SUPPORTED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-eleven-invariants-current",
+      "value": "OMPC-v0 currently carries eleven tested invariants covering authority conservation, no standing lifting, exact fences, observer relativity, omission disclosure, currentness non-fabrication, action non-execution, cross-modality equivalence, identity non-collapse, temporal coverage and metric/proxy non-collapse."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:ompc-eleven-invariants-current",
+      "value": [
+        "CONFORMANCE_INVARIANTS"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:shared-implementation-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "STANDING:NOT_ADMITTED",
+      "scope": "RESULT",
+      "subjectRef": "result:media:shared-implementation-not-admitted",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:shared-implementation-not-admitted",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:shared-implementation-not-admitted",
+      "value": "Media Engine, Media Runtime, Media SDK, universal serializer/validator/event protocol and other shared implementation layers remain NOT ADMITTED without demonstrated cross-consumer duplicated machinery whose extraction reduces error without centralizing authority."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:shared-implementation-not-admitted",
+      "value": [
+        "NEGATIVE_ENGINEERING_RESULT"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:studio-retained-capability-plane",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:studio-retained-capability-plane",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:studio-retained-capability-plane",
+      "value": "Ordivon Studio remains Media authoring/production/editing/composition/transformation/rendering/packaging capability plane. Owner inversion does not imply mass package/directory rename."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:studio-retained-capability-plane",
+      "value": [
+        "CAPABILITY_BOUNDARY"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:m7-historical-consumer-research",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:m7-historical-consumer-research",
+      "value": "SUPPORTED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:m7-historical-consumer-research",
+      "value": "M7 medium-profile work is retained as historical production/consumer research with active/provisional/candidate profile standings; it is not Media Foundation authority."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:m7-historical-consumer-research",
+      "value": [
+        "HISTORICAL_CONSUMER_RESEARCH"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:art-expression-adjacent-not-core",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:art-expression-adjacent-not-core",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:art-expression-adjacent-not-core",
+      "value": "Art & Expression research on aesthetics/narrative/rhetoric/style/creative validity is Studio-owned adjacent research and is not reabsorbed into Media Core Foundations."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:art-expression-adjacent-not-core",
+      "value": [
+        "ADJACENT_OWNER_BOUNDARY"
+      ]
+    },
+    {
+      "predicate": "STANDING:CURRENT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:cross-owner-authority-firewall-current",
+      "value": true
+    },
+    {
+      "predicate": "EPISTEMIC_VERDICT",
+      "scope": "RESULT",
+      "subjectRef": "result:media:cross-owner-authority-firewall-current",
+      "value": "ESTABLISHED_IN_SCOPE"
+    },
+    {
+      "predicate": "EVIDENCE_SCOPE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:cross-owner-authority-firewall-current",
+      "value": "Media projections may consume other owners but never supersede or silently currentize source-owner truth; semantic dependency does not imply repository containment or authority transfer."
+    },
+    {
+      "predicate": "STRUCTURAL_ROLE",
+      "scope": "RESULT",
+      "subjectRef": "result:media:cross-owner-authority-firewall-current",
+      "value": [
+        "CROSS_OWNER_FIREWALL"
+      ]
+    }
+  ]
+}

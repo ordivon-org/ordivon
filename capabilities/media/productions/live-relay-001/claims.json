@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "claims": [
+    {
+      "id": "real-live-session",
+      "source": {
+        "binding": "media-tooling",
+        "path": "README.md"
+      },
+      "meaning": "Live Relay 001 is the retained recording of one real OBS programme session in which four temporary programme scenes were created, three exact registered Ordivon Works were presented through live program-scene changes, recording was started/stopped through authenticated obs-websocket, and the pre-session OBS state was restored after the episode.",
+      "evidence": [
+        "consumption-evidence.json",
+        "evidence/obs-session-final.json"
+      ],
+      "avoid": [
+        "It is not evidence of public internet streaming, audience reach, unattended long-duration broadcast reliability, or universal OBS lifecycle reliability."
+      ]
+    },
+    {
+      "id": "source-work-boundary",
+      "source": {
+        "binding": "media-tooling",
+        "path": "README.md"
+      },
+      "meaning": "Archive Archipelago, CONVERGENCE OBJECT 001, and System Constellation Poster 001 are exact registered source Works consumed by the programme as authored visual material.",
+      "evidence": [
+        "consumption-evidence.json",
+        "evidence/obs-session-final.json",
+        "source/provenance.json"
+      ],
+      "avoid": [
+        "The broadcast does not modify their authority or imply that their compositional layouts are current runtime truth. In particular, Constellation remains composition-only: no geography, hierarchy, dependency, causal distance, or importance scale is inferred."
+      ]
+    },
+    {
+      "id": "silent-first-broadcast",
+      "source": {
+        "binding": "media-tooling",
+        "path": "README.md"
+      },
+      "meaning": "The first Broadcast Work deliberately uses digital silence: both OBS audio inputs with observable mute state were temporarily muted, restored and re-read after recording; complete-track analysis of the resulting AAC stream reports -inf peak and RMS.",
+      "evidence": [
+        "consumption-evidence.json",
+        "evidence/obs-session-final.json"
+      ],
+      "avoid": [
+        "Silence is a privacy and scope choice for this first work, not a claim that Ordivon live media is inherently silent or that future broadcasts should omit authored audio."
+      ]
+    },
+    {
+      "id": "carrier-roles",
+      "source": {
+        "binding": "media-tooling",
+        "path": "README.md"
+      },
+      "meaning": "The H.264/AAC MP4 is the event-source/replay carrier; the video-only Matroska/FFV1 3.4 object is a preservation/interchange derivative whose decoded yuv422p sequence is byte-identical to the source capture after the same normalization; the PNG is a hero frame extracted from the actual final recording.",
+      "evidence": [
+        "consumption-evidence.json",
+        "evidence/obs-session-final.json",
+        "artifact-evidence/moving-image-verification.json"
+      ],
+      "avoid": [
+        "The MP4 is not promoted to the Artifact FFV1 preservation profile, and the bounded Artifact verification of the MKV does not claim subjective artistic correctness or audio preservation."
+      ]
+    }
+  ],
+  "productionId": "live-relay-001"
+}

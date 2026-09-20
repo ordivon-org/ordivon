@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.studio-equipment-hardware-inventory",
+  "observedDate": "2026-08-13",
+  "capabilities": {
+    "cameraInput": {"present": true, "evidence": "Windows present PnP Camera class includes an Integrated Camera"},
+    "microphoneInput": {"present": true, "evidence": "Windows present AudioEndpoint inventory contains microphone input"},
+    "audioOutput": {"present": true, "evidence": "Windows present AudioEndpoint inventory contains playback output"},
+    "displayOutput": {"present": true, "evidence": "Windows present Monitor inventory contains the integrated display"},
+    "genericHidInput": {"present": true, "evidence": "Windows present HIDClass inventory contains generic HID devices"}
+  },
+  "specialistHardware": {
+    "streamDeck": false,
+    "xrHeadset": false,
+    "drawingTablet": false,
+    "threeDMouse": false,
+    "specialistMidiController": false,
+    "specialistAudioInterface": false,
+    "depthCamera": false,
+    "hapticWearable": false
+  },
+  "retentionBoundary": "Presence was inspected only as device capability. No camera, microphone, display or HID content was captured. Specialized control/XR/haptic equipment remains demand-pulled rather than a completeness requirement."
+}

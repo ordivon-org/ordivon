@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MediaInfo
+xmlns="https://mediaarea.net/mediainfo"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="https://mediaarea.net/mediainfo https://mediaarea.net/mediainfo/mediainfo_2_0.xsd"
+version="2.0beta1">
+<!-- Work in progress, not for production -->
+<creatingLibrary version="26.05" url="https://mediaarea.net/MediaInfo">MediaInfoLib</creatingLibrary>
+<media ref="productions/live-relay-001/render/live-relay-001-master.mkv">
+
+<track type="General">
+<UniqueID>103147322555441807950010560588855442489</UniqueID>
+<VideoCount>1</VideoCount>
+<FileExtension>mkv</FileExtension>
+<Format>Matroska</Format>
+<Format_Version>4</Format_Version>
+<FileSize>41512896</FileSize>
+<Duration>21.900</Duration>
+<OverallBitRate_Mode>VBR</OverallBitRate_Mode>
+<OverallBitRate>15164528</OverallBitRate>
+<FrameRate>30.000</FrameRate>
+<FrameCount>657</FrameCount>
+<StreamSize>826107</StreamSize>
+<IsStreamable>Yes</IsStreamable>
+<File_Modified_Date>2026-09-15 17:56:59 UTC</File_Modified_Date>
+<File_Modified_Date_Local>2026-09-16 01:56:59</File_Modified_Date_Local>
+<Encoded_Application>Lavf63.1.100</Encoded_Application>
+<Encoded_Library>Lavf63.1.100</Encoded_Library>
+<extra>
+<ErrorDetectionType>Per level 1</ErrorDetectionType>
+</extra>
+</track>
+<track type="Video">
+<StreamOrder>0</StreamOrder>
+<ID>1</ID>
+<UniqueID>652258754663973725</UniqueID>
+<Format>FFV1</Format>
+<Format_Version>3.4</Format_Version>
+<Format_Settings_GOP>N=1</Format_Settings_GOP>
+<Format_Settings_SliceCount>9</Format_Settings_SliceCount>
+<CodecID>V_FFV1</CodecID>
+<Duration>21.900000000</Duration>
+<BitRate_Mode>VBR</BitRate_Mode>
+<BitRate>14862754</BitRate>
+<Width>1280</Width>
+<Height>720</Height>
+<PixelAspectRatio>1.000</PixelAspectRatio>
+<DisplayAspectRatio>1.778</DisplayAspectRatio>
+<FrameRate_Mode>CFR</FrameRate_Mode>
+<FrameRate>30.000</FrameRate>
+<FrameCount>657</FrameCount>
+<ColorSpace>YUV</ColorSpace>
+<ChromaSubsampling>4:2:2</ChromaSubsampling>
+<BitDepth>8</BitDepth>
+<ScanType>Progressive</ScanType>
+<Compression_Mode>Lossless</Compression_Mode>
+<Delay>0.000</Delay>
+<Delay_Source>Container</Delay_Source>
+<StreamSize>40686789</StreamSize>
+<Encoded_Library>Lavc63.1.100 ffv1</Encoded_Library>
+<Default>Yes</Default>
+<Forced>No</Forced>
+<colour_description_present>Yes</colour_description_present>
+<colour_description_present_Source>Container</colour_description_present_Source>
+<colour_range>Limited</colour_range>
+<colour_range_Source>Container</colour_range_Source>
+<colour_primaries>BT.709</colour_primaries>
+<colour_primaries_Source>Container</colour_primaries_Source>
+<transfer_characteristics>BT.709</transfer_characteristics>
+<transfer_characteristics_Source>Container</transfer_characteristics_Source>
+<matrix_coefficients>BT.709</matrix_coefficients>
+<matrix_coefficients_Source>Container</matrix_coefficients_Source>
+<extra>
+<NAME>simple_video_stream</NAME>
+<coder_type>Range Coder</coder_type>
+<MaxSlicesCount>9</MaxSlicesCount>
+<ErrorDetectionType>Per slice</ErrorDetectionType>
+</extra>
+</track>
+</media>
+</MediaInfo>
+

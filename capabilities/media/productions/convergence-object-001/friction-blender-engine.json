@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-friction-record",
+  "friction_id": "friction:media:convergence-object-001:blender-eevee-enum",
+  "title": "Blender 5.2 rejects BLENDER_EEVEE_NEXT render-engine enum",
+  "category": "INVOCATION",
+  "surface": "Blender background scene build",
+  "tool": "Blender 5.2.1 LTS",
+  "workflow": "build.py -> native .blend + PNG + GLB",
+  "observed_during": "media:convergence-object-001 first build",
+  "related_work": "media:convergence-object-001",
+  "symptom": "Scene build stopped before artifact creation with TypeError because BLENDER_EEVEE_NEXT was not in the local enum set.",
+  "expected_behavior": "Use the actual installed Blender 5.2 render engine identifier.",
+  "actual_behavior": "Installed Blender exposed BLENDER_EEVEE, BLENDER_WORKBENCH and CYCLES.",
+  "evidence": {
+    "failedJobId": "job-01a0a59e-06e8-7500-857f-591230a5e6f6",
+    "verifiedJobId": "job-01a0a59e-9a24-71c0-85a4-504c39e7f5ee"
+  },
+  "severity": "LOW",
+  "frequency": "REPEATABLE_FOR_WRONG_ENUM",
+  "owner": "Media Blender production recipe",
+  "status": "VERIFIED",
+  "proposed_fix": "Use BLENDER_EEVEE for the installed 5.2.1 LTS provider.",
+  "fix_attempt": "Changed one enum value and repeated the original build plus GLB round trip.",
+  "verification": "Build rendered PNG, saved .blend, exported GLB, and independent Blender import passed."
+}

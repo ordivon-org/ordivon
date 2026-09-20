@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-studio-r2-replica-receipt",
+  "status": "passed",
+  "provider": "cloudflare-r2-account-api",
+  "bucket": "ordivon-artifacts",
+  "publicExposure": {
+    "managedR2DevEnabled": false,
+    "customDomainCount": 0
+  },
+  "objects": [
+    {
+      "assetId": "runtime-introduction-master-motion",
+      "digest": "sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+      "sizeBytes": 2326600,
+      "objectKey": "objects/sha256/77/77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+      "replicationDisposition": "created",
+      "redownloadVerified": true
+    },
+    {
+      "assetId": "runtime-introduction-narration-en-sapi",
+      "digest": "sha256:798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+      "sizeBytes": 11232102,
+      "objectKey": "objects/sha256/79/798c8f90f9eeb90d6407d78329e88e71dab6d4aa5d38831568c7e14f445d828d",
+      "replicationDisposition": "created",
+      "redownloadVerified": true
+    },
+    {
+      "assetId": "runtime-introduction-en-av-candidate",
+      "digest": "sha256:7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430",
+      "sizeBytes": 3369776,
+      "objectKey": "objects/sha256/7d/7d994f80627968f4e64a3a53c08d5241bb8f398e17d52c24080f935e7c716430",
+      "replicationDisposition": "existing",
+      "redownloadVerified": true
+    }
+  ],
+  "destructiveRestore": {
+    "assetId": "runtime-introduction-master-motion",
+    "digest": "sha256:77d8eae832a3cac47c641211aa8c9019c04c542faf0ae87a9ae0e82d37acc736",
+    "localCasObjectQuarantined": true,
+    "localMaterializeFailedWhileAbsent": true,
+    "restoreTool": "ordivon-studio r2 restore",
+    "restoreDisposition": "created",
+    "restoredCasDigestVerified": true,
+    "restoredWorkingCopyDigestVerified": true,
+    "restoredMediaProbe": {
+      "durationSeconds": 78.0,
+      "width": 1920,
+      "height": 1080,
+      "frameRate": "30/1",
+      "codec": "h264",
+      "pixelFormat": "yuv420p",
+      "colorRange": "tv",
+      "colorSpace": "bt709",
+      "colorTransfer": "bt709",
+      "colorPrimaries": "bt709"
+    }
+  },
+  "writeSemantics": {
+    "model": "single-writer-preflight-plus-redownload-verification",
+    "conditionalCreateProbe": {
+      "header": "If-None-Match: *",
+      "existingObjectHttpStatus": 200,
+      "atomicCreateOnlyEstablished": false
+    }
+  },
+  "credentialBoundary": "The credential file remains outside Git. This Receipt contains no token, account credential, or secret value.",
+  "boundary": "This Receipt proves private off-machine R2 replication, exact redownload verification, and one destructive local-CAS-loss restore for the selected Runtime Introduction media. It does not prove multi-writer atomic object admission, credential least privilege, another cloud backend, or publication approval."
+}

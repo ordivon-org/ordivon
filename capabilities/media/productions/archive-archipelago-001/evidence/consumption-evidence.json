@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-work-consumption-evidence",
+  "work_id": "media:archive-archipelago-001",
+  "source_catalog": {
+    "path": "source/creative-library-catalog-v1.json",
+    "file_sha256": "sha256:d020043de763c55c19ce965ecf0a2d0263c56a6600c35132faed3389b0eeca72",
+    "catalog_digest": "sha256:cfbd3ff1533b7b2d52a1ce3067b1065e7c95a77ff73567104d9a8f41a03e9b21",
+    "work_count": 303,
+    "workstation_revision": "dd7e60d6aa90c0967ba208a0c16354eb9fad850a"
+  },
+  "consumers": [
+    {
+      "tool": "GDAL/OGR ogrinfo",
+      "target": "render/archive-archipelago-001.gpkg",
+      "result": "PASS",
+      "observed": "works=303, owners=4, relations=45 under ENGCRS Ordivon Archive Plane"
+    },
+    {
+      "tool": "SQLite",
+      "target": "render/archive-archipelago-001.gpkg",
+      "result": "PASS",
+      "observed": "gpkg_contents exposes works/owners/relations feature layers"
+    },
+    {
+      "tool": "librsvg rsvg-convert + ImageMagick identify",
+      "target": "render/archive-archipelago-001.svg/png",
+      "result": "PASS",
+      "observed": "editable SVG rendered to 1600x1000 sRGB PNG and was visually inspected through Runtime native image transport"
+    },
+    {
+      "tool": "Workstation v2 Playwright binding + Chromium",
+      "target": "interactive source served locally",
+      "result": "PASS",
+      "observed": "303 nodes, 45 relations, search, featured/owner filters, route mode, keyboard Enter selection, desktop/mobile layouts; zero console errors"
+    },
+    {
+      "tool": "Artifact Nu Html Checker 26.9.7",
+      "target": "interactive/archive-archipelago-001.html",
+      "result": "PASS",
+      "observed": "messageCount=0"
+    },
+    {
+      "tool": "Artifact Playwright 1.63.0 / Chromium 153 / axe-core Playwright 4.13.0",
+      "target": "interactive/archive-archipelago-001.html",
+      "result": "PASS",
+      "observed": "Chromium PASS; axe violationCount=0"
+    },
+    {
+      "tool": "Artifact Playwright 1.63.0 / Firefox 155",
+      "target": "interactive/archive-archipelago-001.html",
+      "result": "PASS",
+      "observed": "Firefox PASS; WebKit remains NOT_INSTALLED locally and is not promoted"
+    },
+    {
+      "tool": "Workstation-bound Chromium keyboard-equivalence R3",
+      "target": "interactive source served locally",
+      "result": "PASS",
+      "observed": "303 visual nodes removed from Tab order; one map Tab stop; exact-ID search selected 303/303 Works through native result buttons; Signal Garden selected via keyboard Enter; console errors=0; mobile page overflow=0"
+    },
+    {
+      "tool": "Workstation-bound Chromium mobile pointer R4",
+      "target": "interactive source served locally",
+      "result": "PASS",
+      "observed": "390x844: 20px off-mark tap selected the only visible Work even with a closer dim node; 30px no-hit selected nothing; >20px drag near a node did not select; exact-ID keyboard reachability 303/303; one map Tab stop; page overflow=0; internal horizontal pan preserved; console errors=0"
+    }
+  ],
+  "output_sha256": {
+    "gpkg": "sha256:e000c6000126873cf908cdf1158b1cffe22c63ada3be97de592c56dbded4e361",
+    "svg": "sha256:eff192e20aaa6614934c64b4c11e1d540341691558f33ba53aca9083eee7b136",
+    "png": "sha256:2f0a7c9d6b8ca497f72eb3e72b9a893e3b98a7f1be892ed910ec429a5e773bbe",
+    "standalone_html": "sha256:54e8269a11257e648aee56e1caa52aa0bdf0584f5dd72e4a98a97baa271765e5"
+  },
+  "visual_inspection": "PASS after polish: owner archipelagos remain distinct; relation types are visually differentiated; static labels are intentionally sparse; interactive detail carries dense semantics; desktop hierarchy is clear and mobile preserves map scale through internal pan rather than fit-to-width shrinking.",
+  "boundary": "The work visualizes one exact frozen Creative Library snapshot. Browser/validator PASS establishes local technical/accessibility/conformance facts only, not Human preference, geographic meaning, inferred dependency, or currentness beyond the source fence.",
+  "rebuild_verification": "R4 source-identical rebuild retained stable GeoPackage/SVG/PNG identities and deterministic standalone HTML sha256:54e8269a11257e648aee56e1caa52aa0bdf0584f5dd72e4a98a97baa271765e5 after pointer-target repair.",
+  "browser_evidence": {
+    "workstationInteractionJob": "job-01a0a5bb-fffb-7d42-9bdf-c88e6d6be02e",
+    "mobilePanJob": "job-01a0a5bd-b54b-74d2-886a-c6fb2def852b",
+    "artifactAxeFailureJob": "job-01a0a5c0-a248-7ba3-95ff-5b527b04bda2",
+    "artifactAxePassJob": "job-01a0a5c2-56e4-7c30-b67b-4a1ea6118615",
+    "artifactFullGateJob": "job-01a0a5c3-8084-7453-8e24-62418c7fbdd5",
+    "workstationFinalInteractionJob": "job-01a0a5c5-d4e3-75f3-8a19-7f5739d2f263",
+    "finalDesktopScreenshot": "interactive/chromium-desktop-final-r2.png",
+    "finalMobileScreenshot": "interactive/chromium-mobile-final-r2.png",
+    "keyboardFocusBaselineJob": "job-01a0a5e6-3074-7ca1-af92-acaf411df7f6",
+    "keyboardFocusVerifiedJob": "job-01a0a5e8-9ff7-7711-927a-c4977c9fd089",
+    "artifactFullGateR3Job": "job-01a0a5e9-873d-7243-b856-999595f27a20",
+    "keyboardSearchScreenshot": "interactive/chromium-keyboard-search-r3.png",
+    "mobileKeyboardSearchScreenshot": "interactive/chromium-mobile-search-r3.png",
+    "touchTargetBaselineJob": "job-01a0a614-a858-7eb2-8674-0d79a1e98f48",
+    "touchAccessibilityGateJob": "job-01a0a61a-feea-7c61-87d3-437d1f779ee4",
+    "artifactFullGateR4Job": "job-01a0a61b-9d12-7892-a328-b9d2d31ef228",
+    "touchFinalScreenshot": "interactive/chromium-touch-r4-final.png"
+  }
+}

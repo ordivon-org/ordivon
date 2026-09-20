@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.media-owner-article-approval-audit",
+  "productionId": "mhs-hardware-boundary",
+  "articleDigest": "sha256:32cef398e3a5e9451fdd2c1c85970c968af7a7589abe33ce8937b74e0645571d",
+  "evidenceRevision": "6dd8eba3e04f32f9a0f2cc4616d7f40cdccf0041",
+  "checks": {
+    "binding_revision_current": true,
+    "exact_story_digest": true,
+    "quera_owner_primary_in_evidence": true,
+    "lap_prior_in_evidence": true,
+    "lap_prior_in_article": true,
+    "traceability_not_universal": true,
+    "nonlinear_explicit": true,
+    "intended_use_language": true,
+    "old_result_admission_heading_absent": true,
+    "old_linear_phrases_absent": true,
+    "claims_prior_ceiling": true
+  },
+  "status": "PASS",
+  "naturalFreshReaderRecovery": "UNKNOWN_INCONCLUSIVE_LOW_RESOLUTION",
+  "boundary": "This audit establishes bounded source/expression repair and exact artifact consistency. It does not establish Human comprehension, population preference, public encounter, or external-source truth beyond the bound evidence projection."
+}

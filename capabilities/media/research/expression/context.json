@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "id": "studio.expression-context",
+  "authority": "research/expression/README.md",
+  "principles": [
+    "Aesthetic and artistic quality is multidimensional; do not collapse outcomes into one beauty score.",
+    "Human preference is conditional but structured; use evidence as scoped priors rather than universal taste laws.",
+    "Compelling expression often emerges by resolving tensions rather than maximizing one variable.",
+    "Medium, audience, task, culture, expertise, genre, and temporal context can change the desirable tension profile.",
+    "Agents may make creative judgments; external human evaluation is a sensor for uncertain human-experience claims, not a mandatory approval gate.",
+    "High-throughput creative search is itself statistical evidence; complete search history, explicit encounter identity, typed consequence, and independent OOS support precede any Creative Alpha claim."
+  ],
+  "outcomes": [
+    "beauty",
+    "pleasure",
+    "interest",
+    "appeal",
+    "clarity",
+    "presence",
+    "identity",
+    "memorability",
+    "transportation",
+    "trust"
+  ],
+  "tensions": [
+    {
+      "id": "unity-variety",
+      "a": "unity",
+      "b": "variety",
+      "prior": "Establish intelligible coherence while preserving meaningful differentiation."
+    },
+    {
+      "id": "fluency-challenge",
+      "a": "fluency",
+      "b": "challenge",
+      "prior": "Make the intended model learnable without eliminating all cognitive work."
+    },
+    {
+      "id": "familiarity-novelty",
+      "a": "familiarity",
+      "b": "novelty",
+      "prior": "Use recognizable structure as entry and spend novelty where discovery or identity matters."
+    },
+    {
+      "id": "predictability-surprise",
+      "a": "predictability",
+      "b": "surprise",
+      "prior": "Build expectations before violating them; tune surprise to uncertainty and audience knowledge."
+    },
+    {
+      "id": "continuity-discontinuity",
+      "a": "continuity",
+      "b": "discontinuity",
+      "prior": "Preserve the event model across surface change unless a real boundary is intended."
+    },
+    {
+      "id": "restraint-expression",
+      "a": "restraint",
+      "b": "expressiveness",
+      "prior": "Keep expressive force proportional to the role of the moment and medium."
+    },
+    {
+      "id": "explicitness-ambiguity",
+      "a": "explicitness",
+      "b": "ambiguity",
+      "prior": "State what must be understood; preserve ambiguity only when interpretive openness is part of the work."
+    },
+    {
+      "id": "density-space",
+      "a": "density",
+      "b": "breathing-space",
+      "prior": "Concentrate information where comparison matters and create rest where hierarchy or affect needs time."
+    }
+  ],
+  "lenses": [
+    "perception",
+    "composition",
+    "meaning",
+    "narrative",
+    "affect",
+    "craft",
+    "context"
+  ],
+  "evidenceClasses": {
+    "robust_empirical": "strong scoped prior supported across substantial evidence",
+    "bounded_empirical": "direct evidence with meaningful population/medium/task limits",
+    "theory_backed": "useful explanatory model with partial empirical support",
+    "craft_prior": "durable professional convention to keep or deliberately break",
+    "trend": "time-bound stylistic signal, never a law",
+    "local_experiment": "Ordivon-specific evidence that updates only the relevant profile until replicated elsewhere"
+  },
+  "prohibitions": [
+    "Do not infer artistic value from popularity alone.",
+    "Do not treat one observer as universal taste authority.",
+    "Do not treat a current trend as a stable aesthetic principle.",
+    "Do not turn diagnostic metrics into a universal beauty score.",
+    "Do not let expressive framing contradict source-bound factual claims.",
+    "Do not treat the best searched candidate, one Reward/judge score, or one corrected statistical test as creative truth."
+  ],
+  "aestheticDimensions": [
+    {
+      "id": "perceptual-legibility",
+      "question": "Can the intended sensory structure be recovered without avoidable friction?"
+    },
+    {
+      "id": "coherence",
+      "question": "Do parts establish intelligible order, unity, hierarchy, and relationships?"
+    },
+    {
+      "id": "richness",
+      "question": "Is there enough meaningful variation and information to sustain attention?"
+    },
+    {
+      "id": "novelty",
+      "question": "How does the work depart from learned category expectations?"
+    },
+    {
+      "id": "affect-valuation",
+      "question": "What emotional, hedonic, aversive, arousal, or reward response does the work invite?"
+    },
+    {
+      "id": "meaning-context",
+      "question": "What associations, knowledge, culture, intent, narrative, and prior exposure change the experience?"
+    },
+    {
+      "id": "craft-resolution",
+      "question": "Does execution feel deliberate, controlled, and sufficiently resolved for its intended form?"
+    },
+    {
+      "id": "expression-presence",
+      "question": "Does the work carry distinctive character or felt force beyond correctness?"
+    },
+    {
+      "id": "aftereffect",
+      "question": "What remains after first contact: memory, curiosity, reflection, trust, desire, or action?"
+    }
+  ],
+  "causalLayers": [
+    "artifact-properties",
+    "perceptual-processing",
+    "affect-valuation",
+    "meaning-interpretation",
+    "aesthetic-judgment",
+    "behavior-memory-action"
+  ],
+  "sourceLedger": "research/expression/sources.json",
+  "creativeSystem": {
+    "authority": "research/expression/creative-system.md",
+    "thesis": "Build one Agent-first cross-medium work cognition system; keep medium, distribution, audience, encounter, and equipment knowledge as faster-moving profiles above a slower shared core.",
+    "coreLoop": [
+      "frame",
+      "bind",
+      "express",
+      "render",
+      "audit",
+      "decide"
+    ],
+    "knowledgeInputs": [
+      "external-research",
+      "durable-craft",
+      "culture-history-current-environment",
+      "local-production-evidence"
+    ],
+    "culturalObservatory": {
+      "authority": "research/expression/cultural-observatory.md",
+      "role": "Acquire bounded external cultural and attention-world evidence for hypothesis generation without turning platform selection into aesthetic truth.",
+      "responsibilities": [
+        "observe",
+        "corpus-with-controls",
+        "structure-compare",
+        "creative-intervention",
+        "consequence-when-observable"
+      ],
+      "selectionBoundary": "Winner, rank, most-viewed, editorial selection, and trend are distinct observed mechanisms; none is a universal quality label.",
+      "richPerception": {
+        "authority": "research/expression/experiments/r4-rich-perception.md",
+        "sharedMeasurementGrammar": [
+          "coefficient-of-variation",
+          "normalized-entropy",
+          "lag-1-correlation",
+          "peak-position",
+          "early-late-balance",
+          "turning-point-rate"
+        ],
+        "retainedEquipment": [
+          "article-full-content-structure-as-context-evidence",
+          "video-temporal-structure",
+          "audio-temporal-spectral-structure",
+          "bounded-av-alignment-diagnostic"
+        ],
+        "commands": [
+          "pnpm culture:r4:article",
+          "uv run python scripts/run-r4-media-experiment.py --help"
+        ],
+        "boundary": "More perception earns reuse only when it reduces uncertainty at the tested scope. Shared structural operators do not imply shared medium semantics, quality, or success direction."
+      },
+      "groundedMeaning": {
+        "authority": "research/expression/experiments/r5-grounded-meaning.md",
+        "acceptance": [
+          "grounding",
+          "controlled-sensitivity",
+          "meaning-preserving-invariance",
+          "counterexample-resistance",
+          "disagreement-visibility",
+          "typed-consequence"
+        ],
+        "retainedEquipment": [
+          "evidence-addressed-semantic-observations",
+          "time-coded-event-checks",
+          "grounding-validity-tests",
+          "event-omission-falsifiers",
+          "crossmodal-relation-hypotheses",
+          "agent-observer-knowledge-transfer"
+        ],
+        "withheld": [
+          "fine-relation-label-as-semantic-truth",
+          "closed-speech-act-taxonomy",
+          "native-raw-video-vlm-capability",
+          "human-consequence-claim"
+        ],
+        "providerAuthority": "Harness structured completion owns Provider credentials and calls; Studio owns experiment/oracle/scoring and never treats Provider output as truth.",
+        "commands": [
+          "pnpm culture:r5:build",
+          "pnpm culture:r5:score"
+        ],
+        "boundary": "Meaning observations retain exact evidence and visible uncertainty. Relation labels are hypotheses when granularity is unstable, and consequence must name its observer class."
+      },
+      "commands": [
+        "pnpm culture:capabilities",
+        "pnpm culture:collect",
+        "pnpm culture:analyze",
+        "pnpm culture:loop"
+      ],
+      "creativeAlphaResearch": {
+        "authority": "research/expression/experiments/r6-creative-alpha.md",
+        "definition": "Incremental typed consequence under a controlled creative intervention and explicit context; never a universal quality or Reward score.",
+        "researchInstitutions": [
+          "search-is-data",
+          "candidate-freeze",
+          "search-replay-null",
+          "pristine-holdout",
+          "assignment-and-propensity",
+          "realized-encounter",
+          "typed-consequence",
+          "explicit-oos-scope",
+          "program-marginal-context"
+        ],
+        "retainedEvidence": [
+          "r6a-zero-alpha-search-attacks",
+          "r6b-web-encounter-receipts",
+          "r6c-browser-grounded-agent-observer-consequence",
+          "r6d-pristine-content-oos",
+          "r6e-program-portfolio-counterfactual"
+        ],
+        "oosDimensions": [
+          "artifact-content",
+          "observer-class",
+          "encounter",
+          "time",
+          "medium",
+          "human-population"
+        ],
+        "boundary": "R6 establishes research-validity and one Agent-observer artifact-content OOS direction. It does not establish human consequence, stable effect size, cross-provider, time, encounter, or medium generalization."
+      }
+    },
+    "slowCoreResponsibilities": [
+      "experiential-target",
+      "truth-and-focalization-binding",
+      "medium-native-expression",
+      "real-artifact-observation",
+      "rendered-semantic-audit",
+      "scoped-decision-and-learning"
+    ],
+    "variableProfiles": [
+      "medium",
+      "distribution-surface",
+      "audience-observer-class",
+      "encounter-mode",
+      "production-equipment"
+    ],
+    "twoSpeedLearning": {
+      "innerLoop": "Agent-speed generation, rendering, comparison, semantic audit and revision.",
+      "outerLoop": "Human response, culture, distribution and world consequence provide slower external evidence.",
+      "boundary": "Do not treat fast internal convergence as proof of human experience or universal artistic value."
+    },
+    "learningPromotion": [
+      "artifact-local",
+      "medium-profile-candidate",
+      "cross-medium-core-candidate"
+    ],
+    "protocolAuthority": "research/expression/protocol.md",
+    "knowledgeModel": "research/expression/knowledge-model.md",
+    "profileIndex": "research/expression/profiles/index.json",
+    "researchBranch": "Research is conditional: use it only when durable uncertainty survives normal production."
+  },
+  "knowledgeLayers": {
+    "hard_constraint": "mechanically testable or externally owned boundary; verify strongly",
+    "durable_prior": "cross-medium scoped prior; stable enough to reuse, always revisable",
+    "medium_prior": "medium-specific craft or affordance knowledge; owned by a profile",
+    "context_signal": "culture/platform/audience/time-sensitive signal; retrieve near use",
+    "local_observation": "bounded Ordivon evidence; retain exact scope and provenance"
+  },
+  "profileRegistry": "research/expression/profiles/index.json",
+  "mediaWorldModel": "research/expression/media-world-model.json"
+}
