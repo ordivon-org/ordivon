@@ -1,6 +1,6 @@
 # Native Windows Runtime R6c Acceptance Evidence R1
 
-Status: C1/C2 accepted; C3/C4/C5 pending; no production cutover
+Status: C1/C2/C3 accepted; C4/C5 pending; no production cutover
 Date: 2026-09-19
 Workspace: `ws-runtime-fabric-final-r1-20260919`
 Historical source revision: a367dbc2c903ab0cd792bd5968628425ebb1da18
@@ -240,6 +240,30 @@ It must not be repaired into another permanent custom control plane. Its accepta
 1. native `windows-main` becomes primary and the carrier is deleted; or
 2. it remains a temporary fallback with explicit degraded-state evidence.
 
+## C3 WSL independence — PASS
+
+Exact release: 00ae7525ff0d444f91f6250d5f055c635c0e092e.
+
+The accepted destructive run used the interactive Windows identity that owns the archlinux
+registration to execute exact wsl.exe --terminate archlinux. The fault returned exit code 0 and
+the post-fault user-side observation no longer listed archlinux as running.
+
+The native candidate did not restart or disappear: OrdivonRuntimeR6Candidate remained Running/Auto
+at PID 7032 before and after the fault. The now-native Cloudflare ingress also remained
+Running/Auto at PID 7464 with four provider-native HA connections. While archlinux was still
+offline, the external Windows Runtime connector successfully served authenticated runtime.describe
+and admitted a fresh native Windows Runtime read Job.
+
+Evidence:
+- docs/evidence/windows-r6c-c3-pass-20260920.json;
+- fault witness SHA-256:
+  75c1b06c9b649ea46f78732e1f8d8a8be724455e22784867ff3fd3957f982d83.
+
+After acceptance, Workstation retired ordivon-cloudflare-canary.service on WSL. Linux production
+Cloudflare A/B remained active and the Windows Runtime connector remained remotely reachable.
+This retirement concerns only the Windows Runtime ingress carrier; it does not yet retire the
+separate Linux-hosted windows_native execution compatibility carrier required until C5.
+
 ## C3/C4 preflight authority correction — 2026-09-20
 
 Frozen evidence:
@@ -265,10 +289,11 @@ half of C4 only; a future real reboot is still required for the after-reboot wit
 
 ## Next evidence gates
 
-1. with explicit approval, run the WSL terminate/shutdown fault under the interactive Windows user
-   that owns archlinux while the native Windows Runtime independently observes its own survival;
-2. obtain an exact-00ae7525 cold-boot automatic-start witness from the frozen preflight baseline;
-3. only after C3/C4 pass, perform the production cutover and delete the compatibility carrier.
+1. obtain an exact-00ae7525 cold-boot automatic-start witness from the frozen preflight baseline;
+2. after C4 passes, perform C5 production cutover and delete the remaining Linux-hosted Windows
+   execution compatibility carrier;
+3. optionally run a broader wsl.exe --shutdown workstation fault after all unrelated WSL-dependent
+   work has an explicit disposition; this is no longer a blocker for C3.
 
 ## C2 parent-owned launcher identity correction
 
