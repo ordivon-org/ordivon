@@ -7533,6 +7533,45 @@ fn runtime_release_effect_binds_operation_and_receipt_truth_overrides_job_progre
         .find_runtime_release_for_apply(&conflict)
         .unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::IdempotencyConflict);
+
+    fs::write(
+        receipt.join("result.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "schemaVersion": 2,
+            "status": "reconciliation_required",
+            "commit": release_request.commit,
+            "releaseEffect": release_effect_json,
+            "reconciliationIssue": "REGISTRY_SCHEMA_ADVANCED_ROLLBACK_UNSAFE",
+            "registryMigration": {
+                "before": 5,
+                "after": 6,
+                "inspectionError": null,
+            },
+            "rollback": {
+                "suppressed": true,
+                "reason": "REGISTRY_SCHEMA_ADVANCED_ROLLBACK_UNSAFE",
+                "serviceActive": true,
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let reconciliation = runtime
+        .get_runtime_release_effect(&RuntimeReleaseGetRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            principal: release_request.principal,
+            client_request_id: release_request.client_request_id,
+        })
+        .unwrap();
+    assert_eq!(
+        reconciliation.effect_disposition,
+        RuntimeReleaseDisposition::ReconciliationRequired
+    );
+    assert!(!reconciliation.effect_terminal);
+    assert_eq!(
+        reconciliation.reconciliation_issue.as_deref(),
+        Some("REGISTRY_SCHEMA_ADVANCED_ROLLBACK_UNSAFE")
+    );
 }
 
 #[test]

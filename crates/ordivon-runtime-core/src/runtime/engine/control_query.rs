@@ -1487,6 +1487,17 @@ fn inspect_runtime_release_receipt(
             false,
             Some("RELEASE_ROLLBACK_FAILED".to_string()),
         ),
+        Some("reconciliation_required") => (
+            RuntimeReleaseDisposition::ReconciliationRequired,
+            false,
+            Some(
+                result
+                    .get("reconciliationIssue")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("RELEASE_RECONCILIATION_REQUIRED")
+                    .to_string(),
+            ),
+        ),
         Some("recovery_failed") => (
             RuntimeReleaseDisposition::ReconciliationRequired,
             false,

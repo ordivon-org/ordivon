@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import fcntl
 import hashlib
 import json
 import os
+import re
 import runpy
 import shutil
 import sqlite3
@@ -262,6 +264,58 @@ else:
 """,
     )
     return path
+
+def fake_runtime_inspect_with_active_jobs(root: Path) -> Path:
+    path = root / "ordivon-runtime-inspect-live"
+    write_executable(
+        path,
+        """#!/usr/bin/env python3
+import json
+import sqlite3
+import sys
+
+command = sys.argv[1]
+database = sys.argv[sys.argv.index("--database") + 1]
+with sqlite3.connect(database) as connection:
+    migration = connection.execute(
+        "SELECT COALESCE(MAX(version),0) FROM schema_migrations"
+    ).fetchone()[0]
+    active = [
+        row[0]
+        for row in connection.execute(
+            "SELECT DISTINCT j.job_id "
+            "FROM concurrency_reservations r "
+            "JOIN attempts a ON a.attempt_id=r.attempt_id "
+            "JOIN jobs j ON j.job_id=a.job_id "
+            "WHERE r.state IN ('active','held_orphaned') "
+            "ORDER BY j.job_id"
+        )
+    ]
+    if command == "registry":
+        attempt_id = (
+            sys.argv[sys.argv.index("--attempt-id") + 1]
+            if "--attempt-id" in sys.argv
+            else None
+        )
+        resolved = None
+        if attempt_id is not None:
+            row = connection.execute(
+                "SELECT job_id FROM attempts WHERE attempt_id=?",
+                (attempt_id,),
+            ).fetchone()
+            resolved = row[0] if row else None
+        print(json.dumps({
+            "migrationVersion": migration,
+            "activeJobIds": active,
+            "activeWorkspaces": [],
+            "resolvedAttemptJobId": resolved,
+        }))
+    else:
+        raise SystemExit(2)
+""",
+    )
+    return path
+
 
 def add_release_operator_sources(path: Path, *, push: bool) -> str:
     scripts = path / "scripts"
@@ -3031,6 +3085,124 @@ class DeployReclaimTests(unittest.TestCase):
             receipt_result = json.loads((receipts[0] / "result.json").read_text())
             self.assertEqual(receipt_result["status"], "not_committed")
             self.assertTrue(receipt_result["rollback"]["serviceActive"])
+
+    def test_deploy_suppresses_automatic_binary_rollback_after_registry_schema_advance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "repo"
+            commit = initialize_git_repository(repo, remote=True)
+            candidate = repo / "target" / "release"
+            install = root / "install"
+            candidate.mkdir(parents=True)
+            install.mkdir()
+            write_executable(candidate / "runtime", "new\n")
+            write_executable(install / "runtime", "old\n")
+            manifest = root / "candidate-manifest.json"
+            write_candidate_manifest(manifest, candidate, commit, ("runtime",), repo)
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+
+            state = root / "service-state"
+            state.write_text("active\n", encoding="utf-8")
+            systemctl = root / "systemctl"
+            write_executable(
+                systemctl,
+                "#!/usr/bin/env python3\n"
+                "import sqlite3, sys\n"
+                "from pathlib import Path\n"
+                f"state=Path({str(state)!r})\n"
+                f"database=Path({str(database)!r})\n"
+                "command=sys.argv[1]\n"
+                "if command == 'is-active':\n"
+                "    print(state.read_text().strip())\n"
+                "elif command == 'stop':\n"
+                "    state.write_text('inactive\\n')\n"
+                "elif command == 'start':\n"
+                "    state.write_text('active\\n')\n"
+                "    with sqlite3.connect(database) as connection:\n"
+                "        connection.execute('UPDATE schema_migrations SET version=2')\n"
+                "        connection.commit()\n"
+                "else:\n"
+                "    raise SystemExit(1)\n",
+            )
+
+            inspect = fake_runtime_inspect_with_active_jobs(root)
+            with mcp_server(["workspace.get"]) as port:
+                env_file = root / "runtime.env"
+                env_file.write_text(
+                    f"ORDIVON_BIND=127.0.0.1:{port}\n"
+                    "ORDIVON_BEARER_TOKEN=test\n",
+                    encoding="utf-8",
+                )
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "scripts/ordivon-runtime-deploy",
+                        "apply",
+                        "--source-repo", str(repo),
+                        "--commit", commit,
+                        "--confirm-commit", commit,
+                        "--candidate-dir", str(candidate),
+                        "--candidate-manifest", str(manifest),
+                        "--install-dir", str(install),
+                        "--database", str(database),
+                        "--env-file", str(env_file),
+                        "--receipt-root", str(root / "receipts"),
+                        "--systemctl", str(systemctl),
+                        "--git", shutil.which("git") or "/usr/bin/git",
+                        "--lock-file", str(root / "deploy.lock"),
+                        "--binary", "runtime",
+                        "--required-tool", "workspace.get",
+                        "--expected-tool-count", "2",
+                        "--wait-seconds", "0.25",
+                    ],
+                    cwd=REPO,
+                    check=False,
+                    text=True,
+                    capture_output=True,
+                    env={**os.environ, "ORDIVON_RUNTIME_INSPECT": str(inspect)},
+                )
+
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("reconciliation_required", result.stderr)
+            self.assertEqual((install / "runtime").read_text(), "new\n")
+            receipts = list((root / "receipts").iterdir())
+            self.assertEqual(len(receipts), 1)
+            receipt_result = json.loads((receipts[0] / "result.json").read_text())
+            self.assertEqual(receipt_result["status"], "reconciliation_required")
+            self.assertEqual(
+                receipt_result["reconciliationIssue"],
+                "REGISTRY_SCHEMA_ADVANCED_ROLLBACK_UNSAFE",
+            )
+            self.assertEqual(receipt_result["registryMigration"]["before"], 1)
+            self.assertEqual(receipt_result["registryMigration"]["after"], 2)
+            self.assertTrue(receipt_result["rollback"]["suppressed"])
+            self.assertTrue(receipt_result["rollback"]["serviceActive"])
+
+    def test_operations_tool_count_tracks_executable_e2e_catalog(self) -> None:
+        source = ast.parse((REPO / "scripts/mcp_e2e.py").read_text(encoding="utf-8"))
+        expected_tools = None
+        for node in source.body:
+            if not isinstance(node, ast.Assign):
+                continue
+            if not any(isinstance(target, ast.Name) and target.id == "EXPECTED_TOOLS" for target in node.targets):
+                continue
+            self.assertIsInstance(node.value, ast.Set)
+            expected_tools = {
+                element.value
+                for element in node.value.elts
+                if isinstance(element, ast.Constant) and isinstance(element.value, str)
+            }
+            break
+        self.assertIsNotNone(expected_tools)
+        count = len(expected_tools)
+        operations = (REPO / "docs/operations.md").read_text(encoding="utf-8")
+        documented_counts = {
+            int(value)
+            for value in re.findall(r"--expected-tool-count\s+(\d+)", operations)
+        }
+        self.assertEqual(documented_counts, {count})
+        self.assertIn(f"expected {count}-Tool catalog", operations)
 
     def test_deploy_requires_modern_and_restores_legacy_previous_binary(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
