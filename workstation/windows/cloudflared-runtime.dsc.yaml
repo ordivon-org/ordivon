@@ -15,10 +15,10 @@ resources:
   - type: Microsoft.Windows/Service
     name: WindowsRuntimeCloudflareIngress
     properties:
-      name: OrdivonCloudflaredWindowsRuntime
-      displayName: Ordivon Cloudflare Windows Runtime ingress
+      name: Cloudflared
+      displayName: Cloudflared agent
       description: Cloudflare Tunnel connector for the native Windows Runtime MCP endpoint.
-      executablePath: '"C:\Program Files (x86)\cloudflared\cloudflared.exe" --no-autoupdate tunnel --protocol http2 --metrics 127.0.0.1:20246 --token-file "C:\ProgramData\Ordivon\Cloudflare\windows-runtime-canary.token" run'
+      executablePath: '"C:\Program Files (x86)\cloudflared\cloudflared.exe" --no-autoupdate tunnel --protocol http2 --metrics 127.0.0.1:20246 run --token-file "C:\ProgramData\Ordivon\Cloudflare\windows-runtime-canary.token"'
       logonAccount: LocalSystem
       startType: Automatic
       status: Running

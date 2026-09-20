@@ -18,7 +18,7 @@ The current remote-managed canary Tunnel already routes canary-mcp.ordivon.com t
 workstation/windows/cloudflared-runtime.dsc.yaml uses upstream owners directly:
 
 - Microsoft.WinGet/Package -> Cloudflare.cloudflared;
-- Microsoft.Windows/Service -> SCM service OrdivonCloudflaredWindowsRuntime;
+- Microsoft.Windows/Service -> provider-native SCM service Cloudflared;
 - LocalSystem;
 - Automatic;
 - Running;
@@ -26,6 +26,8 @@ workstation/windows/cloudflared-runtime.dsc.yaml uses upstream owners directly:
 - metrics at 127.0.0.1:20246.
 
 No Ordivon proxy, tunnel protocol, service supervisor, retry loop, or credential parser is introduced.
+
+On Windows, the upstream cloudflared binary itself registers its SCM handler under the fixed service name Cloudflared and installs the matching Event Log source and provider-native recovery action. The Workstation declaration therefore preserves that upstream service identity rather than renaming it. The token-file flag belongs to tunnel run and is placed after run in the ImagePath.
 
 ## Credential boundary
 
@@ -49,7 +51,7 @@ Credential materialization does not grant Cloudflare account API authority and d
 The Windows connector is accepted only when all of the following hold:
 
 1. OrdivonRuntimeR6Candidate is Running and owns 127.0.0.1:18997;
-2. OrdivonCloudflaredWindowsRuntime is Running, Automatic, and runs independently of WSL;
+2. Cloudflared is Running, Automatic, and runs independently of WSL;
 3. 127.0.0.1:20246 reports at least one provider-native Cloudflare Tunnel HA connection;
 4. authenticated runtime.describe succeeds through canary-mcp.ordivon.com;
 5. a real wsl.exe --terminate archlinux leaves the native Runtime PID/SCM state unchanged;
@@ -62,6 +64,6 @@ The Linux production A/B Tunnel connectors are a different ingress serving Linux
 
 C4 additionally requires a real Windows reboot proving both native services recover without WSL:
 
-Windows SCM -> OrdivonRuntimeR6Candidate + OrdivonCloudflaredWindowsRuntime -> remote MCP reachable
+Windows SCM -> OrdivonRuntimeR6Candidate + Cloudflared -> remote MCP reachable
 
 Only after C3 and C4 pass should Runtime C5 production cutover retire the remaining WSL-hosted Windows execution carrier.
