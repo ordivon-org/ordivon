@@ -136,3 +136,53 @@ Delete it after:
 1. natural owners enforce the same retention/cleanup invariants;
 2. three consecutive lifecycle audits show no material stale-carrier backlog requiring local governance;
 3. removing the ratchet does not permit additive Lens/Operator/Registry/Gate state to re-enter through another maintained contract.
+
+## Lifecycle audit — 2026-09-20
+
+Standing: **SUNSET_NOT_MET / STALE_CARRIER_PRESSURE_REMAINS**.
+
+This audit used the Host and Runtime owner-native inventory surfaces directly. Counts are point-in-time observations; they are not deletion authority and may move while concurrent agents create or close carriers.
+
+| Measure | 2026-09-19 baseline | 2026-09-20 observation |
+| --- | ---: | ---: |
+| Host open Tasks | 270 | 269 |
+| `NO_POSITIVE_VALUE_NOW` | 97 | 97 |
+| `LOCALLY_COMPLETE` | 51 | 50 |
+| `SATURATED` | 23 | 23 |
+| Runtime open Workspaces | 150 | 283 |
+| Runtime dirty Workspaces | 39 | 46 |
+| Runtime Ordivon Next Workspaces | 90 | 140 |
+| `core-zero` / `core-elimination` named Workspaces | 51 | 38 |
+
+The static ratchet remains healthy (`scripts/check_governance_persistence_r1.py` passes), but the dynamic sunset criterion does not. Host continuity pressure is essentially unchanged and Runtime carrier pressure remains material.
+
+### Owner-native cleanup performed
+
+For Ordivon Next workspaces, a bounded cleanup required all of the following before closure:
+
+- no current non-terminal Host Task checkpoint referenced the Workspace;
+- Runtime reported the Workspace clean;
+- no active Runtime Job was attached;
+- the Workspace HEAD was already reachable from current `main`, proving the Git output was preserved;
+- the Workspace predated the current-day parallel work, reducing interference with active agents;
+- `workspace.close` used the exact current `sourceStateDigest` with `force=false`.
+
+Nine historical Workspaces satisfied those conditions and were removed:
+
+- `ws-commercial-marketing-integration-r2-20260919`
+- `ws-agent-service-standards-wave3-integrate-r1-20260919`
+- `ws-r40-reconcile-latest-b2eab-20260919`
+- `ws-commercial-integration-r5-20260919`
+- `ws-commercial-integration-r3-20260919`
+- `ws-agent-service-main-integration-r1-20260919`
+- `ws-standards-wave2-next-20260919`
+- `ws-agentservice-standards-wave2-r1-20260919`
+- `ws-toolchain-authority-census-r3-20260919`
+
+A separate bounded census found 112 clean, Host-unclaimed Ordivon Next Workspaces whose HEADs were **not** reachable from current `main`. They were deliberately retained: a clean worktree is not proof that its unique commit has been integrated, archived, rejected, or handed off. Deleting those carriers without resolving that preservation question would violate this ratchet's own finalizer-like law.
+
+### Sunset consequence
+
+This observation does **not** count as one of the three consecutive clean lifecycle audits required for deletion. The ratchet still changes real decisions: it caused safe closure of preserved carriers while preventing deletion of unpreserved unique commits.
+
+Do not add a second lifecycle database or custom garbage collector to solve this. Continue using Host claimant navigation, Runtime Workspace state, Git reachability, and exact close fences. The next audit should reassess whether natural-owner lifecycle behavior has made this local review rule redundant.

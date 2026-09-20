@@ -124,6 +124,21 @@ class ExternalOwnershipBoundaryTests(unittest.TestCase):
             self.assertNotEqual(owner["name"].strip().lower(), "ordivon")
             self.assertTrue(owner["canonicalReference"].startswith("https://"))
 
+    def test_credential_reference_is_binding_not_semantic_authority(self) -> None:
+        profile = _load_profile()
+        boundary = profile["credentialReferenceBoundary"]
+        self.assertEqual(boundary["status"], "RETAIN_THIN_CROSS_OWNER_BINDING")
+        self.assertFalse(boundary["authoritative"])
+        owners = boundary["fieldOwnership"]
+        self.assertEqual(owners["providerReference"]["authority"], "EXTERNAL")
+        self.assertEqual(owners["issuer"]["authorityIds"], ["rfc-8414", "rfc-9700"])
+        self.assertEqual(owners["resource"]["authorityIds"], ["rfc-8707", "rfc-9728"])
+        self.assertEqual(
+            owners["requestedScopes"]["authorityIds"], ["rfc-6749", "rfc-9700"]
+        )
+        self.assertIn("secret material store", boundary["mustNotBecome"])
+        self.assertIn("generic credential registry", boundary["mustNotBecome"])
+
     def test_deletion_gates_are_behavioral_not_brand_based(self) -> None:
         profile = _load_profile()
         gates = set(profile["mandatoryDeletionGates"])

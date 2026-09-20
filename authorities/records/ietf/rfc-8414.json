@@ -1,0 +1,57 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "RFC 8414",
+      "OAuth Authorization Server Metadata",
+      "authorization server metadata"
+    ],
+    "domains": [
+      "security",
+      "identity",
+      "distribution",
+      "web"
+    ],
+    "topics": [
+      "oauth",
+      "authorization-server",
+      "issuer",
+      "metadata",
+      "discovery"
+    ]
+  },
+  "id": "rfc-8414",
+  "identity": {
+    "authorityKind": "internet-standard",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "ietf",
+      "name": "IETF"
+    },
+    "officialSource": "https://www.rfc-editor.org/info/rfc8414/",
+    "publicationDate": "2018-06",
+    "title": "RFC 8414 — OAuth 2.0 Authorization Server Metadata",
+    "versionLabel": "RFC 8414"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-20",
+    "registrationBasis": [
+      "policies/external-ownership-boundary.json",
+      "RFC Editor checked 2026-09-20"
+    ]
+  },
+  "relations": {
+    "related": [
+      "rfc-6749",
+      "rfc-9700"
+    ],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

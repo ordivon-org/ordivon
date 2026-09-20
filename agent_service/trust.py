@@ -51,7 +51,12 @@ class CredentialReference:
 
 
 class CredentialReferenceStore:
-    """Opaque credential locator metadata. Secret material is never fetched or stored here."""
+    """Immutable cross-owner credential binding.
+
+    Provider handles and authorization metadata remain externally authoritative.
+    This store keeps replay identity plus a fail-closed expected contract; secret
+    material is never fetched or stored here.
+    """
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
