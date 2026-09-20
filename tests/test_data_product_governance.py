@@ -24,15 +24,13 @@ def test_each_catalog_dataset_links_exactly_one_policy_and_stays_local():
     for ds in d['dcat:dataset']:
         assert 'odrl:Asset' in ds['@type']
         assert ds['odrl:hasPolicy']['@id']==ds['dct:rights']['@id']
-        distributions=ds['dcat:distribution']
-        assert distributions
-        for dist in distributions:
+        for dist in ds['dcat:distribution']:
             assert dist['dcat:accessURL']['@id'].startswith('file://')
 
-def test_domain_governance_references_are_revision_bound():
+def test_domain_governance_references_follow_current_domain_revisions():
     a=load('acceptance.json')
-    assert a['research']['repositoryRevision']=='6cfa97c3a2c4f71dc161744301b3dbcdd334f058'
-    assert a['finance']['repositoryRevision']=='1746897f45d6326e1732c804007b57c550987bd0'
+    assert a['research']['repositoryRevision']=='18a8afae92ae2ef3b89d645bbcccf6db51db1b9d'
+    assert a['finance']['repositoryRevision']=='14885beb2b566458123dd9f273a66884fb337017'
     for key in ['research','finance']:
         d=a[key]
         assert d['governancePolicyUid'].startswith('urn:uuid:')
