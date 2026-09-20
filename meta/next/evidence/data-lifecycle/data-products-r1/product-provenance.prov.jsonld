@@ -1,0 +1,78 @@
+{
+  "@context": {
+    "prov": "http://www.w3.org/ns/prov#",
+    "dct": "http://purl.org/dc/terms/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@graph": [
+    {
+      "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "@type": "prov:Entity",
+      "dct:title": "Paper1 frozen benchmark CSV",
+      "dct:identifier": "sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+    },
+    {
+      "@id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0",
+      "@type": "prov:Entity",
+      "dct:title": "Paper1 Frozen Flaky-Test Benchmark",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      }
+    },
+    {
+      "@id": "urn:ordivon:activity:paper1-crossproject-robustness-r1",
+      "@type": "prov:Activity",
+      "prov:used": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      },
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:repo:research"
+      }
+    },
+    {
+      "@id": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "@type": "prov:Entity",
+      "dct:title": "Paper1 R1 robustness combined seed-order results",
+      "prov:wasGeneratedBy": {
+        "@id": "urn:ordivon:activity:paper1-crossproject-robustness-r1"
+      },
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50"
+      }
+    },
+    {
+      "@id": "urn:ordivon:repo:research",
+      "@type": "prov:Agent",
+      "dct:identifier": "ordivon-research-v2@dbe832f0483f49eaceeb58e4fb935265f280cb8e"
+    },
+    {
+      "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "@type": "prov:Entity",
+      "dct:title": "Crypto public shadow R2 evidence",
+      "dct:identifier": "sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+    },
+    {
+      "@id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14",
+      "@type": "prov:Entity",
+      "dct:title": "Crypto Public Shadow R2 Observation",
+      "prov:wasDerivedFrom": {
+        "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      }
+    },
+    {
+      "@id": "urn:ordivon:activity:crypto-public-shadow-r2-capture",
+      "@type": "prov:Activity",
+      "prov:generated": {
+        "@id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e"
+      },
+      "prov:wasAssociatedWith": {
+        "@id": "urn:ordivon:repo:finance"
+      }
+    },
+    {
+      "@id": "urn:ordivon:repo:finance",
+      "@type": "prov:Agent",
+      "dct:identifier": "ordivon-market-capital-next@74055044fcb72e917f33404bbe08fd902f368c44"
+    }
+  ]
+}

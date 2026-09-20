@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.data-product-federation-acceptance",
+  "standing": "PASS_TWO_DOMAIN_ODPS_ODCS_DCAT_PROV",
+  "asOf": "2026-09-20",
+  "externalOwners": {
+    "product": "bitol-odps-1.1.0",
+    "contract": "bitol-odcs-3.2.0",
+    "catalog": "w3c-dcat-3-2024",
+    "semanticProvenance": "w3c-prov-o-2013"
+  },
+  "research": {
+    "repositoryRevision": "dbe832f0483f49eaceeb58e4fb935265f280cb8e",
+    "productId": "94d0bf2c-036b-53b1-b733-14d3a5536a74",
+    "productVersion": "1.0.0",
+    "contractId": "4596a0eb-a009-53a6-af75-02189195225b",
+    "sourceSha256": "6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+    "robustnessResultSha256": "37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+    "consumerBinding": "EXPLICIT_DATASET_DIGEST_IN_RESULT_ROWS"
+  },
+  "finance": {
+    "repositoryRevision": "74055044fcb72e917f33404bbe08fd902f368c44",
+    "productId": "d14d7457-c9aa-59e0-8bf5-7783cea39c1c",
+    "productVersion": "2026.09.14",
+    "contractId": "5de34add-dca7-54eb-ada3-5e657a7c3ff3",
+    "sourceSha256": "ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+    "consumerBinding": "NOT_YET_PROVEN_AFTER_PRODUCT_REGISTRATION",
+    "externalFinancialWritesAttempted": false,
+    "privateAccountDataUsed": false,
+    "brokerCredentialsUsed": false
+  },
+  "catalog": {
+    "datasetCount": 2,
+    "distributionCount": 2,
+    "dcatJsonldSha256": "d7f8f250d8e1140d2e99e99c1d60c7c2e552924aae29a785dcaac04817bdea5f",
+    "provJsonldSha256": "17bd51dad7c38f845a164147cc4c6d0bc2d04c4bab563bf25afb625d02a2195d"
+  },
+  "claimBoundary": "DCAT federation and PROV source/product derivation are proven. Research also has an existing digest-bound derived result. Finance decision/action consumption after product registration remains unproven.",
+  "rdfValidation": {
+    "parser": "rdflib",
+    "catalogTriples": 35,
+    "provenanceTriples": 26,
+    "standing": "PASS"
+  }
+}
