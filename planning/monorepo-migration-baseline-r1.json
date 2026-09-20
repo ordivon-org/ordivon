@@ -46,14 +46,16 @@
       "head": "4b428b4f3bd69f4df1955b290b7cb5d85d59d287",
       "worktree": "CLEAN",
       "target": "services/harness",
-      "preImport": "IMPORT_ACCEPTED_PYTHON_3_14_7_CANDIDATE; REAPPLY_DIVERGED_66091559_REDUCTION_POST_IMPORT_AS_SEPARATE_SEMANTIC_CHANGE",
+      "preImport": "IMPORT_ACCEPTED_PYTHON_3_14_7_MAIN; REAPPLY_DIVERGED_66091559_REDUCTION_POST_IMPORT_AS_SEPARATE_SEMANTIC_CHANGE",
       "importRef": "migration/python-3.14.7",
-      "importRevision": "88452cf9a4a4844095f49c6c5fa389345ef7bbd0",
+      "importRevision": "f747f6d3f513e76530d9777725a6727351c47dc8",
       "languageRuntime": {
         "language": "python",
         "acceptedVersion": "3.14.7",
         "policy": "LATEST_STABLE_EXACT_PIN",
-        "acceptance": "PASS_909_TESTS_156_SUBTESTS_LOCAL_ACCEPTANCE_WHEEL_SCALE_NO_UNCLOSED_DB_WARNING"
+        "acceptance": "PASS_FINAL_909_TESTS_156_SUBTESTS_OWNER_TEST_AND_COLD_START_WHEEL_INSTALL_PIP_AUDIT_EVIDENCE_CURRENT_RECEIPT",
+        "currentVerifiedEvidence": "harness.environment.python-3.14.7-upgrade",
+        "acceptedRevision": "f747f6d3f513e76530d9777725a6727351c47dc8"
       }
     },
     {
