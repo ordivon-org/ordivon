@@ -378,104 +378,141 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertTrue(current, invalidating)
         self.assertEqual(invalidating, [])
 
-    def test_identity_preserving_monorepo_relocation_is_not_evidence_drift(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            source = tmp / "source"
-            target = tmp / "target"
-            source.mkdir()
-            target.mkdir()
-
-            def run(repo: Path, *args: str) -> str:
-                return subprocess.run(
-                    ["git", *args],
-                    cwd=repo,
-                    check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                ).stdout.strip()
-
-            run(source, "init", "-b", "main")
-            run(source, "config", "user.name", "Harness Evidence Test")
-            run(source, "config", "user.email", "harness-evidence-test@example.invalid")
+    def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            source = base / "source"
+            target = base / "target"
+            subprocess.run(["git", "init", "-q", "-b", "main", str(source)], check=True)
+            subprocess.run(["git", "-C", str(source), "config", "user.name", "test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
             (source / "src").mkdir()
+            (source / "scripts").mkdir()
             (source / "evidence").mkdir()
-            (source / "src" / "owner.py").write_text("VALUE = 1\n")
-            (source / "uv.lock").write_text('version = 1\n')
-            run(source, "add", "src/owner.py", "uv.lock")
-            run(source, "commit", "-m", "implementation")
-            implementation_revision = run(source, "rev-parse", "HEAD")
+            (source / "src" / "a.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (source / "pyproject.toml").write_text("[project]\nname='probe'\n", encoding="utf-8")
+            (source / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+            (source / "scripts" / "harness_p0_scale_acceptance.py").write_text(
+                "print('probe')\n", encoding="utf-8"
+            )
+            subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "implementation"], check=True)
+            implementation = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
 
-            evidence_name = "sample.json"
-            (source / "evidence" / evidence_name).write_text('{"standing":"verified"}\n')
-            run(source, "add", f"evidence/{evidence_name}")
-            run(source, "commit", "-m", "add evidence")
-            source_tip = run(source, "rev-parse", "HEAD")
-            source_tree = run(source, "rev-parse", f"{source_tip}^{{tree}}")
+            receipt_bytes = b'{"kind":"probe"}\n'
+            (source / "evidence" / "receipt.json").write_bytes(receipt_bytes)
+            subprocess.run(
+                ["git", "-C", str(source), "add", "evidence/receipt.json"], check=True
+            )
+            subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "evidence"], check=True)
+            source_head = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
 
-            run(target, "init", "-b", "main")
-            run(target, "config", "user.name", "Harness Evidence Test")
-            run(target, "config", "user.email", "harness-evidence-test@example.invalid")
-            (target / "README.md").write_text("# monorepo\n")
-            run(target, "add", "README.md")
-            run(target, "commit", "-m", "root")
-            target_before = run(target, "rev-parse", "HEAD")
-
-            run(target, "fetch", str(source), source_tip)
-            run(target, "read-tree", "--reset", target_before)
-            run(target, "read-tree", "--prefix=services/harness/", source_tree)
-            merge_tree = run(target, "write-tree")
-            merge_revision = subprocess.run(
+            subprocess.run(["git", "init", "-q", "-b", "main", str(target)], check=True)
+            subprocess.run(["git", "-C", str(target), "config", "user.name", "test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(target), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            (target / "README.md").write_text("# target\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(target), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(target), "commit", "-q", "-m", "root"], check=True)
+            before = subprocess.check_output(
+                ["git", "-C", str(target), "rev-parse", "HEAD"], text=True
+            ).strip()
+            subprocess.run(
                 [
                     "git",
+                    "-C",
+                    str(target),
+                    "fetch",
+                    "-q",
+                    str(source),
+                    f"{source_head}:refs/ordivon/import-sources/harness",
+                ],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(target), "read-tree", "--reset", before], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(target),
+                    "read-tree",
+                    "--prefix=services/harness/",
+                    f"{source_head}^{{tree}}",
+                ],
+                check=True,
+            )
+            merge_tree = subprocess.check_output(
+                ["git", "-C", str(target), "write-tree"], text=True
+            ).strip()
+            merge = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(target),
                     "commit-tree",
                     merge_tree,
                     "-p",
-                    target_before,
+                    before,
                     "-p",
-                    source_tip,
+                    source_head,
                 ],
-                cwd=target,
                 input="import harness\n",
+                text=True,
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
             ).stdout.strip()
-            run(target, "reset", "--hard", merge_revision)
+            subprocess.run(["git", "-C", str(target), "reset", "--hard", "-q", merge], check=True)
 
             owner_root = target / "services" / "harness"
-            old_root = check_evidence.ROOT
-            old_evidence = check_evidence.EVIDENCE
+            previous_root = check_evidence.ROOT
+            previous_evidence = check_evidence.EVIDENCE
             check_evidence.ROOT = owner_root
             check_evidence.EVIDENCE = owner_root / "evidence"
             try:
+                self.assertEqual(
+                    check_evidence._git_file_bytes(implementation, "uv.lock"),
+                    b"version = 1\n",
+                )
                 self.assertEqual(
                     check_evidence._git_file_bytes("HEAD", "uv.lock"),
                     b"version = 1\n",
                 )
                 self.assertEqual(
-                    check_evidence._invalidating_paths(source_tip, "HEAD"),
+                    check_evidence._invalidating_paths(source_head, "HEAD"),
                     [],
                 )
                 self.assertEqual(
                     check_evidence._validate_index_creation_lineage_binding(
-                        evidence_name,
-                        implementation_revision,
+                        "receipt.json", implementation
                     ),
                     [],
                 )
 
-                (owner_root / "src" / "owner.py").write_text("VALUE = 2\n")
-                run(target, "add", "services/harness/src/owner.py")
-                run(target, "commit", "-m", "change harness implementation")
-                current, invalidating = check_evidence._verified_revision_is_current(source_tip)
-                self.assertFalse(current)
-                self.assertEqual(invalidating, ["src/owner.py"])
+                (owner_root / "src" / "a.py").write_text("VALUE = 2\n", encoding="utf-8")
+                subprocess.run(
+                    ["git", "-C", str(target), "add", "services/harness/src/a.py"],
+                    check=True,
+                )
+                subprocess.run(
+                    ["git", "-C", str(target), "commit", "-q", "-m", "change owner source"],
+                    check=True,
+                )
+                self.assertEqual(
+                    check_evidence._invalidating_paths(source_head, "HEAD"),
+                    ["src/a.py"],
+                )
             finally:
-                check_evidence.ROOT = old_root
-                check_evidence.EVIDENCE = old_evidence
+                check_evidence.ROOT = previous_root
+                check_evidence.EVIDENCE = previous_evidence
 
     def test_complete_evidence_contract_is_green(self) -> None:
         completed = subprocess.run(

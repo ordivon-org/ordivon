@@ -17,6 +17,7 @@ import sqlite3
 import subprocess
 import tempfile
 import time
+import urllib.parse
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -98,6 +99,45 @@ def _prompt_file_text(path: Path) -> str:
     return value
 
 
+def _validate_public_handoff_origin(value: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError("browserlessHumanPublicOrigins values must be non-empty HTTPS origins")
+    parsed = urllib.parse.urlsplit(value)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("browserlessHumanPublicOrigins requires a bare HTTPS origin")
+    return value.rstrip("/")
+
+
+def _project_public_handoff_url(public_origin: str, local_url: str) -> str:
+    origin = _validate_public_handoff_origin(public_origin)
+    local = urllib.parse.urlsplit(local_url)
+    if local.scheme != "http" or local.hostname not in {"127.0.0.1", "localhost"}:
+        raise ValueError("self-hosted handoff source must remain loopback HTTP")
+    public = urllib.parse.urlsplit(origin)
+    port = public.port or 443
+    query = urllib.parse.urlencode(
+        {
+            "host": public.hostname,
+            "port": str(port),
+            "path": "websockify",
+            "autoconnect": "1",
+            "resize": "scale",
+            "encrypt": "1",
+        }
+    )
+    return urllib.parse.urlunsplit(
+        ("https", public.netloc, "/vnc.html", query, "")
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class BrowserlessAutomationConfig:
     state_root: Path
@@ -123,6 +163,7 @@ class BrowserlessAutomationConfig:
     browserless_start_timeout_seconds: int = 20
     browserless_idle_ttl_seconds: int = 900
     browserless_warm_endpoint_ids: tuple[str, ...] = ()
+    browserless_human_public_origins: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
@@ -141,6 +182,11 @@ class BrowserlessAutomationConfig:
         endpoint_ids = {endpoint.endpoint_id for endpoint in self.browserless_pool.endpoints}
         if set(self.browserless_warm_endpoint_ids) - endpoint_ids:
             raise ValueError("browserlessWarmEndpointIds contains unknown endpoint")
+        public_origins = self.browserless_human_public_origins or {}
+        if set(public_origins) - endpoint_ids:
+            raise ValueError("browserlessHumanPublicOrigins contains unknown endpoint")
+        for origin in public_origins.values():
+            _validate_public_handoff_origin(origin)
         if self.browser_session_timeout_ms < required_session_budget:
             raise ValueError(
                 "browserlessSessionTimeoutMs must cover human handoff + post-verification stabilization + margin"
@@ -155,6 +201,13 @@ class BrowserlessAutomationConfig:
             not isinstance(item, str) or not item for item in warm
         ):
             raise ValueError("browserlessWarmEndpointIds must be a list of non-empty strings")
+        public_origins = value.get("browserlessHumanPublicOrigins", {})
+        if (
+            not isinstance(public_origins, dict)
+            or any(not isinstance(k, str) or not k for k in public_origins)
+            or any(not isinstance(v, str) or not v for v in public_origins.values())
+        ):
+            raise ValueError("browserlessHumanPublicOrigins must map endpoint IDs to HTTPS origins")
         return cls(
             state_root=_abs(value["stateRoot"]),
             browserless_pool=BrowserlessPool.from_dict(value["browserSubstrate"]),
@@ -196,6 +249,7 @@ class BrowserlessAutomationConfig:
             ),
             browserless_idle_ttl_seconds=int(value.get("browserlessIdleTtlSeconds", 900)),
             browserless_warm_endpoint_ids=tuple(warm),
+            browserless_human_public_origins=dict(public_origins),
         )
 
     @property
@@ -840,10 +894,20 @@ class BrowserlessAutomationService:
                 f"human verification handoff is not currently usable: {liveness}; resume only after current-session absence is proven"
             )
         mode = value.get("mode")
-        self._endpoint_by_id(value.get("browserlessEndpointId"))
+        endpoint_id = value.get("browserlessEndpointId")
+        self._endpoint_by_id(endpoint_id)
         handoff_url = (
             value.get("operatorURL") if mode == "self-hosted-vnc" else value.get("liveURL")
         )
+        if (
+            mode == "self-hosted-vnc"
+            and isinstance(handoff_url, str)
+            and endpoint_id in (self.config.browserless_human_public_origins or {})
+        ):
+            handoff_url = _project_public_handoff_url(
+                self.config.browserless_human_public_origins[endpoint_id],
+                handoff_url,
+            )
         if not isinstance(handoff_url, str) or not handoff_url:
             raise BrowserlessAutomationHold("human verification interactive URL is unavailable")
         return {
