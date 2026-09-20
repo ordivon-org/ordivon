@@ -16,7 +16,7 @@ SOURCE_UNIT=ROOT/'systemd'/UNIT
 SYSTEM_UNIT=Path('/etc/systemd/system')/UNIT
 TEMPORAL_PY=Path('/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python')
 STATE=Path('/root/.local/state/ordivon-workstation/artifact-delivery-temporal')
-SERVER_UNIT='ordivon-temporal-agent-dev.service'
+SERVER_UNIT='temporal.service'
 def sha(p:Path)->str:return hashlib.sha256(p.read_bytes()).hexdigest()
 def active(unit:str)->bool:return subprocess.run(['/usr/bin/systemctl','is-active','--quiet',unit],check=False).returncode==0
 def temporal_sdk_version()->str|None:
