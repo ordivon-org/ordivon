@@ -1,5 +1,6 @@
+import hashlib
+import json
 from pathlib import Path
-import hashlib,json
 
 ROOT=Path(__file__).resolve().parents[1]
 P=ROOT/'data-products/crypto-public-shadow-r2'
