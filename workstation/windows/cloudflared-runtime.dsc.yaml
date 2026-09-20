@@ -1,0 +1,25 @@
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+resources:
+  - type: Microsoft.WinGet/Package
+    name: Cloudflared
+    properties:
+      id: Cloudflare.cloudflared
+      source: winget
+      useLatest: true
+      acceptAgreements: true
+
+  - type: Microsoft.Windows/Service
+    name: WindowsRuntimeCloudflareIngress
+    properties:
+      name: OrdivonCloudflaredWindowsRuntime
+      displayName: Ordivon Cloudflare Windows Runtime ingress
+      description: Cloudflare Tunnel connector for the native Windows Runtime MCP endpoint.
+      executablePath: '"C:\Program Files (x86)\cloudflared\cloudflared.exe" --no-autoupdate tunnel --protocol http2 --metrics 127.0.0.1:20246 --token-file "C:\ProgramData\Ordivon\Cloudflare\windows-runtime-canary.token" run'
+      logonAccount: LocalSystem
+      startType: Automatic
+      status: Running
+      errorControl: Normal

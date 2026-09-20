@@ -15,7 +15,7 @@ The repository path above is a temporary physical path retained during the Opera
 
 ## Windows desired state
 
-Authority: WinGet Configuration + DSC v3. Source: `workstation/windows/workstation.dsc.yaml`. Read-only evaluation uses DSC directly; no private configuration controller is required.
+Authority: WinGet Configuration + DSC v3. Base source: `workstation/windows/workstation.dsc.yaml`. Conditional provider realizations remain separate when they have external-secret preconditions; the native Windows Runtime Cloudflare ingress is declared in `workstation/windows/cloudflared-runtime.dsc.yaml` and is applied only after its node-local Tunnel token file is materialized. Read-only evaluation uses DSC directly; no private configuration controller is required.
 
 ## Caller-selected software bindings
 
