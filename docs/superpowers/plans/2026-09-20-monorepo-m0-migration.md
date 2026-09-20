@@ -14,7 +14,7 @@
 
 - The monorepo root is a Git/repository-mechanics owner only.
 - Do not create a root uv workspace, root `uv.lock`, or root Python package.
-- Python owners target the latest stable Python accepted by their owner-native gates; Harness's accepted migration candidate is pinned to Python `3.14.7`. Common runtime currency does not merge owner environments or lockfiles.
+- Python owners target the latest stable Python accepted by their owner-native gates; Harness `main` is accepted and pinned to Python `3.14.7`. Common runtime currency does not merge owner environments or lockfiles.
 - All language runtimes/toolchains follow latest-stable-by-default: exact accepted version pinned after verification; prereleases are opt-in; older-version exceptions require a reproduced blocker and explicit exit condition.
 - Runtime keeps its Cargo workspace inside `services/runtime`; do not create a root Cargo workspace in M0.
 - Media and Game keep separate pnpm workspaces/lockfiles in M0.
@@ -1071,14 +1071,14 @@ Expected: production still resolves to the previously deployed immutable Host re
 
 ---
 
-### Task 15: M4 import the accepted Python 3.14.7 Harness candidate, then reconstruct reduction separately
+### Task 15: M4 import the accepted Python 3.14.7 Harness main, then reconstruct reduction separately
 
 **Files:**
 - Import `services/harness/**`
 - Later semantic CL may remove owner-misplaced capability islands.
 - Do not extract Skills in the import commit.
 
-- [ ] **Step 1: Import the independently accepted Harness Python 3.14.7 candidate exactly**
+- [ ] **Step 1: Import the independently accepted Harness Python 3.14.7 main exactly**
 
 Run:
 
@@ -1086,7 +1086,7 @@ Run:
 cd /root/projects/ordivon
 tools/repo/migration/import-owner.sh harness \
   /root/projects/ordivon-harness \
-  88452cf9a4a4844095f49c6c5fa389345ef7bbd0 \
+  f747f6d3f513e76530d9777725a6727351c47dc8 \
   services/harness /root/projects/ordivon
 ```
 

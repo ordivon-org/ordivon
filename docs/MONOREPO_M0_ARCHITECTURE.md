@@ -114,7 +114,7 @@ Ordivon uses a **latest-stable-by-default** language runtime policy.
 6. A newer stable runtime exposing latent warnings, deprecations, resource leaks, or dependency drift is treated as useful migration evidence to fix, not as a reason to remain indefinitely on the old runtime.
 7. Sharing the same runtime version never implies sharing one virtual environment, lockfile, release, or rollback boundary.
 
-At the M0 acceptance point, Harness has an accepted Python `3.14.7` migration candidate (`88452cf9a4a4844095f49c6c5fa389345ef7bbd0`). Future Python, Node.js, Rust, and other language upgrades apply the same rule using their own official release authorities and owner-native acceptance.
+At the current M0 migration point, Harness `main` has been accepted and fast-forwarded to Python `3.14.7` at `f747f6d3f513e76530d9777725a6727351c47dc8`, including a fresh cold-start owner environment, 909 pytest cases + 156 subtests, wheel install smoke, dependency/docs/evidence contracts, and vulnerability audit. Future Python, Node.js, Rust, and other language upgrades apply the same rule using their own official release authorities and owner-native acceptance.
 
 ### 4.6 mise as thin monorepo task navigation
 
@@ -237,7 +237,7 @@ The root must not introduce:
 | `ordivon-next` | `meta/next` | import cleaned main history |
 | `ordivon-runtime` | `services/runtime` | import main history; keep Rust/Cargo release boundary |
 | `ordivon-host-v2` | `services/host` | import main history; keep PostgreSQL/Alembic/service release |
-| `ordivon-harness` | `services/harness` | import accepted Python 3.14.7 candidate `88452cf9`; keep capability-island reduction as a separate semantic CL |
+| `ordivon-harness` | `services/harness` | import accepted Python 3.14.7 main `f747f6d3`; keep capability-island reduction as a separate semantic CL |
 | `ordivon-workstation-v2` | `platform/workstation` | import stable main unchanged; reapply diverged carrier retirement separately |
 | `ordivon-network-v2` | `platform/network` | deliver Browserless lifecycle decoupling before import |
 | `ordivon-security-v2` | `platform/security` | direct low-risk import candidate |
