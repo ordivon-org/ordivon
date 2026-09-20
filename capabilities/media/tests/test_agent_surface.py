@@ -65,15 +65,15 @@ class AgentSurfaceTests(unittest.TestCase):
             ],
         )
 
-    def test_media_first_object_keeps_owner_before_studio_lowering(self) -> None:
+    def test_media_activation_boundary_precedes_studio_lowering(self) -> None:
         root = Path(__file__).resolve().parents[1]
         readme = (root / "README.md").read_text(encoding="utf-8")
-        owner = readme.index("## Media owner first interface")
+        activation = readme.index("## Activation boundary")
         studio = readme.index("## Studio capability plane")
-        self.assertLess(owner, studio)
-        self.assertIn("Studio is an optional production lowering", readme)
+        self.assertLess(activation, studio)
+        self.assertIn("Studio is an optional production capability", readme)
         self.assertIn("OMPC-v0.md", readme)
-        self.assertIn("does not by itself justify creating a Production", readme)
+        self.assertIn("does **not** enter Media merely because", readme)
 
     def test_current_media_navigation_does_not_reuse_historical_operational_state(self) -> None:
         root = Path(__file__).resolve().parents[1]

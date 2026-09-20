@@ -1,14 +1,25 @@
 # Ordivon Media
 
-Ordivon Media owns **structured mediation** across Ordivon: how source-owned realities, descriptions, states and actions become representable, composable, transformable, exposable and interactable for human and Agent observers without becoming a second truth authority.
+Ordivon Media is an **optional media-domain capability** for intentional, reusable mediation and authored expression. It does not own every observer-facing representation across Ordivon, and it does not become a second truth authority.
 
 The project Constitution is [`MEDIA.md`](MEDIA.md); canonical Media research starts at [`research/media/`](research/media/README.md). **Ordivon Studio is retained inside this project as the authoring and production capability plane.** Existing `ordivon-studio` CLI/package/tool identities remain Studio capability names rather than repository-owner names.
 
-## Media owner first interface
+## Activation boundary
 
-Generic observer-facing mediation starts at the **Media owner boundary**. The source owner keeps truth and currentness; Media chooses the bounded observer-relative projection. Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) when the projection contract itself matters.
+The default representation remains with its natural source/client owner. A tool result, status card, metric, ordinary UI projection, browser view, repository view, or provider-native response does **not** enter Media merely because a human or Agent can observe it.
 
-**Studio is an optional production lowering, not the default owner of mediation.** A Studio Claim / Production is needed only when authoring, editing, rendering, packaging, or other Studio-owned production work is actually required. A status card, Agent view, tool result, metric, Web/Game view, or other representation does not by itself justify creating a Production or invoking Studio equipment. Consequential action remains with its external admission/execution owner.
+Activate Media when the task actually requires a media-specific responsibility such as:
+
+- a durable/reusable observer-facing projection contract;
+- authored narrative or visual/audio/motion expression;
+- editable production state;
+- cross-medium composition/transformation;
+- media-specific technical QC or review preparation;
+- selected-asset provenance/rights needed by a production.
+
+Use [`OMPC-v0`](research/media/engineering-consumption/OMPC-v0.md) as an optional reference when those projection semantics materially matter. It is not a mandatory contract for every Ordivon projection.
+
+**Studio is an optional production capability.** A Studio Claim / Production is needed only when authoring, editing, rendering, packaging, or other Studio-owned production work is actually required. Consequential action remains with its external admission/execution owner.
 
 ## Studio capability plane
 
@@ -56,7 +67,7 @@ For a video explaining Runtime recovery:
 | exact selected bytes | the named durable byte authority for that medium |
 | render/QC evidence | Studio tooling and retained receipts |
 | public site orientation/publication | Web or destination platform |
-| cross-provider external distribution / effect admission / provider readback | `ordivon-distribution-v2` |
+| external publication/effect | destination/provider + caller IAM/policy; optional Distribution profile only for a demonstrated cross-provider gap |
 | human comprehension, preference, trust, recall, or other audience response | scoped human-response evidence |
 
 Persisting or presenting another owner's fact does not transfer that fact to Studio.
