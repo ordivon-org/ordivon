@@ -218,6 +218,8 @@ impl RuntimeServer {
                 release.receipt_root.to_string_lossy().into_owned(),
                 "--service".to_string(),
                 release.service_name.clone(),
+                "--workspace-id".to_string(),
+                request.workspace_id.clone(),
                 "--expected-tool-count".to_string(),
                 request.expected_tool_count.to_string(),
                 "--require-ref".to_string(),
