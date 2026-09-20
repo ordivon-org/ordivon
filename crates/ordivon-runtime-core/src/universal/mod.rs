@@ -47,8 +47,8 @@ pub use workspace::{workspace_head_revision, workspace_source_state_digest};
 pub(crate) use config::canonical_directory;
 pub(crate) use fsutil::{
     invalid, io_error, now_unix_ms, open_directory_nofollow, open_regular_file_beneath,
-    rename_path_durable, sha256_bytes, sha256_file, sync_directory, validate_env,
-    validate_exec_payload, validate_id, validate_relative_path, write_bytes_atomic,
+    parse_sha256_digest, rename_path_durable, sha256_bytes, sha256_file, sync_directory,
+    validate_env, validate_exec_payload, validate_id, validate_relative_path, write_bytes_atomic,
     write_json_atomic,
 };
 #[cfg(test)]

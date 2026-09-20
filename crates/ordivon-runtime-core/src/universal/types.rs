@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    invalid, validate_id, validate_relative_path, UniversalExecError, MAX_WORKSPACE_IO_BYTES,
-    UNIVERSAL_EXEC_SCHEMA_VERSION, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
-    WORKSPACE_ID_PATTERN,
+    invalid, parse_sha256_digest, validate_id, validate_relative_path, UniversalExecError,
+    MAX_WORKSPACE_IO_BYTES, UNIVERSAL_EXEC_SCHEMA_VERSION, WORKSPACE_ID_MAX_LENGTH,
+    WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
@@ -172,6 +172,7 @@ pub struct WorkspaceContentRequest {
     #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
     pub workspace_id: String,
     pub relative_path: String,
+    #[schemars(regex(pattern = r"^sha256:[0-9a-f]{64}$"))]
     pub expected_digest: String,
     #[schemars(range(min = 1, max = MAX_WORKSPACE_IO_BYTES))]
     pub max_bytes: u64,
@@ -183,7 +184,10 @@ impl WorkspaceContentRequest {
         validate_id(&self.workspace_id, "workspaceId")?;
         validate_relative_path(&self.relative_path, "relativePath")?;
         if !valid_digest(&self.expected_digest) {
-            return Err(invalid("expectedDigest must be SHA-256", "expectedDigest"));
+            return Err(invalid(
+                "expectedDigest must be canonical lowercase SHA-256",
+                "expectedDigest",
+            ));
         }
         if self.max_bytes == 0 || self.max_bytes > MAX_WORKSPACE_IO_BYTES {
             return Err(invalid(
@@ -245,7 +249,10 @@ impl WorkspaceWriteRequest {
             .as_ref()
             .is_some_and(|digest| !valid_digest(digest))
         {
-            return Err(invalid("expectedDigest must be SHA-256", "expectedDigest"));
+            return Err(invalid(
+                "expectedDigest must be canonical lowercase SHA-256",
+                "expectedDigest",
+            ));
         }
         Ok(())
     }
@@ -461,7 +468,7 @@ impl WorkspaceMutation {
             .is_some_and(|digest| !valid_digest(digest))
         {
             return Err(invalid(
-                "expectedDigest must be SHA-256",
+                "expectedDigest must be canonical lowercase SHA-256",
                 format!("mutations[{mutation_index}].expectedDigest"),
             ));
         }
@@ -809,7 +816,5 @@ fn require_schema(version: u32) -> Result<(), UniversalExecError> {
 }
 
 fn valid_digest(value: &str) -> bool {
-    value
-        .strip_prefix("sha256:")
-        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    parse_sha256_digest(value).is_some()
 }

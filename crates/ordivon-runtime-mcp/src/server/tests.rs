@@ -1844,6 +1844,12 @@ fn workspace_content_schema_requires_exact_digest_binding() {
     assert!(required.contains(&"relativePath"));
     assert!(required.contains(&"expectedDigest"));
     assert!(required.contains(&"maxBytes"));
+    assert_eq!(
+        schema
+            .pointer("/properties/expectedDigest/pattern")
+            .and_then(Value::as_str),
+        Some(r"^sha256:[0-9a-f]{64}$")
+    );
 }
 
 #[test]
