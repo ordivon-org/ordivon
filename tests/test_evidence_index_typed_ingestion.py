@@ -5,6 +5,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -376,6 +377,142 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(current, invalidating)
         self.assertEqual(invalidating, [])
+
+    def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            source = base / "source"
+            target = base / "target"
+            subprocess.run(["git", "init", "-q", "-b", "main", str(source)], check=True)
+            subprocess.run(["git", "-C", str(source), "config", "user.name", "test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            (source / "src").mkdir()
+            (source / "scripts").mkdir()
+            (source / "evidence").mkdir()
+            (source / "src" / "a.py").write_text("VALUE = 1\n", encoding="utf-8")
+            (source / "pyproject.toml").write_text("[project]\nname='probe'\n", encoding="utf-8")
+            (source / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+            (source / "scripts" / "harness_p0_scale_acceptance.py").write_text(
+                "print('probe')\n", encoding="utf-8"
+            )
+            subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "implementation"], check=True)
+            implementation = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+
+            receipt_bytes = b'{"kind":"probe"}\n'
+            (source / "evidence" / "receipt.json").write_bytes(receipt_bytes)
+            subprocess.run(
+                ["git", "-C", str(source), "add", "evidence/receipt.json"], check=True
+            )
+            subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "evidence"], check=True)
+            source_head = subprocess.check_output(
+                ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+            ).strip()
+
+            subprocess.run(["git", "init", "-q", "-b", "main", str(target)], check=True)
+            subprocess.run(["git", "-C", str(target), "config", "user.name", "test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(target), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            (target / "README.md").write_text("# target\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(target), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(target), "commit", "-q", "-m", "root"], check=True)
+            before = subprocess.check_output(
+                ["git", "-C", str(target), "rev-parse", "HEAD"], text=True
+            ).strip()
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(target),
+                    "fetch",
+                    "-q",
+                    str(source),
+                    f"{source_head}:refs/ordivon/import-sources/harness",
+                ],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(target), "read-tree", "--reset", before], check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(target),
+                    "read-tree",
+                    "--prefix=services/harness/",
+                    f"{source_head}^{{tree}}",
+                ],
+                check=True,
+            )
+            merge_tree = subprocess.check_output(
+                ["git", "-C", str(target), "write-tree"], text=True
+            ).strip()
+            merge = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(target),
+                    "commit-tree",
+                    merge_tree,
+                    "-p",
+                    before,
+                    "-p",
+                    source_head,
+                ],
+                input="import harness\n",
+                text=True,
+                check=True,
+                stdout=subprocess.PIPE,
+            ).stdout.strip()
+            subprocess.run(["git", "-C", str(target), "reset", "--hard", "-q", merge], check=True)
+
+            owner_root = target / "services" / "harness"
+            previous_root = check_evidence.ROOT
+            previous_evidence = check_evidence.EVIDENCE
+            check_evidence.ROOT = owner_root
+            check_evidence.EVIDENCE = owner_root / "evidence"
+            try:
+                self.assertEqual(
+                    check_evidence._git_file_bytes(implementation, "uv.lock"),
+                    b"version = 1\n",
+                )
+                self.assertEqual(
+                    check_evidence._git_file_bytes("HEAD", "uv.lock"),
+                    b"version = 1\n",
+                )
+                self.assertEqual(
+                    check_evidence._invalidating_paths(source_head, "HEAD"),
+                    [],
+                )
+                self.assertEqual(
+                    check_evidence._validate_index_creation_lineage_binding(
+                        "receipt.json", implementation
+                    ),
+                    [],
+                )
+
+                (owner_root / "src" / "a.py").write_text("VALUE = 2\n", encoding="utf-8")
+                subprocess.run(
+                    ["git", "-C", str(target), "add", "services/harness/src/a.py"],
+                    check=True,
+                )
+                subprocess.run(
+                    ["git", "-C", str(target), "commit", "-q", "-m", "change owner source"],
+                    check=True,
+                )
+                self.assertEqual(
+                    check_evidence._invalidating_paths(source_head, "HEAD"),
+                    ["src/a.py"],
+                )
+            finally:
+                check_evidence.ROOT = previous_root
+                check_evidence.EVIDENCE = previous_evidence
 
     def test_complete_evidence_contract_is_green(self) -> None:
         completed = subprocess.run(

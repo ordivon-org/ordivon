@@ -80,7 +80,7 @@ def _normalize_implementation_paths(value: object) -> tuple[str, ...] | None:
     return tuple(normalized)
 
 
-def _git_file_bytes(revision: str, relative_path: str) -> bytes:
+def _validate_revision_token(revision: str) -> None:
     if (
         not isinstance(revision, str)
         or not revision
@@ -88,10 +88,123 @@ def _git_file_bytes(revision: str, relative_path: str) -> bytes:
         or any(ch.isspace() for ch in revision)
     ):
         raise ValueError("revision must be a non-empty Git revision token")
-    return subprocess.check_output(
-        ["git", "show", f"{revision}:{relative_path}"],
-        cwd=ROOT,
+
+
+def _git_repository_root() -> Path:
+    return Path(
+        subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+        ).strip()
     )
+
+
+def _git_owner_prefix() -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "--show-prefix"],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+    ).strip()
+
+
+def _git_owner_path_at_revision(
+    revision: str,
+    relative_path: str,
+    *,
+    required: bool,
+) -> str | None:
+    _validate_revision_token(revision)
+    normalized = relative_path.rstrip("/")
+    if (
+        not normalized
+        or normalized.startswith("/")
+        or any(part in {"", ".", ".."} for part in normalized.split("/"))
+    ):
+        raise ValueError(f"invalid owner-relative Git path: {relative_path}")
+    prefix = _git_owner_prefix()
+    candidates = ([f"{prefix}{normalized}"] if prefix else []) + [normalized]
+    repository_root = _git_repository_root()
+    for candidate in dict.fromkeys(candidates):
+        exists = subprocess.run(
+            ["git", "cat-file", "-e", f"{revision}:{candidate}"],
+            cwd=repository_root,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if exists.returncode == 0:
+            return candidate
+    if required:
+        raise ValueError(
+            f"owner-relative Git path is absent at revision: revision={revision} path={relative_path}"
+        )
+    return None
+
+
+def _git_file_bytes(revision: str, relative_path: str) -> bytes:
+    repository_root = _git_repository_root()
+    resolved = _git_owner_path_at_revision(revision, relative_path, required=True)
+    assert resolved is not None
+    return subprocess.check_output(
+        ["git", "show", f"{revision}:{resolved}"],
+        cwd=repository_root,
+    )
+
+
+def _git_scope_entries(revision: str, scope: str) -> dict[str, str]:
+    repository_root = _git_repository_root()
+    resolved = _git_owner_path_at_revision(revision, scope, required=False)
+    if resolved is None:
+        return {}
+    prefix = _git_owner_prefix()
+    owner_base = prefix if prefix and resolved.startswith(prefix) else ""
+    output = subprocess.check_output(
+        ["git", "ls-tree", "-r", revision, "--", resolved],
+        cwd=repository_root,
+        text=True,
+        encoding="utf-8",
+    )
+    entries: dict[str, str] = {}
+    for line in output.splitlines():
+        metadata, path = line.split("\t", 1)
+        if owner_base:
+            if not path.startswith(owner_base):
+                raise ValueError(
+                    f"Git path escaped owner prefix: prefix={owner_base} path={path}"
+                )
+            path = path[len(owner_base):]
+        entries[path] = metadata
+    return entries
+
+
+def _git_creation_revisions(relative_path: str) -> list[str]:
+    repository_root = _git_repository_root()
+    prefix = _git_owner_prefix()
+    candidates = [relative_path]
+    if prefix:
+        candidates.append(f"{prefix}{relative_path}")
+    for candidate in candidates:
+        revisions = subprocess.check_output(
+            [
+                "git",
+                "log",
+                "--full-history",
+                "HEAD",
+                "--diff-filter=A",
+                "--format=%H",
+                "--",
+                candidate,
+            ],
+            cwd=repository_root,
+            text=True,
+            encoding="utf-8",
+        ).splitlines()
+        if revisions:
+            return revisions
+    return []
 
 
 def _runtime_dependency_closure_projection(revision: str) -> dict[str, object]:
@@ -192,14 +305,15 @@ def _invalidating_paths(
     revision_to: str,
     implementation_paths: tuple[str, ...] | None = None,
 ) -> list[str]:
-    changed = subprocess.check_output(
-        ["git", "diff", "--name-only", f"{revision_from}..{revision_to}"],
-        cwd=ROOT,
-        text=True,
-        encoding="utf-8",
-    ).splitlines()
     scopes = implementation_paths or _VERIFIED_IMPLEMENTATION_PATHS
-    return [path for path in changed if any(_path_matches_scope(path, scope) for scope in scopes)]
+    changed: set[str] = set()
+    for scope in scopes:
+        before = _git_scope_entries(revision_from, scope)
+        after = _git_scope_entries(revision_to, scope)
+        for path in before.keys() | after.keys():
+            if before.get(path) != after.get(path):
+                changed.add(path)
+    return sorted(changed)
 
 
 def _verified_revision_is_current(
@@ -241,20 +355,8 @@ def _validate_index_creation_lineage_binding(
     path = EVIDENCE / filename
     relative_path = path.relative_to(ROOT).as_posix()
     try:
-        creation_revisions = subprocess.check_output(
-            [
-                "git",
-                "log",
-                "--diff-filter=A",
-                "--format=%H",
-                "--",
-                relative_path,
-            ],
-            cwd=ROOT,
-            text=True,
-            encoding="utf-8",
-        ).splitlines()
-    except subprocess.CalledProcessError as error:
+        creation_revisions = _git_creation_revisions(relative_path)
+    except (subprocess.CalledProcessError, ValueError) as error:
         return [f"cannot inspect evidence creation lineage for {filename}: {error}"]
     if len(creation_revisions) != 1:
         return [
@@ -280,10 +382,7 @@ def _validate_index_creation_lineage_binding(
             f"invalidating={invalidating}"
         )
     try:
-        created_bytes = subprocess.check_output(
-            ["git", "show", f"{creation_revision}:{relative_path}"],
-            cwd=ROOT,
-        )
+        created_bytes = _git_file_bytes(creation_revision, relative_path)
         current_bytes = path.read_bytes()
     except (subprocess.CalledProcessError, OSError) as error:
         errors.append(f"cannot verify immutable evidence bytes for {filename}: {error}")
