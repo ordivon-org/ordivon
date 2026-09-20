@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping
-
+from typing import Any
 
 JsonValidator = Callable[[Path, Path, str | None], dict[str, Any]]
 ProfileValidator = Callable[[Path, Path], dict[str, Any]]

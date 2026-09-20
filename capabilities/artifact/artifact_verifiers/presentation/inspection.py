@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path, PurePosixPath
 import posixpath
 import re
-from typing import Any, Iterable
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Iterable
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 

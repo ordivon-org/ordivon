@@ -4,10 +4,10 @@ This package owns cross-family identity, profile resolution, capability bindings
 and operation planning. Family mechanics and external effects remain delegated.
 """
 
-from .contracts import FileCommitment
-from .profiles import ProfileRecord, ProfileRegistry
 from .bindings import CapabilityBinding, CapabilityBindingRegistry
+from .contracts import FileCommitment
 from .operations import OperationPlan, OperationPlanner
+from .profiles import ProfileRecord, ProfileRegistry
 
 __all__ = [
     "CapabilityBinding",

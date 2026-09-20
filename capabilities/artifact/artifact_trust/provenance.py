@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from pathlib import Path
-from typing import Any, Iterable
 import urllib.parse
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 
@@ -13,7 +14,7 @@ SLSA_PROVENANCE_V1 = "https://slsa.dev/provenance/v1"
 
 
 def utc_now() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    return dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z")
 
 
 def _require_uri(value: str, field: str) -> str:

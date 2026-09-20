@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from artifact_core.contracts import file_fact
 
 
 def utc_now() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    return dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z")
 
 
 def snapshot_materials(paths: Iterable[Path]) -> dict[str, Any]:

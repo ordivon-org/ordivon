@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass
 import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
-from typing import Any, Iterable
 import urllib.parse
+from collections.abc import Iterable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile

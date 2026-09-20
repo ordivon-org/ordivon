@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from .document import build_pandoc_docx
 from .passthrough import copy_exact
-
 
 PresentationBuilder = Callable[[Path, Path, Path], dict[str, Any]]
 

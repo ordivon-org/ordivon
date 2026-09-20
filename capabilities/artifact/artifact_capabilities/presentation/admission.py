@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .common import (
-    DEFAULT_PRESENTATION_SOURCE_SCHEMA,
     DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
+    DEFAULT_PRESENTATION_SOURCE_SCHEMA,
     _presentation_source_material_facts,
     _semantic_svg_source_material_facts,
 )

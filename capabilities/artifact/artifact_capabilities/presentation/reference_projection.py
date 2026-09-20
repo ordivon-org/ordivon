@@ -3,12 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import posixpath
 import re
-from typing import Any, Iterable
 import urllib.parse
 import zipfile
+from collections.abc import Iterable
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.json_validation import validate_json_document

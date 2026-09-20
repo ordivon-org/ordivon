@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
-from pathlib import Path, PurePosixPath
 import re
-from typing import Any, Callable
 import zipfile
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 
@@ -248,8 +249,8 @@ def _apply_text_to_shape(shape: Any, element: dict[str, Any], align_map: dict[st
             # carry the same resolved font/style/alpha rather than styling only the
             # first run and letting later lines fall back to visible defaults.
             if opacity < 1:
-                from pptx.oxml.xmlchemy import OxmlElement
                 from pptx.oxml.ns import qn
+                from pptx.oxml.xmlchemy import OxmlElement
                 r_pr = run._r.get_or_add_rPr()
                 solid_fill = r_pr.find(qn("a:solidFill"))
                 if solid_fill is None or len(solid_fill) == 0:

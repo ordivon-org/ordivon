@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact
+
 from .toolchain import node_executable, node_package_root, web_verifier_runner
 
 

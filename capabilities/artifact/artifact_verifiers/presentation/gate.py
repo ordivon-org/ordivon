@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from artifact_core.contracts import file_fact
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
@@ -12,9 +13,9 @@ from artifact_evidence.delivery import (
     verify_target_evidence,
     verify_visual_review,
 )
+
 from .inspection import inspect_pptx, verify_openxml_evidence
 from .semantics import verify_font_manifest, verify_presentation_semantics
-
 
 PdfVerifier = Callable[[Path], dict[str, Any]]
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -34,7 +34,7 @@ class FileCommitment:
     name: str
 
     @classmethod
-    def from_path(cls, path: Path) -> "FileCommitment":
+    def from_path(cls, path: Path) -> FileCommitment:
         resolved = path.resolve()
         if not resolved.is_file():
             raise RuntimeError(f"required file is absent: {resolved}")
@@ -45,7 +45,7 @@ class FileCommitment:
             name=resolved.name,
         )
 
-    def verify(self) -> "FileCommitment":
+    def verify(self) -> FileCommitment:
         if not self.path.is_file():
             raise RuntimeError(f"required file is absent: {self.path}")
         if self.path.stat().st_size != self.size:

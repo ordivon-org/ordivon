@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact
+
 from .toolchain import qpdf_executable
 
 

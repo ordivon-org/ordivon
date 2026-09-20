@@ -4,12 +4,12 @@ import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
-from typing import Any, Callable
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 from artifact_core.contracts import FileCommitment
-
 
 Producer = Callable[[Path], tuple[dict[str, str], dict[str, Any]]]
 

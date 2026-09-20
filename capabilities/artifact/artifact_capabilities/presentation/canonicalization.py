@@ -4,11 +4,11 @@ import copy
 import hashlib
 import io
 import os
-from pathlib import Path, PurePosixPath
 import re
 import struct
-from typing import Any
 import zipfile
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from artifact_core.contracts import sha256_file
 

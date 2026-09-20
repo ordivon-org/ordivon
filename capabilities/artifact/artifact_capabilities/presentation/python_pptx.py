@@ -6,6 +6,7 @@ from typing import Any
 
 from artifact_core.contracts import file_fact
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
+
 from .common import (
     DEFAULT_PRESENTATION_SOURCE_SCHEMA,
     PresentationBuildHooks,
@@ -16,6 +17,7 @@ from .common import (
     _resolve_presentation_image,
     _resolve_presentation_template,
 )
+
 
 def build_presentation_source(
     source_path: Path,

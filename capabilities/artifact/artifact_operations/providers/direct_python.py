@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
-import os
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any
 
 from artifact_capabilities.dispatch import execute_build_adapter

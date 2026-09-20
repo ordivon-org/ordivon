@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
+
 from .toolchain import java_executable, vnu_jar
 
 

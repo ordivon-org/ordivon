@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact
+
 from .toolchain import verapdf_executable
 
 SUPPORTED_VERAPDF_FLAVOURS = {"4", "4f", "4e", "ua1", "ua2", "wt1r", "wt1a"}

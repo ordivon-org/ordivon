@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
-from pathlib import Path
 import subprocess
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_verifiers.openxml import openxml_validator_executable
+
 from .toolchain import (
     DEFAULT_TOOLCHAIN_LOCK,
     GLOBAL_PANDOC,
@@ -17,7 +19,6 @@ from .toolchain import (
     LEGACY_PANDOC_ARCHIVE,
     selected_external_file,
 )
-
 
 RequestValidator = Callable[[Path], dict[str, Any]]
 DeliveryPlanner = Callable[[Path], dict[str, Any]]

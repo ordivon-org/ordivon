@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import importlib.metadata
-from pathlib import Path
 import shutil
 import subprocess
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from artifact_core.contracts import file_fact
 from artifact_trust.vsa import LOCAL_VSA_VERIFIER_ID
-from .evidence import write_gate_receipt
 
+from .evidence import write_gate_receipt
 
 ProfileValidator = Callable[[Path], dict[str, Any]]
 PrimarySuffixResolver = Callable[[dict[str, Any]], str]

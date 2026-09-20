@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
+
 from .toolchain import GLOBAL_PANDOC, LEGACY_PANDOC, selected_external_file
 
 

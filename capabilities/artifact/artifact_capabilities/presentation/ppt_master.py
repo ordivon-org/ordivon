@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
+
 from .common import (
     DEFAULT_PRESENTATION_SEMANTIC_SVG_SOURCE_SCHEMA,
     PPT_MASTER_PROVIDER_LOCK,
@@ -18,6 +19,7 @@ from .common import (
     _safe_project_relative_path,
     _semantic_svg_source_material_facts,
 )
+
 
 def _ppt_master_provider_facts() -> tuple[dict[str, Any], list[str]]:
     failures: list[str] = []

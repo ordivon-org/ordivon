@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import re
 import subprocess
-from typing import Mapping
+from collections.abc import Mapping
+from pathlib import Path
 
 from artifact_core.contracts import file_fact
 
