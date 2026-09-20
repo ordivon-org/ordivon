@@ -54,7 +54,13 @@ git -C "$TARGET" add docs/migration/receipts/sample.md
 git -C "$TARGET" commit -q -m receipt
 ORIGINAL_RECEIPT_SHA="$(sha256sum "$TARGET/docs/migration/receipts/sample.md" | awk '{print $1}')"
 
-"$HELPER" sample "$BUNDLE" refs/heads/main "$CURRENT" "$PREVIOUS" "$BASE" services/sample "$TARGET"
+"$HELPER" sample "$BUNDLE" refs/heads/main "$CURRENT" "$PREVIOUS" "$BASE" services/sample "$TARGET" \
+  >"$ROOT/success.out" 2>"$ROOT/success.err"
+if grep -E '(^|[[:space:]])(fatal|error):' "$ROOT/success.err" >/dev/null; then
+  cat "$ROOT/success.err" >&2
+  exit 1
+fi
+cat "$ROOT/success.out"
 
 AFTER="$(git -C "$TARGET" rev-parse HEAD)"
 git -C "$TARGET" merge-base --is-ancestor "$PREVIOUS" "$AFTER"

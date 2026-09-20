@@ -48,8 +48,23 @@ test "$BUNDLE_HEAD" = "$NEW_REVISION" || {
   exit 66
 }
 
+if git -C "$TARGET_ROOT" show-ref --verify --quiet "$TEMP_REF"; then
+  echo "temporary supersession ref already exists: $TEMP_REF" >&2
+  exit 65
+fi
+
+cleanup() {
+  git -C "$TARGET_ROOT" update-ref -d "$TEMP_REF" >/dev/null 2>&1 || true
+  [ -z "${INDEX_FILE:-}" ] || rm -f "$INDEX_FILE"
+}
+trap cleanup EXIT
+
+git -C "$TARGET_ROOT" fetch --no-tags "$BUNDLE" "$SOURCE_REF_FULL:$TEMP_REF" >/dev/null
+test "$(git -C "$TARGET_ROOT" rev-parse "$TEMP_REF")" = "$NEW_REVISION"
+
 git -C "$TARGET_ROOT" cat-file -e "$PREVIOUS_IMPORTED_REVISION^{commit}"
 git -C "$TARGET_ROOT" cat-file -e "$COMMON_BASE^{commit}"
+git -C "$TARGET_ROOT" cat-file -e "$NEW_REVISION^{commit}"
 git -C "$TARGET_ROOT" merge-base --is-ancestor "$PREVIOUS_IMPORTED_REVISION" HEAD || {
   echo "previous imported revision is not retained by current monorepo history" >&2
   exit 67
@@ -67,20 +82,6 @@ git -C "$TARGET_ROOT" merge-base --is-ancestor "$COMMON_BASE" "$PREVIOUS_IMPORTE
   echo "common base is not an ancestor of previous imported revision" >&2
   exit 67
 }
-
-if git -C "$TARGET_ROOT" show-ref --verify --quiet "$TEMP_REF"; then
-  echo "temporary supersession ref already exists: $TEMP_REF" >&2
-  exit 65
-fi
-
-cleanup() {
-  git -C "$TARGET_ROOT" update-ref -d "$TEMP_REF" >/dev/null 2>&1 || true
-  [ -z "${INDEX_FILE:-}" ] || rm -f "$INDEX_FILE"
-}
-trap cleanup EXIT
-
-git -C "$TARGET_ROOT" fetch --no-tags "$BUNDLE" "$SOURCE_REF_FULL:$TEMP_REF" >/dev/null
-test "$(git -C "$TARGET_ROOT" rev-parse "$TEMP_REF")" = "$NEW_REVISION"
 git -C "$TARGET_ROOT" merge-base --is-ancestor "$COMMON_BASE" "$NEW_REVISION" || {
   echo "common base is not an ancestor of new revision" >&2
   exit 67
