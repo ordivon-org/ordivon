@@ -42,7 +42,7 @@ impl Runtime {
                 Ok(ExecutionProviderSnapshot {
                     contract: ExecutionProviderContract::WindowsNativeLauncherV1,
                     executable_digest: sha256_file(&launcher).map_err(map_universal_error)?,
-                    wsl_distribution: windows.wsl_distribution.clone(),
+                    wsl_distribution: None,
                 })
             }
         }
@@ -143,6 +143,11 @@ impl Runtime {
             availability_issue: windows_issue,
         };
 
+        let targets = match self.node_identity.platform {
+            super::RuntimeNodePlatform::Linux => vec![linux],
+            super::RuntimeNodePlatform::Windows => vec![windows],
+            super::RuntimeNodePlatform::Other => Vec::new(),
+        };
         RuntimeCapabilities {
             schema_version: RUNTIME_SCHEMA_VERSION,
             node: self.node_identity.clone(),
@@ -152,7 +157,7 @@ impl Runtime {
             allowed_executable_roots,
             input_authorities,
             credential_authorities,
-            targets: vec![linux, windows],
+            targets,
         }
     }
 
@@ -330,12 +335,6 @@ impl Runtime {
                         "execution.executionTarget",
                     )
                 })?;
-                if windows.wsl_distribution.is_some() && mounted_windows_path(&executable).is_none() {
-                    return Err(RuntimeError::invalid(
-                        "Linux-hosted windows_native executable must reside on a WSL-mounted Windows drive",
-                        "execution.executable",
-                    ));
-                }
                 let snapshot =
                     snapshot_windows_runtime_context(windows, request.execution.windows_authority)?;
                 let token_class = match request.execution.windows_authority {
@@ -1455,7 +1454,6 @@ impl Runtime {
                 };
                 let runner_request_digest =
                     sha256_file(&bundle_path.join(RUNNER_REQUEST_FILE)).map_err(map_universal_error)?;
-                if windows.wsl_distribution.is_none() {
                     let dispatch = match spawn_windows_native(&WindowsNativeRunSpec {
                         config: windows,
                         bundle_path: &bundle_path,
@@ -1498,30 +1496,6 @@ impl Runtime {
                     let bound =
                         self.bind_native_windows_dispatch_owner(&starting, &dispatch)?;
                     return self.await_launch_evidence(&bound);
-                }
-                windows_systemd_run(&WindowsSystemdRunSpec {
-                    config: windows,
-                    unit_name: &starting.unit_name,
-                    bundle_path: &bundle_path,
-                    job_id: &starting.job_id,
-                    attempt_id: &starting.attempt_id,
-                    launch_token_digest: &starting.launch_token_digest,
-                    request_digest: &runner_request_digest,
-                    authority: plan.windows_authority,
-                    executable: Path::new(&plan.executable),
-                    args: &plan.args,
-                    cwd: Path::new(&plan.cwd),
-                    environment: &plan.env,
-                    input_source_root: input_source_root.as_deref(),
-                    input_set_id: plan.input_set_id.as_deref(),
-                    input_presentation_root,
-                    input_bindings_digest: input_bindings_digest.as_deref(),
-                    budget: &plan.budget,
-                    runtime_ceiling_ms: runtime_ceiling,
-                    timeout_ms: plan.timeout_ms,
-                    stdout_limit_bytes: plan.stdout_limit_bytes,
-                    stderr_limit_bytes: plan.stderr_limit_bytes,
-                })?
             }
         };
         if !output.status.success() {
@@ -1707,7 +1681,7 @@ impl Runtime {
                 false,
             ));
         }
-        let windows = self.windows.as_ref().ok_or_else(|| {
+        self.windows.as_ref().ok_or_else(|| {
             RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
                 "committed windows_native Job has no configured Windows provider",
@@ -1715,14 +1689,6 @@ impl Runtime {
                 true,
             )
         })?;
-        if windows.wsl_distribution.is_some() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                "early Windows launcher evidence is reserved for native control-plane dispatch",
-                Some("windowsLauncherStart"),
-                false,
-            ));
-        }
         let provider = self
             .registry
             .execution_provider(&attempt.job_id)?
@@ -1958,7 +1924,6 @@ impl Runtime {
                 false,
             ));
         }
-        if windows.wsl_distribution.is_none() {
             let provider = self
                 .registry
                 .execution_provider(&attempt.job_id)?
@@ -1985,109 +1950,61 @@ impl Runtime {
                     false,
                 ));
             }
-        }
         Ok((evidence, start_digest))
     }
 
     fn bind_windows_start(&self, attempt: &AttemptRecord) -> RuntimeResult<AttemptRecord> {
         let (evidence, start_digest) = self.validate_windows_start_evidence(attempt)?;
-        let windows = self.windows.as_ref().ok_or_else(|| {
-            RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                "committed windows_native Job has no configured Windows provider",
-                Some("executionTarget"),
-                true,
-            )
-        })?;
-        if windows.wsl_distribution.is_none() {
-            let launcher_process_creation_time_file_time = evidence
-                .launcher_process_creation_time_file_time
-                .filter(|identity| *identity != 0)
-                .ok_or_else(|| {
-                    RuntimeError::new(
-                        RuntimeErrorCode::LaunchIdentityMismatch,
-                        "native Windows start evidence omitted launcher process creation identity",
-                        Some("windowsStart.launcherProcessCreationTimeFileTime"),
-                        false,
-                    )
-                })?;
-            let launcher_image_digest =
-                evidence.launcher_image_digest.clone().ok_or_else(|| {
-                    RuntimeError::new(
-                        RuntimeErrorCode::LaunchIdentityMismatch,
-                        "native Windows start evidence omitted launcher image digest",
-                        Some("windowsStart.launcherImageDigest"),
-                        false,
-                    )
-                })?;
-            if let Some(existing) = self
-                .registry
-                .attempt_supervisor_owner(&attempt.attempt_id)?
-            {
-                if !native_windows_owner_matches_launcher_identity(
-                    &existing,
-                    evidence.launcher_process_id,
-                    evidence.launcher_process_creation_time_file_time,
-                    evidence.launcher_image_digest.as_deref(),
-                    &evidence.job_name,
-                ) {
-                    return Err(RuntimeError::new(
-                        RuntimeErrorCode::LaunchIdentityMismatch,
-                        "native Windows target-start evidence disagrees with the parent-observed launcher owner",
-                        Some("windowsStart"),
-                        false,
-                    ));
-                }
-                return self.registry.get_attempt(&attempt.attempt_id);
-            }
-            return self.registry.bind_supervisor_owner(
-                &attempt.attempt_id,
-                attempt.row_version,
-                &AttemptSupervisorOwner::WindowsLauncherV1 {
-                    launcher_process_id: evidence.launcher_process_id,
-                    launcher_process_creation_time_file_time,
-                    launcher_image_digest,
-                    job_name: evidence.job_name.clone(),
-                    start_evidence_digest: start_digest,
-                },
-                evidence.observed_unix_ms,
-            );
-        }
-        let properties = systemctl_show(&attempt.unit_name)?;
-        let invocation_id = nonempty_property(&properties, "InvocationID")
-            .ok_or_else(|| missing_systemd_property("InvocationID"))?;
-        let control_group = nonempty_property(&properties, "ControlGroup")
-            .ok_or_else(|| missing_systemd_property("ControlGroup"))?;
-        let main_pid: u32 = properties
-            .get("MainPID")
-            .ok_or_else(|| missing_systemd_property("MainPID"))?
-            .parse()
-            .map_err(|_| missing_systemd_property("MainPID"))?;
-        if main_pid == 0 {
-            return Err(missing_systemd_property("MainPID"));
-        }
-        let process_start_identity = process_identity(main_pid).ok_or_else(|| {
+        let launcher_process_creation_time_file_time = evidence
+            .launcher_process_creation_time_file_time
+            .filter(|identity| *identity != 0)
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    RuntimeErrorCode::LaunchIdentityMismatch,
+                    "native Windows start evidence omitted launcher process creation identity",
+                    Some("windowsStart.launcherProcessCreationTimeFileTime"),
+                    false,
+                )
+            })?;
+        let launcher_image_digest = evidence.launcher_image_digest.clone().ok_or_else(|| {
             RuntimeError::new(
                 RuntimeErrorCode::LaunchIdentityMismatch,
-                "Windows launcher systemd MainPID has no observable host process identity",
-                Some("mainPid"),
+                "native Windows start evidence omitted launcher image digest",
+                Some("windowsStart.launcherImageDigest"),
                 false,
             )
         })?;
-        let boot_id = read_trimmed("/proc/sys/kernel/random/boot_id")?;
-        self.registry.bind_running(
+        if let Some(existing) = self
+            .registry
+            .attempt_supervisor_owner(&attempt.attempt_id)?
+        {
+            if !native_windows_owner_matches_launcher_identity(
+                &existing,
+                evidence.launcher_process_id,
+                evidence.launcher_process_creation_time_file_time,
+                evidence.launcher_image_digest.as_deref(),
+                &evidence.job_name,
+            ) {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::LaunchIdentityMismatch,
+                    "native Windows target-start evidence disagrees with the parent-observed launcher owner",
+                    Some("windowsStart"),
+                    false,
+                ));
+            }
+            return self.registry.get_attempt(&attempt.attempt_id);
+        }
+        self.registry.bind_supervisor_owner(
             &attempt.attempt_id,
             attempt.row_version,
-            &RunnerIdentity {
-                boot_id,
-                unit_name: attempt.unit_name.clone(),
-                invocation_id,
-                control_group,
-                main_pid,
-                process_start_identity,
-                runner_start_digest: start_digest,
-                observed_at_ms: evidence.observed_unix_ms,
+            &AttemptSupervisorOwner::WindowsLauncherV1 {
+                launcher_process_id: evidence.launcher_process_id,
+                launcher_process_creation_time_file_time,
+                launcher_image_digest,
+                job_name: evidence.job_name.clone(),
+                start_evidence_digest: start_digest,
             },
+            evidence.observed_unix_ms,
         )
     }
 

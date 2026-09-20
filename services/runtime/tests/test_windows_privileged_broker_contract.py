@@ -126,7 +126,7 @@ def test_broker_configuration_is_native_windows_only_and_atomic():
     assert "ORDIVON_WINDOWS_PRIVILEGED_BROKER_PIPE" in main
     assert "must be configured together" in main
     assert "supported only on native Windows Runtime" in main
-    assert "Linux/WSL-hosted Windows execution cannot configure the native privileged broker" in windows
+    assert "Windows execution provider is available only on a native Windows Runtime" in windows
 
 def test_broker_normalizes_runtime_verbatim_paths_before_legacy_path_api():
     text = BROKER.read_text(encoding="utf-8")

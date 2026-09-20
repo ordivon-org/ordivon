@@ -1,6 +1,8 @@
 # Native Runtime Nodes R1
 
-Status: active migration design
+Status: historical migration design; native-node ownership is now the implemented target model. Current operational truth lives in `runtime.md`, `status.md`, and `operations.md`.
+
+> Historical note: sections below intentionally preserve the sequence of the WSL-to-native migration. References to a WSL-hosted Windows provider describe retired stages and are not current Runtime capabilities.
 
 ## Decision
 
@@ -65,9 +67,9 @@ Linux realization remains systemd/cgroup. Windows realization remains Windows Jo
 
 ## WSL control-plane recovery shim
 
-Real WSL cold-restart acceptance exposed a narrower availability requirement before native Windows Runtime R6 exists: a Windows-owned process must be able to bootstrap the current WSL-hosted Runtime/Host services after the WSL control path disappears. `scripts/windows-wsl-control-plane-supervisor.ps1` provides that one-shot mechanical shim. It may probe service state and, only in explicit ensure mode after an unhealthy probe, issue `systemctl start` plus bounded readiness probes. It owns no Runtime Registry, Job/Attempt semantics, scheduling, redispatch, or semantic recovery.
+Real WSL cold-restart acceptance exposed a narrower pre-R6 availability requirement: a Windows-owned process had to bootstrap the then-current WSL-hosted Runtime/Host services after the WSL control path disappeared. That one-shot recovery shim was migration-only, owned no Runtime Registry/Job/Attempt semantics, and was removed after native Windows Runtime and ingress became independently available.
 
-This shim is deliberately **not** the Windows service target below. It is a migration bridge and may be retired once `windows-main` is a real independent control plane. See [`windows-wsl-recovery-supervisor-r1.md`](windows-wsl-recovery-supervisor-r1.md).
+This migration shim was retired and removed after the native Windows control plane became independently available. The historical section is retained only to explain the migration sequence.
 
 ## Windows service target
 

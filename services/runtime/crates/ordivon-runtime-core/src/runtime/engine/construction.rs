@@ -58,6 +58,12 @@ impl Runtime {
                 "defaultRuntimeMs",
             ));
         }
+        if config.windows.is_some() && !cfg!(windows) {
+            return Err(RuntimeError::invalid(
+                "Windows execution provider is supported only on a native Windows Runtime; route windows_native work to that Runtime instead",
+                "windows",
+            ));
+        }
         if let Some(windows) = &config.windows {
             windows.validate()?;
         }

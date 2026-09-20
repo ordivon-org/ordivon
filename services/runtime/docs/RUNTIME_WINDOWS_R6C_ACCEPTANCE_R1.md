@@ -1,7 +1,7 @@
 # Native Windows Runtime R6c Acceptance Evidence R1
 
-Status: C1/C2/C3 accepted; C4/C5 pending; no production cutover
-Date: 2026-09-19
+Status: historical R6c acceptance ledger. C1-C4 are accepted; C5 live-topology cutover and WSL-carrier retirement are complete, while promotion of the latest Runtime source remains subject to the structured-release Git authority gate.
+Date: 2026-09-19; status amended 2026-09-20
 Workspace: `ws-runtime-fabric-final-r1-20260919`
 Historical source revision: a367dbc2c903ab0cd792bd5968628425ebb1da18
 Current accepted candidate release: 00ae7525ff0d444f91f6250d5f055c635c0e092e

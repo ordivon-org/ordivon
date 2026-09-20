@@ -1,13 +1,10 @@
 //! Windows-native execution provider.
 //!
 //! Runtime retains Job/Attempt authority while the repository-owned launcher owns the Windows
-//! Job Object. Linux/WSL control planes may still wrap that launcher in systemd; a native Windows
-//! control plane starts the same launcher contract directly and relies on durable launcher/start
-//! evidence rather than inventing systemd identity.
+//! Job Object. The provider is native-Windows only; non-Windows Runtime nodes fail closed rather
+//! than projecting paths or transporting execution through WSL.
 
 use std::collections::BTreeMap;
-#[cfg(unix)]
-use std::collections::BTreeSet;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -76,13 +73,8 @@ const REQUIRED_WINDOWS_BASELINE_ENVIRONMENT_NAMES: &[&str] = &[
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WindowsExecutionConfig {
-    /// Exact Windows launcher executable. A Linux/WSL control plane normally sees this under
-    /// `/mnt/<drive>/`; a native Windows control plane uses the native absolute path directly.
+    /// Exact native Windows launcher executable.
     pub launcher_path: PathBuf,
-    /// WSL distribution authority used only when the Runtime control plane is Linux/WSL-hosted.
-    /// `None` is reserved for a native Windows control plane and removes WSL from the provider
-    /// identity rather than inventing a sentinel distribution name.
-    pub wsl_distribution: Option<String>,
     pub privileged_broker: Option<WindowsPrivilegedBrokerConfig>,
 }
 
@@ -127,16 +119,6 @@ impl WindowsExecutionConfig {
         }
         Ok(())
     }
-
-    #[cfg(unix)]
-    fn wsl_distribution(&self) -> RuntimeResult<&str> {
-        self.wsl_distribution.as_deref().ok_or_else(|| {
-            RuntimeError::invalid(
-                "WSL-hosted Windows execution requires an explicit distribution",
-                "windows.wslDistribution",
-            )
-        })
-    }
 }
 
 #[cfg(unix)]
@@ -149,199 +131,36 @@ fn launcher_is_executable(_metadata: &fs::Metadata) -> bool {
     true
 }
 
-#[cfg(unix)]
-fn validate_windows_control_plane(config: &WindowsExecutionConfig) -> RuntimeResult<()> {
-    if config.privileged_broker.is_some() {
-        return Err(RuntimeError::invalid(
-            "Linux/WSL-hosted Windows execution cannot configure the native privileged broker",
-            "windows.privilegedBrokerPath",
-        ));
-    }
-    mounted_windows_path(&config.launcher_path).ok_or_else(|| {
-        RuntimeError::invalid(
-            "Windows launcher must reside on a WSL-mounted Windows drive",
-            "windows.launcherPath",
-        )
-    })?;
-    let distribution = config.wsl_distribution()?;
-    if distribution.is_empty()
-        || !distribution
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
-    {
-        return Err(RuntimeError::invalid(
-            "WSL distribution name contains unsupported characters",
-            "windows.wslDistribution",
-        ));
-    }
-    Ok(())
+#[cfg(not(windows))]
+fn validate_windows_control_plane(_config: &WindowsExecutionConfig) -> RuntimeResult<()> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "Windows execution provider is available only on a native Windows Runtime",
+        Some("windows"),
+        false,
+    ))
 }
 
 #[cfg(windows)]
-fn validate_windows_control_plane(config: &WindowsExecutionConfig) -> RuntimeResult<()> {
-    if config.wsl_distribution.is_some() {
-        return Err(RuntimeError::invalid(
-            "native Windows Runtime must not configure a WSL distribution",
-            "windows.wslDistribution",
-        ));
-    }
+fn validate_windows_control_plane(_config: &WindowsExecutionConfig) -> RuntimeResult<()> {
     Ok(())
 }
 
-#[cfg(unix)]
-fn parse_wsl_interop_listeners(proc_unix: &str) -> Vec<PathBuf> {
-    let mut rows = proc_unix
-        .lines()
-        .filter_map(|line| {
-            let fields = line.split_whitespace().collect::<Vec<_>>();
-            if fields.len() < 8 || fields[3] != "00010000" || fields[4] != "0001" {
-                return None;
-            }
-            let path = fields[7];
-            let session = path.strip_prefix("/run/WSL/")?.strip_suffix("_interop")?;
-            if session.is_empty() || !session.bytes().all(|byte| byte.is_ascii_digit()) {
-                return None;
-            }
-            Some((session.parse::<u64>().ok()?, PathBuf::from(path)))
-        })
-        .collect::<Vec<_>>();
-    rows.sort_by_key(|(session, _)| *session);
-    rows.dedup_by(|left, right| left.1 == right.1);
-    rows.into_iter().map(|(_, path)| path).collect()
-}
-
-#[cfg(unix)]
-fn wsl_interop_listener_pid(listener: &Path) -> Option<u64> {
-    listener
-        .to_str()?
-        .strip_prefix("/run/WSL/")?
-        .strip_suffix("_interop")?
-        .parse::<u64>()
-        .ok()
-}
-
-#[cfg(unix)]
-fn proc_status_ppid(status: &str) -> Option<u64> {
-    status
-        .lines()
-        .find_map(|line| line.strip_prefix("PPid:")?.trim().parse::<u64>().ok())
-}
-
-#[cfg(unix)]
-fn is_wsl_session_relay_comm(comm: &str) -> bool {
-    let comm = comm.trim();
-    comm.starts_with("Relay(") && comm.ends_with(')')
-}
-
-#[cfg(unix)]
-fn is_live_wsl_session_relay(listener: &Path) -> bool {
-    let Some(pid) = wsl_interop_listener_pid(listener) else {
-        return false;
-    };
-    let Ok(comm) = fs::read_to_string(format!("/proc/{pid}/comm")) else {
-        return false;
-    };
-    if !is_wsl_session_relay_comm(&comm) {
-        return false;
-    }
-    let Ok(status) = fs::read_to_string(format!("/proc/{pid}/status")) else {
-        return false;
-    };
-    let Some(ppid) = proc_status_ppid(&status) else {
-        return false;
-    };
-    let Ok(parent_comm) = fs::read_to_string(format!("/proc/{ppid}/comm")) else {
-        return false;
-    };
-    parent_comm.trim() == "SessionLeader"
-}
-
-#[cfg(unix)]
-fn order_wsl_interop_candidates(
-    listeners: Vec<PathBuf>,
-    ambient: Option<PathBuf>,
-    live_session_relays: &BTreeSet<PathBuf>,
-) -> Vec<PathBuf> {
-    let mut rows = Vec::new();
-    if let Some(ambient) = ambient.filter(|ambient| listeners.contains(ambient)) {
-        rows.push(ambient);
-    }
-    for listener in listeners
-        .iter()
-        .filter(|listener| live_session_relays.contains(*listener))
-    {
-        if !rows.contains(listener) {
-            rows.push(listener.clone());
-        }
-    }
-    for listener in listeners {
-        if !rows.contains(&listener) {
-            rows.push(listener);
-        }
-    }
-    rows
-}
-
-#[cfg(unix)]
-fn current_wsl_interop_candidates() -> RuntimeResult<Vec<PathBuf>> {
-    let proc_unix = fs::read_to_string("/proc/net/unix").map_err(|error| {
-        RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            format!("read current WSL interop listeners: {error}"),
-            Some("windows.wslInterop"),
-            true,
-        )
-    })?;
-    let listeners = parse_wsl_interop_listeners(&proc_unix);
-    let ambient = std::env::var_os("WSL_INTEROP").map(PathBuf::from);
-    let live_session_relays = listeners
-        .iter()
-        .filter(|listener| is_live_wsl_session_relay(listener))
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    let candidates = order_wsl_interop_candidates(listeners, ambient, &live_session_relays);
-    if candidates.is_empty() {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::IoError,
-            "no current WSL interop listener is available",
-            Some("windows.wslInterop"),
-            true,
-        ));
-    }
-    Ok(candidates)
-}
-
-#[cfg(unix)]
-fn is_wsl_interop_accept_timeout(stderr: &[u8]) -> bool {
-    let stderr = String::from_utf8_lossy(stderr);
-    stderr.contains("UtilAcceptVsock:") && stderr.contains("accept4 failed 110")
-}
-
-#[cfg(unix)]
+#[cfg(not(windows))]
 fn windows_launcher_output_with_transport<F>(
-    launcher: &Path,
-    configure: F,
-    context: &str,
+    _launcher: &Path,
+    _configure: F,
+    _context: &str,
 ) -> RuntimeResult<(Output, Option<PathBuf>)>
 where
     F: Fn(&mut Command),
 {
-    let candidates = current_wsl_interop_candidates()?;
-    let candidate_count = candidates.len();
-    for (index, interop) in candidates.into_iter().enumerate() {
-        let mut command = Command::new(launcher);
-        command.env("WSL_INTEROP", &interop);
-        configure(&mut command);
-        let output = command
-            .output()
-            .map_err(|error| tool_error(context, error))?;
-        let retryable_transport_failure =
-            !output.status.success() && is_wsl_interop_accept_timeout(&output.stderr);
-        if !retryable_transport_failure || index + 1 == candidate_count {
-            return Ok((output, Some(interop)));
-        }
-    }
-    unreachable!("non-empty WSL interop candidate list must return an output")
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "Windows launcher transport is available only on a native Windows Runtime",
+        Some("windows"),
+        false,
+    ))
 }
 
 #[cfg(windows)]
@@ -736,6 +555,7 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
 /// The launcher semantics are intentionally independent from the transport that starts it.
 /// The current provider wraps this contract in `systemd-run` from WSL; a native Windows
 /// provider can invoke the same contract directly without changing Job/Attempt semantics.
+#[cfg(any(windows, test))]
 pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub bundle: &'a str,
     pub job_id: &'a str,
@@ -1052,12 +872,6 @@ pub(crate) fn spawn_windows_native(
     spec: &WindowsNativeRunSpec<'_>,
 ) -> RuntimeResult<WindowsNativeLaunchObservation> {
     spec.config.validate()?;
-    if spec.config.wsl_distribution.is_some() {
-        return Err(RuntimeError::invalid(
-            "native Windows dispatch must not configure a WSL distribution",
-            "windows.wslDistribution",
-        ));
-    }
     let launcher = fs::canonicalize(&spec.config.launcher_path).map_err(|error| {
         RuntimeError::new(
             RuntimeErrorCode::IoError,
@@ -1231,6 +1045,7 @@ pub(crate) fn spawn_windows_native(
     ))
 }
 
+#[cfg(any(windows, test))]
 pub(crate) fn append_windows_launcher_arguments(
     command: &mut Command,
     spec: &WindowsLauncherInvocationSpec<'_>,
@@ -1316,12 +1131,6 @@ pub(crate) fn windows_visible_path(
 ) -> RuntimeResult<String> {
     #[cfg(windows)]
     {
-        if config.wsl_distribution.is_some() {
-            return Err(RuntimeError::invalid(
-                "native Windows path projection must not configure a WSL distribution",
-                "windows.wslDistribution",
-            ));
-        }
         if !path.is_absolute() {
             return Err(RuntimeError::invalid(
                 "Windows-visible path source must be absolute",
@@ -1335,40 +1144,13 @@ pub(crate) fn windows_visible_path(
     }
     #[cfg(not(windows))]
     {
-        if let Some(path) = mounted_windows_path(path) {
-            return Ok(path);
-        }
-        if !path.is_absolute() {
-            return Err(RuntimeError::invalid(
-                "Windows-visible path source must be absolute",
-                field,
-            ));
-        }
-        let text = path
-            .to_str()
-            .ok_or_else(|| RuntimeError::invalid("Windows-visible path must be UTF-8", field))?;
-        let relative = text.trim_start_matches('/').replace('/', "\\");
-        Ok(format!(
-            "\\\\wsl.localhost\\{}\\{}",
-            config.wsl_distribution()?,
-            relative
+        let _ = (config, path);
+        Err(RuntimeError::new(
+            RuntimeErrorCode::ToolUnavailable,
+            "Windows path projection is available only on a native Windows Runtime",
+            Some(field),
+            false,
         ))
-    }
-}
-
-pub(crate) fn mounted_windows_path(path: &Path) -> Option<String> {
-    let text = path.to_str()?;
-    let remainder = text.strip_prefix("/mnt/")?;
-    let bytes = remainder.as_bytes();
-    if bytes.len() < 2 || !bytes[0].is_ascii_alphabetic() || bytes[1] != b'/' {
-        return None;
-    }
-    let drive = (bytes[0] as char).to_ascii_uppercase();
-    let tail = remainder[2..].replace('/', "\\");
-    if tail.is_empty() {
-        Some(format!("{drive}:\\"))
-    } else {
-        Some(format!("{drive}:\\{tail}"))
     }
 }
 
@@ -1445,6 +1227,7 @@ pub(crate) fn validate_windows_input_relative_paths<'a>(
     Ok(())
 }
 
+#[cfg(windows)]
 fn tool_error(operation: &str, error: std::io::Error) -> RuntimeError {
     RuntimeError::new(
         RuntimeErrorCode::IoError,
@@ -1457,100 +1240,6 @@ fn tool_error(operation: &str, error: std::io::Error) -> RuntimeError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn mounted_drive_and_unc_projection_are_explicit() {
-        assert_eq!(
-            mounted_windows_path(Path::new("/mnt/c/Windows/System32/cmd.exe")).as_deref(),
-            Some("C:\\Windows\\System32\\cmd.exe")
-        );
-        let config = WindowsExecutionConfig {
-            launcher_path: PathBuf::from("/mnt/c/launcher.exe"),
-            wsl_distribution: Some("archlinux".to_string()),
-            privileged_broker: None,
-        };
-        assert_eq!(
-            windows_visible_path(
-                &config,
-                Path::new("/var/lib/ordivon/runtime/workspaces/w"),
-                "cwd"
-            )
-            .unwrap(),
-            "\\\\wsl.localhost\\archlinux\\var\\lib\\ordivon\\runtime\\workspaces\\w"
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn wsl_interop_listener_parser_uses_only_numeric_stream_listeners() {
-        let proc_unix = "Num RefCount Protocol Flags Type St Inode Path\n\
-x: 00000002 00000000 00010000 0001 01 5756 /run/WSL/10_interop\n\
-y: 00000002 00000000 00000000 0001 01 7 /run/WSL/1_interop\n\
-z: 00000002 00000000 00010000 0001 01 11975 /run/WSL/2_interop\n\
-w: 00000002 00000000 00010000 0001 01 11976 /run/WSL/notnumeric_interop\n";
-        assert_eq!(
-            parse_wsl_interop_listeners(proc_unix),
-            vec![
-                PathBuf::from("/run/WSL/2_interop"),
-                PathBuf::from("/run/WSL/10_interop")
-            ]
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn wsl_interop_candidates_prefer_live_ambient_then_live_session_relay() {
-        let two = PathBuf::from("/run/WSL/2_interop");
-        let ten = PathBuf::from("/run/WSL/10_interop");
-        let forty_two = PathBuf::from("/run/WSL/42_interop");
-        let live_session_relays = std::collections::BTreeSet::from([forty_two.clone()]);
-        assert_eq!(
-            order_wsl_interop_candidates(
-                vec![two.clone(), ten.clone(), forty_two.clone()],
-                Some(ten.clone()),
-                &live_session_relays,
-            ),
-            vec![ten.clone(), forty_two.clone(), two.clone()]
-        );
-        assert_eq!(
-            order_wsl_interop_candidates(
-                vec![two.clone(), ten.clone(), forty_two.clone()],
-                Some(PathBuf::from("/run/WSL/99_interop")),
-                &live_session_relays,
-            ),
-            vec![forty_two, two, ten]
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn wsl_interop_listener_pid_and_parent_status_are_bounded() {
-        assert_eq!(
-            wsl_interop_listener_pid(Path::new("/run/WSL/639_interop")),
-            Some(639)
-        );
-        assert_eq!(
-            wsl_interop_listener_pid(Path::new("/run/WSL/notnumeric_interop")),
-            None
-        );
-        assert_eq!(proc_status_ppid("Name:\tRelay\nPPid:\t637\n"), Some(637));
-        assert_eq!(proc_status_ppid("Name:\tRelay\n"), None);
-        assert!(is_wsl_session_relay_comm("Relay(1035260)\n"));
-        assert!(!is_wsl_session_relay_comm("init-systemd(ar\n"));
-        assert!(!is_wsl_session_relay_comm("Relay\n"));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn wsl_interop_retry_classifier_is_exact_to_accept_timeout() {
-        assert!(is_wsl_interop_accept_timeout(
-            b"<3>WSL (1 - ) ERROR: UtilAcceptVsock:273: accept4 failed 110"
-        ));
-        assert!(!is_wsl_interop_accept_timeout(b"generic launcher failure"));
-        assert!(!is_wsl_interop_accept_timeout(
-            b"UtilAcceptVsock:273: accept4 failed 111"
-        ));
-    }
 
     #[test]
     fn windows_environment_overlay_is_case_insensitive_and_does_not_duplicate_baseline_keys() {

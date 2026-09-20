@@ -207,6 +207,22 @@ fn runtime_config(sandbox: &Sandbox) -> RuntimeConfig {
     }
 }
 
+#[cfg(not(windows))]
+#[test]
+fn linux_runtime_rejects_windows_execution_provider_configuration() {
+    let sandbox = Sandbox::new("linux-rejects-windows-provider", 5_000);
+    let mut config = runtime_config(&sandbox);
+    config.windows = Some(WindowsExecutionConfig {
+        launcher_path: PathBuf::from("/usr/bin/true"),
+        privileged_broker: None,
+    });
+
+    let error = Runtime::new(config).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    assert_eq!(error.field.as_deref(), Some("windows"));
+    assert!(error.message.contains("native Windows Runtime"));
+}
+
 #[cfg(feature = "operator-tools")]
 fn doctor_config(sandbox: &Sandbox) -> RuntimeDoctorConfig {
     RuntimeDoctorConfig {
@@ -7566,7 +7582,7 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
     assert_eq!(capabilities.max_output_bytes, 1_048_576);
     assert_eq!(capabilities.allowed_executable_roots, vec!["/".to_string()]);
     assert_eq!(capabilities.input_authorities, vec!["finance-state"]);
-    assert_eq!(capabilities.targets.len(), 2);
+    assert_eq!(capabilities.targets.len(), 1);
 
     let linux = capabilities
         .targets
@@ -7595,23 +7611,10 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
         file_digest(Path::new("/usr/bin/true"))
     );
 
-    let windows = capabilities
+    assert!(capabilities
         .targets
         .iter()
-        .find(|target| target.target == ExecutionTarget::WindowsNative)
-        .unwrap();
-    assert!(!windows.configured);
-    assert!(!windows.available);
-    assert_eq!(
-        windows.execution_profiles,
-        vec![ExecutionProfile::TrustedLocal]
-    );
-    assert!(windows.windows_authorities.is_empty());
-    assert!(windows.windows_immutable_input_authorities.is_empty());
-    assert!(!windows.structured_plan);
-    assert!(!windows.immutable_inputs);
-    assert!(windows.execution_provider.is_none());
-    assert!(windows.availability_issue.is_none());
+        .all(|target| target.target == ExecutionTarget::LocalLinux));
 
     let serialized = serde_json::to_string(&capabilities).unwrap();
     assert!(serialized.contains("finance-state"));
