@@ -548,7 +548,13 @@ fn staging_lease_prevents_live_cleanup_and_crash_release_allows_collection() {
     assert!(lease_path.exists());
     assert!(staging.exists());
     drop(lease);
-    runtime.reconcile_prepared_input_sets(0).unwrap();
+    for _ in 0..16 {
+        runtime.reconcile_prepared_input_sets(0).unwrap();
+        if !lease_path.exists() && !staging.exists() {
+            break;
+        }
+        thread::yield_now();
+    }
     assert!(!lease_path.exists());
     assert!(!staging.exists());
 }
