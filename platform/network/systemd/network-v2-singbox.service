@@ -1,0 +1,22 @@
+[Unit]
+Description=Network v2 sing-box direct data plane
+After=network-v2-dnsproxy.service
+Requires=network-v2-dnsproxy.service
+PartOf=network-v2-r0.target
+
+[Service]
+Type=simple
+User=sing-box
+Group=sing-box
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/sing-box/direct.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/sing-box/direct.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

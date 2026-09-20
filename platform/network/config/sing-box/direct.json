@@ -1,0 +1,22 @@
+{
+  "log": {"level": "info", "timestamp": true},
+  "dns": {
+    "servers": [
+      {"type": "udp", "tag": "local-dnsproxy", "server": "127.0.0.1", "server_port": 25353}
+    ],
+    "final": "local-dnsproxy",
+    "strategy": "prefer_ipv6"
+  },
+  "inbounds": [
+    {"type": "mixed", "tag": "local-mixed", "listen": "127.0.0.1", "listen_port": 28080}
+  ],
+  "outbounds": [
+    {"type": "direct", "tag": "direct"}
+  ],
+  "route": {
+    "rules": [
+      {"ip_is_private": true, "action": "reject"}
+    ],
+    "final": "direct"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "localWsl": {
+    "standing": "LOCAL_WSL_GRADUATED",
+    "entryPoint": "task accept:local",
+    "capabilities": {
+      "ipv4": "PASS",
+      "ipv6": "PASS",
+      "dnsA": "PASS",
+      "dnsAAAA": "PASS",
+      "familyFallback": "PASS_BOTH_DIRECTIONS",
+      "http11": "PASS",
+      "http2": "PASS",
+      "udpQuicIsolatedTun": "PASS",
+      "longFlow": "PASS",
+      "concurrency": "PASS",
+      "externalEgressObservation": "PASS",
+      "dnsPartialUpstreamFailure": "PASS",
+      "dnsAllUpstreamFailClosed": "PASS",
+      "dnsRecoveryWithoutRestart": "PASS",
+      "blackboxPrometheus": "PASS",
+      "toxiproxyL4Faults": "PASS",
+      "netnsTopology": "PASS",
+      "coldStart": "PASS",
+      "processRecovery": "PASS",
+      "wslRebootRecovery": "PASS",
+      "controlPlaneIndependence": "PASS"
+    },
+    "externalFidelity": {
+      "tcNetem": "REQUIRES_STANDARD_LINUX",
+      "containerlab": "REQUIRES_STANDARD_LINUX",
+      "kernelWireguardDifferential": "REQUIRES_STANDARD_LINUX"
+    }
+  },
+  "standardLinux": {
+    "standing": "STANDARD_LINUX_REFERENCE_GRADUATED",
+    "entryPoint": "task reference:linux:accept",
+    "evidence": "evidence/reference-linux-20260912.json",
+    "capabilities": {
+      "tcNetem": "PASS",
+      "containerlab": "PASS",
+      "kernelWireguard": "PASS",
+      "userspaceWireguard": "PASS",
+      "kernelWireguardDifferential": "PASS"
+    }
+  }
+}

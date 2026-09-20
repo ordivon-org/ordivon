@@ -1,0 +1,5 @@
+repository=https://git.zx2c4.com/wireguard-go
+revision=ecfc5a8d54462e18e13c72173e2623d16d8e25a0
+version=wireguard-go v0.0.20250522
+observed_linux_amd64_sha256=2c6aed3c7ae1e7b8297a6e771ef21274b7c1d58be25cb936dbf35b3e9aa3f343
+install_path=/usr/local/libexec/network-v2/wireguard-go

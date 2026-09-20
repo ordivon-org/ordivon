@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "standing": "NETWORK_E2E_IMPLEMENTATION_FROZEN",
+  "date": "2026-09-12",
+  "behaviorSourceRevision": "da5f541cfabc96845d71471f90b30659c3926e0d",
+  "localWslAuthority": {
+    "standing": "LOCAL_WSL_GRADUATED",
+    "report": "evidence/current-capabilities.json",
+    "reportSha256": "8fe14cbf42a1e77714acfd7935f6ad89b8eccf88b9ea5d967352617fc53fd279",
+    "refreshJobId": "job-01a09636-bc4c-7b60-bd92-e6ba9f4c8907",
+    "operationDigest": "sha256:8ef2c3ba8b76f92fc185d9bd806bd215b3cabe5220a058a32cff147955fb16db",
+    "terminalEvidenceSha256": "32a6778394390db2a09ddadc7cf63d131e082e4444813446ae59a6b0f84ffca3"
+  },
+  "standardLinuxAuthority": {
+    "standing": "STANDARD_LINUX_REFERENCE_GRADUATED",
+    "report": "evidence/reference-linux-20260912.json",
+    "reportSha256": "5bc098008bb14b854d1b72a04643cb0e05133bc7610ce6301f8756eae64f5678",
+    "acceptanceJobId": "job-01a0961f-65d1-7503-b278-3a7d6d8577e4",
+    "operationDigest": "sha256:a5b0effcf2a8ee0261bf25185d3e5e705e765177268aed7303327a4ff4d4b9da",
+    "terminalEvidenceSha256": "bd773779b6ecf70073078e78fea8275c56705a8d3af133133eae23518f053e3e"
+  },
+  "freezePolicy": {
+    "newNetworkSubsystemFeatures": "STOP",
+    "futureNetworkWork": [
+      "extract proven knowledge into the new Ordivon Knowledge/Capability/Composition/Validator/Evidence model",
+      "consumer-specific migration when an actual workload requires it",
+      "security or correctness repair only when new evidence falsifies the current standing"
+    ]
+  },
+  "outsideNetworkBoundary": {
+    "consumerMigration": "SEPARATE_WORK",
+    "legacyRetirement": "SEPARATE_WORK",
+    "windowsHostToWslBootstrap": "WORKSTATION",
+    "financeMigration": "FROZEN"
+  }
+}

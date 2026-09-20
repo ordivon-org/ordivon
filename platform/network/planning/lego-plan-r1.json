@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "ordivon-network-v2",
+    "purpose": "Compose mature DNS/proxy/tunnel/failover mechanisms into isolated network paths and prove workload-relevant behavior with independent acceptance evidence without becoming a custom network stack.",
+    "sourceEvidence": [
+      "README.md",
+      "docs/ARCHITECTURE.md",
+      "docs/ACCEPTANCE_MATRIX.md",
+      "evidence/current-capabilities.json"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "N01",
+      "label": "RequirementClassifier",
+      "kind": "domain_decision",
+      "responsibility": "Classify the network requirement and select a mature mechanism rather than inventing a local stack.",
+      "authority": "Network",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/ARCHITECTURE.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "consumer-domain semantics"
+      ],
+      "acceptance": [
+        "Generic core stays independent of provider/consumer profiles."
+      ]
+    },
+    {
+      "id": "N02",
+      "label": "DataPlaneComposition",
+      "kind": "effect_executor",
+      "responsibility": "Realize DNS/proxy/tunnel/failover using mature external components and isolated topology.",
+      "authority": "Network realization",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "provider remote truth"
+      ],
+      "acceptance": [
+        "Live unit remains a bounded replaceable composition."
+      ]
+    },
+    {
+      "id": "N03",
+      "label": "ProbeEvidence",
+      "kind": "verifier",
+      "responsibility": "Observe functional/lifecycle behavior with black-box metrics and exact acceptance evidence.",
+      "authority": "Network",
+      "state": "VERIFIED",
+      "sharedRefs": [
+        "L09"
+      ],
+      "evidence": [
+        "README.md",
+        "docs/ACCEPTANCE_MATRIX.md",
+        "evidence/current-capabilities.json"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "application semantic success"
+      ],
+      "acceptance": [
+        "Local WSL capability projection is refreshed only after acceptance gates pass."
+      ]
+    },
+    {
+      "id": "N04",
+      "label": "FaultAcceptance",
+      "kind": "experimental_verifier",
+      "responsibility": "Falsify relevant failure modes using deterministic fault injection and reference-Linux lanes.",
+      "authority": "Network",
+      "state": "VERIFIED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md",
+        "docs/ACCEPTANCE_MATRIX.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "universal network guarantees"
+      ],
+      "acceptance": [
+        "DNS/transport/recovery faults have explicit acceptance evidence."
+      ]
+    },
+    {
+      "id": "N05",
+      "label": "ProviderConsumerProfiles",
+      "kind": "adapter",
+      "responsibility": "Keep optional provider- and consumer-specific profiles outside generic graduation prerequisites.",
+      "authority": "Network profile owners",
+      "state": "IMPLEMENTED",
+      "sharedRefs": [],
+      "evidence": [
+        "README.md"
+      ],
+      "dependencies": [],
+      "mustNotOwn": [
+        "generic core authority transfer"
+      ],
+      "acceptance": [
+        "Adding a profile does not redefine generic Network acceptance."
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "N01",
+      "to": "N02",
+      "type": "CONTROL",
+      "label": "classified requirement selects composition"
+    },
+    {
+      "from": "N02",
+      "to": "N03",
+      "type": "OBSERVATION",
+      "label": "functional evidence"
+    },
+    {
+      "from": "N02",
+      "to": "N04",
+      "type": "OBSERVATION",
+      "label": "fault evidence"
+    },
+    {
+      "from": "N05",
+      "to": "N02",
+      "type": "DEPENDENCY",
+      "label": "optional provider/consumer specialization"
+    }
+  ],
+  "slices": [
+    {
+      "id": "NS1",
+      "objective": "Keep future provider/consumer additions optional and evidence-scoped; do not expand generic core without a cross-workload need.",
+      "status": "PROPOSED",
+      "nodeIds": [
+        "N01",
+        "N05"
+      ],
+      "acceptance": [
+        "A new profile can be admitted without changing generic Network graduation unless evidence shows a missing generic mechanism."
+      ],
+      "evidence": [],
+      "blockers": [],
+      "nextAction": "Apply this gate to the next provider/consumer request."
+    }
+  ],
+  "gaps": [],
+  "doNotOwn": [
+    "Runtime management ingress",
+    "consumer cutover semantics",
+    "Workstation host reboot lifecycle",
+    "custom network stack"
+  ],
+  "review": {
+    "sourceRevision": "cacda2ae26ab90484939b5b3461a14786a8f8b39",
+    "updatedAt": "2026-09-18",
+    "standing": "INITIAL",
+    "notes": "Initial project-native LEGO planning projection. It does not replace owner-native architecture or evidence."
+  }
+}

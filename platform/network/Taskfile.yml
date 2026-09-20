@@ -1,0 +1,442 @@
+version: '3'
+
+tasks:
+  core:validate:
+    desc: Validate only the generic Network v2 R0 platform, independent of consumer-specific profiles
+    cmds:
+      - sing-box check -c config/sing-box/direct.json
+      - prometheus-blackbox-exporter --config.file=config/blackbox/blackbox.yml --config.check
+      - promtool check config config/prometheus/prometheus.yml
+      - /usr/bin/systemd-analyze verify systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
+
+  provider:surfshark:validate:
+    desc: Validate only the Surfshark provider profile layer
+    cmds:
+      - sing-box check -c providers/surfshark/config/carrier.json
+
+  consumer:finance:validate:
+    desc: Validate the sing-box-native Finance venue policy without changing live authority
+    cmds:
+      - jq -e '.inbounds|length==6' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.outbounds==[{"type":"urltest","tag":"provider-auto","outbounds":["provider-b","provider-a"],"url":"https://1.1.1.1/cdn-cgi/trace","interval":"3s","tolerance":65535,"idle_timeout":"10m","interrupt_exist_connections":true}]' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns","server":"162.252.172.57","server_port":53,"detour":"provider-auto"}] and .route.rules[0].action=="resolve" and .route.rules[0].server=="provider-dns"' consumers/finance/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
+
+  all:validate:
+    desc: Validate core plus optional provider and consumer profiles without changing live state
+    deps: [core:validate, provider:surfshark:validate, consumer:finance:validate]
+
+  core:install:
+    desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
+    cmds:
+      - task: core:validate
+      - install -d -m 0755 /etc/network-v2/sing-box /etc/network-v2/blackbox /etc/network-v2/prometheus
+      - install -m 0644 config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
+      - install -m 0644 config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
+      - install -m 0644 config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - install -d -m 0755 /etc/sysctl.d
+      - install -m 0644 config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
+      - /usr/bin/sysctl --system >/dev/null
+      - for: { var: R0_SYSTEMD_UNITS }
+        cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - systemctl daemon-reload
+      - systemctl disable network-v2-dnsproxy.service network-v2-singbox.service network-v2-blackbox.service network-v2-prometheus.service >/dev/null 2>&1 || true
+      - systemctl enable network-v2-r0.target
+      - systemctl restart network-v2-r0.target
+      - systemctl disable --now network-v2-toxiproxy.service || true
+
+  core:verify:
+    desc: Fail closed unless live R0 bytes, systemd composition root, dual-stack data plane, probe plane, and evidence plane match source
+    cmds:
+      - cmp -s systemd/network-v2-r0.target /etc/systemd/system/network-v2-r0.target
+      - cmp -s systemd/network-v2-dnsproxy.service /etc/systemd/system/network-v2-dnsproxy.service
+      - cmp -s systemd/network-v2-singbox.service /etc/systemd/system/network-v2-singbox.service
+      - cmp -s systemd/network-v2-blackbox.service /etc/systemd/system/network-v2-blackbox.service
+      - cmp -s systemd/network-v2-prometheus.service /etc/systemd/system/network-v2-prometheus.service
+      - cmp -s systemd/network-v2-toxiproxy.service /etc/systemd/system/network-v2-toxiproxy.service
+      - cmp -s config/sing-box/direct.json /etc/network-v2/sing-box/direct.json
+      - cmp -s config/blackbox/blackbox.yml /etc/network-v2/blackbox/blackbox.yml
+      - cmp -s config/prometheus/prometheus.yml /etc/network-v2/prometheus/prometheus.yml
+      - cmp -s config/sysctl/90-network-v2-forwarding.conf /etc/sysctl.d/90-network-v2-forwarding.conf
+      - test "$(sysctl -n net.ipv4.ip_forward)" = 1
+      - systemctl is-active --quiet network-v2-r0.target
+      - systemctl is-enabled --quiet network-v2-r0.target
+      - test "$(systemctl is-enabled network-v2-dnsproxy.service 2>/dev/null || true)" = disabled
+      - test "$(systemctl is-enabled network-v2-singbox.service 2>/dev/null || true)" = disabled
+      - test "$(systemctl is-enabled network-v2-blackbox.service 2>/dev/null || true)" = disabled
+      - test "$(systemctl is-enabled network-v2-prometheus.service 2>/dev/null || true)" = disabled
+      - systemctl is-active --quiet network-v2-dnsproxy.service
+      - systemctl is-active --quiet network-v2-singbox.service
+      - systemctl is-active --quiet network-v2-blackbox.service
+      - systemctl is-active --quiet network-v2-prometheus.service
+      - test -n "$(dig +time=2 +tries=1 @127.0.0.1 -p 25353 example.com A +short)"
+      - test -n "$(dig +time=2 +tries=1 @127.0.0.1 -p 25353 example.com AAAA +short)"
+      - curl --fail --silent --show-error --proxy http://127.0.0.1:28080 --connect-timeout 5 --max-time 15 -o /dev/null https://example.com/
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=http_2xx_ipv4&target=https://example.com/' | awk '/^probe_success / {print $2}')" = "1"
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=http_2xx_ipv6&target=https://example.com/' | awk '/^probe_success / {print $2}')" = "1"
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=dns_a&target=127.0.0.1:25353' | awk '/^probe_success / {print $2}')" = "1"
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=dns_aaaa&target=127.0.0.1:25353' | awk '/^probe_success / {print $2}')" = "1"
+      - test "$(curl -fsS 'http://127.0.0.1:29115/probe?module=tcp_connect&target=127.0.0.1:28080' | awk '/^probe_success / {print $2}')" = "1"
+      - ./acceptance/observability/live-prometheus-ready.sh
+
+  core:converge:
+    desc: Validate, materialize, and prove one exact live R0 generation
+    cmds:
+      - task: core:install
+      - task: core:verify
+
+  capability:wireguard:materialize:
+    desc: Build the pinned official wireguard-go source and install it only inside Network v2 libexec
+    cmds:
+      - rm -rf /tmp/network-v2-wireguard-go-build
+      - git init -q /tmp/network-v2-wireguard-go-build
+      - git -C /tmp/network-v2-wireguard-go-build remote add origin {{.WIREGUARD_GO_REPO}}
+      - git -C /tmp/network-v2-wireguard-go-build fetch --quiet --depth 1 origin {{.WIREGUARD_GO_REVISION}}
+      - git -C /tmp/network-v2-wireguard-go-build checkout --quiet --detach FETCH_HEAD
+      - test "$(git -C /tmp/network-v2-wireguard-go-build rev-parse HEAD)" = "{{.WIREGUARD_GO_REVISION}}"
+      - make -C /tmp/network-v2-wireguard-go-build
+      - install -d -m 0755 /usr/local/libexec/network-v2
+      - install -m 0755 /tmp/network-v2-wireguard-go-build/wireguard-go /usr/local/libexec/network-v2/wireguard-go
+      - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
+
+  accept:connectivity:
+    cmds:
+      - ./acceptance/connectivity/direct-chain.sh
+
+  accept:observability:
+    cmds:
+      - ./acceptance/observability/blackbox-prometheus.sh
+
+  accept:fault-l4:
+    cmds:
+      - ./acceptance/fault/l4-toxiproxy.sh
+
+  accept:topology:
+    cmds:
+      - ./acceptance/topology/netns.sh
+
+  provider:surfshark:carrier:
+    desc: Prove sing-box can consume one already-existing WireGuard provider namespace without admitting ownership of that provider substrate
+    cmds:
+      - ./providers/surfshark/acceptance/carrier-smoke.sh
+
+  capability:wireguard:accept:
+    desc: Prove wg-quick + pinned official wireguard-go can create, fail, and recover a v2-owned userspace WireGuard lifecycle
+    cmds:
+      - task: capability:wireguard:materialize
+      - ./capabilities/wireguard/acceptance/userspace-lifecycle.sh
+
+  accept:process-recovery:
+    desc: Kill the live R0 sing-box process and prove functional plus observed automatic recovery
+    cmds:
+      - ./acceptance/lifecycle/process-recovery.sh
+
+  capability:failover:accept:
+    desc: Prove HAProxy TCP primary/backup failover across mature sing-box provider/direct carriers without mutating the provider tunnel
+    cmds:
+      - ./capabilities/failover/acceptance/priority-failover-smoke.sh
+
+  test:r4:
+    internal: true
+    desc: Prove the external-provider carrier and deterministic mature primary/backup failover/failback mechanism
+    deps: [provider:surfshark:validate, provider:surfshark:carrier, capability:failover:accept]
+
+  provider:surfshark:catalog:
+    desc: Materialize the pinned Gluetun Surfshark server catalog used as provider endpoint/public-key authority
+    cmds:
+      - rm -rf /tmp/network-v2-gluetun-servers
+      - git init -q /tmp/network-v2-gluetun-servers
+      - git -C /tmp/network-v2-gluetun-servers remote add origin {{.GLUETUN_SERVERS_REPO}}
+      - git -C /tmp/network-v2-gluetun-servers fetch --quiet --depth 1 origin {{.GLUETUN_SERVERS_REVISION}}
+      - git -C /tmp/network-v2-gluetun-servers checkout --quiet --detach FETCH_HEAD
+      - test "$(git -C /tmp/network-v2-gluetun-servers rev-parse HEAD)" = "{{.GLUETUN_SERVERS_REVISION}}"
+      - test "$(sha256sum /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+      - install -d -m 0755 "$(dirname {{.GLUETUN_SERVERS_INSTALL}})"
+      - install -m 0644 /tmp/network-v2-gluetun-servers/{{.GLUETUN_SERVERS_FILE}} {{.GLUETUN_SERVERS_INSTALL}}
+      - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+
+  provider:surfshark:profiles:
+    desc: Convert v2-owned standard Surfshark WireGuard configs into static numeric-endpoint wg-quick profiles using yq and the pinned Gluetun catalog
+    deps: [provider:surfshark:catalog]
+    cmds:
+      - |
+        set -eu
+        src=/etc/network-v2/providers
+        catalog={{.GLUETUN_SERVERS_INSTALL}}
+        out="$src/catalog-profiles"
+        test -f "$src/kr-seo.conf"
+        test -f "$src/th-bkk.conf"
+        rm -rf "$out"
+        mkdir -p "$out"
+        chmod 0700 "$out"
+        : >"$out/MANIFEST.tsv"
+        chmod 0600 "$out/MANIFEST.tsv"
+        for spec in "kr-seo nv2r6a kr" "th-bkk nv2r6b th"; do
+          set -- $spec
+          node=$1
+          iface=$2
+          prefix=$3
+          host="$node.prod.surfshark.com"
+          i=0
+          jq -r --arg h "$host" '.servers[] | select(.vpn=="wireguard" and .hostname==$h) | .ips[]' "$catalog" | while IFS= read -r ip; do
+            i=$((i + 1))
+            dir="$out/$prefix-$i"
+            mkdir -p "$dir"
+            chmod 0700 "$dir"
+            dst="$dir/$iface.conf"
+            EP="$ip:51820" yq -p=ini -o=ini 'del(.Interface.DNS) | .Interface.Table="off" | .Interface.MTU="1280" | .Peer.Endpoint=strenv(EP)' "$src/$node.conf" >"$dst"
+            chmod 0600 "$dst"
+            WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go wg-quick strip "$dst" >/dev/null
+            digest=$(sha256sum "$dst" | awk '{print $1}')
+            printf '%s\t%s\t%s\t%s\tsha256:%s\n' "$node" "$ip" "$iface" "$dst" "$digest" >>"$out/MANIFEST.tsv"
+          done
+        done
+        test "$(find "$out" -mindepth 2 -maxdepth 2 -type f -name '*.conf' | wc -l)" -eq 6
+
+  provider:surfshark:verify-local:
+    desc: Verify the already-graduated local R6 provider inputs without re-fetching external sources
+    deps: [provider:surfshark:validate]
+    cmds:
+      - /usr/local/libexec/network-v2/wireguard-go --version 2>&1 | grep -F "{{.WIREGUARD_GO_VERSION}}"
+      - test "$(sha256sum {{.GLUETUN_SERVERS_INSTALL}} | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+      - |
+        set -eu
+        manifest=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
+        test -f "$manifest"
+        test "$(awk 'NF{c++}END{print c+0}' "$manifest")" -eq 6
+        tab=$(printf '\t')
+        while IFS="$tab" read -r node endpoint iface profile digest; do
+          test -n "$node"; test -n "$endpoint"; test -n "$iface"; test -f "$profile"
+          case "$(stat -c %a "$profile")" in 600|400) ;; *) exit 21;; esac
+          test "sha256:$(sha256sum "$profile" | awk '{print $1}')" = "$digest"
+          WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/libexec/network-v2/wireguard-go wg-quick strip "$profile" >/dev/null
+          test "$(yq -p=ini -o=json -r '.Peer.Endpoint' "$profile")" = "$endpoint:51820"
+          test "$(yq -p=ini -o=json -r '.Interface.Table' "$profile")" = off
+          test "$(yq -p=ini -o=json -r '.Interface.MTU' "$profile")" = 1280
+          test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
+        done <"$manifest"
+
+  consumer:finance:materialize:
+    desc: Materialize one sing-box-native Finance provider graph and six venue authorities without starting or cutting over consumers
+    deps: [consumer:finance:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/finance
+      - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
+      - install -m 0644 consumers/finance/config/*-authority.json /etc/network-v2/finance/
+      - |
+        set -eu
+        src=/etc/network-v2/providers
+        catalog={{.GLUETUN_SERVERS_INSTALL}}
+        test -f "$catalog"
+        test "$(sha256sum "$catalog" | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+        test -f "$src/kr-seo.conf"; test -f "$src/th-bkk.conf"
+        a_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="kr-seo.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
+        b_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="th-bkk.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
+        test -n "$a_ep"; test "$a_ep" != null
+        test -n "$b_ep"; test "$b_ep" != null
+        a_json=$(mktemp); b_json=$(mktemp); ep_tmp=$(mktemp)
+        trap 'rm -f "$a_json" "$b_json" "$ep_tmp"' EXIT
+        yq -p=ini -o=json "$src/kr-seo.conf" >"$a_json"
+        yq -p=ini -o=json "$src/th-bkk.conf" >"$b_json"
+        jq -n --slurpfile a "$a_json" --slurpfile b "$b_json" --arg a_ep "$a_ep" --arg b_ep "$b_ep" '
+          def endpoint($tag;$cfg;$ip): {
+            type:"wireguard", tag:$tag, system:false, mtu:1408,
+            address:[$cfg.Interface.Address], private_key:$cfg.Interface.PrivateKey,
+            peers:[{address:$ip, port:51820, public_key:$cfg.Peer.PublicKey,
+                    allowed_ips:["0.0.0.0/0"], persistent_keepalive_interval:5}]
+          };
+          {endpoints:[endpoint("provider-a";$a[0];$a_ep), endpoint("provider-b";$b[0];$b_ep)]}
+        ' >"$ep_tmp"
+        chmod 0640 "$ep_tmp"
+        chown root:sing-box "$ep_tmp"
+        sing-box check -c "$ep_tmp" -c consumers/finance/config/egress.json
+        install -o root -g sing-box -m 0640 "$ep_tmp" /etc/network-v2/finance/provider-endpoints.json
+      - for: { var: FINANCE_SYSTEMD_UNITS }
+        cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - systemctl daemon-reload
+      - systemctl disable network-v2-finance.target >/dev/null 2>&1 || true
+
+  consumer:finance:start:
+    desc: Start the materialized shared Finance topology; caller owns serialized production cutover
+    cmds:
+      - systemctl start network-v2-finance.target
+
+  consumer:finance:verify:
+    desc: Destructively prove all six authorities, fencing, A/B survival, all-down fail-closed, recovery and root-process restart
+    cmds:
+      - ./consumers/finance/acceptance/production-smoke.sh
+
+  consumer:finance:stop:
+    desc: Stop only the shared Network v2 Finance topology
+    cmds:
+      - systemctl stop network-v2-finance.target
+
+  accept:cold-start:
+    desc: Stop and cold-start the whole generic R0 target while proving control-plane independence and dual-stack readiness
+    cmds:
+      - ./acceptance/lifecycle/cold-start.sh
+
+  test:r0:
+    internal: true
+    deps: [core:validate, accept:connectivity, accept:observability, accept:fault-l4, accept:topology]
+
+  test:r9:
+    internal: true
+    desc: "Graduate the generic Network v2 platform: isolated dual-stack/long-flow tests, live convergence, cold-start recovery, and process recovery"
+    cmds:
+      - task: test:r0
+      - task: core:converge
+      - task: accept:cold-start
+      - task: accept:process-recovery
+      - task: core:verify
+
+  accept:protocol:
+    desc: Prove HTTP/1.1 and HTTP/2 parity, UDP/TCP DNS parity, and observable external egress without treating public throughput or IP stability as generic correctness
+    cmds:
+      - ./acceptance/protocol/divergence.sh
+
+  accept:full-ip:
+    desc: Prove TCP and UDP/QUIC through a sing-box TUN confined to an isolated Linux network namespace
+    cmds:
+      - ./acceptance/full-ip/tun-quic.sh
+
+  test:r11:
+    internal: true
+    desc: "Harden generic Network v2 protocol coverage without changing the live host routing model"
+    cmds:
+      - task: core:verify
+      - task: accept:protocol
+      - task: accept:full-ip
+      - task: core:verify
+
+  accept:family-fallback:
+    desc: Prove bidirectional address-family fallback under deterministic local single-family failure
+    cmds:
+      - ./acceptance/connectivity/family-fallback.sh
+
+  accept:dns-resilience:
+    desc: Prove partial-upstream survival, all-upstream fail-closed semantics, cache expiry, and recovery without dnsproxy restart
+    cmds:
+      - ./acceptance/dns/upstream-resilience.sh
+
+  test:r12:
+    internal: true
+    desc: "Harden generic Network v2 resilience without changing live R0 configuration"
+    cmds:
+      - task: core:verify
+      - task: accept:family-fallback
+      - task: accept:dns-resilience
+      - task: core:verify
+
+  accept:source:
+    desc: Run generic isolated acceptance without converging or mutating live R0
+    deps: [core:validate, accept:connectivity, accept:observability, accept:fault-l4, accept:topology]
+
+  accept:live:
+    desc: Revalidate the current live R0 across lifecycle, protocol, full-IP, and resilience capabilities
+    cmds:
+      - task: core:verify
+      - task: accept:cold-start
+      - task: accept:process-recovery
+      - task: accept:protocol
+      - task: accept:full-ip
+      - task: accept:family-fallback
+      - task: accept:dns-resilience
+      - task: core:verify
+
+  accept:local:
+    desc: Full local WSL graduation; refresh current capability evidence only after every acceptance gate passes
+    cmds:
+      - task: accept:source
+      - task: core:converge
+      - task: accept:live
+      - python3 scripts/capability-report.py write-local
+
+  evidence:verify-local:
+    desc: Fail if the checked-in local capability report no longer matches the generic source or current platform fingerprint
+    cmds:
+      - python3 scripts/capability-report.py verify-local
+
+  evidence:refresh-local:
+    desc: Re-run full local graduation and regenerate the current capability report
+    cmds:
+      - task: accept:local
+      - task: evidence:verify-local
+
+  reference:linux:preflight:
+    desc: Require a non-WSL Linux runner with netem, Docker, containerlab, and kernel WireGuard
+    cmds:
+      - ./reference/linux/preflight.sh
+
+  reference:linux:netem:
+    desc: Prove deterministic packet loss plus delay/reorder on the reference Linux kernel
+    cmds:
+      - ./reference/linux/netem-smoke.sh
+
+  reference:linux:containerlab:
+    desc: Prove a real two-node Linux containerlab data topology
+    cmds:
+      - ./reference/linux/containerlab-smoke.sh
+
+  reference:linux:wireguard-kernel:
+    desc: Prove kernel-WireGuard creation, failure, and recovery
+    cmds:
+      - ./reference/linux/wireguard-kernel-smoke.sh
+
+  reference:linux:wireguard-userspace:
+    desc: Prove the pinned wireguard-go implementation directly as userspace TUN/UAPI, including failure and recovery
+    cmds:
+      - ./reference/linux/wireguard-userspace-smoke.sh
+
+  reference:linux:wireguard-differential:
+    desc: Prove kernel WireGuard and pinned wireguard-go as distinct implementations on one standard-Linux runner
+    cmds:
+      - task: capability:wireguard:materialize
+      - task: reference:linux:wireguard-kernel
+      - task: reference:linux:wireguard-userspace
+
+  reference:linux:accept:
+    desc: Close the external-fidelity gates on an explicitly provisioned standard-Linux reference runner
+    cmds:
+      - task: reference:linux:preflight
+      - task: reference:linux:netem
+      - task: reference:linux:containerlab
+      - task: reference:linux:wireguard-differential
+
+  consumer:browserless:validate:
+    desc: Validate the serialized Browserless migration gate without changing production
+    deps: [provider:surfshark:validate]
+    cmds:
+      - /usr/bin/bash -n consumers/browserless/acceptance/serial-browserless.sh
+      - test -x consumers/browserless/acceptance/serial-browserless.sh
+
+  consumer:browserless:serial-accept:
+    desc: Serialize the shared provider identity, prove real Browserless over Network v2, then restore legacy production
+    deps: [consumer:browserless:validate, provider:surfshark:verify-local]
+    cmds:
+      - ./consumers/browserless/acceptance/serial-browserless.sh
+
+vars:
+  SYSTEMD_UNITS:
+    sh: printf '%s ' systemd/network-v2-*.service
+  R0_SYSTEMD_UNITS:
+    sh: printf '%s ' systemd/network-v2-r0.target systemd/network-v2-dnsproxy.service systemd/network-v2-singbox.service systemd/network-v2-blackbox.service systemd/network-v2-prometheus.service
+  FINANCE_SYSTEMD_UNITS:
+    sh: printf '%s ' consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+  WIREGUARD_GO_REPO:
+    sh: awk -F= '$1=="repository"{print $2}' capabilities/wireguard/external/wireguard-go.lock
+  WIREGUARD_GO_REVISION:
+    sh: awk -F= '$1=="revision"{print $2}' capabilities/wireguard/external/wireguard-go.lock
+  WIREGUARD_GO_VERSION:
+    sh: awk -F= '$1=="version"{print $2}' capabilities/wireguard/external/wireguard-go.lock
+  GLUETUN_SERVERS_REPO:
+    sh: awk -F= '$1=="repository"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_REVISION:
+    sh: awk -F= '$1=="revision"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_FILE:
+    sh: awk -F= '$1=="file"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_SHA256:
+    sh: awk -F= '$1=="sha256"{print $2}' providers/surfshark/external/gluetun-servers.lock
+  GLUETUN_SERVERS_INSTALL:
+    sh: awk -F= '$1=="install"{print $2}' providers/surfshark/external/gluetun-servers.lock

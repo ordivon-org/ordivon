@@ -1,0 +1,7 @@
+[Unit]
+Description=Network v2 Finance venue production topology
+Wants=network-v2-finance-egress.service
+After=network-v2-finance-egress.service
+
+[Install]
+WantedBy=multi-user.target

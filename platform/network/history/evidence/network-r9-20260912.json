@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "round": "R9",
+  "date": "2026-09-12",
+  "scope": "generic Network v2 platform graduation on the current WSL execution platform",
+  "standing": "PASSED_LOCAL_WSL_PLATFORM",
+  "consumerMigrationInScope": false,
+  "architecture": {
+    "systemdRoot": "network-v2-r0.target",
+    "bootEnabledRoot": true,
+    "individuallyEnabledChildren": false,
+    "children": [
+      "network-v2-dnsproxy.service",
+      "network-v2-singbox.service",
+      "network-v2-blackbox.service",
+      "network-v2-prometheus.service"
+    ],
+    "customPersistentNetworkDaemonAdded": false
+  },
+  "dualStack": {
+    "dnsA": true,
+    "dnsAAAA": true,
+    "forcedIpv4Https": true,
+    "forcedIpv6Https": true,
+    "preferIpv6NormalPath": true
+  },
+  "dataPlane": {
+    "concurrentRequests": 4,
+    "isolatedLongFlowBytes": 5000000,
+    "coldStartLongFlowBytes": 1000000,
+    "sourceLiveIdentity": true
+  },
+  "observability": {
+    "blackboxIpv4": true,
+    "blackboxIpv6": true,
+    "blackboxDnsA": true,
+    "blackboxDnsAAAA": true,
+    "blackboxSingboxTcp": true,
+    "prometheusEvidence": true,
+    "fixedSmokePortFalseEvidenceClosed": true
+  },
+  "recovery": {
+    "wholeTargetStopStart": true,
+    "controlPlaneIndependentWhileStopped": true,
+    "singboxProcessRecovery": true,
+    "singboxRecoveryMs": 3268,
+    "restartCountBefore": 0,
+    "restartCountAfter": 1
+  },
+  "canonicalAcceptance": {
+    "entryPoint": "task test:r9",
+    "jobId": "job-01a09552-3a42-7d12-a95b-432a86d63231",
+    "operationDigest": "sha256:abb67a1556503ebfd144ba3bd94ba6eccbf7ecc070c6281b127f17bfe16f27c9",
+    "stdoutSha256": "99df745ee8727ec0ed4868655f9dbf8e289065857c0481a0bee46cdfbcb35e38",
+    "terminalEvidenceSha256": "2854ef5889c904bc3b58f7c4c52f286b04ea33196a539f712732e1f69e494b5f"
+  },
+  "postState": {
+    "jobId": "job-01a09553-5485-7b00-999f-bad45d99eda5",
+    "operationDigest": "sha256:a22dea0cafbcfedcdf51a5bf69d1dfcaa68ffde1fb7ffc46d193a71b36e0c137",
+    "stdoutSha256": "d2a61603455fa7976120c4f58dca55c6d152b1d1e8a7f2e3e739bf82853a24ed",
+    "terminalEvidenceSha256": "cc50027b368ee2a29d10c7c0cd570b9610b6535e74ba1165c79fa11ead2a262d",
+    "cloudflareHa": {
+      "productionA": 4,
+      "productionB": 4,
+      "canary": 4
+    }
+  },
+  "platformBoundaries": {
+    "localNetemSupported": false,
+    "localNetemFailure": "Error: Specified qdisc kind is unknown.",
+    "standardLinuxNetemRequired": true,
+    "containerlabReferenceRunnerRequired": true,
+    "kernelWireguardDifferentialRequired": true,
+    "actualMachineRebootProven": false
+  },
+  "authorization": {
+    "financeConsumerCutover": false,
+    "legacyNetworkRetirement": false,
+    "cloudflareControlPlaneMigration": false
+  }
+}

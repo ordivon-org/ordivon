@@ -1,0 +1,34 @@
+modules:
+  http_2xx_ipv4:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+  http_2xx_ipv6:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip6
+      follow_redirects: true
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: ip4
+  dns_a:
+    prober: dns
+    timeout: 5s
+    dns:
+      preferred_ip_protocol: ip4
+      transport_protocol: udp
+      query_name: example.com
+      query_type: A
+  dns_aaaa:
+    prober: dns
+    timeout: 5s
+    dns:
+      preferred_ip_protocol: ip4
+      transport_protocol: udp
+      query_name: example.com
+      query_type: AAAA

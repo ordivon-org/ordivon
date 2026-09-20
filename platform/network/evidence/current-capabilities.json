@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "platform": "current-wsl",
+  "standing": "LOCAL_WSL_GRADUATED",
+  "authority": {
+    "entryPoint": "task accept:local",
+    "acceptedAt": "2026-09-12T15:23:44+00:00",
+    "sourceRevision": "da5f541cfabc96845d71471f90b30659c3926e0d",
+    "sourceFingerprint": "sha256:02efa3cb5ea3fe10b96ec8f79c42fcafc69edbe4033348ef8875271d3df25897",
+    "platformFingerprint": "sha256:6725d1a575be2c3787e385cd27bd3c8ce1fc14f8ea966bf7b051ad75f6c63301"
+  },
+  "platformEvidence": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "kernelRelease": "6.6.123.2-microsoft-standard-WSL2",
+    "os": {
+      "id": "arch",
+      "versionId": "unknown"
+    },
+    "wsl": true
+  },
+  "generic": {
+    "ipv4": "PASS",
+    "ipv6": "PASS",
+    "dnsA": "PASS",
+    "dnsAAAA": "PASS",
+    "familyFallback": "PASS_BOTH_DIRECTIONS",
+    "http11": "PASS",
+    "http2": "PASS",
+    "udpQuicIsolatedTun": "PASS",
+    "longFlow": "PASS",
+    "concurrency": "PASS",
+    "externalEgressObservation": "PASS",
+    "dnsPartialUpstreamFailure": "PASS",
+    "dnsAllUpstreamFailClosed": "PASS",
+    "dnsRecoveryWithoutRestart": "PASS",
+    "blackboxPrometheus": "PASS",
+    "toxiproxyL4Faults": "PASS",
+    "netnsTopology": "PASS",
+    "coldStart": "PASS",
+    "processRecovery": "PASS",
+    "wslRebootRecovery": "PASS",
+    "controlPlaneIndependence": "PASS"
+  },
+  "externalFidelity": {
+    "tcNetem": "REQUIRES_STANDARD_LINUX",
+    "containerlab": "REQUIRES_STANDARD_LINUX",
+    "kernelWireguardDifferential": "REQUIRES_STANDARD_LINUX"
+  },
+  "outsideNetworkBoundary": {
+    "windowsHostRebootWslAutolaunch": "WORKSTATION_BOOTSTRAP",
+    "consumerCutover": "CONSUMER_MIGRATION",
+    "legacyRetirement": "CONSUMER_MIGRATION"
+  }
+}

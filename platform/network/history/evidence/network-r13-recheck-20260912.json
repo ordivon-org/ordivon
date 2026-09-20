@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "round": "R13",
+  "date": "2026-09-12",
+  "scope": "fresh revalidation of generic Network v2 local WSL graduation",
+  "standing": "PASSED_AFTER_HARNESS_RACE_REPAIR",
+  "networkMechanismChanged": false,
+  "harnessRepair": {
+    "file": "tests/r0-cold-start-smoke.sh",
+    "rootCause": "systemd target stop returned before every PartOf child had reached inactive; immediate assertion raced blackbox/prometheus shutdown",
+    "waitInactiveAdded": true,
+    "exitRecoveryTrapAdded": true,
+    "networkDataPlaneDefect": false
+  },
+  "freshRegraduation": {
+    "sequence": ["R9","R11","R12"],
+    "jobId": "job-01a0957a-6faf-7f90-8f8b-60d2705ba171",
+    "operationDigest": "sha256:27fffaf31c2fe01e585816723d0a2fdfd20508c047087ec4271ef98832f59ac9",
+    "stdoutSha256": "d54622a2fe40333080728edb6fd9c68f2fe5aa789c19fda5addc8c0992158bfc",
+    "terminalEvidenceSha256": "5ec1f882deaa86c4aa8b84a95cabb040ee262429643aa41a362a687fa06547f1",
+    "passed": true
+  },
+  "freshResults": {
+    "r9": true,
+    "r11": true,
+    "r12": true,
+    "coldStart": true,
+    "controlPlaneIndependentWhileR0Stopped": true,
+    "processRecovery": true,
+    "dualStack": true,
+    "protocolDivergence": true,
+    "isolatedQuicTun": true,
+    "familyFallback": true,
+    "dnsResilience": true,
+    "finalLiveVerify": true
+  },
+  "remainingExternalFidelity": [
+    "standard-linux-tc-netem",
+    "standard-linux-containerlab",
+    "kernel-wireguard-differential"
+  ],
+  "workstationBoundary": [
+    "windows-host-reboot-plus-wsl-autolaunch"
+  ]
+}
