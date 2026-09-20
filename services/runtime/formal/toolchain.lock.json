@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "tool": "tla2tools.jar",
+  "project": "tlaplus/tlaplus",
+  "version": "1.7.4",
+  "releaseName": "Xenophanes",
+  "url": "https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar",
+  "upstreamSha1": "bee4a54f3ee3d4afc347c3240ec2d9e93b075104",
+  "sha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
+  "javaMinMajor": 11,
+  "cacheRelativePath": "target/formal-tools/tla2tools-v1.7.4.jar",
+  "source": "official GitHub release; SHA-1 published on upstream release page; SHA-256 measured after upstream SHA-1 verification"
+}

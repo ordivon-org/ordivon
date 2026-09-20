@@ -1,0 +1,920 @@
+from __future__ import annotations
+
+from contextlib import closing
+import hashlib
+import json
+import runpy
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+from unittest import mock
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+SCRIPT = REPO / "scripts/ordivon-runtime-status"
+COMMIT = "a" * 40
+
+
+def digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def executable(path: Path, text: str) -> None:
+    path.write_text(text, encoding="utf-8")
+    path.chmod(0o755)
+
+
+def fixture(root: Path) -> dict[str, Path]:
+    database = root / "registry.sqlite3"
+    connection = sqlite3.connect(database)
+    try:
+        connection.executescript(
+            """
+            CREATE TABLE schema_migrations(version INTEGER);
+            INSERT INTO schema_migrations VALUES (4);
+            CREATE TABLE jobs(
+              job_id TEXT PRIMARY KEY, workspace_id TEXT, resolution TEXT,
+              client_request_id TEXT, execution_plan_json TEXT, created_at_ms INTEGER,
+              current_attempt_id TEXT
+            );
+            CREATE TABLE attempts(
+              attempt_id TEXT PRIMARY KEY, job_id TEXT, attempt_number INTEGER, state TEXT,
+              started_at_ms INTEGER, finished_at_ms INTEGER, exit_code INTEGER, bundle_path TEXT
+            );
+            CREATE TABLE concurrency_reservations(attempt_id TEXT, state TEXT);
+            CREATE TABLE attempt_conditions(attempt_id TEXT, condition_type TEXT, status TEXT);
+            INSERT INTO jobs(job_id,workspace_id,resolution,created_at_ms) VALUES ('job-1','workspace-1','succeeded',1);
+            INSERT INTO attempts(attempt_id,job_id,attempt_number,state,started_at_ms,finished_at_ms,exit_code) VALUES ('attempt-1','job-1',1,'succeeded',1,2,0);
+            INSERT INTO concurrency_reservations VALUES ('attempt-1','released');
+            INSERT INTO attempt_conditions VALUES ('attempt-1','recovery_required','false');
+            """
+        )
+    finally:
+        connection.close()
+    store = root / "runtime"
+    records = store / "workspace-records"
+    workspaces = store / "workspaces"
+    records.mkdir(parents=True)
+    workspaces.mkdir()
+    workspace = workspaces / "workspace-1"
+    workspace.mkdir()
+    subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+    subprocess.run(["git", "-C", str(workspace), "config", "user.name", "Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(workspace), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    (workspace / "README.md").write_text("ok\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(workspace), "add", "README.md"], check=True)
+    subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "baseline"], check=True)
+    (records / "workspace-1.json").write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "workspaceId": "workspace-1",
+                "sourceRepo": "/private/source",
+                "sourceRevision": COMMIT,
+                "workspacePath": str(workspace),
+                "createdUnixMs": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+    lifecycle = store / "lifecycle-receipts" / "receipt-1"
+    lifecycle.mkdir(parents=True)
+    (lifecycle / "result.json").write_text(
+        json.dumps({"status": "completed", "actions": [], "failures": []}),
+        encoding="utf-8",
+    )
+    candidates = root / "candidates"
+    candidates.mkdir()
+    install = root / "install"
+    install.mkdir()
+    executable(install / "runtime", "runtime\n")
+    deployment_root = root / "deployments"
+    previous_deployment = deployment_root / "deploy-0"
+    previous_deployment.mkdir(parents=True)
+    (previous_deployment / "result.json").write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "status": "deployed",
+                "commit": "0" * 40,
+                "finishedAtMs": 1,
+                "installed": [],
+                "probe": {"protocolVersion": "2025-06-18"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    deployments = deployment_root / "deploy-1"
+    deployments.mkdir(parents=True)
+    previous_binary = deployments / "previous" / "ordivon-runtime"
+    previous_binary.parent.mkdir()
+    executable(previous_binary, "previous-runtime\n")
+    (deployments / "result.json").write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "status": "deployed",
+                "commit": COMMIT,
+                "finishedAtMs": 2,
+                "installed": [
+                    {
+                        "name": "runtime",
+                        "digest": digest(install / "runtime"),
+                        "bytes": 8,
+                        "path": "/private/install/runtime",
+                    }
+                ],
+                "probe": {
+                    "lifecycle": "modern",
+                    "protocolVersion": "2026-07-28",
+                    "supportedVersions": [
+                        "2026-07-28",
+                        "2025-11-25",
+                        "2025-06-18",
+                    ],
+                    "serverInfo": {
+                        "name": "ordivon-runtime-mcp",
+                        "version": "0.1.0",
+                    },
+                    "toolCatalogDigest": "sha256:" + "b" * 64,
+                    "toolCount": 15,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (deployments / "plan.json").write_text(
+        json.dumps({"candidateManifest": {"builtAtMs": 1, "path": "/private/candidate"}}),
+        encoding="utf-8",
+    )
+    trace_path = root / "runtime-trace.jsonl"
+    trace_path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "kind": "mcp_protocol_observation",
+                        "observedUnixMs": 3,
+                        "protocolVersion": "2025-11-25",
+                        "method": "initialize",
+                        "client": {"name": "openai-mcp", "version": "1.0.0"},
+                    }
+                ),
+                json.dumps(
+                    {
+                        "kind": "mcp_protocol_observation",
+                        "observedUnixMs": 4,
+                        "protocolVersion": "2025-11-25",
+                        "method": "tools/call",
+                        "tool": "workspace.exec",
+                        "client": {"name": "openai-mcp", "version": "1.0.0"},
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    env_file = root / "runtime.env"
+    env_file.write_text(
+        "ORDIVON_GLOBAL_MAX_CONCURRENCY=8\n"
+        "ORDIVON_DEFAULT_RUNTIME_MS=3600000\n"
+        "ORDIVON_MAX_RUNTIME_MS=86400000\n"
+        "ORDIVON_BODY_LIMIT_BYTES=1048576\n"
+        "ORDIVON_CACHE_HIGH_WATERMARK_BYTES=68719476736\n"
+        "ORDIVON_CACHE_LOW_WATERMARK_BYTES=51539607552\n"
+        "ORDIVON_RECONCILE_INTERVAL_MS=15000\n"
+        "ORDIVON_BEARER_TOKEN=super-secret-token\n"
+        "PRIVATE_PATH=/private/value\n",
+        encoding="utf-8",
+    )
+    systemctl = root / "systemctl"
+    executable(
+        systemctl,
+        "#!/usr/bin/env python3\n"
+        "print('ActiveState=active')\n"
+        "print('SubState=running')\n"
+        "print('MainPID=123')\n"
+        "print('ExecMainStartTimestamp=now')\n"
+        "print('NRestarts=0')\n",
+    )
+    return {
+        "database": database,
+        "store": store,
+        "deployments": deployments.parent,
+        "candidates": candidates,
+        "install": install,
+        "env": env_file,
+        "systemctl": systemctl,
+    }
+
+
+def raw_command(paths: dict[str, Path], *extra: str) -> list[str]:
+    return [
+        sys.executable,
+        str(SCRIPT),
+        "--database",
+        str(paths["database"]),
+        "--runtime-store-root",
+        str(paths["store"]),
+        "--deployment-root",
+        str(paths["deployments"]),
+        "--candidate-root",
+        str(paths["candidates"]),
+        "--install-dir",
+        str(paths["install"]),
+        "--env-file",
+        str(paths["env"]),
+        "--systemctl",
+        str(paths["systemctl"]),
+        *extra,
+    ]
+
+
+def command(paths: dict[str, Path], *extra: str) -> list[str]:
+    mode = [] if any(value in {"--health", "--diagnose", "--dashboard"} for value in extra) else ["--diagnose"]
+    return raw_command(paths, *mode, *extra)
+
+
+class RuntimeStatusDefaultTests(unittest.TestCase):
+    def test_default_deployment_root_matches_runtime_owner_receipt_root(self) -> None:
+        namespace = runpy.run_path(str(SCRIPT))
+        self.assertEqual(
+            namespace["DEFAULT_DEPLOYMENT_ROOT"],
+            Path("/var/lib/ordivon/deployments"),
+        )
+
+
+class RuntimeStatusTests(unittest.TestCase):
+    def test_workspace_status_derives_compact_record_identity_and_path(self) -> None:
+        namespace = runpy.run_path(str(SCRIPT))
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            record_path = paths["store"] / "workspace-records" / "workspace-1.json"
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            record.pop("workspaceId")
+            record.pop("workspacePath")
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            reasons: list[str] = []
+            report = namespace["workspace_status"](
+                paths["store"],
+                set(),
+                16,
+                72,
+                reasons,
+            )
+            self.assertEqual(report["records"]["open"], 1)
+            self.assertEqual(report["missing"], 0)
+            self.assertEqual(report["unreadable"], 0)
+
+    def test_storage_measurements_share_a_bounded_total_budget(self) -> None:
+        namespace = runpy.run_path(str(SCRIPT))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            store = root / "runtime"
+            for path in (
+                store / "cache",
+                store / "workspaces",
+                root / "registry",
+                root / "deployments",
+                root / "candidates",
+            ):
+                path.mkdir(parents=True, exist_ok=True)
+            observed_timeouts: list[float] = []
+
+            def timeout_probe(command, **kwargs):
+                timeout = float(kwargs["timeout"])
+                observed_timeouts.append(timeout)
+                raise subprocess.TimeoutExpired(command, timeout)
+
+            reasons: list[str] = []
+            with mock.patch.object(namespace["subprocess"], "run", side_effect=timeout_probe):
+                report = namespace["storage_status"](
+                    root / "registry" / "registry.sqlite3",
+                    store,
+                    root / "deployments",
+                    root / "candidates",
+                    {},
+                    reasons,
+                )
+
+            self.assertEqual(len(observed_timeouts), 5)
+            self.assertTrue(all(0 < value <= 2.0 for value in observed_timeouts))
+            self.assertLessEqual(sum(observed_timeouts), 10.0)
+            self.assertTrue(
+                all(
+                    report[key] is None
+                    for key in (
+                        "cacheBytes",
+                        "workspaceBytes",
+                        "registryBytes",
+                        "deploymentBytes",
+                        "candidateBytes",
+                    )
+                )
+            )
+            self.assertIn("STORAGE_MEASUREMENT_UNAVAILABLE", reasons)
+
+    def test_successful_rollback_result_becomes_current_release_truth(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            receipt = paths["deployments"] / "deploy-1"
+            deployed = json.loads((receipt / "result.json").read_text())
+            rollback = {
+                "schemaVersion": 2,
+                "status": "restored_previous",
+                "releaseDisposition": "rollback",
+                "commit": COMMIT,
+                "commitKnown": True,
+                "finishedAtMs": int(deployed["finishedAtMs"]) + 1,
+                "installed": deployed["installed"],
+                "probe": deployed["probe"],
+                "currentBackup": str(receipt / "rollback-current-test"),
+            }
+            (receipt / "rollback-result.json").write_text(
+                json.dumps(rollback), encoding="utf-8"
+            )
+            completed = subprocess.run(
+                raw_command(paths, "--health", "--json", "--expected-commit", COMMIT),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["deployment"]["releaseEvent"], "rollback-result.json")
+            self.assertEqual(report["deployment"]["releaseDisposition"], "rollback")
+            self.assertEqual(report["deployment"]["commit"], COMMIT)
+            self.assertTrue(all(item["matches"] for item in report["deployment"]["artifacts"]))
+
+    def test_rollback_with_unknown_previous_commit_preserves_artifact_truth_but_fails_health(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            receipt = paths["deployments"] / "deploy-1"
+            deployed = json.loads((receipt / "result.json").read_text())
+            rollback = {
+                "schemaVersion": 2,
+                "status": "restored_previous",
+                "releaseDisposition": "rollback",
+                "commit": None,
+                "commitKnown": False,
+                "finishedAtMs": int(deployed["finishedAtMs"]) + 1,
+                "installed": deployed["installed"],
+                "probe": deployed["probe"],
+                "currentBackup": str(receipt / "rollback-current-test"),
+            }
+            (receipt / "rollback-result.json").write_text(
+                json.dumps(rollback), encoding="utf-8"
+            )
+            completed = subprocess.run(
+                raw_command(paths, "--health", "--json"),
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(completed.returncode, 1)
+            report = json.loads(completed.stdout)
+            self.assertIn("DEPLOYMENT_COMMIT_UNKNOWN", report["operatorAction"]["reasons"])
+            self.assertTrue(all(item["matches"] for item in report["deployment"]["artifacts"]))
+
+    def test_operator_artifact_drift_is_deployment_health_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            operator = paths["install"] / "ordivon-runtime-status"
+            executable(operator, "operator-v1\n")
+            result_path = paths["deployments"] / "deploy-1" / "result.json"
+            result = json.loads(result_path.read_text())
+            result["installed"].append(
+                {
+                    "name": "ordivon-runtime-status",
+                    "kind": "operator",
+                    "mode": 0o755,
+                    "digest": digest(operator),
+                    "bytes": operator.stat().st_size,
+                    "path": "/private/install/ordivon-runtime-status",
+                }
+            )
+            result_path.write_text(json.dumps(result), encoding="utf-8")
+            healthy = subprocess.run(
+                raw_command(paths, "--health", "--json"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            healthy_report = json.loads(healthy.stdout)
+            artifact = next(
+                item
+                for item in healthy_report["deployment"]["artifacts"]
+                if item["name"] == "ordivon-runtime-status"
+            )
+            self.assertTrue(artifact["matches"])
+            operator.write_text("operator-drift\n", encoding="utf-8")
+            drifted = subprocess.run(
+                raw_command(paths, "--health", "--json"),
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(drifted.returncode, 1)
+            report = json.loads(drifted.stdout)
+            self.assertIn(
+                "ARTIFACT_DIGEST_MISMATCH:ordivon-runtime-status",
+                report["operatorAction"]["reasons"],
+            )
+
+    def test_diagnostic_policy_inputs_have_no_legacy_round_maxima(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            completed = subprocess.run(
+                command(
+                    paths,
+                    "--json",
+                    "--max-workspaces",
+                    "10001",
+                    "--protocol-retention-hours",
+                    "87601",
+                    "--stale-dirty-hours",
+                    "87601",
+                ),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["compatibility"]["retentionHours"], 87_601)
+            self.assertEqual(report["workspaces"]["staleDirtyHours"], 87_601)
+            self.assertFalse(report["workspaces"]["scanTruncated"])
+
+    def test_healthy_json_is_secret_free_and_path_free(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            result = subprocess.run(
+                command(paths, "--json", "--expected-commit", COMMIT),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(report["schemaVersion"], 3)
+            self.assertEqual(report["status"], "healthy")
+            self.assertEqual(report["mode"], "diagnose")
+            self.assertEqual(report["health"]["status"], "healthy")
+            self.assertEqual(report["maintenance"]["status"], "healthy")
+            self.assertEqual(report["deployment"]["commit"], COMMIT)
+            self.assertEqual(report["deployment"]["protocolLifecycle"], "modern")
+            self.assertEqual(report["deployment"]["protocolVersion"], "2026-07-28")
+            self.assertEqual(
+                report["deployment"]["supportedProtocolVersions"],
+                ["2026-07-28", "2025-11-25", "2025-06-18"],
+            )
+            self.assertEqual(
+                report["deployment"]["toolCatalogDigest"],
+                "sha256:" + "b" * 64,
+            )
+            self.assertEqual(report["deployment"]["toolCount"], 15)
+            compatibility = report["compatibility"]
+            self.assertEqual(compatibility["canonicalProtocolVersion"], "2026-07-28")
+            self.assertEqual(compatibility["deletionCandidates"], [])
+            decisions = {item["protocolVersion"]: item for item in compatibility["decisions"]}
+            self.assertIn(
+                "production-deploy-and-acceptance",
+                decisions["2026-07-28"]["consumers"],
+            )
+            self.assertIn(
+                "live-client:openai-mcp@1.0.0",
+                decisions["2025-11-25"]["consumers"],
+            )
+            self.assertIn(
+                "receipt-bound-rollback:deploy-0",
+                decisions["2025-06-18"]["consumers"],
+            )
+            self.assertEqual(report["config"]["globalMaxConcurrency"], 8)
+            self.assertEqual(report["config"]["defaultRuntimeMs"], 3_600_000)
+            self.assertEqual(report["config"]["maxRuntimeMs"], 86_400_000)
+            self.assertEqual(report["config"]["bodyLimitBytes"], 1_048_576)
+            self.assertEqual(report["workspaces"]["dirty"], 0)
+            self.assertEqual(report["workspaces"]["staleDirty"], 0)
+            self.assertIsNotNone(report["storage"]["cacheBytes"])
+            self.assertIsNotNone(report["storage"]["registryBytes"])
+            self.assertEqual(report["operatorAction"]["count"], 0)
+            self.assertEqual(report["maintenanceAction"]["count"], 0)
+            self.assertNotIn("super-secret-token", result.stdout)
+            self.assertNotIn("/private/", result.stdout)
+            self.assertNotIn(str(Path(temporary)), result.stdout)
+
+    def test_v5_registry_without_attempt_conditions_supports_health_and_dashboard(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            with closing(sqlite3.connect(paths["database"])) as connection:
+                connection.execute("ALTER TABLE attempts ADD COLUMN recovery_required INTEGER")
+                connection.execute("UPDATE attempts SET recovery_required=0")
+                connection.execute("DROP TABLE attempt_conditions")
+                connection.execute("UPDATE schema_migrations SET version=5")
+                connection.commit()
+
+            health = subprocess.run(
+                raw_command(paths, "--health", "--json"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            health_report = json.loads(health.stdout)
+            self.assertNotEqual(health_report["registry"].get("available"), False)
+            self.assertEqual(health_report["registry"]["schemaVersion"], 5)
+            self.assertEqual(health_report["registry"]["recoveryRequired"], 0)
+
+            dashboard = subprocess.run(
+                raw_command(paths, "--dashboard", "--json"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            dashboard_report = json.loads(dashboard.stdout)
+            self.assertNotEqual(dashboard_report["dashboard"]["jobs"].get("available"), False)
+
+    def test_mismatched_binary_and_expected_commit_require_action(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            executable(paths["install"] / "runtime", "changed\n")
+            result = subprocess.run(
+                command(paths, "--json", "--expected-commit", "b" * 40),
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 1)
+            report = json.loads(result.stdout)
+            self.assertEqual(report["status"], "unhealthy")
+            self.assertIn("EXPECTED_COMMIT_MISMATCH", report["operatorAction"]["reasons"])
+            self.assertIn(
+                "BINARY_DIGEST_MISMATCH:runtime",
+                report["operatorAction"]["reasons"],
+            )
+
+    def test_missing_protocol_trace_blocks_compatibility_deletion_without_health_incident(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            (paths["database"].parent / "runtime-trace.jsonl").unlink()
+            result = subprocess.run(
+                command(paths, "--json"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(report["status"], "healthy")
+            self.assertEqual(report["operatorAction"]["count"], 0)
+            self.assertEqual(report["compatibility"]["deletionCandidates"], [])
+            decisions = {item["protocolVersion"]: item for item in report["compatibility"]["decisions"]}
+            self.assertIn(
+                "PROTOCOL_TRACE_UNAVAILABLE",
+                decisions["2025-11-25"]["blockers"],
+            )
+            self.assertFalse(decisions["2025-11-25"]["deletionEligible"])
+
+    def test_recent_deployment_blocks_protocol_deletion_until_retention_window_completes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            current = paths["deployments"] / "deploy-1" / "result.json"
+            value = json.loads(current.read_text(encoding="utf-8"))
+            value["finishedAtMs"] = int(time.time() * 1000)
+            value["probe"]["supportedVersions"].append("2024-11-05")
+            current.write_text(json.dumps(value), encoding="utf-8")
+            result = subprocess.run(
+                command(paths, "--json"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(result.stdout)
+            compatibility = report["compatibility"]
+            self.assertEqual(compatibility["retentionHours"], 168)
+            self.assertFalse(compatibility["retentionSatisfied"])
+            decisions = {item["protocolVersion"]: item for item in compatibility["decisions"]}
+            self.assertIn(
+                "RETENTION_WINDOW_INCOMPLETE",
+                decisions["2024-11-05"]["blockers"],
+            )
+            self.assertFalse(decisions["2024-11-05"]["deletionEligible"])
+            self.assertNotIn("2024-11-05", compatibility["deletionCandidates"])
+
+    def test_rotated_protocol_trace_is_part_of_bounded_compatibility_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            trace = paths["database"].parent / "runtime-trace.jsonl"
+            rotated = Path(str(trace) + ".1")
+            trace.replace(rotated)
+            trace.write_text(
+                json.dumps(
+                    {
+                        "kind": "mcp_protocol_observation",
+                        "observedUnixMs": 5,
+                        "protocolVersion": "2025-11-25",
+                        "method": "tools/call",
+                        "tool": "workspace.list",
+                        "client": {"name": "openai-mcp", "version": "1.0.0"},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            completed = subprocess.run(
+                command(paths, "--json"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(completed.stdout)
+            observations = report["compatibility"]["observations"]
+            self.assertEqual(observations["segments"], 2)
+            self.assertGreaterEqual(observations["events"], 3)
+
+    def test_stale_dirty_workspace_requires_operator_attention_without_deletion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            workspace = paths["store"] / "workspaces" / "workspace-1"
+            (workspace / "README.md").write_text("dirty\n", encoding="utf-8")
+            completed = subprocess.run(
+                command(paths, "--json", "--stale-dirty-hours", "1"),
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(completed.returncode, 0)
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["status"], "attention")
+            self.assertEqual(report["health"]["status"], "healthy")
+            self.assertEqual(report["maintenance"]["status"], "attention")
+            self.assertEqual(report["workspaces"]["staleDirty"], 1)
+            self.assertIn(
+                "STALE_DIRTY_WORKSPACES",
+                report["maintenanceAction"]["reasons"],
+            )
+            self.assertTrue(workspace.is_dir())
+
+    def test_default_mode_is_fast_health(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            completed = subprocess.run(
+                raw_command(paths, "--json", "--expected-commit", COMMIT),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["mode"], "health")
+            self.assertNotIn("workspaces", report)
+            self.assertNotIn("storage", report)
+
+    def test_health_mode_skips_expensive_maintenance_probes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            workspace = paths["store"] / "workspaces" / "workspace-1"
+            (workspace / "README.md").write_text("dirty\n", encoding="utf-8")
+            completed = subprocess.run(
+                command(paths, "--health", "--json", "--expected-commit", COMMIT),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["mode"], "health")
+            self.assertEqual(report["status"], "healthy")
+            self.assertEqual(report["health"]["status"], "healthy")
+            self.assertEqual(report["maintenance"]["status"], "not_checked")
+            self.assertNotIn("workspaces", report)
+            self.assertNotIn("storage", report)
+            self.assertNotIn("compatibility", report)
+            self.assertNotIn("lifecycle", report)
+
+    def test_dashboard_is_fast_bounded_projection_with_real_attempt_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = fixture(root)
+            bundle = root / "attempt-active"
+            bundle.mkdir()
+            (bundle / "stdout.log").write_text("active output\n", encoding="utf-8")
+            (bundle / "stderr.log").write_text("", encoding="utf-8")
+            now = int(time.time() * 1000)
+            (bundle / "progress.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "taskId": "attempt-active",
+                        "revision": 7,
+                        "status": "working",
+                        "completedSteps": 1,
+                        "totalSteps": 3,
+                        "currentStepId": "test",
+                        "currentStepIndex": 1,
+                        "currentStepStartedUnixMs": now - 2_000,
+                        "updatedUnixMs": now - 500,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            connection = sqlite3.connect(paths["database"])
+            try:
+                connection.execute(
+                    "INSERT INTO jobs(job_id,workspace_id,resolution,client_request_id,execution_plan_json,created_at_ms,current_attempt_id) VALUES (?,?,?,?,?,?,?)",
+                    (
+                        "job-active-abcdef123456",
+                        "workspace-1",
+                        None,
+                        "request:test",
+                        json.dumps({"executable": "/usr/bin/python3"}),
+                        now - 3_000,
+                        "attempt-active",
+                    ),
+                )
+                connection.execute(
+                    "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,started_at_ms,bundle_path) VALUES (?,?,?,?,?,?)",
+                    ("attempt-active", "job-active-abcdef123456", 1, "running", now - 2_500, str(bundle)),
+                )
+                connection.execute("INSERT INTO concurrency_reservations VALUES ('attempt-active','active')")
+                connection.execute("INSERT INTO attempt_conditions VALUES ('attempt-active','recovery_required','false')")
+                # A terminal Job deliberately has current_attempt_id cleared; dashboard must recover its latest Attempt.
+                terminal_bundle = root / "attempt-terminal"
+                terminal_bundle.mkdir()
+                connection.execute(
+                    "INSERT INTO jobs(job_id,workspace_id,resolution,client_request_id,execution_plan_json,created_at_ms,current_attempt_id) VALUES (?,?,?,?,?,?,NULL)",
+                    (
+                        "job-terminal-fedcba654321",
+                        "workspace-1",
+                        "failed",
+                        "request:terminal",
+                        json.dumps({"executable": "/usr/bin/bash"}),
+                        now - 10_000,
+                    ),
+                )
+                connection.execute(
+                    "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,started_at_ms,finished_at_ms,exit_code,bundle_path) VALUES (?,?,?,?,?,?,?,?)",
+                    (
+                        "attempt-terminal",
+                        "job-terminal-fedcba654321",
+                        2,
+                        "failed",
+                        now - 9_000,
+                        now - 8_000,
+                        17,
+                        str(terminal_bundle),
+                    ),
+                )
+                connection.execute("INSERT INTO concurrency_reservations VALUES ('attempt-terminal','released')")
+                connection.execute("INSERT INTO attempt_conditions VALUES ('attempt-terminal','recovery_required','false')")
+                connection.commit()
+            finally:
+                connection.close()
+            source_repo = paths["store"] / "workspaces" / "workspace-1"
+            completed = subprocess.run(
+                raw_command(
+                    paths,
+                    "--dashboard",
+                    "--json",
+                    "--dashboard-jobs",
+                    "3",
+                    "--source-repo",
+                    str(source_repo),
+                ),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["mode"], "dashboard")
+            self.assertEqual(report["maintenance"]["status"], "not_checked")
+            self.assertNotIn("storage", report)
+            self.assertNotIn("compatibility", report)
+            self.assertTrue(report["dashboard"]["jobs"]["available"])
+            active = report["dashboard"]["jobs"]["active"][0]
+            self.assertEqual(active["jobId"], "job-active-abcdef123456")
+            self.assertEqual(active["attemptId"], "attempt-active")
+            self.assertEqual(active["executableName"], "python3")
+            self.assertEqual(active["progress"]["currentStepId"], "test")
+            self.assertIsNotNone(active["outputIdleMs"])
+            recent = report["dashboard"]["jobs"]["recent"]
+            terminal = next(item for item in recent if item["jobId"] == "job-terminal-fedcba654321")
+            self.assertEqual(terminal["attemptId"], "attempt-terminal")
+            self.assertEqual(terminal["attemptState"], "failed")
+            self.assertEqual(terminal["exitCode"], 17)
+            self.assertEqual(terminal["durationMs"], 1_000)
+            self.assertTrue(report["dashboard"]["source"]["available"])
+            self.assertNotIn(str(root), completed.stdout)
+
+    def test_dashboard_human_output_respects_common_terminal_widths(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            for width in (80, 120, 160):
+                completed = subprocess.run(
+                    raw_command(paths, "--dashboard", "--width", str(width)),
+                    cwd=REPO,
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                )
+                lines = completed.stdout.splitlines()
+                self.assertGreaterEqual(len(lines), 10)
+                self.assertTrue(all(len(line) <= width for line in lines))
+                self.assertIn("ORDIVON RUNTIME", completed.stdout)
+                self.assertIn("CAPACITY", completed.stdout)
+                self.assertIn("ACTIVE JOBS", completed.stdout)
+                self.assertIn("RECENT TERMINAL", completed.stdout)
+
+    def test_dashboard_does_not_change_default_compact_health_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            compact = subprocess.run(
+                raw_command(paths, "--health"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(len(compact.stdout.splitlines()), 1)
+            self.assertIn("HEALTHY mode=health", compact.stdout)
+            dashboard = subprocess.run(
+                raw_command(paths, "--dashboard", "--width", "80"),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            self.assertGreater(len(dashboard.stdout.splitlines()), 1)
+
+    def test_human_output_is_one_compact_line(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = fixture(Path(temporary))
+            result = subprocess.run(command(paths), cwd=REPO, check=True, text=True, capture_output=True)
+            self.assertEqual(len(result.stdout.splitlines()), 1)
+            self.assertIn("HEALTHY mode=diagnose commit=aaaaaaaaaaaa", result.stdout)
+            self.assertIn("capacity=0+0/8", result.stdout)
+
+
+    def test_dashboard_source_currentness_distinguishes_cached_ref_from_fresh_remote(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = fixture(root)
+            remote = root / "source-remote.git"
+            source = root / "source"
+            subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+            subprocess.run(["git", "init", "-q", "-b", "main", str(source)], check=True)
+            subprocess.run(["git", "-C", str(source), "config", "user.name", "Test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+            (source / "README.md").write_text("a\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "a"], check=True)
+            first = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+            subprocess.run(["git", "-C", str(source), "remote", "add", "origin", str(remote)], check=True)
+            subprocess.run(["git", "-C", str(source), "push", "-u", "origin", "main"], check=True, capture_output=True)
+            (source / "README.md").write_text("b\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "commit", "-qam", "b"], check=True)
+            second = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+            subprocess.run(["git", "-C", str(source), "push", "origin", "main"], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(source), "reset", "--hard", first], check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(source), "update-ref", "refs/remotes/origin/main", first],
+                check=True,
+            )
+            completed = subprocess.run(
+                raw_command(paths, "--dashboard", "--json", "--source-repo", str(source)),
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            projected = json.loads(completed.stdout)["dashboard"]["source"]
+            self.assertEqual(projected["head"], first)
+            self.assertEqual(projected["originMain"], first)
+            self.assertEqual(projected["originMainObservation"], "cached_tracking_ref")
+            self.assertTrue(projected["headMatchesOriginMain"])
+            self.assertEqual(projected["remoteMain"], second)
+            self.assertEqual(projected["remoteMainObservation"], "fresh")
+            self.assertFalse(projected["headMatchesRemoteMain"])
+
+
+if __name__ == "__main__":
+    unittest.main()

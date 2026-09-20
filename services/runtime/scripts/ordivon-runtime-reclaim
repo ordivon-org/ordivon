@@ -1,0 +1,865 @@
+#!/usr/bin/env python3
+"""Read-only inspection of reclaimable Ordivon Runtime Workspaces."""
+
+from __future__ import annotations
+
+import math
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from collections.abc import Sequence
+from contextlib import contextmanager
+from pathlib import Path
+
+from mcp_probe import connect_compatible, load_bearer_token, load_environment_file
+
+SCHEMA_VERSION = 1
+MAX_DIRTY_PATHS = 20
+RECLAIM_CONFIRMATION = "RECLAIM_ELIGIBLE_WORKSPACES"
+RECLAIMABLE_CLASSIFICATIONS = ("stale_record", "closable")
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="ordivon-runtime-reclaim")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    inspect = subparsers.add_parser("inspect", help="classify Workspace reclaim candidates")
+    add_inspection_arguments(inspect)
+    inspect.add_argument("--pretty", action="store_true")
+
+    apply = subparsers.add_parser(
+        "apply",
+        help="release old clean Workspaces and remove old records whose Workspace is already absent",
+    )
+    add_inspection_arguments(apply)
+    apply.add_argument("--env-file", type=absolute_path, required=True)
+    apply.add_argument("--receipt-root", type=absolute_path, required=True)
+    apply.add_argument("--lock-file", type=absolute_path, required=True)
+    apply.add_argument("--minimum-age-hours", type=nonnegative_float, default=168.0)
+    apply.add_argument(
+        "--classification",
+        action="append",
+        choices=RECLAIMABLE_CLASSIFICATIONS,
+        dest="classifications",
+    )
+    apply.add_argument("--workspace-id", action="append", dest="workspace_ids")
+    apply.add_argument("--confirm-policy", required=True)
+    apply.add_argument("--pretty", action="store_true")
+    return parser.parse_args()
+
+
+def add_inspection_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--database", type=absolute_path, required=True)
+    parser.add_argument("--runtime-store-root", type=absolute_path, required=True)
+    parser.add_argument("--workspace-root", type=absolute_path)
+    parser.add_argument("--busy-timeout-ms", type=positive_timeout, default=5_000)
+    parser.add_argument(
+        "--measure-bytes",
+        action="store_true",
+        help="walk Workspace trees and include logical byte estimates",
+    )
+
+
+def nonnegative_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed) or parsed < 0:
+        raise argparse.ArgumentTypeError("hours must be finite and non-negative")
+    return parsed
+
+
+def absolute_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("path must be absolute")
+    return path
+
+
+def positive_timeout(value: str) -> int:
+    timeout = int(value)
+    if not 1 <= timeout <= 2_147_483_647:
+        raise argparse.ArgumentTypeError(
+            "timeout must fit SQLite's signed 32-bit millisecond busy-timeout range"
+        )
+    return timeout
+
+
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates: list[Path] = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise RuntimeError("ORDIVON_RUNTIME_INSPECT must be an absolute path")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise RuntimeError(
+        "ordivon-runtime-inspect is unavailable; install it beside this script or set "
+        "ORDIVON_RUNTIME_INSPECT to an absolute executable path"
+    )
+
+
+def runtime_inspection(
+    database: Path,
+    busy_timeout_ms: int,
+    command: str,
+    *,
+    workspace_id: str | None = None,
+) -> dict[str, object]:
+    arguments = [
+        str(runtime_inspect_binary()),
+        command,
+        "--database",
+        str(database),
+        "--busy-timeout-ms",
+        str(busy_timeout_ms),
+    ]
+    if workspace_id is not None:
+        arguments.extend(["--workspace-id", workspace_id])
+    completed = subprocess.run(arguments, check=False, text=True, capture_output=True)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or f"exit {completed.returncode}"
+        raise RuntimeError(f"Runtime inspection failed: {detail}")
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("Runtime inspection returned invalid JSON") from error
+    if not isinstance(value, dict):
+        raise RuntimeError("Runtime inspection did not return an object")
+    return value
+
+
+def registry_projection(database: Path, busy_timeout_ms: int) -> dict[str, object]:
+    value = runtime_inspection(database, busy_timeout_ms, "registry")
+    if not isinstance(value.get("migrationVersion"), int):
+        raise RuntimeError("Runtime registry inspection omitted migrationVersion")
+    if not isinstance(value.get("activeWorkspaces"), list):
+        raise RuntimeError("Runtime registry inspection omitted activeWorkspaces")
+    return value
+
+
+def registry_workspace_projection(
+    database: Path, busy_timeout_ms: int, workspace_id: str
+) -> dict[str, object]:
+    value = runtime_inspection(
+        database,
+        busy_timeout_ms,
+        "registry-workspace",
+        workspace_id=workspace_id,
+    )
+    workspace = value.get("workspace")
+    if not isinstance(workspace, dict) or workspace.get("workspaceId") != workspace_id:
+        raise RuntimeError("Runtime Workspace registry inspection returned mismatched identity")
+    if not isinstance(workspace.get("activeJobIds"), list):
+        raise RuntimeError("Runtime Workspace registry inspection omitted activeJobIds")
+    return value
+
+
+def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
+    workspace_root = args.workspace_root or args.runtime_store_root / "workspaces"
+    records_root = args.runtime_store_root / "workspace-records"
+    registry = registry_projection(args.database, args.busy_timeout_ms)
+    registry_version = int(registry["migrationVersion"])
+    active_by_workspace: dict[str, list[str]] = {}
+    for raw in registry["activeWorkspaces"]:
+        if not isinstance(raw, dict):
+            raise RuntimeError("Runtime registry inspection returned invalid activeWorkspaces")
+        workspace_id = raw.get("workspaceId")
+        active_job_ids = raw.get("activeJobIds")
+        if not isinstance(workspace_id, str) or not isinstance(active_job_ids, list) or any(
+            not isinstance(job_id, str) for job_id in active_job_ids
+        ):
+            raise RuntimeError("Runtime registry inspection returned invalid active Workspace state")
+        active_by_workspace[workspace_id] = list(active_job_ids)
+
+    record_ids: set[str] = set()
+    candidates: list[dict[str, object]] = []
+    for record_path in sorted(records_root.glob("*.json")) if records_root.exists() else []:
+        workspace_id = record_path.stem
+        record_ids.add(workspace_id)
+        record_candidate = classify_record(
+            record_path,
+            workspace_root / workspace_id,
+            workspace_id,
+            active_job_ids=active_by_workspace.get(workspace_id, []),
+            measure_bytes=args.measure_bytes,
+        )
+        if record_candidate is not None:
+            candidates.append(record_candidate)
+
+    if workspace_root.exists():
+        for workspace_path in sorted(
+            path for path in workspace_root.iterdir() if path.is_dir() and not path.is_symlink()
+        ):
+            if workspace_path.name not in record_ids:
+                candidates.append(
+                    candidate(
+                        workspace_path.name,
+                        "orphan_directory",
+                        detail="physical Workspace has no identity record",
+                        estimated_bytes=workspace_bytes(workspace_path) if args.measure_bytes else None,
+                    )
+                )
+
+    candidates.sort(key=lambda item: str(item["workspaceId"]))
+    counts: dict[str, int] = {}
+    estimated_bytes: dict[str, int] = {}
+    for item in candidates:
+        classification = str(item["classification"])
+        counts[classification] = counts.get(classification, 0) + 1
+        if isinstance(item.get("estimatedBytes"), int):
+            estimated_bytes[classification] = estimated_bytes.get(classification, 0) + int(
+                item["estimatedBytes"]
+            )
+    return {
+        "schemaVersion": SCHEMA_VERSION,
+        "generatedAtMs": int(time.time() * 1000),
+        "registryVersion": registry_version,
+        "releaseTool": "workspace.close",
+        "summary": {
+            "counts": dict(sorted(counts.items())),
+            "estimatedBytes": dict(sorted(estimated_bytes.items())),
+        },
+        "candidates": candidates,
+    }
+
+
+def classify_record(
+    record_path: Path,
+    workspace_path: Path,
+    workspace_id: str,
+    *,
+    active_job_ids: list[str],
+    measure_bytes: bool,
+) -> dict[str, object] | None:
+    if record_path.is_symlink() or not record_path.is_file():
+        return candidate(
+            workspace_id,
+            "unknown",
+            detail="workspace record is not a regular file",
+        )
+    record_digest = sha256_file(record_path)
+    try:
+        value = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return candidate(workspace_id, "unknown", detail="workspace record cannot be decoded")
+
+    estimated_bytes = workspace_bytes(workspace_path) if measure_bytes and workspace_path.exists() else None
+    metadata = {
+        "sourceRepo": value.get("sourceRepo"),
+        "sourceRevision": value.get("sourceRevision"),
+        "createdUnixMs": value.get("createdUnixMs"),
+        "recordDigest": record_digest,
+    }
+    if value.get("state") == "closed":
+        if workspace_path.exists():
+            return candidate(
+                workspace_id,
+                "unknown",
+                detail="closed record still has a physical Workspace",
+                estimated_bytes=estimated_bytes,
+                **metadata,
+            )
+        return None
+
+    legacy_workspace_id = value.get("workspaceId")
+    legacy_workspace_path = value.get("workspacePath")
+    identity_mismatch = value.get("schemaVersion") != 1
+    if legacy_workspace_id is not None and legacy_workspace_id != workspace_id:
+        identity_mismatch = True
+    if legacy_workspace_path is not None:
+        if not isinstance(legacy_workspace_path, str) or not Path(legacy_workspace_path).is_absolute():
+            identity_mismatch = True
+        else:
+            recorded_path = Path(legacy_workspace_path)
+            if recorded_path.exists() and workspace_path.exists():
+                identity_mismatch = identity_mismatch or recorded_path.resolve() != workspace_path.resolve()
+            else:
+                identity_mismatch = identity_mismatch or recorded_path != workspace_path
+    if identity_mismatch:
+        return candidate(
+            workspace_id,
+            "unknown",
+            detail="workspace identity or path does not match its record",
+            estimated_bytes=estimated_bytes,
+            **metadata,
+        )
+    if workspace_path.is_symlink():
+        return candidate(
+            workspace_id,
+            "unknown",
+            detail="Workspace path is a symlink",
+            estimated_bytes=estimated_bytes,
+            **metadata,
+        )
+    if active_job_ids:
+        return candidate(
+            workspace_id,
+            "blocked_active",
+            active_job_ids=active_job_ids,
+            estimated_bytes=estimated_bytes,
+            **metadata,
+        )
+    if not workspace_path.is_dir():
+        return candidate(
+            workspace_id,
+            "stale_record",
+            detail="active record has no physical Workspace",
+            **metadata,
+        )
+
+    try:
+        dirty_paths = git_dirty_paths(workspace_path)
+    except RuntimeError:
+        return candidate(
+            workspace_id,
+            "unknown",
+            detail="Workspace Git state cannot be read",
+            estimated_bytes=estimated_bytes,
+            **metadata,
+        )
+    if dirty_paths:
+        return candidate(
+            workspace_id,
+            "blocked_dirty",
+            dirty_paths=dirty_paths,
+            estimated_bytes=estimated_bytes,
+            **metadata,
+        )
+
+    try:
+        integration = git_canonical_integration(workspace_path, value.get("sourceRepo"))
+    except RuntimeError as error:
+        return candidate(
+            workspace_id,
+            "unknown",
+            detail=f"canonical integration proof unavailable: {error}",
+            estimated_bytes=estimated_bytes,
+            **metadata,
+        )
+    if integration["closureReason"] in {
+        "UNINTEGRATED_GIT_COMMITS",
+        "UNINTEGRATED_MERGE_TOPOLOGY",
+    }:
+        return candidate(
+            workspace_id,
+            "blocked_unintegrated",
+            detail="clean Workspace contains commits not integrated into canonical source",
+            estimated_bytes=estimated_bytes,
+            **integration,
+            **metadata,
+        )
+    return candidate(
+        workspace_id,
+        "closable",
+        estimated_bytes=estimated_bytes,
+        **integration,
+        **metadata,
+    )
+
+
+def git_text(repository: Path, arguments: Sequence[str]) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repository), *arguments],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise RuntimeError(detail)
+    return result.stdout.strip()
+
+
+def git_rev_list(
+    repository: Path,
+    revision_range: str,
+    *,
+    merges: bool | None = None,
+) -> list[str]:
+    arguments = ["rev-list"]
+    if merges is True:
+        arguments.append("--merges")
+    elif merges is False:
+        arguments.append("--no-merges")
+    arguments.append(revision_range)
+    output = git_text(repository, arguments)
+    return [line for line in output.splitlines() if line]
+
+
+def git_verbatim_patch_ids(
+    repository: Path,
+    commits: Sequence[str],
+) -> dict[str, str]:
+    if not commits:
+        return {}
+    revision_input = ("\n".join(commits) + "\n").encode()
+    diff = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repository),
+            "diff-tree",
+            "--patch",
+            "--binary",
+            "--full-index",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--stdin",
+        ],
+        input=revision_input,
+        check=False,
+        capture_output=True,
+    )
+    if diff.returncode != 0:
+        detail = diff.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(detail or f"git diff-tree returned {diff.returncode}")
+    patch_ids = subprocess.run(
+        ["git", "patch-id", "--verbatim"],
+        input=diff.stdout,
+        check=False,
+        capture_output=True,
+    )
+    if patch_ids.returncode != 0:
+        detail = patch_ids.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(detail or f"git patch-id returned {patch_ids.returncode}")
+    mapping: dict[str, str] = {}
+    for raw_line in patch_ids.stdout.decode("utf-8", errors="replace").splitlines():
+        parts = raw_line.split()
+        if len(parts) >= 2:
+            patch_id, commit_id = parts[0], parts[1]
+            mapping[commit_id] = patch_id
+    return mapping
+
+
+def git_canonical_integration(workspace: Path, source_repo_value: object) -> dict[str, object]:
+    if not isinstance(source_repo_value, str):
+        raise RuntimeError("Workspace record omitted sourceRepo")
+    source_repo = Path(source_repo_value)
+    if not source_repo.is_absolute() or not source_repo.is_dir() or source_repo.is_symlink():
+        raise RuntimeError("sourceRepo is not an absolute regular directory")
+
+    workspace_head = git_text(workspace, ["rev-parse", "HEAD"])
+    canonical_head = git_text(source_repo, ["rev-parse", "HEAD"])
+
+    ancestry = subprocess.run(
+        ["git", "-C", str(workspace), "merge-base", "--is-ancestor", workspace_head, canonical_head],
+        check=False,
+        capture_output=True,
+    )
+    if ancestry.returncode == 0:
+        return {
+            "closureReason": "HEAD_REACHABLE_FROM_CANONICAL",
+            "workspaceHeadRevision": workspace_head,
+            "canonicalHeadRevision": canonical_head,
+            "equivalentCommitCount": 0,
+            "uniqueCommitCount": 0,
+            "uniqueMergeCommitCount": 0,
+            "patchEquivalenceMode": "NOT_REQUIRED",
+        }
+    if ancestry.returncode != 1:
+        detail = ancestry.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(detail or f"git merge-base returned {ancestry.returncode}")
+
+    branch_range = f"{canonical_head}..{workspace_head}"
+    canonical_range = f"{workspace_head}..{canonical_head}"
+    branch_merges = git_rev_list(workspace, branch_range, merges=True)
+    if branch_merges:
+        return {
+            "closureReason": "UNINTEGRATED_MERGE_TOPOLOGY",
+            "workspaceHeadRevision": workspace_head,
+            "canonicalHeadRevision": canonical_head,
+            "equivalentCommitCount": 0,
+            "uniqueCommitCount": 0,
+            "uniqueMergeCommitCount": len(branch_merges),
+            "patchEquivalenceMode": "PATCH_ID_VERBATIM",
+        }
+
+    branch_commits = git_rev_list(workspace, branch_range, merges=False)
+    canonical_commits = git_rev_list(workspace, canonical_range, merges=False)
+    branch_patch_ids = git_verbatim_patch_ids(workspace, branch_commits)
+    canonical_patch_ids = git_verbatim_patch_ids(workspace, canonical_commits)
+
+    from collections import Counter
+    canonical_counts = Counter(canonical_patch_ids.values())
+    equivalent = 0
+    unique = 0
+    for commit in branch_commits:
+        patch_id = branch_patch_ids.get(commit)
+        if patch_id is None or canonical_counts[patch_id] <= 0:
+            unique += 1
+            continue
+        canonical_counts[patch_id] -= 1
+        equivalent += 1
+
+    if branch_commits and unique == 0 and len(branch_patch_ids) == len(branch_commits):
+        return {
+            "closureReason": "PATCH_EQUIVALENT_IN_CANONICAL",
+            "workspaceHeadRevision": workspace_head,
+            "canonicalHeadRevision": canonical_head,
+            "equivalentCommitCount": equivalent,
+            "uniqueCommitCount": 0,
+            "uniqueMergeCommitCount": 0,
+            "patchEquivalenceMode": "PATCH_ID_VERBATIM",
+        }
+    return {
+        "closureReason": "UNINTEGRATED_GIT_COMMITS",
+        "workspaceHeadRevision": workspace_head,
+        "canonicalHeadRevision": canonical_head,
+        "equivalentCommitCount": equivalent,
+        "uniqueCommitCount": unique if unique else max(1, len(branch_commits) - len(branch_patch_ids)),
+        "uniqueMergeCommitCount": 0,
+        "patchEquivalenceMode": "PATCH_ID_VERBATIM",
+    }
+
+
+def git_dirty_paths(workspace: Path) -> list[str]:
+    tracked = git_bytes(workspace, ["diff", "--name-only", "-z", "HEAD", "--"])
+    untracked = git_bytes(
+        workspace,
+        ["ls-files", "--others", "--exclude-standard", "-z"],
+    )
+    paths: list[str] = []
+    for raw_path in tracked.split(b"\0") + untracked.split(b"\0"):
+        if not raw_path:
+            continue
+        path = raw_path.decode("utf-8", errors="replace")
+        if path not in paths:
+            paths.append(path)
+        if len(paths) == MAX_DIRTY_PATHS:
+            paths.append("…")
+            break
+    return paths
+
+
+def git_bytes(workspace: Path, arguments: Sequence[str]) -> bytes:
+    result = subprocess.run(
+        ["git", "-C", str(workspace), *arguments],
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.decode("utf-8", errors="replace").strip())
+    return result.stdout
+
+
+def workspace_bytes(workspace: Path) -> int:
+    total = 0
+    for root, directories, files in os.walk(workspace, followlinks=False):
+        root_path = Path(root)
+        directories[:] = [
+            name for name in directories if not (root_path / name).is_symlink()
+        ]
+        for name in files:
+            path = root_path / name
+            try:
+                if not path.is_symlink() and path.is_file():
+                    total += path.stat().st_size
+            except FileNotFoundError:
+                continue
+    return total
+
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+def candidate(
+    workspace_id: str,
+    classification: str,
+    *,
+    active_job_ids: list[str] | None = None,
+    dirty_paths: list[str] | None = None,
+    detail: str | None = None,
+    estimated_bytes: int | None = None,
+    sourceRepo: object = None,
+    sourceRevision: object = None,
+    createdUnixMs: object = None,
+    recordDigest: object = None,
+    closureReason: object = None,
+    workspaceHeadRevision: object = None,
+    canonicalHeadRevision: object = None,
+    equivalentCommitCount: object = None,
+    uniqueCommitCount: object = None,
+    uniqueMergeCommitCount: object = None,
+    patchEquivalenceMode: object = None,
+) -> dict[str, object]:
+    result: dict[str, object] = {
+        "workspaceId": workspace_id,
+        "classification": classification,
+    }
+    if active_job_ids:
+        result["activeJobIds"] = active_job_ids
+    if dirty_paths:
+        result["dirtyPaths"] = dirty_paths
+    if detail:
+        result["detail"] = detail
+    if estimated_bytes is not None:
+        result["estimatedBytes"] = estimated_bytes
+    if isinstance(sourceRepo, str):
+        result["sourceRepo"] = sourceRepo
+    if isinstance(sourceRevision, str):
+        result["sourceRevision"] = sourceRevision
+    if isinstance(createdUnixMs, int):
+        result["createdUnixMs"] = createdUnixMs
+    if isinstance(recordDigest, str):
+        result["recordDigest"] = recordDigest
+    if isinstance(closureReason, str):
+        result["closureReason"] = closureReason
+    if isinstance(workspaceHeadRevision, str):
+        result["workspaceHeadRevision"] = workspaceHeadRevision
+    if isinstance(canonicalHeadRevision, str):
+        result["canonicalHeadRevision"] = canonicalHeadRevision
+    if isinstance(equivalentCommitCount, int):
+        result["equivalentCommitCount"] = equivalentCommitCount
+    if isinstance(uniqueCommitCount, int):
+        result["uniqueCommitCount"] = uniqueCommitCount
+    if isinstance(uniqueMergeCommitCount, int):
+        result["uniqueMergeCommitCount"] = uniqueMergeCommitCount
+    if isinstance(patchEquivalenceMode, str):
+        result["patchEquivalenceMode"] = patchEquivalenceMode
+    return result
+
+
+def close_workspace(
+    env_file: Path,
+    workspace_id: str,
+    *,
+    expected_head_revision: str,
+) -> dict[str, object]:
+    environment = load_environment_file(env_file)
+    bind = environment.get("ORDIVON_BIND")
+    if not bind:
+        raise RuntimeError("environment file must define ORDIVON_BIND")
+    token = load_bearer_token(environment)
+    client = connect_compatible(
+        f"http://{bind}/mcp",
+        token,
+        client_name="ordivon-runtime-reclaim",
+        timeout=30.0,
+    )
+    current = client.call_tool(
+        "workspace.get",
+        {
+            "schemaVersion": SCHEMA_VERSION,
+            "workspaceId": workspace_id,
+        },
+    )
+    if current.get("workspaceId") != workspace_id:
+        raise RuntimeError("workspace.get returned mismatched Workspace identity")
+    if current.get("currentHeadRevision") != expected_head_revision:
+        raise RuntimeError("Workspace HEAD changed after reclaim planning")
+    if current.get("dirty") is not False:
+        raise RuntimeError("Workspace became dirty after reclaim planning")
+    source_state_digest = current.get("sourceStateDigest")
+    if not isinstance(source_state_digest, str) or not source_state_digest.startswith("sha256:"):
+        raise RuntimeError("workspace.get omitted sourceStateDigest")
+
+    structured = client.call_tool(
+        "workspace.close",
+        {
+            "schemaVersion": SCHEMA_VERSION,
+            "workspaceId": workspace_id,
+            "force": False,
+            "expectedSourceStateDigest": source_state_digest,
+        },
+    )
+    if structured.get("removed") is not True:
+        raise RuntimeError(
+            f"workspace.close did not remove {workspace_id}: {structured}"
+        )
+    return structured
+
+
+@contextmanager
+def exclusive_lock(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+") as handle:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise RuntimeError(f"reclaim lock is already held: {path}") from error
+        yield
+
+
+def write_json_atomic(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + f".tmp-{os.getpid()}")
+    try:
+        temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def reclaim_receipt(root: Path) -> Path:
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    candidate = root / f"{stamp}-workspace-reclaim"
+    suffix = 1
+    while candidate.exists():
+        candidate = root / f"{stamp}-workspace-reclaim-{suffix}"
+        suffix += 1
+    return candidate
+
+
+def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
+    if args.confirm_policy != RECLAIM_CONFIRMATION:
+        raise RuntimeError(f"confirm-policy must equal {RECLAIM_CONFIRMATION}")
+    classifications = set(args.classifications or RECLAIMABLE_CLASSIFICATIONS)
+    requested = set(args.workspace_ids or [])
+    cutoff_ms = int((time.time() - args.minimum_age_hours * 3600) * 1000)
+    with exclusive_lock(args.lock_file):
+        before = inspect_workspaces(args)
+        candidates_by_id = {
+            str(item["workspaceId"]): item for item in before["candidates"]
+        }
+        missing_requested = sorted(requested - set(candidates_by_id))
+        plan: list[dict[str, object]] = []
+        for workspace_id, item in sorted(candidates_by_id.items()):
+            classification = str(item["classification"])
+            if requested and workspace_id not in requested:
+                continue
+            eligible = True
+            reason = "eligible"
+            created_ms = item.get("createdUnixMs")
+            if classification not in classifications:
+                eligible = False
+                reason = "classification_not_selected"
+            elif not isinstance(created_ms, int):
+                eligible = False
+                reason = "creation_time_unknown"
+            elif created_ms > cutoff_ms:
+                eligible = False
+                reason = "younger_than_minimum_age"
+            plan.append({**item, "eligible": eligible, "reason": reason})
+
+        receipt = reclaim_receipt(args.receipt_root)
+        receipt.mkdir(parents=True)
+        write_json_atomic(receipt / "before.json", before)
+        write_json_atomic(
+            receipt / "plan.json",
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "minimumAgeHours": args.minimum_age_hours,
+                "cutoffMs": cutoff_ms,
+                "classifications": sorted(classifications),
+                "requestedWorkspaceIds": sorted(requested),
+                "missingRequestedWorkspaceIds": missing_requested,
+                "candidates": plan,
+            },
+        )
+        actions: list[dict[str, object]] = []
+        failures: list[dict[str, object]] = []
+        records_backup = receipt / "records"
+        for item in plan:
+            if item["eligible"] is not True:
+                continue
+            workspace_id = str(item["workspaceId"])
+            classification = str(item["classification"])
+            try:
+                if classification == "stale_record":
+                    record = args.runtime_store_root / "workspace-records" / f"{workspace_id}.json"
+                    workspace = (args.workspace_root or args.runtime_store_root / "workspaces") / workspace_id
+                    if workspace.exists() or workspace.is_symlink():
+                        raise RuntimeError("stale record acquired a physical Workspace before deletion")
+                    if record.is_symlink() or not record.is_file():
+                        raise RuntimeError("stale record is no longer a regular file")
+                    expected_digest = item.get("recordDigest")
+                    if not isinstance(expected_digest, str) or sha256_file(record) != expected_digest:
+                        raise RuntimeError("stale record changed after reclaim planning")
+                    registry_workspace = registry_workspace_projection(
+                        args.database, args.busy_timeout_ms, workspace_id
+                    )
+                    workspace_registry = registry_workspace["workspace"]
+                    assert isinstance(workspace_registry, dict)
+                    active = workspace_registry["activeJobIds"]
+                    if active:
+                        raise RuntimeError("stale record acquired an active or held Job")
+                    records_backup.mkdir(exist_ok=True)
+                    shutil.copy2(record, records_backup / record.name)
+                    record.unlink()
+                    actions.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "action": "record_deleted",
+                        }
+                    )
+                elif classification == "closable":
+                    expected_head_revision = item.get("workspaceHeadRevision")
+                    if not isinstance(expected_head_revision, str):
+                        raise RuntimeError("reclaim plan omitted workspaceHeadRevision")
+                    close_workspace(
+                        args.env_file,
+                        workspace_id,
+                        expected_head_revision=expected_head_revision,
+                    )
+                    actions.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "action": "workspace_closed",
+                        }
+                    )
+                else:
+                    raise RuntimeError(f"unsupported reclaim classification: {classification}")
+            except Exception as error:
+                failures.append(
+                    {
+                        "workspaceId": workspace_id,
+                        "classification": classification,
+                        "error": str(error),
+                    }
+                )
+        after = inspect_workspaces(args)
+        write_json_atomic(receipt / "after.json", after)
+        status = "completed" if not failures and not missing_requested else "partial"
+        result = {
+            "schemaVersion": SCHEMA_VERSION,
+            "status": status,
+            "finishedAtMs": int(time.time() * 1000),
+            "receipt": str(receipt),
+            "actions": actions,
+            "failures": failures,
+            "missingRequestedWorkspaceIds": missing_requested,
+            "remainingSummary": after["summary"],
+        }
+        write_json_atomic(receipt / "result.json", result)
+        return result
+
+
+def main() -> int:
+    try:
+        args = parse_args()
+        if args.command == "inspect":
+            report = inspect_workspaces(args)
+            print(json.dumps(report, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0
+        if args.command == "apply":
+            result = apply_reclaim(args)
+            print(json.dumps(result, indent=2 if args.pretty else None, sort_keys=args.pretty))
+            return 0 if result["status"] == "completed" else 2
+        raise RuntimeError(f"unsupported command: {args.command}")
+    except (OSError, RuntimeError) as error:
+        print(f"workspace reclaim inspection failed: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

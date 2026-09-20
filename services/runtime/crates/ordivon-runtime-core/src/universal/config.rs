@@ -1,0 +1,244 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use super::{invalid, io_error, sha256_bytes, UniversalExecError, UniversalExecErrorCode};
+
+pub const UNIVERSAL_EXEC_SCHEMA_VERSION: u32 = 1;
+pub const MAX_WORKSPACE_IO_BYTES: u64 = 4 * 1024 * 1024;
+
+#[derive(Clone, Debug)]
+pub struct UniversalExecutorConfig {
+    pub store_root: PathBuf,
+    pub workspace_root: Option<PathBuf>,
+    pub workspace_uid: Option<u32>,
+    pub workspace_gid: Option<u32>,
+    pub runner_path: Option<PathBuf>,
+    pub allowed_executable_roots: Vec<PathBuf>,
+    pub max_runtime_ms: u64,
+    pub max_output_bytes: u64,
+}
+
+impl UniversalExecutorConfig {
+    pub fn validate(&self) -> Result<(), UniversalExecError> {
+        if !self.store_root.is_absolute() {
+            return Err(invalid("store root must be absolute", "storeRoot"));
+        }
+        if self
+            .workspace_root
+            .as_ref()
+            .is_some_and(|path| !path.is_absolute())
+        {
+            return Err(invalid("workspace root must be absolute", "workspaceRoot"));
+        }
+        if self.workspace_uid.is_some() != self.workspace_gid.is_some() {
+            return Err(invalid(
+                "workspaceUid and workspaceGid must appear together",
+                "workspaceUid",
+            ));
+        }
+        #[cfg(not(unix))]
+        if self.workspace_uid.is_some() {
+            return Err(invalid(
+                "workspaceUid/workspaceGid are Unix-only; native platform ownership must use its own state authority",
+                "workspaceUid",
+            ));
+        }
+        if self
+            .runner_path
+            .as_ref()
+            .is_some_and(|runner| !runner.is_absolute())
+        {
+            return Err(invalid("runner path must be absolute", "runnerPath"));
+        }
+        if self.allowed_executable_roots.is_empty() {
+            return Err(invalid(
+                "at least one executable root is required",
+                "allowedExecutableRoots",
+            ));
+        }
+        if self
+            .allowed_executable_roots
+            .iter()
+            .any(|root| !root.is_absolute())
+        {
+            return Err(invalid(
+                "all executable roots must be absolute",
+                "allowedExecutableRoots",
+            ));
+        }
+        if self.max_runtime_ms == 0 {
+            return Err(invalid("max runtime must be positive", "maxRuntimeMs"));
+        }
+        let dispatch_ceiling_ms = self
+            .max_runtime_ms
+            .checked_add(5_000)
+            .ok_or_else(|| invalid("max runtime exceeds platform timer range", "maxRuntimeMs"))?;
+        if std::time::Instant::now()
+            .checked_add(std::time::Duration::from_millis(dispatch_ceiling_ms))
+            .is_none()
+        {
+            return Err(invalid(
+                "max runtime exceeds platform monotonic clock range",
+                "maxRuntimeMs",
+            ));
+        }
+        if self.max_output_bytes == 0 {
+            return Err(invalid("max output must be positive", "maxOutputBytes"));
+        }
+        Ok(())
+    }
+
+    pub fn ensure_store(&self) -> Result<(), UniversalExecError> {
+        self.validate()?;
+        for path in [
+            self.store_root.clone(),
+            self.workspaces_root(),
+            self.workspace_records_root(),
+            self.workspace_caches_root(),
+            self.build_caches_root(),
+            self.source_build_caches_root(),
+            self.workspace_tmp_root(),
+            self.shared_caches_root(),
+            self.input_materializations_root(),
+            self.job_inputs_root(),
+            self.credential_materializations_root(),
+            self.job_credentials_root(),
+        ] {
+            fs::create_dir_all(&path).map_err(|error| io_error(&path, "create", error))?;
+            #[cfg(windows)]
+            crate::windows_security::protect_private_directory(&path)
+                .map_err(|error| io_error(&path, "protect with native Windows ACL", error))?;
+        }
+        Ok(())
+    }
+
+    pub fn workspaces_root(&self) -> PathBuf {
+        self.workspace_root
+            .clone()
+            .unwrap_or_else(|| self.store_root.join("workspaces"))
+    }
+
+    pub fn workspace_records_root(&self) -> PathBuf {
+        self.store_root.join("workspace-records")
+    }
+
+    pub fn cache_root(&self) -> PathBuf {
+        self.store_root.join("cache")
+    }
+
+    pub fn workspace_caches_root(&self) -> PathBuf {
+        self.cache_root().join("workspaces")
+    }
+
+    pub fn build_caches_root(&self) -> PathBuf {
+        self.cache_root().join("build")
+    }
+
+    pub fn source_build_caches_root(&self) -> PathBuf {
+        self.build_caches_root().join("sources")
+    }
+
+    pub fn workspace_tmp_root(&self) -> PathBuf {
+        self.cache_root().join("tmp")
+    }
+
+    pub fn shared_caches_root(&self) -> PathBuf {
+        self.cache_root().join("shared")
+    }
+
+    pub fn input_materializations_root(&self) -> PathBuf {
+        self.store_root.join("input-materializations")
+    }
+
+    pub fn job_inputs_root(&self) -> PathBuf {
+        self.store_root.join("job-inputs")
+    }
+
+    pub fn job_input_path(&self, job_id: &str) -> PathBuf {
+        self.job_inputs_root().join(job_id)
+    }
+
+    pub fn credential_materializations_root(&self) -> PathBuf {
+        self.store_root.join("credential-materializations")
+    }
+
+    pub fn job_credentials_root(&self) -> PathBuf {
+        self.store_root.join("job-credentials")
+    }
+
+    pub fn job_credential_path(&self, job_id: &str) -> PathBuf {
+        self.job_credentials_root().join(job_id)
+    }
+
+    pub(crate) fn workspace_cache_path(&self, workspace_id: &str) -> PathBuf {
+        self.workspace_caches_root().join(workspace_id)
+    }
+
+    pub(crate) fn workspace_build_cache_path(&self, workspace_id: &str) -> PathBuf {
+        self.build_caches_root().join(workspace_id)
+    }
+
+    pub(crate) fn workspace_tmp_path(&self, workspace_id: &str) -> PathBuf {
+        self.workspace_tmp_root().join(workspace_id)
+    }
+
+    pub(crate) fn canonical_store_root(&self) -> Result<PathBuf, UniversalExecError> {
+        fs::canonicalize(&self.store_root)
+            .map_err(|error| io_error(&self.store_root, "canonicalize Runtime store root", error))
+    }
+
+    pub(crate) fn workspace_tmp_presentation_path(
+        &self,
+        workspace_id: &str,
+    ) -> Result<PathBuf, UniversalExecError> {
+        // Trusted-local tools can derive Unix-domain sockets below TMPDIR. Keep the
+        // child-visible pathname bounded independently of store_root/workspace-id length
+        // while retaining all bytes in the Workspace-owned backing under cache/tmp.
+        // Workspace IDs are store-local. Canonicalize the already-materialized store root
+        // before hashing so equivalent absolute spellings or symlink aliases of one physical
+        // Runtime store converge on one presentation namespace. The digest is only a locator;
+        // exact symlink-target verification remains the authority check.
+        let canonical_store = self.canonical_store_root()?;
+        let mut identity = canonical_store.as_os_str().as_encoded_bytes().to_vec();
+        identity.push(0);
+        identity.extend_from_slice(workspace_id.as_bytes());
+        let digest = sha256_bytes(&identity);
+        let hex = digest.strip_prefix("sha256:").unwrap_or(&digest);
+        Ok(PathBuf::from("/tmp/ordivon-t").join(&hex[..20]))
+    }
+
+    pub(crate) fn canonical_workspace_tmp_path(
+        &self,
+        workspace_id: &str,
+    ) -> Result<PathBuf, UniversalExecError> {
+        Ok(self
+            .canonical_store_root()?
+            .join("cache")
+            .join("tmp")
+            .join(workspace_id))
+    }
+
+    pub(crate) fn workspace_path(&self, workspace_id: &str) -> PathBuf {
+        self.workspaces_root().join(workspace_id)
+    }
+
+    pub(crate) fn workspace_record_path(&self, workspace_id: &str) -> PathBuf {
+        self.workspace_records_root()
+            .join(format!("{workspace_id}.json"))
+    }
+}
+
+pub(crate) fn canonical_directory(path: &Path, field: &str) -> Result<PathBuf, UniversalExecError> {
+    let canonical = fs::canonicalize(path).map_err(|error| {
+        UniversalExecError::new(
+            UniversalExecErrorCode::IoError,
+            format!("cannot canonicalize {}: {error}", path.display()),
+            Some(field),
+            false,
+        )
+    })?;
+    if !canonical.is_dir() {
+        return Err(invalid(format!("{field} must be a directory"), field));
+    }
+    Ok(canonical)
+}

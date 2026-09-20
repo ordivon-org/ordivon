@@ -1,0 +1,1469 @@
+#!/usr/bin/env python3
+"""Report bounded, secret-free Ordivon Runtime identity and health facts."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+SCHEMA_VERSION = 3
+COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+TERMINAL_ATTEMPT_STATES = ("succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned")
+DEFAULT_DATABASE = Path("/var/lib/ordivon/registry/registry.sqlite3")
+DEFAULT_STORE_ROOT = Path("/var/lib/ordivon/runtime")
+DEFAULT_DEPLOYMENT_ROOT = Path("/var/lib/ordivon/deployments")
+DEFAULT_CANDIDATE_ROOT = Path("/var/lib/ordivon/candidates")
+DEFAULT_INSTALL_DIR = Path("/usr/local/libexec/ordivon")
+DEFAULT_ENV_FILE = Path("/etc/ordivon/ordivon-runtime.env")
+DEFAULT_SERVICE = "ordivon-runtime.service"
+DEFAULT_SYSTEMCTL = Path("/usr/bin/systemctl")
+MAX_WORKSPACE_SCAN = 256
+MAX_PROTOCOL_TRACE_BYTES = 8 * 1024 * 1024
+DEFAULT_PROTOCOL_RETENTION_HOURS = 168
+DEFAULT_STALE_DIRTY_HOURS = 168
+DEFAULT_CACHE_HIGH_WATERMARK_BYTES = 64 * 1024 * 1024 * 1024
+DEFAULT_CACHE_LOW_WATERMARK_BYTES = 48 * 1024 * 1024 * 1024
+STORAGE_MEASUREMENT_BUDGET_SECONDS = 10.0
+STORAGE_PROBE_TIMEOUT_SECONDS = 2.0
+
+
+class StatusError(RuntimeError):
+    pass
+
+
+def absolute_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("path must be absolute")
+    return path
+
+
+def exact_commit(value: str) -> str:
+    if not COMMIT_PATTERN.fullmatch(value):
+        raise argparse.ArgumentTypeError("commit must be exactly 40 lowercase hexadecimal characters")
+    return value
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(prog="ordivon-runtime-status", description=__doc__)
+    mode = result.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--health",
+        dest="mode",
+        action="store_const",
+        const="health",
+        help="run the fast operational health path only",
+    )
+    mode.add_argument(
+        "--diagnose",
+        dest="mode",
+        action="store_const",
+        const="diagnose",
+        help="run health plus bounded maintenance diagnostics",
+    )
+    mode.add_argument(
+        "--dashboard",
+        dest="mode",
+        action="store_const",
+        const="dashboard",
+        help="run fast health plus a bounded read-only operator cockpit",
+    )
+    result.set_defaults(mode="health")
+    result.add_argument("--json", action="store_true", help="emit stable JSON instead of human output")
+    result.add_argument("--database", type=absolute_path, default=DEFAULT_DATABASE)
+    result.add_argument("--runtime-store-root", type=absolute_path, default=DEFAULT_STORE_ROOT)
+    result.add_argument("--deployment-root", type=absolute_path, default=DEFAULT_DEPLOYMENT_ROOT)
+    result.add_argument("--candidate-root", type=absolute_path, default=DEFAULT_CANDIDATE_ROOT)
+    result.add_argument("--install-dir", type=absolute_path, default=DEFAULT_INSTALL_DIR)
+    result.add_argument("--env-file", type=absolute_path, default=DEFAULT_ENV_FILE)
+    result.add_argument("--trace-path", type=absolute_path)
+    result.add_argument("--protocol-retention-hours", type=int, default=DEFAULT_PROTOCOL_RETENTION_HOURS)
+    result.add_argument("--stale-dirty-hours", type=int, default=DEFAULT_STALE_DIRTY_HOURS)
+    result.add_argument("--service", default=DEFAULT_SERVICE)
+    result.add_argument("--systemctl", type=absolute_path, default=DEFAULT_SYSTEMCTL)
+    result.add_argument("--expected-commit", type=exact_commit)
+    result.add_argument("--max-workspaces", type=int, default=MAX_WORKSPACE_SCAN)
+    result.add_argument(
+        "--source-repo",
+        type=absolute_path,
+        help="optional local Git checkout used only to project source/deployment relation in dashboard mode",
+    )
+    result.add_argument(
+        "--dashboard-jobs",
+        type=int,
+        default=5,
+        help="maximum active and recent Jobs projected by dashboard mode",
+    )
+    result.add_argument(
+        "--width",
+        type=int,
+        help="dashboard output width; defaults to current terminal width",
+    )
+    return result
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise StatusError(f"cannot read status receipt {path.name}: {error}") from error
+    if not isinstance(value, dict):
+        raise StatusError(f"status receipt {path.name} is not an object")
+    return value
+
+
+def release_events(root: Path) -> list[tuple[int, Path, dict[str, Any]]]:
+    if not root.is_dir():
+        return []
+    candidates: list[tuple[int, Path, dict[str, Any]]] = []
+    for pattern, valid_status in (
+        ("*/result.json", "deployed"),
+        ("*/rollback-result.json", "restored_previous"),
+    ):
+        for path in root.glob(pattern):
+            try:
+                result = load_json(path)
+            except StatusError:
+                continue
+            if result.get("status") != valid_status:
+                continue
+            finished = result.get("finishedAtMs")
+            if not isinstance(finished, int) or finished < 0:
+                continue
+            candidates.append((finished, path, result))
+    return candidates
+
+
+def latest_deployment(root: Path) -> tuple[Path, dict[str, Any], dict[str, Any] | None]:
+    candidates = release_events(root)
+    if not candidates:
+        raise StatusError("no successful deployment or rollback release event exists")
+    _, result_path, result = max(candidates, key=lambda item: (item[0], item[1].parent.name, item[1].name))
+    plan_path = result_path.with_name("plan.json")
+    plan = (
+        load_json(plan_path)
+        if result_path.name == "result.json" and plan_path.is_file()
+        else None
+    )
+    return result_path, result, plan
+
+def previous_deployment_protocol(root: Path, current_finished_at_ms: int | None) -> dict[str, Any] | None:
+    if current_finished_at_ms is None:
+        return None
+    candidates: list[tuple[int, Path, str]] = []
+    for finished, path, result in release_events(root):
+        probe = result.get("probe") if isinstance(result.get("probe"), dict) else {}
+        version = probe.get("protocolVersion")
+        if finished < current_finished_at_ms and isinstance(version, str):
+            candidates.append((finished, path, version))
+    if not candidates:
+        return None
+    finished, path, version = max(candidates, key=lambda item: (item[0], item[1].parent.name, item[1].name))
+    return {
+        "receiptId": path.parent.name,
+        "event": path.name,
+        "finishedAtMs": finished,
+        "protocolVersion": version,
+    }
+
+def configured_trace_path(env_file: Path, database: Path) -> Path:
+    try:
+        lines = env_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return database.parent / "runtime-trace.jsonl"
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key == "ORDIVON_TRACE_PATH":
+            candidate = Path(value.strip().strip('"').strip("'"))
+            if candidate.is_absolute():
+                return candidate
+    return database.parent / "runtime-trace.jsonl"
+
+
+def protocol_observations(trace_path: Path, since_ms: int) -> dict[str, Any]:
+    rotated = Path(str(trace_path) + ".1")
+    segments = [path for path in (rotated, trace_path) if path.is_file() and not path.is_symlink()]
+    if not segments:
+        return {
+            "available": False,
+            "sinceMs": since_ms,
+            "scanBytes": 0,
+            "scanTruncated": False,
+            "invalidLines": 0,
+            "events": 0,
+            "versions": [],
+        }
+    try:
+        total_size = sum(path.stat().st_size for path in segments)
+        remaining = MAX_PROTOCOL_TRACE_BYTES
+        chunks: list[bytes] = []
+        for path in reversed(segments):
+            if remaining <= 0:
+                break
+            size = path.stat().st_size
+            retain = min(size, remaining)
+            with path.open("rb") as handle:
+                handle.seek(size - retain)
+                if retain < size:
+                    handle.readline()
+                chunk = handle.read()
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        payload = b"".join(reversed(chunks))
+        counts: dict[tuple[str, str], dict[str, int]] = {}
+        invalid = 0
+        events = 0
+        for raw in payload.splitlines():
+            try:
+                item = json.loads(raw)
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                invalid += 1
+                continue
+            if not isinstance(item, dict) or item.get("kind") != "mcp_protocol_observation":
+                continue
+            observed = item.get("observedUnixMs")
+            version = item.get("protocolVersion")
+            if not isinstance(observed, int) or observed < since_ms or not isinstance(version, str) or not version:
+                continue
+            client = item.get("client") if isinstance(item.get("client"), dict) else {}
+            name = client.get("name") if isinstance(client.get("name"), str) else "unknown"
+            client_version = client.get("version") if isinstance(client.get("version"), str) else "unknown"
+            identity = f"{name}@{client_version}"
+            key = (version, identity)
+            summary = counts.setdefault(key, {"events": 0, "initializations": 0, "toolCalls": 0})
+            summary["events"] += 1
+            if item.get("method") == "initialize":
+                summary["initializations"] += 1
+            if item.get("method") == "tools/call":
+                summary["toolCalls"] += 1
+            events += 1
+        versions: dict[str, dict[str, Any]] = {}
+        for (version, client), values in sorted(counts.items()):
+            entry = versions.setdefault(version, {"protocolVersion": version, "events": 0, "clients": []})
+            entry["events"] += values["events"]
+            entry["clients"].append({"client": client, **values})
+        return {
+            "available": True,
+            "sinceMs": since_ms,
+            "scanBytes": len(payload),
+            "scanTruncated": total_size > len(payload),
+            "segments": len(segments),
+            "invalidLines": invalid,
+            "events": events,
+            "versions": list(versions.values()),
+        }
+    except OSError:
+        return {
+            "available": False,
+            "sinceMs": since_ms,
+            "scanBytes": 0,
+            "scanTruncated": False,
+            "invalidLines": 0,
+            "events": 0,
+            "versions": [],
+        }
+
+
+def compatibility_status(
+    deployment_root: Path,
+    deployment: dict[str, Any],
+    trace_path: Path,
+    generated_at_ms: int,
+    retention_hours: int,
+) -> dict[str, Any]:
+    deployed_at_ms = deployment.get("deployedAtMs")
+    since_ms = deployed_at_ms if isinstance(deployed_at_ms, int) else 0
+    observations = protocol_observations(trace_path, since_ms)
+    previous = previous_deployment_protocol(deployment_root, deployed_at_ms)
+    retention_ms = retention_hours * 60 * 60 * 1000
+    retention_satisfied = (
+        isinstance(deployed_at_ms, int)
+        and generated_at_ms >= deployed_at_ms
+        and generated_at_ms - deployed_at_ms >= retention_ms
+    )
+    previous_binary_available = False
+    try:
+        result_path, release_event, _ = latest_deployment(deployment_root)
+        if result_path.name == "rollback-result.json":
+            backup = release_event.get("currentBackup")
+            previous_binary_available = (
+                isinstance(backup, str)
+                and (Path(backup) / "ordivon-runtime").is_file()
+            )
+        else:
+            previous_binary_available = (
+                result_path.parent / "previous" / "ordivon-runtime"
+            ).is_file()
+    except StatusError:
+        pass
+
+    observed_by_version = {
+        item["protocolVersion"]: item
+        for item in observations["versions"]
+        if isinstance(item, dict) and isinstance(item.get("protocolVersion"), str)
+    }
+    current = deployment.get("protocolVersion")
+    supported = deployment.get("supportedProtocolVersions")
+    if not isinstance(supported, list):
+        supported = []
+    decisions: list[dict[str, Any]] = []
+    deletion_candidates: list[str] = []
+    for version in [item for item in supported if isinstance(item, str)]:
+        consumers: list[str] = []
+        blockers: list[str] = []
+        if version == current:
+            consumers.append("production-deploy-and-acceptance")
+        observed = observed_by_version.get(version, {})
+        for client in observed.get("clients", []) if isinstance(observed, dict) else []:
+            identity = client.get("client") if isinstance(client, dict) else None
+            if isinstance(identity, str):
+                consumers.append(f"live-client:{identity}")
+        if previous_binary_available and isinstance(previous, dict) and previous.get("protocolVersion") == version:
+            consumers.append(f"receipt-bound-rollback:{previous.get('receiptId')}")
+        if previous_binary_available and previous is None and version != current:
+            blockers.append("ROLLBACK_PROTOCOL_UNKNOWN")
+        if version != current and not retention_satisfied:
+            blockers.append(
+                "RETENTION_WINDOW_INCOMPLETE" if isinstance(deployed_at_ms, int) else "DEPLOYMENT_TIME_UNKNOWN"
+            )
+        if not observations["available"]:
+            blockers.append("PROTOCOL_TRACE_UNAVAILABLE")
+        elif observations["scanTruncated"] and not observed:
+            blockers.append("PROTOCOL_TRACE_TRUNCATED")
+        deletion_eligible = version != current and not consumers and not blockers
+        if deletion_eligible:
+            deletion_candidates.append(version)
+        if version == current:
+            trigger = "replace the canonical protocol through a receipted deployment and leave its rollback window"
+        elif any(item.startswith("live-client:") for item in consumers):
+            trigger = "observe no live client during an explicit retention window and retain no rollback dependency"
+        elif any(item.startswith("receipt-bound-rollback:") for item in consumers):
+            trigger = "expire the receipt-bound previous binary and observe no live client"
+        else:
+            trigger = "complete modern production and rollback acceptance with complete trace evidence"
+        decisions.append(
+            {
+                "protocolVersion": version,
+                "observedEvents": observed.get("events", 0) if isinstance(observed, dict) else 0,
+                "consumers": sorted(set(consumers)),
+                "blockers": blockers,
+                "deletionEligible": deletion_eligible,
+                "deletionTrigger": trigger,
+            }
+        )
+    return {
+        "canonicalProtocolVersion": current,
+        "retentionHours": retention_hours,
+        "retentionSatisfied": retention_satisfied,
+        "observations": observations,
+        "previousDeployment": previous,
+        "previousBinaryAvailable": previous_binary_available,
+        "decisions": decisions,
+        "deletionCandidates": deletion_candidates,
+    }
+
+
+def deployment_status(
+    deployment_root: Path,
+    install_dir: Path,
+    expected_commit: str | None,
+    reasons: list[str],
+) -> dict[str, Any]:
+    try:
+        result_path, result, plan = latest_deployment(deployment_root)
+    except StatusError:
+        reasons.append("DEPLOYMENT_RECEIPT_MISSING")
+        return {
+            "receiptId": None,
+            "commit": None,
+            "builtAtMs": None,
+            "deployedAtMs": None,
+            "protocolLifecycle": None,
+            "protocolVersion": None,
+            "supportedProtocolVersions": [],
+            "toolCatalogDigest": None,
+            "serverVersion": None,
+            "toolCount": None,
+            "artifacts": [],
+            "binaries": [],
+            "available": False,
+        }
+
+    release_disposition = (
+        result.get("releaseDisposition")
+        if isinstance(result.get("releaseDisposition"), str)
+        else "deployment"
+    )
+    commit = result.get("commit")
+    if not isinstance(commit, str) or not COMMIT_PATTERN.fullmatch(commit):
+        reasons.append(
+            "DEPLOYMENT_COMMIT_UNKNOWN"
+            if release_disposition == "rollback" and commit is None
+            else "DEPLOYMENT_COMMIT_INVALID"
+        )
+        commit = None
+    if expected_commit is not None and commit != expected_commit:
+        reasons.append("EXPECTED_COMMIT_MISMATCH")
+
+    built_at = None
+    if isinstance(plan, dict):
+        manifest = plan.get("candidateManifest")
+        if isinstance(manifest, dict) and isinstance(manifest.get("builtAtMs"), int):
+            built_at = manifest["builtAtMs"]
+
+    artifacts: list[dict[str, Any]] = []
+    binaries: list[dict[str, Any]] = []
+    installed = result.get("installed")
+    if not isinstance(installed, list) or not installed:
+        reasons.append("DEPLOYMENT_ARTIFACT_SET_INVALID")
+        installed = []
+    seen: set[str] = set()
+    for item in installed:
+        if not isinstance(item, dict):
+            reasons.append("DEPLOYMENT_ARTIFACT_RECORD_INVALID")
+            continue
+        name = item.get("name")
+        expected_digest = item.get("digest")
+        kind = item.get("kind") if isinstance(item.get("kind"), str) else "binary"
+        expected_mode = item.get("mode") if isinstance(item.get("mode"), int) else None
+        if (
+            not isinstance(name, str)
+            or not name
+            or name in {".", ".."}
+            or "/" in name
+            or name in seen
+        ):
+            reasons.append("DEPLOYMENT_ARTIFACT_NAME_INVALID")
+            continue
+        seen.add(name)
+        path = install_dir / name
+        present = path.is_file() and not path.is_symlink()
+        observed_mode = (path.stat().st_mode & 0o777) if present else None
+        executable_required = (expected_mode & 0o111 != 0) if expected_mode is not None else kind == "binary"
+        executable_ok = present and (not executable_required or os.access(path, os.X_OK))
+        observed_digest = sha256(path) if present else None
+        digest_matches = isinstance(expected_digest, str) and observed_digest == expected_digest
+        mode_matches = expected_mode is None or observed_mode == expected_mode
+        matches = present and executable_ok and digest_matches and mode_matches
+        legacy_binary = kind == "binary"
+        if not present:
+            reasons.append(("BINARY_MISSING:" if legacy_binary else "ARTIFACT_MISSING:") + name)
+        elif not executable_ok:
+            reasons.append(("BINARY_NOT_EXECUTABLE:" if legacy_binary else "ARTIFACT_NOT_EXECUTABLE:") + name)
+        elif not digest_matches:
+            reasons.append(("BINARY_DIGEST_MISMATCH:" if legacy_binary else "ARTIFACT_DIGEST_MISMATCH:") + name)
+        elif not mode_matches:
+            reasons.append(("BINARY_MODE_MISMATCH:" if legacy_binary else "ARTIFACT_MODE_MISMATCH:") + name)
+        projection = {
+            "name": name,
+            "kind": kind,
+            "bytes": path.stat().st_size if present else None,
+            "expectedDigest": expected_digest if isinstance(expected_digest, str) else None,
+            "observedDigest": observed_digest,
+            "expectedMode": expected_mode,
+            "observedMode": observed_mode,
+            "matches": matches,
+        }
+        artifacts.append(projection)
+        if legacy_binary:
+            binaries.append(projection)
+    probe = result.get("probe") if isinstance(result.get("probe"), dict) else {}
+    server_info = probe.get("serverInfo") if isinstance(probe.get("serverInfo"), dict) else {}
+    return {
+        "receiptId": result_path.parent.name,
+        "releaseEvent": result_path.name,
+        "releaseDisposition": release_disposition,
+        "commit": commit,
+        "builtAtMs": built_at,
+        "deployedAtMs": result.get("finishedAtMs") if isinstance(result.get("finishedAtMs"), int) else None,
+        "commitMatchesExpectation": expected_commit is None or commit == expected_commit,
+        "protocolLifecycle": probe.get("lifecycle") if isinstance(probe.get("lifecycle"), str) else None,
+        "protocolVersion": probe.get("protocolVersion") if isinstance(probe.get("protocolVersion"), str) else None,
+        "supportedProtocolVersions": [
+            version for version in probe.get("supportedVersions", []) if isinstance(version, str)
+        ]
+        if isinstance(probe.get("supportedVersions"), list)
+        else [],
+        "toolCatalogDigest": probe.get("toolCatalogDigest")
+        if isinstance(probe.get("toolCatalogDigest"), str)
+        else None,
+        "serverVersion": server_info.get("version") if isinstance(server_info.get("version"), str) else None,
+        "toolCount": probe.get("toolCount") if isinstance(probe.get("toolCount"), int) else None,
+        "artifacts": artifacts,
+        "binaries": binaries,
+    }
+
+def service_status(systemctl: Path, service: str, reasons: list[str]) -> dict[str, Any]:
+    command = [
+        str(systemctl),
+        "show",
+        service,
+        "--property=ActiveState",
+        "--property=SubState",
+        "--property=MainPID",
+        "--property=ExecMainStartTimestamp",
+        "--property=NRestarts",
+        "--no-pager",
+    ]
+    try:
+        completed = subprocess.run(command, check=False, text=True, capture_output=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        reasons.append("SERVICE_QUERY_FAILED")
+        return {
+            "activeState": "unknown",
+            "subState": "unknown",
+            "mainPid": None,
+            "startedAt": None,
+            "restarts": None,
+            "queryAvailable": False,
+        }
+    if completed.returncode != 0:
+        reasons.append("SERVICE_QUERY_FAILED")
+    values = dict(line.split("=", 1) for line in completed.stdout.splitlines() if "=" in line)
+    active = values.get("ActiveState", "unknown")
+    sub = values.get("SubState", "unknown")
+    if active != "active" or sub != "running":
+        reasons.append("SERVICE_NOT_RUNNING")
+    try:
+        main_pid = int(values.get("MainPID", "0")) or None
+    except ValueError:
+        main_pid = None
+        reasons.append("SERVICE_PID_INVALID")
+    try:
+        restarts = int(values.get("NRestarts", ""))
+    except ValueError:
+        restarts = None
+    return {
+        "activeState": active,
+        "subState": sub,
+        "mainPid": main_pid,
+        "startedAt": values.get("ExecMainStartTimestamp") or None,
+        "restarts": restarts,
+    }
+
+
+def whitelisted_config(env_file: Path, reasons: list[str]) -> dict[str, int | None]:
+    allowed = {
+        "ORDIVON_GLOBAL_MAX_CONCURRENCY": "globalMaxConcurrency",
+        "ORDIVON_DEFAULT_RUNTIME_MS": "defaultRuntimeMs",
+        "ORDIVON_MAX_RUNTIME_MS": "maxRuntimeMs",
+        "ORDIVON_BODY_LIMIT_BYTES": "bodyLimitBytes",
+        "ORDIVON_CACHE_HIGH_WATERMARK_BYTES": "cacheHighWatermarkBytes",
+        "ORDIVON_CACHE_LOW_WATERMARK_BYTES": "cacheLowWatermarkBytes",
+        "ORDIVON_RECONCILE_INTERVAL_MS": "reconcileIntervalMs",
+    }
+    values: dict[str, int | None] = {output: None for output in allowed.values()}
+    try:
+        lines = env_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        reasons.append("CONFIG_UNREADABLE")
+        return values
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key not in allowed:
+            continue
+        try:
+            parsed = int(value.strip().strip('"').strip("'"))
+        except ValueError:
+            reasons.append(f"CONFIG_VALUE_INVALID:{allowed[key]}")
+            continue
+        values[allowed[key]] = parsed
+    if values["globalMaxConcurrency"] is None:
+        reasons.append("CONFIG_CAPACITY_MISSING")
+    return values
+
+
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates: list[Path] = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise StatusError("ORDIVON_RUNTIME_INSPECT must be an absolute path")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise StatusError(
+        "ordivon-runtime-inspect is unavailable; install it beside this script or set "
+        "ORDIVON_RUNTIME_INSPECT to an absolute executable path"
+    )
+
+
+def registry_status_projection(database: Path, job_limit: int) -> dict[str, Any]:
+    arguments = [
+        str(runtime_inspect_binary()),
+        "registry-status",
+        "--database",
+        str(database),
+        "--busy-timeout-ms",
+        "5000",
+        "--job-limit",
+        str(job_limit),
+    ]
+    try:
+        completed = subprocess.run(
+            arguments, check=False, text=True, capture_output=True, timeout=10
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise StatusError(f"Runtime Registry inspection unavailable: {error}") from error
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip() or f"exit {completed.returncode}"
+        if "lacks status inspection capabilities" in detail or "SchemaVersionUnsupported" in detail:
+            raise StatusError(f"Runtime Registry capability mismatch: {detail}")
+        raise StatusError(f"Runtime Registry inspection unavailable: {detail}")
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise StatusError("Runtime Registry inspection returned invalid JSON") from error
+    if not isinstance(value, dict):
+        raise StatusError("Runtime Registry inspection did not return an object")
+    return value
+
+
+def registry_status(database: Path, reasons: list[str]) -> tuple[dict[str, Any], set[str]]:
+    try:
+        projection = registry_status_projection(database, 0)
+    except StatusError as error:
+        if "capability mismatch" in str(error):
+            reasons.append("REGISTRY_CAPABILITY_MISMATCH")
+        else:
+            reasons.append("REGISTRY_UNREADABLE")
+        return {"available": False}, set()
+
+    required_ints = (
+        "migrationVersion",
+        "jobsTotal",
+        "jobsActive",
+        "nonterminalAttempts",
+        "activeReservations",
+        "heldReservations",
+        "recoveryRequired",
+    )
+    if any(not isinstance(projection.get(key), int) for key in required_ints):
+        reasons.append("REGISTRY_CAPABILITY_MISMATCH")
+        return {"available": False}, set()
+    held_rows = projection.get("heldWorkspaceIds")
+    if not isinstance(held_rows, list) or any(not isinstance(value, str) for value in held_rows):
+        reasons.append("REGISTRY_CAPABILITY_MISMATCH")
+        return {"available": False}, set()
+
+    jobs_active = int(projection["jobsActive"])
+    nonterminal_attempts = int(projection["nonterminalAttempts"])
+    recovery_required = int(projection["recoveryRequired"])
+    if recovery_required:
+        reasons.append("RECOVERY_REQUIRED")
+    if jobs_active != nonterminal_attempts:
+        reasons.append("ACTIVE_STATE_DIVERGENCE")
+    return {
+        "schemaVersion": int(projection["migrationVersion"]),
+        "jobsTotal": int(projection["jobsTotal"]),
+        "jobsActive": jobs_active,
+        "nonterminalAttempts": nonterminal_attempts,
+        "activeReservations": int(projection["activeReservations"]),
+        "heldReservations": int(projection["heldReservations"]),
+        "recoveryRequired": recovery_required,
+    }, set(held_rows)
+
+
+def _run_git(source_repo: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
+    try:
+        return subprocess.run(
+            ["/usr/bin/git", "-C", str(source_repo), *args],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=2,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def _fresh_origin_main(source_repo: Path) -> tuple[str | None, str]:
+    result = _run_git(source_repo, "ls-remote", "origin", "refs/heads/main")
+    if result is None:
+        return None, "unavailable"
+    if result.returncode != 0:
+        return None, "query_failed"
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    if len(lines) != 1:
+        return None, "ref_missing" if not lines else "ambiguous"
+    fields = lines[0].split()
+    if len(fields) != 2 or fields[1] != "refs/heads/main" or not COMMIT_PATTERN.fullmatch(fields[0]):
+        return None, "invalid_response"
+    return fields[0], "fresh"
+
+
+def source_status(source_repo: Path | None, deployment_commit: str | None) -> dict[str, Any]:
+    if source_repo is None:
+        return {"available": False}
+    head_result = _run_git(source_repo, "rev-parse", "HEAD")
+    if head_result is None or head_result.returncode != 0:
+        return {"available": False, "reason": "SOURCE_REPO_UNREADABLE"}
+    head = head_result.stdout.strip()
+    origin_result = _run_git(source_repo, "rev-parse", "refs/remotes/origin/main")
+    cached_origin = (
+        origin_result.stdout.strip()
+        if origin_result is not None and origin_result.returncode == 0
+        else None
+    )
+    remote_main, remote_observation = _fresh_origin_main(source_repo)
+    dirty_result = _run_git(source_repo, "status", "--porcelain=v1", "--untracked-files=normal")
+    dirty = None if dirty_result is None or dirty_result.returncode != 0 else bool(dirty_result.stdout)
+    relation = "unknown"
+    if isinstance(deployment_commit, str) and COMMIT_PATTERN.fullmatch(deployment_commit):
+        if head == deployment_commit:
+            relation = "same"
+        else:
+            source_ahead = _run_git(source_repo, "merge-base", "--is-ancestor", deployment_commit, head)
+            deployment_ahead = _run_git(source_repo, "merge-base", "--is-ancestor", head, deployment_commit)
+            if source_ahead is not None and source_ahead.returncode == 0:
+                relation = "source_ahead"
+            elif deployment_ahead is not None and deployment_ahead.returncode == 0:
+                relation = "deployment_ahead"
+            elif (
+                source_ahead is not None
+                and deployment_ahead is not None
+                and source_ahead.returncode == 1
+                and deployment_ahead.returncode == 1
+            ):
+                relation = "diverged"
+    return {
+        "available": True,
+        "head": head,
+        "originMain": cached_origin,
+        "originMainObservation": "cached_tracking_ref" if cached_origin is not None else "unavailable",
+        "remoteMain": remote_main,
+        "remoteMainObservation": remote_observation,
+        "dirty": dirty,
+        "relationToDeployment": relation,
+        "headMatchesOriginMain": None if cached_origin is None else head == cached_origin,
+        "headMatchesRemoteMain": None if remote_main is None else head == remote_main,
+    }
+
+
+def fast_workspace_status(
+    store_root: Path,
+    leased: set[str],
+    maximum: int = 4_096,
+) -> dict[str, Any]:
+    records_root = store_root / "workspace-records"
+    workspaces_root = store_root / "workspaces"
+    counts = {"open": 0, "closed": 0, "invalid": 0}
+    record_scanned = 0
+    record_truncated = False
+    if records_root.is_dir():
+        for path in records_root.glob("*.json"):
+            if record_scanned >= maximum:
+                record_truncated = True
+                break
+            record_scanned += 1
+            try:
+                record = load_json(path)
+            except StatusError:
+                counts["invalid"] += 1
+                continue
+            state = record.get("state", "open")
+            if state == "open":
+                counts["open"] += 1
+            elif state == "closed":
+                counts["closed"] += 1
+            else:
+                counts["invalid"] += 1
+
+    physical = 0
+    physical_scanned = 0
+    physical_truncated = False
+    if workspaces_root.is_dir():
+        for path in workspaces_root.iterdir():
+            if physical_scanned >= maximum:
+                physical_truncated = True
+                break
+            physical_scanned += 1
+            if path.is_dir():
+                physical += 1
+
+    exact = not record_truncated and not physical_truncated
+    return {
+        "records": counts,
+        "recordScanCount": record_scanned,
+        "recordScanTruncated": record_truncated,
+        "physicalOpen": physical,
+        "physicalScanCount": physical_scanned,
+        "physicalScanTruncated": physical_truncated,
+        "leasedWorkspaces": len(leased),
+        "recordPhysicalAligned": counts["open"] == physical if exact else None,
+    }
+
+
+def _output_modified_ms(bundle: Path) -> int | None:
+    latest = None
+    for name in ("stdout.log", "stderr.log"):
+        path = bundle / name
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        if stat.st_size == 0:
+            continue
+        modified = int(stat.st_mtime * 1000)
+        latest = modified if latest is None else max(latest, modified)
+    return latest
+
+
+def _progress_status(bundle: Path, generated_at_ms: int) -> dict[str, Any] | None:
+    path = bundle / "progress.json"
+    try:
+        value = load_json(path)
+    except StatusError:
+        return None
+    updated = value.get("updatedUnixMs")
+    started = value.get("currentStepStartedUnixMs")
+    return {
+        "revision": value.get("revision") if isinstance(value.get("revision"), int) else None,
+        "status": value.get("status") if isinstance(value.get("status"), str) else None,
+        "completedSteps": value.get("completedSteps") if isinstance(value.get("completedSteps"), int) else None,
+        "totalSteps": value.get("totalSteps") if isinstance(value.get("totalSteps"), int) else None,
+        "currentStepId": value.get("currentStepId") if isinstance(value.get("currentStepId"), str) else None,
+        "currentStepIndex": value.get("currentStepIndex") if isinstance(value.get("currentStepIndex"), int) else None,
+        "currentStepElapsedMs": (
+            max(0, generated_at_ms - started) if isinstance(started, int) else None
+        ),
+        "progressIdleMs": max(0, generated_at_ms - updated) if isinstance(updated, int) else None,
+    }
+
+
+def _job_projection(row: dict[str, Any], generated_at_ms: int) -> dict[str, Any]:
+    plan: dict[str, Any] = {}
+    raw_plan = row.get("executionPlanJson")
+    if isinstance(raw_plan, str):
+        try:
+            decoded = json.loads(raw_plan)
+            if isinstance(decoded, dict):
+                plan = decoded
+        except json.JSONDecodeError:
+            pass
+    executable = plan.get("executable")
+    executable_name = Path(executable).name if isinstance(executable, str) else None
+    bundle_raw = row.get("bundlePath")
+    bundle = Path(bundle_raw) if isinstance(bundle_raw, str) and bundle_raw else None
+    output_modified = _output_modified_ms(bundle) if bundle is not None else None
+    progress = _progress_status(bundle, generated_at_ms) if bundle is not None else None
+    started = row.get("startedAtMs") if isinstance(row.get("startedAtMs"), int) else None
+    finished = row.get("finishedAtMs") if isinstance(row.get("finishedAtMs"), int) else None
+    created = row.get("createdAtMs") if isinstance(row.get("createdAtMs"), int) else None
+    duration_origin = started if started is not None else created
+    duration_end = finished if finished is not None else generated_at_ms
+    duration = (
+        max(0, duration_end - duration_origin) if duration_origin is not None else None
+    )
+    return {
+        "jobId": row.get("jobId"),
+        "workspaceId": row.get("workspaceId"),
+        "attemptId": row.get("projectedAttemptId"),
+        "attemptState": row.get("attemptState"),
+        "resolution": row.get("resolution"),
+        "exitCode": row.get("exitCode"),
+        "executableName": executable_name,
+        "durationMs": duration,
+        "lastOutputAtMs": output_modified,
+        "outputIdleMs": (
+            max(0, generated_at_ms - output_modified) if output_modified is not None else None
+        ),
+        "recoveryRequired": row.get("recoveryRequired") is True,
+        "progress": progress,
+    }
+
+
+def dashboard_jobs(database: Path, generated_at_ms: int, limit: int) -> dict[str, Any]:
+    try:
+        projection = registry_status_projection(database, limit)
+    except StatusError:
+        return {"available": False, "active": [], "recent": []}
+    jobs = projection.get("jobs")
+    if not isinstance(jobs, dict):
+        return {"available": False, "active": [], "recent": []}
+    active = jobs.get("active")
+    recent = jobs.get("recent")
+    if (
+        not isinstance(active, list)
+        or not isinstance(recent, list)
+        or any(not isinstance(row, dict) for row in active)
+        or any(not isinstance(row, dict) for row in recent)
+    ):
+        return {"available": False, "active": [], "recent": []}
+    return {
+        "available": True,
+        "active": [_job_projection(row, generated_at_ms) for row in active],
+        "recent": [_job_projection(row, generated_at_ms) for row in recent],
+    }
+
+
+def dashboard_status(
+    database: Path,
+    store_root: Path,
+    held: set[str],
+    generated_at_ms: int,
+    limit: int,
+    source_repo: Path | None,
+    deployment_commit: str | None,
+) -> dict[str, Any]:
+    return {
+        "source": source_status(source_repo, deployment_commit),
+        "workspaces": fast_workspace_status(store_root, held),
+        "jobs": dashboard_jobs(database, generated_at_ms, limit),
+    }
+
+
+def _short(value: Any, length: int = 12) -> str:
+    return value[:length] if isinstance(value, str) and value else "-"
+
+
+def _job_token(value: Any, length: int = 10) -> str:
+    if not isinstance(value, str) or not value:
+        return "-"
+    suffix = value[-length:] if len(value) > length else value
+    return "#" + suffix
+
+
+def _duration(value: Any) -> str:
+    if not isinstance(value, int):
+        return "-"
+    seconds = max(0, value) // 1000
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, seconds = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m{seconds:02d}s"
+    hours, minutes = divmod(minutes, 60)
+    if hours < 24:
+        return f"{hours}h{minutes:02d}m"
+    days, hours = divmod(hours, 24)
+    return f"{days}d{hours:02d}h"
+
+
+def _clip(value: str, width: int) -> str:
+    if width <= 0:
+        return ""
+    if len(value) <= width:
+        return value
+    if width <= 1:
+        return value[:width]
+    return value[: width - 1] + "…"
+
+
+def _middle(value: Any, width: int) -> str:
+    text = str(value) if value is not None else "-"
+    if len(text) <= width:
+        return text
+    if width < 5:
+        return _clip(text, width)
+    left = (width - 1) // 2
+    right = width - left - 1
+    return text[:left] + "…" + text[-right:]
+
+
+def dashboard_human(report: dict[str, Any], width: int) -> str:
+    width = max(60, width)
+    deployment = report["deployment"]
+    service = report["service"]
+    registry = report["registry"]
+    config = report["config"]
+    dashboard = report.get("dashboard", {})
+    source = dashboard.get("source", {})
+    workspaces = dashboard.get("workspaces", {})
+    jobs = dashboard.get("jobs", {})
+    lines = [
+        _clip(f"ORDIVON RUNTIME  {str(report['status']).upper()}  health={report['health']['status']}", width),
+        _clip(
+            f"RELEASE   {_short(deployment.get('commit'))}  service={service.get('activeState')}/{service.get('subState')}  "
+            f"mcp={deployment.get('protocolLifecycle') or '-'}/{deployment.get('protocolVersion') or '-'}  "
+            f"tools={deployment.get('toolCount', '-')}",
+            width,
+        ),
+    ]
+    if source.get("available"):
+        source_state = "dirty" if source.get("dirty") else ("clean" if source.get("dirty") is False else "state=unknown")
+        remote_match = source.get("headMatchesRemoteMain")
+        remote_state = (
+            "remote=aligned" if remote_match is True else ("remote=drift" if remote_match is False else "remote=unknown")
+        )
+        cached_match = source.get("headMatchesOriginMain")
+        cached_state = (
+            "cache=aligned" if cached_match is True else ("cache=drift" if cached_match is False else "cache=unknown")
+        )
+        lines.append(
+            _clip(
+                f"SOURCE    {_short(source.get('head'))}  {source_state}  {remote_state}  {cached_state}  "
+                f"release={source.get('relationToDeployment', 'unknown')}",
+                width,
+            )
+        )
+    catalog = deployment.get("toolCatalogDigest")
+    lines.append(
+        _clip(
+            f"CATALOG   {_short(catalog, 20)}  registry=v{registry.get('schemaVersion', '-')}  "
+            f"jobs={registry.get('jobsActive', '?')}/{registry.get('jobsTotal', '?')}",
+            width,
+        )
+    )
+    lines.append(
+        _clip(
+            f"CAPACITY  active={registry.get('activeReservations', '?')}  held={registry.get('heldReservations', '?')}  "
+            f"limit={config.get('globalMaxConcurrency', '?')}  recovery={registry.get('recoveryRequired', '?')}",
+            width,
+        )
+    )
+    records = workspaces.get("records", {}) if isinstance(workspaces, dict) else {}
+    record_open = records.get("open", "?")
+    physical_open = workspaces.get("physicalOpen", "?")
+    if workspaces.get("recordScanTruncated"):
+        record_open = f">={record_open}"
+    if workspaces.get("physicalScanTruncated"):
+        physical_open = f">={physical_open}"
+    lines.append(
+        _clip(
+            f"WORKSPACE open={record_open}  physical={physical_open}  "
+            f"leased={workspaces.get('leasedWorkspaces', '?')}  aligned={'yes' if workspaces.get('recordPhysicalAligned') is True else ('no' if workspaces.get('recordPhysicalAligned') is False else '?')}",
+            width,
+        )
+    )
+    if report["operatorAction"]["count"]:
+        lines.append(_clip("ACTION    " + ", ".join(report["operatorAction"]["reasons"]), width))
+
+    active = jobs.get("active", []) if isinstance(jobs, dict) else []
+    lines.append("")
+    lines.append(_clip(f"ACTIVE JOBS  {len(active)}", width))
+    if not jobs.get("available", False):
+        lines.append("  projection unavailable")
+    elif not active:
+        lines.append("  none")
+    else:
+        for job in active:
+            progress = job.get("progress") or {}
+            step = progress.get("currentStepId") or "-"
+            if width < 100:
+                row = (
+                    f"  RUN {_job_token(job.get('jobId'), 8)} {_middle(job.get('workspaceId'), 24)} "
+                    f"{job.get('attemptState') or '-'} {_duration(job.get('durationMs'))} "
+                    f"out={_duration(job.get('outputIdleMs'))} step={step}"
+                )
+            else:
+                workspace_width = 34 if width < 140 else 52
+                row = (
+                    f"  RUN {_job_token(job.get('jobId'), 10)}  {_middle(job.get('workspaceId'), workspace_width)}  "
+                    f"{job.get('executableName') or '-'}  {job.get('attemptState') or '-'}  "
+                    f"age={_duration(job.get('durationMs'))}  out={_duration(job.get('outputIdleMs'))}  "
+                    f"progress={_duration(progress.get('progressIdleMs'))}  step={step}"
+                )
+            if job.get("recoveryRequired"):
+                row += "  RECOVERY"
+            lines.append(_clip(row, width))
+
+    recent = jobs.get("recent", []) if isinstance(jobs, dict) else []
+    lines.append("")
+    lines.append(_clip(f"RECENT TERMINAL  {len(recent)}", width))
+    if not jobs.get("available", False):
+        lines.append("  projection unavailable")
+    elif not recent:
+        lines.append("  none")
+    else:
+        for job in recent:
+            state = job.get("resolution") or job.get("attemptState") or "-"
+            row = (
+                f"  {_short(state.upper(), 9):9} {_job_token(job.get('jobId'), 10):11}  "
+                f"{_middle(job.get('workspaceId'), 36 if width >= 110 else 24)}  "
+                f"{job.get('executableName') or '-'}  {_duration(job.get('durationMs'))}"
+            )
+            lines.append(_clip(row, width))
+    return "\n".join(lines)
+
+
+def workspace_status(
+    store_root: Path,
+    held: set[str],
+    maximum: int,
+    stale_dirty_hours: int,
+    reasons: list[str],
+) -> dict[str, Any]:
+    records_root = store_root / "workspace-records"
+    workspaces_root = store_root / "workspaces"
+    counts = {"open": 0, "closed": 0, "invalid": 0}
+    open_records: list[tuple[str, dict[str, Any]]] = []
+    if records_root.is_dir():
+        for path in sorted(records_root.glob("*.json")):
+            try:
+                record = load_json(path)
+            except StatusError:
+                counts["invalid"] += 1
+                continue
+            state = record.get("state", "open")
+            if state == "closed":
+                counts["closed"] += 1
+            elif state == "open":
+                legacy_workspace_id = record.get("workspaceId")
+                if legacy_workspace_id is not None and legacy_workspace_id != path.stem:
+                    counts["invalid"] += 1
+                    continue
+                counts["open"] += 1
+                open_records.append((path.stem, record))
+            else:
+                counts["invalid"] += 1
+    else:
+        reasons.append("WORKSPACE_RECORD_ROOT_MISSING")
+    physical = sum(1 for path in workspaces_root.iterdir() if path.is_dir()) if workspaces_root.is_dir() else 0
+    if physical != counts["open"]:
+        reasons.append("WORKSPACE_RECORD_DIVERGENCE")
+
+    scanned = min(len(open_records), maximum)
+    truncated = len(open_records) > maximum
+    dirty = stale_dirty = missing = unreadable = 0
+    stale_before_ms = int(time.time() * 1000) - stale_dirty_hours * 3_600_000
+    for workspace_id, record in open_records[:maximum]:
+        path = workspaces_root / workspace_id
+        legacy_workspace_path = record.get("workspacePath")
+        if legacy_workspace_path is not None:
+            if not isinstance(legacy_workspace_path, str) or not Path(legacy_workspace_path).is_absolute():
+                unreadable += 1
+                continue
+            recorded_path = Path(legacy_workspace_path)
+            if recorded_path.exists() and path.exists():
+                if recorded_path.resolve() != path.resolve():
+                    unreadable += 1
+                    continue
+            elif recorded_path != path:
+                unreadable += 1
+                continue
+        if not path.is_dir():
+            missing += 1
+            continue
+        try:
+            completed = subprocess.run(
+                [
+                    "/usr/bin/git",
+                    "-C",
+                    str(path),
+                    "status",
+                    "--porcelain=v1",
+                    "--untracked-files=normal",
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+                timeout=3,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            unreadable += 1
+            continue
+        if completed.returncode != 0:
+            unreadable += 1
+        elif completed.stdout:
+            dirty += 1
+            created = record.get("createdUnixMs")
+            if isinstance(created, int) and created <= stale_before_ms:
+                stale_dirty += 1
+    if truncated:
+        reasons.append("WORKSPACE_SCAN_TRUNCATED")
+    if missing:
+        reasons.append("WORKSPACE_PATH_MISSING")
+    if unreadable:
+        reasons.append("WORKSPACE_STATE_UNREADABLE")
+    if stale_dirty:
+        reasons.append("STALE_DIRTY_WORKSPACES")
+    return {
+        "records": counts,
+        "physicalOpen": physical,
+        "held": len(held),
+        "scanned": scanned,
+        "dirty": dirty,
+        "staleDirty": stale_dirty,
+        "staleDirtyHours": stale_dirty_hours,
+        "missing": missing,
+        "unreadable": unreadable,
+        "scanTruncated": truncated,
+    }
+
+
+def directory_bytes(path: Path, timeout_seconds: float) -> int | None:
+    if not path.exists():
+        return 0
+    if timeout_seconds <= 0:
+        return None
+    try:
+        completed = subprocess.run(
+            ["/usr/bin/du", "-sb", str(path)],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    try:
+        return int(completed.stdout.split()[0])
+    except (ValueError, IndexError):
+        return None
+
+
+def storage_status(
+    database: Path,
+    store_root: Path,
+    deployment_root: Path,
+    candidate_root: Path,
+    config: dict[str, int | None],
+    reasons: list[str],
+) -> dict[str, Any]:
+    deadline = time.monotonic() + STORAGE_MEASUREMENT_BUDGET_SECONDS
+
+    def measure(path: Path) -> int | None:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        return directory_bytes(path, min(STORAGE_PROBE_TIMEOUT_SECONDS, remaining))
+
+    cache_bytes = measure(store_root / "cache")
+    workspace_bytes = measure(store_root / "workspaces")
+    registry_bytes = measure(database.parent)
+    deployment_bytes = measure(deployment_root)
+    candidate_bytes = measure(candidate_root)
+    high = config.get("cacheHighWatermarkBytes") or DEFAULT_CACHE_HIGH_WATERMARK_BYTES
+    low = config.get("cacheLowWatermarkBytes") or DEFAULT_CACHE_LOW_WATERMARK_BYTES
+    measurements = (cache_bytes, workspace_bytes, registry_bytes, deployment_bytes, candidate_bytes)
+    if any(value is None for value in measurements):
+        reasons.append("STORAGE_MEASUREMENT_UNAVAILABLE")
+    elif cache_bytes > high:
+        reasons.append("CACHE_HIGH_WATERMARK")
+    try:
+        stat = os.statvfs(store_root)
+        disk_total = stat.f_frsize * stat.f_blocks
+        disk_available = stat.f_frsize * stat.f_bavail
+    except OSError:
+        disk_total = disk_available = None
+    return {
+        "cacheBytes": cache_bytes,
+        "cacheHighWatermarkBytes": high,
+        "cacheLowWatermarkBytes": low,
+        "workspaceBytes": workspace_bytes,
+        "registryBytes": registry_bytes,
+        "deploymentBytes": deployment_bytes,
+        "candidateBytes": candidate_bytes,
+        "diskTotalBytes": disk_total,
+        "diskAvailableBytes": disk_available,
+    }
+
+
+def lifecycle_status(store_root: Path) -> dict[str, Any]:
+    root = store_root / "lifecycle-receipts"
+    candidates: list[tuple[int, Path, dict[str, Any]]] = []
+    if root.is_dir():
+        for path in root.glob("*/result.json"):
+            try:
+                value = load_json(path)
+            except StatusError:
+                continue
+            observed = int(path.stat().st_mtime * 1000)
+            candidates.append((observed, path, value))
+    if not candidates:
+        return {
+            "receiptId": None,
+            "observedAtMs": None,
+            "status": None,
+            "actions": None,
+            "failures": None,
+        }
+    observed, path, value = max(candidates, key=lambda item: (item[0], item[1].parent.name))
+    actions = value.get("actions")
+    failures = value.get("failures")
+    return {
+        "receiptId": path.parent.name,
+        "observedAtMs": observed,
+        "status": value.get("status") if isinstance(value.get("status"), str) else None,
+        "actions": len(actions) if isinstance(actions, list) else None,
+        "failures": len(failures) if isinstance(failures, list) else None,
+    }
+
+
+def build_status(args: argparse.Namespace) -> dict[str, Any]:
+    if args.max_workspaces < 1:
+        raise StatusError("max-workspaces must be positive")
+    if args.protocol_retention_hours < 1:
+        raise StatusError("protocol-retention-hours must be positive")
+    if args.stale_dirty_hours < 1:
+        raise StatusError("stale-dirty-hours must be positive")
+    if args.dashboard_jobs < 1:
+        raise StatusError("dashboard-jobs must be positive")
+    if args.width is not None and args.width < 20:
+        raise StatusError("width must be at least 20 columns")
+    started = time.perf_counter()
+    generated_at_ms = int(time.time() * 1000)
+    health_reasons: list[str] = []
+    maintenance_reasons: list[str] = []
+
+    deployment = deployment_status(
+        args.deployment_root,
+        args.install_dir,
+        args.expected_commit,
+        health_reasons,
+    )
+    service = service_status(args.systemctl, args.service, health_reasons)
+    config = whitelisted_config(args.env_file, health_reasons)
+    registry, held = registry_status(args.database, health_reasons)
+
+    report: dict[str, Any] = {
+        "schemaVersion": SCHEMA_VERSION,
+        "mode": args.mode,
+        "generatedAtMs": generated_at_ms,
+        "deployment": deployment,
+        "service": service,
+        "config": config,
+        "registry": registry,
+    }
+    if args.mode == "dashboard":
+        report["dashboard"] = dashboard_status(
+            args.database,
+            args.runtime_store_root,
+            held,
+            generated_at_ms,
+            args.dashboard_jobs,
+            args.source_repo,
+            deployment.get("commit") if isinstance(deployment.get("commit"), str) else None,
+        )
+    if args.mode == "diagnose":
+        trace_path = args.trace_path or configured_trace_path(args.env_file, args.database)
+        report["compatibility"] = compatibility_status(
+            args.deployment_root,
+            deployment,
+            trace_path,
+            generated_at_ms,
+            args.protocol_retention_hours,
+        )
+        report["workspaces"] = workspace_status(
+            args.runtime_store_root,
+            held,
+            args.max_workspaces,
+            args.stale_dirty_hours,
+            maintenance_reasons,
+        )
+        report["storage"] = storage_status(
+            args.database,
+            args.runtime_store_root,
+            args.deployment_root,
+            args.candidate_root,
+            config,
+            maintenance_reasons,
+        )
+        report["lifecycle"] = lifecycle_status(args.runtime_store_root)
+
+    health_reasons = list(dict.fromkeys(health_reasons))
+    maintenance_reasons = list(dict.fromkeys(maintenance_reasons))
+    health_status = "healthy" if not health_reasons else "unhealthy"
+    maintenance_status = (
+        "not_checked"
+        if args.mode in {"health", "dashboard"}
+        else ("healthy" if not maintenance_reasons else "attention")
+    )
+    overall_status = (
+        "unhealthy"
+        if health_reasons
+        else ("attention" if args.mode == "diagnose" and maintenance_reasons else "healthy")
+    )
+    report.update(
+        {
+            "status": overall_status,
+            "elapsedMs": round((time.perf_counter() - started) * 1000, 1),
+            "health": {"status": health_status, "reasons": health_reasons},
+            "maintenance": {
+                "status": maintenance_status,
+                "reasons": maintenance_reasons,
+            },
+            "operatorAction": {
+                "count": len(health_reasons),
+                "reasons": health_reasons,
+            },
+            "maintenanceAction": {
+                "count": len(maintenance_reasons),
+                "reasons": maintenance_reasons,
+            },
+        }
+    )
+    return report
+
+
+def human(report: dict[str, Any], width: int | None = None) -> str:
+    if report.get("mode") == "dashboard":
+        columns = width or shutil.get_terminal_size(fallback=(120, 24)).columns
+        return dashboard_human(report, columns)
+    deployment = report["deployment"]
+    service = report["service"]
+    registry = report["registry"]
+    config = report["config"]
+    commit = deployment.get("commit")
+    short_commit = commit[:12] if isinstance(commit, str) else "unknown"
+    common = (
+        f"{str(report['status']).upper()} mode={report['mode']} commit={short_commit} "
+        f"service={service.get('activeState')}/{service.get('subState')} "
+        f"jobs={registry.get('jobsActive', '?')}/{registry.get('jobsTotal', '?')} "
+        f"capacity={registry.get('activeReservations', '?')}+"
+        f"{registry.get('heldReservations', '?')}/{config.get('globalMaxConcurrency', '?')} "
+        f"health-actions={report['operatorAction']['count']}"
+    )
+    if report["mode"] == "health":
+        return common
+    workspaces = report["workspaces"]
+    compatibility = report["compatibility"]
+    return (
+        common
+        + f" mcp={deployment.get('protocolLifecycle') or 'unknown'}/"
+        f"{deployment.get('protocolVersion') or 'unknown'} "
+        f"workspaces={workspaces.get('physicalOpen', '?')} "
+        f"compat-delete={len(compatibility.get('deletionCandidates', []))} "
+        f"dirty={workspaces.get('dirty', '?')}/{workspaces.get('staleDirty', '?')} "
+        f"held={workspaces.get('held', '?')} "
+        f"maintenance-actions={report['maintenanceAction']['count']}"
+    )
+
+
+def main() -> int:
+    args = parser().parse_args()
+    try:
+        report = build_status(args)
+    except StatusError as error:
+        print(f"runtime status failed: {error}", file=sys.stderr)
+        return 2
+    print(json.dumps(report, indent=2, sort_keys=True) if args.json else human(report, args.width))
+    return 0 if report["health"]["status"] == "healthy" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

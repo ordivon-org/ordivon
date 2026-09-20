@@ -1,0 +1,32 @@
+schema_version: 1
+id: ordivon-runtime
+name: Ordivon Runtime
+repository: https://github.com/zycxfyh/ordivon-runtime
+kind: engineering
+default_profiles:
+  - engineering
+  - provider
+  - organization
+documentation_roots:
+  - README.md
+  - AGENTS.md
+  - CONTRIBUTING.md
+  - SECURITY.md
+  - CHANGELOG.md
+  - docs
+managed_paths:
+  - README.md
+  - docs/quickstart.md
+  - docs/status.md
+  - docs/runtime.md
+  - docs/effect-kernel.md
+  - docs/operations.md
+  - docs/data-and-privacy.md
+  - docs/releases.md
+  - docs/authority.md
+  - docs/reference/tools.md
+enforcement: strict
+maintainers:
+  - zycxfyh
+public_projection: ordivon-web
+description: Trusted-local effect execution, evidence, cancellation, reconciliation, and recovery.

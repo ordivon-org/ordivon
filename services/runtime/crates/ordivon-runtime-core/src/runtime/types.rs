@@ -1,0 +1,1992 @@
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+use crate::universal::{
+    ENVIRONMENT_VARIABLE_NAME_PATTERN, WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH,
+    WORKSPACE_ID_PATTERN,
+};
+
+use super::{RuntimeError, RuntimeErrorCode, RuntimeResult};
+
+pub const RUNTIME_SCHEMA_VERSION: u32 = 1;
+
+fn default_schema_version() -> u32 {
+    RUNTIME_SCHEMA_VERSION
+}
+
+pub(crate) const MAX_RUNTIME_LIST_LIMIT: u32 = 100;
+pub const MAX_TASK_WAIT_MS: u64 = 30_000;
+pub const MAX_TASK_TAIL_BYTES: u64 = 64 * 1024;
+pub(crate) const MAX_ARTIFACT_READ_BYTES: u64 = 1024 * 1024;
+
+pub const LOGICAL_ID_MIN_LENGTH: usize = 1;
+pub const LOGICAL_ID_MAX_LENGTH: usize = 256;
+pub const LOGICAL_ID_PATTERN: &str = r"^[^\u0000-\u0020\u007f-\u00a0\u1680\u2000-\u200a\u2028-\u2029\u202f\u205f\u3000](?:[^\u0000-\u001f\u007f-\u009f]*[^\u0000-\u0020\u007f-\u00a0\u1680\u2000-\u200a\u2028-\u2029\u202f\u205f\u3000])?$";
+pub const CLIENT_REQUEST_ID_MIN_LENGTH: usize = LOGICAL_ID_MIN_LENGTH;
+pub const CLIENT_REQUEST_ID_MAX_LENGTH: usize = LOGICAL_ID_MAX_LENGTH;
+pub const CLIENT_REQUEST_ID_PATTERN: &str = LOGICAL_ID_PATTERN;
+
+pub(crate) fn validate_logical_id(value: &str, field: &str) -> RuntimeResult<()> {
+    let scalar_length = value.chars().count();
+    if !(LOGICAL_ID_MIN_LENGTH..=LOGICAL_ID_MAX_LENGTH).contains(&scalar_length)
+        || value != value.trim()
+        || value.chars().any(char::is_control)
+    {
+        return Err(RuntimeError::invalid(
+            format!(
+                "{field} must contain 1..={LOGICAL_ID_MAX_LENGTH} Unicode characters, be trimmed, and be control-free"
+            ),
+            field,
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_client_request_id(value: &str, field: &str) -> RuntimeResult<()> {
+    validate_logical_id(value, field)
+}
+
+#[allow(dead_code)]
+#[derive(JsonSchema)]
+#[schemars(extend("pattern" = ENVIRONMENT_VARIABLE_NAME_PATTERN))]
+struct EnvironmentVariableNameSchema(String);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JobDesiredState {
+    Run,
+    Cancelled,
+}
+
+impl JobDesiredState {
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            Self::Run => "run",
+            Self::Cancelled => "cancelled",
+        }
+    }
+
+    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+        match value {
+            "run" => Ok(Self::Run),
+            "cancelled" => Ok(Self::Cancelled),
+            _ => Err(RuntimeError::invalid(
+                "unknown desired state",
+                "desiredState",
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JobResolution {
+    Succeeded,
+    Failed,
+    TimedOut,
+    Cancelled,
+    Lost,
+    Orphaned,
+}
+
+impl JobResolution {
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::TimedOut => "timed_out",
+            Self::Cancelled => "cancelled",
+            Self::Lost => "lost",
+            Self::Orphaned => "orphaned",
+        }
+    }
+
+    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+        match value {
+            "succeeded" => Ok(Self::Succeeded),
+            "failed" => Ok(Self::Failed),
+            "timed_out" => Ok(Self::TimedOut),
+            "cancelled" => Ok(Self::Cancelled),
+            "lost" => Ok(Self::Lost),
+            "orphaned" => Ok(Self::Orphaned),
+            _ => Err(RuntimeError::invalid(
+                "unknown job resolution",
+                "resolution",
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AttemptState {
+    Accepted,
+    Starting,
+    Running,
+    Stopping,
+    Recovering,
+    Succeeded,
+    Failed,
+    TimedOut,
+    Cancelled,
+    Lost,
+    Orphaned,
+}
+
+impl AttemptState {
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            Self::Accepted => "accepted",
+            Self::Starting => "starting",
+            Self::Running => "running",
+            Self::Stopping => "stopping",
+            Self::Recovering => "recovering",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::TimedOut => "timed_out",
+            Self::Cancelled => "cancelled",
+            Self::Lost => "lost",
+            Self::Orphaned => "orphaned",
+        }
+    }
+
+    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+        match value {
+            "accepted" => Ok(Self::Accepted),
+            "starting" => Ok(Self::Starting),
+            "running" => Ok(Self::Running),
+            "stopping" => Ok(Self::Stopping),
+            "recovering" => Ok(Self::Recovering),
+            "succeeded" => Ok(Self::Succeeded),
+            "failed" => Ok(Self::Failed),
+            "timed_out" => Ok(Self::TimedOut),
+            "cancelled" => Ok(Self::Cancelled),
+            "lost" => Ok(Self::Lost),
+            "orphaned" => Ok(Self::Orphaned),
+            _ => Err(RuntimeError::invalid("unknown attempt state", "state")),
+        }
+    }
+
+    pub fn is_terminal(self) -> bool {
+        matches!(
+            self,
+            Self::Succeeded
+                | Self::Failed
+                | Self::TimedOut
+                | Self::Cancelled
+                | Self::Lost
+                | Self::Orphaned
+        )
+    }
+
+    pub fn can_transition_to(self, next: Self) -> bool {
+        match self {
+            Self::Accepted => matches!(
+                next,
+                Self::Starting | Self::Cancelled | Self::Failed | Self::Lost | Self::Orphaned
+            ),
+            Self::Starting => matches!(
+                next,
+                Self::Running
+                    | Self::Recovering
+                    | Self::Succeeded
+                    | Self::Failed
+                    | Self::TimedOut
+                    | Self::Cancelled
+                    | Self::Lost
+                    | Self::Orphaned
+            ),
+            Self::Running => matches!(
+                next,
+                Self::Stopping
+                    | Self::Recovering
+                    | Self::Succeeded
+                    | Self::Failed
+                    | Self::TimedOut
+                    | Self::Cancelled
+                    | Self::Lost
+                    | Self::Orphaned
+            ),
+            Self::Stopping => matches!(
+                next,
+                Self::Recovering
+                    | Self::Succeeded
+                    | Self::Cancelled
+                    | Self::Failed
+                    | Self::TimedOut
+                    | Self::Lost
+                    | Self::Orphaned
+            ),
+            Self::Recovering => matches!(
+                next,
+                Self::Starting
+                    | Self::Running
+                    | Self::Stopping
+                    | Self::Succeeded
+                    | Self::Failed
+                    | Self::TimedOut
+                    | Self::Cancelled
+                    | Self::Lost
+                    | Self::Orphaned
+            ),
+            Self::Succeeded
+            | Self::Failed
+            | Self::TimedOut
+            | Self::Cancelled
+            | Self::Lost
+            | Self::Orphaned => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AttemptTerminationIntent {
+    Natural,
+    StopRequested,
+    DeadlineExceeded,
+}
+
+impl AttemptTerminationIntent {
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            Self::Natural => "natural",
+            Self::StopRequested => "stop_requested",
+            Self::DeadlineExceeded => "deadline_exceeded",
+        }
+    }
+
+    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+        match value {
+            "natural" => Ok(Self::Natural),
+            "stop_requested" => Ok(Self::StopRequested),
+            "deadline_exceeded" => Ok(Self::DeadlineExceeded),
+            _ => Err(RuntimeError::invalid(
+                "unknown termination intent",
+                "terminationIntent",
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReservationState {
+    Active,
+    HeldOrphaned,
+    Released,
+}
+
+impl ReservationState {
+    pub(crate) fn as_db(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::HeldOrphaned => "held_orphaned",
+            Self::Released => "released",
+        }
+    }
+
+    pub(crate) fn parse(value: &str) -> RuntimeResult<Self> {
+        match value {
+            "active" => Ok(Self::Active),
+            "held_orphaned" => Ok(Self::HeldOrphaned),
+            "released" => Ok(Self::Released),
+            _ => Err(RuntimeError::invalid(
+                "unknown reservation state",
+                "reservationState",
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionProfile {
+    #[default]
+    TrustedLocal,
+    ContainedLocal,
+}
+
+impl ExecutionProfile {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::TrustedLocal => "trusted_local",
+            Self::ContainedLocal => "contained_local",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionTarget {
+    #[default]
+    LocalLinux,
+    WindowsNative,
+}
+
+impl ExecutionTarget {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::LocalLinux => "local_linux",
+            Self::WindowsNative => "windows_native",
+        }
+    }
+
+    pub(crate) fn is_default(&self) -> bool {
+        *self == Self::LocalLinux
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowsAuthority {
+    #[default]
+    Limited,
+    Elevated,
+    ActiveUser,
+}
+
+impl WindowsAuthority {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Limited => "limited",
+            Self::Elevated => "elevated",
+            Self::ActiveUser => "active_user",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum WindowsTokenClass {
+    Limited,
+    Elevated,
+    ActiveUser,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct WindowsExecutionContext {
+    pub token_class: WindowsTokenClass,
+    pub token_user_sid: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<u32>,
+    pub environment_source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub privileged_broker_digest: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ForeignReference {
+    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+    pub namespace: String,
+    #[serde(rename = "type")]
+    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+    pub reference_type: String,
+    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+    pub generation: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+    pub digest: Option<String>,
+}
+
+/// Agent-declared exact host file whose bytes are a known physical prerequisite of trusted-local execution.
+/// Runtime validates the digest at admission and again at the target-spawn boundary; it does not infer
+/// undeclared dynamic dependencies or claim that this list is a complete environment closure.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HostDependencyBinding {
+    /// Absolute host path to one regular non-symlink prerequisite file.
+    pub path: String,
+    pub expected_digest: String,
+}
+
+/// Operator-owned root from which Runtime may resolve immutable input objects.
+/// This is Core configuration/authority, not Agent-authored path authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InputAuthority {
+    pub name: String,
+    pub root: PathBuf,
+}
+
+/// Operator-owned systemd-encrypted credential source. Encrypted blobs are selected by opaque
+/// logical name, authorized against the authenticated Runtime principal, snapshotted on new
+/// admission, and never require the caller to know a content digest. Runtime never stores the
+/// plaintext credential in its durable Job store.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CredentialAuthority {
+    pub name: String,
+    pub root: PathBuf,
+    pub allowed_principals: Vec<String>,
+}
+
+/// Agent/domain-authored request for one named credential. Unlike immutable artifact inputs,
+/// credentials deliberately do not expose or require a caller-held digest.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CredentialBindingRequest {
+    pub authority: String,
+    pub credential: String,
+}
+
+/// Agent/domain-authored request for one exact object inside a named input authority.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InputBindingRequest {
+    pub authority: String,
+    pub relative_object: String,
+    pub expected_digest: String,
+    pub presentation_relative_path: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionProviderContract {
+    LocalLinuxRunnerV1,
+    WindowsNativeLauncherV1,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecutionProviderSnapshot {
+    pub contract: ExecutionProviderContract,
+    pub executable_digest: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wsl_distribution: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeReleaseContract {
+    RuntimeReleaseV1,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeReleaseRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: String,
+    pub principal: String,
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+    pub commit: String,
+    pub candidate_manifest_digest: String,
+    pub expected_tool_count: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeReleaseGetRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    pub principal: String,
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RuntimeReleaseEffectBinding {
+    pub contract: RuntimeReleaseContract,
+    pub effect_id: String,
+    pub request_digest: String,
+    pub workspace_id: String,
+    pub commit: String,
+    pub candidate_manifest_digest: String,
+    pub expected_tool_count: u32,
+    pub receipt_path: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeReleaseDisposition {
+    Admitted,
+    InProgress,
+    Deployed,
+    NotCommitted,
+    RolledBack,
+    ReconciliationRequired,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeReleaseProjection {
+    pub contract: RuntimeReleaseContract,
+    pub effect_id: String,
+    pub client_request_id: String,
+    pub job_id: String,
+    pub workspace_id: String,
+    pub commit: String,
+    pub candidate_manifest_digest: String,
+    pub expected_tool_count: u32,
+    pub effect_disposition: RuntimeReleaseDisposition,
+    pub effect_terminal: bool,
+    pub receipt_available: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub receipt_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deployed_tool_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_catalog_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reconciliation_issue: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_state: Option<AttemptState>,
+    pub execution_terminal: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_disposition: Option<JobResolution>,
+    pub delivery_disposition: RuntimeDeliveryDisposition,
+    pub recovery_required: bool,
+    pub semantic_completion_evaluated: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeReleaseAdmission {
+    pub replayed: bool,
+    pub release: RuntimeReleaseProjection,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeNodePlatform {
+    Linux,
+    Windows,
+    Other,
+}
+
+impl RuntimeNodePlatform {
+    pub(crate) fn current() -> Self {
+        if cfg!(target_os = "linux") {
+            Self::Linux
+        } else if cfg!(windows) {
+            Self::Windows
+        } else {
+            Self::Other
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeNodeIdentity {
+    pub node_id: String,
+    pub platform: RuntimeNodePlatform,
+    /// True when this Runtime process is hosted by the platform it claims rather than
+    /// projecting a foreign execution target through another host OS.
+    pub native: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeExecutionTargetCapability {
+    pub target: ExecutionTarget,
+    pub configured: bool,
+    pub available: bool,
+    pub execution_profiles: Vec<ExecutionProfile>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub windows_authorities: Vec<WindowsAuthority>,
+    /// Windows authorities for which Runtime can present exact immutable inputs.
+    /// Empty for non-Windows targets and when no safe native presentation is available.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub windows_immutable_input_authorities: Vec<WindowsAuthority>,
+    pub structured_plan: bool,
+    pub immutable_inputs: bool,
+    /// Whether trusted-local Jobs on this target may bind Agent-declared exact host file prerequisites.
+    pub host_dependency_commitments: bool,
+    /// Machine-readable boundary for Host Dependency continuity evidence on this target.
+    /// This describes what Runtime witnesses; it is not a claim that target code cannot
+    /// intentionally establish another mount/root namespace view.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_dependency_continuity_scope: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_provider: Option<ExecutionProviderSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub availability_issue: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeCapabilities {
+    pub schema_version: u32,
+    pub node: RuntimeNodeIdentity,
+    pub default_runtime_ms: u64,
+    pub max_runtime_ms: u64,
+    pub max_output_bytes: u64,
+    pub allowed_executable_roots: Vec<String>,
+    pub input_authorities: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub credential_authorities: Vec<String>,
+    pub targets: Vec<RuntimeExecutionTargetCapability>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum InputAccessMode {
+    ReadOnly,
+}
+
+/// Concrete immutable input truth frozen into one Runtime execution plan.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct EffectiveInputBinding {
+    pub authority: String,
+    pub relative_object: String,
+    pub digest: String,
+    pub byte_length: u64,
+    pub presentation_relative_path: String,
+    pub access: InputAccessMode,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecutionBudget {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub memory_max_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub tasks_max: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub cpu_quota_percent: Option<u32>,
+}
+
+impl ExecutionBudget {
+    pub fn is_empty(&self) -> bool {
+        self.memory_max_bytes.is_none()
+            && self.tasks_max.is_none()
+            && self.cpu_quota_percent.is_none()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct UniversalExecutionStep {
+    pub id: String,
+    /// Absolute host path to the executable; PATH lookup is intentionally not performed.
+    pub executable: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Working directory relative to the Workspace root.
+    pub cwd_relative: String,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+    pub timeout_ms: u64,
+    #[serde(default)]
+    pub continue_on_error: bool,
+}
+
+/// Agent-authored execution step before Runtime resolves omitted mechanical limits.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecutionStepProposal {
+    #[schemars(length(min = LOGICAL_ID_MIN_LENGTH, max = LOGICAL_ID_MAX_LENGTH), extend("pattern" = LOGICAL_ID_PATTERN))]
+    pub id: String,
+    /// Absolute host path to the executable; PATH lookup is intentionally not performed.
+    pub executable: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Working directory relative to the Workspace root.
+    pub cwd_relative: String,
+    #[serde(default)]
+    #[schemars(with = "BTreeMap<EnvironmentVariableNameSchema, String>")]
+    pub env: BTreeMap<String, String>,
+    /// Optional step-local upper bound. Omission delegates only this mechanical limit to Runtime.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub timeout_ms: Option<u64>,
+    #[serde(default)]
+    pub continue_on_error: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RuntimeExecutionStep {
+    pub id: String,
+    pub executable: String,
+    pub executable_digest: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    pub cwd: String,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+    pub timeout_ms: u64,
+    #[serde(default)]
+    pub continue_on_error: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RuntimeExecutionPlan {
+    pub schema_version: u32,
+    pub workspace_id: String,
+    pub workspace_path: String,
+    pub source_revision: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_source_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_git_common_dir: Option<String>,
+    pub executable: String,
+    pub executable_digest: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    pub cwd: String,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+    pub timeout_ms: u64,
+    pub stdout_limit_bytes: u64,
+    pub stderr_limit_bytes: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub steps: Vec<RuntimeExecutionStep>,
+    #[serde(default, skip_serializing_if = "ExecutionBudget::is_empty")]
+    pub budget: ExecutionBudget,
+    #[serde(default)]
+    pub execution_profile: ExecutionProfile,
+    #[serde(default)]
+    pub execution_target: ExecutionTarget,
+    #[serde(default)]
+    pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_execution_context: Option<WindowsExecutionContext>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_set_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub effective_inputs: Vec<EffectiveInputBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credential_set_id: Option<String>,
+    pub principal: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct SubmitRequest {
+    pub schema_version: u32,
+    pub client_request_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_identity_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_provider: Option<ExecutionProviderSnapshot>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime_release_effect: Option<RuntimeReleaseEffectBinding>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub host_dependencies: Vec<HostDependencyBinding>,
+    pub plan: RuntimeExecutionPlan,
+    pub global_limit: u32,
+}
+
+pub(crate) const REQUEST_IDENTITY_PREFIX: &str = "runtime-request-v1:";
+pub(crate) const PROPOSAL_IDENTITY_PREFIX: &str = "runtime-request-v2:";
+pub(crate) const INPUT_BOUND_IDENTITY_PREFIX: &str = "runtime-request-input-v1:";
+pub(crate) const INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX: &str = "runtime-request-input-v2:";
+pub(crate) const CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX: &str = "runtime-request-credential-v1:";
+pub(crate) const RUNTIME_RELEASE_IDENTITY_PREFIX: &str = "runtime-release-v1:";
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeReleaseRequestIdentity {
+    schema_version: u32,
+    principal: String,
+    workspace_id: String,
+    commit: String,
+    candidate_manifest_digest: String,
+    expected_tool_count: u32,
+}
+
+pub fn runtime_release_request_identity_digest(
+    request: &RuntimeReleaseRequest,
+) -> RuntimeResult<String> {
+    let identity = RuntimeReleaseRequestIdentity {
+        schema_version: request.schema_version,
+        principal: request.principal.clone(),
+        workspace_id: request.workspace_id.clone(),
+        commit: request.commit.clone(),
+        candidate_manifest_digest: request.candidate_manifest_digest.clone(),
+        expected_tool_count: request.expected_tool_count,
+    };
+    let bytes = serde_json::to_vec(&identity).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("cannot serialize Runtime release request identity: {error}"),
+            None,
+            false,
+        )
+    })?;
+    Ok(format!(
+        "{RUNTIME_RELEASE_IDENTITY_PREFIX}{}",
+        crate::universal::sha256_bytes(&bytes)
+    ))
+}
+
+pub fn runtime_release_effect_id(request: &RuntimeReleaseRequest) -> String {
+    crate::universal::sha256_bytes(
+        format!(
+            "runtime-release-effect-v1\0{}\0{}",
+            request.principal, request.client_request_id
+        )
+        .as_bytes(),
+    )
+    .trim_start_matches("sha256:")
+    .to_string()
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OperationRequestIdentity {
+    schema_version: u32,
+    principal: String,
+    workspace_id: String,
+    executable: String,
+    args: Vec<String>,
+    cwd_relative: String,
+    env: BTreeMap<String, String>,
+    timeout_ms: u64,
+    stdout_limit_bytes: u64,
+    stderr_limit_bytes: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    steps: Vec<UniversalExecutionStep>,
+    budget: ExecutionBudget,
+    execution_profile: ExecutionProfile,
+    #[serde(default, skip_serializing_if = "ExecutionTarget::is_default")]
+    execution_target: ExecutionTarget,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    windows_authority: Option<WindowsAuthority>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    host_dependencies: Vec<HostDependencyBinding>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InputBindingIdentity {
+    authority: String,
+    relative_object: String,
+    expected_digest: String,
+    presentation_relative_path: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InputBoundProposalIdentity {
+    proposal: ProposalRequestIdentity,
+    inputs: Vec<InputBindingIdentity>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CredentialBindingIdentity {
+    authority: String,
+    credential: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CredentialBoundProposalIdentity {
+    proposal: ProposalRequestIdentity,
+    credentials: Vec<CredentialBindingIdentity>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProposalRequestIdentity {
+    schema_version: u32,
+    principal: String,
+    workspace_id: String,
+    executable: String,
+    args: Vec<String>,
+    cwd_relative: String,
+    env: BTreeMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    timeout_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stdout_limit_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stderr_limit_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    steps: Vec<ExecutionStepProposal>,
+    budget: ExecutionBudget,
+    execution_profile: ExecutionProfile,
+    #[serde(default, skip_serializing_if = "ExecutionTarget::is_default")]
+    execution_target: ExecutionTarget,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    windows_authority: Option<WindowsAuthority>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    host_dependencies: Vec<HostDependencyBinding>,
+}
+
+fn identity_windows_authority(
+    target: ExecutionTarget,
+    authority: WindowsAuthority,
+) -> Option<WindowsAuthority> {
+    match (target, authority) {
+        (ExecutionTarget::WindowsNative, WindowsAuthority::Limited) => None,
+        (ExecutionTarget::WindowsNative, _) => Some(authority),
+        _ => None,
+    }
+}
+
+fn host_dependency_identities(
+    dependencies: &[HostDependencyBinding],
+) -> Vec<HostDependencyBinding> {
+    let mut dependencies = dependencies.to_vec();
+    dependencies.sort_by(|left, right| {
+        (&left.path, &left.expected_digest).cmp(&(&right.path, &right.expected_digest))
+    });
+    dependencies
+}
+
+#[cfg(test)]
+pub(crate) fn operation_request_identity_digest(request: &JobRunRequest) -> RuntimeResult<String> {
+    operation_request_identity_digest_from_parts(operation_request_identity(request))
+}
+
+#[cfg(test)]
+fn operation_request_identity(request: &JobRunRequest) -> OperationRequestIdentity {
+    OperationRequestIdentity {
+        schema_version: request.schema_version,
+        principal: request.principal.clone(),
+        workspace_id: request.execution.workspace_id.clone(),
+        executable: normalize_path_text(&request.execution.executable),
+        args: request.execution.args.clone(),
+        cwd_relative: normalize_relative_path_text(&request.execution.cwd_relative),
+        env: request.execution.env.clone(),
+        timeout_ms: request.execution.timeout_ms,
+        stdout_limit_bytes: request.execution.stdout_limit_bytes,
+        stderr_limit_bytes: request.execution.stderr_limit_bytes,
+        steps: request.execution.steps.clone(),
+        budget: request.execution.budget.clone(),
+        execution_profile: request.execution.execution_profile,
+        execution_target: request.execution.execution_target,
+        windows_authority: identity_windows_authority(
+            request.execution.execution_target,
+            request.execution.windows_authority,
+        ),
+        foreign_references: request.execution.foreign_references.clone(),
+        host_dependencies: host_dependency_identities(&request.execution.host_dependencies),
+    }
+}
+
+fn input_binding_identities(inputs: &[InputBindingRequest]) -> Vec<InputBindingIdentity> {
+    let mut inputs = inputs
+        .iter()
+        .map(|input| InputBindingIdentity {
+            authority: input.authority.clone(),
+            relative_object: input.relative_object.clone(),
+            expected_digest: input.expected_digest.to_ascii_lowercase(),
+            presentation_relative_path: input.presentation_relative_path.clone(),
+        })
+        .collect::<Vec<_>>();
+    inputs.sort_by(|left, right| {
+        (
+            &left.presentation_relative_path,
+            &left.authority,
+            &left.relative_object,
+            &left.expected_digest,
+        )
+            .cmp(&(
+                &right.presentation_relative_path,
+                &right.authority,
+                &right.relative_object,
+                &right.expected_digest,
+            ))
+    });
+    inputs
+}
+
+fn credential_binding_identities(
+    credentials: &[CredentialBindingRequest],
+) -> Vec<CredentialBindingIdentity> {
+    let mut credentials = credentials
+        .iter()
+        .map(|credential| CredentialBindingIdentity {
+            authority: credential.authority.clone(),
+            credential: credential.credential.clone(),
+        })
+        .collect::<Vec<_>>();
+    credentials.sort_by(|left, right| {
+        (&left.authority, &left.credential).cmp(&(&right.authority, &right.credential))
+    });
+    credentials
+}
+
+fn proposal_request_identity(proposal: &JobRunProposal) -> ProposalRequestIdentity {
+    ProposalRequestIdentity {
+        schema_version: proposal.schema_version,
+        principal: proposal.principal.clone(),
+        workspace_id: proposal.execution.workspace_id.clone(),
+        executable: normalize_path_text(&proposal.execution.executable),
+        args: proposal.execution.args.clone(),
+        cwd_relative: normalize_relative_path_text(&proposal.execution.cwd_relative),
+        env: proposal.execution.env.clone(),
+        timeout_ms: proposal.execution.timeout_ms,
+        stdout_limit_bytes: proposal.execution.stdout_limit_bytes,
+        stderr_limit_bytes: proposal.execution.stderr_limit_bytes,
+        steps: proposal
+            .execution
+            .steps
+            .iter()
+            .map(|step| ExecutionStepProposal {
+                id: step.id.clone(),
+                executable: normalize_path_text(&step.executable),
+                args: step.args.clone(),
+                cwd_relative: normalize_relative_path_text(&step.cwd_relative),
+                env: step.env.clone(),
+                timeout_ms: step.timeout_ms,
+                continue_on_error: step.continue_on_error,
+            })
+            .collect(),
+        budget: proposal.execution.budget.clone(),
+        execution_profile: proposal.execution.execution_profile,
+        execution_target: proposal.execution.execution_target,
+        windows_authority: identity_windows_authority(
+            proposal.execution.execution_target,
+            proposal.execution.windows_authority,
+        ),
+        foreign_references: proposal.execution.foreign_references.clone(),
+        host_dependencies: host_dependency_identities(&proposal.execution.host_dependencies),
+    }
+}
+
+pub(crate) fn legacy_request_identity_digest_from_proposal(
+    proposal: &JobRunProposal,
+) -> RuntimeResult<Option<String>> {
+    let Some(timeout_ms) = proposal.execution.timeout_ms else {
+        return Ok(None);
+    };
+    let Some(stdout_limit_bytes) = proposal.execution.stdout_limit_bytes else {
+        return Ok(None);
+    };
+    let Some(stderr_limit_bytes) = proposal.execution.stderr_limit_bytes else {
+        return Ok(None);
+    };
+    let mut steps = Vec::with_capacity(proposal.execution.steps.len());
+    for step in &proposal.execution.steps {
+        let Some(step_timeout_ms) = step.timeout_ms else {
+            return Ok(None);
+        };
+        steps.push(UniversalExecutionStep {
+            id: step.id.clone(),
+            executable: normalize_path_text(&step.executable),
+            args: step.args.clone(),
+            cwd_relative: normalize_relative_path_text(&step.cwd_relative),
+            env: step.env.clone(),
+            timeout_ms: step_timeout_ms,
+            continue_on_error: step.continue_on_error,
+        });
+    }
+    operation_request_identity_digest_from_parts(OperationRequestIdentity {
+        schema_version: proposal.schema_version,
+        principal: proposal.principal.clone(),
+        workspace_id: proposal.execution.workspace_id.clone(),
+        executable: normalize_path_text(&proposal.execution.executable),
+        args: proposal.execution.args.clone(),
+        cwd_relative: normalize_relative_path_text(&proposal.execution.cwd_relative),
+        env: proposal.execution.env.clone(),
+        timeout_ms,
+        stdout_limit_bytes,
+        stderr_limit_bytes,
+        steps,
+        budget: proposal.execution.budget.clone(),
+        execution_profile: proposal.execution.execution_profile,
+        execution_target: proposal.execution.execution_target,
+        windows_authority: identity_windows_authority(
+            proposal.execution.execution_target,
+            proposal.execution.windows_authority,
+        ),
+        foreign_references: proposal.execution.foreign_references.clone(),
+        host_dependencies: host_dependency_identities(&proposal.execution.host_dependencies),
+    })
+    .map(Some)
+}
+
+pub(crate) fn proposal_request_identity_digest(proposal: &JobRunProposal) -> RuntimeResult<String> {
+    let bytes = serde_json::to_vec(&proposal_request_identity(proposal)).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("cannot serialize execution proposal identity: {error}"),
+            None,
+            false,
+        )
+    })?;
+    Ok(format!(
+        "{PROPOSAL_IDENTITY_PREFIX}{}",
+        crate::universal::sha256_bytes(&bytes)
+    ))
+}
+
+pub(crate) fn input_bound_proposal_request_identity_digest(
+    proposal: &JobRunProposal,
+    inputs: &[InputBindingRequest],
+) -> RuntimeResult<String> {
+    let identity = InputBoundProposalIdentity {
+        proposal: proposal_request_identity(proposal),
+        inputs: input_binding_identities(inputs),
+    };
+    let bytes = serde_json::to_vec(&identity).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("cannot serialize input-bound proposal identity: {error}"),
+            None,
+            false,
+        )
+    })?;
+    Ok(format!(
+        "{INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX}{}",
+        crate::universal::sha256_bytes(&bytes)
+    ))
+}
+
+pub(crate) fn credential_bound_proposal_request_identity_digest(
+    proposal: &JobRunProposal,
+    credentials: &[CredentialBindingRequest],
+) -> RuntimeResult<String> {
+    let identity = CredentialBoundProposalIdentity {
+        proposal: proposal_request_identity(proposal),
+        credentials: credential_binding_identities(credentials),
+    };
+    let bytes = serde_json::to_vec(&identity).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("cannot serialize credential-bound proposal identity: {error}"),
+            None,
+            false,
+        )
+    })?;
+    Ok(format!(
+        "{CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX}{}",
+        crate::universal::sha256_bytes(&bytes)
+    ))
+}
+
+pub(crate) fn operation_request_identity_digest_from_plan(
+    plan: &RuntimeExecutionPlan,
+) -> RuntimeResult<String> {
+    let cwd = Path::new(&plan.cwd)
+        .strip_prefix(&plan.workspace_path)
+        .map_err(|_| {
+            RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "stored execution cwd is outside its Workspace",
+                Some("executionPlan"),
+                false,
+            )
+        })?;
+    operation_request_identity_digest_from_parts(OperationRequestIdentity {
+        schema_version: plan.schema_version,
+        principal: plan.principal.clone(),
+        workspace_id: plan.workspace_id.clone(),
+        executable: normalize_path_text(&plan.executable),
+        args: plan.args.clone(),
+        cwd_relative: normalize_relative_path_text(&cwd.to_string_lossy()),
+        env: plan.env.clone(),
+        timeout_ms: plan.timeout_ms,
+        stdout_limit_bytes: plan.stdout_limit_bytes,
+        stderr_limit_bytes: plan.stderr_limit_bytes,
+        steps: plan
+            .steps
+            .iter()
+            .map(|step| UniversalExecutionStep {
+                id: step.id.clone(),
+                executable: normalize_path_text(&step.executable),
+                args: step.args.clone(),
+                cwd_relative: Path::new(&step.cwd)
+                    .strip_prefix(&plan.workspace_path)
+                    .map(|path| normalize_relative_path_text(&path.to_string_lossy()))
+                    .unwrap_or_else(|_| step.cwd.clone()),
+                env: step.env.clone(),
+                timeout_ms: step.timeout_ms,
+                continue_on_error: step.continue_on_error,
+            })
+            .collect(),
+        budget: plan.budget.clone(),
+        execution_profile: plan.execution_profile,
+        execution_target: plan.execution_target,
+        windows_authority: identity_windows_authority(
+            plan.execution_target,
+            plan.windows_authority,
+        ),
+        foreign_references: plan.foreign_references.clone(),
+        host_dependencies: Vec::new(),
+    })
+}
+
+fn operation_request_identity_digest_from_parts(
+    identity: OperationRequestIdentity,
+) -> RuntimeResult<String> {
+    let bytes = serde_json::to_vec(&identity).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::InvalidRequest,
+            format!("cannot serialize operation request identity: {error}"),
+            None,
+            false,
+        )
+    })?;
+    Ok(format!(
+        "{REQUEST_IDENTITY_PREFIX}{}",
+        crate::universal::sha256_bytes(&bytes)
+    ))
+}
+
+fn normalize_path_text(value: &str) -> String {
+    use std::path::Component;
+
+    let path = Path::new(value);
+    let absolute = path.is_absolute();
+    let mut normalized = if absolute {
+        PathBuf::from("/")
+    } else {
+        PathBuf::new()
+    };
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir | Component::CurDir => {}
+            Component::ParentDir => {
+                let can_pop = normalized
+                    .file_name()
+                    .is_some_and(|name| name != std::ffi::OsStr::new(".."));
+                if can_pop {
+                    normalized.pop();
+                } else if !absolute {
+                    normalized.push("..");
+                }
+            }
+            Component::Normal(part) => normalized.push(part),
+        }
+    }
+    normalized.to_string_lossy().into_owned()
+}
+
+fn normalize_relative_path_text(value: &str) -> String {
+    let normalized = normalize_path_text(value);
+    if normalized.is_empty() {
+        ".".to_string()
+    } else {
+        normalized
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RuntimeJobRecord {
+    pub job_id: String,
+    pub principal: String,
+    pub client_request_id: String,
+    pub request_digest: String,
+    pub operation_digest: String,
+    pub workspace_id: String,
+    pub workspace_snapshot_json: String,
+    pub execution_plan_json: String,
+    pub execution_plan_digest: String,
+    pub created_at_ms: u64,
+    pub desired_state: JobDesiredState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<JobResolution>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_attempt_id: Option<String>,
+    pub row_version: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct AttemptRecord {
+    pub attempt_id: String,
+    pub job_id: String,
+    pub attempt_number: u32,
+    pub state: AttemptState,
+    pub termination_intent: AttemptTerminationIntent,
+    pub launch_token_digest: String,
+    pub bundle_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bundle_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boot_id: Option<String>,
+    pub unit_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invocation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub control_group: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub main_pid: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub process_start_identity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner_start_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub infrastructure_error_digest: Option<String>,
+    pub created_at_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finished_at_ms: Option<u64>,
+    pub row_version: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct ReservationRecord {
+    pub reservation_id: String,
+    pub attempt_id: String,
+    pub global_limit: u32,
+    pub state: ReservationState,
+    pub acquired_at_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub released_at_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_reason: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct CreatedAdmission {
+    pub job: RuntimeJobRecord,
+    pub attempt: AttemptRecord,
+    pub reservation: ReservationRecord,
+    pub launch_token: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", tag = "outcome")]
+pub(crate) enum AdmissionOutcome {
+    Created(Box<CreatedAdmission>),
+    Existing { job: Box<RuntimeJobRecord> },
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ArtifactRegistration {
+    pub artifact_id: String,
+    pub kind: String,
+    pub relative_path: String,
+    pub digest: String,
+    pub media_type: String,
+    pub byte_length: u64,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ArtifactDescriptor {
+    pub artifact_id: String,
+    pub kind: String,
+    pub digest: String,
+    pub retained_bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dropped_bytes: Option<u64>,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RuntimeArtifactRecord {
+    pub artifact_id: String,
+    pub job_id: String,
+    pub attempt_id: String,
+    pub kind: String,
+    pub relative_path: String,
+    pub digest: String,
+    pub media_type: String,
+    pub byte_length: u64,
+    pub truncated: bool,
+    pub created_at_ms: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TerminalCommit {
+    pub attempt_id: String,
+    pub expected_row_version: u64,
+    pub state: AttemptState,
+    pub result_digest: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub infrastructure_error_digest: Option<String>,
+    pub finished_at_ms: u64,
+    pub artifacts: Vec<ArtifactRegistration>,
+    pub reason_code: String,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+/// Runtime certainty about delivery of the physical execution result.
+/// This is not a Task/domain semantic-completion judgment.
+pub enum RuntimeDeliveryDisposition {
+    /// The Runtime Job has not reached a terminal execution resolution.
+    InProgress,
+    /// Runtime has committed a conclusive execution result.
+    Committed,
+    /// Runtime has a result/state that still requires reconciliation before mechanical convergence.
+    ReconciliationRequired,
+    /// Runtime cannot prove a conclusive execution result; callers must not infer effect-safe redispatch.
+    Unknown,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct JobProjection {
+    pub job_id: String,
+    /// Stable identity of the committed Runtime Operation represented by this Job.
+    pub operation_digest: String,
+    /// Compatibility summary only. Use the explicit semantic fields below for control decisions.
+    pub status: String,
+    /// Persisted Runtime Job intent (`run` or `cancelled`).
+    pub desired_state: JobDesiredState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_id: Option<String>,
+    /// Exact current or latest Runtime Attempt state; never collapsed into queued/working.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_state: Option<AttemptState>,
+    /// Exact current/latest Attempt termination intent, including stop and deadline intent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub termination_intent: Option<AttemptTerminationIntent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    /// True only when Runtime has committed a terminal Job resolution.
+    pub execution_terminal: bool,
+    /// Terminal physical execution resolution; absent while execution is unresolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_disposition: Option<JobResolution>,
+    /// Stable machine reason for the current terminal execution resolution, when recorded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_reason_code: Option<String>,
+    /// Runtime certainty/reconciliation class for the physical result.
+    pub delivery_disposition: RuntimeDeliveryDisposition,
+    /// True when Runtime requires mechanical recovery/reconciliation for this Job.
+    pub recovery_required: bool,
+    /// Always false: Runtime does not judge Task/domain semantic completion.
+    pub semantic_completion_evaluated: bool,
+    /// A Runtime terminal result is durably available; this does not imply semantic completion.
+    pub result_available: bool,
+    /// True only when at least one registered Runtime Artifact exists for this Job.
+    pub artifacts_available: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifacts: Vec<ArtifactDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_after_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeWorkspaceGetRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeWorkspaceListCursor {
+    pub created_at_ms: u64,
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeWorkspaceListRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[serde(default = "default_runtime_list_limit")]
+    #[schemars(range(min = 1, max = MAX_RUNTIME_LIST_LIMIT))]
+    pub limit: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<RuntimeWorkspaceListCursor>,
+    #[serde(default)]
+    pub include_source_state_digest: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeWorkspaceSummary {
+    pub workspace_id: String,
+    /// Canonical source repository identity used to create this Workspace.
+    pub source_repo: String,
+    /// Exact commit from which the Workspace was opened; this is lineage, not the current HEAD.
+    pub source_revision: String,
+    /// Exact commit currently checked out at Workspace HEAD.
+    pub current_head_revision: String,
+    pub created_at_ms: u64,
+    pub head_mode: String,
+    pub dirty: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_state_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub active_job_ids: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeWorkspaceIssueStage {
+    Inventory,
+    Reconcile,
+    ActiveJobs,
+    DirtyProbe,
+    SourceStateDigest,
+    HeadRevision,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeWorkspaceIssue {
+    pub workspace_id: String,
+    /// Workspace-local projection stage that could not be proven.
+    pub stage: RuntimeWorkspaceIssueStage,
+    pub code: String,
+    pub message: String,
+    pub retryable: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeWorkspaceListResult {
+    pub workspaces: Vec<RuntimeWorkspaceSummary>,
+    /// Stable continuation over healthy Workspace records. Inventory issues are global diagnostics.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<RuntimeWorkspaceListCursor>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub issues: Vec<RuntimeWorkspaceIssue>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeJobListCursor {
+    pub created_at_ms: u64,
+    pub job_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeJobListRequest {
+    #[serde(default = "default_runtime_list_limit")]
+    #[schemars(range(min = 1, max = MAX_RUNTIME_LIST_LIMIT))]
+    pub limit: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<RuntimeJobListCursor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: Option<String>,
+    /// Exact Runtime Workspace identity used to bound Job reattachment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeJobSummary {
+    pub job_id: String,
+    /// Stable identity of the committed Runtime Operation represented by this Job.
+    pub operation_digest: String,
+    /// Compatibility summary only. Use the explicit semantic fields below for control decisions.
+    pub status: String,
+    /// Persisted Runtime Job intent (`run` or `cancelled`).
+    pub desired_state: JobDesiredState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_id: Option<String>,
+    /// Exact current or latest Runtime Attempt state; never collapsed into queued/working.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_state: Option<AttemptState>,
+    /// Exact current/latest Attempt termination intent, including stop and deadline intent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub termination_intent: Option<AttemptTerminationIntent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    /// True only when Runtime has committed a terminal Job resolution.
+    pub execution_terminal: bool,
+    /// Terminal physical execution resolution; absent while execution is unresolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_disposition: Option<JobResolution>,
+    /// Stable machine reason for the current terminal execution resolution, when recorded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_reason_code: Option<String>,
+    /// Runtime certainty/reconciliation class for the physical result.
+    pub delivery_disposition: RuntimeDeliveryDisposition,
+    /// True when Runtime requires mechanical recovery/reconciliation for this Job.
+    pub recovery_required: bool,
+    /// Always false: Runtime does not judge Task/domain semantic completion.
+    pub semantic_completion_evaluated: bool,
+    pub client_request_id: String,
+    pub workspace_id: String,
+    pub source_revision: String,
+    pub executable_name: String,
+    pub cwd_relative: String,
+    pub created_at_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finished_at_ms: Option<u64>,
+    pub duration_ms: u64,
+    /// A Runtime terminal result is durably available; this does not imply semantic completion.
+    pub result_available: bool,
+    /// True only when at least one registered Runtime Artifact exists for this Job.
+    pub artifacts_available: bool,
+    pub artifact_count: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_after_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeJobListResult {
+    pub jobs: Vec<RuntimeJobSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<RuntimeJobListCursor>,
+}
+
+#[cfg(any(test, feature = "operator-tools"))]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RuntimeInvariantViolation {
+    pub code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub job_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_id: Option<String>,
+    pub detail: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct RunnerIdentity {
+    pub boot_id: String,
+    pub unit_name: String,
+    pub invocation_id: String,
+    pub control_group: String,
+    pub main_pid: u32,
+    pub process_start_identity: String,
+    pub runner_start_digest: String,
+    pub observed_at_ms: u64,
+}
+
+pub(crate) fn default_runtime_list_limit() -> u32 {
+    20
+}
+
+/// Agent-authored execution proposal. Action fields are concrete; only proven mechanical
+/// execution limits may be omitted and resolved by Runtime at new admission.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecutionProposal {
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+    /// Absolute host path to the executable; PATH lookup is intentionally not performed.
+    pub executable: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Working directory relative to the Workspace root.
+    pub cwd_relative: String,
+    #[serde(default)]
+    #[schemars(with = "BTreeMap<EnvironmentVariableNameSchema, String>")]
+    pub env: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub timeout_ms: Option<u64>,
+    /// Maximum stdout bytes Runtime retains for the Job/Attempt. This is durable output
+    /// capture, not the response tail returned by the admitting MCP call; callers tune that
+    /// separately with top-level `stdoutTailBytes`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub stdout_limit_bytes: Option<u64>,
+    /// Maximum stderr bytes Runtime retains for the Job/Attempt. This is durable output
+    /// capture, not the response tail returned by the admitting MCP call; callers tune that
+    /// separately with top-level `stderrTailBytes`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(range(min = 1))]
+    pub stderr_limit_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub steps: Vec<ExecutionStepProposal>,
+    #[serde(default, skip_serializing_if = "ExecutionBudget::is_empty")]
+    pub budget: ExecutionBudget,
+    #[serde(default)]
+    pub execution_profile: ExecutionProfile,
+    #[serde(default)]
+    pub execution_target: ExecutionTarget,
+    #[serde(default)]
+    pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub host_dependencies: Vec<HostDependencyBinding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JobRunProposal {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    pub schema_version: u32,
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: String,
+    pub principal: String,
+    pub global_limit: u32,
+    pub execution: ExecutionProposal,
+    #[serde(default = "default_task_wait_ms")]
+    #[schemars(range(max = MAX_TASK_WAIT_MS))]
+    pub wait_ms: u64,
+    #[serde(default = "default_task_tail_bytes")]
+    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
+    pub stdout_tail_bytes: u64,
+    #[serde(default = "default_task_tail_bytes")]
+    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
+    pub stderr_tail_bytes: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct UniversalExecutionRequest {
+    pub workspace_id: String,
+    /// Absolute host path to the executable; PATH lookup is intentionally not performed.
+    pub executable: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    /// Working directory relative to the Workspace root.
+    pub cwd_relative: String,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
+    pub timeout_ms: u64,
+    pub stdout_limit_bytes: u64,
+    pub stderr_limit_bytes: u64,
+    /// Optional ordered fail-fast steps. Empty preserves raw single-command execution.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub steps: Vec<UniversalExecutionStep>,
+    #[serde(default, skip_serializing_if = "ExecutionBudget::is_empty")]
+    pub budget: ExecutionBudget,
+    #[serde(default)]
+    pub execution_profile: ExecutionProfile,
+    #[serde(default)]
+    pub execution_target: ExecutionTarget,
+    #[serde(default)]
+    pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub foreign_references: Vec<ForeignReference>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub host_dependencies: Vec<HostDependencyBinding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct JobRunRequest {
+    pub schema_version: u32,
+    pub client_request_id: String,
+    pub principal: String,
+    pub global_limit: u32,
+    pub execution: UniversalExecutionRequest,
+    #[serde(default = "default_task_wait_ms")]
+    pub wait_ms: u64,
+    #[serde(default = "default_task_tail_bytes")]
+    pub stdout_tail_bytes: u64,
+    #[serde(default = "default_task_tail_bytes")]
+    pub stderr_tail_bytes: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JobObserveWaitUntil {
+    #[default]
+    Terminal,
+    ChangeOrTerminal,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JobObserveRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    pub job_id: String,
+    #[serde(default)]
+    #[schemars(range(max = MAX_TASK_WAIT_MS))]
+    pub wait_ms: u64,
+    #[serde(default)]
+    pub wait_until: JobObserveWaitUntil,
+    #[serde(default = "default_task_tail_bytes")]
+    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
+    pub stdout_tail_bytes: u64,
+    #[serde(default = "default_task_tail_bytes")]
+    #[schemars(range(max = MAX_TASK_TAIL_BYTES))]
+    pub stderr_tail_bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stdout_offset: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr_offset: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JobCancelRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    pub job_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EffectiveStepTimeout {
+    pub id: String,
+    pub timeout_ms: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EffectiveExecutionLimits {
+    pub timeout_ms: u64,
+    pub stdout_limit_bytes: u64,
+    pub stderr_limit_bytes: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub step_timeouts: Vec<EffectiveStepTimeout>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JobObservation {
+    pub job_id: String,
+    /// Stable identity of the committed Runtime Operation represented by this Job.
+    pub operation_digest: String,
+    /// Compatibility summary only. Use the explicit semantic fields below for control decisions.
+    pub status: String,
+    /// Persisted Runtime Job intent (`run` or `cancelled`).
+    pub desired_state: JobDesiredState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_id: Option<String>,
+    /// Exact current or latest Runtime Attempt state; never collapsed into queued/working.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt_state: Option<AttemptState>,
+    /// Exact current/latest Attempt termination intent, including stop and deadline intent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub termination_intent: Option<AttemptTerminationIntent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    /// True only when Runtime has committed a terminal Job resolution.
+    pub execution_terminal: bool,
+    /// Terminal physical execution resolution; absent while execution is unresolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_disposition: Option<JobResolution>,
+    /// Stable machine reason for the current terminal execution resolution, when recorded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_reason_code: Option<String>,
+    /// Runtime certainty/reconciliation class for the physical result.
+    pub delivery_disposition: RuntimeDeliveryDisposition,
+    /// Durable effective execution limits frozen into this Job at admission.
+    pub effective_limits: EffectiveExecutionLimits,
+    /// True when Runtime requires mechanical recovery/reconciliation for this Job.
+    pub recovery_required: bool,
+    /// Always false: Runtime does not judge Task/domain semantic completion.
+    pub semantic_completion_evaluated: bool,
+    /// A Runtime terminal result is durably available; this does not imply semantic completion.
+    pub result_available: bool,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub stdout_tail: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub stderr_tail: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stdout_offset: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stdout_next_offset: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stdout_available_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stdout_eof: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr_offset: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr_next_offset: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr_available_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stderr_eof: Option<bool>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub stdout_truncated: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub stderr_truncated: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    /// True only when at least one registered Runtime Artifact exists for this Job.
+    pub artifacts_available: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifacts: Vec<ArtifactDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub poll_after_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_output_at_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress_revision: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_steps: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_steps: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_step_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_step_index: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_step_elapsed_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failed_step_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failed_step_index: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_summary: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ArtifactReadRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    pub job_id: String,
+    pub artifact_id: String,
+    pub offset: u64,
+    #[schemars(range(min = 1, max = MAX_ARTIFACT_READ_BYTES))]
+    pub max_bytes: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ArtifactReadResult {
+    pub job_id: String,
+    pub artifact_id: String,
+    pub content: String,
+    pub offset: u64,
+    pub next_offset: u64,
+    pub eof: bool,
+    pub digest: String,
+}
+
+pub(crate) fn default_task_wait_ms() -> u64 {
+    30_000
+}
+
+pub(crate) fn default_task_tail_bytes() -> u64 {
+    4096
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}

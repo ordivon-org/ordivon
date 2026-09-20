@@ -1,0 +1,5 @@
+config-variables: null
+
+paths:
+  .github/workflows/**/*.yml:
+    ignore: []

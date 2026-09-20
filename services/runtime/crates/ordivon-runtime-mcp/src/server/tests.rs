@@ -1,0 +1,2637 @@
+use super::*;
+use ordivon_runtime_core::{
+    ArtifactDescriptor, AttemptState, AttemptTerminationIntent, JobDesiredState, JobObservation,
+    RegistryConfig, RuntimeDeliveryDisposition,
+};
+use std::fs;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde_json::Value;
+struct Sandbox {
+    root: PathBuf,
+}
+
+impl Sandbox {
+    fn new(label: &str) -> Self {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::current_dir()
+            .unwrap()
+            .join("target/ordivon-tests")
+            .join(format!(
+                "ordivon-runtime-mcp-{label}-{}-{unique}",
+                std::process::id()
+            ));
+        fs::create_dir_all(&root).unwrap();
+        Self { root }
+    }
+
+    fn server(&self) -> RuntimeServer {
+        self.server_with_runtime_default(10_000)
+    }
+
+    fn server_with_runtime_default(&self, default_runtime_ms: u64) -> RuntimeServer {
+        RuntimeServer::new_with_default_runtime_ms(
+            ServerConfig {
+                runtime: RuntimeConfig {
+                    node_id: "test-node".to_string(),
+                    registry: RegistryConfig {
+                        db_path: self.root.join("registry/registry.sqlite3"),
+                        store_root: self.root.join("registry"),
+                        busy_timeout_ms: 5000,
+                    },
+                    executor: UniversalExecutorConfig {
+                        store_root: self.root.join("store"),
+                        workspace_root: None,
+                        workspace_uid: None,
+                        workspace_gid: None,
+                        runner_path: Some(PathBuf::from("/usr/bin/true")),
+                        allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+                        max_runtime_ms: 10_000,
+                        max_output_bytes: 1024 * 1024,
+                    },
+                    startup_grace_ms: 1000,
+                    windows: None,
+                },
+                input_authorities: Vec::new(),
+                credential_authorities: Vec::new(),
+                execution: ExecutionContext {
+                    principal: "principal:mcp-test".to_string(),
+                    global_limit: 4,
+                },
+                release: None,
+                input_ingress: None,
+                trace_path: None,
+            },
+            default_runtime_ms,
+        )
+        .unwrap()
+    }
+
+    fn server_with_input_ingress(&self) -> RuntimeServer {
+        let staging_root = self.root.join("input-ingress-stage");
+        fs::create_dir_all(&staging_root).unwrap();
+        let workstation_config = self.root.join("input-ingress-config.json");
+        fs::write(&workstation_config, b"{}\n").unwrap();
+        RuntimeServer::new(ServerConfig {
+            runtime: RuntimeConfig {
+                node_id: "test-node".to_string(),
+                registry: RegistryConfig {
+                    db_path: self.root.join("registry-ingress/registry.sqlite3"),
+                    store_root: self.root.join("registry-ingress"),
+                    busy_timeout_ms: 5000,
+                },
+                executor: UniversalExecutorConfig {
+                    store_root: self.root.join("store-ingress"),
+                    workspace_root: None,
+                    workspace_uid: None,
+                    workspace_gid: None,
+                    runner_path: Some(PathBuf::from("/usr/bin/true")),
+                    allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+                    max_runtime_ms: 10_000,
+                    max_output_bytes: 1024 * 1024,
+                },
+                startup_grace_ms: 1000,
+                windows: None,
+            },
+            input_authorities: Vec::new(),
+            credential_authorities: Vec::new(),
+            execution: ExecutionContext {
+                principal: "principal:mcp-test-ingress".to_string(),
+                global_limit: 4,
+            },
+            release: None,
+            input_ingress: Some(InputIngressExecutionConfig {
+                staging_root,
+                workstation_tool: PathBuf::from("/usr/bin/true"),
+                workstation_config,
+                workstation_carrier: "runtime-stage".to_string(),
+                authorities: vec!["artifact-source-r1".to_string()],
+                download_hosts: vec!["example.invalid".to_string()],
+                max_bytes: 8 * 1024 * 1024,
+            }),
+            trace_path: None,
+        })
+        .unwrap()
+    }
+}
+
+impl Drop for Sandbox {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
+fn exec_tool_request(
+    timeout_ms: Option<u64>,
+    stdout_limit_bytes: Option<u64>,
+    stderr_limit_bytes: Option<u64>,
+) -> WorkspaceExecRequest {
+    WorkspaceExecRequest {
+        schema_version: 1,
+        client_request_id: "request:mcp-proposal".to_string(),
+        execution: ExecutionProposal {
+            workspace_id: "workspace:test".to_string(),
+            executable: "/usr/bin/true".to_string(),
+            args: Vec::new(),
+            cwd_relative: ".".to_string(),
+            env: Default::default(),
+            timeout_ms,
+            stdout_limit_bytes,
+            stderr_limit_bytes,
+            steps: Vec::new(),
+            budget: ExecutionBudget::default(),
+            execution_profile: ExecutionProfile::TrustedLocal,
+            execution_target: ExecutionTarget::LocalLinux,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+            host_dependencies: Vec::new(),
+        },
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    }
+}
+
+#[test]
+fn authenticated_http_parts_project_request_local_principal() {
+    let mut request = axum::http::Request::new(());
+    request
+        .extensions_mut()
+        .insert(AuthenticatedPrincipalBinding::new(
+            "principal:remote-agent",
+            "remote_bearer",
+        ));
+    let (parts, _) = request.into_parts();
+    assert_eq!(
+        authenticated_principal_from_http_parts(&parts).as_deref(),
+        Some("principal:remote-agent")
+    );
+}
+
+fn bound_execution_principal(bound: JobRunProposal) -> String {
+    bound.principal
+}
+
+#[test]
+fn effective_principal_changes_bound_execution_principal() {
+    let sandbox = Sandbox::new("effective-principal-binding");
+    let server = sandbox.server();
+    let base =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+    let remote = server
+        .state
+        .execution
+        .with_principal("principal:remote-agent")
+        .bind(exec_tool_request(Some(1_000), Some(1_024), Some(1_024)));
+
+    assert_eq!(
+        bound_execution_principal(base),
+        "principal:mcp-test".to_string()
+    );
+    assert_eq!(
+        bound_execution_principal(remote),
+        "principal:remote-agent".to_string()
+    );
+}
+
+fn plan_step(id: &str, timeout_ms: Option<u64>) -> ExecutionStepProposal {
+    ExecutionStepProposal {
+        id: id.to_string(),
+        executable: "/usr/bin/true".to_string(),
+        args: Vec::new(),
+        cwd_relative: ".".to_string(),
+        env: Default::default(),
+        timeout_ms,
+        continue_on_error: false,
+    }
+}
+
+fn workspace_id_schemas<'a>(value: &'a Value, found: &mut Vec<&'a Value>) {
+    match value {
+        Value::Object(object) => {
+            if let Some(properties) = object.get("properties").and_then(Value::as_object) {
+                if let Some(workspace_id) = properties.get("workspaceId") {
+                    found.push(workspace_id);
+                }
+            }
+            for child in object.values() {
+                workspace_id_schemas(child, found);
+            }
+        }
+        Value::Array(array) => {
+            for child in array {
+                workspace_id_schemas(child, found);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn every_workspace_id_tool_schema_projects_the_core_workspace_id_law() {
+    let server = Sandbox::new("workspace-id-schema-law").server();
+    let tools = server.tool_router.list_all();
+    let expected_tools = [
+        "release.apply",
+        "workspace.open",
+        "workspace.close",
+        "workspace.get",
+        "workspace.list",
+        "workspace.read",
+        "workspace.content",
+        "workspace.mutate",
+        "workspace.changes",
+        "workspace.diff",
+        "workspace.exec",
+        "workspace.execBound",
+        "workspace.execBoundTrusted",
+        "workspace.execPlan",
+        "job.list",
+    ];
+    for name in expected_tools {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == name)
+            .unwrap_or_else(|| panic!("missing Tool {name}"));
+        let schema = serde_json::to_value(&tool.input_schema).unwrap();
+        let mut workspace_ids = Vec::new();
+        workspace_id_schemas(&schema, &mut workspace_ids);
+        assert!(
+            !workspace_ids.is_empty(),
+            "{name} exposes Workspace identity but schema has no workspaceId projection: {schema}"
+        );
+        for workspace_id in workspace_ids {
+            assert_eq!(
+                workspace_id.get("pattern"),
+                Some(&serde_json::json!(WORKSPACE_ID_PATTERN)),
+                "{name} workspaceId pattern drift: {workspace_id}"
+            );
+            assert_eq!(
+                workspace_id.get("minLength"),
+                Some(&serde_json::json!(WORKSPACE_ID_MIN_LENGTH)),
+                "{name} workspaceId minLength drift: {workspace_id}"
+            );
+            assert_eq!(
+                workspace_id.get("maxLength"),
+                Some(&serde_json::json!(WORKSPACE_ID_MAX_LENGTH)),
+                "{name} workspaceId maxLength drift: {workspace_id}"
+            );
+        }
+    }
+}
+
+fn assert_logical_id_schema(name: &str, value: &Value) {
+    assert_eq!(
+        value.get("minLength"),
+        Some(&serde_json::json!(LOGICAL_ID_MIN_LENGTH)),
+        "{name} logical-id minLength drift: {value}"
+    );
+    assert_eq!(
+        value.get("maxLength"),
+        Some(&serde_json::json!(LOGICAL_ID_MAX_LENGTH)),
+        "{name} logical-id maxLength drift: {value}"
+    );
+    assert_eq!(
+        value.get("pattern"),
+        Some(&serde_json::json!(LOGICAL_ID_PATTERN)),
+        "{name} logical-id pattern drift: {value}"
+    );
+}
+
+#[test]
+fn execution_schemas_project_agent_authored_logical_id_law() {
+    let server = Sandbox::new("logical-id-schema-law").server();
+    let tools = server.tool_router.list_all();
+    for tool_name in [
+        "workspace.exec",
+        "workspace.execBound",
+        "workspace.execBoundTrusted",
+        "workspace.execPlan",
+    ] {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == tool_name)
+            .unwrap_or_else(|| panic!("missing Tool {tool_name}"));
+        let schema = serde_json::to_value(&tool.input_schema).unwrap();
+        let defs = schema
+            .get("$defs")
+            .and_then(Value::as_object)
+            .unwrap_or_else(|| panic!("{tool_name} has no $defs: {schema}"));
+
+        if let Some(step) = defs.get("ExecutionStepProposal") {
+            let id = step
+                .get("properties")
+                .and_then(Value::as_object)
+                .and_then(|properties| properties.get("id"))
+                .unwrap_or_else(|| panic!("{tool_name} step has no id: {step}"));
+            assert_logical_id_schema(&format!("{tool_name}.step.id"), id);
+        }
+        if let Some(reference) = defs.get("ForeignReference") {
+            let properties = reference
+                .get("properties")
+                .and_then(Value::as_object)
+                .unwrap_or_else(|| panic!("{tool_name} ForeignReference has no properties"));
+            for field in ["namespace", "type", "id", "generation", "digest"] {
+                let value = properties
+                    .get(field)
+                    .unwrap_or_else(|| panic!("{tool_name} ForeignReference missing {field}"));
+                assert_logical_id_schema(&format!("{tool_name}.foreignReferences.{field}"), value);
+            }
+        }
+    }
+}
+
+fn client_request_id_schemas<'a>(value: &'a Value, found: &mut Vec<&'a Value>) {
+    match value {
+        Value::Object(object) => {
+            if let Some(properties) = object.get("properties").and_then(Value::as_object) {
+                if let Some(client_request_id) = properties.get("clientRequestId") {
+                    found.push(client_request_id);
+                }
+            }
+            for child in object.values() {
+                client_request_id_schemas(child, found);
+            }
+        }
+        Value::Array(array) => {
+            for child in array {
+                client_request_id_schemas(child, found);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn every_client_request_id_tool_schema_projects_one_runtime_identity_law() {
+    let server = Sandbox::new("client-request-id-schema-law").server();
+    let tools = server.tool_router.list_all();
+    for name in [
+        "release.apply",
+        "release.get",
+        "workspace.exec",
+        "workspace.execBound",
+        "workspace.execBoundTrusted",
+        "workspace.execPlan",
+        "job.list",
+    ] {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == name)
+            .unwrap_or_else(|| panic!("missing Tool {name}"));
+        let schema = serde_json::to_value(&tool.input_schema).unwrap();
+        let mut ids = Vec::new();
+        client_request_id_schemas(&schema, &mut ids);
+        assert!(
+            !ids.is_empty(),
+            "{name} has no clientRequestId schema: {schema}"
+        );
+        for client_request_id in ids {
+            assert_eq!(
+                client_request_id.get("minLength"),
+                Some(&serde_json::json!(CLIENT_REQUEST_ID_MIN_LENGTH)),
+                "{name} clientRequestId minLength drift: {client_request_id}"
+            );
+            assert_eq!(
+                client_request_id.get("maxLength"),
+                Some(&serde_json::json!(CLIENT_REQUEST_ID_MAX_LENGTH)),
+                "{name} clientRequestId maxLength drift: {client_request_id}"
+            );
+            assert_eq!(
+                client_request_id.get("pattern"),
+                Some(&serde_json::json!(CLIENT_REQUEST_ID_PATTERN)),
+                "{name} clientRequestId pattern drift: {client_request_id}"
+            );
+        }
+    }
+}
+
+fn env_schemas<'a>(value: &'a Value, found: &mut Vec<&'a Value>) {
+    match value {
+        Value::Object(object) => {
+            if let Some(properties) = object.get("properties").and_then(Value::as_object) {
+                if let Some(env) = properties.get("env") {
+                    found.push(env);
+                }
+            }
+            for child in object.values() {
+                env_schemas(child, found);
+            }
+        }
+        Value::Array(array) => {
+            for child in array {
+                env_schemas(child, found);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn execution_tool_schemas_project_environment_name_law() {
+    let server = Sandbox::new("environment-name-schema-law").server();
+    let tools = server.tool_router.list_all();
+    for name in [
+        "workspace.exec",
+        "workspace.execBound",
+        "workspace.execBoundTrusted",
+        "workspace.execPlan",
+    ] {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == name)
+            .unwrap_or_else(|| panic!("missing Tool {name}"));
+        let schema = serde_json::to_value(&tool.input_schema).unwrap();
+        let mut environments = Vec::new();
+        env_schemas(&schema, &mut environments);
+        assert!(
+            !environments.is_empty(),
+            "{name} has no env schema: {schema}"
+        );
+        for env in environments {
+            let pattern_properties = env
+                .get("patternProperties")
+                .and_then(Value::as_object)
+                .unwrap_or_else(|| panic!("{name} env lacks patternProperties: {env}"));
+            assert!(
+                pattern_properties.contains_key(ENVIRONMENT_VARIABLE_NAME_PATTERN),
+                "{name} env key law drift: {env}"
+            );
+            assert_eq!(
+                env.get("additionalProperties"),
+                Some(&Value::Bool(false)),
+                "{name} env permits keys outside the declared name law: {env}"
+            );
+        }
+    }
+}
+
+#[test]
+fn workspace_exec_schema_exposes_mechanical_limits_as_optional() {
+    let server = Sandbox::new("proposal-schema").server();
+    let tools = server.tool_router.list_all();
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.exec")
+        .expect("workspace.exec");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    assert_eq!(
+        schema.pointer("/properties/waitMs/default"),
+        Some(&serde_json::json!(2_000))
+    );
+    assert_eq!(
+        schema.pointer("/properties/waitMs/maximum"),
+        Some(&serde_json::json!(30_000))
+    );
+    let required = schema
+        .pointer("/$defs/ExecutionProposal/required")
+        .and_then(Value::as_array)
+        .expect("ExecutionProposal required array")
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<Vec<_>>();
+    assert!(required.contains(&"workspaceId"));
+    assert!(required.contains(&"executable"));
+    assert!(required.contains(&"cwdRelative"));
+    assert!(!required.contains(&"timeoutMs"));
+    assert!(!required.contains(&"stdoutLimitBytes"));
+    assert!(!required.contains(&"stderrLimitBytes"));
+    assert!(schema
+        .pointer("/$defs/ExecutionProposal/properties/hostDependencies")
+        .is_some());
+    let dependency = schema
+        .pointer("/$defs/HostDependencyBinding/properties/expectedDigest")
+        .expect("HostDependencyBinding.expectedDigest schema");
+    assert!(dependency.is_object());
+}
+
+#[test]
+fn workspace_exec_bound_schema_exposes_only_named_immutable_input_authority() {
+    let server = Sandbox::new("bound-schema").server();
+    let tools = server.tool_router.list_all();
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.execBound")
+        .expect("workspace.execBound");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    assert_eq!(
+        schema.pointer("/properties/waitMs/default"),
+        Some(&serde_json::json!(2_000))
+    );
+    assert_eq!(
+        schema.pointer("/properties/inputs/minItems"),
+        Some(&serde_json::json!(1))
+    );
+    assert!(schema
+        .pointer("/$defs/WorkspaceExecBoundExecution/properties/executionProfile")
+        .is_none());
+    let required = schema
+        .pointer("/$defs/WorkspaceExecBoundExecution/required")
+        .and_then(Value::as_array)
+        .expect("WorkspaceExecBoundExecution required")
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<Vec<_>>();
+    assert!(required.contains(&"workspaceId"));
+    assert!(required.contains(&"executable"));
+    assert!(required.contains(&"cwdRelative"));
+    assert!(!required.contains(&"timeoutMs"));
+    assert!(!required.contains(&"stdoutLimitBytes"));
+    assert!(!required.contains(&"stderrLimitBytes"));
+    assert_eq!(
+        schema.pointer("/$defs/InputBindingRequest/required"),
+        Some(&serde_json::json!([
+            "authority",
+            "relativeObject",
+            "expectedDigest",
+            "presentationRelativePath"
+        ]))
+    );
+    assert_eq!(
+        schema.pointer("/$defs/InputBindingRequest/additionalProperties"),
+        Some(&serde_json::json!(false))
+    );
+    let text = serde_json::to_string(&schema).unwrap();
+    assert!(!text.contains("sourcePath"));
+}
+
+#[test]
+fn workspace_exec_plan_defaults_to_brief_mcp_observation() {
+    let server = Sandbox::new("plan-wait-schema").server();
+    let tools = server.tool_router.list_all();
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.execPlan")
+        .expect("workspace.execPlan");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    assert_eq!(
+        schema.pointer("/properties/waitMs/default"),
+        Some(&serde_json::json!(2_000))
+    );
+    assert_eq!(default_exec_wait_ms(), 2_000);
+}
+
+#[test]
+fn workspace_exec_bound_binding_selects_runtime_owned_profile_by_target() {
+    let server = Sandbox::new("bound-binding").server();
+    let request = WorkspaceExecBoundRequest {
+        schema_version: 1,
+        client_request_id: "request:bound".to_string(),
+        execution: WorkspaceExecBoundExecution {
+            workspace_id: "workspace:test".to_string(),
+            executable: "/usr/bin/true".to_string(),
+            args: Vec::new(),
+            cwd_relative: ".".to_string(),
+            env: Default::default(),
+            timeout_ms: None,
+            stdout_limit_bytes: None,
+            stderr_limit_bytes: None,
+            steps: Vec::new(),
+            budget: ExecutionBudget::default(),
+            execution_target: ExecutionTarget::LocalLinux,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+        },
+        inputs: vec![InputBindingRequest {
+            authority: "finance-prepared".to_string(),
+            relative_object: "bundle/manifest.json".to_string(),
+            expected_digest:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_string(),
+            presentation_relative_path: "finance-lab/bundle/manifest.json".to_string(),
+        }],
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let (proposal, inputs) = server.state.execution.bind_bound(request);
+    assert_eq!(
+        proposal.execution.execution_profile,
+        ExecutionProfile::ContainedLocal
+    );
+    assert_eq!(proposal.execution.timeout_ms, None);
+    assert_eq!(inputs.len(), 1);
+    assert_eq!(inputs[0].authority, "finance-prepared");
+}
+
+#[test]
+fn workspace_exec_bound_trusted_binding_is_explicit_local_linux_trusted_authority() {
+    let server = Sandbox::new("bound-trusted-binding").server();
+    let request = WorkspaceExecBoundRequest {
+        schema_version: 1,
+        client_request_id: "request:bound-trusted".to_string(),
+        execution: WorkspaceExecBoundExecution {
+            workspace_id: "workspace:test".to_string(),
+            executable: "/usr/bin/true".to_string(),
+            args: Vec::new(),
+            cwd_relative: ".".to_string(),
+            env: Default::default(),
+            timeout_ms: None,
+            stdout_limit_bytes: None,
+            stderr_limit_bytes: None,
+            steps: Vec::new(),
+            budget: ExecutionBudget::default(),
+            execution_target: ExecutionTarget::LocalLinux,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+        },
+        inputs: vec![InputBindingRequest {
+            authority: "finance-provider-observer-materials".to_string(),
+            relative_object: "config.toml".to_string(),
+            expected_digest:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_string(),
+            presentation_relative_path: "finance-okx/config.toml".to_string(),
+        }],
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let (proposal, inputs) = server.state.execution.bind_bound_trusted(request).unwrap();
+    assert_eq!(
+        proposal.execution.execution_target,
+        ExecutionTarget::LocalLinux
+    );
+    assert_eq!(
+        proposal.execution.execution_profile,
+        ExecutionProfile::TrustedLocal
+    );
+    assert_eq!(
+        proposal.execution.windows_authority,
+        ordivon_runtime_core::WindowsAuthority::Limited
+    );
+    assert_eq!(inputs.len(), 1);
+    assert_eq!(inputs[0].authority, "finance-provider-observer-materials");
+}
+
+#[test]
+fn workspace_exec_bound_trusted_rejects_windows_target_before_runtime_admission() {
+    let server = Sandbox::new("bound-trusted-windows-reject").server();
+    let request = WorkspaceExecBoundRequest {
+        schema_version: 1,
+        client_request_id: "request:bound-trusted-windows".to_string(),
+        execution: WorkspaceExecBoundExecution {
+            workspace_id: "workspace:test".to_string(),
+            executable: "/usr/bin/true".to_string(),
+            args: Vec::new(),
+            cwd_relative: ".".to_string(),
+            env: Default::default(),
+            timeout_ms: None,
+            stdout_limit_bytes: None,
+            stderr_limit_bytes: None,
+            steps: Vec::new(),
+            budget: ExecutionBudget::default(),
+            execution_target: ExecutionTarget::WindowsNative,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+        },
+        inputs: vec![InputBindingRequest {
+            authority: "finance-provider-observer-materials".to_string(),
+            relative_object: "config.toml".to_string(),
+            expected_digest:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_string(),
+            presentation_relative_path: "finance-okx/config.toml".to_string(),
+        }],
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let error = server
+        .state
+        .execution
+        .bind_bound_trusted(request)
+        .unwrap_err();
+    assert_eq!(error.code, "INVALID_REQUEST");
+    assert_eq!(error.field.as_deref(), Some("execution.executionTarget"));
+}
+
+#[test]
+fn workspace_exec_bound_windows_binding_uses_trusted_local_limited_contract() {
+    let server = Sandbox::new("bound-windows-binding").server();
+    let request = WorkspaceExecBoundRequest {
+        schema_version: 1,
+        client_request_id: "request:bound-windows".to_string(),
+        execution: WorkspaceExecBoundExecution {
+            workspace_id: "workspace:test".to_string(),
+            executable: "/mnt/c/Windows/System32/cmd.exe".to_string(),
+            args: Vec::new(),
+            cwd_relative: ".".to_string(),
+            env: Default::default(),
+            timeout_ms: None,
+            stdout_limit_bytes: None,
+            stderr_limit_bytes: None,
+            steps: Vec::new(),
+            budget: ExecutionBudget::default(),
+            execution_target: ExecutionTarget::WindowsNative,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+        },
+        inputs: vec![InputBindingRequest {
+            authority: "finance-prepared".to_string(),
+            relative_object: "bundle/manifest.json".to_string(),
+            expected_digest:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_string(),
+            presentation_relative_path: "finance-lab/bundle/manifest.json".to_string(),
+        }],
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let (proposal, inputs) = server.state.execution.bind_bound(request);
+    assert_eq!(
+        proposal.execution.execution_target,
+        ExecutionTarget::WindowsNative
+    );
+    assert_eq!(
+        proposal.execution.execution_profile,
+        ExecutionProfile::TrustedLocal
+    );
+    assert_eq!(
+        proposal.execution.windows_authority,
+        ordivon_runtime_core::WindowsAuthority::Limited
+    );
+    assert_eq!(inputs.len(), 1);
+}
+
+#[test]
+fn workspace_exec_always_binds_v2_proposal_even_when_limits_are_fully_explicit() {
+    let server = Sandbox::new("proposal-bind").server();
+    let explicit =
+        server
+            .state
+            .execution
+            .bind(exec_tool_request(Some(2_000), Some(4_096), Some(8_192)));
+    assert_eq!(explicit.execution.timeout_ms, Some(2_000));
+    assert_eq!(explicit.execution.stdout_limit_bytes, Some(4_096));
+    assert_eq!(explicit.execution.stderr_limit_bytes, Some(8_192));
+
+    let optional = server
+        .state
+        .execution
+        .bind(exec_tool_request(Some(2_000), None, None));
+    assert_eq!(optional.execution.timeout_ms, Some(2_000));
+    assert_eq!(optional.execution.stdout_limit_bytes, None);
+    assert_eq!(optional.execution.stderr_limit_bytes, None);
+}
+
+#[test]
+fn workspace_exec_plan_schema_exposes_job_wide_host_dependencies() {
+    let server = Sandbox::new("plan-host-dependency-schema").server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.execPlan")
+        .expect("workspace.execPlan");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    assert!(schema
+        .pointer("/$defs/WorkspaceExecPlanInput/properties/hostDependencies")
+        .is_some());
+}
+
+#[test]
+fn workspace_exec_plan_normalizes_legacy_sum_without_writing_legacy_identity() {
+    let server = Sandbox::new("proposal-plan-bind").server();
+    let legacy = WorkspaceExecPlanRequest {
+        schema_version: 1,
+        client_request_id: "request:mcp-plan-legacy".to_string(),
+        execution: WorkspaceExecPlanInput {
+            workspace_id: "workspace:test".to_string(),
+            steps: vec![plan_step("one", Some(2_000)), plan_step("two", Some(3_000))],
+            timeout_ms: None,
+            stdout_limit_bytes: Some(4_096),
+            stderr_limit_bytes: Some(8_192),
+            budget: ExecutionBudget::default(),
+            execution_profile: ExecutionProfile::TrustedLocal,
+            execution_target: ExecutionTarget::LocalLinux,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+            host_dependencies: Vec::new(),
+        },
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let proposal = server.state.execution.bind_plan(legacy).unwrap();
+    assert_eq!(proposal.execution.timeout_ms, Some(5_000));
+    assert_eq!(
+        proposal
+            .execution
+            .steps
+            .iter()
+            .map(|step| step.timeout_ms)
+            .collect::<Vec<_>>(),
+        vec![Some(2_000), Some(3_000)]
+    );
+
+    let optional = WorkspaceExecPlanRequest {
+        schema_version: 1,
+        client_request_id: "request:mcp-plan-proposal".to_string(),
+        execution: WorkspaceExecPlanInput {
+            workspace_id: "workspace:test".to_string(),
+            steps: vec![plan_step("one", Some(2_000)), plan_step("two", None)],
+            timeout_ms: None,
+            stdout_limit_bytes: None,
+            stderr_limit_bytes: None,
+            budget: ExecutionBudget::default(),
+            execution_profile: ExecutionProfile::TrustedLocal,
+            execution_target: ExecutionTarget::LocalLinux,
+            windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            foreign_references: Vec::new(),
+            host_dependencies: Vec::new(),
+        },
+        wait_ms: 0,
+        stdout_tail_bytes: 0,
+        stderr_tail_bytes: 0,
+    };
+    let proposal = server.state.execution.bind_plan(optional).unwrap();
+    assert_eq!(proposal.execution.timeout_ms, None);
+    assert_eq!(proposal.execution.steps[0].timeout_ms, Some(2_000));
+    assert_eq!(proposal.execution.steps[1].timeout_ms, None);
+    assert_eq!(proposal.execution.stdout_limit_bytes, None);
+}
+
+#[test]
+fn input_ingest_file_param_metadata_is_operator_opt_in_only() {
+    let sandbox = Sandbox::new("input-ingress-file-param-meta");
+    let unconfigured = sandbox.server();
+    let plain = unconfigured
+        .catalog_tools()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "input.ingest")
+        .unwrap();
+    assert!(
+        plain
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.0.get("openai/fileParams"))
+            .is_none(),
+        "unconfigured Runtime must not advertise host file upload semantics"
+    );
+
+    let configured = sandbox.server_with_input_ingress();
+    let decorated = configured
+        .catalog_tools()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "input.ingest")
+        .unwrap();
+    assert_eq!(
+        decorated
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.0.get("openai/fileParams")),
+        Some(&json!(["file"]))
+    );
+    assert_eq!(configured.get_tool("input.ingest"), Some(decorated));
+}
+
+#[tokio::test]
+async fn input_ingest_reconciles_before_network_and_redacts_host_file_reference() {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        let sandbox = Sandbox::new("input-ingress-reconcile-shortcircuit");
+        let staging_root = sandbox.root.join("input-ingress-stage");
+        fs::create_dir_all(&staging_root).unwrap();
+        let workstation_config = sandbox.root.join("input-ingress-config.json");
+        fs::write(&workstation_config, b"{}\n").unwrap();
+        let capture = sandbox.root.join("captured-workstation-request.json");
+        let tool = sandbox.root.join("fake-workstation-ingress.py");
+        let expected = format!("sha256:{}", "a".repeat(64));
+        let script = format!(
+            r#"#!/usr/bin/env python3
+import json, shutil, sys
+args = sys.argv[1:]
+request = args[args.index('--request') + 1]
+shutil.copyfile(request, {capture:?})
+print(json.dumps({{
+  'commitStanding': 'COMMITTED_RECOVERED',
+  'byteSize': 123,
+  'observedSha256': {expected:?},
+  'recoveredAfterResponseLoss': True
+}}))
+"#,
+            capture = capture.to_string_lossy(),
+            expected = expected,
+        );
+        fs::write(&tool, script).unwrap();
+        let mut permissions = fs::metadata(&tool).unwrap().permissions();
+        permissions.set_mode(0o700);
+        fs::set_permissions(&tool, permissions).unwrap();
+        let server = RuntimeServer::new(ServerConfig {
+            runtime: RuntimeConfig {
+                node_id: "test-node".to_string(),
+                registry: RegistryConfig {
+                    db_path: sandbox.root.join("registry-ingress/registry.sqlite3"),
+                    store_root: sandbox.root.join("registry-ingress"),
+                    busy_timeout_ms: 5000,
+                },
+                executor: UniversalExecutorConfig {
+                    store_root: sandbox.root.join("store-ingress"),
+                    workspace_root: None,
+                    workspace_uid: None,
+                    workspace_gid: None,
+                    runner_path: Some(PathBuf::from("/usr/bin/true")),
+                    allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+                    max_runtime_ms: 10_000,
+                    max_output_bytes: 1024 * 1024,
+                },
+                startup_grace_ms: 1000,
+                windows: None,
+            },
+            input_authorities: Vec::new(),
+            credential_authorities: Vec::new(),
+            execution: ExecutionContext {
+                principal: "principal:mcp-test-reconcile".to_string(),
+                global_limit: 4,
+            },
+            release: None,
+            input_ingress: Some(InputIngressExecutionConfig {
+                staging_root,
+                workstation_tool: tool,
+                workstation_config,
+                workstation_carrier: "runtime-stage".to_string(),
+                authorities: vec!["artifact-source-r1".to_string()],
+                download_hosts: vec!["example.invalid".to_string()],
+                max_bytes: 8 * 1024 * 1024,
+            }),
+            trace_path: None,
+        })
+        .unwrap();
+        let secret_url = "https://example.invalid/file?token=SIGNED-URL-MUST-NOT-BE-FETCHED";
+        let raw_file_id = "file-raw-provider-identity-must-not-persist";
+        let result = server
+            .perform_input_ingress(InputIngressToolRequest {
+                schema_version: 1,
+                client_request_id: "request:input-ingress-reconcile".to_string(),
+                authority: "artifact-source-r1".to_string(),
+                relative_object: "pdu-sdu/34x10/slide-01.jpeg".to_string(),
+                expected_sha256: expected.clone(),
+                expected_size_bytes: 123,
+                file: InputIngressFilePayload {
+                    download_url: secret_url.to_string(),
+                    file_id: raw_file_id.to_string(),
+                    file_name: Some("slide-01.jpeg".to_string()),
+                    mime_type: Some("image/jpeg".to_string()),
+                },
+            })
+            .await
+            .expect("local committed reconciliation must short-circuit before network fetch");
+        assert_eq!(result.expected_size_bytes, 123);
+        assert_eq!(result.expected_sha256, expected);
+        assert_eq!(result.source_identity_standing, "HOST_DECLARED_UNVERIFIED");
+        assert_eq!(
+            result.host_file_reference_digest,
+            format!("sha256:{:x}", Sha256::digest(raw_file_id.as_bytes()))
+        );
+        let captured = fs::read_to_string(capture).unwrap();
+        assert!(!captured.contains(secret_url));
+        assert!(!captured.contains("SIGNED-URL-MUST-NOT-BE-FETCHED"));
+        assert!(!captured.contains(raw_file_id));
+        assert!(captured.contains(&result.host_file_reference_digest));
+    }
+}
+
+#[tokio::test]
+async fn input_ingest_rejects_non_opted_authority_before_touching_download_url() {
+    let sandbox = Sandbox::new("input-ingress-authority-deny");
+    let server = sandbox.server_with_input_ingress();
+    let secret = "TOP-SECRET-SIGNED-URL-MATERIAL";
+    let error = server
+        .perform_input_ingress(InputIngressToolRequest {
+            schema_version: 1,
+            client_request_id: "request:input-ingress-deny".to_string(),
+            authority: "finance-credentials".to_string(),
+            relative_object: "unsafe.bin".to_string(),
+            expected_sha256: format!("sha256:{}", "0".repeat(64)),
+            expected_size_bytes: 1,
+            file: InputIngressFilePayload {
+                download_url: format!("https://example.invalid/file?secret={secret}"),
+                file_id: "file-denied".to_string(),
+                file_name: None,
+                mime_type: None,
+            },
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(error.field.as_deref(), Some("authority"));
+    assert!(!error.message.contains(secret));
+}
+
+#[tokio::test]
+async fn input_ingest_rejects_https_host_outside_operator_allowlist_without_echoing_url() {
+    let sandbox = Sandbox::new("input-ingress-host-deny");
+    let server = sandbox.server_with_input_ingress();
+    let secret = "TOP-SECRET-OTHER-HOST";
+    let error = server
+        .perform_input_ingress(InputIngressToolRequest {
+            schema_version: 1,
+            client_request_id: "request:input-ingress-host".to_string(),
+            authority: "artifact-source-r1".to_string(),
+            relative_object: "source/input.pptx".to_string(),
+            expected_sha256: format!("sha256:{}", "0".repeat(64)),
+            expected_size_bytes: 1,
+            file: InputIngressFilePayload {
+                download_url: format!("https://other.invalid/file?token={secret}"),
+                file_id: "file-host-test".to_string(),
+                file_name: None,
+                mime_type: None,
+            },
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(error.field.as_deref(), Some("file.download_url"));
+    assert!(!error.message.contains(secret));
+    assert!(!error.message.contains("other.invalid"));
+}
+
+#[tokio::test]
+async fn input_ingest_url_validation_never_echoes_signed_url_material() {
+    let sandbox = Sandbox::new("input-ingress-url-redaction");
+    let server = sandbox.server_with_input_ingress();
+    let secret = "TOP-SECRET-SIGNED-URL-MATERIAL";
+    let error = server
+        .perform_input_ingress(InputIngressToolRequest {
+            schema_version: 1,
+            client_request_id: "request:input-ingress-url".to_string(),
+            authority: "artifact-source-r1".to_string(),
+            relative_object: "source/input.pptx".to_string(),
+            expected_sha256: format!("sha256:{}", "0".repeat(64)),
+            expected_size_bytes: 1,
+            file: InputIngressFilePayload {
+                download_url: format!("http://example.invalid/file?token={secret}"),
+                file_id: "file-url-test".to_string(),
+                file_name: None,
+                mime_type: None,
+            },
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(error.field.as_deref(), Some("file.download_url"));
+    assert!(!error.message.contains(secret));
+    assert!(!error.message.contains("example.invalid"));
+}
+
+#[test]
+fn openai_provided_file_payload_accepts_snake_case_wire_shape() {
+    let payload = serde_json::json!({
+        "download_url": "https://example.invalid/file",
+        "file_id": "file-current-host",
+        "mime_type": "image/jpeg",
+        "file_name": "slide-01.jpeg"
+    });
+    let parsed = serde_json::from_value::<InputIngressFilePayload>(payload)
+        .expect("current OpenAI provided-file snake_case wire shape must deserialize");
+    assert_eq!(parsed.file_id, "file-current-host");
+}
+
+#[test]
+fn input_ingest_schema_requires_exact_expected_size() {
+    let server = Sandbox::new("ingress-size-schema").server_with_input_ingress();
+    let tool = server
+        .catalog_tools()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "input.ingest")
+        .expect("input.ingest");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    assert!(
+        schema.pointer("/properties/expectedSizeBytes").is_some(),
+        "input.ingest must bind exact expectedSizeBytes, not only a global maxBytes ceiling: {schema}"
+    );
+}
+
+#[test]
+fn public_host_wildcard_is_valid_but_does_not_make_private_ips_valid() {
+    assert!(validate_ingress_download_host_config("*"));
+    assert!(!validate_ingress_download_host_config("127.0.0.1"));
+    assert!(!validate_ingress_download_host_config("::1"));
+    assert!(!validate_ingress_download_host_config("localhost"));
+    assert!(ingress_download_host_allowed(
+        &["*".to_string()],
+        "files.example.net"
+    ));
+    assert!(!ingress_ip_is_public("127.0.0.1".parse().unwrap()));
+    assert!(!ingress_ip_is_public("169.254.169.254".parse().unwrap()));
+}
+
+#[test]
+fn exact_download_host_policy_remains_exact_without_wildcard() {
+    let allowed = vec!["files.example.net".to_string()];
+    assert!(ingress_download_host_allowed(&allowed, "files.example.net"));
+    assert!(!ingress_download_host_allowed(
+        &allowed,
+        "other.example.net"
+    ));
+}
+
+#[test]
+fn private_ip_download_host_is_rejected_at_configuration_boundary() {
+    let sandbox = Sandbox::new("ingress-private-host");
+    let staging_root = sandbox.root.join("input-ingress-stage");
+    fs::create_dir_all(&staging_root).unwrap();
+    let workstation_config = sandbox.root.join("input-ingress-config.json");
+    fs::write(&workstation_config, b"{}\n").unwrap();
+    let server = RuntimeServer::new(ServerConfig {
+        runtime: RuntimeConfig {
+            node_id: "test-node".to_string(),
+            registry: RegistryConfig {
+                db_path: sandbox.root.join("registry-ingress/registry.sqlite3"),
+                store_root: sandbox.root.join("registry-ingress"),
+                busy_timeout_ms: 5000,
+            },
+            executor: UniversalExecutorConfig {
+                store_root: sandbox.root.join("store-ingress"),
+                workspace_root: None,
+                workspace_uid: None,
+                workspace_gid: None,
+                runner_path: Some(PathBuf::from("/usr/bin/true")),
+                allowed_executable_roots: vec![PathBuf::from("/usr/bin")],
+                max_runtime_ms: 10_000,
+                max_output_bytes: 1024 * 1024,
+            },
+            startup_grace_ms: 1000,
+            windows: None,
+        },
+        input_authorities: Vec::new(),
+        credential_authorities: Vec::new(),
+        execution: ExecutionContext {
+            principal: "principal:mcp-test-private-host".to_string(),
+            global_limit: 4,
+        },
+        release: None,
+        input_ingress: Some(InputIngressExecutionConfig {
+            staging_root,
+            workstation_tool: PathBuf::from("/usr/bin/true"),
+            workstation_config,
+            workstation_carrier: "runtime-stage".to_string(),
+            authorities: vec!["artifact-source-r1".to_string()],
+            download_hosts: vec!["127.0.0.1".to_string()],
+            max_bytes: 8 * 1024 * 1024,
+        }),
+        trace_path: None,
+    });
+    assert!(server.is_err(), "private/loopback IP download hosts must fail closed even if operator config accidentally lists them");
+}
+
+#[test]
+fn input_ingest_schema_requires_digest_authority_destination_and_file_payload() {
+    let server = Sandbox::new("input-ingress-schema").server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "input.ingest")
+        .unwrap();
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let text = serde_json::to_string(&schema).unwrap();
+    for field in [
+        "clientRequestId",
+        "authority",
+        "relativeObject",
+        "expectedSha256",
+        "expectedSizeBytes",
+        "file",
+        "download_url",
+        "file_id",
+    ] {
+        assert!(
+            text.contains(field),
+            "input.ingest schema omitted {field}: {schema}"
+        );
+    }
+}
+
+#[test]
+fn runtime_describe_projects_only_ingress_authority_names_not_transport_secrets() {
+    let sandbox = Sandbox::new("input-ingress-describe");
+    let server = sandbox.server_with_input_ingress();
+    let result = RuntimeDescribeResult::from_capabilities(
+        server.state.runtime.capabilities(),
+        server.state.execution.global_limit,
+        false,
+        server
+            .state
+            .input_ingress
+            .as_ref()
+            .unwrap()
+            .authorities
+            .clone(),
+    );
+    let value = serde_json::to_value(result).unwrap();
+    assert_eq!(
+        value["inputIngressAuthorities"],
+        json!(["artifact-source-r1"])
+    );
+    let text = serde_json::to_string(&value).unwrap();
+    assert!(!text.contains("input-ingress-stage"));
+    assert!(!text.contains("example.invalid"));
+    assert!(!text.contains("workstation"));
+}
+
+#[test]
+fn server_clones_share_one_runtime_state() {
+    let sandbox = Sandbox::new("shared-state");
+    let server = sandbox.server();
+    let cloned = server.clone();
+    assert!(Arc::ptr_eq(&server.state, &cloned.state));
+}
+
+#[test]
+fn tool_effect_annotations_match_runtime_behavior() {
+    let sandbox = Sandbox::new("effect-annotations");
+    let server = sandbox.server();
+    let tools = server.tool_router.list_all();
+    let expected = [
+        ("artifact.read", true, false, true, false),
+        ("input.ingest", false, false, true, true),
+        ("release.apply", false, true, true, true),
+        ("release.get", true, false, true, false),
+        ("runtime.describe", true, false, true, false),
+        ("job.cancel", false, true, true, false),
+        ("job.get", true, false, true, false),
+        ("job.list", true, false, true, false),
+        ("job.observe", false, true, true, true),
+        ("workspace.close", false, true, true, false),
+        ("workspace.changes", true, false, true, false),
+        ("workspace.content", true, false, true, false),
+        ("workspace.diff", true, false, true, false),
+        ("workspace.exec", false, true, false, true),
+        ("workspace.execBound", false, true, false, false),
+        ("workspace.execBoundTrusted", false, true, false, true),
+        (
+            "workspace.execCredentialBoundTrusted",
+            false,
+            true,
+            false,
+            true,
+        ),
+        ("workspace.execPlan", false, true, false, true),
+        ("workspace.get", true, false, true, false),
+        ("workspace.list", true, false, true, false),
+        ("workspace.mutate", false, true, false, false),
+        ("workspace.open", false, false, false, false),
+        ("workspace.read", true, false, true, false),
+    ];
+    assert_eq!(tools.len(), expected.len());
+    for (name, read_only, destructive, idempotent, open_world) in expected {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == name)
+            .unwrap_or_else(|| panic!("missing Tool {name}"));
+        let annotations = tool
+            .annotations
+            .as_ref()
+            .unwrap_or_else(|| panic!("Tool {name} omitted annotations"));
+        assert_eq!(
+            annotations.read_only_hint,
+            Some(read_only),
+            "{name} readOnlyHint"
+        );
+        assert_eq!(
+            annotations.destructive_hint,
+            Some(destructive),
+            "{name} destructiveHint"
+        );
+        assert_eq!(
+            annotations.idempotent_hint,
+            Some(idempotent),
+            "{name} idempotentHint"
+        );
+        assert_eq!(
+            annotations.open_world_hint,
+            Some(open_world),
+            "{name} openWorldHint"
+        );
+    }
+}
+
+#[test]
+fn tool_inputs_default_missing_schema_version_to_pinned_version() {
+    use ordivon_runtime_core::{
+        JobCancelRequest, RuntimeWorkspaceListRequest, WorkspaceCloseRequest,
+        WorkspaceContentRequest, WorkspaceMutateRequest,
+    };
+    // Core-crate request structs used by MCP tools: omitted schemaVersion
+    // must deserialize to the pinned version instead of failing.
+    let list: RuntimeWorkspaceListRequest = serde_json::from_str(r#"{"limit": 5}"#).unwrap();
+    assert_eq!(list.schema_version, 1);
+    let cancel: JobCancelRequest = serde_json::from_str(r#"{"jobId":"job-1"}"#).unwrap();
+    assert_eq!(cancel.schema_version, 1);
+    let close: WorkspaceCloseRequest = serde_json::from_str(r#"{"workspaceId":"ws-1"}"#).unwrap();
+    assert_eq!(close.schema_version, 1);
+    let content: WorkspaceContentRequest = serde_json::from_str(
+        r#"{"workspaceId":"ws-1","relativePath":"a.txt","expectedDigest":"x","maxBytes":10}"#,
+    )
+    .unwrap();
+    assert_eq!(content.schema_version, 1);
+    let mutate: WorkspaceMutateRequest =
+        serde_json::from_str(r#"{"workspaceId":"ws-1","mutations":[]}"#).unwrap();
+    assert_eq!(mutate.schema_version, 1);
+    // MCP-crate request structs.
+    let get: JobGetRequest = serde_json::from_str(r#"{"jobId":"job-1"}"#).unwrap();
+    assert_eq!(get.schema_version, 1);
+    let diff: WorkspaceDiffRequest =
+        serde_json::from_str(r#"{"workspaceId":"ws-1","maxBytes":10}"#).unwrap();
+    assert_eq!(diff.schema_version, 1);
+    let describe: RuntimeDescribeRequest = serde_json::from_str("{}").unwrap();
+    assert_eq!(describe.schema_version, 1);
+    let release_apply: RuntimeReleaseApplyToolRequest = serde_json::from_str(
+        r#"{"clientRequestId":"release-1","workspaceId":"ws-1","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","candidateManifestDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","expectedToolCount":23}"#,
+    )
+    .unwrap();
+    assert_eq!(release_apply.schema_version, 1);
+    let release_get: RuntimeReleaseGetToolRequest =
+        serde_json::from_str(r#"{"clientRequestId":"release-1"}"#).unwrap();
+    assert_eq!(release_get.schema_version, 1);
+    // Explicit non-pinned versions survive deserialization and are rejected
+    // by the handler gate ("schemaVersion must be 1") — the pin keeps teeth.
+    let wrong: JobGetRequest =
+        serde_json::from_str(r#"{"jobId":"job-1","schemaVersion":2}"#).unwrap();
+    assert_eq!(wrong.schema_version, 2);
+}
+
+#[test]
+fn server_identity_names_the_runtime_component() {
+    let sandbox = Sandbox::new("identity");
+    let info = serde_json::to_value(sandbox.server().get_info()).unwrap();
+    assert_eq!(
+        info.pointer("/serverInfo/name").and_then(Value::as_str),
+        Some("ordivon-runtime-mcp")
+    );
+    assert_eq!(
+        info.pointer("/serverInfo/title").and_then(Value::as_str),
+        Some("Ordivon Runtime")
+    );
+}
+
+#[test]
+fn server_does_not_advertise_mcp_tasks_without_a_conformant_task_creation_lifecycle() {
+    let sandbox = Sandbox::new("no-mcp-tasks");
+    let info = serde_json::to_value(sandbox.server().get_info()).unwrap();
+    let encoded = serde_json::to_string(&info).unwrap();
+    assert!(
+        !encoded.contains(rmcp::model::TASKS_EXTENSION_ID),
+        "Runtime Job Tools must not be advertised as the MCP Tasks extension"
+    );
+}
+
+#[test]
+fn tool_catalog_uses_transactional_job_contract() {
+    let sandbox = Sandbox::new("catalog");
+    let server = sandbox.server();
+    let mut tools = server.tool_router.list_all();
+    tools.sort_by(|left, right| left.name.cmp(&right.name));
+    let names: Vec<_> = tools.iter().map(|tool| tool.name.as_ref()).collect();
+    assert_eq!(
+        names,
+        [
+            "artifact.read",
+            "input.ingest",
+            "job.cancel",
+            "job.get",
+            "job.list",
+            "job.observe",
+            "release.apply",
+            "release.get",
+            "runtime.describe",
+            "workspace.changes",
+            "workspace.close",
+            "workspace.content",
+            "workspace.diff",
+            "workspace.exec",
+            "workspace.execBound",
+            "workspace.execBoundTrusted",
+            "workspace.execCredentialBoundTrusted",
+            "workspace.execPlan",
+            "workspace.get",
+            "workspace.list",
+            "workspace.mutate",
+            "workspace.open",
+            "workspace.read",
+        ]
+    );
+    for tool in tools.iter().filter(|tool| tool.name.as_ref() != "job.list") {
+        let schema = serde_json::to_value(&tool.input_schema).unwrap();
+        assert_eq!(
+            schema.pointer("/properties/schemaVersion/const"),
+            Some(&serde_json::json!(1)),
+            "{} schemaVersion const drifted",
+            tool.name
+        );
+        assert_eq!(
+            schema.pointer("/properties/schemaVersion/minimum"),
+            Some(&serde_json::json!(1)),
+            "{} schemaVersion minimum drifted",
+            tool.name
+        );
+        assert_eq!(
+            schema.pointer("/properties/schemaVersion/maximum"),
+            Some(&serde_json::json!(1)),
+            "{} schemaVersion maximum drifted",
+            tool.name
+        );
+    }
+
+    let exec = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.exec")
+        .unwrap();
+
+    assert_eq!(
+        exec.annotations
+            .as_ref()
+            .and_then(|annotations| annotations.idempotent_hint),
+        Some(false)
+    );
+    let schema = serde_json::to_string(&exec.input_schema).unwrap();
+    assert!(schema.contains("clientRequestId"));
+    assert!(!schema.contains("taskId"));
+    let exec_schema = serde_json::to_value(&exec.input_schema).unwrap();
+    assert!(exec_schema
+        .pointer("/$defs/ExecutionProposal/properties/executable/description")
+        .and_then(Value::as_str)
+        .is_some_and(|description| description.contains("Absolute host path")));
+    assert!(exec_schema
+        .pointer("/$defs/ExecutionProposal/properties/cwdRelative/description")
+        .and_then(Value::as_str)
+        .is_some_and(|description| description.contains("relative to the Workspace root")));
+    for (tool_name, execution_definition) in [
+        ("workspace.exec", "ExecutionProposal"),
+        ("workspace.execBound", "WorkspaceExecBoundExecution"),
+        ("workspace.execPlan", "WorkspaceExecPlanInput"),
+    ] {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == tool_name)
+            .unwrap();
+        let tool_schema = serde_json::to_value(&tool.input_schema).unwrap();
+        assert!(
+            tool_schema
+                .pointer("/properties/stdoutTailBytes/description")
+                .and_then(Value::as_str)
+                .is_some_and(|description| {
+                    description.contains("MCP response tail")
+                        && description.contains("execution.stdoutLimitBytes")
+                }),
+            "{tool_name} stdoutTailBytes must distinguish response tail from Job retention"
+        );
+        assert!(
+            tool_schema
+                .pointer("/properties/stderrTailBytes/description")
+                .and_then(Value::as_str)
+                .is_some_and(|description| {
+                    description.contains("MCP response tail")
+                        && description.contains("execution.stderrLimitBytes")
+                }),
+            "{tool_name} stderrTailBytes must distinguish response tail from Job retention"
+        );
+        assert!(
+            tool_schema
+                .pointer(&format!(
+                    "/$defs/{execution_definition}/properties/stdoutLimitBytes/description"
+                ))
+                .and_then(Value::as_str)
+                .is_some_and(|description| {
+                    description.contains("Job/Attempt") && description.contains("stdoutTailBytes")
+                }),
+            "{tool_name} stdoutLimitBytes must distinguish Job retention from response tail"
+        );
+        assert!(
+            tool_schema
+                .pointer(&format!(
+                    "/$defs/{execution_definition}/properties/stderrLimitBytes/description"
+                ))
+                .and_then(Value::as_str)
+                .is_some_and(|description| {
+                    description.contains("Job/Attempt") && description.contains("stderrTailBytes")
+                }),
+            "{tool_name} stderrLimitBytes must distinguish Job retention from response tail"
+        );
+    }
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProposal/properties/executionProfile/default"),
+        Some(&serde_json::json!("trusted_local"))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProfile/enum"),
+        Some(&serde_json::json!(["trusted_local", "contained_local"]))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProposal/properties/executionTarget/default"),
+        Some(&serde_json::json!("local_linux"))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionTarget/enum"),
+        Some(&serde_json::json!(["local_linux", "windows_native"]))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProposal/properties/windowsAuthority/default"),
+        Some(&serde_json::json!("limited"))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/WindowsAuthority/enum"),
+        Some(&serde_json::json!(["limited", "elevated", "active_user"]))
+    );
+    assert!(exec_schema
+        .pointer("/$defs/ExecutionProposal/properties/foreignReferences/maxItems")
+        .is_none());
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProposal/properties/foreignReferences/items/$ref"),
+        Some(&serde_json::json!("#/$defs/ForeignReference"))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ForeignReference/required"),
+        Some(&serde_json::json!(["namespace", "type", "id"]))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ForeignReference/additionalProperties"),
+        Some(&serde_json::json!(false))
+    );
+
+    for budget_field in ["memoryMaxBytes", "tasksMax", "cpuQuotaPercent"] {
+        assert_eq!(
+            exec_schema.pointer(&format!(
+                "/$defs/ExecutionBudget/properties/{budget_field}/minimum"
+            )),
+            Some(&serde_json::json!(1))
+        );
+        assert!(exec_schema
+            .pointer(&format!(
+                "/$defs/ExecutionBudget/properties/{budget_field}/maximum"
+            ))
+            .is_none());
+    }
+    for server_owned in ["principal", "globalLimit", "profileLimit"] {
+        assert!(
+            !schema.contains(server_owned),
+            "schema exposes {server_owned}"
+        );
+    }
+
+    let mutate = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.mutate")
+        .unwrap();
+    let mutate_schema = serde_json::to_value(&mutate.input_schema).unwrap();
+    assert_eq!(
+        mutate_schema.pointer("/$defs/WorkspaceMutation/properties/mode/enum"),
+        Some(&serde_json::json!(["WRITE", "APPEND", "REPLACE_EXACT"]))
+    );
+    assert_eq!(
+        mutate_schema.pointer("/properties/mutations/minItems"),
+        Some(&serde_json::json!(1))
+    );
+    assert!(mutate_schema
+        .pointer("/properties/mutations/maxItems")
+        .is_none());
+    assert!(
+        mutate_schema
+            .pointer("/$defs/WorkspaceMutation/properties/expectedDigest/description")
+            .and_then(Value::as_str)
+            .is_some_and(
+                |description| description.contains("Required when the target already exists")
+            )
+    );
+
+    let observe = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "job.observe")
+        .unwrap();
+    let observe_schema = serde_json::to_value(&observe.input_schema).unwrap();
+    assert_eq!(
+        observe_schema.pointer("/properties/waitMs/maximum"),
+        Some(&serde_json::json!(30_000))
+    );
+    assert_eq!(
+        observe_schema.pointer("/properties/stdoutTailBytes/maximum"),
+        Some(&serde_json::json!(65_536))
+    );
+    assert!(observe_schema.pointer("/properties/stdoutOffset").is_some());
+    assert!(observe_schema.pointer("/properties/stderrOffset").is_some());
+
+    let list = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "job.list")
+        .unwrap();
+    let list_schema = serde_json::to_value(&list.input_schema).unwrap();
+    assert_eq!(
+        list_schema.pointer("/properties/limit/maximum"),
+        Some(&serde_json::json!(100))
+    );
+    assert_eq!(
+        list_schema.pointer("/properties/limit/default"),
+        Some(&serde_json::json!(20))
+    );
+    assert!(list_schema.pointer("/properties/clientRequestId").is_some());
+
+    let close = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.close")
+        .unwrap();
+    let close_schema = serde_json::to_value(&close.input_schema).unwrap();
+    assert_eq!(
+        close_schema.pointer("/properties/force/default"),
+        Some(&serde_json::json!(false))
+    );
+}
+
+#[test]
+fn job_observation_serializes_discoverable_artifacts() {
+    let observation = JobObservation {
+        job_id: "job-test".to_string(),
+        operation_digest: "sha256:operation-test".to_string(),
+        status: "succeeded".to_string(),
+        desired_state: JobDesiredState::Run,
+        attempt_id: Some("attempt-test".to_string()),
+        attempt_state: Some(AttemptState::Succeeded),
+        termination_intent: Some(AttemptTerminationIntent::Natural),
+        exit_code: Some(0),
+        execution_terminal: true,
+        execution_disposition: Some(ordivon_runtime_core::JobResolution::Succeeded),
+        execution_reason_code: Some("PROCESS_EXIT_ZERO".to_string()),
+        delivery_disposition: RuntimeDeliveryDisposition::Committed,
+        effective_limits: ordivon_runtime_core::EffectiveExecutionLimits {
+            timeout_ms: 10_000,
+            stdout_limit_bytes: 65_536,
+            stderr_limit_bytes: 8_192,
+            step_timeouts: vec![ordivon_runtime_core::EffectiveStepTimeout {
+                id: "step-a".to_string(),
+                timeout_ms: 2_000,
+            }],
+        },
+        recovery_required: false,
+        semantic_completion_evaluated: false,
+        result_available: true,
+        stdout_tail: "ok\n".to_string(),
+        stderr_tail: String::new(),
+        stdout_offset: None,
+        stdout_next_offset: None,
+        stdout_available_bytes: None,
+        stdout_eof: None,
+        stderr_offset: None,
+        stderr_next_offset: None,
+        stderr_available_bytes: None,
+        stderr_eof: None,
+        stdout_truncated: false,
+        stderr_truncated: false,
+        artifacts_available: true,
+        artifacts: vec![ArtifactDescriptor {
+            artifact_id: "attempt-test.stdout".to_string(),
+            kind: "stdout".to_string(),
+            digest: format!("sha256:{}", "a".repeat(64)),
+            retained_bytes: 3,
+            dropped_bytes: Some(0),
+            truncated: false,
+        }],
+        poll_after_ms: None,
+        elapsed_ms: None,
+        last_output_at_ms: None,
+        progress_revision: None,
+        completed_steps: None,
+        total_steps: None,
+        current_step_id: None,
+        current_step_index: None,
+        current_step_elapsed_ms: None,
+        failed_step_id: None,
+        failed_step_index: None,
+        error_summary: None,
+    };
+    let value = serde_json::to_value(observation).unwrap();
+    assert_eq!(
+        value.pointer("/operationDigest").and_then(Value::as_str),
+        Some("sha256:operation-test")
+    );
+    assert_eq!(
+        value
+            .pointer("/artifacts/0/artifactId")
+            .and_then(Value::as_str),
+        Some("attempt-test.stdout")
+    );
+    assert_eq!(
+        value
+            .pointer("/artifacts/0/droppedBytes")
+            .and_then(Value::as_u64),
+        Some(0)
+    );
+    assert_eq!(
+        value
+            .pointer("/effectiveLimits/timeoutMs")
+            .and_then(Value::as_u64),
+        Some(10_000)
+    );
+    assert_eq!(
+        value
+            .pointer("/effectiveLimits/stepTimeouts/0/timeoutMs")
+            .and_then(Value::as_u64),
+        Some(2_000)
+    );
+    assert_eq!(
+        value.pointer("/desiredState").and_then(Value::as_str),
+        Some("run")
+    );
+    assert_eq!(
+        value.pointer("/attemptState").and_then(Value::as_str),
+        Some("succeeded")
+    );
+    assert_eq!(
+        value.pointer("/terminationIntent").and_then(Value::as_str),
+        Some("natural")
+    );
+    assert_eq!(
+        value
+            .pointer("/executionDisposition")
+            .and_then(Value::as_str),
+        Some("succeeded")
+    );
+    assert_eq!(
+        value
+            .pointer("/executionReasonCode")
+            .and_then(Value::as_str),
+        Some("PROCESS_EXIT_ZERO")
+    );
+    assert_eq!(
+        value
+            .pointer("/deliveryDisposition")
+            .and_then(Value::as_str),
+        Some("committed")
+    );
+    assert_eq!(
+        value.pointer("/resultAvailable").and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        value
+            .pointer("/semanticCompletionEvaluated")
+            .and_then(Value::as_bool),
+        Some(false)
+    );
+}
+
+#[test]
+fn workspace_content_projects_native_image_with_digest_bound_structured_metadata() {
+    let png = b"\x89PNG\r\n\x1a\nmodel-view".to_vec();
+    let metadata = WorkspaceContentMetadata {
+        workspace_id: "workspace:model-view".to_string(),
+        relative_path: "out/contact-sheet.png".to_string(),
+        digest: format!("sha256:{}", "a".repeat(64)),
+        media_type: "image/png".to_string(),
+        byte_length: png.len() as u64,
+    };
+    let response = workspace_content_call_result(ToolOutcome::Success(
+        ordivon_runtime_core::WorkspaceContentReadResult {
+            metadata: metadata.clone(),
+            bytes: png.clone(),
+        },
+    ))
+    .unwrap();
+    assert_eq!(response.is_error, Some(false));
+    assert_eq!(response.content.len(), 1);
+    let encoded = serde_json::to_value(&response.content[0]).unwrap();
+    assert_eq!(
+        encoded.pointer("/type").and_then(Value::as_str),
+        Some("image")
+    );
+    assert_eq!(
+        encoded.pointer("/mimeType").and_then(Value::as_str),
+        Some("image/png")
+    );
+    let data = encoded.pointer("/data").and_then(Value::as_str).unwrap();
+    assert_eq!(BASE64_STANDARD.decode(data.as_bytes()).unwrap(), png);
+    assert_eq!(
+        response
+            .structured_content
+            .as_ref()
+            .and_then(|value| value.get("digest"))
+            .and_then(Value::as_str),
+        Some(metadata.digest.as_str())
+    );
+    assert_eq!(
+        response
+            .structured_content
+            .as_ref()
+            .and_then(|value| value.get("mediaType"))
+            .and_then(Value::as_str),
+        Some("image/png")
+    );
+}
+
+#[test]
+fn workspace_content_schema_requires_exact_digest_binding() {
+    let server = Sandbox::new("content-schema").server();
+    let tools = server.tool_router.list_all();
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.content")
+        .expect("workspace.content");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let required = schema
+        .get("required")
+        .and_then(Value::as_array)
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<Vec<_>>();
+    assert!(required.contains(&"workspaceId"));
+    assert!(required.contains(&"relativePath"));
+    assert!(required.contains(&"expectedDigest"));
+    assert!(required.contains(&"maxBytes"));
+}
+
+#[test]
+fn structured_failure_is_a_tool_error_not_protocol_failure() {
+    let outcome = ToolOutcome::<String>::Error(ToolError::invalid(
+        "idempotency mismatch",
+        "clientRequestId",
+    ));
+    let response = outcome.into_call_tool_result().unwrap();
+    let CallToolResponse::Complete(result) = response else {
+        panic!("structured Tool outcome must be complete");
+    };
+    assert_eq!(result.is_error, Some(true));
+    assert_eq!(result.content.len(), 1);
+    assert_eq!(
+        result
+            .structured_content
+            .as_ref()
+            .and_then(|value| value.get("error"))
+            .and_then(|value| value.get("field"))
+            .and_then(Value::as_str),
+        Some("clientRequestId")
+    );
+}
+
+#[test]
+fn capacity_failure_preserves_retry_and_scope_metadata() {
+    let error = RuntimeError::concurrency(
+        "global execution concurrency limit reached (active=4, limit=4)",
+        "globalLimit",
+        RuntimeCapacity {
+            scope: "global".to_string(),
+            active: 4,
+            limit: 4,
+            workspace_id: None,
+            holder_job_ids: vec!["job-holder".to_string()],
+            holder_workspace_ids: vec!["workspace-holder".to_string()],
+            holders_truncated: false,
+        },
+    );
+    let tool_error = ToolError::from(error);
+    let value = serde_json::to_value(tool_error).unwrap();
+    assert_eq!(
+        value.pointer("/retryAfterMs").and_then(Value::as_u64),
+        Some(1_000)
+    );
+    assert_eq!(
+        value.pointer("/capacity/scope").and_then(Value::as_str),
+        Some("global")
+    );
+    assert_eq!(
+        value.pointer("/capacity/active").and_then(Value::as_u64),
+        Some(4)
+    );
+    assert_eq!(
+        value.pointer("/capacity/limit").and_then(Value::as_u64),
+        Some(4)
+    );
+    assert_eq!(
+        value
+            .pointer("/capacity/holderJobIds/0")
+            .and_then(Value::as_str),
+        Some("job-holder")
+    );
+    assert_eq!(
+        value
+            .pointer("/capacity/holderWorkspaceIds/0")
+            .and_then(Value::as_str),
+        Some("workspace-holder")
+    );
+    assert_eq!(
+        value
+            .pointer("/capacity/holdersTruncated")
+            .and_then(Value::as_bool),
+        Some(false)
+    );
+    assert_eq!(
+        value.pointer("/origin").and_then(Value::as_str),
+        Some("runtime_core")
+    );
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("wait_then_retry")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("not_started")
+    );
+}
+
+#[test]
+fn workspace_capacity_failure_guides_observe_then_reassess() {
+    let error = RuntimeError::concurrency(
+        "workspace execution concurrency limit reached (active=1, limit=1)",
+        "workspaceId",
+        RuntimeCapacity {
+            scope: "workspace".to_string(),
+            active: 1,
+            limit: 1,
+            workspace_id: Some("workspace-target".to_string()),
+            holder_job_ids: vec!["job-holder".to_string()],
+            holder_workspace_ids: vec!["workspace-holder".to_string()],
+            holders_truncated: false,
+        },
+    );
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/code").and_then(Value::as_str),
+        Some("CONCURRENCY_LIMIT")
+    );
+    assert_eq!(
+        value.pointer("/capacity/scope").and_then(Value::as_str),
+        Some("workspace")
+    );
+    assert_eq!(
+        value
+            .pointer("/capacity/holderJobIds/0")
+            .and_then(Value::as_str),
+        Some("job-holder")
+    );
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("observe_then_reassess")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("not_started")
+    );
+}
+
+#[test]
+fn deployment_in_progress_is_safe_same_request_without_commitment() {
+    let error = RuntimeError::deployment_in_progress();
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/code").and_then(Value::as_str),
+        Some("DEPLOYMENT_IN_PROGRESS")
+    );
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("safe_same_request")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("not_started")
+    );
+    assert_eq!(
+        value.pointer("/retryAfterMs").and_then(Value::as_u64),
+        Some(1_000)
+    );
+}
+
+#[test]
+fn workspace_exists_guides_reconciliation_instead_of_blind_retry() {
+    let error = RuntimeError::new(
+        ordivon_runtime_core::RuntimeErrorCode::WorkspaceExists,
+        "workspace already exists",
+        Some("workspaceId"),
+        false,
+    );
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("reconcile_first")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("not_started")
+    );
+    assert_eq!(
+        value.pointer("/retryable").and_then(Value::as_bool),
+        Some(false)
+    );
+}
+
+#[test]
+fn unknown_dispatch_outcome_requires_reconciliation_before_retry() {
+    let error = RuntimeError::new(
+        ordivon_runtime_core::RuntimeErrorCode::DispatchOutcomeUnknown,
+        "launch response was lost after dispatch",
+        Some("clientRequestId"),
+        true,
+    );
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("reconcile_first")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("unknown")
+    );
+    assert_eq!(
+        value.pointer("/origin").and_then(Value::as_str),
+        Some("runtime_core")
+    );
+}
+
+#[test]
+fn every_public_tool_publishes_structured_output_contract() {
+    let sandbox = Sandbox::new("all-output-schemas");
+    let server = sandbox.server();
+    let tools = server.tool_router.list_all();
+    assert_eq!(tools.len(), 23);
+    for tool in tools {
+        let schema = tool
+            .output_schema
+            .as_ref()
+            .unwrap_or_else(|| panic!("{} omitted outputSchema", tool.name));
+        let value = serde_json::to_value(schema).unwrap();
+        assert_eq!(
+            value
+                .pointer("/oneOf")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(2),
+            "{} outputSchema must distinguish success from error",
+            tool.name
+        );
+        assert!(
+            serde_json::to_string(&value).unwrap().contains("error"),
+            "{} outputSchema omitted the standard error envelope",
+            tool.name
+        );
+    }
+}
+
+#[test]
+fn workspace_open_output_schema_exposes_success_and_error_contract() {
+    let sandbox = Sandbox::new("workspace-open-output-schema");
+    let server = sandbox.server();
+    let open = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.open")
+        .unwrap();
+    let schema = serde_json::to_value(open.output_schema.as_ref().unwrap()).unwrap();
+    let encoded = serde_json::to_string(&schema).unwrap();
+    assert_eq!(
+        schema
+            .pointer("/oneOf")
+            .and_then(Value::as_array)
+            .map(Vec::len),
+        Some(2)
+    );
+    for expected in [
+        "sourceRevision",
+        "error",
+        "runtime_core",
+        "mcp_adapter",
+        "workspace_executor",
+        "never",
+        "safe_same_request",
+        "reconcile_first",
+        "not_started",
+        "not_committed",
+        "committed",
+        "unknown",
+    ] {
+        assert!(
+            encoded.contains(expected),
+            "output schema omitted {expected}"
+        );
+    }
+}
+
+#[test]
+fn job_get_schema_is_projection_only_and_detail_free() {
+    let sandbox = Sandbox::new("job-get-schema");
+    let server = sandbox.server();
+    let job_get = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "job.get")
+        .unwrap();
+    let input = serde_json::to_value(&job_get.input_schema).unwrap();
+    assert_eq!(
+        input.pointer("/properties/eventLimit/default"),
+        Some(&serde_json::json!(DEFAULT_INSPECTION_EVENT_LIMIT))
+    );
+    assert_eq!(
+        input.pointer("/properties/eventLimit/maximum"),
+        Some(&serde_json::json!(MAX_INSPECTION_EVENT_LIMIT))
+    );
+    assert!(input.pointer("/properties/includeDetail").is_none());
+    assert!(input.pointer("/properties/waitMs").is_none());
+    assert!(input.pointer("/properties/stdoutTailBytes").is_none());
+
+    let output = serde_json::to_value(job_get.output_schema.as_ref().unwrap()).unwrap();
+    let encoded = serde_json::to_string(&output).unwrap();
+    for expected in [
+        "sourceRevision",
+        "workspaceSourceDigest",
+        "mechanicallyConverged",
+        "semanticCompletionEvaluated",
+        "attemptsTruncated",
+        "eventsTruncated",
+        "timeline",
+        "episodes",
+        "artifacts",
+    ] {
+        assert!(
+            encoded.contains(expected),
+            "job.get output omitted {expected}"
+        );
+    }
+}
+
+#[test]
+fn job_list_schema_exposes_workspace_reattachment_filter() {
+    let sandbox = Sandbox::new("task-list-workspace-filter-schema");
+    let server = sandbox.server();
+    let job_list = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "job.list")
+        .unwrap();
+    let schema = serde_json::to_value(&job_list.input_schema).unwrap();
+    assert!(schema.pointer("/properties/workspaceId").is_some());
+    let required = schema
+        .pointer("/required")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    assert!(!required
+        .iter()
+        .any(|value| value.as_str() == Some("workspaceId")));
+}
+
+#[test]
+fn workspace_changes_schema_exposes_bounded_continuation_contract() {
+    let sandbox = Sandbox::new("workspace-changes-schema");
+    let server = sandbox.server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.changes")
+        .unwrap();
+    let input = serde_json::to_value(&tool.input_schema).unwrap();
+    assert_eq!(
+        input.pointer("/properties/limit/default"),
+        Some(&serde_json::json!(64))
+    );
+    assert_eq!(
+        input.pointer("/properties/limit/maximum"),
+        Some(&serde_json::json!(1024))
+    );
+    assert_eq!(
+        input.pointer("/properties/maxBytes/default"),
+        Some(&serde_json::json!(262_144))
+    );
+    assert_eq!(
+        input.pointer("/properties/maxBytes/maximum"),
+        Some(&serde_json::json!(MAX_WORKSPACE_IO_BYTES))
+    );
+    assert!(input.pointer("/properties/cursor").is_some());
+    assert!(input
+        .pointer("/$defs/WorkspaceChangeCursor/properties/changeSetDigest")
+        .is_some());
+    assert!(input
+        .pointer("/$defs/WorkspaceChangeCursor/properties/afterPath")
+        .is_some());
+
+    let output = serde_json::to_value(tool.output_schema.as_ref().unwrap()).unwrap();
+    let encoded = serde_json::to_string(&output).unwrap();
+    assert!(encoded.contains("changeSetDigest"));
+    assert!(encoded.contains("nextCursor"));
+    assert!(encoded.contains("complete"));
+    assert!(encoded.contains("entryBytes"));
+    assert!(encoded.contains("totalEntries"));
+    assert!(encoded.contains("remainingEntries"));
+    assert!(encoded.contains("afterPath"));
+    assert!(encoded.contains("afterKind"));
+    assert!(encoded.contains("modified"));
+    assert!(encoded.contains("deleted"));
+    assert!(encoded.contains("untracked"));
+    assert!(!encoded.contains("renamed"));
+    assert!(!encoded.contains("copied"));
+}
+
+#[test]
+fn workspace_open_schema_prefers_server_generated_handles() {
+    let sandbox = Sandbox::new("workspace-open-schema");
+    let server = sandbox.server();
+    let open = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.open")
+        .unwrap();
+    let schema = serde_json::to_value(&open.input_schema).unwrap();
+    let required = schema
+        .pointer("/required")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    assert!(!required
+        .iter()
+        .any(|value| value.as_str() == Some("workspaceId")));
+    let bound = WorkspaceOpenRequest {
+        schema_version: 1,
+        workspace_id: None,
+        source_repo: "/tmp/repository".to_string(),
+        source_revision: "HEAD".to_string(),
+    }
+    .bind();
+    assert!(bound.workspace_id.starts_with("ws-"));
+    assert_eq!(bound.workspace_id.len(), 39);
+}
+
+#[test]
+fn workspace_projection_output_schema_distinguishes_lineage_from_current_head() {
+    let sandbox = Sandbox::new("workspace-revision-output-schema");
+    let tools = sandbox.server().tool_router.list_all();
+    for name in ["workspace.get", "workspace.list"] {
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name.as_ref() == name)
+            .unwrap();
+        let schema = serde_json::to_string(tool.output_schema.as_ref().unwrap()).unwrap();
+        assert!(
+            schema.contains("sourceRevision"),
+            "{name} omitted sourceRevision"
+        );
+        assert!(
+            schema.contains("currentHeadRevision"),
+            "{name} omitted currentHeadRevision"
+        );
+    }
+}
+
+#[test]
+fn workspace_list_schema_makes_exact_source_digest_opt_in() {
+    let sandbox = Sandbox::new("workspace-list-schema");
+    let server = sandbox.server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.list")
+        .unwrap();
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let required = schema
+        .pointer("/required")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    assert!(!required
+        .iter()
+        .any(|value| value.as_str() == Some("includeSourceStateDigest")));
+    assert!(!required
+        .iter()
+        .any(|value| value.as_str() == Some("cursor")));
+    assert!(schema.pointer("/properties/cursor").is_some());
+    assert!(schema
+        .pointer("/$defs/RuntimeWorkspaceListCursor/properties/createdAtMs")
+        .is_some());
+    assert!(schema
+        .pointer("/$defs/RuntimeWorkspaceListCursor/properties/workspaceId")
+        .is_some());
+    assert_eq!(
+        schema
+            .pointer("/properties/includeSourceStateDigest/default")
+            .and_then(Value::as_bool),
+        Some(false)
+    );
+}
+
+#[test]
+fn committed_operation_error_requires_exact_reattachment() {
+    let error = RuntimeError::new(
+        ordivon_runtime_core::RuntimeErrorCode::IoError,
+        "result projection failed after Job admission",
+        Some("bundlePath"),
+        false,
+    )
+    .with_operation_id("job-committed-operation");
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("reconcile_first")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("committed")
+    );
+    assert_eq!(
+        value.pointer("/operationId").and_then(Value::as_str),
+        Some("job-committed-operation")
+    );
+    assert_eq!(
+        value.pointer("/retryable").and_then(Value::as_bool),
+        Some(false)
+    );
+}
+
+#[test]
+fn typed_error_envelope_distinguishes_unknown_commit_state() {
+    let error = RuntimeError::new(
+        ordivon_runtime_core::RuntimeErrorCode::DispatchOutcomeUnknown,
+        "dispatch response was lost",
+        Some("operationId"),
+        true,
+    );
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/origin").and_then(Value::as_str),
+        Some("runtime_core")
+    );
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("reconcile_first")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("unknown")
+    );
+    assert_eq!(
+        value.pointer("/retryable").and_then(Value::as_bool),
+        Some(true)
+    );
+}
+
+#[test]
+fn incomplete_workspace_rollback_requires_reconciliation() {
+    let error = UniversalExecError {
+        code: ordivon_runtime_core::UniversalExecErrorCode::WorkspaceMutationIncomplete,
+        message: "patch failed and rollback could not restore one file".to_string(),
+        field: Some("files".to_string()),
+        retryable: false,
+    };
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("reconcile_first")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("unknown")
+    );
+}
+
+#[test]
+fn tool_catalog_digest_is_deterministic_and_discovery_visible() {
+    let sandbox = Sandbox::new("catalog-digest");
+    let server = sandbox.server();
+    let first = server.tool_catalog_digest();
+    let second = server.tool_catalog_digest();
+    assert_eq!(first, second);
+    assert!(first.starts_with("sha256:"));
+    assert_eq!(first.len(), 71);
+
+    let result = server.discovery_result();
+    assert_eq!(result.ttl_ms, 0);
+    assert_eq!(result.cache_scope, CacheScope::Private);
+    assert_eq!(
+        result
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.0.get("com.ordivon/runtime/toolCatalogDigest"))
+            .and_then(serde_json::Value::as_str),
+        Some(first.as_str())
+    );
+    assert_eq!(
+        result.supported_versions,
+        vec![
+            ProtocolVersion::V_2026_07_28,
+            ProtocolVersion::V_2025_11_25,
+            ProtocolVersion::V_2025_06_18,
+        ]
+    );
+    assert!(result.capabilities.tools.is_some());
+    assert!(result.capabilities.extensions.is_none());
+}
+
+#[test]
+fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
+    let sandbox = Sandbox::new("runtime-describe");
+    let server = sandbox.server_with_runtime_default(4_000);
+    let capabilities = server.state.runtime.capabilities();
+    let result = RuntimeDescribeResult::from_capabilities(
+        capabilities,
+        server.state.execution.global_limit,
+        server.state.release.is_some(),
+        Vec::new(),
+    );
+    assert_eq!(result.schema_version, 1);
+    assert_eq!(result.node.node_id, "test-node");
+    assert_eq!(
+        result.node.platform,
+        ordivon_runtime_core::RuntimeNodePlatform::Linux
+    );
+    assert!(result.node.native);
+    assert_eq!(result.global_execution_limit, 4);
+    assert_eq!(result.default_runtime_ms, 4_000);
+    assert_eq!(result.max_runtime_ms, 10_000);
+    assert_eq!(result.max_output_bytes, 1024 * 1024);
+    assert_eq!(result.allowed_executable_roots, vec!["/usr/bin"]);
+    assert!(result.input_authorities.is_empty());
+    assert_eq!(result.targets.len(), 1);
+    assert!(!result.structured_release_configured);
+    let linux = result
+        .targets
+        .iter()
+        .find(|target| target.target == ExecutionTarget::LocalLinux)
+        .unwrap();
+    assert!(linux.configured);
+    assert!(linux.available);
+    assert!(linux.structured_plan);
+    assert!(linux.immutable_inputs);
+    assert!(linux.host_dependency_commitments);
+    assert_eq!(
+        linux.host_dependency_continuity_scope.as_deref(),
+        Some("runtime_host_namespace_path_witness")
+    );
+    assert!(result
+        .targets
+        .iter()
+        .all(|target| target.target == ExecutionTarget::LocalLinux));
+
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "runtime.describe")
+        .unwrap();
+    let input = serde_json::to_value(&tool.input_schema).unwrap();
+    assert_eq!(
+        input.pointer("/properties/schemaVersion/default"),
+        Some(&serde_json::json!(1))
+    );
+    let required = input
+        .pointer("/required")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    assert!(required.is_empty());
+    let output = serde_json::to_string(tool.output_schema.as_ref().unwrap()).unwrap();
+    for expected in [
+        "node",
+        "nodeId",
+        "platform",
+        "native",
+        "globalExecutionLimit",
+        "defaultRuntimeMs",
+        "maxRuntimeMs",
+        "maxOutputBytes",
+        "allowedExecutableRoots",
+        "inputAuthorities",
+        "executionProvider",
+        "availabilityIssue",
+        "structuredPlan",
+        "immutableInputs",
+        "windowsImmutableInputAuthorities",
+        "hostDependencyCommitments",
+        "hostDependencyContinuityScope",
+    ] {
+        assert!(
+            output.contains(expected),
+            "runtime.describe omitted {expected}"
+        );
+    }
+}
+
+#[test]
+fn tools_list_projection_carries_required_private_zero_ttl_cache_hints() {
+    let server = Sandbox::new("tools-list-cache-hints").server();
+    let value = serde_json::to_value(server.list_tools_projection()).unwrap();
+    assert_eq!(value.get("ttlMs"), Some(&serde_json::json!(0)));
+    assert_eq!(value.get("cacheScope"), Some(&serde_json::json!("private")));
+    assert_eq!(
+        value.get("resultType"),
+        Some(&serde_json::json!("complete"))
+    );
+    assert!(value.get("tools").and_then(Value::as_array).is_some());
+}
+
+#[test]
+fn workspace_patch_control_plane_is_retired_in_favor_of_durable_exec() {
+    let server = Sandbox::new("workspace-patch-retired").server();
+    let names = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .map(|tool| tool.name.to_string())
+        .collect::<Vec<_>>();
+    assert!(
+        !names
+            .iter()
+            .any(|name| name == "workspace.patch" || name == "workspace.patch.get"),
+        "workspace.patch must not survive as a second durable effect lifecycle: {names:?}"
+    );
+    assert!(
+        names.iter().any(|name| name == "workspace.exec"),
+        "durable Job execution remains the response-loss-safe mutation substrate"
+    );
+}
+
+#[test]
+fn credential_bound_tool_schema_uses_opaque_names_not_digests_or_paths() {
+    let sandbox = Sandbox::new("credential-bound-schema");
+    let server = sandbox.server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "workspace.execCredentialBoundTrusted")
+        .expect("credential-bound Tool must be published");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let text = serde_json::to_string(&schema).unwrap();
+    assert!(text.contains("credential"));
+    assert!(text.contains("authority"));
+    let credential_properties = schema
+        .pointer("/$defs/CredentialBindingRequest/properties")
+        .or_else(|| schema.pointer("/definitions/CredentialBindingRequest/properties"))
+        .and_then(Value::as_object)
+        .expect("CredentialBindingRequest properties must be present");
+    assert_eq!(
+        credential_properties
+            .keys()
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>(),
+        ["authority".to_string(), "credential".to_string()]
+            .into_iter()
+            .collect()
+    );
+    assert!(!credential_properties.contains_key("root"));
+    assert!(!credential_properties.contains_key("expectedDigest"));
+    assert!(!credential_properties.contains_key("relativeObject"));
+    assert!(!credential_properties.contains_key("presentationName"));
+}
+
+#[test]
+fn structured_release_platform_selects_only_its_native_deployer_and_authority() {
+    let root = PathBuf::from("/operator/runtime-source");
+    let common = |platform| RuntimeReleaseExecutionConfig {
+        platform,
+        source_repo: root.clone(),
+        install_dir: PathBuf::from("/operator/install"),
+        database: PathBuf::from("/operator/registry.sqlite3"),
+        env_file: PathBuf::from("/operator/runtime.env"),
+        receipt_root: PathBuf::from("/operator/receipts"),
+        service_name: "ordivon-runtime.service".to_string(),
+        broker_service_name: match platform {
+            RuntimeReleaseExecutionPlatform::LocalLinux => None,
+            RuntimeReleaseExecutionPlatform::WindowsNative => {
+                Some("OrdivonRuntimePrivilegedBroker".to_string())
+            }
+        },
+        required_ref: "origin/main".to_string(),
+        timeout_ms: 30_000,
+    };
+    let commit = "a".repeat(40);
+
+    let linux = common(RuntimeReleaseExecutionPlatform::LocalLinux);
+    assert_eq!(
+        linux.candidate_deployer(&commit),
+        linux.candidate_dir(&commit).join("ordivon-runtime-deploy")
+    );
+    assert_eq!(linux.execution_target(), ExecutionTarget::LocalLinux);
+    assert_eq!(linux.windows_authority(), WindowsAuthority::Limited);
+
+    let windows = common(RuntimeReleaseExecutionPlatform::WindowsNative);
+    assert_eq!(
+        windows.candidate_deployer(&commit),
+        windows
+            .candidate_dir(&commit)
+            .join("ordivon-runtime-windows-deploy.exe")
+    );
+    assert_eq!(windows.execution_target(), ExecutionTarget::WindowsNative);
+    assert_eq!(windows.windows_authority(), WindowsAuthority::Elevated);
+}
+
+#[test]
+fn compiled_tool_catalog_identity_is_deterministic_and_host_extension_free() {
+    let first = RuntimeServer::compiled_tool_catalog_identity();
+    let second = RuntimeServer::compiled_tool_catalog_identity();
+    assert_eq!(first, second);
+    assert_eq!(first.0, 23);
+    assert!(first.1.starts_with("sha256:"));
+    assert_eq!(first.1.len(), 71);
+
+    let sandbox = Sandbox::new("compiled-catalog-base");
+    let server = sandbox.server_with_input_ingress();
+    assert_eq!(RuntimeServer::compiled_tool_catalog_identity(), first);
+    assert_ne!(server.tool_catalog_digest(), first.1);
+}
