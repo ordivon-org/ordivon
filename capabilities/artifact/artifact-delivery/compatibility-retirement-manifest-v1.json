@@ -129,6 +129,80 @@
       "referenceProjectionOwner": "artifact_capabilities.presentation.reference_projection",
       "snapshotOwner": "artifact_evidence.snapshot"
     },
+    "a16": {
+      "cliParserDisposition": "KEEP_CLI",
+      "deliveryTrustSeamRetired": true,
+      "integrationEvidence": {
+        "commandBoundary": "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/bin .venv/bin/python -m pytest -q -m integration",
+        "frozenVerifierRewriteRequired": false,
+        "reason": "Blender and GDAL embed or invoke Python-capable components and must not inherit the repository venv as an external-tool runtime authority.",
+        "runner": "workspace .venv Python with system PATH; no uv-run VIRTUAL_ENV propagation to external tools",
+        "status": "PASS",
+        "testCount": 39,
+        "uvRunDiagnostic": "uv run prepends workspace .venv/bin and sets VIRTUAL_ENV; this caused Blender/GDAL Python components to resolve incompatible CPython 3.14 stdlib/extension-module context after reboot."
+      },
+      "legacyMutableTrustTestMigratedToOwnerInjection": true,
+      "productionPythonConsumersOfDeliveryTrustSeam": 0,
+      "staticQuality": {
+        "activeNonFrozenPolicyFindings": 0,
+        "residualClasses": {
+          "artifactPythonGenerationCarrier": {
+            "findings": 3,
+            "paths": [
+              "scripts/artifact_delivery_environment.py",
+              "scripts/artifact_delivery_python_wrapper.py"
+            ],
+            "reason": "Artifact Python carrier sources participate in generation materialization; they are outside ordinary repository-lint cleanup."
+          },
+          "digestFrozenFamilyVerifier": {
+            "findings": 21,
+            "paths": [
+              "scripts/artifact_web_archive.py",
+              "scripts/artifact_still_image.py",
+              "scripts/artifact_message.py",
+              "scripts/artifact_dataset.py",
+              "scripts/artifact_wave.py",
+              "scripts/artifact_tiled.py",
+              "scripts/artifact_svg.py",
+              "scripts/artifact_software_release_elf.py",
+              "scripts/artifact_software_release.py",
+              "scripts/artifact_ogg_vorbis.py",
+              "scripts/artifact_moving_image.py",
+              "scripts/artifact_geospatial.py",
+              "scripts/artifact_design3d.py",
+              "scripts/artifact_cad_step.py",
+              "scripts/artifact_audio.py",
+              "scripts/artifact_aseprite.py"
+            ],
+            "reason": "Verifier bytes are referenced by donor, consumer-acceptance, capability-binding, or equivalent evidence and are not rewritten for cosmetic lint."
+          },
+          "doNotPromoteTransport": {
+            "findings": 7,
+            "paths": [
+              "scripts/artifact_r2_mailbox.py"
+            ],
+            "reason": "R2 mailbox transport is explicitly DO_NOT_PROMOTE and donor-digest recorded."
+          },
+          "donorMaintenance": {
+            "findings": 1,
+            "paths": [
+              "scripts/artifact_donor_export.py"
+            ],
+            "reason": "Donor export is maintenance/evidence generation, not an active production execution surface."
+          },
+          "openXmlGenerationCarrier": {
+            "findings": 7,
+            "paths": [
+              "scripts/artifact_openxml_environment.py",
+              "scripts/artifact_openxml_validator_wrapper.py",
+              "scripts/artifact_openxml_dotnet_wrapper.py"
+            ],
+            "reason": "OpenXML generation bindings commit wrapper/source identity; cosmetic rewrites require carrier rematerialization and evidence replay."
+          }
+        },
+        "residualPolicyFindings": 39
+      }
+    },
     "productionCliConsumers": [
       "scripts/artifact_agent_surface.py",
       "scripts/artifact_delivery_toolchain_doctor.py",
@@ -151,7 +225,7 @@
       "DEPRECATE",
       "DROP"
     ],
-    "nextWave": "A16 may address remaining DEPRECATE seam and CLI-parser extraction only from the frozen post-A15 surface",
+    "nextWave": "No broad decomposition wave is planned; future compatibility retirement is consumer-driven.",
     "rule": "tests alone do not create a production API obligation; production CLI/Python consumers, documented compatibility promises, and migration evidence do"
   },
   "retiredSymbols": [
@@ -274,12 +348,18 @@
       "replacement": "artifact_evidence.snapshot.utc_now",
       "symbol": "utc_now",
       "wave": "A15"
+    },
+    {
+      "reason": "moved-to-owner",
+      "replacement": "artifact_trust.vsa.default_trust_toolchain_config and explicit TrustToolchainConfig injection",
+      "symbol": "_delivery_trust_toolchain_config",
+      "wave": "A16"
     }
   ],
   "schemaVersion": 1,
   "sourceAuthority": {
     "baselineCommit": "306153f61a95fdb2ea0c3696229f64946b807ddd",
-    "currentWave": "A15",
+    "currentWave": "A16",
     "path": "scripts/artifact_delivery.py"
   },
   "symbols": [
@@ -291,15 +371,6 @@
       "standing": "KEEP",
       "symbol": "_canonicalize_ppt_creation_ids",
       "targetOwner": "artifact_capabilities.presentation.canonicalization"
-    },
-    {
-      "consumerClass": "private-compatibility-wiring",
-      "currentOwner": "scripts.artifact_delivery",
-      "disposition": "DEPRECATE",
-      "retirementGate": "migrate Delivery-local mutable Trust constant compatibility and tests to Trust-owned configuration",
-      "standing": "ACTIVE_BLOCKED",
-      "symbol": "_delivery_trust_toolchain_config",
-      "targetOwner": "artifact_trust.vsa.default_trust_toolchain_config"
     },
     {
       "consumerClass": "cli-infrastructure",
@@ -599,5 +670,5 @@
       "targetOwner": "scripts.artifact_delivery"
     }
   ],
-  "wave": "A14"
+  "wave": "A16"
 }

@@ -9,11 +9,11 @@ import unittest
 import zipfile
 from pathlib import Path
 
+from artifact_capabilities.presentation import compose_reference_hybrid_source, project_opc_members
+from artifact_core.contracts import sha256_file
+from artifact_operations.providers import DirectPythonOperationProvider
+
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("artifact_delivery_opc", ROOT / "scripts/artifact_delivery.py")
-assert SPEC is not None and SPEC.loader is not None
-MODULE = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(MODULE)
 
 
 def digest(data: bytes) -> str:
@@ -27,7 +27,7 @@ def manifest_for(package: Path, members: list[tuple[str, bytes, str]]) -> dict:
         "projectionId": "test-opc-r1",
         "parentPackage": {
             "format": "pptx",
-            "sha256": "sha256:" + MODULE.sha256_file(package),
+            "sha256": "sha256:" + sha256_file(package),
             "expectedSizeBytes": package.stat().st_size,
         },
         "members": [
@@ -70,12 +70,12 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
                 ("ppt/media/two.jpeg", two, "slide-02.jpeg"),
             ]))
             out = root / "out"
-            first = MODULE.project_opc_members(package, manifest, out)
+            first = project_opc_members(package, manifest, out)
             self.assertEqual(first["status"], "PASS", first)
             self.assertEqual(first["replayedMemberCount"], 0)
             self.assertEqual((out / "slide-01.jpeg").read_bytes(), one)
             self.assertFalse((out / "ignored.bin").exists())
-            replay = MODULE.project_opc_members(package, manifest, out)
+            replay = project_opc_members(package, manifest, out)
             self.assertEqual(replay["status"], "PASS", replay)
             self.assertEqual(replay["replayedMemberCount"], 2)
 
@@ -88,7 +88,7 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             value["parentPackage"]["sha256"] = "sha256:" + "0" * 64
             manifest = self.write_manifest(root, value)
             with self.assertRaisesRegex(RuntimeError, "parent package digest mismatch"):
-                MODULE.project_opc_members(package, manifest, root / "out")
+                project_opc_members(package, manifest, root / "out")
             self.assertFalse((root / "out" / "slide-01.jpeg").exists())
 
     def test_member_digest_and_size_are_both_fenced(self) -> None:
@@ -100,12 +100,12 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             value["members"][0]["expectedSizeBytes"] += 1
             manifest = self.write_manifest(root, value)
             with self.assertRaisesRegex(RuntimeError, "part size mismatch"):
-                MODULE.project_opc_members(package, manifest, root / "out")
+                project_opc_members(package, manifest, root / "out")
             value = manifest_for(package, [("ppt/media/one.jpeg", data, "slide-01.jpeg")])
             value["members"][0]["sha256"] = "sha256:" + "1" * 64
             manifest = self.write_manifest(root, value)
             with self.assertRaisesRegex(RuntimeError, "part digest mismatch"):
-                MODULE.project_opc_members(package, manifest, root / "out2")
+                project_opc_members(package, manifest, root / "out2")
 
     def test_duplicate_archive_member_and_duplicate_output_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -117,7 +117,7 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             value = manifest_for(package, [("ppt/media/one.jpeg", b"one", "slide-01.jpeg")])
             manifest = self.write_manifest(root, value)
             with self.assertRaisesRegex(RuntimeError, "occur exactly once"):
-                MODULE.project_opc_members(package, manifest, root / "out")
+                project_opc_members(package, manifest, root / "out")
 
             package = self.make_package(root, [("ppt/media/one.jpeg", b"one"), ("ppt/media/two.jpeg", b"two")])
             value = manifest_for(package, [
@@ -126,7 +126,7 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             ])
             manifest = self.write_manifest(root, value)
             with self.assertRaisesRegex(RuntimeError, "duplicates outputRelativePath"):
-                MODULE.project_opc_members(package, manifest, root / "out2")
+                project_opc_members(package, manifest, root / "out2")
 
     def test_symlink_parent_package_and_conflicting_output_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -137,12 +137,12 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             link = root / "linked.pptx"
             os.symlink(package, link)
             with self.assertRaisesRegex(RuntimeError, "non-symlink"):
-                MODULE.project_opc_members(link, manifest, root / "out-link")
+                project_opc_members(link, manifest, root / "out-link")
             out = root / "out"
             out.mkdir()
             (out / "slide-01.jpeg").write_bytes(b"conflict")
             with self.assertRaisesRegex(RuntimeError, "refuses to overwrite"):
-                MODULE.project_opc_members(package, manifest, out)
+                project_opc_members(package, manifest, out)
             self.assertEqual((out / "slide-01.jpeg").read_bytes(), b"conflict")
 
     def test_manifest_path_traversal_is_rejected(self) -> None:
@@ -153,7 +153,7 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             value = manifest_for(package, [("ppt/media/one.jpeg", data, "../escape.jpeg")])
             manifest = self.write_manifest(root, value)
             with self.assertRaisesRegex(RuntimeError, "normalized POSIX relative path"):
-                MODULE.project_opc_members(package, manifest, root / "out")
+                project_opc_members(package, manifest, root / "out")
             self.assertFalse((root / "escape.jpeg").exists())
 
     def test_pdu_sdu_r2_parent_binding_and_eight_opc_parts_are_frozen(self) -> None:
@@ -198,7 +198,7 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             visual_root.mkdir()
             visual = visual_root / "slide-01.jpeg"
             Image.new("RGB", (8, 3), (255, 255, 255)).save(visual, format="JPEG")
-            sha = MODULE.sha256_file(visual)
+            sha = sha256_file(visual)
             semantic = {
                 "$schema": "../../presentation-source-v1.schema.json",
                 "schemaVersion": 1,
@@ -225,14 +225,14 @@ class ArtifactOpcProjectionTests(unittest.TestCase):
             semantic_path = root / "semantic.json"; semantic_path.write_text(json.dumps(semantic))
             reference_path = root / "reference.json"; reference_path.write_text(json.dumps(reference))
             hybrid_path = root / "hybrid.json"
-            receipt = MODULE.compose_reference_hybrid_source(semantic_path, reference_path, visual_root, hybrid_path)
+            receipt = compose_reference_hybrid_source(semantic_path, reference_path, visual_root, hybrid_path)
             self.assertEqual(receipt["status"], "PASS", receipt)
             hybrid = json.loads(hybrid_path.read_text())
             self.assertEqual(hybrid["slides"][0]["elements"][0]["kind"], "image")
             self.assertFalse(hybrid["slides"][0]["elements"][0]["decorative"])
             self.assertIn("accessibility/use review is still required", hybrid["slides"][0]["elements"][0]["altText"])
             self.assertEqual(hybrid["slides"][0]["elements"][1]["id"], "t")
-            built = MODULE.build_presentation_source(
+            built = DirectPythonOperationProvider().build_presentation_source(
                 hybrid_path,
                 ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json",
                 root / "hybrid.pptx",

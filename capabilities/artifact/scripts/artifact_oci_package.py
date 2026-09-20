@@ -12,11 +12,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
-from typing import Any, Iterable
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT = SCRIPT_DIR.parent
@@ -24,18 +25,15 @@ for candidate in (ROOT, SCRIPT_DIR):
     if str(candidate) not in sys.path:
         sys.path.insert(0, str(candidate))
 
+from artifact_capabilities.presentation import admit_presentation_source, admit_semantic_svg_source
 from artifact_core.admission import AdmissionHooks, admit_delivery_request
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.json_validation import validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1
-from artifact_capabilities.presentation import admit_presentation_source, admit_semantic_svg_source
 from artifact_evidence.delivery import verify_file_fact
 from artifact_trust.provenance import slsa_statement, verify_release_provenance
 from artifact_trust.vsa import (
-    LOCAL_VSA_VERIFIER_ID,
-    SIGSTORE_BUNDLE_V03,
     aggregate_vsa_gates,
-    cosign_tool_fact,
 )
 
 DEFAULT_ORAS = Path(os.environ.get("ARTIFACT_ORAS", "/opt/ordivon/external/oras/1.3.4/bin/oras"))

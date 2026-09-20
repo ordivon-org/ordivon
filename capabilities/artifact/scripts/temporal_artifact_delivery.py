@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Temporal durable execution for Artifact Build & Delivery E2E."""
 from __future__ import annotations
+
 import concurrent.futures
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
+
 from temporalio import activity, workflow
 from temporalio.client import Client
 from temporalio.common import RetryPolicy
 from temporalio.worker import Worker
+
 with workflow.unsafe.imports_passed_through():
     from artifact_delivery_temporal_support import ReceiptFencedArtifactExecutor
 PREPARE_ACTIVITY='ordivon.artifact.prepare'; BUILD_ACTIVITY='ordivon.artifact.build'; VERIFY_ACTIVITY='ordivon.artifact.verify'; TRUST_ACTIVITY='ordivon.artifact.verify-trust'; PACKAGE_ACTIVITY='ordivon.artifact.package'; ARTIFACT_DELIVERY_WORKFLOW='ordivon.artifact.delivery'; TRUST_MATERIAL_SIGNAL='ordivon.artifact.submit-trust-material'; STATUS_QUERY='ordivon.artifact.status'

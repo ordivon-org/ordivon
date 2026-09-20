@@ -9,96 +9,91 @@ mature validators whenever available.
 from __future__ import annotations
 
 import argparse
-import copy
-import datetime as dt
-import hashlib
-import importlib.util
-import importlib.metadata
-import io
 import json
 import os
-from pathlib import Path, PurePosixPath
-import posixpath
-import re
-import shutil
-import subprocess
-import struct
 import sys
-import tempfile
-import urllib.parse
-import xml.etree.ElementTree as ET
-import zipfile
-from typing import Any, Iterable
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from artifact_core.admission import AdmissionHooks, admit_delivery_request
-from artifact_core.json_validation import validate_json_document as core_validate_json_document
-from artifact_core.build_bindings import BuildCapabilityBindingRegistry
-from artifact_core.build_planning import compile_delivery_plan_from_validation
-from artifact_core.contracts import file_fact, sha256_file
-from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
-from artifact_operations.providers import DirectPythonOperationProvider
-from artifact_trust.provenance import slsa_statement, verify_release_provenance
-import artifact_trust.vsa as trust_vsa
-from artifact_capabilities.dispatch import execute_build_adapter
-from artifact_capabilities.presentation import (
-    compose_reference_hybrid_source as presentation_compose_reference_hybrid_source,
-    project_opc_members as presentation_project_opc_members,
-    DETERMINISTIC_OPC_CORE_TIMESTAMP,
-    DETERMINISTIC_ZIP_DATETIME,
-    PresentationBuildHooks,
-    _canonicalize_ppt_creation_ids as presentation_canonicalize_ppt_creation_ids,
-    canonicalize_generated_ooxml_metadata as presentation_canonicalize_ooxml,
-    normalize_zip_member_timestamps as presentation_normalize_zip_timestamps,
-    admit_presentation_source as presentation_admit_source,
-    admit_semantic_svg_source as presentation_admit_semantic_svg_source,
-    build_presentation_source as presentation_build_source,
-    build_semantic_svg_presentation_source as presentation_build_semantic_svg_source,
-)
 import artifact_capabilities.presentation.common as presentation_common
 import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
-from artifact_verifiers.document import (
-    DocumentDependencyHooks,
-    verify_document_dependencies as document_verify_dependencies,
-    verify_document_semantic_correspondence as document_verify_semantics,
+import artifact_trust.vsa as trust_vsa
+from artifact_capabilities.presentation import (
+    DETERMINISTIC_ZIP_DATETIME,
 )
-from artifact_verifiers.web import (
-    verify_html_conformance as web_verify_conformance,
-    verify_web_local as web_verify_local,
-    vnu_jar as web_vnu_jar,
+from artifact_capabilities.presentation import (
+    _canonicalize_ppt_creation_ids as presentation_canonicalize_ppt_creation_ids,
+)
+from artifact_capabilities.presentation import (
+    canonicalize_generated_ooxml_metadata as presentation_canonicalize_ooxml,
+)
+from artifact_capabilities.presentation import (
+    compose_reference_hybrid_source as presentation_compose_reference_hybrid_source,
+)
+from artifact_capabilities.presentation import (
+    normalize_zip_member_timestamps as presentation_normalize_zip_timestamps,
+)
+from artifact_capabilities.presentation import (
+    project_opc_members as presentation_project_opc_members,
+)
+from artifact_core.build_bindings import BuildCapabilityBindingRegistry
+from artifact_core.json_validation import validate_json_document as core_validate_json_document
+from artifact_core.profile_v1 import validate_profile_v1 as validate_profile
+from artifact_evidence.delivery import (
+    verify_readback,
+)
+from artifact_evidence.snapshot import snapshot_materials as evidence_snapshot_materials
+from artifact_operations.providers import DirectPythonOperationProvider
+from artifact_trust.provenance import slsa_statement
+from artifact_verification import (
+    write_gate_receipt,
+)
+from artifact_verifiers.document import (
+    verify_document_semantic_correspondence as document_verify_semantics,
 )
 from artifact_verifiers.openxml import (
     verify_openxml_artifact as openxml_verify_artifact,
 )
 from artifact_verifiers.pdf import (
     verapdf_executable as pdf_verapdf_executable,
+)
+from artifact_verifiers.pdf import (
     verify_pdf as pdf_verify_structural,
+)
+from artifact_verifiers.pdf import (
     verify_pdf_conformance as pdf_verify_conformance,
 )
 from artifact_verifiers.presentation import (
     PresentationGateHooks,
+)
+from artifact_verifiers.presentation import (
     inspect_pptx as presentation_inspect_pptx,
+)
+from artifact_verifiers.presentation import (
     presentation_gate as presentation_verification_gate,
+)
+from artifact_verifiers.presentation import (
     verify_font_manifest as presentation_verify_fonts,
+)
+from artifact_verifiers.presentation import (
     verify_openxml_evidence as presentation_verify_openxml_evidence,
+)
+from artifact_verifiers.presentation import (
     verify_presentation_semantics as presentation_verify_semantics,
 )
-from artifact_verification import (
-    VerificationStageHooks,
-    execute_verify_stage as verification_execute_stage,
-    write_gate_receipt,
+from artifact_verifiers.web import (
+    verify_html_conformance as web_verify_conformance,
 )
-from artifact_evidence.snapshot import snapshot_materials as evidence_snapshot_materials
-from artifact_evidence.delivery import (
-    verify_delivery_evidence,
-    verify_file_fact,
-    verify_readback,
-    verify_render_evidence,
-    verify_target_evidence,
-    verify_visual_review,
+from artifact_verifiers.web import (
+    verify_web_local as web_verify_local,
+)
+from artifact_verifiers.web import (
+    vnu_jar as web_vnu_jar,
 )
 
 BUILD_BINDING_REGISTRY = BuildCapabilityBindingRegistry(ROOT / "artifact-delivery")
@@ -126,11 +121,6 @@ LOCAL_VSA_VERIFIER_ID = trust_vsa.LOCAL_VSA_VERIFIER_ID
 SIGSTORE_BUNDLE_V03 = trust_vsa.SIGSTORE_BUNDLE_V03
 INTOTO_DSSE_PAYLOAD_TYPE = trust_vsa.INTOTO_DSSE_PAYLOAD_TYPE
 COSIGN_STANDARD_BUNDLE_MIN_VERSION = trust_vsa.COSIGN_STANDARD_BUNDLE_MIN_VERSION
-COSIGN_LOCK_PATH = trust_vsa.COSIGN_LOCK_PATH
-COSIGN_SELECTED_BINARY = trust_vsa.COSIGN_SELECTED_BINARY
-COSIGN_ARCH_PACKAGE = trust_vsa.COSIGN_ARCH_PACKAGE
-COSIGN_ARCH_PACKAGE_SIGNATURE = trust_vsa.COSIGN_ARCH_PACKAGE_SIGNATURE
-_COSIGN_PROVENANCE_CACHE = trust_vsa._COSIGN_PROVENANCE_CACHE
 VSA_GATE_NAMES = trust_vsa.VSA_GATE_NAMES
 ASSEMBLY_GATE_NAMES = trust_vsa.ASSEMBLY_GATE_NAMES
 OOXML_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -404,21 +394,12 @@ verify_sigstore_vsa_bundle_shape = trust_vsa.verify_sigstore_vsa_bundle_shape
 _version_at_least = trust_vsa._version_at_least
 
 
-def _delivery_trust_toolchain_config() -> trust_vsa.TrustToolchainConfig:
-    return trust_vsa.TrustToolchainConfig(
-        lock_path=COSIGN_LOCK_PATH,
-        selected_binary=COSIGN_SELECTED_BINARY,
-        arch_package=COSIGN_ARCH_PACKAGE,
-        arch_package_signature=COSIGN_ARCH_PACKAGE_SIGNATURE,
-    )
-
-
 
 
 
 
 def cosign_tool_fact() -> dict[str, Any]:
-    return trust_vsa.cosign_tool_fact(_delivery_trust_toolchain_config())
+    return trust_vsa.cosign_tool_fact()
 
 
 def verify_signed_verification_summary(
@@ -436,7 +417,6 @@ def verify_signed_verification_summary(
         profile_path,
         trust_policy_path,
         signer_id,
-        toolchain=_delivery_trust_toolchain_config(),
     )
 
 
@@ -480,7 +460,6 @@ def aggregate_vsa_gates(
         bundles=bundles,
         trust_policy_path=trust_policy_path,
         signer_ids=signer_ids,
-        toolchain=_delivery_trust_toolchain_config(),
     )
 
 

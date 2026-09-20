@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,asyncio,hashlib,json
+
+import argparse
+import asyncio
+import hashlib
+import json
 from pathlib import Path
+
+from temporal_artifact_delivery import ARTIFACT_DELIVERY_WORKFLOW, TRUST_MATERIAL_SIGNAL
 from temporalio.client import Client
-from temporalio.common import WorkflowIDConflictPolicy,WorkflowIDReusePolicy
+from temporalio.common import WorkflowIDConflictPolicy, WorkflowIDReusePolicy
 from temporalio.exceptions import WorkflowAlreadyStartedError
-from temporal_artifact_delivery import ARTIFACT_DELIVERY_WORKFLOW,TRUST_MATERIAL_SIGNAL
+
+from artifact_operations import validate_public_trust_material_envelope
+
+
 def sha(p:Path)->str:return hashlib.sha256(p.read_bytes()).hexdigest()
 
-from artifact_delivery_temporal_support import validate_public_trust_material_envelope
+
 
 async def main_async()->int:
     p=argparse.ArgumentParser();p.add_argument('--address',default='127.0.0.1:17233');p.add_argument('--namespace',default='default');p.add_argument('--task-queue',default='ordivon-artifact-delivery');sub=p.add_subparsers(dest='command',required=True);s=sub.add_parser('start');s.add_argument('--request',type=Path,required=True);s.add_argument('--workflow-id');s.add_argument('--allow-local-unsigned-development',action='store_true');s.add_argument('--initial-trust-material',type=Path);g=sub.add_parser('signal-trust');g.add_argument('--workflow-id',required=True);g.add_argument('--trust-material',type=Path,required=True);a=p.parse_args();client=await Client.connect(a.address,namespace=a.namespace)

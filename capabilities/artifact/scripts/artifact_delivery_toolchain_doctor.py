@@ -8,23 +8,23 @@ visual quality, PDF/UA conformance of arbitrary files, or delivery completion.
 """
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
-import tempfile
-from typing import Any
 import sys
+import tempfile
+from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import artifact_trust.vsa as artifact_trust_vsa
+
 GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(os.environ.get("ARTIFACT_TOOLCHAIN_ROOT", "/opt/ordivon/external/artifact-toolchain"))
 GLOBAL_PANDOC = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "pandoc/3.10.2/bin/pandoc"
 GLOBAL_VERAPDF = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "verapdf/1.30.2/verapdf"

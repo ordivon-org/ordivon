@@ -10,11 +10,10 @@ from artifact_operations import (
     operation_envelope,
     operation_file_fact,
     operation_key,
-    validate_public_trust_material_envelope,
 )
 from artifact_operations.providers import (
-    DirectPythonOperationProvider,
     DeliveryCliOperationProvider,
+    DirectPythonOperationProvider,
 )
 
 DEFAULT_ARTIFACT_PYTHON = Path(

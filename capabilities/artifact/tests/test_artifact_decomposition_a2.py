@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from artifact_core.contracts import sha256_file
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -29,7 +31,7 @@ class ArtifactDecompositionA2Tests(unittest.TestCase):
         self.assertIn("BUILD_BINDING_REGISTRY", source)
 
     def test_request_admission_is_owned_by_core_module(self) -> None:
-        source = (ROOT / "scripts/artifact_delivery.py").read_text(encoding="utf-8")
+        source = (ROOT / "artifact_operations/providers/direct_python.py").read_text(encoding="utf-8")
         self.assertIn("admit_delivery_request", source)
         self.assertIn("AdmissionHooks", source)
 
@@ -105,8 +107,8 @@ class ArtifactDecompositionA2Tests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "artifact-delivery-request",
                 "requestId": "artifact-request:a2-document",
-                "profile": {"id": "document-r1", "path": str(profile), "sha256": module.sha256_file(profile)},
-                "source": {"kind": "markdown", "path": source.name, "sha256": module.sha256_file(source)},
+                "profile": {"id": "document-r1", "path": str(profile), "sha256": sha256_file(profile)},
+                "source": {"kind": "markdown", "path": source.name, "sha256": sha256_file(source)},
                 "materials": [],
                 "outputDirectory": "out",
                 "builder": {
@@ -133,7 +135,7 @@ class ArtifactDecompositionA2Tests(unittest.TestCase):
 
 
     def test_build_stage_dispatch_is_owned_by_capability_layer(self) -> None:
-        source = (ROOT / "scripts/artifact_delivery.py").read_text(encoding="utf-8")
+        source = (ROOT / "artifact_operations/providers/direct_python.py").read_text(encoding="utf-8")
         self.assertNotIn('if adapter == "python-pptx-presentation-source-v1"', source)
         self.assertIn("execute_build_adapter", source)
 

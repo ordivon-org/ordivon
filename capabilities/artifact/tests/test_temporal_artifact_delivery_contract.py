@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from artifact_operations import validate_public_trust_material_envelope
+
 ROOT=Path(__file__).resolve().parents[1]; SUPPORT=ROOT/'scripts/artifact_delivery_temporal_support.py'
 def load_support():
     spec=importlib.util.spec_from_file_location('artifact_delivery_temporal_support_test',SUPPORT);m=importlib.util.module_from_spec(spec);assert spec.loader is not None;spec.loader.exec_module(m);return m
@@ -45,11 +47,10 @@ class TemporalArtifactDeliveryContractTests(unittest.TestCase):
         self.assertIn('jsonschema package is not installed',message)
 
     def test_launcher_rejects_secret_before_temporal_signal(self):
-        m=load_support()
         with self.assertRaisesRegex(ValueError,'unsupported fields'):
-            m.validate_public_trust_material_envelope({'trustPolicy':{},'bundles':{},'signerIds':{},'privateKey':'forbidden'})
+            validate_public_trust_material_envelope({'trustPolicy':{},'bundles':{},'signerIds':{},'privateKey':'forbidden'})
         good={'trustPolicy':{'path':'/tmp/policy.json','sha256':'a'*64},'bundles':{'structural':{'path':'/tmp/structural.sigstore.json','sha256':'b'*64}},'signerIds':{'structural':'release-signer'}}
-        self.assertIs(m.validate_public_trust_material_envelope(good),good)
+        self.assertIs(validate_public_trust_material_envelope(good),good)
 
     def test_abandoned_operation_without_receipt_is_rebuilt(self):
         m=load_support()

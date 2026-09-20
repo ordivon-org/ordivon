@@ -14,12 +14,32 @@ from unittest import mock
 
 import pytest
 
+import artifact_capabilities.presentation.canonicalization as presentation_canonicalization
+import artifact_capabilities.presentation.ppt_master as presentation_ppt_master
+import artifact_trust.vsa as trust_vsa
+from artifact_capabilities.presentation import DETERMINISTIC_OPC_CORE_TIMESTAMP
+from artifact_core.contracts import sha256_file
+from artifact_evidence.delivery import (
+    verify_delivery_evidence,
+    verify_render_evidence,
+    verify_target_evidence,
+    verify_visual_review,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts/artifact_delivery.py"
 SPEC = importlib.util.spec_from_file_location("artifact_delivery", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+@pytest.fixture(autouse=True)
+def isolate_workstation_openxml_carrier(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep hermetic tests independent of ambient workstation-managed OpenXML state."""
+    if request.node.get_closest_marker("integration") is None:
+        monkeypatch.setenv("ARTIFACT_OPENXML_VALIDATOR", "/nonexistent/validate-openxml")
+        monkeypatch.setenv("ARTIFACT_DOTNET", "/nonexistent/dotnet")
 
 
 def openxml_validator_path() -> Path:
@@ -141,8 +161,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "artifact-delivery-request",
                 "requestId": "artifact-request:digest-drift",
-                "profile": {"id": "pdu-sdu-presentation-r1", "path": "profile.json", "sha256": MODULE.sha256_file(profile)},
-                "source": {"kind": "presentation-source-v1", "path": "source.json", "sha256": MODULE.sha256_file(source)},
+                "profile": {"id": "pdu-sdu-presentation-r1", "path": "profile.json", "sha256": sha256_file(profile)},
+                "source": {"kind": "presentation-source-v1", "path": "source.json", "sha256": sha256_file(source)},
                 "outputDirectory": "out",
                 "builder": {
                     "id": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
@@ -186,7 +206,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "locale": "en-US",
                 "transition": "none",
                 "nativeChartsAndTables": False,
-                "pages": [{"id": "page-01", "path": page.name, "sha256": MODULE.sha256_file(page)}],
+                "pages": [{"id": "page-01", "path": page.name, "sha256": sha256_file(page)}],
             }
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
@@ -194,8 +214,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "artifact-delivery-request",
                 "requestId": "artifact-request:semantic-svg-routing-smoke-r1",
-                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": MODULE.sha256_file(profile)},
-                "source": {"kind": "presentation-semantic-svg-source-v1", "path": source_path.name, "sha256": MODULE.sha256_file(source_path)},
+                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": sha256_file(profile)},
+                "source": {"kind": "presentation-semantic-svg-source-v1", "path": source_path.name, "sha256": sha256_file(source_path)},
                 "outputDirectory": "out",
                 "builder": {
                     "id": "https://ordivon.local/builders/artifact-delivery/ppt-master-v1",
@@ -207,7 +227,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             validation = MODULE.validate_delivery_request(request_path)
             self.assertEqual(validation["status"], "PASS", validation)
             self.assertEqual(len(validation["resolved"]["materials"]), 1)
-            self.assertEqual(validation["resolved"]["materials"][0]["digest"]["sha256"], MODULE.sha256_file(page))
+            self.assertEqual(validation["resolved"]["materials"][0]["digest"]["sha256"], sha256_file(page))
             plan = MODULE.compile_delivery_plan(request_path)
             self.assertEqual(plan["status"], "PASS", plan)
             self.assertEqual(plan["buildAdapter"], "ppt-master-semantic-svg-v1")
@@ -234,8 +254,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "locale": "en-US",
                 "transition": "none",
                 "nativeChartsAndTables": False,
-                "pages": [{"id": "page-01", "path": page.name, "sha256": MODULE.sha256_file(page)}],
-                "materials": [{"path": asset.name, "sha256": MODULE.sha256_file(asset), "projectRelativePath": "../escape.png"}],
+                "pages": [{"id": "page-01", "path": page.name, "sha256": sha256_file(page)}],
+                "materials": [{"path": asset.name, "sha256": sha256_file(asset), "projectRelativePath": "../escape.png"}],
             }
             source_path = root / "source.json"
             source_path.write_text(json.dumps(source))
@@ -293,7 +313,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "locale": "en-US",
                 "transition": "none",
                 "nativeChartsAndTables": False,
-                "pages": [{"id": "page-01", "path": "link.svg", "sha256": MODULE.sha256_file(outside)}],
+                "pages": [{"id": "page-01", "path": "link.svg", "sha256": sha256_file(outside)}],
                 "materials": [],
             }
             source_path = source_root / "source.json"
@@ -317,7 +337,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
 
         payload = b'<p14:creationId val="123" />'
         used: set[int] = set()
-        with mock.patch.object(MODULE.hashlib, "sha256", return_value=FixedDigest()):
+        with mock.patch.object(presentation_canonicalization.hashlib, "sha256", return_value=FixedDigest()):
             first, first_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideMasters/slideMaster1.xml", used)
             second, second_count = MODULE._canonicalize_ppt_creation_ids(payload, "ppt/slideLayouts/slideLayout1.xml", used)
         self.assertEqual(first_count, 1)
@@ -367,21 +387,21 @@ class ArtifactDeliveryTests(unittest.TestCase):
             second.write_bytes(zip_bytes("2026-09-15T07:30:00Z", 9876543, (2026, 9, 15, 7, 30, 0)))
             r1 = MODULE.canonicalize_generated_ooxml_metadata(first)
             r2 = MODULE.canonicalize_generated_ooxml_metadata(second)
-            self.assertEqual(MODULE.sha256_file(first), MODULE.sha256_file(second))
+            self.assertEqual(sha256_file(first), sha256_file(second))
             self.assertEqual(r1["creationIdFieldCount"], 1)
             self.assertEqual(r2["creationIdFieldCount"], 1)
             self.assertEqual(r1["coreTimestampFieldCount"], 2)
             self.assertEqual(r1["nestedPackages"][0]["coreTimestampFieldCount"], 2)
             with zipfile.ZipFile(first) as package:
                 core = package.read("docProps/core.xml").decode()
-                self.assertIn(MODULE.DETERMINISTIC_OPC_CORE_TIMESTAMP, core)
+                self.assertIn(DETERMINISTIC_OPC_CORE_TIMESTAMP, core)
                 layout = package.read("ppt/slideLayouts/slideLayout12.xml").decode()
                 self.assertNotIn('val="1234567"', layout)
                 embedded = package.read("ppt/embeddings/Microsoft_Excel_Sheet101.xlsx")
             from io import BytesIO
             with zipfile.ZipFile(BytesIO(embedded)) as workbook:
                 nested_core = workbook.read("docProps/core.xml").decode()
-                self.assertIn(MODULE.DETERMINISTIC_OPC_CORE_TIMESTAMP, nested_core)
+                self.assertIn(DETERMINISTIC_OPC_CORE_TIMESTAMP, nested_core)
 
     def test_ppt_creation_id_canonicalization_probes_collisions(self) -> None:
         import re
@@ -415,7 +435,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             expected = lock["source"]["commit"]
             rev = subprocess.CompletedProcess(args=["git"], returncode=0, stdout=expected + "\n", stderr="")
             status = subprocess.CompletedProcess(args=["git"], returncode=1, stdout="", stderr="status failed")
-            with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(MODULE.subprocess, "run", side_effect=[rev, status]):
+            with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(presentation_ppt_master.subprocess, "run", side_effect=[rev, status]):
                 provider, failures = MODULE._ppt_master_provider_facts()
             self.assertFalse(provider["trackedWorktreeClean"], provider)
             self.assertTrue(any("status could not be established" in item for item in failures), failures)
@@ -438,7 +458,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 stdout="0" * 40 + "\n",
                 stderr="",
             )
-            with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(MODULE.subprocess, "run", return_value=completed):
+            with mock.patch.dict(os.environ, {"ARTIFACT_PPT_MASTER_ROOT": str(root)}, clear=False), mock.patch.object(presentation_ppt_master.subprocess, "run", return_value=completed):
                 provider, failures = MODULE._ppt_master_provider_facts()
             self.assertEqual(provider["observedCommit"], "0" * 40)
             self.assertTrue(any("provider commit mismatch" in item for item in failures), failures)
@@ -482,7 +502,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             "locale": "zh-CN",
             "aspectRatio": "16:9",
             "slideSizeInches": {"width": 13.333333, "height": 7.5},
-            "template": {"format": "pptx", "path": template.name, "sha256": MODULE.sha256_file(template)},
+            "template": {"format": "pptx", "path": template.name, "sha256": sha256_file(template)},
             "slides": [{
                 "id": "slide-01",
                 "title": "Template-bound title",
@@ -507,7 +527,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             output = root / "bound.pptx"
             result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", output)
             self.assertEqual(result["status"], "PASS", result)
-            self.assertEqual(result["template"]["artifact"]["digest"]["sha256"], MODULE.sha256_file(template))
+            self.assertEqual(result["template"]["artifact"]["digest"]["sha256"], sha256_file(template))
             self.assertGreaterEqual(len(result["template"]["themeParts"]), 1)
             self.assertGreaterEqual(len(result["template"]["masterParts"]), 1)
             self.assertGreaterEqual(len(result["template"]["layoutParts"]), 1)
@@ -541,8 +561,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "schemaVersion": 1,
                 "kind": "artifact-delivery-request",
                 "requestId": "artifact-request:template-material-smoke",
-                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": MODULE.sha256_file(profile)},
-                "source": {"kind": "presentation-source-v1", "path": source.name, "sha256": MODULE.sha256_file(source)},
+                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": sha256_file(profile)},
+                "source": {"kind": "presentation-source-v1", "path": source.name, "sha256": sha256_file(source)},
                 "outputDirectory": "out",
                 "builder": {
                     "id": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1",
@@ -556,10 +576,10 @@ class ArtifactDeliveryTests(unittest.TestCase):
             materials = validation["resolved"]["materials"]
             self.assertEqual(len(materials), 1)
             self.assertEqual(materials[0]["path"], str(template.resolve()))
-            self.assertEqual(materials[0]["digest"]["sha256"], MODULE.sha256_file(template))
+            self.assertEqual(materials[0]["digest"]["sha256"], sha256_file(template))
             plan = MODULE.compile_delivery_plan(request_path)
             self.assertEqual(plan["status"], "PASS", plan)
-            self.assertEqual(plan["resolvedInputs"]["materials"][0]["digest"]["sha256"], MODULE.sha256_file(template))
+            self.assertEqual(plan["resolvedInputs"]["materials"][0]["digest"]["sha256"], sha256_file(template))
 
     def test_presentation_template_digest_drift_fails_closed(self) -> None:
         if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
@@ -611,7 +631,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             "kind": "image",
             "id": "visual-reference",
             "path": image_path.name,
-            "sha256": MODULE.sha256_file(image_path),
+            "sha256": sha256_file(image_path),
             "box": {"x": 0, "y": 0, "w": 13.333333, "h": 7.5},
             "decorative": decorative
         }
@@ -661,7 +681,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             result = MODULE.build_presentation_source(source, ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", output)
             self.assertEqual(result["status"], "PASS", result)
             self.assertEqual(len(result["mediaBindings"]), 1)
-            self.assertEqual(result["mediaBindings"][0]["artifact"]["digest"]["sha256"], MODULE.sha256_file(image_path))
+            self.assertEqual(result["mediaBindings"][0]["artifact"]["digest"]["sha256"], sha256_file(image_path))
             observed = Presentation(output)
             self.assertEqual(len(observed.slides), 1)
             self.assertEqual(observed.slides[0].shapes[0].shape_type, MSO_SHAPE_TYPE.PICTURE)
@@ -672,7 +692,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             with zipfile.ZipFile(output) as package:
                 media = [name for name in package.namelist() if name.startswith("ppt/media/")]
                 self.assertEqual(len(media), 1)
-                self.assertEqual(MODULE.hashlib.sha256(package.read(media[0])).hexdigest(), MODULE.sha256_file(image_path))
+                self.assertEqual(presentation_canonicalization.hashlib.sha256(package.read(media[0])).hexdigest(), sha256_file(image_path))
             validator = openxml_validator_path()
             dotnet = openxml_dotnet_path()
             if validator.is_file() and dotnet.is_file():
@@ -695,7 +715,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "sourceMode": "native-composition", "locale": "zh-CN", "aspectRatio": "34:10",
                 "slideSizeInches": {"width": 34.0, "height": 10.0},
                 "slides": [{"id": "slide-01", "title": "Ultrawide hybrid", "layoutId": "Blank", "elements": [
-                    {"kind": "image", "id": "reference", "path": image_path.name, "sha256": MODULE.sha256_file(image_path), "box": {"x": 0, "y": 0, "w": 34.0, "h": 10.0}, "decorative": True},
+                    {"kind": "image", "id": "reference", "path": image_path.name, "sha256": sha256_file(image_path), "box": {"x": 0, "y": 0, "w": 34.0, "h": 10.0}, "decorative": True},
                     {"kind": "text", "id": "native-title", "text": "34:10 native overlay", "box": {"x": 1.2, "y": 0.7, "w": 10.0, "h": 0.8}, "fontFamily": "Arial", "fontSizePt": 28, "bold": True}
                 ]}]
             }
@@ -725,8 +745,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
             shutil.copyfile(ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json", profile)
             request = {
                 "schemaVersion": 1, "kind": "artifact-delivery-request", "requestId": "artifact-request:hybrid-media-material-smoke",
-                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": MODULE.sha256_file(profile)},
-                "source": {"kind": "presentation-source-v1", "path": source.name, "sha256": MODULE.sha256_file(source)},
+                "profile": {"id": "pdu-sdu-presentation-r1", "path": profile.name, "sha256": sha256_file(profile)},
+                "source": {"kind": "presentation-source-v1", "path": source.name, "sha256": sha256_file(source)},
                 "outputDirectory": "out",
                 "builder": {"id": "https://ordivon.local/builders/artifact-delivery/python-pptx-v1", "buildType": "https://ordivon.local/build-types/artifact-delivery/presentation-source-v1"}
             }
@@ -736,7 +756,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(validation["status"], "PASS", validation)
             self.assertEqual(len(validation["resolved"]["materials"]), 1)
             self.assertEqual(validation["resolved"]["materials"][0]["path"], str(image_path.resolve()))
-            self.assertEqual(validation["resolved"]["materials"][0]["digest"]["sha256"], MODULE.sha256_file(image_path))
+            self.assertEqual(validation["resolved"]["materials"][0]["digest"]["sha256"], sha256_file(image_path))
 
     def test_hybrid_image_digest_drift_fails_closed(self) -> None:
         if importlib.util.find_spec("pptx") is None or importlib.util.find_spec("jsonschema") is None:
@@ -922,7 +942,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.skipTest("python-pptx/jsonschema are not available")
         source = ROOT / "artifact-delivery/golden/pdu-sdu-34x10-r1/pdu-sdu-34x10-deck-semantic-overlay-r1.json"
         profile = ROOT / "artifact-delivery/examples/presentation-ultrawide-34x10-r1.json"
-        self.assertEqual(MODULE.sha256_file(source), "5ed264937da812c2fe67f4a13566d4bdc4dbac3c700a6dbdcbed4bff9f6f8743")
+        self.assertEqual(sha256_file(source), "5ed264937da812c2fe67f4a13566d4bdc4dbac3c700a6dbdcbed4bff9f6f8743")
         with tempfile.TemporaryDirectory() as d:
             output = Path(d) / "deck-overlay.pptx"
             result = MODULE.build_presentation_source(source, profile, output)
@@ -1158,7 +1178,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 "mode": "public-key",
                 "allowedVerifierIds": [verifier_id],
                 "requireTransparencyLog": False,
-                "publicKey": {"path": public_key.name, "sha256": MODULE.sha256_file(public_key)},
+                "publicKey": {"path": public_key.name, "sha256": sha256_file(public_key)},
             }],
         }
         policy_path = root / "vsa-trust-policy.json"
@@ -1238,7 +1258,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
                     "requireTransparencyLog": True,
                     "certificateIdentity": "https://example.test/release-workflow",
                     "certificateOidcIssuer": "https://issuer.example.test",
-                    "trustedRoot": {"path": trusted_root.name, "sha256": MODULE.sha256_file(trusted_root)},
+                    "trustedRoot": {"path": trusted_root.name, "sha256": sha256_file(trusted_root)},
                 }],
             }))
             result = MODULE.validate_vsa_trust_policy(policy_path)
@@ -1272,23 +1292,26 @@ class ArtifactDeliveryTests(unittest.TestCase):
             self.assertEqual(result["tool"]["provenance"]["status"], "PASS")
             self.assertEqual(result["tool"]["provenance"]["embeddedBinarySha256"], result["tool"]["sha256"])
 
-            original_package = MODULE.COSIGN_ARCH_PACKAGE
-            original_signature = MODULE.COSIGN_ARCH_PACKAGE_SIGNATURE
-            MODULE._COSIGN_PROVENANCE_CACHE.clear()
-            try:
-                MODULE.COSIGN_ARCH_PACKAGE = root / "missing-cosign.pkg.tar.zst"
-                MODULE.COSIGN_ARCH_PACKAGE_SIGNATURE = root / "missing-cosign.pkg.tar.zst.sig"
-                blocked = MODULE.verify_signed_verification_summary(
-                    statement_path, bundle, subject, profile, policy_path, "release-signer"
-                )
-                self.assertEqual(blocked["status"], "FAIL")
-                self.assertEqual(blocked["authenticity"], "NOT_VERIFIED")
-                self.assertEqual(blocked["tool"]["provenance"]["status"], "FAIL")
-                self.assertTrue(any("cosign verifier" in item for item in blocked["failures"]))
-            finally:
-                MODULE.COSIGN_ARCH_PACKAGE = original_package
-                MODULE.COSIGN_ARCH_PACKAGE_SIGNATURE = original_signature
-                MODULE._COSIGN_PROVENANCE_CACHE.clear()
+            default_toolchain = trust_vsa.default_trust_toolchain_config()
+            blocked_toolchain = trust_vsa.TrustToolchainConfig(
+                lock_path=default_toolchain.lock_path,
+                selected_binary=default_toolchain.selected_binary,
+                arch_package=root / "missing-cosign.pkg.tar.zst",
+                arch_package_signature=root / "missing-cosign.pkg.tar.zst.sig",
+            )
+            blocked = trust_vsa.verify_signed_verification_summary(
+                statement_path,
+                bundle,
+                subject,
+                profile,
+                policy_path,
+                "release-signer",
+                toolchain=blocked_toolchain,
+            )
+            self.assertEqual(blocked["status"], "FAIL")
+            self.assertEqual(blocked["authenticity"], "NOT_VERIFIED")
+            self.assertEqual(blocked["tool"]["provenance"]["status"], "FAIL")
+            self.assertTrue(any("cosign verifier" in item for item in blocked["failures"]))
 
     def test_signed_vsa_rejects_detached_statement_substitution(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1485,7 +1508,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             evidence = root / "openxml.json"
             evidence.write_text(json.dumps({
                 "status": "PASS",
-                "artifact": {"sha256": MODULE.sha256_file(pptx)},
+                "artifact": {"sha256": sha256_file(pptx)},
                 "validator": {
                     "implementation": "DocumentFormat.OpenXml",
                     "packageVersion": "3.5.1",
@@ -1610,7 +1633,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             )
             self.assertEqual(statement["_type"], "https://in-toto.io/Statement/v1")
             self.assertEqual(statement["predicateType"], "https://slsa.dev/provenance/v1")
-            self.assertEqual(statement["subject"][0]["digest"]["sha256"], MODULE.sha256_file(subject))
+            self.assertEqual(statement["subject"][0]["digest"]["sha256"], sha256_file(subject))
             self.assertIn("buildDefinition", statement["predicate"])
             self.assertIn("runDetails", statement["predicate"])
 
@@ -1681,7 +1704,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             render_dir = Path(d) / "renders"
             render_dir.mkdir()
             (render_dir / "幻灯片1.PNG").write_bytes(b"png")
-            result = MODULE.verify_render_evidence(render_dir, 1)
+            result = verify_render_evidence(render_dir, 1)
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(result["digests"][0]["name"], "幻灯片1.PNG")
 
@@ -1696,23 +1719,23 @@ class ArtifactDeliveryTests(unittest.TestCase):
             render_dir.mkdir()
             render = render_dir / "Slide1.PNG"
             render.write_bytes(b"png")
-            render_result = MODULE.verify_render_evidence(render_dir, 1)
+            render_result = verify_render_evidence(render_dir, 1)
             evidence = root / "target.json"
             evidence.write_text(json.dumps({
-                "artifact": {"sha256": MODULE.sha256_file(pptx)},
+                "artifact": {"sha256": sha256_file(pptx)},
                 "renderer": {"name": "Microsoft PowerPoint Desktop", "version": "16.0"},
                 "result": {
                     "slideCount": 1,
-                    "pdfSha256": MODULE.sha256_file(pdf),
+                    "pdfSha256": sha256_file(pdf),
                     "pngCount": 1,
-                    "pngs": [{"name": "Slide1.PNG", "sha256": MODULE.sha256_file(render)}]
+                    "pngs": [{"name": "Slide1.PNG", "sha256": sha256_file(render)}]
                 }
             }))
-            self.assertEqual(MODULE.verify_target_evidence(evidence, pptx, pdf, 1, render_result)["status"], "PASS")
+            self.assertEqual(verify_target_evidence(evidence, pptx, pdf, 1, render_result)["status"], "PASS")
             value = json.loads(evidence.read_text())
             value["result"]["pngs"][0]["sha256"] = "0" * 64
             evidence.write_text(json.dumps(value))
-            self.assertEqual(MODULE.verify_target_evidence(evidence, pptx, pdf, 1, render_result)["status"], "FAIL")
+            self.assertEqual(verify_target_evidence(evidence, pptx, pdf, 1, render_result)["status"], "FAIL")
 
     def test_visual_review_binds_exact_artifact_and_render_digests(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1722,20 +1745,20 @@ class ArtifactDeliveryTests(unittest.TestCase):
             render_dir = root / "renders"
             render_dir.mkdir()
             (render_dir / "Slide1.png").write_bytes(b"png")
-            renders = MODULE.verify_render_evidence(render_dir, 1)
+            renders = verify_render_evidence(render_dir, 1)
             evidence = root / "visual.json"
             evidence.write_text(json.dumps({
-                "artifactSha256": MODULE.sha256_file(pptx),
+                "artifactSha256": sha256_file(pptx),
                 "verdict": "PASS",
                 "blockingDefects": [],
                 "methods": ["agent-vision-review"],
                 "renderDigests": {item["name"]: item["sha256"] for item in renders["digests"]},
             }))
-            self.assertEqual(MODULE.verify_visual_review(evidence, pptx, renders)["status"], "PASS")
+            self.assertEqual(verify_visual_review(evidence, pptx, renders)["status"], "PASS")
             value = json.loads(evidence.read_text())
             value["artifactSha256"] = "0" * 64
             evidence.write_text(json.dumps(value))
-            self.assertEqual(MODULE.verify_visual_review(evidence, pptx, renders)["status"], "FAIL")
+            self.assertEqual(verify_visual_review(evidence, pptx, renders)["status"], "FAIL")
 
     def test_delivery_evidence_requires_every_target_and_required_output(self) -> None:
         with tempfile.TemporaryDirectory() as d:
@@ -1760,8 +1783,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
                     evidence_path = root / f"{destination}-{role}.json"
                     evidence_path.write_text(json.dumps(evidence))
                     paths.append(evidence_path)
-            self.assertEqual(MODULE.verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "PASS")
-            self.assertEqual(MODULE.verify_delivery_evidence(paths[:-1], profile, pptx, pdf)["status"], "FAIL")
+            self.assertEqual(verify_delivery_evidence(paths, profile, pptx, pdf)["status"], "PASS")
+            self.assertEqual(verify_delivery_evidence(paths[:-1], profile, pptx, pdf)["status"], "FAIL")
 
 
     def _fake_pandoc_docx_builder(self, root: Path) -> Path:
@@ -1784,8 +1807,8 @@ out.write_text(os.environ.get('SOURCE_DATE_EPOCH','ABSENT'))
             "schemaVersion": 1,
             "kind": "artifact-delivery-request",
             "requestId": "artifact-request:source-date-epoch-smoke",
-            "profile": {"id": "document-r1", "path": str(profile), "sha256": MODULE.sha256_file(profile)},
-            "source": {"kind": "markdown", "path": source.name, "sha256": MODULE.sha256_file(source)},
+            "profile": {"id": "document-r1", "path": str(profile), "sha256": sha256_file(profile)},
+            "source": {"kind": "markdown", "path": source.name, "sha256": sha256_file(source)},
             "materials": [],
             "outputDirectory": "out",
             "builder": {
@@ -1899,14 +1922,14 @@ print(json.dumps(ast))
             artifact = root / "artifact.docx"
             artifact.write_bytes(b"docx")
             lock = root / "toolchain.json"
-            lock.write_text(json.dumps({"pandoc": {"version": "3.10.2", "binarySha256": MODULE.sha256_file(pandoc), "linuxAmd64ArchiveSha256": MODULE.sha256_file(archive)}}))
+            lock.write_text(json.dumps({"pandoc": {"version": "3.10.2", "binarySha256": sha256_file(pandoc), "linuxAmd64ArchiveSha256": sha256_file(archive)}}))
             request = root / "request.json"
             request.write_text(json.dumps({
                 "schemaVersion": 1,
                 "kind": "artifact-delivery-request",
                 "requestId": "artifact-request:document-dependency-test",
-                "profile": {"id": "document-r1", "path": profile.name, "sha256": MODULE.sha256_file(profile)},
-                "source": {"kind": "markdown", "path": source.name, "sha256": MODULE.sha256_file(source)},
+                "profile": {"id": "document-r1", "path": profile.name, "sha256": sha256_file(profile)},
+                "source": {"kind": "markdown", "path": source.name, "sha256": sha256_file(source)},
                 "materials": [],
                 "outputDirectory": "out",
                 "builder": {"id": "https://ordivon.local/builders/artifact-delivery/pandoc-v1", "buildType": "https://ordivon.local/build-types/artifact-delivery/markdown-docx-v1"}

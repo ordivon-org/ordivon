@@ -12,9 +12,10 @@ import argparse
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import sys
-from typing import Any, Callable
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 import jsonschema
 

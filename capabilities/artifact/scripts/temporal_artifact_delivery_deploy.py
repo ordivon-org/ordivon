@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Plan/apply the Artifact Delivery Temporal worker on the existing Temporal server."""
 from __future__ import annotations
-import argparse,hashlib,json,os,subprocess
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 MAIN=Path('/root/projects/ordivon-artifact-v2')
 UNIT='ordivon-artifact-temporal-worker.service'

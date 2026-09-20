@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pytest
 
+import artifact_trust.vsa as trust_vsa
+from artifact_core.contracts import sha256_file
+
 pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,7 +79,7 @@ class ArtifactOciPackageTests(unittest.TestCase):
             self.assertFalse((package / ".staging").exists())
 
     def _cosign_material(self, root: Path):
-        tool = MODULE.cosign_tool_fact()
+        tool = trust_vsa.cosign_tool_fact()
         if tool.get("status") != "PASS":
             self.skipTest("cosign is not available")
         cosign = Path(tool["path"])
@@ -95,13 +98,13 @@ class ArtifactOciPackageTests(unittest.TestCase):
         policy = {
             "policyVersion": 1,
             "id": "test-vsa-trust-r1",
-            "acceptedBundleMediaTypes": [MODULE.SIGSTORE_BUNDLE_V03],
+            "acceptedBundleMediaTypes": [trust_vsa.SIGSTORE_BUNDLE_V03],
             "signers": [{
                 "id": "release-signer",
                 "mode": "public-key",
-                "allowedVerifierIds": [MODULE.LOCAL_VSA_VERIFIER_ID],
+                "allowedVerifierIds": [trust_vsa.LOCAL_VSA_VERIFIER_ID],
                 "requireTransparencyLog": False,
-                "publicKey": {"path": public_key.name, "sha256": MODULE.sha256_file(public_key)},
+                "publicKey": {"path": public_key.name, "sha256": sha256_file(public_key)},
             }],
         }
         policy_path = root / "vsa-trust-policy.json"
@@ -122,7 +125,7 @@ class ArtifactOciPackageTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         value = json.loads(bundle.read_text())
-        self.assertEqual(value["mediaType"], MODULE.SIGSTORE_BUNDLE_V03)
+        self.assertEqual(value["mediaType"], trust_vsa.SIGSTORE_BUNDLE_V03)
 
     def test_signed_vsa_package_is_release_ready_and_bundles_are_oci_referrer_layers(self):
         if not MODULE.DEFAULT_ORAS.is_file():
