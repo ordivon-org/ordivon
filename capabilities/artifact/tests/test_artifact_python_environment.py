@@ -23,20 +23,23 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
         source=(ROOT/'scripts/artifact_python_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text()
         self.assertNotIn('isolated-equipment',source);self.assertNotIn('pacman',source);self.assertNotIn('libxslt.so',source);self.assertIn("'--frozen','--offline'",source);self.assertIn('venvTreeDigest',wrapper)
-    def test_temporal_no_longer_depends_on_artifact_python_carrier(self):
-        retired_consumers=[
-            'scripts/artifact_delivery_temporal_support.py',
+    def test_artifact_worker_and_tools_share_one_artifact_python_carrier(self):
+        stable='/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python'
+        consumers=[
+            'scripts/artifact_delivery_toolchain_doctor.py',
+            'scripts/artifact_agent_surface.py',
             'scripts/temporal_artifact_delivery_deploy.py',
             'systemd/ordivon-artifact-temporal-worker.service',
         ]
-        stable='/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python'
-        for name in retired_consumers:
+        for name in consumers:
             text=(ROOT/name).read_text()
             self.assertNotIn('.cache/artifact-delivery-venv',text,name)
-            self.assertNotIn(stable,text,name)
-        doctor=(ROOT/'scripts/artifact_delivery_toolchain_doctor.py').read_text()
-        self.assertNotIn('.cache/artifact-delivery-venv',doctor)
-        self.assertIn(stable,doctor)
+            self.assertIn(stable,text,name)
+        lock=M.load_lock()
+        self.assertEqual(lock['pythonPackages']['temporalio'],'1.32.0')
+        self.assertEqual(lock['pythonPackages']['nexus-rpc'],'1.4.0')
+        self.assertEqual(lock['pythonPackages']['protobuf'],'7.36.1')
+        self.assertEqual(lock['pythonPackages']['types-protobuf'],'7.35.1.20260906')
     def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
         lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
         wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)
@@ -46,7 +49,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             self.assertEqual(M.tree_digest(root),W.tree_digest(root));first=W.tree_digest(root);(root/'pkg/data').write_bytes(b'drift');self.assertNotEqual(first,W.tree_digest(root))
     def test_generation_spec_binds_uv_and_interpreter_identity(self):
         lock=M.load_lock();project={'project':'/x','pyprojectSha256':'sha256:p','uvLockSha256':'sha256:u'};python={'version':'3.14.7','requestedPath':'/toolchain/python','resolvedPath':'/toolchain/python3.14','sha256':'sha256:i'}
-        spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3')
+        spec=M.generation_spec(lock,project,python);self.assertEqual(spec['uvLockSha256'],'sha256:u');self.assertEqual(spec['pythonExecutableSha256'],'sha256:i');self.assertEqual(spec['pythonPackages']['lxml'],'6.1.3');self.assertEqual(spec['pythonPackages']['temporalio'],'1.32.0')
     def test_read_only_tree_changes_mode_before_digest(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);f=root/'x';f.write_text('x');f.chmod(0o644);M.make_read_only(root);self.assertEqual(root.stat().st_mode & 0o777,0o555);self.assertEqual(f.stat().st_mode & 0o777,0o444)

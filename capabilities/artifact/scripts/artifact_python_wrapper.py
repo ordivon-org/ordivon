@@ -42,7 +42,7 @@ def main()->int:
     resolved=venv_python.resolve(strict=True)
     if str(resolved)!=binding.get('pythonExecutableResolvedPath') or 'sha256:'+_sha(resolved)!=binding.get('pythonExecutableSha256'):raise RuntimeError('Artifact Python interpreter bytes drifted')
     expected=dict(binding['pythonPackages'])
-    code=("import json,platform;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk;"
+    code=("import json,platform;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk,temporalio;"
           f"names={json.dumps(sorted(expected))};"
           "print(json.dumps({'python':platform.python_version(),'versions':{n:version(n) for n in names},'libxml':lxml.etree.LIBXML_VERSION,'libxslt':lxml.etree.LIBXSLT_VERSION},sort_keys=True))")
     env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'}

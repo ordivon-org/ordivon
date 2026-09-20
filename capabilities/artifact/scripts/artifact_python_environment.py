@@ -79,7 +79,7 @@ def python_status(lock:dict[str,Any])->dict[str,str]:
 
 
 def dependency_probe(python:Path,expected:dict[str,str])->dict[str,Any]:
-    code=("import json,platform;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk;"
+    code=("import json,platform;from importlib.metadata import version;import lxml.etree,pptx,PIL,jsonschema,xlsxwriter,opentelemetry.sdk,temporalio;"
           f"names={json.dumps(sorted(expected))};"
           "print(json.dumps({'python':platform.python_version(),'versions':{n:version(n) for n in names},'libxml':lxml.etree.LIBXML_VERSION,'libxslt':lxml.etree.LIBXSLT_VERSION},sort_keys=True))")
     p=run([str(python),'-c',code],env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'},timeout=45)
@@ -155,7 +155,13 @@ def plan()->dict[str,Any]:
     try:project=project_status(lock);python=python_status(lock);spec=generation_spec(lock,project,python)
     except Exception as error:project=None;python=None;spec=None;issues.append(str(error))
     current=status(Path(lock['stableRoot']))
-    return {'schemaVersion':1,'kind':'artifact-python-environment-plan','mainSourceAuthority':ROOT.resolve()==MAIN.resolve(),'stableRoot':lock['stableRoot'],'stablePython':lock['stablePython'],'uvProjectReady':project is not None,'pythonReady':python is not None,'generationSpec':spec,'current':current,'issues':issues,'applyEligible':ROOT.resolve()==MAIN.resolve() and project is not None and python is not None}
+    desired_generation_id=hashlib.sha256(canonical(spec)).hexdigest() if spec is not None else None
+    current_matches_desired=bool(
+        desired_generation_id
+        and current.get('ready')
+        and current.get('generationId')==desired_generation_id
+    )
+    return {'schemaVersion':1,'kind':'artifact-python-environment-plan','mainSourceAuthority':ROOT.resolve()==MAIN.resolve(),'stableRoot':lock['stableRoot'],'stablePython':lock['stablePython'],'uvProjectReady':project is not None,'pythonReady':python is not None,'generationSpec':spec,'desiredGenerationId':desired_generation_id,'current':current,'currentMatchesDesired':current_matches_desired,'issues':issues,'applyEligible':ROOT.resolve()==MAIN.resolve() and project is not None and python is not None}
 
 
 def main()->int:

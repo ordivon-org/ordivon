@@ -14,7 +14,7 @@ MAIN=Path('/root/projects/ordivon-artifact-v2')
 UNIT='ordivon-artifact-temporal-worker.service'
 SOURCE_UNIT=ROOT/'systemd'/UNIT
 SYSTEM_UNIT=Path('/etc/systemd/system')/UNIT
-TEMPORAL_PY=Path('/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python')
+TEMPORAL_PY=Path('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python')
 STATE=Path('/root/.local/state/ordivon-workstation/artifact-delivery-temporal')
 SERVER_UNIT='temporal.service'
 def sha(p:Path)->str:return hashlib.sha256(p.read_bytes()).hexdigest()
