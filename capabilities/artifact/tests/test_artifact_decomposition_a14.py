@@ -1,7 +1,7 @@
 import ast
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = ROOT / "scripts/artifact_delivery.py"

@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import pytest
-
 import importlib.util
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import tomllib
 import unittest
-from unittest import mock
 import zipfile
+from pathlib import Path
+from unittest import mock
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts/artifact_delivery.py"
@@ -957,6 +957,7 @@ class ArtifactDeliveryTests(unittest.TestCase):
             result_a = MODULE.normalize_zip_member_timestamps(a)
             result_b = MODULE.normalize_zip_member_timestamps(b)
             self.assertEqual(result_a["status"], "PASS")
+            self.assertEqual(result_b["status"], "PASS")
             self.assertFalse(result_a["memberPayloadBytesChanged"])
             self.assertFalse(result_a["recompressionPerformed"])
             self.assertEqual(a.read_bytes(), b.read_bytes())

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import datetime as dt
 import importlib.util
 import json
@@ -38,13 +39,13 @@ class ArtifactR2MailboxTests(unittest.TestCase):
         with self.assertRaises(ValueError):M.temp_credential_request(bucket='mailbox',parent_access_key_id='parent',key=key,permission='object-read-write',ttl_seconds=901)
 
     def test_aws_official_sigv4_query_example_matches_signature(self):
-        url=M.sigv4_presign(method='GET',url='https://examplebucket.s3.amazonaws.com/test.txt',access_key_id='AKIAIOSFODNN7EXAMPLE',secret_access_key='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',region='us-east-1',expires_seconds=86400,timestamp=dt.datetime(2013,5,24,tzinfo=dt.timezone.utc))
+        url=M.sigv4_presign(method='GET',url='https://examplebucket.s3.amazonaws.com/test.txt',access_key_id='AKIAIOSFODNN7EXAMPLE',secret_access_key='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',region='us-east-1',expires_seconds=86400,timestamp=dt.datetime(2013,5,24,tzinfo=dt.UTC))
         q=dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
         self.assertEqual(q['X-Amz-Signature'],'aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404')
 
     def test_put_capability_signs_create_only_header_and_session_token(self):
         descriptor={'mediaType':'application/octet-stream','digest':'sha256:'+'b'*64,'size':10}
-        now=dt.datetime(2026,9,10,16,0,tzinfo=dt.timezone.utc)
+        now=dt.datetime(2026,9,10,16,0,tzinfo=dt.UTC)
         with patch.object(M,'mint_temporary_credentials',return_value={'accessKeyId':'TMPKEY','secretAccessKey':'TMPSECRET','sessionToken':'TMPSESSION'}), patch.object(M,'parse_account_token',return_value={'account_id':'a'*32}):
             cap=M.issue_capability(operation='PUT',bucket='mailbox',descriptor=descriptor,ttl_seconds=300,now=now)
         q=dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(cap['url']).query))
@@ -63,8 +64,8 @@ class ArtifactR2MailboxTests(unittest.TestCase):
     def test_capability_expiry_and_replay_semantics_are_explicit(self):
         d={'mediaType':'application/octet-stream','digest':'sha256:'+'e'*64,'size':1}
         cap=M.capability_projection(operation='GET',url='https://example.test/x?sig=secret',descriptor=d,required_headers={},expires_at='2026-09-10T16:05:00Z')
-        fresh=M.capability_standing(cap,now=dt.datetime(2026,9,10,16,4,59,tzinfo=dt.timezone.utc))
-        expired=M.capability_standing(cap,now=dt.datetime(2026,9,10,16,5,0,tzinfo=dt.timezone.utc))
+        fresh=M.capability_standing(cap,now=dt.datetime(2026,9,10,16,4,59,tzinfo=dt.UTC))
+        expired=M.capability_standing(cap,now=dt.datetime(2026,9,10,16,5,0,tzinfo=dt.UTC))
         self.assertEqual(fresh['standing'],'FRESH');self.assertTrue(fresh['usableNow']);self.assertIn('REPLAYABLE',fresh['replayStanding'])
         self.assertEqual(expired['standing'],'EXPIRED');self.assertFalse(expired['usableNow'])
 

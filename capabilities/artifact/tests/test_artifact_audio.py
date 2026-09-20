@@ -2,12 +2,12 @@ import hashlib
 import importlib.util
 import json
 import math
-from pathlib import Path
 import struct
 import subprocess
 import tempfile
 import unittest
 import wave
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_audio',ROOT/'scripts/artifact_audio.py')

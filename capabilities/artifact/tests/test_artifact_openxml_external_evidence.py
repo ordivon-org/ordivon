@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import pytest
-
 import importlib.util
 import json
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location(

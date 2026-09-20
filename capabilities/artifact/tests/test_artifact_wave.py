@@ -1,5 +1,13 @@
-import hashlib,importlib.util,json,math,struct,tempfile,unittest,wave
+import hashlib
+import importlib.util
+import json
+import math
+import struct
+import tempfile
+import unittest
+import wave
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_wave',ROOT/'scripts/artifact_wave.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
 

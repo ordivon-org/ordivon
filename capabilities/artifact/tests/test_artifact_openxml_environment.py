@@ -1,9 +1,13 @@
 from __future__ import annotations
-import importlib.util,json,os
-from pathlib import Path
-import tempfile,unittest
-from unittest.mock import patch
+
+import importlib.util
+import json
 import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('openxml_env',ROOT/'scripts/artifact_openxml_environment.py');M=importlib.util.module_from_spec(SPEC);assert SPEC and SPEC.loader;SPEC.loader.exec_module(M)
 class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):

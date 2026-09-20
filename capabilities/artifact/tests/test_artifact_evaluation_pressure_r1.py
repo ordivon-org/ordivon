@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.profiles import ProfileRegistry

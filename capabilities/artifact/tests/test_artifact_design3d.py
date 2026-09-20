@@ -1,6 +1,13 @@
-import pytest
-import hashlib,importlib.util,json,struct,tempfile,unittest
+import hashlib
+import importlib.util
+import json
+import struct
+import tempfile
+import unittest
 from pathlib import Path
+
+import pytest
+
 pytestmark = pytest.mark.integration
 
 ROOT=Path(__file__).resolve().parents[1]

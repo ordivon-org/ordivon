@@ -1,5 +1,14 @@
-import hashlib,importlib.util,json,subprocess,tempfile,unittest,wave,math,struct
+import hashlib
+import importlib.util
+import json
+import math
+import struct
+import subprocess
+import tempfile
+import unittest
+import wave
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_ogg_vorbis',ROOT/'scripts/artifact_ogg_vorbis.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
 

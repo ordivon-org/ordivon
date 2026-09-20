@@ -1,7 +1,9 @@
 from __future__ import annotations
-import hashlib,json
-from pathlib import Path
+
+import hashlib
+import json
 import unittest
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 PROFILE=ROOT/'artifact-delivery/examples/presentation-local-development-r1.json'

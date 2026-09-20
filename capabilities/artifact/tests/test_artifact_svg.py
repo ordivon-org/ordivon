@@ -1,5 +1,8 @@
-import importlib.util,tempfile,unittest
+import importlib.util
+import tempfile
+import unittest
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1];SPEC=importlib.util.spec_from_file_location('artifact_svg',ROOT/'scripts/artifact_svg.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
 class ArtifactSvgTests(unittest.TestCase):
  def require_tools(self):

@@ -1,10 +1,18 @@
-import importlib.util,json,tempfile,unittest,hashlib,sys
+import hashlib
+import importlib.util
+import json
+import sys
+import tempfile
+import unittest
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1];SPEC=importlib.util.spec_from_file_location('awa',ROOT/'scripts/artifact_web_archive.py');M=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(M);BASE=ROOT/'artifact-delivery/shadow-contracts/web-archive-warc-response-smoke-r1.json'
 sys.path.insert(0,'/opt/ordivon/external/warcio-py/1.8.1/site-packages')
-from warcio.warcwriter import WARCWriter
-from warcio.statusandheaders import StatusAndHeaders
 from io import BytesIO
+
+from warcio.statusandheaders import StatusAndHeaders
+from warcio.warcwriter import WARCWriter
+
 PAY=b'<!doctype html><html><body>ordivon-webarchive-r1</body></html>\n'
 def make(path,*,version='WARC/1.1',target='https://example.invalid/archive-r1',date='2026-09-12T10:00:00Z',extra=False):
  with path.open('wb') as f:

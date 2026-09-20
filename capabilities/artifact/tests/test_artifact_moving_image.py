@@ -1,6 +1,10 @@
-import hashlib,importlib.util,json
+import hashlib
+import importlib.util
+import json
+import subprocess
+import tempfile
+import unittest
 from pathlib import Path
-import subprocess,tempfile,unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_moving_image',ROOT/'scripts/artifact_moving_image.py')

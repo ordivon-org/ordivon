@@ -1,6 +1,9 @@
-import json, tempfile, unittest
-from pathlib import Path
 import importlib.util
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('cad',ROOT/'scripts/artifact_cad_step.py'); cad=importlib.util.module_from_spec(spec); spec.loader.exec_module(cad)
 class ArtifactCadStepTests(unittest.TestCase):

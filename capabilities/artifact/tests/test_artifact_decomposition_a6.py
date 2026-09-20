@@ -1,6 +1,6 @@
 import ast
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = ROOT / "scripts/artifact_delivery.py"
@@ -63,8 +63,8 @@ class ArtifactPresentationVerifierDecompositionA6Tests(unittest.TestCase):
         self.assertTrue(hasattr(PresentationGateHooks, "__dataclass_fields__"))
 
     def test_authoring_and_verify_stage_can_consume_verifier_package_without_delivery(self):
-        from artifact_verifiers.presentation import inspect_pptx, verify_presentation_semantics
         from artifact_verification.stage import VerificationStageHooks
+        from artifact_verifiers.presentation import inspect_pptx, verify_presentation_semantics
 
         self.assertTrue(callable(inspect_pptx))
         self.assertTrue(callable(verify_presentation_semantics))

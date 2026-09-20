@@ -1,10 +1,8 @@
 import importlib.util
 import json
-import shutil
-import subprocess
 import tempfile
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_eda", ROOT / "scripts/artifact_eda.py")
@@ -37,8 +35,10 @@ def write_contract(path: Path) -> None:
 class ArtifactEdaTests(unittest.TestCase):
     def require_tools(self):
         if not Path("/usr/bin/kicad-cli").is_file(): self.skipTest("kicad-cli unavailable")
-        try: import pcbnew  # noqa: F401
-        except ImportError: self.skipTest("KiCad pcbnew Python bindings unavailable")
+        try:
+            import pcbnew  # noqa: F401
+        except ImportError:
+            self.skipTest("KiCad pcbnew Python bindings unavailable")
 
     def test_positive_board_passes_drc_contract_and_manufacturing_exports(self):
         self.require_tools()

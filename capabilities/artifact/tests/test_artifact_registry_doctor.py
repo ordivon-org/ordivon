@@ -1,6 +1,6 @@
 import importlib.util
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_registry_doctor", ROOT / "scripts/artifact_registry_doctor.py")

@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.contracts import FileCommitment, sha256_file
 from artifact_core.operations import OperationPlanner
 from artifact_core.profiles import ProfileRegistry
-
 
 ROOT = Path(__file__).resolve().parents[1]
 ART = ROOT / "artifact-delivery"

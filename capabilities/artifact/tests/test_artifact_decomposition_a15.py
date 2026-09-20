@@ -1,8 +1,8 @@
 import ast
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = ROOT / "scripts/artifact_delivery.py"
@@ -125,11 +125,12 @@ class ArtifactManifestDrivenFacadeReductionA15Tests(unittest.TestCase):
             self.assertEqual(entries[name]["disposition"], "KEEP_COMPAT_WRAPPER")
 
     def test_reference_projection_owner_executes_exact_projection(self):
+        import hashlib
+        import zipfile
+
         from artifact_capabilities.presentation.reference_projection import (
             project_opc_members,
         )
-        import hashlib
-        import zipfile
 
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

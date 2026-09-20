@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import pytest
-
 import binascii
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import struct
 import tempfile
 import unittest
 import zlib
+from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 

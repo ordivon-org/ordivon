@@ -1,5 +1,10 @@
-import hashlib,importlib.util,json,tempfile,unittest
+import hashlib
+import importlib.util
+import json
+import tempfile
+import unittest
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1];SPEC=importlib.util.spec_from_file_location('am',ROOT/'scripts/artifact_message.py');M=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(M);BASE=ROOT/'artifact-delivery/shadow-contracts/message-internet-text-smoke-r1.json'
 def raw(*,subject='Ordivon message R1',body='ordivon-message-r1 body',eol='\r\n',extra='',ctype='text/plain; charset=utf-8'):
  lines=['Date: Sat, 12 Sep 2026 10:00:00 +0000','From: Alice Example <alice@example.invalid>','To: Bob Example <bob@example.invalid>',f'Subject: {subject}','Message-ID: <ordivon-message-r1@example.invalid>','MIME-Version: 1.0',f'Content-Type: {ctype}','Content-Transfer-Encoding: 8bit']

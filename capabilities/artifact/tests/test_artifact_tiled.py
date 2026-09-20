@@ -1,5 +1,12 @@
-import hashlib,importlib.util,json,os,subprocess,tempfile,unittest
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import tempfile
+import unittest
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1];SPEC=importlib.util.spec_from_file_location('artifact_tiled',ROOT/'scripts/artifact_tiled.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
 def canonical(v):return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 def canonical_map(root:Path,legacy=False,tileset=False):

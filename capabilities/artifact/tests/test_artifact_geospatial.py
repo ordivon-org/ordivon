@@ -1,11 +1,11 @@
-import pytest
-import copy
 import importlib.util
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
+
+import pytest
 
 pytestmark = pytest.mark.integration
 

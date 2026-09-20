@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import pytest
-
 import binascii
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import struct
 import tempfile
 import unittest
 import wave
 import zlib
+from pathlib import Path
 
 import jsonschema
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTO = ROOT / "planning/prototypes"
@@ -26,6 +25,7 @@ assert CONTRACT_SPEC.loader is not None
 CONTRACT_SPEC.loader.exec_module(CONTRACT)
 
 import sys
+
 sys.modules["verifier_plugin_contract_r2"] = CONTRACT
 
 ADAPTER_SPEC = importlib.util.spec_from_file_location(

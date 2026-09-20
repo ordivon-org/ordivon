@@ -1,5 +1,9 @@
-import hashlib, importlib.util, json, unittest
+import hashlib
+import importlib.util
+import json
+import unittest
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("artifact_donor_export", ROOT / "scripts/artifact_donor_export.py")
 M = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(M)

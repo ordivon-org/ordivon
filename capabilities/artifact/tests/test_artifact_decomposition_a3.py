@@ -3,9 +3,9 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -36,7 +36,11 @@ class ArtifactDecompositionA3TrustTests(unittest.TestCase):
             self.assertTrue(callable(value))
 
     def test_verification_summary_round_trip_is_independent_of_delivery_monolith(self) -> None:
-        from artifact_trust.vsa import LOCAL_VSA_VERIFIER_ID, verification_summary_statement, verify_verification_summary
+        from artifact_trust.vsa import (
+            LOCAL_VSA_VERIFIER_ID,
+            verification_summary_statement,
+            verify_verification_summary,
+        )
 
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

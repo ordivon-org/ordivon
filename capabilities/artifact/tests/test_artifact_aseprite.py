@@ -1,6 +1,13 @@
-import hashlib,importlib.util,json,subprocess,tempfile,unittest
+import hashlib
+import importlib.util
+import json
+import subprocess
+import tempfile
+import unittest
 from pathlib import Path
+
 from PIL import Image
+
 ROOT=Path(__file__).resolve().parents[1];SPEC=importlib.util.spec_from_file_location('artifact_aseprite',ROOT/'scripts/artifact_aseprite.py');M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
 def make_source(root:Path):
  png=root/'input.png';im=Image.new('RGBA',(8,8),(0,0,0,0));im.putpixel((2,2),(255,0,0,255));im.putpixel((3,2),(0,255,0,255));im.save(png);src=root/'source.aseprite';p=subprocess.run([str(M.ASEPRITE),'-b',str(png),'--save-as',str(src)],capture_output=True);assert p.returncode==0,p.stderr.decode();return src

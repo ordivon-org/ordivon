@@ -1,5 +1,10 @@
-import hashlib,importlib.util,json,shutil,tempfile,unittest
+import hashlib
+import importlib.util
+import json
+import tempfile
+import unittest
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('artifact_software_release_elf',ROOT/'scripts/artifact_software_release_elf.py')
 M=importlib.util.module_from_spec(SPEC);assert SPEC.loader;SPEC.loader.exec_module(M)
