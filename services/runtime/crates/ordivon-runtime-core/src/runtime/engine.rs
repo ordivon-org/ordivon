@@ -806,7 +806,36 @@ fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
         .open(path)
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
+    use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
+
+    // CreateFileW FILE_FLAG_OPEN_REPARSE_POINT: open the named reparse point itself
+    // instead of traversing it. Validate the opened handle before consuming bytes so
+    // a rename/symlink race cannot silently redirect Runtime Release receipt truth.
+    const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+    const FILE_ATTRIBUTE_DIRECTORY: u32 = 0x0000_0010;
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
+
+    let file = OpenOptions::new()
+        .read(true)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)?;
+    let metadata = file.metadata()?;
+    let attributes = metadata.file_attributes();
+    if !metadata.is_file()
+        || attributes & FILE_ATTRIBUTE_DIRECTORY != 0
+        || attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "secure receipt open requires a regular non-reparse file",
+        ));
+    }
+    Ok(file)
+}
+
+#[cfg(not(any(unix, windows)))]
 fn open_regular_file_nofollow(_path: &Path) -> std::io::Result<File> {
     Err(std::io::Error::new(
         std::io::ErrorKind::Unsupported,
