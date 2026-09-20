@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# 部署 Gatus 到生产: reviewed binary + config + systemd unit.
+# Reviewed v5.36.0 linux/amd64 source:
+#   OCI: ghcr.io/twin/gatus@sha256:c5f210d095fa78e6efaa20ffeb14803f2ba4f10615e16a6d12087697149617f0
+#   source revision: ed1107b41a30e22047eecfb6dbc3be5e39829d5a
+# The official binary does not expose a --version CLI flag, so admission is
+# content-addressed and checks Go embedded module/platform metadata instead.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+GATUS_EXPECTED_VERSION="${GATUS_EXPECTED_VERSION:-5.36.0}"
+GATUS_EXPECTED_SHA256="${GATUS_EXPECTED_SHA256:-99c60412a77edd1dd887e68a49754d4ba9e06a48e1812e32fde155fd092815f6}"
+GATUS_EXPECTED_MODULE="${GATUS_EXPECTED_MODULE:-github.com/TwiN/gatus/v5}"
+GATUS_EXPECTED_GOOS="${GATUS_EXPECTED_GOOS:-linux}"
+GATUS_EXPECTED_GOARCH="${GATUS_EXPECTED_GOARCH:-amd64}"
+GATUS_REVIEWED_OCI_DIGEST="${GATUS_REVIEWED_OCI_DIGEST:-sha256:c5f210d095fa78e6efaa20ffeb14803f2ba4f10615e16a6d12087697149617f0}"
+GATUS_REVIEWED_SOURCE_REVISION="${GATUS_REVIEWED_SOURCE_REVISION:-ed1107b41a30e22047eecfb6dbc3be5e39829d5a}"
+
+# A caller may provide a reviewed source explicitly. On an already admitted
+# workstation the installed content-addressed binary is itself a valid local
+# materialization source, so config-only convergence does not depend on a stale
+# build-tree path such as /root/go/bin/gatus.
+if [[ -z "${GATUS_SOURCE_BIN:-}" ]]; then
+  if [[ -x /root/go/bin/gatus ]]; then
+    GATUS_SOURCE_BIN=/root/go/bin/gatus
+  elif [[ -x /opt/gatus/gatus ]]; then
+    GATUS_SOURCE_BIN=/opt/gatus/gatus
+  else
+    GATUS_SOURCE_BIN=/root/go/bin/gatus
+  fi
+fi
+
+VERIFY_ONLY=false
+ACTIVATE=false
+if [[ "${1:-}" == "--verify-only" ]]; then
+  VERIFY_ONLY=true
+elif [[ "${1:-}" == "--activate" ]]; then
+  ACTIVATE=true
+elif [[ $# -ne 0 ]]; then
+  echo "usage: $0 [--verify-only|--activate]" >&2
+  exit 2
+fi
+
+if [[ ! -x "$GATUS_SOURCE_BIN" ]]; then
+  echo "ERROR: Gatus binary missing: $GATUS_SOURCE_BIN" >&2
+  echo "Provide the reviewed Gatus $GATUS_EXPECTED_VERSION binary via GATUS_SOURCE_BIN; deployment never downloads binaries implicitly." >&2
+  exit 20
+fi
+
+actual_sha256="$(sha256sum "$GATUS_SOURCE_BIN" | awk '{print $1}')"
+if [[ "$actual_sha256" != "$GATUS_EXPECTED_SHA256" ]]; then
+  echo "ERROR: Gatus binary SHA-256 mismatch: expected $GATUS_EXPECTED_SHA256 got $actual_sha256" >&2
+  exit 21
+fi
+
+build_info="$(/usr/bin/go version -m "$GATUS_SOURCE_BIN")"
+if ! grep -Fq $'\tpath\t'"$GATUS_EXPECTED_MODULE" <<<"$build_info"; then
+  echo "ERROR: Gatus Go module identity mismatch; expected $GATUS_EXPECTED_MODULE" >&2
+  exit 22
+fi
+if ! grep -Fq $'\tbuild\tGOOS='"$GATUS_EXPECTED_GOOS" <<<"$build_info"; then
+  echo "ERROR: Gatus GOOS mismatch; expected $GATUS_EXPECTED_GOOS" >&2
+  exit 23
+fi
+if ! grep -Fq $'\tbuild\tGOARCH='"$GATUS_EXPECTED_GOARCH" <<<"$build_info"; then
+  echo "ERROR: Gatus GOARCH mismatch; expected $GATUS_EXPECTED_GOARCH" >&2
+  exit 24
+fi
+
+echo "Gatus admission PASS version=$GATUS_EXPECTED_VERSION sha256=$actual_sha256 module=$GATUS_EXPECTED_MODULE platform=$GATUS_EXPECTED_GOOS/$GATUS_EXPECTED_GOARCH"
+echo "Reviewed source OCI=$GATUS_REVIEWED_OCI_DIGEST revision=$GATUS_REVIEWED_SOURCE_REVISION"
+if [[ "$VERIFY_ONLY" == true ]]; then
+  exit 0
+fi
+
+echo "== 1. 安装二进制 =="
+install -d -m 0755 /opt/gatus
+if [[ "$(readlink -f "$GATUS_SOURCE_BIN")" != "$(readlink -f /opt/gatus/gatus 2>/dev/null || echo /opt/gatus/gatus)" ]]; then
+  install -m 0755 "$GATUS_SOURCE_BIN" /opt/gatus/gatus
+else
+  chmod 0755 /opt/gatus/gatus
+fi
+installed_sha256="$(sha256sum /opt/gatus/gatus | awk '{print $1}')"
+[[ "$installed_sha256" == "$GATUS_EXPECTED_SHA256" ]]
+
+echo "== 2. 安装配置 =="
+install -d -m 0755 /etc/gatus
+install -m 0644 "$ROOT/observability/gatus/config.yaml" /etc/gatus/config.yaml
+
+echo "== 3. 安装 systemd 单元 =="
+install -m 0644 "$ROOT/observability/gatus/ordivon-gatus.service" /etc/systemd/system/ordivon-gatus.service
+systemctl daemon-reload
+
+echo "== 4. 保持默认冷态 =="
+systemctl disable --now ordivon-gatus.service
+[[ "$(systemctl is-enabled ordivon-gatus.service 2>/dev/null || true)" == "disabled" ]]
+
+if [[ "$ACTIVATE" == true ]]; then
+  echo "== 5. 显式按需启动 =="
+  systemctl start ordivon-gatus.service
+  sleep 2
+  systemctl is-active ordivon-gatus.service
+  systemctl status ordivon-gatus.service --no-pager -n 5 | head -8
+
+  echo "== 6. 健康检查 =="
+  health_tmp="$(mktemp)"
+  trap 'rm -f "$health_tmp"' EXIT
+  curl -fsS -m 5 -o "$health_tmp" http://127.0.0.1:8080/api/v1/endpoints/statuses
+  head -c 400 "$health_tmp"
+  echo
+  rm -f "$health_tmp"
+  trap - EXIT
+  echo "部署完成（按需运行；未加入 boot set）"
+else
+  [[ "$(systemctl is-active ordivon-gatus.service 2>/dev/null || true)" == "inactive" ]]
+  echo "部署完成（默认冷态；使用 --activate 临时启动）"
+fi

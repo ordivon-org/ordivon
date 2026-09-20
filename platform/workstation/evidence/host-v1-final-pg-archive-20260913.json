@@ -1,0 +1,163 @@
+{
+  "claims": {
+    "backupRestoreEstablished": false,
+    "concurrencySemanticsEstablished": false,
+    "cutoverAdmitted": false,
+    "postgresIsHostAuthority": false,
+    "productionWriterChanged": false,
+    "rowEquivalenceEstablishedForSnapshot": true
+  },
+  "kind": "ordivon.host-postgresql-stage-receipt",
+  "postgres": {
+    "database": "ordivon_host_stage_r1",
+    "host": "/var/lib/postgres/ordivon-data-r5-pg-14550-v4",
+    "port": 55434,
+    "schema": "host_retired_final_20260912",
+    "serverVersion": "18.6"
+  },
+  "receiptCount": 1,
+  "schemaVersion": 1,
+  "snapshotBytes": 45838336,
+  "snapshotSha256": "70cc55a34f6fdf97609f0593e13227740fb3e887052a629e3b7d8712a9f54e8b",
+  "source": "/var/lib/ordivon/retired/host-v1/host-v1-48104ae46bc92c66.sqlite3",
+  "tables": {
+    "board_messages": {
+      "rows": 15640,
+      "sha256": "bf221c24747fcb6ad2132db223a06753f79873711dd73f897f4fd9c84812846f"
+    },
+    "event_object_refs": {
+      "rows": 30854,
+      "sha256": "85442654e814648bf608f46d5649fd4d84447666d45f4d3cb79e36b7c0e48cc6"
+    },
+    "events": {
+      "rows": 14417,
+      "sha256": "c7ca36aefd3d28581fb667263ecdecc6102b3a37b371461b203e03d02aea057e"
+    },
+    "host_metadata": {
+      "rows": 2,
+      "sha256": "a6bb1b16057bc3596b88284f8a9e112bb2655df5c920df0f07114346eeb7f125"
+    },
+    "leases": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "legacy_object_refs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "news_editions": {
+      "rows": 14,
+      "sha256": "fcfcbf026e099b3b7c64de096370d73565011d35c370e954e48443351cbfc13a"
+    },
+    "news_publications": {
+      "rows": 14,
+      "sha256": "0de31c27d9863b3ce0458efbf53c122ccc5d25567c90ea1f63a5301e0b047c2d"
+    },
+    "object_refs": {
+      "rows": 44414,
+      "sha256": "5ad51c74c33293111190a8068b0fd77cd454ddaf580ea05c79c0bc8f35d41e19"
+    },
+    "object_validation": {
+      "rows": 28905,
+      "sha256": "de0533ea80a77d5d937f8a869c2a1188c83144aefd350b0d07eccb2f6f1ba0a4"
+    },
+    "schema_migrations": {
+      "rows": 5,
+      "sha256": "7f57a380d030845def4946d5e580fd075fe4e8476825998a6c7020d6ba5be649"
+    },
+    "streams": {
+      "rows": 2025,
+      "sha256": "c37954e847aac0ce21236607167eea109763e99429ec5fb9dc0fe33d9cd1c050"
+    },
+    "task_extension_state": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "task_head_validation": {
+      "rows": 2025,
+      "sha256": "0615a3d89be0addf59a989969791e50a4bf3a59667497b1f4a931404da95e583"
+    },
+    "task_projection": {
+      "rows": 2025,
+      "sha256": "347152c25cb5dcb9aa3d3f4022d7eec99bea8731d09b139803183f305ed89a24"
+    }
+  },
+  "truthRole": "migration-evidence-not-authority",
+  "validated": {
+    "board_messages": {
+      "rows": 15640,
+      "sha256": "bf221c24747fcb6ad2132db223a06753f79873711dd73f897f4fd9c84812846f"
+    },
+    "event_object_refs": {
+      "rows": 30854,
+      "sha256": "85442654e814648bf608f46d5649fd4d84447666d45f4d3cb79e36b7c0e48cc6"
+    },
+    "events": {
+      "rows": 14417,
+      "sha256": "c7ca36aefd3d28581fb667263ecdecc6102b3a37b371461b203e03d02aea057e"
+    },
+    "host_metadata": {
+      "rows": 2,
+      "sha256": "a6bb1b16057bc3596b88284f8a9e112bb2655df5c920df0f07114346eeb7f125"
+    },
+    "invariant:dangling_board_replies": {
+      "violations": 0
+    },
+    "invariant:event_payload_edges": {
+      "violations": 0
+    },
+    "invariant:event_stream_heads": {
+      "violations": 0
+    },
+    "invariant:news_head_mismatch": {
+      "violations": 0
+    },
+    "invariant:task_projection_heads": {
+      "violations": 0
+    },
+    "leases": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "legacy_object_refs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "news_editions": {
+      "rows": 14,
+      "sha256": "fcfcbf026e099b3b7c64de096370d73565011d35c370e954e48443351cbfc13a"
+    },
+    "news_publications": {
+      "rows": 14,
+      "sha256": "0de31c27d9863b3ce0458efbf53c122ccc5d25567c90ea1f63a5301e0b047c2d"
+    },
+    "object_refs": {
+      "rows": 44414,
+      "sha256": "5ad51c74c33293111190a8068b0fd77cd454ddaf580ea05c79c0bc8f35d41e19"
+    },
+    "object_validation": {
+      "rows": 28905,
+      "sha256": "de0533ea80a77d5d937f8a869c2a1188c83144aefd350b0d07eccb2f6f1ba0a4"
+    },
+    "schema_migrations": {
+      "rows": 5,
+      "sha256": "7f57a380d030845def4946d5e580fd075fe4e8476825998a6c7020d6ba5be649"
+    },
+    "streams": {
+      "rows": 2025,
+      "sha256": "c37954e847aac0ce21236607167eea109763e99429ec5fb9dc0fe33d9cd1c050"
+    },
+    "task_extension_state": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "task_head_validation": {
+      "rows": 2025,
+      "sha256": "0615a3d89be0addf59a989969791e50a4bf3a59667497b1f4a931404da95e583"
+    },
+    "task_projection": {
+      "rows": 2025,
+      "sha256": "347152c25cb5dcb9aa3d3f4022d7eec99bea8731d09b139803183f305ed89a24"
+    }
+  }
+}

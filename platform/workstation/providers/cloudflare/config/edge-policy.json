@@ -1,0 +1,102 @@
+{
+  "family": "p1.6",
+  "request": {
+    "max_body_bytes": 8192,
+    "clock_skew_seconds": 300
+  },
+  "leases_ms": {
+    "fetch": 60000,
+    "browser.run": 120000
+  },
+  "retention_days": {
+    "idempotency": 90,
+    "request_state": 90,
+    "receipt_mirror": 90,
+    "artifacts": 91,
+    "cleanup_tasks": 90
+  },
+  "fetch": {
+    "allowed_hosts": [
+      "developers.cloudflare.com",
+      "api.github.com",
+      "raw.githubusercontent.com",
+      "github.com",
+      "example.com",
+      "openai.com"
+    ],
+    "max_url_bytes": 2048,
+    "max_response_bytes": 1048576,
+    "default_response_bytes": 262144,
+    "min_timeout_ms": 1000,
+    "max_timeout_ms": 15000,
+    "default_timeout_ms": 10000,
+    "max_accept_bytes": 256,
+    "max_redirects": 3,
+    "allowed_scheme": "https:",
+    "allowed_port": "443",
+    "forbidden_host_suffixes": [
+      ".localhost",
+      ".local",
+      ".internal",
+      ".home.arpa",
+      ".test",
+      ".invalid",
+      ".example",
+      ".onion"
+    ]
+  },
+  "browser": {
+    "viewport": {
+      "default_width": 1365,
+      "default_height": 768,
+      "min_width": 320,
+      "max_width": 1920,
+      "min_height": 240,
+      "max_height": 1080
+    },
+    "timeout": {
+      "default_ms": 15000,
+      "min_ms": 1000,
+      "max_ms": 30000
+    },
+    "wait_after": {
+      "default_ms": 0,
+      "min_ms": 0,
+      "max_ms": 3000
+    },
+    "max_response_bytes": 8388608,
+    "max_screenshot_bytes": 4194304,
+    "max_content_bytes": 1048576,
+    "wait_until": [
+      "load",
+      "domcontentloaded",
+      "networkidle0",
+      "networkidle2"
+    ],
+    "rejected_resource_types": [
+      "media",
+      "font",
+      "prefetch",
+      "eventsource",
+      "websocket",
+      "manifest",
+      "signedexchange",
+      "ping",
+      "cspviolationreport"
+    ],
+    "action_timeout_max_ms": 120000,
+    "action_timeout_overhead_ms": 5000
+  },
+  "rate_limits": {
+    "browser": {
+      "binding": "BROWSER_RATE_LIMIT",
+      "limit": 1,
+      "period": 10
+    },
+    "fetch": {
+      "binding": "FETCH_RATE_LIMIT",
+      "limit": 30,
+      "period": 60
+    }
+  }
+}

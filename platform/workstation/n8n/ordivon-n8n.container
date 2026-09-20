@@ -1,0 +1,26 @@
+[Unit]
+Description=Ordivon n8n integration service
+
+[Container]
+Image=ghcr.io/n8n-io/n8n@sha256:770da605a7dfdda55838fb2b66b701435690ffcce5d3067585fc7e3cb17b168f
+ContainerName=ordivon-n8n
+Pod=ordivon-n8n.pod
+Pull=never
+User=934
+Group=934
+Volume=/var/lib/n8n/.n8n:/home/node/.n8n:Z
+EnvironmentFile=/etc/n8n/n8n-container.env
+Secret=n8n-db-password,type=env,target=DB_POSTGRESDB_PASSWORD
+Secret=n8n-encryption-key,type=env,target=N8N_ENCRYPTION_KEY
+Secret=n8n-runner-auth-token,type=env,target=N8N_RUNNERS_AUTH_TOKEN
+ReadOnly=true
+ReadOnlyTmpfs=true
+Tmpfs=/home/node/.cache:rw,mode=1777
+NoNewPrivileges=true
+DropCapability=all
+
+[Service]
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=900
+TimeoutStopSec=90

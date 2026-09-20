@@ -1,0 +1,202 @@
+---
+- name: Operations v2 Grafana visualization slice
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    grafana_image: docker.io/grafana/grafana@sha256:1dec240d14e232597dce9bfa56dae55f4397b138cdc91e3ee92ac6b157e2fc49
+    grafana_state_dir: /var/lib/ordivon-operations/grafana
+    grafana_config_dir: /etc/ordivon-grafana
+    grafana_quadlet_dir: /etc/containers/systemd
+    ordivon_heavy_observability_acceptance: false
+  tasks:
+    - name: Ensure official pinned Grafana OCI image is already admitted locally
+      ansible.builtin.command:
+        argv: [/usr/bin/podman, image, exists, "{{ grafana_image }}"]
+      changed_when: false
+
+    - name: Stop and disable legacy packaged Grafana service before container admission
+      ansible.builtin.systemd_service:
+        name: grafana.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Create Grafana persistent state directory
+      ansible.builtin.file:
+        path: "{{ grafana_state_dir }}"
+        state: directory
+        owner: "472"
+        group: root
+        mode: "0750"
+
+    - name: Create Grafana configuration directory
+      ansible.builtin.file:
+        path: "{{ grafana_config_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create Grafana provisioning root
+      ansible.builtin.file:
+        path: "{{ grafana_config_dir }}/provisioning"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create standard Grafana provisioning subdirectories
+      ansible.builtin.file:
+        path: "{{ grafana_config_dir }}/provisioning/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - datasources
+        - dashboards
+        - plugins
+        - alerting
+
+    - name: Install non-secret Grafana environment
+      ansible.builtin.copy:
+        src: ../grafana/grafana.env
+        dest: "{{ grafana_config_dir }}/grafana.env"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Provision Prometheus and Loki datasources
+      ansible.builtin.copy:
+        src: ../observability/grafana-datasources.yaml
+        dest: "{{ grafana_config_dir }}/provisioning/datasources/operations-v2.yaml"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Remove stale datasource file from provisioning root
+      ansible.builtin.file:
+        path: "{{ grafana_config_dir }}/provisioning/operations-v2.yaml"
+        state: absent
+
+    - name: Install digest-pinned Grafana Quadlet
+      ansible.builtin.copy:
+        src: ../grafana/ordivon-grafana.container
+        dest: "{{ grafana_quadlet_dir }}/ordivon-grafana.container"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Regenerate systemd units after Quadlet changes
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Keep Grafana cold by default
+      ansible.builtin.systemd_service:
+        name: ordivon-grafana.service
+        masked: false
+        state: stopped
+        daemon_reload: true
+
+    - name: Require explicit heavy observability activation before Grafana acceptance
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, is-active, --quiet, ordivon-observability-heavy.target]
+      changed_when: false
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Wait for Grafana health endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/health
+        method: GET
+        status_code: 200
+        return_content: true
+      register: grafana_health
+      retries: 40
+      delay: 1
+      until: grafana_health.status == 200
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Read provisioned Grafana datasources
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/datasources
+        method: GET
+        status_code: 200
+        return_content: true
+      register: grafana_datasource_inventory
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Require immutable Prometheus and Loki datasource contracts
+      ansible.builtin.assert:
+        that:
+          - >-
+            grafana_datasource_inventory.json
+            | selectattr('uid', 'equalto', 'operations-prometheus')
+            | selectattr('type', 'equalto', 'prometheus')
+            | selectattr('readOnly', 'equalto', true)
+            | list | length == 1
+          - >-
+            grafana_datasource_inventory.json
+            | selectattr('uid', 'equalto', 'operations-loki')
+            | selectattr('type', 'equalto', 'loki')
+            | selectattr('readOnly', 'equalto', true)
+            | list | length == 1
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Verify Prometheus through Grafana datasource proxy
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/datasources/proxy/uid/operations-prometheus/api/v1/query?query=up
+        method: GET
+        status_code: 200
+        return_content: true
+      register: grafana_prometheus_proxy
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Require Prometheus proxy to return live series
+      ansible.builtin.assert:
+        that:
+          - grafana_prometheus_proxy.json.status == 'success'
+          - grafana_prometheus_proxy.json.data.result | length > 0
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Verify Loki through Grafana datasource proxy
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/datasources/proxy/uid/operations-loki/loki/api/v1/labels
+        method: GET
+        status_code: 200
+        return_content: true
+      register: grafana_loki_proxy
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Require Loki proxy to return labels
+      ansible.builtin.assert:
+        that:
+          - grafana_loki_proxy.json.status == 'success'
+          - grafana_loki_proxy.json.data | length > 0
+      when: ordivon_heavy_observability_acceptance | bool
+
+    - name: Remove legacy Arch Grafana package after official OCI cutover
+      community.general.pacman:
+        name: grafana
+        state: absent
+
+    - name: Remove obsolete packaged Grafana override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/grafana.service.d
+        state: absent
+
+    - name: Reconcile systemd after retiring packaged Grafana
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Recheck official Grafana OCI during explicit acceptance
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/health
+        method: GET
+        status_code: 200
+        return_content: true
+      register: grafana_post_retirement_health
+      retries: 10
+      delay: 1
+      until: grafana_post_retirement_health.status == 200
+      when: ordivon_heavy_observability_acceptance | bool

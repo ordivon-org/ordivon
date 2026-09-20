@@ -1,0 +1,66 @@
+---
+- name: Operations v2 scheduler substrate for Workstation recovery generation
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    workstation_recovery_service: ordivon-workstation-backup.service
+    workstation_recovery_timer: ordivon-workstation-backup.timer
+    workstation_recovery_launcher: /opt/ordivon-workstation-recovery/current/bin/workstation-backup
+    workstation_recovery_schedule_enabled: false
+  tasks:
+    - name: Verify recovery launcher is present before owning scheduler bytes
+      ansible.builtin.stat:
+        path: "{{ workstation_recovery_launcher }}"
+        follow: true
+      register: recovery_launcher
+
+    - name: Refuse scheduler ownership without an executable semantic launcher
+      ansible.builtin.assert:
+        that:
+          - recovery_launcher.stat.exists
+          - recovery_launcher.stat.isreg
+          - recovery_launcher.stat.executable
+        fail_msg: >-
+          Operations owns only scheduler substrate and will not synthesize or replace
+          the Workstation recovery semantic launcher.
+
+    - name: Install Workstation recovery service scheduler substrate
+      ansible.builtin.copy:
+        src: ../recovery/ordivon-workstation-backup.service
+        dest: /etc/systemd/system/ordivon-workstation-backup.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Install Workstation recovery timer scheduler substrate
+      ansible.builtin.copy:
+        src: ../recovery/ordivon-workstation-backup.timer
+        dest: /etc/systemd/system/ordivon-workstation-backup.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: Converge unit definitions before timer policy
+      ansible.builtin.meta: flush_handlers
+
+    - name: Keep scheduled Workstation recovery disabled under current containment policy
+      ansible.builtin.systemd_service:
+        name: "{{ workstation_recovery_timer }}"
+        enabled: "{{ workstation_recovery_schedule_enabled }}"
+        state: "{{ 'started' if workstation_recovery_schedule_enabled else 'stopped' }}"
+
+    - name: State scheduler ownership boundary
+      ansible.builtin.debug:
+        msg: >-
+          Operations owns only unit bytes and timer lifecycle. The immutable recovery
+          generation, authority material, Restic snapshot/copy verification, semantic-state
+          backup, and restore acceptance remain outside this playbook. This playbook never
+          starts the backup service directly.
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

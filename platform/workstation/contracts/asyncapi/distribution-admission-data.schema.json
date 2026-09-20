@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/integration/distribution-admission-data.schema.json",
+  "title": "Distribution admission integration data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent", "decision"],
+  "properties": {
+    "intent": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["intentId", "provider", "effectName"],
+      "properties": {
+        "intentId": {"type": "string", "minLength": 1},
+        "occurrenceRef": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "effectName": {"type": "string", "minLength": 1},
+        "artifact": {"type": ["object", "null"]}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "reason", "externalEffectPerformed"],
+      "properties": {
+        "action": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "externalEffectPerformed": {"const": false}
+      }
+    }
+  }
+}

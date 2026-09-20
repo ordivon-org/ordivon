@@ -1,0 +1,37 @@
+[project]
+name = "ordivon-workstation-v2"
+version = "0.0.0"
+description = "Repository environment for Ordivon Workstation E2E v2."
+requires-python = "==3.14.7"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ruff==0.16.8",
+]
+test = [
+  "pytest==9.1.1",
+]
+ops = [
+  "jsonschema>=4.26,<5",
+  "nexus-rpc>=1.4,<2",
+  "psycopg[binary]>=3.3,<4",
+  "temporalio>=1.32,<2",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "test", "ops"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "providers/cloudflare/test"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E9", "F", "I", "UP"]
+ignore = ["UP022"] # explicit PIPE capture is retained at operational subprocess boundaries

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+bash -n \
+  scripts/configure-r2-lifecycle \
+  scripts/install-edge-client \
+  scripts/install-edge-operations
+
+if command -v systemd-analyze >/dev/null 2>&1; then
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  sed 's#^ExecStart=.*#ExecStart=/bin/true#' \
+    deploy/systemd/ordivon-edge-gc.service \
+    > "$tmp/ordivon-edge-gc.service"
+  cp deploy/systemd/ordivon-edge-gc.timer "$tmp/ordivon-edge-gc.timer"
+  systemd-analyze verify \
+    "$tmp/ordivon-edge-gc.service" \
+    "$tmp/ordivon-edge-gc.timer"
+fi

@@ -1,0 +1,89 @@
+---
+- name: Operations v2 shared metrics slice
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure Netdata systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/netdata.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Own the loopback-only Netdata service realization
+      ansible.builtin.copy:
+        src: ../observability/netdata-v2.conf
+        dest: /etc/systemd/system/netdata.service.d/10-ordivon-v2.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Try-restart Netdata if profile is active
+
+    - name: Keep Netdata cold by default
+      ansible.builtin.systemd_service:
+        name: netdata.service
+        enabled: false
+        state: stopped
+
+    - name: Install Operations v2 Prometheus configuration
+      ansible.builtin.copy:
+        src: ../observability/prometheus.yml
+        dest: /etc/prometheus/prometheus.yml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Try-restart Operations Prometheus if active
+
+    - name: Bind Operations Prometheus to loopback on its own port
+      ansible.builtin.copy:
+        src: ../observability/prometheus.conf
+        dest: /etc/conf.d/prometheus
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Try-restart Operations Prometheus if active
+
+    - name: Bind node exporter to loopback on the Operations v2 port
+      ansible.builtin.copy:
+        src: ../observability/node-exporter.conf
+        dest: /etc/conf.d/prometheus-node-exporter
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Try-restart node exporter if active
+
+    - name: Keep node exporter cold by default
+      ansible.builtin.systemd_service:
+        name: prometheus-node-exporter.service
+        enabled: false
+        state: stopped
+
+    - name: Keep Operations Prometheus cold by default
+      ansible.builtin.systemd_service:
+        name: prometheus.service
+        enabled: false
+        state: stopped
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Try-restart Netdata if profile is active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, netdata.service]
+      changed_when: false
+
+    - name: Try-restart node exporter if active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, prometheus-node-exporter.service]
+      changed_when: false
+
+    - name: Try-restart Operations Prometheus if active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, prometheus.service]
+      changed_when: false

@@ -1,0 +1,43 @@
+[Unit]
+Description=Temporal production green cluster for Ordivon durable workflows
+Documentation=https://docs.temporal.io/self-hosted-guide
+Requires=postgresql.service
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=temporal
+Group=temporal
+EnvironmentFile=/etc/temporal/temporal-secrets.env
+WorkingDirectory=/var/lib/temporal
+ExecStart=/opt/ordivon/external/temporal-server/1.31.2/temporal-server --config-file /etc/temporal/production.yaml --allow-no-auth start
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=60s
+StateDirectory=temporal
+StateDirectoryMode=0700
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectKernelLogs=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/temporal
+
+[Install]
+WantedBy=multi-user.target

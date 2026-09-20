@@ -1,0 +1,93 @@
+schema_version = 1
+role = "ordivon-workstation-v2-recovery"
+
+[recovery]
+authority_dir = "/mnt/d/wsl-backups/authority"
+restic_mirror = "/mnt/d/wsl-backups/restic-workstation-mirror"
+dpapi_blob = "age-keys.dpapi"
+dpapi_recovery_script = "recover-age-key.ps1"
+dpapi_receipt = "age-keys.dpapi.receipt.json"
+authority_bundle_glob = "ordivon-authority-*.tar.age"
+max_bundle_age_hours = 168
+retain_bundles = 14
+control_repository = "/root/projects/ordivon-workstation-v2"
+control_snapshot_tag = "workstation-v2-control"
+primary_repository = "/root/backups/restic-workstation"
+retain_control_snapshots = 14
+backup_generation_root = "/opt/ordivon-workstation-recovery"
+backup_generation_current = "/opt/ordivon-workstation-recovery/current/bin/workstation-backup"
+restic_password_file = "/root/.config/restic/workstation-password.txt"
+semantic_repository = "/mnt/d/wsl-backups/restic-semantic-recovery"
+semantic_receipt = "/mnt/d/wsl-backups/semantic-recovery.latest.json"
+semantic_attempt = "/mnt/d/wsl-backups/semantic-recovery.last-attempt.json"
+semantic_tag = "semantic-recovery"
+semantic_project_parent = "/root/projects"
+semantic_staging_parent = "/var/lib/ordivon/workstation/semantic-recovery-staging"
+retain_semantic_snapshots = 14
+max_semantic_receipt_age_hours = 168
+semantic_backup_timeout_seconds = 600
+semantic_restore_timeout_seconds = 300
+semantic_check_timeout_seconds = 300
+semantic_sqlite_sources = [
+  "/var/lib/ordivon/registry/registry.sqlite3",
+]
+semantic_direct_paths = [
+  "/var/lib/ordivon/deployed-head",
+  "/var/lib/ordivon/retired",
+  "/var/lib/ordivon/registry/attempts",
+  "/var/lib/ordivon/runtime/workspace-records",
+  "/var/lib/ordivon/runtime/cleanup-receipts",
+  "/var/lib/ordivon/runtime/reclaim-receipts",
+  "/var/lib/ordivon/runtime/lifecycle-receipts",
+  "/var/lib/ordivon/runtime/hygiene-receipts",
+  "/var/lib/ordivon/runtime/evidence",
+  "/root/.local/state/ordivon-workstation/node-snapshot-baseline.json",
+  "/root/.local/state/ordivon-workstation/node-generation-history",
+  "/root/.local/state/ordivon-workstation/node-incidents",
+]
+semantic_excluded_by_design = [
+  "/var/lib/ordivon/host",
+  "/var/lib/ordivon/runtime/cache",
+  "/var/lib/ordivon/runtime/workspaces",
+  "/var/lib/ordivon/security/providers",
+  "/var/lib/ordivon/security/vault",
+  "/root/projects/ordivon-security/quarantine",
+]
+authority_paths = [
+  "root/.config/ordivon",
+  "root/.config/restic",
+  "root/.config/sops",
+  "root/.ssh",
+  "etc/cloudflared",
+  "etc/ordivon",
+]
+
+[external_apps.hermes]
+recovery_paths = [
+  "root/.hermes/auth.json",
+  "root/.hermes/config.yaml",
+  "root/.hermes/memories",
+  "root/.hermes/skills",
+  "root/.hermes/SOUL.md",
+]
+
+[external_apps.codex]
+recovery_paths = [
+  "root/.codex/auth.json",
+  "root/.codex/config.toml",
+  "root/.codex/skills",
+]
+
+[owner_capsules.finance]
+exporter = "/opt/ordivon-finance-recovery-exporter-rebound/current/bin/finance-recovery-capsule"
+repository = "/mnt/d/wsl-backups/restic-semantic-recovery"
+password_file = "/root/.config/restic/workstation-password.txt"
+tag = "finance-owner-recovery"
+receipt = "/mnt/d/wsl-backups/finance-recovery.latest.json"
+attempt = "/mnt/d/wsl-backups/finance-recovery.last-attempt.json"
+staging_parent = "/var/lib/ordivon/workstation/semantic-recovery-staging"
+retain_snapshots = 14
+backup_timeout_seconds = 600
+restore_timeout_seconds = 300
+maintenance_timeout_seconds = 1800
+check_timeout_seconds = 1800

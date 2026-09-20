@@ -1,0 +1,28 @@
+---
+- name: Operations v2 external substrate
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  vars:
+    operations_v2_packages:
+      - opentofu
+      - prometheus-node-exporter
+      - vector
+      - osquery
+      - open-policy-agent
+      - loki
+  tasks:
+    - name: Install mature external operations substrate from Arch repositories
+      community.general.pacman:
+        name: "{{ operations_v2_packages }}"
+        state: present
+
+# Package installation and service lifecycle are deliberately separate owners.
+# Each accepted Operations slice enables/configures its own service in a dedicated
+# playbook; bootstrap must never stop a service that another slice has admitted.
+#
+# Intentional omissions:
+# - no custom service supervisor
+# - no custom retry loop
+# - no automatic production cutover
+# - no takeover of Network v2 Prometheus/Gatus semantics

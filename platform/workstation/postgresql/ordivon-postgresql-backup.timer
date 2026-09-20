@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Ordivon PostgreSQL backup schedule
+
+[Timer]
+OnCalendar=*-*-* 04:10:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=ordivon-postgresql-backup.service
+
+[Install]
+WantedBy=timers.target

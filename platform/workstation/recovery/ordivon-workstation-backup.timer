@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh Ordivon Agent workstation recovery state daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=15m
+Unit=ordivon-workstation-backup.service
+
+[Install]
+WantedBy=timers.target

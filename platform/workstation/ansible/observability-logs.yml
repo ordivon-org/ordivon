@@ -1,0 +1,98 @@
+---
+- name: Operations v2 shared log slice
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install loopback-only Loki configuration
+      ansible.builtin.copy:
+        src: ../observability/loki.yaml
+        dest: /etc/loki/loki.yaml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Try-restart Loki if profile is active
+
+    - name: Ensure Loki systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/loki.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Override packaged Loki command to use only versioned config
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/loki.service.d/operations-v2.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Service]
+          ExecStart=
+          ExecStart=/usr/bin/loki -config.file=/etc/loki/loki.yaml
+      notify:
+        - Reload systemd
+        - Try-restart Loki if profile is active
+
+    - name: Keep Loki cold by default
+      ansible.builtin.systemd_service:
+        name: loki.service
+        enabled: false
+        state: stopped
+        daemon_reload: true
+
+    - name: Install journald to Loki Vector pipeline
+      ansible.builtin.copy:
+        src: ../observability/vector.yaml
+        dest: /etc/vector/vector.yaml
+        owner: root
+        group: vector
+        mode: "0640"
+      notify: Try-restart Vector if profile is active
+
+    - name: Ensure Vector systemd drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/vector.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install resilient Vector startup policy
+      ansible.builtin.copy:
+        src: ../observability/vector-systemd.conf
+        dest: /etc/systemd/system/vector.service.d/operations-v2.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Try-restart Vector if profile is active
+
+    - name: Clear any prior Vector start-limit state
+      ansible.builtin.command: systemctl reset-failed vector.service
+      changed_when: false
+      failed_when: false
+
+    - name: Keep Vector cold by default
+      ansible.builtin.systemd_service:
+        name: vector.service
+        enabled: false
+        state: stopped
+        daemon_reload: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Try-restart Loki if profile is active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, loki.service]
+      changed_when: false
+
+    - name: Try-restart Vector if profile is active
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, try-restart, vector.service]
+      changed_when: false

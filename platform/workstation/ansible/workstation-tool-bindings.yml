@@ -1,0 +1,75 @@
+---
+- name: Workstation v2 exact tool binding surface
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Create Workstation v2 catalog directory
+      ansible.builtin.file:
+        path: /etc/ordivon/workstation-v2
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create Workstation v2 libexec directory
+      ansible.builtin.file:
+        path: /usr/local/libexec/ordivon/workstation-v2
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Workstation v2 binding catalog
+      ansible.builtin.copy:
+        src: ../workstation/software.toml
+        dest: /etc/ordivon/workstation-v2/software.toml
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install Workstation v2 binding core
+      ansible.builtin.copy:
+        src: ../workstation/tool_binding.py
+        dest: /usr/local/libexec/ordivon/workstation-v2/tool_binding.py
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Workstation v2 equipment compatibility implementation
+      ansible.builtin.copy:
+        src: ../workstation/equipment_binding.py
+        dest: /usr/local/libexec/ordivon/workstation-v2/equipment_binding.py
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Workstation v2 Playwright CLI binding implementation
+      ansible.builtin.copy:
+        src: ../workstation/playwright_cli_binding.py
+        dest: /usr/local/libexec/ordivon/workstation-v2/playwright_cli_binding.py
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install stable equipment-binding launcher
+      ansible.builtin.copy:
+        dest: /root/tools/bin/equipment-binding
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          export ORDIVON_WORKSTATION_V2_CATALOG=/etc/ordivon/workstation-v2/software.toml
+          exec /usr/bin/python3 /usr/local/libexec/ordivon/workstation-v2/equipment_binding.py "$@"
+
+    - name: Install stable Playwright CLI binding launcher
+      ansible.builtin.copy:
+        dest: /root/tools/bin/playwright-cli-binding
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          export ORDIVON_WORKSTATION_V2_CATALOG=/etc/ordivon/workstation-v2/software.toml
+          exec /usr/bin/python3 /usr/local/libexec/ordivon/workstation-v2/playwright_cli_binding.py "$@"

@@ -1,0 +1,78 @@
+{
+  "id": "ordivon-smoke-v1",
+  "name": "Ordivon Integration Smoke v1",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ordivon-integration-smoke-v1",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-600, 0],
+      "id": "7416f7d1-e69c-4ebc-9e5b-34b0d741aab6",
+      "name": "Webhook",
+      "webhookId": "42e5c1d4-14ce-4827-8cc5-d20bcde4e1a4"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst event = input.body ?? input;\nfor (const key of ['specversion', 'id', 'source', 'type']) {\n  if (!event[key]) throw new Error(`missing CloudEvent field: ${key}`);\n}\nif (event.specversion !== '1.0') throw new Error(`unsupported CloudEvents specversion: ${event.specversion}`);\nreturn [{ json: {\n  specversion: '1.0',\n  id: `${event.id}:n8n-forward`,\n  source: 'urn:ordivon:integration:n8n',\n  type: 'io.ordivon.integration.smoke.forward.v1',\n  subject: event.subject ?? 'integration-smoke',\n  time: new Date().toISOString(),\n  datacontenttype: 'application/json',\n  correlationid: event.id,\n  data: {\n    requestType: event.type,\n    requestSource: event.source,\n    payload: event.data ?? null\n  }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-340, 0],
+      "id": "7cad0501-8814-45b0-81ee-03ad44cc373c",
+      "name": "Normalize CloudEvent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/anything",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [-80, 0],
+      "id": "e9b2673e-54bd-4df3-a8b7-b9ddc5737a52",
+      "name": "External Echo"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const echo = $input.first().json;\nconst forwarded = echo.json ?? {};\nif (!forwarded.correlationid) throw new Error('external echo did not preserve correlationid');\nreturn [{ json: {\n  specversion: '1.0',\n  id: `${forwarded.correlationid}:n8n-result`,\n  source: 'urn:ordivon:integration:n8n',\n  type: 'io.ordivon.integration.result.v1',\n  subject: forwarded.correlationid,\n  time: new Date().toISOString(),\n  datacontenttype: 'application/json',\n  correlationid: forwarded.correlationid,\n  data: {\n    provider: 'n8n',\n    externalService: 'httpbin.org',\n    externalMethod: 'POST',\n    echoedType: forwarded.type,\n    echoedPayload: forwarded.data\n  }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [180, 0],
+      "id": "3b195dbf-6e24-4ee2-b664-14f95e0abc27",
+      "name": "Build Integration Result"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Normalize CloudEvent", "type": "main", "index": 0}]]
+    },
+    "Normalize CloudEvent": {
+      "main": [[{"node": "External Echo", "type": "main", "index": 0}]]
+    },
+    "External Echo": {
+      "main": [[{"node": "Build Integration Result", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

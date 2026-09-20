@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Ordivon owner capsule repository check monthly (%i)
+
+[Timer]
+OnCalendar=*-*-01 05:30:00
+Persistent=true
+RandomizedDelaySec=30m
+Unit=ordivon-owner-capsule-check@%i.service
+
+[Install]
+WantedBy=timers.target

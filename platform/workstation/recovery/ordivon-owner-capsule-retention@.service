@@ -1,0 +1,13 @@
+[Unit]
+Description=Ordivon owner capsule retention/prune maintenance (%i)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecCondition=/usr/bin/mountpoint -q /mnt/d
+ExecStart=/opt/ordivon-workstation-recovery/current/bin/owner-capsule-recovery --owner %i --retention
+Nice=15
+IOSchedulingClass=idle

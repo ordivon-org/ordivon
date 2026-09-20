@@ -1,0 +1,29 @@
+---
+- name: Workstation v2 stable node carriers
+  hosts: operations_local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure stable tool directory exists
+      ansible.builtin.file:
+        path: /root/tools/bin
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install input-authority ingress carrier
+      ansible.builtin.copy:
+        src: ../workstation/input_authority_ingress.py
+        dest: /root/tools/bin/input-authority-ingress
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Agent Automation stable carrier
+      ansible.builtin.copy:
+        src: ../workstation/agent_automation_carrier.py
+        dest: /root/tools/bin/agent-automation
+        owner: root
+        group: root
+        mode: "0755"
