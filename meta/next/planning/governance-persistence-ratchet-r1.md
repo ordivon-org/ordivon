@@ -252,3 +252,73 @@ R2 is substantial progress but still does **not** count as a clean sunset audit.
 - current provider-native infrastructure output is integrated rather than frozen as historical debt.
 
 The ratchet remains disposable. Delete it only after repeated future owner-native inventories show that these lifecycle decisions happen correctly without this local review rule.
+
+
+## Lifecycle audit — 2026-09-20, cross-repository carrier preservation R3
+
+Standing: **SUNSET_NOT_MET / HISTORICAL_CLEAN_IDLE_UNCLAIMED_ZERO**.
+
+R3 re-entered owner-native state after a machine reboot rather than trusting the pre-reboot inventory. Host still reported 269 open continuity Tasks. Runtime re-froze at 130 open Workspaces / 44 dirty, and the previous preservation frontier reproduced exactly: 30 historical Workspaces were clean, idle, had no current Host claimant, and still carried Git history not preserved by current `main`.
+
+This audit then resolved those 30 carriers without introducing a Workspace garbage collector, lifecycle database, archive service, or new Ordivon control plane.
+
+### Unique-history preservation
+
+Twenty-two historical carriers across Runtime, Host, Harness, Artifact, Security, and Game passed Gitleaks scans over the union of commits reachable from their historical HEADs but not current `main`.
+
+For each carrier:
+
+```text
+historical clean Workspace
+    -> current Host claimant recheck
+    -> active Runtime Job recheck
+    -> Git unique-history secret scan
+    -> annotated archive/workspaces/<workspace-id> tag at exact HEAD
+    -> verify peeled tag target == original HEAD
+    -> re-read Runtime sourceStateDigest
+    -> exact-digest workspace.close(force=false)
+```
+
+All 22 were converted to Git-owned immutable history and physically removed from Runtime with `force=false`.
+
+### Paper2 false-positive adjudication
+
+The remaining eight historical carriers were all in `/root/workstation-lab` and belonged to the Paper2 evidence lineage. A default Gitleaks scan initially failed closed with 41,581 findings, so these carriers were held rather than archived.
+
+The findings were then adjudicated structurally without exposing candidate secret values:
+
+- 41,577 `sourcegraph-access-token` findings mapped exactly to 40-hex research identifiers embedded in `paperId`, `source_record_id`, `record_id`, or URL fields. Counts matched the source structures exactly, including the expected duplicated matches where the same identifier appeared in more than one field representation. No modern Sourcegraph token prefixes were present in the inspected finding files.
+- Four `generic-api-key` findings mapped to the top-level `token` field of Semantic Scholar bulk-search responses. Each response contained exactly 1,000 paper records while `total` exceeded 1,000; the four token values were distinct 124–125 byte base64url-like strings. The response shape was `total / token / data`, and official API semantics distinguish this continuation token from API-key authentication.
+- After those two rule classes were explicitly adjudicated as corpus-induced false positives, a temporary scan extending the default Gitleaks rules while disabling only `sourcegraph-access-token` and `generic-api-key` passed the complete unique history of all eight carriers with no findings from any other default rule.
+
+The scoped configuration was temporary and was deleted after the scan; no repository-wide secret rule was weakened. The eight carriers then received annotated `archive/workspaces/...` tags recording the adjudication and were closed only after another clean / idle / Host-unclaimed / unchanged-HEAD / exact-digest revalidation. All eight closures used `force=false`.
+
+### Resulting inventory
+
+The post-cleanup owner-native inventory was:
+
+| Measure | R2 observation | R3 observation |
+| --- | ---: | ---: |
+| Host open Tasks | 269 | 269 |
+| Runtime open Workspaces | 163 | 99 |
+| Runtime dirty Workspaces | 43 | 42 |
+| Runtime clean Workspaces | not separately frozen | 57 |
+| Runtime Ordivon Next Workspaces | 5 | 3 |
+| Runtime dirty Ordivon Next Workspaces | 2 | 1 |
+| historical clean + idle + Host-unclaimed Workspaces | material backlog | **0** |
+
+The Runtime total moved from 130 at the post-reboot R3 re-freeze to 99 at the final census while concurrent agents were also changing inventory. R3 itself explicitly closed 30 historical unique carriers; the raw global count delta is therefore an observation, not sole attribution.
+
+The three remaining Ordivon Next Workspaces are all claimant-backed:
+
+- `ws-reflexive-next-current-r1-20260918`: clean, current Host claimant;
+- `ws-reflexive-closure-r1-20260918`: clean, retained WAIT continuity;
+- `ws-chaoxing-mvp-r1-20260917`: dirty, current Host claimant.
+
+### Sunset consequence
+
+R3 proves that the historical clean-idle-unclaimed backlog can be reduced to zero using only Host claimant state, Runtime carrier state, Git reachability/equivalence/history, secret scanning, annotated Git refs, and exact compare-and-close fences.
+
+R3 still does **not** count as one of the three clean audits required for ratchet deletion. The ratchet materially changed decisions during this audit: it prevented eight Paper2 carriers from being deleted on a raw secret-scan failure, required evidence-based false-positive adjudication, required 30 unique histories to be preserved before carrier removal, and retained claimant-backed Workspaces.
+
+The next informative sunset evidence is a later owner-native lifecycle audit in which stale historical carriers do not accumulate and no manual ratchet intervention is required. Only such naturally clean observations should advance the three-audit deletion criterion.
