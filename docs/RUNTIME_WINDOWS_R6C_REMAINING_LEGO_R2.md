@@ -122,8 +122,12 @@ Preflight evidence on 2026-09-20:
   WSL_E_LOCAL_SYSTEM_NOT_SUPPORTED;
 - therefore neither Runtime service authority is the correct owner for destructive user-WSL
   lifecycle operations;
-- frozen C3/C4 preflight v2 digest:
-  sha256:d7abdf588bb0efd418c8b311626e6446511bd25169ecb8ae2e7328fb53e8d481.
+- the existing linux-local/windows-native provider was then probed read-only and confirmed to run
+  under the interactive Windows user identity, not SYSTEM, and to see archlinux as running;
+- that carrier Job was job-01a0bd7d-7e9d-7003-b3a9-1be52ee7a433 and is qualified to issue the
+  future C3 fault without broadening Runtime service authority;
+- frozen C3/C4 preflight v3 digest:
+  sha256:dfa42acb7aa34ad98cfd0addbd796ccd5ef29ccb0488e87818d29f582156e41a.
 
 Precondition:
 - observation of windows-main must not depend on a WSL-hosted Windows provider;
@@ -153,8 +157,8 @@ Pre-reboot baseline frozen on 2026-09-20 for exact release
   sha256:120eb79f9fe5e8a0dee3206b82f412f8ce8b23a303409ccd5957d98e3fe13360;
 - candidate-manifest digest
   sha256:aa998de651709323e7b480f0554257291b7f502f561c338940c01e0b6da40db3;
-- preflight v2 evidence digest
-  sha256:d7abdf588bb0efd418c8b311626e6446511bd25169ecb8ae2e7328fb53e8d481;
+- preflight v3 evidence digest
+  sha256:dfa42acb7aa34ad98cfd0addbd796ccd5ef29ccb0488e87818d29f582156e41a;
 - Windows boot witness 2026-09-20T13:02:10.5000000+08:00;
 - Runtime service was Running / Auto with PID 7032 when the baseline was frozen.
 
