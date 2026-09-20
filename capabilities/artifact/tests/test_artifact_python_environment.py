@@ -7,12 +7,12 @@ import unittest
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-SPEC=importlib.util.spec_from_file_location('artifact_delivery_environment_test',ROOT/'scripts/artifact_delivery_environment.py');M=importlib.util.module_from_spec(SPEC);assert SPEC and SPEC.loader;SPEC.loader.exec_module(M)
-WRAP_SPEC=importlib.util.spec_from_file_location('artifact_delivery_python_wrapper_test',ROOT/'scripts/artifact_delivery_python_wrapper.py');W=importlib.util.module_from_spec(WRAP_SPEC);assert WRAP_SPEC and WRAP_SPEC.loader;WRAP_SPEC.loader.exec_module(W)
+SPEC=importlib.util.spec_from_file_location('artifact_python_environment_test',ROOT/'scripts/artifact_python_environment.py');M=importlib.util.module_from_spec(SPEC);assert SPEC and SPEC.loader;SPEC.loader.exec_module(M)
+WRAP_SPEC=importlib.util.spec_from_file_location('artifact_python_wrapper_test',ROOT/'scripts/artifact_python_wrapper.py');W=importlib.util.module_from_spec(WRAP_SPEC);assert WRAP_SPEC and WRAP_SPEC.loader;WRAP_SPEC.loader.exec_module(W)
 
 class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
     def test_lock_is_uv_owned_complete_python_package_closure(self):
-        lock=json.loads((ROOT/'artifact-delivery/python-runtime-v1.lock.json').read_text())
+        lock=json.loads((ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())
         self.assertEqual(lock['pythonRuntime'],'3.14.7');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')
         self.assertEqual(lock['pythonPackages']['Pillow'],'12.3.0');self.assertNotIn('vendoredEquipment',lock);self.assertNotIn('hostSystemPackages',lock);self.assertNotIn('hostFencedPackages',lock)
         self.assertEqual(lock['uvProject']['path'],'artifact-delivery/python-uv');self.assertTrue(lock['uvProject']['uvLockSha256'].startswith('sha256:'))
@@ -21,7 +21,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         for name,version in lock['pythonPackages'].items():self.assertIn(f'{name}=={version}'.lower(),text.lower())
         uvlock=(ROOT/'artifact-delivery/python-uv/uv.lock').read_text();self.assertIn('lxml',uvlock);self.assertIn('6.1.3',uvlock)
     def test_environment_has_no_isolated_equipment_or_host_libxslt_authority(self):
-        source=(ROOT/'scripts/artifact_delivery_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_delivery_python_wrapper.py').read_text()
+        source=(ROOT/'scripts/artifact_python_environment.py').read_text();wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text()
         self.assertNotIn('isolated-equipment',source);self.assertNotIn('pacman',source);self.assertNotIn('libxslt.so',source);self.assertIn("'--frozen','--offline'",source);self.assertIn('venvTreeDigest',wrapper)
     def test_temporal_no_longer_depends_on_artifact_python_carrier(self):
         retired_consumers=[
@@ -29,7 +29,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
             'scripts/temporal_artifact_delivery_deploy.py',
             'systemd/ordivon-artifact-temporal-worker.service',
         ]
-        stable='/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python'
+        stable='/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python'
         for name in retired_consumers:
             text=(ROOT/name).read_text()
             self.assertNotIn('.cache/artifact-delivery-venv',text,name)
@@ -39,7 +39,7 @@ class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
         self.assertIn(stable,doctor)
     def test_published_stable_python_is_wrapper_not_internal_venv_interpreter(self):
         lock=M.load_lock();stable=lock['stablePython'];self.assertTrue(stable.endswith('/current/bin/python'));self.assertNotIn('/.venv/',stable)
-        wrapper=(ROOT/'scripts/artifact_delivery_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)
+        wrapper=(ROOT/'scripts/artifact_python_wrapper.py').read_text();self.assertIn("'PYTHONDONTWRITEBYTECODE':'1'",wrapper)
     def test_materializer_and_wrapper_share_environment_tree_canonicalization(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);(root/'pkg').mkdir();(root/'pkg/data').write_bytes(b'bytes');(root/'python').symlink_to('/bin/sh')

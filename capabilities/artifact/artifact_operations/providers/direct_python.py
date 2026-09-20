@@ -105,7 +105,6 @@ class DirectPythonOperationProvider:
         self.pandoc = document_toolchain.selected_external_file(
             "ARTIFACT_PANDOC",
             document_toolchain.GLOBAL_PANDOC,
-            document_toolchain.LEGACY_PANDOC,
         )
 
     def _admit_presentation_source(

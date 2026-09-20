@@ -37,30 +37,22 @@ VSA_GATE_NAMES = frozenset({
 ASSEMBLY_GATE_NAMES = frozenset({"companionPdf", "releaseProvenance"})
 
 
-def _selected_external_file(env_name: str, global_candidate: Path, legacy_candidate: Path) -> Path:
+def _selected_external_file(env_name: str, global_candidate: Path) -> Path:
     configured = os.environ.get(env_name)
-    if configured:
-        return Path(configured)
-    if global_candidate.is_file():
-        return global_candidate
-    if legacy_candidate.is_file():
-        return legacy_candidate
-    return global_candidate
+    return Path(configured) if configured else global_candidate
 
 
 COSIGN_LOCK_PATH = ROOT / "artifact-delivery/toolchain-v1.lock.json"
 COSIGN_SELECTED_BINARY = _selected_external_file(
-    "ARTIFACT_COSIGN", GLOBAL_COSIGN, ROOT / ".cache/artifact-toolchain/cosign/current/bin/cosign"
+    "ARTIFACT_COSIGN", GLOBAL_COSIGN
 )
 COSIGN_ARCH_PACKAGE = _selected_external_file(
     "ARTIFACT_COSIGN_ARCH_PACKAGE",
     GLOBAL_COSIGN_ARCH_PACKAGE,
-    ROOT / ".cache/artifact-toolchain/cosign/bootstrap-arch-3.1.3-1/cosign-3.1.3-1-x86_64.pkg.tar.zst",
 )
 COSIGN_ARCH_PACKAGE_SIGNATURE = _selected_external_file(
     "ARTIFACT_COSIGN_ARCH_PACKAGE_SIGNATURE",
     GLOBAL_COSIGN_ARCH_PACKAGE_SIGNATURE,
-    Path(str(ROOT / ".cache/artifact-toolchain/cosign/bootstrap-arch-3.1.3-1/cosign-3.1.3-1-x86_64.pkg.tar.zst") + ".sig"),
 )
 _COSIGN_PROVENANCE_CACHE: dict[tuple[str, str, str], dict[str, Any]] = {}
 

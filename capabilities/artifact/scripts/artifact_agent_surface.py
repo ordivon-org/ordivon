@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thin Agent-facing semantic surface over existing Artifact R1 CLIs.
+"""Thin Agent-facing semantic surface over canonical Artifact contracts and bounded execution entrypoints.
 
 The surface exposes bounded Artifact intent as canonical ArtifactOperation data or exact
 verification-service process plans. It does not execute effects, invent a universal
@@ -28,7 +28,7 @@ ART = ROOT / "artifact-delivery"
 TAXONOMY = ART / "taxonomy-v1.json"
 VERIFY = ROOT / "scripts/artifact_verify.py"
 DOCTOR = ROOT / "scripts/artifact_delivery_toolchain_doctor.py"
-ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python"))
+ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python"))
 BINDING_REGISTRY = CapabilityBindingRegistry(ART)
 PROFILE_REGISTRY = ProfileRegistry(ART)
 

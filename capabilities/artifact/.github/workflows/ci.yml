@@ -31,6 +31,7 @@ jobs:
           artifact_trust artifact_verification artifact_verifiers
           scripts/artifact_agent_surface.py
           scripts/artifact_delivery_toolchain_doctor.py scripts/artifact_verify.py
+          scripts/artifact_python_environment.py scripts/artifact_python_wrapper.py
           scripts/artifact_oci_package.py scripts/artifact_delivery_temporal_support.py
           scripts/temporal_artifact_delivery.py scripts/temporal_artifact_delivery_launch.py
           scripts/temporal_artifact_delivery_worker.py scripts/temporal_artifact_delivery_deploy.py

@@ -14,7 +14,7 @@ pytestmark = pytest.mark.integration
 
 ROOT=Path(__file__).resolve().parents[1]
 DEFAULT=Path('/root/.local/share/ordivon-workstation/artifact-openxml-v1/current/bin/validate-openxml')
-PYTHON=Path('/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python')
+PYTHON=Path('/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python')
 def validator()->Path:return Path(os.environ.get('ARTIFACT_OPENXML_VALIDATOR',str(DEFAULT)))
 def run(path:Path):return subprocess.run([str(validator()),str(path)],text=True,capture_output=True,check=False,timeout=60)
 def make_pptx(path:Path,*,off_canvas:bool=False):

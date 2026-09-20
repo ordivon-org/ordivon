@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Stable Artifact Delivery Python carrier for one frozen uv generation."""
+"""Stable Artifact Python carrier for one frozen uv generation."""
 from __future__ import annotations
-import hashlib,json,os,subprocess,sys
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -29,7 +34,7 @@ def main()->int:
     generation=Path(__file__).resolve().parents[1];binding_path=generation/'binding.json'
     if not binding_path.is_file():raise RuntimeError('Artifact Python generation binding is absent')
     binding=json.loads(binding_path.read_text())
-    if binding.get('schemaVersion')!=1 or binding.get('kind')!='artifact-delivery-python-generation-binding':raise RuntimeError('Artifact Python generation binding contract mismatch')
+    if binding.get('schemaVersion')!=1 or binding.get('kind')!='artifact-python-generation-binding':raise RuntimeError('Artifact Python generation binding contract mismatch')
     if 'sha256:'+_sha(Path(__file__).resolve())!=binding.get('wrapperSha256'):raise RuntimeError('Artifact Python wrapper bytes drifted')
     venv=generation/'.venv'
     if tree_digest(venv)!=binding.get('venvTreeDigest'):raise RuntimeError('Artifact Python uv environment bytes drifted')

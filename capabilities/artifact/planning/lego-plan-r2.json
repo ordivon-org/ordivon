@@ -241,7 +241,7 @@
       "responsibility": "Probe and manage execution-tool availability and environment facts.",
       "currentEvidence": [
         "scripts/artifact_delivery_toolchain_doctor.py",
-        "scripts/artifact_delivery_environment.py"
+        "scripts/artifact_python_environment.py"
       ],
       "state": "OPERATIONAL_NOT_KERNEL"
     },

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "kind": "artifact-delivery-python-runtime-lock",
+  "kind": "artifact-python-runtime-lock",
   "pythonRuntime": "3.14.7",
   "pythonPackages": {
     "attrs": "26.1.0",
@@ -22,8 +22,8 @@
     "pyprojectSha256": "sha256:fa0bc043a70f6799280e798b4c0ac0f9fcde083b2935f86a0f6b2ac902a73ab0",
     "uvLockSha256": "sha256:1aed4a8c0586790fdab07eb83e406891d02adbe7e496b025c4f480c8d86a3c9d"
   },
-  "stableRoot": "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1",
-  "stablePython": "/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python",
+  "stableRoot": "/root/.local/share/ordivon-workstation/artifact-python-v1",
+  "stablePython": "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python",
   "materializationPolicy": "artifact-owned-uv-lock-frozen-offline-sync-plus-exact-mise-toolchain-python-binding",
   "nonClaims": [
     "Python package closure readiness does not select Pandoc, veraPDF, Nu Html Checker, Cosign, .NET, browsers or Office targets",

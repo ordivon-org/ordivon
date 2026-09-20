@@ -10,19 +10,13 @@ GLOBAL_ARTIFACT_TOOLCHAIN_ROOT = Path(
 )
 GLOBAL_VNU = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "vnu/26.9.7/vnu.jar"
 GLOBAL_NODE_PACKAGE_ROOT = GLOBAL_ARTIFACT_TOOLCHAIN_ROOT / "node/1.63.0"
-LOCAL_VNU = ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"
-LOCAL_NODE_PACKAGE_ROOT = ROOT / "artifact-delivery/node"
 WEB_VERIFIER_RUNNER = Path(__file__).resolve().parent / "node/verify_html.mjs"
 
 
 def vnu_jar() -> Path | None:
     configured = os.environ.get("ARTIFACT_VNU")
-    if configured:
-        path = Path(configured)
-        return path if path.is_file() else None
-    if GLOBAL_VNU.is_file():
-        return GLOBAL_VNU
-    return LOCAL_VNU if LOCAL_VNU.is_file() else None
+    path = Path(configured) if configured else GLOBAL_VNU
+    return path if path.is_file() else None
 
 
 def java_executable() -> Path | None:
@@ -37,13 +31,8 @@ def node_executable() -> Path | None:
 
 def node_package_root() -> Path | None:
     configured = os.environ.get("ARTIFACT_NODE_PACKAGE_ROOT")
-    if configured:
-        return Path(configured)
-    if (GLOBAL_NODE_PACKAGE_ROOT / "package.json").is_file():
-        return GLOBAL_NODE_PACKAGE_ROOT
-    if (LOCAL_NODE_PACKAGE_ROOT / "package.json").is_file():
-        return LOCAL_NODE_PACKAGE_ROOT
-    return None
+    path = Path(configured) if configured else GLOBAL_NODE_PACKAGE_ROOT
+    return path if (path / "package.json").is_file() else None
 
 
 def web_verifier_runner() -> Path:

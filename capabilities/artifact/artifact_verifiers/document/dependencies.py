@@ -15,8 +15,6 @@ from .toolchain import (
     DEFAULT_TOOLCHAIN_LOCK,
     GLOBAL_PANDOC,
     GLOBAL_PANDOC_ARCHIVE,
-    LEGACY_PANDOC,
-    LEGACY_PANDOC_ARCHIVE,
     selected_external_file,
 )
 
@@ -43,12 +41,8 @@ def verify_document_dependencies(
     validation = hooks.validate_delivery_request(request_path)
     plan = hooks.compile_delivery_plan(request_path)
     lock_path = toolchain_lock or DEFAULT_TOOLCHAIN_LOCK
-    executable = pandoc or selected_external_file(
-        "ARTIFACT_PANDOC", GLOBAL_PANDOC, LEGACY_PANDOC
-    )
-    archive = pandoc_archive or selected_external_file(
-        "ARTIFACT_PANDOC_ARCHIVE", GLOBAL_PANDOC_ARCHIVE, LEGACY_PANDOC_ARCHIVE
-    )
+    executable = pandoc or selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC)
+    archive = pandoc_archive or selected_external_file("ARTIFACT_PANDOC_ARCHIVE", GLOBAL_PANDOC_ARCHIVE)
     validator = openxml_validator or openxml_validator_executable()
     failures: list[str] = []
 

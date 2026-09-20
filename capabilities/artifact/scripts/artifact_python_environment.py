@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Materialize the stable Artifact Delivery Python generation from an Artifact-owned uv lock."""
 from __future__ import annotations
-import argparse, hashlib, json, os, platform, shutil, subprocess
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
 ROOT=Path(__file__).resolve().parents[1]
 MAIN=Path('/root/projects/ordivon-artifact-v2')
-LOCK_PATH=ROOT/'artifact-delivery/python-runtime-v1.lock.json'
-WRAPPER_SOURCE=ROOT/'scripts/artifact_delivery_python_wrapper.py'
+LOCK_PATH=ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json'
+WRAPPER_SOURCE=ROOT/'scripts/artifact_python_wrapper.py'
 UV=Path(os.environ.get('ARTIFACT_UV','/root/.local/share/mise/installs/uv/0.12.16/uv-x86_64-unknown-linux-musl/uv'))
 SYSTEM_PYTHON=Path(os.environ.get('ARTIFACT_PYTHON','/root/.local/share/mise/installs/python/3.14.7/bin/python3.14'))
 
@@ -45,7 +51,7 @@ def make_read_only(root:Path)->None:
 
 def load_lock()->dict[str,Any]:
     value=json.loads(LOCK_PATH.read_text())
-    if value.get('schemaVersion')!=1 or value.get('kind')!='artifact-delivery-python-runtime-lock':raise RuntimeError('Artifact Python runtime lock invalid')
+    if value.get('schemaVersion')!=1 or value.get('kind')!='artifact-python-runtime-lock':raise RuntimeError('Artifact Python runtime lock invalid')
     return value
 
 
@@ -94,7 +100,7 @@ def probe_wrapper(wrapper:Path)->dict[str,Any]:
 
 
 def status(stable_root:Path|None=None)->dict[str,Any]:
-    lock=load_lock();base=(stable_root or Path(lock['stableRoot']));current=base/'current';result={'schemaVersion':1,'kind':'artifact-delivery-python-environment-status','stableRoot':str(base),'stablePython':str(current/'bin/python'),'currentPresent':current.exists() or current.is_symlink(),'ready':False}
+    lock=load_lock();base=(stable_root or Path(lock['stableRoot']));current=base/'current';result={'schemaVersion':1,'kind':'artifact-python-environment-status','stableRoot':str(base),'stablePython':str(current/'bin/python'),'currentPresent':current.exists() or current.is_symlink(),'ready':False}
     if not current.is_symlink():return result
     try:
         resolved=current.resolve(strict=True)
@@ -119,7 +125,7 @@ def build_generation(base:Path,lock:dict[str,Any],project:dict[str,str],python:d
         provenance=staging/'provenance';provenance.mkdir();shutil.copy2(ROOT/lock['uvProject']['path']/'pyproject.toml',provenance/'pyproject.toml');shutil.copy2(ROOT/lock['uvProject']['path']/'uv.lock',provenance/'uv.lock')
         make_read_only(venv);venv_digest=tree_digest(venv)
         bindir=staging/'bin';bindir.mkdir();wrapper=bindir/'python';shutil.copy2(WRAPPER_SOURCE,wrapper);os.chmod(wrapper,0o755)
-        binding={**spec,'kind':'artifact-delivery-python-generation-binding','generationId':gid,'venvTreeDigest':venv_digest,'lxmlRuntimeLibraries':{'libxml':observed['libxml'],'libxslt':observed['libxslt']},'materializationAuthority':'artifact-owned-uv-lock-frozen-offline-sync','nonClaims':lock['nonClaims']}
+        binding={**spec,'kind':'artifact-python-generation-binding','generationId':gid,'venvTreeDigest':venv_digest,'lxmlRuntimeLibraries':{'libxml':observed['libxml'],'libxslt':observed['libxslt']},'materializationAuthority':'artifact-owned-uv-lock-frozen-offline-sync','nonClaims':lock['nonClaims']}
         (staging/'binding.json').write_text(json.dumps(binding,sort_keys=True,indent=2)+'\n');os.chmod(staging/'binding.json',0o444)
         probe_wrapper(wrapper)
         os.replace(staging,final)
@@ -141,7 +147,7 @@ def apply()->dict[str,Any]:
     finally:os.close(dfd)
     observed=status(base)
     if not observed.get('ready') or observed.get('generationId')!=gid:raise RuntimeError('Artifact Python current publication did not verify')
-    return {'schemaVersion':1,'kind':'artifact-delivery-python-environment-materialization-receipt','truthRole':'stable-python-runtime-materialization-not-artifact-acceptance','generationId':gid,'stablePython':str(current/'bin/python'),'binding':binding,'status':observed}
+    return {'schemaVersion':1,'kind':'artifact-python-environment-materialization-receipt','truthRole':'stable-python-runtime-materialization-not-artifact-acceptance','generationId':gid,'stablePython':str(current/'bin/python'),'binding':binding,'status':observed}
 
 
 def plan()->dict[str,Any]:
@@ -149,11 +155,11 @@ def plan()->dict[str,Any]:
     try:project=project_status(lock);python=python_status(lock);spec=generation_spec(lock,project,python)
     except Exception as error:project=None;python=None;spec=None;issues.append(str(error))
     current=status(Path(lock['stableRoot']))
-    return {'schemaVersion':1,'kind':'artifact-delivery-python-environment-plan','mainSourceAuthority':ROOT.resolve()==MAIN.resolve(),'stableRoot':lock['stableRoot'],'stablePython':lock['stablePython'],'uvProjectReady':project is not None,'pythonReady':python is not None,'generationSpec':spec,'current':current,'issues':issues,'applyEligible':ROOT.resolve()==MAIN.resolve() and project is not None and python is not None}
+    return {'schemaVersion':1,'kind':'artifact-python-environment-plan','mainSourceAuthority':ROOT.resolve()==MAIN.resolve(),'stableRoot':lock['stableRoot'],'stablePython':lock['stablePython'],'uvProjectReady':project is not None,'pythonReady':python is not None,'generationSpec':spec,'current':current,'issues':issues,'applyEligible':ROOT.resolve()==MAIN.resolve() and project is not None and python is not None}
 
 
 def main()->int:
     p=argparse.ArgumentParser();p.add_argument('--apply',action='store_true');args=p.parse_args();value=apply() if args.apply else plan();print(json.dumps(value,sort_keys=True,indent=2));return 0
 if __name__=='__main__':
     try:raise SystemExit(main())
-    except Exception as error:print(json.dumps({'schemaVersion':1,'kind':'artifact-delivery-python-environment-error','error':str(error)},sort_keys=True),file=os.sys.stderr);raise SystemExit(1)
+    except Exception as error:print(json.dumps({'schemaVersion':1,'kind':'artifact-python-environment-error','error':str(error)},sort_keys=True),file=os.sys.stderr);raise SystemExit(1)

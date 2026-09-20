@@ -78,22 +78,16 @@ def record(checks: list[dict[str, Any]], name: str, ok: bool, **details: Any) ->
     checks.append({"name": name, "status": "PASS" if ok else "FAIL", **details})
 
 
-def selected_path(env_name: str, global_default: Path, legacy_default: Path | None = None) -> str:
+def selected_path(env_name: str, global_default: Path) -> str:
     configured = os.environ.get(env_name)
-    if configured:
-        return configured
-    if global_default.exists():
-        return str(global_default)
-    if legacy_default is not None and legacy_default.exists():
-        return str(legacy_default)
-    return str(global_default)
+    return configured if configured else str(global_default)
 
 
 def main() -> int:
     checks: list[dict[str, Any]] = []
     provider = DirectPythonOperationProvider()
 
-    python = selected_path("ARTIFACT_PYTHON", Path("/root/.local/share/ordivon-workstation/artifact-delivery-python-v1/current/bin/python"))
+    python = selected_path("ARTIFACT_PYTHON", Path("/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python"))
     snippet = (
         "import json; from importlib.metadata import version; "
         "print(json.dumps({p:version(p) for p in "
@@ -314,12 +308,12 @@ def main() -> int:
             **details,
         )
 
-    pandoc = selected_path("ARTIFACT_PANDOC", GLOBAL_PANDOC, ROOT / ".cache/artifact-toolchain/pandoc/current/bin/pandoc")
+    pandoc = selected_path("ARTIFACT_PANDOC", GLOBAL_PANDOC)
     proc = run([pandoc, "--version"])
     first = proc.stdout.splitlines()[0] if proc.stdout else ""
     record(checks, "pandoc", proc.returncode == 0 and first == f"pandoc {LOCK['pandoc']['version']}", observed=first)
 
-    verapdf = selected_path("ARTIFACT_VERAPDF", GLOBAL_VERAPDF, ROOT / ".cache/artifact-toolchain/verapdf/current/verapdf")
+    verapdf = selected_path("ARTIFACT_VERAPDF", GLOBAL_VERAPDF)
     proc = run([verapdf, "--version"])
     first = proc.stdout.splitlines()[0] if proc.stdout else ""
     record(checks, "verapdf", proc.returncode == 0 and first == f"veraPDF {LOCK['veraPDF']['version']}", observed=first)
@@ -332,7 +326,7 @@ def main() -> int:
     else:
         record(checks, "qpdf", False, error="qpdf not found")
 
-    vnu = Path(selected_path("ARTIFACT_VNU", GLOBAL_VNU, ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"))
+    vnu = Path(selected_path("ARTIFACT_VNU", GLOBAL_VNU))
     java = shutil.which("java")
     if vnu.is_file() and java:
         proc = run([java, "-jar", str(vnu), "--version"])
@@ -348,9 +342,7 @@ def main() -> int:
     else:
         record(checks, "nu-html-checker", False, error="Nu Html Checker or Java not found")
 
-    cosign = selected_path("ARTIFACT_COSIGN", GLOBAL_COSIGN, ROOT / ".cache/artifact-toolchain/cosign/current/bin/cosign")
-    if not Path(cosign).is_file():
-        cosign = shutil.which("cosign")
+    cosign = selected_path("ARTIFACT_COSIGN", GLOBAL_COSIGN)
     if cosign:
         proc = run([cosign, "version"])
         output = proc.stdout + "\n" + proc.stderr

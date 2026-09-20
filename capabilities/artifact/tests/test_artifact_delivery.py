@@ -53,7 +53,7 @@ from artifact_verifiers.presentation import (
 from artifact_verifiers.presentation import (
     presentation_gate as presentation_gate_owner,
 )
-from artifact_verifiers.web import verify_html_conformance
+from artifact_verifiers.web import verify_html_conformance, vnu_jar
 
 ROOT = Path(__file__).resolve().parents[1]
 def write_json(path: Path, value: object) -> None:
@@ -1184,8 +1184,8 @@ class ArtifactDeliveryTests(unittest.TestCase):
                 self.assertEqual(result["receipts"][gate]["vsaValidation"]["status"], "PASS")
 
     def test_nu_html_checker_valid_fixture_when_installed(self) -> None:
-        jar = ROOT / ".cache/artifact-toolchain/vnu/vnu.jar"
-        if not jar.is_file() or shutil.which("java") is None:
+        jar = vnu_jar()
+        if jar is None or shutil.which("java") is None:
             self.skipTest("Nu Html Checker is not installed")
         with tempfile.TemporaryDirectory() as d:
             html = Path(d) / "valid.html"

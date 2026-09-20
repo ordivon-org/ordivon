@@ -58,13 +58,13 @@
     "legacyBundlePolicy": "REJECT",
     "publicKeyStandardBundleStanding": "PASS",
     "keylessStandardBundleStanding": "NOT_EXERCISED_IDENTITY_ISSUER_TLOG_REQUIRED",
-    "selectedBinaryRelativePath": ".cache/artifact-toolchain/cosign/current/bin/cosign",
     "archPackageVersion": "3.1.3-1",
     "archPackageSha256": "281c52a1020225d22638f46e4b687c18ecf06d4f796055604a90483d5e60cc69",
     "archPackageSignatureSha256": "a9d4441f15bec19285722f1681256e6baca5929eb54e7266522ffd233052b47b",
     "archPackageSignerFingerprint": "EB3D764FF5D87E0818A3E0E5F05E8C12131AEB5E",
     "archPackageSigner": "Carl Smedstad <carsme@archlinux.org>",
-    "archPackageSignatureStatus": "GOOD"
+    "archPackageSignatureStatus": "GOOD",
+    "selectedBinaryPath": "/opt/ordivon/external/artifact-toolchain/cosign/3.1.3/bin/cosign"
   },
   "browsers": {
     "chromium": {

@@ -9,7 +9,7 @@ from typing import Any
 
 from artifact_core.contracts import file_fact, sha256_file
 
-from .toolchain import GLOBAL_PANDOC, LEGACY_PANDOC, selected_external_file
+from .toolchain import GLOBAL_PANDOC, selected_external_file
 
 
 def _pandoc_inline_text(values: Any) -> str:
@@ -136,9 +136,7 @@ def verify_document_semantic_correspondence(
     document: Path,
     pandoc: Path | None = None,
 ) -> dict[str, Any]:
-    executable = pandoc or selected_external_file(
-        "ARTIFACT_PANDOC", GLOBAL_PANDOC, LEGACY_PANDOC
-    )
+    executable = pandoc or selected_external_file("ARTIFACT_PANDOC", GLOBAL_PANDOC)
     failures: list[str] = []
     if not executable.is_file() or not os.access(executable, os.X_OK):
         return {
