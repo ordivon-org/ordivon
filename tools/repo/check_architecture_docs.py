@@ -42,6 +42,7 @@ EXPECTED_GATEWAY_TOOLS = {
     "system.describe",
     "capability.describe",
     "execution.submit",
+    "execution.resolve",
     "execution.get",
     "execution.cancel",
     "artifact.read",
