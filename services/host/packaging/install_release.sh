@@ -22,13 +22,22 @@ if [ "$RESOLVED" != "$COMMIT" ]; then
   exit 2
 fi
 
+SOURCE_SUBTREE=""
+if git -C "$REPO" cat-file -e "$COMMIT:services/host/pyproject.toml" 2>/dev/null; then
+  SOURCE_SUBTREE="services/host"
+fi
+
 mkdir -p "$PREFIX/releases"
 RELEASE="$PREFIX/releases/$COMMIT"
 if [ ! -d "$RELEASE" ]; then
   TMP="$PREFIX/releases/.tmp-$COMMIT-$$"
   trap 'rm -rf "$TMP"' EXIT
   mkdir -p "$TMP"
-  git -C "$REPO" archive "$COMMIT" | tar -x -C "$TMP"
+  if [ -n "$SOURCE_SUBTREE" ]; then
+    git -C "$REPO" archive "$COMMIT" "$SOURCE_SUBTREE" | tar -x --strip-components=2 -C "$TMP"
+  else
+    git -C "$REPO" archive "$COMMIT" | tar -x -C "$TMP"
+  fi
   mv "$TMP" "$RELEASE"
   trap - EXIT
 fi
@@ -59,4 +68,5 @@ ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 
 printf 'installed_release=%s\n' "$COMMIT"
+printf 'source_subtree=%s\n' "${SOURCE_SUBTREE:-.}"
 printf 'release_dir=%s\n' "$RELEASE"
