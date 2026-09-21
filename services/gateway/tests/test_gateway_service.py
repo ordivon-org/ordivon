@@ -152,35 +152,28 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
 
 def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     caller = FakeOwnerCaller()
-    caller.responses[("runtime.windows", "job.get")] = {
-        "schemaVersion": 2,
-        "job": {
-            "jobId": "job-9",
-            "desiredState": "run",
-            "resolution": "succeeded",
-            "mechanicallyConverged": True,
-            "semanticCompletionEvaluated": False,
-        },
-        "attempts": [
+    caller.responses[("runtime.windows", "job.observe")] = {
+        "jobId": "job-9",
+        "status": "succeeded",
+        "attemptState": "succeeded",
+        "executionTerminal": True,
+        "deliveryDisposition": "committed",
+        "executionDisposition": "succeeded",
+        "exitCode": 0,
+        "recoveryRequired": False,
+        "artifactsAvailable": True,
+        "artifacts": [
             {
-                "attemptId": "attempt-1",
-                "attemptNumber": 1,
-                "state": "succeeded",
-                "exitCode": 0,
-                "conditions": [
-                    {
-                        "conditionType": "recovery_required",
-                        "status": "false",
-                    }
-                ],
-            }
+                "artifactId": "artifact-stdout",
+                "kind": "stdout",
+                "digest": "sha256:stdout",
+            },
+            {
+                "artifactId": "artifact-terminal",
+                "kind": "terminal_evidence",
+                "digest": "sha256:terminal",
+            },
         ],
-        "artifacts": {
-            "count": 2,
-            "bytes": 42,
-            "truncated": 0,
-            "byKind": {"stdout": 1, "terminal_evidence": 1},
-        },
     }
     caller.responses[("runtime.windows", "job.cancel")] = {
         "jobId": "job-9",
@@ -195,12 +188,19 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     assert observed.native_id == "job-9"
     assert observed.exit_code == 0
     assert observed.artifact_count == 2
-    assert observed.artifact_ids == []
+    assert observed.artifact_ids == ["artifact-stdout", "artifact-terminal"]
     assert observed.recovery_required is False
     assert caller.calls[-1] == (
         "runtime.windows",
-        "job.get",
-        {"schemaVersion": 1, "jobId": "job-9", "eventLimit": 10},
+        "job.observe",
+        {
+            "schemaVersion": 1,
+            "jobId": "job-9",
+            "waitMs": 0,
+            "waitUntil": "change_or_terminal",
+            "stdoutTailBytes": 0,
+            "stderrTailBytes": 0,
+        },
     )
 
     cancelled = asyncio.run(service.execution_cancel(ref))

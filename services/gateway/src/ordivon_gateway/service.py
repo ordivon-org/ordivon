@@ -367,93 +367,38 @@ class GatewayService:
         self, operation_ref: str, *, event_limit: int = 10
     ) -> ExecutionObservation:
         owner_id, native_id = _parse_execution_ref(operation_ref)
+        # eventLimit is retained on the northbound surface for connector compatibility.
+        # Runtime's execution observation authority is job.observe; Gateway does not
+        # project the job.get event timeline, so forwarding eventLimit would add no truth.
+        _ = event_limit
         result = await self._caller.call_tool(
             owner_id,
-            "job.get",
-            {"schemaVersion": 1, "jobId": native_id, "eventLimit": event_limit},
+            "job.observe",
+            {
+                "schemaVersion": 1,
+                "jobId": native_id,
+                "waitMs": 0,
+                "waitUntil": "change_or_terminal",
+                "stdoutTailBytes": 0,
+                "stderrTailBytes": 0,
+            },
         )
-        job = result.get("job")
-        if isinstance(job, dict):
-            observed_native_id = _required_str(job, "jobId")
-            if observed_native_id != native_id:
-                raise GatewayError("Runtime job.get returned mismatched job identity")
-
-            attempts = [item for item in result.get("attempts", []) if isinstance(item, dict)]
-            latest_attempt = max(
-                attempts,
-                key=lambda item: (
-                    item.get("attemptNumber") if isinstance(item.get("attemptNumber"), int) else -1
-                ),
-                default=None,
-            )
-            resolution = job.get("resolution")
-            state = (
-                str(resolution)
-                if isinstance(resolution, str) and resolution
-                else (
-                    str(latest_attempt.get("state", "unknown"))
-                    if latest_attempt is not None
-                    else str(job.get("desiredState", "unknown"))
-                )
-            )
-            terminal = (
-                isinstance(resolution, str)
-                and bool(resolution)
-                and job.get("mechanicallyConverged") is True
-            )
-            exit_code = (
-                int(latest_attempt["exitCode"])
-                if latest_attempt is not None and isinstance(latest_attempt.get("exitCode"), int)
-                else None
-            )
-            recovery_required: bool | None = None
-            if latest_attempt is not None:
-                for condition in latest_attempt.get("conditions", []):
-                    if not isinstance(condition, dict):
-                        continue
-                    if condition.get("conditionType") != "recovery_required":
-                        continue
-                    status = condition.get("status")
-                    if status == "true":
-                        recovery_required = True
-                    elif status == "false":
-                        recovery_required = False
-                    break
-            artifact_summary = result.get("artifacts")
-            artifact_count = (
-                int(artifact_summary["count"])
-                if isinstance(artifact_summary, dict)
-                and isinstance(artifact_summary.get("count"), int)
-                else None
-            )
-            return ExecutionObservation(
-                operation_ref=operation_ref,
-                capability=(
-                    "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
-                ),
-                owner_id=owner_id,
-                native_id=observed_native_id,
-                state=state,
-                terminal=terminal,
-                execution_disposition=(
-                    str(resolution) if isinstance(resolution, str) and resolution else None
-                ),
-                exit_code=exit_code,
-                recovery_required=recovery_required,
-                artifact_count=artifact_count,
-            )
+        observed_native_id = _required_str(result, "jobId")
+        if observed_native_id != native_id:
+            raise GatewayError("Runtime job.observe returned mismatched job identity")
 
         artifacts: list[str] = []
         for item in result.get("artifacts", []):
             if isinstance(item, dict) and isinstance(item.get("artifactId"), str):
                 artifacts.append(item["artifactId"])
+
         return ExecutionObservation(
             operation_ref=operation_ref,
             capability=(
                 "execution.windows" if owner_id == "runtime.windows" else "execution.linux"
             ),
             owner_id=owner_id,
-            native_id=_required_str(result, "jobId"),
+            native_id=observed_native_id,
             state=str(result.get("status", result.get("attemptState", "unknown"))),
             terminal=bool(result.get("executionTerminal", False)),
             delivery_disposition=(
@@ -474,7 +419,7 @@ class GatewayService:
                 if isinstance(result.get("recoveryRequired"), bool)
                 else None
             ),
-            artifact_count=len(artifacts) if artifacts else None,
+            artifact_count=len(artifacts),
             artifact_ids=artifacts,
         )
 
