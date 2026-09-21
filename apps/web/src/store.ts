@@ -348,6 +348,14 @@ export class WebStore {
         FOREIGN KEY(credential_id) REFERENCES webauthn_credentials(credential_id)
       );
 
+      CREATE TABLE IF NOT EXISTS dpop_proofs (
+        proof_hash TEXT PRIMARY KEY,
+        expires_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS dpop_proofs_expiry
+        ON dpop_proofs(expires_at);
+
       CREATE TABLE IF NOT EXISTS audit_events (
         event_id TEXT PRIMARY KEY,
         principal_id TEXT,
@@ -800,6 +808,52 @@ export class WebStore {
       )
       .all(principalId) as unknown as NoteRow[];
     return rows.map(noteFromRow);
+  }
+
+  consumeDpopProof(
+    proofId: string,
+    nowEpochSeconds: number,
+    ttlSeconds = 600,
+  ): void {
+    const bytes = Buffer.byteLength(proofId, "utf8");
+    if (
+      bytes < 1 ||
+      bytes > 256 ||
+      !Number.isSafeInteger(ttlSeconds) ||
+      ttlSeconds < 1
+    ) {
+      throw new WebProblem(
+        401,
+        "dpop-proof-invalid",
+        "Agent verification failed",
+        "The DPoP proof identity is invalid.",
+      );
+    }
+    const proofHash = createHash("sha256").update(proofId).digest("hex");
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      this.db
+        .prepare("DELETE FROM dpop_proofs WHERE expires_at <= ?")
+        .run(nowEpochSeconds);
+      const existing = this.db
+        .prepare("SELECT proof_hash FROM dpop_proofs WHERE proof_hash = ?")
+        .get(proofHash);
+      if (existing !== undefined) {
+        throw new WebProblem(
+          401,
+          "dpop-proof-replayed",
+          "Agent verification failed",
+          "The DPoP proof has already been consumed.",
+        );
+      }
+      this.db
+        .prepare("INSERT INTO dpop_proofs (proof_hash, expires_at) VALUES (?, ?)")
+        .run(proofHash, nowEpochSeconds + ttlSeconds);
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   createAgentGrant(input: AgentGrantCreate, now: number): AgentGrantSnapshot {

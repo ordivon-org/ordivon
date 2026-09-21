@@ -136,9 +136,27 @@ Principal WebAuthn
   -> durable receipt
 ```
 
-The remaining Agent ingress gate is OAuth/DPoP request verification as a
-Security-owned public contract. Website tests deliberately inject a verified
-Agent fixture rather than importing the Security lab verifier.
+Agent ingress is now bound through the Security-owned
+`agent-request-verifier-v1` contract. The full canary E2E proves:
+
+```text
+Keycloak
+  -> DPoP-bound access token
+  -> Security Agent request verifier
+  -> Website Grant resolution
+  -> Security Agent Admission
+  -> R2 autonomous draft
+  -> R4 STEP_UP
+  -> Principal WebAuthn approval
+  -> publish
+  -> revoke Grant
+  -> future Effect denied
+  -> committed historical Effect replay preserved
+```
+
+Website unit tests still support an injected verified-Agent fixture so domain
+tests do not require an Authorization Server, while the full integration E2E
+covers the real protocol path.
 
 ## External owners
 
@@ -159,7 +177,7 @@ Grant, Effect, risk, approval, fence, replay and evidence boundaries.
 - real HTTPS origin and RP ID;
 - existing-account-bound first credential enrollment;
 - passkey add/revoke and recovery;
-- production OAuth/DPoP verifier contract binding;
+- removal/upstream resolution of the Keycloak/oauth4webapi compatibility shim;
 - Agent Passport / Grant management product surface;
 - browser-visible R4 approval product UI;
 - production storage/backup/restore acceptance;

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-agent-native-website-e2e-r1",
+  "source": {
+    "workspaceId": "ws-web-agent-authority-r1-20260921",
+    "baseRevision": "ce96fde39",
+    "attemptId": "attempt-01a0c33c-05b2-7d33-99c2-00ed61f0e01a",
+    "jobId": "job-01a0c33c-05b2-7d33-99c2-00d4bbdb10df",
+    "operationDigest": "sha256:f33aedcd05d594d415acc9eb424779b604882977a29ddf5e13b9b8d7ece76663",
+    "executionDisposition": "succeeded"
+  },
+  "principal": {
+    "enrollOptions": 200,
+    "enrollVerify": 200,
+    "loginOptions": 200,
+    "loginVerify": 200
+  },
+  "token": {
+    "tokenType": "dpop",
+    "confirmationKeys": [
+      "jkt",
+      "kc-jkt-type"
+    ],
+    "confirmationType": "DPoP"
+  },
+  "grant": {
+    "grant": {
+      "grantId": "grant:web:29e66a84-b902-4e92-9174-f8ffadd2f939",
+      "grantDigest": "sha256:0cf082cc765c2dcf0a893412826856bf40ff2d7808471bcad8de82a98f43e298",
+      "principalId": "principal:agent-native-e2e",
+      "agentId": "oauth-client:agent-research-17",
+      "audience": "http://localhost:8791",
+      "allowedActions": [
+        "canary.note.create",
+        "canary.note.publish"
+      ],
+      "resourcePrefixes": [
+        "/canary/notes"
+      ],
+      "expiresAtEpochSeconds": 1789985519,
+      "maxRiskClass": "R4",
+      "stepUpAtOrAbove": "R4",
+      "remainingEffects": 6,
+      "active": true,
+      "revision": 1
+    }
+  },
+  "matrix": {
+    "noProof": 401,
+    "wrongKey": 401,
+    "firstCreate": 201,
+    "proofReplay": 401,
+    "exactReplay": 200,
+    "conflict": 409,
+    "publishStepUp": 428,
+    "approval": 201,
+    "publishApproved": 200,
+    "revoke": 200,
+    "newEffectAfterRevoke": 403,
+    "historicalReplayAfterRevoke": 200
+  },
+  "createReceipt": {
+    "effectId": "sha256:442bb4ad4b1afd40192b080f68f5ac64a9e79cf7b1e0202efb70f3a0a07dabbd",
+    "effectDigest": "sha256:2649352172a555cd84d233fc4f31337830a40457a65d06c10c604fc8c9c40c36",
+    "principalId": "principal:agent-native-e2e",
+    "agentId": "oauth-client:agent-research-17",
+    "grantId": "grant:web:29e66a84-b902-4e92-9174-f8ffadd2f939",
+    "action": "canary.note.create",
+    "resource": "/canary/notes",
+    "result": {
+      "note": {
+        "noteId": "87fd622a-9660-4e84-acae-ca98a9f12a91",
+        "principalId": "principal:agent-native-e2e",
+        "content": "real DPoP delegated draft",
+        "state": "DRAFT",
+        "createdAt": 1789981919,
+        "publishedAt": null
+      }
+    },
+    "committedAt": 1789981919
+  },
+  "publishReceipt": {
+    "effectId": "sha256:cb2b97dcad35f32c4c53673ee20e74a13f083e9bdf5dd204959f42f7f38f9cab",
+    "effectDigest": "sha256:d6ec024b1bf31c6da757997604d8cf72834c03cc5d8b860abe964dd95885f577",
+    "principalId": "principal:agent-native-e2e",
+    "agentId": "oauth-client:agent-research-17",
+    "grantId": "grant:web:29e66a84-b902-4e92-9174-f8ffadd2f939",
+    "action": "canary.note.publish",
+    "resource": "/canary/notes/87fd622a-9660-4e84-acae-ca98a9f12a91",
+    "result": {
+      "note": {
+        "noteId": "87fd622a-9660-4e84-acae-ca98a9f12a91",
+        "principalId": "principal:agent-native-e2e",
+        "content": "real DPoP delegated draft",
+        "state": "PUBLISHED",
+        "createdAt": 1789981919,
+        "publishedAt": 1789981919
+      }
+    },
+    "committedAt": 1789981919
+  },
+  "approvalConsumed": true,
+  "cleanup": {
+    "stdout": "containers:\nlisteners:\ntemp-realms:\n",
+    "noRelevantResidue": true
+  },
+  "productionHumanPresenceClaim": false,
+  "productionEligible": false,
+  "notes": [
+    "The Principal ceremony used a Chromium CDP virtual CTAP2 authenticator with user verification enabled; it does not prove physical human presence.",
+    "The Agent used a real Keycloak 26.7.4 client_credentials DPoP-bound access token and fresh DPoP proofs.",
+    "Agent authentication was performed through the Security-owned agent-request-verifier-v1 contract, while admission used the Security-owned agent-admission-v1 contract.",
+    "The Keycloak kc-jkt-type compatibility shim remains a production-eligibility blocker."
+  ]
+}

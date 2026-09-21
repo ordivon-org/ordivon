@@ -140,19 +140,27 @@ Browser authority routes remain on the Human trust rail and require the opaque
 Session cookie plus CSRF/Origin protections. Agent mutation routes do not
 consume browser Cookies or CSRF tokens.
 
-The website does not import Security Rego internals. It invokes the public
-`platform/security/contracts/agent-admission-v1` evaluator. Agent request
-authentication is an injected `AgentRequestVerifier` boundary; the current
-application tests use a verified-Agent fixture while exercising the real
-Security admission contract. Promoting the existing oauth4webapi OAuth/DPoP
-verifier from the Security lab to a public Security contract remains the final
-identity-ingress integration gate.
+The website does not import Security Rego or OAuth/DPoP lab internals. It
+invokes two explicit Security-owner contracts:
+
+```text
+agent-request-verifier-v1
+  -> OAuth/JWT/DPoP Agent authentication
+
+agent-admission-v1
+  -> Agent Admission + Effect Admission policy chain
+```
+
+The Website supplies its own SQLite-backed DPoP replay guard to the verifier
+contract, so Security owns protocol semantics while the Website remains the
+durable owner for its local replay state.
 
 Current evidence:
 
 ```text
 evidence/HUMAN-RAIL-BROWSER-E2E-R1.json
 evidence/AGENT-AUTHORITY-BROWSER-E2E-R1.json
+evidence/AGENT-NATIVE-WEBSITE-E2E-R1.json
 ```
 
 The Agent authority tests additionally prove R2 commit/exact replay/conflict,
@@ -160,7 +168,12 @@ R4 effect-bound approval consumption, Grant revocation semantics, fail-closed
 ambiguous Grant resolution, and fail-closed behavior when no Security-owned
 Agent verifier is configured.
 
+The full Agent-native E2E additionally proves a real Keycloak DPoP-bound token,
+missing-proof and wrong-key rejection, DPoP proof replay rejection, R2
+autonomous commit, R4 browser WebAuthn STEP_UP, Grant revocation, future-effect
+denial, and preservation of historical exact replay.
+
 The website is not yet production eligible. Real account-bound initial
-enrollment, production OAuth/DPoP verifier binding, recovery, production
-TLS/origin configuration, Agent Passport UI, and deploy/release acceptance
-remain separate gates.
+enrollment, removal of the Keycloak/oauth4webapi compatibility shim, recovery,
+production TLS/origin configuration, Agent Passport UI, and deploy/release
+acceptance remain separate gates.

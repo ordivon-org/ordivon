@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.ts",
     "e2e": "bash ./browser-e2e.sh",
+    "agent-native-e2e": "bash ./agent-native-e2e.sh",
     "ci": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@simplewebauthn/browser": "14.0.0",
     "@types/node": "26.6.2",
+    "oauth4webapi": "3.8.8",
     "playwright": "1.63.0",
     "typescript": "7.0.2"
   }

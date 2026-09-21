@@ -6,6 +6,8 @@ export interface WebConfig {
   readonly rpName: string;
   readonly databasePath: string;
   readonly bootstrapEnrollmentToken?: string;
+  readonly agentIssuer?: string;
+  readonly agentAllowInsecureIssuer?: boolean;
   readonly sessionIdleSeconds: number;
   readonly sessionAbsoluteSeconds: number;
 }
@@ -40,6 +42,11 @@ export function loadConfig(): WebConfig {
           bootstrapEnrollmentToken:
             process.env.ORDIVON_WEB_BOOTSTRAP_ENROLLMENT_TOKEN,
         }),
+    ...(process.env.ORDIVON_WEB_AGENT_ISSUER === undefined
+      ? {}
+      : { agentIssuer: process.env.ORDIVON_WEB_AGENT_ISSUER }),
+    agentAllowInsecureIssuer:
+      process.env.ORDIVON_WEB_AGENT_ALLOW_INSECURE === "1",
     sessionIdleSeconds: integerEnv("ORDIVON_WEB_SESSION_IDLE_SECONDS", 1800),
     sessionAbsoluteSeconds: integerEnv(
       "ORDIVON_WEB_SESSION_ABSOLUTE_SECONDS",
