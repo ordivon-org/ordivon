@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 CHECKER="$SCRIPT_DIR/check-primary-main.sh"
 INTEGRATOR="$SCRIPT_DIR/integrate-main.sh"
-TMP_ROOT="$(mktemp -d /root/ordivon-migration-tmp/integrate-main-test.XXXXXX)"
+TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/ordivon-integrate-main-test.XXXXXX")"
 
 cleanup() {
   rm -rf "$TMP_ROOT"
@@ -36,7 +36,7 @@ printf 'candidate\n' >"$candidate_wt/candidate.txt"
 git -C "$candidate_wt" add candidate.txt
 git -C "$candidate_wt" commit -m "candidate" >/dev/null
 candidate="$(git -C "$candidate_wt" rev-parse HEAD)"
-"$INTEGRATOR" "$repo" refs/heads/candidate "$base" >/tmp/integrate-main-ff.out
+"$INTEGRATOR" "$repo" refs/heads/candidate "$base" >"$TMP_ROOT/integrate-main-ff.out"
 test "$(git -C "$repo" rev-parse main)" = "$candidate"
 "$CHECKER" "$repo" >/dev/null
 test -z "$(git -C "$repo" status --porcelain)"
@@ -55,15 +55,15 @@ advanced="$(git -C "$stale_candidate_wt" rev-parse HEAD)"
 git -C "$stale" update-ref refs/heads/main "$advanced"
 
 set +e
-"$CHECKER" "$stale" >/tmp/check-primary-stale.out 2>&1
+"$CHECKER" "$stale" >"$TMP_ROOT/check-primary-stale.out" 2>&1
 checker_rc=$?
-"$INTEGRATOR" "$stale" refs/heads/candidate "$advanced" >/tmp/integrate-main-stale.out 2>&1
+"$INTEGRATOR" "$stale" refs/heads/candidate "$advanced" >"$TMP_ROOT/integrate-main-stale.out" 2>&1
 integrator_rc=$?
 set -e
 test "$checker_rc" -ne 0
 test "$integrator_rc" -ne 0
-grep -F "primary checkout is not synchronized with main" /tmp/check-primary-stale.out >/dev/null
-grep -F "primary checkout is not synchronized with main" /tmp/integrate-main-stale.out >/dev/null
+grep -F "primary checkout is not synchronized with main" "$TMP_ROOT/check-primary-stale.out" >/dev/null
+grep -F "primary checkout is not synchronized with main" "$TMP_ROOT/integrate-main-stale.out" >/dev/null
 test ! -e "$stale/advanced.txt"
 
 # 3. A conflict-free precondition is required; conflict leaves current main unchanged and clean.
@@ -82,11 +82,11 @@ git -C "$conflict" commit -m "main side" >/dev/null
 conflict_main="$(git -C "$conflict" rev-parse HEAD)"
 
 set +e
-"$INTEGRATOR" "$conflict" refs/heads/candidate "$conflict_main" >/tmp/integrate-main-conflict.out 2>&1
+"$INTEGRATOR" "$conflict" refs/heads/candidate "$conflict_main" >"$TMP_ROOT/integrate-main-conflict.out" 2>&1
 conflict_rc=$?
 set -e
 test "$conflict_rc" -ne 0
-grep -F "candidate does not merge cleanly into current main" /tmp/integrate-main-conflict.out >/dev/null
+grep -F "candidate does not merge cleanly into current main" "$TMP_ROOT/integrate-main-conflict.out" >/dev/null
 test "$(git -C "$conflict" rev-parse HEAD)" = "$conflict_main"
 test -z "$(git -C "$conflict" status --porcelain)"
 "$CHECKER" "$conflict" >/dev/null
