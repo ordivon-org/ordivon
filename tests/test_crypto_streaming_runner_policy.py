@@ -17,7 +17,10 @@ class StreamingRunnerPolicyTests(unittest.TestCase):
         self.assertNotIn('surfpath',master.lower()+candidate.lower())
         self.assertNotIn('--ingresses',candidate)
         self.assertIn('check-network-v2-public-data',candidate)
-        self.assertIn('/usr/bin/uv run --frozen --project',candidate)
+        self.assertIn('run-capability-python',candidate)
+        self.assertIn('-m ordivon_capital.market.crypto_public_streaming',candidate)
+        self.assertNotIn('/usr/bin/uv run',candidate)
+        self.assertNotIn('src/ordivon_capital/market/crypto_public_streaming.py',candidate)
         self.assertNotIn('.venv/bin/python',candidate)
         self.assertIn('network-v2-provider-auto',master)
 

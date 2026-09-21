@@ -16,6 +16,9 @@ from ordivon_capital.market.crypto_public_streaming import (
     evaluate_snapshot,
     network_v2_ws_proxies,
 )
+from ordivon_capital.market.websocket_proxy_lifecycle import (
+    NetworkV2ProxyClientConnection,
+)
 
 
 class InjectedDisconnect(RuntimeError):
@@ -34,7 +37,7 @@ async def _okx_supervisor(
     while True:
         generation += 1
         try:
-            async with connect(OKX_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
+            async with connect(OKX_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20, create_connection=NetworkV2ProxyClientConnection) as ws:
                 await control.put({"type": "CONNECTED", "venue": "OKX", "generation": generation, "monoNs": time.monotonic_ns()})
                 await ws.send(json.dumps({
                     "id": "mcr3",
@@ -94,7 +97,7 @@ async def _binance_supervisor(
     while True:
         generation += 1
         try:
-            async with connect(BINANCE_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
+            async with connect(BINANCE_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20, create_connection=NetworkV2ProxyClientConnection) as ws:
                 await control.put({"type": "CONNECTED", "venue": "BINANCE", "generation": generation, "monoNs": time.monotonic_ns()})
                 async for raw in ws:
                     if not isinstance(raw, str):
@@ -147,6 +150,7 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
     measured: list[dict[str, Any]] = []
     controls: list[dict[str, Any]] = []
     injected_mono: int | None = None
+    injected_generation: int | None = None
     reconnected_mono: int | None = None
     reconnected_generation: int | None = None
     deadline = time.monotonic() + deadline_seconds
@@ -172,7 +176,15 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
                 controls.append(event)
                 if event["type"] == "INJECTED_DISCONNECT" and event["venue"] == target_venue:
                     injected_mono = int(event["monoNs"])
-                if event["type"] == "CONNECTED" and event["venue"] == target_venue and int(event["generation"]) >= 2:
+                    injected_generation = int(event["generation"])
+                if (
+                    event["type"] == "CONNECTED"
+                    and event["venue"] == target_venue
+                    and injected_mono is not None
+                    and injected_generation is not None
+                    and int(event["monoNs"]) > injected_mono
+                    and int(event["generation"]) > injected_generation
+                ):
                     reconnected_mono = int(event["monoNs"])
                     reconnected_generation = int(event["generation"])
 
@@ -225,9 +237,22 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
         except asyncio.QueueEmpty:
             break
         controls.append(event)
-        if event["type"] == "INJECTED_DISCONNECT" and event["venue"] == target_venue and injected_mono is None:
+        if (
+            event["type"] == "INJECTED_DISCONNECT"
+            and event["venue"] == target_venue
+            and injected_mono is None
+        ):
             injected_mono = int(event["monoNs"])
-        if event["type"] == "CONNECTED" and event["venue"] == target_venue and int(event["generation"]) >= 2 and reconnected_mono is None:
+            injected_generation = int(event["generation"])
+        if (
+            event["type"] == "CONNECTED"
+            and event["venue"] == target_venue
+            and injected_mono is not None
+            and injected_generation is not None
+            and int(event["monoNs"]) > injected_mono
+            and int(event["generation"]) > injected_generation
+            and reconnected_mono is None
+        ):
             reconnected_mono = int(event["monoNs"])
             reconnected_generation = int(event["generation"])
 
@@ -242,6 +267,7 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
         "targetVenue": target_venue,
         "injectedDisconnect": True,
         "reconnectLatencyMs": reconnect_latency_ms,
+        "injectedGeneration": injected_generation,
         "reconnectedGeneration": reconnected_generation,
         "warmup": warmup,
         "recovery": recovery,
