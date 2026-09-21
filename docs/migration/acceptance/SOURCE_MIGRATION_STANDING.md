@@ -6,6 +6,7 @@
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
 | Harness | identity-preserving current-source supersession | ACCEPTED_SOURCE_ONLY |
+| Host | exact current source tree; legacy rewritten import bridged to original a95a8e11 identity | ACCEPTED_SOURCE_ONLY |
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | identity-preserving current-source supersession at production-accepted `d3613c2e` | ACCEPTED_SOURCE_ONLY |
 | Security | legacy rewritten import normalized to exact source tree; original `f5db8508` identity attached | ACCEPTED_SOURCE_ONLY |
