@@ -16,9 +16,14 @@ import browser_security_pool_runner as pool  # noqa: E402
 import browserless_image_promotion as promotion  # noqa: E402
 
 CANONICAL_SECURITY_ROOT = Path("/root/projects/ordivon/platform/security")
+CANONICAL_HARNESS_ROOT = Path("/root/projects/ordivon/services/harness")
 
 
 class SecurityOwnerLocatorTests(unittest.TestCase):
+    def test_default_harness_source_is_canonical_monorepo_owner(self) -> None:
+        self.assertEqual(release.SOURCE_REPO, CANONICAL_HARNESS_ROOT)
+        self.assertEqual(promotion.CANONICAL_SOURCE_REPO, CANONICAL_HARNESS_ROOT)
+
     def test_default_security_root_is_canonical_monorepo_owner(self) -> None:
         self.assertEqual(release.SECURITY_ROOT, CANONICAL_SECURITY_ROOT)
         self.assertEqual(canary.SECURITY_ROOT, CANONICAL_SECURITY_ROOT)

@@ -18,7 +18,7 @@ import re
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
-SOURCE_REPO = Path("/root/projects/ordivon-harness")
+SOURCE_REPO = Path("/root/projects/ordivon/services/harness")
 RELEASE_ROOT = Path("/opt/ordivon/agent-automation/releases")
 CURRENT = Path("/opt/ordivon/agent-automation/current")
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
@@ -418,7 +418,26 @@ def exact_commit(repo: Path, revision: str) -> str:
     v = p.stdout.strip()
     if len(v) != 40 or any(c not in "0123456789abcdef" for c in v):
         raise ReleaseError("revision is not one exact Git commit")
-    return v
+
+    # A standalone owner repo has no Git prefix, so its exact commit is already
+    # owner-scoped. Inside the modular monorepo, collapse an arbitrary repository
+    # revision to the last commit at or before it that actually changed this owner.
+    # This prevents unrelated sibling-owner commits from minting new Harness
+    # release identities while preserving the existing commit/fast-forward model.
+    prefix = run(
+        ["/usr/bin/git", "-C", str(repo), "rev-parse", "--show-prefix"],
+        timeout=20,
+    ).stdout.strip()
+    if not prefix:
+        return v
+
+    owner = run(
+        ["/usr/bin/git", "-C", str(repo), "log", "-1", "--format=%H", v, "--", "."],
+        timeout=20,
+    ).stdout.strip()
+    if len(owner) != 40 or any(c not in "0123456789abcdef" for c in owner):
+        raise ReleaseError("revision has no exact commit for the Harness owner subtree")
+    return owner
 
 
 def archive_bytes(repo: Path, commit: str) -> bytes:
