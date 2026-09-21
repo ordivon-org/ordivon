@@ -1,0 +1,5 @@
+[Unit]
+Description=Durable CfT human browser session slot %i
+Requires=ordivon-cft-human-display@%i.service ordivon-cft-human-browser@%i.service ordivon-cft-human-vnc@%i.service ordivon-cft-human-web@%i.service
+After=ordivon-cft-human-display@%i.service ordivon-cft-human-browser@%i.service ordivon-cft-human-vnc@%i.service ordivon-cft-human-web@%i.service
+StopWhenUnneeded=no
