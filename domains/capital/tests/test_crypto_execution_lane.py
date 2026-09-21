@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "config/crypto_execution_lane.json"
+CONFIG = ROOT / "tools/nautilus_rc4/config/crypto_execution_lane.json"
 
 
 class CryptoExecutionLaneTests(unittest.TestCase):

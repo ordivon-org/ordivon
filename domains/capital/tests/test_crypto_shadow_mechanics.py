@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class CryptoShadowMechanicsTests(unittest.TestCase):
     def test_config_is_non_economic_and_non_live(self):
-        cfg=json.loads((ROOT/'config/crypto_shadow_mechanics.json').read_text())
+        cfg=json.loads((ROOT/'tools/nautilus_rc4/config/crypto_shadow_mechanics.json').read_text())
         self.assertEqual(cfg['purpose'],'MECHANICS_ONLY_NON_ECONOMIC')
         self.assertFalse(cfg['brokerConnectivityAllowed'])
         self.assertFalse(cfg['externalFinancialWritesAllowed'])

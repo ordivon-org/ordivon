@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "config/nautilus_candidate.json"
+CONFIG = ROOT / "tools/nautilus_rc4/config/nautilus_candidate.json"
 
 
 class NautilusCandidateBoundaryTests(unittest.TestCase):

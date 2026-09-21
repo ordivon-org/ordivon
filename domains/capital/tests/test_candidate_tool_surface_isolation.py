@@ -55,3 +55,12 @@ def test_nautilus_specific_effect_adapter_is_not_canonical_source():
     text = candidate.read_text()
     assert "reconcile_nautilus_episode" in text
     assert "ordivon_capital.trading.execution_reconciliation" in text
+
+def test_nautilus_only_configs_are_not_canonical_config():
+    for name in (
+        "crypto_execution_lane.json",
+        "crypto_shadow_mechanics.json",
+        "nautilus_candidate.json",
+    ):
+        assert not (ROOT / "config" / name).exists()
+        assert (ROOT / "tools/nautilus_rc4/config" / name).is_file()

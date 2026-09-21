@@ -7,7 +7,7 @@ candidate=/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python
 out="$repo/.artifacts/crypto-shadow-mechanics-r1"
 mkdir -p "$out"
 PYTHONPATH="$repo/src" "$candidate" "$repo/tools/nautilus_rc4/crypto_shadow_mechanics.py" \
-  --config "$repo/config/crypto_shadow_mechanics.json" \
+  --config "$repo/tools/nautilus_rc4/config/crypto_shadow_mechanics.json" \
   --observation "$repo/evidence/crypto-public-shadow-r1-20260913.json" \
   --metadata "$repo/evidence/crypto-vpn-public-data-qualification-20260913.json" \
   --output "$out/result.json"

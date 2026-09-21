@@ -34,6 +34,18 @@
     {
       "oldPath": "src/ordivon_capital/trading/nonlive_effect_qualification.py",
       "candidatePath": "tools/nautilus_rc4/nonlive_effect_qualification.py"
+    },
+    {
+      "oldPath": "config/crypto_execution_lane.json",
+      "candidatePath": "tools/nautilus_rc4/config/crypto_execution_lane.json"
+    },
+    {
+      "oldPath": "config/crypto_shadow_mechanics.json",
+      "candidatePath": "tools/nautilus_rc4/config/crypto_shadow_mechanics.json"
+    },
+    {
+      "oldPath": "config/nautilus_candidate.json",
+      "candidatePath": "tools/nautilus_rc4/config/nautilus_candidate.json"
     }
   ],
   "candidateOnlyTools": [
@@ -45,6 +57,7 @@
     "current private-reality preflight must run under canonical Python 3.14.7",
     "current OKX live provider audit must not execute Nautilus candidate code",
     "candidate evidence remains executable under tools/nautilus_rc4",
-    "candidate-specific Nautilus episode normalization must not live under canonical src"
+    "candidate-specific Nautilus episode normalization must not live under canonical src",
+    "Nautilus-only machine configuration must live with candidate tools rather than canonical config"
   ]
 }
