@@ -164,7 +164,17 @@ async def capture_streaming(rounds: int = 3, warmup_rounds: int = 1, deadline_se
                     exc = task.exception()
                     if exc is not None:
                         raise exc
-            key, event = await asyncio.wait_for(queue.get(), timeout=min(remaining, 5.0))
+            try:
+                key, event = await asyncio.wait_for(
+                    queue.get(), timeout=min(remaining, 5.0)
+                )
+            except TimeoutError:
+                for task in tasks:
+                    if task.done():
+                        exc = task.exception()
+                        if exc is not None:
+                            raise exc
+                continue
             latest[key] = event
             candidate = evaluate_snapshot(latest, previous)
             if candidate.get("qualified"):

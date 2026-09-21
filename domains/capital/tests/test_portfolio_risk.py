@@ -1,5 +1,8 @@
+import json
 import math
+import tempfile
 import unittest
+from pathlib import Path
 
 from ordivon_capital.market.portfolio_risk import (
     PortfolioRiskError,
@@ -10,6 +13,7 @@ from ordivon_capital.market.portfolio_risk import (
     completed_log_returns,
     evaluate_risk_budget,
     historical_expected_shortfall,
+    load_registered_risk_budget,
     validate_dependence_model,
 )
 
@@ -150,6 +154,32 @@ class PortfolioRiskTests(unittest.TestCase):
                 ],
             )
 
+    def test_registered_risk_budget_defaults_to_owner_unset_without_inference(self):
+        out = load_registered_risk_budget()
+        self.assertEqual(out["standing"], "UNSET")
+        self.assertEqual(out["owner"], "OWNER_PRINCIPAL")
+        self.assertTrue(all(value is None for value in out["limits"].values()))
+
+    def test_registered_risk_budget_rejects_active_missing_owner_limit(self):
+        doc = {
+            "schemaVersion": 1,
+            "kind": "ordivon.capital.market.portfolio-risk-budget-registration",
+            "standing": "ACTIVE",
+            "owner": "OWNER_PRINCIPAL",
+            "limits": {
+                "maxGrossToEquity": "2",
+                "maxLargestPositionGrossShare": "0.5",
+                "minAvailableEquityRatio": "0.2",
+                "shockMagnitudePct": "10",
+                "maxEquityLossPctAtShock": None,
+            },
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "budget.json"
+            path.write_text(json.dumps(doc))
+            with self.assertRaises(PortfolioRiskError):
+                load_registered_risk_budget(path)
+
     def test_risk_budget_is_incomplete_not_inferred_when_inputs_missing(self):
         ledger = build_exposure_ledger(
             equity_usd="100",
@@ -199,7 +229,18 @@ class PortfolioRiskTests(unittest.TestCase):
         self.assertNotIn("allocationProduced", out)
         self.assertEqual(out["nodes"]["modelMonitoring"], monitoring)
         self.assertEqual(out["nodes"]["tailRisk"], tail)
+        self.assertEqual(out["nodes"]["riskBudgetRegistration"]["standing"], "UNSET")
         self.assertEqual(out["nodes"]["riskLimitEvaluation"]["standing"], "INCOMPLETE")
+        self.assertEqual(
+            set(out["nodes"]["riskLimitEvaluation"]["missingBudgetInputs"]),
+            {
+                "maxGrossToEquity",
+                "maxLargestPositionGrossShare",
+                "minAvailableEquityRatio",
+                "shockMagnitudePct",
+                "maxEquityLossPctAtShock",
+            },
+        )
 
 
 if __name__ == "__main__":

@@ -6,11 +6,9 @@ outdir="$repo/.artifacts/crypto-fix-r4"
 input="$outdir/input.json"
 projected="$outdir/projected.json"
 canonical="$repo/evidence/crypto-fix44-projection-r4-20260914.json"
-projector="$repo/tools/fix44-projector/bin/Release/net10.0/MarketCapital.Fix44Projector.dll"
 
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 [[ -f "$source_ev" ]] || { echo 'source mechanics evidence unavailable' >&2; exit 2; }
-[[ -f "$projector" ]] || DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/tools/fix44-projector/MarketCapital.Fix44Projector.csproj" -c Release --nologo >/dev/null
 mkdir -p "$outdir"
 
 python3 - "$source_ev" "$input" <<'PY'
@@ -56,14 +54,14 @@ payload={
 out.write_text(json.dumps(payload,indent=2,sort_keys=True)+'\n')
 PY
 
-DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet "$projector" "$input" "$projected" >/dev/null
+"$repo/scripts/run-capability-python" -m ordivon_capital.market.fix44_projection "$input" "$projected" >/dev/null
 python3 - "$source_ev" "$input" "$projected" "$canonical" <<'PY'
 import hashlib,json,sys
 from pathlib import Path
 source,inputp,projectedp,out=map(Path,sys.argv[1:])
 i=json.loads(inputp.read_text()); p=json.loads(projectedp.read_text())
 rows=p['projectedIntents']
-if p['standing']!='PASS_FIX44_NEW_ORDER_SINGLE_PROJECTION': raise SystemExit('projection did not pass')
+if p['standing']!='PASS_BOUNDED_LOCAL_FIX44_TAGVALUE_PROJECTION': raise SystemExit('projection did not pass')
 if len(rows)!=4: raise SystemExit(f'expected four projected intents, got {len(rows)}')
 if p['networkSessionEnabled'] or p['brokerCredentialsUsed'] or p['externalFinancialWritesAttempted']:
     raise SystemExit('projection crossed external boundary')
@@ -83,8 +81,9 @@ summary={
   'composition':{
     'sourceMechanics':'NautilusTrader local OMS/Risk evidence',
     'orderSemantics':'FIX 4.4 NewOrderSingle',
-    'fixImplementation':'QuickFIX/n 1.14.1',
-    'mappingRole':'thin projection only',
+    'fixImplementation':'LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR',
+    'quickfixDifferentialReference':'QuickFIX/n 1.14.1; 120/120 byte-exact; 0 mismatches',
+    'mappingRole':'bounded sessionless TagValue projection only; not a complete FIX wire/session engine',
   },
   'sourceMechanicsEvidence':'evidence/crypto-shadow-mechanics-r1-20260913.json',
   'sourceMechanicsEvidenceSha256':hashlib.sha256(source.read_bytes()).hexdigest(),

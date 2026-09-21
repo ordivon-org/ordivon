@@ -3,16 +3,11 @@
   "externalFinancialWritesAllowed": false,
   "kind": "ordivon.capital.market.fix-order-semantics",
   "legacyProfile": true,
-  "library": "QuickFIX/n",
   "messageName": "NewOrderSingle",
   "messageType": "D",
   "orderType": "MARKET",
-  "packages": {
-    "QuickFIXn.Core": "1.14.1",
-    "QuickFIXn.FIX44": "1.14.1"
-  },
   "protocol": "FIX.4.4",
-  "role": "legacy FIX 4.4 wire-compatibility projection under FIX Latest semantic reference",
+  "role": "legacy FIX 4.4 sessionless TagValue qualification projection under FIX Latest semantic reference",
   "schemaVersion": 1,
   "semanticReference": "FIX Trading Community FIX Latest / FIX Orchestra",
   "semanticStandard": "FIX Latest",
@@ -20,5 +15,18 @@
   "sessionNetworkEnabled": false,
   "targetCompId": "LEAN_VALIDATION",
   "timeInForce": "DAY",
-  "wireCompatibilityProfile": "FIX.4.4"
+  "wireCompatibilityProfile": "FIX.4.4",
+  "implementation": "LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR",
+  "wireFrameComplete": false,
+  "bodyLengthAndChecksumPresent": false,
+  "quickfixDifferentialReference": {
+    "library": "QuickFIX/n",
+    "version": "1.14.1",
+    "languageGate": "PASS_NET10_0",
+    "knownVulnerablePackages": "NONE_REPORTED_BY_DOTNET_LIST_PACKAGE_2026_09_21",
+    "cases": 120,
+    "byteExactMatches": 120,
+    "mismatches": 0,
+    "standing": "DIFFERENTIAL_ORACLE_NOT_CANONICAL_RUNTIME"
+  }
 }

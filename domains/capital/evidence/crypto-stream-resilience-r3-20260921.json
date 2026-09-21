@@ -1,0 +1,124 @@
+{
+  "artifactDigests": {
+    "binance": "sha256:e717341dac67d7a34aeba76da2425f8539c0e25098c91b1a6158770aec5cdd1c",
+    "binding": "sha256:3a04340f69e72ef0938aa7bf5adb27b2a7b889c4e6eeb0863111daaf10cd3ae4",
+    "okx": "sha256:d2602321efbe841c35e3c4b9f5f70a93cf8774fd95456fb41fb1753bd6c9bcab"
+  },
+  "asOfDate": "2026-09-21",
+  "brokerCredentialsUsed": false,
+  "demoExecutionAttempted": false,
+  "externalFinancialWritesAttempted": false,
+  "freshQualification": {
+    "binance": {
+      "connectionErrorCount": 0,
+      "connectionErrors": [],
+      "measuredRoundCount": 3,
+      "reconnectLatencyMs": 5826.394629,
+      "reconnectedGeneration": 2,
+      "recoveryQualified": true,
+      "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+      "warmupQualified": true
+    },
+    "okx": {
+      "connectionErrorCount": 0,
+      "connectionErrors": [],
+      "measuredRoundCount": 3,
+      "reconnectLatencyMs": 689.337647,
+      "reconnectedGeneration": 2,
+      "recoveryQualified": true,
+      "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+      "warmupQualified": true
+    },
+    "session": {
+      "binance": {
+        "error": null,
+        "measuredRoundCount": 3,
+        "reconnectLatencyMs": 5826.394629,
+        "reconnectedGeneration": 2,
+        "returnCode": 0,
+        "standing": "PASS_PUBLIC_STREAM_RECONNECT"
+      },
+      "brokerCredentialsUsed": false,
+      "demoExecutionAttempted": false,
+      "externalFinancialWritesAttempted": false,
+      "kind": "ordivon.capital.market.crypto-stream-resilience-r3-session",
+      "liveExecutionAttempted": false,
+      "okx": {
+        "error": null,
+        "measuredRoundCount": 3,
+        "reconnectLatencyMs": 689.337647,
+        "reconnectedGeneration": 2,
+        "returnCode": 0,
+        "standing": "PASS_PUBLIC_STREAM_RECONNECT"
+      },
+      "privateAccountDataUsed": false,
+      "schemaVersion": 1,
+      "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
+    }
+  },
+  "kind": "ordivon.capital.market.crypto-stream-resilience-r3-fresh-evidence",
+  "liveExecutionAttempted": false,
+  "priorFailureDiagnosis": {
+    "networkFailure": {
+      "remediation": "sing-box 1.14 dual provider-DNS response race with DNS-1 and DNS-2; each resolver has independently passed injected-failure takeover smoke.",
+      "rootCause": "Finance Network v2 had one provider DNS resolver; simultaneous venue lookup failures produced context deadline exceeded / EOF.",
+      "standing": "REMEDIATED_AND_FAULT_QUALIFIED",
+      "websocketsImplementationFailureClaimed": false
+    },
+    "runnerFailure": {
+      "rootCauses": [
+        "session runner executed a script file through uv without a package import path, producing ModuleNotFoundError for ordivon_capital",
+        "set -e could terminate after the first venue and suppress session/result.json",
+        "first revised aggregator used binance_rc instead of parsed bn_rc"
+      ],
+      "standing": "FIXED"
+    }
+  },
+  "priorPostDeploymentTransientOutlier": {
+    "binance": {
+      "error": null,
+      "measuredRoundCount": 3,
+      "reconnectLatencyMs": 19659.252283,
+      "reconnectedGeneration": 4,
+      "returnCode": 0,
+      "standing": "PASS_PUBLIC_STREAM_RECONNECT"
+    },
+    "interpretation": "PASS but Binance recovery was slow and required generation 4; retained as transient-outlier evidence rather than discarded.",
+    "okx": {
+      "error": null,
+      "measuredRoundCount": 3,
+      "reconnectLatencyMs": 1453.384209,
+      "reconnectedGeneration": 2,
+      "returnCode": 0,
+      "standing": "PASS_PUBLIC_STREAM_RECONNECT"
+    },
+    "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+    "transportBindingDigest": "sha256:a9249a7e9763156256b38802dd4a6fd06b2a5b27b0df4494001383e102b1556b"
+  },
+  "privateAccountDataUsed": false,
+  "r2FreshEvidence": "evidence/crypto-public-shadow-r2-20260921.json",
+  "repeatPolicy": {
+    "connectionErrorTrigger": 1,
+    "generationTrigger": 2,
+    "reason": "Latest hardened-binding run remained below latency threshold, recovered at generation 2 for both venues, and emitted zero connection errors.",
+    "reconnectLatencyTriggerMs": 10000,
+    "repeatTriggeredForLatestRun": false
+  },
+  "runnerQualification": {
+    "bothVenuesAlwaysAttempted": true,
+    "canonicalPythonRunner": "scripts/run-capability-python",
+    "firstVenueFailureNoLongerCollapsesToNoSessionResult": true,
+    "languageBaseline": "Python 3.14.7",
+    "sessionResultAlwaysAggregated": true
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+  "transportBinding": {
+    "bindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02",
+    "dnsResponseRace": "DUAL_PROVIDER_RESPONSE_RACE",
+    "providerEndpointsContentDisclosed": false,
+    "providerEndpointsDigest": "sha256:c404749643723f4ec47143f9084c9feb20cb37ab071fcd2c2be0c5348bb16e74",
+    "providerEndpointsSensitive": true,
+    "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6"
+  }
+}

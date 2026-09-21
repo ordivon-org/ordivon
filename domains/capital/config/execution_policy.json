@@ -1,17 +1,8 @@
 {
   "currentLane": "NON_LIVE",
+  "decisionImplementation": "LOCAL_DETERMINISTIC_PYTHON",
   "externalWritePolicyInputContract": "contracts/external-write-policy-input-v1.json",
   "kind": "ordivon.capital.market.execution-policy",
-  "policyEngine": {
-    "binary": "/opt/ordivon/external/opa/1.20.2/bin/opa",
-    "name": "OPA",
-    "policy": "policy/market_controls.rego",
-    "queryNonLive": "data.ordivon.capital.market.execution.allow_non_live",
-    "queryExternalWrite": "data.ordivon.capital.market.execution.allow_external_write",
-    "queryLiveTestAccount": "data.ordivon.capital.market.execution.live_test_account_decision",
-    "queryRiskBudget": "data.ordivon.capital.market.execution.risk_budget_decision",
-    "queryCounterfactualGate": "data.ordivon.capital.market.execution.counterfactual_gate_statuses"
-  },
-  "rule": "OPA is the sole policy decision point for execution-lane admission; application code acts only as a fail-closed policy enforcement point",
+  "rule": "Bounded deterministic policy rules are evaluated directly in the canonical Python runtime; external financial writes remain fail-closed and not implemented.",
   "schemaVersion": 1
 }

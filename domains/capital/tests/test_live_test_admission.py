@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ordivon_capital.market.opa_policy import evaluate_live_test_account
+from ordivon_capital.market.policy_decision import evaluate_live_test_account
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_CONFIG = ROOT / "config/execution_policy.json"
@@ -50,8 +50,8 @@ def test_permission_or_health_failure_blocks():
     assert 'reconciliation-not-healthy' in x['blockingReasons']
 
 
-def test_opa_is_the_live_test_policy_decision_owner():
+def test_local_policy_is_the_live_test_policy_decision_owner():
     x=evaluate_live_test_account(repo=ROOT,config_path=POLICY_CONFIG,reality=base(),quote_asset="USDT",permission={"trade":True,"withdraw":False,"transfer":False},clock_passed=True,reconciliation_healthy=True)
-    assert x["policyEngine"] == "OPA"
-    source=(ROOT/"src/ordivon_capital/market/opa_policy.py").read_text()
-    assert "live_test_account_decision" not in source
+    assert x["decisionImplementation"] == "LOCAL_DETERMINISTIC_PYTHON"
+    source=(ROOT/"src/ordivon_capital/market/policy_decision.py").read_text()
+    assert "def _live_test_account_decision" in source

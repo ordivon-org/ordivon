@@ -67,6 +67,8 @@ def main() -> int:
         raise RuntimeError('OKX live provider binding did not pass')
     if not lp['providerTradeCapabilityCurrent'] or lp['providerWithdrawPermissionCurrent']:
         raise RuntimeError('OKX live provider permission contract did not pass')
+    if not lp['providerCapabilityAuditOnly'] or lp['privateRealityAdmissionGranted']:
+        raise RuntimeError('OKX live-trade credential was incorrectly promoted into private Reality')
     if r['externalWritePolicyStanding']!='NOT_ADMITTED':
         raise RuntimeError('real financial write boundary unexpectedly admitted')
 
@@ -78,24 +80,28 @@ def main() -> int:
         'standing':standing,
         'localFullEffectPath':'PASS',
         'providerExecution':{
-            'provider':'NautilusTrader 2.0.0rc4 simulated exchange',
+            'provider':'current bounded reconciliation disposition contract',
             'nonLiveEffectAdmission':'ADMITTED',
             'realMoney':False,
             'liveEndpoint':False,
         },
         'capitalResolution':{
-            'provider':'TigerBeetle 0.17.9',
+            'provider':'SQLite 3.53.1 via canonical Python 3.14.7',
             'standing':c['standing'],
             'restartCount':c['restartCount'],
             'exactConsumeReplayStatus':c['exactConsumeReplayStatus'],
             'scenarioResolutions':{k:v['reservationResolution'] for k,v in c['scenarios'].items()},
-            'scenarioProviderReconciliation':{k:v['providerReconciliation'] for k,v in c['scenarios'].items()},
+            'scenarioLedgerReconciliation':{k:v['ledgerReconciliation'] for k,v in c['scenarios'].items()},
         },
         'okxLiveProvider':{
             'standing':lp['standing'],
-            'officialClient':lp['officialClient'],
+            'readClient':lp['readClient'],
+            'externalReferenceClient':lp['externalReferenceClient'],
             'networkAuthorityCurrent':lp['networkAuthorityCurrent'],
-            'authenticatedPrivateReality':lp['authenticatedPrivateReality'],
+            'authenticatedProviderReadAudit':lp['authenticatedProviderReadAudit'],
+            'credentialClass':lp['credentialClass'],
+            'providerCapabilityAuditOnly':lp['providerCapabilityAuditOnly'],
+            'privateRealityAdmissionGranted':lp['privateRealityAdmissionGranted'],
             'providerPermissions':lp['providerPermissions'],
             'providerTradeCapabilityCurrent':lp['providerTradeCapabilityCurrent'],
             'providerWithdrawPermissionCurrent':lp['providerWithdrawPermissionCurrent'],

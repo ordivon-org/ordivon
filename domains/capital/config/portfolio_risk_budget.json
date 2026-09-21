@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.market.portfolio-risk-budget-registration",
+  "standing": "UNSET",
+  "owner": "OWNER_PRINCIPAL",
+  "limits": {
+    "maxGrossToEquity": null,
+    "maxLargestPositionGrossShare": null,
+    "minAvailableEquityRatio": null,
+    "shockMagnitudePct": null,
+    "maxEquityLossPctAtShock": null
+  }
+}

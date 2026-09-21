@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/contracts/portfolio-risk-budget-v1.schema.json",
+  "title": "Ordivon Capital portfolio risk budget registration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "standing", "owner", "limits"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.market.portfolio-risk-budget-registration"},
+    "standing": {"enum": ["UNSET", "ACTIVE"]},
+    "owner": {"const": "OWNER_PRINCIPAL"},
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxGrossToEquity",
+        "maxLargestPositionGrossShare",
+        "minAvailableEquityRatio",
+        "shockMagnitudePct",
+        "maxEquityLossPctAtShock"
+      ],
+      "properties": {
+        "maxGrossToEquity": {"type": ["number", "string", "null"]},
+        "maxLargestPositionGrossShare": {"type": ["number", "string", "null"]},
+        "minAvailableEquityRatio": {"type": ["number", "string", "null"]},
+        "shockMagnitudePct": {"type": ["number", "string", "null"]},
+        "maxEquityLossPctAtShock": {"type": ["number", "string", "null"]}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"standing": {"const": "UNSET"}}},
+      "then": {
+        "properties": {
+          "limits": {
+            "properties": {
+              "maxGrossToEquity": {"const": null},
+              "maxLargestPositionGrossShare": {"const": null},
+              "minAvailableEquityRatio": {"const": null},
+              "shockMagnitudePct": {"const": null},
+              "maxEquityLossPctAtShock": {"const": null}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"standing": {"const": "ACTIVE"}}},
+      "then": {
+        "properties": {
+          "limits": {
+            "properties": {
+              "maxGrossToEquity": {"not": {"type": "null"}},
+              "maxLargestPositionGrossShare": {"not": {"type": "null"}},
+              "minAvailableEquityRatio": {"not": {"type": "null"}},
+              "shockMagnitudePct": {"not": {"type": "null"}},
+              "maxEquityLossPctAtShock": {"not": {"type": "null"}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
