@@ -2,7 +2,7 @@
 from pathlib import Path
 import os, shutil, zipfile
 lean = Path(os.environ.get("ORDIVON_CAPITAL_MARKET_LEAN_ROOT", "/root/external/quantconnect-lean/18074"))
-root = Path(__file__).resolve().parents[1] / ".artifacts" / "wave-b-m1" / "data"
+root = Path(__file__).resolve().parents[3] / ".artifacts" / "wave-b-m1" / "data"
 if root.exists(): shutil.rmtree(root)
 (root / "equity/usa/daily").mkdir(parents=True)
 (root / "equity/usa/map_files").mkdir(parents=True)

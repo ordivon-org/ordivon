@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-repo="$(cd "$(dirname "$0")/.." && pwd)"
+repo="$(cd "$(dirname "$0")/../../.." && pwd)"
 lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 out="$repo/.artifacts/wave-b-m6/results"
-"$repo/scripts/check-lean-runtime"
+"$repo/tools/legacy_replay/lean_wave_b/check-lean-runtime"
 mkdir -p "$repo/.artifacts/wave-b-m3"
-"$repo/scripts/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
+"$repo/tools/legacy_replay/lean_wave_b/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
 rm -rf "$out" && mkdir -p "$out"
 "$repo/scripts/check-execution-policy" --mode non-live --output "$out/authority.json" >/dev/null

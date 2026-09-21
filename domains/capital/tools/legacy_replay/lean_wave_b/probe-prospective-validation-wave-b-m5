@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from ordivon_capital.research.prospective_validation import evaluate_prospective_validation, decision_session_date
 
-repo = Path(__file__).resolve().parents[1]
+repo = Path(__file__).resolve().parents[3]
 cfg = json.loads((repo / "config/prospective_validation.json").read_text())
 target = repo / "wave_b/fixtures/wave_a_target_portfolio.json"
 actual_target_digest = hashlib.sha256(target.read_bytes()).hexdigest()

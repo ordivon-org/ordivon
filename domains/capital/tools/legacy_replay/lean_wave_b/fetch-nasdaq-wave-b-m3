@@ -4,7 +4,7 @@ import hashlib, json, os, re, shutil, ssl, sys, urllib.parse, urllib.request, zi
 from datetime import datetime, timezone
 from pathlib import Path
 
-repo = Path(__file__).resolve().parents[1]
+repo = Path(__file__).resolve().parents[3]
 cfg = json.loads((repo / "config/historical_validation_data.json").read_text())
 root = repo / ".artifacts/wave-b-m3"
 raw = root / "raw"
