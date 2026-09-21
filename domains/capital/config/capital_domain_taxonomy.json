@@ -105,16 +105,19 @@
   },
   "retainedCompatibilityIdentities": [
     {
-      "identity": "ordivon_market_capital_*",
-      "standing": "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY"
-    },
-    {
       "identity": "/root/projects/ordivon-market-capital-next",
       "standing": "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE"
     },
     {
       "identity": "historical Market Capital evidence and fixture names",
       "standing": "FROZEN_PROVENANCE_IDENTITY"
+    }
+  ],
+  "retiredCompatibilityIdentities": [
+    {
+      "identity": "ordivon_market_capital_* plus market-capital observability files",
+      "standing": "RETIRED_NO_ACTIVE_CONSUMER",
+      "reason": "live census found node exporter and shared Prometheus inactive; active Network v2 Prometheus had zero Capital series and did not load the legacy rule group"
     }
   ]
 }

@@ -9,4 +9,4 @@ Comparative evidence:
 - representative OPA subprocess call: approximately 19.2 ms;
 - representative direct local boolean rule: approximately 0.144 microseconds.
 
-OPA remains a reusable future challenger if Ordivon develops a real independent policy-distribution or cross-process policy-authority contract. It is not the current owner for the bounded Market Capital rules.
+OPA remains a reusable future challenger if Ordivon develops a real independent policy-distribution or cross-process policy-authority contract. It is not the current owner for the bounded Capital Governance rules.

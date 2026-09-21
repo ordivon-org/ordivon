@@ -38,4 +38,4 @@ Trading also contains order lifecycle, provider effect boundaries, FIX projectio
 
 The Python package `ordivon_capital.market` is retired with no compatibility shim.
 
-This source-owner migration does **not** silently rewrite protocol/evidence identities. Existing `ordivon.capital.market.*` JSON kinds are versioned contract identifiers embedded in schemas, configs and frozen evidence. They were migrated through the explicit v2 registry; current runtime code emits and requires domain-correct v2 identities, while v1 replay uses historical source identity rather than a compatibility shim. Likewise the deployed `ordivon_market_capital_*` Prometheus family and historical `Market Capital` evidence/fixture names remain registered compatibility/provenance identities.
+The old Market-Capital Prometheus family was later retired after live census proved it had no active consumer; historical Market Capital evidence/fixture names remain provenance identities.

@@ -95,8 +95,8 @@
       "id": "observability",
       "ownerClass": "IMPLEMENTATION_CANDIDATE",
       "owner": "Prometheus 3.14.0",
-      "currentStanding": "MARKETS_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE",
-      "applicability": "FUTURE_MARKET_DOMAIN_TSDB_PROMQL_ALERTING_CANDIDATE; CURRENT_REPO_ONLY_EMITS_PROMETHEUS_TEXT_FORMAT",
+      "currentStanding": "NO_ACTIVE_CAPITAL_OBSERVABILITY_CONTRACT",
+      "applicability": "FUTURE_CAPITAL_TSDB_PROMQL_ALERTING_CANDIDATE; LEGACY_MARKET_CAPITAL_OBSERVABILITY_SURFACE_RETIRED",
       "source": "https://prometheus.io/"
     },
     {
@@ -720,25 +720,6 @@
       "localResponsibility": "size only the exact admitted empty-portfolio USD long US-equity whole-share validation contract with explicit free-portfolio buffer and frozen IB-style fee mechanics; fail closed outside that contract; do not grow a general buying-power/backtest engine"
     },
     {
-      "id": "markets-observability-projection",
-      "sourcePatterns": [
-        "scripts/render-crypto-stream-prometheus",
-        "infra/prometheus/market-capital-crypto.rules.yml",
-        "infra/systemd/prometheus-node-exporter-market-capital.conf",
-        "infra/systemd/prometheus-node-exporter.service.d/20-market-capital-textfile.conf"
-      ],
-      "ownerClasses": [
-        "ORDIVON_GLUE",
-        "IMPLEMENTATION_CANDIDATE"
-      ],
-      "externalOwners": [
-        "Prometheus 3.14.0 candidate for TSDB/PromQL/rule evaluation",
-        "Prometheus text exposition format compatibility"
-      ],
-      "localStanding": "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKETS_CONSUMER",
-      "localResponsibility": "project frozen Markets evidence into Prometheus text format and retain rule definitions as deployable candidate configuration; do not claim active scrape, TSDB retention, PromQL evaluation, or alert delivery until a live Markets-domain consumer is observed"
-    },
-    {
       "id": "trading-fix44-projection",
       "sourcePatterns": [
         "src/ordivon_capital/trading/fix44_projection.py",
@@ -800,13 +781,6 @@
     }
   ],
   "retainedCompatibilityContracts": [
-    {
-      "id": "prometheus-market-capital-metric-prefix",
-      "surface": "ordivon_market_capital_* plus market-capital-crypto.prom/rules filename",
-      "standing": "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY",
-      "owner": "Prometheus/node_exporter deployed consumer contract",
-      "reason": "host /etc/prometheus rules and node_exporter textfile currently consume the deployed metric names; rename requires one coordinated observability migration rather than an in-repo cosmetic change"
-    },
     {
       "id": "tigerbeetle-market-capital-stable-provider-ids",
       "surface": "market-capital:tigerbeetle:* and market-capital:nonlive-effect:* stable ID seeds",
@@ -1114,11 +1088,11 @@
       "decision": "Use the local bounded sizer for the exact current feasibility contract. Preserve LEAN as an isolated historical/general trading-engine challenger; do not use it as a canonical core gate while its latest candidate fails the supply-chain qualification."
     },
     {
-      "contractId": "market-observability-consumer",
-      "scope": "Market Capital metric scrape, time-series retention, PromQL evaluation, and three crypto safety alert rules",
+      "contractId": "capital-observability-consumer",
+      "scope": "Capital metric scrape, time-series retention, PromQL evaluation, and safety alerting",
       "localBaseline": {
-        "implementation": "scripts/render-crypto-stream-prometheus",
-        "standing": "STATIC_TEXT_PROJECTION_ONLY",
+        "implementation": null,
+        "standing": "RETIRED_NO_ACTIVE_CONSUMER",
         "activeTimeSeriesConsumer": false
       },
       "externalCandidate": {
@@ -1142,17 +1116,17 @@
           "packageVersion": "1.12.1",
           "configuredListen": "127.0.0.1:29100",
           "active": false,
-          "marketTextfilePresent": true
+          "marketTextfilePresent": false
         },
         "marketRules": {
-          "configured": 3,
+          "configured": 0,
           "promtoolValidation": "PASS",
           "activelyLoaded": false
         }
       },
-      "standing": "NO_ACTIVE_MARKET_DOMAIN_IMPLEMENTATION_OWNER",
+      "standing": "RETIRED_NO_ACTIVE_CONSUMER",
       "prometheusOwnerAdmitted": false,
-      "decision": "Do not treat Prometheus as a current Market-domain owner. Keep the renderer and validated rules as deployable compatibility/candidate artifacts. Re-open owner qualification if a Market-domain scrape/TSDB/rule-evaluation contract is actually activated."
+      "decision": "Retire the stale Market-Capital renderer/rules/textfile/drop-in because no active consumer exists. If a future Capital observability contract becomes real, requalify Prometheus from a fresh domain-correct surface rather than restoring compatibility aliases."
     },
     {
       "contractId": "bounded-sessionless-fix44-new-order-single-projection",
@@ -1593,5 +1567,14 @@
       "currentBindingDigest": "sha256:d88a5ac5b2165dbb9829d0ea0352da1884a3fee6b5846f03f8929e9619f9f14e",
       "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6"
     }
-  }
+  },
+  "retiredCompatibilitySurfaces": [
+    {
+      "id": "prometheus-market-capital-observability",
+      "surface": "ordivon_market_capital_* metric family, market-capital-crypto rule/textfile, Capital-specific node-exporter drop-in/env",
+      "standing": "RETIRED_NO_ACTIVE_CONSUMER",
+      "reason": "2026-09-21 live census: prometheus-node-exporter.service inactive, prometheus.service inactive, active Network v2 Prometheus on 127.0.0.1:29090 exposes zero ordivon_market_capital_* series and does not scrape the legacy node exporter",
+      "futureRule": "if Capital later needs TSDB/PromQL/alerting, qualify a fresh Capital observability contract instead of restoring the legacy prefix"
+    }
+  ]
 }
