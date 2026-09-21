@@ -17,10 +17,11 @@ SOURCE.mkdir(parents=True, exist_ok=True)
 RENDER.mkdir(parents=True, exist_ok=True)
 
 PROJECT_ROOT = Path("/root/projects")
-EXTRA_REPOS = [Path("/root/workstation-lab")]
+CANONICAL_MONOREPO = PROJECT_ROOT / "ordivon"
 
-GROUP_ORDER = ["execution", "knowledge", "creative", "external", "other"]
+GROUP_ORDER = ["monorepo", "execution", "knowledge", "creative", "external", "other"]
 GROUP_LABELS = {
+    "monorepo": "CANONICAL MONOREPO",
     "execution": "EXECUTION / COORDINATION",
     "knowledge": "KNOWLEDGE / RESEARCH",
     "creative": "CREATIVE / CULTURAL",
@@ -28,13 +29,13 @@ GROUP_LABELS = {
     "other": "OTHER RETAINED SURFACES",
 }
 GROUP_BY_NAME = {
+    "ordivon": "monorepo",
     "ordivon-runtime": "execution",
     "ordivon-host-v2": "execution",
     "ordivon-harness": "execution",
     "ordivon-next": "execution",
     "ordivon-workstation-v2": "execution",
     "ordivon-artifact-v2": "execution",
-    "workstation-lab": "execution",
     "ordivon-research-v2": "knowledge",
     "ordivon-data-v2": "knowledge",
     "ordivon-media": "creative",
@@ -57,8 +58,13 @@ def git(repo: Path, *args: str) -> str:
 
 
 def discover() -> list[dict]:
-    repos = [p for p in sorted(PROJECT_ROOT.glob("ordivon-*")) if (p / ".git").exists() or (p / ".git").is_file()]
-    repos += [p for p in EXTRA_REPOS if p.exists()]
+    repos = [
+        path
+        for path in sorted(PROJECT_ROOT.glob("ordivon-*"))
+        if (path / ".git").exists() or (path / ".git").is_file()
+    ]
+    if CANONICAL_MONOREPO.exists():
+        repos.append(CANONICAL_MONOREPO)
     rows = []
     for repo in repos:
         try:
@@ -85,6 +91,7 @@ def place(rows: list[dict]) -> None:
     for row in rows:
         grouped[row["group"]].append(row)
     centers = {
+        "monorepo": (0.0, 12.0),
         "execution": (-72.0, 28.0),
         "knowledge": (58.0, 34.0),
         "creative": (-22.0, -36.0),
@@ -111,7 +118,7 @@ def write_json(rows: list[dict], observed_at: str) -> None:
         "workId": "media:ordivon-system-constellation-atlas",
         "observedAt": observed_at,
         "coordinateSystem": "abstract Ordivon conceptual plane; coordinates are layout positions and are not geographic claims",
-        "selection": "local Git repositories under /root/projects matching ordivon-* plus /root/workstation-lab when readable",
+        "selection": "local Git repositories under /root/projects matching ordivon-* plus canonical /root/projects/ordivon when readable",
         "repositories": rows,
     }
     (SOURCE / "repositories.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -136,8 +143,22 @@ def write_svg(rows: list[dict], observed_at: str) -> None:
     def px(x: float) -> float: return 800 + x * 4.25
     def py(y: float) -> float: return 500 - y * 4.25
 
-    group_r = {"execution": 118, "knowledge": 108, "creative": 105, "external": 112, "other": 80}
-    centers = {"execution": (-72.0, 28.0), "knowledge": (58.0, 34.0), "creative": (-22.0, -36.0), "external": (77.0, -27.0), "other": (0.0, 0.0)}
+    group_r = {
+        "monorepo": 92,
+        "execution": 118,
+        "knowledge": 108,
+        "creative": 105,
+        "external": 112,
+        "other": 80,
+    }
+    centers = {
+        "monorepo": (0.0, 12.0),
+        "execution": (-72.0, 28.0),
+        "knowledge": (58.0, 34.0),
+        "creative": (-22.0, -36.0),
+        "external": (77.0, -27.0),
+        "other": (0.0, 0.0),
+    }
 
     parts = [f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
 <rect width="1600" height="1000" fill="#0b0d10"/>
