@@ -26,9 +26,13 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
     def system_describe() -> SystemDescription:
         return gateway.system_describe()
 
+    @server.tool(name="capability.list")
+    async def capability_list() -> CapabilityProjection:
+        return await gateway.capability_describe()
+
     @server.tool(name="capability.describe")
-    def capability_describe(capability: str | None = None) -> CapabilityProjection:
-        return gateway.capability_describe(capability)
+    async def capability_describe(capability: str | None = None) -> CapabilityProjection:
+        return await gateway.capability_describe(capability)
 
     @server.tool(name="execution.submit")
     async def execution_submit(

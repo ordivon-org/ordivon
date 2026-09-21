@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from .contracts import (
@@ -84,7 +86,7 @@ class GatewayService:
             capabilities=sorted(self._routes),
         )
 
-    def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
+    async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
         if capability is not None:
             route = self._routes.get(capability)
             if route is None:
@@ -93,22 +95,212 @@ class GatewayService:
         else:
             selected = [self._routes[key] for key in sorted(self._routes)]
 
-        values = [
-            CapabilityDescriptor(
+        runtime_cache: dict[str, tuple[dict[str, Any] | None, str | None]] = {}
+
+        async def runtime_description(
+            owner_id: str,
+        ) -> tuple[dict[str, Any] | None, str | None]:
+            cached = runtime_cache.get(owner_id)
+            if cached is not None:
+                return cached
+            if not _configured(self._caller, owner_id):
+                value = (None, None)
+                runtime_cache[owner_id] = value
+                return value
+            try:
+                result = await self._caller.call_tool(
+                    owner_id, "runtime.describe", {"schemaVersion": 1}
+                )
+                value = (result, None)
+            except Exception as exc:
+                value = (
+                    None,
+                    f"{type(exc).__name__}: {str(exc)[:240]}",
+                )
+            runtime_cache[owner_id] = value
+            return value
+
+        async def execution_descriptor(route: CapabilityRoute) -> CapabilityDescriptor:
+            configured_at_gateway = _configured(self._caller, route.owner_id)
+            if not configured_at_gateway:
+                return CapabilityDescriptor(
+                    capability=route.capability,
+                    owner_id=route.owner_id,
+                    category=route.category,
+                    configured=False,
+                    available=False,
+                    context_mode=route.context_mode,  # type: ignore[arg-type]
+                    truth_boundary=route.truth_boundary,
+                )
+
+            result, error = await runtime_description(route.owner_id)
+            if result is None:
+                return CapabilityDescriptor(
+                    capability=route.capability,
+                    owner_id=route.owner_id,
+                    category=route.category,
+                    configured=True,
+                    available=False,
+                    context_mode=route.context_mode,  # type: ignore[arg-type]
+                    observation_error=error,
+                    truth_boundary=route.truth_boundary,
+                )
+
+            target = next(
+                (
+                    item
+                    for item in result.get("targets", [])
+                    if isinstance(item, dict) and item.get("target") == route.execution_target
+                ),
+                None,
+            )
+            if target is None:
+                return CapabilityDescriptor(
+                    capability=route.capability,
+                    owner_id=route.owner_id,
+                    category=route.category,
+                    configured=False,
+                    available=False,
+                    context_mode=route.context_mode,  # type: ignore[arg-type]
+                    observation_error="owner did not advertise the routed execution target",
+                    truth_boundary=route.truth_boundary,
+                )
+
+            node = result.get("node")
+            node_id = (
+                str(node["nodeId"])
+                if isinstance(node, dict) and isinstance(node.get("nodeId"), str)
+                else None
+            )
+            context_key = (
+                "windowsAuthorities"
+                if route.execution_target == "windows_native"
+                else "executionProfiles"
+            )
+            contexts = [
+                str(value) for value in target.get(context_key, []) if isinstance(value, str)
+            ]
+            return CapabilityDescriptor(
                 capability=route.capability,
                 owner_id=route.owner_id,
                 category=route.category,
-                configured=(
-                    True
-                    if route.owner_id == "runtime.dynamic"
-                    else _configured(self._caller, route.owner_id)
-                ),
+                configured=bool(target.get("configured", False)),
+                available=bool(target.get("available", False)),
                 context_mode=route.context_mode,  # type: ignore[arg-type]
+                contexts=contexts,
+                owner_node_id=node_id,
                 truth_boundary=route.truth_boundary,
             )
-            for route in selected
-        ]
-        return CapabilityProjection(capabilities=values)
+
+        values: list[CapabilityDescriptor] = []
+        for route in selected:
+            if route.category == "execution":
+                values.append(await execution_descriptor(route))
+                continue
+
+            if route.capability == "continuity.external":
+                configured = _configured(self._caller, "host")
+                available = False
+                error: str | None = None
+                if configured:
+                    try:
+                        await self._caller.call_tool(
+                            "host",
+                            "task.list",
+                            {"limit": 1, "includeTerminal": False},
+                        )
+                        available = True
+                    except Exception as exc:
+                        error = f"{type(exc).__name__}: {str(exc)[:240]}"
+                values.append(
+                    CapabilityDescriptor(
+                        capability=route.capability,
+                        owner_id=route.owner_id,
+                        category=route.category,
+                        configured=configured,
+                        available=available,
+                        context_mode=route.context_mode,  # type: ignore[arg-type]
+                        observation_error=error,
+                        truth_boundary=route.truth_boundary,
+                    )
+                )
+                continue
+
+            if route.capability == "artifact.runtime":
+                nodes: list[str] = []
+                available = False
+                any_configured = False
+                errors: list[str] = []
+                for owner_id in ("runtime.linux", "runtime.windows"):
+                    if not _configured(self._caller, owner_id):
+                        continue
+                    any_configured = True
+                    result, error = await runtime_description(owner_id)
+                    if error is not None:
+                        errors.append(f"{owner_id}: {error}")
+                        continue
+                    if result is None:
+                        continue
+                    node = result.get("node")
+                    node_id = (
+                        str(node["nodeId"])
+                        if isinstance(node, dict) and isinstance(node.get("nodeId"), str)
+                        else None
+                    )
+                    owner_available = any(
+                        isinstance(item, dict)
+                        and bool(item.get("configured", False))
+                        and bool(item.get("available", False))
+                        for item in result.get("targets", [])
+                    )
+                    if owner_available:
+                        available = True
+                        if node_id is not None:
+                            nodes.append(node_id)
+                values.append(
+                    CapabilityDescriptor(
+                        capability=route.capability,
+                        owner_id=route.owner_id,
+                        category=route.category,
+                        configured=any_configured,
+                        available=available,
+                        context_mode=route.context_mode,  # type: ignore[arg-type]
+                        owner_node_ids=sorted(set(nodes)),
+                        observation_error="; ".join(errors) if errors else None,
+                        truth_boundary=route.truth_boundary,
+                    )
+                )
+                continue
+
+            values.append(
+                CapabilityDescriptor(
+                    capability=route.capability,
+                    owner_id=route.owner_id,
+                    category=route.category,
+                    configured=False,
+                    available=False,
+                    context_mode=route.context_mode,  # type: ignore[arg-type]
+                    observation_error="no projection adapter for capability",
+                    truth_boundary=route.truth_boundary,
+                )
+            )
+
+        payload = [value.model_dump(mode="json") for value in values]
+        digest = (
+            "sha256:"
+            + hashlib.sha256(
+                json.dumps(
+                    payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ).encode("utf-8")
+            ).hexdigest()
+        )
+        return CapabilityProjection(
+            projection_digest=digest,
+            capabilities=values,
+        )
 
     async def execution_submit(
         self,

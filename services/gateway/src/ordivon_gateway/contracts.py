@@ -20,7 +20,12 @@ class CapabilityDescriptor(StrictModel):
     owner_id: str
     category: str
     configured: bool
+    available: bool
     context_mode: Literal["none", "provider-defined-string"]
+    contexts: list[str] = Field(default_factory=list)
+    owner_node_id: str | None = None
+    owner_node_ids: list[str] = Field(default_factory=list)
+    observation_error: str | None = None
     truth_boundary: str
 
 
@@ -41,6 +46,7 @@ class CapabilityProjection(StrictModel):
     truth_role: Literal["rebuildable-non-authoritative-projection"] = (
         "rebuildable-non-authoritative-projection"
     )
+    projection_digest: str
     capabilities: list[CapabilityDescriptor]
 
 

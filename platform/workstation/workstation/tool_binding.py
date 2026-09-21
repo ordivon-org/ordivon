@@ -155,6 +155,77 @@ def resolve_professional(catalog: Mapping[str, Any], software_id: str, launcher_
     }
 
 
+def project_declared_bindings(catalog: Mapping[str, Any]) -> dict[str, Any]:
+    """Project declared binding candidates without claiming node-local availability."""
+    bindings: list[dict[str, Any]] = []
+
+    professional = catalog.get("professional_software")
+    if isinstance(professional, Mapping):
+        for software_id in sorted(str(key) for key in professional):
+            spec = professional.get(software_id)
+            if not isinstance(spec, Mapping):
+                continue
+            launchers = spec.get("launchers")
+            launcher_names = sorted(
+                str(item.get("name"))
+                for item in launchers
+                if isinstance(launchers, list)
+                and isinstance(item, Mapping)
+                and item.get("name") is not None
+            ) if isinstance(launchers, list) else []
+            bindings.append(
+                {
+                    "bindingId": f"professional:{software_id}",
+                    "bindingType": "professional",
+                    "softwareId": software_id,
+                    "displayName": spec.get("display_name"),
+                    "category": spec.get("category"),
+                    "platform": spec.get("platform"),
+                    "provider": spec.get("provider"),
+                    "launcherNames": launcher_names,
+                    "state": "DECLARED_UNRESOLVED",
+                }
+            )
+
+    managed = catalog.get("managed_equipment")
+    if isinstance(managed, Mapping):
+        for equipment_id in sorted(str(key) for key in managed):
+            spec = managed.get(equipment_id)
+            if not isinstance(spec, Mapping):
+                continue
+            bindings.append(
+                {
+                    "bindingId": f"managed:{equipment_id}",
+                    "bindingType": "managed",
+                    "equipmentId": equipment_id,
+                    "executionTarget": spec.get("execution_target"),
+                    "state": "DECLARED_UNRESOLVED",
+                }
+            )
+
+    identity = {
+        "schemaVersion": 1,
+        "kind": "ordivon.workstation.v2.tool-binding-projection",
+        "truthRole": "declared-binding-index",
+        "catalogDigest": canonical_digest(catalog),
+        "bindings": bindings,
+        "authorityBoundary": (
+            "This projection exposes caller-discoverable binding declarations only. "
+            "resolve_professional/resolve_managed must prove one exact node-local materialization; "
+            "Runtime owns execution admission and the consuming domain owns suitability and success."
+        ),
+        "nonClaims": [
+            "executable_available",
+            "executable_identity_verified",
+            "runtime_execution_admitted",
+            "task_authorized",
+            "domain_suitable",
+            "domain_success",
+        ],
+    }
+    return {**identity, "projectionDigest": canonical_digest(identity)}
+
+
 def resolve_managed(catalog: Mapping[str, Any], equipment_id: str) -> dict[str, Any]:
     rows = catalog.get("managed_equipment")
     if not isinstance(rows, Mapping) or not isinstance(rows.get(equipment_id), Mapping):
@@ -180,9 +251,15 @@ def main() -> int:
     professional.add_argument("--launcher")
     managed = sub.add_parser("managed")
     managed.add_argument("equipment_id")
+    sub.add_parser("list")
     args = parser.parse_args()
     catalog = read_catalog(args.catalog)
-    result = resolve_professional(catalog, args.software_id, args.launcher) if args.kind == "professional" else resolve_managed(catalog, args.equipment_id)
+    if args.kind == "professional":
+        result = resolve_professional(catalog, args.software_id, args.launcher)
+    elif args.kind == "managed":
+        result = resolve_managed(catalog, args.equipment_id)
+    else:
+        result = project_declared_bindings(catalog)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
