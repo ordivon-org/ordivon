@@ -598,6 +598,279 @@ class DeployReclaimTests(unittest.TestCase):
             stored = json.loads(manifest.read_text(encoding="utf-8"))
             self.assertEqual(stored["sourceRepo"], str(owner.resolve()))
 
+    def test_nested_owner_required_ref_allows_unrelated_monorepo_churn(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "monorepo"
+            initialize_git_repository(repo, remote=True)
+            owner = repo / "services" / "runtime"
+            owner.mkdir(parents=True)
+            candidate_commit = add_release_operator_sources(owner, push=True)
+
+            docs = repo / "docs"
+            docs.mkdir()
+            (docs / "gateway.md").write_text("unrelated owner churn\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "docs/gateway.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "gateway churn"], check=True)
+            subprocess.run(["git", "-C", str(repo), "push", "-q", "origin", "main"], check=True)
+
+            authority = module["required_ref_authority"](
+                Path("/usr/bin/git"),
+                owner,
+                candidate_commit,
+                "origin/main",
+            )
+
+            self.assertTrue(authority["authorized"])
+            self.assertEqual(authority["mode"], "owner_tree")
+            self.assertTrue(authority["candidateIsAncestor"])
+            self.assertEqual(authority["candidateOwnerTree"], authority["requiredRefOwnerTree"])
+
+    def test_nested_owner_required_ref_rejects_same_tree_without_ancestry(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "monorepo"
+            baseline = initialize_git_repository(repo, remote=True)
+            owner = repo / "services" / "runtime"
+            owner.mkdir(parents=True)
+            candidate_commit = add_release_operator_sources(owner, push=False)
+
+            subprocess.run(["git", "-C", str(repo), "branch", "candidate", candidate_commit], check=True)
+            subprocess.run(["git", "-C", str(repo), "checkout", "-q", "-B", "alternate", baseline], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "cherry-pick", candidate_commit],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "--amend", "-qm", "alternate release operator sources"],
+                check=True,
+            )
+            required_commit = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip()
+            self.assertNotEqual(required_commit, candidate_commit)
+            subprocess.run(
+                ["git", "-C", str(repo), "push", "-q", "--force", "origin", "alternate:main"],
+                check=True,
+            )
+
+            authority = module["required_ref_authority"](
+                Path("/usr/bin/git"),
+                repo / "services" / "runtime",
+                candidate_commit,
+                "origin/main",
+            )
+
+            self.assertFalse(authority["authorized"])
+            self.assertEqual(authority["mode"], "owner_tree")
+            self.assertFalse(authority["candidateIsAncestor"])
+            self.assertEqual(authority["candidateOwnerTree"], authority["requiredRefOwnerTree"])
+
+    def test_nested_owner_plan_accepts_unrelated_required_ref_churn(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "monorepo"
+            initialize_git_repository(repo, remote=True)
+            owner = repo / "services" / "runtime"
+            owner.mkdir(parents=True)
+            candidate_commit = add_release_operator_sources(owner, push=True)
+            candidate = owner / "target" / "release"
+            manifest = root / "candidate-manifest.json"
+            cargo = root / "cargo"
+            write_executable(
+                root / "rustc",
+                "#!/bin/sh\nprintf 'rustc 1.95.0 (test)\\nbinary: rustc\\nhost: x86_64-unknown-linux-gnu\\n'\n",
+            )
+            write_executable(
+                cargo,
+                "#!/bin/sh\n"
+                'if [ "${1:-}" = --version ]; then printf "cargo 1.95.0 (test)\\nrelease: 1.95.0\\n"; exit 0; fi\n'
+                "target=''\n"
+                "while [ $# -gt 0 ]; do\n"
+                '  if [ "$1" = --target-dir ]; then target=$2; shift 2; else shift; fi\n'
+                "done\n"
+                'mkdir -p "$target/release"\n'
+                "printf 'candidate\\n' > \"$target/release/runtime\"\n"
+                'chmod 755 "$target/release/runtime"\n',
+            )
+            prepared = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "prepare",
+                    "--source-repo",
+                    str(owner),
+                    "--commit",
+                    candidate_commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--cargo",
+                    str(cargo),
+                    "--binary",
+                    "runtime",
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(json.loads(prepared.stdout)["commit"], candidate_commit)
+
+            docs = repo / "docs"
+            docs.mkdir()
+            (docs / "gateway.md").write_text("later gateway commit\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "docs/gateway.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "gateway later"], check=True)
+            subprocess.run(["git", "-C", str(repo), "push", "-q", "origin", "main"], check=True)
+            required_commit = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "origin/main"],
+                check=True,
+                text=True,
+                capture_output=True,
+            ).stdout.strip()
+
+            install = root / "install"
+            install.mkdir()
+            write_executable(install / "runtime", "installed\n")
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:1\nORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect_with_active_jobs(root))
+            planned = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "plan",
+                    "--source-repo",
+                    str(owner),
+                    "--commit",
+                    candidate_commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--install-dir",
+                    str(install),
+                    "--database",
+                    str(database),
+                    "--env-file",
+                    str(env_file),
+                    "--receipt-root",
+                    str(root / "receipts"),
+                    "--git",
+                    shutil.which("git") or "/usr/bin/git",
+                    "--binary",
+                    "runtime",
+                    "--require-ref",
+                    "origin/main",
+                ],
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+
+            self.assertEqual(planned.returncode, 0, planned.stderr)
+            plan = json.loads(planned.stdout)
+            self.assertTrue(plan["eligible"])
+            self.assertEqual(plan["requiredRefCommit"], required_commit)
+            self.assertNotEqual(plan["requiredRefCommit"], candidate_commit)
+            authority = plan["requiredRefAuthority"]
+            self.assertTrue(authority["authorized"])
+            self.assertEqual(authority["mode"], "owner_tree")
+            self.assertTrue(authority["candidateIsAncestor"])
+            self.assertEqual(authority["candidateOwnerTree"], authority["requiredRefOwnerTree"])
+
+    def test_nested_owner_required_ref_rejects_changed_owner_tree(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "monorepo"
+            initialize_git_repository(repo, remote=True)
+            owner = repo / "services" / "runtime"
+            owner.mkdir(parents=True)
+            candidate_commit = add_release_operator_sources(owner, push=True)
+
+            (owner / "scripts" / "mcp_probe.py").write_text(
+                "PROBE_REVISION = 'changed'\n",
+                encoding="utf-8",
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "add", "services/runtime/scripts/mcp_probe.py"],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "runtime churn"], check=True)
+            subprocess.run(["git", "-C", str(repo), "push", "-q", "origin", "main"], check=True)
+
+            authority = module["required_ref_authority"](
+                Path("/usr/bin/git"),
+                owner,
+                candidate_commit,
+                "origin/main",
+            )
+
+            self.assertFalse(authority["authorized"])
+            self.assertEqual(authority["mode"], "owner_tree")
+            self.assertTrue(authority["candidateIsAncestor"])
+            self.assertNotEqual(authority["candidateOwnerTree"], authority["requiredRefOwnerTree"])
+
+    def test_standalone_required_ref_remains_exact_commit(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "runtime"
+            initialize_git_repository(repo, remote=True)
+            candidate_commit = add_release_operator_sources(repo, push=True)
+
+            (repo / "UNRELATED.md").write_text("still part of standalone owner\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "UNRELATED.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "later standalone commit"], check=True)
+            subprocess.run(["git", "-C", str(repo), "push", "-q", "origin", "main"], check=True)
+
+            authority = module["required_ref_authority"](
+                Path("/usr/bin/git"),
+                repo,
+                candidate_commit,
+                "origin/main",
+            )
+
+            self.assertFalse(authority["authorized"])
+            self.assertEqual(authority["mode"], "exact_commit")
+            self.assertNotEqual(authority["requiredRefCommit"], candidate_commit)
+
     def test_committed_runtime_policy_resolves_monorepo_owner_prefix(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)

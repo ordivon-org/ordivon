@@ -271,6 +271,65 @@ def committed_source_path(git: Path, source_repo: Path, relative: Path) -> str:
     return relative.as_posix() if owner_relative == Path(".") else path.as_posix()
 
 
+def required_ref_authority(
+    git: Path,
+    source_repo: Path,
+    commit: str,
+    required_ref: str,
+) -> dict[str, object]:
+    git_top_level, owner_relative = source_repository_context(git, source_repo)
+    required_ref_commit = git_text(git, git_top_level, ["rev-parse", required_ref])
+    if owner_relative == Path("."):
+        return {
+            "mode": "exact_commit",
+            "ownerRelativePath": ".",
+            "requiredRefCommit": required_ref_commit,
+            "candidateIsAncestor": required_ref_commit == commit,
+            "candidateOwnerTree": None,
+            "requiredRefOwnerTree": None,
+            "authorized": required_ref_commit == commit,
+        }
+
+    ancestor = run(
+        [
+            str(git),
+            "-C",
+            str(git_top_level),
+            "merge-base",
+            "--is-ancestor",
+            commit,
+            required_ref_commit,
+        ],
+        check=False,
+    )
+    if ancestor.returncode not in (0, 1):
+        detail = ancestor.stderr.strip() or ancestor.stdout.strip() or f"exit {ancestor.returncode}"
+        raise RuntimeError(
+            f"cannot determine whether candidate Commit is an ancestor of required ref: {detail}"
+        )
+    owner_path = owner_relative.as_posix()
+    candidate_owner_tree = git_text(
+        git,
+        git_top_level,
+        ["rev-parse", f"{commit}:{owner_path}"],
+    )
+    required_ref_owner_tree = git_text(
+        git,
+        git_top_level,
+        ["rev-parse", f"{required_ref_commit}:{owner_path}"],
+    )
+    candidate_is_ancestor = ancestor.returncode == 0
+    return {
+        "mode": "owner_tree",
+        "ownerRelativePath": owner_path,
+        "requiredRefCommit": required_ref_commit,
+        "candidateIsAncestor": candidate_is_ancestor,
+        "candidateOwnerTree": candidate_owner_tree,
+        "requiredRefOwnerTree": required_ref_owner_tree,
+        "authorized": candidate_is_ancestor and candidate_owner_tree == required_ref_owner_tree,
+    }
+
+
 @contextmanager
 def exact_source_checkout(source_repo: Path, commit: str):
     git = Path("/usr/bin/git")
@@ -800,7 +859,13 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
     specs = release_artifact_specs(args)
     head = git_text(args.git, args.source_repo, ["rev-parse", "HEAD"])
     status = git_text(args.git, args.source_repo, ["status", "--porcelain"])
-    required_ref = git_text(args.git, args.source_repo, ["rev-parse", args.require_ref])
+    required_ref_authorization = required_ref_authority(
+        args.git,
+        args.source_repo,
+        args.commit,
+        args.require_ref,
+    )
+    required_ref = str(required_ref_authorization["requiredRefCommit"])
     jobs, ignored_current_job_id = active_job_ids(args.database)
     candidate = candidate_artifacts(args)
     candidate_manifest, manifest_blockers = validate_candidate_manifest(args, candidate)
@@ -825,8 +890,19 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
             }
         )
     blockers: list[str] = list(manifest_blockers)
-    if required_ref != args.commit:
-        blockers.append(f"required ref {args.require_ref} resolves to {required_ref}")
+    if not bool(required_ref_authorization["authorized"]):
+        if required_ref_authorization["mode"] == "exact_commit":
+            blockers.append(f"required ref {args.require_ref} resolves to {required_ref}")
+        elif not bool(required_ref_authorization["candidateIsAncestor"]):
+            blockers.append(
+                f"candidate Commit {args.commit} is not an ancestor of required ref "
+                f"{args.require_ref} at {required_ref}"
+            )
+        else:
+            blockers.append(
+                f"required ref {args.require_ref} changed Runtime owner tree "
+                f"{required_ref_authorization['ownerRelativePath']}"
+            )
     if jobs:
         blockers.append("active or held Jobs exist other than the deployment Job")
     if any(not item["present"] or not item["usable"] for item in installed):
@@ -839,6 +915,7 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
         "sourceHeadMatchesCommit": head == args.commit,
         "requiredRef": args.require_ref,
         "requiredRefCommit": required_ref,
+        "requiredRefAuthority": required_ref_authorization,
         "sourceClean": not bool(status),
         "activeJobIds": jobs,
         "ignoredCurrentJobId": ignored_current_job_id,

@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Nested Runtime owners now validate a required release ref by both Git ancestry and exact owner-subtree identity instead of whole-repository Commit equality. Standalone Runtime repositories retain exact-ref semantics; monorepo commits outside `services/runtime` no longer invalidate an otherwise identical Runtime candidate, while owner-tree changes and rewritten/non-ancestor candidates remain fail-closed. Deployment plans expose the resolved authority evidence for audit.
+
 - Runtime release preparation and policy verification now accept a real Runtime owner directory beneath a containing Git repository, so the canonical modular-monorepo `services/runtime` source can retain the existing exact-Commit, manifest, required-ref, Workspace, and rollback contracts without inventing a second public `sourceSubdir` protocol. Standalone owner roots remain behaviorally unchanged.
 
 - Workspace closure now recovers residual directories whose Git worktree metadata was lost or corrupted: non-forced close refuses to guess cleanliness, exact source-state fencing fails closed when no longer provable, and forced recovery first preserves any recoverable HEAD, delegates broken registration cleanup to git worktree prune, then commits recovered_missing without direct Git-metadata or Registry mutation.
