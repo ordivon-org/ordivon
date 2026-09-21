@@ -1,0 +1,23 @@
+{
+  "name": "@ordivon/security-agent-request-verifier",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=26.9.0 <27",
+    "pnpm": ">=12 <13"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "ci": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "oauth4webapi": "3.8.8"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "typescript": "7.0.2"
+  }
+}
