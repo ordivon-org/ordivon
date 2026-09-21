@@ -10,6 +10,7 @@ from ordivon_gateway.upstream import (
     OwnerCallError,
     OwnerEndpoint,
     _headers_for_endpoint,
+    _read_private_secret_file,
 )
 
 
@@ -86,3 +87,28 @@ def test_windows_service_identity_env_is_file_reference_only(
     assert endpoint.bearer_token_file is None
     assert endpoint.access_client_id_file == client_id
     assert endpoint.access_client_secret_file == client_secret
+
+
+def test_systemd_credential_projection_accepts_provider_native_group_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    credential_directory = tmp_path / "credentials"
+    credential_directory.mkdir(mode=0o750)
+    credential = credential_directory / "runtime-token"
+    credential.write_text("systemd-token\n", encoding="utf-8")
+    os.chmod(credential, 0o440)
+    monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(credential_directory))
+
+    assert _read_private_secret_file(str(credential), "owner bearer token") == "systemd-token"
+
+
+def test_group_read_outside_systemd_credential_directory_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    credential = tmp_path / "runtime-token"
+    credential.write_text("ordinary-token\n", encoding="utf-8")
+    os.chmod(credential, 0o440)
+    monkeypatch.delenv("CREDENTIALS_DIRECTORY", raising=False)
+
+    with pytest.raises(OwnerCallError, match="group/world accessible"):
+        _read_private_secret_file(str(credential), "owner bearer token")

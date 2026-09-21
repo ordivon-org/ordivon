@@ -48,7 +48,20 @@ def _read_private_secret_file(path_text: str, label: str) -> str:
     metadata = path.lstat()
     if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
         raise OwnerCallError(f"{label} path must be a regular file")
-    if stat.S_IMODE(metadata.st_mode) & 0o077:
+    mode = stat.S_IMODE(metadata.st_mode)
+    credential_directory = os.environ.get("CREDENTIALS_DIRECTORY", "").strip()
+    is_systemd_credential = bool(
+        credential_directory
+        and Path(credential_directory).is_absolute()
+        and path.parent == Path(credential_directory)
+        and not Path(credential_directory).is_symlink()
+    )
+    if is_systemd_credential:
+        if mode & 0o037:
+            raise OwnerCallError(
+                f"{label} systemd credential must not be world accessible or group writable/executable"
+            )
+    elif mode & 0o077:
         raise OwnerCallError(f"{label} file must not be group/world accessible")
     if metadata.st_size > 16_384:
         raise OwnerCallError(f"{label} file exceeds size bound")
