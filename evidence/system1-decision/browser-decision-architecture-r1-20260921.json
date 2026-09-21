@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-decision-architecture-standing",
+  "standing": "R1_EVIDENCE_BACKED_NOT_PRODUCTION_ADMITTED",
+  "observedDate": "2026-09-21",
+  "defaultFlow": [
+    "upstream_accessibility_dom_observation",
+    "deterministic_actionability_and_operation_partition",
+    "ephemeral_evidence_rich_candidate_projection",
+    "independent_all_candidate_reranker",
+    "independent_calibration_selective_gate",
+    "freshness_bound_executor",
+    "independent_outcome_witness"
+  ],
+  "defaultExcluded": [
+    "browser_ann_retrieval",
+    "laya_base_browser_reranker",
+    "laya_large_k_listwise_head",
+    "custom_accessible_name_semantics",
+    "persistent_ordivon_browser_candidate_ontology"
+  ],
+  "localEvidence": {
+    "realDomProjection": {
+      "cases": 14,
+      "crossEncoderAccuracy": {
+        "label": 0.3571,
+        "current": 0.4286,
+        "enriched": 1.0
+      },
+      "retrieverTop1": {
+        "label": 0.4286,
+        "current": 0.4286,
+        "enriched": 0.7857
+      }
+    },
+    "layaRealDom": {
+      "cases": 14,
+      "accuracy": {
+        "label": 0.0714,
+        "current": 0.0714,
+        "enriched": 0.0
+      }
+    },
+    "directCrossEncoderLatency": {
+      "candidateProjection": "label-only synthetic hard negatives",
+      "k50MedianMs": 8.83,
+      "k100MedianMs": 14.421,
+      "k200MedianMs": 24.152,
+      "k250MedianMs": 28.815,
+      "accuracy": 0.6
+    }
+  },
+  "externalOwners": {
+    "rolesStatesProperties": "WAI-ARIA 1.2 Recommendation",
+    "accessibleNameDescription": "AccName 1.1 Recommendation",
+    "accessibilityObservation": "browser accessibility API / Playwright accessibility snapshots",
+    "pairScoring": "mature CrossEncoder implementation",
+    "largeCorpusRetrieval": "bi-encoder plus mature ANN such as Faiss",
+    "calibration": "independent probabilistic calibration methods",
+    "effectFreshness": "retain existing fenced executor until direct replacement duel"
+  },
+  "nonClaims": [
+    "representative_open_web_accuracy",
+    "production_browser_policy",
+    "crossencoder_model_admitted",
+    "playwright_executor_replacement_proven",
+    "laya_cannot_be_specialized"
+  ]
+}

@@ -1,0 +1,166 @@
+# Browser Decision Architecture R1
+
+## Scope
+
+This document freezes an evidence-backed architecture direction for browser candidate selection.
+It does not authorize a production route change. The purpose is to separate browser observation,
+candidate evidence, ranking, calibration, and execution so each responsibility can be owned by an
+external standard or mature tool where available.
+
+## Local evidence summary
+
+### 1. Laya listwise representation is the wrong default for large candidate sets
+
+With the same exact Laya checkpoint, listwise dynamic options collapsed at larger K while
+independent binary scoring recovered the synthetic target on most cases. This isolates the dominant
+observed failure to representation/shared-budget effects rather than the encoder alone.
+
+### 2. Generic retrieve-then-rerank is not automatically superior for browser-scale K
+
+On a hard-negative synthetic workload, semantic-search MiniLM improved retrieval over generic
+MiniLM, while naive TF-IDF plus RRF did not improve the task. MS-MARCO CrossEncoder errors were
+semantic/action errors, not merely recall errors.
+
+The current Jev snapshot caps actions at 250. On the same synthetic workload, directly scoring all
+candidates with cross-encoder/ms-marco-MiniLM-L6-v2 took median latency of approximately:
+
+- K=50: 8.8 ms
+- K=100: 14.4 ms
+- K=200: 24.2 ms
+- K=250: 28.8 ms
+
+Therefore an ANN/retrieval stage is not justified as the default browser path at the present
+candidate ceiling. It remains optional for CPU-only deployments, substantially larger candidate
+sets, or future evidence.
+
+### 3. Candidate evidence projection dominates model swapping
+
+Two exact local Jev fixture snapshots were captured from the existing snapshot.js: travel and
+research. Fourteen CLICK decisions were evaluated under three projection modes while holding the
+retriever and CrossEncoder fixed.
+
+| Projection | Retriever Top-1 | CrossEncoder accuracy |
+|---|---:|---:|
+| label only | 42.9% | 35.7% |
+| current Jev candidate fields | 42.9% | 42.9% |
+| current plus href plus local contextual text | 78.6% | 100.0% |
+
+This is local fixture evidence, not a representative web benchmark. It establishes that semantics
+already present in the observation can dominate model choice.
+
+### 4. Base Laya is not currently a browser reranker
+
+On the same fourteen real-snapshot-derived decisions, independent Laya binary scoring achieved:
+
+- label only: 7.1%
+- current Jev fields: 7.1%
+- enriched projection: 0%
+
+This is a domain mismatch, not evidence that Laya cannot be specialized. It does mean that current
+base Laya must not receive browser reranker authority.
+
+## External owner map
+
+### Role, state, and property semantics
+
+Normative owner: WAI-ARIA 1.2 Recommendation.
+
+Ordivon should not invent role/state/property semantics.
+
+### Accessible name and description
+
+Normative baseline: Accessible Name and Description Computation 1.1 Recommendation.
+AccName 1.2 is currently a Working Draft and may be monitored but is not the frozen normative
+baseline.
+
+The existing Jev snapshot.js contains a hand-written accessible-name approximation. That logic is
+a replacement candidate, not a domain asset.
+
+### Browser accessibility observation and refs
+
+Implementation owner candidate: Playwright accessibility snapshots and browser accessibility APIs.
+
+Playwright already produces an accessibility tree containing role/name, static contextual text and
+interactive refs. Its agent CLI specifies that refs are snapshot-scoped and should be refreshed
+after page change. A local fixture run also showed that the native tree preserves the card/article
+structure that made the enriched projection useful.
+
+This does not by itself replace the existing Jev freshness guard. Observation semantics and
+effect-fencing are separate responsibilities.
+
+### Candidate ranking
+
+Implementation owner: mature independent pair/passage scoring, initially Sentence Transformers
+CrossEncoder as a reference implementation.
+
+Current evidence does not admit the generic MS-MARCO model as a production browser policy. Its role
+is an architecture oracle showing that independent evidence-rich scoring is viable. Browser-domain
+training or a better action-aware pretrained model must pass the same benchmark before admission.
+
+### Large-corpus retrieval
+
+Owner: mature IR stack such as Sentence Transformers bi-encoders and Faiss.
+
+This belongs naturally to Opportunity/persistent-corpus workloads. It is not in the default
+browser path while candidate sets remain at current browser-scale bounds.
+
+### Calibration
+
+Independent calibration/evaluation owner. Model-native confidence is not execution authority.
+
+### Freshness and effect execution
+
+Keep the current Browser Harness/Jev freshness and single-mutation semantics until a direct duel
+proves another mature substrate has equivalent or stronger failure semantics. Playwright refs and
+re-snapshot discipline are promising, but auto-relocation or retry semantics must not silently
+turn a stale decision into a different effect.
+
+## Candidate projection boundary
+
+Do not create a persistent Ordivon browser ontology.
+
+A candidate projection is an ephemeral, reproducible view of an observed browser action. Prefer
+upstream semantics:
+
+- operation or affordance;
+- accessible role;
+- accessible name;
+- accessible description when available;
+- value and standard state/properties;
+- href/target semantics for links where relevant;
+- accessibility-tree context when additional local meaning is necessary.
+
+Ancestor scope.innerText is experimental evidence only. It must not become a canonical field.
+Prefer a browser-owned accessibility subtree/ARIA snapshot or another externally owned semantic
+projection.
+
+## Frozen R1 flow
+
+Browser
+  -> upstream accessibility / DOM observation
+  -> deterministic actionability and operation partition
+  -> ephemeral evidence-rich candidate projection
+  -> independent reranker over all operation candidates
+  -> independent calibration / selective gate
+  -> freshness-bound executor
+  -> independent outcome witness
+
+The default path intentionally has no retrieval stage.
+
+## Optional escalation paths
+
+- Add retrieval only when measured candidate scale or hardware makes all-candidate reranking
+  uneconomic.
+- Re-admit Laya only after browser-domain training beats the CrossEncoder/reference baseline on
+  target-domain accuracy, calibration, latency and lifecycle cost.
+- Use set-aware architectures only when the decision semantically depends on candidate-to-candidate
+  interactions, such as portfolio composition.
+- Use learning-to-rank when stable browser/domain features and query-group training data exist.
+
+## Non-goals
+
+- no new browser ontology;
+- no new accessibility-name algorithm;
+- no generic ANN service for a <=250-action page merely because ANN is available;
+- no production route change from this research evidence;
+- no claim that the local fixture represents the open web.

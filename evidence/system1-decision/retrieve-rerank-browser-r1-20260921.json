@@ -1,0 +1,852 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.retrieve-rerank-browser-ablation",
+  "standing": "SYNTHETIC_ARCHITECTURE_EVIDENCE",
+  "observedDate": "2026-09-21",
+  "identity": {
+    "seed": 20260921,
+    "casesPerK": 20,
+    "topKForRerank": 8,
+    "nonClaims": [
+      "representative_browser_population",
+      "production_browser_success"
+    ]
+  },
+  "providers": {
+    "retriever": {
+      "implementation": "sentence-transformers",
+      "version": "6.1.0",
+      "model": "all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+    },
+    "crossEncoder": {
+      "implementation": "sentence-transformers",
+      "version": "6.1.0",
+      "model": "ms-marco-MiniLM-L6-v2",
+      "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+    },
+    "laya": {
+      "version": "0.3.4",
+      "revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+      "sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c"
+    }
+  },
+  "rows": [
+    {
+      "k": 50,
+      "n": 20,
+      "retriever": {
+        "top1": 0.45,
+        "recallAt4": 0.8,
+        "recallAt8": 0.85,
+        "recallAt16": 0.95,
+        "latencyMs": {
+          "median": 9.486,
+          "mean": 14.242,
+          "p95": 19.785
+        }
+      },
+      "crossEncoderTop8": {
+        "accuracy": 0.65,
+        "latencyMs": {
+          "median": 5.099,
+          "mean": 5.518,
+          "p95": 5.372
+        },
+        "totalMedianMs": 14.617
+      },
+      "layaBinaryTop8": {
+        "accuracy": 0.25,
+        "latencyMs": {
+          "median": 29.181,
+          "mean": 33.243,
+          "p95": 30.955
+        },
+        "totalMedianMs": 38.623
+      }
+    },
+    {
+      "k": 100,
+      "n": 20,
+      "retriever": {
+        "top1": 0.45,
+        "recallAt4": 0.8,
+        "recallAt8": 0.8,
+        "recallAt16": 0.95,
+        "latencyMs": {
+          "median": 11.426,
+          "mean": 11.626,
+          "p95": 11.84
+        }
+      },
+      "crossEncoderTop8": {
+        "accuracy": 0.65,
+        "latencyMs": {
+          "median": 4.952,
+          "mean": 4.95,
+          "p95": 5.121
+        },
+        "totalMedianMs": 16.372
+      },
+      "layaBinaryTop8": {
+        "accuracy": 0.15,
+        "latencyMs": {
+          "median": 27.569,
+          "mean": 27.754,
+          "p95": 29.36
+        },
+        "totalMedianMs": 39.185
+      }
+    },
+    {
+      "k": 200,
+      "n": 20,
+      "retriever": {
+        "top1": 0.45,
+        "recallAt4": 0.8,
+        "recallAt8": 0.8,
+        "recallAt16": 0.8,
+        "latencyMs": {
+          "median": 15.889,
+          "mean": 15.904,
+          "p95": 16.513
+        }
+      },
+      "crossEncoderTop8": {
+        "accuracy": 0.65,
+        "latencyMs": {
+          "median": 4.893,
+          "mean": 4.951,
+          "p95": 5.265
+        },
+        "totalMedianMs": 20.829
+      },
+      "layaBinaryTop8": {
+        "accuracy": 0.1,
+        "latencyMs": {
+          "median": 27.65,
+          "mean": 27.914,
+          "p95": 29.599
+        },
+        "totalMedianMs": 43.426
+      }
+    }
+  ],
+  "failures": [
+    {
+      "id": "k50-c0",
+      "k": 50,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "How to Apply",
+      "layaBinaryTop8": "Apply Now",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": true
+    },
+    {
+      "id": "k50-c2",
+      "k": 50,
+      "goal": "Submit my research paper.",
+      "target": "Submit Paper",
+      "retrieverRank": 1,
+      "retrieverTop": "Submit Paper",
+      "crossEncoderTop8": "Submit Paper",
+      "layaBinaryTop8": "Submission FAQ",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c3",
+      "k": 50,
+      "goal": "Contact the event organizers.",
+      "target": "Contact Organizers",
+      "retrieverRank": 1,
+      "retrieverTop": "Contact Organizers",
+      "crossEncoderTop8": "Contact Organizers",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c4",
+      "k": 50,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "retrieverRank": 11,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Download Brochure",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c5",
+      "k": 50,
+      "goal": "Open the application form and start applying.",
+      "target": "Start Application",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Start Application",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c6",
+      "k": 50,
+      "goal": "Register for this event.",
+      "target": "Event Registration",
+      "retrieverRank": 1,
+      "retrieverTop": "Event Registration",
+      "crossEncoderTop8": "Event Registration",
+      "layaBinaryTop8": "Social Events",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c8",
+      "k": 50,
+      "goal": "Contact the event organizers.",
+      "target": "Email Organizers",
+      "retrieverRank": 2,
+      "retrieverTop": "Venue Contact",
+      "crossEncoderTop8": "Email Organizers",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c9",
+      "k": 50,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download Call for Papers",
+      "retrieverRank": 1,
+      "retrieverTop": "Download Call for Papers",
+      "crossEncoderTop8": "Download Call for Papers",
+      "layaBinaryTop8": "Download Brochure",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c10",
+      "k": 50,
+      "goal": "Open the application form and start applying.",
+      "target": "Begin Application",
+      "retrieverRank": 2,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Begin Application",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c11",
+      "k": 50,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "retrieverRank": 23,
+      "retrieverTop": "Who Can Register",
+      "crossEncoderTop8": "Who Can Register",
+      "layaBinaryTop8": "Social Events",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c12",
+      "k": 50,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "retrieverRank": 14,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Submission FAQ",
+      "layaBinaryTop8": "Submission FAQ",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c13",
+      "k": 50,
+      "goal": "Contact the event organizers.",
+      "target": "Contact Event Team",
+      "retrieverRank": 1,
+      "retrieverTop": "Contact Event Team",
+      "crossEncoderTop8": "Contact Event Team",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c14",
+      "k": 50,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "retrieverRank": 4,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Download Brochure",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c15",
+      "k": 50,
+      "goal": "Open the application form and start applying.",
+      "target": "Open Application Form",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Open Application Form",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c16",
+      "k": 50,
+      "goal": "Register for this event.",
+      "target": "Sign Up for Event",
+      "retrieverRank": 1,
+      "retrieverTop": "Sign Up for Event",
+      "crossEncoderTop8": "Sign Up for Event",
+      "layaBinaryTop8": "Social Events",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c17",
+      "k": 50,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "retrieverRank": 1,
+      "retrieverTop": "Submit Manuscript",
+      "crossEncoderTop8": "Submit Manuscript",
+      "layaBinaryTop8": "Submission FAQ",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k50-c18",
+      "k": 50,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "retrieverRank": 7,
+      "retrieverTop": "Venue Contact",
+      "crossEncoderTop8": "Venue Contact",
+      "layaBinaryTop8": "Get in Touch",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": true
+    },
+    {
+      "id": "k50-c19",
+      "k": 50,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "retrieverRank": 4,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Get CFP PDF",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": true
+    },
+    {
+      "id": "k100-c0",
+      "k": 100,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "How to Apply",
+      "layaBinaryTop8": "Apply Now",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": true
+    },
+    {
+      "id": "k100-c2",
+      "k": 100,
+      "goal": "Submit my research paper.",
+      "target": "Submit Paper",
+      "retrieverRank": 1,
+      "retrieverTop": "Submit Paper",
+      "crossEncoderTop8": "Submit Paper",
+      "layaBinaryTop8": "Submission FAQ",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c3",
+      "k": 100,
+      "goal": "Contact the event organizers.",
+      "target": "Contact Organizers",
+      "retrieverRank": 1,
+      "retrieverTop": "Contact Organizers",
+      "crossEncoderTop8": "Contact Organizers",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c4",
+      "k": 100,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "retrieverRank": 15,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c5",
+      "k": 100,
+      "goal": "Open the application form and start applying.",
+      "target": "Start Application",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Start Application",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c6",
+      "k": 100,
+      "goal": "Register for this event.",
+      "target": "Event Registration",
+      "retrieverRank": 1,
+      "retrieverTop": "Event Registration",
+      "crossEncoderTop8": "Event Registration",
+      "layaBinaryTop8": "Social Events 2",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c8",
+      "k": 100,
+      "goal": "Contact the event organizers.",
+      "target": "Email Organizers",
+      "retrieverRank": 2,
+      "retrieverTop": "Venue Contact",
+      "crossEncoderTop8": "Email Organizers",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c9",
+      "k": 100,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download Call for Papers",
+      "retrieverRank": 1,
+      "retrieverTop": "Download Call for Papers",
+      "crossEncoderTop8": "Download Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c10",
+      "k": 100,
+      "goal": "Open the application form and start applying.",
+      "target": "Begin Application",
+      "retrieverRank": 2,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Begin Application",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c11",
+      "k": 100,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "retrieverRank": 35,
+      "retrieverTop": "Who Can Register",
+      "crossEncoderTop8": "Who Can Register",
+      "layaBinaryTop8": "Social Events 2",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c12",
+      "k": 100,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "retrieverRank": 16,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Submission FAQ",
+      "layaBinaryTop8": "Submission FAQ",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c13",
+      "k": 100,
+      "goal": "Contact the event organizers.",
+      "target": "Contact Event Team",
+      "retrieverRank": 1,
+      "retrieverTop": "Contact Event Team",
+      "crossEncoderTop8": "Contact Event Team",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c14",
+      "k": 100,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "retrieverRank": 4,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c15",
+      "k": 100,
+      "goal": "Open the application form and start applying.",
+      "target": "Open Application Form",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Open Application Form",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c16",
+      "k": 100,
+      "goal": "Register for this event.",
+      "target": "Sign Up for Event",
+      "retrieverRank": 1,
+      "retrieverTop": "Sign Up for Event",
+      "crossEncoderTop8": "Sign Up for Event",
+      "layaBinaryTop8": "Social Events 2",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c17",
+      "k": 100,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "retrieverRank": 1,
+      "retrieverTop": "Submit Manuscript",
+      "crossEncoderTop8": "Submit Manuscript",
+      "layaBinaryTop8": "Submission FAQ",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c18",
+      "k": 100,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "retrieverRank": 13,
+      "retrieverTop": "Venue Contact",
+      "crossEncoderTop8": "Venue Contact",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k100-c19",
+      "k": 100,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "retrieverRank": 4,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c0",
+      "k": 200,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "How to Apply",
+      "layaBinaryTop8": "Apply Now",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": true
+    },
+    {
+      "id": "k200-c2",
+      "k": 200,
+      "goal": "Submit my research paper.",
+      "target": "Submit Paper",
+      "retrieverRank": 1,
+      "retrieverTop": "Submit Paper",
+      "crossEncoderTop8": "Submit Paper",
+      "layaBinaryTop8": "FAQ 3",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c3",
+      "k": 200,
+      "goal": "Contact the event organizers.",
+      "target": "Contact Organizers",
+      "retrieverRank": 1,
+      "retrieverTop": "Contact Organizers",
+      "crossEncoderTop8": "Contact Organizers",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c4",
+      "k": 200,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "retrieverRank": 23,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c5",
+      "k": 200,
+      "goal": "Open the application form and start applying.",
+      "target": "Start Application",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Start Application",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c6",
+      "k": 200,
+      "goal": "Register for this event.",
+      "target": "Event Registration",
+      "retrieverRank": 1,
+      "retrieverTop": "Event Registration",
+      "crossEncoderTop8": "Event Registration",
+      "layaBinaryTop8": "Social Events 2",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c7",
+      "k": 200,
+      "goal": "Submit my research paper.",
+      "target": "Paper Submission",
+      "retrieverRank": 1,
+      "retrieverTop": "Paper Submission",
+      "crossEncoderTop8": "Paper Submission",
+      "layaBinaryTop8": "FAQ 3",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c8",
+      "k": 200,
+      "goal": "Contact the event organizers.",
+      "target": "Email Organizers",
+      "retrieverRank": 2,
+      "retrieverTop": "Venue Contact",
+      "crossEncoderTop8": "Email Organizers",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c9",
+      "k": 200,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download Call for Papers",
+      "retrieverRank": 1,
+      "retrieverTop": "Download Call for Papers",
+      "crossEncoderTop8": "Download Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c10",
+      "k": 200,
+      "goal": "Open the application form and start applying.",
+      "target": "Begin Application",
+      "retrieverRank": 2,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Begin Application",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c11",
+      "k": 200,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "retrieverRank": 58,
+      "retrieverTop": "Who Can Register",
+      "crossEncoderTop8": "Who Can Register",
+      "layaBinaryTop8": "Social Events 2",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c12",
+      "k": 200,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "retrieverRank": 23,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Submission FAQ",
+      "layaBinaryTop8": "FAQ 3",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c13",
+      "k": 200,
+      "goal": "Contact the event organizers.",
+      "target": "Contact Event Team",
+      "retrieverRank": 1,
+      "retrieverTop": "Contact Event Team",
+      "crossEncoderTop8": "Contact Event Team",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c14",
+      "k": 200,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "retrieverRank": 4,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c15",
+      "k": 200,
+      "goal": "Open the application form and start applying.",
+      "target": "Open Application Form",
+      "retrieverRank": 3,
+      "retrieverTop": "How to Apply",
+      "crossEncoderTop8": "Open Application Form",
+      "layaBinaryTop8": "Application Deadline",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c16",
+      "k": 200,
+      "goal": "Register for this event.",
+      "target": "Sign Up for Event",
+      "retrieverRank": 1,
+      "retrieverTop": "Sign Up for Event",
+      "crossEncoderTop8": "Sign Up for Event",
+      "layaBinaryTop8": "Social Events 2",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c17",
+      "k": 200,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "retrieverRank": 1,
+      "retrieverTop": "Submit Manuscript",
+      "crossEncoderTop8": "Submit Manuscript",
+      "layaBinaryTop8": "FAQ 3",
+      "retrieverHit8": true,
+      "crossCorrect": true,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c18",
+      "k": 200,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "retrieverRank": 23,
+      "retrieverTop": "Venue Contact",
+      "crossEncoderTop8": "Venue Contact",
+      "layaBinaryTop8": "Venue Contact",
+      "retrieverHit8": false,
+      "crossCorrect": false,
+      "layaCorrect": false
+    },
+    {
+      "id": "k200-c19",
+      "k": 200,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "retrieverRank": 4,
+      "retrieverTop": "Call for Papers",
+      "crossEncoderTop8": "Call for Papers",
+      "layaBinaryTop8": "Proceedings 2",
+      "retrieverHit8": true,
+      "crossCorrect": false,
+      "layaCorrect": false
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-direct-crossencoder-ablation",
+  "standing": "SYNTHETIC_ARCHITECTURE_EVIDENCE",
+  "observedDate": "2026-09-21",
+  "provider": {
+    "model": "ms-marco-MiniLM-L6-v2",
+    "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+  },
+  "identity": {
+    "casesPerK": 20,
+    "candidateProjection": "label-only",
+    "nonClaims": [
+      "representative_browser_population",
+      "production_browser_success"
+    ]
+  },
+  "rows": [
+    {
+      "k": 50,
+      "n": 20,
+      "accuracy": 0.6,
+      "latencyMs": {
+        "median": 8.83,
+        "mean": 14.186,
+        "p95": 10.964
+      }
+    },
+    {
+      "k": 100,
+      "n": 20,
+      "accuracy": 0.6,
+      "latencyMs": {
+        "median": 14.421,
+        "mean": 14.448,
+        "p95": 15.043
+      }
+    },
+    {
+      "k": 200,
+      "n": 20,
+      "accuracy": 0.6,
+      "latencyMs": {
+        "median": 24.152,
+        "mean": 25.032,
+        "p95": 27.494
+      }
+    },
+    {
+      "k": 250,
+      "n": 20,
+      "accuracy": 0.6,
+      "latencyMs": {
+        "median": 28.815,
+        "mean": 28.987,
+        "p95": 31.991
+      }
+    }
+  ],
+  "failures": [
+    {
+      "k": 50,
+      "case": 0,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "predicted": "How to Apply"
+    },
+    {
+      "k": 50,
+      "case": 4,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 50,
+      "case": 11,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "predicted": "Who Can Register"
+    },
+    {
+      "k": 50,
+      "case": 12,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 50,
+      "case": 14,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 50,
+      "case": 17,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 50,
+      "case": 18,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "predicted": "Venue Contact"
+    },
+    {
+      "k": 50,
+      "case": 19,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 100,
+      "case": 0,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "predicted": "How to Apply"
+    },
+    {
+      "k": 100,
+      "case": 4,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 100,
+      "case": 11,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "predicted": "Who Can Register"
+    },
+    {
+      "k": 100,
+      "case": 12,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 100,
+      "case": 14,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 100,
+      "case": 17,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 100,
+      "case": 18,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "predicted": "Venue Contact"
+    },
+    {
+      "k": 100,
+      "case": 19,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 200,
+      "case": 0,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "predicted": "How to Apply"
+    },
+    {
+      "k": 200,
+      "case": 4,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 200,
+      "case": 11,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "predicted": "Who Can Register"
+    },
+    {
+      "k": 200,
+      "case": 12,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 200,
+      "case": 14,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 200,
+      "case": 17,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 200,
+      "case": 18,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "predicted": "Venue Contact"
+    },
+    {
+      "k": 200,
+      "case": 19,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 250,
+      "case": 0,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "predicted": "How to Apply"
+    },
+    {
+      "k": 250,
+      "case": 4,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 250,
+      "case": 11,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "predicted": "Who Can Register"
+    },
+    {
+      "k": 250,
+      "case": 12,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 250,
+      "case": 14,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "predicted": "Call for Papers"
+    },
+    {
+      "k": 250,
+      "case": 17,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "predicted": "Accepted Papers"
+    },
+    {
+      "k": 250,
+      "case": 18,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "predicted": "Venue Contact"
+    },
+    {
+      "k": 250,
+      "case": 19,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "predicted": "Call for Papers"
+    }
+  ]
+}
