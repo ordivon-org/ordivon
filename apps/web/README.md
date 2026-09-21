@@ -174,6 +174,11 @@ autonomous commit, R4 browser WebAuthn STEP_UP, Grant revocation, future-effect
 denial, and preservation of historical exact replay.
 
 The website is not yet production eligible. Real account-bound initial
-enrollment, removal of the Keycloak/oauth4webapi compatibility shim, recovery,
-production TLS/origin configuration, Agent Passport UI, and deploy/release
+enrollment, recovery, production TLS/origin configuration, Agent Passport UI,
+production storage/backup acceptance, security notifications, and deploy/release
 acceptance remain separate gates.
+
+The Security-owned OAuth/DPoP verifier uses an accepted pinned RFC 7800 /
+Keycloak interoperability profile for oauth4webapi 3.8.8. That profile is
+cryptographically tested and is not, by itself, a production blocker. Upstream
+removal remains preferred.

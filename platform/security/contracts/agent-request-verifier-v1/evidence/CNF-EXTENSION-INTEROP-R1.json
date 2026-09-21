@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.oauth-dpop-cnf-extension-interop",
+  "status": "ACCEPTED_PINNED_INTEROP_PROFILE",
+  "oauth4webapi": {
+    "version": "3.8.8",
+    "pinned": true,
+    "stockDifferential": {
+      "attemptId": "attempt-01a0c359-bc5a-7692-bbce-438d73e58212",
+      "expectedResult": "REJECT",
+      "observedError": "multiple confirmation claims are not supported"
+    }
+  },
+  "patchedContract": {
+    "attemptId": "attempt-01a0c358-f906-7213-87b9-14b988f4a769",
+    "tests": 5,
+    "passed": 5,
+    "failed": 0,
+    "matrix": {
+      "standardJkt": "ALLOW",
+      "keycloakDpopDiscriminator": "ALLOW",
+      "nonDpopDiscriminator": "REJECT",
+      "missingJkt": "REJECT",
+      "wrongJkt": "REJECT"
+    }
+  },
+  "keycloak": {
+    "testedVersion": "26.7.4",
+    "privateConfirmationMember": "kc-jkt-type",
+    "expectedPrivateConfirmationValue": "DPoP",
+    "adminConfigCanRemoveWhileKeepingAccessTokenDpop": false
+  },
+  "standards": [
+    "RFC 7800 section 3.1",
+    "RFC 9449 sections 4.3 and 6.1"
+  ],
+  "decision": {
+    "replaceOauth4webapi": false,
+    "reimplementDpop": false,
+    "keepPinnedPatch": true,
+    "patchAloneBlocksProduction": false,
+    "preferUpstreamRemoval": true
+  }
+}
