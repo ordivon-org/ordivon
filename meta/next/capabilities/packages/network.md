@@ -21,7 +21,7 @@ Do not build a custom network stack merely to compose or diagnose these mechanis
 
 ## Observed local capability
 
-- Network v2 (`/root/projects/ordivon-network-v2@10cc82bf2c0c`) with `LOCAL_WSL_GRADUATED` standing and an independent standard-Linux reference lane;
+- Network v2 (`/root/projects/ordivon@dac057c6668c83e085bb3ae3b910866fd349b4eb`, owner path `platform/network`) with `LOCAL_WSL_GRADUATED` standing and an independent standard-Linux reference lane;
 - `dig`, `nslookup`;
 - `ping`, `tracepath`, `mtr`;
 - `ip`, `iperf3`;

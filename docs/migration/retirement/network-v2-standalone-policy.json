@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "network-v2-standalone",
+  "legacyLocator": "/root/projects/ordivon-network-v2",
+  "archivedSource": {
+    "revision": "9aec70bbfa3c8847dbd52c03a939c61f45e2f338",
+    "standing": "RETIREMENT_CANDIDATE",
+    "preserveGitHistoryForHistoricalLookup": false,
+    "recoveryMode": "all-ordinary-refs-bundle-plus-dirty-finance-wip-capsule"
+  },
+  "allowedReferenceClasses": [
+    {
+      "id": "migration-acceptance-and-receipts",
+      "globs": ["docs/migration/acceptance/**", "docs/migration/receipts/**"],
+      "reason": "Migration receipts and acceptances preserve exact historical Network source coordinates."
+    },
+    {
+      "id": "historical-next-migration-records",
+      "globs": ["meta/next/migrations/records/network-*.md"],
+      "reason": "Dated Network migration records preserve pre-retirement topology."
+    },
+    {
+      "id": "m0-planning-snapshots",
+      "globs": [
+        "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
+        "meta/next/planning/monorepo-migration-baseline-r1.json"
+      ],
+      "reason": "Frozen migration plan and baseline intentionally record the original standalone source."
+    },
+    {
+      "id": "frozen-production-topology",
+      "globs": ["capabilities/media/productions/*/source/**", "capabilities/media/productions/*/render/**"],
+      "reason": "Creation-time topology carriers remain immutable historical evidence."
+    }
+  ],
+  "allowedExactPaths": []
+}

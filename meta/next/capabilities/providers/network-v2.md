@@ -1,10 +1,10 @@
 # Provider: Network v2
 
-- Source: `/root/projects/ordivon-network-v2`
-- Observed revision: `10cc82bf2c0c`
+- Source repository: `/root/projects/ordivon`\n- Owner path: `platform/network`
+- Observed monorepo revision: `dac057c6668c83e085bb3ae3b910866fd349b4eb`
 - Current standing: `LOCAL_WSL_GRADUATED`; independent standard-Linux reference lane graduated
 - Role: network composition and verification capability provider
-- Migration mode: metadata/evidence registration only
+- Migration mode: canonical modular-monorepo owner; legacy standalone carrier is retirement-only
 
 ## Capability model
 
