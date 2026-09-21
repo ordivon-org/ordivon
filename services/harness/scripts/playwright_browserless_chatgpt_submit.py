@@ -26,6 +26,11 @@ from browserless_human_handoff import (
 )
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
+from provider_boundary_diagnosis import (
+    PROVIDER_ACTION_HOLD,
+    PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER,
+    provider_action_for_standing,
+)
 
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
@@ -242,6 +247,31 @@ def handle_human_gate(page, a, blocker: str) -> tuple[str, bool]:
     return "human-required", True
 
 
+def route_provider_blocker(page, a, blocker: str) -> tuple[str, bool]:
+    """Execute the single provider-boundary action for one observed local blocker."""
+    standing = {
+        "challenge-gated": "CHALLENGE_GATED",
+        "auth-required": "AUTH_REQUIRED",
+    }.get(blocker)
+    action = provider_action_for_standing(standing or "CONTEXT_UNAVAILABLE")
+    if action == PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER:
+        return handle_human_gate(page, a, blocker)
+    if action != PROVIDER_ACTION_HOLD:
+        raise RuntimeError(f"unexpected provider action for blocker {blocker!r}: {action}")
+    write_pre_effect(
+        a.pre_effect_out,
+        effect_id=a.effect_id,
+        prompt_digest=a.prompt_digest,
+        blocker=(
+            "automated-browser-challenge-unsupported"
+            if blocker == "challenge-gated"
+            else f"provider-policy-hold:{blocker}"
+        ),
+        page_url=page.url,
+    )
+    return "failed", False
+
+
 def main() -> int:
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, expect, sync_playwright
 
@@ -322,7 +352,7 @@ def main() -> int:
 
         blocker = human_blocker(page)
         if blocker is not None:
-            decision, transport_handoff = handle_human_gate(page, a, blocker)
+            decision, transport_handoff = route_provider_blocker(page, a, blocker)
             handed_off = transport_handoff
             if decision == "human-required":
                 return HUMAN_REQUIRED_EXIT
@@ -336,7 +366,7 @@ def main() -> int:
         except Exception as error:
             blocker = human_blocker(page)
             if blocker is not None:
-                decision, transport_handoff = handle_human_gate(page, a, blocker)
+                decision, transport_handoff = route_provider_blocker(page, a, blocker)
                 handed_off = transport_handoff
                 if decision == "human-required":
                     return HUMAN_REQUIRED_EXIT

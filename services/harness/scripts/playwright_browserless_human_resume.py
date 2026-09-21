@@ -20,6 +20,11 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, expect, 
 from browserless_human_handoff import load_verified_handoff, mint_handoff, write_private_handoff
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
+from provider_boundary_diagnosis import (
+    PROVIDER_ACTION_HOLD,
+    PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER,
+    provider_action_for_standing,
+)
 
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
@@ -125,6 +130,34 @@ def repark(page, a, blocker: str) -> bool:
         return False
 
 
+def route_provider_blocker(
+    page, a, handoff: dict, blocker: str
+) -> tuple[str, bool]:
+    """Execute provider policy without converting challenges into Browserless handoffs."""
+    standing = {
+        "challenge-gated": "CHALLENGE_GATED",
+        "auth-required": "AUTH_REQUIRED",
+    }.get(blocker)
+    action = provider_action_for_standing(standing or "CONTEXT_UNAVAILABLE")
+    close_old_live_url(page, handoff)
+    if action == PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER:
+        return ("human-required", True) if repark(page, a, blocker) else ("failed", False)
+    if action != PROVIDER_ACTION_HOLD:
+        raise RuntimeError(f"unexpected provider action for blocker {blocker!r}: {action}")
+    write_pre_effect(
+        a.pre_effect_out,
+        effect_id=a.effect_id,
+        prompt_digest=a.prompt_digest,
+        blocker=(
+            "automated-browser-challenge-unsupported"
+            if blocker == "challenge-gated"
+            else f"provider-policy-hold:{blocker}"
+        ),
+        page_url=page.url,
+    )
+    return "failed", False
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--handoff", type=Path, required=True)
@@ -203,9 +236,9 @@ def main() -> int:
         page = pages[0]
         blocker = human_blocker(page)
         if blocker is not None:
-            close_old_live_url(page, handoff)
-            if repark(page, a, blocker):
-                handed_off = True
+            decision, transport_handoff = route_provider_blocker(page, a, handoff, blocker)
+            handed_off = transport_handoff
+            if decision == "human-required":
                 return HUMAN_REQUIRED_EXIT
             browser.close()
             return PRE_EFFECT_BLOCKED_EXIT
@@ -216,10 +249,12 @@ def main() -> int:
         except Exception as error:
             blocker = human_blocker(page)
             if blocker is not None:
-                close_old_live_url(page, handoff)
-                if repark(page, a, blocker):
-                    handed_off = True
+                decision, transport_handoff = route_provider_blocker(page, a, handoff, blocker)
+                handed_off = transport_handoff
+                if decision == "human-required":
                     return HUMAN_REQUIRED_EXIT
+                browser.close()
+                return PRE_EFFECT_BLOCKED_EXIT
             write_pre_effect(
                 a.pre_effect_out,
                 effect_id=a.effect_id,
