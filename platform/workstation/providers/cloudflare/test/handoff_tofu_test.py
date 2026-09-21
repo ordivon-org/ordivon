@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import stat
 import sys
 import tempfile
 import unittest
@@ -216,6 +217,14 @@ class PlanSemanticGateTests(unittest.TestCase):
                                 "proxied": True,
                             },
                         },
+                        {
+                            "address": "cloudflare_zero_trust_access_service_token.gateway_windows_runtime",
+                            "values": {
+                                "name": "Ordivon Gateway Windows Runtime",
+                                "duration": "8760h",
+                                "enabled": True,
+                            },
+                        },
                     ]
                 }
             },
@@ -231,6 +240,10 @@ class PlanSemanticGateTests(unittest.TestCase):
                 {
                     "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
                     "change": {"actions": ["update"]},
+                },
+                {
+                    "address": "cloudflare_zero_trust_access_service_token.gateway_windows_runtime",
+                    "change": {"actions": ["create"]},
                 },
             ],
         }
@@ -265,3 +278,69 @@ class PlanSemanticGateTests(unittest.TestCase):
             semantics["details"]["unexpected_mutations"],
             ["cloudflare_dns_record.unrelated"],
         )
+
+
+class WindowsServiceAuthTests(unittest.TestCase):
+    def test_census_accepts_clean_service_token_creation(self) -> None:
+        plan = PlanSemanticGateTests._plan()
+        with (
+            mock.patch.object(
+                controller,
+                "_windows_runtime_access_application",
+                return_value={
+                    "id": "app-1",
+                    "domain": controller.WINDOWS_RUNTIME_DOMAIN,
+                    "type": "self_hosted",
+                    "aud": "aud-1",
+                },
+            ),
+            mock.patch.object(controller, "_service_tokens", return_value=[]),
+            mock.patch.object(controller, "_windows_runtime_policies", return_value=[]),
+        ):
+            census = controller._windows_service_auth_census(plan)
+        self.assertTrue(census["eligible"])
+        self.assertEqual(census["service_token_actions"], ["create"])
+        self.assertEqual(census["service_auth_policy_state"], "absent")
+
+    def test_census_rejects_existing_unowned_token_name(self) -> None:
+        plan = PlanSemanticGateTests._plan()
+        with (
+            mock.patch.object(
+                controller,
+                "_windows_runtime_access_application",
+                return_value={
+                    "id": "app-1",
+                    "domain": controller.WINDOWS_RUNTIME_DOMAIN,
+                    "type": "self_hosted",
+                    "aud": "aud-1",
+                },
+            ),
+            mock.patch.object(
+                controller,
+                "_service_tokens",
+                return_value=[
+                    {"id": "foreign-token", "name": controller.WINDOWS_SERVICE_TOKEN_NAME}
+                ],
+            ),
+            mock.patch.object(controller, "_windows_runtime_policies", return_value=[]),
+        ):
+            census = controller._windows_service_auth_census(plan)
+        self.assertFalse(census["eligible"])
+        self.assertFalse(census["checks"]["service_token_remote_ownership_clean"])
+
+    def test_private_value_materialization_is_atomic_and_owner_only(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "gateway" / "client-secret"
+            controller._write_private_value(path, "secret-value")
+            self.assertEqual(path.read_text(encoding="utf-8"), "secret-value\n")
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
+
+    def test_exact_service_auth_policy_verification(self) -> None:
+        policy = {
+            "name": controller.WINDOWS_SERVICE_POLICY_NAME,
+            "decision": "non_identity",
+            "include": [{"service_token": {"token_id": "token-1"}}],
+        }
+        self.assertTrue(controller._verify_service_policy(policy, "token-1"))
+        self.assertFalse(controller._verify_service_policy(policy, "token-2"))

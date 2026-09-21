@@ -217,6 +217,13 @@ resource "cloudflare_zero_trust_access_application" "gateway_mcp" {
   ]
 }
 
+resource "cloudflare_zero_trust_access_service_token" "gateway_windows_runtime" {
+  account_id = var.account_id
+  name       = "Ordivon Gateway Windows Runtime"
+  duration   = "8760h"
+  enabled    = true
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "production" {
   account_id = var.account_id
   tunnel_id  = local.production_tunnel_id

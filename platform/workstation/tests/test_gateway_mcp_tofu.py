@@ -38,8 +38,19 @@ def test_gateway_dns_is_published_only_after_tunnel_configuration() -> None:
     assert "depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]" in section
 
 
-def test_gateway_outputs_expose_only_nonsecret_cutover_metadata() -> None:
+def test_gateway_outputs_separate_public_metadata_from_sensitive_machine_identity() -> None:
     text = OUTPUTS.read_text(encoding="utf-8")
     assert 'output "gateway_mcp_hostname"' in text
     assert 'output "gateway_mcp_audience"' in text
-    assert "client_secret" not in text.lower()
+    assert 'output "gateway_windows_access_service_token_id"' in text
+    assert 'output "gateway_windows_access_client_id"' in text
+    assert 'output "gateway_windows_access_client_secret"' in text
+
+    secret_section = text.split(
+        'output "gateway_windows_access_client_secret"', 1
+    )[1]
+    assert "client_secret" in secret_section
+    assert "sensitive   = true" in secret_section
+
+    public_prefix = text.split('output "gateway_windows_access_service_token_id"', 1)[0]
+    assert "client_secret" not in public_prefix.lower()

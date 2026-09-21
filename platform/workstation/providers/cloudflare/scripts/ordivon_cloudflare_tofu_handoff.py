@@ -14,6 +14,8 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from typing import Any
 
 TOFU_RELEASE_ROOT = pathlib.Path(
@@ -26,6 +28,12 @@ PLAN_DIR = OPERATIONS_ROOT / "plans"
 RECEIPT_DIR = OPERATIONS_ROOT / "receipts"
 TOFU = pathlib.Path("/usr/bin/tofu")
 PLAN_DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
+WINDOWS_RUNTIME_DOMAIN = "canary-mcp.ordivon.com"
+WINDOWS_SERVICE_TOKEN_NAME = "Ordivon Gateway Windows Runtime"
+WINDOWS_SERVICE_POLICY_NAME = "Ordivon Gateway Windows Runtime"
+GATEWAY_CREDENTIAL_DIR = pathlib.Path("/etc/ordivon/gateway")
+WINDOWS_CLIENT_ID_PATH = GATEWAY_CREDENTIAL_DIR / "windows-access-client-id"
+WINDOWS_CLIENT_SECRET_PATH = GATEWAY_CREDENTIAL_DIR / "windows-access-client-secret"
 
 
 class HandoffTofuError(RuntimeError):
@@ -90,6 +98,322 @@ def cloudflare_environment() -> dict[str, str]:
         }
     )
     return environment
+
+
+
+def _cloudflare_config() -> tuple[str, str]:
+    config = _private_json(CLOUDFLARE_CONFIG)
+    token = config.get("api_token")
+    account_id = config.get("account_id")
+    if not isinstance(token, str) or not token:
+        raise HandoffTofuError("Cloudflare API token is missing")
+    if not isinstance(account_id, str) or not account_id:
+        raise HandoffTofuError("Cloudflare account ID is missing")
+    return token, account_id
+
+
+def _cloudflare_request(
+    method: str,
+    path: str,
+    *,
+    body: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    token, account_id = _cloudflare_config()
+    expected_prefix = f"/accounts/{account_id}/"
+    if not path.startswith(expected_prefix):
+        raise HandoffTofuError("Cloudflare request escaped the fixed account authority")
+    encoded = None if body is None else json.dumps(body, separators=(",", ":")).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://api.cloudflare.com/client/v4{path}",
+        data=encoded,
+        method=method.upper(),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "ordivon-cloudflare-handoff-tofu/1",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        raise HandoffTofuError(
+            f"Cloudflare request failed: {method.upper()} {path} HTTP {exc.code}"
+        ) from exc
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise HandoffTofuError(
+            f"Cloudflare request failed: {method.upper()} {path}"
+        ) from exc
+    if not isinstance(payload, dict) or payload.get("success") is not True:
+        raise HandoffTofuError(
+            f"Cloudflare request returned failure: {method.upper()} {path}"
+        )
+    return payload
+
+
+def _cloudflare_collection(path: str) -> list[dict[str, Any]]:
+    token, account_id = _cloudflare_config()
+    del token
+    expected_prefix = f"/accounts/{account_id}/"
+    if not path.startswith(expected_prefix) or "?" in path:
+        raise HandoffTofuError("Cloudflare collection path is not fixed-account canonical")
+    items: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        separator = "&" if "?" in path else "?"
+        payload = _cloudflare_request(
+            "GET", f"{path}{separator}per_page=100&page={page}"
+        )
+        result = payload.get("result")
+        if not isinstance(result, list):
+            raise HandoffTofuError("Cloudflare collection returned an unexpected shape")
+        items.extend(item for item in result if isinstance(item, dict))
+        info = payload.get("result_info")
+        total_pages = (
+            int(info.get("total_pages", page))
+            if isinstance(info, dict) and isinstance(info.get("total_pages"), int)
+            else page
+        )
+        if page >= total_pages:
+            return items
+        page += 1
+
+
+def _windows_runtime_access_application() -> dict[str, Any]:
+    _, account_id = _cloudflare_config()
+    apps = _cloudflare_collection(f"/accounts/{account_id}/access/apps")
+    matches = [
+        app
+        for app in apps
+        if app.get("domain") == WINDOWS_RUNTIME_DOMAIN
+        and app.get("type") == "self_hosted"
+    ]
+    if len(matches) != 1:
+        raise HandoffTofuError(
+            "Expected exactly one existing self-hosted Windows Runtime Access application"
+        )
+    return matches[0]
+
+
+def _windows_runtime_policies(app_id: str) -> list[dict[str, Any]]:
+    _, account_id = _cloudflare_config()
+    return _cloudflare_collection(
+        f"/accounts/{account_id}/access/apps/{app_id}/policies"
+    )
+
+
+def _service_tokens() -> list[dict[str, Any]]:
+    _, account_id = _cloudflare_config()
+    return _cloudflare_collection(f"/accounts/{account_id}/access/service_tokens")
+
+
+def _service_token_ids(policy: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for rule in policy.get("include") or []:
+        if not isinstance(rule, dict):
+            continue
+        service_token = rule.get("service_token")
+        if not isinstance(service_token, dict):
+            continue
+        token_id = service_token.get("token_id")
+        if isinstance(token_id, str) and token_id:
+            values.append(token_id)
+    return values
+
+
+def _resource_values(
+    plan: dict[str, Any], section: str, address: str
+) -> dict[str, Any] | None:
+    try:
+        root = plan[section]
+        if section == "prior_state":
+            root = root["values"]
+        module = root["root_module"]
+    except (KeyError, TypeError):
+        return None
+    resource = _resources_by_address(module).get(address)
+    if not isinstance(resource, dict):
+        return None
+    values = resource.get("values")
+    return values if isinstance(values, dict) else None
+
+
+def _resource_actions(plan: dict[str, Any], address: str) -> list[str]:
+    for resource in plan.get("resource_changes", []):
+        if not isinstance(resource, dict) or resource.get("address") != address:
+            continue
+        change = resource.get("change")
+        if isinstance(change, dict):
+            return [str(value) for value in change.get("actions", [])]
+    return []
+
+
+def _windows_service_auth_census(plan: dict[str, Any]) -> dict[str, Any]:
+    token_address = "cloudflare_zero_trust_access_service_token.gateway_windows_runtime"
+    planned = _resource_values(plan, "planned_values", token_address) or {}
+    prior = _resource_values(plan, "prior_state", token_address)
+    actions = _resource_actions(plan, token_address)
+    app = _windows_runtime_access_application()
+    app_id = str(app.get("id", ""))
+    if not app_id:
+        raise HandoffTofuError("Windows Runtime Access application omitted identity")
+
+    matching_tokens = [
+        item for item in _service_tokens() if item.get("name") == WINDOWS_SERVICE_TOKEN_NAME
+    ]
+    expected_token_id = (
+        str(prior.get("id"))
+        if isinstance(prior, dict) and isinstance(prior.get("id"), str)
+        else None
+    )
+    if expected_token_id is None:
+        token_owner_clean = not matching_tokens and actions == ["create"]
+    else:
+        token_owner_clean = (
+            len(matching_tokens) == 1
+            and matching_tokens[0].get("id") == expected_token_id
+            and actions in (["no-op"], ["update"])
+        )
+
+    policies = _windows_runtime_policies(app_id)
+    named = [item for item in policies if item.get("name") == WINDOWS_SERVICE_POLICY_NAME]
+    if len(named) > 1:
+        policy_state = "duplicate"
+        policy_compatible = False
+    elif not named:
+        policy_state = "absent"
+        policy_compatible = expected_token_id is None or token_owner_clean
+    else:
+        policy_state = "present"
+        ids = _service_token_ids(named[0])
+        policy_compatible = (
+            expected_token_id is not None
+            and named[0].get("decision") == "non_identity"
+            and ids == [expected_token_id]
+        )
+
+    checks = {
+        "windows_runtime_app_exact": app.get("domain") == WINDOWS_RUNTIME_DOMAIN
+        and app.get("type") == "self_hosted",
+        "service_token_plan_exact": planned.get("name") == WINDOWS_SERVICE_TOKEN_NAME
+        and planned.get("duration") == "8760h"
+        and planned.get("enabled") is True,
+        "service_token_remote_ownership_clean": token_owner_clean,
+        "service_auth_policy_compatible": policy_compatible,
+    }
+    return {
+        "eligible": all(checks.values()),
+        "checks": checks,
+        "windows_runtime_app_id": app_id,
+        "windows_runtime_app_audience": app.get("aud"),
+        "service_token_actions": actions,
+        "matching_service_token_count": len(matching_tokens),
+        "service_auth_policy_state": policy_state,
+        "matching_policy_count": len(named),
+    }
+
+
+def _required_output(environment: dict[str, str], name: str) -> str:
+    completed = _run(["output", "-raw", name], environment=environment)
+    value = completed.stdout.strip()
+    if not value or any(character.isspace() for character in value):
+        raise HandoffTofuError(f"OpenTofu output is missing or malformed: {name}")
+    return value
+
+
+def _write_private_value(path: pathlib.Path, value: str) -> None:
+    directory = path.parent
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if directory.is_symlink() or not directory.is_dir():
+        raise HandoffTofuError("Gateway credential directory is not a private directory")
+    os.chmod(directory, 0o700)
+    if path.exists() or path.is_symlink():
+        metadata = path.lstat()
+        if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
+            raise HandoffTofuError("Gateway credential target must be a regular file")
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=directory)
+    temporary = pathlib.Path(temporary_name)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(value)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _verify_service_policy(policy: dict[str, Any], token_id: str) -> bool:
+    return (
+        policy.get("name") == WINDOWS_SERVICE_POLICY_NAME
+        and policy.get("decision") == "non_identity"
+        and _service_token_ids(policy) == [token_id]
+    )
+
+
+def _ensure_windows_service_auth(token_id: str) -> dict[str, Any]:
+    app = _windows_runtime_access_application()
+    app_id = str(app.get("id", ""))
+    policies = _windows_runtime_policies(app_id)
+    named = [item for item in policies if item.get("name") == WINDOWS_SERVICE_POLICY_NAME]
+    if len(named) > 1:
+        raise HandoffTofuError("Windows Runtime Service Auth policy name is duplicated")
+    if named:
+        if not _verify_service_policy(named[0], token_id):
+            raise HandoffTofuError("Existing Windows Runtime Service Auth policy conflicts")
+        policy = named[0]
+        disposition = "existing"
+    else:
+        _, account_id = _cloudflare_config()
+        payload = _cloudflare_request(
+            "POST",
+            f"/accounts/{account_id}/access/apps/{app_id}/policies",
+            body={
+                "name": WINDOWS_SERVICE_POLICY_NAME,
+                "decision": "non_identity",
+                "include": [{"service_token": {"token_id": token_id}}],
+            },
+        )
+        result = payload.get("result")
+        if not isinstance(result, dict) or not _verify_service_policy(result, token_id):
+            raise HandoffTofuError("Created Windows Runtime Service Auth policy failed verification")
+        policy = result
+        disposition = "created"
+
+    verified = [
+        item
+        for item in _windows_runtime_policies(app_id)
+        if item.get("name") == WINDOWS_SERVICE_POLICY_NAME
+    ]
+    if len(verified) != 1 or not _verify_service_policy(verified[0], token_id):
+        raise HandoffTofuError("Windows Runtime Service Auth policy did not converge")
+    return {
+        "application_id": app_id,
+        "application_audience": app.get("aud"),
+        "policy_id": policy.get("id"),
+        "policy_disposition": disposition,
+        "verified": True,
+    }
+
+
+def _materialize_windows_identity(environment: dict[str, str]) -> dict[str, Any]:
+    token_id = _required_output(environment, "gateway_windows_access_service_token_id")
+    client_id = _required_output(environment, "gateway_windows_access_client_id")
+    client_secret = _required_output(environment, "gateway_windows_access_client_secret")
+    service_auth = _ensure_windows_service_auth(token_id)
+    _write_private_value(WINDOWS_CLIENT_ID_PATH, client_id)
+    _write_private_value(WINDOWS_CLIENT_SECRET_PATH, client_secret)
+    return {
+        "service_auth": service_auth,
+        "credentials_materialized": True,
+        "client_id_path": str(WINDOWS_CLIENT_ID_PATH),
+        "client_secret_path": str(WINDOWS_CLIENT_SECRET_PATH),
+    }
 
 
 def _run(
@@ -185,6 +509,9 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         tunnel_address = "cloudflare_zero_trust_tunnel_cloudflared_config.production"
         gateway_address = "cloudflare_zero_trust_access_application.gateway_mcp"
         dns_address = "cloudflare_dns_record.gateway_mcp"
+        windows_token_address = (
+            "cloudflare_zero_trust_access_service_token.gateway_windows_runtime"
+        )
         tunnel_before = _nested_object(prior[tunnel_address]["values"].get("config")).get(
             "ingress", []
         )
@@ -217,6 +544,7 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         dcr = _nested_object(oauth.get("dynamic_client_registration"))
         grant = _nested_object(oauth.get("grant"))
         dns = planned[dns_address]["values"]
+        windows_token = planned[windows_token_address]["values"]
 
         checks.update(
             {
@@ -241,6 +569,10 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
                 "gateway_dns_exact": dns.get("name") == "gateway-mcp.ordivon.com"
                 and dns.get("type") == "CNAME"
                 and dns.get("proxied") is True,
+                "windows_service_token_exact": windows_token.get("name")
+                == WINDOWS_SERVICE_TOKEN_NAME
+                and windows_token.get("duration") == "8760h"
+                and windows_token.get("enabled") is True,
             }
         )
         details.update(
@@ -266,6 +598,7 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
     allowed_mutations = {
         "cloudflare_dns_record.gateway_mcp",
         "cloudflare_zero_trust_access_application.gateway_mcp",
+        "cloudflare_zero_trust_access_service_token.gateway_windows_runtime",
         "cloudflare_zero_trust_tunnel_cloudflared_config.production",
     }
     unexpected_mutations = sorted(set(mutated) - allowed_mutations)
@@ -357,6 +690,7 @@ def create_plan() -> dict[str, Any]:
         except json.JSONDecodeError as exc:
             raise HandoffTofuError("OpenTofu show returned invalid JSON") from exc
         summary = _summarize_plan(plan_json)
+        windows_service_auth = _windows_service_auth_census(plan_json)
         digest = _sha256(temporary)
         plan_path, receipt_path = _plan_paths(digest)
         if plan_path.exists():
@@ -376,8 +710,10 @@ def create_plan() -> dict[str, Any]:
             "plan_path": str(plan_path),
             "tofu_exit_code": completed.returncode,
             "eligible_for_apply": summary["safe_no_delete_replace"]
-            and summary["semantics"]["semantic_gate"],
+            and summary["semantics"]["semantic_gate"]
+            and windows_service_auth["eligible"],
             "summary": summary,
+            "windows_service_auth": windows_service_auth,
         }
         _write_json(receipt_path, receipt)
         return receipt
@@ -430,6 +766,7 @@ def apply_reviewed_plan(digest: str) -> dict[str, Any]:
     )
     if drift.returncode != 0:
         raise HandoffTofuError("post-apply verification detected drift")
+    windows_identity = _materialize_windows_identity(environment)
     result = {
         "schema_version": 1,
         "kind": "ordivon.cloudflare-handoff-tofu-apply",
@@ -441,6 +778,7 @@ def apply_reviewed_plan(digest: str) -> dict[str, Any]:
         "zero_drift": True,
         "gateway_mcp_hostname": _safe_output(environment, "gateway_mcp_hostname"),
         "gateway_mcp_audience": _safe_output(environment, "gateway_mcp_audience"),
+        "windows_identity": windows_identity,
     }
     _write_json(RECEIPT_DIR / f"apply-{digest}.json", result)
     return result
