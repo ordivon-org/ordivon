@@ -28,16 +28,7 @@ def test_r4_runner_keeps_non_live_authority_and_identity_continuity():
     assert "'externalFinancialWritesAttempted':False" in s
 
 
-def test_committed_r4_evidence_is_standard_projection_only():
-    p = ROOT / "evidence/crypto-fix44-projection-r4-20260914.json"
-    subprocess.run(
-        [str(ROOT / "scripts/run-crypto-fix-projection-r4")],
-        check=True,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
-    x = json.loads(p.read_text())
+def _assert_r4_projection_evidence(x):
     assert x["standing"] == "PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION"
     assert len(x["projectedIntents"]) == 4
     assert x["composition"]["fixImplementation"] == "LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR"
@@ -52,6 +43,24 @@ def test_committed_r4_evidence_is_standard_projection_only():
         assert row["ordType"] == "1"
         assert row["timeInForce"] == "3"
         assert row["exDestination"] in {"OKX", "BINANCE"}
+
+
+def test_committed_r4_evidence_is_frozen_standard_projection_only():
+    p = ROOT / "evidence/crypto-fix44-projection-r4-20260914.json"
+    before = p.read_bytes()
+    _assert_r4_projection_evidence(json.loads(before))
+
+    subprocess.run(
+        [str(ROOT / "scripts/run-crypto-fix-projection-r4")],
+        check=True,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    assert p.read_bytes() == before
+    dynamic = ROOT / ".artifacts/crypto-fix-r4/evidence.json"
+    _assert_r4_projection_evidence(json.loads(dynamic.read_text()))
 
 
 def test_fix44_is_explicit_legacy_profile_not_semantic_owner():
