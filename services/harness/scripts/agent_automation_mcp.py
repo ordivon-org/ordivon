@@ -344,7 +344,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="materialization.humanResume",
         title="Resume after human provider verification",
-        description="Re-enter provider admission for the same frozen materialization effect after a prior HUMAN_REQUIRED handoff window expired. The materializer atomically claims the same effect identity and never blind-resends an UNKNOWN outcome.",
+        description="Resume the same durable HUMAN_REQUIRED materialization workflow after verified human provider admission. The handoff digest is sent as an exact Temporal update to the same provider-effect identity; no second workflow or fresh materialization effect is minted.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
         ),

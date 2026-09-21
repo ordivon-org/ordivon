@@ -148,3 +148,111 @@ def test_handoff_receipt_is_private_and_verifiable(tmp_path: Path) -> None:
     assert load_verified_handoff(path, expected_digest=value["handoffDigest"]) == value
     assert "cdpEndpoint" not in value
     assert "cookie" not in json.dumps(value).lower()
+
+
+def test_durable_human_resume_uses_cft_target_without_browserless_binding(tmp_path: Path) -> None:
+    from sqlite_conversation_materializer import TargetMaterializationObservation
+    from conversation_relay_carrier import MaterializationStanding
+
+    cfg = BrowserlessAutomationConfig.from_dict(config(tmp_path))
+    effects = BrowserlessEffectAdapter(cfg)
+    path = spec_path(tmp_path)
+    with (
+        mock.patch("agent_automation_browserless_effects.DurableSessionAuthority") as authority,
+        mock.patch("agent_automation_browserless_effects.prepare_chatgpt_human_session"),
+    ):
+        authority.return_value.open.return_value = session()
+        first = effects.materialize(
+            path, "A01", endpoint_id="carrier-a", provider_preflight=auth_preflight(effects)
+        )
+    assert first["receipt"]["standing"] == "human-required"
+
+    fake_target = mock.Mock()
+    fake_target.resume_after_human.return_value = TargetMaterializationObservation(
+        standing=MaterializationStanding.BOUND,
+        provider_conversation_coordinate="https://chatgpt.com/c/resumed-1",
+        evidence_digest="sha256:" + "5" * 64,
+        detail="CfT authenticated bootstrap submitted and provider-bound",
+    )
+    with (
+        mock.patch(
+            "agent_automation_browserless_effects.CftAuthenticatedSendTarget",
+            return_value=fake_target,
+        ) as target,
+        mock.patch.object(effects.context, "_current_binding") as current_binding,
+        mock.patch.object(effects, "_target") as browserless_target,
+    ):
+        value = effects.resume_after_human(path, "A01")
+    current_binding.assert_not_called()
+    browserless_target.assert_not_called()
+    target.assert_called_once()
+    assert value["kind"] == "ordivon.durable-human-resume"
+    assert value["receipt"]["standing"] == "bound"
+    assert value["receipt"]["providerResource"] == "https://chatgpt.com/c/resumed-1"
+
+
+def test_cft_authenticated_send_target_invokes_loopback_resume_script(tmp_path: Path) -> None:
+    from campaign_materialization import compile_campaign
+    from cft_human_materialization import (
+        CftAuthenticatedSendTarget,
+        create_handoff,
+    )
+
+    cfg = BrowserlessAutomationConfig.from_dict(config(tmp_path))
+    effects = BrowserlessEffectAdapter(cfg)
+    spec = effects.context.load_spec(spec_path(tmp_path))
+    request = compile_campaign(spec)["A01"]
+    handoff_path = tmp_path / "handoff.json"
+    handoff = create_handoff(
+        handoff_path,
+        effect_id=request.request_id,
+        request_digest=request.request_digest,
+        session=session(),
+        blocker="auth-required",
+    )
+    script = tmp_path / "resume.py"
+    script.write_text("# witness")
+    python = tmp_path / "python"
+    python.write_text("# witness")
+    completed = mock.Mock(
+        returncode=0,
+        stdout=json.dumps(
+            {
+                "effectId": request.request_id,
+                "providerResource": "https://chatgpt.com/c/resumed-1",
+                "generationStarted": True,
+                "composerCleared": True,
+                "bindingDigest": "sha256:" + "6" * 64,
+            }
+        )
+        + "\n",
+        stderr="",
+    )
+    with (
+        mock.patch("cft_human_materialization.resolve_session", return_value=session()),
+        mock.patch("cft_human_materialization.subprocess.run", return_value=completed) as run,
+    ):
+        target = CftAuthenticatedSendTarget(
+            handoff_path=handoff_path,
+            state_dir=tmp_path / "state",
+            playwright_python=python,
+            resume_script=script,
+            wait_stable_seconds=150,
+        )
+        observation = target.resume_after_human(request)
+    command = run.call_args.args[0]
+    assert "--cdp-endpoint" in command and session()["cdpEndpoint"] in command
+    assert "--session-id" in command and SESSION_ID in command
+    assert "--browserless-token-file" not in command
+    assert "--expected-handoff-digest" in command and handoff["handoffDigest"] in command
+    assert observation.standing.value == "bound"
+    assert observation.provider_conversation_coordinate == "https://chatgpt.com/c/resumed-1"
+
+
+def test_cft_resume_script_has_no_cookie_or_browserless_reconnect_surface() -> None:
+    text = (ROOT / "scripts/playwright_cft_chatgpt_resume.py").read_text().lower()
+    assert "--cdp-endpoint" in text
+    assert "--session-id" in text
+    assert "browserless.reconnect" not in text
+    assert "cookie" not in text
+    assert "storage_state" not in text

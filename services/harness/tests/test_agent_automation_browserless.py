@@ -1967,9 +1967,11 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 )
 
     def test_provider_policy_and_ui_standings_do_not_rotate_carriers(self):
+        # AUTH_REQUIRED now transfers to the durable CfT human-auth path and is covered by
+        # test_durable_human_materialization.py. The remaining provider/UI standings stay
+        # pre-effect on the selected Browserless carrier and must never rotate profiles.
         for standing in (
             "PROVIDER_RATE_LIMITED",
-            "AUTH_REQUIRED",
             "CHALLENGE_GATED",
             "CONTEXT_UNAVAILABLE",
             "COMPOSER_UNAVAILABLE",

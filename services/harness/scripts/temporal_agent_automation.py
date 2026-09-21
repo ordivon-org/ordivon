@@ -41,7 +41,7 @@ CONTINUE_ACTIVITY = "ordivon.browserless.continue"
 MATERIALIZE_WORKFLOW = "ordivon.materialize"
 CAMPAIGN_MATERIALIZE_WORKFLOW = "ordivon.campaign.materialize"
 AGENT_RECONCILE_WORKFLOW = "ordivon.agent.reconcile"
-AGENT_HUMAN_RESUME_WORKFLOW = "ordivon.agent.human-resume"
+HUMAN_RESUME_UPDATE = "ordivon.materialization.human-resume"
 AGENT_CONTINUE_WORKFLOW = "ordivon.agent.continue"
 
 
@@ -335,17 +335,69 @@ EFFECT_FENCED_RETRY = RetryPolicy(
 
 @workflow.defn(name=MATERIALIZE_WORKFLOW)
 class MaterializeWorkflow:
+    def __init__(self) -> None:
+        self._expected_handoff_digest: str | None = None
+        self._resume_accepted = False
+
+    @workflow.update(name=HUMAN_RESUME_UPDATE)
+    async def human_resume(self, handoff_digest: str) -> dict:
+        if (
+            not isinstance(handoff_digest, str)
+            or not handoff_digest.startswith("sha256:")
+            or len(handoff_digest) != 71
+            or any(ch not in "0123456789abcdef" for ch in handoff_digest[7:])
+        ):
+            raise ValueError("human resume requires one canonical SHA-256 handoff digest")
+        if self._expected_handoff_digest is None:
+            raise ValueError("human handoff is not ready for resume")
+        if handoff_digest != self._expected_handoff_digest:
+            raise ValueError("human resume handoff digest does not match current durable handoff")
+        self._resume_accepted = True
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.materialization-human-resume-update",
+            "handoffDigest": handoff_digest,
+            "standing": "ACCEPTED",
+        }
+
     @workflow.run
     async def run(self, value: MaterializationInput) -> dict:
         # Activity retry is safe only because the adapter durably claims the exact materialization request identity
         # before SEND. A retry re-enters/reconciles that same effect identity; it cannot blind-send.
-        return await workflow.execute_activity(
+        result = await workflow.execute_activity(
             MATERIALIZE_ACTIVITY,
             value,
             result_type=dict,
             start_to_close_timeout=timedelta(minutes=10),
             retry_policy=EFFECT_FENCED_RETRY,
         )
+        receipt = result.get("receipt") if isinstance(result, dict) else None
+        if not isinstance(receipt, dict) or receipt.get("standing") != "human-required":
+            return result
+        handoff = result.get("humanHandoff")
+        if not isinstance(handoff, dict):
+            raise RuntimeError("HUMAN_REQUIRED materialization lacks durable handoff receipt")
+        digest = handoff.get("handoffDigest")
+        if not isinstance(digest, str):
+            raise RuntimeError("HUMAN_REQUIRED materialization lacks durable handoff digest")
+        self._expected_handoff_digest = digest
+        self._resume_accepted = False
+        await workflow.wait_condition(lambda: self._resume_accepted)
+        resumed = await workflow.execute_activity(
+            HUMAN_RESUME_ACTIVITY,
+            value,
+            result_type=dict,
+            start_to_close_timeout=timedelta(minutes=10),
+            retry_policy=EFFECT_FENCED_RETRY,
+        )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.durable-human-materialization-result",
+            "effectId": value.effect_id,
+            "handoffDigest": digest,
+            "initialHumanRequired": result,
+            "resume": resumed,
+        }
 
 
 @workflow.defn(name=CAMPAIGN_MATERIALIZE_WORKFLOW)
@@ -396,21 +448,6 @@ class AgentReconcileWorkflow:
         )
 
 
-@workflow.defn(name=AGENT_HUMAN_RESUME_WORKFLOW)
-class AgentHumanResumeWorkflow:
-    @workflow.run
-    async def run(self, value: MaterializationInput) -> dict:
-        # HUMAN_REQUIRED proves no prompt SEND has occurred. The materializer atomically claims the
-        # same effect identity before READY revalidation/SEND; activity retry reconciles UNKNOWN.
-        return await workflow.execute_activity(
-            HUMAN_RESUME_ACTIVITY,
-            value,
-            result_type=dict,
-            start_to_close_timeout=timedelta(minutes=10),
-            retry_policy=EFFECT_FENCED_RETRY,
-        )
-
-
 @workflow.defn(name=AGENT_CONTINUE_WORKFLOW)
 class AgentContinueWorkflow:
     @workflow.run
@@ -441,7 +478,6 @@ async def run_worker(
                 CampaignMaterializeWorkflow,
                 MaterializeWorkflow,
                 AgentReconcileWorkflow,
-                AgentHumanResumeWorkflow,
                 AgentContinueWorkflow,
             ],
             activities=[

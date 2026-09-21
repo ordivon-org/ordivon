@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -19,14 +20,14 @@ try:
         MaterializationStanding,
     )
     from sqlite_conversation_materializer import TargetMaterializationObservation
-    from cft_human_session import DurableSessionAuthority
+    from cft_human_session import DurableSessionAuthority, resolve_session
 except ModuleNotFoundError:
     from scripts.conversation_relay_carrier import (
         CarrierMaterializationRequest,
         MaterializationStanding,
     )
     from scripts.sqlite_conversation_materializer import TargetMaterializationObservation
-    from scripts.cft_human_session import DurableSessionAuthority
+    from scripts.cft_human_session import DurableSessionAuthority, resolve_session
 
 CHATGPT_ROOT = "https://chatgpt.com/"
 
@@ -236,3 +237,148 @@ class CftHumanRequiredTarget:
 
     def resume_after_human(self, request: CarrierMaterializationRequest) -> TargetMaterializationObservation:
         raise RuntimeError("durable human resume requires the dedicated CfT authenticated-send target")
+
+
+class CftAuthenticatedSendTarget:
+    """Resume the exact HUMAN_REQUIRED effect through its durable CfT session."""
+
+    PRE_EFFECT_BLOCKED_EXIT = 42
+
+    def __init__(
+        self,
+        *,
+        handoff_path: Path,
+        state_dir: Path,
+        playwright_python: Path,
+        resume_script: Path,
+        wait_stable_seconds: int,
+    ) -> None:
+        self.handoff_path = Path(handoff_path)
+        self.state_dir = Path(state_dir)
+        self.playwright_python = Path(playwright_python)
+        self.resume_script = Path(resume_script)
+        self.wait_stable_seconds = int(wait_stable_seconds)
+
+    def materialize(self, request: CarrierMaterializationRequest) -> TargetMaterializationObservation:
+        raise RuntimeError("authenticated CfT send target is resume-only")
+
+    def reconcile(self, request: CarrierMaterializationRequest) -> TargetMaterializationObservation:
+        raise RuntimeError("authenticated CfT send target does not own ambiguous reconciliation")
+
+    def resume_after_human(
+        self, request: CarrierMaterializationRequest
+    ) -> TargetMaterializationObservation:
+        handoff = load_verified_handoff(self.handoff_path)
+        if (
+            handoff.get("effectId") != request.request_id
+            or handoff.get("requestDigest") != request.request_digest
+        ):
+            raise RuntimeError("durable human resume identity differs from materialization request")
+        session_id = handoff.get("sessionId")
+        if not isinstance(session_id, str):
+            raise RuntimeError("durable human handoff lacks session identity")
+        session = resolve_session(session_id)
+        if session.get("standing") != "READY" or session.get("sessionId") != session_id:
+            raise RuntimeError("durable human session is not READY for resume")
+        cdp_endpoint = session.get("cdpEndpoint")
+        if not isinstance(cdp_endpoint, str):
+            raise RuntimeError("durable human session lacks CDP coordinate")
+        suffix = hashlib.sha256(request.request_id.encode()).hexdigest()[:24]
+        prompt_path = self.state_dir / "prompts" / f"{suffix}.txt"
+        handle_path = self.state_dir / "handles" / f"{suffix}.json"
+        pre_effect_path = self.state_dir / "pre-effect" / f"{suffix}.json"
+        for path in (prompt_path, handle_path, pre_effect_path):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        raw = request.bootstrap_prompt.encode("utf-8")
+        if prompt_path.exists() and prompt_path.read_bytes() != raw:
+            raise RuntimeError("frozen CfT bootstrap bytes changed")
+        if not prompt_path.exists():
+            prompt_path.write_bytes(raw)
+            os.chmod(prompt_path, 0o600)
+        prompt_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+        cmd = [
+            str(self.playwright_python),
+            str(self.resume_script),
+            "--cdp-endpoint",
+            cdp_endpoint,
+            "--session-id",
+            session_id,
+            "--handoff",
+            str(self.handoff_path),
+            "--expected-handoff-digest",
+            handoff["handoffDigest"],
+            "--bootstrap-file",
+            str(prompt_path),
+            "--effect-id",
+            request.request_id,
+            "--prompt-digest",
+            prompt_digest,
+            "--handle-out",
+            str(handle_path),
+            "--pre-effect-out",
+            str(pre_effect_path),
+            "--wait-stable-seconds",
+            str(self.wait_stable_seconds),
+        ]
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=max(self.wait_stable_seconds + 45, 75),
+            check=False,
+        )
+        if proc.returncode == self.PRE_EFFECT_BLOCKED_EXIT:
+            if not pre_effect_path.is_file():
+                return TargetMaterializationObservation(
+                    standing=MaterializationStanding.PRE_EFFECT_FAILED,
+                    evidence_digest="sha256:" + hashlib.sha256(proc.stderr.encode()).hexdigest(),
+                    detail="CfT resume proved pre-effect failure without blocker receipt",
+                )
+            blocker = json.loads(pre_effect_path.read_text(encoding="utf-8"))
+            evidence = blocker.get("evidenceDigest")
+            if not isinstance(evidence, str):
+                raise RuntimeError("CfT pre-effect blocker lacks evidence digest")
+            return TargetMaterializationObservation(
+                standing=MaterializationStanding.PRE_EFFECT_FAILED,
+                evidence_digest=evidence,
+                detail=f"CfT resume blocked before SEND: {blocker.get('blocker')}",
+            )
+        if proc.returncode != 0:
+            return TargetMaterializationObservation(
+                standing=MaterializationStanding.UNKNOWN,
+                detail=f"CfT resume ended without safe completion (rc={proc.returncode})",
+            )
+        if not handle_path.is_file():
+            try:
+                handle = json.loads(proc.stdout.strip().splitlines()[-1])
+            except Exception:
+                return TargetMaterializationObservation(
+                    standing=MaterializationStanding.UNKNOWN,
+                    detail="CfT resume returned without durable handle",
+                )
+        else:
+            handle = json.loads(handle_path.read_text(encoding="utf-8"))
+        if handle.get("effectId") != request.request_id:
+            raise RuntimeError("CfT resume handle belongs to another effect")
+        evidence = handle.get("bindingDigest")
+        if not isinstance(evidence, str) or not evidence.startswith("sha256:"):
+            raise RuntimeError("CfT resume handle lacks binding digest")
+        resource = handle.get("providerResource")
+        if isinstance(resource, str) and resource:
+            return TargetMaterializationObservation(
+                standing=MaterializationStanding.BOUND,
+                provider_conversation_coordinate=resource,
+                evidence_digest=evidence,
+                detail="CfT authenticated bootstrap submitted and provider-bound",
+            )
+        if handle.get("generationStarted") is True and handle.get("composerCleared") is True:
+            return TargetMaterializationObservation(
+                standing=MaterializationStanding.SUBMIT_OBSERVED,
+                evidence_digest=evidence,
+                detail="CfT bootstrap submit observed without stable provider coordinate",
+            )
+        return TargetMaterializationObservation(
+            standing=MaterializationStanding.UNKNOWN,
+            evidence_digest=evidence,
+            detail="CfT resume handle does not prove structural submit",
+        )

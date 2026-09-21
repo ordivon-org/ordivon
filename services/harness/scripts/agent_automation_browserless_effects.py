@@ -30,6 +30,7 @@ try:
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
     from cft_human_session import DurableSessionAuthority, resolve_session
     from cft_human_materialization import (
+        CftAuthenticatedSendTarget,
         CftHumanRequiredTarget,
         prepare_chatgpt_human_session,
     )
@@ -49,6 +50,7 @@ except ModuleNotFoundError:
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
     from scripts.cft_human_session import DurableSessionAuthority, resolve_session
     from scripts.cft_human_materialization import (
+        CftAuthenticatedSendTarget,
         CftHumanRequiredTarget,
         prepare_chatgpt_human_session,
     )
@@ -295,10 +297,45 @@ class BrowserlessEffectAdapter:
                 "materialization": row,
                 "census": census,
             }
+        durable_handoff_path = (
+            self.context._materialization_dir(request)
+            / "durable-human-handoff"
+            / f"{_suffix(request.request_id)}.json"
+        )
+        if durable_handoff_path.is_file():
+            target = CftAuthenticatedSendTarget(
+                handoff_path=durable_handoff_path,
+                state_dir=self.context._materialization_dir(request),
+                playwright_python=self.config.playwright_python,
+                resume_script=Path(__file__).resolve().with_name("playwright_cft_chatgpt_resume.py"),
+                wait_stable_seconds=self.config.wait_stable_seconds,
+            )
+            receipt = SQLiteConversationMaterializer(self.config.ledger, target).resume_human(
+                request
+            )
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.durable-human-resume",
+                "action": "resume-after-durable-human-auth",
+                "agentId": agent_id,
+                "effectId": request.request_id,
+                "receipt": {
+                    "standing": receipt.standing.value,
+                    "providerResource": canonical_chatgpt_resource(
+                        receipt.provider_conversation_coordinate
+                    )
+                    if receipt.provider_conversation_coordinate
+                    else None,
+                    "evidenceDigest": receipt.evidence_digest,
+                    "detail": receipt.detail,
+                    "receiptDigest": receipt.receipt_digest,
+                },
+                "census": campaign_census(spec, self.config.ledger),
+            }
         binding = self.context._current_binding(request)
         if binding is None:
             raise BrowserlessAutomationHold(
-                "human-required materialization has no current Browserless carrier binding"
+                "human-required materialization has no durable CfT handoff or current Browserless carrier binding"
             )
         endpoint = self.context._endpoint_by_id(binding["endpointId"])
         receipt = SQLiteConversationMaterializer(

@@ -819,6 +819,11 @@ class BrowserlessAutomationService:
                     raise BrowserlessAutomationAmbiguous(
                         "Temporal campaign admission outcome is unknown because one child intent is malformed; observe the same campaign workflow identity before any retry"
                     )
+        elif operation == "human-resume":
+            if row.get("disposition") != "updated" or not row.get("workflowId"):
+                raise BrowserlessAutomationAmbiguous(
+                    "Temporal human-resume update outcome is unknown because the receipt is malformed; observe the same materialization workflow identity before retry"
+                )
         elif row.get("disposition") not in {"admitted", "started", "existing"} or not row.get(
             "workflowId"
         ):
