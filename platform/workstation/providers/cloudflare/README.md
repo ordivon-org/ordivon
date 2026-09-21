@@ -71,7 +71,7 @@ sudo ordivon-edge-gc run
 ordivon-edge-lifecycle --check
 ```
 
-The canonical maintained source is `/root/projects/ordivon-workstation-v2/providers/cloudflare` inside Workstation v2. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` may override it explicitly; the historical `ORDIVON_WORLD_REPO` variable remains a compatibility fallback only. Operations owns maintenance/installation of these provider bytes; Cloudflare remains authoritative for provider-native remote state, and consumers retain their own task/semantic authority. Historical release and GC receipts remain private under `/root/backups/ordivon-world/` for continuity.
+The canonical maintained source is `/root/projects/ordivon/platform/workstation/providers/cloudflare` inside the canonical monorepo Workstation owner. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` may override it explicitly; the historical `ORDIVON_WORLD_REPO` variable remains a compatibility fallback only. Operations owns maintenance/installation of these provider bytes; Cloudflare remains authoritative for provider-native remote state, and consumers retain their own task/semantic authority. Historical release and GC receipts remain private under `/root/backups/ordivon-world/` for continuity.
 
 ## Release behavior
 

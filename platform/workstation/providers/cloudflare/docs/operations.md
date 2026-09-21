@@ -105,7 +105,7 @@ Requests outside a five-minute clock window are rejected. Reusing a Request ID w
 
 ```bash
 ordivon-edge health
-ordivon-edge status --repo /root/projects/ordivon-workstation-v2/providers/cloudflare --expected-ref HEAD
+ordivon-edge status --repo /root/projects/ordivon/platform/workstation/providers/cloudflare --expected-ref HEAD
 ordivon-edge capabilities
 ordivon-edge fetch https://developers.cloudflare.com/ --maximum-bytes 262144
 ordivon-edge receipt <receipt-id>
@@ -236,4 +236,4 @@ The installed lifecycle controller reads the installed provider policy at `/usr/
 
 ## Installed release source
 
-`ordivon-edge-release` resolves `/root/projects/ordivon-workstation-v2/providers/cloudflare` by default. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` is the explicit override; legacy `ORDIVON_WORLD_REPO` remains a compatibility fallback and does not confer World ownership.
+`ordivon-edge-release` resolves `/root/projects/ordivon/platform/workstation/providers/cloudflare` by default. `ORDIVON_CLOUDFLARE_PROVIDER_ROOT` is the explicit override; legacy `ORDIVON_WORLD_REPO` remains a compatibility fallback and does not confer World ownership.
