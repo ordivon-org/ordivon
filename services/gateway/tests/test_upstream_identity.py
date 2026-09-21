@@ -114,8 +114,8 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
         async def __aexit__(self, exc_type, exc, tb):
             return False
 
-        async def call_tool(self, name, arguments):
-            observed["call"] = (name, arguments)
+        async def call_tool(self, name, arguments, *, meta=None):
+            observed["call"] = (name, arguments, meta)
             return SimpleNamespace(
                 is_error=False,
                 structured_content={"task": {"task_id": "task:1"}},
@@ -132,6 +132,16 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
         ),
     )
     monkeypatch.setattr(upstream, "Client", FakeClient)
+    monkeypatch.setattr(
+        upstream,
+        "inject_trace_context",
+        lambda meta: meta.update(
+            {
+                "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
+                "tracestate": "vendor=value",
+            }
+        ),
+    )
 
     caller = McpOwnerCaller(
         {
@@ -146,7 +156,14 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
     assert observed["url"] == "https://host.example/mcp"
     assert observed["transport"] is fake_transport
     assert observed["client_kwargs"] == {"mode": "auto", "raise_exceptions": False}
-    assert observed["call"] == ("task.list", {"limit": 1})
+    assert observed["call"] == (
+        "task.list",
+        {"limit": 1},
+        {
+            "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
+            "tracestate": "vendor=value",
+        },
+    )
 
 
 def test_systemd_credential_projection_accepts_provider_native_group_read(
