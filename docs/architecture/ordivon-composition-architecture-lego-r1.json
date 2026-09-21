@@ -1,0 +1,596 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.composition-architecture-lego-plan",
+  "baseline": {
+    "repository": "/root/projects/ordivon",
+    "revision": "a77690a72efaeb12323d01b35131e0da861e2adf",
+    "sourceStateDigest": "sha256:2429a461e901fe0cd03fec2b91d0f785d27ba2af0537d59e793d02cd0d3d060a"
+  },
+  "outcome": "Expose one default public Ordivon Gateway MCP while preserving independent natural-owner authority, standard Agent Skills, optional Agent Plugin packaging, and explicit domain/capability/platform boundaries.",
+  "laws": [
+    "one-default-public-agent-ingress",
+    "one-truth-owner-per-claim",
+    "gateway-is-projection-not-truth",
+    "mcp-is-protocol-not-ontology",
+    "plugin-packages-never-owns",
+    "skill-teaches-never-authorizes",
+    "domain-owns-semantic-success",
+    "capability-owns-reusable-ability",
+    "platform-owns-substrate",
+    "app-owns-experience-composition",
+    "prefer-external-natural-owner",
+    "every-cross-owner-edge-is-explicit"
+  ],
+  "nodes": [
+    {
+      "id": "C00",
+      "wave": "W0",
+      "owner": "root-architecture",
+      "kind": "contract",
+      "responsibility": "Freeze composition taxonomy, authority matrix, public/private MCP law, and cross-owner do-not-own rules.",
+      "files": [
+        "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_R1.md"
+      ],
+      "dependsOn": [],
+      "parallelGroup": "foundation",
+      "acceptance": [
+        "All component types have one-sentence responsibility and truth boundary",
+        "No universal Task/State/Registry/Workflow is introduced",
+        "Gateway is explicitly non-authoritative"
+      ]
+    },
+    {
+      "id": "C01",
+      "wave": "W0",
+      "owner": "root-architecture",
+      "kind": "projection",
+      "responsibility": "Encode the composition node/edge graph as machine-readable architecture data without creating a runtime registry.",
+      "files": [
+        "docs/architecture/ordivon-composition-architecture-lego-r1.json"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "foundation",
+      "acceptance": [
+        "Every edge names producer and consumer",
+        "Every node declares authority/effect boundary",
+        "The file is documentation/projection only"
+      ]
+    },
+    {
+      "id": "C02",
+      "wave": "W0",
+      "owner": "repo-mechanics",
+      "kind": "verification",
+      "responsibility": "Add a small repository validator for the frozen composition contract and wire it into repo:ci.",
+      "files": [
+        "tools/repo/check_composition_architecture.py",
+        "tools/repo/test_composition_architecture.py",
+        "mise.toml"
+      ],
+      "dependsOn": [
+        "C01"
+      ],
+      "parallelGroup": "foundation",
+      "acceptance": [
+        "Reject duplicate node ids and missing dependencies",
+        "Reject forbidden Gateway truth ownership declarations",
+        "repo:ci passes"
+      ]
+    },
+    {
+      "id": "G01",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "protocol-adapter",
+      "responsibility": "Replace owner-facing legacy ClientSession initialization with the MCP v2 first-class Client modern path while retaining explicit owner adapters.",
+      "files": [
+        "services/gateway/src/ordivon_gateway/upstream.py",
+        "services/gateway/tests/test_upstream_identity.py",
+        "services/gateway/tests/test_gateway_service.py"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "gateway",
+      "acceptance": [
+        "Gateway owner calls use mcp.Client",
+        "Modern discovery/call path is exercised",
+        "No Gateway persistence or owner truth is added",
+        "mise run gateway:verify passes"
+      ]
+    },
+    {
+      "id": "G02",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "identity-seam",
+      "responsibility": "Prove bearer-file and Cloudflare service-identity headers survive the new MCP client path without flattening semantic caller identity.",
+      "files": [
+        "services/gateway/src/ordivon_gateway/upstream.py",
+        "services/gateway/tests/test_upstream_identity.py"
+      ],
+      "dependsOn": [
+        "G01"
+      ],
+      "parallelGroup": "gateway",
+      "acceptance": [
+        "Bearer and CF service-token modes remain mutually exclusive",
+        "Secrets remain file-referenced and are not projected",
+        "Auth failure is fail-closed"
+      ]
+    },
+    {
+      "id": "G03",
+      "wave": "W1",
+      "owner": "runtime",
+      "kind": "protocol-conformance",
+      "responsibility": "Repair Runtime MCP tool output-schema interoperability so Gateway can remove the Runtime validation bypass.",
+      "files": [
+        "services/runtime/crates/ordivon-runtime-mcp/src/server/tools.rs",
+        "services/runtime/crates/ordivon-runtime-mcp/src/server/tests.rs",
+        "services/gateway/src/ordivon_gateway/upstream.py"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "runtime",
+      "acceptance": [
+        "Python MCP v2 client accepts Runtime tools/list and tool results with normal validation",
+        "_RuntimeCompatibilitySession is deleted",
+        "mise run runtime:verify and mise run gateway:verify pass"
+      ]
+    },
+    {
+      "id": "G04",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "routing",
+      "responsibility": "Rename and constrain the static capability declaration surface so it is visibly a route table, not a mutable capability registry.",
+      "files": [
+        "services/gateway/src/ordivon_gateway/registry.py",
+        "services/gateway/src/ordivon_gateway/routes.py",
+        "services/gateway/src/ordivon_gateway/service.py",
+        "services/gateway/tests/test_capability_projection.py"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "gateway",
+      "acceptance": [
+        "No mutable capability database exists",
+        "Route declarations select natural owners only",
+        "Capability availability remains owner-derived"
+      ]
+    },
+    {
+      "id": "G05",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "public-abi",
+      "responsibility": "Remove or explicitly quarantine duplicate northbound discovery tools after a repository consumer census, leaving one canonical Ordivon capability-description path.",
+      "files": [
+        "services/gateway/src/ordivon_gateway/mcp_server.py",
+        "services/gateway/tests/test_gateway_service.py",
+        "docs/architecture/GATEWAY_B02_CAPABILITY_PROJECTION_ACCEPTANCE_20260921.md"
+      ],
+      "dependsOn": [
+        "G01",
+        "G04"
+      ],
+      "parallelGroup": "gateway",
+      "acceptance": [
+        "No two canonical tools have identical semantics",
+        "Any retained compatibility alias is documented as compatibility debt",
+        "Gateway ABI remains owner-neutral"
+      ]
+    },
+    {
+      "id": "E01",
+      "wave": "W2",
+      "owner": "workstation-cloudflare",
+      "kind": "external-plan",
+      "responsibility": "Generate and review the fixed-root Cloudflare/OpenTofu plan for Gateway public ingress and Windows Runtime service identity.",
+      "files": [
+        "platform/workstation/tofu/agent-birth-handoff/main.tf",
+        "platform/workstation/providers/cloudflare/scripts/ordivon_cloudflare_tofu_handoff.py"
+      ],
+      "dependsOn": [
+        "G01",
+        "G02",
+        "G03"
+      ],
+      "parallelGroup": "edge",
+      "acceptance": [
+        "eligible_for_apply=true",
+        "No delete/replace",
+        "No unexpected mutation",
+        "Gateway Access OAuth/DCR and Windows service-token census pass"
+      ]
+    },
+    {
+      "id": "E02",
+      "wave": "W2",
+      "owner": "workstation-cloudflare",
+      "kind": "external-effect",
+      "responsibility": "Apply the exact reviewed Cloudflare plan and converge the Windows Runtime Service Auth policy and private Gateway machine credentials.",
+      "files": [
+        "provider state and /etc/ordivon/gateway node-local credentials"
+      ],
+      "dependsOn": [
+        "E01"
+      ],
+      "parallelGroup": "edge-serial",
+      "acceptance": [
+        "Post-apply plan has zero drift",
+        "Exactly one compatible Service Auth policy exists",
+        "Credential files are root-owned mode 0600",
+        "No secret bytes enter Git or receipts"
+      ]
+    },
+    {
+      "id": "E03",
+      "wave": "W2",
+      "owner": "gateway+workstation",
+      "kind": "deployment",
+      "responsibility": "Install the Gateway public Access drop-in and Windows service-identity drop-in against the exact provider outputs.",
+      "files": [
+        "services/gateway/systemd/ordivon-gateway.service.d/20-public-access.example.conf",
+        "services/gateway/systemd/ordivon-gateway.service.d/30-windows-service-identity.example.conf",
+        "services/gateway/packaging/enable_windows_service_identity.sh"
+      ],
+      "dependsOn": [
+        "E02"
+      ],
+      "parallelGroup": "edge-serial",
+      "acceptance": [
+        "Gateway remains loopback-bound",
+        "Cloudflare Access assertion verification is enabled",
+        "Gateway health is green",
+        "Windows owner is configured through service identity"
+      ]
+    },
+    {
+      "id": "E04",
+      "wave": "W2",
+      "owner": "gateway",
+      "kind": "live-e2e",
+      "responsibility": "Prove the public Gateway end-to-end through Cloudflare while reading/writing no Gateway-owned semantic state.",
+      "files": [
+        "services/gateway/tests or acceptance scripts",
+        "docs/architecture/GATEWAY_C02_ACCEPTANCE_20260921.md"
+      ],
+      "dependsOn": [
+        "E03",
+        "G04",
+        "G05"
+      ],
+      "parallelGroup": "edge-serial",
+      "acceptance": [
+        "Unauthenticated MCP is stopped at Access",
+        "Authenticated system/capability discovery succeeds",
+        "Linux execution round-trip succeeds",
+        "Host continuity read succeeds",
+        "Windows capability is configured and a bounded Windows execution/read path succeeds"
+      ]
+    },
+    {
+      "id": "E05",
+      "wave": "W2",
+      "owner": "gateway",
+      "kind": "acceptance",
+      "responsibility": "Freeze C02 public-cutover evidence, rollback coordinates, owner identities, and non-claims.",
+      "files": [
+        "docs/architecture/GATEWAY_C02_ACCEPTANCE_20260921.md",
+        "docs/architecture/gateway-c02-acceptance-20260921.json"
+      ],
+      "dependsOn": [
+        "E04"
+      ],
+      "parallelGroup": "edge-serial",
+      "acceptance": [
+        "Public Gateway is accepted as the default northbound MCP",
+        "Direct owner MCPs remain internal/operator surfaces",
+        "No claim is made that Gateway owns Runtime/Host/Harness truth"
+      ]
+    },
+    {
+      "id": "P01",
+      "wave": "W3",
+      "owner": "meta-next-plugin",
+      "kind": "portable-package",
+      "responsibility": "Change the portable Ordivon Agent Plugin from direct Runtime+Host MCP endpoints to exactly one Gateway MCP endpoint.",
+      "files": [
+        "meta/next/plugins/ordivon-control-plane/plugin.json",
+        "meta/next/plugins/ordivon-control-plane/mcp.json"
+      ],
+      "dependsOn": [
+        "E05"
+      ],
+      "parallelGroup": "plugin",
+      "acceptance": [
+        "mcp.json contains one Ordivon Gateway server",
+        "No Runtime/Host public endpoint remains in the default package",
+        "No credentials or node-local tool bindings are added"
+      ]
+    },
+    {
+      "id": "P02",
+      "wave": "W3",
+      "owner": "meta-next-plugin",
+      "kind": "package-verification",
+      "responsibility": "Update materialization/conformance tests so MCP-only, selected-Skill, and all-Skills compatibility releases all preserve the one-Gateway contract.",
+      "files": [
+        "meta/next/scripts/materialize_agent_plugin.py",
+        "meta/next/tests/test_agent_plugin_materialization.py",
+        "platform/skills/tests/test_agent_plugins_conformance.py"
+      ],
+      "dependsOn": [
+        "P01"
+      ],
+      "parallelGroup": "plugin",
+      "acceptance": [
+        "Selected Skills remain copied from canonical .agents/skills only",
+        "Two identical materializations are byte-stable",
+        "Portable package has no private Ordivon component type"
+      ]
+    },
+    {
+      "id": "P03",
+      "wave": "W3",
+      "owner": "plugin-consumer",
+      "kind": "consumer-e2e",
+      "responsibility": "Run a real consumer installation/authentication/capability call through the Plugin and Gateway before retiring direct public owner references.",
+      "files": [
+        "acceptance evidence only; client-native installation state remains external"
+      ],
+      "dependsOn": [
+        "P02"
+      ],
+      "parallelGroup": "plugin",
+      "acceptance": [
+        "Plugin installs/enables in the target client",
+        "OAuth completes through the Gateway path",
+        "A Gateway capability call succeeds",
+        "Selected Skill activation is separately proven when that release includes one"
+      ]
+    },
+    {
+      "id": "P04",
+      "wave": "W3",
+      "owner": "distribution+workstation",
+      "kind": "retirement",
+      "responsibility": "Census remaining consumers of public Runtime/Host MCP endpoints and retire only public default exposure that has no live consumer; preserve operator/internal recovery paths.",
+      "files": [
+        "Cloudflare/public route configuration and compatibility docs only after census"
+      ],
+      "dependsOn": [
+        "P03"
+      ],
+      "parallelGroup": "retirement",
+      "acceptance": [
+        "No live consumer is orphaned",
+        "Default Agent distribution points only to Gateway",
+        "Internal/operator direct owner access remains explicitly documented"
+      ]
+    },
+    {
+      "id": "S01",
+      "wave": "W4",
+      "owner": "skills",
+      "kind": "scope-contract",
+      "responsibility": "Freeze the correct Skill visibility contract: global discovery excludes project Skills; scoped discovery for ordivon-next includes method-router and exact project Skills.",
+      "files": [
+        "platform/skills/tests/test_skills_mcp_r3.py",
+        "platform/skills/tests/test_skill_catalog_r2.py"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "skills",
+      "acceptance": [
+        "Unscoped method-router is absent by design",
+        "workspaceId=ordivon-next resolves method-router",
+        "Project trust/snapshot fences remain intact"
+      ]
+    },
+    {
+      "id": "S02",
+      "wave": "W4",
+      "owner": "skills+plugin",
+      "kind": "consumer-matrix",
+      "responsibility": "Prove three independent Skill consumption modes and record which consumers still require the remote bridge.",
+      "files": [
+        "platform/skills/docs/skills-standards-alignment.md",
+        "meta/next/docs/AGENT_PLUGINS_ADOPTION_R1.md",
+        "acceptance evidence"
+      ],
+      "dependsOn": [
+        "S01",
+        "P02"
+      ],
+      "parallelGroup": "skills",
+      "acceptance": [
+        "Direct/native .agents/skills path tested",
+        "Plugin-selected Skill path tested",
+        "Remote Skills MCP path tested only where needed",
+        "No path becomes a second Skill authority"
+      ]
+    },
+    {
+      "id": "S03",
+      "wave": "W4",
+      "owner": "skills",
+      "kind": "deprecation",
+      "responsibility": "Define per-consumer removal gates for the Skills MCP compatibility bridge instead of expanding it into a permanent registry.",
+      "files": [
+        "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+      ],
+      "dependsOn": [
+        "S02"
+      ],
+      "parallelGroup": "skills",
+      "acceptance": [
+        "Every retained bridge consumer has a named client gap",
+        "No new registry/marketplace/workflow semantics are added",
+        "Bridge removal criteria are explicit"
+      ]
+    },
+    {
+      "id": "M01",
+      "wave": "W5",
+      "owner": "repo-mechanics",
+      "kind": "owner-graph",
+      "responsibility": "Register Gateway, Web, and Preservation as explicit monorepo owners in root task/config/CODEOWNERS/affected-owner mechanics.",
+      "files": [
+        "mise.toml",
+        ".github/CODEOWNERS",
+        ".github/workflows/ci.yml",
+        "tools/repo/affected_owners.py",
+        "tools/repo/test_affected_owners.py"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "repo",
+      "acceptance": [
+        "Changes under services/gateway select gateway:verify",
+        "Changes under apps/web select a Web verify task",
+        "Changes under capabilities/preservation select a Preservation verify task",
+        "Cross-cutting paths still select all owners",
+        "mise run repo:ci passes"
+      ]
+    },
+    {
+      "id": "B01",
+      "wave": "W5",
+      "owner": "repo-mechanics",
+      "kind": "boundary-enforcement",
+      "responsibility": "Add narrow architecture checks for the composition seams actually frozen in C00/C01 instead of a generic cross-language dependency framework.",
+      "files": [
+        "tools/repo/check_composition_architecture.py",
+        "tools/repo/test_composition_architecture.py"
+      ],
+      "dependsOn": [
+        "C02",
+        "M01",
+        "P01"
+      ],
+      "parallelGroup": "repo",
+      "acceptance": [
+        "Default Plugin cannot reference direct Runtime/Host public MCP endpoints",
+        "Gateway route declarations cannot claim domain semantic authority",
+        "Node-local Workstation tool paths cannot enter portable Plugin metadata"
+      ]
+    },
+    {
+      "id": "O01",
+      "wave": "W6_ON_DEMAND",
+      "owner": "gateway+runtime",
+      "kind": "experiment",
+      "responsibility": "Shadow-test MCP Tasks as a standards-native projection over Runtime Jobs only when target client support is sufficient.",
+      "files": [
+        "experiment/evidence only until promotion"
+      ],
+      "dependsOn": [
+        "E05"
+      ],
+      "parallelGroup": "on-demand",
+      "acceptance": [
+        "Runtime Job remains canonical",
+        "No Gateway Task database",
+        "Promotion requires real client interoperability evidence"
+      ]
+    },
+    {
+      "id": "O02",
+      "wave": "W6_ON_DEMAND",
+      "owner": "gateway+owners",
+      "kind": "experiment",
+      "responsibility": "Classify stable read-only projections for possible MCP Resource exposure; do not convert tools mechanically.",
+      "files": [
+        "experiment/evidence only until promotion"
+      ],
+      "dependsOn": [
+        "E05"
+      ],
+      "parallelGroup": "on-demand",
+      "acceptance": [
+        "Each Resource candidate has stable addressability and read-only semantics",
+        "No duplicate source of truth is created"
+      ]
+    },
+    {
+      "id": "O03",
+      "wave": "W6_ON_DEMAND",
+      "owner": "app+gateway",
+      "kind": "experiment",
+      "responsibility": "Use MCP Apps only for agent-embedded UI when a concrete interaction requires it; keep apps/web as the full human product surface.",
+      "files": [
+        "future consumer-specific implementation"
+      ],
+      "dependsOn": [
+        "E05"
+      ],
+      "parallelGroup": "on-demand",
+      "acceptance": [
+        "Embedded UI use case is concrete",
+        "Web authority is not duplicated"
+      ]
+    },
+    {
+      "id": "O04",
+      "wave": "W6_ON_DEMAND",
+      "owner": "agent-interoperability",
+      "kind": "experiment",
+      "responsibility": "Adopt A2A only when Ordivon must interoperate with an independently owned peer agent; never substitute it for Host continuity.",
+      "files": [
+        "future peer-agent adapter"
+      ],
+      "dependsOn": [
+        "E05"
+      ],
+      "parallelGroup": "on-demand",
+      "acceptance": [
+        "Peer agent is independently owned",
+        "A2A solves an actual inter-agent boundary",
+        "Host remains internal continuity owner"
+      ]
+    }
+  ],
+  "criticalPath": [
+    "C00",
+    "G01",
+    "G02",
+    "G03",
+    "G04",
+    "G05",
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "P01",
+    "P02",
+    "P03",
+    "P04"
+  ],
+  "initialParallelSet": [
+    "C00",
+    "G01-after-C00",
+    "G03-after-C00",
+    "S01-after-C00",
+    "M01-after-C00"
+  ],
+  "doNotBuild": [
+    "universal-capability-registry",
+    "gateway-database",
+    "gateway-task-model",
+    "gateway-workflow-engine",
+    "rich-private-plugin-schema",
+    "skill-authorization-model",
+    "root-shared-dependency-workspace",
+    "agent-service-2"
+  ]
+}
