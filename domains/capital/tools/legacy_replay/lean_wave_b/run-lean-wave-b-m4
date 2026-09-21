@@ -7,19 +7,19 @@ out="$repo/.artifacts/wave-b-m4/results"
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 mkdir -p "$repo/.artifacts/wave-b-m3"
 "$repo/tools/legacy_replay/lean_wave_b/fetch-nasdaq-wave-b-m3" > "$repo/.artifacts/wave-b-m3/fetch-manifest-output.json"
-DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
+DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/tools/legacy_replay/lean_wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
 rm -rf "$out" && mkdir -p "$out"
 export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
 export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["executionCashBufferWeight"])' "$repo/config/execution_feasibility.json")"
 export ORDIVON_CAPITAL_MARKET_BACKTEST_START="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["startDate"])' "$repo/config/historical_validation_data.json")"
 export ORDIVON_CAPITAL_MARKET_BACKTEST_END="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["endDate"])' "$repo/config/historical_validation_data.json")"
 export ORDIVON_CAPITAL_MARKET_FIX_INTENT_ENABLED=true
-export ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY="$repo/wave_b/algorithm/bin/Release/net10.0"
+export ORDIVON_CAPITAL_MARKET_FIX_ASSEMBLY_DIRECTORY="$repo/tools/legacy_replay/lean_wave_b/algorithm/bin/Release/net10.0"
 (
  cd "$lean/Launcher/bin/Release"
  ./QuantConnect.Lean.Launcher --config "$lean/Launcher/config.json" --environment backtesting \
   --algorithm-type-name OrdivonMarketCapital.MarketCapitalValidationAlgorithm --algorithm-language CSharp \
-  --algorithm-location "$repo/wave_b/algorithm/bin/Release/net10.0/Ordivon.MarketCapital.LeanValidation.dll" \
+  --algorithm-location "$repo/tools/legacy_replay/lean_wave_b/algorithm/bin/Release/net10.0/Ordivon.MarketCapital.LeanValidation.dll" \
   --data-folder "$repo/.artifacts/wave-b-m3/data" --results-destination-folder "$out" \
   --transaction-log "$out/transactions.csv" --close-automatically true > "$out/lean-console.log" 2>&1
 )

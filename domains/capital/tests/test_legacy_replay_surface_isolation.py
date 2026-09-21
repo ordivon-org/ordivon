@@ -58,3 +58,25 @@ def test_current_scripts_do_not_advertise_legacy_market_capital_replay_identity(
         if "market-capital:tigerbeetle:" in text:
             offenders.append(path.name)
     assert offenders == []
+
+def test_wave_b_algorithm_payload_is_isolated_but_frozen_fixture_path_is_retained():
+    relocations = REGISTRY["replayPayloadRelocations"]
+    assert len(relocations) == 3
+    for item in relocations:
+        assert item["oldPath"].startswith("wave_b/algorithm/")
+        assert not (ROOT / item["oldPath"]).exists()
+        assert (ROOT / item["currentReplayPath"]).is_file()
+
+    retained = REGISTRY["retainedHistoricalPaths"]
+    assert retained == [{
+        "path": "wave_b/fixtures/wave_a_target_portfolio.json",
+        "reason": "frozen provenance/regression identity remains intentionally addressable at its historical path",
+    }]
+    assert (ROOT / retained[0]["path"]).is_file()
+
+    top_level_wave_b_files = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "wave_b").rglob("*")
+        if path.is_file()
+    }
+    assert top_level_wave_b_files == {"wave_b/fixtures/wave_a_target_portfolio.json"}

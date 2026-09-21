@@ -62,5 +62,25 @@
       "oldPath": "scripts/run-tigerbeetle-reservation-resolution-smoke-r31",
       "currentReplayPath": "tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-reservation-resolution-smoke-r31"
     }
+  ],
+  "replayPayloadRelocations": [
+    {
+      "oldPath": "wave_b/algorithm/MarketCapitalValidationAlgorithm.cs",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/algorithm/MarketCapitalValidationAlgorithm.cs"
+    },
+    {
+      "oldPath": "wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj"
+    },
+    {
+      "oldPath": "wave_b/algorithm/packages.lock.json",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/algorithm/packages.lock.json"
+    }
+  ],
+  "retainedHistoricalPaths": [
+    {
+      "path": "wave_b/fixtures/wave_a_target_portfolio.json",
+      "reason": "frozen provenance/regression identity remains intentionally addressable at its historical path"
+    }
   ]
 }

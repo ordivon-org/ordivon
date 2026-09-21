@@ -13,3 +13,5 @@ wave_b/algorithm/obj/
 .artifacts/
 tools/*/bin/
 tools/*/obj/
+tools/legacy_replay/lean_wave_b/algorithm/bin/
+tools/legacy_replay/lean_wave_b/algorithm/obj/
