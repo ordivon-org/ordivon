@@ -14,7 +14,8 @@
 | Game standalone carrier | /root/projects/ordivon-game physically absent; Git/non-Git recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Harness | monorepo-native post-Skills owner; validated Browser Security donor composed at 0fe2187b, canonical tree 47f7b476 | ACCEPTED_SOURCE_ONLY |
 | Skills bridge | canonical platform/skills owner; source/package/artifact boundaries accepted; live cutover recorded separately | ACCEPTED_SOURCE_ONLY |
-| Host | exact current source tree; legacy rewritten import bridged to original a95a8e11 identity | ACCEPTED_SOURCE_ONLY |
+| Host | canonical monorepo owner active at services/host; legacy source identity bridged, Friction Observatory WIP migrated, live immutable release source-independent, and PostgreSQL Host Doctor healthy after source retirement | ACCEPTED_SOURCE_ONLY |
+| Host standalone carrier | /root/projects/ordivon-host-v2 physically absent; 29-ref Git restore, dirty Friction WIP recovery/migration, and post-delete live Host history readback proven | RETIRED_ARCHIVED |
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | converged current source at `af67ed76` after `d3613c2e` supersession; repeatable identity-preserving update accepted | ACCEPTED_SOURCE_ONLY |
 | Media | canonical monorepo owner active at capabilities/media; Creative Library and later forward composition remain monorepo-owned | ACCEPTED_SOURCE_ONLY |
@@ -38,5 +39,6 @@
 | Effect | Binding | Standing |
 | --- | --- | --- |
 | Skills MCP live | platform/skills release 60ed225b; Python 3.14.7 owner env; project binding /root/projects/ordivon/meta/next; real search/resolve/read fence acceptance | ACCEPTED_LIVE |
+| Host MCP live | immutable release /opt/ordivon/host-v2/releases/a95a8e112edfbe85582ff8e6fa25bb268038ea48; PostgreSQL schema 5 continuity authority; source carrier absent; history Doctor healthy | ACCEPTED_LIVE |
 
 These standings cover source/history relocation and owner-native behavior only. Deployment, external effects, durable state, scientific standing, and old-repository retirement require separate evidence and gates.

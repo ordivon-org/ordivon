@@ -5,19 +5,24 @@
   "legacyLocator": "/root/projects/ordivon-host-v2",
   "archivedSource": {
     "revision": "a95a8e112edfbe85582ff8e6fa25bb268038ea48",
-    "standing": "RETIREMENT_CANDIDATE",
+    "standing": "RETIRED_ARCHIVED",
     "preserveGitHistoryForHistoricalLookup": false,
     "recoveryMode": "all-refs-bundle-plus-wip-capsule"
   },
   "allowedReferenceClasses": [
     {
       "id": "migration-acceptance-and-receipts",
-      "globs": ["docs/migration/acceptance/**", "docs/migration/receipts/**"],
+      "globs": [
+        "docs/migration/acceptance/**",
+        "docs/migration/receipts/**"
+      ],
       "reason": "Migration acceptance and source-history receipts retain the exact historical standalone locator."
     },
     {
       "id": "historical-next-migration-records",
-      "globs": ["meta/next/migrations/records/host-*.md"],
+      "globs": [
+        "meta/next/migrations/records/host-*.md"
+      ],
       "reason": "Dated Host migration records preserve repository topology observed before monorepo retirement."
     },
     {
@@ -30,7 +35,10 @@
     },
     {
       "id": "frozen-production-topology",
-      "globs": ["capabilities/media/productions/*/source/**", "capabilities/media/productions/*/render/**"],
+      "globs": [
+        "capabilities/media/productions/*/source/**",
+        "capabilities/media/productions/*/render/**"
+      ],
       "reason": "Creation-time system-topology carriers remain immutable historical evidence."
     }
   ],
