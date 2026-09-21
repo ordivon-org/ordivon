@@ -1,6 +1,7 @@
 monorepo_root = true
 
 [task_config]
+cascade = true
 shell = "bash -c"
 
 [monorepo]
