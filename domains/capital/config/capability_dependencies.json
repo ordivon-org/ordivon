@@ -46,7 +46,10 @@
         "mlflow": "NO_ACTIVE_EXPERIMENT_TRACKING_CONTRACT",
         "pandera": "SINGLE_BOUNDED_SCHEMA_REPLACED_AFTER_400_CASE_ZERO_MISMATCH_DIFFERENTIAL",
         "pandas": "NO_REMAINING_DIRECT_CONSUMER"
-      }
+      },
+      "parquetQualificationContract": "contracts/parquet-materialization-readback-v1.json",
+      "parquetOwnerStanding": "PYARROW_25_0_1_REQUALIFIED_R16",
+      "independentReadbackOwnerStanding": "DUCKDB_1_5_5_REQUALIFIED_R16"
     }
   },
   "kind": "ordivon.capital.capability-dependencies",

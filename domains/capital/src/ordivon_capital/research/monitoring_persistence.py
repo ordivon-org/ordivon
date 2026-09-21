@@ -164,6 +164,26 @@ def monitoring_table(evidence: dict[str, Any]) -> pa.Table:
         raise MonitoringPersistenceError("monitoring Arrow schema validation failed") from exc
 
 
+
+
+def _duckdb_version(*, duckdb_binary: Path) -> str:
+    proc = subprocess.run(
+        [str(duckdb_binary), "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=15,
+    )
+    if proc.returncode != 0:
+        raise MonitoringPersistenceError(
+            f"DuckDB version probe failed: {proc.stderr.strip()}"
+        )
+    first = proc.stdout.strip().split()
+    if not first or not first[0].startswith("v"):
+        raise MonitoringPersistenceError("DuckDB version probe returned unexpected output")
+    return first[0].removeprefix("v")
+
+
 def _duckdb_readback(*, duckdb_binary: Path, parquet_path: Path) -> dict[str, Any]:
     if not duckdb_binary.is_file():
         raise MonitoringPersistenceError(f"DuckDB binary unavailable: {duckdb_binary}")
@@ -243,8 +263,8 @@ def persist_monitoring_evidence(
         ],
         "duckdbReadback": readback,
         "validationImplementation": "LOCAL_BOUNDED_ROW_VALIDATION",
-        "storageImplementation": "PyArrow 25.0.1 / Parquet",
-        "independentReadbackImplementation": "DuckDB 1.5.5",
+        "storageImplementation": f"PyArrow {pa.__version__} / Parquet",
+        "independentReadbackImplementation": f"DuckDB {_duckdb_version(duckdb_binary=duckdb_binary)}",
         "experimentTrackingClaimed": False,
         "lineageAuthorityClaimed": False,
     }

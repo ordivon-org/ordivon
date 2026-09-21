@@ -426,3 +426,24 @@ def test_removed_monitoring_frameworks_cannot_reenter_current_dependency_owner_s
     assert parquet["externalOwnerAdmitted"] is True
     readback = quals["independent-parquet-readback"]
     assert readback["externalOwnerAdmitted"] is True
+
+def test_parquet_and_duckdb_owners_are_requalified_by_exact_cross_engine_contract():
+    owners = {row["id"]: row for row in CENSUS["standardsAndOwners"]}
+    parquet = owners["parquet-materialization"]
+    duckdb = owners["independent-parquet-readback"]
+    assert parquet["ownerClass"] == "IMPLEMENTATION_OWNER"
+    assert parquet["currentStanding"] == "REQUALIFIED_R16_ADMITTED_FOR_TYPED_COLUMNAR_MATERIALIZATION"
+    assert parquet["python3147ExecutableQualification"] == "PASS"
+    assert duckdb["ownerClass"] == "IMPLEMENTATION_OWNER"
+    assert duckdb["currentStanding"] == "REQUALIFIED_R16_ADMITTED_FOR_INDEPENDENT_PARQUET_READBACK_AND_BOUNDED_ANALYTICAL_ASSERTIONS"
+
+    quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
+    materialize = quals["typed-parquet-materialization"]
+    readback = quals["independent-parquet-readback"]
+    assert materialize["externalOwnerAdmitted"] is True
+    assert materialize["evidence"]["producerConsumerRoundTrip"] == "PASS_PYARROW_TO_DUCKDB"
+    assert materialize["evidence"]["reverseRoundTrip"] == "PASS_DUCKDB_TO_PYARROW"
+    assert materialize["localBaseline"]["sameEnginePyarrowReadbackContractEquivalent"] is False
+    assert readback["externalOwnerAdmitted"] is True
+    assert readback["evidence"]["independentImplementation"] is True
+    assert readback["localBaseline"]["sameEnginePyarrowReadbackContractEquivalent"] is False

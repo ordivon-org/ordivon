@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+"$repo/scripts/run-capability-python" "$repo/tools/qualification/parquet_duckdb_owner_r16.py"

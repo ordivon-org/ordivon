@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research.parquet-materialization-readback-contract",
+  "standing": "ACTIVE_EXACT_CONTRACT",
+  "materialization": {
+    "format": "Apache Parquet",
+    "producer": "PyArrow",
+    "requiredSemantics": [
+      "explicit 11-field typed schema",
+      "UTF-8 string round-trip",
+      "signed int64 round-trip including values above 2^53",
+      "float64 round-trip",
+      "nullable float64 preservation",
+      "incompatible typed input fails closed"
+    ],
+    "nonRequirements": [
+      "byte-identical Parquet files across implementations",
+      "general lakehouse catalog",
+      "distributed storage",
+      "custom Parquet encoder"
+    ]
+  },
+  "independentReadback": {
+    "consumer": "DuckDB",
+    "independenceRule": "readback implementation must not be the same Parquet implementation that emitted the file",
+    "requiredSemantics": [
+      "read emitted Parquet independently",
+      "bounded SQL row-count/min/max assertions",
+      "preserve monitored values used by current evidence",
+      "truncated or structurally invalid Parquet fails closed"
+    ]
+  },
+  "ownerAdmissionRule": "retain external owners only while latest-stable executable qualification passes and no smaller contract-equivalent local implementation can preserve both Parquet conformance and independent-engine readback",
+  "localBaselineRule": "Python-only arithmetic or a same-engine PyArrow self-readback is not contract-equivalent because it does not independently parse Parquet; a local Parquet implementation would duplicate binary-format semantics and is therefore not a credible bounded baseline",
+  "externalFinancialWritesAllowed": false
+}
