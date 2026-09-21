@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-invariant-manifest",
+  "truthRole": "refactor-fence-not-runtime-state",
+  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "invariants": [
+    {
+      "id": "I01",
+      "name": "WorkspaceLineage",
+      "owner": "Runtime Workspace",
+      "rule": "Opening/base sourceRevision and currentHeadRevision are distinct durable/projection facts; reconnect must not reconstruct them from caller memory.",
+      "negative": "Current HEAD must not overwrite opening lineage.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::workspace_get_distinguishes_opening_revision_from_current_head",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::workspace_projection_output_schema_distinguishes_lineage_from_current_head"
+      ]
+    },
+    {
+      "id": "I02",
+      "name": "WorkspaceSourceStateCAS",
+      "owner": "Runtime Workspace",
+      "rule": "Mutating or closing a Workspace may be guarded by exact source-state identity; active committed execution blocks unsafe mutation/close.",
+      "negative": "Stale state must not be removed or mutated as if current.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_blocks_workspace_mutation_while_source_state_is_committed_by_active_job",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::workspace_close_tracks_git_authority_not_source_path_text"
+      ]
+    },
+    {
+      "id": "I03",
+      "name": "ClientRequestIdentityLaw",
+      "owner": "Runtime Job",
+      "rule": "clientRequestId obeys one canonical bounded identity law across public Tools.",
+      "negative": "Whitespace/control/invalid identity variants must not create ambiguous Jobs.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::client_request_id_law_is_unicode_scalar_bounded_trimmed_and_control_free",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::every_client_request_id_tool_schema_projects_one_runtime_identity_law"
+      ]
+    },
+    {
+      "id": "I04",
+      "name": "ExactReplayBeforeWorldReevaluation",
+      "owner": "Runtime Job",
+      "rule": "Exact replay returns the committed historical Job before consulting current mutable world/authority.",
+      "negative": "Replay must never become redispatch or reinterpretation under current policy.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::idempotent_replay_returns_one_job_and_conflict_rejects_change",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_replays_same_request_after_effect_changes_or_workspace_closure",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::deployment_fence_blocks_only_new_admission_and_preserves_exact_replay"
+      ]
+    },
+    {
+      "id": "I05",
+      "name": "JobAttemptSeparation",
+      "owner": "Runtime Job/Attempt",
+      "rule": "Job is logical durable execution identity; Attempt is physical realization and may be reconstructed without inventing a new Job.",
+      "negative": "Physical restart must not create a second logical operation.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::simultaneous_same_key_creates_one_job_and_one_attempt",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+      ]
+    },
+    {
+      "id": "I06",
+      "name": "DurableCapacityReservation",
+      "owner": "Runtime Reservation",
+      "rule": "Global and Workspace execution capacity are represented by durable reservations and cannot be overbooked.",
+      "negative": "Restart or concurrent admission must not reset/overbook capacity.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::simultaneous_admissions_cannot_overbook_last_global_slot",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::global_execution_capacity_reports_cross_workspace_usage",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::active_workspace_job_lookup_tracks_reservations_and_resolution"
+      ]
+    },
+    {
+      "id": "I07",
+      "name": "NoHiddenQueue",
+      "owner": "Runtime Admission",
+      "rule": "Runtime admits now or rejects now; rejected capacity does not create deferred hidden execution intent.",
+      "negative": "Capacity rejection must not enqueue work or later dispatch without a new/committed Job.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_failed_capacity_admission_discards_prepared_state_and_rechecks_current_authority",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::workspace_capacity_failure_guides_observe_then_reassess"
+      ]
+    },
+    {
+      "id": "I08",
+      "name": "CancellationDurability",
+      "owner": "Runtime Job/Attempt",
+      "rule": "Cancellation intent is durable, stops the owned physical process tree, and reconciles terminal truth.",
+      "negative": "Local caller cancellation must not be mistaken for physical termination.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_cancel_intent_survives_runtime_reconstruction_and_cleans_cgroup",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::cancel_commit_fault_classifies_durable_and_uncommitted_outcomes"
+      ]
+    },
+    {
+      "id": "I09",
+      "name": "TerminalCommitAtomicity",
+      "owner": "Runtime Job/Reservation",
+      "rule": "Terminalization is atomic/idempotent and releases capacity only when terminal truth is durable.",
+      "negative": "Incomplete evidence must not release capacity or guess success.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::terminal_commit_is_atomic_idempotent_and_releases_capacity",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::incomplete_terminal_evidence_is_not_guessed_or_released",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_failed_unit_is_released_only_after_durable_terminal_commit"
+      ]
+    },
+    {
+      "id": "I10",
+      "name": "ArtifactIdentity",
+      "owner": "Runtime Artifact",
+      "rule": "Artifacts are bounded, digest-bound, and attributable to exact Job/Attempt truth.",
+      "negative": "Artifact bytes must not be silently substituted or treated as semantic completion.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::terminal_evidence_is_a_durable_artifact_with_native_binding",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::job_observation_serializes_discoverable_artifacts"
+      ]
+    },
+    {
+      "id": "I11",
+      "name": "AmbiguityNoBlindRedispatch",
+      "owner": "Runtime Recovery",
+      "rule": "Ambiguous/lost/orphaned physical state remains explicit until evidence permits convergence.",
+      "negative": "UNKNOWN must never become permission to rerun or success.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::orphaned_terminal_keeps_capacity_reserved",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::absent_orphan_can_converge_to_lost_and_release_capacity"
+      ]
+    },
+    {
+      "id": "I12",
+      "name": "ProviderCommitment",
+      "owner": "Runtime Execution Provider",
+      "rule": "New Jobs freeze the exact provider realization identity needed for execution/recovery.",
+      "negative": "Provider drift must not silently realize a different physical contract.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::execution_provider_commitment_binds_operation_without_changing_plan_shape",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_provider_bound_job_rejects_linux_runner_drift_before_dispatch",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_provider_bound_runner_start_binds_actual_runner_image"
+      ]
+    },
+    {
+      "id": "I13",
+      "name": "ImmutableInputFreeze",
+      "owner": "Runtime Input Binding",
+      "rule": "Named-authority input bytes are verified/materialized only on new admission and replay no longer depends on live authority bytes.",
+      "negative": "Source authority drift/loss must not mutate committed Job inputs.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_immutable_input_freezes_bytes_and_replays_without_source_authority",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::committed_input_loss_fails_closed_without_reopening_authority",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::input_digest_mismatch_fails_before_job_admission"
+      ]
+    },
+    {
+      "id": "I14",
+      "name": "CredentialBinding",
+      "owner": "Runtime Credential Binding",
+      "rule": "Credential selection is opaque/authority-gated; Runtime snapshots encrypted bytes without exposing plaintext/path/digest to callers.",
+      "negative": "Principal checks may not occur after secret object resolution and plaintext must not enter the Job request.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::credential_bound_identity_is_logical_and_digest_free",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::credential_authority_checks_principal_before_object_resolution_and_snapshots_bytes",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::credential_bound_tool_schema_uses_opaque_names_not_digests_or_paths"
+      ]
+    },
+    {
+      "id": "I15",
+      "name": "HostDependencyContinuityScope",
+      "owner": "Runtime Linux Evidence",
+      "rule": "Declared trusted-local Host Dependencies are digest-bound and witnessed in the Runtime host namespace across the Attempt.",
+      "negative": "Evidence must not claim target private mount/root namespace isolation or proof of consumption.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_host_dependency_runtime_drift_is_witnessed_after_target_start",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_host_dependency_scope_does_not_claim_target_private_mount_view"
+      ]
+    },
+    {
+      "id": "I16",
+      "name": "ProjectionDoesNotAdvance",
+      "owner": "Runtime Inspection",
+      "rule": "Projection-only get/list/read operations do not dispatch, reconcile or mutate execution state.",
+      "negative": "Inspection must not accidentally become maintenance.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::projection_and_workspace_guards_do_not_dispatch_accepted_jobs",
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_interactive_list_is_projection_only_and_observe_reconciles_exact_job",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::job_get_schema_is_projection_only_and_detail_free"
+      ]
+    },
+    {
+      "id": "I17",
+      "name": "StructuredRuntimeRelease",
+      "owner": "Runtime Self Release",
+      "rule": "Runtime self-release is an exact reconciliable effect whose receipt is authoritative over transport/process ambiguity.",
+      "negative": "Connection loss or generic process exit must not be treated as release outcome.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::runtime_release_effect_binds_operation_and_receipt_truth_overrides_job_progress",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::deployed_runtime_release_receipt_recovers_orphaned_attempt_and_releases_capacity",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::structured_release_source_resolves_owner_commit_inside_monorepo"
+      ]
+    },
+    {
+      "id": "I18",
+      "name": "ToolCatalogIdentity",
+      "owner": "Runtime MCP",
+      "rule": "Compiled public Tool catalog is deterministic and host extensions/configuration do not silently change the compiled identity.",
+      "negative": "Structural refactor must not change catalog count/schema/digest without an explicit public-contract change.",
+      "proof": [
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::tool_catalog_uses_transactional_job_contract",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::tool_catalog_digest_is_deterministic_and_discovery_visible",
+        "crates/ordivon-runtime-mcp/src/server/tests.rs::compiled_tool_catalog_identity_is_deterministic_and_host_extension_free"
+      ]
+    },
+    {
+      "id": "I19",
+      "name": "ReconstructibleIndexesNotSemanticSchema",
+      "owner": "Runtime Registry",
+      "rule": "Performance-only query indexes are recreated idempotently without advancing durable semantic schema.",
+      "negative": "Operational performance tuning must not close previous-binary rollback compatibility by itself.",
+      "proof": [
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::host_dependency_storage_is_recreated_without_advancing_schema_version",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::execution_provider_storage_is_recreated_without_advancing_schema_version",
+        "crates/ordivon-runtime-core/src/runtime/tests.rs::runtime_release_storage_is_recreated_without_advancing_schema_version"
+      ]
+    },
+    {
+      "id": "I20",
+      "name": "MechanicalNotSemanticCompletion",
+      "owner": "Runtime Boundary",
+      "rule": "Runtime reports physical execution/delivery/recovery truth and keeps semanticCompletionEvaluated=false.",
+      "negative": "Process success must not become Task/domain semantic completion.",
+      "proof": [
+        "services/runtime/docs/runtime.md",
+        "services/runtime/crates/ordivon-runtime-mcp/src/server/tools.rs"
+      ]
+    }
+  ],
+  "negativeArchitectureConstraints": [
+    "Execution Fabric R1 remains retired.",
+    "No generic workflow engine.",
+    "No generic effect registry/dispatcher.",
+    "No provider marketplace or cross-node scheduler.",
+    "No Host Task or Harness cognition authority.",
+    "No automatic environment closure claim."
+  ]
+}
