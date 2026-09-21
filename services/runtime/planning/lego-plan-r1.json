@@ -21,12 +21,13 @@
       "kind": "contract_freeze",
       "responsibility": "Freeze the externally observable laws that refactoring must preserve: Workspace lineage/source-state, Job/Attempt identity, replay, reservations, cancellation, terminal commit, Artifact identity, ambiguity, release, Tool catalog and error semantics.",
       "authority": "Runtime architecture contract",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
         "docs/effect-kernel.md",
-        "docs/status.md"
+        "docs/status.md",
+        "planning/invariants-r1.json"
       ],
       "dependencies": [],
       "mustNotOwn": [
@@ -38,7 +39,7 @@
         "The 23-tool public catalog, Tool schemas, Registry semantic version, and current release/rollback laws are frozen as refactor constraints unless a later slice explicitly changes them.",
         "Execution Fabric R1 remains retired and is listed as a negative architecture constraint."
       ],
-      "nextAction": "Create the invariant manifest and contract-test index before moving implementation code."
+      "nextAction": "Maintain the invariant manifest as a refactor fence; any deliberate public-law change must update its proofs explicitly."
     },
     {
       "id": "R01",
@@ -46,11 +47,13 @@
       "kind": "verification_structure",
       "responsibility": "Partition the current large tests into contract, property, provider, migration, recovery, and integration suites without changing behavior.",
       "authority": "Runtime verification",
-      "state": "PROPOSED",
+      "state": "IN_PROGRESS",
       "sharedRefs": [],
       "evidence": [
         "crates/ordivon-runtime-core/src/runtime/tests.rs",
-        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs"
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+        "planning/test-taxonomy-r1.json",
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs"
       ],
       "dependencies": [
         "R00"
@@ -63,7 +66,7 @@
         "Contract tests are runnable independently from provider/system acceptance.",
         "No semantic behavior change is required to complete the split."
       ],
-      "nextAction": "Extract test modules first so later structural refactors retain fast contract feedback."
+      "nextAction": "Continue splitting low-conflict MCP schema/contract categories before moving core Runtime state tests."
     },
     {
       "id": "R02",
@@ -727,9 +730,15 @@
         "Contract/property/provider/migration/integration tests independently addressable.",
         "No public Tool or Registry semantic change."
       ],
-      "evidence": [],
+      "evidence": [
+        "planning/invariants-r1.json",
+        "planning/test-taxonomy-r1.json",
+        "planning/tool-necessity-audit-r1.json",
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+        "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS"
+      ],
       "blockers": [],
-      "nextAction": "Do R00 first; R01 may begin as soon as the invariant inventory is stable."
+      "nextAction": "Continue R01 test partition; R00 invariant freeze is complete."
     },
     {
       "id": "RW1",
@@ -899,6 +908,6 @@
     "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
     "updatedAt": "2026-09-22",
     "standing": "RW0_IN_PROGRESS",
-    "notes": "Derived from the current canonical Runtime after standalone retirement closure. The retired Execution Fabric R1 remains a negative precedent: this plan extracts owner-local LEGO and preserves proven Runtime invariants rather than introducing a generic fabric. Structural waves should use strangler-style internal extraction, not a Runtime rewrite."
+    "notes": "RW0 started: R00 invariant freeze is implemented with 20 machine-readable invariants and proof mapping. R01 test partition is in progress; the first Tool Catalog contract module split preserved the full 66-test MCP suite plus 10 auth tests. Public Tool necessity audit found no immediate deletion candidate; workspace.diff remains compatibility-review and workspace.mutate/execPlan remain narrow-boundary reviews."
   }
 }

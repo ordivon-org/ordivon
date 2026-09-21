@@ -207,9 +207,9 @@
       "rule": "Compiled public Tool catalog is deterministic and host extensions/configuration do not silently change the compiled identity.",
       "negative": "Structural refactor must not change catalog count/schema/digest without an explicit public-contract change.",
       "proof": [
-        "crates/ordivon-runtime-mcp/src/server/tests.rs::tool_catalog_uses_transactional_job_contract",
-        "crates/ordivon-runtime-mcp/src/server/tests.rs::tool_catalog_digest_is_deterministic_and_discovery_visible",
-        "crates/ordivon-runtime-mcp/src/server/tests.rs::compiled_tool_catalog_identity_is_deterministic_and_host_extension_free"
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs::tool_catalog_uses_transactional_job_contract",
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs::tool_catalog_digest_is_deterministic_and_discovery_visible",
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs::compiled_tool_catalog_identity_is_deterministic_and_host_extension_free"
       ]
     },
     {

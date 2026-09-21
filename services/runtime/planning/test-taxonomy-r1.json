@@ -117,5 +117,23 @@
       "No Tool schema change",
       "No production file edit"
     ]
+  },
+  "progress": {
+    "status": "IN_PROGRESS",
+    "completedMoves": [
+      {
+        "id": "R01-B1",
+        "source": "crates/ordivon-runtime-mcp/src/server/tests.rs",
+        "destination": "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+        "tests": [
+          "tool_catalog_uses_transactional_job_contract",
+          "tool_catalog_digest_is_deterministic_and_discovery_visible",
+          "tools_list_projection_carries_required_private_zero_ttl_cache_hints",
+          "compiled_tool_catalog_identity_is_deterministic_and_host_extension_free"
+        ],
+        "verification": "cargo test --locked -q -p ordivon-runtime-mcp => 66 passed + 10 auth passed"
+      }
+    ],
+    "next": "Split another low-conflict MCP contract category; do not move core state tests until category boundaries remain stable."
   }
 }
