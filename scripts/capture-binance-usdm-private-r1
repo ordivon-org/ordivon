@@ -2,5 +2,9 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 py=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
+binding="$("$repo/scripts/check-network-v2-public-data")"
+readiness="$(printf '%s' "$binding" | /usr/bin/jq -r '.readinessCommand')"
+"$readiness" binance-usdm 30 >/dev/null
+"$readiness" binance-wallet 30 >/dev/null
 export PYTHONPATH="$repo/src"
 exec "$py" -m ordivon_capital.market.binance_usdm_private_capture "$@"

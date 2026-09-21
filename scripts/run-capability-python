@@ -10,7 +10,8 @@ if [[ -z "$mise_bin" || ! -x "$mise_bin" ]]; then
 fi
 
 cd "$root"
-"$mise_bin" exec -- uv sync --frozen --group research --group nautilus --group test >/dev/null
+"$mise_bin" exec -- uv sync --frozen --group research --group test >/dev/null
+"$root/scripts/check-language-baseline" >/dev/null
 export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
 
 if [[ ! -x "$python_bin" ]]; then

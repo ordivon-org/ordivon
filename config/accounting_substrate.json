@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.accounting.sqlite-substrate",
+  "standing": "PASS_BOUNDED_SQLITE_WAL_ACCOUNTING",
+  "runtime": {
+    "python": "3.14.7",
+    "binding": "Python stdlib sqlite3",
+    "sqlite": "3.53.1"
+  },
+  "storage": {
+    "journalMode": "WAL",
+    "synchronous": "FULL",
+    "scope": "single-host bounded mechanical accounting"
+  },
+  "responsibility": [
+    "atomic local accounting transactions",
+    "no-overdraft accounting scarcity",
+    "pending reservation mechanics",
+    "post-or-void pending reservation mechanics",
+    "idempotent transfer identity",
+    "durable state across intact database restart"
+  ],
+  "explicitNonResponsibilities": [
+    "settlement finality",
+    "legal ownership",
+    "withdrawability",
+    "venue execution truth",
+    "external write policy",
+    "distributed replication",
+    "multi-host consensus"
+  ],
+  "externalFinancialWrites": "NOT_ADMITTED"
+}

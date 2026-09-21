@@ -8,7 +8,7 @@
   "pricingSessionDate": "2026-09-11",
   "pricingField": "daily_close",
   "pricingStanding": "PRE_DECISION_PROVIDER_ORIGIN_SNAPSHOT",
-  "sizingOwner": "QuantConnect LEAN CalculateOrderQuantity",
+  "sizingOwner": "LOCAL_BOUNDED_US_EQUITY_SIZER",
   "executionCashBufferWeight": 0.01,
   "fixProtocol": "FIX.4.4",
   "fixMessageType": "D",
@@ -17,5 +17,6 @@
   "executionTrigger": "first_eligible_post_decision_session_open",
   "planOnly": true,
   "brokerCredentialsAllowed": false,
-  "externalFinancialWritesAllowed": false
+  "externalFinancialWritesAllowed": false,
+  "sizingReference": "QuantConnect LEAN 985ef30 differential-qualified reference"
 }

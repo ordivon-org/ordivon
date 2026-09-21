@@ -24,3 +24,14 @@ class CryptoStreamResiliencePolicyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class R3EvidenceRetentionTests(unittest.TestCase):
+    def test_session_runner_does_not_collapse_first_venue_failure_into_no_session_result(self):
+        s = (ROOT / "scripts/run-crypto-stream-resilience-r3-session").read_text()
+        self.assertIn("set +e", s)
+        self.assertIn("okx_rc=$?", s)
+        self.assertIn("binance_rc=$?", s)
+        self.assertIn("VENUE_RESULT_UNAVAILABLE", s)
+        self.assertIn("stderrTail", s)
+        self.assertIn("result_path.write_text", s)

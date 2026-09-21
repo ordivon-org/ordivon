@@ -1,5 +1,7 @@
 # Market Capital full effect-path closure — 2026-09-14
 
+> **Historical evidence notice (2026-09-21):** this document records the 2026-09-14 closure as it occurred. The current canonical path no longer depends on NautilusTrader or TigerBeetle for core closure: current execution-effect disposition is bounded local reconciliation and current capital resolution uses SQLite WAL/FULL. See `docs/ARCHITECTURE.md`.
+
 ## Standing
 
 `PASS_FULL_EFFECT_PATH_OKX_LIVE_PROVIDER_BOUND_NO_EXTERNAL_EFFECT_ADMISSION`

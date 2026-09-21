@@ -43,7 +43,7 @@ else:
     raise SystemExit('TigerBeetle development replica did not become reachable')
 PY
 
-PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+PYTHONPATH="$repo/tools/tigerbeetle_0_17_9:$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import json
 import os
 import tigerbeetle as tb

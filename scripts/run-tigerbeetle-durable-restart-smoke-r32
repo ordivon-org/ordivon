@@ -33,7 +33,7 @@ stop_tb(){ kill "$pid"; wait "$pid" 2>/dev/null || true; pid=""; }
 
 "$tb" format --cluster=0 --replica=0 --replica-count=1 --development "$data" >"$tmp/format.log" 2>&1
 start_tb
-PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+PYTHONPATH="$repo/tools/tigerbeetle_0_17_9:$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import os, tigerbeetle as tb
 from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
 from ordivon_capital.accounting.tigerbeetle_substrate import reservation_instruction, stable_provider_id
@@ -64,7 +64,7 @@ stop_tb
 
 # Restart the same intact TigerBeetle data file. No re-format occurs here.
 start_tb
-PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+PYTHONPATH="$repo/tools/tigerbeetle_0_17_9:$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import os, tigerbeetle as tb
 from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, binding_for_namespace
 from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
@@ -85,7 +85,7 @@ stop_tb
 
 # Restart again and reconcile exact provider history with terminal reservation history.
 start_tb
-PYTHONPATH="$repo/src" TB_PORT="$port" "$py" - <<'PY'
+PYTHONPATH="$repo/tools/tigerbeetle_0_17_9:$repo/src" TB_PORT="$port" "$py" - <<'PY'
 import json, os, tigerbeetle as tb
 from ordivon_capital.accounting.tigerbeetle_durable import (
     CapitalAccountNamespace, DurableProviderStanding, DurableReservationHistory,

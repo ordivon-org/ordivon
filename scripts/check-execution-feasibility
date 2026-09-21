@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+"$repo/scripts/check-language-baseline" >/dev/null
+PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}" \
+  "$repo/.venv/bin/python" - <<'PY'
+import json
+from decimal import Decimal
+from ordivon_capital.market.execution_feasibility import bounded_us_equity_target_quantity
+
+prices={"AAPL":"332.27","MSFT":"495.63","NVDA":"218.29"}
+weight=Decimal("0.3333333333333333")
+quantities={
+    symbol: bounded_us_equity_target_quantity(
+        portfolio_value_usd="100000",
+        price_usd=price,
+        target_weight=weight,
+        free_portfolio_value_weight="0.01",
+    ).quantity
+    for symbol,price in prices.items()
+}
+expected={"AAPL":99,"MSFT":66,"NVDA":151}
+if quantities != expected:
+    raise SystemExit(f"bounded sizing drift: {quantities!r}")
+boundary=bounded_us_equity_target_quantity(
+    portfolio_value_usd="100000",
+    price_usd="10",
+    target_weight=weight,
+    free_portfolio_value_weight="0",
+)
+if boundary.quantity != 3332:
+    raise SystemExit(f"fee-aware boundary drift: {boundary.quantity}")
+print(json.dumps({
+    "standing":"PASS_BOUNDED_LOCAL_US_EQUITY_FEASIBILITY",
+    "implementation":"LOCAL_BOUNDED_US_EQUITY_SIZER",
+    "python":"3.14.7",
+    "shadowPrecommitQuantities":quantities,
+    "feeAwareBoundaryQuantity":boundary.quantity,
+    "externalFinancialWritesAttempted":False,
+},sort_keys=True))
+PY

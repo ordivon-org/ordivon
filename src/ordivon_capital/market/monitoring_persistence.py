@@ -2,48 +2,84 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import subprocess
 from pathlib import Path
 from typing import Any
 
-import mlflow
-import pandas as pd
-import pandera.pandas as pa
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 
 class MonitoringPersistenceError(RuntimeError):
     pass
 
 
+MONITORING_ARROW_SCHEMA = pa.schema(
+    [
+        pa.field("factor", pa.string(), nullable=False),
+        pa.field("proxy_instrument_id", pa.string(), nullable=False),
+        pa.field("overlap_observation_count", pa.int64(), nullable=False),
+        pa.field("overlap_to_union_ratio", pa.float64(), nullable=False),
+        pa.field("realized_variance_reduction", pa.float64(), nullable=True),
+        pa.field("realized_mae", pa.float64(), nullable=False),
+        pa.field("beta_delta", pa.float64(), nullable=False),
+        pa.field("correlation_delta", pa.float64(), nullable=False),
+        pa.field("residual_variance_ratio", pa.float64(), nullable=True),
+        pa.field("base_wasserstein_distance", pa.float64(), nullable=False),
+        pa.field("proxy_wasserstein_distance", pa.float64(), nullable=False),
+    ]
+)
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def monitoring_schema() -> pa.DataFrameSchema:
-    return pa.DataFrameSchema(
-        {
-            "factor": pa.Column(str),
-            "proxy_instrument_id": pa.Column(str),
-            "overlap_observation_count": pa.Column(int, pa.Check.greater_than(0), coerce=True),
-            "overlap_to_union_ratio": pa.Column(
-                float,
-                [pa.Check.greater_than_or_equal_to(0), pa.Check.less_than_or_equal_to(1)],
-                coerce=True,
-            ),
-            "realized_variance_reduction": pa.Column(float, nullable=True, coerce=True),
-            "realized_mae": pa.Column(float, pa.Check.greater_than_or_equal_to(0), coerce=True),
-            "beta_delta": pa.Column(float, coerce=True),
-            "correlation_delta": pa.Column(float, coerce=True),
-            "residual_variance_ratio": pa.Column(float, nullable=True, coerce=True),
-            "base_wasserstein_distance": pa.Column(float, pa.Check.greater_than_or_equal_to(0), coerce=True),
-            "proxy_wasserstein_distance": pa.Column(float, pa.Check.greater_than_or_equal_to(0), coerce=True),
-        },
-        strict=True,
-        coerce=True,
-    )
+def _text(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise MonitoringPersistenceError(f"{field} must be a non-empty string")
+    return value
 
 
-def monitoring_dataframe(evidence: dict[str, Any]) -> pd.DataFrame:
+def _integer(value: Any, *, field: str, minimum: int | None = None) -> int:
+    if isinstance(value, bool):
+        raise MonitoringPersistenceError(f"{field} must be an integer")
+    try:
+        out = int(value)
+    except (TypeError, ValueError) as exc:
+        raise MonitoringPersistenceError(f"{field} must be an integer") from exc
+    if str(value).strip() not in {str(out), f"{out}.0"} and not isinstance(value, int):
+        raise MonitoringPersistenceError(f"{field} must be integral")
+    if minimum is not None and out < minimum:
+        raise MonitoringPersistenceError(f"{field} must be >= {minimum}")
+    return out
+
+
+def _number(
+    value: Any,
+    *,
+    field: str,
+    minimum: float | None = None,
+    maximum: float | None = None,
+    nullable: bool = False,
+) -> float | None:
+    if value is None and nullable:
+        return None
+    try:
+        out = float(value)
+    except (TypeError, ValueError) as exc:
+        raise MonitoringPersistenceError(f"{field} must be numeric") from exc
+    if not math.isfinite(out):
+        raise MonitoringPersistenceError(f"{field} must be finite")
+    if minimum is not None and out < minimum:
+        raise MonitoringPersistenceError(f"{field} must be >= {minimum}")
+    if maximum is not None and out > maximum:
+        raise MonitoringPersistenceError(f"{field} must be <= {maximum}")
+    return out
+
+
+def monitoring_rows(evidence: dict[str, Any]) -> list[dict[str, Any]]:
     monitoring = evidence.get("modelMonitoring")
     if not isinstance(monitoring, dict):
         raise MonitoringPersistenceError("modelMonitoring evidence is required")
@@ -53,29 +89,79 @@ def monitoring_dataframe(evidence: dict[str, Any]) -> pd.DataFrame:
 
     rows: list[dict[str, Any]] = []
     for i, row in enumerate(rows_raw):
+        if not isinstance(row, dict):
+            raise MonitoringPersistenceError(f"monitoring row {i} must be an object")
         try:
             quality = row["dataQuality"]
             outcomes = row["outcomes"]["primary"]
             drift = row["drift"]
             parameter = drift["parameterDrift"]
             distribution = drift["distributionDrift"]
-            rows.append({
-                "factor": row["factor"],
-                "proxy_instrument_id": row["proxyInstrumentId"],
-                "overlap_observation_count": quality["overlapObservationCount"],
-                "overlap_to_union_ratio": quality["overlapToUnionRatio"],
-                "realized_variance_reduction": outcomes["realizedVarianceReductionVsUnhedged"],
-                "realized_mae": outcomes["realizedMeanAbsoluteError"],
-                "beta_delta": parameter["betaDelta"],
-                "correlation_delta": parameter["correlationDelta"],
-                "residual_variance_ratio": parameter["residualVarianceRatio"],
-                "base_wasserstein_distance": distribution["baseReturnWassersteinDistance"],
-                "proxy_wasserstein_distance": distribution["proxyReturnWassersteinDistance"],
-            })
-        except KeyError as exc:
-            raise MonitoringPersistenceError(f"monitoring row {i} missing field: {exc}") from exc
+            flattened = {
+                "factor": _text(row["factor"], field=f"rows[{i}].factor"),
+                "proxy_instrument_id": _text(
+                    row["proxyInstrumentId"],
+                    field=f"rows[{i}].proxyInstrumentId",
+                ),
+                "overlap_observation_count": _integer(
+                    quality["overlapObservationCount"],
+                    field=f"rows[{i}].overlapObservationCount",
+                    minimum=1,
+                ),
+                "overlap_to_union_ratio": _number(
+                    quality["overlapToUnionRatio"],
+                    field=f"rows[{i}].overlapToUnionRatio",
+                    minimum=0,
+                    maximum=1,
+                ),
+                "realized_variance_reduction": _number(
+                    outcomes["realizedVarianceReductionVsUnhedged"],
+                    field=f"rows[{i}].realizedVarianceReductionVsUnhedged",
+                    nullable=True,
+                ),
+                "realized_mae": _number(
+                    outcomes["realizedMeanAbsoluteError"],
+                    field=f"rows[{i}].realizedMeanAbsoluteError",
+                    minimum=0,
+                ),
+                "beta_delta": _number(
+                    parameter["betaDelta"],
+                    field=f"rows[{i}].betaDelta",
+                ),
+                "correlation_delta": _number(
+                    parameter["correlationDelta"],
+                    field=f"rows[{i}].correlationDelta",
+                ),
+                "residual_variance_ratio": _number(
+                    parameter["residualVarianceRatio"],
+                    field=f"rows[{i}].residualVarianceRatio",
+                    nullable=True,
+                ),
+                "base_wasserstein_distance": _number(
+                    distribution["baseReturnWassersteinDistance"],
+                    field=f"rows[{i}].baseReturnWassersteinDistance",
+                    minimum=0,
+                ),
+                "proxy_wasserstein_distance": _number(
+                    distribution["proxyReturnWassersteinDistance"],
+                    field=f"rows[{i}].proxyReturnWassersteinDistance",
+                    minimum=0,
+                ),
+            }
+        except (KeyError, TypeError) as exc:
+            raise MonitoringPersistenceError(
+                f"monitoring row {i} missing/invalid nested field: {exc}"
+            ) from exc
+        rows.append(flattened)
+    return rows
 
-    return monitoring_schema().validate(pd.DataFrame(rows))
+
+def monitoring_table(evidence: dict[str, Any]) -> pa.Table:
+    rows = monitoring_rows(evidence)
+    try:
+        return pa.Table.from_pylist(rows, schema=MONITORING_ARROW_SCHEMA)
+    except (pa.ArrowInvalid, pa.ArrowTypeError) as exc:
+        raise MonitoringPersistenceError("monitoring Arrow schema validation failed") from exc
 
 
 def _duckdb_readback(*, duckdb_binary: Path, parquet_path: Path) -> dict[str, Any]:
@@ -95,13 +181,19 @@ def _duckdb_readback(*, duckdb_binary: Path, parquet_path: Path) -> dict[str, An
         timeout=15,
     )
     if proc.returncode != 0:
-        raise MonitoringPersistenceError(f"DuckDB readback failed: {proc.stderr.strip()}")
+        raise MonitoringPersistenceError(
+            f"DuckDB readback failed: {proc.stderr.strip()}"
+        )
     try:
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
-        raise MonitoringPersistenceError("DuckDB readback returned invalid JSON") from exc
+        raise MonitoringPersistenceError(
+            "DuckDB readback returned invalid JSON"
+        ) from exc
     if not isinstance(payload, list) or len(payload) != 1:
-        raise MonitoringPersistenceError("DuckDB readback returned unexpected shape")
+        raise MonitoringPersistenceError(
+            "DuckDB readback returned unexpected shape"
+        )
     return payload[0]
 
 
@@ -110,68 +202,64 @@ def persist_monitoring_evidence(
     evidence_path: Path,
     output_dir: Path,
     duckdb_binary: Path,
-    tracking_uri: str | None = None,
 ) -> dict[str, Any]:
-    """Persist Market monitoring evidence using externally owned data/tracking systems.
-
-    MLflow tracking configuration is caller/environment-owned. Pass ``tracking_uri``
-    explicitly or use MLflow's ``MLFLOW_TRACKING_URI`` environment contract.
-    """
+    """Persist monitoring evidence with bounded validation and independent readback."""
 
     evidence = json.loads(evidence_path.read_text())
     if evidence.get("subject") != "dependence-model-monitoring-r1":
-        raise MonitoringPersistenceError("unexpected monitoring evidence subject")
+        raise MonitoringPersistenceError(
+            "unexpected monitoring evidence subject"
+        )
 
-    df = monitoring_dataframe(evidence)
+    table = monitoring_table(evidence)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     parquet_path = output_dir / "dependence_model_monitoring.parquet"
-    df.to_parquet(parquet_path, index=False)
+    pq.write_table(table, parquet_path)
 
     readback = _duckdb_readback(
         duckdb_binary=duckdb_binary,
         parquet_path=parquet_path,
     )
-    if int(readback["row_count"]) != len(df):
-        raise MonitoringPersistenceError("DuckDB row-count readback mismatch")
+    if int(readback["row_count"]) != table.num_rows:
+        raise MonitoringPersistenceError(
+            "DuckDB row-count readback mismatch"
+        )
 
     manifest = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "kind": "ordivon.capital.market.model-monitoring-persistence",
         "componentId": "model-monitoring-persistence",
         "sourceEvidenceSha256": _sha256(evidence_path),
         "parquetSha256": _sha256(parquet_path),
-        "rowCount": len(df),
+        "rowCount": table.num_rows,
+        "schema": [
+            {
+                "name": field.name,
+                "type": str(field.type),
+                "nullable": field.nullable,
+            }
+            for field in MONITORING_ARROW_SCHEMA
+        ],
         "duckdbReadback": readback,
+        "validationImplementation": "LOCAL_BOUNDED_ROW_VALIDATION",
+        "storageImplementation": "PyArrow 25.0.1 / Parquet",
+        "independentReadbackImplementation": "DuckDB 1.5.5",
+        "experimentTrackingClaimed": False,
+        "lineageAuthorityClaimed": False,
     }
     manifest_path = output_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
-
-    if tracking_uri is not None:
-        mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment("ordivon-capital-market-monitoring")
-    with mlflow.start_run(run_name="dependence-model-monitoring-r1") as run:
-        mlflow.log_param("source_authority", evidence.get("sourceAuthority"))
-        mlflow.log_param("base_instrument_id", evidence.get("baseInstrumentId"))
-        mlflow.log_param("holdout_return_count", evidence.get("holdoutReturnCount"))
-        mlflow.log_param("validated_component_id", "portfolio-dependence-analysis")
-        mlflow.log_metric("monitoring_row_count", len(df))
-        mlflow.log_metric(
-            "minimum_overlap_observation_count",
-            float(df["overlap_observation_count"].min()),
-        )
-        mlflow.log_artifact(str(evidence_path), artifact_path="inputs")
-        mlflow.log_artifact(str(parquet_path), artifact_path="outputs")
-        mlflow.log_artifact(str(manifest_path), artifact_path="outputs")
-        run_id = run.info.run_id
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    )
 
     result = {
         **manifest,
-        "mlflowRunId": run_id,
-        "mlflowTrackingUri": mlflow.get_tracking_uri(),
         "parquetPath": str(parquet_path),
         "manifestPath": str(manifest_path),
     }
     result_path = output_dir / "persistence_result.json"
-    result_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    result_path.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n"
+    )
     return result

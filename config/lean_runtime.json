@@ -1,15 +1,81 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "engine": "QuantConnect LEAN",
-  "tag": "18074",
-  "sourceCommit": "8ee075a39918f2df6fe9e0a5944e366fb60d10dc",
-  "sourceArchiveSha256": "a1a87dd28d610f08204f23442dbb6f9ca51c1a97db6510e828946d5d5a067a24",
-  "defaultRoot": "/root/external/quantconnect-lean/18074",
-  "dotnetSdk": "10.0.112",
-  "mode": "historical-validation-only",
+  "mode": "historical-qualification-challenger-only",
+  "coreOwnerAdmitted": false,
   "brokerCredentialsAllowed": false,
   "externalFinancialWritesAllowed": false,
-  "marketDataStanding": "DETERMINISTIC_FIXTURE_NOT_MARKET_TRUTH",
   "productionStanding": "NOT_ADMITTED",
-  "supplyChainStanding": "REVIEW_REQUIRED_UPSTREAM_NUGET_VULNERABILITY_WARNINGS"
+  "historicalControl": {
+    "tag": "18074",
+    "sourceCommit": "8ee075a39918f2df6fe9e0a5944e366fb60d10dc",
+    "sourceArchiveSha256": "a1a87dd28d610f08204f23442dbb6f9ca51c1a97db6510e828946d5d5a067a24",
+    "root": "/root/external/quantconnect-lean/18074",
+    "dotnetSdk": "10.0.112"
+  },
+  "latestCandidate": {
+    "sourceCommit": "985ef30",
+    "sourceDate": "2026-09-18",
+    "sourceArchiveSha256": "a70653f5a646c7a0e0ca2925ebcff95d52ff4bb71b2a824fcbe988ac4f317cab",
+    "root": "/root/external/quantconnect-lean/985ef30",
+    "dotnetSdk": "10.0.401",
+    "dotnetRuntime": "10.0.12",
+    "buildStanding": "PASS",
+    "functionalStanding": {
+      "M1": "PASS_BOUNDED_HISTORICAL_FIXTURE",
+      "M2": "PASS_BOUNDED_FEASIBILITY",
+      "M3": "PASS_BOUNDED_PROVIDER_ORIGIN_DATA_NON_CAUSAL",
+      "M4": "PASS_BOUNDED_FIX44_ORDER_SEMANTICS",
+      "M6": "SHADOW_ORDER_PRECOMMIT_FROZEN"
+    },
+    "supplyChainStanding": "BLOCKED_KNOWN_CRITICAL_HIGH_NUGET_ADVISORIES",
+    "vulnerabilityWarningLines": 112,
+    "uniquePackageAdvisories": [
+      {
+        "package": "System.Drawing.Common",
+        "version": "4.7.0",
+        "severity": "critical",
+        "advisory": "GHSA-rxg9-xrhp-64gj"
+      },
+      {
+        "package": "System.Net.Http.WinHttpHandler",
+        "version": "4.4.0",
+        "severity": "high",
+        "advisory": "GHSA-6xh7-4v2w-36q6"
+      },
+      {
+        "package": "System.Private.ServiceModel",
+        "version": "4.4.0",
+        "severity": "high",
+        "advisory": "GHSA-jc8g-xhw5-6x46"
+      },
+      {
+        "package": "System.Private.ServiceModel",
+        "version": "4.4.0",
+        "severity": "moderate",
+        "advisory": "GHSA-p9wx-v264-q34p"
+      },
+      {
+        "package": "System.ServiceModel.Primitives",
+        "version": "4.4.0",
+        "severity": "high",
+        "advisory": "GHSA-jc8g-xhw5-6x46"
+      },
+      {
+        "package": "System.ServiceModel.Primitives",
+        "version": "4.4.0",
+        "severity": "moderate",
+        "advisory": "GHSA-p9wx-v264-q34p"
+      }
+    ]
+  },
+  "sizingComparativeQualification": {
+    "localImplementation": "src/ordivon_capital/market/execution_feasibility.py",
+    "latestLeanCandidate": "985ef30",
+    "naiveFormulaComparisons": 57,
+    "naiveFormulaMismatches": 1,
+    "feeAwareComparisons": 57,
+    "feeAwareMismatches": 0,
+    "standing": "LOCAL_BOUNDED_SIZER_PREFERRED_FOR_CURRENT_EXACT_CONTRACT"
+  }
 }
