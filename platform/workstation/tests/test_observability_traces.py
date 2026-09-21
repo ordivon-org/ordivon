@@ -19,6 +19,8 @@ def test_tempo_is_digest_pinned_private_and_profile_owned() -> None:
     assert "Pull=never" in quadlet
     assert "NoNewPrivileges=true" in quadlet
     assert "DropCapability=all" in quadlet
+    assert "StopTimeout=60" in quadlet
+    assert "TimeoutStopSec=75" in quadlet
 
 
 def test_tempo_config_is_monolithic_loopback_local_storage() -> None:

@@ -28,6 +28,14 @@
     }
   },
   "kind": "ordivon.persistent-trace-backend-acceptance",
+  "lifecycle": {
+    "containerStopTimeoutSeconds": 60,
+    "execMainStatus": 0,
+    "finalActiveState": "inactive",
+    "finalResult": "success",
+    "observedGracefulStopSeconds": 31,
+    "systemdStopTimeoutSeconds": 75
+  },
   "observedAt": "2026-09-21",
   "operationalPosture": {
     "activation": "on-demand",

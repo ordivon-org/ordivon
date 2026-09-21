@@ -18,6 +18,7 @@ VECTOR_CONFIG = ROOT / "platform" / "workstation" / "observability" / "vector.ya
 GRAFANA_DATASOURCES = ROOT / "platform" / "workstation" / "observability" / "grafana-datasources.yaml"
 HEAVY_TARGET = ROOT / "platform" / "workstation" / "systemd" / "ordivon-observability-heavy.target"
 TRACE_ACCEPTANCE = ROOT / "docs" / "architecture" / "persistent-trace-backend-acceptance-20260921.json"
+TEMPO_QUADLET = ROOT / "platform" / "workstation" / "tempo" / "ordivon-tempo.container"
 
 HISTORICAL = {
     ROOT / "docs" / "architecture" / "ARCHITECTURE_CONVERGENCE_A01R2.md":
@@ -183,6 +184,7 @@ def validate_repository(root: Path = ROOT) -> None:
     vector = (root / VECTOR_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
     datasources = (root / GRAFANA_DATASOURCES.relative_to(ROOT)).read_text(encoding="utf-8")
     target = (root / HEAVY_TARGET.relative_to(ROOT)).read_text(encoding="utf-8")
+    quadlet = (root / TEMPO_QUADLET.relative_to(ROOT)).read_text(encoding="utf-8")
     trace_acceptance = _load_json(root / TRACE_ACCEPTANCE.relative_to(ROOT))
     if "http_listen_address: 127.0.0.1" not in tempo or 'endpoint: "127.0.0.1:14318"' not in tempo:
         raise ArchitectureDocsError("Tempo trace endpoints must remain loopback")
@@ -196,6 +198,8 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("Grafana Tempo datasource drifted")
     if "ordivon-tempo.service" not in target:
         raise ArchitectureDocsError("heavy observability profile lost Tempo")
+    if "StopTimeout=60" not in quadlet or "TimeoutStopSec=75" not in quadlet:
+        raise ArchitectureDocsError("Tempo graceful cold-stop budget drifted")
     if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
         raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
 

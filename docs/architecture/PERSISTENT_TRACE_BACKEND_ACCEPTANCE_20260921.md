@@ -52,6 +52,8 @@ This correlation is observability-only. It does not create delegated Runtime aut
 
 The backend is deployed **on demand**. The base Gateway profile remains `OTEL_TRACES_EXPORTER=none`; Workstation heavy observability remains cold by default; the existing opt-in trace profile enables standard OTLP export only when tracing is intentionally activated. Product correctness remains independent from telemetry availability.
 
+Tempo 3.0.3 required more than Podman's default 10-second container stop budget during single-binary shutdown. The Quadlet therefore uses standard `StopTimeout=60` under systemd `TimeoutStopSec=75`. Live start → ready → stop acceptance completed graceful shutdown in 31 seconds with `ActiveState=inactive`, `Result=success`, and `ExecMainStatus=0`.
+
 ## Result
 
 Persistent/queryable trace storage is now an admitted deployed capability of the Workstation observability plane. The previous current-state statement `persistent-queryable-trace-backend = not admitted` is superseded.

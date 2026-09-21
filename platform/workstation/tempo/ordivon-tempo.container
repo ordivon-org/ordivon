@@ -18,9 +18,10 @@ ReadOnlyTmpfs=true
 Tmpfs=/tmp:rw,mode=1777
 NoNewPrivileges=true
 DropCapability=all
+StopTimeout=60
 
 [Service]
 Restart=on-failure
 RestartSec=3s
 TimeoutStartSec=120
-TimeoutStopSec=30
+TimeoutStopSec=75
