@@ -1,0 +1,112 @@
+name: Monorepo Required
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "23 17 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monorepo-required-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  root-verification:
+    name: root-verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install monorepo toolchain
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        with:
+          version: 2026.9.12
+          install: true
+          cache: true
+
+      - name: Repository mechanics
+        run: mise run repo:ci
+
+      - name: Select affected owners
+        id: affected
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          EVENT_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
+            mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
+            mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format tasks)
+          else
+            if [[ "$EVENT_NAME" == "pull_request" ]]; then
+              base="$PR_BASE"
+              head="$PR_HEAD"
+            else
+              base="$PUSH_BEFORE"
+              head="$EVENT_HEAD"
+            fi
+            if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+              mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
+              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format tasks)
+            else
+              mapfile -t owners < <(python3 tools/repo/affected_owners.py --base "$base" --head "$head" --format names)
+              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --base "$base" --head "$head" --format tasks)
+            fi
+          fi
+          printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
+          for owner in next runtime host harness skills security workstation network artifact distribution media game capital; do
+            value=false
+            for selected in "${owners[@]-}"; do
+              [[ "$selected" == "$owner" ]] && value=true
+            done
+            printf '%s=%s\n' "$owner" "$value" >> "$GITHUB_OUTPUT"
+          done
+          printf '%s\n' "${tasks[@]-}" > "$RUNNER_TEMP/ordivon-affected-tasks.txt"
+          {
+            echo "### Affected owners"
+            if (("${#owners[@]}" == 0)); then
+              echo "Repository-only change; no owner verify task selected."
+            else
+              printf -- '- %s\n' "${owners[@]}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify affected owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r task; do
+            [[ -z "$task" ]] && continue
+            echo "::group::mise run $task"
+            mise run "$task"
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/ordivon-affected-tasks.txt"
+
+      - name: Runtime supply-chain policy
+        if: steps.affected.outputs.runtime == 'true'
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
+        with:
+          rust-version: "1.95.0"
+          manifest-path: services/runtime/Cargo.toml
+          command: check
+          arguments: --config services/runtime/deny.toml
+
+      - name: Repository-wide secret scan
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

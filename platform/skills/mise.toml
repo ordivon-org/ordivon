@@ -1,3 +1,29 @@
 [tools]
 python = "3.14.7"
 uv = "0.12.16"
+
+[tasks.verify]
+run = """
+set -euo pipefail
+uv lock --check
+uv sync --locked
+uv run ruff check .
+uv run python -m compileall -q src scripts tests
+uv run python -m pytest
+tmp=$(mktemp -d -t ordivon-skills-wheel-XXXXXX)
+trap 'rm -rf "$tmp"' EXIT
+rm -rf build
+uv build --wheel --out-dir "$tmp"
+wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
+test -n "$wheel"
+python - "$wheel" <<'PY'
+import sys
+import zipfile
+wheel = sys.argv[1]
+with zipfile.ZipFile(wheel) as archive:
+    names = set(archive.namelist())
+assert "ordivon_skills/__init__.py" in names
+assert not any(name.startswith("ordivon_harness/") for name in names)
+print("skills wheel namespace: valid")
+PY
+"""

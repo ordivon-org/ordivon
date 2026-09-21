@@ -1,0 +1,15 @@
+[tools]
+python = "3.12.13"
+uv = "0.12.16"
+rust = "1.95.0"
+
+[tasks.verify]
+run = """
+set -euo pipefail
+cargo fmt --check
+scripts/owner-environment test
+cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+cargo test --locked -p ordivon-runtime-core --no-default-features --features transactional-runtime
+scripts/owner-environment extended
+python scripts/check_docs.py
+"""

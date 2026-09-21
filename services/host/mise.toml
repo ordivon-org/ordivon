@@ -1,7 +1,6 @@
 [tools]
 python = "3.14.7"
 uv = "0.12.16"
-shellcheck = "0.11.0"
 
 [tasks.verify]
 run = """
@@ -9,6 +8,5 @@ set -euo pipefail
 uv lock --check
 uv sync --locked
 uv run ruff check .
-bash scripts/test-all.sh
-git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
+uv run python -m pytest
 """

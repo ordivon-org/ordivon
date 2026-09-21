@@ -2,9 +2,26 @@ monorepo_root = true
 
 [monorepo]
 config_roots = [
+  "meta/next",
+  "services/runtime",
+  "services/host",
+  "services/harness",
+  "platform/skills",
   "platform/security",
+  "platform/workstation",
+  "platform/network",
+  "capabilities/artifact",
+  "capabilities/distribution",
+  "capabilities/media",
+  "domains/game",
+  "domains/capital",
 ]
 lockfile = false
+
+[tools]
+python = "3.14.7"
+uv = "0.12.16"
+actionlint = "1.7.12"
 
 [tasks."repo:retirement:verify"]
 run = """
@@ -14,112 +31,130 @@ python3 tools/repo/check_archived_source_boundary.py \
 tools/repo/test-check-archived-source-boundary.sh
 """
 
+[tasks."repo:ci"]
+run = """
+set -euo pipefail
+python3 tools/repo/test_affected_owners.py
+uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
+actionlint .github/workflows/*.yml
+git diff --check
+"""
 
 [tasks."next:verify"]
-dir = "meta/next"
 run = """
 set -euo pipefail
-uv lock --check
-uv sync --locked
-uv run --locked python -m pytest
-uv run --locked --group authority python scripts/check_authority_catalog_r1.py
-uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
-uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
+cd meta/next
+mise install
+mise run verify
 """
 
-
-[tasks."security:verify"]
-dir = "platform/security"
+[tasks."runtime:verify"]
 run = """
 set -euo pipefail
-uv sync --frozen --python 3.14.7
-uv run --frozen --python 3.14.7 ruff check .
-uv run --frozen --python 3.14.7 python -m unittest discover -s tests -v
+cd services/runtime
+mise install
+mise run verify
 """
-
-
-[tasks."network:verify"]
-dir = "platform/network"
-run = "task all:validate"
-
 
 [tasks."host:verify"]
-dir = "services/host"
 run = """
 set -euo pipefail
-uv lock --check
-uv sync --locked
-uv run ruff check .
-uv run python -m pytest
+cd services/host
+mise install
+mise run verify
 """
-
 
 [tasks."harness:verify"]
-dir = "services/harness"
 run = """
 set -euo pipefail
-test -x /bin/bash
-test -x /usr/bin/awk
-test -x /usr/bin/rg
-uv sync --locked
-uv run python scripts/check_runtime_search_profile.py
-uv lock --check
-uv run python -m compileall -q src tests scripts evals
-uvx ruff==0.15.17 check src tests scripts
-uv run python -W error::ResourceWarning -m pytest -q tests
-uv run python scripts/check_dependencies.py
-uv run python scripts/check_docs.py
-uv run python scripts/check_evidence.py
-uv run python scripts/demo_deterministic_run.py
-tmp=$(mktemp -d -t ordivon-harness-wheel-XXXXXX)
-trap 'rm -rf "$tmp"' EXIT
-rm -rf build
-uv build --wheel --out-dir "$tmp"
-wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
-test -n "$wheel"
-uv run python scripts/check_wheel.py "$wheel"
+cd services/harness
+mise install
+mise run verify
 """
-
-
-[tasks."workstation:verify"]
-dir = "platform/workstation"
-run = """
-set -euo pipefail
-uv lock --check
-uv sync --locked
-uv run ruff check .
-uv run python -m pytest
-(
-  cd providers/cloudflare
-  pnpm install --frozen-lockfile
-  pnpm run ci
-)
-"""
-
 
 [tasks."skills:verify"]
-dir = "platform/skills"
 run = """
 set -euo pipefail
-uv lock --check
-uv sync --locked
-uv run ruff check .
-uv run python -m compileall -q src scripts tests
-uv run python -m pytest
-tmp=$(mktemp -d -t ordivon-skills-wheel-XXXXXX)
-trap 'rm -rf "$tmp"' EXIT
-uv build --wheel --out-dir "$tmp"
-wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
-test -n "$wheel"
-python - "$wheel" <<'PY'
-import sys
-import zipfile
+cd platform/skills
+mise install
+mise run verify
+"""
 
-wheel = sys.argv[1]
-with zipfile.ZipFile(wheel) as archive:
-    names = set(archive.namelist())
-assert "ordivon_skills/__init__.py" in names
-assert not any(name.startswith("ordivon_harness/") for name in names)
-print("skills wheel namespace: valid")
-PY
+[tasks."security:verify"]
+run = """
+set -euo pipefail
+cd platform/security
+mise install
+mise run verify
+"""
+
+[tasks."workstation:ci"]
+run = """
+set -euo pipefail
+cd platform/workstation
+mise install
+mise run ci
+"""
+
+[tasks."workstation:verify"]
+run = """
+set -euo pipefail
+cd platform/workstation
+mise install
+mise run verify
+"""
+
+[tasks."network:ci"]
+run = """
+set -euo pipefail
+cd platform/network
+mise install
+mise run ci
+"""
+
+[tasks."artifact:verify"]
+run = """
+set -euo pipefail
+cd capabilities/artifact
+mise install
+mise run verify
+"""
+
+[tasks."distribution:verify"]
+run = """
+set -euo pipefail
+cd capabilities/distribution
+mise install
+mise run verify
+"""
+
+[tasks."media:verify"]
+run = """
+set -euo pipefail
+cd capabilities/media
+mise install
+mise run verify
+"""
+
+[tasks."game:verify"]
+run = """
+set -euo pipefail
+cd domains/game
+mise install
+mise run verify
+"""
+
+[tasks."capital:verify"]
+run = """
+set -euo pipefail
+cd domains/capital
+mise install
+mise run verify
+"""
+
+[tasks."network:verify"]
+run = """
+set -euo pipefail
+cd platform/network
+task all:validate
 """

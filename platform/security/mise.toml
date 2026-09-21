@@ -1,3 +1,23 @@
 [tools]
 python = "3.14.7"
 uv = "0.12.16"
+shellcheck = "0.11.0"
+
+[tasks.verify]
+run = """
+set -euo pipefail
+uv sync --frozen --python 3.14.7
+uv run --frozen --python 3.14.7 ruff check .
+uv run --frozen --python 3.14.7 python -m unittest discover -s tests -v
+uv run --frozen --python 3.14.7 python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
+./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
+image=$(uv run --frozen --python 3.14.7 python - <<'PY'
+import json
+value = json.load(open("providers.lock.json", encoding="utf-8"))
+opa = next(row for row in value["providers"] if row["name"] == "opa")
+print(f'{opa["ciContainer"]["image"]}@{opa["ciContainer"]["digest"]}')
+PY
+)
+docker run --rm --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
+git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
+"""
