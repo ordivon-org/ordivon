@@ -19,7 +19,7 @@ tasks:
     cmds:
       - jq -e '.inbounds|length==6' consumers/finance/config/egress.json >/dev/null
       - jq -e '.outbounds==[{"type":"urltest","tag":"provider-auto","outbounds":["provider-b","provider-a"],"url":"https://1.1.1.1/cdn-cgi/trace","interval":"3s","tolerance":65535,"idle_timeout":"10m","interrupt_exist_connections":true}]' consumers/finance/config/egress.json >/dev/null
-      - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns","server":"162.252.172.57","server_port":53,"detour":"provider-auto"}] and .route.rules[0].action=="resolve" and .route.rules[0].server=="provider-dns"' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns-1","server":"162.252.172.57","server_port":53,"detour":"provider-auto"},{"type":"udp","tag":"provider-dns-2","server":"149.154.159.92","server_port":53,"detour":"provider-auto"}] and .dns.rules==[{"action":"evaluate","server":"provider-dns-1","tag":"provider-dns-1-eval"},{"match_response":"provider-dns-1-eval","ip_accept_any":true,"action":"respond","race":true},{"action":"evaluate","server":"provider-dns-2","tag":"provider-dns-2-eval","speculative":true},{"match_response":"provider-dns-2-eval","ip_accept_any":true,"action":"respond","race":true}] and .route.rules[0]=={"action":"resolve","strategy":"ipv4_only","timeout":"5s"}' consumers/finance/config/egress.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
 
@@ -263,9 +263,10 @@ tasks:
       - systemctl start network-v2-finance.target
 
   consumer:finance:verify:
-    desc: Destructively prove all six authorities, fencing, A/B survival, all-down fail-closed, recovery and root-process restart
+    desc: Destructively prove all six authorities, fencing, provider A/B survival, DNS-server survival, all-down fail-closed, recovery and root-process restart
     cmds:
       - ./consumers/finance/acceptance/production-smoke.sh
+      - ./consumers/finance/acceptance/dns-race-smoke.sh
 
   consumer:finance:stop:
     desc: Stop only the shared Network v2 Finance topology

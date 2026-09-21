@@ -8,13 +8,13 @@ The provider and consumer transport graph is one mature sing-box process rather 
 
 ```text
 Surfshark WireGuard Endpoint A ─┐
-                               ├─ sing-box provider URLTest ─ provider DNS ─ four fenced loopback CONNECT authorities
+                               ├─ sing-box provider URLTest ─ dual provider-DNS response race ─ six fenced loopback CONNECT authorities
 Surfshark WireGuard Endpoint B ─┘
 ```
 
 The WireGuard endpoints use sing-box's native userspace WireGuard Endpoint implementation (`system=false`). Numeric provider endpoints are compiled from the pinned Gluetun Surfshark catalog and the existing protected provider profiles during materialization. No Finance runtime dependency remains on Linux netns, `wg-quick`, `wireguard-go`, a provider-side HTTP carrier, Surfpath, ExteriorAnchor, or a custom recovery controller.
 
-`provider-auto` is the only A/B selector. Its health URL is numeric (`https://1.1.1.1/cdn-cgi/trace`) so provider selection does not depend on host DNS. The provider DNS server is reached through the selected WireGuard endpoint (`detour=provider-auto`), and sing-box's native route `resolve` action resolves each admitted Finance hostname before L3 forwarding. URLTest establishes provider-path health only; real venue consequences remain independent acceptance evidence.
+`provider-auto` is the only A/B selector. Its health URL is numeric (`https://1.1.1.1/cdn-cgi/trace`) so provider selection does not depend on host DNS. Finance uses both Surfshark provider resolvers (`162.252.172.57` and `149.154.159.92`) through the selected WireGuard endpoint. sing-box 1.14 evaluates the first resolver, marks its response as a race candidate, speculatively evaluates the second resolver in parallel, and returns the first response that contains an acceptable IPv4 address. The route `resolve` action intentionally omits a fixed server so admitted Finance hostnames enter this DNS rule engine before L3 forwarding. URLTest establishes provider-path health only; real venue consequences remain independent acceptance evidence.
 
 The independent consumer authorities are:
 
@@ -26,6 +26,12 @@ The independent consumer authorities are:
 - Binance USD-M public WS: `127.0.0.1:19289` → exactly `fstream.binance.com:443`.
 
 `127.0.0.1:19299` is sing-box's local observation API, not a consumer data authority. Every consumer inbound has an exact inbound + domain + port route. The final route rule rejects everything else. There is no native/direct fallback.
+
+## DNS resilience
+
+Finance DNS must not collapse back to a single provider resolver. Configuration validation freezes both provider DNS addresses and the `evaluate` / `match_response` / `race` / speculative-evaluation structure. `acceptance/dns-race-smoke.sh` runs an off-production-port sing-box instance twice: once with DNS-1 replaced by an unreachable TEST-NET address and once with DNS-2 replaced. The surviving provider resolver must still carry the public OKX time probe through the same `provider-auto` WireGuard composition.
+
+This is separate from provider A/B endpoint fault injection: provider-path redundancy and DNS-server redundancy are different failure dimensions.
 
 The composition root is `network-v2-finance.target`; it owns only `network-v2-finance-egress.service`. `provider-endpoints.json` is protected deployment material and is deliberately not stored in Git.
 
