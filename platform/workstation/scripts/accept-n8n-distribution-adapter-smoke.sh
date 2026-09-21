@@ -2,7 +2,8 @@
 set -euo pipefail
 if [[ ${EUID} -ne 0 ]]; then echo 'must run as root' >&2; exit 2; fi
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-DIST_INTENT=${DIST_INTENT:-/root/projects/ordivon-distribution-v2/evidence/r7-artifact-development-publication-intent.json}
+MONOREPO_ROOT=$(cd "$ROOT/../.." && pwd)
+DIST_INTENT=${DIST_INTENT:-$MONOREPO_ROOT/capabilities/distribution/evidence/r7-artifact-development-publication-intent.json}
 SOCKET=/var/lib/postgres/ordivon-data-r5-pg-14550-v4
 PORT=55434
 WF=ordivon-dist-adapter-smoke-v1
