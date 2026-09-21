@@ -130,3 +130,30 @@ class HandoffTofuControllerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CredentialAliasTests(unittest.TestCase):
+    def test_private_same_directory_alias_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "secrets"
+            root.mkdir(mode=0o700)
+            target = root / "cloudflare-account-api-token.json"
+            target.write_text(json.dumps({"api_token": "x", "account_id": "a"}))
+            os.chmod(target, 0o600)
+            alias = root / "cloudflare.json"
+            alias.symlink_to(target.name)
+            self.assertEqual(controller._private_json(alias)["account_id"], "a")
+
+    def test_cross_directory_alias_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "secrets"
+            other = pathlib.Path(directory) / "other"
+            root.mkdir(mode=0o700)
+            other.mkdir(mode=0o700)
+            target = other / "cloudflare-account-api-token.json"
+            target.write_text(json.dumps({"api_token": "x", "account_id": "a"}))
+            os.chmod(target, 0o600)
+            alias = root / "cloudflare.json"
+            alias.symlink_to(pathlib.Path("..") / "other" / target.name)
+            with self.assertRaises(controller.HandoffTofuError):
+                controller._private_json(alias)

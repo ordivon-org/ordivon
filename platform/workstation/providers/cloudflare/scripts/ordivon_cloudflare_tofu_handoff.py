@@ -42,14 +42,32 @@ def _sha256(path: pathlib.Path) -> str:
 
 def _private_json(path: pathlib.Path) -> dict[str, Any]:
     metadata = path.lstat()
-    if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
-        raise HandoffTofuError("Cloudflare credential owner must be a regular file")
+    source = path
+    if stat.S_ISLNK(metadata.st_mode):
+        parent = path.parent
+        parent_mode = stat.S_IMODE(parent.stat().st_mode)
+        raw_target = os.readlink(path)
+        target_name = pathlib.Path(raw_target)
+        if (
+            target_name.is_absolute()
+            or len(target_name.parts) != 1
+            or parent_mode & 0o077
+        ):
+            raise HandoffTofuError(
+                "Cloudflare credential alias must remain inside its private owner directory"
+            )
+        source = parent / target_name
+        metadata = source.lstat()
+        if source.is_symlink():
+            raise HandoffTofuError("Cloudflare credential alias target must not be another symlink")
+    if not stat.S_ISREG(metadata.st_mode):
+        raise HandoffTofuError("Cloudflare credential owner must resolve to a regular file")
     if stat.S_IMODE(metadata.st_mode) & 0o077:
         raise HandoffTofuError("Cloudflare credential owner must not be group/world accessible")
     if metadata.st_size > 65536:
         raise HandoffTofuError("Cloudflare credential owner exceeds size bound")
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise HandoffTofuError("Cannot read Cloudflare credential owner") from exc
     if not isinstance(value, dict):
