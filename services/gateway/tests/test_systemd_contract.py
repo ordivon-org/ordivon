@@ -19,7 +19,8 @@ def test_gateway_unit_is_loopback_dynamic_user_and_credential_scoped() -> None:
     assert "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE=%d/linux-runtime-bearer" in text
     assert "ORDIVON_GATEWAY_HOST=127.0.0.1" in text
     assert "ORDIVON_GATEWAY_PORT=8899" in text
-    assert "ExecStart=/opt/ordivon/gateway/current/.venv/bin/ordivon-gateway" in text
+    assert "ExecStart=/opt/ordivon/gateway/current/.venv/bin/opentelemetry-instrument " in text
+    assert " /opt/ordivon/gateway/current/.venv/bin/ordivon-gateway" in text
     assert "current-env" not in text
     assert "NoNewPrivileges=true" in text
     assert "ProtectSystem=strict" in text
@@ -86,3 +87,23 @@ def test_windows_identity_enabler_is_fixed_path_and_fail_closed() -> None:
     assert "$1" not in text
     assert "$2" not in text
     assert "cat " not in text
+
+
+def test_gateway_uses_standard_opentelemetry_zero_code_trace_export() -> None:
+    text = UNIT.read_text(encoding="utf-8")
+    assert "OTEL_SERVICE_NAME=ordivon-gateway" in text
+    assert "OTEL_TRACES_EXPORTER=otlp_proto_http" in text
+    assert "OTEL_METRICS_EXPORTER=none" in text
+    assert "OTEL_LOGS_EXPORTER=none" in text
+    assert "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces" in text
+    assert (
+        "ExecStart=/opt/ordivon/gateway/current/.venv/bin/opentelemetry-instrument "
+        "/opt/ordivon/gateway/current/.venv/bin/ordivon-gateway"
+    ) in text
+
+
+def test_gateway_pins_external_opentelemetry_runtime() -> None:
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    dependencies = set(project["project"]["dependencies"])
+    assert "opentelemetry-distro==0.65b0" in dependencies
+    assert "opentelemetry-exporter-otlp-proto-http==1.44.0" in dependencies

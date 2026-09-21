@@ -13,6 +13,7 @@ from .access_auth import (
     CloudflareAccessMiddleware,
     CloudflareAccessVerifier,
 )
+from .audit import GatewayAuditMiddleware
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
@@ -29,6 +30,7 @@ from .upstream import McpOwnerCaller
 def build_server(service: GatewayService | None = None) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
     server = MCPServer("ordivon-gateway")
+    server.middleware.append(GatewayAuditMiddleware())
 
     @server.tool(name="system.describe")
     def system_describe() -> SystemDescription:
