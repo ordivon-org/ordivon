@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "runtime-standalone",
+  "legacyLocator": "/root/projects/ordivon-runtime",
+  "archivedSource": {
+    "revision": "af67ed760a31813562745412c2553b8297a10e67",
+    "standing": "RETIRED_ARCHIVED",
+    "preserveGitHistoryForHistoricalLookup": false,
+    "recoveryMode": "all-refs-bundle-plus-linked-worktree-payload"
+  },
+  "allowedReferenceClasses": [
+    {
+      "id": "migration-acceptance-and-receipts",
+      "globs": [
+        "docs/migration/acceptance/**",
+        "docs/migration/receipts/**"
+      ],
+      "reason": "Migration acceptances and receipts preserve exact historical Runtime source coordinates."
+    },
+    {
+      "id": "m0-planning-snapshots",
+      "globs": [
+        "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
+        "meta/next/planning/monorepo-migration-baseline-r1.json"
+      ],
+      "reason": "The frozen M0 migration plan and baseline record the pre-retirement repository topology."
+    },
+    {
+      "id": "frozen-production-topology",
+      "globs": [
+        "capabilities/media/productions/*/source/**",
+        "capabilities/media/productions/*/render/**"
+      ],
+      "reason": "Creation-time System Constellation Atlas source and rendered carriers remain immutable historical evidence."
+    }
+  ],
+  "allowedExactPaths": [
+    {
+      "path": "meta/next/authorities/records/iso-iec-ieee/iso-iec-ieee-12207-2026.json",
+      "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
+    },
+    {
+      "path": "meta/next/authorities/records/iso-iec/iso-iec-25010-2023.json",
+      "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
+    },
+    {
+      "path": "meta/next/authorities/records/nist/nist-sp-800-218-ssdf-1.1.json",
+      "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
+    },
+    {
+      "path": "meta/next/authorities/records/slsa/slsa-1.2.json",
+      "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
+    },
+    {
+      "path": "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json",
+      "reason": "Dated acceptance evidence records the original standalone repository observed on 2026-09-14."
+    },
+    {
+      "path": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine.rs",
+      "reason": "The retired locator appears only in two test-only systemd command fixtures as an arbitrary workspace path; no production Runtime path resolution consumes it."
+    }
+  ]
+}
