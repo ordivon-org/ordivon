@@ -67,6 +67,11 @@ RUNTIME_POLICY_ENV_KEYS = (
     ("ORDIVON_DEFAULT_RUNTIME_MS", "defaultRuntimeMs"),
     ("ORDIVON_MAX_RUNTIME_MS", "maxRuntimeMs"),
 )
+RELEASE_AUTHORITY_SCHEMA_VERSION = 1
+RELEASE_AUTHORITY_ENV_KEYS = (
+    ("ORDIVON_RELEASE_SOURCE_REPO", "sourceRepo"),
+    ("ORDIVON_RELEASE_REQUIRED_REF", "requiredRef"),
+)
 STRUCTURED_RELEASE_DRAIN_TIMEOUT_ENV = "ORDIVON_RELEASE_DRAIN_TIMEOUT_MS"
 
 
@@ -553,47 +558,153 @@ def committed_runtime_policy(git: Path, source_repo: Path, commit: str) -> dict[
     return validate_runtime_policy(policy, require_complete=True)
 
 
-def atomic_update_runtime_policy(
+def validate_release_authority(value: object, *, require_complete: bool) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise RuntimeError("release authority must be an object")
+    if value.get("schemaVersion") != RELEASE_AUTHORITY_SCHEMA_VERSION:
+        raise RuntimeError("release authority schemaVersion is unsupported")
+    result: dict[str, object] = {"schemaVersion": RELEASE_AUTHORITY_SCHEMA_VERSION}
+    source_repo = value.get("sourceRepo")
+    if source_repo is None:
+        if require_complete:
+            raise RuntimeError("release authority lacks sourceRepo")
+        result["sourceRepo"] = None
+    else:
+        if not isinstance(source_repo, str) or not source_repo or "\n" in source_repo or "\r" in source_repo:
+            raise RuntimeError("release authority sourceRepo must be one absolute path")
+        source_path = Path(source_repo)
+        if not source_path.is_absolute():
+            raise RuntimeError("release authority sourceRepo must be absolute")
+        result["sourceRepo"] = str(source_path)
+
+    required_ref = value.get("requiredRef")
+    if required_ref is None:
+        if require_complete:
+            raise RuntimeError("release authority lacks requiredRef")
+        result["requiredRef"] = None
+    else:
+        if (
+            not isinstance(required_ref, str)
+            or not required_ref
+            or required_ref.strip() != required_ref
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in required_ref)
+        ):
+            raise RuntimeError("release authority requiredRef is invalid")
+        result["requiredRef"] = required_ref
+    return result
+
+
+def release_authority_from_text(text: str, *, label: str) -> dict[str, object]:
+    observed: dict[str, str | None] = {}
+    for env_key, field in RELEASE_AUTHORITY_ENV_KEYS:
+        matches = []
+        for line in text.splitlines():
+            if not line.startswith(env_key + "="):
+                continue
+            matches.append(line.split("=", 1)[1])
+        if len(matches) > 1:
+            raise RuntimeError(f"{label} contains duplicate {env_key}")
+        observed[field] = matches[0] if matches else None
+    return validate_release_authority(
+        {"schemaVersion": RELEASE_AUTHORITY_SCHEMA_VERSION, **observed},
+        require_complete=False,
+    )
+
+
+def release_authority_state(path: Path) -> dict[str, object]:
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"Runtime env file is missing or unsafe: {path}")
+    authority = release_authority_from_text(
+        path.read_text(encoding="utf-8"),
+        label="Runtime env",
+    )
+    return {**authority, "envFileDigest": sha256(path)}
+
+
+def candidate_release_authority(args: argparse.Namespace) -> dict[str, object]:
+    return validate_release_authority(
+        {
+            "schemaVersion": RELEASE_AUTHORITY_SCHEMA_VERSION,
+            "sourceRepo": str(args.source_repo.resolve()),
+            "requiredRef": args.require_ref,
+        },
+        require_complete=True,
+    )
+
+
+def atomic_update_runtime_environment(
     path: Path,
-    target: object,
     *,
-    expected_current: object | None = None,
+    runtime_policy: object | None = None,
+    release_authority: object | None = None,
+    expected_current_runtime_policy: object | None = None,
+    expected_current_release_authority: object | None = None,
 ) -> dict[str, object]:
-    desired = validate_runtime_policy(target, require_complete=False)
-    current = runtime_policy_state(path)
-    if expected_current is not None:
-        expected = validate_runtime_policy(expected_current, require_complete=False)
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError(f"Runtime env file is missing or unsafe: {path}")
+    original_bytes = path.read_bytes()
+    try:
+        original = original_bytes.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise RuntimeError("Runtime env file is not valid UTF-8") from error
+
+    current_policy = runtime_policy_from_text(original, label="Runtime env")
+    current_authority = release_authority_from_text(original, label="Runtime env")
+    if expected_current_runtime_policy is not None:
+        expected_policy = validate_runtime_policy(
+            expected_current_runtime_policy,
+            require_complete=False,
+        )
         for _env_key, field in RUNTIME_POLICY_ENV_KEYS:
-            if current.get(field) != expected.get(field):
+            if current_policy.get(field) != expected_policy.get(field):
                 raise RuntimeError(f"Runtime env policy changed before commit: {field}")
-    original = path.read_text(encoding="utf-8")
+    if expected_current_release_authority is not None:
+        expected_authority = validate_release_authority(
+            expected_current_release_authority,
+            require_complete=False,
+        )
+        for _env_key, field in RELEASE_AUTHORITY_ENV_KEYS:
+            if current_authority.get(field) != expected_authority.get(field):
+                raise RuntimeError(
+                    f"Runtime env release authority changed before commit: {field}"
+                )
+
+    desired: dict[str, object | None] = {}
+    if runtime_policy is not None:
+        policy = validate_runtime_policy(runtime_policy, require_complete=False)
+        for env_key, field in RUNTIME_POLICY_ENV_KEYS:
+            desired[env_key] = policy.get(field)
+    if release_authority is not None:
+        authority = validate_release_authority(release_authority, require_complete=False)
+        for env_key, field in RELEASE_AUTHORITY_ENV_KEYS:
+            desired[env_key] = authority.get(field)
+
     lines = original.splitlines(keepends=True)
     output: list[str] = []
     seen: set[str] = set()
     for line in lines:
-        replaced = False
-        for env_key, field in RUNTIME_POLICY_ENV_KEYS:
+        matched = False
+        for env_key, value in desired.items():
             if line.startswith(env_key + "="):
                 seen.add(env_key)
-                value = desired.get(field)
-                if isinstance(value, int):
+                if value is not None:
                     ending = "\n" if line.endswith("\n") else ""
                     output.append(f"{env_key}={value}{ending}")
-                replaced = True
+                matched = True
                 break
-        if not replaced:
+        if not matched:
             output.append(line)
-    for env_key, field in RUNTIME_POLICY_ENV_KEYS:
-        value = desired.get(field)
-        if env_key in seen or not isinstance(value, int):
+    for env_key, value in desired.items():
+        if env_key in seen or value is None:
             continue
         if output and not output[-1].endswith("\n"):
             output[-1] += "\n"
         output.append(f"{env_key}={value}\n")
+
     updated = "".join(output)
     if updated != original:
         metadata = path.stat()
-        temporary = path.with_name(path.name + f".tmp-policy-{os.getpid()}")
+        temporary = path.with_name(path.name + f".tmp-runtime-environment-{os.getpid()}")
         try:
             temporary.write_text(updated, encoding="utf-8")
             os.chmod(temporary, stat.S_IMODE(metadata.st_mode))
@@ -608,7 +719,25 @@ def atomic_update_runtime_policy(
                 os.close(directory)
         finally:
             temporary.unlink(missing_ok=True)
-    return runtime_policy_state(path)
+
+    return {
+        "runtimePolicy": runtime_policy_state(path),
+        "releaseAuthority": release_authority_state(path),
+    }
+
+
+def atomic_update_runtime_policy(
+    path: Path,
+    target: object,
+    *,
+    expected_current: object | None = None,
+) -> dict[str, object]:
+    result = atomic_update_runtime_environment(
+        path,
+        runtime_policy=target,
+        expected_current_runtime_policy=expected_current,
+    )
+    return result["runtimePolicy"]
 
 
 def release_artifact_fingerprint(records: object) -> dict[str, tuple[str, int]] | None:
@@ -869,6 +998,14 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
     jobs, ignored_current_job_id = active_job_ids(args.database)
     candidate = candidate_artifacts(args)
     candidate_manifest, manifest_blockers = validate_candidate_manifest(args, candidate)
+    release_authority = (
+        {
+            "previous": release_authority_state(args.env_file),
+            "candidate": candidate_release_authority(args),
+        }
+        if args.binaries is None
+        else None
+    )
     installed: list[dict[str, object]] = []
     for spec in specs:
         name = str(spec["name"])
@@ -922,6 +1059,7 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
         "service": args.service,
         "candidate": candidate,
         "candidateManifest": candidate_manifest,
+        "releaseAuthority": release_authority,
         "installed": installed,
         "eligible": not blockers,
         "blockers": blockers,
@@ -1223,14 +1361,18 @@ def restore_previous(
     *,
     runtime_policy: object | None = None,
     expected_current_runtime_policy: object | None = None,
+    release_authority: object | None = None,
+    expected_current_release_authority: object | None = None,
 ) -> dict[str, object]:
     run([str(systemctl), "stop", service], check=False)
-    restored_policy = None
-    if runtime_policy is not None:
-        restored_policy = atomic_update_runtime_policy(
+    restored_environment = None
+    if runtime_policy is not None or release_authority is not None:
+        restored_environment = atomic_update_runtime_environment(
             env_file,
-            runtime_policy,
-            expected_current=expected_current_runtime_policy,
+            runtime_policy=runtime_policy,
+            release_authority=release_authority,
+            expected_current_runtime_policy=expected_current_runtime_policy,
+            expected_current_release_authority=expected_current_release_authority,
         )
     for record in records:
         name = str(record.get("name", ""))
@@ -1255,8 +1397,11 @@ def restore_previous(
         allow_legacy_fallback=True,
     )
     result: dict[str, object] = {"serviceActive": True, "probe": probe}
-    if restored_policy is not None:
-        result["runtimePolicy"] = restored_policy
+    if restored_environment is not None:
+        if runtime_policy is not None:
+            result["runtimePolicy"] = restored_environment["runtimePolicy"]
+        if release_authority is not None:
+            result["releaseAuthority"] = restored_environment["releaseAuthority"]
     return result
 
 def prune_candidate_artifacts(
@@ -1361,13 +1506,19 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
         installed_by_name = {str(item["name"]): item for item in plan["installed"]}
         previous_commit = matching_release_commit(args.receipt_root, plan["installed"])
         runtime_policy = plan["candidateManifest"].get("runtimePolicy")
+        release_authority = (
+            candidate_release_authority(args) if runtime_policy is not None else None
+        )
         previous_runtime_policy = (
             runtime_policy_state(args.env_file) if runtime_policy is not None else None
+        )
+        previous_release_authority = (
+            release_authority_state(args.env_file) if release_authority is not None else None
         )
         registry_migration_before: int | None = None
         previous_records: list[dict[str, object]] = []
         commit_started = False
-        policy_committed = False
+        environment_committed = False
         stopped = False
         admission_fence_handle = None
         try:
@@ -1410,6 +1561,16 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                             "candidate": runtime_policy,
                         }
                         if runtime_policy is not None
+                        else None
+                    ),
+                    "releaseAuthority": (
+                        {
+                            "previous": validate_release_authority(
+                                previous_release_authority, require_complete=False
+                            ),
+                            "candidate": release_authority,
+                        }
+                        if release_authority is not None
                         else None
                     ),
                     "releaseEffect": release_effect,
@@ -1466,13 +1627,15 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                     mode=int(record["mode"]),
                 )
             commit_started = True
-            if runtime_policy is not None:
-                atomic_update_runtime_policy(
+            if runtime_policy is not None or release_authority is not None:
+                atomic_update_runtime_environment(
                     args.env_file,
-                    runtime_policy,
-                    expected_current=previous_runtime_policy,
+                    runtime_policy=runtime_policy,
+                    release_authority=release_authority,
+                    expected_current_runtime_policy=previous_runtime_policy,
+                    expected_current_release_authority=previous_release_authority,
                 )
-                policy_committed = True
+                environment_committed = True
             for spec in specs:
                 name = str(spec["name"])
                 os.replace(args.install_dir / f"{name}.next", args.install_dir / name)
@@ -1539,8 +1702,18 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                             args.service,
                             args.env_file,
                             args.wait_seconds,
-                            runtime_policy=(previous_runtime_policy if policy_committed else None),
-                            expected_current_runtime_policy=(runtime_policy if policy_committed else None),
+                            runtime_policy=(
+                                previous_runtime_policy if environment_committed else None
+                            ),
+                            expected_current_runtime_policy=(
+                                runtime_policy if environment_committed else None
+                            ),
+                            release_authority=(
+                                previous_release_authority if environment_committed else None
+                            ),
+                            expected_current_release_authority=(
+                                release_authority if environment_committed else None
+                            ),
                         )
                     except Exception as error:
                         rollback_error = error
@@ -1666,12 +1839,29 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
         candidate_runtime_policy_value = validate_runtime_policy(
             runtime_policy_record.get("candidate"), require_complete=True
         )
+    release_authority_record = manifest.get("releaseAuthority")
+    previous_release_authority = None
+    candidate_release_authority_value = None
+    if release_authority_record is not None:
+        if not isinstance(release_authority_record, dict):
+            raise RuntimeError("deployment receipt release authority record is invalid")
+        previous_release_authority = validate_release_authority(
+            release_authority_record.get("previous"), require_complete=False
+        )
+        candidate_release_authority_value = validate_release_authority(
+            release_authority_record.get("candidate"), require_complete=True
+        )
     database = rollback_database(args)
     with exclusive_lock(args.lock_file), fenced_execution_drain(database, args.drain_seconds):
         current = receipt / f"rollback-current-{int(time.time() * 1000)}"
         current.mkdir()
         current_runtime_policy = (
             runtime_policy_state(args.env_file) if previous_runtime_policy is not None else None
+        )
+        current_release_authority = (
+            release_authority_state(args.env_file)
+            if previous_release_authority is not None
+            else None
         )
         current_records: list[dict[str, object]] = []
         for name in names:
@@ -1698,6 +1888,8 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
                 args.wait_seconds,
                 runtime_policy=previous_runtime_policy,
                 expected_current_runtime_policy=candidate_runtime_policy_value,
+                release_authority=previous_release_authority,
+                expected_current_release_authority=candidate_release_authority_value,
             )
         except Exception as rollback_error:
             current_restore_error: Exception | None = None
@@ -1711,6 +1903,7 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
                     args.env_file,
                     args.wait_seconds,
                     runtime_policy=current_runtime_policy,
+                    release_authority=current_release_authority,
                 )
             except Exception as error:
                 current_restore_error = error

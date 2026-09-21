@@ -796,6 +796,7 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(planned.returncode, 0, planned.stderr)
             plan = json.loads(planned.stdout)
             self.assertTrue(plan["eligible"])
+            self.assertIsNone(plan["releaseAuthority"])
             self.assertEqual(plan["requiredRefCommit"], required_commit)
             self.assertNotEqual(plan["requiredRefCommit"], candidate_commit)
             authority = plan["requiredRefAuthority"]
@@ -995,6 +996,8 @@ class DeployReclaimTests(unittest.TestCase):
                     f"ORDIVON_BIND=127.0.0.1:{port}\n"
                     "ORDIVON_BEARER_TOKEN=test\n"
                     "UNRELATED_RELEASE_SETTING=preserve-me\n"
+                    f"ORDIVON_RELEASE_SOURCE_REPO={root / 'standalone-runtime'}\n"
+                    "ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n"
                     "ORDIVON_MAX_RUNTIME_MS=3600000\n",
                     encoding="utf-8",
                 )
@@ -1068,11 +1071,29 @@ class DeployReclaimTests(unittest.TestCase):
                         "maxRuntimeMs": 86_400_000,
                     },
                 )
+                self.assertEqual(
+                    receipt_manifest["releaseAuthority"]["previous"],
+                    {
+                        "schemaVersion": 1,
+                        "sourceRepo": str(root / "standalone-runtime"),
+                        "requiredRef": "origin/legacy",
+                    },
+                )
+                self.assertEqual(
+                    receipt_manifest["releaseAuthority"]["candidate"],
+                    {
+                        "schemaVersion": 1,
+                        "sourceRepo": str(repo.resolve()),
+                        "requiredRef": "origin/main",
+                    },
+                )
                 deployed_env = env_file.read_text(encoding="utf-8")
                 self.assertIn("ORDIVON_DEFAULT_RUNTIME_MS=3600000\n", deployed_env)
                 self.assertIn("ORDIVON_MAX_RUNTIME_MS=86400000\n", deployed_env)
                 self.assertIn("ORDIVON_BEARER_TOKEN=test\n", deployed_env)
                 self.assertIn("UNRELATED_RELEASE_SETTING=preserve-me\n", deployed_env)
+                self.assertIn(f"ORDIVON_RELEASE_SOURCE_REPO={repo.resolve()}\n", deployed_env)
+                self.assertIn("ORDIVON_RELEASE_REQUIRED_REF=origin/main\n", deployed_env)
                 rolled_back = subprocess.run(
                     [
                         sys.executable,
@@ -1113,6 +1134,11 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertIn("ORDIVON_MAX_RUNTIME_MS=3600000\n", rolled_back_env)
             self.assertIn("ORDIVON_BEARER_TOKEN=test\n", rolled_back_env)
             self.assertIn("UNRELATED_RELEASE_SETTING=preserve-me\n", rolled_back_env)
+            self.assertIn(
+                f"ORDIVON_RELEASE_SOURCE_REPO={root / 'standalone-runtime'}\n",
+                rolled_back_env,
+            )
+            self.assertIn("ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n", rolled_back_env)
 
     def test_new_deployer_rolls_back_legacy_v1_binary_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1405,6 +1431,79 @@ class DeployReclaimTests(unittest.TestCase):
                 plan["blockers"],
             )
 
+    def test_runtime_environment_update_transitions_release_authority_in_one_cas(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env_file = root / "runtime.env"
+            old_source = root / "standalone-runtime"
+            new_source = root / "ordivon" / "services" / "runtime"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:1\n"
+                "ORDIVON_BEARER_TOKEN=secret-not-owned-by-release\n"
+                "UNRELATED=value\n"
+                f"ORDIVON_RELEASE_SOURCE_REPO={old_source}\n"
+                "ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n"
+                "ORDIVON_MAX_RUNTIME_MS=3600000\n",
+                encoding="utf-8",
+            )
+            env_file.chmod(0o600)
+            previous_policy = module["runtime_policy_state"](env_file)
+            previous_authority = module["release_authority_state"](env_file)
+            updated = module["atomic_update_runtime_environment"](
+                env_file,
+                runtime_policy={
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                },
+                release_authority={
+                    "schemaVersion": 1,
+                    "sourceRepo": str(new_source),
+                    "requiredRef": "origin/main",
+                },
+                expected_current_runtime_policy=previous_policy,
+                expected_current_release_authority=previous_authority,
+            )
+            self.assertEqual(updated["runtimePolicy"]["maxRuntimeMs"], 86_400_000)
+            self.assertEqual(updated["releaseAuthority"]["sourceRepo"], str(new_source))
+            self.assertEqual(updated["releaseAuthority"]["requiredRef"], "origin/main")
+            text = env_file.read_text(encoding="utf-8")
+            self.assertIn(f"ORDIVON_RELEASE_SOURCE_REPO={new_source}\n", text)
+            self.assertIn("ORDIVON_RELEASE_REQUIRED_REF=origin/main\n", text)
+            self.assertIn("ORDIVON_BEARER_TOKEN=secret-not-owned-by-release\n", text)
+            self.assertIn("UNRELATED=value\n", text)
+            self.assertEqual(env_file.stat().st_mode & 0o777, 0o600)
+
+            with self.assertRaisesRegex(RuntimeError, "release authority changed before commit"):
+                module["atomic_update_runtime_environment"](
+                    env_file,
+                    release_authority={
+                        "schemaVersion": 1,
+                        "sourceRepo": str(new_source),
+                        "requiredRef": "origin/main",
+                    },
+                    expected_current_release_authority=previous_authority,
+                )
+
+            restored = module["atomic_update_runtime_environment"](
+                env_file,
+                runtime_policy=previous_policy,
+                release_authority=previous_authority,
+            )
+            self.assertEqual(
+                restored["releaseAuthority"]["sourceRepo"],
+                str(old_source),
+            )
+            self.assertEqual(restored["releaseAuthority"]["requiredRef"], "origin/legacy")
+            self.assertIsNone(restored["runtimePolicy"]["defaultRuntimeMs"])
+            self.assertEqual(restored["runtimePolicy"]["maxRuntimeMs"], 3_600_000)
+
     def test_runtime_policy_update_preserves_unrelated_env_and_detects_policy_drift(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
@@ -1594,6 +1693,8 @@ class DeployReclaimTests(unittest.TestCase):
                     f"ORDIVON_BIND=127.0.0.1:{port}\n"
                     "ORDIVON_BEARER_TOKEN=secret\n"
                     "UNRELATED=preserve\n"
+                    f"ORDIVON_RELEASE_SOURCE_REPO={root / 'standalone-runtime'}\n"
+                    "ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n"
                     "ORDIVON_MAX_RUNTIME_MS=3600000\n",
                     encoding="utf-8",
                 )
@@ -1633,6 +1734,11 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertIn("ORDIVON_MAX_RUNTIME_MS=3600000\n", env_text)
             self.assertIn("ORDIVON_BEARER_TOKEN=secret\n", env_text)
             self.assertIn("UNRELATED=preserve\n", env_text)
+            self.assertIn(
+                f"ORDIVON_RELEASE_SOURCE_REPO={root / 'standalone-runtime'}\n",
+                env_text,
+            )
+            self.assertIn("ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n", env_text)
 
     def test_deploy_wait_policy_has_no_legacy_five_minute_ceiling(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))

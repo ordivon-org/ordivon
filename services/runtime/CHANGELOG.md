@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Full Runtime releases now receipt and atomically transition ORDIVON_RELEASE_SOURCE_REPO and ORDIVON_RELEASE_REQUIRED_REF together with the two timeout-policy values, so standalone-to-monorepo release authority commits and rolls back with the 12-artifact release; binary-subset maintenance remains outside this ownership.
+
 - Nested Runtime owners now validate a required release ref by both Git ancestry and exact owner-subtree identity instead of whole-repository Commit equality. Standalone Runtime repositories retain exact-ref semantics; monorepo commits outside `services/runtime` no longer invalidate an otherwise identical Runtime candidate, while owner-tree changes and rewritten/non-ancestor candidates remain fail-closed. Deployment plans expose the resolved authority evidence for audit.
 
 - Runtime release preparation and policy verification now accept a real Runtime owner directory beneath a containing Git repository, so the canonical modular-monorepo `services/runtime` source can retain the existing exact-Commit, manifest, required-ref, Workspace, and rollback contracts without inventing a second public `sourceSubdir` protocol. Standalone owner roots remain behaviorally unchanged.
