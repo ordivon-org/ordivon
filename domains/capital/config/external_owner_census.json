@@ -460,7 +460,7 @@
           "upstreamVersion": "17.1",
           "scope": "HTTP proxy TLS transport loss after protocol handoff but before connection_made",
           "mechanism": "documented create_connection subclass",
-          "implementation": "src/ordivon_capital/market/websocket_proxy_lifecycle.py",
+          "implementation": "src/ordivon_capital/markets/websocket_proxy_lifecycle.py",
           "normalProtocolDelegation": true,
           "sitePackagePatch": false,
           "deadlineRelaxed": false,
@@ -501,7 +501,7 @@
       "id": "trading-execution-reconciliation",
       "sourcePatterns": [
         "src/ordivon_capital/trading/execution_reconciliation.py",
-        "src/ordivon_capital/trading/nonlive_effect_qualification.py"
+        "tools/nautilus_rc4/nonlive_effect_qualification.py"
       ],
       "ownerClasses": [
         "STANDARD_OWNER",
@@ -801,7 +801,7 @@
       "contractId": "execution-state-reconciliation",
       "scope": "venue order/fill/position state -> internally reconciled execution state",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/execution_reconciliation.py",
+        "implementation": "src/ordivon_capital/trading/execution_reconciliation.py",
         "sourceLoc": 168,
         "directTestCount": 6,
         "strength": "small exact fail-closed snapshot reconciler",
@@ -873,7 +873,7 @@
       "contractId": "capital-reservation-resolution",
       "scope": "qualified reconciliation standing -> bounded accounting reservation resolution",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/execution_reconciliation.py::reservation_resolution_for_standing",
+        "implementation": "src/ordivon_capital/trading/execution_reconciliation.py::reservation_resolution_for_standing",
         "ownerRole": "cross-owner seam"
       },
       "externalCandidate": {
@@ -888,7 +888,7 @@
       "contractId": "historical-expected-shortfall",
       "scope": "descriptive empirical one-period VaR/expected-shortfall statistic from an explicit return sequence",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/portfolio_risk.py::historical_expected_shortfall",
+        "implementation": "src/ordivon_capital/risk/portfolio_risk.py::historical_expected_shortfall",
         "primitiveOwner": "NumPy",
         "character": "thin deterministic calculation"
       },
@@ -951,7 +951,7 @@
       "contractId": "bounded-market-policy-decision",
       "scope": "execution-lane admission + live-test account admission + named risk-budget statuses + pre-trade evidence gate statuses",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/policy_decision.py",
+        "implementation": "src/ordivon_capital/governance/policy_decision.py",
         "runtime": "Python 3.14.7",
         "character": "direct deterministic bounded rules; no generic policy framework"
       },
@@ -1034,7 +1034,7 @@
       "contractId": "bounded-us-equity-execution-feasibility",
       "scope": "empty USD portfolio; positive long US equities; one-share lot; explicit free-portfolio reserve; default LEAN IB-style equity fee mechanics",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/execution_feasibility.py",
+        "implementation": "src/ordivon_capital/trading/execution_feasibility.py",
         "runtime": "Python 3.14.7",
         "character": "small deterministic fee-aware sizing function with explicit fail-closed scope"
       },
@@ -1125,7 +1125,7 @@
       "contractId": "bounded-sessionless-fix44-new-order-single-projection",
       "scope": "sessionless deterministic FIX 4.4 NewOrderSingle TagValue projection for mechanics-only evidence; no network session and no complete wire framing",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/fix44_projection.py",
+        "implementation": "src/ordivon_capital/trading/fix44_projection.py",
         "runtime": "Python 3.14.7",
         "character": "small deterministic 14-tag projector with explicit fail-closed scope"
       },
@@ -1178,8 +1178,8 @@
       },
       "evidence": {
         "directImportSites": [
-          "src/ordivon_capital/market/crypto_public_streaming.py",
-          "src/ordivon_capital/market/crypto_stream_resilience.py"
+          "src/ordivon_capital/markets/crypto_public_streaming.py",
+          "src/ordivon_capital/markets/crypto_stream_resilience.py"
         ],
         "configuredMechanics": [
           "explicit proxy",
@@ -1218,7 +1218,7 @@
           "upstreamVersion": "17.1",
           "scope": "HTTP proxy TLS transport loss after protocol handoff but before connection_made",
           "mechanism": "documented create_connection subclass",
-          "implementation": "src/ordivon_capital/market/websocket_proxy_lifecycle.py",
+          "implementation": "src/ordivon_capital/markets/websocket_proxy_lifecycle.py",
           "normalProtocolDelegation": true,
           "sitePackagePatch": false,
           "deadlineRelaxed": false,
@@ -1283,7 +1283,7 @@
       "contractId": "okx-bounded-authenticated-read-client",
       "scope": "authenticated GET-only OKX account config, trading-account balance, and open Spot orders through exact Network v2 proxy authority",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/okx_readonly_client.py",
+        "implementation": "src/ordivon_capital/trading/okx_readonly_client.py",
         "runtime": "Python 3.14.7 stdlib only",
         "allowedMethods": [
           "GET"
@@ -1371,7 +1371,7 @@
       "contractId": "bounded-monitoring-row-validation",
       "scope": "one fixed 11-field flattened model-monitoring row schema with numeric coercion and four bounded non-negativity/range constraints",
       "localBaseline": {
-        "implementation": "src/ordivon_capital/market/monitoring_persistence.py::monitoring_rows",
+        "implementation": "src/ordivon_capital/research/monitoring_persistence.py::monitoring_rows",
         "runtime": "Python 3.14.7 stdlib",
         "character": "explicit bounded validation only"
       },
