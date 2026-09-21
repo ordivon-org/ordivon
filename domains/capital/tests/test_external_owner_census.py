@@ -447,3 +447,19 @@ def test_parquet_and_duckdb_owners_are_requalified_by_exact_cross_engine_contrac
     assert readback["externalOwnerAdmitted"] is True
     assert readback["evidence"]["independentImplementation"] is True
     assert readback["localBaseline"]["sameEnginePyarrowReadbackContractEquivalent"] is False
+
+def test_websockets_owner_is_requalified_by_independent_raw_wire_contract():
+    owners = {row["id"]: row for row in CENSUS["standardsAndOwners"]}
+    ws = owners["websocket-client-mechanics"]
+    assert ws["ownerClass"] == "IMPLEMENTATION_OWNER"
+    assert ws["currentStanding"] == "REQUALIFIED_R17_ADMITTED_FOR_PUBLIC_ASYNC_WEBSOCKET_PROTOCOL_MECHANICS"
+    assert ws["python3147ExecutableQualification"] == "PASS"
+
+    quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
+    q = quals["public-async-websocket-protocol-client"]
+    assert q["externalOwnerAdmitted"] is True
+    assert q["standing"] == "WEBSOCKETS_17_1_REQUALIFIED_R17_RETAIN_AS_NARROW_PROTOCOL_OWNER"
+    raw = q["evidence"]["r17RawWireFalsification"]
+    assert raw["implementationIndependence"] == "RAW_ASYNCIO_TCP_PEER_NOT_WEBSOCKETS_SERVER"
+    assert all(value is True for key, value in raw.items() if key != "implementationIndependence")
+    assert q["localBaseline"]["stdlibWebSocketClientAvailable"] is False

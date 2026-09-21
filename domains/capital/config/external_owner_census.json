@@ -191,9 +191,12 @@
       "id": "websocket-client-mechanics",
       "ownerClass": "IMPLEMENTATION_OWNER",
       "owner": "websockets 17.1",
-      "currentStanding": "ADMITTED_FOR_PUBLIC_ASYNC_WEBSOCKET_PROTOCOL_MECHANICS",
+      "currentStanding": "REQUALIFIED_R17_ADMITTED_FOR_PUBLIC_ASYNC_WEBSOCKET_PROTOCOL_MECHANICS",
       "applicability": "ASYNC_CLIENT_HANDSHAKE_TLS_PROXY_FRAMING_PING_PONG_CLOSE_MESSAGE_LIMITS_ONLY; VENUE_PAYLOAD_AND_NETWORK_ROUTE_REMAIN_EXTERNAL",
-      "source": "https://websockets.readthedocs.io/"
+      "source": "https://websockets.readthedocs.io/",
+      "qualificationContract": "contracts/websocket-client-mechanics-v1.json",
+      "latestStableObserved": "17.1",
+      "python3147ExecutableQualification": "PASS"
     },
     {
       "id": "okx-client-implementation-candidate",
@@ -1170,7 +1173,8 @@
       "scope": "public OKX/Binance WebSocket client handshake, TLS via proxy, RFC framing/control frames, async receive, close, ping/pong, and bounded message size",
       "localBaseline": {
         "standing": "NO_CREDIBLE_CONTRACT_EQUIVALENT_STDLIB_BASELINE",
-        "reason": "Python 3.14 stdlib has asyncio/TLS/HTTP primitives but no WebSocket client; a local substitute would need to implement protocol framing/masking/control frames/handshake/proxy integration and would enlarge the trusted protocol surface"
+        "stdlibWebSocketClientAvailable": false,
+        "reason": "Python 3.14 stdlib exposes asyncio/socket/TLS/HTTP primitives but no RFC 6455 client; a local substitute would need to implement and maintain handshake validation, masking, fragmentation/control frames, ping/pong, close semantics, message limits, and proxy/TLS integration"
       },
       "externalCandidate": {
         "name": "websockets",
@@ -1178,9 +1182,11 @@
         "pythonRequires": ">=3.11",
         "python314Supported": true,
         "thirdPartyDependencies": 0,
-        "installedFootprintBytes": 829871,
+        "installedFootprintBytes": 829900,
         "securityPolicy": "LATEST_VERSION_ONLY",
-        "publishedGitHubAdvisoriesObserved": 0
+        "publishedGitHubAdvisoriesObserved": 0,
+        "latestStableObserved": true,
+        "python3147ExecutableQualification": "PASS"
       },
       "evidence": {
         "directImportSites": [
@@ -1279,11 +1285,24 @@
           },
           "callbackAttributeErrors": 0,
           "interpretation": "live transport tail sample; retained as operational evidence, not rewritten as PASS"
+        },
+        "r17RawWireFalsification": {
+          "implementationIndependence": "RAW_ASYNCIO_TCP_PEER_NOT_WEBSOCKETS_SERVER",
+          "upgradeHeaders": true,
+          "clientTextMasked": true,
+          "serverTextReceived": true,
+          "automaticPong": true,
+          "closeHandshake": true,
+          "cleanCloseObserved": true,
+          "maxSizeFailClosed": true,
+          "invalidHandshakeStatusRejected": true,
+          "openingHandshakeTimeout": true
         }
       },
-      "standing": "WEBSOCKETS_17_1_RETAIN_AS_NARROW_PROTOCOL_MECHANICS_OWNER_FRESH_R2_R3_PASS",
+      "standing": "WEBSOCKETS_17_1_REQUALIFIED_R17_RETAIN_AS_NARROW_PROTOCOL_OWNER",
       "externalOwnerAdmitted": true,
-      "decision": "Retain websockets 17.1 for WebSocket protocol/client mechanics. Ordivon owns venue-payload normalization, health/reconnect policy, and evidence only. Network v2 remains the transport-route owner. Requalify on major websockets API change or if a credible smaller protocol-complete baseline appears."
+      "decision": "Retain websockets 17.1 only for bounded WebSocket protocol/client mechanics. R17 independently falsified wire behavior with a raw asyncio TCP peer; existing live Network v2 evidence remains the proxy/TLS/reconnect qualification. Ordivon continues to own venue semantics, health policy, route authority, and evidence.",
+      "qualificationContract": "contracts/websocket-client-mechanics-v1.json"
     },
     {
       "contractId": "okx-bounded-authenticated-read-client",

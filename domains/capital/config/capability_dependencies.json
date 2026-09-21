@@ -50,6 +50,16 @@
       "parquetQualificationContract": "contracts/parquet-materialization-readback-v1.json",
       "parquetOwnerStanding": "PYARROW_25_0_1_REQUALIFIED_R16",
       "independentReadbackOwnerStanding": "DUCKDB_1_5_5_REQUALIFIED_R16"
+    },
+    "publicWebSocketProtocol": {
+      "provider": "websockets",
+      "version": "17.1",
+      "interpreter": "./.venv/bin/python",
+      "pythonVersion": "3.14.7",
+      "qualificationContract": "contracts/websocket-client-mechanics-v1.json",
+      "standing": "WEBSOCKETS_17_1_REQUALIFIED_R17",
+      "responsibility": "bounded RFC 6455 client handshake/framing/control-frame/close/message-limit mechanics plus proxy/TLS integration",
+      "nonResponsibility": "does not own Network v2 route selection, venue payload semantics, snapshot qualification, stream health policy or financial-effect authority"
     }
   },
   "kind": "ordivon.capital.capability-dependencies",

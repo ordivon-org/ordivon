@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.markets.websocket-client-mechanics-contract",
+  "standing": "ACTIVE_EXACT_CONTRACT",
+  "implementationOwnerScope": [
+    "HTTP Upgrade client handshake",
+    "RFC 6455 client-to-server masking",
+    "text/binary/control-frame protocol mechanics",
+    "automatic Ping/Pong control handling",
+    "close-handshake mechanics",
+    "bounded message-size enforcement",
+    "opening-handshake timeout",
+    "async receive and reconnect-capable client API",
+    "HTTP(S) proxy and TLS integration when bound by Network v2"
+  ],
+  "ordivonOwnedScope": [
+    "venue payload parsing and normalization",
+    "snapshot qualification",
+    "stream health and recovery policy",
+    "Network v2 route selection and failover",
+    "evidence capture and admission decisions"
+  ],
+  "ownerAdmissionRule": "retain websockets only while latest-stable Python 3.14 qualification, independent raw-wire protocol falsification, and current proxy/TLS operational evidence pass",
+  "localBaselineRule": "Python stdlib supplies asyncio, TLS, HTTP and sockets but no RFC 6455 WebSocket client; a contract-equivalent local substitute would need to own handshake validation, masking, fragmentation/control frames, close behavior, proxy/TLS integration and message limits",
+  "externalFinancialWritesAllowed": false
+}
