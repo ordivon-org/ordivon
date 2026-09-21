@@ -93,8 +93,18 @@
     "gateway-task-workflow-authority",
     "universal-capability-registry",
     "agent-service-replacement",
-    "persistent-queryable-trace-backend",
+    "always-on-mandatory-trace-backend",
     "proven-temporal-cross-process-trace-propagation",
     "universal-third-party-mcp-proxy"
-  ]
+  ],
+  "observability": {
+    "gatewayDefaultTraceExporter": "none",
+    "heavyProfile": {
+      "owner": "workstation",
+      "standing": "installed-cold-inactive-by-default",
+      "transport": "Gateway OTLP -> Vector -> Tempo",
+      "persistentTraceOwner": "tempo",
+      "requiredForProductCorrectness": false
+    }
+  }
 }

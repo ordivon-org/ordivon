@@ -59,3 +59,17 @@ def test_default_plugin_rejects_direct_owner_servers() -> None:
     }
     with pytest.raises(module.ArchitectureDocsError, match="exactly one Gateway"):
         module.validate_plugin(value)
+
+
+def test_observability_profile_stays_optional_and_cold() -> None:
+    value = graph()
+    value["observability"]["gatewayDefaultTraceExporter"] = "otlp_proto_http"
+    with pytest.raises(module.ArchitectureDocsError, match="opt-in"):
+        module.validate_deployed_graph(value)
+
+
+def test_tempo_is_optional_trace_storage_owner_not_product_truth() -> None:
+    value = graph()
+    value["observability"]["heavyProfile"]["requiredForProductCorrectness"] = True
+    with pytest.raises(module.ArchitectureDocsError, match="product correctness"):
+        module.validate_deployed_graph(value)

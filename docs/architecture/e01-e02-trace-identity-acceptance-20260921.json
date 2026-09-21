@@ -76,5 +76,12 @@
     "Host writerLabel as authenticated identity",
     "public principal as delegated owner authorization",
     "telemetry availability as product correctness gate"
-  ]
+  ],
+  "postAcceptanceEvolution": {
+    "standing": "SUPERSEDED_FOR_CURRENT_OBSERVABILITY_TOPOLOGY_ONLY",
+    "currentReference": "docs/architecture/CURRENT_ARCHITECTURE.md",
+    "change": "optional cold-by-default Vector -> Tempo heavy observability profile added after T05 acceptance",
+    "gatewayDefaultTraceExporter": "none",
+    "productCorrectnessDependsOnTraceStorage": false
+  }
 }

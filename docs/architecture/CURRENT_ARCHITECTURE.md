@@ -59,7 +59,7 @@ The remote Skills MCP remains only an exact compatibility edge for ChatGPT while
 | long-lived orchestration where explicitly used | Temporal/provider-native workflow owner | deployed only for named consumers |
 | Agent Automation / Browserless carrier | Harness/Workstation automation stack | live separate system; not Agent Service |
 | historical Agent Service | none | retired; do not reconstruct |
-| persistent/queryable trace backend | none | not admitted |
+| persistent/queryable trace backend | Workstation Tempo heavy-observability profile | installed capability, cold/inactive by default |
 | Temporal cross-process trace propagation | none proven | not claimed |
 
 ## 3. Gateway Capability Router
@@ -180,7 +180,7 @@ Harness keeps telemetry outside its semantic core. Its canonical `TraceRecorder.
 
 Telemetry is observability only. It is never authorization, currentness, replay, completion, or owner truth.
 
-The existing Vector OTLP trace path is proven as transport, but traces are currently routed to a deferred blackhole. Ordivon does **not** claim persisted/queryable trace storage.
+The Workstation heavy-observability profile now contains a standards-native local trace pipeline: Gateway OTLP → Vector → Tempo. This capability is installed but intentionally **cold/inactive by default**. The current live Gateway has no trace-export drop-in and reports `OTEL_TRACES_EXPORTER=none`; the heavy observability target and Tempo service are inactive. When the profile is explicitly activated, Tempo owns local persistent/queryable trace storage. Product correctness does not depend on that profile being active.
 
 ## 8. Plugin and Skill boundary
 
@@ -221,6 +221,7 @@ Current examples:
 - Method Router Skill;
 - Gateway Capability Router;
 - Gateway trace/audit projection;
+- optional Workstation Vector → Tempo heavy-observability profile (installed capability; cold by default);
 - exact ChatGPT Skills MCP compatibility edge.
 
 Not currently admitted/deployed as architecture truth:
@@ -229,7 +230,7 @@ Not currently admitted/deployed as architecture truth:
 - Gateway Task/Workflow authority;
 - universal Ordivon capability registry;
 - Agent Service replacement;
-- persistent trace backend;
+- always-on/mandatory trace backend;
 - proven Temporal trace propagation;
 - universal proxy of third-party MCPs.
 

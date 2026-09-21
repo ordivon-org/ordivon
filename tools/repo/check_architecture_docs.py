@@ -77,6 +77,21 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
     if not isinstance(capabilities, list) or set(capabilities) != EXPECTED_CAPABILITIES:
         raise ArchitectureDocsError("deployed Gateway capability set drifted")
 
+    observability = value.get("observability")
+    if not isinstance(observability, dict):
+        raise ArchitectureDocsError("observability standing is missing")
+    if observability.get("gatewayDefaultTraceExporter") != "none":
+        raise ArchitectureDocsError("Gateway tracing must remain opt-in by default")
+    heavy = observability.get("heavyProfile")
+    if not isinstance(heavy, dict):
+        raise ArchitectureDocsError("heavy observability profile standing is missing")
+    if heavy.get("standing") != "installed-cold-inactive-by-default":
+        raise ArchitectureDocsError("heavy observability profile must remain cold by default")
+    if heavy.get("persistentTraceOwner") != "tempo":
+        raise ArchitectureDocsError("Tempo must own optional persistent trace storage")
+    if heavy.get("requiredForProductCorrectness") is not False:
+        raise ArchitectureDocsError("observability must not become a product correctness dependency")
+
     retired = value.get("retired")
     if not isinstance(retired, list) or not any(
         isinstance(item, dict)
@@ -107,6 +122,8 @@ def validate_current_document(text: str) -> None:
         "Harness is not currently a routed Gateway owner",
         "historical Ordivon Agent Service is **RETIRED**",
         "OTEL_TRACES_EXPORTER=none",
+        "Vector → Tempo",
+        "cold/inactive by default",
     ]
     missing = [item for item in required if item not in text]
     if missing:

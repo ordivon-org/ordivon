@@ -2,6 +2,8 @@
 
 Status: **ACCEPTED**
 
+Post-acceptance D02 note: T05 below records the exact acceptance topology at the time it was executed. A later accepted observability slice added an **optional, cold-by-default Vector → Tempo heavy profile**. Current deployed standing is authoritative in `CURRENT_ARCHITECTURE.md`; Gateway still defaults to `OTEL_TRACES_EXPORTER=none`, so product correctness remains independent of trace storage.
+
 This acceptance closes the cross-layer trace-correlation and authenticated-principal gates without creating new Ordivon tracing or IAM authority.
 
 ## Authority boundary
