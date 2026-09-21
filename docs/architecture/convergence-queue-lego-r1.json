@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.convergence-queue-lego",
+  "truthRole": "architecture-decomposition-not-runtime-or-merge-authority",
+  "date": "2026-09-22",
+  "status": "R1_CURRENT_MAIN_EXPERIMENT",
+  "decision": {
+    "publicationSubstrate": "GitHub Merge Queue preferred; not remotely enabled in R1",
+    "ordivonKernel": [
+      "owner/scope projection",
+      "verification planning",
+      "semantic replay boundary"
+    ],
+    "localFallback": "tools/repo/migration/integrate-main.sh"
+  },
+  "queues": [
+    "ADMISSION",
+    "SPECULATION_VERIFICATION",
+    "PROMOTION",
+    "RECONCILIATION"
+  ],
+  "invariants": [
+    "candidate must be an immutable committed revision before admission",
+    "tested tree identity must equal the tree admitted for publication",
+    "canonical publication remains linear",
+    "mechanical green does not imply domain semantic success",
+    "absence of declared dependency does not establish semantic independence",
+    "stale candidate qualification cannot publish without replay/requalification"
+  ],
+  "nodes": [
+    {
+      "id": "Q01",
+      "kind": "SOURCE_TRIGGER",
+      "responsibility": "Admit immutable committed candidate",
+      "authority": "git",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q02",
+      "kind": "TRANSFORM",
+      "responsibility": "Derive exact source delta",
+      "authority": "git",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q03",
+      "kind": "TRANSFORM",
+      "responsibility": "Project changed paths to direct owners",
+      "authority": "owners.toml",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q04",
+      "kind": "TRANSFORM",
+      "responsibility": "Project conservative declared owner interaction closure",
+      "authority": "dependency_contracts.toml",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q05",
+      "kind": "TRANSFORM",
+      "responsibility": "Estimate verification cost",
+      "authority": "deferred-derived-metrics",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q06",
+      "kind": "TRANSFORM",
+      "responsibility": "Estimate conflict/failure risk",
+      "authority": "deferred-derived-metrics",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q07",
+      "kind": "DECISION_ROUTER",
+      "responsibility": "Apply admission and backpressure",
+      "authority": "queue-provider",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q08",
+      "kind": "DECISION_ROUTER",
+      "responsibility": "Order candidates with fairness and age",
+      "authority": "queue-provider",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q09",
+      "kind": "DECISION_ROUTER",
+      "responsibility": "Choose speculative window",
+      "authority": "queue-provider",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q10",
+      "kind": "TRANSFORM",
+      "responsibility": "Construct immutable future source cut",
+      "authority": "git-or-queue-provider",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q11",
+      "kind": "TRANSFORM",
+      "responsibility": "Compile verification plan",
+      "authority": "ordivon-repo-projection",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q12",
+      "kind": "EFFECT_EXECUTOR",
+      "responsibility": "Execute checks",
+      "authority": "ci-or-runtime",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q13",
+      "kind": "VERIFIER_OBSERVER",
+      "responsibility": "Verify mechanical checks",
+      "authority": "ci-or-harness",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q14",
+      "kind": "VERIFIER_OBSERVER",
+      "responsibility": "Verify semantic outcome where required",
+      "authority": "domain-or-study",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q15",
+      "kind": "RECONCILER",
+      "responsibility": "Detect base/main drift",
+      "authority": "git",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q16",
+      "kind": "RECONCILER",
+      "responsibility": "Invalidate dependent speculation",
+      "authority": "queue-provider",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q17",
+      "kind": "RECONCILER",
+      "responsibility": "Replay candidate intent on current main",
+      "authority": "agent-plus-git-workspace",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q18",
+      "kind": "RECONCILER",
+      "responsibility": "Isolate failing batch or candidate",
+      "authority": "queue-provider",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q19",
+      "kind": "VERIFIER_OBSERVER",
+      "responsibility": "Prove exact landing tree qualification",
+      "authority": "queue-provider-plus-required-checks",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q20",
+      "kind": "EFFECT_EXECUTOR",
+      "responsibility": "Publish canonical main transition",
+      "authority": "git-or-github",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q21",
+      "kind": "VERIFIER_OBSERVER",
+      "responsibility": "Read back final ref/tree",
+      "authority": "git",
+      "decompositionState": "ATOMIC"
+    },
+    {
+      "id": "Q22",
+      "kind": "PROJECTION_SINK",
+      "responsibility": "Expose queue and convergence metrics",
+      "authority": "rebuildable-telemetry",
+      "decompositionState": "ATOMIC"
+    }
+  ],
+  "externalMechanisms": {
+    "github": [
+      "synthetic merge_group",
+      "build concurrency",
+      "group sizing",
+      "required checks",
+      "linear protected-branch publication"
+    ],
+    "zuul": [
+      "dependent speculative execution",
+      "shared queues",
+      "adaptive AIMD-like pipeline window"
+    ],
+    "mergify": [
+      "scope-aware parallel queues",
+      "dynamic batching",
+      "failure splitting",
+      "two-step CI"
+    ],
+    "uberSubmitQueue": [
+      "duration prediction",
+      "speculation threshold",
+      "resource/latency optimization"
+    ],
+    "gitlab": [
+      "merge train cumulative validation; rejected for GitHub-hosted canonical repository"
+    ]
+  },
+  "r1Implementation": [
+    "tools/repo/convergence_plan.py",
+    "tools/repo/test_convergence_plan.py",
+    ".github/workflows/ci.yml merge_group compatibility"
+  ],
+  "nonClaims": [
+    "remote GitHub merge queue enabled",
+    "semantic independence proven",
+    "custom queue scheduler admitted",
+    "predictive cost model admitted",
+    "domain acceptance transferred to GitHub"
+  ]
+}

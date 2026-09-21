@@ -3,6 +3,9 @@ name: Monorepo Required
 on:
   pull_request:
     branches: [main]
+  merge_group:
+    branches: [main]
+    types: [checks_requested]
   push:
     branches: [main]
   workflow_dispatch:
@@ -14,7 +17,7 @@ permissions:
 
 concurrency:
   group: monorepo-required-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'merge_group' }}
 
 jobs:
   root-verification:
@@ -45,6 +48,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
           PUSH_BEFORE: ${{ github.event.before }}
           EVENT_HEAD: ${{ github.sha }}
         run: |
@@ -56,6 +61,9 @@ jobs:
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
               base="$PR_BASE"
               head="$PR_HEAD"
+            elif [[ "$EVENT_NAME" == "merge_group" ]]; then
+              base="$MERGE_GROUP_BASE"
+              head="$MERGE_GROUP_HEAD"
             else
               base="$PUSH_BEFORE"
               head="$EVENT_HEAD"
@@ -83,6 +91,15 @@ jobs:
               printf -- '- %s\n' "${owners[@]}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f "$RUNNER_TEMP/ordivon-convergence-plan.json" ]]; then
+            {
+              echo
+              echo "### Convergence projection"
+              echo '~~~json'
+              cat "$RUNNER_TEMP/ordivon-convergence-plan.json"
+              echo '~~~'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Verify affected owners
         shell: bash

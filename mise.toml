@@ -37,6 +37,7 @@ tools/repo/test-check-archived-source-boundary.sh
 run = """
 set -euo pipefail
 python3 tools/repo/test_affected_owners.py
+python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
