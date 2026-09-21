@@ -116,6 +116,7 @@ FORBIDDEN_MEMBERS = {
     "ordivon_harness/models.py",
     "ordivon_harness/ordivon/run_store.py",
 }
+FORBIDDEN_PREFIXES = {"ordivon_harness/skills/"}
 CLI_COMMANDS = (
     "doctor",
     "status",
@@ -172,6 +173,16 @@ def validate_archive(wheel: Path) -> str:
         forbidden = sorted(FORBIDDEN_MEMBERS & names)
         if forbidden:
             fail("wheel still contains retired modules: " + ", ".join(forbidden))
+        forbidden_prefixed = sorted(
+            name
+            for name in names
+            if any(name.startswith(prefix) for prefix in FORBIDDEN_PREFIXES)
+        )
+        if forbidden_prefixed:
+            fail(
+                "wheel still contains extracted owner namespace: "
+                + ", ".join(forbidden_prefixed)
+            )
         metadata = BytesParser(policy=policy.default).parsebytes(archive.read(metadata_names[0]))
         entries = archive.read(entry_names[0]).decode()
     if metadata.get("Name") != project["name"] or metadata.get("Version") != project["version"]:
@@ -210,7 +221,7 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
                     "import importlib.metadata as m,importlib.util,json,sys; import ordivon_harness,ordivon_harness.api as api; "
                     "print(json.dumps({'version':m.version('ordivon-harness'),'api':sorted(api.__all__),"
                     "'root':sorted(ordivon_harness.__all__),'hostInstalled':importlib.util.find_spec('ordivon_host') is not None,"
-                    "'hostLoaded':any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules)}))",
+                    "'hostLoaded':any(k=='ordivon_host' or k.startswith('ordivon_host.') for k in sys.modules),'skillsInstalled':importlib.util.find_spec('ordivon_harness.skills') is not None}))",
                 ]
             ).stdout
         )
@@ -220,6 +231,8 @@ def install_smoke(wheel: Path, version: str) -> dict[str, object]:
             fail("package root must remain a minimal package-identity surface")
         if probe["hostInstalled"] or probe["hostLoaded"]:
             fail("Host appeared in isolated base installation")
+        if probe["skillsInstalled"]:
+            fail("extracted Skills owner reappeared in isolated Harness installation")
         checked([str(python), str(ROOT / "scripts/check_harness_without_host.py")])
         help_text = checked([str(cli), "--help"]).stdout
         for command in CLI_COMMANDS:

@@ -60,6 +60,7 @@ case "$mode" in
       >/dev/null
     wheel_dir=$(mktemp -d)
     trap 'rm -rf "$wheel_dir"' EXIT
+    rm -rf build
     "$uv_bin" build --wheel --out-dir "$wheel_dir"
     "$python_bin" scripts/check_wheel.py "$wheel_dir"
     printf '%s\n' 'local acceptance: passed'

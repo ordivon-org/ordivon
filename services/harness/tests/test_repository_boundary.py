@@ -43,6 +43,7 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertFalse((package / "host.py").exists())
         self.assertFalse((package / "runner.py").exists())
         self.assertFalse((package / "cutover.py").exists())
+        self.assertFalse((package / "skills").exists())
         self.assertFalse(hasattr(ordivon_harness, "HarnessHost"))
         self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))
 

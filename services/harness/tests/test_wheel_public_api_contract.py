@@ -59,6 +59,10 @@ class WheelPublicApiContractTests(unittest.TestCase):
         self.assertEqual(source, docs)
         self.assertEqual(source, wheel)
 
+    def test_extracted_skills_namespace_is_forbidden_from_harness_wheel(self) -> None:
+        prefixes = _literal_set(ROOT / "scripts" / "check_wheel.py", "FORBIDDEN_PREFIXES")
+        self.assertEqual(prefixes, {"ordivon_harness/skills/"})
+
     def test_retired_loop_driver_exports_do_not_resurrect(self) -> None:
         projections = (
             set(api.__all__),
