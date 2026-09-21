@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.d01-compatibility-debt-retirement-acceptance",
+  "observedDate": "2026-09-21",
+  "status": "ACCEPTED",
+  "verifiedCanonicalHead": "649cdc78355b209bce57019899e44080542c01ae",
+  "prerequisiteGates": {
+    "c02GatewayCutover": "completed",
+    "c03SkillBridgeConsumerRetirement": "completed",
+    "e03HostReleaseReconciliation": "completed"
+  },
+  "retired": [
+    {
+      "surface": "portable-agent-plugin-direct-runtime-host-routing",
+      "disposition": "REPLACED_BY_GATEWAY",
+      "replacement": "https://gateway-mcp.ordivon.com/mcp"
+    },
+    {
+      "surface": "codex-direct-runtime-mcp-entry",
+      "disposition": "REMOVED",
+      "replacement": "ordivonGateway"
+    },
+    {
+      "surface": "hermes-disabled-direct-owner-plugin-install",
+      "disposition": "REMOVED",
+      "replacement": "canonical gateway-only Agent Plugin on future install"
+    },
+    {
+      "surface": "host-standalone-repository-release-fallback",
+      "disposition": "DELETED_FAIL_CLOSED",
+      "replacement": "services/host monorepo subtree only"
+    }
+  ],
+  "retained": [
+    {
+      "surface": "runtime-direct-mcp",
+      "role": "operator-admin-recovery",
+      "defaultDistribution": false
+    },
+    {
+      "surface": "host-direct-mcp",
+      "role": "operator-admin-recovery",
+      "defaultDistribution": false
+    },
+    {
+      "surface": "skills-mcp",
+      "role": "exact-chatgpt-compatibility-edge",
+      "defaultDistribution": false,
+      "retirementGate": "direct ChatGPT consumption with equivalent discovery/read/refresh/trust evidence"
+    },
+    {
+      "surface": "agent-automation-temporal-browserless",
+      "role": "separate-live-harness-workstation-system",
+      "reason": "not the retired Agent Service implementation"
+    },
+    {
+      "surface": "historical-agent-service-research-evidence",
+      "role": "provenance"
+    }
+  ],
+  "defaultDistribution": {
+    "pluginVersion": "0.2.0",
+    "mcpServers": {
+      "ordivon-gateway": "https://gateway-mcp.ordivon.com/mcp"
+    },
+    "directRuntimeHostEndpoints": 0
+  },
+  "clientCensus": {
+    "codex": {
+      "ordivonEndpoint": "https://gateway-mcp.ordivon.com/mcp",
+      "directOwnerRefs": 0,
+      "authStateObserved": "Not logged in",
+      "authNote": "client-local interactive OAuth remains required when Codex is next used"
+    },
+    "hermes": {
+      "legacyDirectOwnerPluginInstalled": false
+    }
+  },
+  "publicUnauthenticatedHttp": {
+    "https://gateway-mcp.ordivon.com/mcp": 401,
+    "https://mcp.ordivon.com/mcp": 401,
+    "https://host-mcp.ordivon.com/mcp": 401,
+    "https://skills-mcp.ordivon.com/mcp": 401
+  },
+  "canonicalVerification": {
+    "nextVerify": "PASS",
+    "hostVerify": {
+      "status": "PASS",
+      "passed": 20,
+      "skipped": 18
+    },
+    "repoCi": "PASS",
+    "ownerBoundaryAudit": "PASS",
+    "compositionArchitecture": "PASS",
+    "integrateMainSmoke": "PASS",
+    "githubGovernance": "PASS",
+    "hostInstallerTreeMode": "100755"
+  },
+  "liveSmoke": {
+    "gatewayOwnersConfigured": [
+      "runtime.linux",
+      "runtime.windows",
+      "host"
+    ],
+    "gatewayCapabilitiesAvailable": [
+      "artifact.runtime",
+      "continuity.external",
+      "execution.linux",
+      "execution.windows"
+    ],
+    "hostDoctorHealthy": true,
+    "hostJournalSchema": 5,
+    "skillBridgeReadable": true,
+    "gatewayLinuxJob": "job-01a0c422-50a5-70a1-a64c-72d6d00d9352",
+    "gatewayLinuxExitCode": 0,
+    "gatewayLinuxArtifactCount": 4,
+    "gatewayLinuxStdout": "d01-live-smoke-ok"
+  },
+  "landingSafetyCorrection": {
+    "issue": "synthetic tree replay initially changed Host installer mode from 100755 to 100644",
+    "detectedBy": "fresh canonical Host verification",
+    "contentBlobChanged": false,
+    "correctedMode": "100755",
+    "regressionRule": "synthetic Git tree replays must preserve source tree modes"
+  }
+}
