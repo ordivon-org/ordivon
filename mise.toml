@@ -26,8 +26,9 @@ actionlint = "1.7.12"
 [tasks."repo:retirement:verify"]
 run = """
 set -euo pipefail
-python3 tools/repo/check_archived_source_boundary.py \
-  --policy docs/migration/retirement/workstation-lab-policy.json
+for policy in docs/migration/retirement/*-policy.json; do
+  python3 tools/repo/check_archived_source_boundary.py --policy "$policy"
+done
 tools/repo/test-check-archived-source-boundary.sh
 """
 
