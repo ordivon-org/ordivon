@@ -9,6 +9,7 @@ use crate::universal::{
     load_workspace_record, workspace_change_projection_at, workspace_head_revision_at,
     UniversalExecutorConfig,
 };
+use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwner};
 use super::types::{RuntimeReleaseContract, RuntimeReleaseEffectBinding};
 
 pub const DEFAULT_WORKSPACE_INSPECTION_JOB_LIMIT: u32 = 20;
@@ -183,6 +184,17 @@ pub struct RuntimeExperienceArtifactSummary {
 }
 
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeOperatorAttemptSupervisorOwner {
+    pub contract: String,
+    pub launcher_process_id: u32,
+    pub launcher_process_creation_time_file_time: u64,
+    pub launcher_image_digest: String,
+    pub job_name: String,
+    pub start_evidence_digest: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeOperatorRegistryInspection {
@@ -194,6 +206,8 @@ pub struct RuntimeOperatorRegistryInspection {
     pub held_workspace_ids: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved_attempt_job_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_attempt_supervisor_owner: Option<RuntimeOperatorAttemptSupervisorOwner>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -607,6 +621,72 @@ pub fn inspect_registry(
         .transpose()?
         .flatten();
 
+    let supervisor_owner_table_exists = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='attempt_supervisor_owners')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner storage")
+        })?;
+    let resolved_attempt_supervisor_owner = if supervisor_owner_table_exists {
+        resolve_attempt_id
+            .map(|attempt_id| {
+                connection
+                    .query_row(
+                        "SELECT owner_json,owner_digest FROM attempt_supervisor_owners WHERE attempt_id=?1",
+                        [attempt_id],
+                        |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                    )
+                    .optional()
+                    .map_err(|error| {
+                        RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner")
+                    })
+            })
+            .transpose()?
+            .flatten()
+    } else {
+        None
+    }
+    .map(|(owner_json, owner_digest)| -> RuntimeResult<_> {
+            let observed_digest = format!("sha256:{:x}", Sha256::digest(owner_json.as_bytes()));
+            if observed_digest != owner_digest {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "stored Attempt Supervisor Owner digest does not match side truth",
+                    Some("attemptSupervisorOwner"),
+                    false,
+                ));
+            }
+            let owner: AttemptSupervisorOwner =
+                serde_json::from_str(&owner_json).map_err(|error| {
+                    RuntimeError::new(
+                        RuntimeErrorCode::RegistryCorrupt,
+                        format!("stored Attempt Supervisor Owner is invalid: {error}"),
+                        Some("attemptSupervisorOwner"),
+                        false,
+                    )
+                })?;
+            validate_attempt_supervisor_owner(&owner)?;
+            let AttemptSupervisorOwner::WindowsLauncherV1 {
+                launcher_process_id,
+                launcher_process_creation_time_file_time,
+                launcher_image_digest,
+                job_name,
+                start_evidence_digest,
+            } = owner;
+            Ok(RuntimeOperatorAttemptSupervisorOwner {
+                contract: "windows_launcher_v1".to_string(),
+                launcher_process_id,
+                launcher_process_creation_time_file_time,
+                launcher_image_digest,
+                job_name,
+                start_evidence_digest,
+            })
+        })
+        .transpose()?;
+
     Ok(RuntimeOperatorRegistryInspection {
         schema_version: RUNTIME_INSPECTION_SCHEMA_VERSION,
         generated_at_ms: now_ms()?,
@@ -615,6 +695,7 @@ pub fn inspect_registry(
         active_workspaces,
         held_workspace_ids,
         resolved_attempt_job_id,
+        resolved_attempt_supervisor_owner,
     })
 }
 

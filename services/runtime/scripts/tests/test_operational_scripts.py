@@ -202,6 +202,18 @@ class OperationalScriptTests(unittest.TestCase):
         self.assertIn('export ORDIVON_RUNTIME_INSPECT=', owner)
         self.assertIn('cmp -s "$source_inspect"', owner)
 
+    def test_owner_environment_extended_reuses_a_complete_offline_environment(self) -> None:
+        owner = (REPO / "scripts/owner-environment").read_text(encoding="utf-8")
+        self.assertIn("environment_is_materialized()", owner)
+        self.assertIn("ensure_materialized_environment()", owner)
+        self.assertIn('uv_bin" pip sync --offline --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn('cargo_bin" fetch --locked --offline', owner)
+        self.assertIn('uv_bin" pip sync --python "$python_bin" "$tooling_lock"', owner)
+        self.assertIn('cargo_bin" fetch --locked)', owner)
+        run_extended = owner.split("run_extended() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("ensure_materialized_environment", run_extended)
+        self.assertNotIn("\n  bootstrap\n", run_extended)
+
     def test_local_acceptance_contract_is_executable(self) -> None:
         result = subprocess.run(
             ["scripts/local-acceptance", "check"],

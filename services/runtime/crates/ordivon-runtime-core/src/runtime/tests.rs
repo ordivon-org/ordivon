@@ -6795,6 +6795,37 @@ fn attempt_supervisor_owner_binding_is_atomic_idempotent_and_tamper_evident() {
         Some(owner.clone())
     );
 
+    #[cfg(feature = "operator-tools")]
+    {
+        let inspection = inspect_registry(
+            &RuntimeInspectionConfig {
+                db_path: sandbox.registry.config().db_path.clone(),
+                busy_timeout_ms: 5_000,
+            },
+            Some(&starting.attempt_id),
+        )
+        .unwrap();
+        assert_eq!(
+            inspection.resolved_attempt_job_id.as_deref(),
+            Some(created.job.job_id.as_str())
+        );
+        let projected = inspection
+            .resolved_attempt_supervisor_owner
+            .expect("supervisor owner projection");
+        assert_eq!(projected.contract, "windows_launcher_v1");
+        assert_eq!(projected.launcher_process_id, 4242);
+        assert_eq!(
+            projected.launcher_process_creation_time_file_time,
+            123_456_789
+        );
+        assert_eq!(projected.launcher_image_digest, digest(b"launcher-image"));
+        assert_eq!(
+            projected.job_name,
+            format!("Ordivon.{}", starting.attempt_id)
+        );
+        assert_eq!(projected.start_evidence_digest, start_evidence_digest);
+    }
+
     let replay = sandbox
         .registry
         .bind_supervisor_owner(&starting.attempt_id, starting.row_version, &owner, 99)
@@ -7114,6 +7145,42 @@ fn stopping_attempt_can_bind_native_supervisor_owner_without_reentering_running(
         .unwrap();
     assert_eq!(replay.state, AttemptState::Stopping);
     assert_eq!(replay.row_version, bound.row_version);
+}
+
+#[cfg(feature = "operator-tools")]
+#[test]
+fn operator_registry_inspection_tolerates_absent_optional_supervisor_owner_storage() {
+    let sandbox = Sandbox::new("operator-inspection-legacy-supervisor-owner", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:operator-inspection-legacy-supervisor-owner",
+                4,
+            ))
+            .unwrap(),
+    );
+    let connection = Connection::open(sandbox.registry.config().db_path.clone()).unwrap();
+    connection
+        .execute("DROP TABLE attempt_supervisor_owners", [])
+        .unwrap();
+    drop(connection);
+
+    let inspection = inspect_registry(
+        &RuntimeInspectionConfig {
+            db_path: sandbox.registry.config().db_path.clone(),
+            busy_timeout_ms: 5_000,
+        },
+        Some(&created.attempt.attempt_id),
+    )
+    .unwrap();
+
+    assert_eq!(
+        inspection.resolved_attempt_job_id.as_deref(),
+        Some(created.job.job_id.as_str())
+    );
+    assert!(inspection.resolved_attempt_supervisor_owner.is_none());
 }
 
 #[test]
