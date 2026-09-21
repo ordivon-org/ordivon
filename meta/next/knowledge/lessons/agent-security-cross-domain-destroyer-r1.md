@@ -37,7 +37,7 @@ Local canonical evidence:
 
 ### Artifact
 Source authority:
-- /root/projects/ordivon-artifact-v2
+- /root/projects/ordivon/capabilities/artifact
 - docs/artifact-build-delivery-e2e-v1.md
 - docs/artifact-build-delivery-e2e-toolchain-v1.md
 - artifact-work Skill

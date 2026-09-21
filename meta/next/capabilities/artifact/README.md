@@ -2,7 +2,7 @@
 
 Artifact is not one permanent Ordivon subsystem. It is a contextual set of capabilities for creating, transforming, validating, packaging and handing off digital artifacts.
 
-Current source provider: `/root/projects/ordivon-artifact-v2`.
+Current source provider: `/root/projects/ordivon/capabilities/artifact`.
 
 Load only the capability families needed by the task:
 

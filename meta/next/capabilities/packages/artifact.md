@@ -24,7 +24,7 @@ There is intentionally no single Artifact standard. Select the standards of the 
 ## Observed local capability
 
 - `artifact-work` skill;
-- accepted Artifact provider knowledge/evidence from `/root/projects/ordivon-artifact-v2`;
+- accepted Artifact provider knowledge/evidence from `/root/projects/ordivon/capabilities/artifact`;
 - Typst, qpdf;
 - FFmpeg;
 - ImageMagick;

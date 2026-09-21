@@ -22,4 +22,4 @@ FLAC stream decodability alone does not establish expected sample rate, duration
 
 ## Source evidence
 
-`/root/projects/ordivon-artifact-v2/docs/ARTIFACT_FAMILY_AUDIO_R1.md`
+`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_AUDIO_R1.md`

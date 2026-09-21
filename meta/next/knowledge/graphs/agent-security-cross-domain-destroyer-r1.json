@@ -19,7 +19,7 @@
     {
       "id": "artifact",
       "kind": "artifact_build_delivery",
-      "sourceRepo": "/root/projects/ordivon-artifact-v2",
+      "sourceRepo": "/root/projects/ordivon/capabilities/artifact",
       "effectCommitPoint": "external publish/delivery",
       "reconciliation": "destination read-back + digest equality"
     },

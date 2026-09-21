@@ -26,4 +26,4 @@ Decoder success is not a substitute for datastream validity, profile constraints
 
 ## Source evidence
 
-`/root/projects/ordivon-artifact-v2/docs/ARTIFACT_FAMILY_STILL_IMAGE_R1.md`
+`/root/projects/ordivon/capabilities/artifact/docs/ARTIFACT_FAMILY_STILL_IMAGE_R1.md`

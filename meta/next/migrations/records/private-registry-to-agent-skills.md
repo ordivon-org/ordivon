@@ -12,7 +12,7 @@ Retire the Ordivon-private `registry/artifact/*.json` discovery/identification e
 - skill: `.agents/skills/artifact-work/SKILL.md`
 - detailed artifact family knowledge: `.agents/skills/artifact-work/references/*.md`
 - executable provider/tool discovery: current harness / MCP / CLI / API / application environment
-- source implementation authority: `/root/projects/ordivon-artifact-v2`
+- source implementation authority: `/root/projects/ordivon/capabilities/artifact`
 
 ## Why
 

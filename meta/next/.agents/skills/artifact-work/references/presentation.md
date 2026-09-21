@@ -41,5 +41,5 @@ Optional, only when the task requires it: Temporal durability; OCI/ORAS packagin
 
 ## Source evidence
 
-- `/root/projects/ordivon-artifact-v2/docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md`
-- `/root/projects/ordivon-artifact-v2/docs/artifact-build-delivery-e2e-v1-r1-status.md`
+- `/root/projects/ordivon/capabilities/artifact/docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md`
+- `/root/projects/ordivon/capabilities/artifact/docs/artifact-build-delivery-e2e-v1-r1-status.md`
