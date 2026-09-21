@@ -14,7 +14,7 @@ from typing import Any
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CORPUS = SOURCE_ROOT / "config/system1-decision-corpus-r1.json"
-CORPUS_STANDINGS = frozenset({"SYNTHETIC_SMOKE_ONLY", "CONTROLLED_FIXTURE_ONLY"})
+CORPUS_STANDINGS = frozenset({"SYNTHETIC_SMOKE_ONLY", "CONTROLLED_FIXTURE_ONLY", "EXTERNAL_BENCHMARK"})
 SUPPORTED_QUESTION_TYPES = frozenset({"choice", "dynamic_choice", "noul"})
 
 
@@ -86,6 +86,13 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> dict[str, Any]:
         case = {"caseId": cid, "state": state, "expected": expected}
         case["caseDigest"] = canonical_digest(case)
         normalized.append(case)
+    source = value.get("source")
+    if value["standing"] == "EXTERNAL_BENCHMARK":
+        if not isinstance(source, dict) or not source:
+            raise ValueError("external benchmark corpus requires source provenance")
+    elif source is not None and not isinstance(source, dict):
+        raise TypeError("corpus source provenance must be an object")
+
     result = {
         "schemaVersion": 1,
         "kind": value["kind"],
@@ -95,6 +102,8 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> dict[str, Any]:
         "questions": questions,
         "cases": normalized,
     }
+    if source is not None:
+        result["source"] = source
     result["corpusDigest"] = canonical_digest(result)
     return result
 
@@ -106,7 +115,7 @@ def _dynamic_candidate_ids(
 ) -> list[str]:
     field = question.get("candidateSetField")
     if not isinstance(field, str):
-        raise ValueError(f"{label} dynamic candidate field is invalid")
+        raise TypeError(f"{label} dynamic candidate field is invalid")
     rows = state.get(field)
     if not isinstance(rows, list) or len(rows) < 2:
         raise ValueError(f"{label} dynamic candidate set requires at least two candidates")

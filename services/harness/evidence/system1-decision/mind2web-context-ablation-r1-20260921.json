@@ -1,0 +1,28 @@
+{
+  "baseCorpusDigest": "sha256:cb003eb7a43ab34281be94d6b2b0c13e1ed4ba0f61aac34b4e3913052aa2d525",
+  "crossencoderFullToNoContext": {
+    "aAccuracy": 0.2962962962962963,
+    "aCorrect": 80,
+    "aOnly": 27,
+    "bAccuracy": 0.26296296296296295,
+    "bCorrect": 71,
+    "bOnly": 18,
+    "difference": -0.03333333333333333,
+    "mcnemarExactTwoSidedP": 0.23269319190831084,
+    "n": 270
+  },
+  "kind": "mind2web-context-ablation-comparison",
+  "layaFullToNoContext": {
+    "aAccuracy": 0.2037037037037037,
+    "aCorrect": 55,
+    "aOnly": 27,
+    "bAccuracy": 0.22592592592592592,
+    "bCorrect": 61,
+    "bOnly": 33,
+    "difference": 0.022222222222222223,
+    "mcnemarExactTwoSidedP": 0.5189580031896518,
+    "n": 270
+  },
+  "noContextCorpusDigest": "sha256:b24b2af81e4d2e0144d1117d315a45f52ced3345b02e3a483a51660e2a218f4e",
+  "schemaVersion": 1
+}

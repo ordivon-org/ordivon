@@ -1,0 +1,187 @@
+{
+  "corpusDigest": "sha256:cb003eb7a43ab34281be94d6b2b0c13e1ed4ba0f61aac34b4e3913052aa2d525",
+  "groups": {
+    "operation": {
+      "CLICK": {
+        "accuracy": 0.28888888888888886,
+        "latencyMedianMs": 10.847132994967978,
+        "meanMaxProbability": 0.39126370509756714,
+        "meanNll": 1.6406683011551355,
+        "meanRank": 2.772222222222222,
+        "meanTruthProbability": 0.23638657908524977,
+        "mrr": 0.5187962962962963,
+        "n": 180
+      },
+      "SELECT": {
+        "accuracy": 0.3,
+        "latencyMedianMs": 12.064528506016359,
+        "meanMaxProbability": 0.42627421005294736,
+        "meanNll": 1.6863040616972913,
+        "meanRank": 2.8666666666666667,
+        "meanTruthProbability": 0.23310745116356366,
+        "mrr": 0.5177777777777778,
+        "n": 30
+      },
+      "TYPE": {
+        "accuracy": 0.31666666666666665,
+        "latencyMedianMs": 10.421594000945333,
+        "meanMaxProbability": 0.38574694328651987,
+        "meanNll": 1.6777789021135747,
+        "meanRank": 2.75,
+        "meanTruthProbability": 0.23411366157672886,
+        "mrr": 0.5369444444444444,
+        "n": 60
+      }
+    },
+    "overall": {
+      "overall": {
+        "accuracy": 0.2962962962962963,
+        "latencyMedianMs": 10.7825560044148,
+        "meanMaxProbability": 0.39392781413459893,
+        "meanNll": 1.6539857414283616,
+        "meanRank": 2.7777777777777777,
+        "meanTruthProbability": 0.23551713875872443,
+        "mrr": 0.522716049382716,
+        "n": 270
+      }
+    },
+    "split": {
+      "test_domain": {
+        "accuracy": 0.34444444444444444,
+        "latencyMedianMs": 10.663306500646286,
+        "meanMaxProbability": 0.42081034098290476,
+        "meanNll": 1.6090482124664267,
+        "meanRank": 2.811111111111111,
+        "meanTruthProbability": 0.2621536749597587,
+        "mrr": 0.5405555555555556,
+        "n": 90
+      },
+      "test_task": {
+        "accuracy": 0.25555555555555554,
+        "latencyMedianMs": 10.502303499379195,
+        "meanMaxProbability": 0.37375932490705155,
+        "meanNll": 1.6656641882619634,
+        "meanRank": 2.811111111111111,
+        "meanTruthProbability": 0.2191710979523402,
+        "mrr": 0.502037037037037,
+        "n": 90
+      },
+      "test_website": {
+        "accuracy": 0.28888888888888886,
+        "latencyMedianMs": 10.991024493705481,
+        "meanMaxProbability": 0.3872137765138403,
+        "meanNll": 1.687244823556695,
+        "meanRank": 2.7111111111111112,
+        "meanTruthProbability": 0.22522664336407444,
+        "mrr": 0.5255555555555556,
+        "n": 90
+      }
+    },
+    "split_operation": {
+      "test_domain:CLICK": {
+        "accuracy": 0.3333333333333333,
+        "latencyMedianMs": 10.237893497105688,
+        "meanMaxProbability": 0.4057566402395816,
+        "meanNll": 1.5949839103093424,
+        "meanRank": 2.8333333333333335,
+        "meanTruthProbability": 0.2557379388451611,
+        "mrr": 0.5319444444444444,
+        "n": 60
+      },
+      "test_domain:SELECT": {
+        "accuracy": 0.2,
+        "latencyMedianMs": 11.80204550473718,
+        "meanMaxProbability": 0.45683480787855474,
+        "meanNll": 1.8387334064702023,
+        "meanRank": 3.4,
+        "meanTruthProbability": 0.21867171987453027,
+        "mrr": 0.43,
+        "n": 10
+      },
+      "test_domain:TYPE": {
+        "accuracy": 0.45,
+        "latencyMedianMs": 10.663306500646286,
+        "meanMaxProbability": 0.4479592097650495,
+        "meanNll": 1.5363985219357918,
+        "meanRank": 2.45,
+        "meanTruthProbability": 0.3031418608461658,
+        "mrr": 0.6216666666666667,
+        "n": 20
+      },
+      "test_task:CLICK": {
+        "accuracy": 0.26666666666666666,
+        "latencyMedianMs": 10.813591507030651,
+        "meanMaxProbability": 0.3809298642529479,
+        "meanNll": 1.664134302430534,
+        "meanRank": 2.7666666666666666,
+        "meanTruthProbability": 0.22594936310834868,
+        "mrr": 0.5102777777777778,
+        "n": 60
+      },
+      "test_task:SELECT": {
+        "accuracy": 0.2,
+        "latencyMedianMs": 10.670234005374368,
+        "meanMaxProbability": 0.38654390318775383,
+        "meanNll": 1.671516424957359,
+        "meanRank": 3.1,
+        "meanTruthProbability": 0.20915623859515006,
+        "mrr": 0.44833333333333336,
+        "n": 10
+      },
+      "test_task:TYPE": {
+        "accuracy": 0.25,
+        "latencyMedianMs": 9.507159506028984,
+        "meanMaxProbability": 0.3458554177290113,
+        "meanNll": 1.6673277274085532,
+        "meanRank": 2.8,
+        "meanTruthProbability": 0.2038437321629098,
+        "mrr": 0.5041666666666667,
+        "n": 20
+      },
+      "test_website:CLICK": {
+        "accuracy": 0.26666666666666666,
+        "latencyMedianMs": 11.011222493834794,
+        "meanMaxProbability": 0.387104610800172,
+        "meanNll": 1.6628866907255306,
+        "meanRank": 2.716666666666667,
+        "meanTruthProbability": 0.22747243530223954,
+        "mrr": 0.5141666666666667,
+        "n": 60
+      },
+      "test_website:SELECT": {
+        "accuracy": 0.5,
+        "latencyMedianMs": 12.474865499825682,
+        "meanMaxProbability": 0.4354439190925333,
+        "meanNll": 1.5486623536643125,
+        "meanRank": 2.1,
+        "meanTruthProbability": 0.2714943950210106,
+        "mrr": 0.675,
+        "n": 10
+      },
+      "test_website:TYPE": {
+        "accuracy": 0.25,
+        "latencyMedianMs": 10.605163501168136,
+        "meanMaxProbability": 0.36342620236549883,
+        "meanNll": 1.8296104569963796,
+        "meanRank": 3.0,
+        "meanTruthProbability": 0.195355391721111,
+        "mrr": 0.485,
+        "n": 20
+      }
+    }
+  },
+  "kind": "mind2web-crossencoder-stratified-diagnostics",
+  "provider": {
+    "device": "cuda",
+    "distribution": "softmax_over_pair_logits",
+    "implementation": "sentence-transformers",
+    "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
+    "modelLoadMs": 496.4566830021795,
+    "modelRevision": "233902d25c440f23af6f7d6e94d2946bac0bee0a",
+    "providerId": "crossencoder-msmarco-minilm-l6-v2-hard5",
+    "representation": "query=goal+known-operation+recent-actions+official-pruned-context; document=official Mind2Web candidate projection",
+    "sentenceTransformersVersion": "6.1.0",
+    "warmupCases": 1
+  },
+  "schemaVersion": 1
+}

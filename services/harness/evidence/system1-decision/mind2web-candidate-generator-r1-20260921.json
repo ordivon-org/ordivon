@@ -1,0 +1,156 @@
+{
+  "kind": "mind2web-candidate-generator-ceiling",
+  "schemaVersion": 1,
+  "source": {
+    "gitRevision": "33bd95caeee7bba22dd08ecc935845e15c5e5dc7",
+    "hfRevision": "17ece8eb89862368edc0cc806acee6fca5163474",
+    "scoresSha256": "884c97cd9ae0544485d21ea39e0d46422aee0291969a7324e56df3a84466dbd7",
+    "testZipSha256": "8f5fbe72afab942fe97cdf7fb397e179885d89b5c16862288e9a14bc6d41ca89"
+  },
+  "splits": {
+    "test_domain": {
+      "actions": 5911,
+      "candidateCardinality": {
+        "max": 17056,
+        "median": 415,
+        "p95": 1176.0
+      },
+      "hard5Eligible": {
+        "count": 4952,
+        "rate": 0.8377601082727119
+      },
+      "missingRankMap": 0,
+      "operations": {
+        "CLICK": 4982,
+        "SELECT": 133,
+        "TYPE": 796
+      },
+      "positiveEmpty": {
+        "count": 321,
+        "rate": 0.054305532058873285
+      },
+      "positiveMulti": {
+        "count": 127,
+        "rate": 0.0214853662662832
+      },
+      "positiveSingle": {
+        "count": 5463,
+        "rate": 0.9242091016748435
+      },
+      "recall": {
+        "r@10": {
+          "count": 3867,
+          "rate": 0.6542040263914736
+        },
+        "r@20": {
+          "count": 4477,
+          "rate": 0.757401454914566
+        },
+        "r@5": {
+          "count": 3087,
+          "rate": 0.5222466587717814
+        },
+        "r@50": {
+          "count": 5063,
+          "rate": 0.8565386567416681
+        }
+      }
+    },
+    "test_task": {
+      "actions": 2094,
+      "candidateCardinality": {
+        "max": 3950,
+        "median": 446.0,
+        "p95": 1944.8999999999987
+      },
+      "hard5Eligible": {
+        "count": 1803,
+        "rate": 0.8610315186246418
+      },
+      "missingRankMap": 0,
+      "operations": {
+        "CLICK": 1788,
+        "SELECT": 79,
+        "TYPE": 227
+      },
+      "positiveEmpty": {
+        "count": 119,
+        "rate": 0.05682903533906399
+      },
+      "positiveMulti": {
+        "count": 63,
+        "rate": 0.03008595988538682
+      },
+      "positiveSingle": {
+        "count": 1912,
+        "rate": 0.9130850047755492
+      },
+      "recall": {
+        "r@10": {
+          "count": 1555,
+          "rate": 0.7425978987583572
+        },
+        "r@20": {
+          "count": 1724,
+          "rate": 0.8233046800382043
+        },
+        "r@5": {
+          "count": 1272,
+          "rate": 0.6074498567335244
+        },
+        "r@50": {
+          "count": 1862,
+          "rate": 0.889207258834766
+        }
+      }
+    },
+    "test_website": {
+      "actions": 1373,
+      "candidateCardinality": {
+        "max": 4993,
+        "median": 452,
+        "p95": 2000.5999999999872
+      },
+      "hard5Eligible": {
+        "count": 1112,
+        "rate": 0.809905316824472
+      },
+      "missingRankMap": 0,
+      "operations": {
+        "CLICK": 1126,
+        "SELECT": 91,
+        "TYPE": 156
+      },
+      "positiveEmpty": {
+        "count": 59,
+        "rate": 0.04297159504734159
+      },
+      "positiveMulti": {
+        "count": 61,
+        "rate": 0.04442825928623452
+      },
+      "positiveSingle": {
+        "count": 1253,
+        "rate": 0.9126001456664239
+      },
+      "recall": {
+        "r@10": {
+          "count": 890,
+          "rate": 0.6482155863073562
+        },
+        "r@20": {
+          "count": 1026,
+          "rate": 0.7472687545520758
+        },
+        "r@5": {
+          "count": 710,
+          "rate": 0.517115804806992
+        },
+        "r@50": {
+          "count": 1171,
+          "rate": 0.8528769118718136
+        }
+      }
+    }
+  }
+}

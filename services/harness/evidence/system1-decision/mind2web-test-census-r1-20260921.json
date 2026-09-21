@@ -1,0 +1,111 @@
+{
+  "kind": "mind2web-test-census",
+  "schemaVersion": 1,
+  "source": {
+    "gitRevision": "33bd95caeee7bba22dd08ecc935845e15c5e5dc7",
+    "hfRevision": "17ece8eb89862368edc0cc806acee6fca5163474",
+    "testZipSha256": "8f5fbe72afab942fe97cdf7fb397e179885d89b5c16862288e9a14bc6d41ca89"
+  },
+  "splits": {
+    "test_domain": {
+      "actions": 5911,
+      "candidateCardinality": {
+        "max": 17056,
+        "mean": 520.8976484520385,
+        "median": 415,
+        "min": 11,
+        "p90": 916.0,
+        "p95": 1176.0,
+        "p99": 1965.5999999999985
+      },
+      "domains": 2,
+      "operations": {
+        "CLICK": 4982,
+        "SELECT": 133,
+        "TYPE": 796
+      },
+      "positiveEmpty": {
+        "count": 321,
+        "rate": 0.054305532058873285
+      },
+      "positiveMulti": {
+        "count": 127,
+        "rate": 0.0214853662662832
+      },
+      "shards": 10,
+      "tasks": 912,
+      "websites": 54
+    },
+    "test_task": {
+      "actions": 2094,
+      "candidateCardinality": {
+        "max": 3950,
+        "mean": 629.7531041069723,
+        "median": 446.0,
+        "min": 43,
+        "p90": 1216.8000000000002,
+        "p95": 1944.8999999999987,
+        "p99": 3324.840000000002
+      },
+      "domains": 3,
+      "operations": {
+        "CLICK": 1788,
+        "SELECT": 79,
+        "TYPE": 227
+      },
+      "positiveEmpty": {
+        "count": 119,
+        "rate": 0.05682903533906399
+      },
+      "positiveMulti": {
+        "count": 63,
+        "rate": 0.03008595988538682
+      },
+      "shards": 3,
+      "tasks": 252,
+      "websites": 69
+    },
+    "test_website": {
+      "actions": 1373,
+      "candidateCardinality": {
+        "max": 4993,
+        "mean": 634.523670793882,
+        "median": 452,
+        "min": 20,
+        "p90": 1233.8,
+        "p95": 2000.5999999999872,
+        "p99": 2858.12
+      },
+      "domains": 3,
+      "operations": {
+        "CLICK": 1126,
+        "SELECT": 91,
+        "TYPE": 156
+      },
+      "positiveEmpty": {
+        "count": 59,
+        "rate": 0.04297159504734159
+      },
+      "positiveMulti": {
+        "count": 61,
+        "rate": 0.04442825928623452
+      },
+      "shards": 2,
+      "tasks": 177,
+      "websites": 10
+    }
+  },
+  "total": {
+    "actions": 9378,
+    "candidateCardinality": {
+      "max": 17056,
+      "mean": 561.8394113883558,
+      "median": 425.0,
+      "min": 11,
+      "p90": 1016.3000000000011,
+      "p95": 1411.7499999999982,
+      "p99": 2847.609999999997
+    },
+    "tasks": 1341
+  }
+}

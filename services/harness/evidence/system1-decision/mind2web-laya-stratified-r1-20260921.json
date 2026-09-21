@@ -1,0 +1,408 @@
+{
+  "corpusDigest": "sha256:cb003eb7a43ab34281be94d6b2b0c13e1ed4ba0f61aac34b4e3913052aa2d525",
+  "groups": {
+    "operation": {
+      "CLICK": {
+        "accuracy": 0.2,
+        "latencyMedianMs": 25.4232180013787,
+        "meanMaxProbability": 0.27874969290692997,
+        "meanNll": 1.616873694839626,
+        "meanRank": 2.9555555555555557,
+        "meanTruthProbability": 0.20640871553007684,
+        "mrr": 0.45759259259259255,
+        "n": 180,
+        "predictedPositionCounts": {
+          "1": 29,
+          "2": 43,
+          "3": 34,
+          "4": 37,
+          "5": 37
+        },
+        "truthPositionCounts": {
+          "1": 34,
+          "2": 38,
+          "3": 39,
+          "4": 40,
+          "5": 29
+        }
+      },
+      "SELECT": {
+        "accuracy": 0.3333333333333333,
+        "latencyMedianMs": 29.142888000933453,
+        "meanMaxProbability": 0.26443321900609884,
+        "meanNll": 1.5938192434956495,
+        "meanRank": 2.6333333333333333,
+        "meanTruthProbability": 0.20783741317927412,
+        "mrr": 0.5516666666666666,
+        "n": 30,
+        "predictedPositionCounts": {
+          "1": 3,
+          "2": 6,
+          "3": 8,
+          "4": 6,
+          "5": 7
+        },
+        "truthPositionCounts": {
+          "1": 3,
+          "2": 5,
+          "3": 8,
+          "4": 5,
+          "5": 9
+        }
+      },
+      "TYPE": {
+        "accuracy": 0.15,
+        "latencyMedianMs": 24.205665504268836,
+        "meanMaxProbability": 0.28725599209984326,
+        "meanNll": 1.731743624085574,
+        "meanRank": 3.4166666666666665,
+        "meanTruthProbability": 0.18483966726918002,
+        "mrr": 0.3938888888888889,
+        "n": 60,
+        "predictedPositionCounts": {
+          "1": 7,
+          "2": 15,
+          "3": 13,
+          "4": 13,
+          "5": 12
+        },
+        "truthPositionCounts": {
+          "1": 10,
+          "2": 9,
+          "3": 11,
+          "4": 13,
+          "5": 17
+        }
+      }
+    },
+    "overall": {
+      "overall": {
+        "accuracy": 0.2037037037037037,
+        "latencyMedianMs": 25.696404998598155,
+        "meanMaxProbability": 0.27904926229415167,
+        "meanNll": 1.6398387400782837,
+        "meanRank": 3.022222222222222,
+        "meanTruthProbability": 0.20177433787756613,
+        "mrr": 0.4538888888888889,
+        "n": 270,
+        "predictedPositionCounts": {
+          "1": 39,
+          "2": 64,
+          "3": 55,
+          "4": 56,
+          "5": 56
+        },
+        "truthPositionCounts": {
+          "1": 47,
+          "2": 52,
+          "3": 58,
+          "4": 58,
+          "5": 55
+        }
+      }
+    },
+    "split": {
+      "test_domain": {
+        "accuracy": 0.24444444444444444,
+        "latencyMedianMs": 27.165935491211712,
+        "meanMaxProbability": 0.27217071843958496,
+        "meanNll": 1.5944044586682888,
+        "meanRank": 2.8222222222222224,
+        "meanTruthProbability": 0.21004518840579633,
+        "mrr": 0.4914814814814815,
+        "n": 90,
+        "predictedPositionCounts": {
+          "1": 12,
+          "2": 25,
+          "3": 19,
+          "4": 20,
+          "5": 14
+        },
+        "truthPositionCounts": {
+          "1": 16,
+          "2": 16,
+          "3": 20,
+          "4": 20,
+          "5": 18
+        }
+      },
+      "test_task": {
+        "accuracy": 0.15555555555555556,
+        "latencyMedianMs": 25.275890504417475,
+        "meanMaxProbability": 0.2860797798639978,
+        "meanNll": 1.6803191173221481,
+        "meanRank": 3.2111111111111112,
+        "meanTruthProbability": 0.19519429100877622,
+        "mrr": 0.41370370370370374,
+        "n": 90,
+        "predictedPositionCounts": {
+          "1": 12,
+          "2": 20,
+          "3": 20,
+          "4": 15,
+          "5": 23
+        },
+        "truthPositionCounts": {
+          "1": 16,
+          "2": 19,
+          "3": 17,
+          "4": 20,
+          "5": 18
+        }
+      },
+      "test_website": {
+        "accuracy": 0.2111111111111111,
+        "latencyMedianMs": 25.801645999308676,
+        "meanMaxProbability": 0.27889728857887225,
+        "meanNll": 1.6447926442444145,
+        "meanRank": 3.033333333333333,
+        "meanTruthProbability": 0.2000835342181258,
+        "mrr": 0.4564814814814815,
+        "n": 90,
+        "predictedPositionCounts": {
+          "1": 15,
+          "2": 19,
+          "3": 16,
+          "4": 21,
+          "5": 19
+        },
+        "truthPositionCounts": {
+          "1": 15,
+          "2": 17,
+          "3": 21,
+          "4": 18,
+          "5": 19
+        }
+      }
+    },
+    "split_operation": {
+      "test_domain:CLICK": {
+        "accuracy": 0.23333333333333334,
+        "latencyMedianMs": 29.36689899797784,
+        "meanMaxProbability": 0.26924255943214226,
+        "meanNll": 1.5757744366723758,
+        "meanRank": 2.7333333333333334,
+        "meanTruthProbability": 0.21291199256740326,
+        "mrr": 0.49333333333333335,
+        "n": 60,
+        "predictedPositionCounts": {
+          "1": 11,
+          "2": 16,
+          "3": 13,
+          "4": 13,
+          "5": 7
+        },
+        "truthPositionCounts": {
+          "1": 11,
+          "2": 12,
+          "3": 17,
+          "4": 11,
+          "5": 9
+        }
+      },
+      "test_domain:SELECT": {
+        "accuracy": 0.4,
+        "latencyMedianMs": 27.473733003716916,
+        "meanMaxProbability": 0.27438276629812763,
+        "meanNll": 1.5480119951275673,
+        "meanRank": 2.3,
+        "meanTruthProbability": 0.21710171519001714,
+        "mrr": 0.62,
+        "n": 10,
+        "predictedPositionCounts": {
+          "1": 1,
+          "2": 4,
+          "4": 3,
+          "5": 2
+        },
+        "truthPositionCounts": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 4,
+          "5": 3
+        }
+      },
+      "test_domain:TYPE": {
+        "accuracy": 0.2,
+        "latencyMedianMs": 23.278333501366433,
+        "meanMaxProbability": 0.2798491715326417,
+        "meanNll": 1.673490756426388,
+        "meanRank": 3.35,
+        "meanTruthProbability": 0.19791651252886514,
+        "mrr": 0.4216666666666667,
+        "n": 20,
+        "predictedPositionCounts": {
+          "2": 5,
+          "3": 6,
+          "4": 4,
+          "5": 5
+        },
+        "truthPositionCounts": {
+          "1": 4,
+          "2": 3,
+          "3": 2,
+          "4": 5,
+          "5": 6
+        }
+      },
+      "test_task:CLICK": {
+        "accuracy": 0.15,
+        "latencyMedianMs": 25.366442001541145,
+        "meanMaxProbability": 0.2872774662529746,
+        "meanNll": 1.636853352327962,
+        "meanRank": 3.05,
+        "meanTruthProbability": 0.20424527757778613,
+        "mrr": 0.4266666666666667,
+        "n": 60,
+        "predictedPositionCounts": {
+          "1": 8,
+          "2": 14,
+          "3": 10,
+          "4": 9,
+          "5": 19
+        },
+        "truthPositionCounts": {
+          "1": 12,
+          "2": 14,
+          "3": 10,
+          "4": 15,
+          "5": 9
+        }
+      },
+      "test_task:SELECT": {
+        "accuracy": 0.3,
+        "latencyMedianMs": 28.37793199432781,
+        "meanMaxProbability": 0.2605402739726027,
+        "meanNll": 1.6463347949668858,
+        "meanRank": 3.1,
+        "meanTruthProbability": 0.1991726317368263,
+        "mrr": 0.49000000000000005,
+        "n": 10,
+        "predictedPositionCounts": {
+          "1": 1,
+          "3": 6,
+          "4": 2,
+          "5": 1
+        },
+        "truthPositionCounts": {
+          "1": 1,
+          "2": 2,
+          "3": 4,
+          "4": 1,
+          "5": 2
+        }
+      },
+      "test_task:TYPE": {
+        "accuracy": 0.1,
+        "latencyMedianMs": 24.148494492692407,
+        "meanMaxProbability": 0.29525647364276475,
+        "meanNll": 1.827708573482337,
+        "meanRank": 3.75,
+        "meanTruthProbability": 0.16605216093772163,
+        "mrr": 0.33666666666666667,
+        "n": 20,
+        "predictedPositionCounts": {
+          "1": 3,
+          "2": 6,
+          "3": 4,
+          "4": 4,
+          "5": 3
+        },
+        "truthPositionCounts": {
+          "1": 3,
+          "2": 3,
+          "3": 3,
+          "4": 4,
+          "5": 7
+        }
+      },
+      "test_website:CLICK": {
+        "accuracy": 0.21666666666666667,
+        "latencyMedianMs": 24.47364150430076,
+        "meanMaxProbability": 0.27972905303567297,
+        "meanNll": 1.6379932955185403,
+        "meanRank": 3.0833333333333335,
+        "meanTruthProbability": 0.20206887644504112,
+        "mrr": 0.4527777777777778,
+        "n": 60,
+        "predictedPositionCounts": {
+          "1": 10,
+          "2": 13,
+          "3": 11,
+          "4": 15,
+          "5": 11
+        },
+        "truthPositionCounts": {
+          "1": 11,
+          "2": 12,
+          "3": 12,
+          "4": 14,
+          "5": 11
+        }
+      },
+      "test_website:SELECT": {
+        "accuracy": 0.3,
+        "latencyMedianMs": 31.932128498738166,
+        "meanMaxProbability": 0.2583766167475662,
+        "meanNll": 1.5871109403924955,
+        "meanRank": 2.5,
+        "meanTruthProbability": 0.20723789261097894,
+        "mrr": 0.545,
+        "n": 10,
+        "predictedPositionCounts": {
+          "1": 1,
+          "2": 2,
+          "3": 2,
+          "4": 1,
+          "5": 4
+        },
+        "truthPositionCounts": {
+          "1": 1,
+          "2": 2,
+          "3": 3,
+          "5": 4
+        }
+      },
+      "test_website:TYPE": {
+        "accuracy": 0.15,
+        "latencyMedianMs": 72.55370199709432,
+        "meanMaxProbability": 0.2866623311241233,
+        "meanNll": 1.6940315423479966,
+        "meanRank": 3.15,
+        "meanTruthProbability": 0.19055032834095328,
+        "mrr": 0.42333333333333334,
+        "n": 20,
+        "predictedPositionCounts": {
+          "1": 4,
+          "2": 4,
+          "3": 3,
+          "4": 5,
+          "5": 4
+        },
+        "truthPositionCounts": {
+          "1": 3,
+          "2": 3,
+          "3": 6,
+          "4": 4,
+          "5": 4
+        }
+      }
+    }
+  },
+  "kind": "mind2web-laya-stratified-diagnostics",
+  "provider": {
+    "device": "cuda",
+    "dtype": "torch.bfloat16",
+    "headMaxLen": 192,
+    "implementation": "laya",
+    "maxLen": 512,
+    "modelLoadMs": 18855.26129300706,
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "providerId": "laya-base-listwise-hard5",
+    "representation": "state=goal+known-operation+recent-actions+official-pruned-context; choice-criteria=5 official Mind2Web candidate projections",
+    "version": "0.3.4",
+    "warmupCalls": 1
+  },
+  "schemaVersion": 1
+}

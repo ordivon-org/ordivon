@@ -247,3 +247,74 @@ class DynamicChoiceSystem1DecisionBenchmarkTests(unittest.TestCase):
             path.write_text(json.dumps(raw), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "unknown expected dynamic choice"):
                 B.load_corpus(path)
+
+
+class ExternalBenchmarkCorpusTests(unittest.TestCase):
+    def test_external_benchmark_requires_source_provenance(self) -> None:
+        import json
+        import tempfile
+
+        raw = {
+            "schemaVersion": 1,
+            "kind": "ordivon.system1-decision-corpus",
+            "corpusId": "external",
+            "standing": "EXTERNAL_BENCHMARK",
+            "questions": {
+                "target": {
+                    "type": "dynamic_choice",
+                    "candidateSetField": "candidates",
+                }
+            },
+            "cases": [{
+                "caseId": "x",
+                "state": {
+                    "candidates": [
+                        {"candidateId": "a"},
+                        {"candidateId": "b"},
+                    ]
+                },
+                "expected": {"target": "a"},
+            }],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "external.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "requires source provenance"):
+                B.load_corpus(path)
+
+    def test_external_benchmark_source_is_digest_bound(self) -> None:
+        import json
+        import tempfile
+
+        raw = {
+            "schemaVersion": 1,
+            "kind": "ordivon.system1-decision-corpus",
+            "corpusId": "external",
+            "standing": "EXTERNAL_BENCHMARK",
+            "source": {"dataset": "fixture", "revision": "abc"},
+            "questions": {
+                "target": {
+                    "type": "dynamic_choice",
+                    "candidateSetField": "candidates",
+                }
+            },
+            "cases": [{
+                "caseId": "x",
+                "state": {
+                    "candidates": [
+                        {"candidateId": "a"},
+                        {"candidateId": "b"},
+                    ]
+                },
+                "expected": {"target": "a"},
+            }],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "external.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            first = B.load_corpus(path)
+            raw["source"]["revision"] = "def"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            second = B.load_corpus(path)
+        self.assertEqual(first["standing"], "EXTERNAL_BENCHMARK")
+        self.assertNotEqual(first["corpusDigest"], second["corpusDigest"])

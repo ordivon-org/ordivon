@@ -1,0 +1,114 @@
+{
+  "corpusDigest": "sha256:cb003eb7a43ab34281be94d6b2b0c13e1ed4ba0f61aac34b4e3913052aa2d525",
+  "groups": {
+    "operation": {
+      "CLICK": {
+        "accuracy": 0.24444444444444444,
+        "meanRank": 3.2333333333333334,
+        "mrr": 0.4619444444444445,
+        "n": 180
+      },
+      "SELECT": {
+        "accuracy": 0.06666666666666667,
+        "meanRank": 3.7,
+        "mrr": 0.3377777777777778,
+        "n": 30
+      },
+      "TYPE": {
+        "accuracy": 0.11666666666666667,
+        "meanRank": 3.7,
+        "mrr": 0.3575,
+        "n": 60
+      }
+    },
+    "overall": {
+      "overall": {
+        "accuracy": 0.1962962962962963,
+        "meanRank": 3.388888888888889,
+        "mrr": 0.4249382716049383,
+        "n": 270
+      }
+    },
+    "split": {
+      "test_domain": {
+        "accuracy": 0.2222222222222222,
+        "meanRank": 3.3,
+        "mrr": 0.44629629629629625,
+        "n": 90
+      },
+      "test_task": {
+        "accuracy": 0.2,
+        "meanRank": 3.3666666666666667,
+        "mrr": 0.42888888888888893,
+        "n": 90
+      },
+      "test_website": {
+        "accuracy": 0.16666666666666666,
+        "meanRank": 3.5,
+        "mrr": 0.39962962962962967,
+        "n": 90
+      }
+    },
+    "split_operation": {
+      "test_domain:CLICK": {
+        "accuracy": 0.2833333333333333,
+        "meanRank": 2.966666666666667,
+        "mrr": 0.505,
+        "n": 60
+      },
+      "test_domain:SELECT": {
+        "accuracy": 0.0,
+        "meanRank": 3.9,
+        "mrr": 0.29166666666666663,
+        "n": 10
+      },
+      "test_domain:TYPE": {
+        "accuracy": 0.15,
+        "meanRank": 4.0,
+        "mrr": 0.34750000000000003,
+        "n": 20
+      },
+      "test_task:CLICK": {
+        "accuracy": 0.3,
+        "meanRank": 3.033333333333333,
+        "mrr": 0.5013888888888889,
+        "n": 60
+      },
+      "test_task:SELECT": {
+        "accuracy": 0.0,
+        "meanRank": 3.7,
+        "mrr": 0.31666666666666665,
+        "n": 10
+      },
+      "test_task:TYPE": {
+        "accuracy": 0.0,
+        "meanRank": 4.2,
+        "mrr": 0.26749999999999996,
+        "n": 20
+      },
+      "test_website:CLICK": {
+        "accuracy": 0.15,
+        "meanRank": 3.7,
+        "mrr": 0.3794444444444444,
+        "n": 60
+      },
+      "test_website:SELECT": {
+        "accuracy": 0.2,
+        "meanRank": 3.5,
+        "mrr": 0.40499999999999997,
+        "n": 10
+      },
+      "test_website:TYPE": {
+        "accuracy": 0.2,
+        "meanRank": 2.9,
+        "mrr": 0.4575,
+        "n": 20
+      }
+    }
+  },
+  "kind": "mind2web-official-candidate-rank-hard5-baseline",
+  "schemaVersion": 1,
+  "source": {
+    "scoresSha256": "884c97cd9ae0544485d21ea39e0d46422aee0291969a7324e56df3a84466dbd7"
+  }
+}

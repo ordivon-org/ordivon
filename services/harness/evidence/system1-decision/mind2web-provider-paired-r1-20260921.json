@@ -1,0 +1,30 @@
+{
+  "corpusDigest": "sha256:cb003eb7a43ab34281be94d6b2b0c13e1ed4ba0f61aac34b4e3913052aa2d525",
+  "crossencoder": {
+    "accuracy": 0.2962962962962963,
+    "correct": 80,
+    "wilson95": [
+      0.24499594940564717,
+      0.3533117704198384
+    ]
+  },
+  "kind": "mind2web-provider-paired-comparison",
+  "laya": {
+    "accuracy": 0.2037037037037037,
+    "correct": 55,
+    "wilson95": [
+      0.15997755914906622,
+      0.2557427605970947
+    ]
+  },
+  "n": 270,
+  "paired": {
+    "accuracyDifference": 0.09259259259259259,
+    "bothCorrect": 30,
+    "bothWrong": 165,
+    "crossencoderOnlyCorrect": 50,
+    "layaOnlyCorrect": 25,
+    "mcnemarExactTwoSidedP": 0.0052282430040142824
+  },
+  "schemaVersion": 1
+}
