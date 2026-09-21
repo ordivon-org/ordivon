@@ -21,7 +21,18 @@ interface AppDependencies {
   readonly policy: OpaAdmissionEngine;
   readonly audience: string;
   readonly now?: () => number;
-  readonly approval?: (effectId: string) => Promise<VerifiedApproval>;
+  readonly approval?: (
+    effect: EffectRequest,
+    principalId: string,
+  ) => Promise<VerifiedApproval> | VerifiedApproval;
+  readonly onStepUp?: (
+    effect: EffectRequest,
+    principalId: string,
+  ) => Promise<void> | void;
+  readonly consumeApproval?: (
+    effect: EffectRequest,
+    principalId: string,
+  ) => Promise<void> | void;
 }
 
 function json(value: unknown, status = 200): Response {
@@ -165,7 +176,10 @@ async function evaluateWithFreshGrant(
     effect.resource,
     nowEpochSeconds,
   );
-  const approval = await (dependencies.approval ?? noApproval)(effect.effectId);
+  const approval =
+    dependencies.approval === undefined
+      ? await noApproval()
+      : await dependencies.approval(effect, grant.principalId);
   const decision = await dependencies.policy.evaluate(
     admissionInput(grant, agentId, effect, approval, nowEpochSeconds),
   );
@@ -229,11 +243,13 @@ export function createAgentAdmissionApp(dependencies: AppDependencies) {
             );
           }
           if (decision.agent.outcome === "STEP_UP") {
+            await dependencies.onStepUp?.(effect, grant.principalId);
             return json(
               {
                 outcome: "STEP_UP",
                 reason: decision.agent.reason,
                 effectId: effect.effectId,
+                effectDigest: effect.effectDigest,
               },
               428,
             );
@@ -282,25 +298,42 @@ export function createAgentAdmissionApp(dependencies: AppDependencies) {
           dependencies.audience,
           body,
         );
-        const { decision } = await evaluateWithFreshGrant(
+        const { grant, decision } = await evaluateWithFreshGrant(
           dependencies,
           agent.agentId,
           effect,
           nowEpochSeconds,
         );
-        const status =
-          decision.agent.outcome === "STEP_UP"
-            ? 428
-            : decision.agent.outcome === "DENY"
-              ? 403
-              : 200;
+        if (decision.agent.outcome === "STEP_UP") {
+          await dependencies.onStepUp?.(effect, grant.principalId);
+          return json(
+            {
+              outcome: "STEP_UP",
+              reason: decision.agent.reason,
+              effectId: effect.effectId,
+              effectDigest: effect.effectDigest,
+            },
+            428,
+          );
+        }
+        if (decision.agent.outcome === "DENY") {
+          return json(
+            {
+              outcome: "DENY",
+              reason: decision.agent.reason,
+              effectId: effect.effectId,
+            },
+            403,
+          );
+        }
+        await dependencies.consumeApproval?.(effect, grant.principalId);
         return json(
           {
-            outcome: decision.agent.outcome,
+            outcome: "ALLOW",
             reason: decision.agent.reason,
             effectId: effect.effectId,
           },
-          status,
+          200,
         );
       }
 

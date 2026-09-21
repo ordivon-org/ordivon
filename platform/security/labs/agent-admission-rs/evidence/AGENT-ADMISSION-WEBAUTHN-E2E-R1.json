@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent-admission-webauthn-e2e-r1",
+  "source": {
+    "workspaceId": "ws-agent-admission-webauthn-r1-20260921",
+    "baseRevision": "3c6ded210de616c827d7f644c878c4d55a524485",
+    "attemptId": "attempt-01a0c2de-50b8-70a3-a124-57f85994542e",
+    "jobId": "job-01a0c2de-50b8-70a3-a124-57e740a2fe77",
+    "operationDigest": "sha256:775ce4a72e2b95ee3793a1b537fd17899a086dd3e975a24dd5ae424d26526a04",
+    "executionDisposition": "succeeded"
+  },
+  "productionHumanPresenceClaim": false,
+  "matrix": {
+    "enrollmentOptions": 200,
+    "enrollmentVerify": 201,
+    "enrollmentReplay": 409,
+    "grantIssueOptions": 200,
+    "grantIssueVerify": 201,
+    "grantIssueReplay": 409,
+    "r2Comment": 201,
+    "publishAInitial": 428,
+    "publishBInitial": 428,
+    "approvalOptions": 200,
+    "approvalVerify": 201,
+    "approvalReplay": 409,
+    "publishBAfterApprovingA": 428,
+    "publishAApproved": 200,
+    "publishAAfterApprovalConsumption": 428,
+    "revokeOptions": 200,
+    "revokeVerify": 200,
+    "revokeReplay": 409,
+    "postRevokeNewEffect": 403,
+    "postRevokeHistoricalReplay": 200
+  },
+  "observed": {
+    "virtualAuthenticator": {
+      "protocol": "ctap2",
+      "transport": "internal",
+      "userVerification": true,
+      "authenticatorId": "563752bd-c058-44b0-8eb0-22138e016afd",
+      "productionHumanPresenceClaim": false
+    },
+    "enrollment": {
+      "optionsStatus": 200,
+      "verifyStatus": 201,
+      "verifyBody": {
+        "principalId": "principal:lab-owner",
+        "credentialId": "FvoQC6xdQhzp1j0X_f_PHNS1OpqNgNtVXj-m2vC_o84"
+      },
+      "replayStatus": 409,
+      "replayBody": {
+        "error": "webauthn_challenge_invalid",
+        "message": "WebAuthn challenge is missing, expired, consumed, or has the wrong purpose."
+      }
+    },
+    "grantIssue": {
+      "optionsStatus": 200,
+      "verifyStatus": 201,
+      "verifyBody": {
+        "grantId": "grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91",
+        "grantDigest": "sha256:1bb654f0464d1f717955c0ab006c7bf3f4e16b217b25d24b4e3632078075e761",
+        "principalId": "principal:lab-owner",
+        "agentId": "oauth-client:agent-research-17",
+        "audience": "http://127.0.0.1:8788",
+        "allowedActions": [
+          "comment.create",
+          "site.publish"
+        ],
+        "resourcePrefixes": [
+          "/comments/",
+          "/site/"
+        ],
+        "expiresAtEpochSeconds": 1789979380,
+        "maxRiskClass": "R4",
+        "stepUpAtOrAbove": "R4",
+        "remainingEffects": 6,
+        "active": true,
+        "revision": 1
+      },
+      "grant": {
+        "grantId": "grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91",
+        "principalId": "principal:lab-owner",
+        "agentId": "oauth-client:agent-research-17",
+        "audience": "http://127.0.0.1:8788",
+        "allowedActions": [
+          "comment.create",
+          "site.publish"
+        ],
+        "resourcePrefixes": [
+          "/comments/",
+          "/site/"
+        ],
+        "expiresAtEpochSeconds": 1789979380,
+        "maxRiskClass": "R4",
+        "stepUpAtOrAbove": "R4",
+        "remainingEffects": 6
+      },
+      "replayStatus": 409,
+      "replayBody": {
+        "error": "webauthn_challenge_invalid",
+        "message": "WebAuthn challenge is missing, expired, consumed, or has the wrong purpose."
+      }
+    },
+    "comment": {
+      "status": 201,
+      "body": {
+        "outcome": "ALLOW",
+        "replayed": false,
+        "receipt": {
+          "commentId": "adb84403-8a91-4fe6-bab3-921eeeda0b74",
+          "articleId": "article-42",
+          "content": "WebAuthn-delegated Agent effect",
+          "principalId": "principal:lab-owner",
+          "agentId": "oauth-client:agent-research-17",
+          "effectId": "sha256:9b6fed6b04a10c4c9f0effd309a95dc39dae38fe818eaf976ecbf07d55a74231"
+        }
+      }
+    },
+    "publishAInitial": {
+      "status": 428,
+      "body": {
+        "outcome": "STEP_UP",
+        "reason": "principal-step-up-required",
+        "effectId": "sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3",
+        "effectDigest": "sha256:7b50e1d96aa2bd60d194759d69b330f0357cd0120e2d4056c3cb7fcd8a99cb4f"
+      }
+    },
+    "publishBInitial": {
+      "status": 428,
+      "body": {
+        "outcome": "STEP_UP",
+        "reason": "principal-step-up-required",
+        "effectId": "sha256:dbd0b19a31b1ea170d530b77f1e2bd87cf092b49e26745a14364af95dc7abc10",
+        "effectDigest": "sha256:fe21c1f01892b1be4027661437336eac453bdeca6d0cd82d8d561c383f6a9d41"
+      }
+    },
+    "approval": {
+      "optionsStatus": 200,
+      "verifyStatus": 201,
+      "verifyBody": {
+        "principalId": "principal:lab-owner",
+        "effectId": "sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3"
+      },
+      "replayStatus": 409,
+      "replayBody": {
+        "error": "webauthn_challenge_invalid",
+        "message": "WebAuthn challenge is missing, expired, consumed, or has the wrong purpose."
+      }
+    },
+    "publishBAfterApprovingA": {
+      "status": 428,
+      "body": {
+        "outcome": "STEP_UP",
+        "reason": "principal-step-up-required",
+        "effectId": "sha256:dbd0b19a31b1ea170d530b77f1e2bd87cf092b49e26745a14364af95dc7abc10",
+        "effectDigest": "sha256:fe21c1f01892b1be4027661437336eac453bdeca6d0cd82d8d561c383f6a9d41"
+      }
+    },
+    "publishAApproved": {
+      "status": 200,
+      "body": {
+        "outcome": "ALLOW",
+        "reason": "admitted",
+        "effectId": "sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3"
+      }
+    },
+    "publishAAfterConsumption": {
+      "status": 428,
+      "body": {
+        "outcome": "STEP_UP",
+        "reason": "principal-step-up-required",
+        "effectId": "sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3",
+        "effectDigest": "sha256:7b50e1d96aa2bd60d194759d69b330f0357cd0120e2d4056c3cb7fcd8a99cb4f"
+      }
+    },
+    "revocation": {
+      "optionsStatus": 200,
+      "verifyStatus": 200,
+      "verifyBody": {
+        "grantId": "grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91",
+        "grantDigest": "sha256:1bb654f0464d1f717955c0ab006c7bf3f4e16b217b25d24b4e3632078075e761",
+        "principalId": "principal:lab-owner",
+        "agentId": "oauth-client:agent-research-17",
+        "audience": "http://127.0.0.1:8788",
+        "allowedActions": [
+          "comment.create",
+          "site.publish"
+        ],
+        "resourcePrefixes": [
+          "/comments/",
+          "/site/"
+        ],
+        "expiresAtEpochSeconds": 1789979380,
+        "maxRiskClass": "R4",
+        "stepUpAtOrAbove": "R4",
+        "remainingEffects": 5,
+        "active": false,
+        "revision": 3
+      },
+      "replayStatus": 409,
+      "replayBody": {
+        "error": "webauthn_challenge_invalid",
+        "message": "WebAuthn challenge is missing, expired, consumed, or has the wrong purpose."
+      }
+    },
+    "postRevokeNewEffect": {
+      "status": 403,
+      "body": {
+        "error": "grant_not_found",
+        "message": "No active delegation grant authorizes this action."
+      }
+    },
+    "postRevokeHistoricalReplay": {
+      "status": 200,
+      "body": {
+        "outcome": "ALLOW",
+        "replayed": true,
+        "receipt": {
+          "commentId": "adb84403-8a91-4fe6-bab3-921eeeda0b74",
+          "articleId": "article-42",
+          "content": "WebAuthn-delegated Agent effect",
+          "principalId": "principal:lab-owner",
+          "agentId": "oauth-client:agent-research-17",
+          "effectId": "sha256:9b6fed6b04a10c4c9f0effd309a95dc39dae38fe818eaf976ecbf07d55a74231"
+        }
+      }
+    }
+  },
+  "durableState": {
+    "cleanup": {
+      "agentAdmissionContainers": [],
+      "listeners": [],
+      "tempRealmFiles": []
+    },
+    "comments": [
+      {
+        "agent_id": "oauth-client:agent-research-17",
+        "article_id": "article-42",
+        "comment_id": "adb84403-8a91-4fe6-bab3-921eeeda0b74",
+        "content": "WebAuthn-delegated Agent effect",
+        "created_at": 1789975781,
+        "effect_id": "sha256:9b6fed6b04a10c4c9f0effd309a95dc39dae38fe818eaf976ecbf07d55a74231",
+        "principal_id": "principal:lab-owner"
+      }
+    ],
+    "effect_approvals": [
+      {
+        "consumed_at": 1789975782,
+        "credential_id": "FvoQC6xdQhzp1j0X_f_PHNS1OpqNgNtVXj-m2vC_o84",
+        "effect_digest": "sha256:7b50e1d96aa2bd60d194759d69b330f0357cd0120e2d4056c3cb7fcd8a99cb4f",
+        "effect_id": "sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3",
+        "expires_at": 1789975901,
+        "principal_id": "principal:lab-owner",
+        "verified_at": 1789975781
+      }
+    ],
+    "effects": [
+      {
+        "action": "comment.create",
+        "committed_at": 1789975781,
+        "effect_digest": "sha256:4a591ec5cfe131691bfabecd5b1b0c8be0ae58009019e1df9084a74edb72c19e",
+        "effect_id": "sha256:9b6fed6b04a10c4c9f0effd309a95dc39dae38fe818eaf976ecbf07d55a74231",
+        "grant_id": "grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91",
+        "resource": "/comments/article-42",
+        "response_json": "{\"commentId\":\"adb84403-8a91-4fe6-bab3-921eeeda0b74\",\"articleId\":\"article-42\",\"content\":\"WebAuthn-delegated Agent effect\",\"principalId\":\"principal:lab-owner\",\"agentId\":\"oauth-client:agent-research-17\",\"effectId\":\"sha256:9b6fed6b04a10c4c9f0effd309a95dc39dae38fe818eaf976ecbf07d55a74231\"}"
+      }
+    ],
+    "grants": [
+      {
+        "active": 0,
+        "agent_id": "oauth-client:agent-research-17",
+        "allowed_actions": "[\"comment.create\",\"site.publish\"]",
+        "audience": "http://127.0.0.1:8788",
+        "expires_at": 1789979380,
+        "grant_digest": "sha256:1bb654f0464d1f717955c0ab006c7bf3f4e16b217b25d24b4e3632078075e761",
+        "grant_id": "grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91",
+        "max_risk_class": "R4",
+        "principal_id": "principal:lab-owner",
+        "remaining_effects": 5,
+        "resource_prefixes": "[\"/comments/\",\"/site/\"]",
+        "revision": 3,
+        "step_up_at_or_above": "R4"
+      }
+    ],
+    "pending_effect_approvals": [
+      {
+        "created_at": 1789975781,
+        "effect_digest": "sha256:7b50e1d96aa2bd60d194759d69b330f0357cd0120e2d4056c3cb7fcd8a99cb4f",
+        "effect_id": "sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3",
+        "expires_at": 1789976082,
+        "principal_id": "principal:lab-owner"
+      },
+      {
+        "created_at": 1789975781,
+        "effect_digest": "sha256:fe21c1f01892b1be4027661437336eac453bdeca6d0cd82d8d561c383f6a9d41",
+        "effect_id": "sha256:dbd0b19a31b1ea170d530b77f1e2bd87cf092b49e26745a14364af95dc7abc10",
+        "expires_at": 1789976081,
+        "principal_id": "principal:lab-owner"
+      }
+    ],
+    "principals": [
+      {
+        "created_at": 1789975780,
+        "display_name": "Lab Owner",
+        "principal_id": "principal:lab-owner",
+        "user_name": "lab-owner"
+      }
+    ],
+    "webauthn_challenges": [
+      {
+        "challenge": "MNYBemyIVERwgOFDE3Y3cRFOlE3xuQvRY-AtHWnJghQ",
+        "challenge_id": "32349f05-4867-4da5-a5fd-ef19d1595803",
+        "consumed_at": 1789975780,
+        "expires_at": 1789975900,
+        "payload_digest": "sha256:a53d09eba8a9336b577e727b402b88ff7b875e2ed533a4399ea033bbd23555cd",
+        "payload_json": "{\"principalId\":\"principal:lab-owner\",\"userName\":\"lab-owner\",\"displayName\":\"Lab Owner\"}",
+        "principal_id": "principal:lab-owner",
+        "purpose": "register"
+      },
+      {
+        "challenge": "oL0rohhUYjfkyn5rDJEZ-ZApL_XzWkAVTCZ4diyvZto",
+        "challenge_id": "e9300c57-5e5e-4915-a848-a9b6d4e775e4",
+        "consumed_at": 1789975781,
+        "expires_at": 1789975900,
+        "payload_digest": "sha256:a5779c1eddb20b387513581bc57f2dac6d81647b29ec4cd71ad6c294ac7e63c1",
+        "payload_json": "{\"grant\":{\"grantId\":\"grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91\",\"principalId\":\"principal:lab-owner\",\"agentId\":\"oauth-client:agent-research-17\",\"audience\":\"http://127.0.0.1:8788\",\"allowedActions\":[\"comment.create\",\"site.publish\"],\"resourcePrefixes\":[\"/comments/\",\"/site/\"],\"expiresAtEpochSeconds\":1789979380,\"maxRiskClass\":\"R4\",\"stepUpAtOrAbove\":\"R4\",\"remainingEffects\":6}}",
+        "principal_id": "principal:lab-owner",
+        "purpose": "grant-issue"
+      },
+      {
+        "challenge": "RDEpzp-7KiQqf49Xu3aXtLCKr6PYo9szjjUfJd7mWbI",
+        "challenge_id": "71a99504-f59a-4b08-897c-828860bfac56",
+        "consumed_at": 1789975781,
+        "expires_at": 1789975901,
+        "payload_digest": "sha256:5e9659deb1a7b0eda6205c4a5f4ebd94b75e2213a3a2537d52ae47115258adba",
+        "payload_json": "{\"effectId\":\"sha256:a06cf9322d074347ce4ed10dacb6a154135c9d8e5b8dd4618cbdc758588224e3\",\"effectDigest\":\"sha256:7b50e1d96aa2bd60d194759d69b330f0357cd0120e2d4056c3cb7fcd8a99cb4f\"}",
+        "principal_id": "principal:lab-owner",
+        "purpose": "effect-approve"
+      },
+      {
+        "challenge": "Z5A0xl57z8VbSlOgIKeHXFpLeK76xd2fOOd1dxnEzow",
+        "challenge_id": "ce4ca4fe-97d8-4f07-8cdc-5ab6ab1dee32",
+        "consumed_at": 1789975782,
+        "expires_at": 1789975902,
+        "payload_digest": "sha256:4238af289afb615555a425f2b7de20da539938d982ede3d74f78a0ae1fb7f007",
+        "payload_json": "{\"grantId\":\"grant:webauthn:5d8e6a97-d3e6-4dd1-a75d-df599fb70a91\",\"grantDigest\":\"sha256:1bb654f0464d1f717955c0ab006c7bf3f4e16b217b25d24b4e3632078075e761\"}",
+        "principal_id": "principal:lab-owner",
+        "purpose": "grant-revoke"
+      }
+    ],
+    "webauthn_credentials": [
+      {
+        "backed_up": 0,
+        "counter": 4,
+        "created_at": 1789975780,
+        "credential_id": "FvoQC6xdQhzp1j0X_f_PHNS1OpqNgNtVXj-m2vC_o84",
+        "device_type": "singleDevice",
+        "last_used_at": 1789975782,
+        "principal_id": "principal:lab-owner",
+        "public_key": "<42 bytes>",
+        "transports_json": "[\"internal\"]"
+      }
+    ]
+  },
+  "productionEligible": false,
+  "notes": [
+    "The browser ceremony used a Chromium CDP virtual authenticator with CTAP2 and user verification enabled.",
+    "This proves WebAuthn protocol, challenge, credential-counter, Grant binding, and effect binding behavior; it does not prove physical human presence.",
+    "Initial credential enrollment remains guarded by a lab-only enrollment token. A production site must bind enrollment to its existing authenticated Principal/account ceremony.",
+    "The oauth4webapi Keycloak cnf compatibility patch remains lab-only and is not production eligible."
+  ]
+}

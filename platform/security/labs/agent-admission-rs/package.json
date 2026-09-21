@@ -1,6 +1,6 @@
 {
   "name": "@ordivon/agent-admission-rs-lab",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.5.1",
@@ -15,13 +15,17 @@
     "bootstrap-grant": "node src/bootstrap-grant.ts",
     "e2e-client": "node src/e2e-client.ts",
     "e2e": "bash ./e2e.sh",
+    "webauthn-e2e": "bash ./webauthn-e2e.sh",
     "ci": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "14.0.0",
+    "@simplewebauthn/server": "14.0.2",
     "oauth4webapi": "3.8.8"
   },
   "devDependencies": {
     "@types/node": "26.6.2",
+    "playwright": "1.63.0",
     "typescript": "7.0.2"
   }
 }

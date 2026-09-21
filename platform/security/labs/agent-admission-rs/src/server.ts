@@ -4,6 +4,9 @@ import { createAgentAdmissionApp } from "./app.ts";
 import { GrantStore } from "./grant-store.ts";
 import { OAuthDpopAgentVerifier } from "./oauth-verifier.ts";
 import { OpaAdmissionEngine } from "./opa.ts";
+import { PrincipalStore } from "./principal-store.ts";
+import { createWebAuthnRouter } from "./webauthn-router.ts";
+import { WebAuthnPrincipalService } from "./webauthn-service.ts";
 
 function requireEnv(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
@@ -37,7 +40,7 @@ async function toWebRequest(message: IncomingMessage, origin: string): Promise<R
 }
 
 const port = Number.parseInt(requireEnv("AGENT_ADMISSION_PORT", "8788"), 10);
-const origin = requireEnv(
+const audience = requireEnv(
   "AGENT_ADMISSION_AUDIENCE",
   `http://127.0.0.1:${port}`,
 );
@@ -49,6 +52,14 @@ const databasePath = requireEnv(
   "AGENT_ADMISSION_DB",
   new URL("../.agent-admission-lab.sqlite3", import.meta.url).pathname,
 );
+const webAuthnOrigin = requireEnv(
+  "AGENT_ADMISSION_WEBAUTHN_ORIGIN",
+  `http://localhost:${port}`,
+);
+const webAuthnRpId = requireEnv("AGENT_ADMISSION_WEBAUTHN_RPID", "localhost");
+const enrollmentToken = process.env.AGENT_ADMISSION_ENROLLMENT_TOKEN;
+const webAuthnStepUpEnabled =
+  process.env.AGENT_ADMISSION_WEBAUTHN_STEP_UP === "1";
 
 if (process.env.AGENT_ADMISSION_ALLOW_INSECURE !== "1") {
   throw new Error(
@@ -56,33 +67,72 @@ if (process.env.AGENT_ADMISSION_ALLOW_INSECURE !== "1") {
   );
 }
 
-const store = new GrantStore(databasePath);
+const grants = new GrantStore(databasePath);
+const principals = new PrincipalStore(databasePath);
 const verifier = new OAuthDpopAgentVerifier(
   {
     issuer,
-    audience: origin,
+    audience,
     allowInsecureLab: true,
   },
-  store,
+  grants,
 );
 const policy = new OpaAdmissionEngine();
-const app = createAgentAdmissionApp({ verifier, store, policy, audience: origin });
+const webAuthn = new WebAuthnPrincipalService(principals, grants, {
+  rpName: "Ordivon Agent Admission Lab",
+  rpID: webAuthnRpId,
+  origin: webAuthnOrigin,
+  audience,
+});
+const webAuthnRouter = createWebAuthnRouter(
+  webAuthn,
+  enrollmentToken === undefined ? {} : { enrollmentToken },
+);
+const app = createAgentAdmissionApp({
+  verifier,
+  store: grants,
+  policy,
+  audience,
+  ...(webAuthnStepUpEnabled
+    ? {
+        approval: (effect, principalId) =>
+          webAuthn.lookupEffectApproval(principalId, effect),
+        onStepUp: (effect, principalId) =>
+          webAuthn.registerStepUp(principalId, effect),
+        consumeApproval: (effect, principalId) =>
+          webAuthn.consumeEffectApproval(principalId, effect),
+      }
+    : {}),
+});
 
 const server = createServer(async (request, response) => {
-  const result = await app(await toWebRequest(request, origin));
+  const webRequest = await toWebRequest(request, audience);
+  const result = (await webAuthnRouter(webRequest)) ?? (await app(webRequest));
   response.statusCode = result.status;
   result.headers.forEach((value, name) => response.setHeader(name, value));
   response.end(Buffer.from(await result.arrayBuffer()));
 });
 
 server.listen(port, "127.0.0.1", () => {
-  console.log(JSON.stringify({ event: "listening", origin, issuer, databasePath }));
+  console.log(
+    JSON.stringify({
+      event: "listening",
+      audience,
+      issuer,
+      databasePath,
+      webAuthnOrigin,
+      webAuthnRpId,
+      enrollmentEnabled: enrollmentToken !== undefined,
+      webAuthnStepUpEnabled,
+    }),
+  );
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     server.close(() => {
-      store.close();
+      principals.close();
+      grants.close();
       process.exit(0);
     });
   });
