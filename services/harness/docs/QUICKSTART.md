@@ -150,9 +150,61 @@ run = HarnessAgentRun.create(
 execution = run.run((), cognition_seed=seed)
 ```
 
-This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, and `continuity.list`. It rejects `execution.submit`, `execution.cancel`, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition requires the separate durable intent/receipt/reconciliation slice; a generic MCP call must not bypass Harness recovery semantics.
+This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, and `continuity.list`. It rejects `execution.submit`, `execution.cancel`, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition must use the H2 durable intent/receipt/reconciliation slice below; a generic MCP call must not bypass Harness recovery semantics.
 
 The portable package contains component identity, not credentials. OAuth/token storage and interactive authorization remain application/client concerns. Harness accepts the official MCP SDK Auth port and does not define a second OAuth protocol or credential database.
+
+### Agent Plugin composition — H2 durable Gateway execution
+
+For effectful execution, do **not** add \`execution.submit\` to the H1 observation bridge. Bind a narrow caller-authored execution grant and pass a \`PluginGatewayExecutionBridgeFactory\` to \`HarnessAgentRun\`.
+
+\`\`\`python
+from ordivon_harness.api import (
+    PluginGatewayExecutionBridgeFactory,
+    PluginGatewayExecutionGrant,
+)
+
+grant = PluginGatewayExecutionGrant(
+    capability="execution.linux",
+    workspace_id="ws-bounded-run",
+    executable_allowlist=("/usr/bin/rg",),
+    env_allowlist=(),
+    max_timeout_ms=30_000,
+)
+factory = PluginGatewayExecutionBridgeFactory(
+    plugin.mcp("ordivon-gateway"),
+    client,
+    grant,
+)
+
+# Author the Run Contract with:
+#   tool_catalog_digest = factory.catalog_digest
+#   tool_grant_digest   = factory.grant_digest
+run = HarnessAgentRun.create(
+    state_root,
+    contract,
+    adapter_factory,
+    tool_bridge_factory=factory,
+)
+\`\`\`
+
+The model-facing Tool deliberately omits \`capability\`, \`workspaceId\`, \`context\`, \`requestId\`, credentials, and authority references. Those values are caller-owned authority and are injected only after the Harness has durably committed the Tool intent and dispatch fence.
+
+The effect path is:
+
+\`\`\`text
+model Tool call
+  -> durable Harness Tool intent
+  -> durable dispatch fence
+  -> Gateway execution.submit
+  -> Runtime workspace.exec
+  -> Gateway execution.get
+  -> durable Harness receipt/observation
+\`\`\`
+
+If the submit response is lost, Harness does **not** blindly redispatch the effect. Gateway \`execution.resolve\` performs a read-only lookup by the already frozen \`clientRequestId\`; only a unique owner Job is observed. Absent or ambiguous resolution remains unknown. The Gateway forwards the Harness authority references to Runtime but does not own or reinterpret them.
+
+This is an incremental compatibility path over the current Gateway execution projection. MCP 2026-07-28 defines a standard Tasks extension for long-running work; the current pinned Python SDK surface used here does not expose that extension through \`Client\`, so Harness does not hand-roll a competing MCP Tasks implementation. The custom Gateway lifecycle remains isolated behind this adapter and can be retired when the adopted SDK exposes the standard extension with the required recovery semantics.
 
 ### Supported Python Agent Run surface
 

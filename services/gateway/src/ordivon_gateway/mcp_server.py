@@ -29,6 +29,7 @@ from .contracts import (
     ContinuityPage,
     ExecutionObservation,
     ExecutionReceipt,
+    ExecutionResolution,
     SystemDescription,
 )
 from .service import GatewayService
@@ -59,6 +60,7 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         context: str | None = None,
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
+        authorityReferences: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         return await gateway.execution_submit(
             capability=capability,
@@ -70,11 +72,18 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
             context=context,
             env=env,
             timeout_ms=timeoutMs,
+            authority_references=authorityReferences,
         )
 
+    @server.tool(name="execution.resolve")
+    async def execution_resolve(capability: str, requestId: str) -> ExecutionResolution:
+        return await gateway.execution_resolve(capability=capability, request_id=requestId)
+
     @server.tool(name="execution.get")
-    async def execution_get(operationRef: str, eventLimit: int = 10) -> ExecutionObservation:
-        return await gateway.execution_get(operationRef, event_limit=eventLimit)
+    async def execution_get(
+        operationRef: str, eventLimit: int = 10, waitMs: int = 0
+    ) -> ExecutionObservation:
+        return await gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
 
     @server.tool(name="execution.cancel")
     async def execution_cancel(operationRef: str) -> ExecutionReceipt:

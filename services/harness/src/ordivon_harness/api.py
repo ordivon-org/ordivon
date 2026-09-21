@@ -11,6 +11,10 @@ change Harness persistence or execution ownership.
 """
 
 from .agent_plugin import AgentPluginComposition, AgentPluginCompositionError
+from .plugin_gateway_effect import (
+    PluginGatewayExecutionBridgeFactory,
+    PluginGatewayExecutionGrant,
+)
 from .plugin_mcp import OfficialMcpClient, PluginMcpObservationBridge
 
 from .completion import (
@@ -48,6 +52,7 @@ from .agent_run import (
     HarnessAgentExecution,
     HarnessAgentRun,
     HarnessAgentRunCompositionError,
+    HarnessToolBridgeFactory,
     HarnessCognitionProfile,
     HarnessCognitionSeed,
     HarnessCognitionSeedSource,
@@ -70,6 +75,9 @@ __all__ = [
     "HarnessAgentExecution",
     "HarnessAgentRun",
     "HarnessAgentRunCompositionError",
+    "HarnessToolBridgeFactory",
+    "PluginGatewayExecutionBridgeFactory",
+    "PluginGatewayExecutionGrant",
     "AgentPluginComposition",
     "AgentPluginCompositionError",
     "OfficialMcpClient",

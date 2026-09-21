@@ -62,6 +62,17 @@ class ExecutionReceipt(StrictModel):
     delivery_disposition: str | None = None
 
 
+class ExecutionResolution(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-execution-resolution"] = "ordivon.gateway-execution-resolution"
+    request_id: str
+    capability: str
+    owner_id: str
+    resolution: Literal["found", "absent", "ambiguous"]
+    operation_ref: str | None = None
+    native_id: str | None = None
+
+
 class ExecutionObservation(ExecutionReceipt):
     kind: Literal["ordivon.gateway-execution-observation"] = "ordivon.gateway-execution-observation"
     execution_disposition: str | None = None

@@ -23,6 +23,7 @@ from .contracts import (
     ContinuityPage,
     ExecutionObservation,
     ExecutionReceipt,
+    ExecutionResolution,
     OwnerDescriptor,
     SystemDescription,
 )
@@ -351,6 +352,7 @@ class GatewayService:
         context: str | None = None,
         env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
+        authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         route = self._routes.get(capability)
         if route is None:
@@ -383,6 +385,10 @@ class GatewayService:
             execution["env"] = dict(env)
         if timeout_ms is not None:
             execution["timeoutMs"] = timeout_ms
+        if authority_references is not None:
+            if any(not isinstance(item, dict) for item in authority_references):
+                raise GatewayError("authorityReferences must contain objects")
+            execution["foreignReferences"] = [dict(item) for item in authority_references]
 
         payload = {
             "schemaVersion": 1,
@@ -408,21 +414,72 @@ class GatewayService:
             ),
         )
 
+    async def execution_resolve(self, *, capability: str, request_id: str) -> ExecutionResolution:
+        route = self._routes.get(capability)
+        if route is None:
+            raise GatewayError(f"unknown capability: {capability}")
+        if route.category != "execution" or route.owner_tool != "workspace.exec":
+            raise GatewayError(f"capability is not executable: {capability}")
+        if not request_id:
+            raise GatewayError("requestId is required")
+
+        page = await self._caller.call_tool(
+            route.owner_id,
+            "task.list",
+            {
+                "limit": 2,
+                "clientRequestId": request_id,
+            },
+        )
+        jobs = page.get("jobs")
+        if not isinstance(jobs, list) or any(not isinstance(item, dict) for item in jobs):
+            raise GatewayError("Runtime task.list omitted jobs")
+        for job in jobs:
+            if job.get("clientRequestId") != request_id:
+                raise GatewayError("Runtime task.list returned another clientRequestId")
+        next_cursor = page.get("nextCursor")
+        ambiguous = len(jobs) > 1 or next_cursor is not None
+        if ambiguous:
+            return ExecutionResolution(
+                request_id=request_id,
+                capability=capability,
+                owner_id=route.owner_id,
+                resolution="ambiguous",
+            )
+        if not jobs:
+            return ExecutionResolution(
+                request_id=request_id,
+                capability=capability,
+                owner_id=route.owner_id,
+                resolution="absent",
+            )
+        native_id = _required_str(jobs[0], "jobId")
+        return ExecutionResolution(
+            request_id=request_id,
+            capability=capability,
+            owner_id=route.owner_id,
+            resolution="found",
+            operation_ref=_execution_ref(route.owner_id, native_id),
+            native_id=native_id,
+        )
+
     async def execution_get(
-        self, operation_ref: str, *, event_limit: int = 10
+        self, operation_ref: str, *, event_limit: int = 10, wait_ms: int = 0
     ) -> ExecutionObservation:
         owner_id, native_id = _parse_execution_ref(operation_ref)
         # eventLimit is retained on the northbound surface for connector compatibility.
         # Runtime's execution observation authority is job.observe; Gateway does not
         # project the job.get event timeline, so forwarding eventLimit would add no truth.
         _ = event_limit
+        if type(wait_ms) is not int or not 0 <= wait_ms <= 30_000:
+            raise GatewayError("waitMs must be an integer between 0 and 30000")
         result = await self._caller.call_tool(
             owner_id,
             "job.observe",
             {
                 "schemaVersion": 1,
                 "jobId": native_id,
-                "waitMs": 0,
+                "waitMs": wait_ms,
                 "waitUntil": "change_or_terminal",
                 "stdoutTailBytes": 0,
                 "stderrTailBytes": 0,

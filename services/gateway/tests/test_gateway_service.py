@@ -78,11 +78,12 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             by_name = {tool.name: tool for tool in tools.tools}
             assert client.server_info is not None
             assert client.server_info.name == "ordivon-gateway"
-            assert client.server_info.version == "0.2.0"
+            assert client.server_info.version == "0.3.0"
             assert set(by_name) == {
                 "system.describe",
                 "capability.describe",
                 "execution.submit",
+                "execution.resolve",
                 "execution.get",
                 "execution.cancel",
                 "artifact.read",
@@ -109,7 +110,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
 
 def test_system_description_uses_package_release_identity() -> None:
     service = GatewayService(FakeOwnerCaller())
-    assert service.system_describe().gateway_version == "0.2.0"
+    assert service.system_describe().gateway_version == "0.3.0"
 
 
 def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
@@ -133,6 +134,14 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
             cwd_relative=".",
             context="contained_local",
             timeout_ms=30_000,
+            authority_references=[
+                {
+                    "namespace": "ordivon.harness",
+                    "type": "dispatch_fence",
+                    "id": "fence:1",
+                    "digest": "sha256:fence",
+                }
+            ],
         )
     )
 
@@ -148,6 +157,14 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
     assert execution["executionTarget"] == "local_linux"
     assert execution["executionProfile"] == "contained_local"
     assert "windowsAuthority" not in execution
+    assert execution["foreignReferences"] == [
+        {
+            "namespace": "ordivon.harness",
+            "type": "dispatch_fence",
+            "id": "fence:1",
+            "digest": "sha256:fence",
+        }
+    ]
 
 
 def test_execution_submit_windows_context_passes_through_as_string() -> None:
@@ -209,6 +226,66 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
     }
 
 
+def test_execution_resolve_projects_request_identity_without_redispatch() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.linux", "task.list")] = {
+        "jobs": [
+            {
+                "jobId": "job-resolved",
+                "clientRequestId": "req-resolved",
+            }
+        ],
+        "nextCursor": None,
+    }
+    service = GatewayService(caller)
+
+    resolved = asyncio.run(
+        service.execution_resolve(
+            capability="execution.linux",
+            request_id="req-resolved",
+        )
+    )
+    assert resolved.resolution == "found"
+    assert resolved.operation_ref == "ordivon-exec:v1:runtime.linux:job-resolved"
+    assert resolved.native_id == "job-resolved"
+    assert caller.calls == [
+        (
+            "runtime.linux",
+            "task.list",
+            {"limit": 2, "clientRequestId": "req-resolved"},
+        )
+    ]
+
+    caller.responses[("runtime.linux", "task.list")] = {
+        "jobs": [],
+        "nextCursor": None,
+    }
+    absent = asyncio.run(
+        service.execution_resolve(
+            capability="execution.linux",
+            request_id="req-absent",
+        )
+    )
+    assert absent.resolution == "absent"
+    assert absent.operation_ref is None
+
+    caller.responses[("runtime.linux", "task.list")] = {
+        "jobs": [
+            {"jobId": "job-a", "clientRequestId": "req-many"},
+            {"jobId": "job-b", "clientRequestId": "req-many"},
+        ],
+        "nextCursor": None,
+    }
+    ambiguous = asyncio.run(
+        service.execution_resolve(
+            capability="execution.linux",
+            request_id="req-many",
+        )
+    )
+    assert ambiguous.resolution == "ambiguous"
+    assert ambiguous.operation_ref is None
+
+
 def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     caller = FakeOwnerCaller()
     caller.responses[("runtime.windows", "job.observe")] = {
@@ -252,7 +329,7 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     service = GatewayService(caller)
     ref = "ordivon-exec:v1:runtime.windows:job-9"
 
-    observed = asyncio.run(service.execution_get(ref))
+    observed = asyncio.run(service.execution_get(ref, wait_ms=1_234))
     assert observed.native_id == "job-9"
     assert observed.exit_code == 0
     assert observed.artifacts_available is True
@@ -260,6 +337,18 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     assert observed.artifact_ids == ["artifact-stdout", "artifact-terminal"]
     assert observed.artifact_projection_complete is True
     assert observed.recovery_required is False
+    assert caller.calls[-2] == (
+        "runtime.windows",
+        "job.observe",
+        {
+            "schemaVersion": 1,
+            "jobId": "job-9",
+            "waitMs": 1_234,
+            "waitUntil": "change_or_terminal",
+            "stdoutTailBytes": 0,
+            "stderrTailBytes": 0,
+        },
+    )
     assert caller.calls[-1] == (
         "runtime.windows",
         "job.get",
