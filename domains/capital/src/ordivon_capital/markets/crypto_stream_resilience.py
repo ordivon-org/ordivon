@@ -261,8 +261,8 @@ async def qualify_reconnect(target_venue: str, measured_rounds: int = 3, deadlin
         reconnect_latency_ms = (reconnected_mono - injected_mono) / 1_000_000
     passed = warmup is not None and recovery is not None and len(measured) == measured_rounds and reconnect_latency_ms is not None
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.crypto-stream-reconnect-qualification",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.crypto-stream-reconnect-qualification",
         "standing": "PASS_PUBLIC_STREAM_RECONNECT" if passed else "PARTIAL_PUBLIC_STREAM_RECONNECT",
         "targetVenue": target_venue,
         "injectedDisconnect": True,
@@ -297,8 +297,8 @@ def main() -> int:
         rc = 0 if result["standing"] == "PASS_PUBLIC_STREAM_RECONNECT" else 2
     except Exception as exc:
         result = {
-            "schemaVersion": 1,
-            "kind": "ordivon.capital.market.crypto-stream-reconnect-qualification",
+            "schemaVersion": 2,
+            "kind": "ordivon.capital.markets.crypto-stream-reconnect-qualification",
             "standing": "STREAM_RECONNECT_SESSION_FAILED",
             "targetVenue": args.target_venue,
             "error": f"{type(exc).__name__}: {exc}",

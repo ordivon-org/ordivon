@@ -1,8 +1,8 @@
 {
   "currentLane": "NON_LIVE",
   "decisionImplementation": "LOCAL_DETERMINISTIC_PYTHON",
-  "externalWritePolicyInputContract": "contracts/external-write-policy-input-v1.json",
-  "kind": "ordivon.capital.market.execution-policy",
+  "externalWritePolicyInputContract": "contracts/external-write-policy-input-v2.json",
+  "kind": "ordivon.capital.governance.execution-policy",
   "rule": "Bounded deterministic policy rules are evaluated directly in the canonical Python runtime; external financial writes remain fail-closed and not implemented.",
-  "schemaVersion": 1
+  "schemaVersion": 2
 }

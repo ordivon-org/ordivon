@@ -79,8 +79,8 @@ if captured is None:
     raise RuntimeError(f"coherent public capture failed after 3 rounds: {last_error}")
 
 result = {
-    "schemaVersion": 1,
-    "kind": "ordivon.capital.market.crypto-public-rest-capture",
+    "schemaVersion": 2,
+    "kind": "ordivon.capital.markets.crypto-public-rest-capture",
     "captureWallTimeNs": time.time_ns(),
     "captureRound": next(iter(captured.values()))["captureRound"],
     "requests": {name: captured[name] for name in sorted(captured)},

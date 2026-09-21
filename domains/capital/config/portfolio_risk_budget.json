@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.capital.market.portfolio-risk-budget-registration",
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.risk.portfolio-risk-budget-registration",
   "standing": "UNSET",
   "owner": "OWNER_PRINCIPAL",
   "limits": {

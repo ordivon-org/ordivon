@@ -20,7 +20,7 @@ out,rc=sys.argv[1:]
 try: s=json.load(open(out+'/streaming.json'))
 except Exception: s={'standing':'NO_STREAMING_RESULT'}
 b=json.load(open(out+'/network-v2-binding.json'))
-result={'schemaVersion':1,'kind':'ordivon.capital.market.crypto-streaming-r2-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'streamReturnCode':int(rc),'streamingStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_STREAMING_REPEATED_PUBLIC_SHADOW' else 'WORKLOAD_QUALITY_FAILED','acceptedSnapshotCount':s.get('acceptedSnapshotCount'),'allMeasuredQualified':s.get('allMeasuredQualified'),'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+result={'schemaVersion':2,'kind':'ordivon.capital.markets.crypto-streaming-r2-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'streamReturnCode':int(rc),'streamingStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_STREAMING_REPEATED_PUBLIC_SHADOW' else 'WORKLOAD_QUALITY_FAILED','acceptedSnapshotCount':s.get('acceptedSnapshotCount'),'allMeasuredQualified':s.get('allMeasuredQualified'),'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
 json.dump(result,open(out+'/result.json','w'),indent=2,sort_keys=True); open(out+'/result.json','a').write('\n'); print(json.dumps(result,sort_keys=True))
 PY
 [ "$src" -eq 0 ]

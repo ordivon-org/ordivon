@@ -158,8 +158,8 @@ def main() -> None:
         raise SystemExit(f"effect disposition mismatch: expected={expected} observed={observed}")
 
     print(json.dumps({
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.nonlive-effect-matrix",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.nonlive-effect-matrix",
         "standing": "PASS_NAUTILUS_NONLIVE_EFFECT_RECONCILIATION_MATRIX",
         "provider": "NautilusTrader BacktestEngine simulated exchange",
         "providerVersion": nautilus_trader.__version__,

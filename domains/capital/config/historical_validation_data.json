@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.capital.market.historical-validation-data",
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.research.historical-validation-data",
   "provider": "Nasdaq",
   "providerRole": "Nasdaq-operated public historical-data service",
   "endpointTemplate": "https://api.nasdaq.com/api/quote/{symbol}/historical",

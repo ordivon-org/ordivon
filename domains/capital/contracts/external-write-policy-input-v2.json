@@ -1,0 +1,10 @@
+{
+  "effectVerifier": "NOT_IMPLEMENTED",
+  "externalFinancialWriteAllowed": false,
+  "kind": "ordivon.capital.governance.external-write-policy-input",
+  "policyPurpose": "bounded external financial write allow/deny policy input",
+  "providerWriteCapabilityBound": false,
+  "reason": "current OKX provider Trade capability exists and is authenticated, but it is not bound into an admitted external-effect path; the external-effect verifier remains unimplemented and order submission remains not admitted",
+  "schemaVersion": 2,
+  "state": "NOT_ADMITTED"
+}

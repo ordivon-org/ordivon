@@ -78,7 +78,7 @@ These observations prove the new package paths execute through the existing live
 
 This migration changes source ownership, not protocol versions.
 
-Existing ordivon.capital.market.* JSON kind/schema identifiers are deliberately not silently renamed because active configs/schemas and frozen historical evidence share those identities. Their replacement requires a separate versioned contract migration.
+Existing ordivon.capital.market.* JSON kind/schema identifiers are deliberately not silently renamed because active configs/schemas and frozen historical evidence share those identities. Their v2 replacements are registered in config/protocol_identity_migration_v2.json; frozen v1 evidence is replayed with its historical source revision rather than auto-upgraded by current runtime code.
 
 The deployed ordivon_market_capital_* Prometheus family, historical Market Capital evidence/fixture names, and the standalone repository path used by research provenance remain explicit compatibility/provenance identities.
 

@@ -15,7 +15,7 @@
   "forbiddenPermissions": [
     "withdraw"
   ],
-  "kind": "ordivon.capital.market.okx-live-provider",
+  "kind": "ordivon.capital.trading.okx-live-provider",
   "networkAuthority": {
     "digest": "sha256:136c36adf385fc6676da03fe30ea91da1d40d44fc33c6a7dd0f4066a8403b554",
     "file": "/etc/network-v2/finance/okx-rest-authority.json",
@@ -37,7 +37,7 @@
     "trade"
   ],
   "rule": "this live-trade credential may be used only for bounded GET-only provider-capability auditing; local client write methods are absent, but the credential's provider Trade permission means this lane is not the canonical private-Reality observer and grants no order/effect authority",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "standing": "BOUND_REQUIRES_FRESH_PROVIDER_PROBE",
   "transferAllowed": false,
   "venue": "OKX",

@@ -14,7 +14,7 @@ var inputPath = Path.GetFullPath(args[0]);
 var outputPath = Path.GetFullPath(args[1]);
 using var doc = JsonDocument.Parse(File.ReadAllBytes(inputPath));
 var root = doc.RootElement;
-if (root.GetProperty("kind").GetString() != "ordivon.capital.market.fix44-projection-input")
+if (root.GetProperty("kind").GetString() != "ordivon.capital.trading.fix44-projection-input")
     throw new InvalidOperationException("unexpected projection input kind");
 if (root.GetProperty("purpose").GetString() != "MECHANICS_ONLY_NON_ECONOMIC")
     throw new InvalidOperationException("only mechanics-only non-economic projection is admitted");
@@ -81,8 +81,8 @@ foreach (var x in root.GetProperty("intents").EnumerateArray())
 }
 
 var result = new {
-    schemaVersion = 1,
-    kind = "ordivon.capital.market.fix44-projection-result",
+    schemaVersion = 2,
+    kind = "ordivon.capital.trading.fix44-projection-result",
     standing = "PASS_FIX44_NEW_ORDER_SINGLE_PROJECTION",
     purpose = "MECHANICS_ONLY_NON_ECONOMIC",
     fixLibrary = "QuickFIX/n 1.14.1",

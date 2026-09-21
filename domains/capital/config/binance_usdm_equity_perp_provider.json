@@ -34,7 +34,7 @@
       "instrument": "SNDKUSDT"
     }
   ],
-  "kind": "ordivon.capital.market.binance-usdm-equity-perp-provider",
+  "kind": "ordivon.capital.trading.binance-usdm-equity-perp-provider",
   "networkV2": {
     "directFallback": false,
     "restAuthority": "binanceUsdmRest",
@@ -156,7 +156,7 @@
     "localLiquidationFormulaIsAuthority": false,
     "maintenanceMarginOwner": "Position Information V3 plus USER_DATA leverage bracket"
   },
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "standing": "PUBLIC_AND_CLIENT_SURFACES_QUALIFIED_PRIVATE_USER_DATA_PENDING",
   "tradFiAgreement": {
     "automationMayInvoke": false,

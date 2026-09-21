@@ -228,7 +228,7 @@ def persist_monitoring_evidence(
 
     manifest = {
         "schemaVersion": 2,
-        "kind": "ordivon.capital.market.model-monitoring-persistence",
+        "kind": "ordivon.capital.research.model-monitoring-persistence",
         "componentId": "model-monitoring-persistence",
         "sourceEvidenceSha256": _sha256(evidence_path),
         "parquetSha256": _sha256(parquet_path),

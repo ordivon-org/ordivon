@@ -1,0 +1,88 @@
+{
+  "components": [
+    {
+      "component": "Arrow/Parquet",
+      "mayEstablish": [
+        "byte-preserving typed representation",
+        "portable dataset materialization"
+      ],
+      "mustNotEstablish": [
+        "deployable-capital status",
+        "economic inference",
+        "external-write policy",
+        "observation cut",
+        "source validity"
+      ],
+      "role": "columnar representation and durable portable evidence files"
+    },
+    {
+      "component": "DuckDB",
+      "mayEstablish": [
+        "query/replay result over supplied bytes"
+      ],
+      "mustNotEstablish": [
+        "external financial write admission",
+        "proof currentness",
+        "source authenticity"
+      ],
+      "role": "local deterministic verifier and replay query engine"
+    },
+    {
+      "component": "Redpanda/Kafka",
+      "mayEstablish": [
+        "broker log persistence",
+        "broker-local ordered offsets"
+      ],
+      "mustNotEstablish": [
+        "cross-venue packet arrival order",
+        "external-write policy",
+        "observer reception order",
+        "same-cut proof"
+      ],
+      "role": "durable event transport after witness capture"
+    },
+    {
+      "component": "QuestDB",
+      "mayEstablish": [
+        "stored/queryable market-data projection"
+      ],
+      "mustNotEstablish": [
+        "authentic observation",
+        "deployable-capital status",
+        "economic edge",
+        "settlement"
+      ],
+      "role": "hot time-series storage and query"
+    },
+    {
+      "component": "future trading engine",
+      "mayEstablish": [
+        "engine-local order/fill/position state"
+      ],
+      "mustNotEstablish": [
+        "deployable capital",
+        "external financial write admission",
+        "legal ownership",
+        "real settlement"
+      ],
+      "role": "event loop, OMS, simulation, execution adapter"
+    },
+    {
+      "component": "future ledger/workflow/policy",
+      "mayEstablish": [
+        "ledger conservation",
+        "workflow completion",
+        "generic policy allow/deny"
+      ],
+      "mustNotEstablish": [
+        "deployable-capital status",
+        "effect success",
+        "external-write policy"
+      ],
+      "role": "accounting mechanics, durable orchestration, generic policy"
+    }
+  ],
+  "kind": "ordivon.capital.governance.external-boundary",
+  "schemaVersion": 2,
+  "truthRole": "component-responsibility-map-not-domain-truth"
+}

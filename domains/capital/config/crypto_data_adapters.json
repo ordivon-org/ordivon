@@ -17,7 +17,7 @@
     "purpose": "independent continuous public-observation V&V; not production execution transport ownership",
     "standing": "PASS_PUBLIC_STREAMING_R2"
   },
-  "kind": "ordivon.capital.market.crypto-data-adapter-policy",
+  "kind": "ordivon.capital.markets.crypto-data-adapter-policy",
   "normalizationBoundary": "Ordivon Capital Market-domain common public observation schema",
   "okx": {
     "credentialsAllowed": false,
@@ -34,7 +34,7 @@
     "Nautilus remains admitted for local OMS/Risk mechanics even when a venue-native data client is not admitted.",
     "Private account data, demo/testnet execution, live execution, and external financial writes remain blocked."
   ],
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "standing": "PUBLIC_DATA_ONLY",
   "universe": [
     "BTC-USDT",

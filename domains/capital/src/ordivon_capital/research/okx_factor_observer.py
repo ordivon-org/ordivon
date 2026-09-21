@@ -155,8 +155,8 @@ def capture_okx_factor_observatory(
         ],
     )
     result = {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.okx-public-factor-observatory",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.research.okx-public-factor-observatory",
         "sourceAuthority": "OKX_PUBLIC_COMPLETED_1D_CANDLES",
         "baseInstrumentId": base_instrument_id,
         "requestedCandleLimit": limit,

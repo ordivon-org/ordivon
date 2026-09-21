@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.capital.market.execution-feasibility",
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.governance.execution-feasibility",
   "mode": "historical-validation-only",
   "orderSizingOwner": "LOCAL_BOUNDED_US_EQUITY_SIZER",
   "executionCashBufferWeight": 0.01,

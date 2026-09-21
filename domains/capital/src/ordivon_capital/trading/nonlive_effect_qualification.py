@@ -101,8 +101,8 @@ def nautilus_episode_to_reality(episode: dict[str, Any]) -> dict[str, Any]:
         })
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.private-reality-snapshot",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.private-reality-snapshot",
         "venue": "BINANCE",
         "product": "SPOT",
         "sourceAuthority": "NAUTILUS_SIMULATED_EXCHANGE_EPISODE",

@@ -64,8 +64,8 @@ def test_side_and_tif_mapping(side, tif, side_code, tif_code):
 
 def _document():
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.fix44-projection-input",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.fix44-projection-input",
         "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
         "sourceEvidenceSha256": "a" * 64,
         "transactTimeUtc": "2026-09-20T18:52:07Z",
