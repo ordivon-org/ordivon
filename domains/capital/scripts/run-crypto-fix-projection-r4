@@ -54,7 +54,7 @@ payload={
 out.write_text(json.dumps(payload,indent=2,sort_keys=True)+'\n')
 PY
 
-"$repo/scripts/run-capability-python" -m ordivon_capital.market.fix44_projection "$input" "$projected" >/dev/null
+"$repo/scripts/run-capability-python" -m ordivon_capital.trading.fix44_projection "$input" "$projected" >/dev/null
 python3 - "$source_ev" "$input" "$projected" "$canonical" <<'PY'
 import hashlib,json,sys
 from pathlib import Path

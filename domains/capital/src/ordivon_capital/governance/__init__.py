@@ -1,0 +1,1 @@
+"""Ordivon Capital governance domain."""

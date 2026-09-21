@@ -9,7 +9,7 @@ from scipy.stats import ks_2samp, wasserstein_distance
 from sklearn.linear_model import HuberRegressor, LinearRegression
 from sklearn.metrics import mean_absolute_error
 
-from .portfolio_risk import PortfolioRiskError
+from ordivon_capital.risk.portfolio_risk import PortfolioRiskError
 
 
 def _finite(value: Any, label: str) -> float:
@@ -261,7 +261,7 @@ def build_tail_risk_report(
 ) -> dict[str, Any]:
     """Compose empirical tail-risk calculations with explicit sample/horizon metadata."""
 
-    from .portfolio_risk import historical_expected_shortfall
+    from ordivon_capital.risk.portfolio_risk import historical_expected_shortfall
 
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()

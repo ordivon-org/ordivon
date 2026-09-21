@@ -95,7 +95,7 @@
       "id": "observability",
       "ownerClass": "IMPLEMENTATION_CANDIDATE",
       "owner": "Prometheus 3.14.0",
-      "currentStanding": "MARKET_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE",
+      "currentStanding": "MARKETS_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE",
       "applicability": "FUTURE_MARKET_DOMAIN_TSDB_PROMQL_ALERTING_CANDIDATE; CURRENT_REPO_ONLY_EMITS_PROMETHEUS_TEXT_FORMAT",
       "source": "https://prometheus.io/"
     },
@@ -310,9 +310,32 @@
       ]
     },
     {
-      "id": "market-binance-usdm",
+      "id": "markets-binance-usdm-public",
       "sourcePatterns": [
-        "src/ordivon_capital/market/binance_usdm_*.py"
+        "src/ordivon_capital/markets/binance_usdm_public_capture.py",
+        "src/ordivon_capital/markets/binance_usdm_reference.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Binance authoritative USD-M and Wallet APIs",
+        "Network v2 transport"
+      ],
+      "localStanding": "PUBLIC_MARKET_REFERENCE_AND_CAPTURE_GLUE",
+      "localResponsibility": "normalize official public Binance USD-M reference/market observations without inventing venue rules; provider remains market truth owner",
+      "candidateMechanics": [
+        "binance-sdk-derivatives-trading-usds-futures 17.4.0",
+        "binance-sdk-wallet 13.4.0"
+      ],
+      "admittedMechanicsOwners": []
+    },
+    {
+      "id": "trading-binance-usdm-provider",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/binance_usdm_provider.py",
+        "src/ordivon_capital/trading/binance_usdm_private_capture.py"
       ],
       "ownerClasses": [
         "PROVIDER_OWNER",
@@ -323,7 +346,7 @@
         "Network v2 transport"
       ],
       "localStanding": "PROVIDER_GLUE_PRIVATE_USER_DATA_NOT_ADMITTED",
-      "localResponsibility": "qualification, normalized evidence and provider-contract checks only",
+      "localResponsibility": "qualify provider effect boundaries and normalize authenticated read-only account/order/trade observations; provider owns external truth and writes remain separately gated",
       "candidateMechanics": [
         "binance-sdk-derivatives-trading-usds-futures 17.4.0",
         "binance-sdk-wallet 13.4.0"
@@ -331,10 +354,10 @@
       "admittedMechanicsOwners": []
     },
     {
-      "id": "market-crypto-runtime",
+      "id": "markets-crypto-runtime",
       "sourcePatterns": [
-        "src/ordivon_capital/market/crypto_*.py",
-        "src/ordivon_capital/market/websocket_proxy_lifecycle.py"
+        "src/ordivon_capital/markets/crypto_*.py",
+        "src/ordivon_capital/markets/websocket_proxy_lifecycle.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -461,9 +484,9 @@
       }
     },
     {
-      "id": "market-execution-policy",
+      "id": "governance-execution-policy",
       "sourcePatterns": [
-        "src/ordivon_capital/market/policy_decision.py"
+        "src/ordivon_capital/governance/policy_decision.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -475,10 +498,10 @@
       "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
     },
     {
-      "id": "market-execution-reconciliation",
+      "id": "trading-execution-reconciliation",
       "sourcePatterns": [
-        "src/ordivon_capital/market/execution_reconciliation.py",
-        "src/ordivon_capital/market/nonlive_effect_qualification.py"
+        "src/ordivon_capital/trading/execution_reconciliation.py",
+        "src/ordivon_capital/trading/nonlive_effect_qualification.py"
       ],
       "ownerClasses": [
         "STANDARD_OWNER",
@@ -506,11 +529,10 @@
       "downstreamSubstrate": "SQLite accounting substrate after reconciliation disposition"
     },
     {
-      "id": "market-provider-observation",
+      "id": "markets-provider-observation",
       "sourcePatterns": [
-        "src/ordivon_capital/market/okx_*.py",
-        "src/ordivon_capital/market/market_sensors.py",
-        "src/ordivon_capital/market/private_reality.py"
+        "src/ordivon_capital/markets/okx_sensor_capture.py",
+        "src/ordivon_capital/markets/market_sensors.py"
       ],
       "ownerClasses": [
         "PROVIDER_OWNER",
@@ -522,7 +544,7 @@
         "authoritative venue/account APIs"
       ],
       "localStanding": "DOMAIN_GLUE",
-      "localResponsibility": "normalize provider observations and compute explicitly registered non-model summaries; provider remains reality owner",
+      "localResponsibility": "normalize public provider market observations and compute explicitly registered non-model summaries; provider remains market reality owner",
       "admittedMechanicsOwners": [],
       "candidateMechanics": [
         "@okx_ai/okx-trade-cli 1.4.7 as differential/reference client only",
@@ -540,9 +562,42 @@
       "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
     },
     {
-      "id": "market-portfolio-observation-and-statistics",
+      "id": "trading-private-reality",
       "sourcePatterns": [
-        "src/ordivon_capital/market/portfolio_risk.py"
+        "src/ordivon_capital/trading/okx_readonly_client.py",
+        "src/ordivon_capital/trading/private_reality.py"
+      ],
+      "ownerClasses": [
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "OKX",
+        "Binance",
+        "authoritative venue/account APIs"
+      ],
+      "localStanding": "READONLY_PROVIDER_REALITY_NORMALIZATION",
+      "localResponsibility": "normalize authenticated read-only account/order/fill/position truth for reconciliation; provider remains external reality owner and this surface owns no write authority",
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [
+        "@okx_ai/okx-trade-cli 1.4.7 as differential/reference client only",
+        "binance-sdk-spot 11.3.0 for future admitted Binance Spot USER_DATA reads",
+        "binance-sdk-derivatives-trading-usds-futures 17.4.0 + binance-sdk-wallet 13.4.0 for future admitted USD-M USER_DATA reads"
+      ],
+      "providerOwners": [
+        "OKX private/account APIs",
+        "Binance account/USER_DATA APIs"
+      ],
+      "localDependencies": [
+        "LOCAL_BOUNDED_OKX_READONLY_CLIENT for the three qualified OKX provider-capability-audit GETs",
+        "provider-response normalization only"
+      ],
+      "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
+    },
+    {
+      "id": "risk-portfolio-observation-and-statistics",
+      "sourcePatterns": [
+        "src/ordivon_capital/risk/portfolio_risk.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -581,9 +636,9 @@
       }
     },
     {
-      "id": "market-counterfactual-projection",
+      "id": "portfolio-counterfactual-projection",
       "sourcePatterns": [
-        "src/ordivon_capital/market/portfolio_counterfactuals.py"
+        "src/ordivon_capital/portfolio/portfolio_counterfactuals.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
@@ -605,13 +660,14 @@
       ]
     },
     {
-      "id": "research-data-and-model-governance",
+      "id": "research-model-governance",
       "sourcePatterns": [
-        "src/ordivon_capital/market/model_monitoring.py",
-        "src/ordivon_capital/market/monitoring_persistence.py",
-        "src/ordivon_capital/market/monitoring_persistence_cli.py",
-        "src/ordivon_capital/market/prospective_validation.py",
-        "src/ordivon_capital/market/standards_inventory.py"
+        "src/ordivon_capital/research/model_monitoring.py",
+        "src/ordivon_capital/research/monitoring_persistence.py",
+        "src/ordivon_capital/research/monitoring_persistence_cli.py",
+        "src/ordivon_capital/research/okx_factor_observer.py",
+        "src/ordivon_capital/research/prospective_validation.py",
+        "src/ordivon_capital/research/standards_inventory.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -628,8 +684,8 @@
         "Qlib + RD-Agent for future autonomous quantitative R&D workflow",
         "OpenLineage for any future actual lineage-event surface"
       ],
-      "localStanding": "THIN_MARKET_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION",
-      "localResponsibility": "retain only bounded Market evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework.",
+      "localStanding": "THIN_RESEARCH_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION",
+      "localResponsibility": "retain only bounded Capital research evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework.",
       "admittedMechanicsOwners": [
         "jsonschema 4.26.0 for Draft 2020-12 schema validation",
         "PyArrow 25.0.1 / Apache Parquet for typed columnar materialization",
@@ -649,9 +705,9 @@
       ]
     },
     {
-      "id": "market-execution-feasibility",
+      "id": "trading-execution-feasibility",
       "sourcePatterns": [
-        "src/ordivon_capital/market/execution_feasibility.py"
+        "src/ordivon_capital/trading/execution_feasibility.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE",
@@ -664,7 +720,7 @@
       "localResponsibility": "size only the exact admitted empty-portfolio USD long US-equity whole-share validation contract with explicit free-portfolio buffer and frozen IB-style fee mechanics; fail closed outside that contract; do not grow a general buying-power/backtest engine"
     },
     {
-      "id": "market-observability-projection",
+      "id": "markets-observability-projection",
       "sourcePatterns": [
         "scripts/render-crypto-stream-prometheus",
         "infra/prometheus/market-capital-crypto.rules.yml",
@@ -679,13 +735,13 @@
         "Prometheus 3.14.0 candidate for TSDB/PromQL/rule evaluation",
         "Prometheus text exposition format compatibility"
       ],
-      "localStanding": "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKET_CONSUMER",
-      "localResponsibility": "project frozen Market evidence into Prometheus text format and retain rule definitions as deployable candidate configuration; do not claim active scrape, TSDB retention, PromQL evaluation, or alert delivery until a live Market-domain consumer is observed"
+      "localStanding": "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKETS_CONSUMER",
+      "localResponsibility": "project frozen Markets evidence into Prometheus text format and retain rule definitions as deployable candidate configuration; do not claim active scrape, TSDB retention, PromQL evaluation, or alert delivery until a live Markets-domain consumer is observed"
     },
     {
-      "id": "market-fix44-projection",
+      "id": "trading-fix44-projection",
       "sourcePatterns": [
-        "src/ordivon_capital/market/fix44_projection.py",
+        "src/ordivon_capital/trading/fix44_projection.py",
         "scripts/run-crypto-fix-projection-r4",
         "config/fix_order_semantics.json"
       ],
@@ -1479,5 +1535,54 @@
     "standing": "HARD_GATE",
     "baseline": "config/language_baseline.json",
     "rule": "External candidates that cannot execute and pass qualification on the latest stable language baseline are not admitted, regardless of maturity, popularity, feature breadth, or historical qualification on older runtimes."
+  },
+  "capitalDomainTaxonomy": {
+    "standing": "ACTIVE_SOURCE_OWNER_TAXONOMY",
+    "authority": "config/capital_domain_taxonomy.json",
+    "domains": [
+      "markets",
+      "trading",
+      "portfolio",
+      "risk",
+      "research",
+      "governance",
+      "accounting"
+    ],
+    "retiredPackage": "ordivon_capital.market",
+    "compatibilityShim": false,
+    "protocolIdentityMigration": "DEFERRED_REQUIRES_VERSIONED_SCHEMA_MIGRATION",
+    "freshOperationalRequalification": {
+      "asOfDate": "2026-09-21",
+      "r2": {
+        "standing": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER",
+        "elapsedMs": 7008.008124,
+        "acceptedSnapshotCount": 4,
+        "allMeasuredQualified": true,
+        "samePersistentConnections": true,
+        "transportBindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02",
+        "externalFinancialWritesAttempted": false
+      },
+      "r3": {
+        "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+        "transportBindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02",
+        "okx": {
+          "error": null,
+          "measuredRoundCount": 3,
+          "reconnectLatencyMs": 661.760304,
+          "reconnectedGeneration": 2,
+          "returnCode": 0,
+          "standing": "PASS_PUBLIC_STREAM_RECONNECT"
+        },
+        "binance": {
+          "error": null,
+          "measuredRoundCount": 3,
+          "reconnectLatencyMs": 5628.069997,
+          "reconnectedGeneration": 2,
+          "returnCode": 0,
+          "standing": "PASS_PUBLIC_STREAM_RECONNECT"
+        },
+        "externalFinancialWritesAttempted": false
+      }
+    }
   }
 }

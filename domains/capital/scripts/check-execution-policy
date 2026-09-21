@@ -3,7 +3,7 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 "$repo/scripts/check-language-baseline" >/dev/null
 PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}" \
-  exec "$repo/.venv/bin/python" -m ordivon_capital.market.policy_decision \
+  exec "$repo/.venv/bin/python" -m ordivon_capital.governance.policy_decision \
   --repo "$repo" \
   --config "$repo/config/execution_policy.json" \
   "$@"

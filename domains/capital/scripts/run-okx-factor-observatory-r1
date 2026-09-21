@@ -10,4 +10,4 @@ fi
 
 readiness="$(printf '%s' "$binding" | /usr/bin/jq -r '.readinessCommand')"
 "$readiness" okx 30 >/dev/null
-exec "$repo/scripts/run-capability-python" -m ordivon_capital.market.okx_factor_observer --proxy "$proxy" "$@"
+exec "$repo/scripts/run-capability-python" -m ordivon_capital.research.okx_factor_observer --proxy "$proxy" "$@"

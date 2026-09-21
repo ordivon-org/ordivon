@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document records ownership, not a new Ordivon methodology. `config/external_owner_census.json` is the machine-readable authority. The rule is: standards define semantics, providers own authoritative external reality, and mature implementations are candidates for replaceable mechanics. A candidate becomes an owner only after contract-equivalent qualification against the smallest credible local baseline. Ordivon Capital retains bounded local mechanisms and composition/evidence/authority/reconciliation seams when they win that comparison.
+This document records ownership, not a new Ordivon methodology. `config/capital_domain_taxonomy.json` separately freezes the current source-owner domain taxonomy. `config/external_owner_census.json` is the machine-readable authority. The rule is: standards define semantics, providers own authoritative external reality, and mature implementations are candidates for replaceable mechanics. A candidate becomes an owner only after contract-equivalent qualification against the smallest credible local baseline. Ordivon Capital retains bounded local mechanisms and composition/evidence/authority/reconciliation seams when they win that comparison.
 
 ## Current hierarchy
 

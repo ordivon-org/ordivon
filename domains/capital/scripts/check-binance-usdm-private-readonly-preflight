@@ -27,7 +27,7 @@ if missing:
 print('PASS official Binance Wallet permission + USD-M private GET surfaces; credentialsLoaded=false networkCalled=false')
 PY
 
-python3 - "$repo/src/ordivon_capital/market/binance_usdm_private_capture.py" <<'PY'
+python3 - "$repo/src/ordivon_capital/trading/binance_usdm_private_capture.py" <<'PY'
 from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()

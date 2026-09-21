@@ -1,4 +1,4 @@
-from ordivon_capital.market.execution_reconciliation import reconcile_fix_intent
+from ordivon_capital.trading.execution_reconciliation import reconcile_fix_intent
 
 INTENT={'protocol':'FIX.4.4','msgType':'D','clOrdId':'C-1','exDestination':'BINANCE','symbol':'BTCUSDT','orderQty':'0.1'}
 

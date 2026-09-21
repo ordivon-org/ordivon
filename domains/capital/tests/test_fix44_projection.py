@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from ordivon_capital.market.fix44_projection import (
+from ordivon_capital.trading.fix44_projection import (
     Fix44ProjectionError,
     project_document,
     project_new_order_single,

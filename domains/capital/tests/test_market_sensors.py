@@ -1,6 +1,6 @@
 import unittest
 
-from ordivon_capital.market.market_sensors import (
+from ordivon_capital.markets.market_sensors import (
     MarketSensorError,
     merge_market_observations,
     open_interest_change,

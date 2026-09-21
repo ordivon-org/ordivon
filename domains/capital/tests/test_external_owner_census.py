@@ -62,12 +62,12 @@ def test_not_instantiated_domains_have_no_local_packages():
 
 def test_portfolio_surface_is_split_by_real_owner_after_audit():
     by_id = {row["id"]: row for row in CENSUS["responsibilities"]}
-    assert by_id["market-portfolio-observation-and-statistics"]["localStanding"] == "THIN_GLUE_AFTER_OWNER_AUDIT"
-    assert by_id["market-counterfactual-projection"]["localStanding"] == "RETAINED_IRREDUCIBLE_READONLY_GLUE"
-    assert "OPA for risk-limit decisions" not in by_id["market-portfolio-observation-and-statistics"]["externalOwners"]
-    assert "Current bounded risk-limit decisions are local deterministic rules" in by_id["market-portfolio-observation-and-statistics"]["localResponsibility"]
-    assert "OPA for pre-trade evidence controls" not in by_id["market-counterfactual-projection"]["externalOwners"]
-    assert "bounded local deterministic pre-trade policy" in by_id["market-counterfactual-projection"]["localDependencies"]
+    assert by_id["risk-portfolio-observation-and-statistics"]["localStanding"] == "THIN_GLUE_AFTER_OWNER_AUDIT"
+    assert by_id["portfolio-counterfactual-projection"]["localStanding"] == "RETAINED_IRREDUCIBLE_READONLY_GLUE"
+    assert "OPA for risk-limit decisions" not in by_id["risk-portfolio-observation-and-statistics"]["externalOwners"]
+    assert "Current bounded risk-limit decisions are local deterministic rules" in by_id["risk-portfolio-observation-and-statistics"]["localResponsibility"]
+    assert "OPA for pre-trade evidence controls" not in by_id["portfolio-counterfactual-projection"]["externalOwners"]
+    assert "bounded local deterministic pre-trade policy" in by_id["portfolio-counterfactual-projection"]["localDependencies"]
 
 
 def test_active_contract_identity_places_market_under_capital():
@@ -99,8 +99,8 @@ def test_every_active_responsibility_has_a_resolved_external_owner_standing():
 
 def test_research_data_is_external_owned_not_a_capital_data_platform():
     by_id = {row["id"]: row for row in CENSUS["responsibilities"]}
-    row = by_id["research-data-and-model-governance"]
-    assert row["localStanding"] == "THIN_MARKET_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION"
+    row = by_id["research-model-governance"]
+    assert row["localStanding"] == "THIN_RESEARCH_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION"
     assert "MLflow" in row["externalOwners"]
     assert "OpenLineage for any future actual lineage-event surface" in row["externalOwners"]
     assert "lineage graph" in row["localResponsibility"]
@@ -129,7 +129,7 @@ def test_portfolio_optimization_and_agent_office_are_candidates_or_references():
 
 def test_reconciliation_retains_local_baseline_until_an_external_candidate_passes_all_gates():
     by_id = {row["id"]: row for row in CENSUS["responsibilities"]}
-    row = by_id["market-execution-reconciliation"]
+    row = by_id["trading-execution-reconciliation"]
     assert row["localStanding"] == "RETAIN_BOUNDED_LOCAL_BASELINE_PENDING_EXTERNAL_ADMISSION"
     assert "NautilusTrader reconciliation" in row["candidateMechanics"]
     assert row["providerOwners"] == ["authoritative venue reports"]
@@ -264,13 +264,13 @@ def test_canonical_docs_do_not_claim_nautilus_is_currently_admitted_owner():
     composition = (ROOT / "docs/COMPOSITION_FIRST_2026-09-14.md").read_text()
     assert "NautilusTrader" in architecture
     assert "challenger rather than a canonical core owner" in architecture
-    assert "| Crypto OMS/Risk mechanics | NautilusTrader candidate |" in composition
+    assert "| Trading OMS/Risk mechanics | NautilusTrader candidate |" in composition
     assert "NautilusTrader owns" not in architecture
 
 
 def test_market_core_source_tree_has_no_nautilus_imports():
     offenders = []
-    for file in (ROOT / "src/ordivon_capital/market").glob("*.py"):
+    for file in (ROOT / "src/ordivon_capital").rglob("*.py"):
         text = file.read_text()
         if "nautilus_trader" in text:
             offenders.append(file.name)
@@ -284,8 +284,8 @@ def test_policy_owner_was_revoked_after_local_differential_win():
     assert policy["owner"] == "Open Policy Agent 1.20.2"
 
     resp = {row["id"]: row for row in CENSUS["responsibilities"]}
-    local = resp["market-execution-policy"]
-    assert local["sourcePatterns"] == ["src/ordivon_capital/market/policy_decision.py"]
+    local = resp["governance-execution-policy"]
+    assert local["sourcePatterns"] == ["src/ordivon_capital/governance/policy_decision.py"]
     assert local["localStanding"] == "BOUNDED_LOCAL_DETERMINISTIC_IMPLEMENTATION_PREFERRED"
 
     quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
@@ -308,7 +308,7 @@ def test_observability_projects_remain_candidates_without_active_market_contract
 def test_canonical_architecture_does_not_restore_opa_owner_claim():
     architecture = (ROOT / "docs/ARCHITECTURE.md").read_text()
     assert "OPA is the policy decision point" not in architecture
-    assert "src/ordivon_capital/market/opa_policy.py" not in architecture
+    assert "src/ordivon_capital/governance/opa_policy.py" not in architecture
     assert "bounded local deterministic policy decisions" in architecture
 
 
@@ -340,7 +340,7 @@ def test_lean_is_explicit_candidate_and_local_sizer_owns_current_exact_contract(
     assert lean["owner"] == "QuantConnect LEAN 985ef30"
 
     resp = {row["id"]: row for row in CENSUS["responsibilities"]}
-    sizing = resp["market-execution-feasibility"]
+    sizing = resp["trading-execution-feasibility"]
     assert sizing["localStanding"] == "LOCAL_BOUNDED_US_EQUITY_SIZER_ADMITTED"
 
     quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
@@ -356,11 +356,11 @@ def test_prometheus_is_not_claimed_as_current_market_owner_without_live_consumer
     obs = owners["observability"]
     assert obs["ownerClass"] == "IMPLEMENTATION_CANDIDATE"
     assert obs["owner"] == "Prometheus 3.14.0"
-    assert obs["currentStanding"] == "MARKET_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE"
+    assert obs["currentStanding"] == "MARKETS_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE"
 
     resp = {row["id"]: row for row in CENSUS["responsibilities"]}
-    market = resp["market-observability-projection"]
-    assert market["localStanding"] == "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKET_CONSUMER"
+    market = resp["markets-observability-projection"]
+    assert market["localStanding"] == "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKETS_CONSUMER"
 
     quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
     q = quals["market-observability-consumer"]
@@ -373,25 +373,25 @@ def test_prometheus_is_not_claimed_as_current_market_owner_without_live_consumer
 def test_responsibility_rows_separate_admitted_mechanics_from_candidates():
     rows = {row["id"]: row for row in CENSUS["responsibilities"]}
 
-    crypto = rows["market-crypto-runtime"]
+    crypto = rows["markets-crypto-runtime"]
     assert any(x.startswith("websockets 17.1") for x in crypto["admittedMechanicsOwners"])
     assert any("NautilusTrader" in x for x in crypto["candidateMechanics"])
 
-    reconciliation = rows["market-execution-reconciliation"]
+    reconciliation = rows["trading-execution-reconciliation"]
     assert "IMPLEMENTATION_OWNER" not in reconciliation["ownerClasses"]
     assert reconciliation["admittedMechanicsOwners"] == []
     assert reconciliation["downstreamSubstrate"].startswith("SQLite")
 
-    portfolio = rows["market-portfolio-observation-and-statistics"]
+    portfolio = rows["risk-portfolio-observation-and-statistics"]
     assert any(x.startswith("NumPy 2.5.3") for x in portfolio["admittedMechanicsOwners"])
     assert any("PyPortfolioOpt" in x for x in portfolio["candidateMechanics"])
 
-    counterfactual = rows["market-counterfactual-projection"]
+    counterfactual = rows["portfolio-counterfactual-projection"]
     assert counterfactual["ownerClasses"] == ["ORDIVON_GLUE"]
     assert counterfactual["admittedMechanicsOwners"] == []
     assert "local bounded deterministic policy for pre-trade evidence controls" not in counterfactual["externalOwners"]
 
-    research = rows["research-data-and-model-governance"]
+    research = rows["research-model-governance"]
     assert any(x.startswith("PyArrow 25.0.1") for x in research["admittedMechanicsOwners"])
     assert any(x.startswith("DuckDB 1.5.5") for x in research["admittedMechanicsOwners"])
     assert any("MLflow 3.16.1" in x for x in research["candidateMechanics"])
@@ -401,7 +401,7 @@ def test_responsibility_rows_separate_admitted_mechanics_from_candidates():
 
 def test_removed_monitoring_frameworks_cannot_reenter_current_dependency_owner_set():
     rows = {row["id"]: row for row in CENSUS["responsibilities"]}
-    research = rows["research-data-and-model-governance"]
+    research = rows["research-model-governance"]
     admitted = research["admittedMechanicsOwners"]
     assert not any("MLflow" in x for x in admitted)
     assert not any("Pandera" in x for x in admitted)

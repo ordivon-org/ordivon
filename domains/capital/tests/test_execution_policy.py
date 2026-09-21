@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_capital.market.policy_decision import (
+from ordivon_capital.governance.policy_decision import (
     PolicyDecisionError,
     enforce_external_write,
     enforce_non_live,
@@ -37,7 +37,7 @@ class ExecutionPolicyTests(unittest.TestCase):
         result = evaluate_execution_policy(ROOT, CONFIG)
         self.assertTrue(result["allowNonLive"])
         self.assertFalse(result["allowExternalWrite"])
-        source = (ROOT / "src/ordivon_capital/market/policy_decision.py").read_text()
+        source = (ROOT / "src/ordivon_capital/governance/policy_decision.py").read_text()
         self.assertNotIn("currentLane must remain NON_LIVE", source)
         self.assertNotIn("non-live lane cannot bind", source)
 

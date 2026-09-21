@@ -6,7 +6,7 @@ PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}" \
   "$repo/.venv/bin/python" - <<'PY'
 import json
 from decimal import Decimal
-from ordivon_capital.market.execution_feasibility import bounded_us_equity_target_quantity
+from ordivon_capital.trading.execution_feasibility import bounded_us_equity_target_quantity
 
 prices={"AAPL":"332.27","MSFT":"495.63","NVDA":"218.29"}
 weight=Decimal("0.3333333333333333")

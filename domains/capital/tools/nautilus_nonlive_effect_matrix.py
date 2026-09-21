@@ -23,7 +23,7 @@ from nautilus_trader.model import (
 from nautilus_trader.testkit.providers import TestInstrumentProvider
 from nautilus_trader.trading import Strategy
 
-from ordivon_capital.market.nonlive_effect_qualification import (
+from ordivon_capital.trading.nonlive_effect_qualification import (
     reconcile_nautilus_episode,
     reconcile_unknown_after_submission,
 )

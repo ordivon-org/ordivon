@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-exec "$root/scripts/run-capability-python" -m ordivon_capital.market.monitoring_persistence_cli "$@"
+exec "$root/scripts/run-capability-python" -m ordivon_capital.research.monitoring_persistence_cli "$@"

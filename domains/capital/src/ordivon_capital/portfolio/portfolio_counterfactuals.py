@@ -388,7 +388,7 @@ def evaluate_constraint_gate(
     evidence: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind counterfactual/evidence facts to the bounded deterministic pre-trade control policy."""
-    from ordivon_capital.market.policy_decision import (
+    from ordivon_capital.governance.policy_decision import (
         PolicyDecisionError,
         evaluate_counterfactual_gate_policy,
     )

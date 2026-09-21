@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_canonical_projector_is_local_bounded_and_quickfix_is_oracle_only():
-    local = (ROOT / "src/ordivon_capital/market/fix44_projection.py").read_text()
+    local = (ROOT / "src/ordivon_capital/trading/fix44_projection.py").read_text()
     oracle = (
         ROOT / "tools/quickfixn_1_14_1/fix44-projector/Program.cs"
     ).read_text()
@@ -18,7 +18,7 @@ def test_canonical_projector_is_local_bounded_and_quickfix_is_oracle_only():
     assert "QuickFix.FIX44" in oracle
     assert "NewOrderSingle" in oracle
     assert "quickfixn_1_14_1" not in runner
-    assert "ordivon_capital.market.fix44_projection" in runner
+    assert "ordivon_capital.trading.fix44_projection" in runner
 
 
 def test_r4_runner_keeps_non_live_authority_and_identity_continuity():

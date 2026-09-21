@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_capital.market.portfolio_risk import (
+from ordivon_capital.risk.portfolio_risk import (
     PortfolioRiskError,
     analyze_dependence,
     build_exposure_ledger,

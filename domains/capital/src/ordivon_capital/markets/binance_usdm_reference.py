@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any
 
 
-class BinanceUsdmProviderError(RuntimeError):
+class BinanceUsdmReferenceError(RuntimeError):
     pass
 
 
@@ -22,17 +22,17 @@ def _filter(symbol: Mapping[str, Any], name: str) -> Mapping[str, Any]:
     for row in symbol.get("filters", []):
         if isinstance(row, Mapping) and _value(row, "filterType", "filter_type") == name:
             return row
-    raise BinanceUsdmProviderError(f"missing {name} filter")
+    raise BinanceUsdmReferenceError(f"missing {name} filter")
 
 
 def normalize_exchange_symbol(exchange_info: Mapping[str, Any], symbol_id: str) -> dict[str, Any]:
     """Normalize official Binance exchangeInfo without inventing trading rules."""
     rows = exchange_info.get("symbols")
     if not isinstance(rows, list):
-        raise BinanceUsdmProviderError("exchangeInfo.symbols must be a list")
+        raise BinanceUsdmReferenceError("exchangeInfo.symbols must be a list")
     symbol = next((row for row in rows if row.get("symbol") == symbol_id), None)
     if symbol is None:
-        raise BinanceUsdmProviderError(f"symbol not found: {symbol_id}")
+        raise BinanceUsdmReferenceError(f"symbol not found: {symbol_id}")
 
     price = _filter(symbol, "PRICE_FILTER")
     lot = _filter(symbol, "LOT_SIZE")
@@ -42,13 +42,12 @@ def normalize_exchange_symbol(exchange_info: Mapping[str, Any], symbol_id: str) 
     )
     min_notional = _filter(symbol, "MIN_NOTIONAL")
 
-    # Binance explicitly says precision fields are not tick/step-size authorities.
     tick = Decimal(str(_value(price, "tickSize", "tick_size")))
     step = Decimal(str(_value(lot, "stepSize", "step_size")))
     market_step = Decimal(str(_value(market_lot or lot, "stepSize", "step_size")))
     notional = Decimal(str(_value(min_notional, "notional")))
     if tick <= 0 or step <= 0 or market_step <= 0 or notional <= 0:
-        raise BinanceUsdmProviderError("non-positive exchange rule")
+        raise BinanceUsdmReferenceError("non-positive exchange rule")
 
     return {
         "schemaVersion": 1,
@@ -73,31 +72,4 @@ def normalize_exchange_symbol(exchange_info: Mapping[str, Any], symbol_id: str) 
         "marketTakeBound": _value(symbol, "marketTakeBound", "market_take_bound"),
         "pricePrecisionInformationalOnly": _value(symbol, "pricePrecision", "price_precision"),
         "quantityPrecisionInformationalOnly": _value(symbol, "quantityPrecision", "quantity_precision"),
-    }
-
-
-def qualify_provider_contract(config: Mapping[str, Any]) -> dict[str, Any]:
-    if config.get("kind") != "ordivon.capital.market.binance-usdm-equity-perp-provider":
-        raise BinanceUsdmProviderError("unexpected provider contract kind")
-    effect = config.get("effectPolicy") or {}
-    if any(
-        effect.get(name) is not False
-        for name in (
-            "externalFinancialWriteAllowed",
-            "tradeEndpointsAllowed",
-            "accountModeMutationAllowed",
-            "leverageMutationAllowed",
-            "tradFiAgreementMutationAllowed",
-        )
-    ):
-        raise BinanceUsdmProviderError("provider contract must remain fail-closed")
-    agreement = config.get("tradFiAgreement") or {}
-    if agreement.get("automationMayInvoke") is not False or agreement.get("userExplicitActionRequired") is not True:
-        raise BinanceUsdmProviderError("TradFi agreement cannot be automated")
-    return {
-        "standing": config.get("standing"),
-        "officialClient": config["officialClient"]["package"],
-        "officialClientVersion": config["officialClient"]["version"],
-        "privateUserDataStanding": config["privateReadOnlyTruth"]["standing"],
-        "externalFinancialWriteAllowed": False,
     }
