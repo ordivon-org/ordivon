@@ -2,7 +2,6 @@ monorepo_root = true
 
 [monorepo]
 config_roots = [
-  "platform/network",
   "platform/security",
 ]
 lockfile = false
@@ -28,3 +27,8 @@ uv sync --frozen --python 3.14.7
 uv run --frozen --python 3.14.7 ruff check .
 uv run --frozen --python 3.14.7 python -m unittest discover -s tests -v
 """
+
+
+[tasks."network:verify"]
+dir = "platform/network"
+run = "task all:validate"
