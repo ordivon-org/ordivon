@@ -96,3 +96,38 @@ Qualification evidence:
 External owner standing remains websockets 17.1: Ordivon owns only this narrow lifecycle
 seam, venue payload normalization, qualification policy, and evidence. Requalify and delete
 the guard when upstream removes the pre-connection_made callback hazard.
+
+## R2 opening-handshake ownership
+
+R2 requires all accepted warmup and measured snapshots to come from one established
+persistent WebSocket connection per venue. Transient failures before either connection is
+established don't form part of that measurement session. R2 therefore delegates opening
+retry/backoff to websockets' async-iterator connection API. Once a connection has yielded,
+any subsequent stream loss is converted to a fatal EstablishedPublicStreamLost error for
+that R2 run; R2 doesn't silently reconnect during measurement and continues to report
+samePersistentConnections=true only for a single established generation per venue.
+
+The outer 25-second workload deadline remains unchanged.
+
+## Deterministic source acceptance vs live transport evidence
+
+Source migration acceptance and public-network transport qualification are separate evidence
+classes. Deterministic acceptance covers package ownership, exact contracts, unit and
+integration tests with controlled inputs, static quality, latest-stable language gates,
+lock/dependency integrity, effect-policy invariants, and source/tree identity.
+
+R2 and R3 additionally contact live public venue endpoints through Network v2. Their
+observations depend on provider and venue conditions outside the source tree. A live PASS
+is retained as positive operational evidence; a live PARTIAL is retained as a real
+transport-quality observation and must not be relabeled as PASS. Neither result changes
+source bytes by itself.
+
+After the R2 opening-retry correction, R2 completed four accepted snapshots in
+approximately 7.40 seconds with all three measured rounds qualified while preserving one
+established persistent connection per venue. A later R3 sample observed long transport
+tails: OKX recovered after approximately 20.73 seconds and completed 3/3 measured rounds;
+Binance recovered after approximately 20.06 seconds but completed only 2/3 measured rounds
+within the unchanged 35-second global deadline. No pre-connection callback AttributeError
+recurred. This sample remains PARTIAL operational evidence.
+
+The live deadlines remain unchanged: 25 seconds for R2 and 35 seconds for R3.
