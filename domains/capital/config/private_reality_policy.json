@@ -97,19 +97,24 @@
     },
     "OKX": {
       "authoritativeReality": "OKX private account/order/trade API",
-      "client": "NautilusTrader OKXHttpClient 2.0.0rc4",
+      "client": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
       "forbiddenPermissions": [
         "Trade",
         "Withdraw"
       ],
       "requiredPermission": "Read",
       "requiredQueries": [
-        "get_balance",
-        "request_account_state",
-        "request_order_status_reports",
-        "request_fill_reports",
-        "request_trades"
-      ]
+        "get_account_config",
+        "get_account_balance",
+        "get_spot_open_orders"
+      ],
+      "runtime": "Python 3.14.7 stdlib",
+      "candidateReference": {
+        "name": "NautilusTrader OKXHttpClient",
+        "version": "2.0.0rc4",
+        "standing": "HISTORICAL_CANDIDATE_EVIDENCE_ONLY",
+        "tool": "tools/nautilus_rc4/check-okx-read-surface"
+      }
     }
   },
   "withdrawalCredentialsAllowed": false

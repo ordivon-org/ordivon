@@ -4,8 +4,6 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 out="$repo/.artifacts/crypto-public-shadow-r1"
 rm -rf "$out"; mkdir -p "$out"
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
-"$repo/scripts/check-nautilus-candidate" >/dev/null
-"$repo/scripts/check-crypto-execution-lane" >/dev/null
 "$repo/scripts/check-network-v2-public-data" >"$out/network-v2-binding.json"
 readarray -t proxy < <(jq -r '.authorities.okxRest.proxy,.authorities.binanceSpotRest.proxy' "$out/network-v2-binding.json")
 env ORDIVON_MC_OKX_REST_PROXY="${proxy[0]}" ORDIVON_MC_BINANCE_SPOT_REST_PROXY="${proxy[1]}" \

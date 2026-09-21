@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
+"$repo/tools/nautilus_rc4/check-candidate" >/dev/null
+/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python - <<'PY'
+import json
+from nautilus_trader.adapters.okx import OKXHttpClient
+required={'get_balance','request_account_state','request_order_status_reports','request_fill_reports','request_trades'}
+missing=sorted(required-set(dir(OKXHttpClient)))
+if missing: raise SystemExit(f'OKX candidate read surface missing: {missing}')
+print(json.dumps({'standing':'NAUTILUS_RC4_OKX_READ_SURFACE_CANDIDATE_ONLY','venue':'OKX','client':'NautilusTrader OKXHttpClient','version':'2.0.0rc4','requiredMethods':sorted(required),'credentialsLoaded':False,'networkCalled':False},sort_keys=True))
+PY

@@ -2,14 +2,6 @@
   "credentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
   "credentialCopyIntoRepository": false,
   "endpointClass": "LIVE",
-  "executionProvider": {
-    "configClass": "OKXExecutionClientConfig",
-    "environment": "LIVE",
-    "factoryClass": "OKXExecutionClientFactory",
-    "name": "NautilusTrader",
-    "python": "/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python",
-    "version": "2.0.0rc4"
-  },
   "expectedCredentialEnvironment": "LIVE",
   "externalWritePolicyStanding": "NOT_ADMITTED",
   "forbiddenPermissions": [
@@ -50,7 +42,7 @@
   "readClient": {
     "name": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
     "runtime": "Python 3.14.7 stdlib",
-    "source": "src/ordivon_capital/market/okx_readonly_client.py",
+    "source": "src/ordivon_capital/trading/okx_readonly_client.py",
     "timeoutSeconds": 15,
     "allowedMethods": [
       "GET"
@@ -89,5 +81,15 @@
     "credentialBinding": "/root/.config/ordivon/secrets/okx/observer/config.toml",
     "standing": "PENDING_FRESH_PROVIDER_PERMISSION_VERIFICATION",
     "currentDataAdmission": "NOT_ADMITTED"
+  },
+  "executionCandidateReference": {
+    "configClass": "OKXExecutionClientConfig",
+    "environment": "LIVE",
+    "factoryClass": "OKXExecutionClientFactory",
+    "name": "NautilusTrader",
+    "python": "/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python",
+    "version": "2.0.0rc4",
+    "standing": "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY",
+    "qualificationTool": "tools/nautilus_rc4/okx_live_config_probe.py"
   }
 }

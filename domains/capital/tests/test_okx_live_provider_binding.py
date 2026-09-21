@@ -25,6 +25,7 @@ def test_okx_live_provider_uses_bounded_read_client_and_unified_secret_root():
     assert x["providerApiAuthority"]["owner"] == "OKX"
     assert x["readClient"]["name"] == "LOCAL_BOUNDED_OKX_READONLY_CLIENT"
     assert x["readClient"]["runtime"] == "Python 3.14.7 stdlib"
+    assert x["readClient"]["source"] == "src/ordivon_capital/trading/okx_readonly_client.py"
     assert x["readClient"]["allowedMethods"] == ["GET"]
     assert x["readClient"]["writeMethodsImplemented"] is False
     assert len(x["readClient"]["allowedPaths"]) == 3
@@ -36,8 +37,10 @@ def test_okx_live_provider_uses_bounded_read_client_and_unified_secret_root():
     assert ref["signingDifferential"] == {"cases": 120, "mismatches": 0}
     assert ref["liveStructuralDifferential"] == {"methods": 3, "mismatches": 0}
 
-    assert x["executionProvider"]["name"] == "NautilusTrader"
-    assert x["executionProvider"]["version"] == "2.0.0rc4"
+    candidate = x["executionCandidateReference"]
+    assert candidate["name"] == "NautilusTrader"
+    assert candidate["version"] == "2.0.0rc4"
+    assert candidate["standing"] == "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY"
     assert x["networkAuthority"]["host"] == "openapi.okx.com"
 
 
@@ -50,7 +53,7 @@ def test_provider_trade_capability_does_not_mint_effect_admission():
     assert x["transferAllowed"] is False
 
 
-def test_probe_contains_no_financial_write_command_or_external_cli_invocation():
+def test_probe_contains_no_financial_write_or_candidate_execution():
     s = (ROOT / "tools/okx_live_provider_probe.py").read_text()
     for command in (
         '"spot", "place"',
@@ -61,5 +64,7 @@ def test_probe_contains_no_financial_write_command_or_external_cli_invocation():
         assert command not in s
     assert 'cfg["officialClient"]' not in s
     assert "OkxReadOnlyClient" in s
+    assert "okx_live_config_probe" not in s
+    assert "nautilus_trader" not in s
     assert '"orderSubmissionAttempted": False' in s
     assert '"externalFinancialWriteAttempted": False' in s

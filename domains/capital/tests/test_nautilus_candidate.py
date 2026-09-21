@@ -17,7 +17,7 @@ class NautilusCandidateBoundaryTests(unittest.TestCase):
         self.assertFalse(cfg["productionLiveAdmitted"])
 
     def test_pinned_candidate_environment_is_available(self):
-        out = subprocess.check_output([str(ROOT / "scripts/check-nautilus-candidate")], text=True)
+        out = subprocess.check_output([str(ROOT / "tools/nautilus_rc4/check-candidate")], text=True)
         result = json.loads(out)
         self.assertEqual(result["standing"], "NAUTILUS_CANDIDATE_BOUND_NON_LIVE")
         self.assertEqual(result["version"], "2.0.0rc4")

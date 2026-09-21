@@ -8,7 +8,7 @@ CONFIG = ROOT / "config/crypto_execution_lane.json"
 
 
 class CryptoExecutionLaneTests(unittest.TestCase):
-    def test_lane_is_public_data_only(self):
+    def test_lane_is_public_data_only_candidate_fixture(self):
         cfg = json.loads(CONFIG.read_text())
         self.assertEqual(cfg["standing"], "SHADOW_PUBLIC_DATA_ONLY")
         self.assertEqual(cfg["marketModel"], "CONTINUOUS_24_7_CRYPTO_SPOT")
@@ -22,8 +22,8 @@ class CryptoExecutionLaneTests(unittest.TestCase):
         self.assertEqual(cfg["networkTransport"]["providerSelectionOwner"], "network-v2-sing-box-provider-auto")
         self.assertFalse(cfg["networkTransport"]["directFallback"])
 
-    def test_nautilus_public_data_adapters_construct_without_credentials(self):
-        out = subprocess.check_output([str(ROOT / "scripts/check-crypto-execution-lane")], text=True)
+    def test_nautilus_candidate_public_data_configs_construct_without_credentials(self):
+        out = subprocess.check_output([str(ROOT / "tools/nautilus_rc4/check-crypto-execution-lane")], text=True)
         result = json.loads(out)
         self.assertEqual(result["standing"], "CRYPTO_DUAL_VENUE_PUBLIC_DATA_CONFIG_READY")
         self.assertFalse(result["venues"]["OKX"]["credentialsPresent"])

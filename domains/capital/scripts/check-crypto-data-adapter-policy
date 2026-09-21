@@ -8,9 +8,10 @@ from pathlib import Path
 p=Path(sys.argv[1]); x=json.loads(p.read_text())
 assert x['kind']=='ordivon.capital.markets.crypto-data-adapter-policy'
 assert x['standing']=='PUBLIC_DATA_ONLY'
-assert x['okx']['nativeAdapterStanding']=='PASS_NATIVE_OKX_PUBLIC_QUOTES'
-assert x['binance']['nativeAdapterStanding']=='BLOCKED_DATA_CLIENT_STARTUP'
+assert x['okx']['primaryPublicDataPath']=='OKX_OFFICIAL_PUBLIC_REST_WS'
 assert x['binance']['primaryPublicDataPath']=='BINANCE_OFFICIAL_PUBLIC_REST_WS'
+assert x['okx']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
+assert x['binance']['historicalNautilusNativeAdapter']['role']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
 assert x['binance']['marketDataMode']=='JSON'
 assert x['binance']['sbeCredentialsWorkaroundAllowed'] is False
 for venue in ('okx','binance'):
@@ -21,9 +22,9 @@ assert 'Do not add API credentials' in joined
 assert 'external financial writes remain blocked' in joined
 print(json.dumps({
   'standing':'PASS_CRYPTO_PUBLIC_DATA_ADAPTER_POLICY',
-  'okx':x['okx']['nativeAdapterStanding'],
-  'binance':x['binance']['nativeAdapterStanding'],
+  'okxPrimary':x['okx']['primaryPublicDataPath'],
   'binancePrimary':x['binance']['primaryPublicDataPath'],
+  'nautilusCandidateOnly':True,
   'credentialsAllowed':False,
   'executionClientsAllowed':False
 },sort_keys=True))

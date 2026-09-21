@@ -29,7 +29,7 @@ def main() -> int:
         if not isinstance(profile.get(key), str) or not profile[key].strip():
             raise SystemExit(f"credential field unavailable: {key}")
 
-    execution = cfg["executionProvider"]
+    execution = cfg["executionCandidateReference"]
     net = cfg["networkAuthority"]
     value = OKXExecutionClientConfig(
         account_id=AccountId("OKX-LIVE-ORDIVON-CAPITAL"),

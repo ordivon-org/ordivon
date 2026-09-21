@@ -104,16 +104,6 @@ def main() -> int:
     balance_rows = reader.get_account_balance()
     order_rows = reader.get_spot_open_orders()
 
-    execution = cfg["executionProvider"]
-    nautilus = run_json([
-        execution["python"],
-        str(ROOT / "tools/okx_live_nautilus_config_probe.py"),
-        "--provider-config",
-        str(args.config),
-    ])
-    if not nautilus.get("ok"):
-        raise SystemExit("Nautilus live execution config probe failed")
-
     result = {
         "schemaVersion": 2,
         "kind": "ordivon.capital.trading.okx-live-provider-binding-evidence",
@@ -145,8 +135,8 @@ def main() -> int:
         "providerTradePermissionCurrent": "trade" in perms,
         "providerWithdrawPermissionCurrent": "withdraw" in perms,
         "providerTradeCapabilityCurrent": "trade" in perms,
-        "nautilusLiveExecutionConfigBound": True,
-        "nautilus": nautilus,
+        "executionCandidateReference": cfg["executionCandidateReference"],
+        "executionCandidateBoundToExternalEffect": False,
         "externalWritePolicyStanding": cfg["externalWritePolicyStanding"],
         "providerTradeCapabilityBoundToExternalEffect": False,
         "orderSubmissionAllowed": False,

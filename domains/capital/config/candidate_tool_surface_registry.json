@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.external-candidate-tool-surface-registry",
+  "asOfDate": "2026-09-21",
+  "standing": "CANDIDATE_TOOLS_ISOLATED_FROM_CURRENT_OPERATIONAL_SCRIPTS",
+  "candidate": "NautilusTrader 2.0.0rc4",
+  "languageStanding": "HISTORICAL_EVIDENCE_ONLY_PYTHON_3_12_13",
+  "currentOwnerStanding": "NOT_ADMITTED",
+  "relocations": [
+    {
+      "oldPath": "scripts/check-nautilus-candidate",
+      "candidatePath": "tools/nautilus_rc4/check-candidate"
+    },
+    {
+      "oldPath": "scripts/check-crypto-execution-lane",
+      "candidatePath": "tools/nautilus_rc4/check-crypto-execution-lane"
+    },
+    {
+      "oldPath": "scripts/run-crypto-shadow-mechanics-r1",
+      "candidatePath": "tools/nautilus_rc4/run-crypto-shadow-mechanics-r1"
+    },
+    {
+      "oldPath": "scripts/run-nautilus-nonlive-effect-matrix",
+      "candidatePath": "tools/nautilus_rc4/run-nonlive-effect-matrix"
+    },
+    {
+      "oldPath": "tools/nautilus_nonlive_effect_matrix.py",
+      "candidatePath": "tools/nautilus_rc4/nonlive_effect_matrix.py"
+    },
+    {
+      "oldPath": "tools/okx_live_nautilus_config_probe.py",
+      "candidatePath": "tools/nautilus_rc4/okx_live_config_probe.py"
+    }
+  ],
+  "candidateOnlyTools": [
+    "tools/nautilus_rc4/check-demo-execution-configs",
+    "tools/nautilus_rc4/check-okx-read-surface"
+  ],
+  "currentPathRules": [
+    "current public market-data scripts must not invoke Nautilus candidate gates",
+    "current private-reality preflight must run under canonical Python 3.14.7",
+    "current OKX live provider audit must not execute Nautilus candidate code",
+    "candidate evidence remains executable under tools/nautilus_rc4"
+  ]
+}

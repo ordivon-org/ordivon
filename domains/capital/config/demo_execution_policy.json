@@ -9,19 +9,21 @@
   "externalFinancialWritesAllowed": false,
   "venues": {
     "OKX": {
-      "executionComponent": "NautilusTrader OKXExecutionClientConfig / OKXExecutionClientFactory",
       "environment": "DEMO",
       "credentialBinding": null,
       "networkSessionAllowed": false,
-      "orderSubmissionAllowed": false
+      "orderSubmissionAllowed": false,
+      "candidateExecutionComponent": "NautilusTrader OKXExecutionClientConfig / OKXExecutionClientFactory",
+      "candidateStanding": "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY"
     },
     "BINANCE": {
-      "executionComponent": "NautilusTrader BinanceExecutionClientConfig / BinanceExecutionClientFactory",
       "environment": "TESTNET",
       "productType": "SPOT",
       "credentialBinding": null,
       "networkSessionAllowed": false,
-      "orderSubmissionAllowed": false
+      "orderSubmissionAllowed": false,
+      "candidateExecutionComponent": "NautilusTrader BinanceExecutionClientConfig / BinanceExecutionClientFactory",
+      "candidateStanding": "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY"
     }
   },
   "graduationRequires": [
@@ -32,5 +34,6 @@
     "bounded notional and instrument allowlist",
     "reject/cancel/timeout/restart reconciliation harness",
     "no production/live grant"
-  ]
+  ],
+  "candidateQualificationTool": "tools/nautilus_rc4/check-demo-execution-configs"
 }

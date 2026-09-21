@@ -3,13 +3,16 @@
     "credentialsAllowed": false,
     "executionClientAllowed": false,
     "marketDataMode": "JSON",
-    "nativeAdapterObservedFailure": "data-connect timeout before QuoteTick emission",
-    "nativeAdapterStanding": "BLOCKED_DATA_CLIENT_STARTUP",
-    "nautilusVersion": "2.0.0rc4",
     "officialPublicHttp": "https://data-api.binance.vision",
     "officialPublicWs": "wss://data-stream.binance.vision:443/ws",
     "primaryPublicDataPath": "BINANCE_OFFICIAL_PUBLIC_REST_WS",
-    "sbeCredentialsWorkaroundAllowed": false
+    "sbeCredentialsWorkaroundAllowed": false,
+    "historicalNautilusNativeAdapter": {
+      "version": "2.0.0rc4",
+      "standing": "BLOCKED_DATA_CLIENT_STARTUP",
+      "observedFailure": "data-connect timeout before QuoteTick emission",
+      "role": "HISTORICAL_CANDIDATE_EVIDENCE_ONLY"
+    }
   },
   "continuousValidation": {
     "binance": "OFFICIAL_MARKET_DATA_ONLY_WS_TICKER",
@@ -23,15 +26,18 @@
     "credentialsAllowed": false,
     "executionClientAllowed": false,
     "fallbackBoundary": "OKX_OFFICIAL_PUBLIC_REST_WS",
-    "nativeAdapterStanding": "PASS_NATIVE_OKX_PUBLIC_QUOTES",
-    "nautilusVersion": "2.0.0rc4",
-    "primaryPublicDataPath": "NAUTILUS_NATIVE"
+    "primaryPublicDataPath": "OKX_OFFICIAL_PUBLIC_REST_WS",
+    "historicalNautilusNativeAdapter": {
+      "version": "2.0.0rc4",
+      "standing": "PASS_NATIVE_OKX_PUBLIC_QUOTES",
+      "role": "HISTORICAL_CANDIDATE_EVIDENCE_ONLY"
+    }
   },
   "rules": [
     "Do not add API credentials merely to make a public market-data adapter pass.",
     "Do not require Binance SBE for public-data qualification while official credential-free JSON REST/WebSocket works.",
-    "A venue data adapter may be replaced independently from the OMS/Risk engine.",
-    "Nautilus remains admitted for local OMS/Risk mechanics even when a venue-native data client is not admitted.",
+    "Public-data primary paths are provider-native official REST/WebSocket and do not depend on an execution candidate.",
+    "Nautilus rc4 adapter evidence is retained only as historical/candidate qualification; it is not a current public-data or OMS/Risk owner.",
     "Private account data, demo/testnet execution, live execution, and external financial writes remain blocked."
   ],
   "schemaVersion": 2,

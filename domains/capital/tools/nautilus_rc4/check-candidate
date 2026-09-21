@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-repo="$(cd "$(dirname "$0")/.." && pwd)"
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
 config="$repo/config/nautilus_candidate.json"
 python3 - "$config" <<'PY'
 import hashlib,json,subprocess,sys

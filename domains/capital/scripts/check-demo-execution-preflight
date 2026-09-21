@@ -15,17 +15,3 @@ assert x['venues']['OKX']['orderSubmissionAllowed'] is False
 assert x['venues']['BINANCE']['orderSubmissionAllowed'] is False
 print(json.dumps({'policyStanding':x['standing'],'demoWriteAdmission':x['demoWriteAdmission'],'externalFinancialWritesAllowed':False},sort_keys=True))
 PY
-/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python - <<'PY'
-import json
-from nautilus_trader.model import AccountId
-from nautilus_trader.adapters.okx import OKXExecutionClientConfig, OKXExecutionClientFactory, OKXEnvironment
-from nautilus_trader.adapters.binance import BinanceExecutionClientConfig, BinanceExecutionClientFactory, BinanceEnvironment, BinanceProductType
-okx=OKXExecutionClientConfig(account_id=AccountId('OKX-DEMO-QUALIFICATION'),environment=OKXEnvironment.DEMO,api_key=None,api_secret=None,api_passphrase=None)
-bn=BinanceExecutionClientConfig(account_id=AccountId('BINANCE-TESTNET-QUALIFICATION'),product_type=BinanceProductType.SPOT,environment=BinanceEnvironment.TESTNET,api_key=None,api_secret=None,use_ws_trading=True)
-assert type(okx).__name__=='OKXExecutionClientConfig'
-assert type(bn).__name__=='BinanceExecutionClientConfig'
-assert str(okx.environment).lower()=='demo'
-assert str(bn.environment).upper()=='TESTNET'
-assert str(bn.product_type).upper()=='SPOT'
-print(json.dumps({'okxConfigConstructed':True,'binanceConfigConstructed':True,'credentialsPassed':False,'factoryClassesPresent':bool(OKXExecutionClientFactory and BinanceExecutionClientFactory),'networkCalled':False,'externalFinancialWritesAttempted':False},sort_keys=True))
-PY

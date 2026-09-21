@@ -16,6 +16,9 @@ def test_private_reality_credentials_may_be_located_but_private_data_stays_not_a
     assert not x['externalFinancialWritesAllowed']
     assert not x['secretDiscoveryAllowed']
     assert x['venues']['OKX']['requiredPermission']=='Read'
+    assert x['venues']['OKX']['client']=='LOCAL_BOUNDED_OKX_READONLY_CLIENT'
+    assert x['venues']['OKX']['runtime']=='Python 3.14.7 stdlib'
+    assert x['venues']['OKX']['candidateReference']['standing']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
     assert set(x['venues']['OKX']['forbiddenPermissions'])=={'Trade','Withdraw'}
     assert x['venues']['BINANCE']['requiredSecurityType']=='USER_DATA'
     assert not x['venues']['BINANCE']['tradePermissionRequired']

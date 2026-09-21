@@ -15,8 +15,8 @@ class CryptoShadowMechanicsTests(unittest.TestCase):
         self.assertFalse(cfg['economicDecisionClaimed'])
         self.assertFalse(cfg['alphaClaimed'])
 
-    def test_local_crypto_mechanics_passes(self):
-        out=subprocess.check_output([str(ROOT/'scripts/run-crypto-shadow-mechanics-r1')],text=True)
+    def test_nautilus_candidate_crypto_mechanics_passes(self):
+        out=subprocess.check_output([str(ROOT/'tools/nautilus_rc4/run-crypto-shadow-mechanics-r1')],text=True)
         x=json.loads(out)
         self.assertEqual(x['standing'],'PASS_LOCAL_CRYPTO_SPOT_OMS_MECHANICS')
         self.assertEqual(len(x['orders']),4)

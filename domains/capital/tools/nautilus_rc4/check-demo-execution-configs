@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
+"$repo/tools/nautilus_rc4/check-candidate" >/dev/null
+/root/external/nautilus-trader/2.0.0rc4/.venv/bin/python - <<'PY'
+import json
+from nautilus_trader.model import AccountId
+from nautilus_trader.adapters.okx import OKXExecutionClientConfig, OKXExecutionClientFactory, OKXEnvironment
+from nautilus_trader.adapters.binance import BinanceExecutionClientConfig, BinanceExecutionClientFactory, BinanceEnvironment, BinanceProductType
+okx=OKXExecutionClientConfig(account_id=AccountId('OKX-DEMO-QUALIFICATION'),environment=OKXEnvironment.DEMO,api_key=None,api_secret=None,api_passphrase=None)
+bn=BinanceExecutionClientConfig(account_id=AccountId('BINANCE-TESTNET-QUALIFICATION'),product_type=BinanceProductType.SPOT,environment=BinanceEnvironment.TESTNET,api_key=None,api_secret=None,use_ws_trading=True)
+assert type(okx).__name__=='OKXExecutionClientConfig'
+assert type(bn).__name__=='BinanceExecutionClientConfig'
+assert str(okx.environment).lower()=='demo'
+assert str(bn.environment).upper()=='TESTNET'
+assert str(bn.product_type).upper()=='SPOT'
+print(json.dumps({'standing':'NAUTILUS_RC4_DEMO_CONFIG_QUALIFIED_CANDIDATE_ONLY','okxConfigConstructed':True,'binanceConfigConstructed':True,'credentialsPassed':False,'networkCalled':False,'externalFinancialWritesAttempted':False},sort_keys=True))
+PY
