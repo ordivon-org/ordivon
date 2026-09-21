@@ -6,6 +6,7 @@
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
 | Harness | identity-preserving current-source supersession | ACCEPTED_SOURCE_ONLY |
+| Skills bridge | extracted from Harness into platform/skills; source/package/artifact owner boundaries accepted; live service cutover pending M7 | ACCEPTED_SOURCE_ONLY |
 | Host | exact current source tree; legacy rewritten import bridged to original a95a8e11 identity | ACCEPTED_SOURCE_ONLY |
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | converged current source at `af67ed76` after `d3613c2e` supersession; repeatable identity-preserving update accepted | ACCEPTED_SOURCE_ONLY |

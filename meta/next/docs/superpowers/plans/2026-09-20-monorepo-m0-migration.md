@@ -1353,7 +1353,7 @@ Expected: commit contains moves/renames only, with no scientific byte edits.
 - Consumes: imported Harness and current live Skills MCP consumer contract.
 - Produces: Skills owner package independent of Harness Run core.
 
-- [ ] **Step 1: Freeze the current Skills MCP release identity**
+- [x] **Step 1: Freeze the current Skills MCP release identity**
 
 Run:
 
@@ -1363,15 +1363,15 @@ readlink -f /opt/ordivon/skills-mcp/current
 
 Record the exact release path in the migration receipt.
 
-- [ ] **Step 2: Move source without redesigning semantics**
+- [x] **Step 2: Move source without redesigning semantics**
 
 Use `git mv` for the Skills package and its owner-specific tests/config. Preserve parser/catalog/scanner/eligibility behavior.
 
-- [ ] **Step 3: Update imports and package metadata minimally**
+- [x] **Step 3: Update imports and package metadata minimally**
 
 Only update the package/import coordinates required by the move. Do not change trust, eligibility, scan, resolution, or precedence semantics in this commit.
 
-- [ ] **Step 4: Run the existing Skills tests**
+- [x] **Step 4: Run the existing Skills tests**
 
 Run the migrated equivalents of:
 
@@ -1385,11 +1385,16 @@ tests/test_skillspector_adapter.py
 
 Expected: PASS.
 
-- [ ] **Step 5: Verify Harness core tests still pass without importing Skills internals**
+- [x] **Step 5: Verify Harness core tests still pass without importing Skills internals**
 
 Run Harness verification from Task 15.
 
 Expected: PASS.
+
+
+**Accepted 2026-09-21:** source/owner extraction is recorded in
+docs/migration/acceptance/SKILLS_M6_OWNER_EXTRACTION_ACCEPTANCE_20260921.md.
+Production Skills MCP remains on the pre-M6 release and is intentionally deferred to Task 24.
 
 ---
 
