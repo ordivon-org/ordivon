@@ -47,3 +47,11 @@ def test_current_adapter_policy_names_provider_native_primary_paths():
     assert cfg["binance"]["primaryPublicDataPath"] == "BINANCE_OFFICIAL_PUBLIC_REST_WS"
     assert cfg["okx"]["historicalNautilusNativeAdapter"]["role"] == "HISTORICAL_CANDIDATE_EVIDENCE_ONLY"
     assert cfg["binance"]["historicalNautilusNativeAdapter"]["role"] == "HISTORICAL_CANDIDATE_EVIDENCE_ONLY"
+
+def test_nautilus_specific_effect_adapter_is_not_canonical_source():
+    assert not (ROOT / "src/ordivon_capital/trading/nonlive_effect_qualification.py").exists()
+    candidate = ROOT / "tools/nautilus_rc4/nonlive_effect_qualification.py"
+    assert candidate.is_file()
+    text = candidate.read_text()
+    assert "reconcile_nautilus_episode" in text
+    assert "ordivon_capital.trading.execution_reconciliation" in text

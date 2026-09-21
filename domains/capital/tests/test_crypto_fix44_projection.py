@@ -60,7 +60,11 @@ def test_committed_r4_evidence_is_frozen_standard_projection_only():
 
     assert p.read_bytes() == before
     dynamic = ROOT / ".artifacts/crypto-fix-r4/evidence.json"
-    _assert_r4_projection_evidence(json.loads(dynamic.read_text()))
+    dynamic_doc = json.loads(dynamic.read_text())
+    _assert_r4_projection_evidence(dynamic_doc)
+    assert dynamic_doc["composition"]["sourceMechanicsStanding"] == "HISTORICAL_CANDIDATE_EVIDENCE_ONLY"
+    assert dynamic_doc["composition"]["sourceMechanics"] == "frozen historical NautilusTrader rc4 mechanics evidence"
+    assert dynamic_doc["identityContinuity"] == "frozen mechanics evidence clientOrderId == FIX ClOrdID"
 
 
 def test_fix44_is_explicit_legacy_profile_not_semantic_owner():

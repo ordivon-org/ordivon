@@ -45,7 +45,6 @@
       "execution_feasibility.py",
       "execution_reconciliation.py",
       "fix44_projection.py",
-      "nonlive_effect_qualification.py",
       "okx_readonly_client.py",
       "private_reality.py"
     ],
@@ -134,6 +133,11 @@
           ".venv"
         ]
       }
+    },
+    {
+      "identity": "src/ordivon_capital/trading/nonlive_effect_qualification.py",
+      "standing": "RETIRED_FROM_CANONICAL_SOURCE_CANDIDATE_TOOL_ONLY",
+      "reason": "Nautilus-specific episode normalization is used only by isolated rc4 candidate qualification; generic current reconciliation remains under trading/execution_reconciliation.py"
     }
   ],
   "standaloneCarrierRetirement": {

@@ -23,6 +23,8 @@ def test_live_accounts_may_be_test_accounts_without_becoming_demo():
     assert okx['qualificationStanding']=='PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION'
     assert okx['providerTradePermissionCurrent'] is True
     assert okx['providerWithdrawPermissionCurrent'] is False
+    assert 'executionProvider' not in okx
+    assert okx['executionCandidateReference']['standing']=='NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY'
     assert 'executorCredential' not in okx
 
 def test_low_balance_claim_does_not_bypass_current_qualification():

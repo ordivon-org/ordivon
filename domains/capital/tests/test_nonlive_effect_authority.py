@@ -18,6 +18,9 @@ def test_nonlive_effect_authority_is_distinct_from_real_financial_write_authorit
     assert nonlive['realMoney'] is False
     assert nonlive['liveEndpoint'] is False
     assert nonlive['externalFinancialWriteAllowed'] is False
+    assert nonlive['provider']=='BOUNDED_SIMULATED_EXCHANGE_QUALIFICATION_EPISODE'
+    assert nonlive['providerStanding']=='PROVIDER_NEUTRAL_CURRENT_AUTHORITY'
+    assert nonlive['qualificationEvidence']['standing']=='HISTORICAL_CANDIDATE_EVIDENCE_ONLY'
     assert real['state']=='NOT_ADMITTED'
     assert real['providerWriteCapabilityBound'] is False
     assert real['externalFinancialWriteAllowed'] is False
