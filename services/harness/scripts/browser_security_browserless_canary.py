@@ -29,7 +29,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
 INSTALLED_QUADLET = Path("/etc/containers/systemd/ordivon-browserless@.container")
-SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
+SECURITY_ROOT = Path(os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")).resolve()
 PLAYWRIGHT_PYTHON = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
 )
@@ -58,6 +58,20 @@ OWNED_ENV_KEYS = (
 
 def sha256_file(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _source_revision(root: Path) -> str:
+    proc = subprocess.run(
+        ["/usr/bin/git", "-C", str(root), "log", "-1", "--format=%H", "--", "."],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    revision = proc.stdout.strip()
+    if proc.returncode != 0 or re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+        raise RuntimeError(f"source revision unavailable for {root}")
+    return revision
 
 
 def validate_image_ref(value: str) -> str:
@@ -549,12 +563,7 @@ def run_canary(
             "canaryInstance": CANARY_INSTANCE,
             "networkNamespace": control["networkNamespace"],
             "productionInstances": control["instances"],
-            "securityRevision": subprocess.run(
-                ["/usr/bin/git", "-C", str(security_root), "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout.strip(),
+            "securityRevision": _source_revision(security_root),
             "controlManifestSha256": sha256_file(control_source),
             "controlBundleSha256": sha256_file(control_bundle),
             "candidateManifestSha256": sha256_file(candidate_source),

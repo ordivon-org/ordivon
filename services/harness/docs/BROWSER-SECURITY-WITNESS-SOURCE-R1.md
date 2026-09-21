@@ -141,7 +141,7 @@ Example:
 ```text
 python scripts/browser_security_pool_runner.py \
   --run-id pool-check-20260918 \
-  --security-root /root/projects/ordivon-security-v2
+  --security-root /root/projects/ordivon/platform/security
 ```
 
 Use `--artifact-dir` when the candidate manifests, canonical bundles, comparison manifest, and final receipt should be retained. The runner verifies the digest-fenced LKG bundles before collection and refuses pool-index paths that escape the configured Security-v2 root.

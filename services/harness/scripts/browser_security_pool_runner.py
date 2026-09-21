@@ -23,7 +23,7 @@ from typing import Any
 HARNESS_ROOT = Path(__file__).resolve().parents[1]
 if str(HARNESS_ROOT) not in sys.path:
     sys.path.insert(0, str(HARNESS_ROOT))
-DEFAULT_SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
+DEFAULT_SECURITY_ROOT = Path(os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")).resolve()
 DEFAULT_POOL_INDEX = Path("fixtures/browser-security/harness-r2-live-lkg-pool-index.json")
 DEFAULT_AUTOMATION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$")
@@ -255,7 +255,7 @@ def _compare_pool(*, manifest: Path, security_root: Path, python: str) -> dict[s
 
 def _source_revision(root: Path) -> str:
     proc = subprocess.run(
-        ["/usr/bin/git", "-C", str(root), "rev-parse", "HEAD"],
+        ["/usr/bin/git", "-C", str(root), "log", "-1", "--format=%H", "--", "."],
         check=False,
         capture_output=True,
         text=True,
