@@ -1,9 +1,9 @@
 # Provider: Ordivon Runtime
 
-- Source: `/root/projects/ordivon-runtime`
-- Observed revision: `b44f192c4c8ca7500307596bab7ed6ddb05a9d4c`
+- Source: `/root/projects/ordivon/services/runtime`
+- Observed owner revision: `7741c2e9e53fc4954ce16b692cfe19b27703caee`
 - Role: exact physical/local execution and effect-commit evidence provider
-- Migration mode: metadata only; Runtime remains external and replaceable
+- Source standing: canonical modular-monorepo owner; Runtime remains independently replaceable at the execution-provider boundary
 
 ## Capabilities
 

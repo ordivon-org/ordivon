@@ -422,8 +422,8 @@ Run it from a host shell or independent systemd unit, not from a Runtime Job: a 
 ```bash
 scripts/ordivon-runtime-capacity-acceptance \
   --env-file /etc/ordivon/ordivon-runtime.env \
-  --source-repo /root/projects/ordivon-runtime \
-  --source-revision "$(git -C /root/projects/ordivon-runtime rev-parse HEAD)" \
+  --source-repo /root/projects/ordivon \
+  --source-revision "$(git -C /root/projects/ordivon rev-parse HEAD)" \
   --limit 8 \
   --receipt /var/lib/ordivon/runtime/evidence/runtime-capacity-live.json \
   --pretty

@@ -361,7 +361,7 @@ def main() -> int:
         "--runtime-environment-file", default="/etc/ordivon/ordivon-runtime.env"
     )
     parser.add_argument(
-        "--runtime-scripts", default="/root/projects/ordivon-runtime/scripts"
+        "--runtime-scripts", default="/usr/local/libexec/ordivon"
     )
     parser.add_argument(
         "--composition-script",

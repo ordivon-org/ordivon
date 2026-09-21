@@ -1,6 +1,6 @@
 # Package: Operations
 
-Last census: 2026-09-14
+Last census: 2026-09-22
 Standing: **READY_FOR_REAL_WORK**
 
 ## Outcome scope
@@ -29,7 +29,7 @@ Do not collapse these different responsibilities into a new Ordivon operations d
 Current local implementation/owner record: `capabilities/providers/workstation-v2.md`.
 
 - Workstation v2 (`/root/projects/ordivon@a003ca18b7e43ea4012d62db8d8d71198d68d961`, owner path `platform/workstation`);
-- Runtime execution/evidence (`/root/projects/ordivon-runtime@b44f192c4c8ca7500307596bab7ed6ddb05a9d4c`);
+- Runtime execution/evidence (`/root/projects/ordivon/services/runtime@7741c2e9e53fc4954ce16b692cfe19b27703caee`);
 - Temporal-oriented production configuration/templates exist under Workstation v2, but no active `temporal` CLI or Temporal container image was observed during the 2026-09-14 study; Temporal is therefore an available mature provider choice, not a proven current local runtime dependency;
 - n8n;
 - Ansible / ansible-playbook;
