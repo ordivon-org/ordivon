@@ -9,7 +9,7 @@
   "components": [
     {
       "id": "portfolio-dependence-analysis",
-      "implementation": "src/ordivon_capital/market/portfolio_risk.py::analyze_dependence",
+      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::analyze_dependence",
       "classification": "QUANTITATIVE_MODEL",
       "sr26ModelStanding": "MODEL",
       "status": "VALIDATION_REQUIRED",
@@ -56,7 +56,7 @@
     },
     {
       "id": "repeated-microstructure-summary",
-      "implementation": "src/ordivon_capital/market/market_sensors.py::repeated_microstructure",
+      "implementation": "src/ordivon_capital/markets/market_sensors.py::repeated_microstructure",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -88,7 +88,7 @@
     },
     {
       "id": "open-interest-change",
-      "implementation": "src/ordivon_capital/market/market_sensors.py::open_interest_change",
+      "implementation": "src/ordivon_capital/markets/market_sensors.py::open_interest_change",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -118,7 +118,7 @@
     },
     {
       "id": "exposure-ledger",
-      "implementation": "src/ordivon_capital/market/portfolio_risk.py::build_exposure_ledger",
+      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::build_exposure_ledger",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -149,7 +149,7 @@
     },
     {
       "id": "factor-proxy-aggregation",
-      "implementation": "src/ordivon_capital/market/portfolio_risk.py::build_factor_observatory",
+      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::build_factor_observatory",
       "classification": "ADAPTER",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -180,7 +180,7 @@
     },
     {
       "id": "dependence-model-monitoring",
-      "implementation": "src/ordivon_capital/market/model_monitoring.py",
+      "implementation": "src/ordivon_capital/research/model_monitoring.py",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -219,7 +219,7 @@
     },
     {
       "id": "model-monitoring-persistence",
-      "implementation": "src/ordivon_capital/market/monitoring_persistence.py::persist_monitoring_evidence",
+      "implementation": "src/ordivon_capital/research/monitoring_persistence.py::persist_monitoring_evidence",
       "classification": "ADAPTER",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -253,7 +253,7 @@
     },
     {
       "id": "tail-risk-report",
-      "implementation": "src/ordivon_capital/market/model_monitoring.py::build_tail_risk_report",
+      "implementation": "src/ordivon_capital/research/model_monitoring.py::build_tail_risk_report",
       "classification": "ADAPTER",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -285,7 +285,7 @@
     },
     {
       "id": "historical-expected-shortfall",
-      "implementation": "src/ordivon_capital/market/portfolio_risk.py::historical_expected_shortfall",
+      "implementation": "src/ordivon_capital/risk/portfolio_risk.py::historical_expected_shortfall",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -321,7 +321,7 @@
     },
     {
       "id": "risk-limit-evaluator",
-      "implementation": "src/ordivon_capital/market/policy_decision.py::evaluate_risk_budget_policy",
+      "implementation": "src/ordivon_capital/governance/policy_decision.py::evaluate_risk_budget_policy",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -352,7 +352,7 @@
     },
     {
       "id": "portfolio-scenario-calculation",
-      "implementation": "src/ordivon_capital/market/portfolio_counterfactuals.py::build_action_counterfactual",
+      "implementation": "src/ordivon_capital/portfolio/portfolio_counterfactuals.py::build_action_counterfactual",
       "classification": "NON_MODEL_CALCULATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -384,7 +384,7 @@
     },
     {
       "id": "pre-trade-evidence-control",
-      "implementation": "src/ordivon_capital/market/policy_decision.py::evaluate_counterfactual_gate_policy",
+      "implementation": "src/ordivon_capital/governance/policy_decision.py::evaluate_counterfactual_gate_policy",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -414,7 +414,7 @@
     },
     {
       "id": "underlying-reopen-reconciliation",
-      "implementation": "src/ordivon_capital/market/market_sensors.py::reconcile_underlying_reopen",
+      "implementation": "src/ordivon_capital/markets/market_sensors.py::reconcile_underlying_reopen",
       "classification": "RECONCILIATION",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -445,7 +445,7 @@
     },
     {
       "id": "prospective-validation",
-      "implementation": "src/ordivon_capital/market/prospective_validation.py::evaluate_prospective_validation",
+      "implementation": "src/ordivon_capital/research/prospective_validation.py::evaluate_prospective_validation",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",
@@ -476,7 +476,7 @@
     },
     {
       "id": "public-market-risk-data-quality",
-      "implementation": "src/ordivon_capital/market/crypto_public_shadow.py::analyze",
+      "implementation": "src/ordivon_capital/markets/crypto_public_shadow.py::analyze",
       "classification": "CONTROL",
       "sr26ModelStanding": "NON_MODEL",
       "status": "ACTIVE",

@@ -70,7 +70,7 @@
     ]
   },
   "sizingComparativeQualification": {
-    "localImplementation": "src/ordivon_capital/market/execution_feasibility.py",
+    "localImplementation": "src/ordivon_capital/trading/execution_feasibility.py",
     "latestLeanCandidate": "985ef30",
     "naiveFormulaComparisons": 57,
     "naiveFormulaMismatches": 1,
