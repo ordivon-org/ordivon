@@ -12,7 +12,7 @@
       "negative": "Current HEAD must not overwrite opening lineage.",
       "proof": [
         "crates/ordivon-runtime-core/src/runtime/tests.rs::workspace_get_distinguishes_opening_revision_from_current_head",
-        "crates/ordivon-runtime-mcp/src/server/tests.rs::workspace_projection_output_schema_distinguishes_lineage_from_current_head"
+        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs::workspace_projection_output_schema_distinguishes_lineage_from_current_head"
       ]
     },
     {
@@ -185,7 +185,7 @@
       "proof": [
         "crates/ordivon-runtime-core/src/runtime/tests.rs::projection_and_workspace_guards_do_not_dispatch_accepted_jobs",
         "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_interactive_list_is_projection_only_and_observe_reconciles_exact_job",
-        "crates/ordivon-runtime-mcp/src/server/tests.rs::job_get_schema_is_projection_only_and_detail_free"
+        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs::job_get_schema_is_projection_only_and_detail_free"
       ]
     },
     {

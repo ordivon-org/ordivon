@@ -132,8 +132,19 @@
           "compiled_tool_catalog_identity_is_deterministic_and_host_extension_free"
         ],
         "verification": "cargo test --locked -q -p ordivon-runtime-mcp => 66 passed + 10 auth passed"
+      },
+      {
+        "id": "R01-B2",
+        "source": "crates/ordivon-runtime-mcp/src/server/tests.rs",
+        "destination": "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs",
+        "tests": [
+          "job_get_schema_is_projection_only_and_detail_free",
+          "workspace_projection_output_schema_distinguishes_lineage_from_current_head",
+          "workspace_list_schema_makes_exact_source_digest_opt_in"
+        ],
+        "verification": "cargo test --locked -q -p ordivon-runtime-mcp => 66 passed + 10 auth passed; clippy -D warnings PASS"
       }
     ],
-    "next": "Split another low-conflict MCP contract category; do not move core state tests until category boundaries remain stable."
+    "next": "Continue only if the second projection-contract split preserves all MCP/auth tests; then consider one final low-conflict schema category before core state extraction."
   }
 }
