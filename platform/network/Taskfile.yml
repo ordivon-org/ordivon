@@ -435,6 +435,45 @@ tasks:
     cmds:
       - ./consumers/browserless/acceptance/serial-browserless.sh
 
+
+  consumer:chat-ingress:validate:
+    desc: Validate the scoped ChatIngress proxy over the existing Browserless Network v2 authority
+    cmds:
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.chat-ingress-egress" and .listen.host=="127.0.0.1" and .listen.port==19081 and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-browserless.target" and .directFallback==false' consumers/chat-ingress/config/egress.json >/dev/null
+      - /usr/bin/sing-box check -c consumers/chat-ingress/config/sing-box.json
+      - /usr/bin/systemd-analyze verify consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service consumers/chat-ingress/systemd/network-v2-chat-ingress.target
+      - /usr/bin/bash -n consumers/chat-ingress/ready.sh
+
+  consumer:chat-ingress:materialize:
+    desc: Materialize ChatIngress source into /etc without changing host routing or starting the target
+    deps: [consumer:chat-ingress:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/chat-ingress
+      - install -m 0644 consumers/chat-ingress/config/egress.json /etc/network-v2/chat-ingress/egress.json
+      - install -m 0644 consumers/chat-ingress/config/sing-box.json /etc/network-v2/chat-ingress/sing-box.json
+      - install -m 0644 consumers/chat-ingress/systemd/network-v2-chat-ingress-proxy.service /etc/systemd/system/network-v2-chat-ingress-proxy.service
+      - install -m 0644 consumers/chat-ingress/systemd/network-v2-chat-ingress-relay.service /etc/systemd/system/network-v2-chat-ingress-relay.service
+      - install -m 0644 consumers/chat-ingress/systemd/network-v2-chat-ingress.target /etc/systemd/system/network-v2-chat-ingress.target
+      - install -m 0755 consumers/chat-ingress/ready.sh /usr/local/libexec/network-v2/chat-ingress-ready
+      - systemctl daemon-reload
+      - systemctl enable network-v2-chat-ingress.target
+
+  consumer:chat-ingress:start:
+    desc: Start the scoped ChatIngress proxy
+    deps: [consumer:chat-ingress:materialize]
+    cmds:
+      - systemctl start network-v2-chat-ingress.target
+
+  consumer:chat-ingress:ready:
+    desc: Prove ChatIngress loopback relay and provider reachability without provider SEND
+    cmds:
+      - /usr/local/libexec/network-v2/chat-ingress-ready
+
+  consumer:chat-ingress:stop:
+    desc: Stop the scoped ChatIngress proxy without touching the shared Browserless Network v2 authority
+    cmds:
+      - systemctl stop network-v2-chat-ingress.target
+
 vars:
   SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-*.service

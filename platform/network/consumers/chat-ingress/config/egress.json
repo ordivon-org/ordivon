@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.chat-ingress-egress",
+  "listen": {"host": "127.0.0.1", "port": 19081, "protocol": "mixed"},
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "namespace": "nv2-browserless-prod",
+    "serviceUnit": "network-v2-browserless.target"
+  },
+  "directFallback": false,
+  "allowedOrigins": ["https://chatgpt.com"]
+}

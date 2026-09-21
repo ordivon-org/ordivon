@@ -1,0 +1,8 @@
+[Unit]
+Description=Network v2 ChatIngress scoped egress
+Requires=network-v2-chat-ingress-proxy.service network-v2-chat-ingress-relay.service
+After=network-v2-browserless.target network-v2-chat-ingress-proxy.service network-v2-chat-ingress-relay.service
+BindsTo=network-v2-browserless.target
+
+[Install]
+WantedBy=multi-user.target
