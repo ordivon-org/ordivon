@@ -23,6 +23,12 @@ SPEC.loader.exec_module(release_controller)
 
 
 class ReleaseControllerTests(unittest.TestCase):
+    def test_default_provider_repository_is_canonical_monorepo_owner(self) -> None:
+        self.assertEqual(
+            release_controller.DEFAULT_PROVIDER_REPOSITORY,
+            pathlib.Path("/root/projects/ordivon/platform/workstation/providers/cloudflare"),
+        )
+
     def test_installed_release_controller_resolves_world_monorepo(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = pathlib.Path(directory)

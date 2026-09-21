@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cfg="$root/config/language_baseline.json"
+"$root/scripts/check-language-baseline" >/dev/null
+rust_version="$(python3 - "$cfg" <<'PY'
+import json,sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text())["languages"]["rust"]["requiredVersion"])
+PY
+)"
+cd "$root"
+exec rustup run "$rust_version" cargo "$@"

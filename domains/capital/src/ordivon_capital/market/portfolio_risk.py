@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Mapping, Sequence
 from decimal import Decimal, InvalidOperation
@@ -8,6 +9,7 @@ from statistics import median
 from typing import Any
 
 import numpy as np
+from jsonschema import Draft202012Validator
 from scipy.stats import linregress
 from sklearn.linear_model import HuberRegressor, LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
@@ -15,6 +17,31 @@ from sklearn.model_selection import TimeSeriesSplit
 
 class PortfolioRiskError(ValueError):
     """Fail-closed validation error for the read-only portfolio risk observatory."""
+
+
+def load_registered_risk_budget(path: Path | None = None) -> dict[str, Any]:
+    """Load the owner-principal risk budget registration through JSON Schema.
+
+    UNSET is a valid fail-closed state: it proves the policy surface exists without
+    inventing owner risk tolerance. ACTIVE requires all five explicit limit values.
+    """
+    repo = Path(__file__).resolve().parents[3]
+    config_path = path or (repo / "config/portfolio_risk_budget.json")
+    schema_path = repo / "contracts/portfolio-risk-budget-v1.schema.json"
+    try:
+        doc = json.loads(config_path.read_text())
+        schema = json.loads(schema_path.read_text())
+        Draft202012Validator(schema).validate(doc)
+    except Exception as exc:
+        raise PortfolioRiskError(f"invalid registered portfolio risk budget: {exc}") from exc
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.capital.market.registered-risk-budget",
+        "standing": doc["standing"],
+        "owner": doc["owner"],
+        "source": str(config_path.relative_to(repo)) if config_path.is_relative_to(repo) else str(config_path),
+        "limits": dict(doc["limits"]),
+    }
 
 
 def _d(value: Any, label: str) -> Decimal:
@@ -552,9 +579,9 @@ def evaluate_risk_budget(
     exposure_ledger: Mapping[str, Any],
     budget: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Bind normalized portfolio facts to the OPA-owned risk-limit policy."""
-    from ordivon_capital.market.opa_policy import (
-        ExecutionPolicyError,
+    """Bind normalized portfolio facts to the bounded deterministic risk-limit policy."""
+    from ordivon_capital.market.policy_decision import (
+        PolicyDecisionError,
         evaluate_risk_budget_policy,
     )
 
@@ -566,7 +593,7 @@ def evaluate_risk_budget(
             exposure_ledger=dict(exposure_ledger),
             budget=dict(budget),
         )
-    except ExecutionPolicyError as exc:
+    except PolicyDecisionError as exc:
         raise PortfolioRiskError(str(exc)) from exc
 
 
@@ -580,16 +607,24 @@ def build_portfolio_risk_report(
 ) -> dict[str, Any]:
     """Compose exposure, dependence, and risk-limit results into a read-only risk report."""
 
-    budget_eval = (
-        evaluate_risk_budget(exposure_ledger=exposure_ledger, budget=risk_budget)
-        if risk_budget is not None
-        else {
-            "schemaVersion": 1,
-            "kind": "ordivon.capital.market.risk-limit-evaluation",
-        "componentId": "risk-limit-evaluator",
-            "standing": "INCOMPLETE",
-            "missingBudgetInputs": ["riskBudget"],
+    if risk_budget is None:
+        registration = load_registered_risk_budget()
+        effective_budget = registration["limits"]
+        budget_source = {
+            "standing": registration["standing"],
+            "owner": registration["owner"],
+            "source": registration["source"],
         }
+    else:
+        effective_budget = dict(risk_budget)
+        budget_source = {
+            "standing": "CALLER_SUPPLIED",
+            "owner": "CALLER",
+            "source": None,
+        }
+    budget_eval = evaluate_risk_budget(
+        exposure_ledger=exposure_ledger,
+        budget=effective_budget,
     )
     return {
         "schemaVersion": 1,
@@ -599,6 +634,7 @@ def build_portfolio_risk_report(
             "factorDependenceAnalysis": factor_observatory,
             "modelMonitoring": model_monitoring,
             "tailRisk": tail_risk_report,
+            "riskBudgetRegistration": budget_source,
             "riskLimitEvaluation": budget_eval,
         },
     }

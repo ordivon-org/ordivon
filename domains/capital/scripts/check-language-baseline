@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+cfg="$repo/config/language_baseline.json"
+python3 - "$repo" "$cfg" <<'PY'
+from __future__ import annotations
+import json, re, subprocess, sys
+from pathlib import Path
+
+repo=Path(sys.argv[1])
+cfg=json.loads(Path(sys.argv[2]).read_text())
+py_req=cfg['languages']['python']['requiredVersion']
+rs_req=cfg['languages']['rust']['requiredVersion']
+
+pyproject=(repo/'pyproject.toml').read_text()
+if f'requires-python = "=={py_req}"' not in pyproject:
+    raise SystemExit(f'pyproject Python pin is not exactly {py_req}')
+
+venv_py=repo/'.venv/bin/python'
+if not venv_py.is_file():
+    raise SystemExit('canonical .venv Python missing')
+actual_py=subprocess.check_output([str(venv_py),'-c','import platform; print(platform.python_version())'], text=True).strip()
+if actual_py != py_req:
+    raise SystemExit(f'canonical Python drift: required={py_req} actual={actual_py}')
+
+rust=subprocess.check_output(['rustup','run',rs_req,'rustc','--version'], text=True).strip()
+m=re.match(r'rustc\s+(\d+\.\d+\.\d+)', rust)
+if not m or m.group(1) != rs_req:
+    raise SystemExit(f'Rust baseline drift: required={rs_req} actual={rust}')
+
+cargo=subprocess.check_output(['rustup','run',rs_req,'cargo','--version'], text=True).strip()
+print(json.dumps({
+  'standing':'PASS_LATEST_STABLE_LANGUAGE_BASELINE',
+  'python':actual_py,
+  'pythonExecutable':str(venv_py),
+  'rust':rs_req,
+  'rustc':rust,
+  'cargo':cargo,
+}, sort_keys=True))
+PY

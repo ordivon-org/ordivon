@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.language-baseline",
+  "policy": "LATEST_STABLE_ONLY",
+  "asOfDate": "2026-09-21",
+  "languages": {
+    "python": {
+      "requiredVersion": "3.14.7",
+      "releaseChannel": "stable",
+      "sourceAuthority": "Python.org",
+      "requireExactProjectPin": true,
+      "requireExecutableQualification": true
+    },
+    "rust": {
+      "requiredVersion": "1.98.1",
+      "releaseChannel": "stable",
+      "sourceAuthority": "Rust Release Team",
+      "requireExactProjectPin": true,
+      "requireExecutableQualification": true
+    }
+  },
+  "rules": [
+    "beta/nightly/pre-release language toolchains do not satisfy the production language baseline",
+    "an external dependency or project must support and pass qualification on every language it directly depends on at the current latest stable baseline",
+    "support claims without executable qualification are insufficient",
+    "requiring an older language runtime is a hard admission failure, not a compatibility warning",
+    "a locally ported fork may be evaluated as a local implementation, but the unmodified external project does not receive owner status"
+  ]
+}

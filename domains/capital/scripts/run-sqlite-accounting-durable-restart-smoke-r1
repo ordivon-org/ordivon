@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+"$repo/scripts/check-language-baseline" >/dev/null
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+PYTHONPATH="$repo/src" DB="$tmp/accounting.sqlite3" \
+  "$repo/.venv/bin/python" - <<'PY'
+import json
+import os
+from pathlib import Path
+
+from ordivon_capital.accounting.durable import (
+    CapitalAccountNamespace,
+    CapitalAccountRole,
+    DurableReservationHistory,
+    LedgerReconciliationStanding,
+    LedgerTransferObservation,
+    ReservationStanding,
+    binding_for_namespace,
+    reconcile_durable_history,
+)
+from ordivon_capital.accounting.sqlite_ledger import LedgerApplyStatus, SQLiteAccountingLedger
+from ordivon_capital.accounting.substrate import (
+    AccountingAccount,
+    AccountingOperation,
+    reservation_instruction,
+    resolution_instruction,
+    stable_accounting_id,
+)
+
+path=Path(os.environ["DB"])
+ns=CapitalAccountNamespace("owner:primary","parcel:sqlite-r1:usd")
+fund=AccountingAccount(stable_accounting_id("ordivon-capital:test","fund"))
+binding=binding_for_namespace(namespace=ns,reservation_ref="reservation:sqlite-r1",amount=700)
+
+with SQLiteAccountingLedger(path) as ledger:
+    assert ledger.create_account(fund) is LedgerApplyStatus.CREATED
+    assert ledger.create_account(ns.account(CapitalAccountRole.AVAILABLE)) is LedgerApplyStatus.CREATED
+    assert ledger.create_account(ns.account(CapitalAccountRole.ENCUMBRANCE)) is LedgerApplyStatus.CREATED
+    assert ledger.apply_immediate_transfer(
+        transfer_id=stable_accounting_id("ordivon-capital:test","funding"),
+        debit_account_id=fund.account_id,
+        credit_account_id=ns.available_account_id,
+        amount=1000,
+    ) is LedgerApplyStatus.CREATED
+    assert ledger.apply_instruction(reservation_instruction(binding)) is LedgerApplyStatus.CREATED
+
+with SQLiteAccountingLedger(path) as ledger:
+    assert ledger.account(ns.available_account_id).debits_pending == 700
+    consume=resolution_instruction(
+        binding=binding,
+        operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="effect:sqlite-r1:consume",
+    )
+    assert consume is not None
+    assert ledger.apply_instruction(consume) is LedgerApplyStatus.CREATED
+
+with SQLiteAccountingLedger(path) as ledger:
+    assert ledger.account(ns.available_account_id).debits_pending == 0
+    assert ledger.account(ns.available_account_id).debits_posted == 700
+    assert ledger.apply_instruction(consume) is LedgerApplyStatus.EXISTS
+    p=ledger.transfer(binding.pending_transfer_id)
+    r=ledger.transfer(consume.transfer_id)
+    assert p is not None and r is not None
+    pending=LedgerTransferObservation(
+        p.transfer_id,AccountingOperation.PENDING,p.amount,0
+    )
+    resolution=LedgerTransferObservation(
+        r.transfer_id,AccountingOperation.POST_PENDING_TRANSFER,r.amount,r.pending_id
+    )
+    rec=reconcile_durable_history(
+        history=DurableReservationHistory(
+            binding,ReservationStanding.CONSUMED,"effect:sqlite-r1:consume"
+        ),
+        pending=pending,
+        resolution=resolution,
+    )
+    assert rec.standing is LedgerReconciliationStanding.MATCH
+    stale=reconcile_durable_history(
+        history=DurableReservationHistory(
+            binding,ReservationStanding.CONSUMED,"effect:sqlite-r1:consume"
+        ),
+        pending=pending,
+        resolution=None,
+    )
+    assert stale.standing is LedgerReconciliationStanding.LEDGER_INCOMPLETE_NO_REPAIR
+
+print(json.dumps({
+    "standing":"PASS_SQLITE_DURABLE_RESTART_RECONCILIATION",
+    "accountingProvider":"SQLite",
+    "sqliteVersion":"3.53.1",
+    "python":"3.14.7",
+    "sameDatabaseRestartCount":2,
+    "pendingSurvivedFirstRestart":True,
+    "consumeSurvivedSecondRestart":True,
+    "exactReservationReplayStatus":"EXISTS",
+    "terminalReconciliation":rec.standing.value,
+    "staleLedgerReconciliation":stale.standing.value,
+    "terminalHistoryPreserved":stale.terminal_history_preserved,
+    "ledgerRepairAllowed":stale.ledger_repair_allowed,
+    "externalFinancialWriteAttempted":False
+},sort_keys=True))
+PY

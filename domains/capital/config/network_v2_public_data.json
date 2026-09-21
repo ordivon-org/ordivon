@@ -33,7 +33,7 @@
       "proxy": "http://127.0.0.1:19289"
     },
     "binanceWalletRest": {
-      "digest": "sha256:a76f2476ed9470bd8cc7841b15a5e8ef344744ce4821416bc726af74dc7c6e4c",
+      "digest": "sha256:e18acb586ae4c78b512ba553668c3e825f76e747f8b173cc2aa3273766d7b158",
       "file": "/etc/network-v2/finance/binance-wallet-rest-authority.json",
       "host": "api.binance.com",
       "port": 443,
@@ -63,5 +63,32 @@
   "publicReadOnly": true,
   "schemaVersion": 1,
   "serviceUnit": "network-v2-finance-egress.service",
-  "targetUnit": "network-v2-finance.target"
+  "targetUnit": "network-v2-finance.target",
+  "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",
+  "transportConfig": {
+    "file": "/etc/network-v2/finance/egress.json",
+    "digest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+    "implementation": "sing-box",
+    "requiredDnsServers": [
+      {
+        "tag": "provider-dns-1",
+        "server": "162.252.172.57",
+        "serverPort": 53,
+        "detour": "provider-auto"
+      },
+      {
+        "tag": "provider-dns-2",
+        "server": "149.154.159.92",
+        "serverPort": 53,
+        "detour": "provider-auto"
+      }
+    ],
+    "requiredDnsResponseRace": true
+  },
+  "providerEndpoints": {
+    "file": "/etc/network-v2/finance/provider-endpoints.json",
+    "digest": "sha256:c404749643723f4ec47143f9084c9feb20cb37ab071fcd2c2be0c5348bb16e74",
+    "sensitive": true,
+    "contentDisclosureAllowed": false
+  }
 }

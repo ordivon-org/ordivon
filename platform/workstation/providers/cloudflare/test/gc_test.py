@@ -19,6 +19,23 @@ SPEC.loader.exec_module(gc)
 
 
 class GarbageCollectionTests(unittest.TestCase):
+    def test_default_provider_repository_is_canonical_monorepo_owner(self) -> None:
+        self.assertEqual(
+            gc.DEFAULT_PROVIDER_REPOSITORY,
+            pathlib.Path("/root/projects/ordivon/platform/workstation/providers/cloudflare"),
+        )
+
+    def test_gc_unit_uses_canonical_monorepo_working_directory(self) -> None:
+        unit = (ROOT / "deploy/systemd/ordivon-edge-gc.service").read_text()
+        self.assertIn(
+            "WorkingDirectory=/root/projects/ordivon/platform/workstation/providers/cloudflare",
+            unit,
+        )
+        self.assertNotIn(
+            "WorkingDirectory=/root/projects/ordivon-workstation-v2/providers/cloudflare",
+            unit,
+        )
+
     def test_installed_controller_resolves_world_monorepo(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repository = pathlib.Path(directory)

@@ -8,13 +8,45 @@
     "servers": [
       {
         "type": "udp",
-        "tag": "provider-dns",
+        "tag": "provider-dns-1",
         "server": "162.252.172.57",
+        "server_port": 53,
+        "detour": "provider-auto"
+      },
+      {
+        "type": "udp",
+        "tag": "provider-dns-2",
+        "server": "149.154.159.92",
         "server_port": 53,
         "detour": "provider-auto"
       }
     ],
-    "final": "provider-dns",
+    "rules": [
+      {
+        "action": "evaluate",
+        "server": "provider-dns-1",
+        "tag": "provider-dns-1-eval"
+      },
+      {
+        "match_response": "provider-dns-1-eval",
+        "ip_accept_any": true,
+        "action": "respond",
+        "race": true
+      },
+      {
+        "action": "evaluate",
+        "server": "provider-dns-2",
+        "tag": "provider-dns-2-eval",
+        "speculative": true
+      },
+      {
+        "match_response": "provider-dns-2-eval",
+        "ip_accept_any": true,
+        "action": "respond",
+        "race": true
+      }
+    ],
+    "final": "provider-dns-1",
     "strategy": "ipv4_only",
     "timeout": "5s"
   },
@@ -73,13 +105,12 @@
   ],
   "route": {
     "default_domain_resolver": {
-      "server": "provider-dns",
+      "server": "provider-dns-1",
       "strategy": "ipv4_only"
     },
     "rules": [
       {
         "action": "resolve",
-        "server": "provider-dns",
         "strategy": "ipv4_only",
         "timeout": "5s"
       },

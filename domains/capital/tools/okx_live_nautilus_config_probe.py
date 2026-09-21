@@ -37,7 +37,7 @@ def main() -> int:
         api_key=profile["api_key"],
         api_secret=profile["secret_key"],
         api_passphrase=profile["passphrase"],
-        base_url_http=cfg["officialClient"]["baseUrl"],
+        base_url_http=cfg["providerApiAuthority"]["baseUrl"],
         proxy_url=net["proxy"],
     )
     if type(value).__name__ != execution["configClass"]:
@@ -50,7 +50,7 @@ def main() -> int:
         "configClass": type(value).__name__,
         "factoryPresent": bool(OKXExecutionClientFactory),
         "credentialInputBound": True,
-        "baseUrlHttp": cfg["officialClient"]["baseUrl"],
+        "baseUrlHttp": cfg["providerApiAuthority"]["baseUrl"],
         "proxyUrl": net["proxy"],
         "networkSessionOpened": False,
         "orderSubmissionAttempted": False,

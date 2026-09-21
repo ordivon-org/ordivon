@@ -1,1 +1,1 @@
-"""Accounting integration for Ordivon Capital; accounting mechanics remain externally owned."""
+"""Bounded mechanical accounting composition for Ordivon Capital."""

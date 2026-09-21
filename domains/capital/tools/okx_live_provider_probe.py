@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import socket
 import subprocess
 import tomllib
@@ -11,6 +10,11 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+
+from ordivon_capital.market.okx_readonly_client import (
+    OkxReadOnlyClient,
+    OkxReadOnlyCredentials,
+)
 
 
 def sha256(path: Path) -> str:
@@ -75,22 +79,30 @@ def main() -> int:
     with socket.create_connection(("127.0.0.1", 19283), timeout=2):
         pass
 
-    client = cfg["officialClient"]
-    env = os.environ.copy()
-    env["HOME"] = client["home"]
-    env["OKX_API_BASE_URL"] = client["baseUrl"]
-    account_cfg = run_json([client["binary"], "--profile", cfg["profile"], "--live", "--json", "account", "config"], env=env)
-    account_rows = rows_of(account_cfg)
+    client_cfg = cfg["readClient"]
+    reader = OkxReadOnlyClient(
+        base_url=cfg["providerApiAuthority"]["baseUrl"],
+        proxy_url=cfg["networkAuthority"]["proxy"],
+        credentials=OkxReadOnlyCredentials(
+            api_key=profile["api_key"],
+            secret_key=profile["secret_key"],
+            passphrase=profile["passphrase"],
+        ),
+        timeout_seconds=float(client_cfg["timeoutSeconds"]),
+    )
+    account_rows = reader.get_account_config()
     if len(account_rows) != 1:
         raise SystemExit(f"OKX account config expected one row, got {len(account_rows)}")
     raw_perm = str(account_rows[0].get("perm") or "")
-    perms = sorted({x.strip().lower() for x in raw_perm.replace(";", ",").split(",") if x.strip()})
+    perms = sorted(
+        {x.strip().lower() for x in raw_perm.replace(";", ",").split(",") if x.strip()}
+    )
     missing = sorted(set(cfg["requiredPermissions"]) - set(perms))
     forbidden = sorted(set(cfg["forbiddenPermissions"]) & set(perms))
     if missing or forbidden:
         raise SystemExit(f"OKX permission mismatch missing={missing} forbidden={forbidden}")
-    balance_rows = rows_of(run_json([client["binary"], "--profile", cfg["profile"], "--live", "--json", "account", "balance"], env=env))
-    order_rows = rows_of(run_json([client["binary"], "--profile", cfg["profile"], "--live", "--json", "spot", "orders"], env=env))
+    balance_rows = reader.get_account_balance()
+    order_rows = reader.get_spot_open_orders()
 
     execution = cfg["executionProvider"]
     nautilus = run_json([
@@ -106,6 +118,9 @@ def main() -> int:
         "schemaVersion": 1,
         "kind": "ordivon.capital.market.okx-live-provider-binding-evidence",
         "standing": "PASS_OKX_LIVE_PROVIDER_BOUND_CURRENT_NO_EFFECT_ADMISSION",
+        "credentialClass": cfg["credentialClass"],
+        "providerCapabilityAuditOnly": cfg["providerCapabilityAuditOnly"],
+        "privateRealityAdmissionGranted": cfg["privateRealityAdmissionGranted"],
         "venue": "OKX",
         "environment": "LIVE",
         "credentialBindingPresent": True,
@@ -115,8 +130,9 @@ def main() -> int:
         "networkTargetActive": True,
         "networkServiceActive": True,
         "networkProxyReachable": True,
-        "officialClient": {"name": client["name"], "version": client["version"], "authenticated": True},
-        "authenticatedPrivateReality": {
+        "readClient": {"name": client_cfg["name"], "runtime": client_cfg["runtime"], "authenticated": True},
+        "externalReferenceClient": cfg["externalReferenceClient"],
+        "authenticatedProviderReadAudit": {
             "accountConfigCurrent": True,
             "balanceQueryCurrent": True,
             "openOrdersQueryCurrent": True,

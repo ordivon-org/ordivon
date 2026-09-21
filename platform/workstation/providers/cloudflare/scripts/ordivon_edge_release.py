@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 SCRIPT_PATH = pathlib.Path(__file__).resolve()
-DEFAULT_PROVIDER_REPOSITORY = pathlib.Path("/root/projects/ordivon-workstation-v2/providers/cloudflare")
+DEFAULT_PROVIDER_REPOSITORY = pathlib.Path("/root/projects/ordivon/platform/workstation/providers/cloudflare")
 
 
 def resolve_provider_root(

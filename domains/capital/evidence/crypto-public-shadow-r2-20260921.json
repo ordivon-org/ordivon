@@ -1,0 +1,27 @@
+{
+  "acceptedSnapshotCount": 4,
+  "allMeasuredQualified": true,
+  "artifactDigests": {
+    "binding": "sha256:3a04340f69e72ef0938aa7bf5adb27b2a7b889c4e6eeb0863111daaf10cd3ae4",
+    "streaming": "sha256:664dd6e4cceab379420ae7ed2d4888ccaf74e7cbc25aeb8d999fe460bb495a4d"
+  },
+  "asOfDate": "2026-09-21",
+  "brokerCredentialsUsed": false,
+  "demoExecutionAttempted": false,
+  "dnsResponseRace": "DUAL_PROVIDER_RESPONSE_RACE",
+  "externalFinancialWritesAttempted": false,
+  "kind": "ordivon.capital.market.crypto-public-shadow-r2-fresh-evidence",
+  "liveExecutionAttempted": false,
+  "measuredRoundCount": 3,
+  "privateAccountDataUsed": false,
+  "providerEndpointsContentDisclosed": false,
+  "providerEndpointsDigest": "sha256:c404749643723f4ec47143f9084c9feb20cb37ab071fcd2c2be0c5348bb16e74",
+  "receiveTimeSpanLimitMs": 1200,
+  "samePersistentConnections": true,
+  "schemaVersion": 1,
+  "sourceTimeSpanLimitMs": 1200,
+  "standing": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER",
+  "transportBindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02",
+  "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+  "warmupQualified": true
+}

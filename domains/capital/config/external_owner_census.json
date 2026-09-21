@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.capital.external-owner-census",
-  "principle": "Standards define semantics; mature implementations own mechanics; providers own external reality; Ordivon Capital retains only cross-owner composition, authority, evidence and reconciliation seams that no natural owner can establish alone.",
+  "principle": "Standards define semantics; providers own external reality; mature external implementations are candidates for mechanics, not automatic winners. External existence or age is not substitution evidence. For a replaceable mechanism, Ordivon admits the external implementation only after a contract-equivalent comparative qualification against the smallest credible local baseline; Ordivon retains only the better mechanism plus cross-owner composition/authority/evidence/reconciliation seams.",
   "standardsAndOwners": [
     {
       "id": "asset-management",
@@ -62,10 +62,10 @@
     {
       "id": "accounting-mechanics",
       "ownerClass": "IMPLEMENTATION_OWNER",
-      "owner": "TigerBeetle",
-      "currentStanding": "admitted local version remains pinned by capability_dependencies.json",
-      "applicability": "DOUBLE_ENTRY_AND_ATOMIC_TRANSFER_MECHANICS_NOT_SETTLEMENT_OR_LEGAL_OWNERSHIP",
-      "source": "https://docs.tigerbeetle.com/"
+      "owner": "SQLite 3.53.1 via canonical Python 3.14.7 stdlib sqlite3",
+      "currentStanding": "ADMITTED_FOR_BOUNDED_SINGLE_HOST_WAL_ACCOUNTING",
+      "applicability": "ACID_WAL_TRANSACTION_MECHANICS_ONLY_NOT_SETTLEMENT_LEGAL_OWNERSHIP_OR_DISTRIBUTED_CONSENSUS",
+      "source": "https://sqlite.org/"
     },
     {
       "id": "financial-reporting",
@@ -77,27 +77,27 @@
     },
     {
       "id": "policy-decision",
-      "ownerClass": "IMPLEMENTATION_OWNER",
-      "owner": "Open Policy Agent",
-      "currentStanding": "CNCF graduated general-purpose policy engine",
-      "applicability": "POLICY_DECISION_POINT",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "Open Policy Agent 1.20.2",
+      "currentStanding": "HISTORICAL_CHALLENGER_LOCAL_DETERMINISTIC_POLICY_PREFERRED",
+      "applicability": "FUTURE_CANDIDATE_IF_A_REAL_INDEPENDENT_POLICY_DISTRIBUTION_OR_CROSS_PROCESS_AUTHORITY_CONTRACT_APPEARS",
       "source": "https://www.openpolicyagent.org/"
     },
     {
       "id": "lineage",
-      "ownerClass": "IMPLEMENTATION_OWNER",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
       "owner": "OpenLineage",
-      "currentStanding": "open lineage API/specification for datasets jobs and runs",
-      "applicability": "PREFERRED_LINEAGE_STANDARD_FOR_FUTURE_CROSS_DOMAIN_DATA_WORK",
+      "currentStanding": "DEFERRED_NO_ACTIVE_LINEAGE_EVENT_CONTRACT",
+      "applicability": "FUTURE_LINEAGE_STANDARD_CANDIDATE_NOT_CURRENT_OWNER",
       "source": "https://openlineage.io/"
     },
     {
       "id": "observability",
-      "ownerClass": "IMPLEMENTATION_OWNER",
-      "owner": "OpenTelemetry + Prometheus/Grafana",
-      "currentStanding": "vendor-neutral traces metrics logs plus existing monitoring stack",
-      "applicability": "OBSERVABILITY_MECHANICS",
-      "source": "https://opentelemetry.io/docs/"
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "Prometheus 3.14.0",
+      "currentStanding": "MARKET_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE",
+      "applicability": "FUTURE_MARKET_DOMAIN_TSDB_PROMQL_ALERTING_CANDIDATE; CURRENT_REPO_ONLY_EMITS_PROMETHEUS_TEXT_FORMAT",
+      "source": "https://prometheus.io/"
     },
     {
       "id": "compute-economics",
@@ -106,23 +106,208 @@
       "currentStanding": "FinOps operating framework and vendor-neutral Kubernetes cost allocation specification",
       "applicability": "FUTURE_COMPUTE_CAPITAL_DOMAIN_NOT_YET_INSTANTIATED",
       "source": "https://www.finops.org/framework/"
+    },
+    {
+      "id": "investment-policy-and-mandate",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "CFA Institute investment policy statement / portfolio planning process",
+      "currentStanding": "2026 curriculum continues to treat the written IPS as the starting point for portfolio planning and construction",
+      "applicability": "REFERENCE_FOR_OWNER_OBJECTIVES_CONSTRAINTS_LIQUIDITY_TIME_HORIZON_AND_RISK_CAPACITY_NOT_CERTIFICATION",
+      "source": "https://www.cfainstitute.org/insights/professional-learning/refresher-readings/2026/basics-of-portfolio-planning-and-construction"
+    },
+    {
+      "id": "research-data-integration",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "OpenBB Open Data Platform",
+      "currentStanding": "OpenBB 4.7.x supports Python 3.14; Provider/Fetcher/standard-model extensions implement connect-once-consume-everywhere research-data integration",
+      "applicability": "CANDIDATE_RESEARCH_DATA_OWNER_NOT_PRIVATE_ACCOUNT_ORDER_OR_EXECUTION_REALITY; AGPL_BOUNDARY_REQUIRES_SEPARATE_DEPLOYMENT_REVIEW",
+      "source": "https://github.com/OpenBB-finance/OpenBB"
+    },
+    {
+      "id": "quant-research-workflow",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "Microsoft Qlib + RD-Agent",
+      "currentStanding": "Qlib provides loosely coupled data/model/workflow/strategy/executor components; RD-Agent automates quantitative R&D loops",
+      "applicability": "CANDIDATE_SEPARATE_RESEARCH_CAPABILITY_NOT_MARKET_CORE_DEPENDENCY; CURRENT_QLIB_DEPENDENCY_SET_CONFLICTS_WITH_CAPITAL_CORE_MLFLOW_AND_PYTHON_BASELINE",
+      "source": "https://github.com/microsoft/qlib"
+    },
+    {
+      "id": "portfolio-optimization",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "PyPortfolioOpt; Riskfolio-Lib for advanced optimization",
+      "currentStanding": "PyPortfolioOpt 1.6.0 supports Python 3.14 and owns conventional portfolio optimization; Riskfolio-Lib 7.3 provides a broader CVXPY-based advanced risk/optimization surface",
+      "applicability": "PREFERRED_EXTERNAL_OWNER_WHEN_AUTONOMOUS_PORTFOLIO_CONSTRUCTION_IS_INSTANTIATED; DO_NOT_REIMPLEMENT_OPTIMIZERS_IN_ORDIVON",
+      "source": "https://github.com/PyPortfolio/PyPortfolioOpt"
+    },
+    {
+      "id": "agent-investment-office-reference",
+      "ownerClass": "REFERENCE_IMPLEMENTATION",
+      "owner": "TradingAgents + ai-hedge-fund",
+      "currentStanding": "Active open-source reference implementations for multi-role investment research and mandate-driven fund cycles",
+      "applicability": "ARCHITECTURE_REFERENCE_FOR_RESEARCH_CIO_PORTFOLIO_RISK_ROLE_SEPARATION_NOT_AUTHORITY_OR_EXECUTION_OWNER",
+      "source": "https://github.com/TauricResearch/TradingAgents"
+    },
+    {
+      "id": "telemetry-pipeline",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "OpenTelemetry",
+      "currentStanding": "DEFERRED_NO_AUTHORITATIVE_COLLECTOR_OR_EXPORTER_PATH",
+      "applicability": "FUTURE_TRACE_LOG_METRIC_CONTEXT_PIPELINE_CANDIDATE",
+      "source": "https://opentelemetry.io/docs/"
+    },
+    {
+      "id": "observability-visualization",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "Grafana",
+      "currentStanding": "NO_LOCAL_GRAFANA_BINARY_OR_SERVICE_OBSERVED",
+      "applicability": "VISUALIZATION_CANDIDATE_WHEN_AN_ACTIVE_BACKEND_CONTRACT_EXISTS",
+      "source": "https://grafana.com/"
+    },
+    {
+      "id": "distributed-accounting-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "TigerBeetle 0.17.9",
+      "currentStanding": "HISTORICAL_CHALLENGER_NOT_REQUIRED_BY_CURRENT_SINGLE_HOST_CONTRACT",
+      "applicability": "FUTURE_CANDIDATE_IF_DISTRIBUTED_REPLICATION_HIGH_THROUGHPUT_OR_CLUSTER_RECOVERY_BECOMES_AN_ACTIVE_CONTRACT",
+      "source": "https://docs.tigerbeetle.com/"
+    },
+    {
+      "id": "historical-trading-engine",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "QuantConnect LEAN 985ef30",
+      "currentStanding": "FUNCTIONALLY_QUALIFIED_BUT_NOT_CORE_ADMITTED_SUPPLY_CHAIN_BLOCKED",
+      "applicability": "HISTORICAL_BACKTEST_FILL_SLIPPAGE_CALENDAR_AND_GENERAL_BUYING_POWER_CHALLENGER_ONLY",
+      "source": "https://github.com/QuantConnect/Lean"
+    },
+    {
+      "id": "fix44-implementation-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "QuickFIX/n 1.14.1",
+      "currentStanding": "DIFFERENTIAL_ORACLE_LOCAL_BOUNDED_PROJECTOR_PREFERRED",
+      "applicability": "FUTURE_FIX_SESSION_OR_BROADER_MESSAGE_ENGINE_CANDIDATE; NOT_CANONICAL_FOR_CURRENT_SESSIONLESS_TAGVALUE_PROJECTION",
+      "source": "https://quickfixn.org/"
+    },
+    {
+      "id": "websocket-client-mechanics",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "websockets 17.1",
+      "currentStanding": "ADMITTED_FOR_PUBLIC_ASYNC_WEBSOCKET_PROTOCOL_MECHANICS",
+      "applicability": "ASYNC_CLIENT_HANDSHAKE_TLS_PROXY_FRAMING_PING_PONG_CLOSE_MESSAGE_LIMITS_ONLY; VENUE_PAYLOAD_AND_NETWORK_ROUTE_REMAIN_EXTERNAL",
+      "source": "https://websockets.readthedocs.io/"
+    },
+    {
+      "id": "okx-client-implementation-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "@okx_ai/okx-trade-cli 1.4.7",
+      "currentStanding": "DIFFERENTIAL_REFERENCE_LOCAL_GET_ONLY_CLIENT_PREFERRED",
+      "applicability": "REFERENCE_FOR_OKX_HMAC_AND_PRIVATE_READ_SHAPES; NOT_CANONICAL_READ_RUNTIME",
+      "source": "https://www.npmjs.com/package/@okx_ai/okx-trade-cli"
+    },
+    {
+      "id": "binance-spot-client-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "binance-sdk-spot 11.3.0",
+      "currentStanding": "PREFLIGHT_SURFACE_ONLY_PRIVATE_READ_NOT_ADMITTED",
+      "applicability": "FUTURE_BINANCE_SPOT_USER_DATA_CLIENT_CANDIDATE",
+      "source": "https://pypi.org/project/binance-sdk-spot/"
+    },
+    {
+      "id": "binance-usdm-client-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "binance-sdk-derivatives-trading-usds-futures 17.4.0 + binance-sdk-wallet 13.4.0",
+      "currentStanding": "PREFLIGHT_SURFACE_ONLY_PRIVATE_USER_DATA_PENDING",
+      "applicability": "FUTURE_BINANCE_USDM_USER_DATA_CLIENT_CANDIDATE",
+      "source": "https://pypi.org/project/binance-sdk-derivatives-trading-usds-futures/"
+    },
+    {
+      "id": "monitoring-schema-validation-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "Pandera 0.33.1",
+      "currentStanding": "LOCAL_BOUNDED_VALIDATOR_PREFERRED",
+      "applicability": "FUTURE_MULTI_SCHEMA_OR_COMPLEX_DATAFRAME_VALIDATION_CANDIDATE",
+      "source": "https://pandera.readthedocs.io/"
+    },
+    {
+      "id": "experiment-tracking-candidate",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
+      "owner": "MLflow 3.16.1",
+      "currentStanding": "DEFERRED_NO_ACTIVE_EXPERIMENT_TRACKING_SEARCH_SERVER_OR_REGISTRY_CONTRACT",
+      "applicability": "FUTURE_EXPERIMENT_TRACKING_SEARCH_REGISTRY_CANDIDATE",
+      "source": "https://mlflow.org/"
+    },
+    {
+      "id": "parquet-materialization",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "PyArrow 25.0.1 / Apache Parquet",
+      "currentStanding": "ADMITTED_FOR_TYPED_COLUMNAR_MATERIALIZATION",
+      "applicability": "PARQUET_SCHEMA_AND_FILE_MATERIALIZATION_ONLY",
+      "source": "https://arrow.apache.org/"
+    },
+    {
+      "id": "independent-parquet-readback",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "DuckDB 1.5.5",
+      "currentStanding": "ADMITTED_FOR_INDEPENDENT_PARQUET_READBACK_AND_BOUNDED_ANALYTICAL_ASSERTIONS",
+      "applicability": "INDEPENDENT_ANALYTICAL_READBACK_ONLY",
+      "source": "https://duckdb.org/"
+    },
+    {
+      "id": "json-schema-validation",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "jsonschema 4.26.0",
+      "currentStanding": "ADMITTED_FOR_JSON_SCHEMA_DRAFT_2020_12_VALIDATION",
+      "applicability": "PORTFOLIO_RISK_BUDGET_AND_QUANTITATIVE_COMPONENT_INVENTORY_SCHEMA_VALIDATION_ONLY",
+      "source": "https://python-jsonschema.readthedocs.io/"
+    },
+    {
+      "id": "numerical-array-primitives",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "NumPy 2.5.3",
+      "currentStanding": "ADMITTED_FOR_ARRAY_VARIANCE_QUANTILE_CORRELATION_AND_VECTOR_ARITHMETIC",
+      "applicability": "NUMERICAL_PRIMITIVES_ONLY_NOT_MODEL_GOVERNANCE_OR_DECISION_AUTHORITY",
+      "source": "https://numpy.org/"
+    },
+    {
+      "id": "statistical-primitives",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "SciPy 1.18.1",
+      "currentStanding": "ADMITTED_FOR_LINREGRESS_KS_AND_WASSERSTEIN_STATISTICAL_MECHANICS",
+      "applicability": "STATISTICAL_ESTIMATOR_TEST_DISTANCE_MECHANICS_ONLY",
+      "source": "https://scipy.org/"
+    },
+    {
+      "id": "model-estimator-validation-primitives",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "scikit-learn 1.9.1",
+      "currentStanding": "ADMITTED_FOR_LINEAR_HUBER_AND_TIME_SERIES_SPLIT_MECHANICS",
+      "applicability": "ESTIMATOR_FITTING_AND_WALK_FORWARD_SPLITTING_ONLY_NOT_MODEL_APPROVAL",
+      "source": "https://scikit-learn.org/"
     }
   ],
   "responsibilities": [
     {
       "id": "capital-accounting-binding",
       "sourcePatterns": [
-        "src/ordivon_capital/accounting/*.py"
+        "src/ordivon_capital/accounting/substrate.py",
+        "src/ordivon_capital/accounting/durable.py",
+        "src/ordivon_capital/accounting/sqlite_ledger.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "TigerBeetle"
+        "SQLite 3.53.1 via Python stdlib sqlite3 for ACID/WAL mechanics",
+        "TigerBeetle 0.17.9 as historical/future distributed challenger"
       ],
-      "localStanding": "THIN_GLUE",
-      "localResponsibility": "map admitted capital reservation/reconciliation facts to TigerBeetle mechanics; never claim settlement finality or legal ownership"
+      "localStanding": "THIN_SQLITE_SCHEMA_AND_RESERVATION_BINDING",
+      "localResponsibility": "bind bounded capital reservation/post/void/idempotency semantics onto SQLite transactions and reconcile durable local history; do not implement a database, distributed replication, settlement finality, or legal ownership",
+      "admittedMechanicsOwners": [
+        "SQLite 3.53.1 via canonical Python 3.14.7 stdlib sqlite3"
+      ],
+      "candidateMechanics": [
+        "TigerBeetle 0.17.9 for a future distributed/replicated accounting contract"
+      ]
     },
     {
       "id": "market-binance-usdm",
@@ -134,17 +319,22 @@
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "Binance official APIs and SDKs",
+        "Binance authoritative USD-M and Wallet APIs",
         "Network v2 transport"
       ],
-      "localStanding": "THIN_GLUE",
-      "localResponsibility": "qualification, normalized evidence and provider-contract checks only"
+      "localStanding": "PROVIDER_GLUE_PRIVATE_USER_DATA_NOT_ADMITTED",
+      "localResponsibility": "qualification, normalized evidence and provider-contract checks only",
+      "candidateMechanics": [
+        "binance-sdk-derivatives-trading-usds-futures 17.4.0",
+        "binance-sdk-wallet 13.4.0"
+      ],
+      "admittedMechanicsOwners": []
     },
     {
       "id": "market-crypto-runtime",
       "sourcePatterns": [
         "src/ordivon_capital/market/crypto_*.py",
-        "src/ordivon_capital/market/nautilus_qualification.py"
+        "src/ordivon_capital/market/websocket_proxy_lifecycle.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -152,28 +342,137 @@
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "NautilusTrader",
-        "venue APIs",
-        "websockets",
-        "Network v2"
+        "websockets 17.1 for WebSocket protocol/client mechanics",
+        "Network v2 for scoped proxy/failover transport mechanics",
+        "NautilusTrader for broader OMS/Risk/execution mechanics",
+        "authoritative venue APIs"
       ],
       "localStanding": "THIN_GLUE",
-      "localResponsibility": "qualification and fail-closed evidence across mature components"
+      "localResponsibility": "qualification and fail-closed evidence across mature components",
+      "admittedMechanicsOwners": [
+        "websockets 17.1 for async WebSocket handshake/framing/control-frame/proxy/TLS mechanics",
+        "Network v2 for scoped proxy/failover transport mechanics"
+      ],
+      "candidateMechanics": [
+        "NautilusTrader for broader OMS/Risk/execution mechanics"
+      ],
+      "providerOwners": [
+        "authoritative venue APIs"
+      ],
+      "websocketQualification": {
+        "version": "17.1",
+        "python": "3.14.7",
+        "thirdPartyDependencies": 0,
+        "installedFootprintBytes": 829871,
+        "stdlibEquivalentWebSocketClient": false,
+        "currentPublishedGitHubAdvisories": 0,
+        "previousLivePublicEvidence": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+        "currentLiveRerun": {
+          "standing": "PASS_AFTER_DUAL_DNS_REMEDIATION_RUNNER_FIX_AND_HARDENED_TRANSPORT_BINDING",
+          "priorFailureRootCause": "Network v2 sing-box DNS lookup failure for both venue WebSocket hosts; context deadline exceeded / EOF",
+          "connectTlsRecheck": "PASS_BOTH_VENUES",
+          "r2FreshStanding": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER",
+          "r3FreshStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+          "okxReconnectLatencyMs": 689.337647,
+          "binanceReconnectLatencyMs": 5826.394629,
+          "okxConnectionErrorCount": 0,
+          "binanceConnectionErrorCount": 0,
+          "freshEvidence": "evidence/crypto-stream-resilience-r3-20260921.json",
+          "networkV2DnsStanding": "PASS_DUAL_PROVIDER_DNS_RESPONSE_RACE_WITH_INDEPENDENT_DNS1_DNS2_FAULT_SMOKE",
+          "transportBindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02",
+          "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+          "providerEndpointsDigest": "sha256:c404749643723f4ec47143f9084c9feb20cb37ab071fcd2c2be0c5348bb16e74",
+          "okxReconnectedGeneration": 2,
+          "binanceReconnectedGeneration": 2,
+          "priorTransientBinanceReconnectLatencyMs": 19659.252283,
+          "priorTransientBinanceGeneration": 4,
+          "r2FreshEvidence": "evidence/crypto-public-shadow-r2-20260921.json",
+          "canonicalSupersessionRequalification": {
+            "firstRunStanding": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+            "firstRunDiagnosis": "upstream pre-connection callback defect plus ambient opening-handshake tail latency",
+            "postGuardFreshStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+            "postGuardOkxReconnectLatencyMs": 803.063527,
+            "postGuardBinanceReconnectLatencyMs": 5672.391249,
+            "postGuardGeneration": 2,
+            "postGuardCallbackAttributeErrors": 0,
+            "openingHandshakeSoak": {
+              "okx": "5/5",
+              "binance": "5/5",
+              "okxMaxLatencyMs": 1065.3227769944351,
+              "binanceMaxLatencyMs": 1375.0417090050178
+            },
+            "r3EvidenceCorrection": "reconnect evidence now requires CONNECTED after INJECTED_DISCONNECT and generation > injectedGeneration"
+          },
+          "r2OpeningRetryRequalification": {
+            "standing": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER",
+            "sessionDurationMs": 7404.068313,
+            "acceptedSnapshotCount": 4,
+            "allMeasuredQualified": true,
+            "samePersistentConnections": true,
+            "bindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02"
+          },
+          "liveVarianceSample": {
+            "r3Standing": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+            "okx": {
+              "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+              "reconnectLatencyMs": 20725.872155,
+              "measuredRoundCount": 3,
+              "injectedGeneration": 1,
+              "reconnectedGeneration": 4
+            },
+            "binance": {
+              "standing": "PARTIAL_PUBLIC_STREAM_RECONNECT",
+              "reconnectLatencyMs": 20058.17848,
+              "measuredRoundCount": 2,
+              "injectedGeneration": 1,
+              "reconnectedGeneration": 4
+            },
+            "callbackAttributeErrors": 0,
+            "interpretation": "live transport tail sample; retained as operational evidence, not rewritten as PASS"
+          }
+        },
+        "proxyTlsLifecycleGuard": {
+          "standing": "ADMITTED_NARROW_UPSTREAM_LIFECYCLE_GUARD",
+          "upstreamIssue": "python-websockets/websockets#1629",
+          "upstreamVersion": "17.1",
+          "scope": "HTTP proxy TLS transport loss after protocol handoff but before connection_made",
+          "mechanism": "documented create_connection subclass",
+          "implementation": "src/ordivon_capital/market/websocket_proxy_lifecycle.py",
+          "normalProtocolDelegation": true,
+          "sitePackagePatch": false,
+          "deadlineRelaxed": false,
+          "deleteWhenUpstreamFixed": true
+        },
+        "r2OpeningHandshakeOwnership": {
+          "standing": "ADMITTED_EXTERNAL_RETRY_OWNER_BEFORE_MEASUREMENT",
+          "owner": "websockets async-iterator connect API",
+          "scope": "opening failures before first established connection per venue",
+          "measurementBoundary": "after first successful connection yield, any stream loss is fatal for that R2 run",
+          "samePersistentConnectionsClaimPreserved": true,
+          "outerDeadlineSeconds": 25,
+          "customReconnectLoop": false
+        },
+        "sourceAcceptanceBoundary": {
+          "deterministicSourceAcceptance": "tests/static/contracts/owner census/language/lock/effect-policy",
+          "liveTransportQualification": "separate operational evidence; PASS or PARTIAL must be recorded as observed",
+          "liveSampleNotDeterministicSourceGate": true,
+          "deadlineRelaxationAllowed": false
+        }
+      }
     },
     {
       "id": "market-execution-policy",
       "sourcePatterns": [
-        "src/ordivon_capital/market/opa_policy.py"
+        "src/ordivon_capital/market/policy_decision.py"
       ],
       "ownerClasses": [
-        "IMPLEMENTATION_OWNER",
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "Open Policy Agent"
+        "Open Policy Agent 1.20.2 historical challenger only"
       ],
-      "localStanding": "THIN_GLUE",
-      "localResponsibility": "OPA fact-binding and fail-closed enforcement seam; live-test admission, risk-limit, and pre-trade evidence decisions are OPA-owned"
+      "localStanding": "BOUNDED_LOCAL_DETERMINISTIC_IMPLEMENTATION_PREFERRED",
+      "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
     },
     {
       "id": "market-execution-reconciliation",
@@ -184,16 +483,27 @@
       "ownerClasses": [
         "STANDARD_OWNER",
         "PROVIDER_OWNER",
-        "IMPLEMENTATION_OWNER",
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "FIX semantics",
-        "venue reality",
-        "TigerBeetle"
+        "FIX lifecycle semantics",
+        "authoritative venue reports",
+        "NautilusTrader reconciliation candidate (not currently admitted)",
+        "SQLite accounting substrate downstream of the reconciliation decision"
       ],
-      "localStanding": "THIN_GLUE",
-      "localResponsibility": "fail-closed mapping across authoritative venue state, lifecycle vocabulary and accounting resolution"
+      "localStanding": "RETAIN_BOUNDED_LOCAL_BASELINE_PENDING_EXTERNAL_ADMISSION",
+      "localResponsibility": "retain the current bounded fail-closed execution reconciliation baseline plus the cross-owner accounting-resolution seam; do not broaden it into a general OMS/recovery engine. Migrate execution-state ownership only after a current candidate passes the latest-stable language gate and the same executable fault/risk/recovery contract.",
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [
+        "NautilusTrader reconciliation"
+      ],
+      "providerOwners": [
+        "authoritative venue reports"
+      ],
+      "standardOwners": [
+        "FIX lifecycle semantics"
+      ],
+      "downstreamSubstrate": "SQLite accounting substrate after reconciliation disposition"
     },
     {
       "id": "market-provider-observation",
@@ -212,7 +522,22 @@
         "authoritative venue/account APIs"
       ],
       "localStanding": "DOMAIN_GLUE",
-      "localResponsibility": "normalize provider observations and compute explicitly registered non-model summaries; provider remains reality owner"
+      "localResponsibility": "normalize provider observations and compute explicitly registered non-model summaries; provider remains reality owner",
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [
+        "@okx_ai/okx-trade-cli 1.4.7 as differential/reference client only",
+        "binance-sdk-spot 11.3.0 for future admitted Binance Spot USER_DATA reads",
+        "binance-sdk-derivatives-trading-usds-futures 17.4.0 + binance-sdk-wallet 13.4.0 for future admitted USD-M USER_DATA reads"
+      ],
+      "providerOwners": [
+        "OKX private/account APIs",
+        "Binance account/USER_DATA APIs"
+      ],
+      "localDependencies": [
+        "LOCAL_BOUNDED_OKX_READONLY_CLIENT for the three qualified OKX provider-capability-audit GETs",
+        "provider-response normalization only"
+      ],
+      "authorityBoundary": "OKX live-trade credential audit is separate from private-Reality observer admission; config/private_reality_policy.json remains authoritative for observer admission"
     },
     {
       "id": "market-portfolio-observation-and-statistics",
@@ -228,12 +553,32 @@
         "NumPy",
         "SciPy",
         "scikit-learn",
-        "OPA for risk-limit decisions",
+        "PyPortfolioOpt candidate when a conventional optimization contract exists",
+        "Riskfolio-Lib candidate when an advanced optimization contract exists",
         "ISO 31000 reference",
         "SR 26-2 reference for model governance"
       ],
       "localStanding": "THIN_GLUE_AFTER_OWNER_AUDIT",
-      "localResponsibility": "normalize observed exposure, bind descriptive statistics/model-validation evidence, and render reports; numerical estimators are library-owned and risk-limit decisions are OPA-owned; no portfolio optimizer or autonomous sizing is implemented"
+      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted.",
+      "admittedMechanicsOwners": [
+        "NumPy 2.5.3 for vector arithmetic, sample variance, quantile, mean, correlation and array mechanics",
+        "SciPy 1.18.1 for linregress",
+        "scikit-learn 1.9.1 for LinearRegression, HuberRegressor and TimeSeriesSplit"
+      ],
+      "candidateMechanics": [
+        "PyPortfolioOpt for a future conventional portfolio-optimization contract",
+        "Riskfolio-Lib for a future advanced optimization/risk-measure contract"
+      ],
+      "standardOwners": [
+        "ISO 31000 reference",
+        "SR 26-2 model-governance reference"
+      ],
+      "primitiveOwnershipBoundary": {
+        "NumPy": "array/variance/quantile/mean/correlation mechanics",
+        "SciPy": "ordinary linear-regression summary mechanics used by dependence observation",
+        "scikit-learn": "walk-forward splitting and primary/robust estimator mechanics",
+        "Ordivon": "sample alignment, time-boundary enforcement, evidence composition, limitations, governance standing and no automatic decision"
+      }
     },
     {
       "id": "market-counterfactual-projection",
@@ -241,16 +586,23 @@
         "src/ordivon_capital/market/portfolio_counterfactuals.py"
       ],
       "ownerClasses": [
-        "ORDIVON_GLUE",
-        "IMPLEMENTATION_OWNER"
+        "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "OPA for pre-trade evidence controls",
-        "LEAN/Nautilus only when execution-pipeline portfolio/risk mechanics are required",
-        "Riskfolio-Lib only when optimization/risk-measure scope is required"
+        "LEAN or NautilusTrader if a future broader execution-pipeline contract requires them",
+        "Riskfolio-Lib if a future optimization/risk-measure contract requires it"
       ],
       "localStanding": "RETAINED_IRREDUCIBLE_READONLY_GLUE",
-      "localResponsibility": "mechanically project explicitly caller-supplied DE_RISK/HEDGE/DIVERSIFY/HOLD/RECONCILE scenarios without ranking, recommendation, optimization, execution authority, or autonomous sizing; mature optimizers/risk engines are not semantic substitutes for this read-only projection surface"
+      "localResponsibility": "mechanically project explicitly caller-supplied DE_RISK/HEDGE/DIVERSIFY/HOLD/RECONCILE scenarios without ranking, recommendation, optimization, execution authority, or autonomous sizing; mature optimizers/risk engines are not semantic substitutes for this read-only projection surface",
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [
+        "LEAN or NautilusTrader if a future broader execution-pipeline contract requires them",
+        "Riskfolio-Lib if a future optimization/risk-measure contract requires it"
+      ],
+      "localDependencies": [
+        "bounded local deterministic pre-trade policy",
+        "caller-supplied scenario facts"
+      ]
     },
     {
       "id": "research-data-and-model-governance",
@@ -272,10 +624,84 @@
         "Parquet/Arrow",
         "DuckDB",
         "NumPy/SciPy/scikit-learn",
+        "OpenBB for future standardized research-data integration",
+        "Qlib + RD-Agent for future autonomous quantitative R&D workflow",
         "OpenLineage for any future actual lineage-event surface"
       ],
-      "localStanding": "THIN_MARKET_BINDING_EXTERNAL_CONFIG_OWNER",
-      "localResponsibility": "Market-specific monitoring calculations plus evidence persistence bindings. MLflow owns tracking/backend configuration; Pandera, Parquet/Arrow and DuckDB own validation/materialization/readback mechanics. No local lineage graph, provenance database, generic Research/Data platform, or Wave-A research pipeline remains."
+      "localStanding": "THIN_MARKET_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION",
+      "localResponsibility": "retain only bounded Market evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework.",
+      "admittedMechanicsOwners": [
+        "jsonschema 4.26.0 for Draft 2020-12 schema validation",
+        "PyArrow 25.0.1 / Apache Parquet for typed columnar materialization",
+        "DuckDB 1.5.5 for independent Parquet readback",
+        "NumPy 2.5.3 / SciPy 1.18.1 / scikit-learn 1.9.1 for numerical/model primitives"
+      ],
+      "candidateMechanics": [
+        "MLflow 3.16.1 for a future actual experiment-tracking/search/registry contract",
+        "Pandera 0.33.1 for future multi-schema or materially richer dataframe validation",
+        "OpenBB for future standardized research-data integration",
+        "Qlib + RD-Agent for future autonomous quantitative R&D workflow",
+        "OpenLineage for a future actual lineage-event contract"
+      ],
+      "localDependencies": [
+        "bounded explicit monitoring-row validation",
+        "content-addressed manifest construction"
+      ]
+    },
+    {
+      "id": "market-execution-feasibility",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/execution_feasibility.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE",
+        "IMPLEMENTATION_CANDIDATE"
+      ],
+      "externalOwners": [
+        "QuantConnect LEAN 985ef30 differential-qualified reference only"
+      ],
+      "localStanding": "LOCAL_BOUNDED_US_EQUITY_SIZER_ADMITTED",
+      "localResponsibility": "size only the exact admitted empty-portfolio USD long US-equity whole-share validation contract with explicit free-portfolio buffer and frozen IB-style fee mechanics; fail closed outside that contract; do not grow a general buying-power/backtest engine"
+    },
+    {
+      "id": "market-observability-projection",
+      "sourcePatterns": [
+        "scripts/render-crypto-stream-prometheus",
+        "infra/prometheus/market-capital-crypto.rules.yml",
+        "infra/systemd/prometheus-node-exporter-market-capital.conf",
+        "infra/systemd/prometheus-node-exporter.service.d/20-market-capital-textfile.conf"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE",
+        "IMPLEMENTATION_CANDIDATE"
+      ],
+      "externalOwners": [
+        "Prometheus 3.14.0 candidate for TSDB/PromQL/rule evaluation",
+        "Prometheus text exposition format compatibility"
+      ],
+      "localStanding": "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKET_CONSUMER",
+      "localResponsibility": "project frozen Market evidence into Prometheus text format and retain rule definitions as deployable candidate configuration; do not claim active scrape, TSDB retention, PromQL evaluation, or alert delivery until a live Market-domain consumer is observed"
+    },
+    {
+      "id": "market-fix44-projection",
+      "sourcePatterns": [
+        "src/ordivon_capital/market/fix44_projection.py",
+        "scripts/run-crypto-fix-projection-r4",
+        "config/fix_order_semantics.json"
+      ],
+      "ownerClasses": [
+        "STANDARD_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "standardOwners": [
+        "FIX Trading Community FIX Latest / FIX Orchestra"
+      ],
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [
+        "QuickFIX/n 1.14.1 for any future real FIX session or broader message/dictionary contract"
+      ],
+      "localStanding": "LOCAL_BOUNDED_SESSIONLESS_TAGVALUE_PROJECTOR_PREFERRED",
+      "localResponsibility": "project only the qualified FIX 4.4 NewOrderSingle field sequence for mechanics evidence; no session, transport, BodyLength, CheckSum, resend, sequence recovery, dictionary negotiation, or broader FIX engine"
     }
   ],
   "notInstantiatedDomains": [
@@ -328,9 +754,9 @@
     {
       "id": "tigerbeetle-market-capital-stable-provider-ids",
       "surface": "market-capital:tigerbeetle:* and market-capital:nonlive-effect:* stable ID seeds",
-      "standing": "RETAINED_PROVIDER_IDEMPOTENCY_IDENTITY",
-      "owner": "TigerBeetle/provider identity continuity",
-      "reason": "changing stable provider-ID seeds changes durable idempotency/account/transfer identities and is not a namespace cleanup"
+      "standing": "HISTORICAL_EVIDENCE_IDENTITY_ONLY",
+      "owner": "historical TigerBeetle qualification evidence",
+      "reason": "old TigerBeetle-specific ID seeds remain frozen only inside historical qualification artifacts; current SQLite accounting uses provider-neutral ordivon-capital:accounting:* identities"
     },
     {
       "id": "wave-a-frozen-target-fixture",
@@ -346,5 +772,712 @@
       "owner": "Frozen Ordivon Research/Paper1 source-coordinate and retention-anchor evidence",
       "reason": "the absolute path is embedded in frozen Git-universe/source-linkage/retention-anchor records used for reproducibility and source re-entry; physical rename requires an explicit Research provenance migration or alias authority, not a filesystem cosmetic move"
     }
-  ]
+  ],
+  "comparativeQualifications": [
+    {
+      "contractId": "execution-state-reconciliation",
+      "scope": "venue order/fill/position state -> internally reconciled execution state",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/execution_reconciliation.py",
+        "sourceLoc": 168,
+        "directTestCount": 6,
+        "strength": "small exact fail-closed snapshot reconciler",
+        "limitation": "does not own startup/continuous event-sourced order/fill/position recovery"
+      },
+      "externalCandidate": {
+        "name": "NautilusTrader",
+        "versions": {
+          "2.0.0rc4": {
+            "python": "3.12.13",
+            "languageGate": "FAIL_CURRENT_PYTHON_BASELINE",
+            "effectMatrix": "PASS_NAUTILUS_NONLIVE_EFFECT_RECONCILIATION_MATRIX",
+            "frozenAtTheOpen": "BLOCKED_UNSUPPORTED_TIF",
+            "standing": "HISTORICAL_EVIDENCE_ONLY"
+          },
+          "1.231.0": {
+            "python": "3.14.7",
+            "languageGate": "PASS",
+            "apiAdaptationObserved": [
+              "import/module relocation",
+              "StrategyConfig identifier type",
+              "report surface moved to trader",
+              "cancel_order argument changed from ClientOrderId to Order"
+            ],
+            "effectMatrixObserved": {
+              "FILL": "POST_PENDING_TRANSFER",
+              "PARTIAL_FILL_SLICES": "POST_PENDING_TRANSFER",
+              "CANCEL": "VOID_PENDING_TRANSFER",
+              "DENY": "POST_PENDING_TRANSFER",
+              "UNKNOWN_AFTER_SUBMISSION": "NO_MUTATION"
+            },
+            "expectedDeny": "VOID_PENDING_TRANSFER",
+            "runtimeFailure": "AccountBalanceNegative(balance=-125150.125, currency=USDT)",
+            "standing": "FAIL_EXACT_RISK_EFFECT_CONTRACT"
+          },
+          "2.0.0rc5": {
+            "upstreamLanguageMatrix": "Python 3.12-3.14 / Rust 1.98.1",
+            "releaseStanding": "PRE_RELEASE",
+            "localExecutableQualification": "NOT_COMPLETED_DOWNLOAD_TIMEOUT",
+            "standing": "CHALLENGER_NOT_ADMITTED"
+          }
+        }
+      },
+      "evidence": {
+        "localAdvantages": [
+          "168 LOC bounded fail-closed baseline",
+          "exact reservation-safe semantics",
+          "independent read-only venue witness"
+        ],
+        "localRisks": [
+          "does not own full startup/continuous event-sourced recovery"
+        ],
+        "externalPotentialAdvantages": [
+          "broader startup/continuous reconciliation state space",
+          "order/fill/position report model",
+          "external-order and missing-event recovery"
+        ],
+        "externalBlockingEvidence": [
+          "rc4 fails latest Python baseline",
+          "stable 1.231.0 fails the exact DENY/risk-effect matrix after thin API adaptation",
+          "rc5 is pre-release and not locally executable-qualified"
+        ]
+      },
+      "standing": "NO_CURRENT_EXTERNAL_CANDIDATE_ADMITTED",
+      "codeDeletionAllowed": false,
+      "decision": "No current Nautilus version wins all gates. Retain the bounded local baseline and accounting seam. Treat future Nautilus versions as challengers; deletion remains forbidden until a latest-language stable candidate passes the same effect/risk/recovery matrix."
+    },
+    {
+      "contractId": "capital-reservation-resolution",
+      "scope": "qualified reconciliation standing -> bounded accounting reservation resolution",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/execution_reconciliation.py::reservation_resolution_for_standing",
+        "ownerRole": "cross-owner seam"
+      },
+      "externalCandidate": {
+        "name": "NautilusTrader",
+        "semanticSubstitute": false
+      },
+      "standing": "LOCAL_CROSS_OWNER_SEAM_RETAIN",
+      "codeDeletionAllowed": false,
+      "decision": "Nautilus reconciliation cannot own Ordivon capital-reservation semantics. Retain the thin NO_MUTATION / VOID_PENDING_TRANSFER / POST_PENDING_TRANSFER mapping independent of the accounting substrate."
+    },
+    {
+      "contractId": "historical-expected-shortfall",
+      "scope": "descriptive empirical one-period VaR/expected-shortfall statistic from an explicit return sequence",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/portfolio_risk.py::historical_expected_shortfall",
+        "primitiveOwner": "NumPy",
+        "character": "thin deterministic calculation"
+      },
+      "externalCandidate": {
+        "name": "Riskfolio-Lib",
+        "semanticSubstitute": "BROADER_THAN_CONTRACT",
+        "dependencySurface": "CVXPY plus solvers and broad statistics/optimization stack"
+      },
+      "standing": "LOCAL_THIN_COMPOSITION_PREFERRED",
+      "codeDeletionAllowed": false,
+      "decision": "Do not add an optimization framework merely to replace a small descriptive statistic already owned numerically by NumPy."
+    },
+    {
+      "contractId": "autonomous-portfolio-optimization",
+      "scope": "generate portfolio weights from views/objectives/constraints",
+      "localBaseline": null,
+      "externalCandidates": [
+        "PyPortfolioOpt",
+        "Riskfolio-Lib"
+      ],
+      "standing": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
+      "codeDeletionAllowed": false,
+      "decision": "Freeze the real portfolio-construction contract first. No optimizer dependency is admitted until there is an actual local requirement and a minimal baseline to compare."
+    },
+    {
+      "contractId": "broad-research-data-integration",
+      "scope": "standardized multi-provider public/research financial data access",
+      "localBaseline": null,
+      "externalCandidates": [
+        "OpenBB ODP"
+      ],
+      "standing": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
+      "codeDeletionAllowed": false,
+      "decision": "OpenBB remains a research-data candidate. It is not a substitute for private account/order/execution truth and is not integrated merely because its provider surface is broad."
+    },
+    {
+      "contractId": "autonomous-quant-rd-workflow",
+      "scope": "hypothesis -> factor/model experiment -> evaluation -> iteration",
+      "localBaseline": null,
+      "externalCandidates": [
+        "Microsoft Qlib",
+        "Microsoft RD-Agent"
+      ],
+      "standing": "REJECTED_CURRENT_LANGUAGE_BASELINE",
+      "codeDeletionAllowed": false,
+      "decision": "Neither Qlib nor RD-Agent currently supplies sufficient Python 3.14 qualification evidence, so neither enters the adopted set. A local port competes as a local implementation.",
+      "languageGate": {
+        "pythonRequired": "3.14.7",
+        "Qlib": {
+          "declaredClassifiersThrough": "3.12",
+          "standing": "FAIL"
+        },
+        "RD-Agent": {
+          "declaredTestedRange": "3.10-3.11",
+          "standing": "FAIL"
+        }
+      }
+    },
+    {
+      "contractId": "bounded-market-policy-decision",
+      "scope": "execution-lane admission + live-test account admission + named risk-budget statuses + pre-trade evidence gate statuses",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/policy_decision.py",
+        "runtime": "Python 3.14.7",
+        "character": "direct deterministic bounded rules; no generic policy framework"
+      },
+      "externalCandidate": {
+        "name": "Open Policy Agent",
+        "version": "1.20.2",
+        "integration": "local subprocess per decision against repository-local Rego",
+        "historicalPolicy": "tools/opa_1_20_2/market_controls.rego"
+      },
+      "evidence": {
+        "differentialCases": 354,
+        "differentialMismatches": 0,
+        "representativeOpaSubprocessMs": 19.2322338,
+        "representativeLocalBooleanRuleMicroseconds": 0.14393566,
+        "independentAuthorityBoundary": false,
+        "candidateAdvantages": [
+          "mature general-purpose policy language and ecosystem",
+          "useful future option for distributed/cross-process policy authority"
+        ],
+        "candidateDisadvantages": [
+          "current exact contract is small deterministic local state",
+          "current integration shells out to a local binary for each decision",
+          "no independent policy distribution or remote authority boundary exists"
+        ]
+      },
+      "standing": "LOCAL_DETERMINISTIC_POLICY_PREFERRED",
+      "externalOwnerAdmitted": false,
+      "decision": "Remove OPA from the current core policy decision path. Retain OPA 1.20.2 Rego only as historical differential evidence and a future challenger if the contract grows into a true independent policy-distribution boundary."
+    },
+    {
+      "contractId": "bounded-capital-accounting-substrate",
+      "scope": "single-host mechanical accounting: atomic funding, no-overdraft scarcity, pending reservation, post/void, exact idempotent replay, intact database restart",
+      "localBaseline": {
+        "primitiveOwner": "SQLite",
+        "primitiveVersion": "3.53.1 bundled with canonical Python 3.14.7",
+        "implementation": [
+          "src/ordivon_capital/accounting/substrate.py",
+          "src/ordivon_capital/accounting/sqlite_ledger.py",
+          "src/ordivon_capital/accounting/durable.py"
+        ],
+        "temporaryMinimalBaselineSourceLines": 175,
+        "productionBindingSourceLines": 744
+      },
+      "externalCandidate": {
+        "name": "TigerBeetle",
+        "version": "0.17.9",
+        "latestStableObserved": true,
+        "python3147ClientQualification": "PASS",
+        "historicalTools": "tools/tigerbeetle_0_17_9/"
+      },
+      "evidence": {
+        "tigerBeetleSmoke": [
+          "PASS_EPHEMERAL_MECHANICAL_ONLY",
+          "PASS_RESERVATION_RESOLUTION_MECHANICAL_COMPOSITION",
+          "PASS_DURABLE_RESTART_RECONCILIATION"
+        ],
+        "sqliteBaseline": "PASS_SQLITE_BOUNDED_LEDGER_BASELINE",
+        "sqliteRestartSmoke": "PASS_SQLITE_DURABLE_RESTART_RECONCILIATION",
+        "randomizedDifferentialSteps": 400,
+        "randomizedStatusMismatches": 0,
+        "randomizedBalanceMismatches": 0,
+        "sqliteExtraFault": "transaction rollback fault passed",
+        "tigerBeetleAdvantages": [
+          "distributed replication and cluster recovery design",
+          "purpose-built high-throughput financial transaction engine",
+          "larger production state space for multi-node accounting"
+        ],
+        "currentContractDoesNotRequire": [
+          "distributed replication",
+          "multi-host consensus",
+          "high-throughput OLTP",
+          "cluster recovery"
+        ]
+      },
+      "standing": "SQLITE_COMPOSITION_PREFERRED_FOR_CURRENT_BOUNDED_CONTRACT",
+      "tigerBeetleOwnerAdmitted": false,
+      "decision": "Use SQLite WAL/FULL as the mature ACID primitive for the current single-host bounded accounting contract. Keep TigerBeetle 0.17.9 as a challenger for a future contract that actually requires replication, cluster recovery, or high-throughput transaction mechanics."
+    },
+    {
+      "contractId": "bounded-us-equity-execution-feasibility",
+      "scope": "empty USD portfolio; positive long US equities; one-share lot; explicit free-portfolio reserve; default LEAN IB-style equity fee mechanics",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/execution_feasibility.py",
+        "runtime": "Python 3.14.7",
+        "character": "small deterministic fee-aware sizing function with explicit fail-closed scope"
+      },
+      "externalCandidate": {
+        "name": "QuantConnect LEAN",
+        "commit": "985ef30",
+        "sourceDate": "2026-09-18",
+        "dotnetSdk": "10.0.401",
+        "dotnetRuntime": "10.0.12"
+      },
+      "evidence": {
+        "latestBuild": "PASS",
+        "latestFunctionalLanes": {
+          "M1": "PASS_BOUNDED_HISTORICAL_FIXTURE",
+          "M2": "PASS_BOUNDED_FEASIBILITY",
+          "M3": "PASS_BOUNDED_PROVIDER_ORIGIN_DATA_NON_CAUSAL",
+          "M4": "PASS_BOUNDED_FIX44_ORDER_SEMANTICS",
+          "M6": "SHADOW_ORDER_PRECOMMIT_FROZEN"
+        },
+        "naiveLocalDifferential": {
+          "symbolComparisons": 57,
+          "mismatches": 1
+        },
+        "feeAwareLocalDifferential": {
+          "symbolComparisons": 57,
+          "mismatches": 0
+        },
+        "feeAwareMechanism": "free-portfolio buffer + whole-share truncation + iterative default US-equity InteractiveBrokersFeeModel commission adjustment",
+        "supplyChain": {
+          "standing": "BLOCKED_KNOWN_CRITICAL_HIGH_NUGET_ADVISORIES",
+          "warningLines": 112,
+          "critical": [
+            "System.Drawing.Common 4.7.0 / GHSA-rxg9-xrhp-64gj"
+          ],
+          "high": [
+            "System.Net.Http.WinHttpHandler 4.4.0 / GHSA-6xh7-4v2w-36q6",
+            "System.Private.ServiceModel 4.4.0 / GHSA-jc8g-xhw5-6x46",
+            "System.ServiceModel.Primitives 4.4.0 / GHSA-jc8g-xhw5-6x46"
+          ]
+        }
+      },
+      "standing": "LOCAL_BOUNDED_SIZER_PREFERRED_LEAN_NOT_CORE_ADMITTED",
+      "leanOwnerAdmitted": false,
+      "decision": "Use the local bounded sizer for the exact current feasibility contract. Preserve LEAN as an isolated historical/general trading-engine challenger; do not use it as a canonical core gate while its latest candidate fails the supply-chain qualification."
+    },
+    {
+      "contractId": "market-observability-consumer",
+      "scope": "Market Capital metric scrape, time-series retention, PromQL evaluation, and three crypto safety alert rules",
+      "localBaseline": {
+        "implementation": "scripts/render-crypto-stream-prometheus",
+        "standing": "STATIC_TEXT_PROJECTION_ONLY",
+        "activeTimeSeriesConsumer": false
+      },
+      "externalCandidate": {
+        "name": "Prometheus",
+        "version": "3.14.0",
+        "latestStableObserved": true
+      },
+      "runtimeEvidence": {
+        "networkV2Prometheus": {
+          "listen": "127.0.0.1:29090",
+          "active": true,
+          "marketDomainTargetPresent": false,
+          "loadedRuleGroups": 0,
+          "marketMetricQuerySeries": 0
+        },
+        "sharedPrometheus": {
+          "configuredListen": "127.0.0.1:29091",
+          "active": false
+        },
+        "nodeExporter": {
+          "packageVersion": "1.12.1",
+          "configuredListen": "127.0.0.1:29100",
+          "active": false,
+          "marketTextfilePresent": true
+        },
+        "marketRules": {
+          "configured": 3,
+          "promtoolValidation": "PASS",
+          "activelyLoaded": false
+        }
+      },
+      "standing": "NO_ACTIVE_MARKET_DOMAIN_IMPLEMENTATION_OWNER",
+      "prometheusOwnerAdmitted": false,
+      "decision": "Do not treat Prometheus as a current Market-domain owner. Keep the renderer and validated rules as deployable compatibility/candidate artifacts. Re-open owner qualification if a Market-domain scrape/TSDB/rule-evaluation contract is actually activated."
+    },
+    {
+      "contractId": "bounded-sessionless-fix44-new-order-single-projection",
+      "scope": "sessionless deterministic FIX 4.4 NewOrderSingle TagValue projection for mechanics-only evidence; no network session and no complete wire framing",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/fix44_projection.py",
+        "runtime": "Python 3.14.7",
+        "character": "small deterministic 14-tag projector with explicit fail-closed scope"
+      },
+      "externalCandidate": {
+        "name": "QuickFIX/n",
+        "version": "1.14.1",
+        "targetFramework": "net10.0",
+        "knownVulnerablePackages": "NONE_REPORTED_BY_DOTNET_LIST_PACKAGE_2026_09_21",
+        "assemblySurfaceBytes": 3543136,
+        "transitiveAbstractions": [
+          "Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2",
+          "Microsoft.Extensions.Logging.Abstractions 8.0.3"
+        ]
+      },
+      "evidence": {
+        "cases": 120,
+        "byteExactMatches": 120,
+        "mismatches": 0,
+        "dimensions": [
+          "BUY/SELL",
+          "DAY/GTC/IOC",
+          "decimal scale",
+          "symbols",
+          "destinations",
+          "sequence numbers",
+          "sub-second timestamps"
+        ],
+        "quickfixSessionlessToStringOmitsBodyLengthAndChecksum": true
+      },
+      "standing": "LOCAL_BOUNDED_PROJECTOR_PREFERRED_QUICKFIX_ORACLE_ONLY",
+      "quickfixOwnerAdmitted": false,
+      "decision": "Keep FIX Trading Community semantics as the standard owner. Use the local bounded projector for the exact current sessionless projection contract; retain QuickFIX/n 1.14.1 only as a differential oracle and as the preferred candidate if a real FIX session/broader message engine becomes active."
+    },
+    {
+      "contractId": "public-async-websocket-protocol-client",
+      "scope": "public OKX/Binance WebSocket client handshake, TLS via proxy, RFC framing/control frames, async receive, close, ping/pong, and bounded message size",
+      "localBaseline": {
+        "standing": "NO_CREDIBLE_CONTRACT_EQUIVALENT_STDLIB_BASELINE",
+        "reason": "Python 3.14 stdlib has asyncio/TLS/HTTP primitives but no WebSocket client; a local substitute would need to implement protocol framing/masking/control frames/handshake/proxy integration and would enlarge the trusted protocol surface"
+      },
+      "externalCandidate": {
+        "name": "websockets",
+        "version": "17.1",
+        "pythonRequires": ">=3.11",
+        "python314Supported": true,
+        "thirdPartyDependencies": 0,
+        "installedFootprintBytes": 829871,
+        "securityPolicy": "LATEST_VERSION_ONLY",
+        "publishedGitHubAdvisoriesObserved": 0
+      },
+      "evidence": {
+        "directImportSites": [
+          "src/ordivon_capital/market/crypto_public_streaming.py",
+          "src/ordivon_capital/market/crypto_stream_resilience.py"
+        ],
+        "configuredMechanics": [
+          "explicit proxy",
+          "open timeout",
+          "Ping/Pong interval and timeout",
+          "close timeout",
+          "1 MiB max message",
+          "async iteration"
+        ],
+        "historicalLiveReconnectEvidence": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+        "currentRerun": "HISTORICAL_FAILURE: simultaneous venue failures were traced to the former single-provider-DNS Network v2 path; superseded by dual-provider DNS response-race remediation and hardened-binding fresh recovery evidence.",
+        "currentFreshRecovery": {
+          "standing": "PASS_HARDENED_TRANSPORT_BOUND",
+          "failureAttribution": "original simultaneous failure traced to Network v2 single-provider-DNS path; dual-provider DNS race is now live and fault-qualified",
+          "r2": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER",
+          "r3": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+          "okxReconnectLatencyMs": 689.337647,
+          "binanceReconnectLatencyMs": 5826.394629,
+          "runnerFixes": [
+            "canonical run-capability-python module execution",
+            "always-run-both-venues aggregation",
+            "per-venue return/error retention"
+          ],
+          "transportBindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02",
+          "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+          "okxReconnectedGeneration": 2,
+          "binanceReconnectedGeneration": 2,
+          "okxConnectionErrorCount": 0,
+          "binanceConnectionErrorCount": 0,
+          "priorTransientBinanceReconnectLatencyMs": 19659.252283,
+          "priorTransientBinanceGeneration": 4
+        },
+        "proxyTlsLifecycleGuard": {
+          "standing": "ADMITTED_NARROW_UPSTREAM_LIFECYCLE_GUARD",
+          "upstreamIssue": "python-websockets/websockets#1629",
+          "upstreamVersion": "17.1",
+          "scope": "HTTP proxy TLS transport loss after protocol handoff but before connection_made",
+          "mechanism": "documented create_connection subclass",
+          "implementation": "src/ordivon_capital/market/websocket_proxy_lifecycle.py",
+          "normalProtocolDelegation": true,
+          "sitePackagePatch": false,
+          "deadlineRelaxed": false,
+          "deleteWhenUpstreamFixed": true
+        },
+        "canonicalSupersessionRequalification": {
+          "firstRunStanding": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+          "firstRunDiagnosis": "upstream pre-connection callback defect plus ambient opening-handshake tail latency",
+          "postGuardFreshStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+          "postGuardOkxReconnectLatencyMs": 803.063527,
+          "postGuardBinanceReconnectLatencyMs": 5672.391249,
+          "postGuardGeneration": 2,
+          "postGuardCallbackAttributeErrors": 0,
+          "openingHandshakeSoak": {
+            "okx": "5/5",
+            "binance": "5/5",
+            "okxMaxLatencyMs": 1065.3227769944351,
+            "binanceMaxLatencyMs": 1375.0417090050178
+          },
+          "r3EvidenceCorrection": "reconnect evidence now requires CONNECTED after INJECTED_DISCONNECT and generation > injectedGeneration"
+        },
+        "r2OpeningHandshakeOwnership": {
+          "standing": "ADMITTED_EXTERNAL_RETRY_OWNER_BEFORE_MEASUREMENT",
+          "owner": "websockets async-iterator connect API",
+          "scope": "opening failures before first established connection per venue",
+          "measurementBoundary": "after first successful connection yield, any stream loss is fatal for that R2 run",
+          "samePersistentConnectionsClaimPreserved": true,
+          "outerDeadlineSeconds": 25,
+          "customReconnectLoop": false
+        },
+        "sourceAcceptanceBoundary": {
+          "deterministicSourceAcceptance": "tests/static/contracts/owner census/language/lock/effect-policy",
+          "liveTransportQualification": "separate operational evidence; PASS or PARTIAL must be recorded as observed",
+          "liveSampleNotDeterministicSourceGate": true,
+          "deadlineRelaxationAllowed": false
+        },
+        "liveVarianceSample": {
+          "r3Standing": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+          "okx": {
+            "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+            "reconnectLatencyMs": 20725.872155,
+            "measuredRoundCount": 3,
+            "injectedGeneration": 1,
+            "reconnectedGeneration": 4
+          },
+          "binance": {
+            "standing": "PARTIAL_PUBLIC_STREAM_RECONNECT",
+            "reconnectLatencyMs": 20058.17848,
+            "measuredRoundCount": 2,
+            "injectedGeneration": 1,
+            "reconnectedGeneration": 4
+          },
+          "callbackAttributeErrors": 0,
+          "interpretation": "live transport tail sample; retained as operational evidence, not rewritten as PASS"
+        }
+      },
+      "standing": "WEBSOCKETS_17_1_RETAIN_AS_NARROW_PROTOCOL_MECHANICS_OWNER_FRESH_R2_R3_PASS",
+      "externalOwnerAdmitted": true,
+      "decision": "Retain websockets 17.1 for WebSocket protocol/client mechanics. Ordivon owns venue-payload normalization, health/reconnect policy, and evidence only. Network v2 remains the transport-route owner. Requalify on major websockets API change or if a credible smaller protocol-complete baseline appears."
+    },
+    {
+      "contractId": "okx-bounded-authenticated-read-client",
+      "scope": "authenticated GET-only OKX account config, trading-account balance, and open Spot orders through exact Network v2 proxy authority",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/okx_readonly_client.py",
+        "runtime": "Python 3.14.7 stdlib only",
+        "allowedMethods": [
+          "GET"
+        ],
+        "allowedEndpointCount": 3,
+        "writeMethodsImplemented": false,
+        "transportRetry": {
+          "attempts": 3,
+          "backoffSeconds": 0.25,
+          "scope": "GET-only transient transport failures",
+          "httpErrorsRetried": false,
+          "providerRejectionsRetried": false
+        }
+      },
+      "externalCandidate": {
+        "name": "@okx_ai/okx-trade-cli",
+        "version": "1.4.7",
+        "license": "MIT",
+        "nodeRequires": ">=18",
+        "directDependencies": [
+          "undici ^6.0.0",
+          "yauzl ^3.2.1"
+        ],
+        "packageFootprintApprox": "2.5 MB package directory",
+        "npmAuditVulnerabilities": 0,
+        "broaderWriteSurfacePresent": true
+      },
+      "evidence": {
+        "signingDifferential": {
+          "cases": 120,
+          "mismatches": 0
+        },
+        "liveStructuralDifferential": {
+          "methods": 3,
+          "mismatches": 0,
+          "accountConfigRows": [
+            1,
+            1
+          ],
+          "balanceRows": [
+            1,
+            1
+          ],
+          "openOrderRows": [
+            0,
+            0
+          ],
+          "permissionsMatch": true,
+          "fieldSetsMatch": true
+        },
+        "sensitiveValuesDisclosed": false,
+        "externalFinancialWriteAttempted": false
+      },
+      "standing": "LOCAL_GET_ONLY_CLIENT_PREFERRED_OKX_CLI_REFERENCE_ONLY",
+      "externalOwnerAdmitted": false,
+      "decision": "Keep OKX APIs as authoritative provider truth. Use the stdlib local GET-only client for the exact provider-capability audit read contract because it matches signing and live structural facts while making client-side write methods structurally absent. The exercised credential still has provider Trade permission, so this qualification does not admit it as the canonical private-Reality observer. The dedicated observer lane remains pending fresh provider-permission verification.",
+      "authorityLane": "PROVIDER_CAPABILITY_AUDIT_NOT_PRIVATE_REALITY_ADMISSION",
+      "credentialClass": "ORDER_CAPABLE_LIVE_PROVIDER_CREDENTIAL",
+      "privateRealityAdmissionGranted": false
+    },
+    {
+      "contractId": "binance-spot-private-read-client",
+      "scope": "future Binance Spot USER_DATA account/order/fill reads",
+      "localBaseline": null,
+      "externalCandidates": [
+        "binance-sdk-spot 11.3.0"
+      ],
+      "standing": "NO_ACTIVE_PRIVATE_READ_CONTRACT_NO_OWNER",
+      "codeDeletionAllowed": false,
+      "decision": "The official SDK remains a preflight candidate. Method-surface existence does not create implementation ownership while private account data admission remains NOT_ADMITTED."
+    },
+    {
+      "contractId": "binance-usdm-private-read-client",
+      "scope": "future Binance USD-M USER_DATA account/position/order/trade/risk reads plus Wallet permission truth",
+      "localBaseline": null,
+      "externalCandidates": [
+        "binance-sdk-derivatives-trading-usds-futures 17.4.0",
+        "binance-sdk-wallet 13.4.0"
+      ],
+      "standing": "PRIVATE_USER_DATA_PENDING_NO_IMPLEMENTATION_OWNER",
+      "codeDeletionAllowed": false,
+      "decision": "Official SDKs remain current-language candidates only. Freeze and admit the private-read contract before any implementation owner is selected."
+    },
+    {
+      "contractId": "bounded-monitoring-row-validation",
+      "scope": "one fixed 11-field flattened model-monitoring row schema with numeric coercion and four bounded non-negativity/range constraints",
+      "localBaseline": {
+        "implementation": "src/ordivon_capital/market/monitoring_persistence.py::monitoring_rows",
+        "runtime": "Python 3.14.7 stdlib",
+        "character": "explicit bounded validation only"
+      },
+      "externalCandidate": {
+        "name": "Pandera",
+        "version": "0.33.1",
+        "historicalRole": "single DataFrameSchema"
+      },
+      "evidence": {
+        "randomizedDifferentialCases": 400,
+        "panderaAccepted": 320,
+        "localAccepted": 320,
+        "mismatches": 0
+      },
+      "standing": "LOCAL_BOUNDED_VALIDATOR_PREFERRED",
+      "externalOwnerAdmitted": false,
+      "decision": "Use the local bounded validator for the single current schema. Reconsider Pandera if multiple evolving schemas, dataframe-wide reusable contracts, lazy error aggregation, or materially richer validation becomes active."
+    },
+    {
+      "contractId": "market-experiment-tracking",
+      "scope": "run search, experiment comparison, tracking server, registry, UI, or durable experiment identity",
+      "localBaseline": null,
+      "externalCandidates": [
+        "MLflow 3.16.1"
+      ],
+      "standing": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
+      "codeDeletionAllowed": true,
+      "decision": "Historical MLflow run evidence remains historical. The current Market domain has no MLflow server/UI/search/registry consumer, so MLflow is not a current implementation owner or dependency."
+    },
+    {
+      "contractId": "typed-parquet-materialization",
+      "scope": "materialize the validated monitoring table to typed Apache Parquet",
+      "localBaseline": {
+        "standing": "NO_CREDIBLE_LOCAL_FORMAT_IMPLEMENTATION",
+        "reason": "hand-implementing Parquet encoding/schema metadata would enlarge the trusted binary-format surface without a current benefit"
+      },
+      "externalCandidate": {
+        "name": "PyArrow",
+        "version": "25.0.1"
+      },
+      "evidence": {
+        "canonicalReadback": "DuckDB 1.5.5 independently reads emitted Parquet",
+        "r1PrimitiveWitness": "PASS_PARQUET_DUCKDB_PRIMITIVE_READBACK"
+      },
+      "standing": "PYARROW_RETAIN_AS_PARQUET_MATERIALIZATION_OWNER",
+      "externalOwnerAdmitted": true
+    },
+    {
+      "contractId": "independent-parquet-readback",
+      "scope": "independently read Parquet and execute bounded row-count/min/max analytical assertions outside PyArrow",
+      "localBaseline": {
+        "standing": "NO_CREDIBLE_LOCAL_SQL_PARQUET_ENGINE_BASELINE",
+        "reason": "a local Parquet/SQL engine would duplicate a mature independent implementation"
+      },
+      "externalCandidate": {
+        "name": "DuckDB",
+        "version": "1.5.5"
+      },
+      "standing": "DUCKDB_RETAIN_AS_INDEPENDENT_READBACK_OWNER",
+      "externalOwnerAdmitted": true
+    },
+    {
+      "contractId": "json-schema-draft-2020-12-validation",
+      "scope": "validate the active portfolio-risk-budget and quantitative-component-inventory documents against their Draft 2020-12 schemas",
+      "localBaseline": {
+        "standing": "NO_CREDIBLE_LOCAL_SCHEMA_ENGINE_BASELINE",
+        "reason": "active schemas use strict objects, required properties, enums/const, patterns/min lengths, conditional if/then, allOf, and not; hand-implementing these semantics would create a second partial JSON Schema engine"
+      },
+      "externalCandidate": {
+        "name": "jsonschema",
+        "version": "4.26.0",
+        "installedFootprintBytes": 476711,
+        "activeSchemas": 2
+      },
+      "standing": "JSONSCHEMA_RETAIN_AS_DRAFT202012_VALIDATION_OWNER",
+      "externalOwnerAdmitted": true
+    },
+    {
+      "contractId": "market-numerical-array-primitives",
+      "scope": "array conversion, differences, variance, quantile, mean, absolute value, correlation, and vectorized residual arithmetic used by bounded risk/model monitoring",
+      "localBaseline": {
+        "standing": "NO_NET_ADVANTAGE_TO_LOCAL_REIMPLEMENTATION",
+        "reason": "NumPy is already required by SciPy/scikit-learn and owns the shared ndarray/numerical substrate; replacing individual primitives would not remove the dependency and would duplicate semantics"
+      },
+      "externalCandidate": {
+        "name": "NumPy",
+        "version": "2.5.3",
+        "releaseDate": "2026-09-06"
+      },
+      "standing": "NUMPY_RETAIN_AS_NUMERICAL_PRIMITIVE_OWNER",
+      "externalOwnerAdmitted": true
+    },
+    {
+      "contractId": "market-statistical-primitives",
+      "scope": "linear regression summaries, two-sample KS statistics/p-values, and Wasserstein distances",
+      "localBaseline": {
+        "standing": "NO_CONTRACT_EQUIVALENT_SMALL_BASELINE",
+        "reason": "closed-form fragments could reproduce isolated values, but a contract-equivalent replacement would need stable edge-case semantics for regression, KS exact/approximate behavior, and Wasserstein distances while SciPy remains a dependency of scikit-learn"
+      },
+      "externalCandidate": {
+        "name": "SciPy",
+        "version": "1.18.1",
+        "releaseDate": "2026-08-21"
+      },
+      "standing": "SCIPY_RETAIN_AS_STATISTICAL_PRIMITIVE_OWNER",
+      "externalOwnerAdmitted": true
+    },
+    {
+      "contractId": "market-model-estimator-and-walk-forward-primitives",
+      "scope": "LinearRegression, HuberRegressor robust challenger, and TimeSeriesSplit walk-forward mechanics",
+      "localBaseline": {
+        "standing": "NO_CREDIBLE_COMPLETE_LOCAL_BASELINE",
+        "reason": "ordinary least squares alone is small, but robust Huber optimization plus split/gap semantics is the active contract; reimplementing only OLS would not substitute the external owner"
+      },
+      "externalCandidate": {
+        "name": "scikit-learn",
+        "version": "1.9.1",
+        "releaseDate": "2026-09-10",
+        "python314Wheel": true,
+        "pypiProvenanceAttested": true
+      },
+      "standing": "SCIKIT_LEARN_RETAIN_AS_ESTIMATOR_VALIDATION_OWNER",
+      "externalOwnerAdmitted": true,
+      "decision": "Retain scikit-learn for estimator/split mechanics. Ordivon continues to own sample chronology, model-use restrictions, evidence interpretation, and governance; estimator availability does not grant model approval or trading authority."
+    }
+  ],
+  "languageAdmissionPolicy": {
+    "standing": "HARD_GATE",
+    "baseline": "config/language_baseline.json",
+    "rule": "External candidates that cannot execute and pass qualification on the latest stable language baseline are not admitted, regardless of maturity, popularity, feature breadth, or historical qualification on older runtimes."
+  }
 }

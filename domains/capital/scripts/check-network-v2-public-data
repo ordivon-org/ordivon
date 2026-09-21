@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import hashlib,json,subprocess,sys
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -16,6 +21,53 @@ def main()->int:
     for unit in (cfg['serviceUnit'],cfg['targetUnit']):
         p=subprocess.run(['/usr/bin/systemctl','is-active','--quiet',unit],check=False)
         if p.returncode!=0: raise RuntimeError(f'Network v2 unit inactive: {unit}')
+    readiness=Path(cfg['readinessCommand'])
+    if not readiness.is_file() or not os.access(readiness,os.X_OK):
+        raise RuntimeError(f'Network v2 readiness owner unavailable: {readiness}')
+
+    transport_spec=cfg['transportConfig']
+    transport_path=Path(transport_spec['file'])
+    if not transport_path.is_file():
+        raise RuntimeError(f'missing Network v2 transport config: {transport_path}')
+    transport_digest=sha(transport_path)
+    if transport_digest!=transport_spec['digest']:
+        raise RuntimeError(
+            f'transport config digest drift: {transport_digest}'
+        )
+    transport=json.loads(transport_path.read_text())
+    observed_dns=[
+        {
+            'tag':server.get('tag'),
+            'server':server.get('server'),
+            'serverPort':server.get('server_port'),
+            'detour':server.get('detour'),
+        }
+        for server in (transport.get('dns') or {}).get('servers',[])
+    ]
+    if observed_dns!=transport_spec['requiredDnsServers']:
+        raise RuntimeError(f'transport DNS server drift: {observed_dns!r}')
+    dns_rules=(transport.get('dns') or {}).get('rules',[])
+    expected_race=[
+        {'action':'evaluate','server':'provider-dns-1','tag':'provider-dns-1-eval'},
+        {'match_response':'provider-dns-1-eval','ip_accept_any':True,'action':'respond','race':True},
+        {'action':'evaluate','server':'provider-dns-2','tag':'provider-dns-2-eval','speculative':True},
+        {'match_response':'provider-dns-2-eval','ip_accept_any':True,'action':'respond','race':True},
+    ]
+    if transport_spec.get('requiredDnsResponseRace') is not True or dns_rules!=expected_race:
+        raise RuntimeError('transport DNS response-race drift')
+    route_rules=(transport.get('route') or {}).get('rules',[])
+    if not route_rules or route_rules[0].get('action')!='resolve' or 'server' in route_rules[0]:
+        raise RuntimeError('transport route resolve no longer enters DNS race engine')
+
+    endpoints_spec=cfg['providerEndpoints']
+    endpoints_path=Path(endpoints_spec['file'])
+    if not endpoints_path.is_file():
+        raise RuntimeError(f'missing protected provider endpoints: {endpoints_path}')
+    endpoints_digest=sha(endpoints_path)
+    if endpoints_digest!=endpoints_spec['digest']:
+        raise RuntimeError(
+            f'provider endpoints digest drift: {endpoints_digest}'
+        )
     bindings={}
     for name,spec in cfg['authorities'].items():
         path=Path(spec['file'])
@@ -29,7 +81,31 @@ def main()->int:
         if a.get('directFallback') is not False or a.get('serviceUnit')!=cfg['serviceUnit'] or a.get('targetUnit')!=cfg['targetUnit']:
             raise RuntimeError(f'authority fail-closed/service binding drift: {name}')
         bindings[name]={'authorityFile':str(path),'authorityDigest':actual,**expected}
-    body={'schemaVersion':1,'kind':'ordivon.capital.market.network-v2-public-data-binding','providerSelection':cfg['providerSelection'],'directFallback':False,'publicReadOnly':True,'authorities':bindings,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+    body={
+        'schemaVersion':1,
+        'kind':'ordivon.capital.market.network-v2-public-data-binding',
+        'providerSelection':cfg['providerSelection'],
+        'readinessCommand':str(readiness),
+        'directFallback':False,
+        'publicReadOnly':True,
+        'transportConfig':{
+            'file':str(transport_path),
+            'digest':transport_digest,
+            'dnsResponseRace':'DUAL_PROVIDER_RESPONSE_RACE',
+        },
+        'providerEndpoints':{
+            'file':str(endpoints_path),
+            'digest':endpoints_digest,
+            'sensitive':True,
+            'contentDisclosed':False,
+        },
+        'authorities':bindings,
+        'brokerCredentialsUsed':False,
+        'privateAccountDataUsed':False,
+        'externalFinancialWritesAttempted':False,
+        'demoExecutionAttempted':False,
+        'liveExecutionAttempted':False,
+    }
     canonical=json.dumps(body,sort_keys=True,separators=(',',':')).encode(); body['bindingDigest']='sha256:'+hashlib.sha256(canonical).hexdigest()
     print(json.dumps(body,sort_keys=True))
     return 0

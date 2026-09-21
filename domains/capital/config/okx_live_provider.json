@@ -24,13 +24,6 @@
     "serviceUnit": "network-v2-finance-egress.service",
     "targetUnit": "network-v2-finance.target"
   },
-  "officialClient": {
-    "baseUrl": "https://openapi.okx.com",
-    "binary": "/root/external/okx-trade-cli/1.4.7/node_modules/.bin/okx",
-    "home": "/root/.config/ordivon/okx-live-home",
-    "name": "@okx_ai/okx-trade-cli",
-    "version": "1.4.7"
-  },
   "orderSubmissionAllowed": false,
   "profile": "okx-live-trade",
   "providerTradeCapabilityMayBeBound": true,
@@ -43,10 +36,58 @@
     "read_only",
     "trade"
   ],
-  "rule": "current provider Trade capability is an observed provider fact; it does not mint OPA external-write policy or authorize order submission",
+  "rule": "this live-trade credential may be used only for bounded GET-only provider-capability auditing; local client write methods are absent, but the credential's provider Trade permission means this lane is not the canonical private-Reality observer and grants no order/effect authority",
   "schemaVersion": 1,
   "standing": "BOUND_REQUIRES_FRESH_PROVIDER_PROBE",
   "transferAllowed": false,
   "venue": "OKX",
-  "withdrawalAllowed": false
+  "withdrawalAllowed": false,
+  "providerApiAuthority": {
+    "owner": "OKX",
+    "baseUrl": "https://openapi.okx.com",
+    "truthClass": "AUTHORITATIVE_PRIVATE_ACCOUNT_AND_ORDER_REALITY"
+  },
+  "readClient": {
+    "name": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
+    "runtime": "Python 3.14.7 stdlib",
+    "source": "src/ordivon_capital/market/okx_readonly_client.py",
+    "timeoutSeconds": 15,
+    "allowedMethods": [
+      "GET"
+    ],
+    "allowedPaths": [
+      "/api/v5/account/config",
+      "/api/v5/account/balance",
+      "/api/v5/trade/orders-pending?instType=SPOT"
+    ],
+    "writeMethodsImplemented": false,
+    "transportAttempts": 3,
+    "retryBackoffSeconds": 0.25,
+    "retryPolicy": "TRANSIENT_TRANSPORT_ONLY_GET_IDEMPOTENT; HTTP/provider rejection is not retried"
+  },
+  "externalReferenceClient": {
+    "name": "@okx_ai/okx-trade-cli",
+    "version": "1.4.7",
+    "binary": "/root/external/okx-trade-cli/1.4.7/node_modules/.bin/okx",
+    "home": "/root/.config/ordivon/okx-live-home",
+    "standing": "DIFFERENTIAL_REFERENCE_NOT_CANONICAL_READ_RUNTIME",
+    "signingDifferential": {
+      "cases": 120,
+      "mismatches": 0
+    },
+    "liveStructuralDifferential": {
+      "methods": 3,
+      "mismatches": 0
+    },
+    "npmAuditVulnerabilities": 0
+  },
+  "credentialClass": "ORDER_CAPABLE_LIVE_PROVIDER_CREDENTIAL",
+  "providerCapabilityAuditOnly": true,
+  "privateRealityAdmissionGranted": false,
+  "privateRealityObserverLane": {
+    "policy": "config/private_reality_policy.json",
+    "credentialBinding": "/root/.config/ordivon/secrets/okx/observer/config.toml",
+    "standing": "PENDING_FRESH_PROVIDER_PERMISSION_VERIFICATION",
+    "currentDataAdmission": "NOT_ADMITTED"
+  }
 }

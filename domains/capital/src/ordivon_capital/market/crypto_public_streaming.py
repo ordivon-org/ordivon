@@ -11,6 +11,10 @@ from typing import Any
 
 from websockets.asyncio.client import connect
 
+from ordivon_capital.market.websocket_proxy_lifecycle import (
+    NetworkV2ProxyClientConnection,
+)
+
 OKX_URL = "wss://ws.okx.com:8443/ws/v5/public"
 BINANCE_URL = "wss://data-stream.binance.vision/stream?streams=btcusdt@ticker/ethusdt@ticker"
 
@@ -85,58 +89,107 @@ def evaluate_snapshot(
     }
 
 
+class EstablishedPublicStreamLost(RuntimeError):
+    pass
+
+
 async def _okx_reader(queue: asyncio.Queue[tuple[str, dict[str, Any]]], proxy: str) -> None:
-    async with connect(OKX_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
-        await ws.send(json.dumps({
-            "id": "mcr2",
-            "op": "subscribe",
-            "args": [
-                {"channel": "bbo-tbt", "instId": "BTC-USDT"},
-                {"channel": "bbo-tbt", "instId": "ETH-USDT"},
-            ],
-        }, separators=(",", ":")))
-        async for raw in ws:
-            if not isinstance(raw, str):
-                continue
-            obj = json.loads(raw)
-            if obj.get("event") == "error":
-                raise RuntimeError(f"OKX public stream error: {obj}")
-            if "data" not in obj or obj.get("arg", {}).get("channel") != "bbo-tbt":
-                continue
-            inst = obj["arg"].get("instId")
-            asset = "BTC" if inst == "BTC-USDT" else "ETH" if inst == "ETH-USDT" else None
-            if asset is None:
-                continue
-            row = obj["data"][0]
-            if not row.get("bids") or not row.get("asks") or not row.get("ts"):
-                continue
-            event = {
-                "venue": "OKX", "asset": asset,
-                "bid": row["bids"][0][0], "ask": row["asks"][0][0],
-                "sourceTimeMs": int(row["ts"]),
-                "recvWallNs": time.time_ns(), "recvMonoNs": time.monotonic_ns(),
-            }
-            await queue.put((f"OKX:{asset}", event))
+    async for ws in connect(
+        OKX_URL,
+        proxy=proxy,
+        open_timeout=10,
+        ping_interval=20,
+        ping_timeout=20,
+        close_timeout=5,
+        max_size=2**20,
+        create_connection=NetworkV2ProxyClientConnection,
+    ):
+        try:
+            await ws.send(
+                json.dumps(
+                    {
+                        "id": "mcr2",
+                        "op": "subscribe",
+                        "args": [
+                            {"channel": "bbo-tbt", "instId": "BTC-USDT"},
+                            {"channel": "bbo-tbt", "instId": "ETH-USDT"},
+                        ],
+                    },
+                    separators=(",", ":"),
+                )
+            )
+            async for raw in ws:
+                if not isinstance(raw, str):
+                    continue
+                obj = json.loads(raw)
+                if obj.get("event") == "error":
+                    raise RuntimeError(f"OKX public stream error: {obj}")
+                if "data" not in obj or obj.get("arg", {}).get("channel") != "bbo-tbt":
+                    continue
+                inst = obj["arg"].get("instId")
+                asset = "BTC" if inst == "BTC-USDT" else "ETH" if inst == "ETH-USDT" else None
+                if asset is None:
+                    continue
+                row = obj["data"][0]
+                if not row.get("bids") or not row.get("asks") or not row.get("ts"):
+                    continue
+                event = {
+                    "venue": "OKX",
+                    "asset": asset,
+                    "bid": row["bids"][0][0],
+                    "ask": row["asks"][0][0],
+                    "sourceTimeMs": int(row["ts"]),
+                    "recvWallNs": time.time_ns(),
+                    "recvMonoNs": time.monotonic_ns(),
+                }
+                await queue.put((f"OKX:{asset}", event))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            raise EstablishedPublicStreamLost(
+                f"OKX established public stream lost: {type(exc).__name__}: {exc}"
+            ) from exc
+        raise EstablishedPublicStreamLost("OKX established public stream ended")
 
 
 async def _binance_reader(queue: asyncio.Queue[tuple[str, dict[str, Any]]], proxy: str) -> None:
-    async with connect(BINANCE_URL, proxy=proxy, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=5, max_size=2**20) as ws:
-        async for raw in ws:
-            if not isinstance(raw, str):
-                continue
-            obj = json.loads(raw)
-            row = obj.get("data", obj)
-            symbol = row.get("s")
-            asset = "BTC" if symbol == "BTCUSDT" else "ETH" if symbol == "ETHUSDT" else None
-            if asset is None or not row.get("b") or not row.get("a") or not row.get("E"):
-                continue
-            event = {
-                "venue": "BINANCE", "asset": asset,
-                "bid": row["b"], "ask": row["a"],
-                "sourceTimeMs": int(row["E"]),
-                "recvWallNs": time.time_ns(), "recvMonoNs": time.monotonic_ns(),
-            }
-            await queue.put((f"BINANCE:{asset}", event))
+    async for ws in connect(
+        BINANCE_URL,
+        proxy=proxy,
+        open_timeout=10,
+        ping_interval=20,
+        ping_timeout=20,
+        close_timeout=5,
+        max_size=2**20,
+        create_connection=NetworkV2ProxyClientConnection,
+    ):
+        try:
+            async for raw in ws:
+                if not isinstance(raw, str):
+                    continue
+                obj = json.loads(raw)
+                row = obj.get("data", obj)
+                symbol = row.get("s")
+                asset = "BTC" if symbol == "BTCUSDT" else "ETH" if symbol == "ETHUSDT" else None
+                if asset is None or not row.get("b") or not row.get("a") or not row.get("E"):
+                    continue
+                event = {
+                    "venue": "BINANCE",
+                    "asset": asset,
+                    "bid": row["b"],
+                    "ask": row["a"],
+                    "sourceTimeMs": int(row["E"]),
+                    "recvWallNs": time.time_ns(),
+                    "recvMonoNs": time.monotonic_ns(),
+                }
+                await queue.put((f"BINANCE:{asset}", event))
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            raise EstablishedPublicStreamLost(
+                f"Binance established public stream lost: {type(exc).__name__}: {exc}"
+            ) from exc
+        raise EstablishedPublicStreamLost("Binance established public stream ended")
 
 
 async def capture_streaming(rounds: int = 3, warmup_rounds: int = 1, deadline_seconds: float = 25.0) -> dict[str, Any]:
@@ -164,7 +217,17 @@ async def capture_streaming(rounds: int = 3, warmup_rounds: int = 1, deadline_se
                     exc = task.exception()
                     if exc is not None:
                         raise exc
-            key, event = await asyncio.wait_for(queue.get(), timeout=min(remaining, 5.0))
+            try:
+                key, event = await asyncio.wait_for(
+                    queue.get(), timeout=min(remaining, 5.0)
+                )
+            except TimeoutError:
+                for task in tasks:
+                    if task.done():
+                        exc = task.exception()
+                        if exc is not None:
+                            raise exc
+                continue
             latest[key] = event
             candidate = evaluate_snapshot(latest, previous)
             if candidate.get("qualified"):

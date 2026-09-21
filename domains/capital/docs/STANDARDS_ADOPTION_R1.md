@@ -1,5 +1,7 @@
 # Market Capital Standards Adoption R1
 
+> **Superseded implementation-owner note — 2026-09-21:** this document records an earlier adoption stage. Current Market-domain ownership is governed by config/external_owner_census.json and docs/IMPLEMENTATION_OWNER_REQUALIFICATION_20260921.md. In particular, MLflow/Pandera/pandas are no longer current runtime dependencies, QuickFIX/n is a differential oracle rather than the canonical projector, and current OKX authenticated reads use the bounded local GET-only client. Historical evidence below is preserved rather than rewritten.
+
 Date: 2026-09-19
 Status: SUPERSEDED BY STANDARDS_ADOPTION_R3
 

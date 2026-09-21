@@ -5,8 +5,8 @@
       "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
       "nonResponsibility": "does not grant account/product eligibility, TradFi agreement acceptance, live execution authority, investment suitability or external-write admission",
       "package": "binance-sdk-derivatives-trading-usds-futures",
-      "provider": "Binance Official USDⓈ-M Futures Python SDK",
-      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USDⓈ-M Futures",
+      "provider": "Binance Official USD\u24c8-M Futures Python SDK",
+      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USD\u24c8-M Futures",
       "version": "17.4.0"
     },
     "binanceWallet": {
@@ -19,32 +19,34 @@
       "version": "13.4.0"
     },
     "capitalAccounting": {
-      "binary": "/usr/local/bin/tigerbeetle",
-      "clientInterpreter": "/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python",
-      "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, or OPA external-write policy",
-      "provider": "TigerBeetle",
-      "requiredPythonModules": [
-        "tigerbeetle"
-      ],
-      "responsibility": "double-entry accounting conservation, atomic transfer mechanics and provider transfer identity only",
-      "version": "0.17.9"
+      "provider": "SQLite via Python stdlib sqlite3",
+      "interpreter": "./.venv/bin/python",
+      "pythonVersion": "3.14.7",
+      "sqliteVersion": "3.53.1",
+      "responsibility": "bounded single-host atomic accounting, reservation/post/void, idempotency and restart durability",
+      "nonResponsibility": "does not establish settlement finality, legal ownership, deployability, venue execution truth, external-write admission, distributed replication or consensus"
     },
     "research": {
       "dependencyGroup": "research",
       "duckdbBinary": "/opt/ordivon/external/duckdb/1.5.5-1/duckdb",
       "duckdbVersion": "1.5.5",
       "interpreter": "./.venv/bin/python",
-      "nonResponsibility": "does not implement a generic Research/Data platform, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
-      "provider": "Upstream MLflow/Pandera/Pandas/PyArrow/jsonschema libraries consumed directly by the Market domain",
+      "nonResponsibility": "does not implement a generic Research/Data platform, experiment-tracking server, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
+      "provider": "PyArrow / DuckDB / jsonschema / NumPy / SciPy / scikit-learn primitives consumed directly by the Market domain",
       "pythonVersion": "3.14.7",
       "requiredPythonModules": [
         "jsonschema",
-        "mlflow",
-        "pandas",
-        "pandera",
-        "pyarrow"
+        "numpy",
+        "pyarrow",
+        "scikit-learn",
+        "scipy"
       ],
-      "responsibility": "Market monitoring-evidence validation/materialization/tracking plus quantitative-inventory schema validation; MLflow tracking backend selection is caller/environment-owned"
+      "responsibility": "bounded monitoring-evidence validation/materialization/readback plus quantitative-inventory schema validation and admitted numerical/model primitives",
+      "removedBroadDependencies": {
+        "mlflow": "NO_ACTIVE_EXPERIMENT_TRACKING_CONTRACT",
+        "pandera": "SINGLE_BOUNDED_SCHEMA_REPLACED_AFTER_400_CASE_ZERO_MISMATCH_DIFFERENTIAL",
+        "pandas": "NO_REMAINING_DIRECT_CONSUMER"
+      }
     }
   },
   "kind": "ordivon.capital.capability-dependencies",
