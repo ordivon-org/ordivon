@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-architecture-ablation",
+  "observedDate": "2026-09-21",
+  "provider": {
+    "providerId": "laya-local",
+    "packageVersion": "0.3.4",
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c"
+  },
+  "task": "synthetic browser-style target selection with exactly one candidate labelled Apply Now",
+  "listwiseOneSequence": {
+    "description": "all candidates rendered as one dynamic choice set in a single Laya sequence",
+    "defaultConfig": [
+      {
+        "k": 20,
+        "accuracy": 0.3636
+      },
+      {
+        "k": 50,
+        "accuracy": 0.0
+      },
+      {
+        "k": 77,
+        "accuracy": 0.2632
+      },
+      {
+        "k": 100,
+        "accuracy": 0.0588
+      },
+      {
+        "k": 200,
+        "standing": "ERROR"
+      }
+    ],
+    "expandedBudget": [
+      {
+        "k": 20,
+        "accuracy": 0.6364
+      },
+      {
+        "k": 50,
+        "accuracy": 0.3333
+      },
+      {
+        "k": 77,
+        "accuracy": 0.0
+      },
+      {
+        "k": 100,
+        "accuracy": 0.0667
+      },
+      {
+        "k": 150,
+        "accuracy": 0.0
+      },
+      {
+        "k": 200,
+        "accuracy": 0.0714
+      }
+    ]
+  },
+  "independentBinaryScoring": {
+    "description": "one binary noul sequence per candidate, batched per decision; final candidate chosen by maximum true probability",
+    "results": [
+      {
+        "k": 20,
+        "accuracy": 1.0,
+        "medianLatencyMs": 59.843
+      },
+      {
+        "k": 50,
+        "accuracy": 1.0,
+        "medianLatencyMs": 145.93
+      },
+      {
+        "k": 77,
+        "accuracy": 1.0,
+        "medianLatencyMs": 235.295
+      },
+      {
+        "k": 100,
+        "accuracy": 0.8889,
+        "medianLatencyMs": 302.055
+      },
+      {
+        "k": 150,
+        "accuracy": 0.9,
+        "medianLatencyMs": 469.433
+      },
+      {
+        "k": 200,
+        "accuracy": 1.0,
+        "medianLatencyMs": 628.181
+      }
+    ]
+  },
+  "interpretation": [
+    "the same checkpoint recovers high-cardinality synthetic target selection when candidates are scored independently",
+    "the dominant observed failure is therefore strongly associated with listwise option representation/shared sequence budget rather than a simple lack of semantic recognition",
+    "independent scoring removes the hard head_max_len cardinality ceiling and largely removes observed fixed-position attractors",
+    "independent scoring introduces approximately linear latency in candidate count",
+    "mature retrieve-then-rerank architectures are the primary next candidate because they preserve independent candidate scoring while reducing expensive scorer calls"
+  ],
+  "nonClaims": [
+    "representative_browser_population",
+    "production_browser_success",
+    "pairwise_laya_is_calibrated",
+    "pairwise_laya_outperforms_jev",
+    "cross_encoder_equivalence"
+  ]
+}
