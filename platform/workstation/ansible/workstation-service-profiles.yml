@@ -9,6 +9,7 @@
       - loki.service
       - vector.service
       - ordivon-grafana.service
+      - ordivon-tempo.service
     default_cold_observability_services:
       - netdata.service
       - loki.service
@@ -16,6 +17,7 @@
       - prometheus.service
       - prometheus-node-exporter.service
       - ordivon-gatus.service
+      - ordivon-tempo.service
   tasks:
     - name: Install heavy observability profile target
       ansible.builtin.copy:

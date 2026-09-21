@@ -1,0 +1,32 @@
+{
+  "finalClosureEligible": false,
+  "hostWriterLabelAuthenticated": false,
+  "kind": "ordivon.e02-authenticated-principal-boundary",
+  "modules": {
+    "I01": "PASS",
+    "I02": "PASS",
+    "I03": "PASS",
+    "I04": "PENDING_LIVE_TRACE_ACCEPTANCE"
+  },
+  "observedAt": "2026-09-21",
+  "ownerMachineCredentialReceivesUserPrincipal": false,
+  "ownerResultSpanAttributes": [
+    "ordivon.operation_ref",
+    "ordivon.owner_id",
+    "ordivon.native_id",
+    "ordivon.task_id"
+  ],
+  "principal": {
+    "source": "verified Cloudflare Access JWT issuer+subject",
+    "spanAttributes": [
+      "enduser.id",
+      "ordivon.auth.issuer",
+      "ordivon.gateway.auth.principal",
+      "ordivon.gateway.auth.issuer"
+    ],
+    "stableProjection": "principal:cf-access:<sha256>",
+    "toolArgumentsTrusted": false
+  },
+  "schemaVersion": 2,
+  "truthRole": "authenticated-ingress-attribution-not-owner-authorization"
+}

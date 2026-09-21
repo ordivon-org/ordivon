@@ -1,7 +1,9 @@
 # Ordivon Composition Architecture Contract R1
 
 Date: 2026-09-21  
-Status: FROZEN FOR IMPLEMENTATION
+Status: CURRENT ARCHITECTURE CONTRACT / DEPLOYED BASELINE
+
+Current deployed topology is projected in `CURRENT_ARCHITECTURE.md` and `deployed-architecture-r1.json`. This contract defines the durable composition laws; deployed-state claims must follow the current projection rather than historical execution plans.
 
 ## System of interest
 
@@ -92,6 +94,15 @@ No third portable Ordivon component type is added locally. Selected Skills may b
 ## Skill rule
 
 Canonical project Skills remain under standard `.agents/skills`. Project visibility is scoped. The remote Skills MCP is compatibility projection only and may be retired per consumer when native Skill consumption is available.
+
+## Router distinction
+
+The **Method Router** and **Capability Router** are distinct by design:
+
+- Method Router is the Agent Skill at `meta/next/.agents/skills/method-router/SKILL.md`; it advises **how** to approach a problem and owns no execution authority.
+- Capability Router is the Gateway static projection at `services/gateway/src/ordivon_gateway/routes.py`; it selects **which natural owner** serves an already-named capability and owns no method/planning semantics.
+
+Current Gateway routes cover Linux/Windows execution, external continuity, and Runtime Artifact reads. Harness remains an independent owner and is not currently a Gateway-routed capability.
 
 ## Gateway admission rule
 

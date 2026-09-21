@@ -61,6 +61,13 @@ def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
     assert len(tool.output_schema["oneOf"]) == 2
 
 
+def test_gateway_server_registers_sdk_open_telemetry_middleware() -> None:
+    from mcp.server._otel import OpenTelemetryMiddleware
+
+    server = build_server(GatewayService(FakeOwnerCaller()))
+    assert any(isinstance(item, OpenTelemetryMiddleware) for item in server.middleware)
+
+
 def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
     caller = FakeOwnerCaller()
     service = GatewayService(caller)

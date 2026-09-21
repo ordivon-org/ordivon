@@ -5,6 +5,8 @@ deleteDatasources:
     orgId: 1
   - name: Loki
     orgId: 1
+  - name: Tempo
+    orgId: 1
 
 datasources:
   - name: Prometheus
@@ -30,3 +32,14 @@ datasources:
     jsonData:
       timeout: 60
       maxLines: 1000
+
+  - name: Tempo
+    uid: operations-tempo
+    type: tempo
+    access: proxy
+    orgId: 1
+    url: http://127.0.0.1:3200
+    isDefault: false
+    editable: false
+    jsonData:
+      httpMethod: GET

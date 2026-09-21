@@ -1,0 +1,3 @@
+# Optional caller-owned Harness lifecycle projection.
+# This dependency is intentionally not part of the ordivon-harness semantic core.
+opentelemetry-api==1.44.0
