@@ -54,12 +54,28 @@ fi
 
 ORIGINAL_RECEIPT="$RECEIPT_DIR/$ID.md"
 ORIGINAL_MAP="$RECEIPT_DIR/$ID.commit-map"
-UPDATE_RECEIPT="$RECEIPT_DIR/$ID.update.md"
-UPDATE_MAP="$RECEIPT_DIR/$ID.update.commit-map"
+LEGACY_UPDATE_RECEIPT="$RECEIPT_DIR/$ID.update.md"
+LEGACY_UPDATE_MAP="$RECEIPT_DIR/$ID.update.commit-map"
 test -f "$ORIGINAL_RECEIPT" || {
   echo "original import receipt is required: $ORIGINAL_RECEIPT" >&2
   exit 69
 }
+
+# Preserve the historical first-update filename for compatibility. Every later
+# update is content-addressed by the exact accepted source revision so receipt
+# identity is deterministic, append-only, and independent of update counters.
+if [ ! -e "$LEGACY_UPDATE_RECEIPT" ] && [ ! -e "$LEGACY_UPDATE_MAP" ]; then
+  UPDATE_RECEIPT="$LEGACY_UPDATE_RECEIPT"
+  UPDATE_MAP="$LEGACY_UPDATE_MAP"
+else
+  test -f "$LEGACY_UPDATE_RECEIPT" && test -f "$LEGACY_UPDATE_MAP" || {
+    echo "legacy update receipt/map pair is incomplete for $ID" >&2
+    exit 69
+  }
+  UPDATE_RECEIPT="$RECEIPT_DIR/$ID.update-$REVISION.md"
+  UPDATE_MAP="$RECEIPT_DIR/$ID.update-$REVISION.commit-map"
+fi
+
 test ! -e "$UPDATE_RECEIPT" || {
   echo "update receipt already exists: $UPDATE_RECEIPT" >&2
   exit 69
@@ -68,16 +84,20 @@ test ! -e "$UPDATE_MAP" || {
   echo "update commit map already exists: $UPDATE_MAP" >&2
   exit 69
 }
+
 ORIGINAL_RECEIPT_SHA="$(sha256sum "$ORIGINAL_RECEIPT" | awk '{print $1}')"
 if [ -f "$ORIGINAL_MAP" ]; then
   ORIGINAL_MAP_SHA="$(sha256sum "$ORIGINAL_MAP" | awk '{print $1}')"
 else
   ORIGINAL_MAP_SHA=""
 fi
+PRIOR_UPDATE_MANIFEST="$(mktemp /root/ordivon-migration-tmp/update-prior-receipts.XXXXXX)"
+find "$RECEIPT_DIR" -maxdepth 1 -type f   \( -name "$ID.update*.md" -o -name "$ID.update*.commit-map" \)   -print0 | sort -z | xargs -0 -r sha256sum >"$PRIOR_UPDATE_MANIFEST"
 
 cleanup() {
   git -C "$TARGET_ROOT" update-ref -d "$TEMP_REF" >/dev/null 2>&1 || true
   if [ -n "$INDEX_FILE" ]; then rm -f "$INDEX_FILE"; fi
+  if [ -n "$PRIOR_UPDATE_MANIFEST" ]; then rm -f "$PRIOR_UPDATE_MANIFEST"; fi
 }
 trap cleanup EXIT
 
@@ -146,6 +166,11 @@ test "$(sha256sum "$ORIGINAL_RECEIPT" | awk '{print $1}')" = "$ORIGINAL_RECEIPT_
 if [ -n "$ORIGINAL_MAP_SHA" ]; then
   test "$(sha256sum "$ORIGINAL_MAP" | awk '{print $1}')" = "$ORIGINAL_MAP_SHA"
 fi
+
+CURRENT_PRIOR_UPDATE_MANIFEST="$(mktemp /root/ordivon-migration-tmp/update-prior-receipts-current.XXXXXX)"
+find "$RECEIPT_DIR" -maxdepth 1 -type f   \( -name "$ID.update*.md" -o -name "$ID.update*.commit-map" \)   ! -path "$UPDATE_RECEIPT" ! -path "$UPDATE_MAP"   -print0 | sort -z | xargs -0 -r sha256sum >"$CURRENT_PRIOR_UPDATE_MANIFEST"
+cmp "$PRIOR_UPDATE_MANIFEST" "$CURRENT_PRIOR_UPDATE_MANIFEST"
+rm -f "$CURRENT_PRIOR_UPDATE_MANIFEST"
 
 cleanup
 trap - EXIT
