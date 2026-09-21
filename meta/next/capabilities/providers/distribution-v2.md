@@ -1,9 +1,10 @@
 # Provider: Distribution v2
 
-- Source: `/root/projects/ordivon-distribution-v2`
-- Observed revision: `03ccc562160b`
+- Source: /root/projects/ordivon/capabilities/distribution
+- Current owner path revision: 6cf76a49140d8d928dd4bb73904d38fa6819dac2
+- Historical standalone observation revision: 03ccc562160b
 - Role: provider distribution/effect execution and readback capability provider
-- Migration mode: metadata registration plus reusable rules
+- Migration mode: canonical monorepo owner; standalone Distribution-v2 identity retained only as historical/recovery provenance
 
 ## Current capability standing
 

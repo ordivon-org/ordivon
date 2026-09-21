@@ -3,6 +3,8 @@
 Last census: 2026-09-13
 Standing: **READY_FOR_REAL_WORK**
 
+Current source owner: /root/projects/ordivon/capabilities/distribution
+
 ## Outcome scope
 
 Deliver an exact intended artifact/payload to an exact destination/provider/account and obtain authoritative evidence about the external result.
