@@ -24,6 +24,7 @@ The independent consumer authorities are:
 - Binance USD-M REST: `127.0.0.1:19287` → exactly `fapi.binance.com:443`.
 - OKX public WS: `127.0.0.1:19288` → exactly `ws.okx.com:8443`.
 - Binance USD-M public WS: `127.0.0.1:19289` → exactly `fstream.binance.com:443`.
+- Binance Wallet/API REST: `127.0.0.1:19290` → exactly `api.binance.com:443`.
 
 `127.0.0.1:19299` is sing-box's local observation API, not a consumer data authority. Every consumer inbound has an exact inbound + domain + port route. The final route rule rejects everything else. There is no native/direct fallback.
 
@@ -36,3 +37,9 @@ This is separate from provider A/B endpoint fault injection: provider-path redun
 The composition root is `network-v2-finance.target`; it owns only `network-v2-finance-egress.service`. `provider-endpoints.json` is protected deployment material and is deliberately not stored in Git.
 
 Historical R5/R6/R7 namespace/`wg-quick` evidence remains under `history/`; it is evidence, not current desired state.
+
+## Lifecycle and readiness
+
+`network-v2-finance.target` is the persistent composition root and is enabled at materialization so the Finance transport returns after host/WSL boot without an operator-issued start. Process state is not treated as data readiness. `/usr/local/libexec/network-v2/finance-ready` performs a bounded consequence probe through the exact admitted loopback authorities and fails closed; it never falls back to direct Internet access and never loads broker credentials.
+
+Canonical convergence is `task consumer:finance:converge`: materialize exact provider/consumer bytes, enable the target, restart the composition root onto those exact installed bytes, then prove OKX REST, Binance USD-M REST, Binance Spot public REST, and Binance Wallet/API REST readiness. Venue outage and provider convergence remain distinguishable from a running sing-box process.

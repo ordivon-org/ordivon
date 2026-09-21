@@ -85,6 +85,14 @@ probe_binance_spot_rest() {
   rm -f "$out"
 }
 
+probe_binance_wallet_rest() {
+  local out
+  out=$(mktemp)
+  curl -4 -sS --proxy http://127.0.0.1:19290 --connect-timeout 3 --max-time 12 https://api.binance.com/api/v3/time -o "$out"
+  jq -e '(.serverTime|type)=="number"' "$out" >/dev/null
+  rm -f "$out"
+}
+
 probe_ws_http() {
   local port=$1 url=$2 codes=$3 code
   code=$(curl -4 -sS --proxy "http://127.0.0.1:$port" --connect-timeout 3 --max-time 10 -o /dev/null -w '%{http_code}' "$url")
@@ -165,6 +173,9 @@ blocked 19288 https://fstream.binance.com/
 blocked 19288 https://data-stream.binance.vision/
 blocked 19289 https://ws.okx.com:8443/ws/v5/public
 blocked 19289 https://data-stream.binance.vision/
+blocked 19290 https://openapi.okx.com/api/v5/public/time
+blocked 19290 https://fapi.binance.com/fapi/v1/time
+blocked 19287 https://api.binance.com/api/v3/time
 blocked 19283 https://example.com/
 
 # Mature fault injection: drop only provider B's WireGuard UDP endpoint; A must carry every authority.
@@ -190,6 +201,7 @@ expect_target_failure 19285 https://data-stream.binance.vision/
 expect_target_failure 19287 https://fapi.binance.com/fapi/v1/time
 expect_target_failure 19288 https://ws.okx.com:8443/ws/v5/public
 expect_target_failure 19289 https://fstream.binance.com/
+expect_target_failure 19290 https://api.binance.com/api/v3/time
 
 # Restore mature data plane and prove root-process lifecycle recovery.
 fault_reset
@@ -207,6 +219,6 @@ if [ "$CONTROL_PLANE_AFTER" != "$CONTROL_PLANE_BEFORE" ]; then
   exit 1
 fi
 
-echo finance-network-v2-six-authority-fencing=PASS
+echo finance-network-v2-seven-authority-fencing=PASS
 echo finance-network-v2-singbox-endpoint-failclosed=PASS
 echo finance-network-v2-single-process-lifecycle=PASS

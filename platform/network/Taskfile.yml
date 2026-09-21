@@ -17,10 +17,13 @@ tasks:
   consumer:finance:validate:
     desc: Validate the sing-box-native Finance venue policy without changing live authority
     cmds:
-      - jq -e '.inbounds|length==6' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.inbounds|length==7' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-auto")' consumers/finance/config/egress.json >/dev/null
       - jq -e '.outbounds==[{"type":"urltest","tag":"provider-auto","outbounds":["provider-b","provider-a"],"url":"https://1.1.1.1/cdn-cgi/trace","interval":"3s","tolerance":65535,"idle_timeout":"10m","interrupt_exist_connections":true}]' consumers/finance/config/egress.json >/dev/null
       - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns-1","server":"162.252.172.57","server_port":53,"detour":"provider-auto"},{"type":"udp","tag":"provider-dns-2","server":"149.154.159.92","server_port":53,"detour":"provider-auto"}] and .dns.rules==[{"action":"evaluate","server":"provider-dns-1","tag":"provider-dns-1-eval"},{"match_response":"provider-dns-1-eval","ip_accept_any":true,"action":"respond","race":true},{"action":"evaluate","server":"provider-dns-2","tag":"provider-dns-2-eval","speculative":true},{"match_response":"provider-dns-2-eval","ip_accept_any":true,"action":"respond","race":true}] and .route.rules[0]=={"action":"resolve","strategy":"ipv4_only","timeout":"5s"}' consumers/finance/config/egress.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - test -f consumers/finance/config/binance-wallet-rest-authority.json
+      - /usr/bin/bash -n consumers/finance/ready.sh
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
 
   all:validate:
@@ -218,7 +221,7 @@ tasks:
         done <"$manifest"
 
   consumer:finance:materialize:
-    desc: Materialize one sing-box-native Finance provider graph and six venue authorities without starting or cutting over consumers
+    desc: Materialize one sing-box-native Finance provider graph and seven venue authorities without starting or cutting over consumers
     deps: [consumer:finance:validate]
     cmds:
       - install -d -m 0755 /etc/network-v2/finance
@@ -254,16 +257,30 @@ tasks:
         install -o root -g sing-box -m 0640 "$ep_tmp" /etc/network-v2/finance/provider-endpoints.json
       - for: { var: FINANCE_SYSTEMD_UNITS }
         cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
+      - install -d -m 0755 /usr/local/libexec/network-v2
+      - install -m 0755 consumers/finance/ready.sh /usr/local/libexec/network-v2/finance-ready
       - systemctl daemon-reload
-      - systemctl disable network-v2-finance.target >/dev/null 2>&1 || true
+      - systemctl enable network-v2-finance.target
 
   consumer:finance:start:
     desc: Start the materialized shared Finance topology; caller owns serialized production cutover
     cmds:
       - systemctl start network-v2-finance.target
 
+  consumer:finance:ready:
+    desc: Wait for bounded read-only venue consequence readiness through the admitted Finance authorities
+    cmds:
+      - /usr/local/libexec/network-v2/finance-ready all 30
+
+  consumer:finance:converge:
+    desc: Materialize, enable, restart onto exact installed bytes, and prove the shared Finance topology without external financial writes
+    cmds:
+      - task: consumer:finance:materialize
+      - systemctl restart network-v2-finance.target
+      - task: consumer:finance:ready
+
   consumer:finance:verify:
-    desc: Destructively prove all six authorities, fencing, provider A/B survival, DNS-server survival, all-down fail-closed, recovery and root-process restart
+    desc: Destructively prove all seven authorities, fencing, provider A/B survival, DNS-server survival, all-down fail-closed, recovery and root-process restart
     cmds:
       - ./consumers/finance/acceptance/production-smoke.sh
       - ./consumers/finance/acceptance/dns-race-smoke.sh
