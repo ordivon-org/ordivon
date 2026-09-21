@@ -1506,7 +1506,7 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                 "UNMANAGED_OBSERVED",
             )
             policy = result["providerBoundaryPolicy"]
-            self.assertEqual(policy["policyVersion"], "provider-boundary-r1")
+            self.assertEqual(policy["policyVersion"], "provider-boundary-r2")
             self.assertEqual(
                 policy["neutralAttributionReference"],
                 {
@@ -2021,9 +2021,18 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
                     "mutate-network-authority",
                 ):
                     self.assertIn(action, diagnosis["forbiddenAutomaticInfrastructureRepairs"])
-                if standing in {"CHALLENGE_GATED", "AUTH_REQUIRED"}:
+                if standing == "AUTH_REQUIRED":
                     self.assertTrue(diagnosis["humanVerificationEligible"])
-                    self.assertIn("human-verification", diagnosis["allowedAutomaticActions"])
+                    self.assertEqual(diagnosis["providerAction"], "HUMAN_CONTROL_TRANSFER")
+                    self.assertIn(
+                        "authorized-human-control-transfer", diagnosis["allowedAutomaticActions"]
+                    )
+                elif standing == "CHALLENGE_GATED":
+                    self.assertFalse(diagnosis["humanVerificationEligible"])
+                    self.assertEqual(diagnosis["providerAction"], "PRE_EFFECT_HOLD")
+                    self.assertIn("hold-provider-effect", diagnosis["allowedAutomaticActions"])
+                else:
+                    self.assertFalse(diagnosis["humanVerificationEligible"])
                 target.assert_called_once()
                 binding = json.loads(
                     next(
