@@ -562,6 +562,10 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
                 "gateway_domain_exact": gateway.get("domain") == "gateway-mcp.ordivon.com",
                 "managed_oauth_enabled": oauth.get("enabled") is True,
                 "dynamic_client_registration_enabled": dcr.get("enabled") is True,
+                "chatgpt_callback_allowlist_retained": dcr.get("allowed_uris")
+                == ["https://chatgpt.com/connector/oauth/*"],
+                "localhost_callbacks_enabled": dcr.get("allow_any_on_localhost") is True,
+                "loopback_callbacks_enabled": dcr.get("allow_any_on_loopback") is True,
                 "access_token_lifetime_15m": grant.get("access_token_lifetime") == "15m",
                 "grant_session_duration_336h": grant.get("session_duration") == "336h",
                 "owner_policy_present": len(gateway.get("policies") or []) == 1,

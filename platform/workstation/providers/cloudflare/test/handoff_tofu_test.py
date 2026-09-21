@@ -201,7 +201,14 @@ class PlanSemanticGateTests(unittest.TestCase):
                                 "policies": [{"decision": "allow"}],
                                 "oauth_configuration": {
                                     "enabled": True,
-                                    "dynamic_client_registration": {"enabled": True},
+                                    "dynamic_client_registration": {
+                                        "enabled": True,
+                                        "allowed_uris": [
+                                            "https://chatgpt.com/connector/oauth/*"
+                                        ],
+                                        "allow_any_on_localhost": True,
+                                        "allow_any_on_loopback": True,
+                                    },
                                     "grant": {
                                         "access_token_lifetime": "15m",
                                         "session_duration": "336h",
@@ -252,6 +259,33 @@ class PlanSemanticGateTests(unittest.TestCase):
         semantics = controller._handoff_semantics(self._plan())
         self.assertTrue(semantics["semantic_gate"])
         self.assertEqual(semantics["details"]["unexpected_mutations"], [])
+
+    def test_semantic_gate_rejects_disabled_local_oauth_callbacks(self) -> None:
+        for field in ("allow_any_on_localhost", "allow_any_on_loopback"):
+            with self.subTest(field=field):
+                plan = self._plan()
+                gateway = plan["planned_values"]["root_module"]["resources"][1]
+                gateway["values"]["oauth_configuration"]["dynamic_client_registration"][
+                    field
+                ] = False
+                semantics = controller._handoff_semantics(plan)
+                self.assertFalse(semantics["semantic_gate"])
+                check = (
+                    "localhost_callbacks_enabled"
+                    if field == "allow_any_on_localhost"
+                    else "loopback_callbacks_enabled"
+                )
+                self.assertFalse(semantics["checks"][check])
+
+    def test_semantic_gate_rejects_lost_chatgpt_callback_allowlist(self) -> None:
+        plan = self._plan()
+        gateway = plan["planned_values"]["root_module"]["resources"][1]
+        gateway["values"]["oauth_configuration"]["dynamic_client_registration"][
+            "allowed_uris"
+        ] = []
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["chatgpt_callback_allowlist_retained"])
 
     def test_semantic_gate_rejects_lost_existing_ingress(self) -> None:
         plan = self._plan()
