@@ -35,6 +35,7 @@ try:
     from sqlite_conversation_binding import (
         ConversationBindingConflict,
         SQLiteConversationBindingStore,
+        read_conversation_binding,
     )
     from chatgpt_conversation_discovery import discover_exact_marker
     from cft_human_session import resolve_session
@@ -56,6 +57,7 @@ except ModuleNotFoundError:
     from scripts.sqlite_conversation_binding import (
         ConversationBindingConflict,
         SQLiteConversationBindingStore,
+        read_conversation_binding,
     )
     from scripts.chatgpt_conversation_discovery import discover_exact_marker
     from scripts.cft_human_session import resolve_session
@@ -973,6 +975,100 @@ class BrowserlessAutomationService:
             "effectId": materialization.request_id,
             "temporal": temporal,
             "census": census,
+        }
+
+    def conversation_affinity(
+        self, spec_path: Path, campaign_ref: str, agent_id: str
+    ) -> dict:
+        """Project the preferred existing conversation without provider effects."""
+        spec = self.load_spec(spec_path)
+        materialization = self._materialization(spec, agent_id)
+        adopted = read_conversation_binding(self.config.ledger, campaign_ref, agent_id)
+        if adopted is not None:
+            try:
+                session = resolve_session(adopted["sessionId"])
+            except Exception:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-affinity",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "standing": "STALE",
+                    "placementAction": "HOLD_EXISTING_AFFINITY",
+                    "affinityKind": "DURABLE_CFT_SESSION",
+                    "providerResource": adopted["providerResource"],
+                    "sessionId": adopted["sessionId"],
+                    "bindingDigest": adopted["bindingDigest"],
+                    "providerEffectAttempted": False,
+                }
+            if session.get("standing") != "READY":
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-affinity",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "standing": "STALE",
+                    "placementAction": "HOLD_EXISTING_AFFINITY",
+                    "affinityKind": "DURABLE_CFT_SESSION",
+                    "providerResource": adopted["providerResource"],
+                    "sessionId": adopted["sessionId"],
+                    "bindingDigest": adopted["bindingDigest"],
+                    "providerEffectAttempted": False,
+                }
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.conversation-affinity",
+                "campaignRef": campaign_ref,
+                "agentId": agent_id,
+                "standing": "READY",
+                "placementAction": "CONTINUE",
+                "affinityKind": "DURABLE_CFT_SESSION",
+                "providerResource": adopted["providerResource"],
+                "sessionId": adopted["sessionId"],
+                "bindingDigest": adopted["bindingDigest"],
+                "providerEffectAttempted": False,
+            }
+
+        census = campaign_census(spec, self.config.ledger)
+        row = next(item for item in census["materializations"] if item["agentId"] == agent_id)
+        if row.get("materializationStanding") == "bound" and row.get("providerResource"):
+            try:
+                binding = self._current_binding(materialization)
+            except BrowserlessCarrierIdentityStale:
+                binding = None
+            if binding is None:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.conversation-affinity",
+                    "campaignRef": campaign_ref,
+                    "agentId": agent_id,
+                    "standing": "STALE",
+                    "placementAction": "HOLD_EXISTING_AFFINITY",
+                    "affinityKind": "BROWSERLESS_MATERIALIZATION",
+                    "providerResource": row["providerResource"],
+                    "providerEffectAttempted": False,
+                }
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.conversation-affinity",
+                "campaignRef": campaign_ref,
+                "agentId": agent_id,
+                "standing": "READY",
+                "placementAction": "CONTINUE",
+                "affinityKind": "BROWSERLESS_MATERIALIZATION",
+                "providerResource": row["providerResource"],
+                "endpointId": binding["endpointId"],
+                "providerEffectAttempted": False,
+            }
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-affinity",
+            "campaignRef": campaign_ref,
+            "agentId": agent_id,
+            "standing": "NONE",
+            "placementAction": "MATERIALIZE_FALLBACK",
+            "affinityKind": "NONE",
+            "providerEffectAttempted": False,
         }
 
     def adopt_conversation(

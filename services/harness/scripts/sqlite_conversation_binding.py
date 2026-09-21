@@ -54,6 +54,32 @@ def _canonical_digest(value: object) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def read_conversation_binding(
+    path: Path, campaign_ref: str, agent_id: str
+) -> dict[str, Any] | None:
+    """Read one binding without creating the ledger or schema."""
+    path = Path(path)
+    campaign_ref = _text(campaign_ref, "campaignRef")
+    agent_id = _text(agent_id, "agentId", max_bytes=128)
+    if not path.is_file():
+        return None
+    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=30)
+    db.row_factory = sqlite3.Row
+    try:
+        exists = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='conversation_bindings'"
+        ).fetchone()
+        if exists is None:
+            return None
+        row = db.execute(
+            "SELECT * FROM conversation_bindings WHERE campaign_ref=? AND agent_id=?",
+            (campaign_ref, agent_id),
+        ).fetchone()
+    finally:
+        db.close()
+    return None if row is None else SQLiteConversationBindingStore._receipt(row)
+
+
 class SQLiteConversationBindingStore:
     """One current exact provider binding per campaignRef+agentId."""
 
