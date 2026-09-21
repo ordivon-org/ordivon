@@ -185,37 +185,8 @@ def _error(error: Exception) -> CallToolResult:
     return _result({"code": "INVALID_ARGUMENT", "detail": str(error)[:1000]}, error=True)
 
 
-def _dependency_rows(catalog: SkillCatalog, row, context: SkillContext | None) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    required = set(row.required_dependencies)
-    for ref in row.declared_dependencies:
-        item: dict[str, Any] = {
-            "ref": ref,
-            "requirement": "REQUIRED" if ref in required else "OPTIONAL",
-            "authority": "ADVISORY",
-        }
-        try:
-            resolution = catalog.resolve(ref, context=context, invocation_mode="explicit")
-        except SkillCatalogError as exc:
-            item["state"] = {
-                "SKILL_INELIGIBLE": "BLOCKED",
-                "SKILL_QUARANTINED": "QUARANTINED",
-                "SKILL_NOT_VISIBLE": "NOT_VISIBLE",
-                "SKILL_NOT_FOUND": "UNAVAILABLE",
-            }.get(exc.code, "UNAVAILABLE")
-            item["detailCode"] = exc.code
-        else:
-            item["state"] = "RESOLVED"
-            item["skillId"] = resolution.resolved.skill_id
-            item["confidenceTier"] = resolution.resolved.confidence_tier.value
-        result.append(item)
-    return result
-
-
-def _model_metadata(catalog: SkillCatalog, row, context: SkillContext | None) -> dict[str, Any]:
-    value = row.metadata()
-    value["dependencies"] = _dependency_rows(catalog, row, context)
-    return value
+def _model_metadata(_catalog: SkillCatalog, row, _context: SkillContext | None) -> dict[str, Any]:
+    return row.metadata()
 
 
 class SkillsListParams(RequestParams):
@@ -490,8 +461,6 @@ def build_server(provider: CatalogProvider) -> MCPServer:
                 max_bytes=maxBytes,
             )
             value = result.value()
-            row = catalog.by_skill_id(skillId, context=context, invocation_mode="explicit")
-            value["dependencies"] = _dependency_rows(catalog, row, context)
             return _result(value)
         except (SkillCatalogError, ValueError, OSError, json.JSONDecodeError) as exc:
             return _error(exc)
