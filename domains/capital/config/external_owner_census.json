@@ -1399,7 +1399,7 @@
       ],
       "standing": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
       "codeDeletionAllowed": true,
-      "decision": "Historical MLflow run evidence remains historical. The current Market domain has no MLflow server/UI/search/registry consumer, so MLflow is not a current implementation owner or dependency."
+      "decision": "Historical MLflow run evidence remains historical. The current Capital Research domain has no MLflow server/UI/search/registry consumer, so MLflow is not a current implementation owner or dependency."
     },
     {
       "contractId": "typed-parquet-materialization",

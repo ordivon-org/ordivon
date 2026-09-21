@@ -20,7 +20,7 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 
 ## Current component ownership
 
-| Responsibility | Primary owner | Local Ordivon Capital / Market-domain responsibility |
+| Responsibility | Primary owner | Local Ordivon Capital responsibility |
 |---|---|---|
 | Public OKX market data | OKX public API + Network v2 exact authority | evidence binding and common observation projection |
 | Public Binance market data | Binance official public REST/WebSocket + Network v2 exact authority | thin normalization into the common observation projection |
