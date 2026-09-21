@@ -7,11 +7,11 @@ Workstation v2 owns execution-node desired-state declarations and the node-local
 Authority: Nix + Home Manager. Source: `workstation/nix/`. Build directly with Nix; activation remains an explicit Workstation v2 operation.
 
 ```sh
-cd /root/projects/ordivon-workstation-v2/workstation/nix
+cd /root/projects/ordivon/platform/workstation/workstation/nix
 nix --extra-experimental-features 'nix-command flakes' build .#homeConfigurations.root.activationPackage --no-link
 ```
 
-The repository path above is a temporary physical path retained during the Operations -> Workstation v2 rename. Semantic ownership is already Workstation v2.
+The path above is the canonical modular-monorepo Workstation owner. Repository placement does not merge Workstation authority with other monorepo owners.
 
 ## Windows desired state
 

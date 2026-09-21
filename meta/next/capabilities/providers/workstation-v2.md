@@ -1,9 +1,9 @@
 # Provider: Workstation v2
 
-- Source: `/root/projects/ordivon-workstation-v2`
-- Observed revision: `cfefb367adbefdddfd7ad0600945fcdc2439f586`
+- Source repository: `/root/projects/ordivon`\n- Owner path: `platform/workstation`
+- Observed monorepo revision: `a003ca18b7e43ea4012d62db8d8d71198d68d961`
 - Role: task-local execution/integration substrate provider
-- Migration mode: metadata only; implementation stays external
+- Migration mode: canonical modular-monorepo owner; legacy standalone carrier is retirement-only
 
 ## Capabilities
 

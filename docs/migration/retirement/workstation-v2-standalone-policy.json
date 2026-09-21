@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "workstation-v2-standalone",
+  "legacyLocator": "/root/projects/ordivon-workstation-v2",
+  "archivedSource": {
+    "revision": "add96799759383ea0b5b318d9aa5a7c53c7d00bd",
+    "standing": "RETIREMENT_CANDIDATE",
+    "preserveGitHistoryForHistoricalLookup": false
+  },
+  "allowedReferenceClasses": [
+    {
+      "id": "migration-acceptance-and-receipts",
+      "globs": ["docs/migration/acceptance/**", "docs/migration/receipts/**"],
+      "reason": "Migration receipts and acceptances preserve exact historical source coordinates."
+    },
+    {
+      "id": "historical-next-migration-records",
+      "globs": ["meta/next/migrations/records/**", "meta/next/planning/**", "meta/next/docs/superpowers/plans/**"],
+      "reason": "Migration/planning snapshots preserve historical repository topology."
+    },
+    {
+      "id": "frozen-production-topology",
+      "globs": ["capabilities/media/productions/*/source/**", "capabilities/media/productions/*/render/**"],
+      "reason": "Creation-time system-topology carriers remain immutable historical evidence."
+    }
+  ],
+  "allowedExactPaths": [
+    {
+      "path": "meta/next/docs/MONOREPO_M0_ARCHITECTURE.md",
+      "reason": "The M0 architecture document records the pre-cutover live-source census."
+    },
+    {
+      "path": "meta/next/capabilities/providers/temporal.md",
+      "reason": "The old path appears only in an explicitly dated 2026-09-14 historical observation."
+    },
+    {
+      "path": "platform/workstation/docs/CANONICAL_PATH_CUTOVER_R6.md",
+      "reason": "Historical path-cutover acceptance snapshot."
+    },
+    {
+      "path": "platform/workstation/docs/WORKSTATION_RECOVERY_RETENTION_20260914.md",
+      "reason": "Dated historical recovery-generation acceptance snapshot."
+    },
+    {
+      "path": "platform/workstation/providers/cloudflare/test/gc_test.py",
+      "reason": "Negative regression assertion forbidding the retired provider WorkingDirectory."
+    }
+  ]
+}
