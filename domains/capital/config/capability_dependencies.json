@@ -1,7 +1,7 @@
 {
   "capabilities": {
     "binanceUsdmFutures": {
-      "credentialPolicy": "credentials remain external; Ordivon Capital Market-domain preflight must not load them",
+      "credentialPolicy": "credentials remain external; Ordivon Capital Trading-domain preflight must not load them",
       "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
       "nonResponsibility": "does not grant account/product eligibility, TradFi agreement acceptance, live execution authority, investment suitability or external-write admission",
       "package": "binance-sdk-derivatives-trading-usds-futures",
@@ -32,7 +32,7 @@
       "duckdbVersion": "1.5.5",
       "interpreter": "./.venv/bin/python",
       "nonResponsibility": "does not implement a generic Research/Data platform, experiment-tracking server, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
-      "provider": "PyArrow / DuckDB / jsonschema / NumPy / SciPy / scikit-learn primitives consumed directly by the Market domain",
+      "provider": "PyArrow / DuckDB / jsonschema / NumPy / SciPy / scikit-learn primitives consumed directly by the Capital Risk/Research domains",
       "pythonVersion": "3.14.7",
       "requiredPythonModules": [
         "jsonschema",

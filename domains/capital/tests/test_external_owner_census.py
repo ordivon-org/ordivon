@@ -110,7 +110,9 @@ def test_research_data_is_external_owned_not_a_capital_data_platform():
 
 def test_retained_old_names_are_explicit_external_or_provider_identity_contracts():
     by_id = {row["id"]: row for row in CENSUS["retainedCompatibilityContracts"]}
-    assert by_id["prometheus-market-capital-metric-prefix"]["standing"] == "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY"
+    assert "prometheus-market-capital-metric-prefix" not in by_id
+    retired = {row["id"]: row for row in CENSUS["retiredCompatibilitySurfaces"]}
+    assert retired["prometheus-market-capital-observability"]["standing"] == "RETIRED_NO_ACTIVE_CONSUMER"
     assert by_id["tigerbeetle-market-capital-stable-provider-ids"]["standing"] == "HISTORICAL_EVIDENCE_IDENTITY_ONLY"
     assert by_id["wave-a-frozen-target-fixture"]["standing"] == "RETAINED_FROZEN_FIXTURE_IDENTITY"
     assert by_id["historical-physical-repo-source-coordinate"]["standing"] == "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE"
@@ -351,24 +353,25 @@ def test_lean_is_explicit_candidate_and_local_sizer_owns_current_exact_contract(
     assert q["evidence"]["supplyChain"]["standing"] == "BLOCKED_KNOWN_CRITICAL_HIGH_NUGET_ADVISORIES"
 
 
-def test_prometheus_is_not_claimed_as_current_market_owner_without_live_consumer():
+def test_stale_market_capital_observability_surface_is_retired_without_live_consumer():
     owners = {row["id"]: row for row in CENSUS["standardsAndOwners"]}
     obs = owners["observability"]
     assert obs["ownerClass"] == "IMPLEMENTATION_CANDIDATE"
     assert obs["owner"] == "Prometheus 3.14.0"
-    assert obs["currentStanding"] == "MARKETS_DOMAIN_NOT_ACTIVE_NETWORK_V2_ONLY_ACTIVE"
+    assert obs["currentStanding"] == "NO_ACTIVE_CAPITAL_OBSERVABILITY_CONTRACT"
 
     resp = {row["id"]: row for row in CENSUS["responsibilities"]}
-    market = resp["markets-observability-projection"]
-    assert market["localStanding"] == "STATIC_PROMETHEUS_TEXT_PROJECTION_ONLY_NO_ACTIVE_MARKETS_CONSUMER"
+    assert "markets-observability-projection" not in resp
 
     quals = {row["contractId"]: row for row in CENSUS["comparativeQualifications"]}
-    q = quals["market-observability-consumer"]
+    q = quals["capital-observability-consumer"]
+    assert q["standing"] == "RETIRED_NO_ACTIVE_CONSUMER"
     assert q["prometheusOwnerAdmitted"] is False
     assert q["runtimeEvidence"]["networkV2Prometheus"]["marketMetricQuerySeries"] == 0
     assert q["runtimeEvidence"]["nodeExporter"]["active"] is False
+    assert q["runtimeEvidence"]["nodeExporter"]["marketTextfilePresent"] is False
+    assert q["runtimeEvidence"]["marketRules"]["configured"] == 0
     assert q["runtimeEvidence"]["marketRules"]["activelyLoaded"] is False
-
 
 def test_responsibility_rows_separate_admitted_mechanics_from_candidates():
     rows = {row["id"]: row for row in CENSUS["responsibilities"]}

@@ -4,10 +4,7 @@
 
 Ordivon Capital is a composition/control plane, not a new financial framework. External standards define semantics and providers own authoritative external reality. Mature implementations are candidates for mechanics until they pass current language, semantic, executable and comparative qualification gates. Ordivon keeps local mechanisms when no external candidate is admitted, while minimizing them to the exact bounded contract.
 
-The currently instantiated domains are:
-
-- `ordivon_capital.market`: Market-domain provider, research-binding, risk, execution, and reconciliation glue;
-- `ordivon_capital.accounting`: bounded provider-neutral accounting semantics composed onto SQLite WAL/FULL mechanics; TigerBeetle is retained only as a distributed-accounting challenger.
+The currently instantiated Python source-owner packages are Markets, Trading, Portfolio, Risk, Research, Governance, and Accounting. The former monolithic ordivon_capital.market package is retired with no compatibility shim.
 
 Ordivon Capital is the umbrella. The currently instantiated source-owner domains are `markets/`, `trading/`, `portfolio/`, `risk/`, `research/`, `governance/`, and `accounting/`. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/capital_domain_taxonomy.json` defines the source-owner taxonomy and `config/external_owner_census.json` is the machine-readable implementation-ownership audit.
 
@@ -27,7 +24,7 @@ External mature systems provide the active evidence mechanics:
 - NumPy 2.5.3, SciPy 1.18.1 and scikit-learn 1.9.1 own only their admitted numerical/statistical/estimator mechanics;
 - jsonschema 4.26.0 owns Draft 2020-12 schema evaluation for the two active domain schemas;
 - PyArrow 25.0.1 / Apache Parquet owns typed columnar materialization and DuckDB 1.5.5 supplies independent readback;
-- the single monitoring-row contract is validated locally after a 400-case zero-mismatch Pandera differential; MLflow, Pandera and pandas are not current Market runtime dependencies.
+- the single monitoring-row contract is validated locally after a 400-case zero-mismatch Pandera differential; MLflow, Pandera and pandas are not current Capital Research runtime dependencies.
 
 The historical Wave-A GLEIF/SEC/Cboe/equal-weight generation pipeline is retired. Its frozen target-portfolio fixture remains only as a bound Wave-B regression/execution-mechanics input. Capital does not retain a duplicate research platform or lineage graph.
 
@@ -38,7 +35,7 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. SQLite owns the admitted single-host ACID/WAL accounting primitive; TigerBeetle is a future distributed-accounting challenger. Prometheus 3.14.0 is a Markets-domain candidate rather than a current owner: the only active Prometheus service is Network v2 and it has no Market target, loaded Market rule group, or Market metric series. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
+Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. SQLite owns the admitted single-host ACID/WAL accounting primitive; TigerBeetle is a future distributed-accounting challenger. Prometheus 3.14.0 is a Capital observability candidate rather than a current owner. A 2026-09-21 live census found the old Market-Capital node-exporter/shared-Prometheus island inactive and the active Network v2 Prometheus had zero Capital series; the stale renderer/rules/textfile/drop-in were therefore retired instead of preserved as compatibility debt. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
 
 ### Capital accounting substrate
 
@@ -83,7 +80,7 @@ Completion is not `send()` or an HTTP/FIX acknowledgement. The operational bound
 
 Expected and authoritative state must reconcile; otherwise the pending accounting state remains unchanged and recovery/reconciliation is required.
 
-PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Market domain does not implement a private clearing or settlement system absent a demonstrated substitution failure.
+PFMI and ISO 20022 remain reference semantics for external post-trade infrastructure. The Trading/Accounting domains do not implement a private clearing or settlement system absent a demonstrated substitution failure.
 
 
 ## 7. Crypto venue lane
