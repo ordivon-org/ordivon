@@ -9,6 +9,8 @@
 | Host | exact current source tree; legacy rewritten import bridged to original a95a8e11 identity | ACCEPTED_SOURCE_ONLY |
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | converged current source at `af67ed76` after `d3613c2e` supersession; repeatable identity-preserving update accepted | ACCEPTED_SOURCE_ONLY |
+| Media | standalone main aligned ff-only to accepted `30f6d122`; Media-hosted Creative Library remains an intentional monorepo-only projection overlay | ACCEPTED_SOURCE_ONLY |
+| Capital | standalone main aligned ff-only to accepted `918fd86a`; exact standalone and monorepo owner trees now match | ACCEPTED_SOURCE_ONLY |
 | Security | legacy rewritten import normalized to exact source tree; original `f5db8508` identity attached | ACCEPTED_SOURCE_ONLY |
 | Network | standalone main aligned ff-only to accepted `9aec70bb`; original source identity attached | ACCEPTED_SOURCE_ONLY |
 | Distribution | optional effect-safety/profile source | ACCEPTED_SOURCE_ONLY |
