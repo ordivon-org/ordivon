@@ -4,15 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_capital.market.binance_usdm_provider import (
-    BinanceUsdmProviderError,
-    normalize_exchange_symbol,
-    qualify_provider_contract,
-)
-from ordivon_capital.market.binance_usdm_public_capture import (
+from ordivon_capital.markets.binance_usdm_public_capture import (
     _book_summary,
     _current_and_next_session,
 )
+from ordivon_capital.markets.binance_usdm_reference import (
+    BinanceUsdmReferenceError,
+    normalize_exchange_symbol,
+)
+from ordivon_capital.trading.binance_usdm_provider import qualify_provider_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,7 +69,7 @@ def test_exchange_info_filters_own_tick_step_and_min_notional_not_precision_fiel
 
 def test_exchange_info_missing_authoritative_filter_fails_closed():
     raw = {"symbols": [{"symbol": "SNDKUSDT", "filters": []}]}
-    with pytest.raises(BinanceUsdmProviderError):
+    with pytest.raises(BinanceUsdmReferenceError):
         normalize_exchange_symbol(raw, "SNDKUSDT")
 
 
@@ -181,7 +181,7 @@ def test_public_capture_helpers_preserve_provider_session_and_book_measurements(
 
 
 def test_public_capture_runner_cannot_load_private_credentials_or_trade():
-    source = (ROOT / "src/ordivon_capital/market/binance_usdm_public_capture.py").read_text()
+    source = (ROOT / "src/ordivon_capital/markets/binance_usdm_public_capture.py").read_text()
     assert 'api_key=""' in source
     assert 'api_secret=""' in source
     assert "new_order" not in source

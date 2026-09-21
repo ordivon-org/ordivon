@@ -4,10 +4,10 @@ repo="$1"; out="$2"
 mkdir -p "$out"
 
 set +e
-"$repo/scripts/run-capability-python" -m ordivon_capital.market.crypto_stream_resilience   --target-venue OKX   --output "$out/okx.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/okx.stdout" 2>"$out/okx.stderr"
+"$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue OKX   --output "$out/okx.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/okx.stdout" 2>"$out/okx.stderr"
 okx_rc=$?
 
-"$repo/scripts/run-capability-python" -m ordivon_capital.market.crypto_stream_resilience   --target-venue BINANCE   --output "$out/binance.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/binance.stdout" 2>"$out/binance.stderr"
+"$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_stream_resilience   --target-venue BINANCE   --output "$out/binance.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/binance.stdout" 2>"$out/binance.stderr"
 binance_rc=$?
 set -e
 

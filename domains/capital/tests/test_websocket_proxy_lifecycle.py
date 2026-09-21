@@ -5,7 +5,7 @@ import unittest
 from websockets.client import ClientProtocol
 from websockets.uri import parse_uri
 
-from ordivon_capital.market.websocket_proxy_lifecycle import (
+from ordivon_capital.markets.websocket_proxy_lifecycle import (
     NetworkV2ProxyClientConnection,
 )
 
@@ -61,8 +61,8 @@ class WebsocketCallSiteTests(unittest.TestCase):
 
         root = Path(__file__).resolve().parents[1]
         for rel in (
-            "src/ordivon_capital/market/crypto_public_streaming.py",
-            "src/ordivon_capital/market/crypto_stream_resilience.py",
+            "src/ordivon_capital/markets/crypto_public_streaming.py",
+            "src/ordivon_capital/markets/crypto_stream_resilience.py",
         ):
             source = (root / rel).read_text()
             self.assertIn(
@@ -81,7 +81,7 @@ class R3PostInjectionEvidenceTests(unittest.TestCase):
 
         root = Path(__file__).resolve().parents[1]
         source = (
-            root / "src/ordivon_capital/market/crypto_stream_resilience.py"
+            root / "src/ordivon_capital/markets/crypto_stream_resilience.py"
         ).read_text()
         self.assertIn("injected_generation: int | None = None", source)
         self.assertIn('int(event["monoNs"]) > injected_mono', source)
@@ -95,7 +95,7 @@ class R2OpeningRetryOwnershipTests(unittest.TestCase):
 
         root = Path(__file__).resolve().parents[1]
         source = (
-            root / "src/ordivon_capital/market/crypto_public_streaming.py"
+            root / "src/ordivon_capital/markets/crypto_public_streaming.py"
         ).read_text()
         self.assertGreaterEqual(source.count("async for ws in connect("), 2)
         self.assertIn("EstablishedPublicStreamLost", source)

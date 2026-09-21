@@ -1,13 +1,13 @@
 import unittest
 
-from ordivon_capital.market.portfolio_counterfactuals import (
+from ordivon_capital.portfolio.portfolio_counterfactuals import (
     PortfolioCounterfactualError,
     build_action_counterfactual,
     build_counterfactual_gate_set,
     build_counterfactual_set,
     evaluate_constraint_gate,
 )
-from ordivon_capital.market.portfolio_risk import build_exposure_ledger
+from ordivon_capital.risk.portfolio_risk import build_exposure_ledger
 
 
 class PortfolioCounterfactualTests(unittest.TestCase):

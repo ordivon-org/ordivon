@@ -1,4 +1,4 @@
-from ordivon_capital.market.private_reality import (
+from ordivon_capital.trading.private_reality import (
     normalize_binance_observer,
     normalize_binance_usdm_observer,
     normalize_okx_observer,

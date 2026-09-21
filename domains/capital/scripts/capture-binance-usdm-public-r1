@@ -10,4 +10,4 @@ export PYTHONPATH="$repo/src"
 export HTTPS_PROXY="$proxy"
 export HTTP_PROXY="$proxy"
 export NO_PROXY=127.0.0.1,localhost
-exec "$sdk" -m ordivon_capital.market.binance_usdm_public_capture "$@"
+exec "$sdk" -m ordivon_capital.markets.binance_usdm_public_capture "$@"

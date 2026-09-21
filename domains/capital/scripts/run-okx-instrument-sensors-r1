@@ -19,7 +19,7 @@ fi
 
 readiness="$(printf '%s' "$binding" | /usr/bin/jq -r '.readinessCommand')"
 "$readiness" okx 30 >/dev/null
-PYTHONPATH="$repo/src" /usr/bin/python3 -m ordivon_capital.market.okx_sensor_capture \
+PYTHONPATH="$repo/src" /usr/bin/python3 -m ordivon_capital.markets.okx_sensor_capture \
   --instrument "$instrument" \
   --proxy "$proxy" \
   --output "$out" \

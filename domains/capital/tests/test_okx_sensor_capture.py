@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from ordivon_capital.market.okx_sensor_capture import (
+from ordivon_capital.markets.okx_sensor_capture import (
     OkxSensorCaptureError,
     capture_window,
     completed_open_interest_change,
@@ -95,11 +95,11 @@ class OkxSensorCaptureTests(unittest.TestCase):
             for i in range(3)
         ]
         with (
-            patch("ordivon_capital.market.okx_sensor_capture.capture_round", side_effect=rows),
-            patch("ordivon_capital.market.okx_sensor_capture._request", return_value={}),
-            patch("ordivon_capital.market.okx_sensor_capture.completed_open_interest_change", return_value={}),
+            patch("ordivon_capital.markets.okx_sensor_capture.capture_round", side_effect=rows),
+            patch("ordivon_capital.markets.okx_sensor_capture._request", return_value={}),
+            patch("ordivon_capital.markets.okx_sensor_capture.completed_open_interest_change", return_value={}),
             patch(
-                "ordivon_capital.market.okx_sensor_capture.repeated_microstructure",
+                "ordivon_capital.markets.okx_sensor_capture.repeated_microstructure",
                 return_value={"componentId": "repeated-microstructure-summary"},
             ) as summarize,
         ):

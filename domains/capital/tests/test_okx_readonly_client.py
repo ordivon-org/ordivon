@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ordivon_capital.market.okx_readonly_client import (
+from ordivon_capital.trading.okx_readonly_client import (
     OkxReadOnlyClient,
     OkxReadOnlyClientError,
     OkxReadOnlyCredentials,

@@ -11,7 +11,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from ordivon_capital.market.okx_readonly_client import (
+from ordivon_capital.trading.okx_readonly_client import (
     OkxReadOnlyClient,
     OkxReadOnlyCredentials,
 )

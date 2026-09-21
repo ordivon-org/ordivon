@@ -9,7 +9,9 @@ The currently instantiated domains are:
 - `ordivon_capital.market`: Market-domain provider, research-binding, risk, execution, and reconciliation glue;
 - `ordivon_capital.accounting`: bounded provider-neutral accounting semantics composed onto SQLite WAL/FULL mechanics; TigerBeetle is retained only as a distributed-accounting challenger.
 
-Market is a child domain of Ordivon Capital. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/external_owner_census.json` is the machine-readable ownership audit.
+Ordivon Capital is the umbrella. The currently instantiated source-owner domains are `markets/`, `trading/`, `portfolio/`, `risk/`, `research/`, `governance/`, and `accounting/`. No empty Treasury/Compute/Human/etc. packages are created merely to mirror a conceptual taxonomy. `config/capital_domain_taxonomy.json` defines the source-owner taxonomy and `config/external_owner_census.json` is the machine-readable implementation-ownership audit.
+
+`Markets` owns observable public market/reference facts, microstructure and streaming qualification. `Trading` owns provider/private reality, order intent, execution feasibility, FIX projection and reconciliation. `Portfolio` owns caller-supplied portfolio counterfactuals; `Risk` owns exposure and risk measurement; `Research` owns model/evidence validation; `Governance` owns authorization/policy gates; `Accounting` owns durable ledger mechanics. `Execution` is therefore a capability inside Trading rather than a synonym for Capital or Markets.
 
 Canonical flow:
 
@@ -36,7 +38,7 @@ Risk-data architecture uses BCBS 239 principles as the reference for source iden
 
 ## Composition-first rule
 
-The Ordivon Capital Market domain adopts a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. SQLite owns the admitted single-host ACID/WAL accounting primitive; TigerBeetle is a future distributed-accounting challenger. Prometheus 3.14.0 is a Market-domain candidate rather than a current owner: the only active Prometheus service is Network v2 and it has no Market target, loaded Market rule group, or Market metric series. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
+Ordivon Capital owner domains adopt a mechanism only after contract-equivalent qualification. Venue APIs own market/account/order reality. The current bounded US-equity feasibility contract is owned by the small local fee-aware sizer after zero-mismatch differential qualification against current LEAN; LEAN remains an isolated historical/general trading-engine challenger because its latest candidate is functionally green but supply-chain blocked. NautilusTrader is likewise a challenger rather than a canonical core owner. FIX Latest / FIX Orchestra remains the order-semantic reference. The current legacy FIX 4.4 mechanics projection is a bounded local sessionless TagValue projector after 120/120 byte-exact QuickFIX/n comparisons; QuickFIX/n is retained only as a differential oracle and future real-session candidate. SQLite owns the admitted single-host ACID/WAL accounting primitive; TigerBeetle is a future distributed-accounting challenger. Prometheus 3.14.0 is a Markets-domain candidate rather than a current owner: the only active Prometheus service is Network v2 and it has no Market target, loaded Market rule group, or Market metric series. Grafana/OpenTelemetry/OpenLineage likewise remain candidates until an active contract exists. See docs/COMPOSITION_FIRST_2026-09-14.md.
 
 ### Capital accounting substrate
 
@@ -48,7 +50,7 @@ Portfolio construction produces an immutable decision artifact with a frozen dec
 
 ## 3. Execution intent
 
-The current execution-feasibility contract is deliberately narrow: empty USD portfolio, positive long US equities, one-share lot, explicit free-portfolio buffer, and the frozen default LEAN/Interactive-Brokers-style equity fee mechanics. `src/ordivon_capital/market/execution_feasibility.py` owns that bounded calculation after 57 fee-aware differential comparisons against LEAN 985ef30 produced zero mismatches; unsupported mechanics fail closed. LEAN remains a historical/general backtest, fill, slippage, calendar, and broader buying-power challenger rather than a current core owner. FIX Latest / FIX Orchestra supplies the semantic reference for order intent. The current FIX 4.4 compatibility projection is local, sessionless and explicitly incomplete as a network wire frame: it does not claim BodyLength/CheckSum or FIX session mechanics. QuickFIX/n 1.14.1 remains the oracle/future session-engine candidate.
+The current execution-feasibility contract is deliberately narrow: empty USD portfolio, positive long US equities, one-share lot, explicit free-portfolio buffer, and the frozen default LEAN/Interactive-Brokers-style equity fee mechanics. `src/ordivon_capital/trading/execution_feasibility.py` owns that bounded calculation after 57 fee-aware differential comparisons against LEAN 985ef30 produced zero mismatches; unsupported mechanics fail closed. LEAN remains a historical/general backtest, fill, slippage, calendar, and broader buying-power challenger rather than a current core owner. FIX Latest / FIX Orchestra supplies the semantic reference for order intent. The current FIX 4.4 compatibility projection is local, sessionless and explicitly incomplete as a network wire frame: it does not claim BodyLength/CheckSum or FIX session mechanics. QuickFIX/n 1.14.1 remains the oracle/future session-engine candidate.
 
 ## 4. External ownership and policy boundaries
 
@@ -63,7 +65,7 @@ Retained local seams are:
 - authoritative reconciliation to bounded accounting reservation resolution on the admitted SQLite substrate;
 - provider restart/recovery identity bindings required by the composition.
 
-The Market-domain execution-policy enforcement point is src/ordivon_capital/market/policy_decision.py plus config/execution_policy.json. The current contract is a bounded deterministic rule set evaluated directly in canonical Python 3.14.7. OPA 1.20.2 is retained only as historical differential evidence under tools/opa_1_20_2.
+The Governance-domain execution-policy enforcement point is src/ordivon_capital/governance/policy_decision.py plus config/execution_policy.json. The current contract is a bounded deterministic rule set evaluated directly in canonical Python 3.14.7. OPA 1.20.2 is retained only as historical differential evidence under tools/opa_1_20_2.
 
 Current runners that cross the effect boundary pass the bounded local policy-decision point. The current policy input yields `allowExternalWrite=false`; no live external-write execution path is implemented. LEAN is not a prerequisite for canonical current runners.
 

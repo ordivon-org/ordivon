@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .binance_usdm_provider import normalize_exchange_symbol
+from .binance_usdm_reference import normalize_exchange_symbol
 
 
 def _dump(value: Any) -> Any:

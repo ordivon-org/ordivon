@@ -191,7 +191,7 @@ def project_document(document: dict[str, Any]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) != 2:
-        raise SystemExit("usage: python -m ordivon_capital.market.fix44_projection INPUT OUTPUT")
+        raise SystemExit("usage: python -m ordivon_capital.trading.fix44_projection INPUT OUTPUT")
     input_path, output_path = map(Path, args)
     result = project_document(json.loads(input_path.read_text()))
     output_path.parent.mkdir(parents=True, exist_ok=True)
