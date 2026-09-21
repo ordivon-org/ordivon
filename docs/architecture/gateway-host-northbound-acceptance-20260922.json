@@ -1,0 +1,44 @@
+{
+  "adminOnlyDirect": [
+    "host.status"
+  ],
+  "checkpointSchemaOwner": "host",
+  "connectorResidual": {
+    "newNorthboundToolsVisibleInCurrentSnapshot": false,
+    "owner": "mcp-client-connector",
+    "serverSidePrivateCatalogWorkaroundAllowed": false,
+    "staleRetiredToolLiveResult": "Unknown tool: capability.list",
+    "staleRetiredToolObserved": "capability.list"
+  },
+  "gatewayCheckpointSchemaRole": "opaque-object-pass-through",
+  "gatewayImplementationCommit": "268cfed5accdd7d89de8ae4bf04d6d9c869e5493",
+  "gatewayVersion": "0.2.0",
+  "kind": "ordivon.gateway-host-northbound-acceptance",
+  "liveAcceptance": {
+    "attentionRouted": true,
+    "boardExactList": true,
+    "boardSearch": true,
+    "boardSequence": 17795,
+    "publicContinuityGet": true,
+    "publicSystemDescribe": true,
+    "taskId": "task:gateway-host-northbound-acceptance-r1-20260922",
+    "terminalRevision": 2,
+    "terminalState": "abandoned"
+  },
+  "liveRelease": "/opt/ordivon/gateway/releases/268cfed5accdd7d89de8ae4bf04d6d9c869e5493",
+  "normalHostTools": [
+    "continuity.get",
+    "continuity.list",
+    "continuity.observe",
+    "continuity.adopt",
+    "continuity.checkpoint",
+    "continuity.attention",
+    "collaboration.list",
+    "collaboration.search",
+    "collaboration.post"
+  ],
+  "observedAt": "2026-09-22",
+  "schemaVersion": 1,
+  "status": "SERVER_DEPLOYED_LIVE_OWNER_PATH_ACCEPTED_CLIENT_REFRESH_PENDING",
+  "truthRole": "gateway-projection-over-host-owned-continuity"
+}

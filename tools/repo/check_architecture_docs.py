@@ -10,6 +10,8 @@ CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
 DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "meta" / "next" / "plugins" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
+GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
+HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-host-northbound-acceptance-20260922.json"
 METHOD_ROUTER = ROOT / "meta" / "next" / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
 
@@ -34,6 +36,36 @@ EXPECTED_CAPABILITIES = {
     "continuity.external",
     "execution.linux",
     "execution.windows",
+}
+
+EXPECTED_GATEWAY_TOOLS = {
+    "system.describe",
+    "capability.describe",
+    "execution.submit",
+    "execution.get",
+    "execution.cancel",
+    "artifact.read",
+    "continuity.get",
+    "continuity.list",
+    "continuity.observe",
+    "continuity.adopt",
+    "continuity.checkpoint",
+    "continuity.attention",
+    "collaboration.list",
+    "collaboration.search",
+    "collaboration.post",
+}
+
+EXPECTED_HOST_NORTHBOUND_TOOLS = {
+    "continuity.get",
+    "continuity.list",
+    "continuity.observe",
+    "continuity.adopt",
+    "continuity.checkpoint",
+    "continuity.attention",
+    "collaboration.list",
+    "collaboration.search",
+    "collaboration.post",
 }
 
 
@@ -118,6 +150,20 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
     if "persistent-queryable-trace-backend" in value.get("notAdmitted", []):
         raise ArchitectureDocsError("persistent trace backend cannot remain not-admitted")
 
+    host_northbound = value.get("hostNorthbound")
+    if not isinstance(host_northbound, dict) or host_northbound.get("status") != "deployed":
+        raise ArchitectureDocsError("Host northbound seam must remain deployed")
+    if host_northbound.get("semanticOwner") != "host" or host_northbound.get("gatewayAuthority") != "projection-only":
+        raise ArchitectureDocsError("Gateway must not absorb Host semantic authority")
+    if host_northbound.get("checkpointSchemaOwner") != "host":
+        raise ArchitectureDocsError("Host must remain WorkingCheckpoint schema owner")
+    if set(host_northbound.get("normalTools", [])) != EXPECTED_HOST_NORTHBOUND_TOOLS:
+        raise ArchitectureDocsError("normal Host northbound Tool set drifted")
+    if host_northbound.get("adminOnlyDirect") != ["host.status"]:
+        raise ArchitectureDocsError("Host status/Doctor must remain direct admin/recovery only")
+    if host_northbound.get("connectorCatalogOwner") != "mcp-client-connector":
+        raise ArchitectureDocsError("connector catalog freshness owner drifted")
+
 
 def validate_plugin(value: dict[str, Any]) -> None:
     servers = value.get("mcpServers")
@@ -130,6 +176,10 @@ def validate_plugin(value: dict[str, Any]) -> None:
 
 def route_capabilities(source: str) -> set[str]:
     return set(re.findall(r'capability="([^"]+)"', source))
+
+
+def gateway_tools(source: str) -> set[str]:
+    return set(re.findall(r'@server\.tool\(name="([^"]+)"\)', source))
 
 
 def validate_current_document(text: str) -> None:
@@ -161,6 +211,8 @@ def validate_repository(root: Path = ROOT) -> None:
     deployed = root / DEPLOYED.relative_to(ROOT)
     plugin = root / PLUGIN.relative_to(ROOT)
     routes = root / ROUTES.relative_to(ROOT)
+    gateway_mcp = root / GATEWAY_MCP.relative_to(ROOT)
+    host_northbound_acceptance = root / HOST_NORTHBOUND_ACCEPTANCE.relative_to(ROOT)
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
     readme = root / README.relative_to(ROOT)
 
@@ -174,6 +226,15 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError(
             f"Gateway route source differs from deployed graph: {sorted(observed)}"
         )
+
+    observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
+    if observed_tools != EXPECTED_GATEWAY_TOOLS:
+        raise ArchitectureDocsError(
+            f"Gateway public Tool surface drifted: {sorted(observed_tools)}"
+        )
+    host_acceptance = _load_json(host_northbound_acceptance)
+    if host_acceptance.get("status") != "SERVER_DEPLOYED_LIVE_OWNER_PATH_ACCEPTED_CLIENT_REFRESH_PENDING":
+        raise ArchitectureDocsError("Gateway Host northbound acceptance status drifted")
 
     if not method_router.is_file():
         raise ArchitectureDocsError("canonical Method Router Skill is missing")

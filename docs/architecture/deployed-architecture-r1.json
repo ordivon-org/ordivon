@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.deployed-architecture",
-  "observedDate": "2026-09-21",
+  "observedDate": "2026-09-22",
   "status": "CURRENT_DEPLOYED_BASELINE",
   "defaultNorthbound": {
     "component": "gateway",
@@ -125,5 +125,27 @@
       "requiredForProductCorrectness": false
     },
     "defaultPosture": "cold-inactive"
+  },
+  "hostNorthbound": {
+    "status": "deployed",
+    "semanticOwner": "host",
+    "gatewayAuthority": "projection-only",
+    "checkpointSchemaOwner": "host",
+    "normalTools": [
+      "continuity.get",
+      "continuity.list",
+      "continuity.observe",
+      "continuity.adopt",
+      "continuity.checkpoint",
+      "continuity.attention",
+      "collaboration.list",
+      "collaboration.search",
+      "collaboration.post"
+    ],
+    "adminOnlyDirect": [
+      "host.status"
+    ],
+    "connectorCatalogOwner": "mcp-client-connector",
+    "currentConsumerStanding": "server-current-client-refresh-pending"
   }
 }

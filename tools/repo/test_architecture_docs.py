@@ -101,3 +101,24 @@ def test_heavy_observability_default_posture_stays_cold() -> None:
     value["observability"]["defaultPosture"] = "always-on"
     with pytest.raises(module.ArchitectureDocsError, match="cold by default"):
         module.validate_deployed_graph(value)
+
+
+def test_gateway_normal_host_surface_cannot_drop_actions() -> None:
+    value = graph()
+    value["hostNorthbound"]["normalTools"].remove("continuity.checkpoint")
+    with pytest.raises(module.ArchitectureDocsError, match="normal Host northbound Tool set"):
+        module.validate_deployed_graph(value)
+
+
+def test_gateway_cannot_absorb_host_admin_surface() -> None:
+    value = graph()
+    value["hostNorthbound"]["adminOnlyDirect"] = []
+    with pytest.raises(module.ArchitectureDocsError, match="status/Doctor"):
+        module.validate_deployed_graph(value)
+
+
+def test_connector_catalog_owner_stays_external() -> None:
+    value = graph()
+    value["hostNorthbound"]["connectorCatalogOwner"] = "gateway"
+    with pytest.raises(module.ArchitectureDocsError, match="catalog freshness owner"):
+        module.validate_deployed_graph(value)

@@ -1,6 +1,6 @@
 # Ordivon Current Architecture
 
-Date: 2026-09-21
+Date: 2026-09-22
 Status: **CURRENT CANONICAL / DEPLOYED BASELINE**
 
 This document is the canonical description of Ordivon's **currently deployed architecture**. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but they do not override this file when they describe an earlier deployment state.
@@ -76,6 +76,12 @@ The deployed route table currently exposes exactly these stable capability famil
 | `artifact.runtime` | Runtime selected by operation reference | Runtime Artifact read |
 
 Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth.
+
+### Host normal northbound completion
+
+The Gateway now covers Host's normal Agent-facing continuity/collaboration seam: `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.
+
+Gateway keeps WorkingCheckpoint payloads opaque and delegates their validation to Host. `host.status`/Doctor remains direct-owner admin/recovery only. Connector catalog freshness remains a client/connector responsibility; a stale consumer snapshot does not redefine the live Gateway surface.
 
 ## 4. Method Router ≠ Capability Router
 

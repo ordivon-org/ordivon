@@ -1,5 +1,8 @@
 # MCP Release Identity and Connector Catalog Freshness Acceptance — 2026-09-21
 
+
+Historical standing: the 2026-09-21 exact Gateway Tool list below is superseded by `GATEWAY_HOST_NORTHBOUND_ACCEPTANCE_20260922.md`; the connector/client freshness ownership conclusion remains current.
+
 Status: ACCEPTED IN ISOLATED SOURCE / LIVE DEPLOYMENT PENDING CONCURRENCY CHECK
 
 ## Problem
