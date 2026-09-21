@@ -312,6 +312,7 @@ class GatewayService:
         args: list[str],
         cwd_relative: str = ".",
         context: str | None = None,
+        env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
     ) -> ExecutionReceipt:
         route = self._routes.get(capability)
@@ -336,6 +337,13 @@ class GatewayService:
             execution["windowsAuthority"] = context or route.default_context
         else:
             raise GatewayError(f"unsupported execution owner: {route.owner_id}")
+        if env is not None:
+            if not all(
+                isinstance(key, str) and key and isinstance(value, str)
+                for key, value in env.items()
+            ):
+                raise GatewayError("env must map non-empty string names to string values")
+            execution["env"] = dict(env)
         if timeout_ms is not None:
             execution["timeoutMs"] = timeout_ms
 
@@ -387,10 +395,69 @@ class GatewayService:
         if observed_native_id != native_id:
             raise GatewayError("Runtime job.observe returned mismatched job identity")
 
-        artifacts: list[str] = []
-        for item in result.get("artifacts", []):
-            if isinstance(item, dict) and isinstance(item.get("artifactId"), str):
-                artifacts.append(item["artifactId"])
+        def artifact_ids(payload: dict[str, Any]) -> list[str]:
+            values: list[str] = []
+            for item in payload.get("artifacts", []):
+                if isinstance(item, dict) and isinstance(item.get("artifactId"), str):
+                    values.append(item["artifactId"])
+            return values
+
+        artifacts = artifact_ids(result)
+        artifacts_available = (
+            bool(result["artifactsAvailable"])
+            if isinstance(result.get("artifactsAvailable"), bool)
+            else None
+        )
+        artifact_count = len(artifacts)
+        artifact_projection_complete: bool | None = None
+
+        if bool(result.get("executionTerminal", False)) or artifacts_available:
+            inspection = await self._caller.call_tool(
+                owner_id,
+                "job.get",
+                {
+                    "schemaVersion": 1,
+                    "jobId": native_id,
+                    "eventLimit": 1,
+                },
+            )
+            job = inspection.get("job")
+            if not isinstance(job, dict) or job.get("jobId") != native_id:
+                raise GatewayError("Runtime job.get returned mismatched job identity")
+            summary = inspection.get("artifacts")
+            summary_count = (
+                int(summary["count"])
+                if isinstance(summary, dict) and isinstance(summary.get("count"), int)
+                else None
+            )
+            if summary_count is not None:
+                artifact_count = summary_count
+                if len(artifacts) != summary_count:
+                    refreshed = await self._caller.call_tool(
+                        owner_id,
+                        "job.observe",
+                        {
+                            "schemaVersion": 1,
+                            "jobId": native_id,
+                            "waitMs": 0,
+                            "waitUntil": "change_or_terminal",
+                            "stdoutTailBytes": 0,
+                            "stderrTailBytes": 0,
+                        },
+                    )
+                    if _required_str(refreshed, "jobId") != native_id:
+                        raise GatewayError(
+                            "Runtime job.observe refresh returned mismatched job identity"
+                        )
+                    artifacts = artifact_ids(refreshed)
+                    artifacts_available = (
+                        bool(refreshed["artifactsAvailable"])
+                        if isinstance(refreshed.get("artifactsAvailable"), bool)
+                        else artifacts_available
+                    )
+                artifact_projection_complete = len(artifacts) == summary_count
+            else:
+                artifact_projection_complete = not artifacts_available or bool(artifacts)
 
         return ExecutionObservation(
             operation_ref=operation_ref,
@@ -419,8 +486,10 @@ class GatewayService:
                 if isinstance(result.get("recoveryRequired"), bool)
                 else None
             ),
-            artifact_count=len(artifacts),
+            artifacts_available=artifacts_available,
+            artifact_count=artifact_count,
             artifact_ids=artifacts,
+            artifact_projection_complete=artifact_projection_complete,
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:

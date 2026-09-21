@@ -47,6 +47,7 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         args: list[str],
         cwdRelative: str = ".",
         context: str | None = None,
+        env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
     ) -> ExecutionReceipt:
         return await gateway.execution_submit(
@@ -57,6 +58,7 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
             args=args,
             cwd_relative=cwdRelative,
             context=context,
+            env=env,
             timeout_ms=timeoutMs,
         )
 
