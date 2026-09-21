@@ -714,9 +714,16 @@
     {
       "claimId": "harness.composition.agent-plugin-h1",
       "file": "harness-agent-plugin-h1-acceptance-20260922.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "5a74fc2611cb16f51114f556285c5fd10a2fb8cf",
-      "scope": "Current Harness H1 Agent Plugins v1 composition acceptance: caller-selected Skill projection plus observation-only Gateway MCP consumption through the official MCP 2.2.0 standards adapter; effectful Gateway Tools remain excluded pending durable intent/receipt/reconciliation composition."
+      "scope": "Current Harness H1 Agent Plugins v1 composition acceptance: caller-selected Skill projection plus observation-only Gateway MCP consumption through the official MCP 2.2.0 standards adapter; effectful Gateway Tools remain excluded pending durable intent/receipt/reconciliation composition. Superseded by H2 durable Gateway effect composition."
+    },
+    {
+      "claimId": "harness.composition.agent-plugin-h2-durable-gateway-effects",
+      "file": "harness-agent-plugin-h2-durable-gateway-effects-20260922.json",
+      "status": "verified",
+      "implementationRevision": "443636b205e04b64051e26f80054696bbf7e2091",
+      "scope": "Current Harness H2 Agent Plugin effect composition: caller-fixed execution authority, durable intent and dispatch fence before Gateway/Runtime effect admission, bounded owner observation, and response-loss reconciliation by read-only request identity without blind effect redispatch."
     }
   ]
 }

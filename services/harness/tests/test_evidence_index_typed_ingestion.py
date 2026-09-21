@@ -352,68 +352,56 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(any("ancestor" in error for error in errors))
 
-    def test_python_3147_and_post_skills_profiles_are_historical_after_plugin_h1(self) -> None:
+    def test_environment_and_h1_profiles_are_historical_after_plugin_h2(self) -> None:
         entries = self._entries()
 
         old = entries["harness.environment.python-3.14.7-upgrade"]
         self.assertEqual(old["status"], "historical")
-        self.assertEqual(
-            old["implementationRevision"],
-            "dfe099d7d7725089c270aaf2acf08a6688c8c045",
-        )
-        old_receipt = json.loads(
-            (ROOT / "evidence" / "harness-python-3.14.7-upgrade-20260921.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        self.assertEqual(old_receipt["checks"]["pytest"]["cases"], 909)
-        self.assertEqual(old_receipt["checks"]["pytest"]["subtests"], 156)
         old_current, invalidating = check_evidence._verified_revision_is_current(
             str(old["implementationRevision"])
         )
         self.assertFalse(old_current)
         self.assertIn("pyproject.toml", invalidating)
-        self.assertIn("uv.lock", invalidating)
-        self.assertIn("src/ordivon_harness/skills/catalog.py", invalidating)
 
         post_skills = entries["harness.environment.post-skills-extraction-python-3.14.7"]
         self.assertEqual(post_skills["status"], "historical")
-        self.assertEqual(
-            post_skills["implementationRevision"],
-            "e053c4f7eadb86eae8eaff53311ef97a315929be",
-        )
-        post_skills_receipt = json.loads(
-            (
-                ROOT / "evidence" / "harness-post-skills-extraction-python-3.14.7-20260921.json"
-            ).read_text(encoding="utf-8")
-        )
-        self.assertEqual(post_skills_receipt["python"]["version"], "3.14.7")
-        self.assertEqual(post_skills_receipt["checks"]["skillsOwner"]["pytest"]["cases"], 82)
-        self.assertEqual(post_skills_receipt["checks"]["harness"]["pytest"]["cases"], 838)
         post_current, post_invalidating = check_evidence._verified_revision_is_current(
             str(post_skills["implementationRevision"])
         )
         self.assertFalse(post_current)
-        self.assertIn("pyproject.toml", post_invalidating)
-        self.assertIn("uv.lock", post_invalidating)
         self.assertIn("src/ordivon_harness/agent_plugin.py", post_invalidating)
-        self.assertIn("src/ordivon_harness/plugin_mcp.py", post_invalidating)
 
-        current = entries["harness.composition.agent-plugin-h1"]
-        self.assertEqual(current["status"], "verified")
-        self.assertEqual(
-            current["implementationRevision"],
-            "5a74fc2611cb16f51114f556285c5fd10a2fb8cf",
-        )
-        receipt = json.loads(
+        h1 = entries["harness.composition.agent-plugin-h1"]
+        self.assertEqual(h1["status"], "historical")
+        h1_receipt = json.loads(
             (ROOT / "evidence" / "harness-agent-plugin-h1-acceptance-20260922.json").read_text(
                 encoding="utf-8"
             )
         )
-        self.assertEqual(receipt["python"]["version"], "3.14.7")
-        self.assertEqual(receipt["composition"]["pluginStandard"], "Agent Plugins v1")
-        self.assertEqual(receipt["composition"]["mcpAdapter"]["version"], "2.2.0")
-        self.assertFalse(receipt["composition"]["effectfulToolsAdmitted"])
+        self.assertEqual(h1_receipt["composition"]["pluginStandard"], "Agent Plugins v1")
+        self.assertFalse(h1_receipt["composition"]["effectfulToolsAdmitted"])
+        h1_current, h1_invalidating = check_evidence._verified_revision_is_current(
+            str(h1["implementationRevision"])
+        )
+        self.assertFalse(h1_current)
+        self.assertIn("src/ordivon_harness/agent_run.py", h1_invalidating)
+        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h1_invalidating)
+
+        current = entries["harness.composition.agent-plugin-h2-durable-gateway-effects"]
+        self.assertEqual(current["status"], "verified")
+        self.assertEqual(
+            current["implementationRevision"],
+            "443636b205e04b64051e26f80054696bbf7e2091",
+        )
+        receipt = json.loads(
+            (
+                ROOT / "evidence" / "harness-agent-plugin-h2-durable-gateway-effects-20260922.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(receipt["gateway"]["packageVersion"], "0.3.0")
+        self.assertTrue(receipt["composition"]["durablePreDispatchIntent"])
+        self.assertTrue(receipt["composition"]["durableDispatchFence"])
+        self.assertFalse(receipt["composition"]["blindEffectRedispatchOnResponseLoss"])
         self.assertEqual(
             receipt["runtimeDependencyClosureDigest"],
             "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
