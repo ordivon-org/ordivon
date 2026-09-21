@@ -8,6 +8,8 @@
 | Harness | identity-preserving current-source supersession | ACCEPTED_SOURCE_ONLY |
 | Distribution | optional effect-safety/profile source | ACCEPTED_SOURCE_ONLY |
 | Preservation | standard-native local preservation profile | ACCEPTED_SOURCE_ONLY |
+| Creative Library | Media-hosted cross-domain catalog/presentation projection; owner-native work/source truth preserved | ACCEPTED_SOURCE_ONLY |
+| workstation-lab | Preservation + Creative Library extracted; remaining live/recovery consumers under residual census | DRAINING |
 | Research shared layer | composition profile / method-authority binding, no Research runtime owner | PROFILE_ONLY_NO_CODE_IMPORT |
 | Paper1 frozen | frozen Research-v2 worktree/ref; archive in place | ARCHIVED_IN_PLACE |
 | Paper2 | active independent scientific authority | KEEP_INDEPENDENT_ACTIVE |
