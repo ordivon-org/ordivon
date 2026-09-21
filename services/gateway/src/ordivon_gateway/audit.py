@@ -27,7 +27,10 @@ def _trace_identity() -> tuple[str | None, str | None]:
 
 
 def _result_identity(result: HandlerResult) -> dict[str, str]:
-    structured = getattr(result, "structured_content", None)
+    if isinstance(result, dict):
+        structured = result.get("structuredContent", result.get("structured_content"))
+    else:
+        structured = getattr(result, "structured_content", None)
     if not isinstance(structured, dict):
         return {}
     identity: dict[str, str] = {}

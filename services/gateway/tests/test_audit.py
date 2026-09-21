@@ -6,7 +6,6 @@ import logging
 from types import SimpleNamespace
 from typing import Any
 
-from mcp.types import CallToolResult
 from opentelemetry.sdk.trace import TracerProvider
 
 from ordivon_gateway.audit import GatewayAuditMiddleware
@@ -44,15 +43,16 @@ def test_gateway_audit_uses_verified_request_state_not_tool_arguments(caplog) ->
         },
     )
 
-    async def call_next(_ctx: Any) -> CallToolResult:
-        return CallToolResult(
-            content=[],
-            structuredContent={
+    async def call_next(_ctx: Any) -> dict[str, Any]:
+        return {
+            "content": [],
+            "structuredContent": {
                 "operation_ref": "ordivon-exec:v1:runtime.linux:job-1",
                 "owner_id": "runtime.linux",
                 "native_id": "job-1",
             },
-        )
+            "isError": False,
+        }
 
     tracer = TracerProvider().get_tracer("ordivon-gateway-audit-test")
     caplog.set_level(logging.INFO, logger="ordivon_gateway.audit")
@@ -60,7 +60,7 @@ def test_gateway_audit_uses_verified_request_state_not_tool_arguments(caplog) ->
         trace_id = f"{span.get_span_context().trace_id:032x}"
         result = asyncio.run(middleware(ctx, call_next))
 
-    assert result.structured_content["native_id"] == "job-1"
+    assert result["structuredContent"]["native_id"] == "job-1"
     event = json.loads(caplog.records[-1].message)
     assert event == {
         "event": "ordivon.gateway.audit",
