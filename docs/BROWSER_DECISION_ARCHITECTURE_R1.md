@@ -164,3 +164,24 @@ The default path intentionally has no retrieval stage.
 - no generic ANN service for a <=250-action page merely because ANN is available;
 - no production route change from this research evidence;
 - no claim that the local fixture represents the open web.
+
+
+## Freshness boundary falsification
+
+Playwright snapshot refs were tested separately from semantic decision freshness on the local Jev
+fixture using both the existing CLI 0.1.18 and the current CLI 0.1.21.
+
+Two mutations were applied after a decision snapshot but before execution:
+
+1. Replacing the target DOM button with a new node having the same accessible name caused the old
+   Playwright ref to fail closed and request a new snapshot.
+2. Changing the surrounding semantic context of the still-connected target button, without
+   replacing the button, allowed the old Playwright ref to execute successfully.
+
+Therefore Playwright refs are a useful node-identity witness but do not prove that the semantic
+facts used by the decision are unchanged.
+
+The residual Ordivon/Jev-owned responsibility is narrowed to a decision-bound semantic witness.
+It should bind only the observed facts that materially influenced the decision and fail closed if
+those facts change before mutation. It must not duplicate accessible-name calculation, ARIA role
+semantics, browser candidate enumeration, or general DOM representation.

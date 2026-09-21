@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-ref-freshness-falsification",
+  "standing": "SEMANTIC_FRESHNESS_NOT_OWNED_BY_PLAYWRIGHT_REF",
+  "observedDate": "2026-09-21",
+  "fixture": "Jev local travel fixture",
+  "browser": "exact Workstation Chromium",
+  "implementations": [
+    {
+      "playwrightCli": "0.1.18",
+      "semanticContextMutationOldRefClick": "SUCCEEDED",
+      "nodeReplacementOldRefClick": "REJECTED"
+    },
+    {
+      "playwrightCli": "0.1.21",
+      "semanticContextMutationOldRefClick": "SUCCEEDED",
+      "nodeReplacementOldRefClick": "REJECTED"
+    }
+  ],
+  "semanticMutation": {
+    "target": "View Casa Flora",
+    "change": "surrounding card location changed from LISBON · DESIGN to COPENHAGEN · DESIGN without replacing target button",
+    "result": "old snapshot ref still clicked and navigated to Casa Flora"
+  },
+  "nodeReplacement": {
+    "target": "View Casa Flora",
+    "change": "target button node replaced by clone with same accessible name",
+    "result": "old ref rejected with ref-not-found and request to capture a new snapshot"
+  },
+  "interpretation": [
+    "Playwright snapshot refs provide useful node-identity freshness",
+    "node-identity freshness is weaker than semantic decision freshness",
+    "browser accessibility observation can move to upstream Playwright/browser semantics without deleting the semantic witness",
+    "the retained custom responsibility should be only a minimal decision-bound semantic witness, not accessible-name computation or candidate ontology"
+  ],
+  "nonClaims": [
+    "all_playwright_versions",
+    "all_dom_mutation_classes",
+    "playwright_execution_unsuitable",
+    "jev_guard_optimal"
+  ]
+}
