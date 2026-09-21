@@ -1,22 +1,24 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OPA = Path("/usr/bin/opa")
+OPA = shutil.which("opa")
 PROFILE = ROOT / "policies" / "research-adopted-r1"
 
 
 class ResearchAdoptedPolicyTests(unittest.TestCase):
     def test_opa_reference_profile_is_machine_enforceable(self) -> None:
-        self.assertTrue(
-            OPA.is_file(),
+        self.assertIsNotNone(
+            OPA,
             "mature OPA evaluator is required by the current reference profile",
         )
+        assert OPA is not None
         completed = subprocess.run(
-            [str(OPA), "test", str(PROFILE)],
+            [OPA, "test", str(PROFILE)],
             cwd=ROOT,
             text=True,
             capture_output=True,
