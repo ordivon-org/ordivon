@@ -12,7 +12,7 @@
 | Capital | canonical source owner is domains/capital; last external-source lineage 71bf084 retained in history; domain-v2 protocol active; stale observability island retired; standalone /root/projects/ordivon-market-capital-next physically retired with all-refs/Git/non-venv recovery proof | ACCEPTED_SOURCE_ONLY |
 | Game | canonical monorepo owner active at domains/game; standalone source carrier physically retired with 413-ref Git restore, non-Git payload restore, dirty-worktree recovery, and post-delete 584-test proof | ACCEPTED_SOURCE_ONLY |
 | Game standalone carrier | /root/projects/ordivon-game physically absent; Git/non-Git recovery proven; no compatibility alias | RETIRED_ARCHIVED |
-| Harness | monorepo-native post-Skills owner; validated Browser Security donor composed at 0fe2187b, canonical tree 47f7b476 | ACCEPTED_SOURCE_ONLY |
+| Harness | canonical monorepo owner includes exact standalone Browser/System-1 source through 6966745 as second-parent identity-preserving merge 70163836; Mind2Web dirty WIP and older residual workspaces still block standalone retirement | ACCEPTED_SOURCE_ONLY |
 | Skills bridge | canonical platform/skills owner; source/package/artifact boundaries accepted; live cutover recorded separately | ACCEPTED_SOURCE_ONLY |
 | Host | canonical monorepo owner active at services/host; legacy source identity bridged, Friction Observatory WIP migrated, live immutable release source-independent, and PostgreSQL Host Doctor healthy after source retirement | ACCEPTED_SOURCE_ONLY |
 | Host standalone carrier | /root/projects/ordivon-host-v2 physically absent; 29-ref Git restore, dirty Friction WIP recovery/migration, and post-delete live Host history readback proven | RETIRED_ARCHIVED |
