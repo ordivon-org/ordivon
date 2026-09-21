@@ -64,3 +64,10 @@ def test_nautilus_only_configs_are_not_canonical_config():
     ):
         assert not (ROOT / "config" / name).exists()
         assert (ROOT / "tools/nautilus_rc4/config" / name).is_file()
+
+def test_historical_nautilus_qualification_doc_points_to_candidate_local_config():
+    doc = (ROOT / "docs/WAVE_B_M6_2_NAUTILUS_QUALIFICATION_2026-09-13.md").read_text()
+    assert "tools/nautilus_rc4/config/nautilus_candidate.json" in doc
+    assert "config/nautilus_candidate.json" not in doc.replace(
+        "tools/nautilus_rc4/config/nautilus_candidate.json", ""
+    )

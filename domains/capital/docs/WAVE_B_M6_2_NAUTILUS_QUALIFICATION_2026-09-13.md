@@ -4,7 +4,7 @@
 
 NautilusTrader `2.0.0rc4` is admitted only as a **shadow qualification candidate**. This milestone does not connect a broker, use credentials, open a network trading session, or permit external financial writes. It is not M7 causal acceptance.
 
-The candidate environment is isolated under `/root/external/nautilus-trader/2.0.0rc4` with Python `3.12.13` and an exact dependency lock digest recorded in `config/nautilus_candidate.json`.
+The candidate environment is isolated under `/root/external/nautilus-trader/2.0.0rc4` with Python `3.12.13` and an exact dependency lock digest recorded in `tools/nautilus_rc4/config/nautilus_candidate.json`.
 
 ## Result
 
