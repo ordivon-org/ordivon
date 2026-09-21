@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.architecture-convergence-a02",
+  "date": "2026-09-21",
+  "standing": "ACCEPTED",
+  "observedRevision": "a5e9f1d9302a6b60d59d6cdd043dc8aa56ad4f65",
+  "rootRole": "repository_mechanics_only",
+  "scientificExceptions": {
+    "paper2": "KEEP_INDEPENDENT_ACTIVE",
+    "paper3": "HOLD_EXTRACTION_UNTIL_FREEZE"
+  }
+}

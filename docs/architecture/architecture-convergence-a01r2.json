@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.architecture-convergence-a01r2",
+  "date": "2026-09-21",
+  "standing": "ACCEPTED_SUPERSEDES_STALE_A01",
+  "agentService": "RETIRED_DO_NOT_RECONSTRUCT",
+  "owners": {
+    "runtime": "physical_execution",
+    "host": "external_continuity",
+    "harness": "agent_run",
+    "gateway": "planned_non_authoritative_adapter_projection"
+  },
+  "residuals": [
+    "gateway",
+    "method_router_skill",
+    "tool_binding_projection",
+    "plugin_composition"
+  ]
+}

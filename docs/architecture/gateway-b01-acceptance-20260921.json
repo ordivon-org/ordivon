@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-b01-acceptance",
+  "date": "2026-09-21",
+  "standing": "IMPLEMENTATION_ACCEPTED_WINDOWS_REMOTE_BINDING_DEFERRED_C02",
+  "gatewayTools": [
+    "system.describe",
+    "capability.describe",
+    "execution.submit",
+    "execution.get",
+    "execution.cancel",
+    "artifact.read",
+    "continuity.get",
+    "continuity.list"
+  ],
+  "live": {
+    "host": {
+      "taskId": "task:arch-convergence-r1-a01r2",
+      "revision": 2,
+      "state": "completed"
+    },
+    "linuxRuntime": {
+      "operationRef": "ordivon-exec:v1:runtime.linux:job-01a0c284-3d15-7522-8fc9-beec55f96887",
+      "jobId": "job-01a0c284-3d15-7522-8fc9-beec55f96887",
+      "workspaceId": "ws-gateway-b01-live-target-20260921",
+      "sourceRevision": "b73667693296be2f06dcb1a967ce1448cc455270",
+      "resolution": "succeeded",
+      "mechanicallyConverged": true,
+      "exitCode": 0,
+      "artifactCount": 4
+    }
+  },
+  "windows": {
+    "schemaLowering": "PASS",
+    "activeUserDynamicContext": "PASS",
+    "remoteOwnerBinding": "DEFER_C02_CLOUDFLARE_OAUTH"
+  },
+  "compatibility": {
+    "runtimePythonMcpOutputSchemaValidation": "isolated_owner_adapter",
+    "runtimeLegacySessionClose202": "known_non_execution_compatibility_observation"
+  }
+}

@@ -158,3 +158,15 @@ set -euo pipefail
 cd platform/network
 task all:validate
 """
+
+
+[tasks."gateway:verify"]
+dir = "services/gateway"
+run = """
+set -euo pipefail
+uv lock --check
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run python -m pytest -q
+"""
