@@ -52,3 +52,47 @@ propagates the underlying connection failure.
 Retain websockets 17.1 as the narrow implementation owner for WebSocket protocol/client
 mechanics. Do not expand that ownership to venue payload semantics, reconnect policy,
 Network v2 routing, or execution authority.
+
+## HTTP-proxy TLS lifecycle hardening — 2026-09-21
+
+Canonical Network v2 WebSocket access uses websockets through exact loopback HTTP
+CONNECT authorities. During canonical-path supersession acceptance, an unstable proxy/TLS
+opening path reproduced upstream python-websockets issue #1629: ClientConnection.connection_lost()
+can run after the HTTP proxy transport has been handed to the WebSocket protocol but before
+connection_made() initializes recv_messages and transport.
+
+The current upstream 17.1 implementation and upstream main both retain the ordering:
+
+1. establish HTTP CONNECT tunnel;
+2. construct ClientConnection;
+3. hand the transport to the connection protocol;
+4. perform asyncio TLS upgrade;
+5. only after TLS succeeds, call connection_made().
+
+Therefore a TLS/transport loss between steps 3 and 5 can invoke callbacks against a
+partially initialized connection. This isn't a WebSocket framing responsibility and isn't
+specific to Ordivon's synthetic disconnect.
+
+Ordivon uses the library's documented create_connection extension point with
+NetworkV2ProxyClientConnection. The subclass guards only connection_lost() and
+eof_received() before connection_made(); once connection_made() occurs, all lifecycle
+and protocol mechanics delegate unchanged to upstream 17.1. No site-package monkey patch,
+vendored fork, protocol framing implementation, or deadline relaxation is admitted.
+
+Qualification evidence:
+
+- unit tests exercise pre-connection_made loss and EOF plus the normal upstream path;
+- the R3 35-second reconnect contract remains unchanged;
+- a fresh post-guard R3 run passed OKX at 803 ms / generation 2 and Binance at 5.67 s /
+  generation 2 with zero connection errors and three measured rounds per venue;
+- a five-round opening-handshake soak through exact Network v2 proxies passed 5/5 for each
+  venue; maximum observed opening latencies were approximately 1.07 s for OKX and 1.38 s
+  for Binance;
+- a separate stress run later encountered ambient opening-handshake tail latency before
+  the synthetic fault was injected. R3 evidence was corrected so ambient generations
+  cannot be recorded as post-injection reconnect generations. The global 35-second
+  deadline was not increased.
+
+External owner standing remains websockets 17.1: Ordivon owns only this narrow lifecycle
+seam, venue payload normalization, qualification policy, and evidence. Requalify and delete
+the guard when upstream removes the pre-connection_made callback hazard.

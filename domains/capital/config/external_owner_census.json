@@ -333,7 +333,8 @@
     {
       "id": "market-crypto-runtime",
       "sourcePatterns": [
-        "src/ordivon_capital/market/crypto_*.py"
+        "src/ordivon_capital/market/crypto_*.py",
+        "src/ordivon_capital/market/websocket_proxy_lifecycle.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -385,7 +386,35 @@
           "binanceReconnectedGeneration": 2,
           "priorTransientBinanceReconnectLatencyMs": 19659.252283,
           "priorTransientBinanceGeneration": 4,
-          "r2FreshEvidence": "evidence/crypto-public-shadow-r2-20260921.json"
+          "r2FreshEvidence": "evidence/crypto-public-shadow-r2-20260921.json",
+          "canonicalSupersessionRequalification": {
+            "firstRunStanding": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+            "firstRunDiagnosis": "upstream pre-connection callback defect plus ambient opening-handshake tail latency",
+            "postGuardFreshStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+            "postGuardOkxReconnectLatencyMs": 803.063527,
+            "postGuardBinanceReconnectLatencyMs": 5672.391249,
+            "postGuardGeneration": 2,
+            "postGuardCallbackAttributeErrors": 0,
+            "openingHandshakeSoak": {
+              "okx": "5/5",
+              "binance": "5/5",
+              "okxMaxLatencyMs": 1065.3227769944351,
+              "binanceMaxLatencyMs": 1375.0417090050178
+            },
+            "r3EvidenceCorrection": "reconnect evidence now requires CONNECTED after INJECTED_DISCONNECT and generation > injectedGeneration"
+          }
+        },
+        "proxyTlsLifecycleGuard": {
+          "standing": "ADMITTED_NARROW_UPSTREAM_LIFECYCLE_GUARD",
+          "upstreamIssue": "python-websockets/websockets#1629",
+          "upstreamVersion": "17.1",
+          "scope": "HTTP proxy TLS transport loss after protocol handoff but before connection_made",
+          "mechanism": "documented create_connection subclass",
+          "implementation": "src/ordivon_capital/market/websocket_proxy_lifecycle.py",
+          "normalProtocolDelegation": true,
+          "sitePackagePatch": false,
+          "deadlineRelaxed": false,
+          "deleteWhenUpstreamFixed": true
         }
       }
     },
@@ -1117,6 +1146,34 @@
           "binanceConnectionErrorCount": 0,
           "priorTransientBinanceReconnectLatencyMs": 19659.252283,
           "priorTransientBinanceGeneration": 4
+        },
+        "proxyTlsLifecycleGuard": {
+          "standing": "ADMITTED_NARROW_UPSTREAM_LIFECYCLE_GUARD",
+          "upstreamIssue": "python-websockets/websockets#1629",
+          "upstreamVersion": "17.1",
+          "scope": "HTTP proxy TLS transport loss after protocol handoff but before connection_made",
+          "mechanism": "documented create_connection subclass",
+          "implementation": "src/ordivon_capital/market/websocket_proxy_lifecycle.py",
+          "normalProtocolDelegation": true,
+          "sitePackagePatch": false,
+          "deadlineRelaxed": false,
+          "deleteWhenUpstreamFixed": true
+        },
+        "canonicalSupersessionRequalification": {
+          "firstRunStanding": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+          "firstRunDiagnosis": "upstream pre-connection callback defect plus ambient opening-handshake tail latency",
+          "postGuardFreshStanding": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+          "postGuardOkxReconnectLatencyMs": 803.063527,
+          "postGuardBinanceReconnectLatencyMs": 5672.391249,
+          "postGuardGeneration": 2,
+          "postGuardCallbackAttributeErrors": 0,
+          "openingHandshakeSoak": {
+            "okx": "5/5",
+            "binance": "5/5",
+            "okxMaxLatencyMs": 1065.3227769944351,
+            "binanceMaxLatencyMs": 1375.0417090050178
+          },
+          "r3EvidenceCorrection": "reconnect evidence now requires CONNECTED after INJECTED_DISCONNECT and generation > injectedGeneration"
         }
       },
       "standing": "WEBSOCKETS_17_1_RETAIN_AS_NARROW_PROTOCOL_MECHANICS_OWNER_FRESH_R2_R3_PASS",
