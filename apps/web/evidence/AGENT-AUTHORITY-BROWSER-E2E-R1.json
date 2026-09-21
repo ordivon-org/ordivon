@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-web-agent-authority-browser-e2e-r1",
+  "source": {
+    "workspaceId": "ws-web-agent-authority-r1-20260921",
+    "baseRevision": "557fa7a5884cc94e5ea4fb7f6d66443506a3a812",
+    "attemptId": "attempt-01a0c333-c67b-77c0-b142-e280e07f7c64",
+    "jobId": "job-01a0c333-c67b-77c0-b142-e27088e486f6",
+    "operationDigest": "sha256:943d259c1b98efad7b922ab5e2c142eb6a5440627eddfcbb2f8714c04d9db135",
+    "executionDisposition": "succeeded"
+  },
+  "matrix": {
+    "enrollOptions": 200,
+    "enrollVerify": 200,
+    "enrollReplay": 409,
+    "loginOptions": 200,
+    "loginVerify": 200,
+    "loginReplay": 409,
+    "grantIssueOptions": 200,
+    "grantIssueVerify": 201,
+    "grantIssueReplay": 409,
+    "approvalOptions": 200,
+    "approvalVerify": 201,
+    "approvalReplay": 409,
+    "revokeOptions": 200,
+    "revokeVerify": 200,
+    "revokeReplay": 409,
+    "humanR2Create": 201,
+    "logout": 200,
+    "afterLogout": 401
+  },
+  "sessionCookie": {
+    "secure": true,
+    "httpOnly": true,
+    "sameSite": "Lax",
+    "path": "/"
+  },
+  "grant": {
+    "grantId": "grant:web:753cf19e-83da-426b-95e1-5a4e2b6291ad",
+    "grantDigest": "sha256:dd287d1c4244075bb0a2f0e2573be4abbf498baf5b00986fe272a98129fc3838",
+    "principalId": "principal:browser-e2e",
+    "agentId": "oauth-client:agent-browser-e2e",
+    "audience": "http://localhost:8790",
+    "allowedActions": [
+      "canary.note.create",
+      "canary.note.publish"
+    ],
+    "resourcePrefixes": [
+      "/canary/notes"
+    ],
+    "expiresAtEpochSeconds": 1789984952,
+    "maxRiskClass": "R4",
+    "stepUpAtOrAbove": "R4",
+    "remainingEffects": 6,
+    "active": true,
+    "revision": 1
+  },
+  "approvedEffectId": "sha256:fa64c71f46e082d09af0a42e8a9ccfdc8e08a05f3ef015a6fc768f39fa4de686",
+  "revokedGrant": {
+    "grantId": "grant:web:753cf19e-83da-426b-95e1-5a4e2b6291ad",
+    "grantDigest": "sha256:dd287d1c4244075bb0a2f0e2573be4abbf498baf5b00986fe272a98129fc3838",
+    "principalId": "principal:browser-e2e",
+    "agentId": "oauth-client:agent-browser-e2e",
+    "audience": "http://localhost:8790",
+    "allowedActions": [
+      "canary.note.create",
+      "canary.note.publish"
+    ],
+    "resourcePrefixes": [
+      "/canary/notes"
+    ],
+    "expiresAtEpochSeconds": 1789984952,
+    "maxRiskClass": "R4",
+    "stepUpAtOrAbove": "R4",
+    "remainingEffects": 6,
+    "active": false,
+    "revision": 2
+  },
+  "auditCount": 7,
+  "productionHumanPresenceClaim": false,
+  "notes": [
+    "Chromium used a CDP virtual CTAP2 authenticator with user verification enabled.",
+    "This proves website WebAuthn authority ceremonies for Agent Grant issuance, effect approval, and Grant revocation; it does not prove physical human presence.",
+    "Agent mutation tests use an injected verified-Agent fixture while invoking the real Security-owned Agent Admission contract. OAuth/DPoP request verification remains a separate Security-owner integration gate."
+  ]
+}
