@@ -10,3 +10,10 @@ Authority remains deliberately narrow:
 - this owner keeps only local bridge discovery/trust boundaries, exact currentness fences, hostile-package filtering, protocol adaptation, and deployment/consumer mechanics.
 
 It is not a universal Skill registry, marketplace, semantic search service, Agent scheduler, or Plugin runtime.
+
+
+## Release carrier
+
+Production releases are revision-bound snapshots under /opt/ordivon/skills-mcp/releases/<revision>.
+The service executes them with the matching Skills-owned Python 3.14.7 environment selected through
+/opt/ordivon/skills-mcp/current-env; Workstation is not the runtime owner.

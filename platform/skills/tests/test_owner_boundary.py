@@ -45,3 +45,12 @@ def test_example_project_binding_is_monorepo_owned() -> None:
         "path": "/root/projects/ordivon/meta/next",
         "trusted": True,
     }
+
+
+def test_systemd_unit_uses_skills_owned_release_runtime() -> None:
+    unit = (ROOT / "systemd" / "ordivon-skills-mcp.service").read_text(encoding="utf-8")
+    assert "/opt/ordivon/skills-mcp/current-env/bin/python" in unit
+    assert "/opt/ordivon/skills-mcp/current/scripts/skills_mcp.py" in unit
+    assert "/root/.local/share/ordivon-workstation" not in unit
+    assert "/root/projects/ordivon-harness" not in unit
+    assert "/root/projects/ordivon-next" not in unit

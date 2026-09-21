@@ -9,8 +9,8 @@ User=root
 Group=root
 WorkingDirectory=/opt/ordivon/skills-mcp/current
 Environment=ORDIVON_SKILLS_MCP_SOURCE_ROOT=/opt/ordivon/skills-mcp/current
-ExecStartPre=/root/.local/share/ordivon-workstation/skills-mcp-v1/.venv/bin/python /opt/ordivon/skills-mcp/current/scripts/skills_mcp.py --config /etc/ordivon/skills-mcp.json --token-file /etc/ordivon/skills-mcp.token --bind 127.0.0.1 --port 8895 --check
-ExecStart=/root/.local/share/ordivon-workstation/skills-mcp-v1/.venv/bin/python /opt/ordivon/skills-mcp/current/scripts/skills_mcp.py --config /etc/ordivon/skills-mcp.json --token-file /etc/ordivon/skills-mcp.token --bind 127.0.0.1 --port 8895
+ExecStartPre=/opt/ordivon/skills-mcp/current-env/bin/python /opt/ordivon/skills-mcp/current/scripts/skills_mcp.py --config /etc/ordivon/skills-mcp.json --token-file /etc/ordivon/skills-mcp.token --bind 127.0.0.1 --port 8895 --check
+ExecStart=/opt/ordivon/skills-mcp/current-env/bin/python /opt/ordivon/skills-mcp/current/scripts/skills_mcp.py --config /etc/ordivon/skills-mcp.json --token-file /etc/ordivon/skills-mcp.token --bind 127.0.0.1 --port 8895
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=20
