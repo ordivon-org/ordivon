@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library.derived-previews",
+  "generation": "godot-r1",
+  "rows": [
+    {
+      "workId": "game:look-away-garden",
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "3cc3a8c94bdec11716a7c4f7ad4b4742388173d5",
+      "sourcePath": "play/look-away-garden/",
+      "sourceTreeDigest": "sha256:0c7055a98fba0dc43ccd7bdbdf73d5782f8a607212dc4cc81f4e40b01057ff05",
+      "renderer": {
+        "equipmentId": "professional:godot:godot",
+        "executable": "/usr/bin/godot",
+        "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+        "capture": "xvfb-run + Godot --write-movie MJPEG, fixed-fps=30, quit-after=10; ffmpeg select frame 5",
+        "bindingDigest": "sha256:7184cb9d4671c38b34ba29360b10130e4de03061a8fd69a0696de71d97614789",
+        "version": "4.7.1.stable.arch_linux.a13da4feb",
+        "xvfbRun": {
+          "executable": "/usr/bin/xvfb-run",
+          "sha256": "sha256:27ce50f4432e5549e662db857118761fa9cd74c6900aac52c4db768c956838db"
+        },
+        "frameExtractor": {
+          "executable": "/usr/bin/ffmpeg",
+          "sha256": "sha256:46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+          "version": "n9.0"
+        }
+      },
+      "derivedPath": "artifacts/creative-library/derived/game--look-away-garden.png",
+      "sha256": "sha256:f9ac2b3fb7addcaa22db4c0d9e01c2fdc393d82ec953476e27dd4b831510af32",
+      "repeatSha256": [
+        "sha256:f9ac2b3fb7addcaa22db4c0d9e01c2fdc393d82ec953476e27dd4b831510af32",
+        "sha256:f9ac2b3fb7addcaa22db4c0d9e01c2fdc393d82ec953476e27dd4b831510af32"
+      ],
+      "repeatDeterministic": true,
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "logs": [
+        {
+          "run": 1,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 960×640 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-bw353f57/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:01 (100% of real-time speed).\nCPU render time: 0.01 seconds (average: 1.17 ms/frame)\nGPU render time: 0.01 seconds (average: 1.41 ms/frame)\nEncoding time: 0.06 seconds (average: 6.06 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        },
+        {
+          "run": 2,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 960×640 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-6k_0plt6/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.01 seconds (average: 0.73 ms/frame)\nGPU render time: 0.01 seconds (average: 0.93 ms/frame)\nEncoding time: 0.05 seconds (average: 5.05 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        }
+      ]
+    },
+    {
+      "workId": "game:signal-garden-evidence-petals",
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "a04d3f4d75181b21fa34294236cd8c0cba069af5",
+      "sourcePath": "creative/2026-08-30-signal-garden-evidence-petals",
+      "sourceTreeDigest": "sha256:6bf5a8e5560d8cb45c2d80b99f0d519cc2fa5b8b9424c15422a4f277925958be",
+      "renderer": {
+        "equipmentId": "professional:godot:godot",
+        "executable": "/usr/bin/godot",
+        "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+        "capture": "xvfb-run + Godot --write-movie MJPEG, fixed-fps=30, quit-after=10; ffmpeg select frame 5",
+        "bindingDigest": "sha256:7184cb9d4671c38b34ba29360b10130e4de03061a8fd69a0696de71d97614789",
+        "version": "4.7.1.stable.arch_linux.a13da4feb",
+        "xvfbRun": {
+          "executable": "/usr/bin/xvfb-run",
+          "sha256": "sha256:27ce50f4432e5549e662db857118761fa9cd74c6900aac52c4db768c956838db"
+        },
+        "frameExtractor": {
+          "executable": "/usr/bin/ffmpeg",
+          "sha256": "sha256:46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+          "version": "n9.0"
+        }
+      },
+      "derivedPath": "artifacts/creative-library/derived/game--signal-garden-evidence-petals.png",
+      "sha256": "sha256:b9adf5f2942c5de9801824bf89043945f373ed6217df8eae7d9ef61c7a1ce154",
+      "repeatSha256": [
+        "sha256:b9adf5f2942c5de9801824bf89043945f373ed6217df8eae7d9ef61c7a1ce154",
+        "sha256:b9adf5f2942c5de9801824bf89043945f373ed6217df8eae7d9ef61c7a1ce154"
+      ],
+      "repeatDeterministic": true,
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "logs": [
+        {
+          "run": 1,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 960×640 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-rlgdlnfr/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.01 seconds (average: 1.20 ms/frame)\nGPU render time: 0.02 seconds (average: 1.53 ms/frame)\nEncoding time: 0.05 seconds (average: 5.32 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        },
+        {
+          "run": 2,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 960×640 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-9_8hxbyg/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.02 seconds (average: 1.51 ms/frame)\nGPU render time: 0.02 seconds (average: 1.95 ms/frame)\nEncoding time: 0.06 seconds (average: 5.80 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        }
+      ]
+    },
+    {
+      "workId": "game:three-color-night-shift",
+      "sourceRepo": "/root/projects/ordivon-game",
+      "sourceRevision": "7cd5ac1acbdc87916e62b2a5edad6c4187b5aa5e",
+      "sourcePath": "play/three-color-night-shift",
+      "sourceTreeDigest": "sha256:5da9b83042b0c817d5d9206c1a7cb957d504f7aad4c3ad37b0b1dfaabef1e551",
+      "renderer": {
+        "equipmentId": "professional:godot:godot",
+        "executable": "/usr/bin/godot",
+        "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+        "capture": "xvfb-run + Godot --write-movie MJPEG, fixed-fps=30, quit-after=10; ffmpeg select frame 5",
+        "bindingDigest": "sha256:7184cb9d4671c38b34ba29360b10130e4de03061a8fd69a0696de71d97614789",
+        "version": "4.7.1.stable.arch_linux.a13da4feb",
+        "xvfbRun": {
+          "executable": "/usr/bin/xvfb-run",
+          "sha256": "sha256:27ce50f4432e5549e662db857118761fa9cd74c6900aac52c4db768c956838db"
+        },
+        "frameExtractor": {
+          "executable": "/usr/bin/ffmpeg",
+          "sha256": "sha256:46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+          "version": "n9.0"
+        }
+      },
+      "derivedPath": "artifacts/creative-library/derived/game--three-color-night-shift.png",
+      "sha256": "sha256:d0fbfcb6a57c076a9bcd62ebe5aa3d51ecb0aeb115b8d55d70edffe29c33017a",
+      "repeatSha256": [
+        "sha256:d0fbfcb6a57c076a9bcd62ebe5aa3d51ecb0aeb115b8d55d70edffe29c33017a",
+        "sha256:d0fbfcb6a57c076a9bcd62ebe5aa3d51ecb0aeb115b8d55d70edffe29c33017a"
+      ],
+      "repeatDeterministic": true,
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "logs": [
+        {
+          "run": 1,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 1000×680 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-2gucb04k/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.01 seconds (average: 1.38 ms/frame)\nGPU render time: 0.02 seconds (average: 1.55 ms/frame)\nEncoding time: 0.06 seconds (average: 6.37 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        },
+        {
+          "run": 2,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 1000×680 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-k_nk9v3_/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.02 seconds (average: 1.53 ms/frame)\nGPU render time: 0.02 seconds (average: 1.87 ms/frame)\nEncoding time: 0.07 seconds (average: 6.90 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        }
+      ]
+    },
+    {
+      "workId": "media:alignment-field",
+      "sourceRepo": "/root/projects/ordivon-media",
+      "sourceRevision": "1ff82c9b7aa147f7c2825ff8e766a24b0ab72ad0",
+      "sourcePath": "play/alignment-field/",
+      "sourceTreeDigest": "sha256:41cde42e4139b1705041f65d03e54a68d646807ae9593be3cfe9c8cff7be65f9",
+      "renderer": {
+        "equipmentId": "professional:godot:godot",
+        "executable": "/usr/bin/godot",
+        "executableDigest": "sha256:a72fa47eb84dab812102e622f3fa9e99754505459a0ded8f69ceddd5b4ded8dd",
+        "capture": "xvfb-run + Godot --write-movie MJPEG, fixed-fps=30, quit-after=10; ffmpeg select frame 5",
+        "bindingDigest": "sha256:7184cb9d4671c38b34ba29360b10130e4de03061a8fd69a0696de71d97614789",
+        "version": "4.7.1.stable.arch_linux.a13da4feb",
+        "xvfbRun": {
+          "executable": "/usr/bin/xvfb-run",
+          "sha256": "sha256:27ce50f4432e5549e662db857118761fa9cd74c6900aac52c4db768c956838db"
+        },
+        "frameExtractor": {
+          "executable": "/usr/bin/ffmpeg",
+          "sha256": "sha256:46dea8dda22fcc6572a524ba805428a18f0caadf61fe75b443676a485b10ea5d",
+          "version": "n9.0"
+        }
+      },
+      "derivedPath": "artifacts/creative-library/derived/media--alignment-field.png",
+      "sha256": "sha256:f2e652a2cd1a6a343ca101f2aa22953c38dec261b62afca3d47d0dc20c7aef62",
+      "repeatSha256": [
+        "sha256:f2e652a2cd1a6a343ca101f2aa22953c38dec261b62afca3d47d0dc20c7aef62",
+        "sha256:f2e652a2cd1a6a343ca101f2aa22953c38dec261b62afca3d47d0dc20c7aef62"
+      ],
+      "repeatDeterministic": true,
+      "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+      "logs": [
+        {
+          "run": 1,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 960×600 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-77tslkce/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.03 seconds (average: 3.40 ms/frame)\nGPU render time: 0.04 seconds (average: 3.88 ms/frame)\nEncoding time: 0.05 seconds (average: 4.76 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        },
+        {
+          "run": 2,
+          "returnCode": 0,
+          "logTail": "Movie Maker mode enabled, recording movie in 960×600 @ 30 FPS...\n--------------------------------------------------------------------------------\nDone recording movie at path: /tmp/ordivon-t/7d636c5f1ca0dcb7720e/creative-godot-9i8aa18w/capture.avi\n10 frames at 30 FPS (movie length: 00:00:00:10), recorded in 00:00:00 (100% of real-time speed).\nCPU render time: 0.05 seconds (average: 4.66 ms/frame)\nGPU render time: 0.05 seconds (average: 5.28 ms/frame)\nEncoding time: 0.06 seconds (average: 5.56 ms/frame)\n--------------------------------------------------------------------------------\n\nWARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.\n     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)\n"
+        }
+      ]
+    }
+  ],
+  "truthBoundary": "Derived previews are rendering projections of exact historical source trees. They are not original carriers and do not establish gameplay correctness, Human value, or physical standing."
+}

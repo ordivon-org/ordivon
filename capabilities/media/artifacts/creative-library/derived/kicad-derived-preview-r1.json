@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library.derived-preview",
+  "row": {
+    "workId": "game:seen-not-approved-pcb",
+    "sourceRepo": "/root/projects/ordivon-game",
+    "sourceRevision": "db71e5e04fb796f3a95711757a014efbfdbe1d33",
+    "sourcePath": "play/seen-not-approved-pcb",
+    "sourceCarrier": "play/seen-not-approved-pcb/seen-not-approved.kicad_pcb",
+    "sourceBlobObjectId": "e59f69029e84a88a0174e0d8e29a383688d48cd6",
+    "renderer": {
+      "equipmentId": "laboratory-kicad-cli-10-0-5",
+      "bindingDigest": "sha256:c7ac972193d121c62675222d0a259d2920c497499aa0cbab8b6e91447a74c726",
+      "executable": "/root/.local/share/ordivon/laboratory/providers/kicad-10.0.5-appimage-lite/bin/kicad-cli",
+      "executableDigest": "sha256:52f95c6f329742b5d34c012d3f24adddf40b1c2c0fcc2dd27c8ba307b62e9799",
+      "version": "10.0.5",
+      "command": "pcb export svg --layers F.Cu,F.Silkscreen,Edge.Cuts --mode-single --black-and-white --page-size-mode 2 --exclude-drawing-sheet"
+    },
+    "derivedPath": "artifacts/creative-library/derived/game--seen-not-approved-pcb.svg",
+    "sha256": "sha256:9f0e08b906654dbae81db7ae9b501d435326a29823659cacb4908ace51a6f5be",
+    "repeatSha256": [
+      "sha256:9f0e08b906654dbae81db7ae9b501d435326a29823659cacb4908ace51a6f5be",
+      "sha256:9f0e08b906654dbae81db7ae9b501d435326a29823659cacb4908ace51a6f5be"
+    ],
+    "repeatDeterministic": true,
+    "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER",
+    "truthBoundary": "Deterministic KiCad 2D SVG plot of the exact historical board source. This is not an original carrier and not DRC, manufacturability, assembly, or Human-value evidence.",
+    "rawToolOutputRepeatSha256": [
+      "sha256:2c78ce96e7935e227637755ca9aed2d0c3d84503efc3c6d813c8e8e604773384",
+      "sha256:2c78ce96e7935e227637755ca9aed2d0c3d84503efc3c6d813c8e8e604773384"
+    ],
+    "rawToolOutputRepeatDeterministic": true,
+    "normalization": {
+      "operation": "strip trailing ASCII space/tab/CR from each SVG line and emit one terminal LF",
+      "semanticIntent": "repository hygiene only; no XML element, attribute, path, coordinate, style, or ordering change"
+    }
+  }
+}
