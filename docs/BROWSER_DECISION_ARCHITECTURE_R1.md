@@ -202,3 +202,26 @@ same live local fixture page.
 This supports continuing the AX migration experiment without copying Jev's operation-specific
 presentation strings. It does not prove general web equivalence. Affordance binding and context
 selection remain experimental policy.
+
+
+## AX Generalization R1
+
+The AX projection has now passed an expanded controlled-fixture generalization gate after one
+important correction: AX semantics alone are not sufficient to grant effects.
+
+The first expanded fixture exposed password/file safety regressions, summary/contenteditable
+coverage gaps and duplicate gridcell actions. The hardened composition now uses browser-owned AX
+semantics plus minimal browser-owned DOM metadata, with strict fail-closed behavior when metadata
+is unavailable.
+
+After hardening, light-DOM effect space matched Jev 27/27, the AX path additionally exposed three
+Shadow DOM actions, and same-process iframe effects matched 3/3.
+
+Observation metadata is acquired with one pierced DOM.getDocument call rather than per-candidate
+DOM.describeNode calls. Forced site-per-process testing also showed that OOPIFs should be treated
+as separate CDP targets; Playwright can provide a frame-specific CDP session, after which the same
+AX+DOM projector is reused.
+
+This narrows the custom residual further: effect binding, ephemeral context projection and semantic
+witnessing remain ours; accessibility semantics, DOM facts and cross-process browser transport do
+not.
