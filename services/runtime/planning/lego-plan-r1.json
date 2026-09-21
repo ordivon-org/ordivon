@@ -77,7 +77,8 @@
       "state": "PROPOSED",
       "sharedRefs": [],
       "evidence": [
-        "docs/runtime.md"
+        "docs/runtime.md",
+        "planning/state-responsibility-census-r1.json"
       ],
       "dependencies": [
         "R00",
@@ -93,7 +94,7 @@
         "sourceRevision/currentHeadRevision/sourceStateDigest invariants remain unchanged.",
         "Workspace lifecycle tests no longer require unrelated Job/Provider internals except through declared interfaces."
       ],
-      "nextAction": "Extract types and pure lifecycle rules before moving storage calls."
+      "nextAction": "Extract a WorkspaceStateContract only where stable Workspace laws still span engine/workspace, Registry query/inspection, and universal Git authority primitives; do not duplicate Git mechanics."
     },
     {
       "id": "R03",
@@ -105,7 +106,8 @@
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
-        "docs/effect-kernel.md"
+        "docs/effect-kernel.md",
+        "planning/state-responsibility-census-r1.json"
       ],
       "dependencies": [
         "R00",
@@ -120,7 +122,7 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "Separate Job identity/replay logic from physical dispatch logic."
+      "nextAction": "Extract JobIdentityContract and AttemptLifecycleContract from shared laws spanning admission/execution/reconciliation/Registry; preserve the existing control-phase modules as consumers."
     },
     {
       "id": "R04",
@@ -131,7 +133,8 @@
       "state": "PROPOSED",
       "sharedRefs": [],
       "evidence": [
-        "docs/runtime.md"
+        "docs/runtime.md",
+        "planning/state-responsibility-census-r1.json"
       ],
       "dependencies": [
         "R03"
@@ -146,7 +149,7 @@
         "Rejected admission remains commitState=not_started.",
         "No queue, priority scheduler, or second in-memory capacity truth is introduced."
       ],
-      "nextAction": "Move reservation transitions behind a small transactional interface."
+      "nextAction": "Define ReservationContract around durable holder/acquire/hold/release semantics; keep queue/priority/scheduling outside Runtime."
     },
     {
       "id": "R05",
@@ -908,6 +911,6 @@
     "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
     "updatedAt": "2026-09-22",
     "standing": "RW0_IN_PROGRESS",
-    "notes": "RW0 started: R00 invariant freeze is implemented with 20 machine-readable invariants and proof mapping. R01 test partition is in progress; the first Tool Catalog contract module split preserved the full 66-test MCP suite plus 10 auth tests. Public Tool necessity audit found no immediate deletion candidate; workspace.diff remains compatibility-review and workspace.mutate/execPlan remain narrow-boundary reviews."
+    "notes": "RW0 started: R00 invariant freeze is implemented with 20 machine-readable invariants and proof mapping. R01 test partition is in progress; the first Tool Catalog contract module split preserved the full 66-test MCP suite plus 10 auth tests. Public Tool necessity audit found no immediate deletion candidate; workspace.diff remains compatibility-review and workspace.mutate/execPlan remain narrow-boundary reviews. R02/R03 census corrected the migration model: current engine/Registry are already split by control phase, so the next extraction is noun-level contract ownership rather than another cosmetic module split."
   }
 }

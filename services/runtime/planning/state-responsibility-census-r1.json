@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-state-responsibility-census",
+  "truthRole": "planning-projection-not-runtime-truth",
+  "sourceRevision": "97a8d1b48b2e10e20f4b6869dc12ecb8380a8ee8",
+  "findings": {
+    "currentOrganization": "mixed verb-centric engine modules plus storage/query modules",
+    "importantCorrection": "Runtime already has engine/workspace.rs and separate admission/execution/reconciliation/release modules. R02/R03 must not be a cosmetic second split; extraction is justified only where a stable state law still spans multiple control-phase modules.",
+    "desiredOrganization": "state contracts own durable laws; control-phase modules consume them"
+  },
+  "workspace": {
+    "futureOwner": "WorkspaceStateModule",
+    "alreadyLocalized": [
+      {
+        "responsibility": "open/get/list/mutate/close orchestration",
+        "location": "crates/ordivon-runtime-core/src/runtime/engine/workspace.rs"
+      },
+      {
+        "responsibility": "physical Git/workspace primitives",
+        "location": "universal workspace primitives imported into engine"
+      }
+    ],
+    "distributedResponsibilities": [
+      {
+        "responsibility": "source-state and Git authority facts",
+        "locations": [
+          "engine/workspace.rs",
+          "engine.rs imports from universal workspace primitives",
+          "inspection/operator.rs"
+        ],
+        "migration": "Define a WorkspaceState/WorkspaceAuthority contract first; do not duplicate Git mechanics."
+      },
+      {
+        "responsibility": "active/held Job guards",
+        "locations": [
+          "registry/query.rs",
+          "inspection/operator.rs",
+          "engine/workspace.rs"
+        ],
+        "migration": "Workspace lifecycle consumes a Reservation/Job activity query contract rather than raw Registry semantics."
+      },
+      {
+        "responsibility": "reconciliation before interactive lifecycle",
+        "locations": [
+          "engine/reconciliation.rs",
+          "engine/workspace.rs"
+        ],
+        "migration": "Keep reconciliation as a control service; Workspace owns only preconditions and closure state law."
+      },
+      {
+        "responsibility": "Workspace projection issues",
+        "locations": [
+          "engine.rs workspace_issue mapper",
+          "engine/control_query.rs",
+          "inspection/operator.rs"
+        ],
+        "migration": "Consolidate projection/error vocabulary only if it reduces duplicate semantics."
+      },
+      {
+        "responsibility": "lifecycle/tombstone physical deletion",
+        "locations": [
+          "engine/workspace.rs",
+          "universal remove_git_workspace primitives",
+          "operator lifecycle/reclaim scripts"
+        ],
+        "migration": "Separate core exact close from operator policy-driven retention; do not move operator policy into WorkspaceState."
+      }
+    ],
+    "firstExtractionTarget": {
+      "id": "R02-A1",
+      "artifact": "WorkspaceStateContract",
+      "contains": [
+        "opening sourceRevision",
+        "currentHeadRevision projection",
+        "sourceStateDigest expectation",
+        "dirty-state/force close preconditions",
+        "Git authority dependency identity",
+        "closed tombstone replay law"
+      ],
+      "excludes": [
+        "Git clone/worktree implementation",
+        "reconciliation loop",
+        "retention policy",
+        "Job state"
+      ]
+    },
+    "acceptance": [
+      "workspace.open/get/list/close/mutate public schemas unchanged",
+      "no Registry schema change",
+      "exact sourceStateDigest compare-and-close behavior unchanged",
+      "open child Git authority still blocks parent removal",
+      "projection-only Workspace reads still do not dispatch Jobs"
+    ]
+  },
+  "jobAttempt": {
+    "futureOwners": [
+      "JobStateModule",
+      "AttemptStateModule",
+      "ReservationStateModule"
+    ],
+    "alreadyLocalizedByControlPhase": [
+      {
+        "phase": "admission",
+        "location": "engine/admission.rs"
+      },
+      {
+        "phase": "physical execution",
+        "location": "engine/execution.rs"
+      },
+      {
+        "phase": "reconciliation",
+        "location": "engine/reconciliation.rs"
+      },
+      {
+        "phase": "control/query",
+        "location": "engine/control_query.rs"
+      },
+      {
+        "phase": "Registry admission",
+        "location": "registry/admission.rs"
+      },
+      {
+        "phase": "Registry lifecycle",
+        "location": "registry/lifecycle.rs"
+      },
+      {
+        "phase": "Registry recovery",
+        "location": "registry/recovery.rs"
+      },
+      {
+        "phase": "Registry query",
+        "location": "registry/query.rs"
+      }
+    ],
+    "distributedStateLaws": [
+      {
+        "law": "request identity + replay",
+        "locations": [
+          "engine/admission.rs",
+          "registry/admission.rs",
+          "types.rs"
+        ],
+        "target": "JobState contract"
+      },
+      {
+        "law": "Job desired state/resolution/current Attempt",
+        "locations": [
+          "types.rs",
+          "registry/lifecycle.rs",
+          "registry/query.rs",
+          "engine/control_query.rs"
+        ],
+        "target": "JobState contract"
+      },
+      {
+        "law": "Attempt generation/state/physical owner",
+        "locations": [
+          "types.rs",
+          "registry/lifecycle.rs",
+          "engine/execution.rs",
+          "supervisor.rs"
+        ],
+        "target": "AttemptState contract"
+      },
+      {
+        "law": "terminal commit + capacity release",
+        "locations": [
+          "registry/lifecycle.rs",
+          "engine/control_query.rs",
+          "engine/reconciliation.rs"
+        ],
+        "target": "Attempt/Reservation transactional transition contract"
+      },
+      {
+        "law": "lost/orphaned/recovery-required convergence",
+        "locations": [
+          "engine/reconciliation.rs",
+          "registry/recovery.rs",
+          "repair.rs"
+        ],
+        "target": "Reconciliation service consuming state contracts"
+      },
+      {
+        "law": "reservation acquisition/hold/release",
+        "locations": [
+          "registry.rs",
+          "registry/admission.rs",
+          "registry/lifecycle.rs",
+          "registry/query.rs"
+        ],
+        "target": "ReservationState contract"
+      },
+      {
+        "law": "Artifact attribution to Job/Attempt",
+        "locations": [
+          "types.rs",
+          "engine/control_query.rs",
+          "registry/query.rs"
+        ],
+        "target": "ArtifactState contract"
+      }
+    ],
+    "firstExtractionTargets": [
+      {
+        "id": "R03-A1",
+        "artifact": "JobIdentityContract",
+        "contains": [
+          "principal",
+          "clientRequestId",
+          "requestDigest",
+          "operationDigest",
+          "workspace identity",
+          "exact replay/conflict law"
+        ],
+        "excludes": [
+          "dispatch",
+          "provider",
+          "reconciliation"
+        ]
+      },
+      {
+        "id": "R03-A2",
+        "artifact": "AttemptLifecycleContract",
+        "contains": [
+          "generation",
+          "state transitions",
+          "termination intent",
+          "physical-owner identity",
+          "terminal evidence requirement"
+        ],
+        "excludes": [
+          "Linux/Windows mechanics"
+        ]
+      },
+      {
+        "id": "R04-A1",
+        "artifact": "ReservationContract",
+        "contains": [
+          "workspace/global holder semantics",
+          "active/held_orphaned",
+          "acquire/release/hold transitions"
+        ],
+        "excludes": [
+          "queue",
+          "priority",
+          "scheduler"
+        ]
+      }
+    ],
+    "acceptance": [
+      "same clientRequestId exact replay creates no new Job/Attempt",
+      "global capacity cannot be overbooked under simultaneous admission",
+      "UNKNOWN/lost/orphaned never grants blind redispatch",
+      "terminal evidence and reservation release remain atomic",
+      "provider-specific code no longer needs raw Job/Reservation storage details after extraction"
+    ]
+  },
+  "migrationPrinciples": [
+    "Prefer contract extraction over file movement.",
+    "Do not reorganize code solely to match noun-shaped directories.",
+    "Keep mature universal Git/systemd/Windows primitives where they already belong.",
+    "Move semantic law only when at least two current control-phase modules depend on the same law.",
+    "Every extraction commit must reduce hidden authority or duplicate logic; otherwise reject it.",
+    "State contracts may remain in the same crate; do not create crate boundaries prematurely."
+  ]
+}
