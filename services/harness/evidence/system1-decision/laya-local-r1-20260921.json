@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-local-evidence",
+  "standing": "EXPERIMENTAL",
+  "observedDate": "2026-09-21",
+  "provider": {
+    "providerId": "laya-local",
+    "packageVersion": "0.3.4",
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "device": "NVIDIA GeForce RTX 5060 Laptop GPU",
+    "python": "3.14.6",
+    "torch": "2.14.0+cu130"
+  },
+  "runtime": {
+    "coldLoadMs": 18117.14,
+    "residentVramMiB": 1716.0,
+    "firstInferenceMs": 2324.063,
+    "warmMedianMs": 79.809,
+    "warmMinMs": 27.218,
+    "warmP95Ms": 83.038
+  },
+  "opportunityR0": {
+    "caseCount": 30,
+    "categoryAccuracy": 0.9,
+    "categoryEce10MaxProbability": 0.08,
+    "categoryMeanBrier": 0.1238,
+    "actionableAccuracyAt0_5": 1.0,
+    "medianLatencyMs": 32.852,
+    "note": "hand-authored unambiguous smoke corpus; not representative external population"
+  },
+  "cardinalityFindings": [
+    {
+      "k": 4,
+      "accuracy": 0.75,
+      "standing": "EXECUTED"
+    },
+    {
+      "k": 10,
+      "accuracy": 0.4444,
+      "standing": "EXECUTED"
+    },
+    {
+      "k": 20,
+      "accuracy": 0.3636,
+      "standing": "EXECUTED"
+    },
+    {
+      "k": 50,
+      "accuracy": 0.0,
+      "standing": "EXECUTED",
+      "meanMaxProbability": 0.9956
+    },
+    {
+      "k": 77,
+      "accuracy": 0.2632,
+      "standing": "EXECUTED"
+    },
+    {
+      "k": 100,
+      "accuracy": 0.0588,
+      "standing": "EXECUTED",
+      "meanMaxProbability": 1.0
+    },
+    {
+      "k": 200,
+      "standing": "ERROR",
+      "reason": "options exceed head_max_len=192"
+    }
+  ],
+  "interpretation": [
+    "local CUDA inference is physically viable",
+    "Opportunity zero-shot smoke suggests fuzzy prefilter potential",
+    "high-cardinality target selection is not qualified",
+    "provider confidence is not an autonomous-action authority",
+    "Jev comparison remains blocked by missing TYPESAFE_API_KEY"
+  ],
+  "nonClaims": [
+    "production_readiness",
+    "representative_external_population",
+    "laya_superior_to_jev",
+    "browser_task_success"
+  ]
+}

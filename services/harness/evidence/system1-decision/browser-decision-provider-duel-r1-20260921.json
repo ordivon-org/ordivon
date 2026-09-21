@@ -1,0 +1,1374 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-decision-provider-duel-r1",
+  "corpusId": "browser-decision-r1-controlled",
+  "corpusDigest": "sha256:8802010b219530c280298c5aafe62f32e9956d2f19cb372f8c2d93fe9b036ff3",
+  "caseCount": 42,
+  "providers": {
+    "crossencoder": {
+      "score": {
+        "schemaVersion": 1,
+        "kind": "ordivon.system1-decision-benchmark-score",
+        "provider": {
+          "providerId": "crossencoder-msmarco-minilm-l6-v2",
+          "implementation": "sentence-transformers",
+          "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
+          "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a",
+          "modelSha256": "821d1aa69520101d6e0737f78a042ae25b19e5cb9160701909d10434f4aeb0ae",
+          "distribution": "softmax_over_pair_logits",
+          "standing": "EXPERIMENTAL_BASELINE"
+        },
+        "corpusId": "browser-decision-r1-controlled",
+        "corpusDigest": "sha256:8802010b219530c280298c5aafe62f32e9956d2f19cb372f8c2d93fe9b036ff3",
+        "coverage": {
+          "totalCases": 42,
+          "executedCases": 42,
+          "fraction": 1.0,
+          "standings": {
+            "EXECUTED": 42,
+            "ERROR": 0,
+            "BLOCKED": 0
+          }
+        },
+        "choice": {
+          "n": 42,
+          "accuracy": 0.9285714285714286,
+          "meanBrier": 0.14988211799394685,
+          "meanNll": 0.2502912373165014,
+          "ece10MaxProbability": 0.07966731917016312,
+          "meanExpectedRank": 1.0714285714285714,
+          "meanReciprocalRank": 0.9642857142857143
+        },
+        "noul": {
+          "n": 0,
+          "accuracyAt0_5": null,
+          "meanBrier": null,
+          "meanNll": null,
+          "ece10": null
+        },
+        "latencyMs": {
+          "median": 14.129504997981712,
+          "mean": 14.00521054685149,
+          "p95": 15.734117987449281
+        },
+        "nonClaims": [
+          "production_calibration",
+          "provider_superiority",
+          "representative_external_population"
+        ],
+        "scoreDigest": "sha256:eec152d195ea81b37e6d978995258769d25bc393f22065c001477894d0f3b657"
+      },
+      "byOperation": {
+        "CLICK": {
+          "n": 30,
+          "accuracy": 0.9,
+          "meanReciprocalRank": 0.95,
+          "medianLatencyMs": 14.701522501127329
+        },
+        "FILL": {
+          "n": 7,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 7.081902003847063
+        },
+        "SELECT": {
+          "n": 5,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 4.864065005676821
+        }
+      },
+      "byCaseClass": {
+        "aria_widget": {
+          "n": 4,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 14.657954496215098
+        },
+        "context_required": {
+          "n": 8,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 7.36635499924887
+        },
+        "frame_context": {
+          "n": 3,
+          "accuracy": 0.6666666666666666,
+          "meanReciprocalRank": 0.8333333333333334,
+          "medianLatencyMs": 15.31110898940824
+        },
+        "html_affordance": {
+          "n": 1,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 14.622637987486087
+        },
+        "label_direct": {
+          "n": 3,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 14.81118900119327
+        },
+        "shadow_context": {
+          "n": 3,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 14.682448003441095
+        },
+        "state_control": {
+          "n": 4,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 14.52364099532133
+        },
+        "state_required": {
+          "n": 1,
+          "accuracy": 1.0,
+          "meanReciprocalRank": 1.0,
+          "medianLatencyMs": 15.339053992647678
+        },
+        "structure_required": {
+          "n": 1,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.5,
+          "medianLatencyMs": 15.469318997929804
+        },
+        "typed_effect": {
+          "n": 14,
+          "accuracy": 0.9285714285714286,
+          "meanReciprocalRank": 0.9642857142857143,
+          "medianLatencyMs": 7.092191000992898
+        }
+      },
+      "misses": [
+        {
+          "caseId": "g17-nested-button",
+          "operation": "CLICK",
+          "caseClass": "structure_required",
+          "goal": "Activate the nested cell button, not its parent grid cell.",
+          "truth": {
+            "candidateId": "c-044c181a6896c177",
+            "role": "button",
+            "name": "Nested cell button",
+            "optionName": null,
+            "probability": 0.13257313661313488
+          },
+          "predicted": {
+            "candidateId": "c-225dffa78a92466a",
+            "role": "gridcell",
+            "name": "Scholarship cell",
+            "optionName": null,
+            "probability": 0.867146868617772
+          },
+          "truthRank": 2.0
+        },
+        {
+          "caseId": "g20-frame-apply",
+          "operation": "CLICK",
+          "caseClass": "frame_context",
+          "goal": "Apply for the AI grant inside the embedded frame.",
+          "truth": {
+            "candidateId": "c-6300f21df6f035ff",
+            "role": "button",
+            "name": "Apply in frame",
+            "optionName": null,
+            "probability": 0.4277933631199754
+          },
+          "predicted": {
+            "candidateId": "c-dda488bcf98d73fc",
+            "role": "textbox",
+            "name": "Frame query",
+            "optionName": null,
+            "probability": 0.568539767989288
+          },
+          "truthRank": 2.0
+        },
+        {
+          "caseId": "t03-find-stays",
+          "operation": "CLICK",
+          "caseClass": "typed_effect",
+          "goal": "Run the stay search.",
+          "truth": {
+            "candidateId": "c-bc769012bf0c3938",
+            "role": "button",
+            "name": "Find stays",
+            "optionName": null,
+            "probability": 0.27466916379792833
+          },
+          "predicted": {
+            "candidateId": "c-098b60a3db72980f",
+            "role": "searchbox",
+            "name": "Destination",
+            "optionName": null,
+            "probability": 0.6591302387582485
+          },
+          "truthRank": 2.0
+        }
+      ]
+    },
+    "laya": {
+      "score": {
+        "schemaVersion": 1,
+        "kind": "ordivon.system1-decision-benchmark-score",
+        "provider": {
+          "providerId": "laya-base-independent-noul",
+          "implementation": "laya",
+          "version": "0.3.4",
+          "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+          "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+          "distribution": "normalized_independent_noul_probabilities",
+          "standing": "EXPERIMENTAL_BASE_MODEL"
+        },
+        "corpusId": "browser-decision-r1-controlled",
+        "corpusDigest": "sha256:8802010b219530c280298c5aafe62f32e9956d2f19cb372f8c2d93fe9b036ff3",
+        "coverage": {
+          "totalCases": 42,
+          "executedCases": 42,
+          "fraction": 1.0,
+          "standings": {
+            "EXECUTED": 42,
+            "ERROR": 0,
+            "BLOCKED": 0
+          }
+        },
+        "choice": {
+          "n": 42,
+          "accuracy": 0.11904761904761904,
+          "meanBrier": 0.8804449254270652,
+          "meanNll": 2.4670512707694847,
+          "ece10MaxProbability": 0.10350274107667076,
+          "meanExpectedRank": 8.321428571428571,
+          "meanReciprocalRank": 0.2579421900850472
+        },
+        "noul": {
+          "n": 0,
+          "accuracyAt0_5": null,
+          "meanBrier": null,
+          "meanNll": null,
+          "ece10": null
+        },
+        "latencyMs": {
+          "median": 114.91761350043816,
+          "mean": 117.92519259428705,
+          "p95": 187.29103800433222
+        },
+        "nonClaims": [
+          "production_calibration",
+          "provider_superiority",
+          "representative_external_population"
+        ],
+        "scoreDigest": "sha256:ab84b1fe1210cadc53d61c395b7b74f20a4ecc330b289b2486cf0c46d3a9e545"
+      },
+      "byOperation": {
+        "CLICK": {
+          "n": 30,
+          "accuracy": 0.03333333333333333,
+          "meanReciprocalRank": 0.15326192326192328,
+          "medianLatencyMs": 169.32853749312926
+        },
+        "FILL": {
+          "n": 7,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.2479591836734694,
+          "medianLatencyMs": 55.63162500038743
+        },
+        "SELECT": {
+          "n": 5,
+          "accuracy": 0.8,
+          "meanReciprocalRank": 0.9,
+          "medianLatencyMs": 37.85034900647588
+        }
+      },
+      "byCaseClass": {
+        "aria_widget": {
+          "n": 4,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.08244949494949495,
+          "medianLatencyMs": 171.2993170003756
+        },
+        "context_required": {
+          "n": 8,
+          "accuracy": 0.125,
+          "meanReciprocalRank": 0.2629433066933067,
+          "medianLatencyMs": 65.81314099457813
+        },
+        "frame_context": {
+          "n": 3,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.10404040404040404,
+          "medianLatencyMs": 175.534547001007
+        },
+        "html_affordance": {
+          "n": 1,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.1111111111111111,
+          "medianLatencyMs": 173.51657099789008
+        },
+        "label_direct": {
+          "n": 3,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.1126984126984127,
+          "medianLatencyMs": 156.85504498833325
+        },
+        "shadow_context": {
+          "n": 3,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.0925925925925926,
+          "medianLatencyMs": 176.56904899922665
+        },
+        "state_control": {
+          "n": 4,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.14801864801864803,
+          "medianLatencyMs": 156.6686615042272
+        },
+        "state_required": {
+          "n": 1,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.06666666666666667,
+          "medianLatencyMs": 187.29103800433222
+        },
+        "structure_required": {
+          "n": 1,
+          "accuracy": 0.0,
+          "meanReciprocalRank": 0.08333333333333333,
+          "medianLatencyMs": 194.06034199346323
+        },
+        "typed_effect": {
+          "n": 14,
+          "accuracy": 0.2857142857142857,
+          "meanReciprocalRank": 0.4727891156462585,
+          "medianLatencyMs": 56.19539599865675
+        }
+      },
+      "misses": [
+        {
+          "caseId": "g01-submit",
+          "operation": "CLICK",
+          "caseClass": "label_direct",
+          "goal": "Click the control that submits the application.",
+          "truth": {
+            "candidateId": "c-055b7210e28a409b",
+            "role": "button",
+            "name": "Submit application",
+            "optionName": null,
+            "probability": 0.04269714601108479
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.04376882919761745
+          },
+          "truthRank": 10.0
+        },
+        {
+          "caseId": "g02-grant-guide",
+          "operation": "CLICK",
+          "caseClass": "label_direct",
+          "goal": "Open the grant guide.",
+          "truth": {
+            "candidateId": "c-5bef21aafdadfb8d",
+            "role": "link",
+            "name": "Open grant guide",
+            "optionName": null,
+            "probability": 0.04104722872001083
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.045570978405861544
+          },
+          "truthRank": 14.0
+        },
+        {
+          "caseId": "g03-email-updates",
+          "operation": "CLICK",
+          "caseClass": "state_control",
+          "goal": "Toggle email updates.",
+          "truth": {
+            "candidateId": "c-bcb173b44f4fa22b",
+            "role": "checkbox",
+            "name": "Email updates",
+            "optionName": null,
+            "probability": 0.042412849336603754
+          },
+          "predicted": {
+            "candidateId": "c-2aa815714948d5e0",
+            "role": "radio",
+            "name": "Remote participation",
+            "optionName": null,
+            "probability": 0.044074891328023634
+          },
+          "truthRank": 13.0
+        },
+        {
+          "caseId": "g04-remote-participation",
+          "operation": "CLICK",
+          "caseClass": "state_control",
+          "goal": "Choose remote participation.",
+          "truth": {
+            "candidateId": "c-2aa815714948d5e0",
+            "role": "radio",
+            "name": "Remote participation",
+            "optionName": null,
+            "probability": 0.04250020882058136
+          },
+          "predicted": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.04808615937186769
+          },
+          "truthRank": 12.0
+        },
+        {
+          "caseId": "g05-personal-statement-focus",
+          "operation": "CLICK",
+          "caseClass": "typed_effect",
+          "goal": "Focus the personal statement editor without editing it.",
+          "truth": {
+            "candidateId": "c-922ac74ab73b24a0",
+            "role": "generic",
+            "name": "Personal statement",
+            "optionName": null,
+            "probability": 0.042412655079888936
+          },
+          "predicted": {
+            "candidateId": "c-2aa815714948d5e0",
+            "role": "radio",
+            "name": "Remote participation",
+            "optionName": null,
+            "probability": 0.043763614775478916
+          },
+          "truthRank": 10.0
+        },
+        {
+          "caseId": "g06-enable-alerts",
+          "operation": "CLICK",
+          "caseClass": "state_control",
+          "goal": "Enable alerts.",
+          "truth": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.04473023567336279
+          },
+          "predicted": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.04545301229202103
+          },
+          "truthRank": 5.5
+        },
+        {
+          "caseId": "g07-keyword-open",
+          "operation": "CLICK",
+          "caseClass": "typed_effect",
+          "goal": "Open or focus the keyword combobox.",
+          "truth": {
+            "candidateId": "c-aaecec0e7c318b2b",
+            "role": "combobox",
+            "name": "Keyword combobox",
+            "optionName": null,
+            "probability": 0.04345475308210399
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.043990771166888064
+          },
+          "truthRank": 4.0
+        },
+        {
+          "caseId": "g08-fellowship",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Apply to the fully funded Houston research fellowship whose deadline is October 31.",
+          "truth": {
+            "candidateId": "c-1de590f494372d8f",
+            "role": "button",
+            "name": "Apply to fellowship",
+            "optionName": null,
+            "probability": 0.04293049241139083
+          },
+          "predicted": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.052153310262151954
+          },
+          "truthRank": 13.0
+        },
+        {
+          "caseId": "g09-confirm-eligibility",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Confirm eligibility in the open dialog.",
+          "truth": {
+            "candidateId": "c-1cada2d1659dabcc",
+            "role": "button",
+            "name": "Confirm eligibility",
+            "optionName": null,
+            "probability": 0.04243856694480594
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.04446241292199342
+          },
+          "truthRank": 11.0
+        },
+        {
+          "caseId": "g10-search-open",
+          "operation": "CLICK",
+          "caseClass": "typed_effect",
+          "goal": "Focus the opportunity search field.",
+          "truth": {
+            "candidateId": "c-bc910836fc5e4879",
+            "role": "searchbox",
+            "name": "Opportunity search",
+            "optionName": null,
+            "probability": 0.04188166012338755
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.04398953075341185
+          },
+          "truthRank": 15.0
+        },
+        {
+          "caseId": "g11-readonly",
+          "operation": "CLICK",
+          "caseClass": "state_required",
+          "goal": "Focus the readonly profile field without editing it.",
+          "truth": {
+            "candidateId": "c-4737f645557f5b1c",
+            "role": "textbox",
+            "name": "Readonly profile",
+            "optionName": null,
+            "probability": 0.041434315223197966
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.043664889080497475
+          },
+          "truthRank": 15.0
+        },
+        {
+          "caseId": "g12-advanced",
+          "operation": "CLICK",
+          "caseClass": "html_affordance",
+          "goal": "Expand Advanced options.",
+          "truth": {
+            "candidateId": "c-25890c0a64d968c8",
+            "role": "DisclosureTriangle",
+            "name": "Advanced options",
+            "optionName": null,
+            "probability": 0.04499081441950837
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.04781796138350195
+          },
+          "truthRank": 9.0
+        },
+        {
+          "caseId": "g13-deadlines",
+          "operation": "CLICK",
+          "caseClass": "aria_widget",
+          "goal": "Switch to the Deadlines tab.",
+          "truth": {
+            "candidateId": "c-1ee968675ccaa678",
+            "role": "tab",
+            "name": "Deadlines",
+            "optionName": null,
+            "probability": 0.043557970110286705
+          },
+          "predicted": {
+            "candidateId": "c-2aa815714948d5e0",
+            "role": "radio",
+            "name": "Remote participation",
+            "optionName": null,
+            "probability": 0.04502174059107532
+          },
+          "truthRank": 10.0
+        },
+        {
+          "caseId": "g14-save-draft",
+          "operation": "CLICK",
+          "caseClass": "aria_widget",
+          "goal": "Save the draft from the actions menu.",
+          "truth": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.04044531406876777
+          },
+          "predicted": {
+            "candidateId": "c-2aa815714948d5e0",
+            "role": "radio",
+            "name": "Remote participation",
+            "optionName": null,
+            "probability": 0.04386829238679188
+          },
+          "truthRank": 18.0
+        },
+        {
+          "caseId": "g15-private",
+          "operation": "CLICK",
+          "caseClass": "aria_widget",
+          "goal": "Choose the Private menu option.",
+          "truth": {
+            "candidateId": "c-8222e945b4079644",
+            "role": "menuitemradio",
+            "name": "Private",
+            "optionName": null,
+            "probability": 0.04260452983521032
+          },
+          "predicted": {
+            "candidateId": "c-1ee968675ccaa678",
+            "role": "tab",
+            "name": "Deadlines",
+            "optionName": null,
+            "probability": 0.044801725651508695
+          },
+          "truthRank": 12.0
+        },
+        {
+          "caseId": "g16-scholarship-cell",
+          "operation": "CLICK",
+          "caseClass": "aria_widget",
+          "goal": "Activate the scholarship grid cell.",
+          "truth": {
+            "candidateId": "c-225dffa78a92466a",
+            "role": "gridcell",
+            "name": "Scholarship cell",
+            "optionName": null,
+            "probability": 0.04254439519656953
+          },
+          "predicted": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.045601822919170455
+          },
+          "truthRank": 11.0
+        },
+        {
+          "caseId": "g17-nested-button",
+          "operation": "CLICK",
+          "caseClass": "structure_required",
+          "goal": "Activate the nested cell button, not its parent grid cell.",
+          "truth": {
+            "candidateId": "c-044c181a6896c177",
+            "role": "button",
+            "name": "Nested cell button",
+            "optionName": null,
+            "probability": 0.04215030906497357
+          },
+          "predicted": {
+            "candidateId": "c-25890c0a64d968c8",
+            "role": "DisclosureTriangle",
+            "name": "Advanced options",
+            "optionName": null,
+            "probability": 0.044089540271678836
+          },
+          "truthRank": 12.0
+        },
+        {
+          "caseId": "g18-shadow-apply",
+          "operation": "CLICK",
+          "caseClass": "shadow_context",
+          "goal": "Apply to the remote security Shadow Internship.",
+          "truth": {
+            "candidateId": "c-13d3ec30ff380049",
+            "role": "button",
+            "name": "Apply in shadow",
+            "optionName": null,
+            "probability": 0.037597315584890205
+          },
+          "predicted": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.049153368254354984
+          },
+          "truthRank": 18.0
+        },
+        {
+          "caseId": "g19-shadow-search-open",
+          "operation": "CLICK",
+          "caseClass": "shadow_context",
+          "goal": "Focus the search control inside the Shadow opportunity.",
+          "truth": {
+            "candidateId": "c-ae84be3f69d8c6b5",
+            "role": "searchbox",
+            "name": "Shadow search",
+            "optionName": null,
+            "probability": 0.04147444177892601
+          },
+          "predicted": {
+            "candidateId": "c-01740b6044749860",
+            "role": "switch",
+            "name": "Enable alerts",
+            "optionName": null,
+            "probability": 0.04325521313895553
+          },
+          "truthRank": 18.0
+        },
+        {
+          "caseId": "g20-frame-apply",
+          "operation": "CLICK",
+          "caseClass": "frame_context",
+          "goal": "Apply for the AI grant inside the embedded frame.",
+          "truth": {
+            "candidateId": "c-6300f21df6f035ff",
+            "role": "button",
+            "name": "Apply in frame",
+            "optionName": null,
+            "probability": 0.04149250836444746
+          },
+          "predicted": {
+            "candidateId": "c-575abbd4160c4188",
+            "role": "menuitem",
+            "name": "Save draft",
+            "optionName": null,
+            "probability": 0.045037094506133926
+          },
+          "truthRank": 15.0
+        },
+        {
+          "caseId": "g21-frame-query-open",
+          "operation": "CLICK",
+          "caseClass": "frame_context",
+          "goal": "Focus the query field inside the embedded application frame.",
+          "truth": {
+            "candidateId": "c-dda488bcf98d73fc",
+            "role": "textbox",
+            "name": "Frame query",
+            "optionName": null,
+            "probability": 0.037958611901069604
+          },
+          "predicted": {
+            "candidateId": "c-8222e945b4079644",
+            "role": "menuitemradio",
+            "name": "Private",
+            "optionName": null,
+            "probability": 0.04464892266319345
+          },
+          "truthRank": 22.0
+        },
+        {
+          "caseId": "g22-fill-personal",
+          "operation": "FILL",
+          "caseClass": "typed_effect",
+          "goal": "Edit the personal statement.",
+          "truth": {
+            "candidateId": "c-b819a9e5bdab4f2e",
+            "role": "generic",
+            "name": "Personal statement",
+            "optionName": null,
+            "probability": 0.1373029772329247
+          },
+          "predicted": {
+            "candidateId": "c-83cfba98d0b0c8be",
+            "role": "searchbox",
+            "name": "Opportunity search",
+            "optionName": null,
+            "probability": 0.15181386039529648
+          },
+          "truthRank": 7.0
+        },
+        {
+          "caseId": "g23-fill-keyword",
+          "operation": "FILL",
+          "caseClass": "typed_effect",
+          "goal": "Enter a new keyword in the keyword combobox.",
+          "truth": {
+            "candidateId": "c-c6076c1204606682",
+            "role": "combobox",
+            "name": "Keyword combobox",
+            "optionName": null,
+            "probability": 0.14627238650562266
+          },
+          "predicted": {
+            "candidateId": "c-83cfba98d0b0c8be",
+            "role": "searchbox",
+            "name": "Opportunity search",
+            "optionName": null,
+            "probability": 0.15108704706372345
+          },
+          "truthRank": 3.0
+        },
+        {
+          "caseId": "g24-fill-search",
+          "operation": "FILL",
+          "caseClass": "typed_effect",
+          "goal": "Enter a new opportunity search query.",
+          "truth": {
+            "candidateId": "c-83cfba98d0b0c8be",
+            "role": "searchbox",
+            "name": "Opportunity search",
+            "optionName": null,
+            "probability": 0.14755890448396353
+          },
+          "predicted": {
+            "candidateId": "c-c6076c1204606682",
+            "role": "combobox",
+            "name": "Keyword combobox",
+            "optionName": null,
+            "probability": 0.16011087902863724
+          },
+          "truthRank": 2.0
+        },
+        {
+          "caseId": "g25-fill-name",
+          "operation": "FILL",
+          "caseClass": "typed_effect",
+          "goal": "Change the applicant name.",
+          "truth": {
+            "candidateId": "c-987a705590939c08",
+            "role": "textbox",
+            "name": "Applicant name",
+            "optionName": null,
+            "probability": 0.14279852277390234
+          },
+          "predicted": {
+            "candidateId": "c-83cfba98d0b0c8be",
+            "role": "searchbox",
+            "name": "Opportunity search",
+            "optionName": null,
+            "probability": 0.15314252496238545
+          },
+          "truthRank": 4.0
+        },
+        {
+          "caseId": "g26-fill-team",
+          "operation": "FILL",
+          "caseClass": "typed_effect",
+          "goal": "Change the team size.",
+          "truth": {
+            "candidateId": "c-687dd3616757aa06",
+            "role": "spinbutton",
+            "name": "Team size",
+            "optionName": null,
+            "probability": 0.1208116474470184
+          },
+          "predicted": {
+            "candidateId": "c-c6076c1204606682",
+            "role": "combobox",
+            "name": "Keyword combobox",
+            "optionName": null,
+            "probability": 0.1588257305167194
+          },
+          "truthRank": 7.0
+        },
+        {
+          "caseId": "g27-fill-shadow",
+          "operation": "FILL",
+          "caseClass": "shadow_context",
+          "goal": "Enter a new search inside the Shadow opportunity.",
+          "truth": {
+            "candidateId": "c-cddf54a2b243a766",
+            "role": "searchbox",
+            "name": "Shadow search",
+            "optionName": null,
+            "probability": 0.13892419941839204
+          },
+          "predicted": {
+            "candidateId": "c-c6076c1204606682",
+            "role": "combobox",
+            "name": "Keyword combobox",
+            "optionName": null,
+            "probability": 0.15236735333553902
+          },
+          "truthRank": 6.0
+        },
+        {
+          "caseId": "g28-fill-frame",
+          "operation": "FILL",
+          "caseClass": "frame_context",
+          "goal": "Enter a new query inside the embedded application frame.",
+          "truth": {
+            "candidateId": "c-038e75caeccf0633",
+            "role": "textbox",
+            "name": "Frame query",
+            "optionName": null,
+            "probability": 0.13995526711399553
+          },
+          "predicted": {
+            "candidateId": "c-b819a9e5bdab4f2e",
+            "role": "generic",
+            "name": "Personal statement",
+            "optionName": null,
+            "probability": 0.15509844901550984
+          },
+          "truthRank": 5.0
+        },
+        {
+          "caseId": "t01-free-cancel",
+          "operation": "CLICK",
+          "caseClass": "state_control",
+          "goal": "Enable the free cancellation filter.",
+          "truth": {
+            "candidateId": "c-13a47190f05a32ef",
+            "role": "checkbox",
+            "name": "Free cancellation",
+            "optionName": null,
+            "probability": 0.1184070199122511
+          },
+          "predicted": {
+            "candidateId": "c-098b60a3db72980f",
+            "role": "searchbox",
+            "name": "Destination",
+            "optionName": null,
+            "probability": 0.12457644279446507
+          },
+          "truthRank": 4.0
+        },
+        {
+          "caseId": "t02-reading-room",
+          "operation": "CLICK",
+          "caseClass": "label_direct",
+          "goal": "Open the Reading room.",
+          "truth": {
+            "candidateId": "c-48920dd4b7c37bac",
+            "role": "link",
+            "name": "Reading room",
+            "optionName": null,
+            "probability": 0.11045668720550923
+          },
+          "predicted": {
+            "candidateId": "c-098b60a3db72980f",
+            "role": "searchbox",
+            "name": "Destination",
+            "optionName": null,
+            "probability": 0.12384145394293998
+          },
+          "truthRank": 6.0
+        },
+        {
+          "caseId": "t03-find-stays",
+          "operation": "CLICK",
+          "caseClass": "typed_effect",
+          "goal": "Run the stay search.",
+          "truth": {
+            "candidateId": "c-bc769012bf0c3938",
+            "role": "button",
+            "name": "Find stays",
+            "optionName": null,
+            "probability": 0.12341192937123169
+          },
+          "predicted": {
+            "candidateId": "c-13a47190f05a32ef",
+            "role": "checkbox",
+            "name": "Free cancellation",
+            "optionName": null,
+            "probability": 0.12592861757105941
+          },
+          "truthRank": 3.0
+        },
+        {
+          "caseId": "t04-casa",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Open the Lisbon Design stay that has free cancellation and costs €145 per night.",
+          "truth": {
+            "candidateId": "c-d12460b84bc19f3f",
+            "role": "button",
+            "name": "View Casa Flora",
+            "optionName": null,
+            "probability": 0.11236523621438511
+          },
+          "predicted": {
+            "candidateId": "c-bc769012bf0c3938",
+            "role": "button",
+            "name": "Find stays",
+            "optionName": null,
+            "probability": 0.12075678562894451
+          },
+          "truthRank": 4.0
+        },
+        {
+          "caseId": "t05-glasshouse",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Open the Copenhagen Design stay with free cancellation priced at €210 per night.",
+          "truth": {
+            "candidateId": "c-d90b05f5448ce9bd",
+            "role": "button",
+            "name": "View The Glasshouse",
+            "optionName": null,
+            "probability": 0.10219829021871878
+          },
+          "predicted": {
+            "candidateId": "c-bc769012bf0c3938",
+            "role": "button",
+            "name": "Find stays",
+            "optionName": null,
+            "probability": 0.12636005329188407
+          },
+          "truthRank": 7.0
+        },
+        {
+          "caseId": "t06-serra",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Open the Lisbon Nature stay that is non-refundable and costs €120 per night.",
+          "truth": {
+            "candidateId": "c-f72336971954b64a",
+            "role": "button",
+            "name": "View Serra Lodge",
+            "optionName": null,
+            "probability": 0.10349297312048028
+          },
+          "predicted": {
+            "candidateId": "c-13a47190f05a32ef",
+            "role": "checkbox",
+            "name": "Free cancellation",
+            "optionName": null,
+            "probability": 0.12397325692454632
+          },
+          "truthRank": 7.0
+        },
+        {
+          "caseId": "t10-coastal",
+          "operation": "SELECT",
+          "caseClass": "typed_effect",
+          "goal": "Choose the Coastal stay category.",
+          "truth": {
+            "candidateId": "c-4a58578ab1c1d4c4",
+            "role": "combobox",
+            "name": "Stay category",
+            "optionName": "Coastal",
+            "probability": 0.33262821619754795
+          },
+          "predicted": {
+            "candidateId": "c-99a713f6276fa357",
+            "role": "combobox",
+            "name": "Stay category",
+            "optionName": "Design",
+            "probability": 0.3363408737696426
+          },
+          "truthRank": 2.0
+        },
+        {
+          "caseId": "r02-latency",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+          "truth": {
+            "candidateId": "c-3f43793f7e18b9e8",
+            "role": "link",
+            "name": "Where the milliseconds go",
+            "optionName": null,
+            "probability": 0.15316312280979105
+          },
+          "predicted": {
+            "candidateId": "c-ee9b7cb3cb5d52f8",
+            "role": "link",
+            "name": "Reading room",
+            "optionName": null,
+            "probability": 0.20011593286433219
+          },
+          "truthRank": 5.0
+        },
+        {
+          "caseId": "r03-confidence",
+          "operation": "CLICK",
+          "caseClass": "context_required",
+          "goal": "Read what a peaked probability distribution can and cannot establish about correctness.",
+          "truth": {
+            "candidateId": "c-e18e831d69d83674",
+            "role": "link",
+            "name": "Confidence is not correctness",
+            "optionName": null,
+            "probability": 0.14978708198088203
+          },
+          "predicted": {
+            "candidateId": "c-a9289c4ae72a1bc8",
+            "role": "link",
+            "name": "forma.",
+            "optionName": null,
+            "probability": 0.2036866084988535
+          },
+          "truthRank": 5.0
+        }
+      ]
+    },
+    "jev": {
+      "score": {
+        "schemaVersion": 1,
+        "kind": "ordivon.system1-decision-benchmark-score",
+        "provider": {
+          "providerId": "jev-fast-windows-v1",
+          "implementation": "jev-ultrafast",
+          "version": "0.1.0",
+          "sourceRevision": "452c1ad2dd628008f1d5608f28158d76e49e6cc0",
+          "routeStanding": "WORKSTATION_PROVIDER_UNHEALTHY",
+          "missingEnvironmentNames": [
+            "TYPESAFE_API_KEY"
+          ],
+          "standing": "BLOCKED_BY_EXISTING_ROUTE_READINESS"
+        },
+        "corpusId": "browser-decision-r1-controlled",
+        "corpusDigest": "sha256:8802010b219530c280298c5aafe62f32e9956d2f19cb372f8c2d93fe9b036ff3",
+        "coverage": {
+          "totalCases": 42,
+          "executedCases": 0,
+          "fraction": 0.0,
+          "standings": {
+            "EXECUTED": 0,
+            "ERROR": 0,
+            "BLOCKED": 42
+          }
+        },
+        "choice": {
+          "n": 0,
+          "accuracy": null,
+          "meanBrier": null,
+          "meanNll": null,
+          "ece10MaxProbability": null,
+          "meanExpectedRank": null,
+          "meanReciprocalRank": null
+        },
+        "noul": {
+          "n": 0,
+          "accuracyAt0_5": null,
+          "meanBrier": null,
+          "meanNll": null,
+          "ece10": null
+        },
+        "latencyMs": {
+          "median": null,
+          "mean": null,
+          "p95": null
+        },
+        "nonClaims": [
+          "production_calibration",
+          "provider_superiority",
+          "representative_external_population"
+        ],
+        "scoreDigest": "sha256:b75e7b3353826af923eb081136b51ac7686da58723e8c0a4711b1afaefc08536"
+      },
+      "byOperation": {},
+      "byCaseClass": {},
+      "misses": []
+    }
+  },
+  "lexicalBaselines": {
+    "nameOnly": {
+      "mode": "name",
+      "correct": 36,
+      "total": 42,
+      "accuracy": 0.8571428571428571,
+      "byCaseClass": {
+        "aria_widget": {
+          "correct": 4,
+          "n": 4,
+          "accuracy": 1.0
+        },
+        "context_required": {
+          "correct": 4,
+          "n": 8,
+          "accuracy": 0.5
+        },
+        "frame_context": {
+          "correct": 3,
+          "n": 3,
+          "accuracy": 1.0
+        },
+        "html_affordance": {
+          "correct": 1,
+          "n": 1,
+          "accuracy": 1.0
+        },
+        "label_direct": {
+          "correct": 3,
+          "n": 3,
+          "accuracy": 1.0
+        },
+        "shadow_context": {
+          "correct": 2,
+          "n": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "state_control": {
+          "correct": 4,
+          "n": 4,
+          "accuracy": 1.0
+        },
+        "state_required": {
+          "correct": 1,
+          "n": 1,
+          "accuracy": 1.0
+        },
+        "structure_required": {
+          "correct": 1,
+          "n": 1,
+          "accuracy": 1.0
+        },
+        "typed_effect": {
+          "correct": 13,
+          "n": 14,
+          "accuracy": 0.9285714285714286
+        }
+      },
+      "missCaseIds": [
+        "g19-shadow-search-open",
+        "t03-find-stays",
+        "t04-casa",
+        "t05-glasshouse",
+        "t06-serra",
+        "r02-latency"
+      ]
+    },
+    "allEvidence": {
+      "mode": "all",
+      "correct": 33,
+      "total": 42,
+      "accuracy": 0.7857142857142857,
+      "byCaseClass": {
+        "aria_widget": {
+          "correct": 4,
+          "n": 4,
+          "accuracy": 1.0
+        },
+        "context_required": {
+          "correct": 6,
+          "n": 8,
+          "accuracy": 0.75
+        },
+        "frame_context": {
+          "correct": 2,
+          "n": 3,
+          "accuracy": 0.6666666666666666
+        },
+        "html_affordance": {
+          "correct": 1,
+          "n": 1,
+          "accuracy": 1.0
+        },
+        "label_direct": {
+          "correct": 3,
+          "n": 3,
+          "accuracy": 1.0
+        },
+        "shadow_context": {
+          "correct": 1,
+          "n": 3,
+          "accuracy": 0.3333333333333333
+        },
+        "state_control": {
+          "correct": 4,
+          "n": 4,
+          "accuracy": 1.0
+        },
+        "state_required": {
+          "correct": 1,
+          "n": 1,
+          "accuracy": 1.0
+        },
+        "structure_required": {
+          "correct": 1,
+          "n": 1,
+          "accuracy": 1.0
+        },
+        "typed_effect": {
+          "correct": 10,
+          "n": 14,
+          "accuracy": 0.7142857142857143
+        }
+      },
+      "missCaseIds": [
+        "g18-shadow-apply",
+        "g19-shadow-search-open",
+        "g20-frame-apply",
+        "g30-select-industry",
+        "t03-find-stays",
+        "t04-casa",
+        "t05-glasshouse",
+        "t09-nature",
+        "t10-coastal"
+      ]
+    }
+  },
+  "diagnosticSemanticClickReduction": {
+    "standing": "DIAGNOSTIC_ONLY",
+    "rule": "For CLICK only: if goal explicitly contains focus, compete editable roles; otherwise compete non-editable roles when such candidates exist.",
+    "correct": 41,
+    "total": 42,
+    "accuracy": 0.9761904761904762,
+    "changedCaseIds": [
+      "g20-frame-apply",
+      "t03-find-stays"
+    ],
+    "missCaseIds": [
+      "g17-nested-button"
+    ],
+    "candidatePairsBefore": 638,
+    "candidatePairsAfter": 416,
+    "pairReductionFraction": 0.3479623824451411,
+    "deterministicAfterReduction": 0,
+    "nonClaims": [
+      "production_intent_parser",
+      "general_open_web_validity"
+    ]
+  },
+  "g17AncestryAudit": {
+    "standing": "BENCHMARK_LAYER_CONTAMINATION",
+    "caseId": "g17-nested-button",
+    "observedWith": "Chromium 153.0.8010.12 AX tree",
+    "facts": [
+      "The actionable Nested cell button is a button child of a gridcell whose accessible name is Nested cell button.",
+      "That parent gridcell is intentionally suppressed from the candidate set by actionable-descendant projection.",
+      "The CrossEncoder-selected Scholarship cell is a sibling gridcell in the same row, not the nested button's parent.",
+      "The case wording therefore reintroduces an observation-layer parent/child ambiguity that the candidate projector already removed."
+    ],
+    "disposition": "retain as R1 negative evidence; do not use this case as training justification"
+  },
+  "decision": {
+    "standing": "NO_TRAINING_JUSTIFIED_R1",
+    "reasons": [
+      "The controlled corpus has only 42 cases and is not an open-web population.",
+      "Base CrossEncoder already executes all cases and reaches 39/42 accuracy, 8/8 on context-required cases.",
+      "A browser-semantic diagnostic reduction changes only two CrossEncoder errors and reaches 41/42 without model training.",
+      "The remaining error is benchmark-layer contamination, not clean evidence of a model-capacity gap.",
+      "Base Laya independent noul composition is substantially worse and slower on this task.",
+      "Jev remains blocked by the existing TYPESAFE_API_KEY readiness gate and therefore provides no accuracy evidence in R1."
+    ],
+    "nextGate": "larger real-page / real-application candidate census before any Browser-specific training"
+  },
+  "nonClaims": [
+    "provider_superiority_on_open_web",
+    "production_calibration",
+    "production_route_migration",
+    "browser_specific_training_not_ever_needed",
+    "cross_browser_equivalence"
+  ]
+}

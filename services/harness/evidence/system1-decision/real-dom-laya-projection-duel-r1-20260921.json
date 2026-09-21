@@ -1,0 +1,517 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.real-dom-laya-projection-ablation",
+  "standing": "LOCAL_FIXTURE_ARCHITECTURE_EVIDENCE",
+  "observedDate": "2026-09-21",
+  "identity": {
+    "jevRevision": "452c1ad2dd628008f1d5608f28158d76e49e6cc0",
+    "cases": 14,
+    "operation": "CLICK",
+    "nonClaims": [
+      "representative_web_population",
+      "production_browser_success",
+      "calibrated_browser_probability"
+    ]
+  },
+  "provider": {
+    "layaVersion": "0.3.4",
+    "revision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "sha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c"
+  },
+  "results": {
+    "label": {
+      "n": 14,
+      "accuracy": 0.0714,
+      "latencyMs": {
+        "median": 73.045,
+        "mean": 71.928,
+        "p95": 153.824
+      },
+      "medianTopMargin": 0.0531
+    },
+    "current": {
+      "n": 14,
+      "accuracy": 0.0714,
+      "latencyMs": {
+        "median": 72.456,
+        "mean": 69.233,
+        "p95": 86.016
+      },
+      "medianTopMargin": 0.0969
+    },
+    "enriched": {
+      "n": 14,
+      "accuracy": 0.0,
+      "latencyMs": {
+        "median": 64.783,
+        "mean": 65.023,
+        "p95": 70.885
+      },
+      "medianTopMargin": 0.0259
+    }
+  },
+  "details": [
+    {
+      "caseId": "t1",
+      "mode": "label",
+      "goal": "Open the stay located in Copenhagen.",
+      "expectedLabel": "View The Glasshouse",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3978,
+      "maxProbability": 0.5305,
+      "topMargin": 0.059
+    },
+    {
+      "caseId": "t2",
+      "mode": "label",
+      "goal": "Open the Nature stay.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "Find a stay",
+      "correct": false,
+      "expectedProbability": 0.3455,
+      "maxProbability": 0.5808,
+      "topMargin": 0.06009999999999993
+    },
+    {
+      "caseId": "t3",
+      "mode": "label",
+      "goal": "Open the stay that costs €120 per night.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.2144,
+      "maxProbability": 0.612,
+      "topMargin": 0.14300000000000002
+    },
+    {
+      "caseId": "t4",
+      "mode": "label",
+      "goal": "Open the Lisbon Design stay with free cancellation.",
+      "expectedLabel": "View Casa Flora",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.2685,
+      "maxProbability": 0.5854,
+      "topMargin": 0.14570000000000005
+    },
+    {
+      "caseId": "t5",
+      "mode": "label",
+      "goal": "Open the non-refundable stay.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.4842,
+      "maxProbability": 0.7061,
+      "topMargin": 0.036799999999999944
+    },
+    {
+      "caseId": "t6",
+      "mode": "label",
+      "goal": "Open Casa Flora.",
+      "expectedLabel": "View Casa Flora",
+      "predictedLabel": "Find a stay",
+      "correct": false,
+      "expectedProbability": 0.3477,
+      "maxProbability": 0.4046,
+      "topMargin": 0.017699999999999994
+    },
+    {
+      "caseId": "t7",
+      "mode": "label",
+      "goal": "Go to the Reading room.",
+      "expectedLabel": "Reading room",
+      "predictedLabel": "Reading room",
+      "correct": true,
+      "expectedProbability": 0.3794,
+      "maxProbability": 0.3794,
+      "topMargin": 0.03939999999999999
+    },
+    {
+      "caseId": "t8",
+      "mode": "label",
+      "goal": "Enable free cancellation.",
+      "expectedLabel": "Free cancellation",
+      "predictedLabel": "Find a stay",
+      "correct": false,
+      "expectedProbability": 0.304,
+      "maxProbability": 0.5494,
+      "topMargin": 0.03269999999999995
+    },
+    {
+      "caseId": "r1",
+      "mode": "label",
+      "goal": "Read about finite action sets turning visible elements into a fast browser control loop.",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "predictedLabel": "Reading room",
+      "correct": false,
+      "expectedProbability": 0.4178,
+      "maxProbability": 0.4614,
+      "topMargin": 0.04359999999999997
+    },
+    {
+      "caseId": "r2",
+      "mode": "label",
+      "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+      "expectedLabel": "Where the milliseconds go",
+      "predictedLabel": "Reading room",
+      "correct": false,
+      "expectedProbability": 0.3388,
+      "maxProbability": 0.5274,
+      "topMargin": 0.12029999999999996
+    },
+    {
+      "caseId": "r3",
+      "mode": "label",
+      "goal": "Read what a peaked distribution can and cannot tell you about an outcome.",
+      "expectedLabel": "Confidence is not correctness",
+      "predictedLabel": "Where the milliseconds go",
+      "correct": false,
+      "expectedProbability": 0.2882,
+      "maxProbability": 0.6004,
+      "topMargin": 0.20960000000000006
+    },
+    {
+      "caseId": "r4",
+      "mode": "label",
+      "goal": "Read the article about browser control choices rather than conversation.",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "predictedLabel": "Reading room",
+      "correct": false,
+      "expectedProbability": 0.3429,
+      "maxProbability": 0.4811,
+      "topMargin": 0.04710000000000003
+    },
+    {
+      "caseId": "r5",
+      "mode": "label",
+      "goal": "Read the article about where browser latency is spent.",
+      "expectedLabel": "Where the milliseconds go",
+      "predictedLabel": "Reading room",
+      "correct": false,
+      "expectedProbability": 0.3784,
+      "maxProbability": 0.4982,
+      "topMargin": 0.07869999999999999
+    },
+    {
+      "caseId": "r6",
+      "mode": "label",
+      "goal": "Read the article warning that confidence does not establish correctness.",
+      "expectedLabel": "Confidence is not correctness",
+      "predictedLabel": "Where the milliseconds go",
+      "correct": false,
+      "expectedProbability": 0.2778,
+      "maxProbability": 0.4689,
+      "topMargin": 0.04319999999999996
+    },
+    {
+      "caseId": "t1",
+      "mode": "current",
+      "goal": "Open the stay located in Copenhagen.",
+      "expectedLabel": "View The Glasshouse",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3261,
+      "maxProbability": 0.6534,
+      "topMargin": 0.0676
+    },
+    {
+      "caseId": "t2",
+      "mode": "current",
+      "goal": "Open the Nature stay.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.4291,
+      "maxProbability": 0.6324,
+      "topMargin": 0.047699999999999965
+    },
+    {
+      "caseId": "t3",
+      "mode": "current",
+      "goal": "Open the stay that costs €120 per night.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3074,
+      "maxProbability": 0.8523,
+      "topMargin": 0.2801999999999999
+    },
+    {
+      "caseId": "t4",
+      "mode": "current",
+      "goal": "Open the Lisbon Design stay with free cancellation.",
+      "expectedLabel": "View Casa Flora",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3899,
+      "maxProbability": 0.6388,
+      "topMargin": 0.17050000000000004
+    },
+    {
+      "caseId": "t5",
+      "mode": "current",
+      "goal": "Open the non-refundable stay.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.4862,
+      "maxProbability": 0.8019,
+      "topMargin": 0.12629999999999997
+    },
+    {
+      "caseId": "t6",
+      "mode": "current",
+      "goal": "Open Casa Flora.",
+      "expectedLabel": "View Casa Flora",
+      "predictedLabel": "View Casa Flora",
+      "correct": true,
+      "expectedProbability": 0.6181,
+      "maxProbability": 0.6181,
+      "topMargin": 0.20439999999999997
+    },
+    {
+      "caseId": "t7",
+      "mode": "current",
+      "goal": "Go to the Reading room.",
+      "expectedLabel": "Reading room",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3366,
+      "maxProbability": 0.6008,
+      "topMargin": 0.24280000000000002
+    },
+    {
+      "caseId": "t8",
+      "mode": "current",
+      "goal": "Enable free cancellation.",
+      "expectedLabel": "Free cancellation",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.2864,
+      "maxProbability": 0.5455,
+      "topMargin": 0.03469999999999995
+    },
+    {
+      "caseId": "r1",
+      "mode": "current",
+      "goal": "Read about finite action sets turning visible elements into a fast browser control loop.",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "predictedLabel": "Reading room",
+      "correct": false,
+      "expectedProbability": 0.448,
+      "maxProbability": 0.657,
+      "topMargin": 0.014800000000000035
+    },
+    {
+      "caseId": "r2",
+      "mode": "current",
+      "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+      "expectedLabel": "Where the milliseconds go",
+      "predictedLabel": "Reading room",
+      "correct": false,
+      "expectedProbability": 0.3694,
+      "maxProbability": 0.7736,
+      "topMargin": 0.06509999999999994
+    },
+    {
+      "caseId": "r3",
+      "mode": "current",
+      "goal": "Read what a peaked distribution can and cannot tell you about an outcome.",
+      "expectedLabel": "Confidence is not correctness",
+      "predictedLabel": "Where the milliseconds go",
+      "correct": false,
+      "expectedProbability": 0.4673,
+      "maxProbability": 0.8275,
+      "topMargin": 0.3238
+    },
+    {
+      "caseId": "r4",
+      "mode": "current",
+      "goal": "Read the article about browser control choices rather than conversation.",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "predictedLabel": "Where the milliseconds go",
+      "correct": false,
+      "expectedProbability": 0.4424,
+      "maxProbability": 0.685,
+      "topMargin": 0.04050000000000009
+    },
+    {
+      "caseId": "r5",
+      "mode": "current",
+      "goal": "Read the article about where browser latency is spent.",
+      "expectedLabel": "Where the milliseconds go",
+      "predictedLabel": "A browser is a choice, not a conversation",
+      "correct": false,
+      "expectedProbability": 0.4238,
+      "maxProbability": 0.6483,
+      "topMargin": 0.04610000000000003
+    },
+    {
+      "caseId": "r6",
+      "mode": "current",
+      "goal": "Read the article warning that confidence does not establish correctness.",
+      "expectedLabel": "Confidence is not correctness",
+      "predictedLabel": "Where the milliseconds go",
+      "correct": false,
+      "expectedProbability": 0.3519,
+      "maxProbability": 0.6676,
+      "topMargin": 0.13179999999999992
+    },
+    {
+      "caseId": "t1",
+      "mode": "enriched",
+      "goal": "Open the stay located in Copenhagen.",
+      "expectedLabel": "View The Glasshouse",
+      "predictedLabel": "Open Destination",
+      "correct": false,
+      "expectedProbability": 0.4769,
+      "maxProbability": 0.5863,
+      "topMargin": 0.0043000000000000815
+    },
+    {
+      "caseId": "t2",
+      "mode": "enriched",
+      "goal": "Open the Nature stay.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "Open Destination",
+      "correct": false,
+      "expectedProbability": 0.4183,
+      "maxProbability": 0.5791,
+      "topMargin": 0.009499999999999953
+    },
+    {
+      "caseId": "t3",
+      "mode": "enriched",
+      "goal": "Open the stay that costs €120 per night.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "Open Destination",
+      "correct": false,
+      "expectedProbability": 0.4453,
+      "maxProbability": 0.5998,
+      "topMargin": 0.04530000000000001
+    },
+    {
+      "caseId": "t4",
+      "mode": "enriched",
+      "goal": "Open the Lisbon Design stay with free cancellation.",
+      "expectedLabel": "View Casa Flora",
+      "predictedLabel": "Open Destination",
+      "correct": false,
+      "expectedProbability": 0.4252,
+      "maxProbability": 0.4985,
+      "topMargin": 0.018899999999999972
+    },
+    {
+      "caseId": "t5",
+      "mode": "enriched",
+      "goal": "Open the non-refundable stay.",
+      "expectedLabel": "View Serra Lodge",
+      "predictedLabel": "Open Destination",
+      "correct": false,
+      "expectedProbability": 0.5739,
+      "maxProbability": 0.6354,
+      "topMargin": 0.016799999999999926
+    },
+    {
+      "caseId": "t6",
+      "mode": "enriched",
+      "goal": "Open Casa Flora.",
+      "expectedLabel": "View Casa Flora",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.4575,
+      "maxProbability": 0.5366,
+      "topMargin": 0.034599999999999964
+    },
+    {
+      "caseId": "t7",
+      "mode": "enriched",
+      "goal": "Go to the Reading room.",
+      "expectedLabel": "Reading room",
+      "predictedLabel": "Find a stay",
+      "correct": false,
+      "expectedProbability": 0.497,
+      "maxProbability": 0.569,
+      "topMargin": 0.048799999999999955
+    },
+    {
+      "caseId": "t8",
+      "mode": "enriched",
+      "goal": "Enable free cancellation.",
+      "expectedLabel": "Free cancellation",
+      "predictedLabel": "Open Destination",
+      "correct": false,
+      "expectedProbability": 0.2836,
+      "maxProbability": 0.5452,
+      "topMargin": 0.03290000000000004
+    },
+    {
+      "caseId": "r1",
+      "mode": "enriched",
+      "goal": "Read about finite action sets turning visible elements into a fast browser control loop.",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.2661,
+      "maxProbability": 0.6278,
+      "topMargin": 0.04870000000000008
+    },
+    {
+      "caseId": "r2",
+      "mode": "enriched",
+      "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+      "expectedLabel": "Where the milliseconds go",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3726,
+      "maxProbability": 0.63,
+      "topMargin": 0.1079
+    },
+    {
+      "caseId": "r3",
+      "mode": "enriched",
+      "goal": "Read what a peaked distribution can and cannot tell you about an outcome.",
+      "expectedLabel": "Confidence is not correctness",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.4199,
+      "maxProbability": 0.5212,
+      "topMargin": 0.007900000000000018
+    },
+    {
+      "caseId": "r4",
+      "mode": "enriched",
+      "goal": "Read the article about browser control choices rather than conversation.",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "predictedLabel": "forma.",
+      "correct": false,
+      "expectedProbability": 0.3296,
+      "maxProbability": 0.6405,
+      "topMargin": 0.06109999999999993
+    },
+    {
+      "caseId": "r5",
+      "mode": "enriched",
+      "goal": "Read the article about where browser latency is spent.",
+      "expectedLabel": "Where the milliseconds go",
+      "predictedLabel": "Confidence is not correctness",
+      "correct": false,
+      "expectedProbability": 0.4327,
+      "maxProbability": 0.7003,
+      "topMargin": 0.0050000000000000044
+    },
+    {
+      "caseId": "r6",
+      "mode": "enriched",
+      "goal": "Read the article warning that confidence does not establish correctness.",
+      "expectedLabel": "Confidence is not correctness",
+      "predictedLabel": "Find a stay",
+      "correct": false,
+      "expectedProbability": 0.328,
+      "maxProbability": 0.5128,
+      "topMargin": 0.016700000000000048
+    }
+  ]
+}

@@ -1,0 +1,594 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.real-dom-candidate-projection-ablation",
+  "standing": "LOCAL_FIXTURE_ARCHITECTURE_EVIDENCE",
+  "observedDate": "2026-09-21",
+  "identity": {
+    "source": "Jev exact local fixture + Jev exact snapshot.js",
+    "jevRevision": "452c1ad2dd628008f1d5608f28158d76e49e6cc0",
+    "cases": 14,
+    "operation": "CLICK",
+    "nonClaims": [
+      "representative_web_population",
+      "production_browser_success",
+      "optimal_projection"
+    ]
+  },
+  "projectionModes": {
+    "label": "action.label only",
+    "current": "fields currently exposed in Jev target criteria: label/role/value/checked/selected/expanded",
+    "enriched": "current plus href and local scope.innerText already observed by snapshot freshness guard"
+  },
+  "providers": {
+    "retriever": {
+      "model": "multi-qa-MiniLM-L6-cos-v1",
+      "revision": "b207367332321f8e44f96e224ef15bc607f4dbf0"
+    },
+    "reranker": {
+      "model": "ms-marco-MiniLM-L6-v2",
+      "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+    }
+  },
+  "results": {
+    "label": {
+      "n": 14,
+      "retrieverTop1Accuracy": 0.4286,
+      "retrieverMeanReciprocalRank": 0.5967,
+      "retrieverRecallAt2": 0.6429,
+      "retrieverRecallAt4": 0.6429,
+      "retrieverLatencyMs": {
+        "median": 8.327,
+        "mean": 18.524,
+        "p95": 148.655
+      },
+      "crossEncoderAllCandidatesAccuracy": 0.3571,
+      "crossEncoderLatencyMs": {
+        "median": 4.836,
+        "mean": 5.014,
+        "p95": 7.165
+      }
+    },
+    "current": {
+      "n": 14,
+      "retrieverTop1Accuracy": 0.4286,
+      "retrieverMeanReciprocalRank": 0.6198,
+      "retrieverRecallAt2": 0.7143,
+      "retrieverRecallAt4": 0.7143,
+      "retrieverLatencyMs": {
+        "median": 8.075,
+        "mean": 8.102,
+        "p95": 8.467
+      },
+      "crossEncoderAllCandidatesAccuracy": 0.4286,
+      "crossEncoderLatencyMs": {
+        "median": 4.788,
+        "mean": 4.849,
+        "p95": 5.148
+      }
+    },
+    "enriched": {
+      "n": 14,
+      "retrieverTop1Accuracy": 0.7857,
+      "retrieverMeanReciprocalRank": 0.8299,
+      "retrieverRecallAt2": 0.7857,
+      "retrieverRecallAt4": 0.8571,
+      "retrieverLatencyMs": {
+        "median": 21.325,
+        "mean": 18.145,
+        "p95": 25.072
+      },
+      "crossEncoderAllCandidatesAccuracy": 1.0,
+      "crossEncoderLatencyMs": {
+        "median": 11.505,
+        "mean": 10.698,
+        "p95": 14.037
+      }
+    }
+  },
+  "details": [
+    {
+      "caseId": "t1",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Open the stay located in Copenhagen.",
+      "expected": "e12",
+      "expectedLabel": "View The Glasshouse",
+      "retrieverRank": 5,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Open Destination",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t2",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Open the Nature stay.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 5,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Open Destination",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t3",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Open the stay that costs €120 per night.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 7,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Open Destination",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t4",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Open the Lisbon Design stay with free cancellation.",
+      "expected": "e11",
+      "expectedLabel": "View Casa Flora",
+      "retrieverRank": 5,
+      "retrieverTop": "Free cancellation",
+      "crossEncoderTop": "Free cancellation",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t5",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Open the non-refundable stay.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 9,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Open Destination",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t6",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Open Casa Flora.",
+      "expected": "e11",
+      "expectedLabel": "View Casa Flora",
+      "retrieverRank": 1,
+      "retrieverTop": "View Casa Flora",
+      "crossEncoderTop": "View Casa Flora",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t7",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Go to the Reading room.",
+      "expected": "e3",
+      "expectedLabel": "Reading room",
+      "retrieverRank": 1,
+      "retrieverTop": "Reading room",
+      "crossEncoderTop": "Reading room",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t8",
+      "scenario": "travel",
+      "mode": "label",
+      "goal": "Enable free cancellation.",
+      "expected": "e10",
+      "expectedLabel": "Free cancellation",
+      "retrieverRank": 1,
+      "retrieverTop": "Free cancellation",
+      "crossEncoderTop": "Free cancellation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r1",
+      "scenario": "research",
+      "mode": "label",
+      "goal": "Read about finite action sets turning visible elements into a fast browser control loop.",
+      "expected": "e4",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "retrieverRank": 1,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "forma.",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r2",
+      "scenario": "research",
+      "mode": "label",
+      "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+      "expected": "e5",
+      "expectedLabel": "Where the milliseconds go",
+      "retrieverRank": 2,
+      "retrieverTop": "Reading room",
+      "crossEncoderTop": "forma.",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r3",
+      "scenario": "research",
+      "mode": "label",
+      "goal": "Read what a peaked distribution can and cannot tell you about an outcome.",
+      "expected": "e6",
+      "expectedLabel": "Confidence is not correctness",
+      "retrieverRank": 2,
+      "retrieverTop": "Where the milliseconds go",
+      "crossEncoderTop": "forma.",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r4",
+      "scenario": "research",
+      "mode": "label",
+      "goal": "Read the article about browser control choices rather than conversation.",
+      "expected": "e4",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "retrieverRank": 1,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "A browser is a choice, not a conversation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r5",
+      "scenario": "research",
+      "mode": "label",
+      "goal": "Read the article about where browser latency is spent.",
+      "expected": "e5",
+      "expectedLabel": "Where the milliseconds go",
+      "retrieverRank": 2,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "A browser is a choice, not a conversation",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r6",
+      "scenario": "research",
+      "mode": "label",
+      "goal": "Read the article warning that confidence does not establish correctness.",
+      "expected": "e6",
+      "expectedLabel": "Confidence is not correctness",
+      "retrieverRank": 1,
+      "retrieverTop": "Confidence is not correctness",
+      "crossEncoderTop": "Confidence is not correctness",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t1",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Open the stay located in Copenhagen.",
+      "expected": "e12",
+      "expectedLabel": "View The Glasshouse",
+      "retrieverRank": 5,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Find a stay",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t2",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Open the Nature stay.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 5,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Find a stay",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t3",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Open the stay that costs €120 per night.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 6,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Find a stay",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t4",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Open the Lisbon Design stay with free cancellation.",
+      "expected": "e11",
+      "expectedLabel": "View Casa Flora",
+      "retrieverRank": 2,
+      "retrieverTop": "Free cancellation",
+      "crossEncoderTop": "Free cancellation",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t5",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Open the non-refundable stay.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 9,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "Find a stay",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "t6",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Open Casa Flora.",
+      "expected": "e11",
+      "expectedLabel": "View Casa Flora",
+      "retrieverRank": 1,
+      "retrieverTop": "View Casa Flora",
+      "crossEncoderTop": "View Casa Flora",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t7",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Go to the Reading room.",
+      "expected": "e3",
+      "expectedLabel": "Reading room",
+      "retrieverRank": 1,
+      "retrieverTop": "Reading room",
+      "crossEncoderTop": "Reading room",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t8",
+      "scenario": "travel",
+      "mode": "current",
+      "goal": "Enable free cancellation.",
+      "expected": "e10",
+      "expectedLabel": "Free cancellation",
+      "retrieverRank": 1,
+      "retrieverTop": "Free cancellation",
+      "crossEncoderTop": "Free cancellation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r1",
+      "scenario": "research",
+      "mode": "current",
+      "goal": "Read about finite action sets turning visible elements into a fast browser control loop.",
+      "expected": "e4",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "retrieverRank": 2,
+      "retrieverTop": "Where the milliseconds go",
+      "crossEncoderTop": "Reading room",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r2",
+      "scenario": "research",
+      "mode": "current",
+      "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+      "expected": "e5",
+      "expectedLabel": "Where the milliseconds go",
+      "retrieverRank": 1,
+      "retrieverTop": "Where the milliseconds go",
+      "crossEncoderTop": "Reading room",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r3",
+      "scenario": "research",
+      "mode": "current",
+      "goal": "Read what a peaked distribution can and cannot tell you about an outcome.",
+      "expected": "e6",
+      "expectedLabel": "Confidence is not correctness",
+      "retrieverRank": 2,
+      "retrieverTop": "Where the milliseconds go",
+      "crossEncoderTop": "Confidence is not correctness",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r4",
+      "scenario": "research",
+      "mode": "current",
+      "goal": "Read the article about browser control choices rather than conversation.",
+      "expected": "e4",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "retrieverRank": 1,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "A browser is a choice, not a conversation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r5",
+      "scenario": "research",
+      "mode": "current",
+      "goal": "Read the article about where browser latency is spent.",
+      "expected": "e5",
+      "expectedLabel": "Where the milliseconds go",
+      "retrieverRank": 2,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "A browser is a choice, not a conversation",
+      "crossEncoderCorrect": false
+    },
+    {
+      "caseId": "r6",
+      "scenario": "research",
+      "mode": "current",
+      "goal": "Read the article warning that confidence does not establish correctness.",
+      "expected": "e6",
+      "expectedLabel": "Confidence is not correctness",
+      "retrieverRank": 1,
+      "retrieverTop": "Confidence is not correctness",
+      "crossEncoderTop": "Confidence is not correctness",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t1",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Open the stay located in Copenhagen.",
+      "expected": "e12",
+      "expectedLabel": "View The Glasshouse",
+      "retrieverRank": 1,
+      "retrieverTop": "View The Glasshouse",
+      "crossEncoderTop": "View The Glasshouse",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t2",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Open the Nature stay.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 7,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "View Serra Lodge",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t3",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Open the stay that costs €120 per night.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 3,
+      "retrieverTop": "View The Glasshouse",
+      "crossEncoderTop": "View Serra Lodge",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t4",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Open the Lisbon Design stay with free cancellation.",
+      "expected": "e11",
+      "expectedLabel": "View Casa Flora",
+      "retrieverRank": 1,
+      "retrieverTop": "View Casa Flora",
+      "crossEncoderTop": "View Casa Flora",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t5",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Open the non-refundable stay.",
+      "expected": "e13",
+      "expectedLabel": "View Serra Lodge",
+      "retrieverRank": 7,
+      "retrieverTop": "Find a stay",
+      "crossEncoderTop": "View Serra Lodge",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t6",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Open Casa Flora.",
+      "expected": "e11",
+      "expectedLabel": "View Casa Flora",
+      "retrieverRank": 1,
+      "retrieverTop": "View Casa Flora",
+      "crossEncoderTop": "View Casa Flora",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t7",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Go to the Reading room.",
+      "expected": "e3",
+      "expectedLabel": "Reading room",
+      "retrieverRank": 1,
+      "retrieverTop": "Reading room",
+      "crossEncoderTop": "Reading room",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "t8",
+      "scenario": "travel",
+      "mode": "enriched",
+      "goal": "Enable free cancellation.",
+      "expected": "e10",
+      "expectedLabel": "Free cancellation",
+      "retrieverRank": 1,
+      "retrieverTop": "Free cancellation",
+      "crossEncoderTop": "Free cancellation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r1",
+      "scenario": "research",
+      "mode": "enriched",
+      "goal": "Read about finite action sets turning visible elements into a fast browser control loop.",
+      "expected": "e4",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "retrieverRank": 1,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "A browser is a choice, not a conversation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r2",
+      "scenario": "research",
+      "mode": "enriched",
+      "goal": "Read about measuring network latency, model decisions, and page settling separately.",
+      "expected": "e5",
+      "expectedLabel": "Where the milliseconds go",
+      "retrieverRank": 1,
+      "retrieverTop": "Where the milliseconds go",
+      "crossEncoderTop": "Where the milliseconds go",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r3",
+      "scenario": "research",
+      "mode": "enriched",
+      "goal": "Read what a peaked distribution can and cannot tell you about an outcome.",
+      "expected": "e6",
+      "expectedLabel": "Confidence is not correctness",
+      "retrieverRank": 1,
+      "retrieverTop": "Confidence is not correctness",
+      "crossEncoderTop": "Confidence is not correctness",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r4",
+      "scenario": "research",
+      "mode": "enriched",
+      "goal": "Read the article about browser control choices rather than conversation.",
+      "expected": "e4",
+      "expectedLabel": "A browser is a choice, not a conversation",
+      "retrieverRank": 1,
+      "retrieverTop": "A browser is a choice, not a conversation",
+      "crossEncoderTop": "A browser is a choice, not a conversation",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r5",
+      "scenario": "research",
+      "mode": "enriched",
+      "goal": "Read the article about where browser latency is spent.",
+      "expected": "e5",
+      "expectedLabel": "Where the milliseconds go",
+      "retrieverRank": 1,
+      "retrieverTop": "Where the milliseconds go",
+      "crossEncoderTop": "Where the milliseconds go",
+      "crossEncoderCorrect": true
+    },
+    {
+      "caseId": "r6",
+      "scenario": "research",
+      "mode": "enriched",
+      "goal": "Read the article warning that confidence does not establish correctness.",
+      "expected": "e6",
+      "expectedLabel": "Confidence is not correctness",
+      "retrieverRank": 1,
+      "retrieverTop": "Confidence is not correctness",
+      "crossEncoderTop": "Confidence is not correctness",
+      "crossEncoderCorrect": true
+    }
+  ]
+}

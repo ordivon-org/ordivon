@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-hybrid-retrieval-ablation",
+  "standing": "SYNTHETIC_ARCHITECTURE_EVIDENCE",
+  "observedDate": "2026-09-21",
+  "identity": {
+    "casesPerK": 20,
+    "seed": 20260921,
+    "nonClaims": [
+      "representative_browser_population",
+      "production_browser_success"
+    ]
+  },
+  "providers": {
+    "genericDense": {
+      "model": "all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+    },
+    "multiQaDense": {
+      "model": "multi-qa-MiniLM-L6-cos-v1",
+      "revision": "b207367332321f8e44f96e224ef15bc607f4dbf0"
+    },
+    "tfidf": {
+      "implementation": "scikit-learn",
+      "version": "1.9.1",
+      "ngramRange": [
+        1,
+        2
+      ]
+    },
+    "fusion": {
+      "method": "Reciprocal Rank Fusion",
+      "constant": 60
+    },
+    "reranker": {
+      "model": "cross-encoder/ms-marco-MiniLM-L6-v2",
+      "revision": "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+    }
+  },
+  "rows": [
+    {
+      "k": 50,
+      "n": 20,
+      "retrievers": {
+        "genericDense": {
+          "top1": 0.45,
+          "recallAt4": 0.8,
+          "recallAt8": 0.85,
+          "recallAt16": 0.95,
+          "latencyMs": {
+            "median": 11.986,
+            "mean": 21.27,
+            "p95": 24.627
+          }
+        },
+        "multiQaDense": {
+          "top1": 0.65,
+          "recallAt4": 0.85,
+          "recallAt8": 0.9,
+          "recallAt16": 0.9,
+          "latencyMs": {
+            "median": 12.053,
+            "mean": 15.245,
+            "p95": 27.174
+          }
+        },
+        "tfidf": {
+          "top1": 0.45,
+          "recallAt4": 0.8,
+          "recallAt8": 0.8,
+          "recallAt16": 0.8,
+          "latencyMs": {
+            "median": 0.887,
+            "mean": 1.342,
+            "p95": 1.368
+          }
+        },
+        "hybridRrf": {
+          "top1": 0.65,
+          "recallAt4": 0.8,
+          "recallAt8": 0.85,
+          "recallAt16": 0.9,
+          "latencyMs": {
+            "median": 12.953,
+            "mean": 16.601,
+            "p95": 28.856
+          }
+        }
+      },
+      "crossEncoderHybridTop8": {
+        "accuracy": 0.6,
+        "rerankLatencyMs": {
+          "median": 4.985,
+          "mean": 5.268,
+          "p95": 6.478
+        },
+        "totalLatencyMs": {
+          "median": 17.951,
+          "mean": 21.869,
+          "p95": 34.274
+        }
+      },
+      "crossEncoderHybridTop16": {
+        "accuracy": 0.6,
+        "rerankLatencyMs": {
+          "median": 13.236,
+          "mean": 11.872,
+          "p95": 14.156
+        },
+        "totalLatencyMs": {
+          "median": 26.99,
+          "mean": 28.473,
+          "p95": 38.304
+        }
+      }
+    },
+    {
+      "k": 100,
+      "n": 20,
+      "retrievers": {
+        "genericDense": {
+          "top1": 0.45,
+          "recallAt4": 0.8,
+          "recallAt8": 0.8,
+          "recallAt16": 0.95,
+          "latencyMs": {
+            "median": 11.182,
+            "mean": 11.701,
+            "p95": 12.166
+          }
+        },
+        "multiQaDense": {
+          "top1": 0.65,
+          "recallAt4": 0.85,
+          "recallAt8": 0.9,
+          "recallAt16": 0.9,
+          "latencyMs": {
+            "median": 11.165,
+            "mean": 11.222,
+            "p95": 11.5
+          }
+        },
+        "tfidf": {
+          "top1": 0.5,
+          "recallAt4": 0.8,
+          "recallAt8": 0.8,
+          "recallAt16": 0.8,
+          "latencyMs": {
+            "median": 1.077,
+            "mean": 1.079,
+            "p95": 1.238
+          }
+        },
+        "hybridRrf": {
+          "top1": 0.65,
+          "recallAt4": 0.8,
+          "recallAt8": 0.8,
+          "recallAt16": 0.85,
+          "latencyMs": {
+            "median": 12.267,
+            "mean": 12.327,
+            "p95": 12.659
+          }
+        }
+      },
+      "crossEncoderHybridTop8": {
+        "accuracy": 0.65,
+        "rerankLatencyMs": {
+          "median": 4.866,
+          "mean": 4.868,
+          "p95": 5.11
+        },
+        "totalLatencyMs": {
+          "median": 17.049,
+          "mean": 17.194,
+          "p95": 17.62
+        }
+      },
+      "crossEncoderHybridTop16": {
+        "accuracy": 0.7,
+        "rerankLatencyMs": {
+          "median": 5.371,
+          "mean": 5.46,
+          "p95": 5.901
+        },
+        "totalLatencyMs": {
+          "median": 17.684,
+          "mean": 17.786,
+          "p95": 18.582
+        }
+      }
+    },
+    {
+      "k": 200,
+      "n": 20,
+      "retrievers": {
+        "genericDense": {
+          "top1": 0.45,
+          "recallAt4": 0.8,
+          "recallAt8": 0.8,
+          "recallAt16": 0.8,
+          "latencyMs": {
+            "median": 31.456,
+            "mean": 30.937,
+            "p95": 31.96
+          }
+        },
+        "multiQaDense": {
+          "top1": 0.65,
+          "recallAt4": 0.85,
+          "recallAt8": 0.85,
+          "recallAt16": 0.9,
+          "latencyMs": {
+            "median": 31.385,
+            "mean": 31.406,
+            "p95": 32.292
+          }
+        },
+        "tfidf": {
+          "top1": 0.5,
+          "recallAt4": 0.75,
+          "recallAt8": 0.8,
+          "recallAt16": 0.8,
+          "latencyMs": {
+            "median": 1.283,
+            "mean": 1.337,
+            "p95": 1.745
+          }
+        },
+        "hybridRrf": {
+          "top1": 0.65,
+          "recallAt4": 0.8,
+          "recallAt8": 0.8,
+          "recallAt16": 0.8,
+          "latencyMs": {
+            "median": 32.774,
+            "mean": 32.79,
+            "p95": 33.608
+          }
+        }
+      },
+      "crossEncoderHybridTop8": {
+        "accuracy": 0.65,
+        "rerankLatencyMs": {
+          "median": 12.929,
+          "mean": 13.055,
+          "p95": 13.716
+        },
+        "totalLatencyMs": {
+          "median": 45.719,
+          "mean": 45.845,
+          "p95": 46.812
+        }
+      },
+      "crossEncoderHybridTop16": {
+        "accuracy": 0.65,
+        "rerankLatencyMs": {
+          "median": 13.789,
+          "mean": 13.769,
+          "p95": 15.493
+        },
+        "totalLatencyMs": {
+          "median": 46.691,
+          "mean": 46.56,
+          "p95": 48.265
+        }
+      }
+    }
+  ],
+  "failures": [
+    {
+      "id": "k50-c0",
+      "K": 50,
+      "topN": 8,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "targetRankHybrid": 8,
+      "predicted": "How to Apply",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c4",
+      "K": 50,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "targetRankHybrid": 3,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c11",
+      "K": 50,
+      "topN": 8,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "targetRankHybrid": 38,
+      "predicted": "Who Can Register",
+      "targetInTopN": false
+    },
+    {
+      "id": "k50-c12",
+      "K": 50,
+      "topN": 8,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "targetRankHybrid": 12,
+      "predicted": "Submission FAQ",
+      "targetInTopN": false
+    },
+    {
+      "id": "k50-c14",
+      "K": 50,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c17",
+      "K": 50,
+      "topN": 8,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "targetRankHybrid": 1,
+      "predicted": "Accepted Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c18",
+      "K": 50,
+      "topN": 8,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "targetRankHybrid": 47,
+      "predicted": "Venue Contact",
+      "targetInTopN": false
+    },
+    {
+      "id": "k50-c19",
+      "K": 50,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c0",
+      "K": 50,
+      "topN": 16,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "targetRankHybrid": 8,
+      "predicted": "How to Apply",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c4",
+      "K": 50,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "targetRankHybrid": 3,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c11",
+      "K": 50,
+      "topN": 16,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "targetRankHybrid": 38,
+      "predicted": "Who Can Register",
+      "targetInTopN": false
+    },
+    {
+      "id": "k50-c12",
+      "K": 50,
+      "topN": 16,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "targetRankHybrid": 12,
+      "predicted": "Accepted Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c14",
+      "K": 50,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c17",
+      "K": 50,
+      "topN": 16,
+      "goal": "Submit my research paper.",
+      "target": "Submit Manuscript",
+      "targetRankHybrid": 1,
+      "predicted": "Accepted Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k50-c18",
+      "K": 50,
+      "topN": 16,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "targetRankHybrid": 47,
+      "predicted": "Venue Contact",
+      "targetInTopN": false
+    },
+    {
+      "id": "k50-c19",
+      "K": 50,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k100-c0",
+      "K": 100,
+      "topN": 8,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "targetRankHybrid": 12,
+      "predicted": "Application Guidelines",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c4",
+      "K": 100,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "targetRankHybrid": 4,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k100-c11",
+      "K": 100,
+      "topN": 8,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "targetRankHybrid": 57,
+      "predicted": "Who Can Register",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c12",
+      "K": 100,
+      "topN": 8,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "targetRankHybrid": 26,
+      "predicted": "Accepted Papers",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c14",
+      "K": 100,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k100-c18",
+      "K": 100,
+      "topN": 8,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "targetRankHybrid": 93,
+      "predicted": "Venue Contact",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c19",
+      "K": 100,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k100-c4",
+      "K": 100,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "targetRankHybrid": 4,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k100-c11",
+      "K": 100,
+      "topN": 16,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "targetRankHybrid": 57,
+      "predicted": "Who Can Register",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c12",
+      "K": 100,
+      "topN": 16,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "targetRankHybrid": 26,
+      "predicted": "Accepted Papers",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c14",
+      "K": 100,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k100-c18",
+      "K": 100,
+      "topN": 16,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "targetRankHybrid": 93,
+      "predicted": "Venue Contact",
+      "targetInTopN": false
+    },
+    {
+      "id": "k100-c19",
+      "K": 100,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k200-c0",
+      "K": 200,
+      "topN": 8,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "targetRankHybrid": 22,
+      "predicted": "Application Guidelines",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c4",
+      "K": 200,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "targetRankHybrid": 3,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k200-c11",
+      "K": 200,
+      "topN": 8,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "targetRankHybrid": 130,
+      "predicted": "Who Can Register",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c12",
+      "K": 200,
+      "topN": 8,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "targetRankHybrid": 23,
+      "predicted": "Submission FAQ",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c14",
+      "K": 200,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k200-c18",
+      "K": 200,
+      "topN": 8,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "targetRankHybrid": 180,
+      "predicted": "Venue Contact",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c19",
+      "K": 200,
+      "topN": 8,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k200-c0",
+      "K": 200,
+      "topN": 16,
+      "goal": "Open the application form and start applying.",
+      "target": "Apply Now",
+      "targetRankHybrid": 22,
+      "predicted": "How to Apply",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c4",
+      "K": 200,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "Download CFP",
+      "targetRankHybrid": 3,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k200-c11",
+      "K": 200,
+      "topN": 16,
+      "goal": "Register for this event.",
+      "target": "Reserve My Spot",
+      "targetRankHybrid": 130,
+      "predicted": "Who Can Register",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c12",
+      "K": 200,
+      "topN": 16,
+      "goal": "Submit my research paper.",
+      "target": "Upload Manuscript",
+      "targetRankHybrid": 23,
+      "predicted": "Submission FAQ",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c14",
+      "K": 200,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    },
+    {
+      "id": "k200-c18",
+      "K": 200,
+      "topN": 16,
+      "goal": "Contact the event organizers.",
+      "target": "Get in Touch",
+      "targetRankHybrid": 180,
+      "predicted": "Venue Contact",
+      "targetInTopN": false
+    },
+    {
+      "id": "k200-c19",
+      "K": 200,
+      "topN": 16,
+      "goal": "Download the call for papers PDF.",
+      "target": "Get CFP PDF",
+      "targetRankHybrid": 2,
+      "predicted": "Call for Papers",
+      "targetInTopN": true
+    }
+  ]
+}

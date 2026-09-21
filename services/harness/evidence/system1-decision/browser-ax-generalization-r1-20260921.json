@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-ax-generalization-r1",
+  "standing": "PASS_RESEARCH_ONLY",
+  "observedDate": "2026-09-21",
+  "baseRevision": "31ad216afc4874e82a14d47ebb8ae5664aca88ed",
+  "environment": {
+    "python": "3.14.7",
+    "playwright": "1.63.0",
+    "chromium": "153.0.8010.12",
+    "jevRevision": "452c1ad2dd628008f1d5608f28158d76e49e6cc0"
+  },
+  "digests": {
+    "projection": "sha256:e4cf0c750e6e8770fc915f692d787983ff6e639bfb70bd44bf67badfe3b45b1d",
+    "generalizationFixture": "sha256:a69f0d10471ee95e271ead6a3ea56d0a28a80358c0b0a220ee3c696a45eafc68",
+    "crossOriginChildFixture": "sha256:f5ef7465722078f29111a9fffca053befd44f9b9c04ad35c1fdfd8e9cd4ad60a",
+    "jevSnapshot": "sha256:e50473501c8fb8e70f3b21866d987393e3f2315c639d638bd477d170e81ed78d"
+  },
+  "preHardeningFalsification": {
+    "legacyJevCount": 26,
+    "rawAxCount": 30,
+    "findings": [
+      "AX exposed a password textbox as FILL/CLICK while Jev excluded it",
+      "AX exposed the file-input upload button while Jev excluded it",
+      "AX omitted native summary because Chromium exposed it with DisclosureTriangle role",
+      "AX omitted contenteditable because its browser role was generic",
+      "AX duplicated a gridcell that contained an actionable descendant",
+      "AX exposed three useful Shadow DOM actions that Jev light-DOM traversal did not see",
+      "iframe AX must be acquired per browsing context rather than assumed to be in the main tree"
+    ]
+  },
+  "hardening": {
+    "unitTests": 20,
+    "mechanisms": [
+      "browser-owned DOM metadata gates unsafe HTML input types",
+      "contenteditable and summary affordances use browser DOM metadata without recomputing accessible names",
+      "gridcell is suppressed when an actionable AX descendant already represents the effect",
+      "outer accessible-name whitespace is normalized",
+      "frameId is part of candidate/witness identity",
+      "strict metadata mode fails closed when browser DOM metadata is missing",
+      "DOM.getDocument responses are flattened across children, shadow roots and content documents"
+    ]
+  },
+  "finalGeneralization": {
+    "lightDomEffectEquivalence": {
+      "jevCount": 27,
+      "axCount": 27,
+      "intersection": 27,
+      "exactMultisetEquivalent": true,
+      "onlyJev": [],
+      "onlyAx": []
+    },
+    "shadowDomExtension": {
+      "count": 3,
+      "actions": [
+        [
+          "CLICK",
+          "Apply in shadow",
+          null
+        ],
+        [
+          "FILL",
+          "Shadow search",
+          null
+        ],
+        [
+          "CLICK",
+          "Shadow search",
+          null
+        ]
+      ]
+    },
+    "sameProcessIframe": {
+      "jevCount": 3,
+      "axCount": 3,
+      "intersection": 3,
+      "exactMultisetEquivalent": true
+    },
+    "additionalChecks": {
+      "dialogPresent": true,
+      "dialogContextPreserved": true,
+      "inertExcluded": true,
+      "passwordFileExcluded": true,
+      "disabledHiddenAriaDisabledExcluded": true,
+      "nativeSelectOnlyEnabledUnselectedOptions": true,
+      "readonlyNotFillable": true
+    },
+    "semanticWitness": {
+      "contextMutationStanding": "SEMANTIC_CHANGED",
+      "nodeReplacementStanding": "MISSING"
+    },
+    "latencyMs": {
+      "jevSnapshotMedian": 6.432,
+      "jevSnapshotP95": 7.019,
+      "axDomAllFramesMedian": 15.258,
+      "axDomAllFramesP95": 18.112
+    }
+  },
+  "domMetadataOwnerDuel": {
+    "axBackendIds": 114,
+    "sequentialDescribeNode": {
+      "metadataCount": 114,
+      "medianMs": 108.27
+    },
+    "domGetDocumentPierce": {
+      "metadataCount": 195,
+      "axRawNodeOverlap": 112,
+      "medianMs": 3.267,
+      "shadowRootsObserved": true,
+      "contentDocumentObserved": true
+    },
+    "domSnapshotCapture": {
+      "documents": 2,
+      "nodeCount": 186,
+      "medianMs": 3.169
+    },
+    "r1Decision": "prefer one DOM.getDocument(depth=-1,pierce=true) metadata acquisition per CDP target; do not perform per-candidate DOM.describeNode"
+  },
+  "oopifProbe": {
+    "launchMode": "Chromium --site-per-process",
+    "childUrl": "http://127.0.0.2:<ephemeral>/browser_ax_cross_origin_child.html",
+    "childBecameIframeTarget": true,
+    "targetAttached": true,
+    "parentFrameTreeContainedChild": false,
+    "parentAxContainedChildSemantics": false,
+    "playwrightChildFrameCdpSession": "OK",
+    "childSessionAxNodes": 21,
+    "childSessionDomNodes": 24,
+    "childCandidates": [
+      [
+        "CLICK",
+        "Apply cross origin"
+      ],
+      [
+        "FILL",
+        "Cross query"
+      ],
+      [
+        "CLICK",
+        "Cross query"
+      ]
+    ],
+    "r1Decision": "observation unit is browsing context/CDP target; same-process frames may use parent session + frameId, OOPIF uses a frame-specific CDP session"
+  },
+  "architectureStanding": {
+    "accessibilitySemanticsOwner": "Chromium/browser AX",
+    "htmlEffectSafetyOwner": "browser DOM metadata via CDP",
+    "frameTopologyOwner": "browser frame/target topology",
+    "ordivonResidual": [
+      "executor-specific effect binding",
+      "ephemeral decision context projection",
+      "decision-bound semantic witness",
+      "provider admission/evidence"
+    ],
+    "notOwnedByOrdivon": [
+      "accessible-name algorithm",
+      "ARIA role semantics",
+      "general DOM ontology",
+      "cross-process browser protocol"
+    ]
+  },
+  "nonClaims": [
+    "open_web_equivalence",
+    "cross_browser_equivalence",
+    "production_route_migrated",
+    "all_html_control_classes_exhausted",
+    "oopif_topology_is_identical_in_all_chromium_deployments",
+    "current_AX_projection_is_optimal"
+  ]
+}

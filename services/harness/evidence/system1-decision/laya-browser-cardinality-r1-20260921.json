@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-cardinality-falsification",
+  "standing": "EXPERIMENTAL_FAIL_BROWSER_ADMISSION",
+  "observedDate": "2026-09-21",
+  "provider": {
+    "providerId": "laya-local",
+    "packageVersion": "0.3.4",
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c"
+  },
+  "task": "Jev-like single-target selection over observed element labels; exactly one option is labelled Apply Now",
+  "defaultConfig": {
+    "maxLen": 512,
+    "headMaxLen": 192,
+    "results": [
+      {
+        "k": 4,
+        "accuracy": 0.75
+      },
+      {
+        "k": 10,
+        "accuracy": 0.4444
+      },
+      {
+        "k": 20,
+        "accuracy": 0.3636
+      },
+      {
+        "k": 50,
+        "accuracy": 0.0,
+        "meanMaxProbability": 0.9956
+      },
+      {
+        "k": 77,
+        "accuracy": 0.2632
+      },
+      {
+        "k": 100,
+        "accuracy": 0.0588,
+        "meanMaxProbability": 1.0
+      },
+      {
+        "k": 200,
+        "standing": "ERROR",
+        "reason": "options exceed head_max_len=192"
+      }
+    ]
+  },
+  "officialBudgetMitigation": {
+    "maxLen": 1024,
+    "headMaxLen": 512,
+    "results": [
+      {
+        "k": 20,
+        "accuracy": 0.6364
+      },
+      {
+        "k": 50,
+        "accuracy": 0.3333
+      },
+      {
+        "k": 77,
+        "accuracy": 0.0
+      },
+      {
+        "k": 100,
+        "accuracy": 0.0667,
+        "meanMaxProbability": 0.9993
+      },
+      {
+        "k": 150,
+        "accuracy": 0.0
+      },
+      {
+        "k": 200,
+        "accuracy": 0.0714
+      }
+    ]
+  },
+  "hierarchicalMitigation": {
+    "strategy": "two-stage chunking",
+    "chunkSize": 10,
+    "results": [
+      {
+        "k": 50,
+        "accuracy": 0.4545,
+        "firstStageSurvival": 0.6364,
+        "medianCalls": 6,
+        "medianTotalLatencyMs": 436.174
+      },
+      {
+        "k": 77,
+        "accuracy": 0.6923,
+        "firstStageSurvival": 0.6923,
+        "medianCalls": 9,
+        "medianTotalLatencyMs": 238.458
+      },
+      {
+        "k": 100,
+        "accuracy": 0.6364,
+        "firstStageSurvival": 0.7273,
+        "medianCalls": 11,
+        "medianTotalLatencyMs": 418.111
+      },
+      {
+        "k": 150,
+        "accuracy": 0.0769,
+        "firstStageSurvival": 0.9231,
+        "medianCalls": 16,
+        "medianTotalLatencyMs": 370.674
+      },
+      {
+        "k": 200,
+        "accuracy": 0.3077,
+        "firstStageSurvival": 0.8462,
+        "medianCalls": 21,
+        "medianTotalLatencyMs": 598.917
+      }
+    ]
+  },
+  "interpretation": [
+    "raising token budgets removes the hard 192-option execution ceiling but does not restore reliable target selection",
+    "two-stage hierarchy improves some cardinalities but remains below browser-mutation reliability and increases calls/latency",
+    "position-attractor behavior and overconfident wrong answers are observed",
+    "Laya is not admitted as a browser target-selection fast path from this evidence",
+    "low-cardinality Opportunity fuzzy-prefilter use remains a separate experimental hypothesis"
+  ],
+  "nonClaims": [
+    "general_laya_intelligence",
+    "jev_superiority_from_local_measurement",
+    "representative_browser_population",
+    "production_calibration"
+  ]
+}

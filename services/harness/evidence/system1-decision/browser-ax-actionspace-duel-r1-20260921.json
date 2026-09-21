@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.browser-ax-actionspace-duel",
+  "standing": "LOCAL_FIXTURE_MIGRATION_EVIDENCE",
+  "observedDate": "2026-09-21",
+  "inputs": {
+    "jevRevision": "452c1ad2dd628008f1d5608f28158d76e49e6cc0",
+    "source": "same live local fixture page observed in one Playwright session",
+    "legacyObservation": "Jev snapshot.js",
+    "candidateObservation": "Chromium Accessibility.getFullAXTree projected by browser_ax_projection_v1.py"
+  },
+  "scenarios": [
+    {
+      "scenario": "travel",
+      "jevCount": 13,
+      "axCount": 13,
+      "jevOperations": {
+        "CLICK": 9,
+        "FILL": 1,
+        "SELECT": 3
+      },
+      "axOperations": {
+        "CLICK": 9,
+        "FILL": 1,
+        "SELECT": 3
+      },
+      "directTupleIntersection": 9,
+      "representationDifferences": [
+        {
+          "operation": "CLICK",
+          "legacy": "searchbox label='Open Destination'",
+          "ax": "searchbox name='Destination'",
+          "interpretation": "legacy operation-specific presentation prefix versus browser-owned accessible name"
+        },
+        {
+          "operation": "SELECT",
+          "legacy": "label='Stay category → <option>'",
+          "ax": "name='Stay category', optionName='<option>'",
+          "count": 3,
+          "interpretation": "legacy flattened presentation string versus structured operation argument"
+        }
+      ]
+    },
+    {
+      "scenario": "research",
+      "jevCount": 6,
+      "axCount": 6,
+      "jevOperations": {
+        "CLICK": 6
+      },
+      "axOperations": {
+        "CLICK": 6
+      },
+      "directTupleIntersection": 6,
+      "representationDifferences": []
+    }
+  ],
+  "interpretation": [
+    "the AX projection preserves fixture action-space cardinality and operation counts in both scenarios",
+    "observed travel differences are representation differences rather than missing operations",
+    "the candidate projection can preserve browser-owned accessible names and keep SELECT option identity structurally separate instead of copying Jev presentation strings",
+    "operation-affordance binding and context-root selection remain experimental Ordivon policy and are not promoted to production by this evidence"
+  ],
+  "nonClaims": [
+    "open_web_equivalence",
+    "all_html_control_equivalence",
+    "production_migration_complete",
+    "ax_projection_optimal"
+  ]
+}
