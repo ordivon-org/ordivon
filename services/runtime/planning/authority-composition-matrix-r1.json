@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-authority-composition-matrix",
+  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "rows": [
+    {
+      "tool": "workspace.exec",
+      "targets": [
+        "local_linux",
+        "windows_native"
+      ],
+      "profile": "caller selectable/default trusted_local",
+      "immutableInputs": false,
+      "credentials": false,
+      "hostDependencies": "trusted_local local_linux only",
+      "windowsAuthority": "selectable",
+      "openWorld": true
+    },
+    {
+      "tool": "workspace.execBound",
+      "targets": [
+        "local_linux",
+        "windows_native"
+      ],
+      "profile": "Runtime-owned: contained_local on Linux; trusted_local limited on Windows",
+      "immutableInputs": true,
+      "credentials": false,
+      "hostDependencies": false,
+      "windowsAuthority": "limited only for input-bound Windows",
+      "openWorld": false
+    },
+    {
+      "tool": "workspace.execBoundTrusted",
+      "targets": [
+        "local_linux"
+      ],
+      "profile": "trusted_local",
+      "immutableInputs": true,
+      "credentials": false,
+      "hostDependencies": false,
+      "windowsAuthority": "rejected",
+      "openWorld": true
+    },
+    {
+      "tool": "workspace.execCredentialBoundTrusted",
+      "targets": [
+        "local_linux"
+      ],
+      "profile": "trusted_local",
+      "immutableInputs": false,
+      "credentials": "opaque CredentialAuthority/name refs; encrypted snapshot",
+      "hostDependencies": false,
+      "windowsAuthority": "rejected",
+      "openWorld": true
+    },
+    {
+      "tool": "workspace.execPlan",
+      "targets": [
+        "local_linux",
+        "windows_native"
+      ],
+      "profile": "caller selectable/default trusted_local",
+      "immutableInputs": false,
+      "credentials": false,
+      "hostDependencies": "Job-wide trusted_local local_linux only",
+      "windowsAuthority": "selectable",
+      "openWorld": true,
+      "steps": "ordered sequential; fail-fast unless continueOnError"
+    }
+  ],
+  "gap": "Current public Tools encode authority compositions explicitly. RW2 should compile them to one internal AuthorityContract without exposing a universal caller-authored authority object."
+}

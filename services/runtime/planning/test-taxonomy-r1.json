@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-test-taxonomy",
+  "truthRole": "planning-projection",
+  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "currentAggregates": [
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/tests.rs",
+      "role": "large unit/contract/property aggregation",
+      "movePolicy": "split incrementally after invariant freeze"
+    },
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+      "role": "physical/integration/fault aggregation",
+      "movePolicy": "split by seam without changing harness"
+    },
+    {
+      "path": "crates/ordivon-runtime-mcp/src/server/tests.rs",
+      "role": "public schema/tool contract aggregation",
+      "movePolicy": "split only after preserving catalog/schema snapshots"
+    }
+  ],
+  "categories": [
+    {
+      "id": "contract.workspace",
+      "examples": [
+        "workspace_get_distinguishes_opening_revision_from_current_head",
+        "workspace_close_tracks_git_authority_not_source_path_text",
+        "workspace_list_cursor_pagination_is_complete_and_unique"
+      ]
+    },
+    {
+      "id": "contract.identity-replay",
+      "examples": [
+        "idempotent_replay_returns_one_job_and_conflict_rejects_change",
+        "request_identity_replays_across_world_change_but_operation_identity_binds_world",
+        "proposal_identity_replays_original_effective_plan"
+      ]
+    },
+    {
+      "id": "contract.job-attempt",
+      "examples": [
+        "simultaneous_same_key_creates_one_job_and_one_attempt",
+        "terminal_commit_is_atomic_idempotent_and_releases_capacity"
+      ]
+    },
+    {
+      "id": "contract.admission-reservation",
+      "examples": [
+        "simultaneous_admissions_cannot_overbook_last_global_slot",
+        "global_execution_capacity_reports_cross_workspace_usage"
+      ]
+    },
+    {
+      "id": "contract.input-credential",
+      "examples": [
+        "input_digest_mismatch_fails_before_job_admission",
+        "credential_authority_checks_principal_before_object_resolution_and_snapshots_bytes"
+      ]
+    },
+    {
+      "id": "provider.linux",
+      "examples": [
+        "runtime_provider_bound_job_rejects_linux_runner_drift_before_dispatch",
+        "runtime_host_dependency_runtime_drift_is_witnessed_after_target_start"
+      ]
+    },
+    {
+      "id": "provider.windows",
+      "examples": [
+        "native_windows_execution_provider_does_not_require_wsl_distribution",
+        "native_windows_running_attempt_replay_after_registry_reopen_does_not_redrive"
+      ]
+    },
+    {
+      "id": "recovery",
+      "examples": [
+        "runtime_core_restart_recovers_running_attempt_and_terminal_result",
+        "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
+        "orphaned_terminal_keeps_capacity_reserved"
+      ]
+    },
+    {
+      "id": "migration-storage",
+      "examples": [
+        "runtime_release_storage_is_recreated_without_advancing_schema_version",
+        "execution_provider_storage_is_recreated_without_advancing_schema_version"
+      ]
+    },
+    {
+      "id": "mcp.schema",
+      "examples": [
+        "tool_catalog_digest_is_deterministic_and_discovery_visible",
+        "compiled_tool_catalog_identity_is_deterministic_and_host_extension_free",
+        "job_get_schema_is_projection_only_and_detail_free"
+      ]
+    },
+    {
+      "id": "property",
+      "examples": [
+        "reference-model/property tests retained in owner-environment test/extended suites"
+      ]
+    },
+    {
+      "id": "real-system",
+      "examples": [
+        "scripts/local-acceptance",
+        "native Windows Runtime acceptance"
+      ]
+    }
+  ],
+  "firstMove": {
+    "target": "MCP schema-only tests with no production dependencies",
+    "rationale": "lowest conflict and best public-contract feedback",
+    "constraints": [
+      "No assertion deletion",
+      "No Tool schema change",
+      "No production file edit"
+    ]
+  }
+}

@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-tool-necessity-audit",
+  "truthRole": "planning-decision-not-public-contract",
+  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "method": [
+    "Independent semantic contract > consumer count.",
+    "Safety-separated authority Tools are not merged merely because schemas overlap.",
+    "Projection-only and reconciling operations remain distinct.",
+    "Operator/recovery Tools may have zero repository consumers and still be necessary.",
+    "A Tool becomes a removal candidate only if a mature replacement preserves assumptions, guarantees, replay/recovery semantics and current consumers."
+  ],
+  "summary": {
+    "total": 23,
+    "immediateDelete": 0,
+    "compatibilityReview": [
+      "workspace.diff"
+    ],
+    "narrowReview": [
+      "workspace.mutate",
+      "workspace.execPlan"
+    ],
+    "safetySpecialized": [
+      "workspace.execBound",
+      "workspace.execBoundTrusted",
+      "workspace.execCredentialBoundTrusted"
+    ],
+    "operatorSpecialized": [
+      "input.ingest",
+      "release.apply",
+      "release.get"
+    ]
+  },
+  "tools": [
+    {
+      "tool": "runtime.describe",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "read-only capability/projection boundary; admission still rebinds current truth",
+      "reason": "runtime discovery cannot be inferred safely from config or client memory",
+      "usage": {
+        "refs": 8,
+        "files": 4,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "workspace.open",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "creates isolated detached Git authority with explicit response-loss reconciliation handle",
+      "reason": "no other Tool creates Workspace identity",
+      "usage": {
+        "refs": 3,
+        "files": 3,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "workspace.get",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "exact Workspace proof/reconnect boundary",
+      "reason": "list intentionally omits exact proof by default",
+      "usage": {
+        "refs": 6,
+        "files": 4,
+        "prodFiles": 2
+      }
+    },
+    {
+      "tool": "workspace.list",
+      "decision": "KEEP_RECOVERY",
+      "uniqueContract": "inventory/discovery of open Workspaces with pagination",
+      "reason": "zero external refs does not remove operator/reconnect discovery need",
+      "usage": {
+        "refs": 0,
+        "files": 0,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "workspace.read",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "bounded UTF-8 workspace observation",
+      "reason": "high real consumer use; not replaceable by artifact.read",
+      "usage": {
+        "refs": 133,
+        "files": 16,
+        "prodFiles": 3
+      }
+    },
+    {
+      "tool": "workspace.content",
+      "decision": "KEEP_SPECIALIZED",
+      "uniqueContract": "digest-bound native MCP image transport",
+      "reason": "binary/media perceptual transport is not UTF-8 read",
+      "usage": {
+        "refs": 2,
+        "files": 2,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "workspace.changes",
+      "decision": "KEEP_CORE_BOUNDED",
+      "uniqueContract": "bounded/paged structured change-set primitive",
+      "reason": "designed replacement for unbounded legacy path arrays",
+      "usage": {
+        "refs": 0,
+        "files": 0,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "workspace.diff",
+      "decision": "KEEP_COMPATIBILITY_REVIEW",
+      "uniqueContract": "Git patch text plus rename/copy interpretation",
+      "reason": "explicitly legacy convenience; retire only after all consumers can use changes + another patch-text primitive",
+      "usage": {
+        "refs": 4,
+        "files": 4,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "workspace.mutate",
+      "decision": "KEEP_NARROW_REVIEW",
+      "uniqueContract": "atomic digest-fenced synchronous local file mutation",
+      "reason": "not safe for durable response-loss workflows; do not widen; reconsider after mature exec-based editing fully covers interactive use",
+      "usage": {
+        "refs": 5,
+        "files": 4,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "workspace.close",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "source-state compare-and-close with physical dependency fence/tombstone replay",
+      "reason": "destructive lifecycle contract is unique",
+      "usage": {
+        "refs": 6,
+        "files": 4,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "workspace.exec",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "generic effect-opaque durable physical execution",
+      "reason": "main cross-owner execution waist",
+      "usage": {
+        "refs": 102,
+        "files": 54,
+        "prodFiles": 5
+      }
+    },
+    {
+      "tool": "workspace.execBound",
+      "decision": "KEEP_SAFETY_SPECIALIZED",
+      "uniqueContract": "immutable inputs + reduced-authority contained/local or limited Windows realization",
+      "reason": "separate Tool prevents accidental trusted authority widening",
+      "usage": {
+        "refs": 20,
+        "files": 13,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "workspace.execBoundTrusted",
+      "decision": "KEEP_SAFETY_SPECIALIZED",
+      "uniqueContract": "immutable inputs with explicit trusted-local Linux ambient authority",
+      "reason": "low usage but distinct high-authority contract; do not merge by usage count",
+      "usage": {
+        "refs": 1,
+        "files": 1,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "workspace.execCredentialBoundTrusted",
+      "decision": "KEEP_SAFETY_INACTIVE",
+      "uniqueContract": "opaque authority-gated encrypted credential delivery",
+      "reason": "currently no external consumer/live authority, but unique secret-safety contract; re-evaluate only if credential capability itself is retired",
+      "usage": {
+        "refs": 0,
+        "files": 0,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "workspace.execPlan",
+      "decision": "KEEP_BOUNDED_REVIEW",
+      "uniqueContract": "ordered fail-fast multi-step execution inside one Job/Attempt",
+      "reason": "retain only as bounded sequential physical plan; reject branching/workflow expansion",
+      "usage": {
+        "refs": 3,
+        "files": 3,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "job.get",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "projection-only exact durable Job inspection",
+      "reason": "must remain separate from observe because get cannot reconcile/dispatch",
+      "usage": {
+        "refs": 17,
+        "files": 6,
+        "prodFiles": 2
+      }
+    },
+    {
+      "tool": "job.observe",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "targeted reconciliation/wait of one committed Job",
+      "reason": "semantically distinct from projection-only get",
+      "usage": {
+        "refs": 10,
+        "files": 2,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "job.cancel",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "durable cancel intent + physical process-tree stop + reconciliation",
+      "reason": "cannot be emulated by client cancellation",
+      "usage": {
+        "refs": 3,
+        "files": 2,
+        "prodFiles": 1
+      }
+    },
+    {
+      "tool": "job.list",
+      "decision": "KEEP_RECOVERY",
+      "uniqueContract": "response-loss/reconnect discovery by workspaceId/clientRequestId",
+      "reason": "zero current external refs does not remove recovery requirement",
+      "usage": {
+        "refs": 0,
+        "files": 0,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "artifact.read",
+      "decision": "KEEP_CORE",
+      "uniqueContract": "bounded verified range from exact Runtime Artifact",
+      "reason": "required to retrieve retained output/result/evidence without bloating Job projection",
+      "usage": {
+        "refs": 24,
+        "files": 21,
+        "prodFiles": 4
+      }
+    },
+    {
+      "tool": "input.ingest",
+      "decision": "KEEP_OPERATOR_OPT_IN",
+      "uniqueContract": "exact external-file ingress into explicitly enabled InputAuthority",
+      "reason": "disabled by default; unique external ingress safety boundary",
+      "usage": {
+        "refs": 4,
+        "files": 3,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "release.apply",
+      "decision": "KEEP_SPECIALIZED_EFFECT",
+      "uniqueContract": "only graduated structured reconciliable external effect: Runtime self-release",
+      "reason": "operator use is not measured by source refs; receipt semantics unique",
+      "usage": {
+        "refs": 0,
+        "files": 0,
+        "prodFiles": 0
+      }
+    },
+    {
+      "tool": "release.get",
+      "decision": "KEEP_SPECIALIZED_EFFECT",
+      "uniqueContract": "projection-only authoritative release receipt readback",
+      "reason": "required after transport loss/self-replacement",
+      "usage": {
+        "refs": 0,
+        "files": 0,
+        "prodFiles": 0
+      }
+    }
+  ],
+  "conclusion": "No public Tool should be deleted in RW0. Internal execution variants should converge through AuthorityContract/OperationCircuitCompiler first. Re-evaluate workspace.diff after consumer migration; keep workspace.mutate narrow and non-durable unless a replacement proves equivalent."
+}
