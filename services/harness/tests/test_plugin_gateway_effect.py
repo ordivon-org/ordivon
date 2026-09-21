@@ -12,6 +12,7 @@ from ordivon_harness.core_contracts import (
     HarnessPrivacyPolicy,
     HarnessRunContract,
 )
+from ordivon_harness.ordivon.control import CancellationToken
 from ordivon_harness.ordivon.model import (
     AgentRunConclusion,
     AgentToolCall,
@@ -45,9 +46,11 @@ class GatewayExecutionFixture:
         *,
         response_loss: bool = False,
         pre_dispatch_probe=None,
+        cancellation: CancellationToken | None = None,
     ) -> None:
         self.response_loss = response_loss
         self.pre_dispatch_probe = pre_dispatch_probe
+        self.cancellation = cancellation
         self.calls: list[tuple[str, dict]] = []
         self.operation_ref = "ordivon-exec:v1:runtime.linux:job-h2"
         self.native_id = "job-h2"
@@ -76,6 +79,8 @@ class GatewayExecutionFixture:
         if name == "execution.submit":
             if self.pre_dispatch_probe is not None:
                 self.pre_dispatch_probe(arguments)
+            if self.cancellation is not None:
+                self.cancellation.cancel()
             if self.response_loss:
                 self.response_loss = False
                 raise RuntimeError("simulated response loss after owner admission")
@@ -100,6 +105,18 @@ class GatewayExecutionFixture:
                 "resolution": "found",
                 "operation_ref": self.operation_ref,
                 "native_id": self.native_id,
+            }
+        if name == "execution.cancel":
+            return False, {
+                "schema_version": 1,
+                "kind": "ordivon.gateway-execution-receipt",
+                "operation_ref": self.operation_ref,
+                "capability": "execution.linux",
+                "owner_id": "runtime.linux",
+                "native_id": self.native_id,
+                "state": "cancelling",
+                "terminal": False,
+                "delivery_disposition": "in_progress",
             }
         if name == "execution.get":
             return False, {
@@ -301,6 +318,40 @@ def test_gateway_effect_bridge_reconciles_response_loss_without_redispatch() -> 
         ]
         assert len(tool_messages) == 1
         assert tool_messages[0]["observation"]["status"] == "observed"
+
+
+def test_gateway_effect_bridge_propagates_cooperative_control_cancellation() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        clock = FixedClock()
+        cancellation = CancellationToken(monotonic_ms=clock)
+        client = GatewayExecutionFixture(cancellation=cancellation)
+        factory = _factory(client)
+        contract = _contract(factory)
+        adapter = _adapter()
+        run = HarnessAgentRun.create(
+            root,
+            contract,
+            lambda _contract: adapter,
+            tool_bridge_factory=factory,
+            clock_ms=clock,
+            monotonic_ms=clock,
+        )
+        result = run.run((), cancellation=cancellation)
+
+        names = [name for name, _ in client.calls]
+        assert names == ["execution.submit", "execution.cancel"]
+        assert result.loop_result.stop_code.value == "cancel_unknown"
+
+        with SQLiteHarnessStore(root) as store:
+            continuity = SQLiteHarnessRunContinuityStore.open(store, "harness-run:plugin-h2")
+            step = continuity.load_current_tool_step()
+            assert step.receipt is not None
+            assert step.receipt.status.value == "cancel-requested"
+            assert step.receipt.runtime_job_ref == "job-h2"
+            assert step.observation is not None
+            assert step.observation["status"] == "cancel-requested"
+            assert step.observation["structuredContent"]["cancellationAcknowledged"] is True
 
 
 def test_gateway_effect_grant_rejects_ambient_execution_authority() -> None:

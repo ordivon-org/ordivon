@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from anc_canonical import JsonValue, canonical_digest, validate_json_value
 
 from .agent_plugin import AgentPluginMcpComponent
+from .agent_tool_observation import HarnessToolObservation
 from .core_contracts import HarnessRunContract
 from .execution_binding import HarnessExecutionBinding
 from .ordivon.model import AgentToolCall, AgentToolDefinition
@@ -241,6 +242,34 @@ class GatewayMcpRuntimeAdapter:
             "nextCursor": None,
         }
 
+    def cancel_job(self, native_id: str) -> tuple[str, dict[str, JsonValue]]:
+        operation_ref = self._operation_refs.get(native_id)
+        if operation_ref is None:
+            raise HarnessRuntimeClientError(
+                "Gateway operationRef is unknown; reconcile before cancellation"
+            )
+        receipt = self._call("execution.cancel", {"operationRef": operation_ref})
+        if (
+            _required_text(_gateway_field(receipt, "native_id", "nativeId"), "nativeId")
+            != native_id
+        ):
+            raise HarnessRuntimeClientError(
+                "Gateway cancellation changed native execution identity"
+            )
+        terminal = _gateway_field(receipt, "terminal", "terminal")
+        if not isinstance(terminal, bool):
+            raise HarnessRuntimeClientError("Gateway cancellation receipt omitted terminal")
+        state = _required_text(receipt.get("state"), "state")
+        if terminal and state != "cancelled":
+            return "terminal", self._observe_operation(operation_ref, native_id, wait_ms=0)
+        return ("cancelled" if terminal else "cancel-requested"), {
+            "operationRef": operation_ref,
+            "jobId": native_id,
+            "state": state,
+            "terminal": terminal,
+            "cancellationAcknowledged": True,
+        }
+
     def _observe(self, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
         native_id = _required_text(arguments.get("jobId"), "jobId")
         operation_ref = self._operation_refs.get(native_id)
@@ -350,6 +379,49 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
                 kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
             )
 
+    def _control_stop_observation(
+        self,
+        *,
+        tool_call_id: str,
+        tool_name: str,
+        runtime_job_ref: str,
+        query: str | None,
+        relative_path: str | None,
+        reconciled: bool,
+    ) -> HarnessToolObservation | None:
+        _ = (query, relative_path)
+        try:
+            status, payload = self.runtime.cancel_job(runtime_job_ref)
+        except HarnessRuntimeClientError as exc:
+            return self._unknown_observation(
+                tool_call_id,
+                tool_name,
+                reason=f"Gateway cooperative cancellation could not be acknowledged: {exc}",
+                client_request_id=None,
+                query=None,
+                relative_path=None,
+                runtime_job_ref=runtime_job_ref,
+                reconciled=True,
+            )
+        if status == "terminal":
+            return self._observation_from_payload(
+                tool_call_id,
+                tool_name,
+                payload,
+                query=None,
+                relative_path=None,
+                reconciled=True,
+            )
+        return HarnessToolObservation(
+            tool_call_id=tool_call_id,
+            tool_name=tool_name,
+            status=status,
+            structured_content=payload,
+            runtime_job_ref=runtime_job_ref,
+            artifact_refs=(),
+            reconciled=reconciled,
+        )
+
     def _lower_runtime_tool_call(
         self, call: AgentToolCall, *, step_id: str
     ) -> tuple[str, dict[str, JsonValue], str | None]:
@@ -444,7 +516,12 @@ class PluginGatewayExecutionBridge(SQLiteHarnessRuntimeBridge):
 
 
 class PluginGatewayExecutionBridgeFactory:
-    _REQUIRED_REMOTE_TOOLS = ("execution.get", "execution.resolve", "execution.submit")
+    _REQUIRED_REMOTE_TOOLS = (
+        "execution.cancel",
+        "execution.get",
+        "execution.resolve",
+        "execution.submit",
+    )
 
     def __init__(
         self,
@@ -485,6 +562,7 @@ class PluginGatewayExecutionBridgeFactory:
             "grant": grant.to_dict(),
             "modelTools": ["execution.submit"],
             "recoveryTools": ["execution.resolve", "execution.get"],
+            "controlTools": ["execution.cancel"],
         }
         self.grant_digest = canonical_digest(grant_value)
 

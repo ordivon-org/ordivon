@@ -156,9 +156,9 @@ The portable package contains component identity, not credentials. OAuth/token s
 
 ### Agent Plugin composition — H2 durable Gateway execution
 
-For effectful execution, do **not** add \`execution.submit\` to the H1 observation bridge. Bind a narrow caller-authored execution grant and pass a \`PluginGatewayExecutionBridgeFactory\` to \`HarnessAgentRun\`.
+For effectful execution, do **not** add `execution.submit` to the H1 observation bridge. Bind a narrow caller-authored execution grant and pass a `PluginGatewayExecutionBridgeFactory` to `HarnessAgentRun`.
 
-\`\`\`python
+```python
 from ordivon_harness.api import (
     PluginGatewayExecutionBridgeFactory,
     PluginGatewayExecutionGrant,
@@ -186,13 +186,13 @@ run = HarnessAgentRun.create(
     adapter_factory,
     tool_bridge_factory=factory,
 )
-\`\`\`
+```
 
-The model-facing Tool deliberately omits \`capability\`, \`workspaceId\`, \`context\`, \`requestId\`, credentials, and authority references. Those values are caller-owned authority and are injected only after the Harness has durably committed the Tool intent and dispatch fence.
+The model-facing Tool deliberately omits `capability`, `workspaceId`, `context`, `requestId`, credentials, and authority references. Those values are caller-owned authority and are injected only after the Harness has durably committed the Tool intent and dispatch fence.
 
 The effect path is:
 
-\`\`\`text
+```text
 model Tool call
   -> durable Harness Tool intent
   -> durable dispatch fence
@@ -200,11 +200,13 @@ model Tool call
   -> Runtime workspace.exec
   -> Gateway execution.get
   -> durable Harness receipt/observation
-\`\`\`
+```
 
-If the submit response is lost, Harness does **not** blindly redispatch the effect. Gateway \`execution.resolve\` performs a read-only lookup by the already frozen \`clientRequestId\`; only a unique owner Job is observed. Absent or ambiguous resolution remains unknown. The Gateway forwards the Harness authority references to Runtime but does not own or reinterpret them.
+If the submit response is lost, Harness does **not** blindly redispatch the effect. Gateway `execution.resolve` performs a read-only lookup by the already frozen `clientRequestId`; only a unique owner Job is observed. Absent or ambiguous resolution remains unknown. The Gateway forwards the Harness authority references to Runtime but does not own or reinterpret them.
 
-This is an incremental compatibility path over the current Gateway execution projection. MCP 2026-07-28 defines a standard Tasks extension for long-running work; the current pinned Python SDK surface used here does not expose that extension through \`Client\`, so Harness does not hand-roll a competing MCP Tasks implementation. The custom Gateway lifecycle remains isolated behind this adapter and can be retired when the adopted SDK exposes the standard extension with the required recovery semantics.
+If execution control is cancelled or its deadline expires after the owner Job is known, the H2 bridge sends exactly one cooperative `execution.cancel` through Gateway. A non-terminal cancellation acknowledgement is durably recorded as `cancel-requested`, and the Run stops as `cancel_unknown` rather than claiming that the process was cancelled. A later resume reconciles the original request identity and observes the owner state; the Job may legitimately finish in another terminal state if cancellation lost the race. This mirrors the adopted MCP Tasks cancellation semantics: cancellation is a signal/ack, not proof of terminal cancellation.
+
+This is an incremental compatibility path over the current Gateway execution projection. MCP 2026-07-28 defines a standard Tasks extension for long-running work; the current pinned Python SDK surface used here does not expose that extension through `Client`, so Harness does not hand-roll a competing MCP Tasks implementation. The custom Gateway lifecycle remains isolated behind this adapter and can be retired when the adopted SDK exposes the standard extension with the required recovery semantics.
 
 ### Supported Python Agent Run surface
 
