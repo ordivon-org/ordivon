@@ -20,7 +20,8 @@
 | Security | canonical monorepo owner active; legacy f5db8508 standalone carrier physically retired with complete all-refs restore proof | ACCEPTED_SOURCE_ONLY |
 | Security standalone carrier | /root/projects/ordivon-security-v2 physically absent; archive bundle restore-proven; no compatibility alias | RETIRED_ARCHIVED |
 | Network | standalone main aligned ff-only to accepted `9aec70bb`; original source identity attached | ACCEPTED_SOURCE_ONLY |
-| Distribution | optional effect-safety/profile source | ACCEPTED_SOURCE_ONLY |
+| Distribution | canonical monorepo owner active at capabilities/distribution; optional effect-safety/profile semantics retained; standalone carrier physically retired with 16-ref restore proof | ACCEPTED_SOURCE_ONLY |
+| Distribution standalone carrier | /root/projects/ordivon-distribution-v2 physically absent; Git/Web-handoff recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Preservation | standard-native local preservation profile | ACCEPTED_SOURCE_ONLY |
 | Creative Library | Media-hosted cross-domain catalog/presentation projection; owner-native work/source truth preserved | ACCEPTED_SOURCE_ONLY |
 | workstation-lab | historical Git carrier only; active/current responsibilities drained; exact revision lookup retained in place | ARCHIVED_IN_PLACE |
