@@ -11,6 +11,7 @@ COMMIT=$2
 PREFIX=$3
 UV=${ORDIVON_HOST_V2_RELEASE_UV:-/usr/bin/uv}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
+SOURCE_SUBTREE="services/host"
 
 case "$COMMIT" in
   *[!0-9a-f]*|'') echo "commit must be lowercase hexadecimal" >&2; exit 2 ;;
@@ -22,9 +23,9 @@ if [ "$RESOLVED" != "$COMMIT" ]; then
   exit 2
 fi
 
-SOURCE_SUBTREE=""
-if git -C "$REPO" cat-file -e "$COMMIT:services/host/pyproject.toml" 2>/dev/null; then
-  SOURCE_SUBTREE="services/host"
+if ! git -C "$REPO" cat-file -e "$COMMIT:$SOURCE_SUBTREE/pyproject.toml" 2>/dev/null; then
+  echo "release source must contain services/host/pyproject.toml" >&2
+  exit 2
 fi
 
 mkdir -p "$PREFIX/releases"
@@ -33,11 +34,7 @@ if [ ! -d "$RELEASE" ]; then
   TMP="$PREFIX/releases/.tmp-$COMMIT-$$"
   trap 'rm -rf "$TMP"' EXIT
   mkdir -p "$TMP"
-  if [ -n "$SOURCE_SUBTREE" ]; then
-    git -C "$REPO" archive "$COMMIT" "$SOURCE_SUBTREE" | tar -x --strip-components=2 -C "$TMP"
-  else
-    git -C "$REPO" archive "$COMMIT" | tar -x -C "$TMP"
-  fi
+  git -C "$REPO" archive "$COMMIT" "$SOURCE_SUBTREE" | tar -x --strip-components=2 -C "$TMP"
   mv "$TMP" "$RELEASE"
   trap - EXIT
 fi
@@ -68,5 +65,5 @@ ln -sfn "releases/$COMMIT" "$PREFIX/current.next"
 mv -Tf "$PREFIX/current.next" "$PREFIX/current"
 
 printf 'installed_release=%s\n' "$COMMIT"
-printf 'source_subtree=%s\n' "${SOURCE_SUBTREE:-.}"
+printf 'source_subtree=%s\n' "$SOURCE_SUBTREE"
 printf 'release_dir=%s\n' "$RELEASE"
