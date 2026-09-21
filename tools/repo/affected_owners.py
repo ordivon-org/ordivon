@@ -71,6 +71,9 @@ CROSS_CUTTING_PATHS = frozenset(
         "tools/repo/affected_owners.py",
         "tools/repo/test_affected_owners.py",
         "tools/repo/check_github_governance.py",
+        "tools/repo/dependency_contracts.toml",
+        "tools/repo/check_owner_boundaries.py",
+        "tools/repo/test_owner_boundaries.py",
     }
 )
 

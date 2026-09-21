@@ -86,6 +86,18 @@ class AffectedOwnersTests(unittest.TestCase):
             [owner.name for owner in MODULE.OWNERS],
         )
 
+    def test_dependency_policy_change_is_cross_cutting(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/dependency_contracts.toml"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+
+    def test_dependency_checker_change_is_cross_cutting(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/check_owner_boundaries.py"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+
     def test_governance_or_docs_only_change_does_not_fake_owner_impact(self) -> None:
         self.assertEqual(
             self.names(
