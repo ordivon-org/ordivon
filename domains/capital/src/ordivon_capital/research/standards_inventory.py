@@ -5,7 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-import jsonschema
+from ordivon_capital.research.quantitative_inventory_validation import (
+    QuantitativeInventoryValidationError,
+    assert_quantitative_inventory_schema_identity,
+    validate_quantitative_component_inventory_document,
+)
 
 
 class StandardsInventoryError(RuntimeError):
@@ -24,12 +28,12 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def validate_inventory(*, inventory_path: Path, schema_path: Path) -> dict[str, Any]:
     inventory = load_json(inventory_path)
-    schema = load_json(schema_path)
     try:
-        jsonschema.Draft202012Validator(schema).validate(inventory)
-    except jsonschema.ValidationError as exc:
+        assert_quantitative_inventory_schema_identity(schema_path)
+        validate_quantitative_component_inventory_document(inventory)
+    except (OSError, QuantitativeInventoryValidationError) as exc:
         raise StandardsInventoryError(
-            f"inventory schema validation failed: {exc.message}"
+            f"inventory schema validation failed: {exc}"
         ) from exc
     ids = [row["id"] for row in inventory["components"]]
     if len(ids) != len(set(ids)):

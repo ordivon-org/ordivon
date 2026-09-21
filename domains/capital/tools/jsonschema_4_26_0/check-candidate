@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+candidate=/root/external/jsonschema/4.26.0/.venv/bin/python
+if [[ ! -x "$candidate" ]]; then
+  echo "isolated jsonschema 4.26.0 candidate environment missing" >&2
+  exit 2
+fi
+"$candidate" - <<'PY'
+import json,sys,importlib.metadata as md
+v=md.version("jsonschema")
+if sys.version.split()[0]!="3.14.7": raise SystemExit(f"unexpected Python {sys.version.split()[0]}")
+if v!="4.26.0": raise SystemExit(f"unexpected jsonschema {v}")
+print(json.dumps({"standing":"PASS_JSONSCHEMA_R18_DIFFERENTIAL_ORACLE_ONLY","python":"3.14.7","version":v},sort_keys=True))
+PY

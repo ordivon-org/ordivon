@@ -262,11 +262,12 @@
     },
     {
       "id": "json-schema-validation",
-      "ownerClass": "IMPLEMENTATION_OWNER",
+      "ownerClass": "IMPLEMENTATION_CANDIDATE",
       "owner": "jsonschema 4.26.0",
-      "currentStanding": "ADMITTED_FOR_JSON_SCHEMA_DRAFT_2020_12_VALIDATION",
-      "applicability": "PORTFOLIO_RISK_BUDGET_AND_QUANTITATIVE_COMPONENT_INVENTORY_SCHEMA_VALIDATION_ONLY",
-      "source": "https://python-jsonschema.readthedocs.io/"
+      "currentStanding": "R18_LOCAL_BOUNDED_VALIDATORS_PREFERRED",
+      "applicability": "HISTORICAL_DIFFERENTIAL_ORACLE_AND_FUTURE_CANDIDATE_IF_SCHEMA_CONTRACTS_REQUIRE_REFS_COMBINATORS_FORMATS_RECURSION_OR_BROADER_JSON_SCHEMA_SEMANTICS",
+      "source": "https://python-jsonschema.readthedocs.io/",
+      "qualificationEvidence": "tools/jsonschema_4_26_0/qualification-r18.json"
     },
     {
       "id": "numerical-array-primitives",
@@ -606,7 +607,8 @@
     {
       "id": "risk-portfolio-observation-and-statistics",
       "sourcePatterns": [
-        "src/ordivon_capital/risk/portfolio_risk.py"
+        "src/ordivon_capital/risk/portfolio_risk.py",
+        "src/ordivon_capital/risk/risk_budget_validation.py"
       ],
       "ownerClasses": [
         "IMPLEMENTATION_OWNER",
@@ -623,7 +625,7 @@
         "SR 26-2 reference for model governance"
       ],
       "localStanding": "THIN_GLUE_AFTER_OWNER_AUDIT",
-      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted.",
+      "localResponsibility": "normalize observed exposure and bind descriptive/model-validation evidence; library-owned estimators remain external. Current bounded risk-limit decisions are local deterministic rules. Future portfolio optimization requires a real contract and comparative qualification before any external optimizer is admitted. Exact portfolio-risk-budget document validation is a domain-local fail-closed contract bound to the active schema digest; it is not a general JSON Schema engine.",
       "admittedMechanicsOwners": [
         "NumPy 2.5.3 for vector arithmetic, sample variance, quantile, mean, correlation and array mechanics",
         "SciPy 1.18.1 for linregress",
@@ -676,6 +678,7 @@
         "src/ordivon_capital/research/monitoring_persistence_cli.py",
         "src/ordivon_capital/research/okx_factor_observer.py",
         "src/ordivon_capital/research/prospective_validation.py",
+        "src/ordivon_capital/research/quantitative_inventory_validation.py",
         "src/ordivon_capital/research/standards_inventory.py"
       ],
       "ownerClasses": [
@@ -694,7 +697,7 @@
         "OpenLineage for any future actual lineage-event surface"
       ],
       "localStanding": "THIN_RESEARCH_BINDING_AFTER_MLFLOW_PANDERA_PANDAS_SUBTRACTION",
-      "localResponsibility": "retain only bounded Capital research evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework.",
+      "localResponsibility": "retain only bounded Capital research evidence validation, manifest/hash binding, and model-monitoring composition. No local experiment platform, dataframe framework, lineage graph, generic Research/Data platform, optimizer, or agent R&D framework. Exact quantitative-component-inventory document validation is a domain-local fail-closed contract bound to the active schema digest; jsonschema is not a current owner.",
       "admittedMechanicsOwners": [
         "jsonschema 4.26.0 for Draft 2020-12 schema validation",
         "PyArrow 25.0.1 / Apache Parquet for typed columnar materialization",
@@ -1494,19 +1497,36 @@
     },
     {
       "contractId": "json-schema-draft-2020-12-validation",
-      "scope": "validate the active portfolio-risk-budget and quantitative-component-inventory documents against their Draft 2020-12 schemas",
+      "scope": "validate exactly the current portfolio-risk-budget v2 and quantitative-component-inventory documents; schema bytes are SHA-256 bound and any schema drift requires requalification",
       "localBaseline": {
-        "standing": "NO_CREDIBLE_LOCAL_SCHEMA_ENGINE_BASELINE",
-        "reason": "active schemas use strict objects, required properties, enums/const, patterns/min lengths, conditional if/then, allOf, and not; hand-implementing these semantics would create a second partial JSON Schema engine"
+        "implementations": [
+          "src/ordivon_capital/risk/risk_budget_validation.py",
+          "src/ordivon_capital/research/quantitative_inventory_validation.py"
+        ],
+        "character": "two explicit domain-local validators; not a general JSON Schema engine",
+        "physicalSourceLines": 277,
+        "functionSourceLines": 212,
+        "schemaIdentityBinding": "SHA256_FAIL_CLOSED"
       },
       "externalCandidate": {
         "name": "jsonschema",
         "version": "4.26.0",
-        "installedFootprintBytes": 476711,
-        "activeSchemas": 2
+        "latestStableObserved": true,
+        "python3147Qualification": "PASS_ISOLATED_ORACLE",
+        "isolatedTool": "tools/jsonschema_4_26_0/run-differential-r18"
       },
-      "standing": "JSONSCHEMA_RETAIN_AS_DRAFT202012_VALIDATION_OWNER",
-      "externalOwnerAdmitted": true
+      "standing": "LOCAL_BOUNDED_DOCUMENT_VALIDATORS_PREFERRED",
+      "externalOwnerAdmitted": false,
+      "evidence": {
+        "frozen": "tools/jsonschema_4_26_0/qualification-r18.json",
+        "differentialCases": 6000,
+        "differentialMismatches": 0,
+        "riskCases": 2000,
+        "inventoryCases": 4000,
+        "externalDependencyClosureBytes": 1874489,
+        "canonicalLocalReplay": "PASS_ZERO_MISMATCH_6000"
+      },
+      "decision": "Remove jsonschema from the current Capital runtime. Two fixed schemas are fully covered by small domain-local fail-closed validators with exact schema-digest binding and 6000-case zero-mismatch differential evidence. Retain jsonschema 4.26.0 only as an isolated differential oracle and future candidate if schema semantics materially expand."
     },
     {
       "contractId": "market-numerical-array-primitives",

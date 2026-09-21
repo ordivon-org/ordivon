@@ -9,10 +9,15 @@ from statistics import median
 from typing import Any
 
 import numpy as np
-from jsonschema import Draft202012Validator
 from scipy.stats import linregress
 from sklearn.linear_model import HuberRegressor, LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
+
+from ordivon_capital.risk.risk_budget_validation import (
+    RiskBudgetValidationError,
+    assert_risk_budget_schema_identity,
+    validate_registered_risk_budget_document,
+)
 
 
 class PortfolioRiskError(ValueError):
@@ -30,9 +35,9 @@ def load_registered_risk_budget(path: Path | None = None) -> dict[str, Any]:
     schema_path = repo / "contracts/portfolio-risk-budget-v2.schema.json"
     try:
         doc = json.loads(config_path.read_text())
-        schema = json.loads(schema_path.read_text())
-        Draft202012Validator(schema).validate(doc)
-    except Exception as exc:
+        assert_risk_budget_schema_identity(schema_path)
+        validate_registered_risk_budget_document(doc)
+    except (OSError, json.JSONDecodeError, RiskBudgetValidationError) as exc:
         raise PortfolioRiskError(f"invalid registered portfolio risk budget: {exc}") from exc
     return {
         "schemaVersion": 2,
