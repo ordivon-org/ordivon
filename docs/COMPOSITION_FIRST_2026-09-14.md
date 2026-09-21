@@ -70,7 +70,7 @@ Do not build a local replacement for:
 - monitoring stacks;
 - generic workflow engines.
 
-Do not repair a component merely to make the architecture visually uniform. Example: Binance native Nautilus public-data startup is currently blocked, but Binance official credential-free WebSocket already satisfies the public-data boundary; therefore that native startup defect is not a Market Capital blocker.
+Do not repair a component merely to make the architecture visually uniform. Example: Binance native Nautilus public-data startup is currently blocked, but Binance official credential-free WebSocket already satisfies the public-data boundary; therefore that native startup defect is not an Ordivon Capital blocker.
 
 ## Next composition sequence
 

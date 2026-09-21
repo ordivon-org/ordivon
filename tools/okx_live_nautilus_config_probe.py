@@ -32,7 +32,7 @@ def main() -> int:
     execution = cfg["executionProvider"]
     net = cfg["networkAuthority"]
     value = OKXExecutionClientConfig(
-        account_id=AccountId("OKX-LIVE-MARKET-CAPITAL"),
+        account_id=AccountId("OKX-LIVE-ORDIVON-CAPITAL"),
         environment=OKXEnvironment.LIVE,
         api_key=profile["api_key"],
         api_secret=profile["secret_key"],
