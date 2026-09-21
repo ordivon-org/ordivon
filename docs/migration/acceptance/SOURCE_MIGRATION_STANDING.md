@@ -5,6 +5,8 @@
 | M1 | Next / Security / Network | ACCEPTED_SOURCE_ONLY |
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
+| Game | canonical monorepo owner active at domains/game; standalone source carrier physically retired with 413-ref Git restore, non-Git payload restore, dirty-worktree recovery, and post-delete 584-test proof | ACCEPTED_SOURCE_ONLY |
+| Game standalone carrier | /root/projects/ordivon-game physically absent; Git/non-Git recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Capital | identity-preserving legacy bridge + qualified supersession + linear updates to 18ca785b; domains/capital is current source-of-truth, standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
 | Harness | monorepo-native post-Skills owner; validated Browser Security donor composed at 0fe2187b, canonical tree 47f7b476 | ACCEPTED_SOURCE_ONLY |
 | Skills bridge | canonical platform/skills owner; source/package/artifact boundaries accepted; live cutover recorded separately | ACCEPTED_SOURCE_ONLY |
