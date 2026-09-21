@@ -23,6 +23,7 @@ wheel = sys.argv[1]
 with zipfile.ZipFile(wheel) as archive:
     names = set(archive.namelist())
 assert "ordivon_skills/__init__.py" in names
+assert "ordivon_skills/skillspector_adapter.py" not in names
 assert not any(name.startswith("ordivon_harness/") for name in names)
 print("skills wheel namespace: valid")
 PY

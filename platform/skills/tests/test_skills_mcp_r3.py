@@ -69,9 +69,7 @@ class SkillMcpR3Tests(unittest.TestCase):
         self.assertEqual(row["confidenceTier"], "THIRD_PARTY_AUDITED")
         self.assertIn("SELF_ROUTING", row["riskTags"])
         self.assertIn("CROSS_SKILL_ROUTING", row["riskTags"])
-        dep = next(x for x in row["dependencies"] if x["ref"] == "paper-writing")
-        self.assertEqual(dep["state"], "RESOLVED")
-        self.assertEqual(dep["requirement"], "REQUIRED")
+        self.assertNotIn("dependencies", row)
         resolved = asyncio.run(tools["skills.resolve"].fn(ref="research-helper", invocationMode="explicit"))
         r = resolved.structured_content
         read = asyncio.run(tools["skills.read"].fn(
@@ -89,34 +87,25 @@ class SkillMcpR3Tests(unittest.TestCase):
         self.assertIn("SELF_ROUTING", value["removedRiskTags"])
         self.assertIn("MANDATED_CITATION", value["removedRiskTags"])
 
-    def test_library_use_is_not_misclassified_as_skill_dependency(self):
-        td, _base, user, cfg = self.fixture()
-        self.addCleanup(td.cleanup)
-        write_skill(user, "analysis", "Use **uv** to install the libraries used in this skill.\nFor APIs, see the **statsmodels** skill.\n")
-        provider = CatalogProvider(cfg)
-        server = build_server(provider)
-        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
-        resolved = asyncio.run(tools["skills.resolve"].fn(ref="analysis"))
-        refs = [x["ref"] for x in resolved.structured_content["resolved"]["dependencies"]]
-        self.assertNotIn("uv", refs)
-        self.assertIn("statsmodels", refs)
-
-    def test_unavailable_dependency_is_explicit_not_self_routed(self):
+    def test_skill_prose_does_not_create_a_bridge_dependency_graph(self):
         td, _base, user, cfg = self.fixture()
         self.addCleanup(td.cleanup)
         write_skill(
             user,
-            "experiment",
-            "## Related Skills\n- **statistical-power** — required for sample-size calculations.\n",
+            "analysis",
+            "Use **uv** to install libraries.\n"
+            "For APIs, see the **statsmodels** skill.\n"
+            "## Related Skills\n"
+            "- **statistical-power** — required for sample-size calculations.\n",
         )
         provider = CatalogProvider(cfg)
         server = build_server(provider)
-        tools = {t.name: t for t in server._tool_manager.list_tools()}
-        resolved = asyncio.run(tools["skills.resolve"].fn(ref="experiment"))
-        dep = next(x for x in resolved.structured_content["resolved"]["dependencies"] if x["ref"] == "statistical-power")
-        self.assertEqual(dep["state"], "UNAVAILABLE")
-        self.assertEqual(dep["requirement"], "REQUIRED")
-        self.assertEqual(dep["authority"], "ADVISORY")
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+        resolved = asyncio.run(tools["skills.resolve"].fn(ref="analysis"))
+        row = resolved.structured_content["resolved"]
+        self.assertNotIn("dependencies", row)
+        self.assertNotIn("declaredDependencies", row)
+        self.assertNotIn("requiredDependencies", row)
 
     def test_source_admitted_and_current_model_visible_are_separate_counts(self):
         td = tempfile.TemporaryDirectory()

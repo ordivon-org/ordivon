@@ -105,8 +105,6 @@ class SkillRecord:
     scan_state: str = "PASS"
     scan_findings: tuple[str, ...] = ()
     risk_tags: tuple[str, ...] = ()
-    declared_dependencies: tuple[str, ...] = ()
-    required_dependencies: tuple[str, ...] = ()
     confidence_tier: ConfidenceTier = ConfidenceTier.THIRD_PARTY_UNREVIEWED
     implicit_invocation: bool = True
     explicit_invocation: bool = True
@@ -137,8 +135,6 @@ class SkillRecord:
             "eligibilityReasons": list(self.eligibility_reasons),
             "scanState": self.scan_state,
             "riskTags": list(self.risk_tags),
-            "declaredDependencies": list(self.declared_dependencies),
-            "requiredDependencies": list(self.required_dependencies),
             "confidenceTier": self.confidence_tier.value,
             "instructionAuthority": "ADVISORY",
             "implicitInvocation": self.implicit_invocation,
