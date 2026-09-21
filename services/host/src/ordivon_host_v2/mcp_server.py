@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from importlib.metadata import version as package_version
 from typing import Any, Literal
 
 from mcp.server import MCPServer
@@ -43,7 +44,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
     effective_dsn = dsn or os.environ["ORDIVON_HOST_V2_DSN"]
     service = HostV2(effective_dsn)
     board = BoardStore(effective_dsn)
-    mcp = MCPServer("ordivon-host-v2")
+    mcp = MCPServer("ordivon-host-v2", version=package_version("ordivon-host-v2"))
 
     @mcp.tool(name="host.status")
     def host_status(

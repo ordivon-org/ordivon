@@ -97,6 +97,18 @@
     {
       "capability": "PostgreSQL JSONB adaptation",
       "owner": "Psycopg Jsonb adapter"
+    },
+    {
+      "capability": "Agent Tool-call lifecycle observations",
+      "owner": "Harness event model"
+    },
+    {
+      "capability": "cross-process telemetry / causal context",
+      "owner": "OpenTelemetry + W3C Trace Context"
+    },
+    {
+      "capability": "client Tool-catalog freshness",
+      "owner": "MCP connector/client"
     }
   ],
   "retired": [
@@ -126,14 +138,19 @@
   ],
   "nextBoundaries": [
     {
-      "name": "authenticated caller provenance",
-      "targetOwner": "MCP/OAuth ingress",
-      "rule": "do not turn writerLabel into authorization"
+      "name": "client tool-catalog freshness",
+      "targetOwner": "MCP connector/client",
+      "rule": "live tools/list is authoritative; do not restore a Host surfaceVersion or parallel Tool catalog"
     },
     {
-      "name": "observability",
-      "targetOwner": "OpenTelemetry/ops",
-      "rule": "Host Doctor remains Host-local invariant checking only"
+      "name": "cross-call friction telemetry",
+      "targetOwner": "Harness event model + OpenTelemetry",
+      "rule": "measure Agent Tool-call lifecycle outside Host persistence; Host Doctor remains Host-local invariant checking only"
+    },
+    {
+      "name": "semantic stale/duplicate work judgement",
+      "targetOwner": "Goal/domain owner",
+      "rule": "Task age and Goal parallelism are observations, not automatic abandonment or duplicate-work proof"
     }
   ],
   "doNotOwn": [
@@ -146,5 +163,16 @@
     "deployment control",
     "external-world truth",
     "domain completion"
-  ]
+  ],
+  "freezeRule": {
+    "default": "FROZEN",
+    "evidence": "planning/host-friction-observatory-r1.json",
+    "reopenOnlyFor": [
+      "Host-owned durable invariant failure",
+      "material re-entry cost not reducible by preserving a more specific caller-owned coordinate",
+      "reproducible Host-owned stale/concurrency failure",
+      "mature external owner with lower total coupling"
+    ],
+    "currentDisposition": "NO_KERNEL_REOPEN"
+  }
 }

@@ -1,0 +1,192 @@
+{
+  "boardRouting": {
+    "allTime": {
+      "messages": 17120,
+      "routed": 6226,
+      "routedPercent": 36.367,
+      "unrouted": 10894
+    },
+    "lastSevenDays": {
+      "messages": 1716,
+      "routed": 1023,
+      "routedPercent": 59.615,
+      "unrouted": 693
+    },
+    "replyRouteIntegrity": {
+      "conflictingRoute": 0,
+      "lostRoute": 0,
+      "replies": 7954,
+      "routeIntroducedMidThread": 0
+    }
+  },
+  "kind": "ordivon.host-friction-observatory",
+  "lifecyclePressure": {
+    "boardNewerThanCheckpointLagBuckets": {
+      "1-3d": 2,
+      "1-6h": 15,
+      "3-7d": 3,
+      "6-24h": 10,
+      "<1h": 13
+    },
+    "boardNewerThanCheckpointPercentOfRoutedOpenTasks": 37.391,
+    "openTaskAgeBuckets": {
+      "1-3d": 10,
+      "1-6h": 2,
+      "3-7d": 34,
+      "6-24h": 1,
+      "7-14d": 92,
+      "<1h": 1,
+      ">=14d": 129
+    },
+    "openTasksAtLeast14DaysOld": 129,
+    "openTasksAtLeast14DaysOldPercent": 47.955,
+    "openTasksWithBoardNewerThanCheckpoint": 43,
+    "openTasksWithRoutedBoardMessages": 115,
+    "openTasksWithoutRoutedBoardMessages": 154
+  },
+  "navigation": {
+    "currentProductPaths": {
+      "attentionCursorHitToExactCheckpointCalls": 2,
+      "exactRoutedBoardMessageToExactCheckpointCalls": 2,
+      "exactTaskIdToExactCheckpointCalls": 1,
+      "goalKnownInventoryToExactCheckpointCalls": 2,
+      "lexicalBoardSearchHitToExactCheckpointCalls": 3
+    },
+    "globalInventoryCallsUntilExactResume": {
+      "count": 269,
+      "max": 7,
+      "mean": 4.212,
+      "p50": 4.0,
+      "p90": 6.0,
+      "p99": 7.0
+    },
+    "globalListPagePosition": {
+      "count": 269,
+      "max": 6,
+      "mean": 3.212,
+      "p50": 3.0,
+      "p90": 5.0,
+      "p99": 6.0
+    },
+    "globalTaskListDefaultLimit": 50,
+    "globalTaskListPages": 6,
+    "top50RecentlyUpdatedCreatedOrderPages": {
+      "beyondFirstPage": 4,
+      "beyondFirstPagePercent": 8.0,
+      "distribution": {
+        "1": 46,
+        "2": 3,
+        "3": 1
+      },
+      "maxPage": 3
+    }
+  },
+  "observabilityBoundary": {
+    "hostCanObserve": [
+      "durable Task/Checkpoint/Board state",
+      "revision fences and committed receipts",
+      "Board-to-Task routing integrity"
+    ],
+    "hostCannotEstablish": [
+      "actual fresh-Agent Host call count across a client session",
+      "duplicate semantic work",
+      "whether an old open Task should be abandoned",
+      "foreign-owner revalidation count",
+      "client-visible stale tool catalog"
+    ],
+    "naturalOwners": {
+      "agentToolCallLifecycle": "Harness event model",
+      "clientToolCatalogFreshness": "MCP connector/client cache",
+      "crossProcessCorrelation": "OpenTelemetry/W3C Trace Context",
+      "semanticDuplicateOrStaleWorkJudgment": "domain/goal owner"
+    }
+  },
+  "observedAt": "2026-09-20T09:54:04.884529+00:00",
+  "parallelismPressure": {
+    "maxOpenTasksInOneGoal": 35,
+    "multiTaskGoals": 37,
+    "openTaskCountByGoalCardinality": {
+      "1": 99,
+      "2": 19,
+      "3": 4,
+      "4": 4,
+      "5": 2,
+      "6": 2,
+      "7": 3,
+      "11": 1,
+      "15": 1,
+      "35": 1
+    },
+    "singletonGoals": 99,
+    "strictDuplicateEvidence": "none under exact current checkpoint digest/objective/frontier/nextActions equality; parallel Goal membership is not duplicate-work proof",
+    "strictExactDuplicateCandidateGroups": {
+      "checkpointDigest": 0,
+      "frontier": 0,
+      "nextActions": 0,
+      "objective": 0
+    },
+    "tasksInMultiTaskGoals": 170,
+    "tasksInMultiTaskGoalsPercent": 63.197
+  },
+  "payload": {
+    "attentionLatest100Sequences": {
+      "messages": 79,
+      "routedMessages": 27,
+      "routedTasks": 5,
+      "unroutedMessages": 52,
+      "wireBytes": 31110
+    },
+    "boardLatest50WireBytes": 78859,
+    "globalInventoryPlusResumeBytesPerUniformOpenTask": {
+      "count": 269,
+      "max": 93225,
+      "mean": 55507.914,
+      "p50": 54127.0,
+      "p90": 84430.0,
+      "p99": 91136.36
+    },
+    "goalKnownInventoryPlusResumeBytesPerOpenTask": {
+      "count": 269,
+      "max": 27704,
+      "mean": 10246.409,
+      "p50": 9161.0,
+      "p90": 16261.6,
+      "p99": 20950.28
+    },
+    "taskList": {
+      "meanPageBytes": 13715.167,
+      "pageBytes": [
+        14452,
+        14799,
+        15490,
+        16370,
+        14844,
+        6336
+      ],
+      "totalBytesForAllOpenTasks": 82291
+    },
+    "taskObserveBytes": {
+      "count": 269,
+      "max": 27305,
+      "mean": 8163.015,
+      "p50": 7588.0,
+      "p90": 12147.8,
+      "p99": 19100.84
+    },
+    "taskResumeBytes": {
+      "count": 269,
+      "max": 26819,
+      "mean": 7779.182,
+      "p50": 7185.0,
+      "p90": 11690.0,
+      "p99": 18608.04
+    }
+  },
+  "population": {
+    "boardMessages": 17120,
+    "goalsWithOpenTasks": 136,
+    "openTasks": 269
+  },
+  "schemaVersion": 1,
+  "truthRole": "read-only observational measurement; not priority, duplicate-work judgment, semantic completion, or foreign-owner truth"
+}

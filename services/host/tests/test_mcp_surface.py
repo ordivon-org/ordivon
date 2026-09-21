@@ -40,6 +40,9 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
     async def scenario() -> None:
         async with Client(build_server(DSN), raise_exceptions=True) as client:
             listed = await client.list_tools()
+            assert client.server_info is not None
+            assert client.server_info.name == "ordivon-host-v2"
+            assert client.server_info.version == "0.1.0"
             names = {tool.name for tool in listed.tools}
             assert names == {
                 "host.status",

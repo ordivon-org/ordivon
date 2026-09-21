@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-connector-catalog-friction",
+  "truthRole": "observed-client-catalog-friction-not-host-protocol-authority",
+  "observedAt": "2026-09-20",
+  "liveServer": {
+    "toolCount": 10,
+    "tools": [
+      "host.status",
+      "attention.delta",
+      "board.list",
+      "board.search",
+      "board.post",
+      "task.observe",
+      "task.list",
+      "task.resume",
+      "task.adopt",
+      "task.checkpoint"
+    ],
+    "toolsListTtlMs": 0,
+    "toolsListCacheScope": "private",
+    "toolsListChangedCapability": true,
+    "serverInfoVersionBeforeR1": ""
+  },
+  "clientObservedResidual": {
+    "staleRemovedToolsStillAdvertised": [
+      "news.list",
+      "news.read",
+      "news.publish"
+    ],
+    "staleHostStatusParameter": "recentLimit",
+    "removedToolInvocationResult": "Unknown tool: news.list",
+    "classification": "connector/client tool-catalog freshness residual"
+  },
+  "ownerDecision": {
+    "host": "do not reintroduce surfaceVersion or parallel tool catalog",
+    "protocol": "MCP tools/list and list_changed",
+    "client": "refresh or invalidate stale catalog according to protocol metadata"
+  },
+  "r1Change": {
+    "standardField": "serverInfo.version",
+    "source": "PEP 621 project version",
+    "value": "0.1.0",
+    "scope": "implementation identity only; not deployment, Git, schema, or tool-surface truth"
+  }
+}
