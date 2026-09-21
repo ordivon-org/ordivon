@@ -9,8 +9,17 @@ from .contracts import (
     ArtifactChunk,
     CapabilityDescriptor,
     CapabilityProjection,
+    CollaborationMessage,
+    CollaborationPage,
+    CollaborationPostReceipt,
+    CollaborationSearch,
+    CollaborationSearchHit,
+    ContinuityAttention,
+    ContinuityEvent,
     ContinuityItem,
+    ContinuityMutationReceipt,
     ContinuityObservation,
+    ContinuityObserved,
     ContinuityPage,
     ExecutionObservation,
     ExecutionReceipt,
@@ -62,6 +71,32 @@ def _required_str(payload: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value:
         raise GatewayError(f"owner response omitted {key}")
     return value
+
+
+def _optional_str(payload: dict[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise GatewayError(f"owner response has invalid {key}")
+    return value
+
+
+def _collaboration_message(payload: dict[str, Any]) -> CollaborationMessage:
+    return CollaborationMessage(
+        sequence=int(payload["sequence"]),
+        client_message_id=_required_str(payload, "clientMessageId"),
+        author_label=_required_str(payload, "authorLabel"),
+        author_identity_role=_required_str(payload, "authorIdentityRole"),
+        message_kind=_required_str(payload, "messageKind"),
+        topic=_optional_str(payload, "topic"),
+        message=_required_str(payload, "message"),
+        reply_to_client_message_id=_optional_str(payload, "replyToClientMessageId"),
+        task_id=_optional_str(payload, "taskId"),
+        recorded_at_ms=int(payload["recordedAtMs"]),
+        message_digest=_required_str(payload, "messageDigest"),
+        truth_role=_required_str(payload, "truthRole"),
+    )
 
 
 class GatewayService:
@@ -613,4 +648,206 @@ class GatewayService:
             next_cursor=(
                 str(result["nextCursor"]) if result.get("nextCursor") is not None else None
             ),
+        )
+
+    async def continuity_observe(
+        self, task_id: str, *, expected_revision: int | None = None, event_limit: int = 5
+    ) -> ContinuityObserved:
+        arguments: dict[str, Any] = {"taskId": task_id, "eventLimit": event_limit}
+        if expected_revision is not None:
+            arguments["expectedRevision"] = expected_revision
+        result = await self._caller.call_tool("host", "task.observe", arguments)
+        task = result.get("task")
+        if not isinstance(task, dict):
+            raise GatewayError("Host task.observe omitted task")
+        checkpoint = task.get("checkpoint")
+        if not isinstance(checkpoint, dict):
+            raise GatewayError("Host task.observe omitted checkpoint")
+        events: list[ContinuityEvent] = []
+        for event in result.get("recentEvents", []):
+            if isinstance(event, dict):
+                events.append(
+                    ContinuityEvent(
+                        revision=int(event["revision"]),
+                        event_type=_required_str(event, "eventType"),
+                        state=_required_str(event, "state"),
+                        created_at=_required_str(event, "createdAt"),
+                    )
+                )
+        return ContinuityObserved(
+            task_id=_required_str(task, "task_id"),
+            goal_id=_optional_str(task, "goal_id"),
+            revision=int(task["revision"]),
+            state=_required_str(task, "state"),
+            checkpoint_digest=_optional_str(task, "checkpoint_digest"),
+            checkpoint=checkpoint,
+            recent_events=events,
+            truth_boundary=_optional_str(result, "truthBoundary"),
+        )
+
+    async def continuity_adopt(
+        self,
+        *,
+        task_id: str,
+        goal_id: str,
+        checkpoint: dict[str, Any],
+        writer_label: str | None = None,
+    ) -> ContinuityMutationReceipt:
+        arguments: dict[str, Any] = {
+            "taskId": task_id,
+            "goalId": goal_id,
+            "initialCheckpoint": checkpoint,
+        }
+        if writer_label is not None:
+            arguments["writerLabel"] = writer_label
+        return self._continuity_mutation(
+            await self._caller.call_tool("host", "task.adopt", arguments)
+        )
+
+    async def continuity_checkpoint(
+        self,
+        *,
+        task_id: str,
+        expected_revision: int,
+        checkpoint: dict[str, Any],
+        disposition: str = "continue",
+        writer_label: str | None = None,
+    ) -> ContinuityMutationReceipt:
+        if disposition not in {"continue", "complete", "abandon"}:
+            raise GatewayError("invalid continuity disposition")
+        arguments: dict[str, Any] = {
+            "taskId": task_id,
+            "expectedRevision": expected_revision,
+            "checkpoint": checkpoint,
+            "continuityDisposition": disposition,
+        }
+        if writer_label is not None:
+            arguments["writerLabel"] = writer_label
+        return self._continuity_mutation(
+            await self._caller.call_tool("host", "task.checkpoint", arguments)
+        )
+
+    @staticmethod
+    def _continuity_mutation(result: dict[str, Any]) -> ContinuityMutationReceipt:
+        task = result.get("task")
+        checkpoint = result.get("checkpoint")
+        if not isinstance(task, dict) or not isinstance(checkpoint, dict):
+            raise GatewayError("Host continuity mutation omitted task/checkpoint")
+        return ContinuityMutationReceipt(
+            task_id=_required_str(task, "task_id"),
+            goal_id=_optional_str(task, "goal_id"),
+            revision=int(task["revision"]),
+            state=_required_str(task, "state"),
+            checkpoint_digest=_optional_str(task, "checkpoint_digest"),
+            checkpoint=checkpoint,
+            admission=_required_str(result, "admission"),
+            writer_label=_optional_str(result, "writerLabel"),
+            truth_boundary=_optional_str(result, "truthBoundary")
+            or "Host owns semantic continuity state; Gateway is a non-authoritative projection.",
+        )
+
+    async def continuity_attention(
+        self, *, after_sequence: int, limit: int = 100
+    ) -> ContinuityAttention:
+        result = await self._caller.call_tool(
+            "host", "attention.delta", {"afterSequence": after_sequence, "limit": limit}
+        )
+        board_fence, summary = result.get("boardFence"), result.get("summary")
+        routed, unrouted = result.get("routedTasks"), result.get("unroutedMessages")
+        if (
+            not isinstance(board_fence, dict)
+            or not isinstance(summary, dict)
+            or not isinstance(routed, list)
+            or not isinstance(unrouted, list)
+        ):
+            raise GatewayError("Host attention.delta omitted projection fields")
+        return ContinuityAttention(
+            board_fence=board_fence,
+            summary=summary,
+            routed_tasks=[x for x in routed if isinstance(x, dict)],
+            unrouted_messages=[x for x in unrouted if isinstance(x, dict)],
+            truth_boundary=_optional_str(result, "truthBoundary"),
+        )
+
+    async def collaboration_post(
+        self,
+        *,
+        client_message_id: str,
+        author_label: str,
+        message: str,
+        message_kind: str = "note",
+        topic: str | None = None,
+        reply_to_client_message_id: str | None = None,
+        task_id: str | None = None,
+    ) -> CollaborationPostReceipt:
+        arguments: dict[str, Any] = {
+            "clientMessageId": client_message_id,
+            "authorLabel": author_label,
+            "message": message,
+            "messageKind": message_kind,
+        }
+        if topic is not None:
+            arguments["topic"] = topic
+        if reply_to_client_message_id is not None:
+            arguments["replyToClientMessageId"] = reply_to_client_message_id
+        if task_id is not None:
+            arguments["taskId"] = task_id
+        result = await self._caller.call_tool("host", "board.post", arguments)
+        payload = result.get("message")
+        if not isinstance(payload, dict):
+            raise GatewayError("Host board.post omitted message")
+        return CollaborationPostReceipt(
+            admission=_required_str(result, "admission"),
+            message=_collaboration_message(payload),
+            truth_boundary=_optional_str(result, "truthBoundary"),
+        )
+
+    async def collaboration_list(
+        self,
+        *,
+        after_sequence: int | None = None,
+        limit: int = 50,
+        topic: str | None = None,
+        client_message_id: str | None = None,
+        reply_to_client_message_id: str | None = None,
+        reply_to_author_label: str | None = None,
+    ) -> CollaborationPage:
+        arguments: dict[str, Any] = {"limit": limit}
+        optional = {
+            "afterSequence": after_sequence,
+            "topic": topic,
+            "clientMessageId": client_message_id,
+            "replyToClientMessageId": reply_to_client_message_id,
+            "replyToAuthorLabel": reply_to_author_label,
+        }
+        arguments.update({k: v for k, v in optional.items() if v is not None})
+        result = await self._caller.call_tool("host", "board.list", arguments)
+        rows = result.get("messages")
+        if not isinstance(rows, list):
+            raise GatewayError("Host board.list omitted messages")
+        return CollaborationPage(
+            messages=[_collaboration_message(x) for x in rows if isinstance(x, dict)],
+            last_sequence=int(result["lastSequence"]),
+            next_after_sequence=int(result["nextAfterSequence"]),
+            has_more=bool(result.get("hasMore", False)),
+            truth_boundary=_optional_str(result, "truthBoundary"),
+        )
+
+    async def collaboration_search(self, query: str, *, limit: int = 20) -> CollaborationSearch:
+        result = await self._caller.call_tool(
+            "host", "board.search", {"query": query, "limit": limit}
+        )
+        hits = [
+            CollaborationSearchHit(
+                sequence=int(x["sequence"]), client_message_id=_required_str(x, "clientMessageId")
+            )
+            for x in result.get("results", [])
+            if isinstance(x, dict)
+        ]
+        return CollaborationSearch(
+            source_snapshot_high_water=int(result["sourceSnapshotHighWater"]),
+            live_high_water=int(result["liveHighWater"]),
+            negative_result_authoritative=bool(result.get("negativeResultAuthoritative", False)),
+            requires_exact_source_reentry=bool(result.get("requiresExactSourceReentry", True)),
+            results=hits,
         )

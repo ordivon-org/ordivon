@@ -88,6 +88,13 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "artifact.read",
                 "continuity.get",
                 "continuity.list",
+                "continuity.observe",
+                "continuity.adopt",
+                "continuity.checkpoint",
+                "continuity.attention",
+                "collaboration.list",
+                "collaboration.search",
+                "collaboration.post",
             }
             assert tools.ttl_ms == 0
             assert tools.cache_scope == "private"
@@ -412,3 +419,222 @@ def test_unknown_capability_fails_closed_before_owner_call() -> None:
             )
         )
     assert caller.calls == []
+
+
+def test_gateway_public_surface_covers_normal_host_continuity_without_admin_status() -> None:
+    service = GatewayService(FakeOwnerCaller())
+
+    async def scenario() -> None:
+        async with Client(build_server(service), raise_exceptions=True) as client:
+            listed = await client.list_tools()
+            names = {tool.name for tool in listed.tools}
+            assert {
+                "continuity.get",
+                "continuity.list",
+                "continuity.observe",
+                "continuity.adopt",
+                "continuity.checkpoint",
+                "continuity.attention",
+                "collaboration.list",
+                "collaboration.search",
+                "collaboration.post",
+            } <= names
+            assert "host.status" not in names
+            adopt = next(tool for tool in listed.tools if tool.name == "continuity.adopt")
+            checkpoint_schema = adopt.input_schema["properties"]["checkpoint"]
+            assert checkpoint_schema["type"] == "object"
+            assert "workStanding" not in checkpoint_schema.get("properties", {})
+
+    asyncio.run(scenario())
+
+
+def test_continuity_mutations_and_observe_route_to_host_without_reowning_checkpoint_schema() -> (
+    None
+):
+    caller = FakeOwnerCaller()
+    caller.responses[("host", "task.adopt")] = {
+        "admission": "committed",
+        "task": {
+            "task_id": "task:new",
+            "goal_id": "goal:x",
+            "revision": 1,
+            "state": "open",
+            "checkpoint_digest": "sha256:one",
+            "someFutureHostField": "must not leak",
+        },
+        "checkpoint": {"schemaVersion": 9, "frontier": "opaque-to-gateway"},
+        "writerLabel": "agent-a",
+        "someFutureTopLevelField": True,
+    }
+    caller.responses[("host", "task.checkpoint")] = {
+        "admission": "committed",
+        "task": {
+            "task_id": "task:new",
+            "goal_id": "goal:x",
+            "revision": 2,
+            "state": "completed",
+            "checkpoint_digest": "sha256:two",
+        },
+        "checkpoint": {"schemaVersion": 9, "frontier": "done"},
+        "writerLabel": "agent-a",
+    }
+    caller.responses[("host", "task.observe")] = {
+        "task": {
+            "task_id": "task:new",
+            "goal_id": "goal:x",
+            "revision": 2,
+            "state": "completed",
+            "checkpoint_digest": "sha256:two",
+            "checkpoint": {"schemaVersion": 9, "frontier": "done"},
+            "writer_label": "agent-a",
+        },
+        "recentEvents": [
+            {
+                "revision": 2,
+                "eventType": "checkpoint",
+                "state": "completed",
+                "createdAt": "2026-09-22T00:00:00+00:00",
+            }
+        ],
+        "truthBoundary": "Host continuity mechanics only",
+    }
+    service = GatewayService(caller)
+
+    adopted = asyncio.run(
+        service.continuity_adopt(
+            task_id="task:new",
+            goal_id="goal:x",
+            checkpoint={"schemaVersion": 9, "frontier": "opaque-to-gateway"},
+            writer_label="agent-a",
+        )
+    )
+    assert adopted.task_id == "task:new"
+    assert adopted.admission == "committed"
+    assert adopted.checkpoint == {"schemaVersion": 9, "frontier": "opaque-to-gateway"}
+    assert not hasattr(adopted, "someFutureTopLevelField")
+    assert caller.calls[-1] == (
+        "host",
+        "task.adopt",
+        {
+            "taskId": "task:new",
+            "goalId": "goal:x",
+            "initialCheckpoint": {"schemaVersion": 9, "frontier": "opaque-to-gateway"},
+            "writerLabel": "agent-a",
+        },
+    )
+
+    checked = asyncio.run(
+        service.continuity_checkpoint(
+            task_id="task:new",
+            expected_revision=1,
+            checkpoint={"schemaVersion": 9, "frontier": "done"},
+            disposition="complete",
+            writer_label="agent-a",
+        )
+    )
+    assert checked.revision == 2
+    assert checked.state == "completed"
+    assert caller.calls[-1] == (
+        "host",
+        "task.checkpoint",
+        {
+            "taskId": "task:new",
+            "expectedRevision": 1,
+            "checkpoint": {"schemaVersion": 9, "frontier": "done"},
+            "continuityDisposition": "complete",
+            "writerLabel": "agent-a",
+        },
+    )
+
+    observed = asyncio.run(
+        service.continuity_observe("task:new", expected_revision=2, event_limit=7)
+    )
+    assert observed.task_id == "task:new"
+    assert observed.checkpoint == {"schemaVersion": 9, "frontier": "done"}
+    assert observed.recent_events[0].event_type == "checkpoint"
+    assert caller.calls[-1] == (
+        "host",
+        "task.observe",
+        {"taskId": "task:new", "expectedRevision": 2, "eventLimit": 7},
+    )
+
+
+def test_attention_and_collaboration_are_thin_host_projections() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("host", "attention.delta")] = {
+        "boardFence": {
+            "requestedAfterSequence": 12,
+            "lastSequence": 20,
+            "nextAfterSequence": 20,
+            "hasMore": False,
+            "completeThroughNextAfterSequence": True,
+        },
+        "summary": {
+            "newMessageCount": 1,
+            "routedTaskCount": 1,
+            "routedMessageCount": 1,
+            "unroutedMessageCount": 0,
+        },
+        "routedTasks": [{"taskId": "task:x", "revision": 4}],
+        "unroutedMessages": [],
+        "truthBoundary": "Board-derived navigation only",
+        "futureHostProjection": "must not leak",
+    }
+    caller.responses[("host", "board.post")] = {
+        "admission": "committed",
+        "message": {
+            "sequence": 21,
+            "clientMessageId": "msg:1",
+            "authorLabel": "agent-a",
+            "authorIdentityRole": "self-asserted-label",
+            "messageKind": "note",
+            "topic": "host-boundary",
+            "message": "hello",
+            "replyToClientMessageId": None,
+            "taskId": "task:x",
+            "recordedAtMs": 123,
+            "messageDigest": "sha256:m",
+            "truthRole": "coordination-message-not-domain-truth",
+        },
+        "truthBoundary": "message persistence only",
+    }
+    caller.responses[("host", "board.list")] = {
+        "messages": [caller.responses[("host", "board.post")]["message"]],
+        "lastSequence": 21,
+        "nextAfterSequence": 21,
+        "hasMore": False,
+        "truthBoundary": "durable collaboration records only",
+    }
+    caller.responses[("host", "board.search")] = {
+        "sourceSnapshotHighWater": 21,
+        "liveHighWater": 21,
+        "negativeResultAuthoritative": False,
+        "requiresExactSourceReentry": True,
+        "results": [{"sequence": 21, "clientMessageId": "msg:1"}],
+    }
+    service = GatewayService(caller)
+
+    delta = asyncio.run(service.continuity_attention(after_sequence=12, limit=20))
+    assert delta.board_fence["lastSequence"] == 20
+    assert not hasattr(delta, "futureHostProjection")
+    assert caller.calls[-1] == ("host", "attention.delta", {"afterSequence": 12, "limit": 20})
+
+    posted = asyncio.run(
+        service.collaboration_post(
+            client_message_id="msg:1",
+            author_label="agent-a",
+            message="hello",
+            message_kind="note",
+            topic="host-boundary",
+            task_id="task:x",
+        )
+    )
+    assert posted.message.client_message_id == "msg:1"
+    assert posted.message.author_identity_role == "self-asserted-label"
+
+    page = asyncio.run(service.collaboration_list(after_sequence=20, limit=10))
+    assert page.messages[0].task_id == "task:x"
+
+    search = asyncio.run(service.collaboration_search("hello", limit=5))
+    assert search.results[0].client_message_id == "msg:1"
+    assert search.negative_result_authoritative is False

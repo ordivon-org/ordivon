@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from importlib.metadata import version as package_version
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -18,7 +19,13 @@ from .audit import GatewayAuditMiddleware
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
+    CollaborationPage,
+    CollaborationPostReceipt,
+    CollaborationSearch,
+    ContinuityAttention,
+    ContinuityMutationReceipt,
     ContinuityObservation,
+    ContinuityObserved,
     ContinuityPage,
     ExecutionObservation,
     ExecutionReceipt,
@@ -101,6 +108,84 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
             cursor=cursor,
             include_terminal=includeTerminal,
         )
+
+    @server.tool(name="continuity.observe")
+    async def continuity_observe(
+        taskId: str, expectedRevision: int | None = None, eventLimit: int = 5
+    ) -> ContinuityObserved:
+        return await gateway.continuity_observe(
+            taskId, expected_revision=expectedRevision, event_limit=eventLimit
+        )
+
+    @server.tool(name="continuity.adopt")
+    async def continuity_adopt(
+        taskId: str, goalId: str, checkpoint: dict[str, Any], writerLabel: str | None = None
+    ) -> ContinuityMutationReceipt:
+        return await gateway.continuity_adopt(
+            task_id=taskId, goal_id=goalId, checkpoint=checkpoint, writer_label=writerLabel
+        )
+
+    @server.tool(name="continuity.checkpoint")
+    async def continuity_checkpoint(
+        taskId: str,
+        expectedRevision: int,
+        checkpoint: dict[str, Any],
+        disposition: Literal["continue", "complete", "abandon"] = "continue",
+        writerLabel: str | None = None,
+    ) -> ContinuityMutationReceipt:
+        return await gateway.continuity_checkpoint(
+            task_id=taskId,
+            expected_revision=expectedRevision,
+            checkpoint=checkpoint,
+            disposition=disposition,
+            writer_label=writerLabel,
+        )
+
+    @server.tool(name="continuity.attention")
+    async def continuity_attention(afterSequence: int, limit: int = 100) -> ContinuityAttention:
+        return await gateway.continuity_attention(after_sequence=afterSequence, limit=limit)
+
+    @server.tool(name="collaboration.post")
+    async def collaboration_post(
+        clientMessageId: str,
+        authorLabel: str,
+        message: str,
+        messageKind: Literal["note", "question", "proposal", "warning", "reply"] = "note",
+        topic: str | None = None,
+        replyToClientMessageId: str | None = None,
+        taskId: str | None = None,
+    ) -> CollaborationPostReceipt:
+        return await gateway.collaboration_post(
+            client_message_id=clientMessageId,
+            author_label=authorLabel,
+            message=message,
+            message_kind=messageKind,
+            topic=topic,
+            reply_to_client_message_id=replyToClientMessageId,
+            task_id=taskId,
+        )
+
+    @server.tool(name="collaboration.list")
+    async def collaboration_list(
+        afterSequence: int | None = None,
+        limit: int = 50,
+        topic: str | None = None,
+        clientMessageId: str | None = None,
+        replyToClientMessageId: str | None = None,
+        replyToAuthorLabel: str | None = None,
+    ) -> CollaborationPage:
+        return await gateway.collaboration_list(
+            after_sequence=afterSequence,
+            limit=limit,
+            topic=topic,
+            client_message_id=clientMessageId,
+            reply_to_client_message_id=replyToClientMessageId,
+            reply_to_author_label=replyToAuthorLabel,
+        )
+
+    @server.tool(name="collaboration.search")
+    async def collaboration_search(query: str, limit: int = 20) -> CollaborationSearch:
+        return await gateway.collaboration_search(query, limit=limit)
 
     return server
 

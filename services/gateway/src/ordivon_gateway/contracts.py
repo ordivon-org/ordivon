@@ -112,3 +112,83 @@ class ContinuityPage(StrictModel):
     items: list[ContinuityItem]
     has_more: bool
     next_cursor: str | None = None
+
+
+class ContinuityEvent(StrictModel):
+    revision: int
+    event_type: str
+    state: str
+    created_at: str
+
+
+class ContinuityObserved(ContinuityObservation):
+    kind: Literal["ordivon.gateway-continuity-observed"] = "ordivon.gateway-continuity-observed"
+    recent_events: list[ContinuityEvent] = Field(default_factory=list)
+
+
+class ContinuityMutationReceipt(ContinuityObservation):
+    kind: Literal["ordivon.gateway-continuity-mutation"] = "ordivon.gateway-continuity-mutation"
+    admission: str
+    writer_label: str | None = None
+
+
+class ContinuityAttention(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-continuity-attention"] = "ordivon.gateway-continuity-attention"
+    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
+    board_fence: dict[str, Any]
+    summary: dict[str, Any]
+    routed_tasks: list[dict[str, Any]]
+    unrouted_messages: list[dict[str, Any]]
+    truth_boundary: str | None = None
+
+
+class CollaborationMessage(StrictModel):
+    sequence: int
+    client_message_id: str
+    author_label: str
+    author_identity_role: str
+    message_kind: str
+    topic: str | None = None
+    message: str
+    reply_to_client_message_id: str | None = None
+    task_id: str | None = None
+    recorded_at_ms: int
+    message_digest: str
+    truth_role: str
+
+
+class CollaborationPostReceipt(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-collaboration-post"] = "ordivon.gateway-collaboration-post"
+    truth_role: Literal["host-collaboration-projection"] = "host-collaboration-projection"
+    admission: str
+    message: CollaborationMessage
+    truth_boundary: str | None = None
+
+
+class CollaborationPage(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-collaboration-page"] = "ordivon.gateway-collaboration-page"
+    truth_role: Literal["host-collaboration-projection"] = "host-collaboration-projection"
+    messages: list[CollaborationMessage]
+    last_sequence: int
+    next_after_sequence: int
+    has_more: bool
+    truth_boundary: str | None = None
+
+
+class CollaborationSearchHit(StrictModel):
+    sequence: int
+    client_message_id: str
+
+
+class CollaborationSearch(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-collaboration-search"] = "ordivon.gateway-collaboration-search"
+    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
+    source_snapshot_high_water: int
+    live_high_water: int
+    negative_result_authoritative: bool
+    requires_exact_source_reentry: bool
+    results: list[CollaborationSearchHit]
