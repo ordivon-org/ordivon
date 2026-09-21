@@ -1,24 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-install -d -m 0755 /usr/local/lib/ordivon-operations/cloudflare-provider
-install -m 0644 scripts/ordivon_edge_client.py /usr/local/lib/ordivon-operations/cloudflare-provider/ordivon_edge_client.py
-install -m 0644 config/edge-policy.json /usr/local/lib/ordivon-operations/cloudflare-provider/edge-policy.json
+PROVIDER_ROOT=/usr/local/lib/ordivon-operations/cloudflare-provider
+HANDOFF_ROOT="$PROVIDER_ROOT/handoff-tofu"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+COMMIT="$(git rev-parse --verify HEAD^{commit})"
+SOURCE_PATH=platform/workstation/tofu/agent-birth-handoff
+RELEASE="$HANDOFF_ROOT/releases/$COMMIT"
+
+install -d -m 0755 "$PROVIDER_ROOT" "$HANDOFF_ROOT/releases"
+install -m 0644 scripts/ordivon_edge_client.py "$PROVIDER_ROOT/ordivon_edge_client.py"
+install -m 0644 config/edge-policy.json "$PROVIDER_ROOT/edge-policy.json"
 install -m 0755 scripts/ordivon_edge_client.py /usr/local/bin/ordivon-edge
 rm -f /usr/local/bin/ordivon-world-evidence
 install -m 0750 scripts/ordivon_edge_release.py /usr/local/sbin/ordivon-edge-release
 install -m 0750 scripts/ordivon_edge_gc.py /usr/local/sbin/ordivon-edge-gc
 install -m 0750 scripts/configure_r2_lifecycle.py /usr/local/sbin/ordivon-edge-lifecycle
 install -m 0750 scripts/ordivon_cloudflare_tofu_handoff.py /usr/local/sbin/ordivon-cloudflare-handoff-tofu
+
+if [ ! -d "$RELEASE" ]; then
+  TMP="$HANDOFF_ROOT/releases/.tmp-$COMMIT-$$"
+  trap 'rm -rf "$TMP"' EXIT
+  install -d -m 0755 "$TMP"
+  git -C "$REPO_ROOT" archive "$COMMIT" "$SOURCE_PATH" | tar --strip-components=4 -x -C "$TMP"
+  test -f "$TMP/main.tf"
+  test -f "$TMP/versions.tf"
+  test -f "$TMP/.terraform.lock.hcl"
+  test -f "$TMP/tofurc"
+  chmod -R u=rwX,go=rX "$TMP"
+  mv "$TMP" "$RELEASE"
+  trap - EXIT
+fi
+ln -sfn "releases/$COMMIT" "$HANDOFF_ROOT/current.next"
+mv -Tf "$HANDOFF_ROOT/current.next" "$HANDOFF_ROOT/current"
+
 install -m 0644 deploy/systemd/ordivon-edge-gc.service /etc/systemd/system/ordivon-edge-gc.service
 install -m 0644 deploy/systemd/ordivon-edge-gc.timer /etc/systemd/system/ordivon-edge-gc.timer
 systemctl daemon-reload
 systemctl enable --now ordivon-edge-gc.timer
 printf '%s\n' \
-  'installed /usr/local/lib/ordivon-operations/cloudflare-provider/ordivon_edge_client.py' \
-  'installed /usr/local/lib/ordivon-operations/cloudflare-provider/edge-policy.json' \
+  "installed $PROVIDER_ROOT/ordivon_edge_client.py" \
+  "installed $PROVIDER_ROOT/edge-policy.json" \
   'installed /usr/local/bin/ordivon-edge' \
   'installed /usr/local/sbin/ordivon-edge-release' \
   'installed /usr/local/sbin/ordivon-edge-gc' \
   'installed /usr/local/sbin/ordivon-edge-lifecycle' \
+  'installed /usr/local/sbin/ordivon-cloudflare-handoff-tofu' \
+  "installed handoff OpenTofu release $COMMIT" \
   'enabled ordivon-edge-gc.timer'

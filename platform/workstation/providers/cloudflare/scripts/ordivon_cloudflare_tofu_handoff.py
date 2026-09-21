@@ -16,8 +16,10 @@ import sys
 import tempfile
 from typing import Any
 
-WORLD_REPO = pathlib.Path("/root/projects/ordivon")
-TOFU_ROOT = WORLD_REPO / "platform/workstation/tofu/agent-birth-handoff"
+TOFU_RELEASE_ROOT = pathlib.Path(
+    "/usr/local/lib/ordivon-operations/cloudflare-provider/handoff-tofu"
+)
+TOFU_ROOT = TOFU_RELEASE_ROOT / "current"
 CLOUDFLARE_CONFIG = pathlib.Path("/root/.config/ordivon/secrets/cloudflare.json")
 OPERATIONS_ROOT = pathlib.Path("/var/lib/ordivon/operations-v2/tofu/agent-birth-handoff")
 PLAN_DIR = OPERATIONS_ROOT / "plans"
@@ -103,45 +105,36 @@ def _run(
 
 
 def _source_identity() -> tuple[str, str]:
-    relative_root = TOFU_ROOT.relative_to(WORLD_REPO).as_posix()
-    status = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(WORLD_REPO),
-            "status",
-            "--porcelain=v1",
-            "--untracked-files=all",
-            "--",
-            relative_root,
-        ],
-        text=True,
-        check=True,
-        stdout=subprocess.PIPE,
-    ).stdout.strip()
-    if status:
-        raise HandoffTofuError("fixed OpenTofu root is dirty")
-    commit = subprocess.check_output(
-        ["git", "-C", str(WORLD_REPO), "rev-parse", "HEAD"],
-        text=True,
-    ).strip()
-    listing = subprocess.check_output(
-        [
-            "git",
-            "-C",
-            str(WORLD_REPO),
-            "ls-tree",
-            "-r",
-            "--full-tree",
-            commit,
-            "--",
-            relative_root,
-        ],
-        text=True,
-    )
-    if not listing.strip():
-        raise HandoffTofuError("fixed OpenTofu root has no committed source")
-    return commit, "sha256:" + hashlib.sha256(listing.encode("utf-8")).hexdigest()
+    try:
+        resolved = TOFU_ROOT.resolve(strict=True)
+        releases = (TOFU_RELEASE_ROOT / "releases").resolve(strict=True)
+        relative = resolved.relative_to(releases)
+    except (OSError, ValueError) as exc:
+        raise HandoffTofuError("fixed OpenTofu root is outside the operation release owner") from exc
+    if len(relative.parts) != 1 or re.fullmatch(r"[0-9a-f]{40}", relative.name) is None:
+        raise HandoffTofuError("fixed OpenTofu release identity is invalid")
+
+    source_files = sorted(TOFU_ROOT.glob("*.tf"), key=lambda path: path.name)
+    source_files.extend([TOFU_ROOT / ".terraform.lock.hcl", TOFU_ROOT / "tofurc"])
+    if not source_files or not any(path.suffix == ".tf" for path in source_files):
+        raise HandoffTofuError("fixed OpenTofu release contains no configuration")
+
+    digest = hashlib.sha256()
+    seen: set[str] = set()
+    for path in source_files:
+        if path.name in seen:
+            continue
+        seen.add(path.name)
+        metadata = path.lstat()
+        if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
+            raise HandoffTofuError(f"fixed OpenTofu source is not a regular file: {path.name}")
+        if stat.S_IMODE(metadata.st_mode) & 0o022:
+            raise HandoffTofuError(f"fixed OpenTofu source is group/world writable: {path.name}")
+        digest.update(path.name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(_sha256(path).encode("ascii"))
+        digest.update(b"\n")
+    return relative.name, "sha256:" + digest.hexdigest()
 
 
 def _summarize_plan(plan: dict[str, Any]) -> dict[str, Any]:

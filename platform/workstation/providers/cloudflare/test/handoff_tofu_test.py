@@ -91,10 +91,36 @@ class HandoffTofuControllerTests(unittest.TestCase):
             controller.apply_reviewed_plan("b" * 64)
         environment.assert_not_called()
 
+    def test_source_identity_is_bound_to_operation_release(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "handoff-tofu"
+            commit = "a" * 40
+            release = root / "releases" / commit
+            release.mkdir(parents=True)
+            for name, content in {
+                "main.tf": "terraform {}\n",
+                "versions.tf": "terraform {}\n",
+                ".terraform.lock.hcl": "lock\n",
+                "tofurc": "provider_installation {}\n",
+            }.items():
+                path = release / name
+                path.write_text(content)
+                os.chmod(path, 0o644)
+            (root / "current").symlink_to(pathlib.Path("releases") / commit)
+            with (
+                mock.patch.object(controller, "TOFU_RELEASE_ROOT", root),
+                mock.patch.object(controller, "TOFU_ROOT", root / "current"),
+            ):
+                observed_commit, digest = controller._source_identity()
+            self.assertEqual(observed_commit, commit)
+            self.assertRegex(digest, r"^sha256:[0-9a-f]{64}$")
+
     def test_fixed_authority_paths_are_not_cli_parameters(self) -> None:
         self.assertEqual(
             controller.TOFU_ROOT,
-            pathlib.Path("/root/projects/ordivon/platform/workstation/tofu/agent-birth-handoff"),
+            pathlib.Path(
+                "/usr/local/lib/ordivon-operations/cloudflare-provider/handoff-tofu/current"
+            ),
         )
         self.assertEqual(
             controller.CLOUDFLARE_CONFIG,
