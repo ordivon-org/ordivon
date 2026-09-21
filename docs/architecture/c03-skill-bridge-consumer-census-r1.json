@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.c03-skill-bridge-consumer-census",
+  "observedDate": "2026-09-21",
+  "decision": "RETAIN_BRIDGE_FOR_EXACT_CHATGPT_CONSUMER_ONLY",
+  "bridge": {
+    "endpoint": "https://skills-mcp.ordivon.com/mcp",
+    "service": "ordivon-skills-mcp.service",
+    "state": "active-enabled",
+    "role": "temporary filesystem-to-remote Agent Skills projection"
+  },
+  "consumers": [
+    {
+      "consumer": "chatgpt-custom-app",
+      "mechanism": "skills-mcp-bridge",
+      "disposition": "RETAIN",
+      "evidence": [
+        "Current ChatGPT session exposes mcp__ordivon_skill__ skills.list/search/resolve/read.",
+        "Current ChatGPT native skills__ catalog does not expose the local Ordivon/vendor catalog returned by the bridge.",
+        "Current ChatGPT session resolved and read obra-superpowers/test-driven-development through snapshot, instruction-digest and package-revision fences.",
+        "Cloudflare Access DCR for skills-mcp.ordivon.com is scoped to https://chatgpt.com/connector/oauth/*."
+      ]
+    },
+    {
+      "consumer": "codex-local",
+      "mechanism": "native-agent-skills",
+      "disposition": "BRIDGE_NOT_REQUIRED",
+      "nativeRoot": "/root/.codex/skills",
+      "evidence": [
+        "Native root exists and is populated.",
+        "No active Codex configuration file references skills-mcp.ordivon.com or ordivon-skills-bridge; matches outside the repository are historical session/cache records only."
+      ]
+    },
+    {
+      "consumer": "hermes-local",
+      "mechanism": "native-agent-skills",
+      "disposition": "BRIDGE_NOT_REQUIRED",
+      "nativeRoot": "/root/.hermes/skills",
+      "evidence": [
+        "Native root exists and is populated.",
+        "No active Hermes configuration file references skills-mcp.ordivon.com or ordivon-skills-bridge."
+      ]
+    },
+    {
+      "consumer": "ordivon-project-local",
+      "mechanism": "standard-agent-skills-root",
+      "disposition": "BRIDGE_NOT_REQUIRED",
+      "nativeRoot": "/root/.agents/skills",
+      "evidence": [
+        "Canonical local Agent Skills root exists and is populated.",
+        "Local project/harness code contains no active dependency on the public Skill MCP endpoint."
+      ]
+    }
+  ],
+  "sourceVsConsumerBoundary": {
+    "codex-user": "SOURCE_ONLY_FOR_REMOTE_PROJECTION",
+    "hermes-user": "SOURCE_ONLY_FOR_REMOTE_PROJECTION",
+    "vendorSources": "SOURCE_ONLY_FOR_REMOTE_PROJECTION",
+    "note": "compatibilitySources in skills-mcp.json are bridge input catalogs for the retained ChatGPT consumer; they do not imply Codex or Hermes consume the bridge."
+  },
+  "retirementRule": {
+    "globalRetirementAllowed": false,
+    "reason": "One evidence-backed consumer remains: ChatGPT.",
+    "nextTrigger": "Retire the public bridge only when ChatGPT can directly consume the same local Agent Skills / Agent Plugin package with equivalent discovery, activation, refresh and trust behavior."
+  }
+}

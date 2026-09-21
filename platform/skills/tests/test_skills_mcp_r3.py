@@ -282,5 +282,60 @@ class SkillMcpR3Tests(unittest.TestCase):
         self.assertEqual(raw.digest, raw.raw_digest)
 
 
+    def test_standard_project_discovery_requires_workspace_scope(self):
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        base = Path(td.name)
+        project = base / "next"
+        skills = project / ".agents" / "skills"
+        write_skill(
+            skills,
+            "method-router",
+            "Choose the smallest useful standards-backed method set.\n",
+            description="Route an already scoped problem to the smallest useful method set.",
+        )
+        cfg = {
+            "schemaVersion": 2,
+            "ttlMs": 30000,
+            "standardDiscovery": {"user": False, "projects": True},
+            "workspaces": {"ordivon-next": {"path": str(project), "trusted": True}},
+            "additionalSources": [],
+            "compatibilitySources": [],
+        }
+        path = base / "skills.json"
+        path.write_text(json.dumps(cfg), encoding="utf-8")
+        provider = CatalogProvider(path)
+        server = build_server(provider)
+        tools = {tool.name: tool for tool in server._tool_manager.list_tools()}
+
+        global_search = asyncio.run(tools["skills.search"].fn(query="method router"))
+        self.assertFalse(
+            any(row["name"] == "method-router" for row in global_search.structured_content["skills"])
+        )
+
+        scoped_search = asyncio.run(
+            tools["skills.search"].fn(query="method router", workspaceId="ordivon-next")
+        )
+        rows = scoped_search.structured_content["skills"]
+        method = next(row for row in rows if row["name"] == "method-router")
+        self.assertEqual(method["skillId"], "project-ordivon-next/method-router")
+        self.assertEqual(method["scope"], "project")
+        self.assertEqual(method["trustState"], "TRUSTED")
+        self.assertTrue(method["implicitInvocation"])
+        self.assertTrue(method["explicitInvocation"])
+
+        resolved = asyncio.run(
+            tools["skills.resolve"].fn(
+                ref="method-router",
+                workspaceId="ordivon-next",
+                invocationMode="explicit",
+            )
+        )
+        self.assertEqual(
+            resolved.structured_content["resolved"]["skillId"],
+            "project-ordivon-next/method-router",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

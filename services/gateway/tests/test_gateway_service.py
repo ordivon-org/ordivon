@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from mcp import Client
+from mcp.types import Tool
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayError, GatewayService
@@ -25,6 +26,36 @@ class FakeOwnerCaller:
         return self.responses[key]
 
 
+def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {
+            "Success": {
+                "type": "object",
+                "properties": {"jobId": {"type": "string"}},
+                "required": ["jobId"],
+            },
+            "Error": {
+                "type": "object",
+                "properties": {"error": {"type": "object"}},
+                "required": ["error"],
+            },
+        },
+        "oneOf": [{"$ref": "#/$defs/Success"}, {"$ref": "#/$defs/Error"}],
+    }
+    tool = Tool.model_validate(
+        {
+            "name": "runtime.synthetic",
+            "description": "Runtime ToolOutcome compatibility fixture",
+            "inputSchema": {"type": "object"},
+            "outputSchema": schema,
+        }
+    )
+    assert tool.output_schema is not None
+    assert tool.output_schema.get("type") is None
+    assert len(tool.output_schema["oneOf"]) == 2
+
+
 def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
     caller = FakeOwnerCaller()
     service = GatewayService(caller)
@@ -33,6 +64,8 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
         async with Client(build_server(service), raise_exceptions=True) as client:
             tools = await client.list_tools()
             by_name = {tool.name: tool for tool in tools.tools}
+            assert "capability.list" not in by_name
+            assert "capability.describe" in by_name
             submit = by_name["execution.submit"].input_schema
             assert "enum" not in submit["properties"]["context"]
             assert "enum" not in submit["properties"]["capability"]
@@ -119,35 +152,28 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
 
 def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     caller = FakeOwnerCaller()
-    caller.responses[("runtime.windows", "job.get")] = {
-        "schemaVersion": 2,
-        "job": {
-            "jobId": "job-9",
-            "desiredState": "run",
-            "resolution": "succeeded",
-            "mechanicallyConverged": True,
-            "semanticCompletionEvaluated": False,
-        },
-        "attempts": [
+    caller.responses[("runtime.windows", "job.observe")] = {
+        "jobId": "job-9",
+        "status": "succeeded",
+        "attemptState": "succeeded",
+        "executionTerminal": True,
+        "deliveryDisposition": "committed",
+        "executionDisposition": "succeeded",
+        "exitCode": 0,
+        "recoveryRequired": False,
+        "artifactsAvailable": True,
+        "artifacts": [
             {
-                "attemptId": "attempt-1",
-                "attemptNumber": 1,
-                "state": "succeeded",
-                "exitCode": 0,
-                "conditions": [
-                    {
-                        "conditionType": "recovery_required",
-                        "status": "false",
-                    }
-                ],
-            }
+                "artifactId": "artifact-stdout",
+                "kind": "stdout",
+                "digest": "sha256:stdout",
+            },
+            {
+                "artifactId": "artifact-terminal",
+                "kind": "terminal_evidence",
+                "digest": "sha256:terminal",
+            },
         ],
-        "artifacts": {
-            "count": 2,
-            "bytes": 42,
-            "truncated": 0,
-            "byKind": {"stdout": 1, "terminal_evidence": 1},
-        },
     }
     caller.responses[("runtime.windows", "job.cancel")] = {
         "jobId": "job-9",
@@ -162,12 +188,19 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     assert observed.native_id == "job-9"
     assert observed.exit_code == 0
     assert observed.artifact_count == 2
-    assert observed.artifact_ids == []
+    assert observed.artifact_ids == ["artifact-stdout", "artifact-terminal"]
     assert observed.recovery_required is False
     assert caller.calls[-1] == (
         "runtime.windows",
-        "job.get",
-        {"schemaVersion": 1, "jobId": "job-9", "eventLimit": 10},
+        "job.observe",
+        {
+            "schemaVersion": 1,
+            "jobId": "job-9",
+            "waitMs": 0,
+            "waitUntil": "change_or_terminal",
+            "stdoutTailBytes": 0,
+            "stderrTailBytes": 0,
+        },
     )
 
     cancelled = asyncio.run(service.execution_cancel(ref))

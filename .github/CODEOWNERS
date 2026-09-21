@@ -5,6 +5,7 @@
 /services/runtime/ @zycxfyh
 /services/host/ @zycxfyh
 /services/harness/ @zycxfyh
+/services/gateway/ @zycxfyh
 
 /platform/skills/ @zycxfyh
 /platform/security/ @zycxfyh
@@ -14,9 +15,12 @@
 /capabilities/artifact/ @zycxfyh
 /capabilities/distribution/ @zycxfyh
 /capabilities/media/ @zycxfyh
+/capabilities/preservation/ @zycxfyh
 
 /domains/game/ @zycxfyh
 /domains/capital/ @zycxfyh
+
+/apps/web/ @zycxfyh
 
 /studies/ @zycxfyh
 /tools/repo/ @zycxfyh

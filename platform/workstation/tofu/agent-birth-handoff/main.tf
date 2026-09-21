@@ -193,7 +193,10 @@ resource "cloudflare_zero_trust_access_application" "gateway_mcp" {
   oauth_configuration = {
     enabled = true
     dynamic_client_registration = {
-      enabled = true
+      enabled               = true
+      allowed_uris          = ["https://chatgpt.com/connector/oauth/*"]
+      allow_any_on_localhost = false
+      allow_any_on_loopback  = false
     }
     grant = {
       access_token_lifetime = "15m"

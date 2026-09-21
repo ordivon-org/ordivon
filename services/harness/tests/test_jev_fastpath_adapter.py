@@ -89,6 +89,23 @@ def test_bounded_html_data_url_is_admitted_for_deterministic_fixture():
         M.validate_request(req(url="data:text/html," + ("x" * 70000)))
 
 
+def test_dpapi_binding_resolves_without_mutating_caller_environment(monkeypatch):
+    monkeypatch.setattr(
+        M,
+        "_dpapi_unprotect",
+        lambda path: "typesafe-value" if "typesafe" in path else "text-value",
+    )
+    env = {
+        "ORDIVON_JEV_TYPESAFE_DPAPI_FILE": r"C:\\Secrets\\typesafe.dpapi",
+        "ORDIVON_JEV_TEXT_MODEL_DPAPI_FILE": r"C:\\Secrets\\text.dpapi",
+    }
+    resolved = M._provider_environment(env, require_text=True)
+    assert resolved["TYPESAFE_API_KEY"] == "typesafe-value"
+    assert resolved["TEXT_MODEL_API_KEY"] == "text-value"
+    assert "TYPESAFE_API_KEY" not in env
+    assert "TEXT_MODEL_API_KEY" not in env
+
+
 def test_missing_typesafe_blocks_before_fence(tmp_path):
     out = M.execute_request(req(), state_root=tmp_path, env={}, agent_factory=factory())
     assert out["standing"] == "CREDENTIAL_MISSING"

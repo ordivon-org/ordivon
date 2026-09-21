@@ -15,6 +15,7 @@ config_roots = [
   "capabilities/media",
   "domains/game",
   "domains/capital",
+  "apps/web",
 ]
 lockfile = false
 
@@ -36,6 +37,8 @@ tools/repo/test-check-archived-source-boundary.sh
 run = """
 set -euo pipefail
 python3 tools/repo/test_affected_owners.py
+python3 tools/repo/test_owner_boundaries.py
+python3 tools/repo/check_owner_boundaries.py
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
@@ -183,4 +186,19 @@ uv sync --locked
 uv run ruff check .
 uv run ruff format --check .
 uv run python -m pytest -q
+"""
+
+
+[tasks."web:verify"]
+run = """
+set -euo pipefail
+cd apps/web
+mise install
+mise run verify
+"""
+
+[tasks."preservation:verify"]
+run = """
+set -euo pipefail
+uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_source.py
 """

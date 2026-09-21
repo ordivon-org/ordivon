@@ -71,12 +71,19 @@ class BrowserBenchmarkRunnerTests(unittest.TestCase):
         status = {
             "healthy": True,
             "python": {
-                "path": "/mnt/c/Users/test/AppData/Local/Ordivon/External/python/python.exe"
+                "path": "/mnt/c/Users/test/AppData/Local/Ordivon/External/python/python.exe",
+                "providerVenvPath": "/mnt/c/Users/test/AppData/Local/Ordivon/External/jev-ultrafast/rev/.venv/Scripts/python.exe",
             },
             "chrome": {
                 "path": r"C:\Program Files\Google\Chrome\Application\chrome.exe",
                 "profileWindows": r"C:\Users\test\AppData\Local\Ordivon\Chrome-CDP\jev",
                 "cdpPort": 9338,
+            },
+            "consumerCredentials": {
+                "typesafePresent": True,
+                "textModelPresent": True,
+                "typesafeBlobWindows": r"C:\Users\test\AppData\Local\Ordivon\Secrets\jev-fastpath-v1\typesafe-api-key.dpapi",
+                "textModelBlobWindows": r"C:\Users\test\AppData\Local\Ordivon\Secrets\jev-fastpath-v1\text-model-api-key.dpapi",
             },
         }
         with tempfile.TemporaryDirectory() as d:
@@ -94,15 +101,36 @@ class BrowserBenchmarkRunnerTests(unittest.TestCase):
         self.assertEqual(proposal["executionTarget"], "windows_native")
         self.assertEqual(proposal["runId"], "run:jev:proposal")
         self.assertTrue(proposal["routeRunRequestDigest"].startswith("sha256:"))
-        self.assertEqual(proposal["windowsAuthority"], "limited")
+        self.assertEqual(proposal["windowsAuthority"], "active_user")
         self.assertEqual(
             proposal["requiredSecretEnvironment"],
             ["TYPESAFE_API_KEY"],
         )
-        self.assertNotIn("TYPESAFE_API_KEY", proposal["env"])
-        self.assertEqual(proposal["env"]["PYTHONUTF8"], "1")
-        self.assertTrue(proposal["args"][0].startswith("\\wsl.localhost\archlinux"))
-        self.assertTrue(proposal["args"][-1].startswith("\\wsl.localhost\archlinux"))
+        self.assertEqual(proposal["env"], {})
+        self.assertNotIn("TYPESAFE_API_KEY", proposal["args"])
+        self.assertNotIn("TEXT_MODEL_API_KEY", proposal["args"])
+        self.assertEqual(
+            proposal["executable"],
+            r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+        )
+        self.assertTrue(proposal["launcherScriptDigest"].startswith("sha256:"))
+        self.assertEqual(proposal["args"][:5], [
+            "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File"
+        ])
+        self.assertTrue(proposal["args"][5].startswith("\\wsl.localhost\archlinux"))
+        self.assertEqual(proposal["args"][6], "-PythonExe")
+        self.assertTrue(proposal["args"][7].startswith("\\wsl.localhost\archlinux"))
+        self.assertEqual(proposal["args"][8], "-AdapterPath")
+        self.assertTrue(proposal["args"][9].startswith("\\wsl.localhost\archlinux"))
+        self.assertEqual(proposal["args"][10], "-RequestFile")
+        self.assertTrue(proposal["args"][11].startswith("\\wsl.localhost\archlinux"))
+        self.assertEqual(proposal["args"][12], "-ChromePath")
+        self.assertEqual(proposal["args"][14], "-ChromeProfile")
+        self.assertEqual(proposal["args"][16], "-CdpPort")
+        self.assertEqual(proposal["args"][18], "-TypesafeDpapiFile")
+        self.assertTrue(proposal["args"][19].endswith("typesafe-api-key.dpapi"))
+        self.assertEqual(proposal["args"][20], "-TextModelDpapiFile")
+        self.assertTrue(proposal["args"][21].endswith("text-model-api-key.dpapi"))
 
     def test_proposal_digest_binds_execution_target_and_exact_files(self) -> None:
         with tempfile.TemporaryDirectory() as d:

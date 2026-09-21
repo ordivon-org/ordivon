@@ -1,0 +1,135 @@
+schema_version = 1
+kind = "ordivon.repo-owner-dependency-contracts"
+truth_role = "repository-boundary-policy-not-domain-authority"
+scan_mode = "active-source-literal-seams"
+
+# These declarations authorize only the named literal seam in the named source files.
+# They do not transfer truth ownership and do not authorize arbitrary access to the target owner.
+
+[[seams]]
+from_owner = "harness"
+to_owner = "security"
+source_glob = "services/harness/scripts/agent_automation_release.py"
+allowed_fragment = "platform/security"
+kind = "PUBLIC_OWNER_LOCATOR"
+contract_ref = "docs/migration/acceptance/HARNESS_SECURITY_OWNER_CONSUMER_CUTOVER_ACCEPTANCE_20260921.md"
+
+[[seams]]
+from_owner = "harness"
+to_owner = "security"
+source_glob = "services/harness/scripts/browser_security_*.py"
+allowed_fragment = "platform/security"
+kind = "PUBLIC_OWNER_LOCATOR"
+contract_ref = "docs/migration/acceptance/HARNESS_SECURITY_OWNER_CONSUMER_CUTOVER_ACCEPTANCE_20260921.md"
+
+[[seams]]
+from_owner = "harness"
+to_owner = "security"
+source_glob = "services/harness/scripts/browserless_image_promotion.py"
+allowed_fragment = "platform/security"
+kind = "PUBLIC_OWNER_LOCATOR"
+contract_ref = "docs/migration/acceptance/HARNESS_SECURITY_OWNER_CONSUMER_CUTOVER_ACCEPTANCE_20260921.md"
+
+[[seams]]
+from_owner = "harness"
+to_owner = "security"
+source_glob = "services/harness/tests/test_security_owner_locator.py"
+allowed_fragment = "platform/security"
+kind = "TEST_ONLY_OWNER_LOCATOR"
+contract_ref = "docs/migration/acceptance/HARNESS_SECURITY_OWNER_CONSUMER_CUTOVER_ACCEPTANCE_20260921.md"
+
+[[seams]]
+from_owner = "web"
+to_owner = "security"
+source_glob = "apps/web/src/security-agent-verifier.ts"
+allowed_fragment = "platform/security/contracts/agent-request-verifier-v1/"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "platform/security/contracts/agent-request-verifier-v1/README.md"
+
+[[seams]]
+from_owner = "web"
+to_owner = "security"
+source_glob = "apps/web/src/agent-authority.ts"
+allowed_fragment = "platform/security/contracts/agent-admission-v1/"
+kind = "PUBLIC_SOURCE_CONTRACT"
+contract_ref = "platform/security/contracts/agent-admission-v1/README.md"
+
+[[seams]]
+from_owner = "web"
+to_owner = "security"
+source_glob = "apps/web/agent-native-e2e.sh"
+allowed_fragment = "platform/security"
+kind = "E2E_OWNER_LOCATOR"
+contract_ref = "apps/web/README.md"
+
+[[seams]]
+from_owner = "media"
+to_owner = "artifact"
+source_glob = "capabilities/media/src/ordivon_studio/agent_surface.py"
+allowed_fragment = "capabilities/artifact"
+kind = "READ_ONLY_OWNER_PROJECTION"
+contract_ref = "capabilities/media/docs/creative-capability-core.md"
+
+[[seams]]
+from_owner = "media"
+to_owner = "artifact"
+source_glob = "capabilities/media/tests/test_creative_index.py"
+allowed_fragment = "capabilities/artifact"
+kind = "TEST_ONLY_OWNER_PROJECTION"
+contract_ref = "capabilities/media/docs/creative-capability-core.md"
+
+[[seams]]
+from_owner = "skills"
+to_owner = "next"
+source_glob = "platform/skills/config/skills-mcp.example.json"
+allowed_fragment = "meta/next"
+kind = "OPERATOR_SOURCE_BINDING"
+contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+
+[[seams]]
+from_owner = "skills"
+to_owner = "next"
+source_glob = "platform/skills/tests/test_owner_boundary.py"
+allowed_fragment = "meta/next"
+kind = "TEST_ONLY_SOURCE_BINDING"
+contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+
+[[seams]]
+from_owner = "skills"
+to_owner = "next"
+source_glob = "platform/skills/tests/test_skill_catalog_r2.py"
+allowed_fragment = "meta/next"
+kind = "TEST_ONLY_SOURCE_BINDING"
+contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+
+[[seams]]
+from_owner = "workstation"
+to_owner = "distribution"
+source_glob = "platform/workstation/scripts/accept-n8n-distribution-adapter-smoke.sh"
+allowed_fragment = "capabilities/distribution/evidence/"
+kind = "ACCEPTANCE_EVIDENCE_BINDING"
+contract_ref = "platform/workstation/docs/N8N_DISTRIBUTION_ADAPTER_SMOKE.md"
+
+[[seams]]
+from_owner = "workstation"
+to_owner = "distribution"
+source_glob = "platform/workstation/tests/test_distribution_adapter_source_binding.py"
+allowed_fragment = "capabilities/distribution/evidence/"
+kind = "TEST_ONLY_EVIDENCE_BINDING"
+contract_ref = "platform/workstation/docs/N8N_DISTRIBUTION_ADAPTER_SMOKE.md"
+
+[[seams]]
+from_owner = "workstation"
+to_owner = "game"
+source_glob = "platform/workstation/tests/test_workstation_consequences.py"
+allowed_fragment = "domains/game"
+kind = "TEST_ONLY_ENVIRONMENT_BINDING"
+contract_ref = "platform/workstation/README.md"
+
+[[seams]]
+from_owner = "workstation"
+to_owner = "media"
+source_glob = "platform/workstation/tests/test_workstation_consequences.py"
+allowed_fragment = "capabilities/media"
+kind = "TEST_ONLY_ENVIRONMENT_BINDING"
+contract_ref = "platform/workstation/README.md"

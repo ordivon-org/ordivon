@@ -13,6 +13,7 @@ jev_version = "0.1.0"
 browser_harness_version = "0.1.13"
 external_root_relative = "Ordivon/External"
 profile_relative = "Ordivon/Chrome-CDP/jev-fastpath-v1"
+consumer_secret_relative = "Ordivon/Secrets/jev-fastpath-v1"
 chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
 cdp_port = 9338
 require_python_utf8 = true

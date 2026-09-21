@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -12,6 +13,7 @@ assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
+
 
 class AffectedOwnersTests(unittest.TestCase):
     def names(self, *paths: str) -> list[str]:
@@ -26,7 +28,7 @@ class AffectedOwnersTests(unittest.TestCase):
             ["skills"],
         )
 
-    def test_multiple_owner_changes_preserve_canonical_order(self) -> None:
+    def test_multiple_existing_owner_changes_preserve_relative_order(self) -> None:
         self.assertEqual(
             self.names(
                 "domains/game/package.json",
@@ -34,6 +36,21 @@ class AffectedOwnersTests(unittest.TestCase):
                 "services/host/src/ordivon_host/api.py",
             ),
             ["runtime", "host", "game"],
+        )
+
+    def test_gateway_is_a_first_class_owner(self) -> None:
+        self.assertEqual(
+            self.tasks("services/gateway/src/ordivon_gateway/service.py"),
+            ["gateway:verify"],
+        )
+
+    def test_web_is_a_first_class_owner(self) -> None:
+        self.assertEqual(self.tasks("apps/web/src/app.ts"), ["web:verify"])
+
+    def test_preservation_is_a_first_class_owner(self) -> None:
+        self.assertEqual(
+            self.tasks("capabilities/preservation/SOURCE_BOUNDARY.json"),
+            ["preservation:verify"],
         )
 
     def test_network_uses_portable_root_ci_task_not_full_live_verify(self) -> None:
@@ -57,9 +74,27 @@ class AffectedOwnersTests(unittest.TestCase):
             [owner.name for owner in MODULE.OWNERS],
         )
 
+    def test_owner_manifest_change_is_cross_cutting(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/owners.toml"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+
     def test_selector_change_is_cross_cutting(self) -> None:
         self.assertEqual(
             self.names("tools/repo/affected_owners.py"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+
+    def test_dependency_policy_change_is_cross_cutting(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/dependency_contracts.toml"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+
+    def test_dependency_checker_change_is_cross_cutting(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/check_owner_boundaries.py"),
             [owner.name for owner in MODULE.OWNERS],
         )
 
@@ -76,11 +111,52 @@ class AffectedOwnersTests(unittest.TestCase):
     def test_unknown_top_level_path_is_not_silently_attributed(self) -> None:
         self.assertEqual(self.names("README.md"), [])
 
-    def test_all_owner_names_and_tasks_are_unique(self) -> None:
+    def test_all_owner_names_roots_and_tasks_are_unique(self) -> None:
         names = [owner.name for owner in MODULE.OWNERS]
+        roots = [owner.root for owner in MODULE.OWNERS]
         tasks = [owner.task for owner in MODULE.OWNERS]
         self.assertEqual(len(names), len(set(names)))
+        self.assertEqual(len(roots), len(set(roots)))
         self.assertEqual(len(tasks), len(set(tasks)))
+
+    def test_manifest_rejects_duplicate_names(self) -> None:
+        content = """schema_version = 1
+kind = "ordivon.repo-owner-manifest"
+truth_role = "repository-mechanics-only-not-domain-authority"
+[[owners]]
+name = "x"
+root = "x/"
+verify_task = "x:verify"
+[[owners]]
+name = "x"
+root = "y/"
+verify_task = "y:verify"
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "owners.toml"
+            path.write_text(content, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "duplicate name"):
+                MODULE.load_owners(path)
+
+    def test_manifest_rejects_overlapping_roots(self) -> None:
+        content = """schema_version = 1
+kind = "ordivon.repo-owner-manifest"
+truth_role = "repository-mechanics-only-not-domain-authority"
+[[owners]]
+name = "x"
+root = "domains/"
+verify_task = "x:verify"
+[[owners]]
+name = "y"
+root = "domains/game/"
+verify_task = "y:verify"
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "owners.toml"
+            path.write_text(content, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must not overlap"):
+                MODULE.load_owners(path)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,6 +23,7 @@ import browser_capability_router as router
 
 ROOT = Path(__file__).resolve().parents[1]
 ROUTE_ADAPTER = ROOT / "scripts/browser_benchmark_route_adapter.py"
+JEV_ACTIVE_USER_LAUNCHER = ROOT / "scripts/jev_active_user_launcher.ps1"
 DEFAULT_STATE_ROOT = Path(
     os.environ.get(
         "ORDIVON_BROWSER_BENCHMARK_STATE_ROOT",
@@ -186,27 +187,41 @@ def _execution_proposal(
         chrome = status.get("chrome")
         if not isinstance(python, dict) or not isinstance(chrome, dict):
             raise RuntimeError("Windows Jev status omitted python/chrome contract")
-        executable = str(python.get("path") or "")
-        if not executable.startswith("/mnt/") or not executable.endswith(".exe"):
-            raise RuntimeError("Windows Jev Python path is not Runtime-addressable")
+        python_path = Path(str(python.get("providerVenvPath") or ""))
+        if not str(python_path).startswith("/mnt/") or python_path.suffix.lower() != ".exe":
+            raise RuntimeError("Windows Jev provider venv Python path is not Runtime-addressable")
         proposal = {
             **common,
             "executionTarget": "windows_native",
             "executionProfile": "trusted_local",
-            "windowsAuthority": "limited",
-            "executable": executable,
+            "windowsAuthority": "active_user",
+            "executable": r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            "launcherScriptDigest": _sha256_file(JEV_ACTIVE_USER_LAUNCHER),
             "args": [
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                windows_path_fn(JEV_ACTIVE_USER_LAUNCHER),
+                "-PythonExe",
+                windows_path_fn(python_path),
+                "-AdapterPath",
                 windows_path_fn(ROUTE_ADAPTER),
-                "run",
-                "--request-file",
+                "-RequestFile",
                 windows_path_fn(request_path),
+                "-ChromePath",
+                str(chrome.get("path") or ""),
+                "-ChromeProfile",
+                str(chrome.get("profileWindows") or ""),
+                "-CdpPort",
+                str(chrome.get("cdpPort") or ""),
+                "-TypesafeDpapiFile",
+                str((status.get("consumerCredentials") or {}).get("typesafeBlobWindows") or ""),
+                "-TextModelDpapiFile",
+                str((status.get("consumerCredentials") or {}).get("textModelBlobWindows") or ""),
             ],
-            "env": {
-                "PYTHONUTF8": "1",
-                "ORDIVON_JEV_CHROME_PATH": str(chrome.get("path") or ""),
-                "ORDIVON_JEV_CHROME_PROFILE": str(chrome.get("profileWindows") or ""),
-                "ORDIVON_JEV_CDP_PORT": str(chrome.get("cdpPort") or ""),
-            },
+            "env": {},
         }
     else:
         raise ValueError(f"S3 has no execution proposal for route {route_id}")

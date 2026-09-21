@@ -155,9 +155,28 @@ def _probe_jev(route: Mapping[str, Any], required: set[str]) -> dict[str, Any]:
         }
     rc, status, stderr = _subprocess_json([command, "status"], timeout=20)
     physical = bool(status and status.get("healthy") is True)
+    consumer_credentials = (status or {}).get("consumerCredentials", {})
+    available_credentials = {
+        "TYPESAFE_API_KEY": bool(
+            os.environ.get("TYPESAFE_API_KEY")
+            or (
+                isinstance(consumer_credentials, dict)
+                and consumer_credentials.get("typesafePresent") is True
+                and consumer_credentials.get("typesafeDecryptable") is True
+            )
+        ),
+        "TEXT_MODEL_API_KEY": bool(
+            os.environ.get("TEXT_MODEL_API_KEY")
+            or (
+                isinstance(consumer_credentials, dict)
+                and consumer_credentials.get("textModelPresent") is True
+                and consumer_credentials.get("textModelDecryptable") is True
+            )
+        ),
+    }
     missing = []
     for name in cfg.get("requiredEnvironment", []):
-        if not os.environ.get(name):
+        if not available_credentials.get(name, bool(os.environ.get(name))):
             missing.append(name)
     feature_env = cfg.get("featureEnvironment", {})
     if isinstance(feature_env, dict):
@@ -165,7 +184,11 @@ def _probe_jev(route: Mapping[str, Any], required: set[str]) -> dict[str, Any]:
             names = feature_env.get(feature, [])
             if isinstance(names, list):
                 for name in names:
-                    if isinstance(name, str) and name and not os.environ.get(name):
+                    if (
+                        isinstance(name, str)
+                        and name
+                        and not available_credentials.get(name, bool(os.environ.get(name)))
+                    ):
                         missing.append(name)
     missing = sorted(set(missing))
     ready = physical and not missing

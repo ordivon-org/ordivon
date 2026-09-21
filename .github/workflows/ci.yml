@@ -69,13 +69,11 @@ jobs:
             fi
           fi
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"
-          for owner in next runtime host harness skills security workstation network artifact distribution media game capital; do
-            value=false
-            for selected in "${owners[@]-}"; do
-              [[ "$selected" == "$owner" ]] && value=true
-            done
-            printf '%s=%s\n' "$owner" "$value" >> "$GITHUB_OUTPUT"
+          runtime=false
+          for selected in "${owners[@]-}"; do
+            [[ "$selected" == "runtime" ]] && runtime=true
           done
+          printf 'runtime=%s\n' "$runtime" >> "$GITHUB_OUTPUT"
           printf '%s\n' "${tasks[@]-}" > "$RUNNER_TEMP/ordivon-affected-tasks.txt"
           {
             echo "### Affected owners"

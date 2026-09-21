@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -9,6 +10,8 @@ from typing import Any
 import jwt
 from jwt import PyJWKClient
 from starlette.responses import JSONResponse
+
+logger = logging.getLogger("ordivon_gateway.access_auth")
 
 
 class AccessAuthError(RuntimeError):
@@ -124,6 +127,10 @@ class CloudflareAccessMiddleware:
         }
         assertion = headers.get("cf-access-jwt-assertion")
         if not assertion:
+            logger.warning(
+                "Cloudflare Access assertion missing on protected path=%s",
+                scope.get("path"),
+            )
             await JSONResponse(
                 {"error": "cloudflare_access_required"},
                 status_code=403,
@@ -132,7 +139,13 @@ class CloudflareAccessMiddleware:
 
         try:
             identity = await asyncio.to_thread(self._verifier.verify_identity, assertion)
-        except AccessAuthError:
+        except AccessAuthError as exc:
+            cause = type(exc.__cause__).__name__ if exc.__cause__ is not None else "AccessAuthError"
+            logger.warning(
+                "Cloudflare Access assertion rejected on protected path=%s reason=%s",
+                scope.get("path"),
+                cause,
+            )
             await JSONResponse(
                 {"error": "cloudflare_access_invalid"},
                 status_code=403,
