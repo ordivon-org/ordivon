@@ -77,6 +77,10 @@ const JOB_CLIENT_REQUEST_LOOKUP_INDEX_SQL: &str =
 const JOB_WORKSPACE_LOOKUP_INDEX: &str = "idx_jobs_workspace_created";
 const JOB_WORKSPACE_LOOKUP_INDEX_SQL: &str =
     "CREATE INDEX IF NOT EXISTS idx_jobs_workspace_created ON jobs(workspace_id, created_at_ms, job_id)";
+const JOB_RESOLUTION_STATUS_INDEX_SQL: &str =
+    "CREATE INDEX IF NOT EXISTS idx_jobs_resolution ON jobs(resolution)";
+const ATTEMPT_RECOVERY_STATUS_INDEX_SQL: &str =
+    "CREATE INDEX IF NOT EXISTS idx_attempts_recovery_required ON attempts(recovery_required)";
 const ARTIFACT_JOB_LOOKUP_INDEX: &str = "idx_artifacts_job";
 const ARTIFACT_JOB_LOOKUP_INDEX_SQL: &str =
     "CREATE INDEX IF NOT EXISTS idx_artifacts_job ON artifacts(job_id)";

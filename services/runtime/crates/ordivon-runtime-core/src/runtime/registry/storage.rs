@@ -298,6 +298,14 @@ impl Registry {
                 "cannot ensure Job Workspace lookup index",
             ),
             (
+                JOB_RESOLUTION_STATUS_INDEX_SQL,
+                "cannot ensure Job resolution status index",
+            ),
+            (
+                ATTEMPT_RECOVERY_STATUS_INDEX_SQL,
+                "cannot ensure Attempt recovery status index",
+            ),
+            (
                 ARTIFACT_JOB_LOOKUP_INDEX_SQL,
                 "cannot ensure Artifact Job lookup index",
             ),

@@ -5752,6 +5752,8 @@ fn query_indexes_are_recreated_without_advancing_schema_version() {
     for index in [
         "idx_jobs_client_request_id_created",
         "idx_jobs_workspace_created",
+        "idx_jobs_resolution",
+        "idx_attempts_recovery_required",
         "idx_artifacts_job",
     ] {
         connection
@@ -5777,6 +5779,8 @@ fn query_indexes_are_recreated_without_advancing_schema_version() {
     for index in [
         "idx_jobs_client_request_id_created",
         "idx_jobs_workspace_created",
+        "idx_jobs_resolution",
+        "idx_attempts_recovery_required",
         "idx_artifacts_job",
     ] {
         let actual: String = connection
@@ -5787,6 +5791,22 @@ fn query_indexes_are_recreated_without_advancing_schema_version() {
             )
             .unwrap();
         assert_eq!(actual, index);
+    }
+    for (sql, expected_index) in [
+        (
+            "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM jobs WHERE resolution IS NULL",
+            "idx_jobs_resolution",
+        ),
+        (
+            "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM attempts WHERE recovery_required=1",
+            "idx_attempts_recovery_required",
+        ),
+    ] {
+        let detail: String = connection.query_row(sql, [], |row| row.get(3)).unwrap();
+        assert!(
+            detail.contains(expected_index),
+            "expected {expected_index} in query plan: {detail}"
+        );
     }
     let redundant_event_index_exists: bool = connection
         .query_row(

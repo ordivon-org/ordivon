@@ -687,13 +687,16 @@ pub fn inspect_registry_status(
         ));
     }
 
-    let (jobs_total, jobs_active): (u64, u64) = connection
-        .query_row(
-            "SELECT COUNT(*),COALESCE(SUM(resolution IS NULL),0) FROM jobs",
-            [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
+    let jobs_total: u64 = connection
+        .query_row("SELECT COUNT(*) FROM jobs", [], |row| row.get(0))
         .map_err(|error| RuntimeError::from_sql(error, "count Registry Jobs for status"))?;
+    let jobs_active: u64 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM jobs WHERE resolution IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| RuntimeError::from_sql(error, "count active Registry Jobs for status"))?;
     let nonterminal_attempts: u64 = connection
         .query_row(
             "SELECT COUNT(*) FROM attempts WHERE state NOT IN ('succeeded','failed','timed_out','cancelled','lost','orphaned')",

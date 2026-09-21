@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-21 — Bound Registry status cost at large history
+
+- Reconstruct narrow Job-resolution and Attempt-recovery status indexes without advancing the Registry migration version.
+- Count active Jobs through the indexed resolution predicate instead of combining it with a historical full-row scan.
+- Extend query-index recreation tests with query-plan assertions for operational health.
+
 All user-visible changes to Ordivon Runtime are recorded here. The repository follows the change classes and evidence requirements in `docs/releases.md`.
 
 ## Unreleased
