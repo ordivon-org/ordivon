@@ -770,7 +770,7 @@ def source_status(source_repo: Path | None, deployment_commit: str | None) -> di
     layout = _source_layout(source_repo)
     if layout is None:
         return {"available": False, "reason": "SOURCE_REPO_UNREADABLE"}
-    git_root, owner_prefix = layout
+    _git_root, owner_prefix = layout
     head_result = _run_git(source_repo, "rev-parse", "HEAD")
     if head_result is None or head_result.returncode != 0:
         return {"available": False, "reason": "SOURCE_REPO_UNREADABLE"}
@@ -826,7 +826,6 @@ def source_status(source_repo: Path | None, deployment_commit: str | None) -> di
 
     return {
         "available": True,
-        "gitRoot": str(git_root),
         "ownerPrefix": "" if owner_prefix == Path() else owner_prefix.as_posix(),
         "head": head,
         "repositoryHead": repository_head,
