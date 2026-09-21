@@ -1,5 +1,5 @@
 schema_version = 1
-role = "ordivon-workstation-v2-recovery"
+role = "ordivon-monorepo-workstation-recovery"
 
 [recovery]
 authority_dir = "/mnt/d/wsl-backups/authority"
@@ -10,8 +10,8 @@ dpapi_receipt = "age-keys.dpapi.receipt.json"
 authority_bundle_glob = "ordivon-authority-*.tar.age"
 max_bundle_age_hours = 168
 retain_bundles = 14
-control_repository = "/root/projects/ordivon-workstation-v2"
-control_snapshot_tag = "workstation-v2-control"
+control_repository = "/root/projects/ordivon"
+control_snapshot_tag = "ordivon-monorepo-control"
 primary_repository = "/root/backups/restic-workstation"
 retain_control_snapshots = 14
 backup_generation_root = "/opt/ordivon-workstation-recovery"

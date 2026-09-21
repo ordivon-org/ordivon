@@ -4,4 +4,4 @@ This directory is the retained Workstation-specific recovery semantic kernel. Ge
 
 `recovery.toml` is deliberately minimal. The recovery generation no longer consumes legacy `/root/workstation-lab/workstation.toml` or copies that repository as its control authority.
 
-The current physical canonical Workstation v2 repository is temporarily `/root/projects/ordivon-workstation-v2`; the recovery contract uses that path until the repository-path cutover is performed.
+The recovery implementation is owned by `platform/workstation`, while immutable source identity and the control backup bind the canonical Git repository at `/root/projects/ordivon`. Recovery generations record `ownerRelativePath=platform/workstation`; they do not treat the owner subtree as a second Git repository.
