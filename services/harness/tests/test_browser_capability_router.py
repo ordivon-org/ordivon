@@ -228,6 +228,52 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         )
         self.assertNotIn("secret", json.dumps(value).lower())
 
+    def test_jev_probe_accepts_workstation_dpapi_bindings_without_ambient_secrets(self):
+        route = next(x for x in self.policy()["routes"] if x["routeId"] == "jev-fast-windows-v1")
+        fake_status = {
+            "healthy": True,
+            "chrome": {"version": "153"},
+            "packages": {"jevVersion": "0.1.0", "browserHarnessVersion": "0.1.13"},
+            "consumerCredentials": {
+                "typesafePresent": True,
+                "typesafeDecryptable": True,
+                "textModelPresent": True,
+                "textModelDecryptable": True,
+                "secretValuesReturned": False,
+            },
+        }
+        with (
+            mock.patch.object(R, "_subprocess_json", return_value=(0, fake_status, "")),
+            mock.patch.dict(R.os.environ, {}, clear=True),
+        ):
+            value = R._probe_jev(route, {"text-entry"})
+        self.assertTrue(value["ready"])
+        self.assertEqual(value["standing"], "READY")
+        self.assertEqual(value["missingEnvironment"], [])
+        self.assertNotIn("typesafe-value", json.dumps(value).lower())
+
+    def test_jev_probe_rejects_present_but_undecryptable_dpapi_binding(self):
+        route = next(x for x in self.policy()["routes"] if x["routeId"] == "jev-fast-windows-v1")
+        fake_status = {
+            "healthy": True,
+            "chrome": {"version": "153"},
+            "packages": {"jevVersion": "0.1.0", "browserHarnessVersion": "0.1.13"},
+            "consumerCredentials": {
+                "typesafePresent": True,
+                "typesafeDecryptable": False,
+                "textModelPresent": True,
+                "textModelDecryptable": True,
+            },
+        }
+        with (
+            mock.patch.object(R, "_subprocess_json", return_value=(0, fake_status, "")),
+            mock.patch.dict(R.os.environ, {}, clear=True),
+        ):
+            value = R._probe_jev(route, {"navigate", "click"})
+        self.assertFalse(value["ready"])
+        self.assertEqual(value["standing"], "CREDENTIAL_MISSING")
+        self.assertEqual(value["missingEnvironment"], ["TYPESAFE_API_KEY"])
+
     def test_policy_is_browser_domain_local_not_global_registry(self):
         text = (ROOT / "scripts/browser_capability_router.py").read_text()
         self.assertIn("global_capability_registry", text)

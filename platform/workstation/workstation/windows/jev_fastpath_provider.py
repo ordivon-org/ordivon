@@ -117,6 +117,7 @@ def paths(cfg: dict[str, Any]) -> dict[str, Any]:
         "jevExe": source_root / ".venv" / "Scripts" / "jev.exe",
         "browserHarnessExe": source_root / ".venv" / "Scripts" / "browser-harness.exe",
         "profile": local_wsl / str(cfg["profile_relative"]),
+        "consumerSecretsRoot": local_wsl / str(cfg["consumer_secret_relative"]),
         "chrome": windows_to_wsl(str(cfg["chrome_path"])),
         "receipt": Path(str(cfg["receipt_path"])),
     }
@@ -204,6 +205,38 @@ def chrome_state(cfg: dict[str, Any], p: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def dpapi_secret_state(path: Path) -> dict[str, Any]:
+    present = path.is_file()
+    if not present:
+        return {"present": False, "decryptable": False}
+    windows_path = wsl_to_windows(path).replace("'", "''")
+    command = (
+        "Add-Type -AssemblyName System.Security;"
+        f"$p='{windows_path}';"
+        "$protected=[IO.File]::ReadAllBytes($p);"
+        "try {"
+        "$plain=[Security.Cryptography.ProtectedData]::Unprotect("
+        "$protected,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser);"
+        "try {"
+        "$value=[Text.Encoding]::UTF8.GetString($plain);"
+        "if ([string]::IsNullOrWhiteSpace($value) -or $value -match '\\s') { exit 3 };"
+        "exit 0"
+        "} finally { if ($plain) { [Array]::Clear($plain,0,$plain.Length) } }"
+        "} catch { exit 2 }"
+    )
+    proc = run(
+        [
+            "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            command,
+        ],
+        timeout=15,
+    )
+    return {"present": True, "decryptable": proc.returncode == 0}
+
+
 def load_receipt(path: Path) -> dict[str, Any] | None:
     try:
         value = json.loads(path.read_text())
@@ -253,6 +286,11 @@ def provider_status(cfg: dict[str, Any]) -> dict[str, Any]:
     expected_receipt = receipt_basis(cfg, p, uv_digest)
     receipt = load_receipt(p["receipt"])
     receipt_bound = isinstance(receipt, dict) and receipt == expected_receipt
+    secret_root: Path = p["consumerSecretsRoot"]
+    typesafe_blob = secret_root / "typesafe-api-key.dpapi"
+    text_model_blob = secret_root / "text-model-api-key.dpapi"
+    typesafe_state = dpapi_secret_state(typesafe_blob)
+    text_model_state = dpapi_secret_state(text_model_blob)
     physical = bool(
         uv_exact
         and python_version == f"Python {cfg['python_version']}"
@@ -273,6 +311,8 @@ def provider_status(cfg: dict[str, Any]) -> dict[str, Any]:
         },
         "python": {
             "path": str(py),
+            "providerVenvPath": str(p["venvPython"]),
+            "providerVenvWindows": wsl_to_windows(p["venvPython"]),
             "expectedVersion": str(cfg["python_version"]),
             "observedVersion": python_version,
             "exact": python_version == f"Python {cfg['python_version']}",
@@ -280,6 +320,17 @@ def provider_status(cfg: dict[str, Any]) -> dict[str, Any]:
         "source": source,
         "packages": packages,
         "chrome": chrome,
+        "consumerCredentials": {
+            "protection": "windows-dpapi-current-user",
+            "typesafePresent": typesafe_state["present"],
+            "typesafeDecryptable": typesafe_state["decryptable"],
+            "textModelPresent": text_model_state["present"],
+            "textModelDecryptable": text_model_state["decryptable"],
+            "typesafeBlobWindows": wsl_to_windows(typesafe_blob),
+            "textModelBlobWindows": wsl_to_windows(text_model_blob),
+            "secretValuesReturned": False,
+            "secretDigestsReturned": False,
+        },
         "launchContract": {
             "pythonUtf8": True,
             "environment": {"PYTHONUTF8": "1"},
@@ -293,7 +344,7 @@ def provider_status(cfg: dict[str, Any]) -> dict[str, Any]:
             "bound": receipt_bound,
         },
         "nonClaims": [
-            "provider_credentials_present",
+            "provider_credentials_valid_for_upstream",
             "provider_network_serviceable",
             "agent_task_authorized",
             "browser_semantic_success",

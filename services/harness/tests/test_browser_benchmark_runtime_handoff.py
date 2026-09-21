@@ -56,7 +56,8 @@ class BrowserBenchmarkRuntimeHandoffTests(unittest.TestCase):
         status = {
             "healthy": True,
             "python": {
-                "path": "/mnt/c/Users/test/AppData/Local/Ordivon/External/python/python.exe"
+                "path": "/mnt/c/Users/test/AppData/Local/Ordivon/External/python/python.exe",
+                "providerVenvPath": "/mnt/c/Users/test/AppData/Local/Ordivon/External/jev-ultrafast/rev/.venv/Scripts/python.exe",
             },
             "chrome": {
                 "path": r"C:\Program Files\Google\Chrome\Application\chrome.exe",

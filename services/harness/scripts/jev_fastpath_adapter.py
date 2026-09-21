@@ -13,6 +13,8 @@ Ownership boundary:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import ctypes
 import datetime as dt
 import hashlib
 import importlib.metadata
@@ -116,8 +118,80 @@ def validate_request(raw: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+class _DataBlob(ctypes.Structure):
+    _fields_ = [
+        ("cbData", ctypes.c_ulong),
+        ("pbData", ctypes.POINTER(ctypes.c_ubyte)),
+    ]
+
+
+def _dpapi_unprotect(path_text: str) -> str:
+    if os.name != "nt":
+        raise RuntimeError("DPAPI credential binding requires native Windows")
+    path = Path(path_text)
+    raw = path.read_bytes()
+    if not raw:
+        raise RuntimeError("DPAPI credential blob is empty")
+    source = (ctypes.c_ubyte * len(raw)).from_buffer_copy(raw)
+    incoming = _DataBlob(
+        len(raw), ctypes.cast(source, ctypes.POINTER(ctypes.c_ubyte))
+    )
+    outgoing = _DataBlob()
+    crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    ok = crypt32.CryptUnprotectData(
+        ctypes.byref(incoming), None, None, None, None, 0, ctypes.byref(outgoing)
+    )
+    if not ok:
+        raise OSError(ctypes.get_last_error(), "CryptUnprotectData failed")
+    try:
+        value = ctypes.string_at(outgoing.pbData, outgoing.cbData).decode("utf-8").strip()
+    finally:
+        kernel32.LocalFree(outgoing.pbData)
+    if not value or any(ch.isspace() for ch in value):
+        raise RuntimeError("decrypted provider credential is empty or malformed")
+    return value
+
+
+def _provider_environment(
+    env: Mapping[str, str] | None = None, *, require_text: bool = False
+) -> dict[str, str]:
+    resolved = dict(env or os.environ)
+    bindings = (
+        ("TYPESAFE_API_KEY", "ORDIVON_JEV_TYPESAFE_DPAPI_FILE"),
+        ("TEXT_MODEL_API_KEY", "ORDIVON_JEV_TEXT_MODEL_DPAPI_FILE"),
+    )
+    for secret_name, binding_name in bindings:
+        if resolved.get(secret_name):
+            continue
+        path = str(resolved.get(binding_name) or "")
+        if path:
+            resolved[secret_name] = _dpapi_unprotect(path)
+    return resolved
+
+
+@contextlib.contextmanager
+def _temporary_provider_secrets(provider_env: Mapping[str, str]):
+    names = ("TYPESAFE_API_KEY", "TEXT_MODEL_API_KEY")
+    previous = {name: os.environ.get(name) for name in names}
+    try:
+        for name in names:
+            value = provider_env.get(name)
+            if value:
+                os.environ[name] = value
+            else:
+                os.environ.pop(name, None)
+        yield
+    finally:
+        for name, value in previous.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
 def credential_readiness(env: Mapping[str, str] | None = None, *, require_text: bool = False) -> dict[str, Any]:
-    env = env or os.environ
+    env = _provider_environment(env, require_text=require_text)
     typesafe = bool(env.get("TYPESAFE_API_KEY"))
     text = bool(env.get("TEXT_MODEL_API_KEY"))
     missing = []
@@ -440,7 +514,22 @@ def execute_request(
     replay = _replay_or_unknown(request, state_root)
     if replay is not None:
         return replay
-    credentials = credential_readiness(env, require_text=request["requireText"])
+    try:
+        provider_env = _provider_environment(env, require_text=request["requireText"])
+        credentials = credential_readiness(provider_env, require_text=request["requireText"])
+    except Exception as exc:
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.jev-fastpath-receipt",
+            "requestId": request["requestId"],
+            "requestDigest": digest(request),
+            "standing": "CREDENTIAL_MISSING",
+            "missingCredentials": ["TYPESAFE_API_KEY"],
+            "credentialBindingError": f"{type(exc).__name__}: {str(exc)[:400]}",
+            "replayed": False,
+            "providerEffectMayHaveOccurred": False,
+            "outcomeWitness": {"standing": "UNVERIFIED", "checks": []},
+        }
     if not credentials["ready"]:
         return {
             "schemaVersion": 1,
@@ -468,8 +557,9 @@ def execute_request(
 
     managed_launch = None
     if agent_factory is None:
-        managed_launch = _launch_managed_chrome(env)
-        from jev_ultrafast import Agent
+        managed_launch = _launch_managed_chrome(provider_env)
+        with _temporary_provider_secrets(provider_env):
+            from jev_ultrafast import Agent
 
         agent_factory = Agent
 
@@ -488,12 +578,13 @@ def execute_request(
     history: list[Mapping[str, Any]] = []
     error: Exception | None = None
     try:
-        with agent_factory(request["url"], request["goal"], screenshots=False) as agent:
-            for snapshot in agent.run():
-                final = snapshot
-            if final is None:
-                final = agent.snapshot()
-            history = list(final.get("history") or [])
+        with _temporary_provider_secrets(provider_env):
+            with agent_factory(request["url"], request["goal"], screenshots=False) as agent:
+                for snapshot in agent.run():
+                    final = snapshot
+                if final is None:
+                    final = agent.snapshot()
+                history = list(final.get("history") or [])
     except Exception as exc:
         error = exc
         try:

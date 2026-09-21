@@ -28,6 +28,22 @@
         group: root
         mode: "0644"
 
+    - name: Install Jev consumer secret materializer wrapper
+      ansible.builtin.copy:
+        src: ../workstation/windows/materialize_jev_consumer_secrets.py
+        dest: /usr/local/libexec/ordivon/workstation-v2/materialize_jev_consumer_secrets.py
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Install Jev Windows DPAPI materializer
+      ansible.builtin.copy:
+        src: ../workstation/windows/materialize-jev-consumer-secrets.ps1
+        dest: /usr/local/libexec/ordivon/workstation-v2/materialize-jev-consumer-secrets.ps1
+        owner: root
+        group: root
+        mode: "0600"
+
     - name: Install stable Windows Jev provider launcher
       ansible.builtin.copy:
         dest: /root/tools/bin/workstation-windows-jev-provider
