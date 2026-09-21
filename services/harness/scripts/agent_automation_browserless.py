@@ -32,6 +32,7 @@ try:
         compile_campaign,
     )
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from materialization_reconciliation_archive import project_archive
     from sqlite_conversation_binding import (
         ConversationBindingConflict,
         SQLiteConversationBindingStore,
@@ -56,6 +57,7 @@ except ModuleNotFoundError:
         compile_campaign,
     )
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from scripts.materialization_reconciliation_archive import project_archive
     from scripts.sqlite_conversation_binding import (
         ConversationBindingConflict,
         SQLiteConversationBindingStore,
@@ -153,9 +155,7 @@ def _project_public_handoff_url(public_origin: str, local_url: str) -> str:
             "encrypt": "1",
         }
     )
-    return urllib.parse.urlunsplit(
-        ("https", public.netloc, "/vnc.html", query, "")
-    )
+    return urllib.parse.urlunsplit(("https", public.netloc, "/vnc.html", query, ""))
 
 
 @dataclass(frozen=True, slots=True)
@@ -264,9 +264,7 @@ class BrowserlessAutomationConfig:
             ),
             human_handoff_mode=str(value.get("browserlessHumanHandoffMode", "self-hosted-vnc")),
             browser_session_timeout_ms=int(value.get("browserlessSessionTimeoutMs", 480000)),
-            browserless_start_timeout_seconds=int(
-                value.get("browserlessStartTimeoutSeconds", 20)
-            ),
+            browserless_start_timeout_seconds=int(value.get("browserlessStartTimeoutSeconds", 20)),
             browserless_idle_ttl_seconds=int(value.get("browserlessIdleTtlSeconds", 900)),
             browserless_warm_endpoint_ids=tuple(warm),
             browserless_human_public_origins=dict(public_origins),
@@ -356,7 +354,9 @@ def _cf07_profile_first_observed(
         "firstObservedAtMs",
         "semanticProviderSessionCreationKnown",
     }:
-        raise BrowserlessAutomationConflict("CF07 profile-first-observed marker has unexpected fields")
+        raise BrowserlessAutomationConflict(
+            "CF07 profile-first-observed marker has unexpected fields"
+        )
     if (
         existing.get("schemaVersion") != 1
         or existing.get("kind") != "ordivon.cf07-profile-first-observed"
@@ -468,9 +468,7 @@ def _conversation_session_lease(
         try:
             fcntl.flock(handle.fileno(), operation)
         except BlockingIOError as error:
-            raise BrowserlessCarrierBusy(
-                f"conversation session busy: {session_id}"
-            ) from error
+            raise BrowserlessCarrierBusy(f"conversation session busy: {session_id}") from error
         try:
             yield
         finally:
@@ -515,7 +513,9 @@ class BrowserlessAutomationService:
         try:
             return requests[agent_id]
         except KeyError as error:
-            raise BrowserlessAutomationConflict("agentId does not identify exactly one campaign request") from error
+            raise BrowserlessAutomationConflict(
+                "agentId does not identify exactly one campaign request"
+            ) from error
 
     def _materialization_dir(self, materialization) -> Path:
         return self.config.state_root / "materializations" / _suffix(materialization.request_id)
@@ -748,7 +748,9 @@ class BrowserlessAutomationService:
             # materialization-level re-entry; otherwise exact campaign replay would create fresh retries.
             if row.get("materializationStanding") is not None:
                 continue
-            self._require_materialization_substrate_available(materialization, observations=observations)
+            self._require_materialization_substrate_available(
+                materialization, observations=observations
+            )
         return census
 
     def _temporal_admit(
@@ -945,7 +947,6 @@ class BrowserlessAutomationService:
             "census": census,
         }
 
-
     def human_handoff_info(self, spec_path: Path, agent_id: str) -> dict:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
@@ -977,9 +978,7 @@ class BrowserlessAutomationService:
                 or session.get("sessionActive") is not True
                 or session.get("sessionId") != value.get("sessionId")
             ):
-                raise BrowserlessAutomationHold(
-                    "durable human session is not currently READY"
-                )
+                raise BrowserlessAutomationHold("durable human session is not currently READY")
             handoff_url = session.get("operatorURL")
             if not isinstance(handoff_url, str) or not handoff_url:
                 raise BrowserlessAutomationHold(
@@ -1005,9 +1004,7 @@ class BrowserlessAutomationService:
         # entries can be reconciled. Current materialization no longer creates this surface.
         path = self._legacy_human_handoff_path(materialization)
         if not path.is_file():
-            raise BrowserlessAutomationHold(
-                "human verification handoff receipt is unavailable"
-            )
+            raise BrowserlessAutomationHold("human verification handoff receipt is unavailable")
         value = load_verified_handoff(path)
         if (
             value.get("effectId") != materialization.request_id
@@ -1079,9 +1076,7 @@ class BrowserlessAutomationService:
                 or session.get("sessionActive") is not True
                 or session.get("sessionId") != handoff.get("sessionId")
             ):
-                raise BrowserlessAutomationHold(
-                    "durable human session is not READY for resume"
-                )
+                raise BrowserlessAutomationHold("durable human session is not READY for resume")
             resume_id = handoff.get("handoffDigest")
         else:
             # Legacy Browserless handoff resume remains only for already-persisted pre-cutover rows.
@@ -1112,9 +1107,7 @@ class BrowserlessAutomationService:
             "census": census,
         }
 
-    def conversation_affinity(
-        self, spec_path: Path, campaign_ref: str, agent_id: str
-    ) -> dict:
+    def conversation_affinity(self, spec_path: Path, campaign_ref: str, agent_id: str) -> dict:
         """Project the preferred existing conversation without provider effects."""
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
@@ -1664,10 +1657,22 @@ class BrowserlessAutomationService:
                 raise AssertionError
 
         ledger = SQLiteConversationMaterializer(self.config.ledger, Noop()).doctor()
+        archive = project_archive(
+            self.config.ledger,
+            self.config.state_root / "materialization-reconciliation-archive.json",
+        )
+        ledger = {
+            **ledger,
+            "historicalArchivedUnresolved": archive["activeArchivedUnresolved"],
+            "actionableUnresolved": archive["actionableUnresolved"],
+            "actionableEffectOutcomeAmbiguous": archive["actionableEffectOutcomeAmbiguous"],
+            "actionableHumanRequired": archive["actionableHumanRequired"],
+            "administrativeArchive": archive,
+        }
         return {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-agent-automation-doctor",
-            "healthy": health["healthy"] and ledger["healthy"],
+            "healthy": health["healthy"] and ledger["healthy"] and archive["healthy"],
             "browserSubstrate": health,
             "providerBoundaryPolicy": provider_boundary_policy(),
             "ledger": ledger,

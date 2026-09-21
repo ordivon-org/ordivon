@@ -31,7 +31,9 @@ WORKER_PY = Path(
 BROWSER_SECURITY_PY = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
 )
-SECURITY_ROOT = Path(os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")).resolve()
+SECURITY_ROOT = Path(
+    os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")
+).resolve()
 MCP_UNIT = "ordivon-agent-automation-mcp.service"
 WORKER_UNIT = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
@@ -88,6 +90,7 @@ RELEASE_PATHS = (
     "config/browserless-playwright-requirements.txt",
     "scripts/conversation_relay_carrier.py",
     "scripts/sqlite_conversation_materializer.py",
+    "scripts/materialization_reconciliation_archive.py",
     "scripts/sqlite_conversation_binding.py",
     "scripts/sqlite_wake_turn_map.py",
     "scripts/standard_identifiers.py",
@@ -144,10 +147,7 @@ def _materialization_ledger_snapshot(path: Path) -> dict:
         integrity = db.execute("PRAGMA integrity_check").fetchone()
         if integrity is None or integrity[0] != "ok":
             raise ReleaseError(f"materialization ledger integrity check failed: {path}")
-        columns = [
-            row[1]
-            for row in db.execute("PRAGMA table_info(requests)")
-        ]
+        columns = [row[1] for row in db.execute("PRAGMA table_info(requests)")]
         expected = [
             "request_id",
             "request_digest",
@@ -270,7 +270,9 @@ def rollback_materialization_ledger_migration(receipt: dict) -> None:
     legacy = Path(receipt["legacyPath"])
     current = Path(receipt["currentPath"])
     if not legacy.is_file():
-        raise ReleaseError("cannot roll back materialization ledger migration: legacy authority missing")
+        raise ReleaseError(
+            "cannot roll back materialization ledger migration: legacy authority missing"
+        )
     for path in (
         current,
         current.with_name(current.name + "-wal"),
@@ -291,11 +293,15 @@ def finalize_materialization_ledger_migration(receipt: dict) -> dict:
         "semanticDigest": receipt["semanticDigest"],
     }
     if current_snapshot != expected:
-        raise ReleaseError("current materialization ledger changed before release cutover finalized")
+        raise ReleaseError(
+            "current materialization ledger changed before release cutover finalized"
+        )
     if legacy.is_file():
         legacy_snapshot = _materialization_ledger_snapshot(legacy)
         if legacy_snapshot != expected:
-            raise ReleaseError("legacy materialization ledger changed during closed-admission cutover")
+            raise ReleaseError(
+                "legacy materialization ledger changed during closed-admission cutover"
+            )
         for path in (
             legacy,
             legacy.with_name(legacy.name + "-wal"),
@@ -492,6 +498,7 @@ def exact_commit(repo: Path, revision: str) -> str:
         raise ReleaseError("revision has no exact commit for the Harness owner subtree")
     return owner
 
+
 def archive_bytes(repo: Path, commit: str, *, source_subtree: Path | None = None) -> bytes:
     repo = git_top_level(repo)
     subtree = release_source_subtree(repo, commit) if source_subtree is None else source_subtree
@@ -516,7 +523,7 @@ def sha(raw: bytes) -> str:
 def marker(path: Path) -> dict | None:
     try:
         v = json.loads((path / MARKER).read_text())
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return None
     return v if isinstance(v, dict) else None
 
@@ -677,7 +684,9 @@ def require_worker_runtime_importable(release: Path) -> None:
     try:
         versions = json.loads(p.stdout.strip().splitlines()[-1])
     except (json.JSONDecodeError, IndexError) as error:
-        raise ReleaseError("Temporal worker runtime dependency versions are not observable") from error
+        raise ReleaseError(
+            "Temporal worker runtime dependency versions are not observable"
+        ) from error
     if versions != WORKER_RUNTIME_VERSIONS:
         raise ReleaseError(
             f"worker runtime dependency versions differ from release contract: {versions}"
@@ -799,7 +808,11 @@ def require_browser_security_release_qualification(release: Path, commit: str) -
             timeout=240,
         )
         if proc.returncode != 0:
-            detail = (proc.stderr or proc.stdout or f"rc={proc.returncode}").strip().replace("\n", " ")[-1600:]
+            detail = (
+                (proc.stderr or proc.stdout or f"rc={proc.returncode}")
+                .strip()
+                .replace("\n", " ")[-1600:]
+            )
             value = {
                 "schemaVersion": 1,
                 "kind": "ordivon.agent-automation-browser-security-qualification",
