@@ -1,0 +1,77 @@
+# Repository-wide Gitleaks false-positive ledger.
+#
+# Every entry is an exact Gitleaks fingerprint reviewed before the first public
+# monorepo publication on 2026-09-21. Do not replace these with path-wide or
+# rule-wide exclusions: new findings in the same files must still fail.
+#
+# Reviewed classes are content-addressed digests/commit IDs/public fingerprints,
+# public Access audience and lab grant/authenticator IDs, and deterministic test
+# credentials/private-key fixtures used only by test code.
+#
+0721009237365ea61cd975bd187be5171f1dcd52:tests/test_agent_service_interface_credentials_r14.py:generic-api-key:462
+2440e5789a245fddfb3a3e84c70b2c33c9c8bcce:migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+3a1dafc6609bdb3881fe10ea5d82bb2493d0bffd:domains/game/experiments/veilwild-r1/godot/modules/f12/camouflage_binding.gd:generic-api-key:9
+3c6ded210de616c827d7f644c878c4d55a524485:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-E2E-R1.json:generic-api-key:107
+4545ccc46c364597f922fc5b9b4d71d9f7907e04:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:180
+4545ccc46c364597f922fc5b9b4d71d9f7907e04:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:263
+4545ccc46c364597f922fc5b9b4d71d9f7907e04:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:276
+4545ccc46c364597f922fc5b9b4d71d9f7907e04:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:40
+4545ccc46c364597f922fc5b9b4d71d9f7907e04:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:60
+4545ccc46c364597f922fc5b9b4d71d9f7907e04:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
+45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:180
+45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:263
+45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:276
+45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:40
+45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:60
+45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
+4fd5814c51a760ab037c4452464214940f10af87:capabilities/artifact/artifact-delivery/toolchain-v1.lock.json:generic-api-key:27
+5938348069e5713d6947e66475db6faef5e4e483:knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+638c76343ca98d75ddd096810edb8ddd0f30218b:tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:175
+638c76343ca98d75ddd096810edb8ddd0f30218b:tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:191
+638c76343ca98d75ddd096810edb8ddd0f30218b:tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:207
+66d9e3ac52db209fcd2c56d49d7f7d82acecc6da:domains/game/test/provider-adapters.test.ts:generic-api-key:124
+6aa58e840e59d9db0d331d6cc046fa62ade6c563:evidence/harness-r3-supported-agent-surface-fe6fc1a.json:generic-api-key:78
+6b620a17abb7f78d17fa02e5e662de185e3e56cb:knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+7d76678afdf70d2cd505ec63f01a9c8c79f44032:domains/game/test/team-provider-adapters.test.ts:generic-api-key:135
+7e635194fade9ae57d0774472aac8cc288116b6c:services/runtime/tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:175
+7e635194fade9ae57d0774472aac8cc288116b6c:services/runtime/tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:191
+7e635194fade9ae57d0774472aac8cc288116b6c:services/runtime/tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:207
+8dd646d524aea53097e376763a6b7c9c85de4405:meta/next/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+ab1ff4d671aeff42081d8d5a3c773a0ef4c7cc8a:evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
+ace0aee2b28d8f5dfcc8ebf41d1cea7d1ee36a93:domains/game/test/provider-preflight.test.ts:generic-api-key:67
+b2e4d37828e0ea6d6f423a8835202e0ddf786c5a:crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:143
+b915fdcd16814138647efc51eaa234afbf6abbb6:docs/architecture/GATEWAY_C02_PUBLIC_CUTOVER_ACCEPTANCE_20260921.md:generic-api-key:64
+c120fc87badfe52c81277f9c4ba19f93e5cfe0cd:meta/next/migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+capabilities/artifact/artifact-delivery/shadow-bindings/software-release-oci-image-local-r1.json:generic-api-key:52
+capabilities/artifact/artifact-delivery/toolchain-v1.lock.json:generic-api-key:27
+capabilities/distribution/evidence/r5-carrier-coverage-20260912.json:cloudflare-api-key:32
+docs/architecture/GATEWAY_C02_PUBLIC_CUTOVER_ACCEPTANCE_20260921.md:generic-api-key:64
+domains/game/experiments/veilwild-r1/godot/modules/f12/camouflage_binding.gd:generic-api-key:9
+e017cf39cadbcebc983089b1d208ddb859e3d1ea:services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:143
+e8f2b0f8d47c7def9eef63946413ca6af4a4e6d3:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-E2E-R1.json:generic-api-key:107
+e9b822afcce517cb62d90bccc5c7d9d41ca7b242:evidence/r5-carrier-coverage-20260912.json:cloudflare-api-key:32
+eb6ec78b35283fb7dcb26ace61060ed1066b1720:meta/next/tests/test_agent_service_interface_credentials_r14.py:generic-api-key:462
+f230f01ddfb1482fca7c6839d1101d3388cd728e:capabilities/artifact/artifact-delivery/shadow-bindings/software-release-oci-image-local-r1.json:generic-api-key:52
+f61ed06a45af25f6dc5295cfb6c4a3877cb9335f:domains/game/test/provider-preflight.test.ts:generic-api-key:41
+fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:180
+fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:263
+fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:276
+fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:40
+fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:60
+fbdc008cb18ff4d9d4828f963851572601ec65c5:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
+fd50471332622dda90f1bea23962333b8f2cd6a1:migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+meta/next/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+meta/next/migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+migrations/records/workstation-network-observability-retirement.md:cloudflare-api-key:5
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-E2E-R1.json:generic-api-key:107
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:180
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:263
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:276
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:40
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:60
+platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
+platform/skills/tests/test_skill_catalog_r2.py:private-key:256
+services/harness/evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
+services/harness/evidence/harness-r3-supported-agent-surface-fe6fc1a.json:generic-api-key:78
+services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
