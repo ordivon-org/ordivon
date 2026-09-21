@@ -18,8 +18,10 @@ from typing import Any
 
 try:
     from chatgpt_provider_resource import normalize_provider_resource
+    from standard_identifiers import require_uuid7
 except ModuleNotFoundError:
     from scripts.chatgpt_provider_resource import normalize_provider_resource
+    from scripts.standard_identifiers import require_uuid7
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -79,6 +81,7 @@ class SQLiteConversationBindingStore:
                     campaign_ref TEXT NOT NULL,
                     agent_id TEXT NOT NULL,
                     provider_resource TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
                     evidence_digest TEXT NOT NULL,
                     request_id TEXT NOT NULL UNIQUE,
                     binding_digest TEXT NOT NULL,
@@ -97,6 +100,7 @@ class SQLiteConversationBindingStore:
             "campaignRef": row["campaign_ref"],
             "agentId": row["agent_id"],
             "providerResource": row["provider_resource"],
+            "sessionId": row["session_id"],
             "evidenceDigest": row["evidence_digest"],
             "requestId": row["request_id"],
             "bindingDigest": row["binding_digest"],
@@ -109,12 +113,14 @@ class SQLiteConversationBindingStore:
         campaign_ref: str,
         agent_id: str,
         provider_resource: str,
+        session_id: str,
         evidence_digest: str,
         request_id: str,
     ) -> dict[str, str]:
         campaign_ref = _text(campaign_ref, "campaignRef")
         agent_id = _text(agent_id, "agentId", max_bytes=128)
         request_id = _text(request_id, "adoption requestId")
+        session_id = require_uuid7(session_id, "sessionId")
         evidence_digest = _digest(evidence_digest, "evidenceDigest")
         provider_resource = normalize_provider_resource(
             _text(provider_resource, "providerResource", max_bytes=8192)
@@ -123,6 +129,7 @@ class SQLiteConversationBindingStore:
             "campaignRef": campaign_ref,
             "agentId": agent_id,
             "providerResource": provider_resource,
+            "sessionId": session_id,
             "evidenceDigest": evidence_digest,
             "requestId": request_id,
         }
@@ -133,6 +140,7 @@ class SQLiteConversationBindingStore:
         campaign_ref: str,
         agent_id: str,
         provider_resource: str,
+        session_id: str,
         evidence_digest: str,
         request_id: str,
         now_ms: int | None = None,
@@ -141,6 +149,7 @@ class SQLiteConversationBindingStore:
             campaign_ref=campaign_ref,
             agent_id=agent_id,
             provider_resource=provider_resource,
+            session_id=session_id,
             evidence_digest=evidence_digest,
             request_id=request_id,
         )
@@ -174,14 +183,15 @@ class SQLiteConversationBindingStore:
             db.execute(
                 """
                 INSERT INTO conversation_bindings(
-                    campaign_ref, agent_id, provider_resource, evidence_digest,
+                    campaign_ref, agent_id, provider_resource, session_id, evidence_digest,
                     request_id, binding_digest, created_at_ms
-                ) VALUES(?,?,?,?,?,?,?)
+                ) VALUES(?,?,?,?,?,?,?,?)
                 """,
                 (
                     payload["campaignRef"],
                     payload["agentId"],
                     payload["providerResource"],
+                    payload["sessionId"],
                     payload["evidenceDigest"],
                     payload["requestId"],
                     binding_digest,

@@ -37,6 +37,7 @@ try:
         SQLiteConversationBindingStore,
     )
     from chatgpt_conversation_discovery import discover_exact_marker
+    from cft_human_session import resolve_session
     from standard_identifiers import require_uuid7
     from browserless_human_handoff import load_verified_handoff
     from provider_boundary_diagnosis import (
@@ -57,6 +58,7 @@ except ModuleNotFoundError:
         SQLiteConversationBindingStore,
     )
     from scripts.chatgpt_conversation_discovery import discover_exact_marker
+    from scripts.cft_human_session import resolve_session
     from scripts.standard_identifiers import require_uuid7
     from scripts.browserless_human_handoff import load_verified_handoff
     from scripts.provider_boundary_diagnosis import (
@@ -990,16 +992,27 @@ class BrowserlessAutomationService:
             )
         if not isinstance(marker_proof, dict) or set(marker_proof) != {
             "sessionId",
-            "cdpEndpoint",
             "markerDigest",
         }:
             raise BrowserlessAutomationConflict(
-                "markerProof must contain exactly sessionId, cdpEndpoint, and markerDigest"
+                "markerProof must contain exactly sessionId and markerDigest"
             )
+        try:
+            session = resolve_session(marker_proof["sessionId"])
+        except (RuntimeError, ValueError) as error:
+            raise BrowserlessAutomationHold(
+                f"durable human session is unavailable: {error}"
+            ) from error
+        if (
+            session.get("standing") != "READY"
+            or session.get("sessionId") != marker_proof["sessionId"]
+            or not isinstance(session.get("cdpEndpoint"), str)
+        ):
+            raise BrowserlessAutomationHold("durable human session is not READY")
         discovery = discover_exact_marker(
             {
-                "sessionId": marker_proof["sessionId"],
-                "cdpEndpoint": marker_proof["cdpEndpoint"],
+                "sessionId": session["sessionId"],
+                "cdpEndpoint": session["cdpEndpoint"],
             },
             marker_proof["markerDigest"],
         )
@@ -1027,6 +1040,7 @@ class BrowserlessAutomationService:
                 campaign_ref=campaign_ref,
                 agent_id=agent_id,
                 provider_resource=resource,
+                session_id=session["sessionId"],
                 evidence_digest=evidence,
                 request_id=adoption_request_id,
             )
@@ -1039,6 +1053,7 @@ class BrowserlessAutomationService:
             "campaignRef": campaign_ref,
             "agentId": agent_id,
             "providerResource": binding["providerResource"],
+            "sessionId": binding["sessionId"],
             "bindingDigest": binding["bindingDigest"],
             "discoveryEvidenceDigest": evidence,
             "providerEffectAttempted": False,

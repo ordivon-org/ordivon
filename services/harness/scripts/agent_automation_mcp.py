@@ -60,8 +60,7 @@ class CampaignSpecInput(BaseModel):
 
 class ConversationMarkerProofInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    sessionId: str = Field(min_length=1, max_length=512)
-    cdpEndpoint: str = Field(min_length=1, max_length=2048)
+    sessionId: str = Field(pattern=UUID7_PATTERN)
     markerDigest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
 

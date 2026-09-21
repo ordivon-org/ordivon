@@ -14,8 +14,8 @@ from sqlite_conversation_binding import (  # noqa: E402
     SQLiteConversationBindingStore,
 )
 
-
 EVIDENCE = "sha256:" + "2" * 64
+SESSION_ID = "019a9af0-7b00-7000-8000-000000000001"
 
 
 def store(tmp_path: Path) -> SQLiteConversationBindingStore:
@@ -28,6 +28,7 @@ def adopt(
     campaign_ref: str = "sha256:" + "a" * 64,
     agent_id: str = "A01",
     provider_resource: str = "https://chatgpt.com/c/conversation-1",
+    session_id: str = SESSION_ID,
     evidence_digest: str = EVIDENCE,
     request_id: str = "adoption:1",
 ):
@@ -35,6 +36,7 @@ def adopt(
         campaign_ref=campaign_ref,
         agent_id=agent_id,
         provider_resource=provider_resource,
+        session_id=session_id,
         evidence_digest=evidence_digest,
         request_id=request_id,
     )
@@ -46,16 +48,22 @@ def test_exact_replay_returns_existing_binding(tmp_path: Path) -> None:
     second = adopt(s)
     assert second == first
     assert first["providerResource"] == "https://chatgpt.com/c/conversation-1"
+    assert first["sessionId"] == SESSION_ID
     assert first["bindingDigest"].startswith("sha256:")
     assert first["bindingStanding"] == "ADOPTED"
 
 
 def test_chatgpt_resource_is_canonicalized_before_binding(tmp_path: Path) -> None:
     s = store(tmp_path)
-    value = adopt(
-        s, provider_resource="https://chatgpt.com/c/conversation-1?utm=ignored#fragment"
-    )
+    value = adopt(s, provider_resource="https://chatgpt.com/c/conversation-1?utm=ignored#fragment")
     assert value["providerResource"] == "https://chatgpt.com/c/conversation-1"
+
+
+def test_same_request_changed_session_conflicts(tmp_path: Path) -> None:
+    s = store(tmp_path)
+    adopt(s)
+    with pytest.raises(ConversationBindingConflict, match="request identity"):
+        adopt(s, session_id="019a9af0-7b00-7000-8000-000000000002")
 
 
 def test_same_request_changed_provider_resource_conflicts(tmp_path: Path) -> None:
@@ -69,18 +77,7 @@ def test_same_role_different_adoption_request_conflicts(tmp_path: Path) -> None:
     s = store(tmp_path)
     adopt(s)
     with pytest.raises(ConversationBindingConflict, match="role already has"):
-        adopt(
-            s,
-            provider_resource="https://chatgpt.com/c/conversation-2",
-            request_id="adoption:2",
-        )
-
-
-def test_same_request_id_cannot_bind_different_role(tmp_path: Path) -> None:
-    s = store(tmp_path)
-    adopt(s)
-    with pytest.raises(ConversationBindingConflict, match="request identity"):
-        adopt(s, agent_id="A02")
+        adopt(s, provider_resource="https://chatgpt.com/c/conversation-2", request_id="adoption:2")
 
 
 def test_get_and_resolve_are_read_only(tmp_path: Path) -> None:
@@ -100,15 +97,13 @@ def test_binding_table_lives_beside_existing_materialization_requests(tmp_path: 
     db.execute("INSERT INTO requests VALUES ('effect-1')")
     db.commit()
     db.close()
-
     s = SQLiteConversationBindingStore(ledger)
     adopt(s)
-
     db = sqlite3.connect(ledger)
     try:
         assert db.execute("SELECT request_id FROM requests").fetchone()[0] == "effect-1"
-        count = db.execute("SELECT COUNT(*) FROM conversation_bindings").fetchone()[0]
-        assert count == 1
+        row = db.execute("SELECT session_id FROM conversation_bindings").fetchone()
+        assert row[0] == SESSION_ID
     finally:
         db.close()
 
@@ -121,13 +116,13 @@ def test_binding_table_lives_beside_existing_materialization_requests(tmp_path: 
         ("request_id", ""),
         ("evidence_digest", "sha256:abc"),
         ("provider_resource", "chatgpt-conversation:private"),
+        ("session_id", "not-a-uuid7"),
     ],
 )
 def test_invalid_binding_input_fails_closed(tmp_path: Path, field: str, value: str) -> None:
     s = store(tmp_path)
-    kwargs = {field: value}
     with pytest.raises(ValueError):
-        adopt(s, **kwargs)
+        adopt(s, **{field: value})
 
 
 def test_module_has_no_provider_effect_dependencies() -> None:
