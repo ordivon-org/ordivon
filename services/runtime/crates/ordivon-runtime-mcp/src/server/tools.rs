@@ -68,7 +68,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "release.apply",
-        description = "Admit one exact Runtime self-release as a structured reconciliable effect. The caller chooses a Workspace commit and exact candidate-manifest digest; operator configuration owns source/install/Registry/environment/receipt authority. Exact clientRequestId replay is resolved before consulting current Workspace or candidate state. New admission commits a durable release effect and an Accepted Runtime Job, then returns without directly dispatching it; normal Runtime reconciliation owns later at-most-once execution. A connection loss during self-replacement is not failure evidence: reconnect with release.get using the same clientRequestId. The deployment receipt, not process exit alone, is authoritative for whether the external release effect committed.",
+        description = "Admit one exact Runtime self-release as a structured reconciliable effect. The caller chooses the Runtime-owner commit resolved from a Workspace revision and an exact candidate-manifest digest; operator configuration owns source/install/Registry/environment/receipt authority. Exact clientRequestId replay is resolved before consulting current Workspace or candidate state. New admission commits a durable release effect and an Accepted Runtime Job, then returns without directly dispatching it; normal Runtime reconciliation owns later at-most-once execution. A connection loss during self-replacement is not failure evidence: reconnect with release.get using the same clientRequestId. The deployment receipt, not process exit alone, is authoritative for whether the external release effect committed.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeReleaseAdmission>>(),
         annotations(
             title = "Apply structured Runtime release",
@@ -119,24 +119,43 @@ impl RuntimeServer {
                     workspace_id: request.workspace_id.clone(),
                 })
                 .map_err(ToolError::from)?;
-            let configured_source = std::fs::canonicalize(&release.source_repo).map_err(|error| {
-                ToolError::invalid(
-                    format!("configured release source repository is unavailable: {error}"),
-                    "release.sourceRepo",
-                )
-            })?;
-            if workspace.source_repo != configured_source.to_string_lossy() {
+            let source_identity =
+                runtime_release_source_identity(&release.source_repo).map_err(|error| {
+                    ToolError::invalid(
+                        format!("configured Runtime release source is invalid: {error}"),
+                        "release.sourceRepo",
+                    )
+                })?;
+            let workspace_source =
+                std::fs::canonicalize(&workspace.source_repo).map_err(|error| {
+                    ToolError::invalid(
+                        format!("Workspace source repository is unavailable: {error}"),
+                        "workspaceId",
+                    )
+                })?;
+            if workspace_source != source_identity.git_root {
                 return Err(ToolError::invalid(
-                    "Workspace source repository does not match operator-owned Runtime release source",
+                    "Workspace Git root does not match operator-owned Runtime release source",
                     "workspaceId",
                 ));
             }
-            if workspace.current_head_revision != request.commit {
+            let owner_commit = runtime_release_owner_commit(
+                &source_identity.owner_root,
+                &workspace.current_head_revision,
+            )
+            .map_err(|error| {
+                ToolError::invalid(
+                    format!("cannot resolve Runtime owner revision from Workspace: {error}"),
+                    "commit",
+                )
+            })?;
+            if owner_commit != request.commit {
                 return Err(ToolError::invalid(
-                    "Workspace HEAD does not match the requested Runtime release commit",
+                    "requested commit does not match the Runtime owner revision at Workspace HEAD",
                     "commit",
                 ));
             }
+            let configured_source = source_identity.owner_root;
             if workspace.dirty {
                 return Err(ToolError::invalid(
                     "Runtime release Workspace must be clean",
@@ -147,12 +166,13 @@ impl RuntimeServer {
             let candidate_dir = release.candidate_dir(&request.commit);
             let candidate_manifest = candidate_dir.join("ordivon-deployment-manifest.json");
             let candidate_deployer = release.candidate_deployer(&request.commit);
-            let manifest_metadata = std::fs::symlink_metadata(&candidate_manifest).map_err(|error| {
-                ToolError::invalid(
-                    format!("Runtime release candidate manifest is unavailable: {error}"),
-                    "candidateManifestDigest",
-                )
-            })?;
+            let manifest_metadata =
+                std::fs::symlink_metadata(&candidate_manifest).map_err(|error| {
+                    ToolError::invalid(
+                        format!("Runtime release candidate manifest is unavailable: {error}"),
+                        "candidateManifestDigest",
+                    )
+                })?;
             if manifest_metadata.file_type().is_symlink() || !manifest_metadata.is_file() {
                 return Err(ToolError::invalid(
                     "Runtime release candidate manifest must be a regular non-symlink file",
@@ -178,12 +198,13 @@ impl RuntimeServer {
                     "candidateManifestDigest",
                 ));
             }
-            let deployer_metadata = std::fs::symlink_metadata(&candidate_deployer).map_err(|error| {
-                ToolError::invalid(
-                    format!("Runtime release candidate deployer is unavailable: {error}"),
-                    "commit",
-                )
-            })?;
+            let deployer_metadata =
+                std::fs::symlink_metadata(&candidate_deployer).map_err(|error| {
+                    ToolError::invalid(
+                        format!("Runtime release candidate deployer is unavailable: {error}"),
+                        "commit",
+                    )
+                })?;
             if deployer_metadata.file_type().is_symlink() || !deployer_metadata.is_file() {
                 return Err(ToolError::invalid(
                     "Runtime release candidate deployer must be a regular non-symlink file",
@@ -233,10 +254,7 @@ impl RuntimeServer {
             ];
             let mut args = args;
             if let Some(broker_service_name) = release.broker_service_name.as_ref() {
-                args.extend([
-                    "--broker-service".to_string(),
-                    broker_service_name.clone(),
-                ]);
+                args.extend(["--broker-service".to_string(), broker_service_name.clone()]);
             }
             let proposal = JobRunProposal {
                 schema_version: RUNTIME_SCHEMA_VERSION,

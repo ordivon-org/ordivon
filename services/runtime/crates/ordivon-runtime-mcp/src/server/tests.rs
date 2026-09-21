@@ -1360,6 +1360,48 @@ fn tool_inputs_default_missing_schema_version_to_pinned_version() {
 }
 
 #[test]
+fn structured_release_source_resolves_owner_commit_inside_monorepo() {
+    let sandbox = Sandbox::new("release-owner-source");
+    let repo = sandbox.root.join("repo");
+    let owner = repo.join("services/runtime");
+    fs::create_dir_all(&owner).unwrap();
+    let run = |args: &[&str]| {
+        let output = std::process::Command::new("git")
+            .args(args)
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "git {:?} failed: {}",
+            args,
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout).unwrap().trim().to_string()
+    };
+    run(&["init", "-q", "-b", "main"]);
+    run(&["config", "user.email", "runtime@example.invalid"]);
+    run(&["config", "user.name", "Runtime Test"]);
+    fs::write(owner.join("owner.txt"), "runtime-owner\n").unwrap();
+    run(&["add", "."]);
+    run(&["commit", "-qm", "runtime owner"]);
+    let owner_commit = run(&["rev-parse", "HEAD"]);
+    fs::write(repo.join("sibling.txt"), "gateway-only\n").unwrap();
+    run(&["add", "sibling.txt"]);
+    run(&["commit", "-qm", "sibling owner"]);
+    let repo_head = run(&["rev-parse", "HEAD"]);
+    assert_ne!(owner_commit, repo_head);
+
+    let identity = runtime_release_source_identity(&owner).unwrap();
+    assert_eq!(identity.git_root, fs::canonicalize(&repo).unwrap());
+    assert_eq!(identity.owner_prefix, PathBuf::from("services/runtime"));
+    assert_eq!(
+        runtime_release_owner_commit(&owner, &repo_head).unwrap(),
+        owner_commit
+    );
+}
+
+#[test]
 fn structured_release_keeps_workspace_identity_out_of_deployer_cli() {
     let tools_source = include_str!("tools.rs");
     let release_start = tools_source

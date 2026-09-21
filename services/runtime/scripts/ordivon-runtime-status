@@ -708,6 +708,47 @@ def _run_git(source_repo: Path, *args: str) -> subprocess.CompletedProcess[str] 
         return None
 
 
+def _source_layout(source_repo: Path) -> tuple[Path, Path] | None:
+    root_result = _run_git(source_repo, "rev-parse", "--show-toplevel")
+    prefix_result = _run_git(source_repo, "rev-parse", "--show-prefix")
+    if (
+        root_result is None
+        or root_result.returncode != 0
+        or prefix_result is None
+        or prefix_result.returncode != 0
+    ):
+        return None
+    try:
+        git_root = Path(root_result.stdout.strip()).resolve(strict=True)
+        owner_prefix = Path(prefix_result.stdout.strip().rstrip("/"))
+        owner_root = (git_root / owner_prefix).resolve(strict=True)
+        if owner_root != source_repo.resolve(strict=True):
+            return None
+    except OSError:
+        return None
+    return git_root, owner_prefix
+
+
+def _owner_revision(source_repo: Path, revision: str) -> str | None:
+    exact_result = _run_git(source_repo, "rev-parse", "--verify", f"{revision}^{{commit}}")
+    if exact_result is None or exact_result.returncode != 0:
+        return None
+    exact = exact_result.stdout.strip()
+    if not COMMIT_PATTERN.fullmatch(exact):
+        return None
+    layout = _source_layout(source_repo)
+    if layout is None:
+        return None
+    _git_root, owner_prefix = layout
+    if owner_prefix == Path():
+        return exact
+    result = _run_git(source_repo, "log", "-1", "--format=%H", exact, "--", ".")
+    if result is None or result.returncode != 0:
+        return None
+    owner = result.stdout.strip()
+    return owner if COMMIT_PATTERN.fullmatch(owner) else None
+
+
 def _fresh_origin_main(source_repo: Path) -> tuple[str | None, str]:
     result = _run_git(source_repo, "ls-remote", "origin", "refs/heads/main")
     if result is None:
@@ -726,19 +767,44 @@ def _fresh_origin_main(source_repo: Path) -> tuple[str | None, str]:
 def source_status(source_repo: Path | None, deployment_commit: str | None) -> dict[str, Any]:
     if source_repo is None:
         return {"available": False}
+    layout = _source_layout(source_repo)
+    if layout is None:
+        return {"available": False, "reason": "SOURCE_REPO_UNREADABLE"}
+    git_root, owner_prefix = layout
     head_result = _run_git(source_repo, "rev-parse", "HEAD")
     if head_result is None or head_result.returncode != 0:
         return {"available": False, "reason": "SOURCE_REPO_UNREADABLE"}
-    head = head_result.stdout.strip()
+    repository_head = head_result.stdout.strip()
+    head = _owner_revision(source_repo, repository_head)
+    if head is None:
+        return {"available": False, "reason": "SOURCE_OWNER_REVISION_UNREADABLE"}
+
     origin_result = _run_git(source_repo, "rev-parse", "refs/remotes/origin/main")
-    cached_origin = (
+    cached_origin_repository = (
         origin_result.stdout.strip()
         if origin_result is not None and origin_result.returncode == 0
         else None
     )
-    remote_main, remote_observation = _fresh_origin_main(source_repo)
-    dirty_result = _run_git(source_repo, "status", "--porcelain=v1", "--untracked-files=normal")
+    cached_origin = (
+        _owner_revision(source_repo, cached_origin_repository)
+        if cached_origin_repository is not None
+        else None
+    )
+
+    remote_repository_main, remote_observation = _fresh_origin_main(source_repo)
+    remote_main = (
+        _owner_revision(source_repo, remote_repository_main)
+        if remote_repository_main is not None
+        else None
+    )
+    if remote_repository_main is not None and remote_main is None:
+        remote_observation = "fresh_repository_ref_owner_unresolved"
+
+    dirty_result = _run_git(
+        source_repo, "status", "--porcelain=v1", "--untracked-files=normal", "--", "."
+    )
     dirty = None if dirty_result is None or dirty_result.returncode != 0 else bool(dirty_result.stdout)
+
     relation = "unknown"
     if isinstance(deployment_commit, str) and COMMIT_PATTERN.fullmatch(deployment_commit):
         if head == deployment_commit:
@@ -757,12 +823,18 @@ def source_status(source_repo: Path | None, deployment_commit: str | None) -> di
                 and deployment_ahead.returncode == 1
             ):
                 relation = "diverged"
+
     return {
         "available": True,
+        "gitRoot": str(git_root),
+        "ownerPrefix": "" if owner_prefix == Path() else owner_prefix.as_posix(),
         "head": head,
+        "repositoryHead": repository_head,
         "originMain": cached_origin,
+        "originMainRepositoryCommit": cached_origin_repository,
         "originMainObservation": "cached_tracking_ref" if cached_origin is not None else "unavailable",
         "remoteMain": remote_main,
+        "remoteMainRepositoryCommit": remote_repository_main,
         "remoteMainObservation": remote_observation,
         "dirty": dirty,
         "relationToDeployment": relation,
