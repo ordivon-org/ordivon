@@ -1529,11 +1529,11 @@ Use an existing deterministic Artifact build/verification workload. Mechanical w
 - New source owner: `platform/skills`
 - Live release: `/opt/ordivon/skills-mcp/current`
 
-- [ ] **Step 1: Build a new Skills MCP immutable release from the monorepo**
+- [x] **Step 1: Build a new Skills MCP immutable release from the monorepo**
 
 Use existing Skills release semantics and exact source revision binding.
 
-- [ ] **Step 2: Ensure release/config contains no active dependency on old source paths**
+- [x] **Step 2: Ensure release/config contains no active dependency on old source paths**
 
 Run:
 
@@ -1548,11 +1548,16 @@ grep -R -nF '/root/projects/ordivon-harness' \
   /opt/ordivon/skills-mcp/current/src 2>/dev/null && exit 1 || true
 ```
 
-- [ ] **Step 3: Exercise real Skills consumer surfaces**
+- [x] **Step 3: Exercise real Skills consumer surfaces**
 
 Verify current `skills.search`, `skills.resolve`, and `skills.read` against an Ordivon project context, including exact snapshot/instruction/package revision fences.
 
 Expected: successful resolution from monorepo-owned source bindings.
+
+
+**Accepted 2026-09-21:** live cutover and real consumer fence acceptance are recorded in
+docs/migration/acceptance/SKILLS_M7_LIVE_CUTOVER_ACCEPTANCE_20260921.md and
+docs/migration/receipts/skills-m7-live-cutover.json.
 
 ---
 

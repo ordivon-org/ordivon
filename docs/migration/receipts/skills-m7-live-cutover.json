@@ -1,0 +1,85 @@
+{
+  "candidatePreflight": {
+    "initialPort8896Owner": "ordivon-agent-automation-mcp",
+    "initialPort8896ResultDiscarded": true,
+    "interpretation": "The initial 401 came from an occupied Agent Automation MCP port, not from the Skills candidate.",
+    "safePort": 18995,
+    "status": "ready"
+  },
+  "credentialMaterialRecorded": false,
+  "date": "2026-09-21",
+  "digests": {
+    "externalCutoverReceiptSha256": "eb8d8c9a4e8b2e0d4b88e04a22d024de875c8ae7523325f4dbb594595f3068e1",
+    "liveConfigSha256": "15e888c4000f7755889384ad983aa3dd6e5c5a93d5319ab9d4465c6347ab2381",
+    "liveUnitSha256": "fe922776e223680302cdd55e4012b29334445cfa0004f50b68cd4879bfb4a73e",
+    "rollbackConfigBeforeSha256": "76f036ae3f965df070bbd94b2204375a4fda6ed637842d1ba151be9a93d27eff",
+    "rollbackUnitBeforeSha256": "227400597155aaa4e76bd2e5b8359d6d52aa4d1d88d9026fc49511800e622c29"
+  },
+  "kind": "ordivon.skills-mcp-m7-live-cutover-acceptance",
+  "live": {
+    "bind": "127.0.0.1",
+    "catalogRevision": "sha256:cddfdd894a87e9632b22ad06ef6f369bd4d53c4d984a2b8351ed3d23952614cd",
+    "consumerReadiness": "ready",
+    "environment": "/opt/ordivon/skills-mcp/envs/60ed225ba271e21127a89a5a3b870f05ce2ff568",
+    "localSep2640Ok": true,
+    "localToolSurfaceOk": true,
+    "port": 8895,
+    "publicBoundaryOk": true,
+    "pythonVersion": "3.14.7",
+    "release": "/opt/ordivon/skills-mcp/releases/60ed225ba271e21127a89a5a3b870f05ce2ff568",
+    "service": "ordivon-skills-mcp.service",
+    "toolNames": [
+      "skills.list",
+      "skills.read",
+      "skills.resolve",
+      "skills.search"
+    ],
+    "workspaceBinding": "/root/projects/ordivon/meta/next"
+  },
+  "mainAtAcceptance": "02c38aca8de533b4e85a73b52d49f019cdc1e3b5",
+  "oldActiveSourceReferences": {
+    "ordivonHarnessPath": 0,
+    "ordivonNextSkillsPath": 0,
+    "workstationSkillsRuntimePath": 0
+  },
+  "realConsumer": {
+    "catalogRevision": "sha256:cddfdd894a87e9632b22ad06ef6f369bd4d53c4d984a2b8351ed3d23952614cd",
+    "instructionDigest": "sha256:f4bd81409e067108115797ab24d80dd8bbb8f2368ca94ac1ce6be3836b8fbbc7",
+    "negativeFences": {
+      "wrongInstructionDigest": "DIGEST_MISMATCH",
+      "wrongPackageRevision": "PACKAGE_CHANGED",
+      "wrongSnapshot": "SNAPSHOT_STALE"
+    },
+    "packageRevision": "sha256:56b1b9e63421fc78ff9df145ae82cf65d8762cdba38ff093fe41c857c59e34d3",
+    "positive": {
+      "read": true,
+      "resolve": true,
+      "search": true
+    },
+    "projection": "ADVISORY_SANITIZED",
+    "query": "test driven development",
+    "readDigest": "sha256:f4bd81409e067108115797ab24d80dd8bbb8f2368ca94ac1ce6be3836b8fbbc7",
+    "readPath": "SKILL.md",
+    "readSize": 2299,
+    "scanState": "PASS",
+    "scope": "project",
+    "skillId": "project-ordivon-next/design-structure-matrix",
+    "snapshotRevision": "sha256:7aac9e23c06477ad047a596e2c99379eee8c05072e88ca0bca6f0475ea43a334",
+    "sourceId": "project-ordivon-next",
+    "trustState": "TRUSTED",
+    "workspaceId": "ordivon-next"
+  },
+  "rollback": {
+    "actualRollbackPerformed": false,
+    "directory": "/opt/ordivon/skills-mcp/rollback/60ed225ba271e21127a89a5a3b870f05ce2ff568",
+    "oldPythonVersion": "3.12.13",
+    "oldRelease": "/opt/ordivon/skills-mcp/releases/3d1943e349c21141468f95551e4ee37adc40f7f4",
+    "oldReleaseCheck": "PASS",
+    "oldWorkspaceBinding": "/root/projects/ordivon-next",
+    "reasonActualRollbackNotPerformed": "A non-disruptive rollback artifact/carrier witness was sufficient after successful live acceptance; no extra production bounce was introduced."
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "60ed225ba271e21127a89a5a3b870f05ce2ff568",
+  "sourceTree": "41c0d8713f79df1585c6043fd896fb46148a5117",
+  "standing": "ACCEPTED_LIVE"
+}

@@ -6,7 +6,7 @@
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
 | Harness | monorepo-native post-Skills owner; validated Browser Security donor composed at 0fe2187b, canonical tree 47f7b476 | ACCEPTED_SOURCE_ONLY |
-| Skills bridge | extracted from Harness into platform/skills; source/package/artifact owner boundaries accepted; live service cutover pending M7 | ACCEPTED_SOURCE_ONLY |
+| Skills bridge | canonical platform/skills owner; source/package/artifact boundaries accepted; live cutover recorded separately | ACCEPTED_SOURCE_ONLY |
 | Host | exact current source tree; legacy rewritten import bridged to original a95a8e11 identity | ACCEPTED_SOURCE_ONLY |
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | converged current source at `af67ed76` after `d3613c2e` supersession; repeatable identity-preserving update accepted | ACCEPTED_SOURCE_ONLY |
@@ -22,5 +22,12 @@
 | Paper1 frozen | frozen Research-v2 worktree/ref; archive in place | ARCHIVED_IN_PLACE |
 | Paper2 | active independent scientific authority | KEEP_INDEPENDENT_ACTIVE |
 | Paper3 | integrated study state inside Research-v2; no dedicated frozen authority ref yet | HOLD_EXTRACTION_UNTIL_FREEZE |
+
+
+## Live effect standing
+
+| Effect | Binding | Standing |
+| --- | --- | --- |
+| Skills MCP live | platform/skills release 60ed225b; Python 3.14.7 owner env; project binding /root/projects/ordivon/meta/next; real search/resolve/read fence acceptance | ACCEPTED_LIVE |
 
 These standings cover source/history relocation and owner-native behavior only. Deployment, external effects, durable state, scientific standing, and old-repository retirement require separate evidence and gates.
