@@ -32,7 +32,7 @@ Riot, Nintendo, Supercell and other mature studios are useful operating preceden
 - FFmpeg / ImageMagick;
 - Codex and Engineering toolchain;
 - Artifact/Security/Distribution/Network capabilities available for composition;
-- `/root/projects/ordivon-game` contains a real executable product, multiple playable/research surfaces, browser E2E paths, deterministic/replay evidence and extensive game-specific research/lessons.
+- `/root/projects/ordivon/domains/game` contains a real executable product, multiple playable/research surfaces, browser E2E paths, deterministic/replay evidence and extensive game-specific research/lessons.
 
 Historical Game framework material is evidence/knowledge. Forward reuse should preserve game-specific value while retiring ownership of generic engineering, media, workflow, security or distribution concerns.
 

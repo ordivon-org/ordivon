@@ -1130,7 +1130,7 @@
       "issuer": "Games User Research",
       "lifecycleStatus": "current",
       "observationDigest": "sha256:abc2f4b60b2480d360621922efdf905a2d3a5c699c5c783e820385d92884dd32",
-      "recordDigest": "sha256:820ba238adccb8a68b575799edbaaaa542f3cf6b94d26d3a7216230b9363d0d1",
+      "recordDigest": "sha256:1a6852a7eb62cde4d7c747c067979e9877e7dcfea0e3423b6c7d0d93d7d2573c",
       "title": "Games User Research — playtest method selection guidance",
       "topics": [
         "game-research",
@@ -1156,7 +1156,7 @@
       "issuer": "Godot Engine",
       "lifecycleStatus": "current",
       "observationDigest": "sha256:c7dbb589a1c5d6eeb8af10f146a99e7e367544dd8fe182e3cfb9fc15e1ee834b",
-      "recordDigest": "sha256:645ddd81915c077aab49f6c51e07f571dfa465758a88eb6e4b7255b2fdda2cf3",
+      "recordDigest": "sha256:9b1fc04649a9dbbb26f41ad60f7214e38c57a5c6b3914d9f3aae123cf2e94814",
       "title": "Godot official engine documentation and release archive",
       "topics": [
         "game-engine",
@@ -2196,7 +2196,7 @@
       "issuer": "ISO",
       "lifecycleStatus": "published",
       "observationDigest": "sha256:caede7c2e673a731d194f5abc21f287236f67f1d18e7db81581c8ceb8f5f0b52",
-      "recordDigest": "sha256:0c03a2b45c70d1b106177f7df99a67f41e4f0c74d9c0b810e40a561001b3d20f",
+      "recordDigest": "sha256:c3587ff6c9fd07286e1cc22c2c75a95f5c58301a407ed2a8b9a5cd7d97eee5a1",
       "title": "ISO 9241-11:2018 — Usability: Definitions and concepts",
       "topics": [
         "effectiveness",
@@ -2223,7 +2223,7 @@
       "issuer": "ISO",
       "lifecycleStatus": "published",
       "observationDigest": "sha256:cc2c0e28ef73845f4f8c335b48eed751f3a9e28699d0fd61ab2e78d44791c80c",
-      "recordDigest": "sha256:93cb33eff15ef0ee98f3ccdea8b957acfe25d75c53c67ea462c1308f21a72a91",
+      "recordDigest": "sha256:bc8167d5a2546b5a56b208224deebdad6bca86eecb9bb071e8f9f25b9ad559fe",
       "title": "ISO 9241-210:2019 — Human-centred design for interactive systems",
       "topics": [
         "human-centred-design",
@@ -4530,7 +4530,7 @@
       "issuer": "W3C",
       "lifecycleStatus": "published",
       "observationDigest": "sha256:2dd0edac0d27d8e348034904218161684118c277720bd35490854cd78127bb58",
-      "recordDigest": "sha256:31ae27aebb6efa2ca7079db29432bfe842d4d4a48f9cea021cda3656d88f47ef",
+      "recordDigest": "sha256:268ae5a4fb273c99c0ac30505efc3382feb99bcd7fb621c4725dbd05e7fe5485",
       "title": "Web Content Accessibility Guidelines (WCAG) 2.2",
       "topics": [
         "accessibility",
@@ -4585,7 +4585,7 @@
       "issuer": "Microsoft Xbox",
       "lifecycleStatus": "published",
       "observationDigest": "sha256:634eea1e3bc034be3136a2f83c46120e049af9101e68aaa562d6fa20fa33b182",
-      "recordDigest": "sha256:b1ee0d18f8044552cdee7a35ccbbcd22bad743188c2d6211001938073c390d79",
+      "recordDigest": "sha256:f4aac5d1942f2fe0637f82b82f98fcfb0824dce0d33e72e8be7a474957c5fbce",
       "title": "Xbox Accessibility Guidelines Version 3.2",
       "topics": [
         "accessibility",
@@ -4680,6 +4680,6 @@
   ],
   "kind": "ordivon.external-authority-discovery-index",
   "recordCount": 168,
-  "recordsDigest": "sha256:8058a80bb041b9930b9f1d44b380cb3b83d51151ef552bfd6cc8bae0f434bfad",
+  "recordsDigest": "sha256:24b433258a8021f66699f6ca3ad77f53b966ee71b719e3ef2d4227d0596dbc50",
   "schemaVersion": 1
 }

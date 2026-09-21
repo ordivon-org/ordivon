@@ -10,8 +10,14 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
     pnpm = pathlib.Path("/root/tools/bin/pnpm")
     assert pnpm.is_symlink(), "pnpm compatibility path is not externally managed"
     assert pnpm.resolve() == pathlib.Path("/usr/bin/mise"), pnpm.resolve()
-    config = pathlib.Path("/root/.config/mise/config.toml").read_text()
+    config_path = pathlib.Path("/root/.config/mise/config.toml")
+    config = config_path.read_text()
     assert 'idiomatic_version_file_enable_tools = ["node", "pnpm"]' in config
+    deployed_mise = tomllib.loads(config)
+    assert deployed_mise["settings"]["trusted_config_paths"] == [
+        "/root/projects/ordivon/domains/game",
+        "/root/projects/ordivon/capabilities/media",
+    ]
 
     monorepo_root = pathlib.Path(__file__).resolve().parents[3]
     for root in (
