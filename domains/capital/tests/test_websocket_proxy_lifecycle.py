@@ -87,3 +87,18 @@ class R3PostInjectionEvidenceTests(unittest.TestCase):
         self.assertIn('int(event["monoNs"]) > injected_mono', source)
         self.assertIn('int(event["generation"]) > injected_generation', source)
         self.assertIn('"injectedGeneration": injected_generation', source)
+
+
+class R2OpeningRetryOwnershipTests(unittest.TestCase):
+    def test_r2_delegates_pre_session_opening_retries_to_websockets(self) -> None:
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        source = (
+            root / "src/ordivon_capital/market/crypto_public_streaming.py"
+        ).read_text()
+        self.assertGreaterEqual(source.count("async for ws in connect("), 2)
+        self.assertIn("EstablishedPublicStreamLost", source)
+        self.assertIn("established public stream lost", source)
+        self.assertIn('"samePersistentConnections": True', source)
+        self.assertNotIn("while True:\n        try:\n            async with connect(", source)

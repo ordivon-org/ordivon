@@ -118,3 +118,6 @@ Clock timing qualification now passes: Windows w32time is synchronized to qualif
 - Demo/Testnet execution R7 preflight: the historical rc4 candidate exposed OKX DEMO and Binance Spot TESTNET configuration without local client reimplementation. This proves candidate component readiness only; it does not admit Nautilus under the current Python 3.14.7 / Rust 1.98.1 baseline, and demo/live external writes remain NOT_ADMITTED.
 
 - Live test-account admission: user-designated LIVE accounts may serve as qualification accounts without being relabeled Demo/Testnet. A pure admission evaluator requires fresh authoritative near-zero account reality, no positions/open orders/nonquote balances, <=1 quote unit, trade permission, no withdraw/transfer authority, clock PASS and reconciliation health. Production trading remains false.
+
+
+Live public-network qualification is operational evidence, not a deterministic source-migration gate. R2/R3 retain their fixed deadlines and record PASS/PARTIAL exactly as observed; deterministic source acceptance remains grounded in controlled tests, contracts, owner census, policy/effect invariants, latest-stable language gates, and source/tree identity.

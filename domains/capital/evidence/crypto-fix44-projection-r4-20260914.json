@@ -24,11 +24,11 @@
       "ordType": "1",
       "orderQty": "0.00012959",
       "protocol": "FIX.4.4",
-      "rawSha256": "77861d0e7f77da68680e1d5c8fb369b61529cdcbe81911c726b0fd64940eaf9f",
+      "rawSha256": "1fc79a8a1a60ee8e8374a1143f11d96326103442dac8a96da395586b92d6b691",
       "side": "1",
       "symbol": "BTC-USDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-21T05:58:56.000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     },
     {
       "clOrdId": "MECH-BINANCE-BTC",
@@ -37,11 +37,11 @@
       "ordType": "1",
       "orderQty": "0.00012",
       "protocol": "FIX.4.4",
-      "rawSha256": "bfa15b52c40642c28ff9c076237d0f21a04e8199cd38aaaa44aafaf511dbdb59",
+      "rawSha256": "2a5defc7e66500cc2ae5491dcae62b2cb578d72620020eeea78359c98214d920",
       "side": "1",
       "symbol": "BTCUSDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-21T05:58:56.000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     },
     {
       "clOrdId": "MECH-OKX-ETH",
@@ -50,11 +50,11 @@
       "ordType": "1",
       "orderQty": "0.004015",
       "protocol": "FIX.4.4",
-      "rawSha256": "a4ecfd0077c10fc0948fa85c9501bc5b8a2874ef67cca7a1d5a7b11a73775afa",
+      "rawSha256": "de128c2607ef55cbc5a6190e88f4e53e8bc2a070dbaf4ce4eb71b18eb9d7248e",
       "side": "1",
       "symbol": "ETH-USDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-21T05:58:56.000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     },
     {
       "clOrdId": "MECH-BINANCE-ETH",
@@ -63,15 +63,15 @@
       "ordType": "1",
       "orderQty": "0.0040",
       "protocol": "FIX.4.4",
-      "rawSha256": "4852399e3fde717b745bca52e35773e9b846661baf3badedc274cf591aac28a6",
+      "rawSha256": "594d4973a9e8ba203c2a60b8105403f0167d9c9f5f38c6cc62590a818e9231e2",
       "side": "1",
       "symbol": "ETHUSDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-21T05:58:56.000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     }
   ],
-  "projectionInputSha256": "d0311b84896ec4d143100b2e524ff6e59f25e2b0cea608ed086fc74e54fcdb0d",
-  "projectionOutputSha256": "6936ded635042fdc1f7e15228abae9e30f8d0ce5570f610631f414866bf0e501",
+  "projectionInputSha256": "3335b60d1366ff9d9cd92d41f5e991c247a7561f71c789e803675c1885e936be",
+  "projectionOutputSha256": "2c8876e7e4d1fdad72f170d3e3f52c23c2c73ddb917b6c69ae2d7ca60b0b795e",
   "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
   "schemaVersion": 1,
   "sourceMechanicsEvidence": "evidence/crypto-shadow-mechanics-r1-20260913.json",

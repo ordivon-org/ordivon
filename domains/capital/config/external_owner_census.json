@@ -402,6 +402,33 @@
               "binanceMaxLatencyMs": 1375.0417090050178
             },
             "r3EvidenceCorrection": "reconnect evidence now requires CONNECTED after INJECTED_DISCONNECT and generation > injectedGeneration"
+          },
+          "r2OpeningRetryRequalification": {
+            "standing": "PASS_STREAMING_REPEATED_PUBLIC_SHADOW_WITH_NETWORK_V2_FAILOVER",
+            "sessionDurationMs": 7404.068313,
+            "acceptedSnapshotCount": 4,
+            "allMeasuredQualified": true,
+            "samePersistentConnections": true,
+            "bindingDigest": "sha256:f7b0cea37460acc239df6ba11db3dab302a6ebc9449a58101d35c8accf9b5b02"
+          },
+          "liveVarianceSample": {
+            "r3Standing": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+            "okx": {
+              "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+              "reconnectLatencyMs": 20725.872155,
+              "measuredRoundCount": 3,
+              "injectedGeneration": 1,
+              "reconnectedGeneration": 4
+            },
+            "binance": {
+              "standing": "PARTIAL_PUBLIC_STREAM_RECONNECT",
+              "reconnectLatencyMs": 20058.17848,
+              "measuredRoundCount": 2,
+              "injectedGeneration": 1,
+              "reconnectedGeneration": 4
+            },
+            "callbackAttributeErrors": 0,
+            "interpretation": "live transport tail sample; retained as operational evidence, not rewritten as PASS"
           }
         },
         "proxyTlsLifecycleGuard": {
@@ -415,6 +442,21 @@
           "sitePackagePatch": false,
           "deadlineRelaxed": false,
           "deleteWhenUpstreamFixed": true
+        },
+        "r2OpeningHandshakeOwnership": {
+          "standing": "ADMITTED_EXTERNAL_RETRY_OWNER_BEFORE_MEASUREMENT",
+          "owner": "websockets async-iterator connect API",
+          "scope": "opening failures before first established connection per venue",
+          "measurementBoundary": "after first successful connection yield, any stream loss is fatal for that R2 run",
+          "samePersistentConnectionsClaimPreserved": true,
+          "outerDeadlineSeconds": 25,
+          "customReconnectLoop": false
+        },
+        "sourceAcceptanceBoundary": {
+          "deterministicSourceAcceptance": "tests/static/contracts/owner census/language/lock/effect-policy",
+          "liveTransportQualification": "separate operational evidence; PASS or PARTIAL must be recorded as observed",
+          "liveSampleNotDeterministicSourceGate": true,
+          "deadlineRelaxationAllowed": false
         }
       }
     },
@@ -1174,6 +1216,40 @@
             "binanceMaxLatencyMs": 1375.0417090050178
           },
           "r3EvidenceCorrection": "reconnect evidence now requires CONNECTED after INJECTED_DISCONNECT and generation > injectedGeneration"
+        },
+        "r2OpeningHandshakeOwnership": {
+          "standing": "ADMITTED_EXTERNAL_RETRY_OWNER_BEFORE_MEASUREMENT",
+          "owner": "websockets async-iterator connect API",
+          "scope": "opening failures before first established connection per venue",
+          "measurementBoundary": "after first successful connection yield, any stream loss is fatal for that R2 run",
+          "samePersistentConnectionsClaimPreserved": true,
+          "outerDeadlineSeconds": 25,
+          "customReconnectLoop": false
+        },
+        "sourceAcceptanceBoundary": {
+          "deterministicSourceAcceptance": "tests/static/contracts/owner census/language/lock/effect-policy",
+          "liveTransportQualification": "separate operational evidence; PASS or PARTIAL must be recorded as observed",
+          "liveSampleNotDeterministicSourceGate": true,
+          "deadlineRelaxationAllowed": false
+        },
+        "liveVarianceSample": {
+          "r3Standing": "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT",
+          "okx": {
+            "standing": "PASS_PUBLIC_STREAM_RECONNECT",
+            "reconnectLatencyMs": 20725.872155,
+            "measuredRoundCount": 3,
+            "injectedGeneration": 1,
+            "reconnectedGeneration": 4
+          },
+          "binance": {
+            "standing": "PARTIAL_PUBLIC_STREAM_RECONNECT",
+            "reconnectLatencyMs": 20058.17848,
+            "measuredRoundCount": 2,
+            "injectedGeneration": 1,
+            "reconnectedGeneration": 4
+          },
+          "callbackAttributeErrors": 0,
+          "interpretation": "live transport tail sample; retained as operational evidence, not rewritten as PASS"
         }
       },
       "standing": "WEBSOCKETS_17_1_RETAIN_AS_NARROW_PROTOCOL_MECHANICS_OWNER_FRESH_R2_R3_PASS",
