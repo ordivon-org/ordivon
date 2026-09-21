@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_SOURCE_REPO = Path("/root/projects/ordivon-harness")
+CANONICAL_SOURCE_REPO = Path("/root/projects/ordivon/services/harness")
 SOURCE_QUADLET = ROOT / "containers/ordivon-browserless@.container"
 INSTALLED_QUADLET = Path("/etc/containers/systemd/ordivon-browserless@.container")
 AUTOMATION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")

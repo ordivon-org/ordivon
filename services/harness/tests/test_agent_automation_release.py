@@ -87,6 +87,38 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual((Path(a["path"]) / "a").read_text(), "one\n")
                 self.assertEqual(json.loads((Path(a["path"]) / r.MARKER).read_text())["commit"], c)
 
+    def test_exact_commit_is_owner_scoped_inside_monorepo_subtree(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            owner = repo / "services" / "harness"
+            owner.mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "-q", "-b", "main"], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.email", "x@example.invalid"], check=True
+            )
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "x"], check=True)
+
+            (owner / "owner.txt").write_text("one\n")
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "owner"], check=True)
+            owner_commit = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+
+            (repo / "unrelated.txt").write_text("outside\n")
+            subprocess.run(["git", "-C", str(repo), "add", "unrelated.txt"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "unrelated"], check=True)
+            repo_head = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+            ).strip()
+
+            self.assertNotEqual(owner_commit, repo_head)
+            self.assertEqual(r.exact_commit(owner, "HEAD"), owner_commit)
+
+            with patch.object(r, "RELEASE_PATHS", ("owner.txt",)):
+                raw = r.archive_bytes(owner, owner_commit)
+                self.assertIn(b"owner.txt", raw)
+
     def test_operator_carrier_is_external_workstation_owned_executable_boundary(self):
         with tempfile.TemporaryDirectory() as td:
             installed = Path(td) / "agent-automation"
