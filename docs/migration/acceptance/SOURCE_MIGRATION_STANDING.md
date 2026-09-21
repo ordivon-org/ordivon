@@ -16,7 +16,8 @@
 | Skills bridge | canonical platform/skills owner; source/package/artifact boundaries accepted; live cutover recorded separately | ACCEPTED_SOURCE_ONLY |
 | Host | canonical monorepo owner active at services/host; legacy source identity bridged, Friction Observatory WIP migrated, live immutable release source-independent, and PostgreSQL Host Doctor healthy after source retirement | ACCEPTED_SOURCE_ONLY |
 | Host standalone carrier | /root/projects/ordivon-host-v2 physically absent; 29-ref Git restore, dirty Friction WIP recovery/migration, and post-delete live Host history readback proven | RETIRED_ARCHIVED |
-| Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
+| Next | canonical monorepo owner active at meta/next; standalone source carrier physically retired with 432-ref Git restore, divergent Chaoxing WIP recovery, live Skills readback, and post-delete full owner verification | ACCEPTED_SOURCE_ONLY |
+| Next standalone carrier | /root/projects/ordivon-next physically absent; Git/Chaoxing recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Runtime | converged current source at `af67ed76` after `d3613c2e` supersession; repeatable identity-preserving update accepted | ACCEPTED_SOURCE_ONLY |
 | Media | canonical monorepo owner active at capabilities/media; Creative Library and later forward composition remain monorepo-owned | ACCEPTED_SOURCE_ONLY |
 | Media standalone carrier | /root/projects/ordivon-media historical Git/recovery carrier only; 899-ref archive restore-proven; 137 exact Creative Library bindings retained in place | ARCHIVED_IN_PLACE |
