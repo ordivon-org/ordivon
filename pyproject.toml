@@ -1,7 +1,7 @@
 [project]
 name = "ordivon-capital"
 version = "0.1.0"
-description = "Standards-first Ordivon Capital composition; Market is one domain"
+description = "Standards-first Ordivon Capital composition across Markets, Trading, Portfolio, Risk, Research, Governance, and Accounting"
 requires-python = "==3.14.7"
 dependencies = [
     "websockets==17.1",

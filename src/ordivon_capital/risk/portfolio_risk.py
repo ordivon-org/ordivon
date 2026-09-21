@@ -580,7 +580,7 @@ def evaluate_risk_budget(
     budget: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Bind normalized portfolio facts to the bounded deterministic risk-limit policy."""
-    from ordivon_capital.market.policy_decision import (
+    from ordivon_capital.governance.policy_decision import (
         PolicyDecisionError,
         evaluate_risk_budget_policy,
     )

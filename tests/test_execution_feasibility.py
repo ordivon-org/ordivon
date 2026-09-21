@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from ordivon_capital.market.execution_feasibility import (
+from ordivon_capital.trading.execution_feasibility import (
     ExecutionFeasibilityError,
     bounded_us_equity_target_quantity,
     ib_us_equity_validation_fee,

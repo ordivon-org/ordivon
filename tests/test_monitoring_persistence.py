@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_capital.market.monitoring_persistence import (
+from ordivon_capital.research.monitoring_persistence import (
     MonitoringPersistenceError,
     monitoring_table,
     persist_monitoring_evidence,

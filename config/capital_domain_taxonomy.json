@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.domain-taxonomy",
+  "asOfDate": "2026-09-21",
+  "standing": "ACTIVE_SOURCE_OWNER_TAXONOMY",
+  "principle": "Capital is the umbrella. Markets owns observable market/reference facts; Trading owns orders, provider effect boundaries, execution and reconciliation; Portfolio owns scenario projection; Risk owns exposure and risk measurement; Research owns model/evidence validation; Governance owns mandate and authorization policy; Accounting owns durable ledger mechanics.",
+  "domains": {
+    "markets": {
+      "role": "public market/reference data, microstructure observations, streaming and market transport qualification"
+    },
+    "trading": {
+      "role": "provider/private reality, order intent, FIX projection, execution feasibility and execution reconciliation"
+    },
+    "portfolio": {
+      "role": "portfolio state transformations and caller-supplied counterfactual projections"
+    },
+    "risk": {
+      "role": "exposure, factor/dependence statistics, expected shortfall and risk-budget measurement"
+    },
+    "research": {
+      "role": "model monitoring, prospective validation, standards inventory and evidence persistence"
+    },
+    "governance": {
+      "role": "execution authorization, live-test admission, risk-budget and pre-trade policy gates"
+    },
+    "accounting": {
+      "role": "durable reservation/post/void/idempotency and ledger bindings"
+    }
+  },
+  "moduleMap": {
+    "markets": [
+      "binance_usdm_public_capture.py",
+      "binance_usdm_reference.py",
+      "crypto_public_shadow.py",
+      "crypto_public_streaming.py",
+      "crypto_stream_health.py",
+      "crypto_stream_resilience.py",
+      "market_sensors.py",
+      "okx_sensor_capture.py",
+      "websocket_proxy_lifecycle.py"
+    ],
+    "trading": [
+      "binance_usdm_private_capture.py",
+      "binance_usdm_provider.py",
+      "execution_feasibility.py",
+      "execution_reconciliation.py",
+      "fix44_projection.py",
+      "nonlive_effect_qualification.py",
+      "okx_readonly_client.py",
+      "private_reality.py"
+    ],
+    "portfolio": [
+      "portfolio_counterfactuals.py"
+    ],
+    "risk": [
+      "portfolio_risk.py"
+    ],
+    "research": [
+      "model_monitoring.py",
+      "monitoring_persistence.py",
+      "monitoring_persistence_cli.py",
+      "okx_factor_observer.py",
+      "prospective_validation.py",
+      "standards_inventory.py"
+    ],
+    "governance": [
+      "policy_decision.py"
+    ],
+    "accounting": [
+      "durable.py",
+      "sqlite_ledger.py",
+      "substrate.py"
+    ]
+  },
+  "dependencyRules": [
+    {
+      "from": "markets",
+      "forbiddenDomainImports": [
+        "trading",
+        "portfolio",
+        "risk",
+        "research",
+        "governance",
+        "accounting"
+      ],
+      "reason": "observable market/reference facts must not depend on decision, risk, execution or ledger layers"
+    }
+  ],
+  "retiredSourcePackage": {
+    "path": "src/ordivon_capital/market",
+    "standing": "RETIRED_NO_COMPATIBILITY_SHIM"
+  },
+  "contractIdentityMigration": {
+    "prefix": "ordivon.capital.market.*",
+    "standing": "DEFERRED_REQUIRES_VERSIONED_SCHEMA_MIGRATION",
+    "reason": "active schema/config identities are also embedded in frozen historical evidence; package-owner migration must not silently rewrite protocol identity"
+  },
+  "retainedCompatibilityIdentities": [
+    {
+      "identity": "ordivon_market_capital_*",
+      "standing": "RETAINED_EXTERNAL_OBSERVABILITY_COMPATIBILITY"
+    },
+    {
+      "identity": "/root/projects/ordivon-market-capital-next",
+      "standing": "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE"
+    },
+    {
+      "identity": "historical Market Capital evidence and fixture names",
+      "standing": "FROZEN_PROVENANCE_IDENTITY"
+    }
+  ]
+}

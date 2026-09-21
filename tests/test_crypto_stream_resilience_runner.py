@@ -17,7 +17,7 @@ class ResilienceRunnerTests(unittest.TestCase):
         self.assertIn('ORDIVON_MC_BINANCE_SPOT_WS_PROXY',s)
         session=(ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text()
         self.assertIn('run-capability-python',session)
-        self.assertIn('-m ordivon_capital.market.crypto_stream_resilience',session)
+        self.assertIn('-m ordivon_capital.markets.crypto_stream_resilience',session)
         self.assertNotIn('/usr/bin/uv run',session)
         self.assertNotIn('.venv/bin/python', (ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text())
     def test_master_keeps_authority_and_clock_gates(self):

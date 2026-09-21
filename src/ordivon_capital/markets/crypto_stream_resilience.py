@@ -9,14 +9,14 @@ from typing import Any
 
 from websockets.asyncio.client import connect
 
-from ordivon_capital.market.crypto_public_streaming import (
+from ordivon_capital.markets.crypto_public_streaming import (
     BINANCE_URL,
     KEYS,
     OKX_URL,
     evaluate_snapshot,
     network_v2_ws_proxies,
 )
-from ordivon_capital.market.websocket_proxy_lifecycle import (
+from ordivon_capital.markets.websocket_proxy_lifecycle import (
     NetworkV2ProxyClientConnection,
 )
 

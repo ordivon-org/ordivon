@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ordivon_capital.market.standards_inventory import validate_inventory
+from ordivon_capital.research.standards_inventory import validate_inventory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,7 +32,7 @@ def test_custom_regime_card_is_retired_and_dependence_model_requires_validation(
 
 def test_active_source_and_current_docs_do_not_depend_on_lego_or_lens_router():
     active_paths = [
-        ROOT / "src/ordivon_capital/market",
+        ROOT / "src/ordivon_capital",
         ROOT / "docs/ARCHITECTURE.md",
         ROOT / "docs/COMPOSITION_FIRST_2026-09-14.md",
         ROOT / "docs/PORTFOLIO_RISK_MONITORING_R1.md",
@@ -52,13 +52,13 @@ def test_active_analytical_component_ids_are_registered():
     inventory = _inventory()
     registered = {row["id"] for row in inventory["components"]}
     source_paths = [
-        ROOT / "src/ordivon_capital/market/market_sensors.py",
-        ROOT / "src/ordivon_capital/market/portfolio_risk.py",
-        ROOT / "src/ordivon_capital/market/portfolio_counterfactuals.py",
-        ROOT / "src/ordivon_capital/market/prospective_validation.py",
-        ROOT / "src/ordivon_capital/market/crypto_public_shadow.py",
-        ROOT / "src/ordivon_capital/market/model_monitoring.py",
-        ROOT / "src/ordivon_capital/market/monitoring_persistence.py",
+        ROOT / "src/ordivon_capital/markets/market_sensors.py",
+        ROOT / "src/ordivon_capital/risk/portfolio_risk.py",
+        ROOT / "src/ordivon_capital/portfolio/portfolio_counterfactuals.py",
+        ROOT / "src/ordivon_capital/research/prospective_validation.py",
+        ROOT / "src/ordivon_capital/markets/crypto_public_shadow.py",
+        ROOT / "src/ordivon_capital/research/model_monitoring.py",
+        ROOT / "src/ordivon_capital/research/monitoring_persistence.py",
     ]
     import re
     declared = set()

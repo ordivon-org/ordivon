@@ -11,7 +11,7 @@ from typing import Any
 
 from websockets.asyncio.client import connect
 
-from ordivon_capital.market.websocket_proxy_lifecycle import (
+from ordivon_capital.markets.websocket_proxy_lifecycle import (
     NetworkV2ProxyClientConnection,
 )
 

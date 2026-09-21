@@ -1,6 +1,6 @@
 import unittest
 
-from ordivon_capital.market.crypto_stream_health import StreamHealthPolicy, evaluate_stream_health
+from ordivon_capital.markets.crypto_stream_health import StreamHealthPolicy, evaluate_stream_health
 
 
 def row(source_ms: int, recv_ns: int):

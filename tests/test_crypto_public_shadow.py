@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_capital.market.crypto_public_shadow import analyze
+from ordivon_capital.markets.crypto_public_shadow import analyze
 
 
 class CryptoPublicShadowTests(unittest.TestCase):

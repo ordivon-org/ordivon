@@ -1,0 +1,1 @@
+"""Ordivon Capital portfolio domain."""

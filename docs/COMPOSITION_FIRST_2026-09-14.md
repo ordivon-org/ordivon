@@ -28,7 +28,7 @@ The goal is not a uniform framework. Asymmetric composition is preferred when di
 | Current bounded US-equity feasibility | local fee-aware sizer; LEAN 985ef30 as differential reference | exact bounded calculation only; broader mechanics fail closed |
 | Historical/general trading-engine mechanics | QuantConnect LEAN candidate | isolated qualification evidence only; not a canonical core dependency while supply-chain blocked |
 | Order intent semantics | FIX Latest / FIX Orchestra | local bounded sessionless FIX 4.4 TagValue projection; QuickFIX/n 1.14.1 retained only as 120/120 differential oracle/future session candidate |
-| Crypto OMS/Risk mechanics | NautilusTrader candidate | historical qualification evidence only until a current candidate passes all gates |
+| Trading OMS/Risk mechanics | NautilusTrader candidate | historical qualification evidence only until a current candidate passes all gates |
 | OKX execution transport | Nautilus candidate adapter | candidate configuration/qualification only; venue remains authoritative |
 | Binance execution transport | Nautilus candidate adapter | candidate configuration/qualification only; venue remains authoritative |
 | OKX non-live venue | OKX Demo | qualification only; venue remains authoritative |

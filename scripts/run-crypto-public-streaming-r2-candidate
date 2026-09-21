@@ -9,7 +9,7 @@ set +e
 timeout --signal=TERM --kill-after=5s 45s env \
   ORDIVON_MC_OKX_WS_PROXY="${proxy[0]}" \
   ORDIVON_MC_BINANCE_SPOT_WS_PROXY="${proxy[1]}" \
-  "$repo/scripts/run-capability-python" -m ordivon_capital.market.crypto_public_streaming \
+  "$repo/scripts/run-capability-python" -m ordivon_capital.markets.crypto_public_streaming \
     --output "$out/streaming.json" --rounds 3 --warmup-rounds 1 --deadline-seconds 25 \
   >"$out/streaming.stdout" 2>"$out/streaming.stderr"
 src=$?

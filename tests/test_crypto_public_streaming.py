@@ -1,6 +1,6 @@
 import unittest
 
-from ordivon_capital.market.crypto_public_streaming import KEYS, evaluate_snapshot
+from ordivon_capital.markets.crypto_public_streaming import KEYS, evaluate_snapshot
 
 
 def row(t,mono,bid='100',ask='101'):
@@ -35,7 +35,7 @@ class StreamingFailureAttributionTests(unittest.IsolatedAsyncioTestCase):
         import asyncio
         from unittest.mock import patch
 
-        from ordivon_capital.market import crypto_public_streaming as cps
+        from ordivon_capital.markets import crypto_public_streaming as cps
 
         async def fail_reader(*_args, **_kwargs):
             await asyncio.sleep(0)
