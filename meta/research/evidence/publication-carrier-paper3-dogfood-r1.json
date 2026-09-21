@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "research-publication-carrier-dogfood-receipt",
+  "id": "paper3-fse2027-carrier-r1",
+  "effectiveDate": "2026-09-21",
+  "studyAuthority": "/root/projects/ordivon-research-v2",
+  "studyCarrier": {
+    "path": "research/paper3/c21/artifact_release_r9/PAPER3_C21_FSE2027_SUBMISSION_R6.pdf",
+    "sha256": "sha256:e2412d9aeb8f1fff72fd8fca925cb042efa06b8f334984fba0146f9f48c08f60"
+  },
+  "venueContract": {
+    "path": "meta/research/venues/fse-2027-research-r1.json",
+    "sha256": "sha256:aae4178a0d533a6af9f7b88ebfdf12e93efecd0206ac9124158a783153eb41ed"
+  },
+  "evaluation": {
+    "machineStanding": "PASS",
+    "standing": "PENDING_HUMAN",
+    "findings": [],
+    "humanGates": [
+      "HUMAN_PERCEPTUAL_SIGNOFF"
+    ]
+  },
+  "falsification": {
+    "initialAssumption": "PDF text-layer headings appear without review-mode line-number annotations",
+    "observedCounterexample": "acmart review mode projected source line numbers before Conclusion, Data Availability, and References",
+    "repair": "Artifact heading matching strips line-number carrier annotations before semantic heading matching",
+    "regressionTest": "test_review_mode_line_numbers_do_not_hide_headings"
+  },
+  "nonClaims": [
+    "This receipt does not establish scientific correctness.",
+    "This receipt does not satisfy Human perceptual signoff.",
+    "This receipt does not make Paper3 part of the Ordivon monorepo scientific authority."
+  ],
+  "standing": "PASS_R1_DOGFOOD_MACHINE_PASS_HUMAN_GATE_PRESERVED"
+}
