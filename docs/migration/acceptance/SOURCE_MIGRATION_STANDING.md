@@ -7,7 +7,7 @@
 | Artifact | canonical monorepo owner active at capabilities/artifact; standalone source carrier physically retired with 43-ref Git restore, dirty PPT worktree recovery, live Temporal readback, and post-delete 381-test hermetic proof | ACCEPTED_SOURCE_ONLY |
 | Artifact standalone carrier | /root/projects/ordivon-artifact-v2 physically absent; Git/worktree recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
-| Capital | current source-of-truth domains/capital; lineage updated to 2772faf; source-owner taxonomy active and current protocol surface migrated to schemaVersion 2 domain identities with no runtime v1 shim; standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
+| Capital | current source-of-truth domains/capital; lineage updated to 71bf084; domain-v2 protocol active with no runtime v1 shim; stale Market-Capital observability compatibility island retired after live zero-consumer proof; standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
 | Game | canonical monorepo owner active at domains/game; standalone source carrier physically retired with 413-ref Git restore, non-Git payload restore, dirty-worktree recovery, and post-delete 584-test proof | ACCEPTED_SOURCE_ONLY |
 | Game standalone carrier | /root/projects/ordivon-game physically absent; Git/non-Git recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Harness | monorepo-native post-Skills owner; validated Browser Security donor composed at 0fe2187b, canonical tree 47f7b476 | ACCEPTED_SOURCE_ONLY |
