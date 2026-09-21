@@ -1,4 +1,4 @@
 [Unit]
 Description=Ordivon heavy observability profile
-Wants=netdata.service loki.service vector.service ordivon-grafana.service
-After=netdata.service loki.service vector.service ordivon-grafana.service
+Wants=netdata.service loki.service vector.service ordivon-grafana.service ordivon-tempo.service
+After=netdata.service loki.service vector.service ordivon-grafana.service ordivon-tempo.service

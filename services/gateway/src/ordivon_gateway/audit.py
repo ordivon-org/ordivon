@@ -69,8 +69,10 @@ class GatewayAuditMiddleware:
 
         span = trace.get_current_span()
         if isinstance(principal, str) and principal:
+            span.set_attribute("enduser.id", principal)
             span.set_attribute("ordivon.gateway.auth.principal", principal)
         if isinstance(issuer, str) and issuer:
+            span.set_attribute("ordivon.auth.issuer", issuer)
             span.set_attribute("ordivon.gateway.auth.issuer", issuer)
 
         result = await call_next(ctx)
@@ -84,6 +86,17 @@ class GatewayAuditMiddleware:
             if isinstance(candidate, str):
                 tool_name = candidate
 
+        result_identity = _result_identity(result)
+        for source, attribute in (
+            ("operationRef", "ordivon.operation_ref"),
+            ("ownerId", "ordivon.owner_id"),
+            ("nativeId", "ordivon.native_id"),
+            ("taskId", "ordivon.task_id"),
+        ):
+            value = result_identity.get(source)
+            if value:
+                span.set_attribute(attribute, value)
+
         trace_id, span_id = _trace_identity()
         event: dict[str, Any] = {
             "event": "ordivon.gateway.audit",
@@ -94,6 +107,6 @@ class GatewayAuditMiddleware:
             "traceId": trace_id,
             "spanId": span_id,
         }
-        event.update(_result_identity(result))
+        event.update(result_identity)
         logger.info(json.dumps(event, sort_keys=True, separators=(",", ":")))
         return result

@@ -68,9 +68,18 @@ sinks:
       max_size: 268435488
       when_full: block
 
-  # Deliberately consume but do not claim trace persistence. This prevents an
-  # unhandled-output false green while keeping trace storage deferred until a
-  # real owner/use-case justifies Tempo or another trace backend.
-  otel_traces_deferred:
-    type: blackhole
+  otel_traces_tempo:
+    type: opentelemetry
     inputs: [otel.traces]
+    protocol:
+      type: http
+      uri: http://127.0.0.1:14318/v1/traces
+      method: post
+      encoding:
+        codec: otlp
+    healthcheck:
+      enabled: false
+    buffer:
+      type: disk
+      max_size: 268435488
+      when_full: block

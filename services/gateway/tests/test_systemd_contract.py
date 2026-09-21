@@ -106,3 +106,25 @@ def test_gateway_pins_external_opentelemetry_runtime() -> None:
     dependencies = set(project["project"]["dependencies"])
     assert "opentelemetry-distro==0.65b0" in dependencies
     assert "opentelemetry-exporter-otlp-proto-http==1.44.0" in dependencies
+
+
+TRACE_PROFILE = ROOT / "systemd" / "ordivon-gateway.service.d" / "40-otel-traces.example.conf"
+TRACE_ENABLER = ROOT / "packaging" / "enable_trace_export.sh"
+
+
+def test_trace_profile_is_opt_in_standard_otlp_http() -> None:
+    text = TRACE_PROFILE.read_text(encoding="utf-8")
+    assert "OTEL_TRACES_EXPORTER=otlp_proto_http" in text
+    assert "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4318/v1/traces" in text
+    assert "OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" in text
+
+
+def test_trace_export_enabler_requires_live_local_observability_and_is_fixed_path() -> None:
+    text = TRACE_ENABLER.read_text(encoding="utf-8")
+    assert "40-otel-traces.example.conf" in text
+    assert "/etc/systemd/system/ordivon-gateway.service.d" in text
+    assert "systemctl is-active --quiet vector.service" in text
+    assert "http://127.0.0.1:3200/ready" in text
+    assert "systemctl restart ordivon-gateway.service" in text
+    assert "http://127.0.0.1:8899/health" in text
+    assert "$1" not in text

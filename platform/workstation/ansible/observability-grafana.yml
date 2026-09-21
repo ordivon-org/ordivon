@@ -67,7 +67,7 @@
         group: root
         mode: "0644"
 
-    - name: Provision Prometheus and Loki datasources
+    - name: Provision Prometheus, Loki, and Tempo datasources
       ansible.builtin.copy:
         src: ../observability/grafana-datasources.yaml
         dest: "{{ grafana_config_dir }}/provisioning/datasources/operations-v2.yaml"
@@ -139,6 +139,12 @@
             grafana_datasource_inventory.json
             | selectattr('uid', 'equalto', 'operations-loki')
             | selectattr('type', 'equalto', 'loki')
+            | selectattr('readOnly', 'equalto', true)
+            | list | length == 1
+          - >-
+            grafana_datasource_inventory.json
+            | selectattr('uid', 'equalto', 'operations-tempo')
+            | selectattr('type', 'equalto', 'tempo')
             | selectattr('readOnly', 'equalto', true)
             | list | length == 1
       when: ordivon_heavy_observability_acceptance | bool
