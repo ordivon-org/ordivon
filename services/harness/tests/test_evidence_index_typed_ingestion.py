@@ -256,7 +256,13 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             runtime_dependency_closure_digest="sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829",
         )
         self.assertFalse(current)
-        self.assertEqual(invalidating, ["@runtime-dependency-closure"])
+        self.assertEqual(
+            invalidating,
+            [
+                "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+                "@runtime-dependency-closure",
+            ],
+        )
 
         lsp_scope = ("src/ordivon_harness/lsp_workspace_edit.py",)
         current, invalidating = check_evidence._verified_revision_is_current(
@@ -387,21 +393,42 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertIn("src/ordivon_harness/agent_run.py", h1_invalidating)
         self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h1_invalidating)
 
-        current = entries["harness.composition.agent-plugin-h2-durable-gateway-effects"]
-        self.assertEqual(current["status"], "verified")
-        self.assertEqual(
-            current["implementationRevision"],
-            "443636b205e04b64051e26f80054696bbf7e2091",
-        )
-        receipt = json.loads(
+        h2 = entries["harness.composition.agent-plugin-h2-durable-gateway-effects"]
+        self.assertEqual(h2["status"], "historical")
+        h2_receipt = json.loads(
             (
                 ROOT / "evidence" / "harness-agent-plugin-h2-durable-gateway-effects-20260922.json"
             ).read_text(encoding="utf-8")
         )
-        self.assertEqual(receipt["gateway"]["packageVersion"], "0.3.0")
-        self.assertTrue(receipt["composition"]["durablePreDispatchIntent"])
-        self.assertTrue(receipt["composition"]["durableDispatchFence"])
-        self.assertFalse(receipt["composition"]["blindEffectRedispatchOnResponseLoss"])
+        self.assertTrue(h2_receipt["composition"]["durablePreDispatchIntent"])
+        self.assertFalse(h2_receipt["composition"]["blindEffectRedispatchOnResponseLoss"])
+        h2_current, h2_invalidating = check_evidence._verified_revision_is_current(
+            str(h2["implementationRevision"])
+        )
+        self.assertFalse(h2_current)
+        self.assertIn(
+            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+            h2_invalidating,
+        )
+        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2_invalidating)
+
+        current = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
+        self.assertEqual(current["status"], "verified")
+        self.assertEqual(
+            current["implementationRevision"],
+            "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
+        )
+        receipt = json.loads(
+            (
+                ROOT
+                / "evidence"
+                / "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(receipt["composition"]["controlTool"], "execution.cancel")
+        self.assertFalse(receipt["composition"]["cancelAcknowledgementIsTerminalProof"])
+        self.assertEqual(receipt["composition"]["nonTerminalReceiptStatus"], "cancel-requested")
+        self.assertEqual(receipt["composition"]["runStopCodeUntilTerminalProof"], "cancel_unknown")
         self.assertEqual(
             receipt["runtimeDependencyClosureDigest"],
             "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",

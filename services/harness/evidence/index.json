@@ -721,9 +721,16 @@
     {
       "claimId": "harness.composition.agent-plugin-h2-durable-gateway-effects",
       "file": "harness-agent-plugin-h2-durable-gateway-effects-20260922.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "443636b205e04b64051e26f80054696bbf7e2091",
-      "scope": "Current Harness H2 Agent Plugin effect composition: caller-fixed execution authority, durable intent and dispatch fence before Gateway/Runtime effect admission, bounded owner observation, and response-loss reconciliation by read-only request identity without blind effect redispatch."
+      "scope": "Current Harness H2 Agent Plugin effect composition: caller-fixed execution authority, durable intent and dispatch fence before Gateway/Runtime effect admission, bounded owner observation, and response-loss reconciliation by read-only request identity without blind effect redispatch. Superseded by H2b cooperative cancellation propagation."
+    },
+    {
+      "claimId": "harness.composition.agent-plugin-h2b-cooperative-cancellation",
+      "file": "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json",
+      "status": "verified",
+      "implementationRevision": "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
+      "scope": "Current Harness H2b Gateway effect control acceptance: known owner Jobs receive one cooperative execution.cancel on Harness control stop; non-terminal acknowledgement is durably cancel-requested and remains cancel_unknown until later owner reconciliation proves terminal state."
     }
   ]
 }

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-agent-plugin-h2b-cooperative-cancellation",
+  "date": "2026-09-22",
+  "implementationRevision": "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
+  "python": {
+    "version": "3.14.7",
+    "channel": "stable-ga"
+  },
+  "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
+  "composition": {
+    "gatewayPackageVersion": "0.3.0",
+    "controlTool": "execution.cancel",
+    "controlStopRequiresKnownOwnerJob": true,
+    "cancelAcknowledgementIsTerminalProof": false,
+    "nonTerminalReceiptStatus": "cancel-requested",
+    "runStopCodeUntilTerminalProof": "cancel_unknown",
+    "laterReconciliationRequired": true
+  },
+  "checks": {
+    "focusedCancellationRegression": {
+      "status": "PASS",
+      "cases": 16
+    },
+    "documentationContract": "PASS",
+    "finalCommittedHarnessFullVerify": {
+      "status": "PASS",
+      "cases": 1028,
+      "subtests": 121,
+      "evidenceContract": "PASS",
+      "wheel": "PASS",
+      "vulnerabilityScan": "PASS"
+    }
+  },
+  "externalStandardDisposition": {
+    "mcpTasksExtensionCancellation": "ALIGNED_SEMANTICS_PENDING_SDK_SURFACE",
+    "semantics": "tasks/cancel is cooperative acknowledgement; observable task state may remain working or reach another terminal state"
+  },
+  "authorityBoundary": {
+    "proves": [
+      "Harness control stop does not silently abandon a known Gateway/Runtime Job",
+      "exactly one Gateway cancellation signal is issued by the H2 bridge after owner Job identity is known",
+      "a non-terminal cancellation acknowledgement is never promoted to terminal cancelled",
+      "cancel-requested remains a non-terminal durable Tool receipt that can be reconciled on resume"
+    ],
+    "doesNotProve": [
+      "owner will honor cancellation",
+      "standard MCP Tasks wire interoperability",
+      "live public OAuth/Cloudflare production cutover"
+    ]
+  },
+  "standing": "VERIFIED_CURRENT_AGENT_PLUGIN_H2B_OWNER_ACCEPTED"
+}
