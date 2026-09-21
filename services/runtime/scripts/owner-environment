@@ -33,8 +33,12 @@ bootstrap() {
   if [[ ! -x "$python_bin" ]]; then
     "$uv_bin" venv --python "$python_version" "$env_dir"
   fi
-  "$uv_bin" pip sync --python "$python_bin" "$tooling_lock"
-  (cd "$repo" && "$cargo_bin" fetch --locked)
+  if ! "$uv_bin" pip sync --offline --python "$python_bin" "$tooling_lock"; then
+    "$uv_bin" pip sync --python "$python_bin" "$tooling_lock"
+  fi
+  if ! (cd "$repo" && "$cargo_bin" fetch --locked --offline); then
+    (cd "$repo" && "$cargo_bin" fetch --locked)
+  fi
 }
 doctor() {
   require_tools
@@ -79,9 +83,22 @@ run_tests() {
   "$python_bin" -m unittest discover -s scripts/tests -q
   PYTHON_BIN="$python_bin" scripts/local-acceptance check
 }
-run_extended() {
+environment_is_materialized() {
+  require_tools
+  [[ -x "$python_bin" ]] || return 1
+  doctor >/dev/null 2>&1 || return 1
+  (cd "$repo" && "$cargo_bin" fetch --locked --offline >/dev/null 2>&1)
+}
+ensure_materialized_environment() {
+  if environment_is_materialized; then
+    doctor
+    return
+  fi
   bootstrap
   doctor
+}
+run_extended() {
+  ensure_materialized_environment
   cd "$repo"
   "$cargo_bin" test --locked -p ordivon-runtime-core request_identity_and_terminal_winner_match_reference_model -- --nocapture
 }
