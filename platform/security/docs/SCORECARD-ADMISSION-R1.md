@@ -14,7 +14,7 @@ OpenSSF Scorecard release `v5.5.0` was acquired from the official GitHub release
 
 ## Why Security v2 itself is not yet scanned
 
-`/root/projects/ordivon-security-v2` currently has no Git remote. A read-only query of the authenticated GitHub account returned no repository matching `ordivon-security*`. Scorecard evaluates forge/repository posture, so inventing another repository identity or scanning an unrelated project would be false-green evidence.
+At the R1 observation boundary, the standalone Security-v2 carrier at /root/projects/ordivon-security-v2 had no Git remote. A read-only query of the authenticated GitHub account returned no repository matching ordivon-security*. Scorecard evaluates forge/repository posture, so inventing another repository identity or scanning an unrelated project would have been false-green evidence. The current Security source owner is /root/projects/ordivon/platform/security; this historical R1 blocker is not a claim about the current monorepo repository identity.
 
 An unauthenticated public-repository CLI smoke was also attempted and exceeded the bounded 180-second acceptance window. This does not alter the target-identity blocker.
 
