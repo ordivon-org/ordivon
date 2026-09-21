@@ -1,0 +1,83 @@
+schema_version = 1
+kind = "ordivon.repo-owner-manifest"
+truth_role = "repository-mechanics-only-not-domain-authority"
+
+[[owners]]
+name = "next"
+root = "meta/next/"
+verify_task = "next:verify"
+
+[[owners]]
+name = "runtime"
+root = "services/runtime/"
+verify_task = "runtime:verify"
+
+[[owners]]
+name = "host"
+root = "services/host/"
+verify_task = "host:verify"
+
+[[owners]]
+name = "harness"
+root = "services/harness/"
+verify_task = "harness:verify"
+
+[[owners]]
+name = "gateway"
+root = "services/gateway/"
+verify_task = "gateway:verify"
+
+[[owners]]
+name = "skills"
+root = "platform/skills/"
+verify_task = "skills:verify"
+
+[[owners]]
+name = "security"
+root = "platform/security/"
+verify_task = "security:verify"
+
+[[owners]]
+name = "workstation"
+root = "platform/workstation/"
+verify_task = "workstation:ci"
+
+[[owners]]
+name = "network"
+root = "platform/network/"
+verify_task = "network:ci"
+
+[[owners]]
+name = "artifact"
+root = "capabilities/artifact/"
+verify_task = "artifact:verify"
+
+[[owners]]
+name = "distribution"
+root = "capabilities/distribution/"
+verify_task = "distribution:verify"
+
+[[owners]]
+name = "media"
+root = "capabilities/media/"
+verify_task = "media:verify"
+
+[[owners]]
+name = "preservation"
+root = "capabilities/preservation/"
+verify_task = "preservation:verify"
+
+[[owners]]
+name = "game"
+root = "domains/game/"
+verify_task = "game:verify"
+
+[[owners]]
+name = "capital"
+root = "domains/capital/"
+verify_task = "capital:verify"
+
+[[owners]]
+name = "web"
+root = "apps/web/"
+verify_task = "web:verify"
