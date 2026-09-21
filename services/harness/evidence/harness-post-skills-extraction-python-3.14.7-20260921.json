@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-post-skills-extraction-acceptance",
+  "date": "2026-09-21",
+  "implementationRevision": "e053c4f7eadb86eae8eaff53311ef97a315929be",
+  "python": {
+    "version": "3.14.7",
+    "channel": "stable-ga"
+  },
+  "runtimeDependencyClosureDigest": "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
+  "ownerBoundary": {
+    "extractedOwner": "platform/skills",
+    "removedHarnessSource": "src/ordivon_harness/skills/",
+    "removedHarnessTestDependencies": [
+      "PyYAML==6.0.3",
+      "pyjwt==2.13.0"
+    ],
+    "retainedHarnessTestDependencies": [
+      "mcp==2.0.0",
+      "uvicorn==0.52.1",
+      "playwright==1.63.0",
+      "rfc8785==0.1.4",
+      "pytest==9.1.1"
+    ],
+    "hostRuntimeDependency": false
+  },
+  "checks": {
+    "skillsOwner": {
+      "pytest": {
+        "status": "PASS",
+        "cases": 82,
+        "subtests": 34
+      },
+      "ruff": "PASS",
+      "compileall": "PASS",
+      "workspaceBinding": "/root/projects/ordivon/meta/next"
+    },
+    "harness": {
+      "runtimeSearchProfile": "PASS",
+      "uvLock": "PASS",
+      "ruff": "PASS",
+      "pytest": {
+        "status": "PASS",
+        "cases": 838,
+        "subtests": 122
+      },
+      "dependencyContract": "PASS",
+      "documentationContract": "PASS",
+      "evidenceContract": "PASS",
+      "deterministicDemo": "PASS",
+      "wheel": "PASS",
+      "hostFreeHarnessVerified": true
+    },
+    "diffCheck": "PASS"
+  },
+  "authorityBoundary": {
+    "proves": [
+      "Skills bridge implementation no longer resides inside the Harness package owner",
+      "Harness source and dependency contracts remain valid without Skills internals",
+      "the extracted Skills bridge preserves its existing compatibility tests under an independent owner"
+    ],
+    "doesNotProve": [
+      "live Skills MCP production cutover to the new source owner",
+      "standalone Harness repository retirement",
+      "direct-client Agent Skills loading is universally available",
+      "the temporary bridge should become a permanent Skill platform"
+    ]
+  },
+  "standing": "VERIFIED_CURRENT_POST_SKILLS_EXTRACTION_OWNER_PROFILE"
+}

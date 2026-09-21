@@ -351,32 +351,56 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(any("ancestor" in error for error in errors))
 
-    def test_python_3147_upgrade_receipt_is_current_without_rebinding_old_live_evidence(self) -> None:
+    def test_python_3147_upgrade_is_historical_after_skills_owner_extraction(self) -> None:
         entries = self._entries()
-        upgrade = entries["harness.environment.python-3.14.7-upgrade"]
-        self.assertEqual(upgrade["status"], "verified")
+        old = entries["harness.environment.python-3.14.7-upgrade"]
+        self.assertEqual(old["status"], "historical")
         self.assertEqual(
-            upgrade["implementationRevision"],
+            old["implementationRevision"],
             "dfe099d7d7725089c270aaf2acf08a6688c8c045",
         )
-        receipt = json.loads(
+        old_receipt = json.loads(
             (ROOT / "evidence" / "harness-python-3.14.7-upgrade-20260921.json").read_text(
                 encoding="utf-8"
             )
         )
+        self.assertEqual(old_receipt["checks"]["pytest"]["cases"], 909)
+        self.assertEqual(old_receipt["checks"]["pytest"]["subtests"], 156)
+        old_current, invalidating = check_evidence._verified_revision_is_current(
+            str(old["implementationRevision"])
+        )
+        self.assertFalse(old_current)
+        self.assertIn("pyproject.toml", invalidating)
+        self.assertIn("uv.lock", invalidating)
+        self.assertIn("src/ordivon_harness/skills/catalog.py", invalidating)
+
+        current = entries["harness.environment.post-skills-extraction-python-3.14.7"]
+        self.assertEqual(current["status"], "verified")
+        self.assertEqual(
+            current["implementationRevision"],
+            "e053c4f7eadb86eae8eaff53311ef97a315929be",
+        )
+        receipt = json.loads(
+            (
+                ROOT
+                / "evidence"
+                / "harness-post-skills-extraction-python-3.14.7-20260921.json"
+            ).read_text(encoding="utf-8")
+        )
         self.assertEqual(receipt["python"]["version"], "3.14.7")
-        self.assertEqual(receipt["checks"]["pytest"]["cases"], 909)
-        self.assertEqual(receipt["checks"]["pytest"]["subtests"], 156)
-        self.assertEqual(receipt["checks"]["pipAudit"]["knownVulnerabilities"], 0)
+        self.assertEqual(receipt["checks"]["skillsOwner"]["pytest"]["cases"], 82)
+        self.assertEqual(receipt["checks"]["skillsOwner"]["pytest"]["subtests"], 34)
+        self.assertEqual(receipt["checks"]["harness"]["pytest"]["cases"], 838)
+        self.assertEqual(receipt["checks"]["harness"]["pytest"]["subtests"], 122)
         self.assertEqual(
             receipt["runtimeDependencyClosureDigest"],
             "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
         )
-        current, invalidating = check_evidence._verified_revision_is_current(
-            str(upgrade["implementationRevision"])
+        current_ok, current_invalidating = check_evidence._verified_revision_is_current(
+            str(current["implementationRevision"])
         )
-        self.assertTrue(current, invalidating)
-        self.assertEqual(invalidating, [])
+        self.assertTrue(current_ok, current_invalidating)
+        self.assertEqual(current_invalidating, [])
 
     def test_owner_relative_git_paths_survive_identity_preserving_monorepo_import(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

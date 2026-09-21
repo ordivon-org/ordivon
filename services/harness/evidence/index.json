@@ -700,9 +700,16 @@
     {
       "claimId": "harness.environment.python-3.14.7-upgrade",
       "file": "harness-python-3.14.7-upgrade-20260921.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "dfe099d7d7725089c270aaf2acf08a6688c8c045",
-      "scope": "Current owner/release-profile acceptance for the Harness Python 3.14.7 upgrade at dfe099d7: locked environment, runtime-search profile, compile, Ruff, 909 pytest cases plus 156 subtests, dependency/docs/evidence contracts, deterministic demo, pip-audit, wheel build/install smoke, normal owner environment, fresh cold-start owner environment, local acceptance presence, and diff-check. This receipt does not revalidate historical Adaptive Edit/LSP/DAP live claims whose former runtime dependency closure is now historical."
+      "scope": "Historical owner/release-profile acceptance for the Harness Python 3.14.7 upgrade at dfe099d7. The immutable receipt remains exact for that revision, but M6 extracted the Skills compatibility bridge from Harness and changed Harness pyproject/uv.lock plus the former src/ordivon_harness/skills tree, so it no longer certifies whole-current Harness source."
+    },
+    {
+      "claimId": "harness.environment.post-skills-extraction-python-3.14.7",
+      "file": "harness-post-skills-extraction-python-3.14.7-20260921.json",
+      "status": "verified",
+      "implementationRevision": "e053c4f7eadb86eae8eaff53311ef97a315929be",
+      "scope": "Current Harness owner/release-profile acceptance after M6 Skills bridge extraction: Python 3.14.7, owner-local lock/dependency boundary, Harness regression/release gates, and independent platform/skills compatibility-owner acceptance."
     }
   ]
 }
