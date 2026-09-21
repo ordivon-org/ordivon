@@ -621,22 +621,35 @@ pub fn inspect_registry(
         .transpose()?
         .flatten();
 
-    let resolved_attempt_supervisor_owner = resolve_attempt_id
-        .map(|attempt_id| {
-            connection
-                .query_row(
-                    "SELECT owner_json,owner_digest FROM attempt_supervisor_owners WHERE attempt_id=?1",
-                    [attempt_id],
-                    |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
-                )
-                .optional()
-                .map_err(|error| {
-                    RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner")
-                })
-        })
-        .transpose()?
-        .flatten()
-        .map(|(owner_json, owner_digest)| -> RuntimeResult<_> {
+    let supervisor_owner_table_exists = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='attempt_supervisor_owners')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(|error| {
+            RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner storage")
+        })?;
+    let resolved_attempt_supervisor_owner = if supervisor_owner_table_exists {
+        resolve_attempt_id
+            .map(|attempt_id| {
+                connection
+                    .query_row(
+                        "SELECT owner_json,owner_digest FROM attempt_supervisor_owners WHERE attempt_id=?1",
+                        [attempt_id],
+                        |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                    )
+                    .optional()
+                    .map_err(|error| {
+                        RuntimeError::from_sql(error, "inspect Attempt Supervisor Owner")
+                    })
+            })
+            .transpose()?
+            .flatten()
+    } else {
+        None
+    }
+    .map(|(owner_json, owner_digest)| -> RuntimeResult<_> {
             let observed_digest = format!("sha256:{:x}", Sha256::digest(owner_json.as_bytes()));
             if observed_digest != owner_digest {
                 return Err(RuntimeError::new(

@@ -7147,6 +7147,42 @@ fn stopping_attempt_can_bind_native_supervisor_owner_without_reentering_running(
     assert_eq!(replay.row_version, bound.row_version);
 }
 
+#[cfg(feature = "operator-tools")]
+#[test]
+fn operator_registry_inspection_tolerates_absent_optional_supervisor_owner_storage() {
+    let sandbox = Sandbox::new("operator-inspection-legacy-supervisor-owner", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:operator-inspection-legacy-supervisor-owner",
+                4,
+            ))
+            .unwrap(),
+    );
+    let connection = Connection::open(sandbox.registry.config().db_path.clone()).unwrap();
+    connection
+        .execute("DROP TABLE attempt_supervisor_owners", [])
+        .unwrap();
+    drop(connection);
+
+    let inspection = inspect_registry(
+        &RuntimeInspectionConfig {
+            db_path: sandbox.registry.config().db_path.clone(),
+            busy_timeout_ms: 5_000,
+        },
+        Some(&created.attempt.attempt_id),
+    )
+    .unwrap();
+
+    assert_eq!(
+        inspection.resolved_attempt_job_id.as_deref(),
+        Some(created.job.job_id.as_str())
+    );
+    assert!(inspection.resolved_attempt_supervisor_owner.is_none());
+}
+
 #[test]
 fn attempt_supervisor_owner_storage_is_recreated_without_advancing_schema_version() {
     let sandbox = Sandbox::new("attempt-supervisor-owner-storage", 5_000);
