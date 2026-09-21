@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library-source-boundary",
+  "historicalSourceRepo": "/root/workstation-lab",
+  "historicalSourceRevision": "ee41e995d0bd98ac08de54d9d11c876345f4f182",
+  "filterTool": "git-filter-repo",
+  "filterToolRevision": "a40bce548d2c",
+  "hostOwner": "capabilities/media",
+  "authorityBoundary": {
+    "workIdentityAuthorityOwnedByCreativeLibrary": false,
+    "sourceByteAuthorityOwnedByCreativeLibrary": false,
+    "catalogProjectionDisposable": true,
+    "presentationRoutingOnly": true,
+    "historicalArchiveAuthority": "ordivon_assets.creative_archive or frozen exact export"
+  },
+  "includedPaths": [
+    "artifacts/creative-archive/historical-works-r2-source-complete.json",
+    "artifacts/creative-library/**",
+    "creative-library/**",
+    "scripts/creative_library.py",
+    "tests/test_creative_library.py"
+  ],
+  "excludedResponsibilities": [
+    "preservation format identity",
+    "physical standing",
+    "publication approval",
+    "artistic quality",
+    "Human value",
+    "domain work identity"
+  ]
+}
