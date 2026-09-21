@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.legacy-replay-surface-registry",
+  "asOfDate": "2026-09-21",
+  "standing": "ISOLATED_FROM_CURRENT_OPERATIONAL_SCRIPTS",
+  "principles": [
+    "historical replay identity is preserved without advertising the runner as a current operational entrypoint",
+    "no compatibility shim remains at the old scripts path",
+    "current R0-R5 and Trading fullpath do not call these replay tools",
+    "LEAN class names, TigerBeetle stable-ID seeds, and frozen fixture identities are not renamed"
+  ],
+  "moves": [
+    {
+      "oldPath": "scripts/check-lean-runtime",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/check-lean-runtime"
+    },
+    {
+      "oldPath": "scripts/fetch-nasdaq-wave-b-m3",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/fetch-nasdaq-wave-b-m3"
+    },
+    {
+      "oldPath": "scripts/prepare-lean-validation-data",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/prepare-lean-validation-data"
+    },
+    {
+      "oldPath": "scripts/probe-prospective-validation-wave-b-m5",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/probe-prospective-validation-wave-b-m5"
+    },
+    {
+      "oldPath": "scripts/run-lean-wave-b-m1",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/run-lean-wave-b-m1"
+    },
+    {
+      "oldPath": "scripts/run-lean-wave-b-m2",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/run-lean-wave-b-m2"
+    },
+    {
+      "oldPath": "scripts/run-lean-wave-b-m3",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/run-lean-wave-b-m3"
+    },
+    {
+      "oldPath": "scripts/run-lean-wave-b-m4",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/run-lean-wave-b-m4"
+    },
+    {
+      "oldPath": "scripts/run-nautilus-m6-differential",
+      "currentReplayPath": "tools/nautilus_rc4/run-m6-differential"
+    },
+    {
+      "oldPath": "scripts/run-shadow-precommit-wave-b-m6",
+      "currentReplayPath": "tools/legacy_replay/lean_wave_b/run-shadow-precommit-wave-b-m6"
+    },
+    {
+      "oldPath": "scripts/run-tigerbeetle-capital-substrate-smoke-r1",
+      "currentReplayPath": "tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-capital-substrate-smoke-r1"
+    },
+    {
+      "oldPath": "scripts/run-tigerbeetle-durable-restart-smoke-r32",
+      "currentReplayPath": "tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-durable-restart-smoke-r32"
+    },
+    {
+      "oldPath": "scripts/run-tigerbeetle-reservation-resolution-smoke-r31",
+      "currentReplayPath": "tools/tigerbeetle_0_17_9/replay/run-tigerbeetle-reservation-resolution-smoke-r31"
+    }
+  ]
+}

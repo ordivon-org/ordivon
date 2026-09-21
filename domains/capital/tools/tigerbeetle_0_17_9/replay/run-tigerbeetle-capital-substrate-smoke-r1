@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo="$(cd "$(dirname "$0")/.." && pwd)"
+repo="$(cd "$(dirname "$0")/../../.." && pwd)"
 tb=/usr/local/bin/tigerbeetle
 py=/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python
 

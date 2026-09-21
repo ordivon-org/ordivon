@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# Historical unbuffered regression lane. Exact original M1 evidence is frozen at commit c3487db.
 set -euo pipefail
-repo="$(cd "$(dirname "$0")/.." && pwd)"
+repo="$(cd "$(dirname "$0")/../../.." && pwd)"
 lean="${ORDIVON_CAPITAL_MARKET_LEAN_ROOT:-/root/external/quantconnect-lean/18074}"
 out="$repo/.artifacts/wave-b-m1/results"
-"$repo/scripts/check-lean-runtime"
+"$repo/tools/legacy_replay/lean_wave_b/check-lean-runtime"
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 DOTNET_CLI_TELEMETRY_OPTOUT=1 dotnet build "$repo/wave_b/algorithm/MarketCapitalValidationAlgorithm.csproj" -c Release --nologo -p:LeanReleaseRoot="$lean/Launcher/bin/Release"
-"$repo/scripts/prepare-lean-validation-data" >/dev/null
+"$repo/tools/legacy_replay/lean_wave_b/prepare-lean-validation-data" >/dev/null
 rm -rf "$out" && mkdir -p "$out"
 export ORDIVON_CAPITAL_MARKET_TARGET_PORTFOLIO="$repo/wave_b/fixtures/wave_a_target_portfolio.json"
-export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="0"
+export ORDIVON_CAPITAL_MARKET_EXECUTION_CASH_BUFFER_WEIGHT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["executionCashBufferWeight"])' "$repo/config/execution_feasibility.json")"
 (
   cd "$lean/Launcher/bin/Release"
   ./QuantConnect.Lean.Launcher \
@@ -40,8 +39,11 @@ if len(filled) != 3: raise SystemExit(f'expected 3 fills, got {len(filled)}')
 if errors: raise SystemExit(f'LEAN errors present: {errors}')
 if not failed or int(failed.group(1)) != 0: raise SystemExit('failed data requests are nonzero')
 if 'slippageModel=VolumeShareSlippageModel' not in log: raise SystemExit('slippage model was not admitted')
+m=re.search(r'MC_FINAL_PORTFOLIO\|totalValue=([^|]+)\|cash=([^|]+)\|marginUsed=([^\n]+)', log)
+if not m: raise SystemExit('final portfolio evidence missing')
+if float(m.group(2)) < 0: raise SystemExit(f'negative final cash after feasibility sizing: {m.group(2)}')
 summary={
-  'standing':'PASS_BOUNDED_HISTORICAL_FIXTURE',
+  'standing':'PASS_BOUNDED_FEASIBILITY',
   'externalFinancialWritesAttempted':False,
   'brokerCredentialsUsed':False,
   'fills':len(filled),
