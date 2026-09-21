@@ -28,7 +28,7 @@ CANONICAL_SOURCE_REPO = Path("/root/projects/ordivon-harness")
 SOURCE_QUADLET = ROOT / "containers/ordivon-browserless@.container"
 INSTALLED_QUADLET = Path("/etc/containers/systemd/ordivon-browserless@.container")
 AUTOMATION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
-SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
+SECURITY_ROOT = Path(os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")).resolve()
 STATE_ROOT = Path("/root/.local/state/ordivon-workstation/agent-automation/state")
 PROMOTION_ROOT = STATE_ROOT / "browserless-image-promotions"
 PLAYWRIGHT_PYTHON = Path(
@@ -62,7 +62,7 @@ def _image(value: object, label: str = "candidateImage") -> str:
 
 def _source_revision(root: Path = ROOT) -> str:
     proc = subprocess.run(
-        ["/usr/bin/git", "-C", str(root), "rev-parse", "HEAD"],
+        ["/usr/bin/git", "-C", str(root), "log", "-1", "--format=%H", "--", "."],
         capture_output=True,
         text=True,
         check=False,
@@ -517,23 +517,23 @@ def _persist_receipt(candidate: str, value: dict[str, Any]) -> None:
 
 def _security_clean_revision() -> str:
     status = subprocess.run(
-        ["/usr/bin/git", "-C", str(SECURITY_ROOT), "status", "--porcelain=v1"],
+        ["/usr/bin/git", "-C", str(SECURITY_ROOT), "status", "--porcelain=v1", "--", "."],
         capture_output=True,
         text=True,
         check=True,
         timeout=10,
     ).stdout
     if status.strip():
-        raise PromotionError("Security-v2 repository must be clean before promotion finalize")
+        raise PromotionError("Security owner subtree must be clean before promotion finalize")
     revision = subprocess.run(
-        ["/usr/bin/git", "-C", str(SECURITY_ROOT), "rev-parse", "HEAD"],
+        ["/usr/bin/git", "-C", str(SECURITY_ROOT), "log", "-1", "--format=%H", "--", "."],
         capture_output=True,
         text=True,
         check=True,
         timeout=10,
     ).stdout.strip()
     if COMMIT_RE.fullmatch(revision) is None:
-        raise PromotionError("Security-v2 repository has invalid HEAD revision")
+        raise PromotionError("Security owner subtree has invalid Git revision")
     return revision
 
 

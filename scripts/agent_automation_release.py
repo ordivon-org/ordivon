@@ -30,7 +30,7 @@ WORKER_PY = Path(
 BROWSER_SECURITY_PY = Path(
     "/root/.local/share/ordivon-workstation/conversation-relay-playwright-r4/.venv/bin/python"
 )
-SECURITY_ROOT = Path("/root/projects/ordivon-security-v2")
+SECURITY_ROOT = Path(os.environ.get("ORDIVON_SECURITY_ROOT", "/root/projects/ordivon/platform/security")).resolve()
 MCP_UNIT = "ordivon-agent-automation-mcp.service"
 WORKER_UNIT = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
