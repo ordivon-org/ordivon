@@ -19,3 +19,28 @@ trap 'rm -rf "$tmp"' EXIT
 uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"
 uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off
 """
+
+# GitHub merge-group gate: identical portable checks except five historical
+# Browser Security tests that import the machine-installed Agent Automation substrate.
+[tasks.queue]
+run = """
+set -euo pipefail
+uv lock --check
+uv sync --locked
+uv run --locked python -m pytest \
+  --ignore=tests/test_browser_security_cf07_metadata_r4.py \
+  --ignore=tests/test_browser_security_r5.py \
+  --ignore=tests/test_browser_security_r7.py \
+  --ignore=tests/test_browser_security_r8.py \
+  --ignore=tests/test_browser_security_r9.py
+uv run --locked --group quality ruff check scripts tests
+uv run --locked --group quality ruff format --check scripts tests
+uv run --locked --group authority python scripts/check_authority_catalog_r1.py
+uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
+uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
+uv run --locked --group security bandit -r scripts -q -s B404,B603
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml" >/dev/null
+uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off
+"""

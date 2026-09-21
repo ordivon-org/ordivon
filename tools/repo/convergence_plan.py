@@ -131,6 +131,7 @@ def build_plan(
 
     by_name = {owner.name: owner for owner in owners}
     verify_tasks = tuple(by_name[name].task for name in verification_names)
+    queue_verify_tasks = tuple(by_name[name].queue_task for name in verification_names)
     declared_edges = sorted(
         {
             tuple(sorted((left, right)))
@@ -152,6 +153,7 @@ def build_plan(
         "directOwners": list(direct_names),
         "verificationOwners": list(verification_names),
         "verifyTasks": list(verify_tasks),
+        "queueVerifyTasks": list(queue_verify_tasks),
         "scopeIds": list(scope_ids),
         "crossCutting": cross_cutting,
         "dependencyStanding": "CONSERVATIVE_UNDIRECTED_CLOSURE_OF_DECLARED_OWNER_SEAMS",
@@ -169,7 +171,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--base")
     parser.add_argument("--head")
     parser.add_argument("--changed-file", action="append", default=[])
-    parser.add_argument("--format", choices=("json", "tasks", "scopes"), default="json")
+    parser.add_argument(
+        "--format", choices=("json", "tasks", "queue-tasks", "scopes"), default="json"
+    )
     return parser
 
 
@@ -181,6 +185,9 @@ def main() -> int:
         raise SystemExit(str(exc)) from exc
     if args.format == "tasks":
         for task in plan["verifyTasks"]:
+            print(task)
+    elif args.format == "queue-tasks":
+        for task in plan["queueVerifyTasks"]:
             print(task)
     elif args.format == "scopes":
         for scope in plan["scopeIds"]:

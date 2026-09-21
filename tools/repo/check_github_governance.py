@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -88,6 +89,13 @@ def main() -> int:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "name: root-verification" in workflow
     assert "paths:" not in workflow
+    assert "merge_group:" in workflow
+    assert "github.event.merge_group.base_sha" in workflow
+    assert "github.event.merge_group.head_sha" in workflow
+    assert 'convergence_plan.py --base "$base" --head "$head"' in workflow
+    assert '"verificationOwners"' in workflow
+    assert '"queueVerifyTasks"' in workflow
+    assert "affected_owners.py --base" not in workflow
 
     workflow_paths = sorted((ROOT / ".github" / "workflows").glob("*.yml")) + sorted(
         (ROOT / ".github" / "workflows").glob("*.yaml")
@@ -133,10 +141,17 @@ def main() -> int:
     for root in ("/.github/", "/tools/repo/", "/mise.toml"):
         assert root in codeowners, f"missing repository-mechanics CODEOWNERS boundary: {root}"
 
-    mise = (ROOT / "mise.toml").read_text(encoding="utf-8")
+    mise_path = ROOT / "mise.toml"
+    mise = mise_path.read_text(encoding="utf-8")
+    task_config = tomllib.loads(mise).get("task_config", {})
+    assert task_config.get("cascade") is True, "root mise task config must cascade into owner configs"
+    assert task_config.get("shell") == "bash -c", "root mise tasks must execute under Bash"
     for owner in owners:
         assert f'[tasks."{owner.task}"]' in mise, (
             f"owner verify task is not exposed by root mise: {owner.name}={owner.task}"
+        )
+        assert f'[tasks."{owner.queue_task}"]' in mise, (
+            f"owner queue task is not exposed by root mise: {owner.name}={owner.queue_task}"
         )
 
     print(

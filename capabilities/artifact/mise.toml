@@ -12,3 +12,24 @@ uv sync --locked
 uv run ruff check   artifact_core artifact_capabilities artifact_evidence artifact_operations   artifact_trust artifact_verification artifact_verifiers   scripts/artifact_agent_surface.py   scripts/artifact_delivery_toolchain_doctor.py scripts/artifact_verify.py   scripts/artifact_python_environment.py scripts/artifact_python_wrapper.py   scripts/artifact_oci_package.py scripts/artifact_temporal_support.py   scripts/artifact_temporal_workflow.py scripts/artifact_temporal_launch.py   scripts/artifact_temporal_worker.py scripts/artifact_temporal_deploy.py   scripts/publication_carrier_verify.py   tests
 uv run python -m pytest -m "not integration"
 """
+
+# GitHub merge-group gate. Full verify retains node-local binding acceptance;
+# this profile removes only tests whose contract is exact workstation materialization.
+[tasks.queue]
+run = """
+set -euo pipefail
+export ARTIFACT_OPENXML_VALIDATOR=/nonexistent/validate-openxml
+export ARTIFACT_DOTNET=/nonexistent/dotnet
+uv lock --check
+uv sync --locked
+uv run ruff check   artifact_core artifact_capabilities artifact_evidence artifact_operations   artifact_trust artifact_verification artifact_verifiers   scripts/artifact_agent_surface.py   scripts/artifact_delivery_toolchain_doctor.py scripts/artifact_verify.py   scripts/artifact_python_environment.py scripts/artifact_python_wrapper.py   scripts/artifact_oci_package.py scripts/artifact_temporal_support.py   scripts/artifact_temporal_workflow.py scripts/artifact_temporal_launch.py   scripts/artifact_temporal_worker.py scripts/artifact_temporal_deploy.py   scripts/publication_carrier_verify.py   tests
+uv run python -m pytest -m "not integration" \
+  --deselect=tests/test_artifact_agent_surface.py::ArtifactAgentSurfaceTests::test_cad_boundary_does_not_promote_glb \
+  --deselect=tests/test_artifact_cad_step.py::ArtifactCadStepTests::test_contract_divergence_fails_after_read \
+  --deselect=tests/test_artifact_cad_step.py::ArtifactCadStepTests::test_positive_fixture \
+  --ignore=tests/test_artifact_message.py \
+  --deselect=tests/test_artifact_software_release.py::SoftwareReleaseTests::test_local_binding_digests_match \
+  --deselect=tests/test_artifact_software_release_elf.py::LinuxElfReleaseTests::test_binding_digests \
+  --deselect=tests/test_artifact_wave.py::ArtifactWaveTests::test_local_binding_digests_match \
+  --ignore=tests/test_artifact_web_archive.py
+"""

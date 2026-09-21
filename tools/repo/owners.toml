@@ -6,6 +6,7 @@ truth_role = "repository-mechanics-only-not-domain-authority"
 name = "next"
 root = "meta/next/"
 verify_task = "next:verify"
+queue_verify_task = "next:queue"
 
 [[owners]]
 name = "runtime"
@@ -51,6 +52,7 @@ verify_task = "network:ci"
 name = "artifact"
 root = "capabilities/artifact/"
 verify_task = "artifact:verify"
+queue_verify_task = "artifact:queue"
 
 [[owners]]
 name = "distribution"

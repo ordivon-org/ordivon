@@ -23,11 +23,18 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["runtime"])
         self.assertEqual(plan["verificationOwners"], ["runtime"])
         self.assertEqual(plan["verifyTasks"], ["runtime:verify"])
+        self.assertEqual(plan["queueVerifyTasks"], ["runtime:verify"])
         self.assertEqual(plan["queueClass"], "SCOPED")
         self.assertEqual(
             plan["independenceClaim"],
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
+
+    def test_next_preserves_full_verification_but_projects_portable_queue_gate(self) -> None:
+        plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
+        self.assertIn("next:verify", plan["verifyTasks"])
+        self.assertIn("next:queue", plan["queueVerifyTasks"])
+        self.assertNotIn("next:verify", plan["queueVerifyTasks"])
 
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
@@ -39,6 +46,8 @@ class ConvergencePlanTests(unittest.TestCase):
             ["artifact", "distribution", "game", "media", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
+        self.assertIn("artifact:verify", plan["verifyTasks"])
+        self.assertIn("artifact:queue", plan["queueVerifyTasks"])
 
     def test_security_change_expands_to_harness_and_web_component(self) -> None:
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
