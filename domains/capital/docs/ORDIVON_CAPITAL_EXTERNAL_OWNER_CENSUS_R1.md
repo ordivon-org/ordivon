@@ -48,7 +48,7 @@ Treasury, Compute, Enterprise, Human, Distribution, and other conceptual domains
 ## Remaining extraction / naming work
 
 1. **Research/data extraction** — current mature mechanics are PyArrow/Parquet, DuckDB, jsonschema, NumPy/SciPy/scikit-learn and provider data. The one active monitoring schema is validated by bounded local code after a zero-mismatch Pandera differential. MLflow/Pandera/OpenLineage remain candidates only for future contracts that actually require experiment tracking, richer dataframe validation, or lineage events; Capital must not grow a duplicate data platform.
-2. **Physical repository source coordinate** — the semantic package/project identity is Ordivon Capital, but `/root/projects/ordivon-market-capital-next` is retained because frozen Research/Paper1 provenance records use that exact absolute source coordinate for source re-entry and retention anchors. This is now a reproducibility compatibility contract, not an unresolved cosmetic rename. A future move requires an explicit Research provenance migration/alias authority; no permanent filesystem symlink is introduced.
+2. **Historical physical repository source coordinate** — frozen Research/Paper1 provenance records retain the old absolute path as historical evidence identity, but the physical standalone carrier is retired. Exact source re-entry is archive-backed: restore the verified R8 Git and payload archives at the historical coordinate when reproduction requires it. No permanent duplicate repository or filesystem symlink remains.
 
 ## Non-goals
 
@@ -64,4 +64,4 @@ The surviving monitoring_persistence adapter now performs bounded local row vali
 
 Historical-looking names remain only where they carry real evidence/provenance identity. The old Market-Capital Prometheus family is retired because it had no active consumer; the exact frozen wave_a_target_portfolio.json fixture remains a compatibility identity. TigerBeetle-specific stable-ID seeds are retained only inside historical qualification artifacts; current SQLite accounting uses provider-neutral ordivon-capital:accounting:* identities.
 
-The absolute repository path `/root/projects/ordivon-market-capital-next` is also retained as a frozen Research provenance source coordinate. A 2026-09-20 host census found it in Paper1/Research Git-universe, source-linkage, episode-screening and retention-anchor records, including source-recovery-required entries. Physical rename is therefore blocked by reproducibility semantics rather than by Capital package naming.
+The old absolute repository path remains only inside frozen Research provenance records as a historical source coordinate. The physical repo is absent after R8 retirement; reproducibility is preserved by an exact-path restore procedure backed by the verified all-refs bundle, complete Git archive, and preserved non-venv payload.

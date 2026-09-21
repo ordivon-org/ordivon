@@ -80,7 +80,7 @@ This migration changes source ownership, not protocol versions.
 
 Existing ordivon.capital.market.* JSON kind/schema identifiers are deliberately not silently renamed because active configs/schemas and frozen historical evidence share those identities. Their v2 replacements are registered in config/protocol_identity_migration_v2.json; frozen v1 evidence is replayed with its historical source revision rather than auto-upgraded by current runtime code.
 
-The old Market-Capital Prometheus family was later retired after live census proved it had no active consumer. Historical Market Capital evidence/fixture names and the standalone repository path used by research provenance remain explicit provenance identities.
+The old Market-Capital Prometheus family was later retired after live census proved it had no active consumer. Historical Market Capital evidence/fixture names remain provenance identities. The former standalone repository path remains only as an archived historical source coordinate with exact-path recovery proof; the physical carrier is absent.
 
 ## External vocabulary
 

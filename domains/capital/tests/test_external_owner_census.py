@@ -115,7 +115,10 @@ def test_retained_old_names_are_explicit_external_or_provider_identity_contracts
     assert retired["prometheus-market-capital-observability"]["standing"] == "RETIRED_NO_ACTIVE_CONSUMER"
     assert by_id["tigerbeetle-market-capital-stable-provider-ids"]["standing"] == "HISTORICAL_EVIDENCE_IDENTITY_ONLY"
     assert by_id["wave-a-frozen-target-fixture"]["standing"] == "RETAINED_FROZEN_FIXTURE_IDENTITY"
-    assert by_id["historical-physical-repo-source-coordinate"]["standing"] == "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE"
+    assert "historical-physical-repo-source-coordinate" not in by_id
+    retired = {row["id"]: row for row in CENSUS["retiredCompatibilitySurfaces"]}
+    assert retired["capital-standalone-source-carrier"]["standing"] == "RETIRED_ARCHIVED_SOURCE_COORDINATE"
+    assert retired["capital-standalone-source-carrier"]["recovery"]["exactFullTreeRestoreValidated"] is True
 
 def test_portfolio_optimization_and_agent_office_are_candidates_or_references():
     owners = {row["id"]: row for row in CENSUS["standardsAndOwners"]}
