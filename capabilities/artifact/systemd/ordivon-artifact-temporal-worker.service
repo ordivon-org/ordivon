@@ -6,8 +6,8 @@ After=temporal.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/projects/ordivon-artifact-v2
-ExecStart=/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python /root/projects/ordivon-artifact-v2/scripts/artifact_temporal_worker.py --address 127.0.0.1:17233 --namespace default --task-queue ordivon-artifact --state-root /root/.local/state/ordivon-workstation/artifact-temporal
+WorkingDirectory=/root/projects/ordivon/capabilities/artifact
+ExecStart=/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python /root/projects/ordivon/capabilities/artifact/scripts/artifact_temporal_worker.py --address 127.0.0.1:17233 --namespace default --task-queue ordivon-artifact --state-root /root/.local/state/ordivon-workstation/artifact-temporal
 Restart=on-failure
 RestartSec=2s
 NoNewPrivileges=true

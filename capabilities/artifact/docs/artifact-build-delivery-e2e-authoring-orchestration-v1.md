@@ -195,7 +195,7 @@ The implementation has been exercised against the live local Temporal server, no
 - cancellation at the trust wait: workflow cancellation produced no package operation;
 - direct activity replay: a repeated package/build operation returns the committed receipt instead of duplicating the effect.
 
-A hardened systemd worker unit and plan/apply deployment helper are defined and deployed from `/root/projects/ordivon-artifact-v2`. The helper still refuses to apply from a detached Runtime workspace. The accepted worker targets the production-green Temporal cluster at `127.0.0.1:17233`, and the checked-in development-only workflow fixture has completed prepare/build/verify/package without promoting release readiness.
+A hardened systemd worker unit and plan/apply deployment helper are defined and deployed from `/root/projects/ordivon/capabilities/artifact`. The helper still refuses to apply from a detached Runtime workspace. The accepted worker targets the production-green Temporal cluster at `127.0.0.1:17233`, and the checked-in development-only workflow fixture has completed prepare/build/verify/package without promoting release readiness.
 
 ## Next admissible implementation
 

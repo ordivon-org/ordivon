@@ -11,6 +11,9 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('openxml_env',ROOT/'scripts/artifact_openxml_environment.py');M=importlib.util.module_from_spec(SPEC);assert SPEC and SPEC.loader;SPEC.loader.exec_module(M)
 class ArtifactOpenXmlEnvironmentTests(unittest.TestCase):
+    def test_apply_fence_uses_canonical_monorepo_artifact_owner(self):
+        self.assertEqual(M.MAIN, Path("/root/projects/ordivon/capabilities/artifact"))
+
     def test_lock_separates_method_package_and_sdk_restore_support(self):
         lock=json.loads((ROOT/'artifact-delivery/openxml-runtime-v1.lock.json').read_text())
         self.assertEqual(lock['methodId'],'artifact.openxml.conformance.v1')

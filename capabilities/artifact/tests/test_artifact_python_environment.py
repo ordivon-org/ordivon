@@ -11,6 +11,9 @@ SPEC=importlib.util.spec_from_file_location('artifact_python_environment_test',R
 WRAP_SPEC=importlib.util.spec_from_file_location('artifact_python_wrapper_test',ROOT/'scripts/artifact_python_wrapper.py');W=importlib.util.module_from_spec(WRAP_SPEC);assert WRAP_SPEC and WRAP_SPEC.loader;WRAP_SPEC.loader.exec_module(W)
 
 class ArtifactDeliveryEnvironmentTests(unittest.TestCase):
+    def test_apply_fence_uses_canonical_monorepo_artifact_owner(self):
+        self.assertEqual(M.MAIN, Path("/root/projects/ordivon/capabilities/artifact"))
+
     def test_lock_is_uv_owned_complete_python_package_closure(self):
         lock=json.loads((ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json').read_text())
         self.assertEqual(lock['pythonRuntime'],'3.14.7');self.assertEqual(lock['pythonPackages']['lxml'],'6.1.3')

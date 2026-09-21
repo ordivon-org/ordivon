@@ -47,7 +47,7 @@ Playwright WebKit 26.6 was downloaded and pinned, but the Playwright fallback bu
 - The PDF/UA-2 validator path is active, but no production source artifact is yet claimed PDF/UA-2 compliant.
 - WebKit local Arch standing is blocked by supported-host ABI compatibility, not by HTML semantics.
 - Figma remains an external design-system/component source rather than canonical Office document authority.
-- The Artifact Temporal worker is deployed from `/root/projects/ordivon-artifact-v2` against production-green Temporal (`127.0.0.1:17233`). Detached-workspace apply remains forbidden. Source-authority acceptance, development-only durable-workflow evidence and runtime re-materialization are recorded in `docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md`.
+- The Artifact Temporal worker is deployed from `/root/projects/ordivon/capabilities/artifact` against production-green Temporal (`127.0.0.1:17233`). Detached-workspace apply remains forbidden. Source-authority acceptance, development-only durable-workflow evidence and runtime re-materialization are recorded in `docs/SOURCE_AUTHORITY_ACCEPTANCE_20260912.md`.
 
 ## Doctor
 

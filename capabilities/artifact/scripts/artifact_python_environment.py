@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT=Path(__file__).resolve().parents[1]
-MAIN=Path('/root/projects/ordivon-artifact-v2')
+MAIN=Path('/root/projects/ordivon/capabilities/artifact')
 LOCK_PATH=ROOT/'artifact-delivery/artifact-python-runtime-v1.lock.json'
 WRAPPER_SOURCE=ROOT/'scripts/artifact_python_wrapper.py'
 UV=Path(os.environ.get('ARTIFACT_UV','/root/.local/share/mise/installs/uv/0.12.16/uv-x86_64-unknown-linux-musl/uv'))
@@ -135,7 +135,7 @@ def build_generation(base:Path,lock:dict[str,Any],project:dict[str,str],python:d
 
 
 def apply()->dict[str,Any]:
-    if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('Artifact Python environment apply is fenced to canonical /root/projects/ordivon-artifact-v2 source')
+    if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('Artifact Python environment apply is fenced to canonical /root/projects/ordivon/capabilities/artifact source')
     lock=load_lock();project=project_status(lock);python=python_status(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True);gid,final,binding=build_generation(base,lock,project,python)
     current=base/'current'
     if current.exists() and not current.is_symlink():raise RuntimeError('Artifact Python current target is not an atomic symlink authority')

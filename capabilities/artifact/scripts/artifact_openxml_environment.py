@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import hashlib,json,os
+
+import hashlib
+import json
+import os
 from pathlib import Path
+
 
 def sha(path:Path)->str:
     h=hashlib.sha256()
@@ -23,10 +27,14 @@ def tree_digest(root:Path)->str:
         h.update(len(payload).to_bytes(8,'big'));h.update(payload)
     return 'sha256:'+h.hexdigest()
 
-import argparse,subprocess,shutil,tempfile,stat,sys
+import argparse
+import shutil
+import subprocess
+import sys
 from typing import Any
+
 ROOT=Path(__file__).resolve().parents[1]
-MAIN=Path('/root/projects/ordivon-artifact-v2')
+MAIN=Path('/root/projects/ordivon/capabilities/artifact')
 LOCK_PATH=ROOT/'artifact-delivery/openxml-runtime-v1.lock.json'
 DOTNET_WRAPPER=ROOT/'scripts/artifact_openxml_dotnet_wrapper.py'
 VALIDATOR_WRAPPER=ROOT/'scripts/artifact_openxml_validator_wrapper.py'
@@ -158,7 +166,7 @@ def plan()->dict[str,Any]:
     return {'schemaVersion':1,'kind':'artifact-openxml-environment-plan','mainSourceAuthority':ROOT.resolve()==MAIN.resolve(),'nixDotnetReady':dotnet is not None,'nugetClosureReady':bool(ng),'generationSpec':spec,'current':current,'issues':issues,'applyEligible':ROOT.resolve()==MAIN.resolve() and dotnet is not None and bool(ng)}
 
 def apply()->dict[str,Any]:
-    if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('OpenXML environment apply is fenced to canonical /root/projects/ordivon-artifact-v2 source')
+    if ROOT.resolve()!=MAIN.resolve():raise RuntimeError('OpenXML environment apply is fenced to canonical /root/projects/ordivon/capabilities/artifact source')
     lock=load_lock();dotnet=nix_dotnet_status(lock);ng=nuget_sources(lock);base=Path(lock['stableRoot']);base.mkdir(parents=True,exist_ok=True);gid,final,binding=build_generation(base,lock,dotnet,ng)
     external_evidence=verify_external_evidence(final/'bin/validate-openxml')
     current=base/'current'
