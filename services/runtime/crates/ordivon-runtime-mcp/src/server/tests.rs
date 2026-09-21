@@ -2681,3 +2681,50 @@ fn compiled_tool_catalog_identity_is_deterministic_and_host_extension_free() {
     assert_eq!(RuntimeServer::compiled_tool_catalog_identity(), first);
     assert_ne!(server.tool_catalog_digest(), first.1);
 }
+
+#[test]
+fn every_tool_output_schema_is_a_two_object_tool_outcome_union() {
+    let server = Sandbox::new("cross-sdk-output-schema").server();
+    for tool in server.tool_router.list_all() {
+        let schema = serde_json::to_value(
+            tool.output_schema
+                .as_ref()
+                .unwrap_or_else(|| panic!("{} omitted output schema", tool.name)),
+        )
+        .unwrap();
+        let variants = schema
+            .get("oneOf")
+            .and_then(Value::as_array)
+            .unwrap_or_else(|| {
+                panic!(
+                    "{} output schema omitted ToolOutcome oneOf: {schema}",
+                    tool.name
+                )
+            });
+        assert_eq!(
+            variants.len(),
+            2,
+            "{} must expose success/error variants",
+            tool.name
+        );
+        for variant in variants {
+            let reference = variant
+                .get("$ref")
+                .and_then(Value::as_str)
+                .unwrap_or_else(|| {
+                    panic!("{} variant is not a local schema ref: {variant}", tool.name)
+                });
+            let definition = reference.strip_prefix("#/$defs/").unwrap_or_else(|| {
+                panic!("{} uses a non-local schema ref: {reference}", tool.name)
+            });
+            assert_eq!(
+                schema
+                    .pointer(&format!("/$defs/{definition}/type"))
+                    .and_then(Value::as_str),
+                Some("object"),
+                "{} ToolOutcome branch must resolve to an object: {definition}",
+                tool.name,
+            );
+        }
+    }
+}
