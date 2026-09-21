@@ -6795,6 +6795,37 @@ fn attempt_supervisor_owner_binding_is_atomic_idempotent_and_tamper_evident() {
         Some(owner.clone())
     );
 
+    #[cfg(feature = "operator-tools")]
+    {
+        let inspection = inspect_registry(
+            &RuntimeInspectionConfig {
+                db_path: sandbox.registry.config().db_path.clone(),
+                busy_timeout_ms: 5_000,
+            },
+            Some(&starting.attempt_id),
+        )
+        .unwrap();
+        assert_eq!(
+            inspection.resolved_attempt_job_id.as_deref(),
+            Some(created.job.job_id.as_str())
+        );
+        let projected = inspection
+            .resolved_attempt_supervisor_owner
+            .expect("supervisor owner projection");
+        assert_eq!(projected.contract, "windows_launcher_v1");
+        assert_eq!(projected.launcher_process_id, 4242);
+        assert_eq!(
+            projected.launcher_process_creation_time_file_time,
+            123_456_789
+        );
+        assert_eq!(projected.launcher_image_digest, digest(b"launcher-image"));
+        assert_eq!(
+            projected.job_name,
+            format!("Ordivon.{}", starting.attempt_id)
+        );
+        assert_eq!(projected.start_evidence_digest, start_evidence_digest);
+    }
+
     let replay = sandbox
         .registry
         .bind_supervisor_owner(&starting.attempt_id, starting.row_version, &owner, 99)
