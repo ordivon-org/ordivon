@@ -106,7 +106,8 @@ def main() -> int:
     assert not floating, f"root workflows contain non-SHA action references: {floating}"
     assert "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in workflow
     assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
-    assert "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e" in workflow
+    assert "gitleaks/gitleaks-action@" not in workflow
+    assert "run: mise run repo:secrets:verify" in workflow
 
     runtime_release = RUNTIME_RELEASE_WORKFLOW.read_text(encoding="utf-8")
     for required in (
@@ -134,6 +135,10 @@ def main() -> int:
         assert root in codeowners, f"missing repository-mechanics CODEOWNERS boundary: {root}"
 
     mise = (ROOT / "mise.toml").read_text(encoding="utf-8")
+    assert 'gitleaks = "8.30.1"' in mise
+    assert '[tasks."repo:secrets:verify"]' in mise
+    assert "gitleaks git --no-banner --redact=100 --timeout 120 ." in mise
+    assert "gitleaks dir --no-banner --redact=100 --timeout 120 ." in mise
     for owner in owners:
         assert f'[tasks."{owner.task}"]' in mise, (
             f"owner verify task is not exposed by root mise: {owner.name}={owner.task}"
