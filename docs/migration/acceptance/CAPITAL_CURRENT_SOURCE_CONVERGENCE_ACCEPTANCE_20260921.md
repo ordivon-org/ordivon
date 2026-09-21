@@ -17,13 +17,14 @@ Legacy first-generation import and current-source convergence were handled witho
 - Qualified source R2: c8999bd66f5470f6a46fad2fd4df4b0387f47259
 - First identity-preserving update: 2a4df78a192f7d381540711ad90c5e787dea0a34
 - First update-receipt commit: 95ba896e165759ab5cd2b677126fdecadaf46783
-- Final qualified source R3: abfa307d85a62debad7534b3726366d38d3b0bac
-- Final identity-preserving update: d0fc4c6b4fd4202504048177c4ec6cf80b1e3a12
-- Final source tree: 9ca33d063b58610c12b18483d93c0022a75cf48f
-- Accepted domains/capital tree: 9ca33d063b58610c12b18483d93c0022a75cf48f
-- Final source ref: refs/heads/migration/monorepo-qualified-source-r3-20260921
-- Final frozen bundle: /root/ordivon-migration-backups/2026-09-21-capital-qualified-r3/capital.bundle
-- Final bundle SHA-256: 5792d7ff4a8be31e82df6a615e8105484b018482f15af5a71d7d2481bced5fbd
+- Qualified source R3: abfa307d85a62debad7534b3726366d38d3b0bac
+- R3 identity-preserving update: d0fc4c6b4fd4202504048177c4ec6cf80b1e3a12
+- Final qualified source R4: 18ca785b7cb2b6de4e36a7d5f8db40232554c9a8
+- Final source tree: fe63497446fab85d1e63bc0027ed6c470a4a787d
+- Accepted domains/capital tree: fe63497446fab85d1e63bc0027ed6c470a4a787d
+- Final source ref: refs/heads/migration/monorepo-qualified-source-r4-20260921
+- Final frozen bundle: /root/ordivon-migration-backups/2026-09-21-capital-qualified-r4/capital.bundle
+- Final bundle SHA-256: b9e6652ba1db19683b9c7219963b5b3a813d64a3d26d06b656d6e36279a641f7
 
 All source updates after the supersession are linear descendants of their immediately previous qualified source revisions. Historical receipts remain append-only.
 
@@ -56,6 +57,7 @@ Executed from the canonical monorepo owner path domains/capital.
 - owner-census no-unowned-active-Python-module invariant: PASS
 - source/tree identity: PASS
 - Git whitespace/diff gate: PASS
+- acceptance replay leaves tracked source state unchanged: PASS
 
 The accepted source includes the narrow NetworkV2ProxyClientConnection seam for python-websockets' HTTP-proxy/TLS pre-connection_made lifecycle hazard, uses the documented create_connection extension point, and leaves normal WebSocket protocol mechanics upstream-owned.
 

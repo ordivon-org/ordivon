@@ -5,7 +5,7 @@
 | M1 | Next / Security / Network | ACCEPTED_SOURCE_ONLY |
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
-| Capital | identity-preserving legacy bridge + qualified supersession + linear updates to abfa307d; domains/capital is current source-of-truth, standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
+| Capital | identity-preserving legacy bridge + qualified supersession + linear updates to 18ca785b; domains/capital is current source-of-truth, standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
 | Harness | identity-preserving current-source supersession | ACCEPTED_SOURCE_ONLY |
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | identity-preserving current-source supersession at production-accepted `d3613c2e` | ACCEPTED_SOURCE_ONLY |
