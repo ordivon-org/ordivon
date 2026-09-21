@@ -157,3 +157,111 @@ class CredentialAliasTests(unittest.TestCase):
             alias.symlink_to(pathlib.Path("..") / "other" / target.name)
             with self.assertRaises(controller.HandoffTofuError):
                 controller._private_json(alias)
+
+
+class PlanSemanticGateTests(unittest.TestCase):
+    @staticmethod
+    def _plan() -> dict[str, object]:
+        prior_ingress = [
+            {"hostname": "skills-mcp.ordivon.com", "service": "http://127.0.0.1:8896"},
+            {"hostname": None, "service": "http_status:404"},
+        ]
+        planned_ingress = [
+            *prior_ingress[:-1],
+            {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:8899"},
+            prior_ingress[-1],
+        ]
+        return {
+            "prior_state": {
+                "values": {
+                    "root_module": {
+                        "resources": [
+                            {
+                                "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
+                                "values": {"config": {"ingress": prior_ingress}},
+                            }
+                        ]
+                    }
+                }
+            },
+            "planned_values": {
+                "root_module": {
+                    "resources": [
+                        {
+                            "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
+                            "values": {"config": {"ingress": planned_ingress}},
+                        },
+                        {
+                            "address": "cloudflare_zero_trust_access_application.gateway_mcp",
+                            "values": {
+                                "type": "self_hosted",
+                                "domain": "gateway-mcp.ordivon.com",
+                                "allowed_idps": ["idp-1"],
+                                "policies": [{"decision": "allow"}],
+                                "oauth_configuration": {
+                                    "enabled": True,
+                                    "dynamic_client_registration": {"enabled": True},
+                                    "grant": {
+                                        "access_token_lifetime": "15m",
+                                        "session_duration": "336h",
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            "address": "cloudflare_dns_record.gateway_mcp",
+                            "values": {
+                                "name": "gateway-mcp.ordivon.com",
+                                "type": "CNAME",
+                                "proxied": True,
+                            },
+                        },
+                    ]
+                }
+            },
+            "resource_changes": [
+                {
+                    "address": "cloudflare_zero_trust_access_application.gateway_mcp",
+                    "change": {"actions": ["create"]},
+                },
+                {
+                    "address": "cloudflare_dns_record.gateway_mcp",
+                    "change": {"actions": ["create"]},
+                },
+                {
+                    "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
+                    "change": {"actions": ["update"]},
+                },
+            ],
+        }
+
+    def test_semantic_gate_accepts_exact_make_before_break_plan(self) -> None:
+        semantics = controller._handoff_semantics(self._plan())
+        self.assertTrue(semantics["semantic_gate"])
+        self.assertEqual(semantics["details"]["unexpected_mutations"], [])
+
+    def test_semantic_gate_rejects_lost_existing_ingress(self) -> None:
+        plan = self._plan()
+        tunnel = plan["planned_values"]["root_module"]["resources"][0]
+        tunnel["values"]["config"]["ingress"] = [
+            {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:8899"},
+            {"hostname": None, "service": "http_status:404"},
+        ]
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["prior_named_ingress_preserved"])
+
+    def test_semantic_gate_rejects_unexpected_mutation(self) -> None:
+        plan = self._plan()
+        plan["resource_changes"].append(
+            {
+                "address": "cloudflare_dns_record.unrelated",
+                "change": {"actions": ["update"]},
+            }
+        )
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertEqual(
+            semantics["details"]["unexpected_mutations"],
+            ["cloudflare_dns_record.unrelated"],
+        )

@@ -48,11 +48,7 @@ def _private_json(path: pathlib.Path) -> dict[str, Any]:
         parent_mode = stat.S_IMODE(parent.stat().st_mode)
         raw_target = os.readlink(path)
         target_name = pathlib.Path(raw_target)
-        if (
-            target_name.is_absolute()
-            or len(target_name.parts) != 1
-            or parent_mode & 0o077
-        ):
+        if target_name.is_absolute() or len(target_name.parts) != 1 or parent_mode & 0o077:
             raise HandoffTofuError(
                 "Cloudflare credential alias must remain inside its private owner directory"
             )
@@ -128,7 +124,9 @@ def _source_identity() -> tuple[str, str]:
         releases = (TOFU_RELEASE_ROOT / "releases").resolve(strict=True)
         relative = resolved.relative_to(releases)
     except (OSError, ValueError) as exc:
-        raise HandoffTofuError("fixed OpenTofu root is outside the operation release owner") from exc
+        raise HandoffTofuError(
+            "fixed OpenTofu root is outside the operation release owner"
+        ) from exc
     if len(relative.parts) != 1 or re.fullmatch(r"[0-9a-f]{40}", relative.name) is None:
         raise HandoffTofuError("fixed OpenTofu release identity is invalid")
 
@@ -153,6 +151,132 @@ def _source_identity() -> tuple[str, str]:
         digest.update(_sha256(path).encode("ascii"))
         digest.update(b"\n")
     return relative.name, "sha256:" + digest.hexdigest()
+
+
+def _resources_by_address(module: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    resources = {
+        str(resource.get("address", "")): resource
+        for resource in module.get("resources", [])
+        if isinstance(resource, dict) and resource.get("address")
+    }
+    for child in module.get("child_modules", []) or []:
+        if isinstance(child, dict):
+            resources.update(_resources_by_address(child))
+    return resources
+
+
+def _nested_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list) and value and isinstance(value[0], dict):
+        return value[0]
+    return {}
+
+
+def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
+    checks: dict[str, bool] = {}
+    details: dict[str, Any] = {}
+    try:
+        planned_root = plan["planned_values"]["root_module"]
+        prior_root = plan["prior_state"]["values"]["root_module"]
+        planned = _resources_by_address(planned_root)
+        prior = _resources_by_address(prior_root)
+
+        tunnel_address = "cloudflare_zero_trust_tunnel_cloudflared_config.production"
+        gateway_address = "cloudflare_zero_trust_access_application.gateway_mcp"
+        dns_address = "cloudflare_dns_record.gateway_mcp"
+        tunnel_before = _nested_object(prior[tunnel_address]["values"].get("config")).get(
+            "ingress", []
+        )
+        tunnel_after = _nested_object(planned[tunnel_address]["values"].get("config")).get(
+            "ingress", []
+        )
+        if not isinstance(tunnel_before, list) or not isinstance(tunnel_after, list):
+            raise KeyError("tunnel ingress is not a list")
+
+        def named(rule: Any) -> tuple[str, str] | None:
+            if not isinstance(rule, dict):
+                return None
+            hostname = rule.get("hostname")
+            service = rule.get("service")
+            if not hostname:
+                return None
+            return str(hostname), str(service)
+
+        before_named = [item for rule in tunnel_before if (item := named(rule)) is not None]
+        after_named = [item for rule in tunnel_after if (item := named(rule)) is not None]
+        before_catch = [
+            rule for rule in tunnel_before if isinstance(rule, dict) and not rule.get("hostname")
+        ]
+        after_catch = [
+            rule for rule in tunnel_after if isinstance(rule, dict) and not rule.get("hostname")
+        ]
+
+        gateway = planned[gateway_address]["values"]
+        oauth = _nested_object(gateway.get("oauth_configuration"))
+        dcr = _nested_object(oauth.get("dynamic_client_registration"))
+        grant = _nested_object(oauth.get("grant"))
+        dns = planned[dns_address]["values"]
+
+        checks.update(
+            {
+                "prior_named_ingress_preserved": all(item in after_named for item in before_named),
+                "gateway_ingress_exactly_once": after_named.count(
+                    ("gateway-mcp.ordivon.com", "http://127.0.0.1:8899")
+                )
+                == 1,
+                "single_unchanged_catch_all": len(before_catch) == 1
+                and before_catch == after_catch,
+                "catch_all_last": bool(tunnel_after)
+                and isinstance(tunnel_after[-1], dict)
+                and not tunnel_after[-1].get("hostname"),
+                "gateway_self_hosted": gateway.get("type") == "self_hosted",
+                "gateway_domain_exact": gateway.get("domain") == "gateway-mcp.ordivon.com",
+                "managed_oauth_enabled": oauth.get("enabled") is True,
+                "dynamic_client_registration_enabled": dcr.get("enabled") is True,
+                "access_token_lifetime_15m": grant.get("access_token_lifetime") == "15m",
+                "grant_session_duration_336h": grant.get("session_duration") == "336h",
+                "owner_policy_present": len(gateway.get("policies") or []) == 1,
+                "identity_provider_present": len(gateway.get("allowed_idps") or []) >= 1,
+                "gateway_dns_exact": dns.get("name") == "gateway-mcp.ordivon.com"
+                and dns.get("type") == "CNAME"
+                and dns.get("proxied") is True,
+            }
+        )
+        details.update(
+            {
+                "prior_named_ingress_count": len(before_named),
+                "planned_named_ingress_count": len(after_named),
+                "prior_catch_all_count": len(before_catch),
+                "planned_catch_all_count": len(after_catch),
+                "gateway_policy_count": len(gateway.get("policies") or []),
+                "gateway_allowed_idp_count": len(gateway.get("allowed_idps") or []),
+            }
+        )
+    except KeyError, TypeError, ValueError:
+        checks["plan_shape_valid"] = False
+
+    mutated = sorted(
+        str(resource.get("address", ""))
+        for resource in plan.get("resource_changes", [])
+        if isinstance(resource, dict)
+        and isinstance(resource.get("change"), dict)
+        and resource["change"].get("actions") not in (["no-op"], ["read"])
+    )
+    allowed_mutations = {
+        "cloudflare_dns_record.gateway_mcp",
+        "cloudflare_zero_trust_access_application.gateway_mcp",
+        "cloudflare_zero_trust_tunnel_cloudflared_config.production",
+    }
+    unexpected_mutations = sorted(set(mutated) - allowed_mutations)
+    checks["no_unexpected_mutations"] = not unexpected_mutations
+    details["mutated_resources"] = mutated
+    details["unexpected_mutations"] = unexpected_mutations
+    return {
+        "semantic_gate": bool(checks) and all(checks.values()),
+        "checks": checks,
+        "details": details,
+    }
 
 
 def _summarize_plan(plan: dict[str, Any]) -> dict[str, Any]:
@@ -193,6 +317,7 @@ def _summarize_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "changes": changes,
         "dangerous": dangerous,
         "output_changes": output_changes,
+        "semantics": _handoff_semantics(plan),
     }
 
 
@@ -250,7 +375,8 @@ def create_plan() -> dict[str, Any]:
             "plan_sha256": digest,
             "plan_path": str(plan_path),
             "tofu_exit_code": completed.returncode,
-            "eligible_for_apply": summary["safe_no_delete_replace"],
+            "eligible_for_apply": summary["safe_no_delete_replace"]
+            and summary["semantics"]["semantic_gate"],
             "summary": summary,
         }
         _write_json(receipt_path, receipt)
