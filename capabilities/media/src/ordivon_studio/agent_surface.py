@@ -312,11 +312,13 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
         return build_learning_context(root, current_production_id=current)
     if name == "studio_creative_index_query":
         artifact_candidate = Path(os.environ.get("ORDIVON_ARTIFACT_ROOT", "/root/projects/ordivon-artifact-v2"))
-        workstation_candidate = Path(os.environ.get("ORDIVON_WORKSTATION_ROOT", "/root/workstation-lab"))
+        creative_library_candidate = Path(os.environ.get("ORDIVON_CREATIVE_LIBRARY_ROOT", str(root)))
         index = build_creative_index(
             root,
             artifact_root=artifact_candidate if artifact_candidate.exists() else None,
-            workstation_root=workstation_candidate if workstation_candidate.exists() else None,
+            creative_library_root=(
+                creative_library_candidate if creative_library_candidate.exists() else None
+            ),
         )
         return query_creative_index(index, str(arguments["term"]))
     if name == "studio_equipment_propose":

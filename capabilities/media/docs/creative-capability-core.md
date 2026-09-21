@@ -14,7 +14,7 @@ rebuildable Creative Index
 Agent / human production decisions
 ```
 
-The index is disposable. Media Equipment World remains equipment/capability authority; Production and Collection records remain work authority; Artifact remains delivery-profile and consumer-acceptance authority; Workstation remains physical equipment/creative-library authority.
+The index is disposable. Media Equipment World remains equipment/capability authority; Production and Collection records remain work authority; Artifact remains delivery-profile and consumer-acceptance authority; Workstation remains physical equipment authority. Creative Library is hosted by Media as a rebuildable cross-domain catalog/presentation projection; it does not acquire work identity or source-byte authority.
 
 ## Minimal entities
 
@@ -64,12 +64,12 @@ Physical availability remains a fresh Workstation/Runtime observation and is not
 ```bash
 python scripts/build-creative-index.py \
   --artifact-root /root/projects/ordivon-artifact-v2 \
-  --workstation-root /root/workstation-lab \
+  --creative-library-root . \
   --output /tmp/ordivon-creative-index.json
 
 python scripts/build-creative-index.py \
   --artifact-root /root/projects/ordivon-artifact-v2 \
-  --workstation-root /root/workstation-lab \
+  --creative-library-root . \
   --query asset.export.gltf
 ```
 

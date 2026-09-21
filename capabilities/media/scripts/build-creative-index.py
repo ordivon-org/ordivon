@@ -15,11 +15,11 @@ from ordivon_studio.creative_index import build_creative_index, query_creative_i
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build or query the rebuildable Ordivon creative capability/work index.")
     parser.add_argument("--artifact-root", type=Path)
-    parser.add_argument("--workstation-root", type=Path)
+    parser.add_argument("--creative-library-root", type=Path, default=ROOT)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--query")
     args = parser.parse_args()
-    index = build_creative_index(ROOT, artifact_root=args.artifact_root, workstation_root=args.workstation_root)
+    index = build_creative_index(ROOT, artifact_root=args.artifact_root, creative_library_root=args.creative_library_root)
     value = query_creative_index(index, args.query) if args.query else index
     text = json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     if args.output:

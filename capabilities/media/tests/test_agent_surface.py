@@ -198,6 +198,23 @@ class AgentSurfaceTests(unittest.TestCase):
         self.assertEqual(learning["currentProductionId"], "p1")
         self.assertIn("Retain exact evidence", learning["retainedLearning"][0]["learning"] )
 
+    def test_creative_index_query_defaults_to_media_hosted_creative_library(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fake_index = {"nodes": [], "relations": []}
+            expected = {"nodes": []}
+            with mock.patch.dict("ordivon_studio.agent_surface.os.environ", {}, clear=True), mock.patch(
+                "ordivon_studio.agent_surface.build_creative_index", return_value=fake_index
+            ) as build, mock.patch(
+                "ordivon_studio.agent_surface.query_creative_index", return_value=expected
+            ):
+                result = execute_surface_action(
+                    "studio_creative_index_query", {"term": "needle"}, root=root
+                )
+        self.assertEqual(result, expected)
+        self.assertEqual(build.call_args.kwargs["creative_library_root"], root)
+        self.assertNotIn("workstation_root", build.call_args.kwargs)
+
     def test_equipment_surface_reuses_truthful_proposal_not_a_second_registry(self) -> None:
         fake = {"ready": False, "blockers": ["AUTH_REQUIRED"]}
         with mock.patch("ordivon_studio.agent_surface.load_equipment_world", return_value={"equipment": []}), mock.patch(

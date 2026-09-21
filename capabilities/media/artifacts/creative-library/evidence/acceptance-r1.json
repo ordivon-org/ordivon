@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-library.acceptance",
+  "standing": "R1_EXACT_SOURCE_LOCAL_LIBRARY_ACCEPTED",
+  "archiveStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+  "catalogDigest": "sha256:ccfb5a84d748f6ad05618bd8f2f09f348edbc05b6c4301816e23e2605aa1e1f3",
+  "catalog": {
+    "workCount": 302,
+    "carrierCount": 3288,
+    "directInspectWorks": 302,
+    "relationCount": 45,
+    "postgresAndFrozenArchiveBuildByteIdentical": true
+  },
+  "httpAcceptance": {
+    "loopbackOnlyDefault": true,
+    "health": "PASS",
+    "htmlCspSandboxHeader": "PASS",
+    "byteRange": "PASS_206_100_BYTES",
+    "pathTraversal": "PASS_REJECTED",
+    "representativeImage": "PASS",
+    "representativeAudio": "PASS",
+    "representativeVideo": "PASS",
+    "representativePdf": "PASS",
+    "representativeText": "PASS",
+    "representativeCad": "PASS_RAW_EXACT_SOURCE",
+    "representativeEda": "PASS_RAW_EXACT_SOURCE",
+    "representativeGodot": "PASS_RAW_EXACT_SOURCE",
+    "historicalCarrierAbsentAtCurrentHead": {
+      "workId": "game:adaptive-query-bench",
+      "relativePath": "README.md",
+      "currentHeadAbsent": true,
+      "servedSha256": "eb14ec505b92801492b60846e3e3e35bda6c0a58bd40a85972b5cbb1d37238da",
+      "exactRevisionSha256": "eb14ec505b92801492b60846e3e3e35bda6c0a58bd40a85972b5cbb1d37238da",
+      "standing": "PASS"
+    }
+  },
+  "browserAcceptance": {
+    "equipmentId": "browser:playwright-chromium",
+    "bindingDigest": "sha256:8fb037532adaa5fef35fc3691852cdf926d4203451438c9506c0574413d3c7e3",
+    "executableDigest": "sha256:8c599d43aec53f2460a31ae2f4af6bd863f8258b34ff519564bc5d4726bfaa1e",
+    "homeDomRenderedWorkCount": 302,
+    "homeDomStandingVisible": true,
+    "homeDomNamedWorksVisible": ["Station Zero", "Signal Seed"],
+    "homeScreenshotSha256": "e87c8f0a31a459463aad3e9af8ddd8b7ba7a1447bd7a7329c4db4aaa6cda8258",
+    "historicalHtmlParse": {
+      "workId": "game:batch-zero",
+      "titleFound": "Batch Zero: Planning Under Ghost Demand",
+      "standing": "PASS_PARSE_ONLY_NOT_INTERACTION_CLAIM"
+    }
+  },
+  "visualPreviewGap": {
+    "total": 6,
+    "cad": ["workstation:signal-garden-cam-encoder"],
+    "eda": ["game:seen-not-approved-pcb"],
+    "godot": ["game:look-away-garden", "game:signal-garden-evidence-petals", "game:three-color-night-shift", "media:alignment-field"],
+    "boundary": "All six remain directly inspectable through retained text/source/engineering carriers. They lack an image/video/HTML/PDF visual carrier inside their exact work root. Generated professional-tool previews are a derived-carrier R2 concern and do not block R1 exact-source browsing."
+  },
+  "truthBoundary": "R1 acceptance proves local browsing, catalog construction, exact Git source resolution, browser rendering of the library shell, and representative carrier delivery. It does not prove Human value, artistic quality, physical realization, publication approval, or interactive correctness of every historical work."
+}
