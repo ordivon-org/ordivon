@@ -12,7 +12,8 @@
 | Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
 | Runtime | converged current source at `af67ed76` after `d3613c2e` supersession; repeatable identity-preserving update accepted | ACCEPTED_SOURCE_ONLY |
 | Media | standalone main aligned ff-only to accepted `30f6d122`; Media-hosted Creative Library remains an intentional monorepo-only projection overlay | ACCEPTED_SOURCE_ONLY |
-| Security | canonical monorepo owner; legacy f5db8508 identity retained, Agent Admission evolved in-place, Harness old-root consumers cut over | ACCEPTED_SOURCE_ONLY |
+| Security | canonical monorepo owner active; legacy f5db8508 standalone carrier physically retired with complete all-refs restore proof | ACCEPTED_SOURCE_ONLY |
+| Security standalone carrier | /root/projects/ordivon-security-v2 physically absent; archive bundle restore-proven; no compatibility alias | RETIRED_ARCHIVED |
 | Network | standalone main aligned ff-only to accepted `9aec70bb`; original source identity attached | ACCEPTED_SOURCE_ONLY |
 | Distribution | optional effect-safety/profile source | ACCEPTED_SOURCE_ONLY |
 | Preservation | standard-native local preservation profile | ACCEPTED_SOURCE_ONLY |
