@@ -158,6 +158,15 @@ Website unit tests still support an injected verified-Agent fixture so domain
 tests do not require an Authorization Server, while the full integration E2E
 covers the real protocol path.
 
+The Security verifier also carries an accepted pinned RFC 7800 / Keycloak
+interoperability profile around oauth4webapi 3.8.8. The profile preserves
+oauth4webapi's cryptographic DPoP verification and only handles Keycloak's
+private `kc-jkt-type="DPoP"` confirmation discriminator. Generated-key
+contract tests cover standard `jkt`, the Keycloak extension, missing/wrong
+`jkt`, and a non-DPoP discriminator. Upstream removal is preferred, but this
+profile is not itself a Website production gate.
+
+
 ## External owners
 
 - Browser/WebAuthn implementation: browser platform + SimpleWebAuthn.
@@ -177,7 +186,6 @@ Grant, Effect, risk, approval, fence, replay and evidence boundaries.
 - real HTTPS origin and RP ID;
 - existing-account-bound first credential enrollment;
 - passkey add/revoke and recovery;
-- removal/upstream resolution of the Keycloak/oauth4webapi compatibility shim;
 - Agent Passport / Grant management product surface;
 - browser-visible R4 approval product UI;
 - production storage/backup/restore acceptance;
