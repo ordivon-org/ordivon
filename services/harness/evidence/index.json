@@ -707,9 +707,16 @@
     {
       "claimId": "harness.environment.post-skills-extraction-python-3.14.7",
       "file": "harness-post-skills-extraction-python-3.14.7-20260921.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "e053c4f7eadb86eae8eaff53311ef97a315929be",
-      "scope": "Current Harness owner/release-profile acceptance after M6 Skills bridge extraction: Python 3.14.7, owner-local lock/dependency boundary, Harness regression/release gates, and independent platform/skills compatibility-owner acceptance."
+      "scope": "Historical Harness owner/release-profile acceptance after M6 Skills bridge extraction: Python 3.14.7, owner-local lock/dependency boundary, Harness regression/release gates, and independent platform/skills compatibility-owner acceptance. Superseded by the Agent Plugin H1 composition acceptance after the MCP standards-adapter and Plugin ingestion changed current Harness source and dependency closure."
+    },
+    {
+      "claimId": "harness.composition.agent-plugin-h1",
+      "file": "harness-agent-plugin-h1-acceptance-20260922.json",
+      "status": "verified",
+      "implementationRevision": "5a74fc2611cb16f51114f556285c5fd10a2fb8cf",
+      "scope": "Current Harness H1 Agent Plugins v1 composition acceptance: caller-selected Skill projection plus observation-only Gateway MCP consumption through the official MCP 2.2.0 standards adapter; effectful Gateway Tools remain excluded pending durable intent/receipt/reconciliation composition."
     }
   ]
 }

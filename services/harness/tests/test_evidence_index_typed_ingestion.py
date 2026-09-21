@@ -297,7 +297,8 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
     def test_scoped_historical_evidence_preserves_old_runtime_dependency_closure(self) -> None:
         entries = self._entries()
         scoped = [
-            entry for entry in entries.values()
+            entry
+            for entry in entries.values()
             if "implementationPaths" in entry
             and entry.get("runtimeDependencyClosureDigest")
             == "sha256:4cc6d831b89db3b09f716fff844601eb39196be13410c45ee1b12d3e7c27c829"
@@ -322,7 +323,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             self.assertIn("@runtime-dependency-closure", invalidating, entry.get("claimId"))
         self.assertEqual(
             check_evidence._runtime_dependency_closure_digest("HEAD"),
-            "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
+            "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
         )
 
     def test_scoped_runtime_dependency_digest_fails_closed_on_wrong_revision_binding(self) -> None:
@@ -351,8 +352,9 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertTrue(any("ancestor" in error for error in errors))
 
-    def test_python_3147_upgrade_is_historical_after_skills_owner_extraction(self) -> None:
+    def test_python_3147_and_post_skills_profiles_are_historical_after_plugin_h1(self) -> None:
         entries = self._entries()
+
         old = entries["harness.environment.python-3.14.7-upgrade"]
         self.assertEqual(old["status"], "historical")
         self.assertEqual(
@@ -374,27 +376,47 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertIn("uv.lock", invalidating)
         self.assertIn("src/ordivon_harness/skills/catalog.py", invalidating)
 
-        current = entries["harness.environment.post-skills-extraction-python-3.14.7"]
+        post_skills = entries["harness.environment.post-skills-extraction-python-3.14.7"]
+        self.assertEqual(post_skills["status"], "historical")
+        self.assertEqual(
+            post_skills["implementationRevision"],
+            "e053c4f7eadb86eae8eaff53311ef97a315929be",
+        )
+        post_skills_receipt = json.loads(
+            (
+                ROOT / "evidence" / "harness-post-skills-extraction-python-3.14.7-20260921.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(post_skills_receipt["python"]["version"], "3.14.7")
+        self.assertEqual(post_skills_receipt["checks"]["skillsOwner"]["pytest"]["cases"], 82)
+        self.assertEqual(post_skills_receipt["checks"]["harness"]["pytest"]["cases"], 838)
+        post_current, post_invalidating = check_evidence._verified_revision_is_current(
+            str(post_skills["implementationRevision"])
+        )
+        self.assertFalse(post_current)
+        self.assertIn("pyproject.toml", post_invalidating)
+        self.assertIn("uv.lock", post_invalidating)
+        self.assertIn("src/ordivon_harness/agent_plugin.py", post_invalidating)
+        self.assertIn("src/ordivon_harness/plugin_mcp.py", post_invalidating)
+
+        current = entries["harness.composition.agent-plugin-h1"]
         self.assertEqual(current["status"], "verified")
         self.assertEqual(
             current["implementationRevision"],
-            "e053c4f7eadb86eae8eaff53311ef97a315929be",
+            "5a74fc2611cb16f51114f556285c5fd10a2fb8cf",
         )
         receipt = json.loads(
-            (
-                ROOT
-                / "evidence"
-                / "harness-post-skills-extraction-python-3.14.7-20260921.json"
-            ).read_text(encoding="utf-8")
+            (ROOT / "evidence" / "harness-agent-plugin-h1-acceptance-20260922.json").read_text(
+                encoding="utf-8"
+            )
         )
         self.assertEqual(receipt["python"]["version"], "3.14.7")
-        self.assertEqual(receipt["checks"]["skillsOwner"]["pytest"]["cases"], 82)
-        self.assertEqual(receipt["checks"]["skillsOwner"]["pytest"]["subtests"], 34)
-        self.assertEqual(receipt["checks"]["harness"]["pytest"]["cases"], 838)
-        self.assertEqual(receipt["checks"]["harness"]["pytest"]["subtests"], 122)
+        self.assertEqual(receipt["composition"]["pluginStandard"], "Agent Plugins v1")
+        self.assertEqual(receipt["composition"]["mcpAdapter"]["version"], "2.2.0")
+        self.assertFalse(receipt["composition"]["effectfulToolsAdmitted"])
         self.assertEqual(
             receipt["runtimeDependencyClosureDigest"],
-            "sha256:9dcd43f9409ad41c5113ac5ab929898eceb9da4e7485d88d4873242ed6205e21",
+            "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
         )
         current_ok, current_invalidating = check_evidence._verified_revision_is_current(
             str(current["implementationRevision"])
@@ -423,16 +445,16 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
                 "print('probe')\n", encoding="utf-8"
             )
             subprocess.run(["git", "-C", str(source), "add", "."], check=True)
-            subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "implementation"], check=True)
+            subprocess.run(
+                ["git", "-C", str(source), "commit", "-q", "-m", "implementation"], check=True
+            )
             implementation = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
             ).strip()
 
             receipt_bytes = b'{"kind":"probe"}\n'
             (source / "evidence" / "receipt.json").write_bytes(receipt_bytes)
-            subprocess.run(
-                ["git", "-C", str(source), "add", "evidence/receipt.json"], check=True
-            )
+            subprocess.run(["git", "-C", str(source), "add", "evidence/receipt.json"], check=True)
             subprocess.run(["git", "-C", str(source), "commit", "-q", "-m", "evidence"], check=True)
             source_head = subprocess.check_output(
                 ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
