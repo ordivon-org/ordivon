@@ -10,6 +10,9 @@ Host integrations are adapters around this caller-neutral authority; they do not
 change Harness persistence or execution ownership.
 """
 
+from .agent_plugin import AgentPluginComposition, AgentPluginCompositionError
+from .plugin_mcp import OfficialMcpClient, PluginMcpObservationBridge
+
 from .completion import (
     decode_structured_completion_result,
     structured_completion_contract_digest,
@@ -67,6 +70,10 @@ __all__ = [
     "HarnessAgentExecution",
     "HarnessAgentRun",
     "HarnessAgentRunCompositionError",
+    "AgentPluginComposition",
+    "AgentPluginCompositionError",
+    "OfficialMcpClient",
+    "PluginMcpObservationBridge",
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",

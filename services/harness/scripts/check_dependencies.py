@@ -10,6 +10,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 def fail(message: str) -> None:
     print(f"dependencies: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -21,11 +22,17 @@ def main() -> int:
     expected_dependencies = ["httpx==0.28.1", "jsonschema>=4.26,<5"]
     if project.get("dependencies") != expected_dependencies:
         fail("base dependencies must contain only HTTPX and jsonschema")
-    if "optional-dependencies" in project:
-        fail("Harness must not expose compatibility dependency extras")
+    if project.get("optional-dependencies") != {"mcp": ["mcp==2.2.0"]}:
+        fail("Harness may expose only the official MCP v2 standards-adapter extra")
     expected_groups = {
         "dev": ["ruff==0.15.17"],
-        "test": ["mcp==2.0.0", "uvicorn==0.52.1", "playwright==1.63.0", "rfc8785==0.1.4", "pytest==9.1.1"],
+        "test": [
+            "mcp==2.2.0",
+            "uvicorn==0.52.1",
+            "playwright==1.63.0",
+            "rfc8785==0.1.4",
+            "pytest==9.1.1",
+        ],
     }
     if raw.get("dependency-groups") != expected_groups:
         fail("Harness dependency groups must preserve exact dev/test separation")
@@ -86,9 +93,7 @@ def main() -> int:
         and package["source"].get("registry") == "https://pypi.org/simple"
     )
     if audit != locked_pypi:
-        fail(
-            "requirements-audit.txt must exactly match registry-sourced uv.lock runtime packages"
-        )
+        fail("requirements-audit.txt must exactly match registry-sourced uv.lock runtime packages")
 
     version_match = re.search(
         r'^version = "([^"]+)"$',
@@ -109,7 +114,7 @@ def main() -> int:
 
     print(
         "dependency contract: valid canonical=owner-local-compat host=absent "
-        "runtime=httpx+jsonschema dev=ruff test=agent-mcp+playwright+pytest"
+        "runtime=httpx+jsonschema adapter=mcp2.2 dev=ruff test=agent-mcp+playwright+pytest"
     )
     return 0
 

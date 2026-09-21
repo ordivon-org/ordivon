@@ -18,6 +18,10 @@ EXPECTED_API = {
     "HarnessAgentExecution",
     "HarnessAgentRun",
     "HarnessAgentRunCompositionError",
+    "AgentPluginComposition",
+    "AgentPluginCompositionError",
+    "OfficialMcpClient",
+    "PluginMcpObservationBridge",
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
@@ -119,9 +123,7 @@ class PublicApiTests(unittest.TestCase):
 
     def test_retired_host_external_adapter_is_not_a_package_surface(self) -> None:
         self.assertFalse(hasattr(ordivon_harness, "HarnessRunner"))
-        self.assertIsNone(
-            importlib.util.find_spec("ordivon_harness.host_external_adapter")
-        )
+        self.assertIsNone(importlib.util.find_spec("ordivon_harness.host_external_adapter"))
 
     def test_source_checkout_version_matches_project_metadata(self) -> None:
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]

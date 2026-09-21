@@ -44,6 +44,10 @@ STABLE_API = {
     "HarnessAgentExecution",
     "HarnessAgentRun",
     "HarnessAgentRunCompositionError",
+    "AgentPluginComposition",
+    "AgentPluginCompositionError",
+    "OfficialMcpClient",
+    "PluginMcpObservationBridge",
     "HarnessCognitionProfile",
     "HarnessCognitionSeed",
     "HarnessCognitionSeedSource",
@@ -247,7 +251,9 @@ def validate_public_contracts() -> list[str]:
     if "actions/upload-artifact@" not in release:
         errors.append("release acceptance does not retain the verified wheel")
     if "fetch-depth: 0" not in release:
-        errors.append("release acceptance does not materialize full Git history for source-currentness checks")
+        errors.append(
+            "release acceptance does not materialize full Git history for source-currentness checks"
+        )
 
     pull_request = (ROOT / ".github/pull_request_template.md").read_text(encoding="utf-8")
     for heading in ("## Boundary", "## Evidence", "## Compatibility", "## Security and data"):
@@ -318,7 +324,7 @@ def validate_public_contracts() -> list[str]:
         "structured-result-v1",
         "decode_structured_completion_result",
         "unresolved unknowns",
-            ):
+    ):
         if required not in quickstart:
             errors.append(f"QUICKSTART.md lacks Agent-first authoring guidance: {required}")
     if "python scripts/check_wheel.py dist" in quickstart:

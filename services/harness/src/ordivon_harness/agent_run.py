@@ -36,7 +36,6 @@ from .ordivon.loop import CancellationToken, RunBudget
 from .ordivon.tool_bridge import ToolBridge
 
 
-
 HarnessAgentAdapterFactory: TypeAlias = Callable[[HarnessRunContract], AgentTurnAdapter]
 
 
@@ -61,6 +60,7 @@ class HarnessAgentRun:
     cognition_profile: HarnessCognitionProfile | None = None
     execution_binding: HarnessExecutionBinding | None = None
     runtime: HarnessRuntimeClient | None = None
+    tool_bridge: ToolBridge | None = None
 
     @classmethod
     def create(
@@ -72,6 +72,7 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None = None,
         execution_binding: HarnessExecutionBinding | None = None,
         runtime: HarnessRuntimeClient | None = None,
+        tool_bridge: ToolBridge | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
@@ -80,6 +81,7 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
+            tool_bridge=tool_bridge,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
         root = Path(state_root).expanduser().resolve()
@@ -104,6 +106,7 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
+            tool_bridge=tool_bridge,
             clock_ms=clock_ms,
             monotonic_ms=monotonic_ms,
         )
@@ -118,6 +121,7 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None = None,
         execution_binding: HarnessExecutionBinding | None = None,
         runtime: HarnessRuntimeClient | None = None,
+        tool_bridge: ToolBridge | None = None,
         clock_ms: Callable[[], int] | None = None,
         monotonic_ms: Callable[[], int] | None = None,
     ) -> HarnessAgentRun:
@@ -132,6 +136,7 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
+            tool_bridge=tool_bridge,
         )
         adapter = cls._resolve_adapter(contract, adapter_factory)
         return cls._bind(
@@ -141,6 +146,7 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
+            tool_bridge=tool_bridge,
             clock_ms=clock_ms,
             monotonic_ms=monotonic_ms,
         )
@@ -155,6 +161,7 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None,
         execution_binding: HarnessExecutionBinding | None,
         runtime: HarnessRuntimeClient | None,
+        tool_bridge: ToolBridge | None,
         clock_ms: Callable[[], int] | None,
         monotonic_ms: Callable[[], int] | None,
     ) -> HarnessAgentRun:
@@ -169,6 +176,7 @@ class HarnessAgentRun:
             cognition_profile=cognition_profile,
             execution_binding=execution_binding,
             runtime=runtime,
+            tool_bridge=tool_bridge,
         )
         return value
 
@@ -250,6 +258,18 @@ class HarnessAgentRun:
                     "supplied": self.runtime is not None,
                     "proofRole": "process-local",
                     "liveness": "not-probed",
+                },
+                "customToolBridge": {
+                    "supplied": self.tool_bridge is not None,
+                    "proofRole": "process-local-and-contract-checked",
+                    "catalogDigest": (
+                        None if self.tool_bridge is None else self.tool_bridge.catalog_digest
+                    ),
+                    "grantDigest": (
+                        None
+                        if self.tool_bridge is None
+                        else getattr(self.tool_bridge, "grant_digest", None)
+                    ),
                 },
             },
             "proofBoundary": (
@@ -347,6 +367,8 @@ class HarnessAgentRun:
             return SQLiteHarnessAgentBridge(
                 self.contract, continuity, provider_source=provider_source
             )
+        if self.tool_bridge is not None:
+            return self.tool_bridge
         assert self.execution_binding is not None
         assert self.runtime is not None
         return SQLiteHarnessRuntimeBridge(
@@ -405,6 +427,7 @@ class HarnessAgentRun:
         cognition_profile: HarnessCognitionProfile | None,
         execution_binding: HarnessExecutionBinding | None,
         runtime: HarnessRuntimeClient | None,
+        tool_bridge: ToolBridge | None,
     ) -> None:
         """Admit every supported composition fact provable before state creation.
 
@@ -418,10 +441,7 @@ class HarnessAgentRun:
                 raise HarnessAgentRunCompositionError(
                     "Harness cognition requires Contract permission to retain model content"
                 )
-            if (
-                cognition_profile.working_set_history
-                and not contract.privacy.allow_tool_content
-            ):
+            if cognition_profile.working_set_history and not contract.privacy.allow_tool_content:
                 raise HarnessAgentRunCompositionError(
                     "Harness cognition history requires Tool-content authority"
                 )
@@ -435,22 +455,40 @@ class HarnessAgentRun:
             and contract.tool_grant_digest == INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
         )
         if no_tool:
-            if execution_binding is not None or runtime is not None:
+            if execution_binding is not None or runtime is not None or tool_bridge is not None:
                 raise HarnessAgentRunCompositionError(
-                    "no-Tool Harness Agent Run must not receive Runtime execution authority"
+                    "no-Tool Harness Agent Run must not receive Tool or Runtime authority"
                 )
             return
         if runtime_search:
+            if tool_bridge is not None:
+                raise HarnessAgentRunCompositionError(
+                    "built-in Runtime Tool surface must not be replaced by a custom Tool bridge"
+                )
             if execution_binding is None or runtime is None:
                 raise HarnessAgentRunCompositionError(
                     "Runtime Tool Harness Agent Run requires exact execution binding and Runtime client"
                 )
             HarnessAgentRun._validate_execution_binding(contract, execution_binding)
             return
-        raise HarnessAgentRunCompositionError(
-            "Harness Agent Run does not implement the Contract's exact Tool surface; "
-            "use advanced core composition for custom Tool bridges"
-        )
+        if execution_binding is not None or runtime is not None:
+            raise HarnessAgentRunCompositionError(
+                "custom Tool bridge surface must not receive Runtime execution binding"
+            )
+        if tool_bridge is None:
+            raise HarnessAgentRunCompositionError(
+                "Harness Agent Run does not implement this exact Tool surface without an explicit custom Tool bridge"
+            )
+        if tool_bridge.catalog_digest != contract.tool_catalog_digest:
+            raise HarnessAgentRunCompositionError(
+                "custom Tool bridge catalog differs from the Run Contract"
+            )
+        bridge_grant_digest = getattr(tool_bridge, "grant_digest", None)
+        if bridge_grant_digest != contract.tool_grant_digest:
+            raise HarnessAgentRunCompositionError(
+                "custom Tool bridge grant differs from the Run Contract"
+            )
+        return
 
     @staticmethod
     def _validate_execution_binding(
@@ -472,9 +510,7 @@ class HarnessAgentRun:
             )
         run_refs = [reference for reference in references if reference["type"] == "harness_run"]
         if len(run_refs) != 1 or run_refs[0]["id"] != contract.harness_run_id:
-            raise HarnessAgentRunCompositionError(
-                "Harness Execution Binding Run reference differs"
-            )
+            raise HarnessAgentRunCompositionError("Harness Execution Binding Run reference differs")
         contract_refs = [
             reference for reference in references if reference["type"] == "run_contract"
         ]
@@ -482,9 +518,7 @@ class HarnessAgentRun:
             raise HarnessAgentRunCompositionError(
                 "Harness Execution Binding Contract reference differs"
             )
-        grant_refs = [
-            reference for reference in references if reference["type"] == "tool_grant"
-        ]
+        grant_refs = [reference for reference in references if reference["type"] == "tool_grant"]
         if (
             len(grant_refs) != 1
             or grant_refs[0].get("digest") != INDEPENDENT_SEARCH_TOOL_GRANT_DIGEST
@@ -493,7 +527,6 @@ class HarnessAgentRun:
             raise HarnessAgentRunCompositionError(
                 "Harness Execution Binding Tool Grant reference differs"
             )
-
 
 
 __all__ = [

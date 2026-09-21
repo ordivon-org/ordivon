@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-08
+updated: 2026-09-22
 summary: Minimal path from a clean checkout to deterministic verification, operator inspection and live read-only acceptance.
 evidence_status: verified
 readiness: READY
@@ -43,7 +43,7 @@ uv build --wheel --out-dir dist
 python scripts/check_wheel.py "$(find dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
 ```
 
-The wheel keeps a small Host-free runtime dependency graph: pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport and `jsonschema` for opt-in local structured-result conformance verification. Historical Harness identity canonicalization is packaged locally as the `anc_canonical` compatibility shim; it is not an external dependency and must not be extended into a new shared protocol layer. It does not install Host or expose a Host extra.
+The base wheel keeps a small Host-free runtime dependency graph: pinned `httpx==0.28.1` for cancellable DeepSeek HTTP/TLS transport and `jsonschema` for opt-in local structured-result conformance verification. Standard Agent Plugin MCP consumption is isolated behind the exact `mcp` extra (`ordivon-harness[mcp]`), pinned to the official `mcp==2.2.0` Python SDK. Historical Harness identity canonicalization is packaged locally as the `anc_canonical` compatibility shim; it is not an external dependency and must not be extended into a new shared protocol layer. It does not install Host or expose a Host extra.
 
 ## Initialize independent state
 
@@ -98,6 +98,61 @@ ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
 `capabilities` reports only the execution profiles the CLI actually supports, including their exact source-owned Tool catalog/grant digests. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
 
 For the built-in DeepSeek profile, the Contract must bind the canonical no-Tool catalog/grant and the configured DeepSeek Adapter/model. The current adapter reserves a conservative request-token upper bound equal to the serialized Provider request bytes plus its 8,192-token completion ceiling. A small Contract such as `max_total_tokens=4_096` can therefore be rejected safely before the first Provider dispatch; `16_384` is a practical starting bound for a small no-Tool Run, not a universal required value.
+
+### Agent Plugin composition — H1 observation-only
+
+Harness can consume an already selected **Agent Plugins v1** package without becoming a Plugin registry or Skill authority. The application loads the portable package, selects exact Skill/MCP components, and binds the resulting Tool catalog and grant digests into the ordinary `HarnessRunContract`.
+
+```python
+from ordivon_harness.api import (
+    AgentPluginComposition,
+    HarnessAgentRun,
+    HarnessCognitionSeed,
+    HarnessCognitionSeedSource,
+    HarnessCognitionProfile,
+    OfficialMcpClient,
+    PluginMcpObservationBridge,
+)
+
+plugin = AgentPluginComposition.load("/path/to/materialized/plugin")
+
+# Agent Skill remains advisory procedure content. The caller chooses it; the
+# Plugin/Harness does not grant Tools or permissions by loading it.
+skill_source = plugin.skill("method-router").to_working_view_source()
+seed = HarnessCognitionSeed(
+    attempt_id="working-attempt:plugin",
+    sources=(HarnessCognitionSeedSource(slot="procedure", source=skill_source),),
+    basis="caller selected this exact Skill for the bounded Run",
+)
+
+# Authentication belongs to the embedding client/application. Pass an
+# httpx-compatible Auth object such as the official MCP OAuthClientProvider.
+client = OfficialMcpClient(
+    plugin.mcp("ordivon-gateway"),
+    auth=caller_supplied_auth,
+)
+bridge = PluginMcpObservationBridge(
+    plugin.mcp("ordivon-gateway"),
+    client,
+    allowed_tools=("system.describe", "capability.describe"),
+)
+
+# Author the Run Contract with:
+#   tool_catalog_digest = bridge.catalog_digest
+#   tool_grant_digest   = bridge.grant_digest
+run = HarnessAgentRun.create(
+    state_root,
+    contract,
+    adapter_factory,
+    tool_bridge=bridge,
+    cognition_profile=HarnessCognitionProfile(),
+)
+execution = run.run((), cognition_seed=seed)
+```
+
+This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, and `continuity.list`. It rejects `execution.submit`, `execution.cancel`, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition requires the separate durable intent/receipt/reconciliation slice; a generic MCP call must not bypass Harness recovery semantics.
+
+The portable package contains component identity, not credentials. OAuth/token storage and interactive authorization remain application/client concerns. Harness accepts the official MCP SDK Auth port and does not define a second OAuth protocol or credential database.
 
 ### Supported Python Agent Run surface
 

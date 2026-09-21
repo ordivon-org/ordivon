@@ -19,13 +19,13 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertIn("httpx==0.28.1", requirements)
         self.assertIn("jsonschema>=4.26,<5", requirements)
         self.assertFalse(any("ordivon-protocol" in requirement for requirement in requirements))
-        self.assertNotIn("optional-dependencies", project["project"])
+        self.assertEqual(project["project"].get("optional-dependencies"), {"mcp": ["mcp==2.2.0"]})
         self.assertEqual(
             project.get("dependency-groups"),
             {
                 "dev": ["ruff==0.15.17"],
                 "test": [
-                    "mcp==2.0.0",
+                    "mcp==2.2.0",
                     "uvicorn==0.52.1",
                     "playwright==1.63.0",
                     "rfc8785==0.1.4",
@@ -67,8 +67,6 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertIn("harness.provider-call-claimed", HARNESS_STORE_EVENT_KINDS)
         self.assertIn("harness.tool-step-prepared", HARNESS_STORE_EVENT_KINDS)
 
-
-
     def test_retired_host_era_abandonment_surface_does_not_return(self) -> None:
         import ordivon_harness.api as api
         from ordivon_harness.store import HARNESS_STORE_EVENT_KINDS, HarnessRunStatus
@@ -79,6 +77,7 @@ class RepositoryBoundaryTests(unittest.TestCase):
         self.assertFalse(hasattr(api, "NativeRunAbandonment"))
         self.assertFalse(hasattr(HarnessRunStatus, "ABANDONED"))
         self.assertNotIn("harness.run-abandoned", HARNESS_STORE_EVENT_KINDS)
+
 
 if __name__ == "__main__":
     unittest.main()

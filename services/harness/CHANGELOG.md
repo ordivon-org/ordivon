@@ -23,6 +23,8 @@ All user-visible changes to Ordivon Harness are recorded here. Release and compa
 
 ## Unreleased
 
+- added a thin Agent Plugins v1 ingestion path for the canonical Harness consumer: portable Skills project into caller-selected cognition sources, portable Streamable HTTP MCP components use the official MCP 2.2.0 client, observation-only Gateway Tools are catalog/grant digest-bound and fail closed on drift, while effectful Gateway Tools remain excluded until they can reuse durable Tool intent/receipt/reconciliation semantics;
+
 - upgraded the Harness owner/runtime baseline to Python 3.14.7, the current latest stable GA Python release. The resolved runtime closure drops the no-longer-required `typing-extensions` compatibility backport; nine immutable Adaptive Edit/LSP/DAP receipts that were current only under the former closure are retained byte-for-byte but reclassified as historical instead of being silently rebound to the new environment. Current compatibility policy now follows the newest stable GA Python feature line by default, with preview releases used only for evaluation and any lower-version pin treated as temporary compatibility debt with an explicit exit condition.
 
 - reconciled Browser Security qualification with on-demand Browserless carrier lifecycle: paired canary control now comes from the installed rendered Quadlet, pool observation may temporarily wake a sleeping managed carrier and restores it only under the carrier lease when no session appeared, and image promotion preserves/restores the exact pre-promotion active/inactive topology.
