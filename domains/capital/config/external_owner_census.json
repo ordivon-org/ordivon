@@ -794,13 +794,6 @@
       "standing": "RETAINED_FROZEN_FIXTURE_IDENTITY",
       "owner": "Wave-B regression/execution-mechanics evidence boundary",
       "reason": "the generator is retired but the exact frozen fixture remains an admitted historical input; rewriting it would change evidence identity"
-    },
-    {
-      "id": "historical-physical-repo-source-coordinate",
-      "surface": "/root/projects/ordivon-market-capital-next",
-      "standing": "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE",
-      "owner": "Frozen Ordivon Research/Paper1 source-coordinate and retention-anchor evidence",
-      "reason": "the absolute path is embedded in frozen Git-universe/source-linkage/retention-anchor records used for reproducibility and source re-entry; physical rename requires an explicit Research provenance migration or alias authority, not a filesystem cosmetic move"
     }
   ],
   "comparativeQualifications": [
@@ -1575,6 +1568,51 @@
       "standing": "RETIRED_NO_ACTIVE_CONSUMER",
       "reason": "2026-09-21 live census: prometheus-node-exporter.service inactive, prometheus.service inactive, active Network v2 Prometheus on 127.0.0.1:29090 exposes zero ordivon_market_capital_* series and does not scrape the legacy node exporter",
       "futureRule": "if Capital later needs TSDB/PromQL/alerting, qualify a fresh Capital observability contract instead of restoring the legacy prefix"
+    },
+    {
+      "id": "capital-standalone-source-carrier",
+      "surface": "/root/projects/ordivon-market-capital-next",
+      "standing": "RETIRED_ARCHIVED_SOURCE_COORDINATE",
+      "owner": "monorepo domains/capital is current source owner; archive owns historical recovery",
+      "reason": "Runtime and Host claimant census reached zero, linked workspaces were closed, non-Git residuals were archived, all refs and unreachable Git objects were recovery-tested, and the physical standalone carrier was deleted",
+      "researchProvenanceRule": "frozen Research/Paper1 records keep the historical absolute coordinate unchanged; exact-path source re-entry is satisfied by restoring the verified archive on demand rather than by a permanent duplicate repository or symlink",
+      "recovery": {
+        "backupRoot": "/root/ordivon-migration-backups/2026-09-21-capital-standalone-retirement-r8/source",
+        "allRefsBundleSha256": "sha256:2f69f5a8e9d2877afdb832f726633a3f2d9cb2cba74110e0ca589aeff5363ba8",
+        "gitDirectoryTarSha256": "sha256:98376f7d89e330881805a5b34cb1ee4689daa29ce68bf20890f7365a6fb708eb",
+        "ignoredNonVenvPayloadTarSha256": "sha256:6ce3769ec2e338ffe3d3539f3ce8dba3b2d0717f805550fe014864afea8dbc2b",
+        "sndkResidualTarSha256": "sha256:7fe9433e6b9583a66c4cdd0305ac2b6476bfdc54becc4bc0055e0f42acdadac4",
+        "refs": 50,
+        "commits": 94,
+        "unreachableObjectsPreserved": 30,
+        "ignoredNonVenvFilesPreserved": 322,
+        "exactFullTreeRestoreValidated": true,
+        "excludedRegenerablePayload": [
+          ".venv"
+        ]
+      }
     }
-  ]
+  ],
+  "standaloneCarrierRetirement": {
+    "standing": "RETIRED_ARCHIVED",
+    "path": "/root/projects/ordivon-market-capital-next",
+    "runtimeWorkspaceClaimantsAfterDelete": 0,
+    "hostNonterminalClaimantsBeforeClose": 0,
+    "currentSourceOwner": "monorepo domains/capital",
+    "recovery": {
+      "backupRoot": "/root/ordivon-migration-backups/2026-09-21-capital-standalone-retirement-r8/source",
+      "allRefsBundleSha256": "sha256:2f69f5a8e9d2877afdb832f726633a3f2d9cb2cba74110e0ca589aeff5363ba8",
+      "gitDirectoryTarSha256": "sha256:98376f7d89e330881805a5b34cb1ee4689daa29ce68bf20890f7365a6fb708eb",
+      "ignoredNonVenvPayloadTarSha256": "sha256:6ce3769ec2e338ffe3d3539f3ce8dba3b2d0717f805550fe014864afea8dbc2b",
+      "sndkResidualTarSha256": "sha256:7fe9433e6b9583a66c4cdd0305ac2b6476bfdc54becc4bc0055e0f42acdadac4",
+      "refs": 50,
+      "commits": 94,
+      "unreachableObjectsPreserved": 30,
+      "ignoredNonVenvFilesPreserved": 322,
+      "exactFullTreeRestoreValidated": true,
+      "excludedRegenerablePayload": [
+        ".venv"
+      ]
+    }
+  }
 }

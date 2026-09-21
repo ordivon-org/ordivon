@@ -105,10 +105,6 @@
   },
   "retainedCompatibilityIdentities": [
     {
-      "identity": "/root/projects/ordivon-market-capital-next",
-      "standing": "RETAINED_RESEARCH_PROVENANCE_SOURCE_COORDINATE"
-    },
-    {
       "identity": "historical Market Capital evidence and fixture names",
       "standing": "FROZEN_PROVENANCE_IDENTITY"
     }
@@ -118,6 +114,49 @@
       "identity": "ordivon_market_capital_* plus market-capital observability files",
       "standing": "RETIRED_NO_ACTIVE_CONSUMER",
       "reason": "live census found node exporter and shared Prometheus inactive; active Network v2 Prometheus had zero Capital series and did not load the legacy rule group"
+    },
+    {
+      "identity": "/root/projects/ordivon-market-capital-next",
+      "standing": "RETIRED_ARCHIVED_SOURCE_COORDINATE",
+      "reason": "the physical standalone carrier is no longer a current source owner; frozen Research/Paper1 provenance may re-enter the exact historical coordinate by restoring the verified archive on demand",
+      "recovery": {
+        "backupRoot": "/root/ordivon-migration-backups/2026-09-21-capital-standalone-retirement-r8/source",
+        "allRefsBundleSha256": "sha256:2f69f5a8e9d2877afdb832f726633a3f2d9cb2cba74110e0ca589aeff5363ba8",
+        "gitDirectoryTarSha256": "sha256:98376f7d89e330881805a5b34cb1ee4689daa29ce68bf20890f7365a6fb708eb",
+        "ignoredNonVenvPayloadTarSha256": "sha256:6ce3769ec2e338ffe3d3539f3ce8dba3b2d0717f805550fe014864afea8dbc2b",
+        "sndkResidualTarSha256": "sha256:7fe9433e6b9583a66c4cdd0305ac2b6476bfdc54becc4bc0055e0f42acdadac4",
+        "refs": 50,
+        "commits": 94,
+        "unreachableObjectsPreserved": 30,
+        "ignoredNonVenvFilesPreserved": 322,
+        "exactFullTreeRestoreValidated": true,
+        "excludedRegenerablePayload": [
+          ".venv"
+        ]
+      }
     }
-  ]
+  ],
+  "standaloneCarrierRetirement": {
+    "path": "/root/projects/ordivon-market-capital-next",
+    "standing": "RETIRED_ARCHIVED",
+    "physicalPathPresent": false,
+    "currentSourceOfTruth": "monorepo:domains/capital",
+    "lastQualifiedExternalSourceRevision": "71bf084cc140a210a5ec0ce736afeb82ed03ae69",
+    "lastQualifiedExternalSourceTree": "10bec5b631f614987c2e385cc683d21b44f5cc3b",
+    "recovery": {
+      "backupRoot": "/root/ordivon-migration-backups/2026-09-21-capital-standalone-retirement-r8/source",
+      "allRefsBundleSha256": "sha256:2f69f5a8e9d2877afdb832f726633a3f2d9cb2cba74110e0ca589aeff5363ba8",
+      "gitDirectoryTarSha256": "sha256:98376f7d89e330881805a5b34cb1ee4689daa29ce68bf20890f7365a6fb708eb",
+      "ignoredNonVenvPayloadTarSha256": "sha256:6ce3769ec2e338ffe3d3539f3ce8dba3b2d0717f805550fe014864afea8dbc2b",
+      "sndkResidualTarSha256": "sha256:7fe9433e6b9583a66c4cdd0305ac2b6476bfdc54becc4bc0055e0f42acdadac4",
+      "refs": 50,
+      "commits": 94,
+      "unreachableObjectsPreserved": 30,
+      "ignoredNonVenvFilesPreserved": 322,
+      "exactFullTreeRestoreValidated": true,
+      "excludedRegenerablePayload": [
+        ".venv"
+      ]
+    }
+  }
 }
