@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Workspace closure now recovers residual directories whose Git worktree metadata was lost or corrupted: non-forced close refuses to guess cleanliness, exact source-state fencing fails closed when no longer provable, and forced recovery first preserves any recoverable HEAD, delegates broken registration cleanup to git worktree prune, then commits recovered_missing without direct Git-metadata or Registry mutation.
+
 - Windows-native execution now prefers a live WSL Session Relay interop listener after any valid ambient `WSL_INTEROP`, instead of falling through numeric listener order that could select the long-lived `/run/WSL/2_interop` init listener and intermittently fail with `UtilAcceptVsock: accept4 failed 110`; other listeners remain bounded fallbacks, and launcher retry semantics are otherwise unchanged.
 
 - Runtime release acceptance now separates live server Tool-catalog truth from external MCP-client Tool projection. Snapshot/review-based clients must refresh and re-observe their effective Tool set after catalog changes; if the controlling client does not expose `release.apply` and `release.get`, self-release is `HOLD_CONNECTOR_REFRESH_REQUIRED` and generic `workspace.exec` of the deployer is not an accepted substitute. Runtime execution and deployment mechanics are unchanged.

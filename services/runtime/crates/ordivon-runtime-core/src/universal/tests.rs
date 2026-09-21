@@ -2641,6 +2641,125 @@ fn workspace_close_recovers_final_head_after_physical_removal() {
 }
 
 #[test]
+fn workspace_close_force_recovers_residual_directory_after_git_worktree_metadata_loss() {
+    let sandbox = Sandbox::new("close-missing-git-metadata");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-missing-git-metadata";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    fs::write(workspace.join("RESIDUAL.txt"), "untracked residual\n").unwrap();
+
+    fs::remove_file(workspace.join(".git")).unwrap();
+    run_git(&source, ["worktree", "prune", "--expire", "now"]);
+    assert!(workspace.is_dir());
+
+    let conservative = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: false,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(conservative.code, UniversalExecErrorCode::WorkspaceDirty);
+    assert!(workspace.is_dir());
+
+    let fenced = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            expected_source_state_digest: Some(sha256_bytes(b"unprovable-state")),
+        },
+    )
+    .unwrap_err();
+    assert_eq!(fenced.code, UniversalExecErrorCode::RevisionMismatch);
+    assert!(workspace.is_dir());
+
+    let recovered = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap();
+    assert!(recovered.removed);
+    assert_eq!(
+        recovered.closure_disposition,
+        WorkspaceClosureDisposition::RecoveredMissing
+    );
+    assert!(!workspace.exists());
+    let tombstone: serde_json::Value =
+        serde_json::from_slice(&fs::read(config.workspace_record_path(workspace_id)).unwrap())
+            .unwrap();
+    assert_eq!(tombstone["state"], "closed");
+}
+
+#[test]
+fn workspace_close_force_recovers_registered_worktree_with_broken_local_metadata() {
+    let sandbox = Sandbox::new("close-registered-broken-metadata");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-registered-broken-metadata";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    let canonical_workspace = fs::canonicalize(&workspace).unwrap();
+    let registered_before = git_text(&source, ["worktree", "list", "--porcelain"]);
+    assert!(registered_before.contains(canonical_workspace.to_string_lossy().as_ref()));
+    fs::write(
+        workspace.join(".git"),
+        "gitdir: /definitely/missing/ordivon-worktree-metadata\n",
+    )
+    .unwrap();
+    let registered_after = git_text(&source, ["worktree", "list", "--porcelain"]);
+    assert!(registered_after.contains(canonical_workspace.to_string_lossy().as_ref()));
+
+    let recovered = remove_git_workspace(
+        &config,
+        &WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            expected_source_state_digest: None,
+        },
+    )
+    .unwrap();
+    assert!(recovered.removed);
+    assert_eq!(
+        recovered.closure_disposition,
+        WorkspaceClosureDisposition::RecoveredMissing
+    );
+    assert!(!workspace.exists());
+}
+
+#[test]
 fn workspace_close_repairs_missing_directory_but_rejects_orphan_directory() {
     let sandbox = Sandbox::new("close-missing-directory");
     let source = sandbox.root.join("source");

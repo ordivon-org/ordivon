@@ -111,6 +111,52 @@ pub(crate) fn remove_git_workspace(
             false,
         ));
     }
+
+    if workspace_git_common_dir_at(&recorded).is_err() {
+        let registered_head = registered_workspace_head(&record)?;
+        if request.expected_source_state_digest.is_some() {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::RevisionMismatch,
+                "cannot prove expectedSourceStateDigest after Workspace Git metadata loss",
+                Some("expectedSourceStateDigest"),
+                false,
+            ));
+        }
+        if !request.force {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::WorkspaceDirty,
+                "cannot prove Workspace clean after Git worktree metadata loss; retry with force=true to recover the residual directory",
+                Some("workspaceId"),
+                false,
+            ));
+        }
+
+        let final_head = recover_missing_workspace_head(&record)?;
+        if let Some(head) = final_head
+            .as_deref()
+            .filter(|head| *head != record.source_revision)
+        {
+            let source_repo = Path::new(&record.source_repo);
+            if source_repo.is_dir() {
+                ensure_rescue_ref(source_repo, &request.workspace_id, head)?;
+            }
+        }
+
+        cleanup_workspace_caches(config, &request.workspace_id)?;
+        if registered_head.is_some() {
+            remove_registered_workspace_with_broken_metadata(&record, &target, &recorded)?;
+        } else {
+            remove_residual_workspace_directory(&target)?;
+        }
+        write_closed_workspace_record(&record_path, None)?;
+        return Ok(WorkspaceCloseResult {
+            workspace_id: request.workspace_id.clone(),
+            removed: true,
+            closure_disposition: WorkspaceClosureDisposition::RecoveredMissing,
+            source_state_digest: None,
+        });
+    }
+
     let source_state_digest = workspace_source_state_digest_at(&recorded)?;
     if let Some(expected) = &request.expected_source_state_digest {
         if expected != &source_state_digest {
@@ -285,6 +331,116 @@ fn ensure_rescue_ref(
     } else {
         Err(tool_failed("git update-ref", &output.stderr))
     }
+}
+
+fn remove_residual_workspace_directory(target: &Path) -> Result<(), UniversalExecError> {
+    let metadata = fs::symlink_metadata(target)
+        .map_err(|error| io_error(target, "inspect residual Workspace directory", error))?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::MetadataCorrupt,
+            "residual Workspace path must remain a non-symlink directory",
+            Some("workspaceId"),
+            false,
+        ));
+    }
+    fs::remove_dir_all(target)
+        .map_err(|error| io_error(target, "remove residual Workspace directory", error))
+}
+
+fn remove_registered_workspace_with_broken_metadata(
+    record: &WorkspaceRecord,
+    target: &Path,
+    recorded: &Path,
+) -> Result<(), UniversalExecError> {
+    let source_repo = Path::new(&record.source_repo);
+    if remove_git_worktree(source_repo, recorded, true).is_ok() {
+        return Ok(());
+    }
+
+    let git_marker = target.join(".git");
+    match fs::symlink_metadata(&git_marker) {
+        Ok(metadata) if metadata.is_file() || metadata.file_type().is_symlink() => {
+            fs::remove_file(&git_marker)
+                .map_err(|error| io_error(&git_marker, "remove invalid Workspace .git marker", error))?;
+        }
+        Ok(_) => {
+            return Err(UniversalExecError::new(
+                UniversalExecErrorCode::MetadataCorrupt,
+                "broken registered Workspace has a non-file .git marker",
+                Some("workspaceId"),
+                false,
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(io_error(
+                &git_marker,
+                "inspect invalid Workspace .git marker",
+                error,
+            ));
+        }
+    }
+
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(source_repo)
+        .args(["worktree", "prune", "--expire", "now"])
+        .output()
+        .map_err(|error| tool_unavailable("git worktree prune", error))?;
+    if !output.status.success() {
+        return Err(tool_failed("git worktree prune", &output.stderr));
+    }
+    if registered_workspace_head(record)?.is_some() {
+        return Err(UniversalExecError::new(
+            UniversalExecErrorCode::ToolFailed,
+            "git worktree prune did not release the broken registered Workspace",
+            Some("workspaceId"),
+            false,
+        ));
+    }
+    remove_residual_workspace_directory(target)
+}
+
+fn registered_workspace_head(
+    record: &WorkspaceRecord,
+) -> Result<Option<String>, UniversalExecError> {
+    let source_repo = Path::new(&record.source_repo);
+    if !source_repo.is_dir() {
+        return Ok(None);
+    }
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(source_repo)
+        .args(["worktree", "list", "--porcelain"])
+        .output()
+        .map_err(|error| tool_unavailable("git worktree list", error))?;
+    if !output.status.success() {
+        return Err(tool_failed("git worktree list", &output.stderr));
+    }
+    let wanted = Path::new(&record.workspace_path);
+    let text = String::from_utf8(output.stdout).map_err(|error| {
+        UniversalExecError::new(
+            UniversalExecErrorCode::ToolFailed,
+            format!("git worktree list output is not UTF-8: {error}"),
+            None,
+            false,
+        )
+    })?;
+    let mut matched = false;
+    for line in text.lines() {
+        if let Some(path) = line.strip_prefix("worktree ") {
+            matched = Path::new(path) == wanted;
+        } else if matched {
+            if let Some(head) = line.strip_prefix("HEAD ") {
+                return Ok(Some(head.to_string()));
+            }
+            if line.is_empty() {
+                matched = false;
+            }
+        }
+    }
+    Ok(None)
 }
 
 fn recover_missing_workspace_head(

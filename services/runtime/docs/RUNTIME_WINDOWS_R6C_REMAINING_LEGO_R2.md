@@ -103,10 +103,12 @@ Acceptance-tooling residual, not a C1/C2 blocker:
   ws-r6c-native-recovery-509dae846b9c48b0 and ws-r6c-native-recovery-db1bd49be2f34721;
 - workspace.list isolates both as dirty_probe issues because their Git worktree metadata was
   removed when an earlier acceptance fixture source was re-materialized;
-- workspace.close(force=true) currently fails before reaching its documented recovered_missing
-  disposition because it performs a Git probe against the missing worktree;
-- do not repair this by direct SQLite mutation. Fix the generic workspace.close missing-worktree
-  reconciliation path in a later Runtime release.
+- current source now repairs the generic workspace.close missing-worktree reconciliation path:
+  force=false refuses to guess cleanliness after Git metadata loss, force=true removes the residual
+  directory and commits recovered_missing, and expectedSourceStateDigest still fails closed because
+  the exact source state cannot be proven after metadata loss;
+- the two live candidate records remain untouched until this source change is released to the
+  Windows node. Direct SQLite mutation remains prohibited.
 
 ## LEGO C3 — WSL independence
 
