@@ -75,3 +75,11 @@ platform/skills/tests/test_skill_catalog_r2.py:private-key:256
 services/harness/evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
 services/harness/evidence/harness-r3-supported-agent-surface-fe6fc1a.json:generic-api-key:78
 services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
+
+# Stable pseudonymous Cloudflare Access principal identity (principal:cf-access:<sha256-like hex>);
+# this is identity evidence, not the Access assertion, token, secret, or signing material.
+394409b9201876f51435946765fdd7e58ce6dbfa:docs/architecture/e01-e02-trace-identity-acceptance-20260921.json:generic-api-key:66
+394409b9201876f51435946765fdd7e58ce6dbfa:docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:186
+docs/architecture/e01-e02-trace-identity-acceptance-20260921.json:generic-api-key:66
+docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:186
+docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:188
