@@ -10,7 +10,7 @@ D02 closes the architecture-convergence documentation programme only after curre
 Final implementation baseline before this acceptance receipt:
 
 ```text
-eadd7e474292644b23bdd9cdfc96f52f017f8094
+f15e7012927f838e0e434294242ab80d9ccf99b9
 ```
 
 This baseline contains:
@@ -21,7 +21,7 @@ This baseline contains:
 - caller-owned Harness Tool lifecycle OpenTelemetry projection;
 - Gateway W3C owner propagation;
 - Gateway authenticated audit span attributes;
-- optional Workstation Vector → Tempo heavy-observability profile;
+- deployed-on-demand Workstation Vector OTLP → Tempo persistent/queryable trace backend;
 - prior D01, E01, and E02 acceptance evidence.
 
 The acceptance receipt itself is documentation-only and may therefore become a descendant of that implementation baseline without requiring a Gateway redeploy.
@@ -109,14 +109,14 @@ The gate verifies, among other things:
 - Gateway trace export remains opt-in;
 - observability cannot become product correctness authority.
 
-Final fresh-main `repo:ci` at `eadd7e47…` passed:
+Final fresh-main `repo:ci` at `f15e7012…` passed:
 
 - affected-owner tests: PASS;
 - owner boundary checks: PASS;
 - composition architecture graph: PASS;
 - composition graph tests: 6/6 PASS;
 - architecture documentation drift: PASS;
-- architecture drift tests: 7/7 PASS;
+- architecture drift tests: 11/11 PASS;
 - integrate-main smoke: PASS;
 - GitHub governance: PASS;
 - `git diff --check`: PASS.
@@ -169,7 +169,7 @@ The canonical Gateway retains MCP 2.2 and external OpenTelemetry runtime depende
 - Cloudflare provider suite: **29/29 passed**;
 - provider typecheck/build/policy/operations checks: PASS.
 
-Tempo therefore remains a Workstation-owned optional infrastructure capability rather than Gateway semantic state.
+Tempo therefore remains a Workstation-owned deployed-on-demand observability capability rather than Gateway semantic state. The merged candidate additionally passed native Vector validation, Ansible trace-playbook syntax validation, and Tempo 3.0.3 `-config.verify=true`.
 
 ## 7. Current observability standing
 
@@ -185,15 +185,18 @@ Vector
 Tempo
 ```
 
-Current deployment standing is deliberately three-state rather than binary:
+Current deployment standing separates **admission** from **activation**:
 
-- Tempo/trace profile source and service realization: **installed capability**;
-- Workstation heavy-observability target: **inactive**;
-- Tempo service: **inactive**;
-- Gateway `40-otel-traces.conf`: **absent**;
-- Gateway `OTEL_TRACES_EXPORTER`: **none**.
+- Vector → Tempo persistent/queryable tracing: **accepted / deployed on demand**;
+- Vector OTLP decoding: **`traces: true`**, preserving the OTLP envelope required by the downstream OpenTelemetry sink;
+- Tempo version: **3.0.3**, loopback OTLP/query endpoints and local storage;
+- Workstation heavy-observability target: **inactive by default**;
+- Tempo service: **inactive by default**;
+- Gateway `40-otel-traces.conf`: **absent in the current cold posture**;
+- Gateway `OTEL_TRACES_EXPORTER`: **none in the base service**;
+- Tempo cold-stop budget: Quadlet **`StopTimeout=60`** under systemd **`TimeoutStopSec=75`**.
 
-Therefore local persistent/queryable tracing is available when explicitly activated, but it is not an always-on production dependency and is not required for product correctness.
+The persistent backend is therefore a real, live-accepted capability rather than merely installed source, while activation remains explicit and product correctness remains independent from telemetry availability. The supplemental acceptance is `PERSISTENT_TRACE_BACKEND_ACCEPTANCE_20260921.md`.
 
 ## 8. Canonical Gateway redeploy
 
@@ -306,10 +309,59 @@ Canonical server source exposes:
 
 The old alias is therefore treated as stale client-side schema/cache metadata, not as Gateway deployed architecture or semantic compatibility authority. D02 does not reintroduce a server alias merely to satisfy stale client metadata.
 
-## 13. Final result
+
+## 13. Concurrent closeout reconciliation
+
+A concurrent D02 closeout writer advanced Host continuity from revision 2 to revision 3 while this acceptance was being finalized. Its newer evidence was not overwritten.
+
+The concurrent isolated line contained:
+
+- `f83b3c0963b1d448acafae603253e777f144edfc` — admit the persistent/queryable Vector → Tempo backend after live differential falsification;
+- `eb9e0c1c11e4fc8a4363a4549204594a36f2d455` — add Tempo graceful cold-stop budgets after a live 31-second successful shutdown.
+
+Those commits shared ancestor `81c93f09…` with the current convergence line and therefore required semantic, not mechanical, reconciliation. The final replay on top of the then-current main produced:
+
+- `a32280366898d920466275d98baa7cf325b18196` — reconciled persistent backend;
+- `f15e7012927f838e0e434294242ab80d9ccf99b9` — reconciled graceful-stop fix.
+
+The merge retained both classes of evidence:
+
+1. **deployed-on-demand** is the capability/admission standing;
+2. **cold/inactive by default** is the current activation posture.
+
+The final merged candidate passed:
+
+- Vector native config validation;
+- Ansible trace-playbook syntax validation;
+- Tempo 3.0.3 native config verification;
+- Gateway full verify;
+- Workstation full verify (**182 passed** plus Cloudflare provider **29/29**);
+- repository CI;
+- architecture drift tests (**11/11**);
+- `git diff --check`.
+
+### Shared primary recovery
+
+The primary checkout initially appeared to contain ~50 staged deletions/modifications after the main ref had advanced. Before touching it, its worktree and index were proven identical, with no untracked files, and its index tree was identified exactly as the already-committed tree of `9ecb6685211a841454b926267c36db615e90c979`.
+
+Only after that proof and under the repository's `ordivon-main-integration.lock`, the primary checkout was rematerialized from `refs/heads/main` using `git restore --source=refs/heads/main --staged --worktree -- .`. No branch ref reset or force update was used. The repository-native `check-primary-main.sh` then returned PASS.
+
+Final canonical implementation verification at `f15e7012…` additionally proved:
+
+- primary checkout clean and synchronized;
+- installed Tempo config byte-identical to source;
+- installed Tempo Quadlet contains `StopTimeout=60` and `TimeoutStopSec=75`;
+- live Vector config contains `traces: true` and the Tempo OTLP sink;
+- heavy observability target inactive;
+- Tempo inactive;
+- Gateway trace drop-in absent;
+- Gateway base exporter `none`;
+- deployed Gateway release `eadd7e47…` is an ancestor of final canonical source.
+
+## 14. Final result
 
 D02.1–D02.4 are complete.
 
-The resulting architecture has one current present-tense projection, explicit natural-owner boundaries, explicit historical-document standing, a machine-checked drift gate, aligned source/deployment lineage for Gateway, and fresh Linux/Windows/Host/Skill live acceptance.
+The resulting architecture has one current present-tense projection, explicit natural-owner boundaries, explicit historical-document standing, a machine-checked drift gate, aligned source/deployment lineage for Gateway, an admitted on-demand Vector→Tempo trace backend with falsification-derived OTLP preservation and graceful cold-stop constraints, and fresh Linux/Windows/Host/Skill live acceptance.
 
 No remaining D02 architecture blocker is known.

@@ -3,7 +3,7 @@
   "kind": "ordivon.d02-architecture-documentation-convergence-acceptance",
   "observedDate": "2026-09-21",
   "status": "ACCEPTED_COMPLETE",
-  "implementationBaseline": "eadd7e474292644b23bdd9cdfc96f52f017f8094",
+  "implementationBaseline": "f15e7012927f838e0e434294242ab80d9ccf99b9",
   "canonicalDocuments": [
     "docs/architecture/CURRENT_ARCHITECTURE.md",
     "docs/architecture/deployed-architecture-r1.json"
@@ -17,10 +17,14 @@
   "repositoryVerification": {
     "freshMainRepoCi": true,
     "compositionTestsPassed": 6,
-    "architectureDriftTestsPassed": 7,
+    "architectureDriftTestsPassed": 11,
     "ownerBoundaryPassed": true,
     "integrateMainSmokePassed": true,
-    "githubGovernancePassed": true
+    "githubGovernancePassed": true,
+    "primaryMainSynchronized": true,
+    "vectorNativeValidatePassed": true,
+    "ansibleTraceSyntaxPassed": true,
+    "tempoNativeConfigVerifyPassed": true
   },
   "sidelineConvergence": {
     "detectedRunningRelease": "c98cf3b5c0cbfdadf74222ed097db3db17428fe3",
@@ -51,14 +55,22 @@
     ]
   },
   "observability": {
-    "heavyProfileInstalled": true,
+    "status": "deployed-on-demand",
+    "currentActivationPosture": "cold-inactive",
+    "vectorPreserveOtlpTraces": true,
+    "tempoVersion": "3.0.3",
     "heavyProfileActive": false,
-    "tempoInstalled": true,
     "tempoActive": false,
     "gatewayTraceDropinActive": false,
     "gatewayDefaultTraceExporter": "none",
-    "optionalPersistentTraceOwner": "tempo",
-    "requiredForProductCorrectness": false
+    "persistentTraceOwner": "tempo",
+    "requiredForProductCorrectness": false,
+    "lifecycle": {
+      "containerStopTimeoutSeconds": 60,
+      "systemdStopTimeoutSeconds": 75,
+      "observedGracefulStopSeconds": 31,
+      "finalResult": "success"
+    }
   },
   "ownerVerification": {
     "linuxRuntimeAvailable": true,
@@ -100,5 +112,19 @@
   "nonBlockingObservations": [
     "current ChatGPT-side metadata exposed historical capability.list, while canonical live Gateway correctly rejects the retired alias"
   ],
-  "unresolvedBlockers": []
+  "unresolvedBlockers": [],
+  "concurrentCloseoutReconciliation": {
+    "hostRevisionObserved": 3,
+    "originalCommits": [
+      "f83b3c0963b1d448acafae603253e777f144edfc",
+      "eb9e0c1c11e4fc8a4363a4549204594a36f2d455"
+    ],
+    "reconciledCommits": [
+      "a32280366898d920466275d98baa7cf325b18196",
+      "f15e7012927f838e0e434294242ab80d9ccf99b9"
+    ],
+    "primaryStaleTreeCommit": "9ecb6685211a841454b926267c36db615e90c979",
+    "primaryRecoveredUnderIntegrationLock": true,
+    "forceResetUsed": false
+  }
 }
