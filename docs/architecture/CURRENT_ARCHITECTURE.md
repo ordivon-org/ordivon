@@ -77,6 +77,8 @@ The deployed route table currently exposes exactly these stable capability famil
 
 Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth.
 
+For Runtime execution, the normal Gateway northbound surface includes submit/get/cancel plus read-only `execution.resolve` for response-loss reconciliation by the already frozen request identity. `execution.resolve` discovers an existing Runtime Job; it does not redispatch an effect or move execution truth into Gateway.
+
 ### Host normal northbound completion
 
 The Gateway now covers Host's normal Agent-facing continuity/collaboration seam: `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.

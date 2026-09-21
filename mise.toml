@@ -1,5 +1,8 @@
 monorepo_root = true
 
+[task_config]
+shell = "bash -c"
+
 [monorepo]
 config_roots = [
   "meta/next",
