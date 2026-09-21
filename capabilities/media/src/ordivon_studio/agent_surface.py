@@ -311,7 +311,7 @@ def execute_surface_action(name: str, arguments: Mapping[str, Any], *, root: Pat
             _production_root(root, current)
         return build_learning_context(root, current_production_id=current)
     if name == "studio_creative_index_query":
-        artifact_candidate = Path(os.environ.get("ORDIVON_ARTIFACT_ROOT", "/root/projects/ordivon-artifact-v2"))
+        artifact_candidate = Path(os.environ.get("ORDIVON_ARTIFACT_ROOT", "/root/projects/ordivon/capabilities/artifact"))
         creative_library_candidate = Path(os.environ.get("ORDIVON_CREATIVE_LIBRARY_ROOT", str(root)))
         index = build_creative_index(
             root,

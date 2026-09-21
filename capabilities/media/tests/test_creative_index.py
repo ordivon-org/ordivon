@@ -155,7 +155,12 @@ class CreativeIndexTests(unittest.TestCase):
         result = execute_surface_action("studio_creative_index_query", {"term": "blender"}, root=ROOT)
         ids = {row["id"] for row in result["nodes"]}
         self.assertIn("equipment:blender", ids)
-        self.assertTrue(any(row["id"] == "source:media" for row in result["sources"]))
+        sources = {row["id"]: row for row in result["sources"]}
+        self.assertIn("source:media", sources)
+        self.assertEqual(
+            sources["source:artifact"]["repository"],
+            "/root/projects/ordivon/capabilities/artifact",
+        )
 
     def test_creative_library_catalog_projects_works_without_copying_carriers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

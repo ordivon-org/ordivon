@@ -63,12 +63,12 @@ Physical availability remains a fresh Workstation/Runtime observation and is not
 
 ```bash
 python scripts/build-creative-index.py \
-  --artifact-root /root/projects/ordivon-artifact-v2 \
+  --artifact-root /root/projects/ordivon/capabilities/artifact \
   --creative-library-root . \
   --output /tmp/ordivon-creative-index.json
 
 python scripts/build-creative-index.py \
-  --artifact-root /root/projects/ordivon-artifact-v2 \
+  --artifact-root /root/projects/ordivon/capabilities/artifact \
   --creative-library-root . \
   --query asset.export.gltf
 ```
