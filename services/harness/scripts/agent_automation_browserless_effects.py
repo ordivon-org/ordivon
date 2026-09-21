@@ -28,7 +28,11 @@ try:
     from chatgpt_provider_resource import canonical_chatgpt_resource
     from campaign_materialization import campaign_census
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
-    from cft_human_session import resolve_session
+    from cft_human_session import DurableSessionAuthority, resolve_session
+    from cft_human_materialization import (
+        CftHumanRequiredTarget,
+        prepare_chatgpt_human_session,
+    )
 except ModuleNotFoundError:
     from scripts.agent_automation_browserless import (
         BrowserlessAutomationConfig,
@@ -43,7 +47,11 @@ except ModuleNotFoundError:
     from scripts.chatgpt_provider_resource import canonical_chatgpt_resource
     from scripts.campaign_materialization import campaign_census
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
-    from scripts.cft_human_session import resolve_session
+    from scripts.cft_human_session import DurableSessionAuthority, resolve_session
+    from scripts.cft_human_materialization import (
+        CftHumanRequiredTarget,
+        prepare_chatgpt_human_session,
+    )
 
 
 class BrowserlessEffectAdapter:
@@ -105,6 +113,32 @@ class BrowserlessEffectAdapter:
                 "census": census,
             }
         if standing == "human-required":
+            durable_handoff_path = (
+                self.context._materialization_dir(materialization)
+                / "durable-human-handoff"
+                / f"{_suffix(materialization.request_id)}.json"
+            )
+            if durable_handoff_path.is_file():
+                try:
+                    from cft_human_materialization import load_verified_handoff
+                except ModuleNotFoundError:
+                    from scripts.cft_human_materialization import load_verified_handoff
+                handoff = load_verified_handoff(durable_handoff_path)
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.durable-human-materialization",
+                    "action": "existing-human-control-transfer",
+                    "agentId": agent_id,
+                    "effectId": materialization.request_id,
+                    "receipt": {
+                        "standing": "human-required",
+                        "providerResource": None,
+                        "evidenceDigest": handoff["handoffDigest"],
+                        "detail": row.get("detail"),
+                    },
+                    "humanHandoff": handoff,
+                    "census": census,
+                }
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.browserless-materialization",
@@ -172,6 +206,51 @@ class BrowserlessEffectAdapter:
                     "providerBoundaryDiagnosis": provider_boundary_diagnosis,
                     "census": census,
                 }
+        if (
+            provider_boundary_diagnosis is not None
+            and provider_boundary_diagnosis.get("providerAction") == "HUMAN_CONTROL_TRANSFER"
+        ):
+            handoff_path = (
+                self.context._materialization_dir(materialization)
+                / "durable-human-handoff"
+                / f"{_suffix(materialization.request_id)}.json"
+            )
+            target = CftHumanRequiredTarget(
+                handoff_path=handoff_path,
+                session_request_id=f"materialization-auth:{materialization.request_id}",
+                authority_factory=DurableSessionAuthority,
+                prepare=prepare_chatgpt_human_session,
+            )
+            receipt = SQLiteConversationMaterializer(self.config.ledger, target).materialize(
+                materialization
+            )
+            handoff = target.last_handoff
+            if handoff is None and handoff_path.is_file():
+                from cft_human_materialization import load_verified_handoff
+
+                handoff = load_verified_handoff(handoff_path)
+            if handoff is None:
+                raise BrowserlessAutomationConflict(
+                    "durable human materialization produced HUMAN_REQUIRED without handoff evidence"
+                )
+            result = {
+                "schemaVersion": 1,
+                "kind": "ordivon.durable-human-materialization",
+                "action": "human-control-transfer",
+                "agentId": agent_id,
+                "effectId": materialization.request_id,
+                "receipt": {
+                    "standing": receipt.standing.value,
+                    "providerResource": None,
+                    "evidenceDigest": receipt.evidence_digest,
+                    "detail": receipt.detail,
+                    "receiptDigest": receipt.receipt_digest,
+                },
+                "humanHandoff": handoff,
+                "providerBoundaryDiagnosis": provider_boundary_diagnosis,
+                "census": campaign_census(spec, self.config.ledger),
+            }
+            return result
         binding = self._write_binding(materialization, endpoint)
         receipt = SQLiteConversationMaterializer(
             self.config.ledger, self._target(materialization, endpoint)

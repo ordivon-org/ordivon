@@ -79,6 +79,7 @@ RELEASE_PATHS = (
     "scripts/chatgpt_provider_gate.py",
     "scripts/chatgpt_provider_resource.py",
     "scripts/cft_human_session.py",
+    "scripts/cft_human_materialization.py",
     "scripts/cft_human_session_auth.py",
     "scripts/cft_human_session_deploy.py",
     "config/browserless-playwright-requirements.txt",
