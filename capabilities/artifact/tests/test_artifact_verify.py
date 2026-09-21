@@ -9,6 +9,8 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MONOREPO_ROOT = ROOT.parents[1]
+GAME_ROOT = MONOREPO_ROOT / "domains" / "game"
 SPEC = importlib.util.spec_from_file_location("artifact_verify", ROOT / "scripts/artifact_verify.py")
 M = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -130,7 +132,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['standing'],'STANDARD_PASS_TARGET_DIVERGENCE_GAME_FUNCTIONALLY_ACCEPTED')
         self.assertEqual(receipt['gameAcceptance']['standing'],'GAME_FUNCTIONAL_ACCEPTANCE_PASS_TARGET_BOUNDARY_DIVERGENCE_PRESERVED')
         self.assertEqual(receipt['gameAcceptance']['decision'],'ACCEPT_FOR_CURRENT_STATION_ZERO_FUNCTIONAL_CONSUMPTION')
-        game=Path('/root/projects/ordivon-game')/receipt['gameAcceptance']['relativePath']
+        game=GAME_ROOT/receipt['gameAcceptance']['relativePath']
         self.assertEqual(hashlib.sha256(game.read_bytes()).hexdigest(),receipt['gameAcceptance']['sha256'])
         self.assertEqual(len(receipt['subjects']),3)
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
@@ -206,7 +208,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['artifactVerification']['networkNamespace'],'UNSHARED')
         for value in receipt['artifactOwnedAuthorities'].values():
             path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
-        game=Path('/root/projects/ordivon-game')
+        game=GAME_ROOT
         for key in ('harness','acceptedReproducibilityBoundary'):
             value=receipt['producerEvidence'][key];self.assertEqual(sha(game/value['relativePath']),value['sha256'],value['relativePath'])
         self.assertEqual(receipt['producerEvidence']['currentRuntimeProof']['firstBuildSha256'],receipt['externalSubject']['sha256'])
