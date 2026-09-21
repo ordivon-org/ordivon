@@ -70,12 +70,12 @@ def _execution_decision(*, current_lane: Any, write_policy: dict[str, Any]) -> d
 
 def evaluate_execution_policy(repo: Path, config_path: Path) -> dict[str, Any]:
     cfg = _load_json(config_path)
-    if cfg.get("kind") != "ordivon.capital.market.execution-policy":
+    if cfg.get("kind") != "ordivon.capital.governance.execution-policy":
         raise PolicyDecisionError("unexpected execution-policy kind")
     _require_local_implementation(cfg)
 
     write_doc = _load_json(_resolve(repo, cfg["externalWritePolicyInputContract"]))
-    if write_doc.get("kind") != "ordivon.capital.market.external-write-policy-input":
+    if write_doc.get("kind") != "ordivon.capital.governance.external-write-policy-input":
         raise PolicyDecisionError("external-write policy input missing")
 
     decision = _execution_decision(
@@ -141,7 +141,7 @@ def evaluate_live_test_account(
 ) -> dict[str, Any]:
     del repo
     cfg = _load_json(config_path)
-    if cfg.get("kind") != "ordivon.capital.market.execution-policy":
+    if cfg.get("kind") != "ordivon.capital.governance.execution-policy":
         raise PolicyDecisionError("unexpected execution-policy kind")
     _require_local_implementation(cfg)
 
@@ -185,8 +185,8 @@ def evaluate_live_test_account(
     )
     admitted = decision["admitted"]
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.live-test-account-admission",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.governance.live-test-account-admission",
         "decisionImplementation": DECISION_IMPLEMENTATION,
         "venue": venue,
         "standing": "ADMITTED_EMPTY_LIVE_TEST_ACCOUNT" if admitted else "BLOCKED",
@@ -250,7 +250,7 @@ def evaluate_risk_budget_policy(
 ) -> dict[str, Any]:
     del repo
     cfg = _load_json(config_path)
-    if cfg.get("kind") != "ordivon.capital.market.execution-policy":
+    if cfg.get("kind") != "ordivon.capital.governance.execution-policy":
         raise PolicyDecisionError("unexpected execution-policy kind")
     _require_local_implementation(cfg)
 
@@ -267,8 +267,8 @@ def evaluate_risk_budget_policy(
             {"complete": False, "missingBudgetInputs": missing}
         )
         return {
-            "schemaVersion": 1,
-            "kind": "ordivon.capital.market.risk-limit-evaluation",
+            "schemaVersion": 2,
+            "kind": "ordivon.capital.governance.risk-limit-evaluation",
             "componentId": "risk-limit-evaluator",
             "decisionImplementation": DECISION_IMPLEMENTATION,
             "standing": decision["standing"],
@@ -341,8 +341,8 @@ def evaluate_risk_budget_policy(
         checks.append(row)
     breached = [row["id"] for row in checks if not row["passed"]]
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.risk-limit-evaluation",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.governance.risk-limit-evaluation",
         "componentId": "risk-limit-evaluator",
         "decisionImplementation": DECISION_IMPLEMENTATION,
         "standing": decision["standing"],
@@ -474,7 +474,7 @@ def evaluate_counterfactual_gate_policy(
 ) -> dict[str, Any]:
     del repo
     cfg = _load_json(config_path)
-    if cfg.get("kind") != "ordivon.capital.market.execution-policy":
+    if cfg.get("kind") != "ordivon.capital.governance.execution-policy":
         raise PolicyDecisionError("unexpected execution-policy kind")
     _require_local_implementation(cfg)
 
@@ -550,8 +550,8 @@ def evaluate_counterfactual_gate_policy(
     incomplete = [row["id"] for row in checks if row["status"] == "INCOMPLETE"]
     standing = "FAIL" if failures else "INCOMPLETE" if incomplete else "PASS"
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.pre-trade-evidence-control",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.governance.pre-trade-evidence-control",
         "componentId": "pre-trade-evidence-control",
         "decisionImplementation": DECISION_IMPLEMENTATION,
         "scenarioId": counterfactual.get("scenarioId"),

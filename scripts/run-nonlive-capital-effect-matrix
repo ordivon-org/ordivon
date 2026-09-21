@@ -156,8 +156,8 @@ with SQLiteAccountingLedger(path) as ledger:
     assert replay_status is LedgerApplyStatus.EXISTS
 
 print(json.dumps({
-    "schemaVersion":1,
-    "kind":"ordivon.capital.market.nonlive-capital-effect-matrix",
+    "schemaVersion":2,
+    "kind":"ordivon.capital.trading.nonlive-capital-effect-matrix",
     "standing":"PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX",
     "sourceEffectContract":"CURRENT_RECONCILIATION_DISPOSITION_CONTRACT",
     "accountingProvider":"SQLite",

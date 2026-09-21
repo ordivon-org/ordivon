@@ -162,8 +162,8 @@ class PortfolioRiskTests(unittest.TestCase):
 
     def test_registered_risk_budget_rejects_active_missing_owner_limit(self):
         doc = {
-            "schemaVersion": 1,
-            "kind": "ordivon.capital.market.portfolio-risk-budget-registration",
+            "schemaVersion": 2,
+            "kind": "ordivon.capital.risk.portfolio-risk-budget-registration",
             "standing": "ACTIVE",
             "owner": "OWNER_PRINCIPAL",
             "limits": {
@@ -225,7 +225,7 @@ class PortfolioRiskTests(unittest.TestCase):
         monitoring = {"componentId": "dependence-model-monitoring", "kind": "test-monitoring"}
         tail = {"componentId": "tail-risk-report", "kind": "test-tail"}
         out = build_portfolio_risk_report(exposure_ledger=ledger, model_monitoring=monitoring, tail_risk_report=tail)
-        self.assertEqual(out["kind"], "ordivon.capital.market.portfolio-risk-report")
+        self.assertEqual(out["kind"], "ordivon.capital.risk.portfolio-risk-report")
         self.assertNotIn("allocationProduced", out)
         self.assertEqual(out["nodes"]["modelMonitoring"], monitoring)
         self.assertEqual(out["nodes"]["tailRisk"], tail)

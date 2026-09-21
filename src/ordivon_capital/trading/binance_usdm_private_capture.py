@@ -102,8 +102,8 @@ def capture(
     gate = permission_gate(permission if isinstance(permission, dict) else {})
 
     envelope: dict[str, Any] = {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.binance-usdm-private-observer",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.binance-usdm-private-observer",
         "provider": "BINANCE",
         "product": "USDⓈ-M_FUTURES",
         "symbol": symbol,
@@ -224,8 +224,8 @@ def qualification_summary(result: dict[str, Any]) -> dict[str, Any]:
     posmode = (calls.get("get_current_position_mode") or {}).get("data")
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.binance-usdm-private-qualification-summary",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.binance-usdm-private-qualification-summary",
         "provider": "BINANCE",
         "product": "USDⓈ-M_FUTURES",
         "symbol": result.get("symbol"),

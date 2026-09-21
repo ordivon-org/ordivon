@@ -91,9 +91,17 @@
     "standing": "RETIRED_NO_COMPATIBILITY_SHIM"
   },
   "contractIdentityMigration": {
-    "prefix": "ordivon.capital.market.*",
-    "standing": "DEFERRED_REQUIRES_VERSIONED_SCHEMA_MIGRATION",
-    "reason": "active schema/config identities are also embedded in frozen historical evidence; package-owner migration must not silently rewrite protocol identity"
+    "legacyPrefix": "ordivon.capital.market.*",
+    "standing": "ACCEPTED_V2_NO_RUNTIME_V1_SHIM",
+    "currentRegistry": "config/protocol_identity_migration_v2.json",
+    "currentSchemaVersion": 2,
+    "legacyReplay": "HISTORICAL_SOURCE_REVISION_OR_BUNDLE_ONLY",
+    "frozenRoots": [
+      "evidence",
+      "fixtures",
+      "contracts/legacy_protocol_v1",
+      "schema/legacy_protocol_v1"
+    ]
   },
   "retainedCompatibilityIdentities": [
     {

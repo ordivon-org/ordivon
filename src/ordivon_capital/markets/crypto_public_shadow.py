@@ -65,7 +65,7 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
     capture = _load(capture_path)
     binding = _load(transport_binding_path)
 
-    if capture.get("kind") != "ordivon.capital.market.crypto-public-rest-capture":
+    if capture.get("kind") != "ordivon.capital.markets.crypto-public-rest-capture":
         raise RuntimeError("unexpected capture kind")
     for field in ("credentialsUsed", "privateAccountDataUsed", "externalFinancialWritesAttempted"):
         if capture.get(field) is not False:
@@ -123,7 +123,7 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
                 "crossBuyOkxSellBinanceGrossBps": _bps(bq["bid"] - oq["ask"], oq["ask"]),
             }
 
-    if binding.get("kind") != "ordivon.capital.market.network-v2-public-data-binding":
+    if binding.get("kind") != "ordivon.capital.markets.network-v2-public-data-binding":
         raise RuntimeError("unexpected Network v2 transport binding")
     if binding.get("directFallback") is not False or binding.get("publicReadOnly") is not True:
         raise RuntimeError("Network v2 transport binding is not fail-closed public-read-only")
@@ -143,8 +143,8 @@ def analyze(capture_path: Path, transport_binding_path: Path) -> dict[str, Any]:
     )
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.crypto-public-shadow-observation",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.crypto-public-shadow-observation",
         "componentId": "public-market-risk-data-quality",
         "standing": standing,
         "transport": {

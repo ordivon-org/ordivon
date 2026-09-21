@@ -28,7 +28,7 @@ def _load(path: Path) -> dict[str, Any]:
 
 def validate(config_path: Path) -> dict[str, Any]:
     cfg = _load(config_path)
-    if cfg.get("kind") != "ordivon.capital.market.crypto-execution-lane":
+    if cfg.get("kind") != "ordivon.capital.trading.crypto-execution-lane":
         raise RuntimeError("unexpected crypto lane kind")
     if cfg.get("standing") != "SHADOW_PUBLIC_DATA_ONLY":
         raise RuntimeError("crypto lane must remain SHADOW_PUBLIC_DATA_ONLY")

@@ -319,8 +319,8 @@ def build_action_counterfactual(
         }
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.portfolio-action-counterfactual",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.portfolio.portfolio-action-counterfactual",
         "componentId": "portfolio-scenario-calculation",
         "scenarioId": scenario_id,
         "action": action,
@@ -374,8 +374,8 @@ def build_counterfactual_set(
         seen.add(scenario_id)
         rows.append(build_action_counterfactual(exposure_ledger=exposure_ledger, scenario=scenario))
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.portfolio-counterfactual-set",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.portfolio.portfolio-counterfactual-set",
         "scenarioCount": len(rows),
         "scenarios": rows,
     }
@@ -426,8 +426,8 @@ def build_counterfactual_gate_set(
         for row in scenarios
     ]
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.portfolio-counterfactual-gate-set",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.portfolio.portfolio-counterfactual-gate-set",
         "scenarioCount": len(gates),
         "gates": gates,
         "allPass": bool(gates) and all(row["standing"] == "PASS" for row in gates),

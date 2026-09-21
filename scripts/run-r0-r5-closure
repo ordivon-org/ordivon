@@ -53,13 +53,13 @@ def main() -> int:
     steps.append(run_step("PRIVATE_REALITY_BINDINGS", [str(ROOT / "scripts/check-private-reality-credential-bindings")]))
     steps.append(run_step("EFFECT_BOUNDARY", [str(ROOT / "scripts/check-execution-policy")]))
 
-    write_admission = load_json("contracts/external-write-policy-input-v1.json")
+    write_admission = load_json("contracts/external-write-policy-input-v2.json")
     private_policy = load_json("config/private_reality_policy.json")
     manifest = load_json("fixtures/r5_legacy_bounded/manifest.json")
 
     receipt = {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.r0-r5-closure-receipt",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.acceptance.r0-r5-closure-receipt",
         "standing": "PASS_BOUNDED_NONLIVE_R0_R5_COMPOSITION_CLOSURE",
         "allStepsPassed": all(step["passed"] for step in steps),
         "steps": steps,

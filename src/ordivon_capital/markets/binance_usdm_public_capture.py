@@ -102,8 +102,8 @@ def capture(symbol: str) -> dict[str, Any]:
     constituent_rows = constituents.get("constituents") or []
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.binance-usdm-public-capture",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.binance-usdm-public-capture",
         "provider": "BINANCE",
         "sourceAuthority": "BINANCE_OFFICIAL_USDM_API",
         "officialSdk": "binance-sdk-derivatives-trading-usds-futures==17.4.0",

@@ -17,7 +17,7 @@
   "demoExecutionAllowed": false,
   "externalFinancialWritesAllowed": false,
   "externalWritePolicyRequired": true,
-  "kind": "ordivon.capital.market.crypto-execution-lane",
+  "kind": "ordivon.capital.trading.crypto-execution-lane",
   "liveExecutionAllowed": false,
   "marketModel": "CONTINUOUS_24_7_CRYPTO_SPOT",
   "networkTransport": {
@@ -43,7 +43,7 @@
     "demo/testnet execution requires a separate explicit admission before any API key is used",
     "live execution remains prohibited"
   ],
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "standing": "SHADOW_PUBLIC_DATA_ONLY",
   "venues": {
     "BINANCE": {

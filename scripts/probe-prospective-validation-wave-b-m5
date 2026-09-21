@@ -81,8 +81,8 @@ result = evaluate_prospective_validation(
     series_dates=series_dates,
 )
 result.update({
-    "schemaVersion": 1,
-    "kind": "ordivon.capital.market.prospective-validation-status",
+    "schemaVersion": 2,
+    "kind": "ordivon.capital.research.prospective-validation-status",
     "observedAt": now.isoformat(),
     "decisionBoundaryUtc": decision.isoformat(),
     "decisionSessionDate": boundary_date.isoformat(),

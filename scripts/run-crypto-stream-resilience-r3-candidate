@@ -19,7 +19,7 @@ out,rc=sys.argv[1:]
 try:s=json.load(open(out+'/session/result.json'))
 except Exception:s={'standing':'NO_SESSION_RESULT'}
 b=json.load(open(out+'/network-v2-binding.json'))
-r={'schemaVersion':1,'kind':'ordivon.capital.market.crypto-stream-resilience-r3-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'sessionReturnCode':int(rc),'sessionStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' else 'WORKLOAD_QUALITY_FAILED','brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+r={'schemaVersion':2,'kind':'ordivon.capital.markets.crypto-stream-resilience-r3-candidate','transport':'network-v2-provider-auto','transportBindingDigest':b.get('bindingDigest'),'sessionReturnCode':int(rc),'sessionStanding':s.get('standing'),'standing':'PASS_WORKLOAD_QUALIFIED' if int(rc)==0 and s.get('standing')=='PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' else 'WORKLOAD_QUALITY_FAILED','brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
 json.dump(r,open(out+'/result.json','w'),indent=2,sort_keys=True);open(out+'/result.json','a').write('\n');print(json.dumps(r,sort_keys=True))
 PY
 [ "$src" -eq 0 ]

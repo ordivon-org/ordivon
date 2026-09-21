@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.trading.private-reality-snapshot.v2",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "venue",
+    "sourceAuthority",
+    "permissionStanding",
+    "balances",
+    "positions",
+    "openOrders",
+    "orderHistory",
+    "fills",
+    "externalFinancialWriteAttempted"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "kind": {
+      "const": "ordivon.capital.trading.private-reality-snapshot"
+    },
+    "venue": {
+      "enum": [
+        "OKX",
+        "BINANCE"
+      ]
+    },
+    "sourceAuthority": {
+      "type": "string"
+    },
+    "permissionStanding": {
+      "enum": [
+        "READ_ONLY_VERIFIED",
+        "NOT_VERIFIED"
+      ]
+    },
+    "balances": {
+      "type": "array"
+    },
+    "positions": {
+      "type": "array"
+    },
+    "openOrders": {
+      "type": "array"
+    },
+    "orderHistory": {
+      "type": "array"
+    },
+    "fills": {
+      "type": "array"
+    },
+    "externalFinancialWriteAttempted": {
+      "const": false
+    }
+  },
+  "additionalProperties": true,
+  "title": "Ordivon Capital Trading private-reality snapshot v2"
+}

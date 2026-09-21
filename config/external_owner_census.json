@@ -1550,7 +1550,7 @@
     ],
     "retiredPackage": "ordivon_capital.market",
     "compatibilityShim": false,
-    "protocolIdentityMigration": "DEFERRED_REQUIRES_VERSIONED_SCHEMA_MIGRATION",
+    "protocolIdentityMigration": "ACCEPTED_V2_NO_RUNTIME_V1_SHIM",
     "freshOperationalRequalification": {
       "asOfDate": "2026-09-21",
       "r2": {
@@ -1583,6 +1583,15 @@
         },
         "externalFinancialWritesAttempted": false
       }
+    },
+    "protocolIdentityRegistry": "config/protocol_identity_migration_v2.json",
+    "currentProtocolSchemaVersion": 2,
+    "legacyV1Replay": "HISTORICAL_SOURCE_REVISION_OR_BUNDLE_ONLY",
+    "protocolV2Qualification": {
+      "standing": "PASS_DETERMINISTIC_R3_OPERATIONAL_PASS_R2_SAMPLE_PARTIAL",
+      "registry": "config/protocol_identity_migration_v2.json",
+      "currentBindingDigest": "sha256:d88a5ac5b2165dbb9829d0ea0352da1884a3fee6b5846f03f8929e9619f9f14e",
+      "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6"
     }
   }
 }

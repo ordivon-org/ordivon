@@ -1,4 +1,4 @@
-package ordivon.capital.market.execution
+package ordivon.capital.governance.execution
 
 default allow_non_live := false
 default allow_external_write := false

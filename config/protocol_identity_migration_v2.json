@@ -1,0 +1,462 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.protocol-identity-migration",
+  "asOfDate": "2026-09-21",
+  "standing": "ACTIVE_V2_NO_RUNTIME_V1_SHIM",
+  "principles": [
+    "current writers emit schemaVersion 2 and domain-correct identities",
+    "current readers require v2 identities and do not auto-upgrade v1",
+    "frozen evidence and fixtures retain their original v1 bytes",
+    "legacy v1 contracts and schemas remain under explicit legacy_protocol_v1 directories",
+    "replay of v1 evidence uses the historical source revision or bundle that owned v1"
+  ],
+  "currentProtocolRoots": [
+    "src",
+    "config",
+    "contracts",
+    "schema",
+    "scripts",
+    "tools",
+    "tests"
+  ],
+  "excludedFrozenRoots": [
+    "evidence",
+    "fixtures"
+  ],
+  "legacyProtocolRoots": [
+    "contracts/legacy_protocol_v1",
+    "schema/legacy_protocol_v1"
+  ],
+  "mappingCount": 79,
+  "mappings": [
+    {
+      "v1": "ordivon.capital.market.binance-usdm-equity-perp-provider",
+      "v2": "ordivon.capital.trading.binance-usdm-equity-perp-provider",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.binance-usdm-private-observer",
+      "v2": "ordivon.capital.trading.binance-usdm-private-observer",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.binance-usdm-private-qualification-summary",
+      "v2": "ordivon.capital.trading.binance-usdm-private-qualification-summary",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.binance-usdm-public-capture",
+      "v2": "ordivon.capital.markets.binance-usdm-public-capture",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.binance-usdm-symbol-contract",
+      "v2": "ordivon.capital.markets.binance-usdm-symbol-contract",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.clock-quality-gate",
+      "v2": "ordivon.capital.governance.clock-quality-gate",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-data-adapter-policy",
+      "v2": "ordivon.capital.markets.crypto-data-adapter-policy",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-execution-lane",
+      "v2": "ordivon.capital.trading.crypto-execution-lane",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-fix44-projection-r4-evidence",
+      "v2": "ordivon.capital.trading.crypto-fix44-projection-r4-evidence",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-public-rest-capture",
+      "v2": "ordivon.capital.markets.crypto-public-rest-capture",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-public-shadow-observation",
+      "v2": "ordivon.capital.markets.crypto-public-shadow-observation",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-public-shadow-r2-fresh-evidence",
+      "v2": "ordivon.capital.markets.crypto-public-shadow-r2-fresh-evidence",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-public-shadow-r2-result",
+      "v2": "ordivon.capital.markets.crypto-public-shadow-r2-result",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-public-streaming-r2",
+      "v2": "ordivon.capital.markets.crypto-public-streaming-r2",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-shadow-mechanics",
+      "v2": "ordivon.capital.trading.crypto-shadow-mechanics",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-shadow-mechanics-result",
+      "v2": "ordivon.capital.trading.crypto-shadow-mechanics-result",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-stream-reconnect-qualification",
+      "v2": "ordivon.capital.markets.crypto-stream-reconnect-qualification",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-stream-resilience-r3-candidate",
+      "v2": "ordivon.capital.markets.crypto-stream-resilience-r3-candidate",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-stream-resilience-r3-fresh-evidence",
+      "v2": "ordivon.capital.markets.crypto-stream-resilience-r3-fresh-evidence",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-stream-resilience-r3-result",
+      "v2": "ordivon.capital.markets.crypto-stream-resilience-r3-result",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-stream-resilience-r3-session",
+      "v2": "ordivon.capital.markets.crypto-stream-resilience-r3-session",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.crypto-streaming-r2-candidate",
+      "v2": "ordivon.capital.markets.crypto-streaming-r2-candidate",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.demo-execution-policy",
+      "v2": "ordivon.capital.governance.demo-execution-policy",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.dependence-model-drift-measurement",
+      "v2": "ordivon.capital.research.dependence-model-drift-measurement",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.dependence-model-outcomes-monitoring",
+      "v2": "ordivon.capital.research.dependence-model-outcomes-monitoring",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.dependence-model-validation",
+      "v2": "ordivon.capital.risk.dependence-model-validation",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.execution",
+      "v2": "ordivon.capital.governance.execution",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.execution-candidate",
+      "v2": "ordivon.capital.trading.execution-candidate",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.execution-feasibility",
+      "v2": "ordivon.capital.trading.execution-feasibility",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.execution-policy",
+      "v2": "ordivon.capital.governance.execution-policy",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.execution-reconciliation",
+      "v2": "ordivon.capital.trading.execution-reconciliation",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.exposure-ledger",
+      "v2": "ordivon.capital.risk.exposure-ledger",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.external-boundary",
+      "v2": "ordivon.capital.governance.external-boundary",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.external-write-policy-input",
+      "v2": "ordivon.capital.governance.external-write-policy-input",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.factor-proxy-analysis",
+      "v2": "ordivon.capital.risk.factor-proxy-analysis",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.fix-order-semantics",
+      "v2": "ordivon.capital.trading.fix-order-semantics",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.fix44-projection-input",
+      "v2": "ordivon.capital.trading.fix44-projection-input",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.fix44-projection-result",
+      "v2": "ordivon.capital.trading.fix44-projection-result",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.fullpath-closure-receipt",
+      "v2": "ordivon.capital.acceptance.trading-fullpath-closure-receipt",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.historical-dependence-analysis",
+      "v2": "ordivon.capital.risk.historical-dependence-analysis",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.historical-expected-shortfall",
+      "v2": "ordivon.capital.risk.historical-expected-shortfall",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.historical-validation-data",
+      "v2": "ordivon.capital.research.historical-validation-data",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.live-test-account-admission",
+      "v2": "ordivon.capital.governance.live-test-account-admission",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.live-test-account-policy",
+      "v2": "ordivon.capital.governance.live-test-account-policy",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.model-monitoring-persistence",
+      "v2": "ordivon.capital.research.model-monitoring-persistence",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.nautilus-qualification",
+      "v2": "ordivon.capital.trading.nautilus-qualification",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.network-v2-public-data-authority-set",
+      "v2": "ordivon.capital.markets.network-v2-public-data-authority-set",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.network-v2-public-data-binding",
+      "v2": "ordivon.capital.markets.network-v2-public-data-binding",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.nonlive-capital-effect-matrix",
+      "v2": "ordivon.capital.trading.nonlive-capital-effect-matrix",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.nonlive-credential-provisioning",
+      "v2": "ordivon.capital.trading.nonlive-credential-provisioning",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.nonlive-effect-admission",
+      "v2": "ordivon.capital.governance.nonlive-effect-admission",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.nonlive-effect-authority",
+      "v2": "ordivon.capital.governance.nonlive-effect-authority",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.nonlive-effect-matrix",
+      "v2": "ordivon.capital.trading.nonlive-effect-matrix",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.okx-live-provider",
+      "v2": "ordivon.capital.trading.okx-live-provider",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.okx-live-provider-binding-evidence",
+      "v2": "ordivon.capital.trading.okx-live-provider-binding-evidence",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.okx-public-factor-observatory",
+      "v2": "ordivon.capital.research.okx-public-factor-observatory",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.okx-public-sensor-window",
+      "v2": "ordivon.capital.markets.okx-public-sensor-window",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.open-interest-change",
+      "v2": "ordivon.capital.markets.open-interest-change",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.paired-return-data-quality",
+      "v2": "ordivon.capital.research.paired-return-data-quality",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.portfolio-action-counterfactual",
+      "v2": "ordivon.capital.portfolio.portfolio-action-counterfactual",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.portfolio-counterfactual-gate-set",
+      "v2": "ordivon.capital.portfolio.portfolio-counterfactual-gate-set",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.portfolio-counterfactual-set",
+      "v2": "ordivon.capital.portfolio.portfolio-counterfactual-set",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.portfolio-risk-budget-registration",
+      "v2": "ordivon.capital.risk.portfolio-risk-budget-registration",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.portfolio-risk-report",
+      "v2": "ordivon.capital.risk.portfolio-risk-report",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.pre-trade-evidence-control",
+      "v2": "ordivon.capital.governance.pre-trade-evidence-control",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.private-reality-policy",
+      "v2": "ordivon.capital.governance.private-reality-policy",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.private-reality-snapshot",
+      "v2": "ordivon.capital.trading.private-reality-snapshot",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.private-reality-snapshot.v1",
+      "v2": "ordivon.capital.trading.private-reality-snapshot.v2",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.production-authorization",
+      "v2": "ordivon.capital.governance.production-authorization",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.prospective-validation",
+      "v2": "ordivon.capital.research.prospective-validation",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.prospective-validation-status",
+      "v2": "ordivon.capital.research.prospective-validation-status",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.r0-r5-closure-receipt",
+      "v2": "ordivon.capital.acceptance.r0-r5-closure-receipt",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.registered-risk-budget",
+      "v2": "ordivon.capital.risk.registered-risk-budget",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.repeated-microstructure",
+      "v2": "ordivon.capital.markets.repeated-microstructure",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.risk-limit-evaluation",
+      "v2": "ordivon.capital.governance.risk-limit-evaluation",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.shadow-order-precommit",
+      "v2": "ordivon.capital.governance.shadow-order-precommit",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.tail-risk-report",
+      "v2": "ordivon.capital.risk.tail-risk-report",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.tigerbeetle-capital-substrate",
+      "v2": "ordivon.capital.accounting.tigerbeetle-capital-substrate",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    },
+    {
+      "v1": "ordivon.capital.market.underlying-reopen-reconciliation",
+      "v2": "ordivon.capital.markets.underlying-reopen-reconciliation",
+      "standing": "MIGRATED_CURRENT_PROTOCOL"
+    }
+  ],
+  "qualification": {
+    "deterministic": {
+      "standing": "PASS",
+      "tests": 288,
+      "testFiles": 53,
+      "ruff": "PASS",
+      "python": "3.14.7",
+      "rust": "1.98.1",
+      "r0r5": "PASS_BOUNDED_NONLIVE_R0_R5_COMPOSITION_CLOSURE",
+      "tradingFullpath": "PASS_FULL_EFFECT_PATH_OKX_LIVE_PROVIDER_BOUND_NO_EXTERNAL_EFFECT_ADMISSION",
+      "evidenceManifest": "sha256:c6a4f1293de042a5df2797afc8e49b90b736d704135ea4aad20914d7cb2e82be",
+      "fixtureManifest": "sha256:69ca14c2747c05f4adbe08f178ebc4351d381283da0ef71ea5507af4819d5159"
+    },
+    "operational": {
+      "transportConfigDigest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+      "v2BindingDigest": "sha256:d88a5ac5b2165dbb9829d0ea0352da1884a3fee6b5846f03f8929e9619f9f14e",
+      "r2": {
+        "standing": "PARTIAL_STREAMING_PUBLIC_SHADOW",
+        "acceptedSnapshotCount": 0,
+        "sampleDurationMs": 25005.633651,
+        "interpretation": "NON_BLOCKING_OPERATIONAL_SAMPLE_FAILURE_NO_PROTOCOL_PARSE_ERROR"
+      },
+      "r3": {
+        "standing": "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.crypto-stream-resilience-r3-result",
+        "sessionKind": "ordivon.capital.markets.crypto-stream-resilience-r3-session",
+        "okxReconnectLatencyMs": 685.964233,
+        "binanceReconnectLatencyMs": 5676.544415,
+        "okxMeasuredRounds": 3,
+        "binanceMeasuredRounds": 3
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.capital.market.shadow-order-precommit",
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.governance.shadow-order-precommit",
   "precommitTimeUtc": "2026-09-13T09:39:11Z",
   "decisionBoundaryUtc": "2026-09-12T14:59:29Z",
   "targetPortfolioSha256": "137265667683455c302adff94466eaf38444ed7d51b5959c4ad065505792c14d",

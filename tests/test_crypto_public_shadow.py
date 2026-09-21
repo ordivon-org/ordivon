@@ -19,8 +19,8 @@ class CryptoPublicShadowTests(unittest.TestCase):
                 "payload": payload,
             }
         capture = {
-            "schemaVersion": 1,
-            "kind": "ordivon.capital.market.crypto-public-rest-capture",
+            "schemaVersion": 2,
+            "kind": "ordivon.capital.markets.crypto-public-rest-capture",
             "credentialsUsed": False,
             "privateAccountDataUsed": False,
             "externalFinancialWritesAttempted": False,
@@ -36,8 +36,8 @@ class CryptoPublicShadowTests(unittest.TestCase):
             },
         }
         discovery = {
-            "schemaVersion":1,
-            "kind":"ordivon.capital.market.network-v2-public-data-binding",
+            "schemaVersion":2,
+            "kind":"ordivon.capital.markets.network-v2-public-data-binding",
             "bindingDigest":"sha256:test",
             "providerSelection":"sing-box-provider-auto",
             "directFallback":False,

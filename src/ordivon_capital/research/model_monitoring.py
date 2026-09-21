@@ -74,8 +74,8 @@ def assess_paired_return_data_quality(
             }
 
     result: dict[str, Any] = {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.paired-return-data-quality",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.research.paired-return-data-quality",
         "componentId": "dependence-model-monitoring",
         "frameworkReference": "BCBS239_PROPORTIONAL_REFERENCE",
         "baseObservationCount": len(base_keys),
@@ -170,8 +170,8 @@ def monitor_dependence_outcomes(
     )
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.dependence-model-outcomes-monitoring",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.research.dependence-model-outcomes-monitoring",
         "componentId": "dependence-model-monitoring",
         "validatedComponentId": "portfolio-dependence-analysis",
         "baseInstrumentId": base_instrument_id,
@@ -216,8 +216,8 @@ def measure_dependence_drift(
     proxy_ks = ks_2samp(ref_proxy, cur_proxy, method="auto")
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.dependence-model-drift-measurement",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.research.dependence-model-drift-measurement",
         "componentId": "dependence-model-monitoring",
         "validatedComponentId": "portfolio-dependence-analysis",
         "baseInstrumentId": base_instrument_id,
@@ -283,8 +283,8 @@ def build_tail_risk_report(
         })
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.tail-risk-report",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.tail-risk-report",
         "componentId": "tail-risk-report",
         "confidence": format(confidence, ".6f"),
         "seriesCount": len(rows),

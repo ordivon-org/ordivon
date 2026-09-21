@@ -222,8 +222,8 @@ def simulate(config_path: Path, observation_path: Path, metadata_path: Path) -> 
         raise RuntimeError("unexpected crypto mechanics lifecycle outcome")
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.crypto-shadow-mechanics-result",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.crypto-shadow-mechanics-result",
         "standing": "PASS_LOCAL_CRYPTO_SPOT_OMS_MECHANICS",
         "purpose": cfg["purpose"],
         "sourceObservationSha256": hashlib.sha256(observation_path.read_bytes()).hexdigest(),

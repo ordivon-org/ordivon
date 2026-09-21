@@ -50,8 +50,8 @@ def normalize_exchange_symbol(exchange_info: Mapping[str, Any], symbol_id: str) 
         raise BinanceUsdmReferenceError("non-positive exchange rule")
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.binance-usdm-symbol-contract",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.binance-usdm-symbol-contract",
         "provider": "BINANCE",
         "symbol": symbol_id,
         "status": symbol.get("status"),
