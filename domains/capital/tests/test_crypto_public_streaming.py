@@ -28,3 +28,30 @@ class StreamingSnapshotTests(unittest.TestCase):
         x=evaluate_snapshot(latest)
         self.assertFalse(x['qualified']); self.assertEqual(x['reason'],'SPAN_GATE_FAILED')
 if __name__=='__main__': unittest.main()
+
+
+class StreamingFailureAttributionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_reader_failure_is_not_masked_by_queue_timeout(self):
+        import asyncio
+        from unittest.mock import patch
+
+        from ordivon_capital.market import crypto_public_streaming as cps
+
+        async def fail_reader(*_args, **_kwargs):
+            await asyncio.sleep(0)
+            raise ConnectionResetError(104, "connection reset by peer")
+
+        async def queue_timeout(awaitable, *, timeout):
+            await asyncio.sleep(0)
+            if hasattr(awaitable, "close"):
+                awaitable.close()
+            raise TimeoutError
+
+        with (
+            patch.object(cps, "network_v2_ws_proxies", return_value=("http://a", "http://b")),
+            patch.object(cps, "_okx_reader", side_effect=fail_reader),
+            patch.object(cps, "_binance_reader", side_effect=fail_reader),
+            patch.object(cps.asyncio, "wait_for", side_effect=queue_timeout),
+        ):
+            with self.assertRaises(ConnectionResetError):
+                await cps.capture_streaming(rounds=1, warmup_rounds=0, deadline_seconds=0.1)

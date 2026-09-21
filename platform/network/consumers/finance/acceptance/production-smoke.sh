@@ -6,6 +6,23 @@ TARGET=network-v2-finance.target
 EGRESS=network-v2-finance-egress.service
 ENDPOINTS=/etc/network-v2/finance/provider-endpoints.json
 FAULT_TABLE=network_v2_finance_accept
+CONTROL_UNITS=(
+  ordivon-runtime.service
+  ordivon-cloudflare-production-a.service
+  ordivon-cloudflare-production-b.service
+  ordivon-cloudflare-canary.service
+  ordivon-cloudflare-direct-route.service
+)
+
+control_state_snapshot() {
+  local unit
+  for unit in "${CONTROL_UNITS[@]}"; do
+    printf '%s=%s\n' "$unit" "$(systemctl is-active "$unit" 2>/dev/null || true)"
+  done
+}
+
+CONTROL_PLANE_BEFORE=$(control_state_snapshot)
+test "$(systemctl is-active ordivon-runtime.service)" = active
 
 wait_state() {
   local unit=$1 expected=$2 state=unknown
@@ -181,10 +198,14 @@ wait_state "$EGRESS" active
 wait_all
 refresh_groups
 
-# Finance migration must not perturb Runtime/Cloudflare control plane.
-for unit in ordivon-runtime.service ordivon-cloudflare-production-a.service ordivon-cloudflare-production-b.service ordivon-cloudflare-canary.service ordivon-cloudflare-direct-route.service; do
-  test "$(systemctl is-active "$unit")" = active
-done
+# Finance migration must not perturb Runtime/Cloudflare control-plane state.
+test "$(systemctl is-active ordivon-runtime.service)" = active
+CONTROL_PLANE_AFTER=$(control_state_snapshot)
+if [ "$CONTROL_PLANE_AFTER" != "$CONTROL_PLANE_BEFORE" ]; then
+  echo "control-plane state changed during Finance acceptance" >&2
+  printf 'before:\n%s\nafter:\n%s\n' "$CONTROL_PLANE_BEFORE" "$CONTROL_PLANE_AFTER" >&2
+  exit 1
+fi
 
 echo finance-network-v2-six-authority-fencing=PASS
 echo finance-network-v2-singbox-endpoint-failclosed=PASS

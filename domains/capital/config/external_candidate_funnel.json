@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.external-candidate-funnel",
+  "asOfDate": "2026-09-21",
+  "languageBaseline": {
+    "python": "3.14.7",
+    "rust": "1.98.1"
+  },
+  "rule": "Language evidence is only Gate 0. No project becomes an owner until an active exact contract exists and executable comparative qualification beats or materially complements the smallest credible local baseline.",
+  "candidates": [
+    {
+      "project": "OpenBB",
+      "observedVersion": "4.7.3",
+      "role": "broad research-data integration",
+      "languageEvidence": "Python >=3.10,<4; release line explicitly supports Python 3.14",
+      "languageStanding": "PASS_DECLARED",
+      "activeContract": false,
+      "adoptionStanding": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
+      "otherGate": "AGPL-3.0-only deployment boundary requires review"
+    },
+    {
+      "project": "PyPortfolioOpt",
+      "observedVersion": "1.6.0",
+      "role": "conventional portfolio optimization",
+      "languageEvidence": "requires Python >=3.10,<3.15; Python 3.14 classifier",
+      "languageStanding": "PASS_DECLARED",
+      "activeContract": false,
+      "adoptionStanding": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
+      "otherGate": "Open fixes target HRP behavior under SciPy >=1.18; Ordivon uses SciPy 1.18.1, so this must be included in any future executable matrix"
+    },
+    {
+      "project": "Riskfolio-Lib",
+      "observedVersion": "7.3.0",
+      "role": "advanced portfolio optimization",
+      "languageEvidence": "CPython 3.14 wheels published",
+      "languageStanding": "PASS_BINARY_EVIDENCE",
+      "activeContract": false,
+      "adoptionStanding": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
+      "otherGate": "Broad optimization dependency surface; observed PyPI release is not uploaded via Trusted Publishing"
+    },
+    {
+      "project": "NautilusTrader",
+      "observedVersion": "2.0.0rc5 upstream; 1.231.0 stable v1 examined locally",
+      "role": "trading/reconciliation engine",
+      "languageEvidence": "v2 upstream matrix Python 3.12-3.14 and Rust 1.98.1",
+      "languageStanding": "PASS_UPSTREAM_FOR_V2",
+      "activeContract": true,
+      "adoptionStanding": "NO_VERSION_PASSES_ALL_GATES",
+      "otherGate": "rc4 old Python; 1.231.0 exact DENY/risk contract fail; rc5 pre-release and not locally qualified"
+    },
+    {
+      "project": "Microsoft Qlib",
+      "observedVersion": "main",
+      "role": "quant research workflow",
+      "languageEvidence": "classifiers through Python 3.12",
+      "languageStanding": "FAIL",
+      "activeContract": false,
+      "adoptionStanding": "REJECTED_LANGUAGE_BASELINE",
+      "otherGate": "Do not port merely to preserve upstream owner status"
+    },
+    {
+      "project": "Microsoft RD-Agent",
+      "observedVersion": "main",
+      "role": "autonomous R&D loop",
+      "languageEvidence": "project evidence centers Python 3.10-3.11",
+      "languageStanding": "FAIL",
+      "activeContract": false,
+      "adoptionStanding": "REJECTED_LANGUAGE_EVIDENCE",
+      "otherGate": "A future Python 3.14 port is evaluated as a local/forked implementation"
+    },
+    {
+      "project": "TradingAgents",
+      "observedVersion": "0.5.0 release line",
+      "role": "agent investment-office reference",
+      "languageEvidence": "requires-python range is broad but explicit Python 3.14 executable/CI evidence was not established",
+      "languageStanding": "UNQUALIFIED",
+      "activeContract": false,
+      "adoptionStanding": "REFERENCE_ONLY_NOT_ADOPTED",
+      "otherGate": "Architecture/reference evidence does not imply runtime ownership"
+    },
+    {
+      "project": "ai-hedge-fund",
+      "observedVersion": "2.2.0",
+      "role": "agent investment-office reference",
+      "languageEvidence": "Poetry ^3.11 range; formatter target py311; no explicit Python 3.14 qualification evidence observed",
+      "languageStanding": "UNQUALIFIED",
+      "activeContract": false,
+      "adoptionStanding": "REFERENCE_ONLY_NOT_ADOPTED",
+      "otherGate": "Proof-of-concept/reference role only"
+    },
+    {
+      "project": "Open Policy Agent",
+      "observedVersion": "1.20.2",
+      "role": "general-purpose policy decision engine",
+      "languageEvidence": "standalone binary; internal Go compiler version treated as supply-chain evidence, not Ordivon language admission",
+      "languageStanding": "NOT_DIRECT_LANGUAGE_DEPENDENCY",
+      "activeContract": true,
+      "adoptionStanding": "LOCAL_BASELINE_WINS_CURRENT_EXACT_CONTRACT",
+      "otherGate": "354 differential cases, zero mismatches; no independent authority boundary; current subprocess integration is materially heavier"
+    },
+    {
+      "project": "OpenLineage",
+      "observedVersion": "1.53.0 upstream",
+      "role": "lineage event standard/API",
+      "languageEvidence": "not evaluated because no active runtime contract exists",
+      "languageStanding": "NOT_APPLICABLE_NO_ACTIVE_CONTRACT",
+      "activeContract": false,
+      "adoptionStanding": "DEFERRED_NO_ACTIVE_CONTRACT",
+      "otherGate": "A schema URL/reference is not an admitted lineage owner"
+    },
+    {
+      "project": "OpenTelemetry",
+      "observedVersion": "current collector line upstream",
+      "role": "telemetry context/collector pipeline",
+      "languageEvidence": "not evaluated because no authoritative collector/exporter path exists",
+      "languageStanding": "NOT_APPLICABLE_NO_ACTIVE_CONTRACT",
+      "activeContract": false,
+      "adoptionStanding": "DEFERRED_NO_ACTIVE_CONTRACT",
+      "otherGate": "Existing Market metrics path is Prometheus/node_exporter, not OTel"
+    },
+    {
+      "project": "Grafana",
+      "observedVersion": "current upstream",
+      "role": "observability visualization",
+      "languageEvidence": "standalone service candidate",
+      "languageStanding": "NOT_DIRECT_LANGUAGE_DEPENDENCY",
+      "activeContract": false,
+      "adoptionStanding": "DEFERRED_NO_LOCAL_ACTIVE_SERVICE",
+      "otherGate": "No local grafana-server binary/service observed during owner audit"
+    },
+    {
+      "project": "TigerBeetle",
+      "observedVersion": "0.17.9",
+      "role": "distributed/purpose-built accounting database challenger",
+      "languageEvidence": "Python client locally qualified on Python 3.14.7; server is standalone binary",
+      "languageStanding": "PASS_DIRECT_CLIENT_LANGUAGE_GATE",
+      "activeContract": false,
+      "adoptionStanding": "NOT_ADOPTED_CURRENT_SINGLE_HOST_CONTRACT",
+      "otherGate": "400-step randomized differential against SQLite had zero status/balance mismatches; current contract does not require replication/consensus/high-throughput OLTP"
+    },
+    {
+      "project": "QuantConnect LEAN",
+      "observedVersion": "master 985ef30 (2026-09-18)",
+      "role": "historical trading-engine / buying-power / fill / slippage challenger",
+      "languageEvidence": ".NET SDK 10.0.401 / runtime 10.0.12; net10.0 build passed",
+      "languageStanding": "PASS_LATEST_STABLE_DOTNET_GATE",
+      "activeContract": false,
+      "adoptionStanding": "NOT_CORE_ADMITTED_SUPPLY_CHAIN_BLOCKED_LOCAL_SIZER_WINS_CURRENT_EXACT_CONTRACT",
+      "otherGate": "M1/M2/M3/M4/M6 functional qualification passed; 57 fee-aware sizing comparisons had zero mismatches; latest build still reports critical/high NuGet advisories"
+    },
+    {
+      "project": "Prometheus",
+      "observedVersion": "3.14.0",
+      "role": "time-series scrape/retention/PromQL/alert-rule candidate",
+      "languageEvidence": "standalone binary; internal Go compiler is supply-chain evidence rather than Ordivon language admission",
+      "languageStanding": "NOT_DIRECT_LANGUAGE_DEPENDENCY",
+      "activeContract": false,
+      "adoptionStanding": "DEFERRED_MARKET_DOMAIN_CONSUMER_NOT_ACTIVE",
+      "otherGate": "Network v2 Prometheus is active but has no Market targets/rules/series; configured shared Prometheus 29091 and node exporter 29100 are inactive"
+    },
+    {
+      "project": "QuickFIX/n",
+      "observedVersion": "1.14.1",
+      "role": "FIX session/message implementation candidate and current differential oracle",
+      "languageEvidence": "NuGet package includes net10.0; local .NET SDK 10.0.401 restore/build passes",
+      "languageStanding": "PASS_LATEST_STABLE_DOTNET_GATE",
+      "activeContract": false,
+      "adoptionStanding": "ORACLE_ONLY_LOCAL_BOUNDED_PROJECTOR_WINS_CURRENT_EXACT_CONTRACT",
+      "otherGate": "dotnet package vulnerability scan reports no known vulnerable packages; 120/120 byte-exact differential matches; current sessionless ToString contract omits BodyLength/CheckSum"
+    },
+    {
+      "project": "@okx_ai/okx-trade-cli",
+      "observedVersion": "1.4.7",
+      "role": "OKX authenticated API reference/differential client",
+      "languageEvidence": "Node >=18; local package active under Node 26.7.0",
+      "languageStanding": "PASS",
+      "activeContract": false,
+      "adoptionStanding": "REFERENCE_ONLY_LOCAL_GET_ONLY_CLIENT_WINS_CURRENT_EXACT_CONTRACT",
+      "otherGate": "120/120 HMAC signatures and 3/3 live structural GET comparisons matched; npm audit reports zero vulnerabilities; package includes broad financial-write command surface not required by current contract"
+    },
+    {
+      "project": "binance-sdk-spot",
+      "observedVersion": "11.3.0",
+      "role": "future Binance Spot USER_DATA client",
+      "languageEvidence": "isolated environment; current method-surface preflight passes",
+      "languageStanding": "PASS_CURRENT_ENV",
+      "activeContract": false,
+      "adoptionStanding": "CANDIDATE_PRIVATE_READ_NOT_ADMITTED",
+      "otherGate": "Private account data admission remains NOT_ADMITTED; no credentials/network used by preflight"
+    },
+    {
+      "project": "binance-sdk-derivatives-trading-usds-futures + wallet",
+      "observedVersion": "17.4.0 + 13.4.0",
+      "role": "future Binance USD-M USER_DATA and permission client",
+      "languageEvidence": "Python 3.14-capable isolated environment; method-surface preflight passes",
+      "languageStanding": "PASS_PYTHON314",
+      "activeContract": false,
+      "adoptionStanding": "CANDIDATE_PRIVATE_USER_DATA_PENDING",
+      "otherGate": "Private USER_DATA expected digest/permission verification is pending; trade method exists but is explicitly not admitted"
+    },
+    {
+      "project": "MLflow",
+      "observedVersion": "3.16.1",
+      "role": "future experiment tracking/search/registry candidate",
+      "languageEvidence": "previous Python 3.14.7 environment qualified",
+      "languageStanding": "PASS_HISTORICAL_ENV",
+      "activeContract": false,
+      "adoptionStanding": "REMOVED_NO_ACTIVE_CONTRACT",
+      "otherGate": "No server/UI/search/registry/current run consumer; removal eliminated a large transitive dependency tree"
+    },
+    {
+      "project": "Pandera",
+      "observedVersion": "0.33.1",
+      "role": "future richer dataframe-schema validation candidate",
+      "languageEvidence": "temporary Python 3.14.7 differential environment qualified",
+      "languageStanding": "PASS_PYTHON314",
+      "activeContract": false,
+      "adoptionStanding": "ORACLE_ONLY_LOCAL_BOUNDED_VALIDATOR_WINS_CURRENT_SCHEMA",
+      "otherGate": "400 randomized acceptance cases, 0 mismatches; current contract is one fixed 11-field schema"
+    }
+  ]
+}

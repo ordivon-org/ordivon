@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_capital.market.opa_policy import (
-    ExecutionPolicyError,
+from ordivon_capital.market.policy_decision import (
+    PolicyDecisionError,
     enforce_external_write,
     enforce_non_live,
     evaluate_execution_policy,
@@ -15,13 +15,13 @@ CONFIG = ROOT / "config/execution_policy.json"
 
 
 class ExecutionPolicyTests(unittest.TestCase):
-    def test_external_write_policy_is_opa_owned_and_denied(self):
+    def test_external_write_policy_is_local_and_denied(self):
         result = evaluate_execution_policy(ROOT, CONFIG)
         self.assertEqual(result["externalWritePolicyStanding"], "NOT_ADMITTED")
         self.assertFalse(result["allowExternalWrite"])
         self.assertEqual(result["externalWriteVerifier"], "NOT_IMPLEMENTED")
         self.assertFalse(result["providerWriteCapabilityBound"])
-        self.assertEqual(result["policyEngine"], "OPA")
+        self.assertEqual(result["decisionImplementation"], "LOCAL_DETERMINISTIC_PYTHON")
 
     def test_non_live_gate_passes_fail_closed_contract(self):
         result = enforce_non_live(ROOT, CONFIG)
@@ -29,25 +29,25 @@ class ExecutionPolicyTests(unittest.TestCase):
         self.assertFalse(result["externalFinancialWritesAllowed"])
 
     def test_external_write_is_not_admitted(self):
-        with self.assertRaisesRegex(ExecutionPolicyError, "OPA denied external financial write"):
+        with self.assertRaisesRegex(PolicyDecisionError, "policy denied external financial write"):
             enforce_external_write(ROOT, CONFIG)
 
 
-    def test_opa_is_single_policy_decision_point(self):
+    def test_local_policy_is_single_decision_point(self):
         result = evaluate_execution_policy(ROOT, CONFIG)
         self.assertTrue(result["allowNonLive"])
         self.assertFalse(result["allowExternalWrite"])
-        source = (ROOT / "src/ordivon_capital/market/opa_policy.py").read_text()
+        source = (ROOT / "src/ordivon_capital/market/policy_decision.py").read_text()
         self.assertNotIn("currentLane must remain NON_LIVE", source)
         self.assertNotIn("non-live lane cannot bind", source)
 
     def test_contract_path_escape_is_rejected(self):
         doc = json.loads(CONFIG.read_text())
-        doc["policyEngine"]["policy"] = "../outside/policy.rego"
+        doc["externalWritePolicyInputContract"] = "../outside/contract.json"
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "execution-policy.json"
             path.write_text(json.dumps(doc))
-            with self.assertRaisesRegex(ExecutionPolicyError, "escapes repository"):
+            with self.assertRaisesRegex(PolicyDecisionError, "escapes repository"):
                 evaluate_execution_policy(ROOT, path)
 
 

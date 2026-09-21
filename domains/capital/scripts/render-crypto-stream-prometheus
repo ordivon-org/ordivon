@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
-from ordivon_capital.market.opa_policy import evaluate_execution_policy
+from ordivon_capital.market.policy_decision import evaluate_execution_policy
 
 def load(path: Path): return json.loads(path.read_text())
 

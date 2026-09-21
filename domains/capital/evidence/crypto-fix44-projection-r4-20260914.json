@@ -1,16 +1,17 @@
 {
   "brokerCredentialsUsed": false,
   "composition": {
-    "fixImplementation": "QuickFIX/n 1.14.1",
-    "mappingRole": "thin projection only",
+    "fixImplementation": "LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR",
+    "mappingRole": "bounded sessionless TagValue projection only; not a complete FIX wire/session engine",
     "orderSemantics": "FIX 4.4 NewOrderSingle",
+    "quickfixDifferentialReference": "QuickFIX/n 1.14.1; 120/120 byte-exact; 0 mismatches",
     "sourceMechanics": "NautilusTrader local OMS/Risk evidence"
   },
   "demoExecutionAttempted": false,
   "economicDecisionClaimed": false,
   "externalFinancialWritesAttempted": false,
   "identityContinuity": "Nautilus mechanics clientOrderId == FIX ClOrdID",
-  "kind": "ordivon.market-capital.crypto-fix44-projection-r4-evidence",
+  "kind": "ordivon.capital.market.crypto-fix44-projection-r4-evidence",
   "liveExecutionAttempted": false,
   "networkSessionEnabled": false,
   "nextBoundary": "authoritative read-only venue account/order/trade reality before any order-capable credential admission",
@@ -23,11 +24,11 @@
       "ordType": "1",
       "orderQty": "0.00012959",
       "protocol": "FIX.4.4",
-      "rawSha256": "65f8d0dc43bb276b002ee8e36010df6b59e0935d9a4dc18ab0fc876fe3ca38c6",
+      "rawSha256": "1fc79a8a1a60ee8e8374a1143f11d96326103442dac8a96da395586b92d6b691",
       "side": "1",
       "symbol": "BTC-USDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     },
     {
       "clOrdId": "MECH-BINANCE-BTC",
@@ -36,11 +37,11 @@
       "ordType": "1",
       "orderQty": "0.00012",
       "protocol": "FIX.4.4",
-      "rawSha256": "44b238f91d1b1dad96061031e2daede354263d0fbee92477527db40e455ffb4d",
+      "rawSha256": "2a5defc7e66500cc2ae5491dcae62b2cb578d72620020eeea78359c98214d920",
       "side": "1",
       "symbol": "BTCUSDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     },
     {
       "clOrdId": "MECH-OKX-ETH",
@@ -49,11 +50,11 @@
       "ordType": "1",
       "orderQty": "0.004015",
       "protocol": "FIX.4.4",
-      "rawSha256": "f234c8d9f1359f2616837a029504c985f784b34aec76b2c35a3d77fe7eec3f53",
+      "rawSha256": "de128c2607ef55cbc5a6190e88f4e53e8bc2a070dbaf4ce4eb71b18eb9d7248e",
       "side": "1",
       "symbol": "ETH-USDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     },
     {
       "clOrdId": "MECH-BINANCE-ETH",
@@ -62,15 +63,15 @@
       "ordType": "1",
       "orderQty": "0.0040",
       "protocol": "FIX.4.4",
-      "rawSha256": "feb8d8ec166208f50480fe9c81f2968308ee5aba22e80d32a49fd76ed5d74ee9",
+      "rawSha256": "594d4973a9e8ba203c2a60b8105403f0167d9c9f5f38c6cc62590a818e9231e2",
       "side": "1",
       "symbol": "ETHUSDT",
       "timeInForce": "3",
-      "transactTimeUtc": "2026-09-14T02:50:39.0000000Z"
+      "transactTimeUtc": "2026-09-21T06:11:34.000000Z"
     }
   ],
-  "projectionInputSha256": "b8844a6cb7238a0af4618fc1a5d7c1dfea0dce74ed402f1071c255a3b500ee25",
-  "projectionOutputSha256": "24ca5d8fd593375c13ba6808e357a22e2b5a77fe3a289457484fc90b3d8ee781",
+  "projectionInputSha256": "3335b60d1366ff9d9cd92d41f5e991c247a7561f71c789e803675c1885e936be",
+  "projectionOutputSha256": "2c8876e7e4d1fdad72f170d3e3f52c23c2c73ddb917b6c69ae2d7ca60b0b795e",
   "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
   "schemaVersion": 1,
   "sourceMechanicsEvidence": "evidence/crypto-shadow-mechanics-r1-20260913.json",

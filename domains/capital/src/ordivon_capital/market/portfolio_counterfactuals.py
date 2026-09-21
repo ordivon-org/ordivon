@@ -387,9 +387,9 @@ def evaluate_constraint_gate(
     risk_budget_evaluation: Mapping[str, Any] | None = None,
     evidence: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Bind counterfactual/evidence facts to the OPA-owned pre-trade control policy."""
-    from ordivon_capital.market.opa_policy import (
-        ExecutionPolicyError,
+    """Bind counterfactual/evidence facts to the bounded deterministic pre-trade control policy."""
+    from ordivon_capital.market.policy_decision import (
+        PolicyDecisionError,
         evaluate_counterfactual_gate_policy,
     )
 
@@ -402,7 +402,7 @@ def evaluate_constraint_gate(
             risk_budget_evaluation=(dict(risk_budget_evaluation) if risk_budget_evaluation is not None else None),
             evidence=(dict(evidence) if evidence is not None else None),
         )
-    except ExecutionPolicyError as exc:
+    except PolicyDecisionError as exc:
         raise PortfolioCounterfactualError(str(exc)) from exc
 
 

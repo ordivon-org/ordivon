@@ -16,14 +16,17 @@ class WaveBContractTests(unittest.TestCase):
 
     def test_lean_runtime_is_non_live(self):
         doc = json.loads((ROOT / "config/lean_runtime.json").read_text())
-        self.assertEqual(doc["mode"], "historical-validation-only")
+        self.assertEqual(doc["mode"], "historical-qualification-challenger-only")
         self.assertFalse(doc["brokerCredentialsAllowed"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])
         self.assertEqual(doc["productionStanding"], "NOT_ADMITTED")
+        self.assertFalse(doc["coreOwnerAdmitted"])
+        self.assertEqual(doc["latestCandidate"]["sourceCommit"], "985ef30")
+        self.assertEqual(doc["latestCandidate"]["supplyChainStanding"], "BLOCKED_KNOWN_CRITICAL_HIGH_NUGET_ADVISORIES")
 
     def test_execution_feasibility_is_non_live_and_has_buffer(self):
         doc = json.loads((ROOT / "config/execution_feasibility.json").read_text())
-        self.assertEqual(doc["orderSizingOwner"], "QuantConnect LEAN CalculateOrderQuantity / buying-power model")
+        self.assertEqual(doc["orderSizingOwner"], "LOCAL_BOUNDED_US_EQUITY_SIZER")
         self.assertGreater(doc["executionCashBufferWeight"], 0)
         self.assertLess(doc["executionCashBufferWeight"], 1)
         self.assertFalse(doc["externalFinancialWritesAllowed"])
@@ -42,7 +45,10 @@ class WaveBContractTests(unittest.TestCase):
         self.assertEqual(doc["protocol"], "FIX.4.4")
         self.assertEqual(doc["messageType"], "D")
         self.assertEqual(doc["messageName"], "NewOrderSingle")
-        self.assertEqual(doc["packages"]["QuickFIXn.FIX44"], "1.14.1")
+        self.assertEqual(doc["implementation"], "LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR")
+        self.assertFalse(doc["wireFrameComplete"])
+        self.assertEqual(doc["quickfixDifferentialReference"]["version"], "1.14.1")
+        self.assertEqual(doc["quickfixDifferentialReference"]["mismatches"], 0)
         self.assertFalse(doc["sessionNetworkEnabled"])
         self.assertFalse(doc["brokerCredentialsAllowed"])
         self.assertFalse(doc["externalFinancialWritesAllowed"])

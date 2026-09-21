@@ -2,8 +2,12 @@
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 sdk=/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python
+binding="$("$repo/scripts/check-network-v2-public-data")"
+proxy="$(printf '%s' "$binding" | /usr/bin/jq -r '.authorities.binanceUsdmRest.proxy')"
+readiness="$(printf '%s' "$binding" | /usr/bin/jq -r '.readinessCommand')"
+"$readiness" binance-usdm 30 >/dev/null
 export PYTHONPATH="$repo/src"
-export HTTPS_PROXY=http://127.0.0.1:19287
-export HTTP_PROXY=http://127.0.0.1:19287
+export HTTPS_PROXY="$proxy"
+export HTTP_PROXY="$proxy"
 export NO_PROXY=127.0.0.1,localhost
 exec "$sdk" -m ordivon_capital.market.binance_usdm_public_capture "$@"

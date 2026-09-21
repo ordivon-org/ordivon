@@ -17,7 +17,22 @@ class StreamingRunnerPolicyTests(unittest.TestCase):
         self.assertNotIn('surfpath',master.lower()+candidate.lower())
         self.assertNotIn('--ingresses',candidate)
         self.assertIn('check-network-v2-public-data',candidate)
-        self.assertIn('/usr/bin/uv run --frozen --project',candidate)
+        self.assertIn('run-capability-python',candidate)
+        self.assertIn('-m ordivon_capital.market.crypto_public_streaming',candidate)
+        self.assertNotIn('/usr/bin/uv run',candidate)
+        self.assertNotIn('src/ordivon_capital/market/crypto_public_streaming.py',candidate)
         self.assertNotIn('.venv/bin/python',candidate)
         self.assertIn('network-v2-provider-auto',master)
+
+
+    def test_r3_session_uses_canonical_python_runner_and_always_aggregates_both_venues(self):
+        session=(ROOT/'scripts/run-crypto-stream-resilience-r3-session').read_text()
+        assert 'run-capability-python" -m ordivon_capital.market.crypto_stream_resilience' in session
+        assert '/usr/bin/uv run' not in session
+        assert 'okx_rc=$?' in session
+        assert 'binance_rc=$?' in session
+        assert '"returnCode": okx_rc' in session
+        assert '"returnCode": bn_rc' in session
+        assert 'PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' in session
+
 if __name__=='__main__': unittest.main()

@@ -2,9 +2,12 @@
   "schemaVersion": 1,
   "kind": "ordivon.capital.market.execution-feasibility",
   "mode": "historical-validation-only",
-  "orderSizingOwner": "QuantConnect LEAN CalculateOrderQuantity / buying-power model",
+  "orderSizingOwner": "LOCAL_BOUNDED_US_EQUITY_SIZER",
   "executionCashBufferWeight": 0.01,
   "interpretation": "execution reserve, not an investment target or alpha decision",
-  "rule": "LEAN sizing must retain the configured free portfolio value before emitting orders",
-  "externalFinancialWritesAllowed": false
+  "rule": "Local bounded sizing must preserve the explicitly configured free-portfolio value and fee-aware whole-share feasibility; unsupported mechanics fail closed and require a new comparative qualification.",
+  "externalFinancialWritesAllowed": false,
+  "qualifiedExternalReference": "QuantConnect LEAN CalculateOrderQuantity / buying-power model",
+  "qualificationScope": "empty USD portfolio; long US equities; one-share lot; explicit free-portfolio buffer; default LEAN InteractiveBrokersFeeModel fee mechanics",
+  "externalReferenceStanding": "LATEST_985ef30_FUNCTIONALLY_EQUIVALENT_BUT_NOT_CORE_ADMITTED"
 }

@@ -1,228 +1,174 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-tb=/usr/local/bin/tigerbeetle
-tb_py=/opt/ordivon/external/tigerbeetle/0.17.9/python-client/bin/python
-
+"$repo/scripts/check-language-baseline" >/dev/null
 tmp="$(mktemp -d)"
-data="$tmp/0_0.tigerbeetle"
-matrix="$tmp/nonlive-effect-matrix.json"
-pid=""
-cleanup(){
-  if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
-  rm -rf "$tmp"
-}
-trap cleanup EXIT
+trap 'rm -rf "$tmp"' EXIT
+PYTHONPATH="$repo/src" DB="$tmp/nonlive-accounting.sqlite3" \
+  "$repo/.venv/bin/python" - <<'PY'
+import json
+import os
+from pathlib import Path
 
-"$repo/scripts/run-nautilus-nonlive-effect-matrix" > "$matrix"
-
-port="$($tb_py - <<'PY'
-import socket
-s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()
-PY
-)"
-wait_ready(){
-  TB_PORT="$port" "$tb_py" - <<'PY'
-import os,socket,time
-p=int(os.environ['TB_PORT']); deadline=time.time()+10
-while time.time()<deadline:
-    try:
-        with socket.create_connection(('127.0.0.1',p),0.2): raise SystemExit(0)
-    except OSError: time.sleep(0.05)
-raise SystemExit('TigerBeetle did not become reachable')
-PY
-}
-start_tb(){ "$tb" start --addresses="127.0.0.1:$port" --development "$data" >"$tmp/server.log" 2>&1 & pid=$!; wait_ready; }
-stop_tb(){ kill "$pid"; wait "$pid" 2>/dev/null || true; pid=""; }
-
-"$tb" format --cluster=0 --replica=0 --replica-count=1 --development "$data" >"$tmp/format.log" 2>&1
-start_tb
-
-PYTHONPATH="$repo/src" TB_PORT="$port" MATRIX="$matrix" "$tb_py" - <<'PY'
-import json, os
-import tigerbeetle as tb
-
-from ordivon_capital.accounting.tigerbeetle_durable import CapitalAccountNamespace, CapitalAccountRole, binding_for_namespace
-from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction, stable_provider_id
-
-port=os.environ['TB_PORT']
-matrix=json.load(open(os.environ['MATRIX']))
-expected={
-    'FILL':'POST_PENDING_TRANSFER',
-    'PARTIAL_FILL_SLICES':'POST_PENDING_TRANSFER',
-    'CANCEL':'VOID_PENDING_TRANSFER',
-    'DENY':'VOID_PENDING_TRANSFER',
-    'UNKNOWN_AFTER_SUBMISSION':'NO_MUTATION',
-}
-assert matrix['standing']=='PASS_NAUTILUS_NONLIVE_EFFECT_RECONCILIATION_MATRIX'
-assert matrix['observedResolutions']==expected
-
-ledger=41; account_code=718; transfer_code=720; reservation_amount=100
-funding_id=stable_provider_id('market-capital:nonlive-effect:funding','qualification-v1')
-
-def account_wire(a):
-    flags=tb.AccountFlags.HISTORY
-    if a.debits_must_not_exceed_credits: flags |= tb.AccountFlags.DEBITS_MUST_NOT_EXCEED_CREDITS
-    return tb.Account(id=a.account_id,ledger=a.ledger,code=a.code,flags=flags)
-
-def transfer_wire(i):
-    w=dict(i.as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name')); return tb.Transfer(**w)
-
-namespaces={}
-bindings={}
-accounts=[tb.Account(id=funding_id,ledger=ledger,code=account_code,flags=tb.AccountFlags.HISTORY)]
-for scenario in expected:
-    ns=CapitalAccountNamespace('owner:qualification',f'parcel:nonlive:{scenario.lower()}',ledger,account_code)
-    namespaces[scenario]=ns
-    accounts.extend([account_wire(ns.account(CapitalAccountRole.AVAILABLE)),account_wire(ns.account(CapitalAccountRole.ENCUMBRANCE))])
-    bindings[scenario]=binding_for_namespace(
-        namespace=ns,
-        reservation_ref=f'reservation:nonlive:{scenario.lower()}',
-        amount=reservation_amount,
-        transfer_code=transfer_code,
-    )
-
-with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
-    rs=c.create_accounts(accounts)
-    assert all(r.status == tb.CreateAccountStatus.CREATED for r in rs), [r.status.name for r in rs]
-    funds=[]
-    for scenario,ns in namespaces.items():
-        funds.append(tb.Transfer(
-            id=stable_provider_id('market-capital:nonlive-effect:fund',scenario),
-            debit_account_id=funding_id,
-            credit_account_id=ns.available_account_id,
-            amount=reservation_amount,
-            ledger=ledger,
-            code=transfer_code,
-        ))
-    fr=c.create_transfers(funds)
-    assert all(r.status == tb.CreateTransferStatus.CREATED for r in fr), [r.status.name for r in fr]
-
-    pending=[transfer_wire(reservation_instruction(bindings[s])) for s in expected]
-    pr=c.create_transfers(pending)
-    assert all(r.status == tb.CreateTransferStatus.CREATED for r in pr), [r.status.name for r in pr]
-
-    for scenario, resolution_name in expected.items():
-        operation = (
-            None if resolution_name == 'NO_MUTATION'
-            else TigerBeetleOperation(resolution_name)
-        )
-        instruction=resolution_instruction(
-            binding=bindings[scenario],
-            operation=operation,
-            resolution_ref=f'effect:nonlive:{scenario.lower()}',
-        )
-        if operation is None:
-            assert instruction is None
-            continue
-        status=c.create_transfers([transfer_wire(instruction)])[0].status
-        assert status == tb.CreateTransferStatus.CREATED, (scenario,status.name)
-PY
-
-stop_tb
-start_tb
-
-PYTHONPATH="$repo/src" TB_PORT="$port" MATRIX="$matrix" "$tb_py" - <<'PY'
-import json, os
-import tigerbeetle as tb
-
-from ordivon_capital.accounting.tigerbeetle_durable import (
+from ordivon_capital.accounting.durable import (
     CapitalAccountNamespace,
-    DurableProviderStanding,
+    CapitalAccountRole,
     DurableReservationHistory,
-    ProviderTransferObservation,
+    LedgerReconciliationStanding,
+    LedgerTransferObservation,
     ReservationStanding,
     binding_for_namespace,
     reconcile_durable_history,
 )
-from ordivon_capital.accounting.tigerbeetle_substrate import TigerBeetleOperation, reservation_instruction, resolution_instruction
+from ordivon_capital.accounting.sqlite_ledger import LedgerApplyStatus, SQLiteAccountingLedger
+from ordivon_capital.accounting.substrate import (
+    AccountingAccount,
+    AccountingOperation,
+    reservation_instruction,
+    resolution_instruction,
+    stable_accounting_id,
+)
 
-port=os.environ['TB_PORT']
-matrix=json.load(open(os.environ['MATRIX']))
-dispositions=matrix['observedResolutions']
-ledger=41; account_code=718; transfer_code=720; reservation_amount=100
-results={}
+expected={
+    "FILL":"POST_PENDING_TRANSFER",
+    "PARTIAL_FILL_SLICES":"POST_PENDING_TRANSFER",
+    "CANCEL":"VOID_PENDING_TRANSFER",
+    "DENY":"VOID_PENDING_TRANSFER",
+    "UNKNOWN_AFTER_SUBMISSION":"NO_MUTATION",
+}
+path=Path(os.environ["DB"])
+fund=AccountingAccount(stable_accounting_id("ordivon-capital:nonlive-effect","funding"))
+namespaces={}
+bindings={}
 
-with tb.ClientSync(cluster_id=0,replica_addresses=f'127.0.0.1:{port}') as c:
-    for scenario, resolution_name in dispositions.items():
-        ns=CapitalAccountNamespace('owner:qualification',f'parcel:nonlive:{scenario.lower()}',ledger,account_code)
+with SQLiteAccountingLedger(path) as ledger:
+    assert ledger.create_account(fund) is LedgerApplyStatus.CREATED
+    for scenario in expected:
+        ns=CapitalAccountNamespace("owner:qualification",f"parcel:nonlive:{scenario.lower()}")
+        namespaces[scenario]=ns
+        assert ledger.create_account(ns.account(CapitalAccountRole.AVAILABLE)) is LedgerApplyStatus.CREATED
+        assert ledger.create_account(ns.account(CapitalAccountRole.ENCUMBRANCE)) is LedgerApplyStatus.CREATED
+        assert ledger.apply_immediate_transfer(
+            transfer_id=stable_accounting_id("ordivon-capital:nonlive-effect:fund",scenario),
+            debit_account_id=fund.account_id,
+            credit_account_id=ns.available_account_id,
+            amount=100,
+        ) is LedgerApplyStatus.CREATED
         binding=binding_for_namespace(
             namespace=ns,
-            reservation_ref=f'reservation:nonlive:{scenario.lower()}',
-            amount=reservation_amount,
-            transfer_code=transfer_code,
+            reservation_ref=f"reservation:nonlive:{scenario.lower()}",
+            amount=100,
         )
-        pending_rows=c.lookup_transfers([binding.pending_transfer_id])
-        assert len(pending_rows)==1, scenario
-        p=pending_rows[0]
-        assert int(p.flags) & int(tb.TransferFlags.PENDING), scenario
-        pending=ProviderTransferObservation(p.id,TigerBeetleOperation.PENDING,p.amount,p.pending_id)
+        bindings[scenario]=binding
+        assert ledger.apply_instruction(reservation_instruction(binding)) is LedgerApplyStatus.CREATED
 
-        operation = None if resolution_name == 'NO_MUTATION' else TigerBeetleOperation(resolution_name)
-        if operation is None:
+    for scenario,resolution_name in expected.items():
+        if resolution_name=="NO_MUTATION":
+            continue
+        operation=AccountingOperation(resolution_name)
+        instruction=resolution_instruction(
+            binding=bindings[scenario],
+            operation=operation,
+            resolution_ref=f"effect:nonlive:{scenario.lower()}",
+        )
+        assert instruction is not None
+        assert ledger.apply_instruction(instruction) is LedgerApplyStatus.CREATED
+
+# Reopen the same SQLite database and reconcile exact durable state.
+results={}
+with SQLiteAccountingLedger(path) as ledger:
+    for scenario,resolution_name in expected.items():
+        ns=namespaces[scenario]
+        binding=bindings[scenario]
+        p=ledger.transfer(binding.pending_transfer_id)
+        assert p is not None
+        pending=LedgerTransferObservation(
+            transfer_id=p.transfer_id,
+            operation=AccountingOperation.PENDING,
+            amount=p.amount,
+            pending_id=0,
+        )
+        if resolution_name=="NO_MUTATION":
             history=DurableReservationHistory(binding,ReservationStanding.RESERVED)
             resolution=None
+            operation=None
         else:
-            resolution_ref=f'effect:nonlive:{scenario.lower()}'
-            expected_resolution=resolution_instruction(binding=binding,operation=operation,resolution_ref=resolution_ref)
-            assert expected_resolution is not None
-            rows=c.lookup_transfers([expected_resolution.transfer_id])
-            assert len(rows)==1, scenario
-            r=rows[0]
-            required_flag=(tb.TransferFlags.POST_PENDING_TRANSFER if operation is TigerBeetleOperation.POST_PENDING_TRANSFER else tb.TransferFlags.VOID_PENDING_TRANSFER)
-            assert int(r.flags) & int(required_flag), (scenario,int(r.flags),int(required_flag))
-            resolution=ProviderTransferObservation(r.id,operation,r.amount,r.pending_id)
-            standing=(ReservationStanding.CONSUMED if operation is TigerBeetleOperation.POST_PENDING_TRANSFER else ReservationStanding.RELEASED)
+            operation=AccountingOperation(resolution_name)
+            resolution_ref=f"effect:nonlive:{scenario.lower()}"
+            instruction=resolution_instruction(
+                binding=binding,
+                operation=operation,
+                resolution_ref=resolution_ref,
+            )
+            assert instruction is not None
+            r=ledger.transfer(instruction.transfer_id)
+            assert r is not None
+            resolution=LedgerTransferObservation(
+                transfer_id=r.transfer_id,
+                operation=operation,
+                amount=r.amount,
+                pending_id=r.pending_id,
+            )
+            standing=(
+                ReservationStanding.CONSUMED
+                if operation is AccountingOperation.POST_PENDING_TRANSFER
+                else ReservationStanding.RELEASED
+            )
             history=DurableReservationHistory(binding,standing,resolution_ref)
 
-        rec=reconcile_durable_history(history=history,pending=pending,resolution=resolution)
-        assert rec.standing is DurableProviderStanding.MATCH, (scenario,rec)
-        accounts={a.id:a for a in c.lookup_accounts([ns.available_account_id,ns.encumbrance_account_id])}
-        available=accounts[ns.available_account_id]
-        enc=accounts[ns.encumbrance_account_id]
-        if operation is TigerBeetleOperation.POST_PENDING_TRANSFER:
-            assert available.debits_posted == reservation_amount and available.debits_pending == 0
-            assert enc.credits_posted == reservation_amount and enc.credits_pending == 0
-        elif operation is TigerBeetleOperation.VOID_PENDING_TRANSFER:
-            assert available.debits_posted == 0 and available.debits_pending == 0
-            assert enc.credits_posted == 0 and enc.credits_pending == 0
+        rec=reconcile_durable_history(
+            history=history,
+            pending=pending,
+            resolution=resolution,
+        )
+        assert rec.standing is LedgerReconciliationStanding.MATCH
+        available=ledger.account(ns.available_account_id)
+        enc=ledger.account(ns.encumbrance_account_id)
+        if operation is AccountingOperation.POST_PENDING_TRANSFER:
+            assert available.debits_posted==100 and available.debits_pending==0
+            assert enc.credits_posted==100 and enc.credits_pending==0
+        elif operation is AccountingOperation.VOID_PENDING_TRANSFER:
+            assert available.debits_posted==0 and available.debits_pending==0
+            assert enc.credits_posted==0 and enc.credits_pending==0
         else:
-            assert available.debits_posted == 0 and available.debits_pending == reservation_amount
-            assert enc.credits_posted == 0 and enc.credits_pending == reservation_amount
+            assert available.debits_posted==0 and available.debits_pending==100
+            assert enc.credits_posted==0 and enc.credits_pending==100
 
         results[scenario]={
-            'reservationResolution':resolution_name,
-            'reservationStanding':history.standing.value,
-            'providerReconciliation':rec.standing.value,
-            'providerRepairAllowed':rec.provider_repair_allowed,
-            'debitsPosted':available.debits_posted,
-            'debitsPending':available.debits_pending,
-            'creditsPosted':enc.credits_posted,
-            'creditsPending':enc.credits_pending,
+            "reservationResolution":resolution_name,
+            "reservationStanding":history.standing.value,
+            "ledgerReconciliation":rec.standing.value,
+            "ledgerRepairAllowed":rec.ledger_repair_allowed,
+            "debitsPosted":available.debits_posted,
+            "debitsPending":available.debits_pending,
+            "creditsPosted":enc.credits_posted,
+            "creditsPending":enc.credits_pending,
         }
 
-    # Exact replay of one consumed resolution must be idempotent after restart.
-    scenario='FILL'
-    ns=CapitalAccountNamespace('owner:qualification',f'parcel:nonlive:{scenario.lower()}',ledger,account_code)
-    binding=binding_for_namespace(namespace=ns,reservation_ref='reservation:nonlive:fill',amount=reservation_amount,transfer_code=transfer_code)
-    instruction=resolution_instruction(binding=binding,operation=TigerBeetleOperation.POST_PENDING_TRANSFER,resolution_ref='effect:nonlive:fill')
-    w=dict(instruction.as_wire_record()); w['flags']=getattr(tb.TransferFlags,w.pop('flag_name'))
-    replay=c.create_transfers([tb.Transfer(**w)])[0].status
-    assert replay == tb.CreateTransferStatus.EXISTS
+    fill_binding=bindings["FILL"]
+    replay=resolution_instruction(
+        binding=fill_binding,
+        operation=AccountingOperation.POST_PENDING_TRANSFER,
+        resolution_ref="effect:nonlive:fill",
+    )
+    assert replay is not None
+    replay_status=ledger.apply_instruction(replay)
+    assert replay_status is LedgerApplyStatus.EXISTS
 
 print(json.dumps({
-    'schemaVersion':1,
-    'kind':'ordivon.capital.market.nonlive-capital-effect-matrix',
-    'standing':'PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX',
-    'sourceEffectMatrixStanding':matrix['standing'],
-    'providerVersion':'0.17.9',
-    'restartCount':1,
-    'scenarios':results,
-    'exactConsumeReplayStatus':replay.name,
-    'nonLiveProviderWriteAttempted':True,
-    'tigerBeetleMutationAttempted':True,
-    'externalFinancialWriteAttempted':False,
-    'realMoney':False,
-    'liveEndpoint':False,
-},sort_keys=True,allow_nan=False))
+    "schemaVersion":1,
+    "kind":"ordivon.capital.market.nonlive-capital-effect-matrix",
+    "standing":"PASS_NONLIVE_EFFECT_TO_CAPITAL_RESTART_MATRIX",
+    "sourceEffectContract":"CURRENT_RECONCILIATION_DISPOSITION_CONTRACT",
+    "accountingProvider":"SQLite",
+    "sqliteVersion":"3.53.1",
+    "python":"3.14.7",
+    "restartCount":1,
+    "scenarios":results,
+    "exactConsumeReplayStatus":replay_status.value,
+    "localAccountingMutationAttempted":True,
+    "externalFinancialWriteAttempted":False,
+    "realMoney":False,
+    "liveEndpoint":False,
+},sort_keys=True))
 PY

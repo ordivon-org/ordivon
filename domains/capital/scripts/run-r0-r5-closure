@@ -44,17 +44,16 @@ def main() -> int:
 
     steps: list[dict[str, Any]] = []
     steps.append(run_step("R0_R5_CANONICAL_TESTS", [str(ROOT / "scripts/run-canonical-tests")]))
-    steps.append(run_step("R1_EVIDENCE_PARQUET_DUCKDB", [str(ROOT / "scripts/run-capability-python"), str(ROOT / "examples/r1_witness_parquet_duckdb.py")]))
-    steps.append(run_step("R2_LEAN_RUNTIME", [str(ROOT / "scripts/check-lean-runtime")]))
-    steps.append(run_step("R2_NAUTILUS_CANDIDATE", [str(ROOT / "scripts/check-nautilus-candidate")]))
+    steps.append(run_step("R1_PARQUET_DUCKDB_PRIMITIVE_READBACK", [str(ROOT / "scripts/run-capability-python"), str(ROOT / "examples/r1_witness_parquet_duckdb.py")]))
+    steps.append(run_step("R2_LOCAL_EXECUTION_FEASIBILITY", [str(ROOT / "scripts/check-execution-feasibility")]))
     steps.append(run_step("R2_FIX_PROJECTION", [str(ROOT / "scripts/run-crypto-fix-projection-r4")]))
-    steps.append(run_step("R3_TIGERBEETLE_DURABLE_RESTART", [str(ROOT / "scripts/run-tigerbeetle-durable-restart-smoke-r32")]))
+    steps.append(run_step("R3_SQLITE_DURABLE_RESTART", [str(ROOT / "scripts/run-sqlite-accounting-durable-restart-smoke-r1")]))
     steps.append(run_step("R4_CAPABILITY_CENSUS", [str(ROOT / "scripts/check-capabilities")]))
     steps.append(run_step("PRIVATE_REALITY_PREFLIGHT", [str(ROOT / "scripts/check-private-reality-readonly-preflight")]))
     steps.append(run_step("PRIVATE_REALITY_BINDINGS", [str(ROOT / "scripts/check-private-reality-credential-bindings")]))
     steps.append(run_step("EFFECT_BOUNDARY", [str(ROOT / "scripts/check-execution-policy")]))
 
-    write_admission = load_json("contracts/external-financial-write-admission-v1.json")
+    write_admission = load_json("contracts/external-write-policy-input-v1.json")
     private_policy = load_json("config/private_reality_policy.json")
     manifest = load_json("fixtures/r5_legacy_bounded/manifest.json")
 
@@ -65,7 +64,7 @@ def main() -> int:
         "allStepsPassed": all(step["passed"] for step in steps),
         "steps": steps,
         "externalWriteBoundary": {
-            "policyEngine": "OPA",
+            "decisionImplementation": "LOCAL_DETERMINISTIC_PYTHON",
             "state": write_admission["state"],
             "effectVerifier": write_admission.get("effectVerifier"),
             "providerWriteCapabilityBound": write_admission.get("providerWriteCapabilityBound", False),

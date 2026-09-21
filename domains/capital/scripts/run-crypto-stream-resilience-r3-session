@@ -2,28 +2,95 @@
 set -euo pipefail
 repo="$1"; out="$2"
 mkdir -p "$out"
-/usr/bin/uv run --frozen --project "$repo" python "$repo/src/ordivon_capital/market/crypto_stream_resilience.py" \
-  --target-venue OKX --output "$out/okx.json" --measured-rounds 3 --deadline-seconds 35 >/dev/null
-/usr/bin/uv run --frozen --project "$repo" python "$repo/src/ordivon_capital/market/crypto_stream_resilience.py" \
-  --target-venue BINANCE --output "$out/binance.json" --measured-rounds 3 --deadline-seconds 35 >/dev/null
-python3 - "$out/okx.json" "$out/binance.json" "$out/result.json" <<'PY'
-import json,sys
-okx=json.load(open(sys.argv[1])); bn=json.load(open(sys.argv[2]))
-passed=okx.get('standing')=='PASS_PUBLIC_STREAM_RECONNECT' and bn.get('standing')=='PASS_PUBLIC_STREAM_RECONNECT'
-r={
- 'schemaVersion':1,
- 'kind':'ordivon.capital.market.crypto-stream-resilience-r3-session',
- 'standing':'PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT' if passed else 'PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT',
- 'okx':{
-   'standing':okx.get('standing'), 'reconnectLatencyMs':okx.get('reconnectLatencyMs'),
-   'measuredRoundCount':len(okx.get('measured',[])), 'reconnectedGeneration':okx.get('reconnectedGeneration')},
- 'binance':{
-   'standing':bn.get('standing'), 'reconnectLatencyMs':bn.get('reconnectLatencyMs'),
-   'measuredRoundCount':len(bn.get('measured',[])), 'reconnectedGeneration':bn.get('reconnectedGeneration')},
- 'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,
- 'demoExecutionAttempted':False,'liveExecutionAttempted':False,
+
+set +e
+"$repo/scripts/run-capability-python" -m ordivon_capital.market.crypto_stream_resilience   --target-venue OKX   --output "$out/okx.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/okx.stdout" 2>"$out/okx.stderr"
+okx_rc=$?
+
+"$repo/scripts/run-capability-python" -m ordivon_capital.market.crypto_stream_resilience   --target-venue BINANCE   --output "$out/binance.json"   --measured-rounds 3   --deadline-seconds 35   >"$out/binance.stdout" 2>"$out/binance.stderr"
+binance_rc=$?
+set -e
+
+python3 -   "$out/okx.json" "$okx_rc" "$out/okx.stderr"   "$out/binance.json" "$binance_rc" "$out/binance.stderr"   "$out/result.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+okx_path = Path(sys.argv[1])
+okx_rc = int(sys.argv[2])
+okx_stderr = Path(sys.argv[3])
+bn_path = Path(sys.argv[4])
+bn_rc = int(sys.argv[5])
+bn_stderr = Path(sys.argv[6])
+result_path = Path(sys.argv[7])
+
+
+def load_venue(path: Path, rc: int, stderr_path: Path, venue: str) -> dict:
+    if path.is_file():
+        try:
+            value = json.loads(path.read_text())
+            if isinstance(value, dict):
+                return value
+        except Exception as exc:
+            parse_error = f"{type(exc).__name__}: {exc}"
+        else:
+            parse_error = "unexpected non-object JSON"
+    else:
+        parse_error = "output file missing"
+    stderr = stderr_path.read_text(errors="replace")[-4000:] if stderr_path.is_file() else ""
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.capital.market.crypto-stream-reconnect-qualification",
+        "standing": "VENUE_RESULT_UNAVAILABLE",
+        "targetVenue": venue,
+        "returnCode": rc,
+        "parseError": parse_error,
+        "stderrTail": stderr,
+        "brokerCredentialsUsed": False,
+        "privateAccountDataUsed": False,
+        "externalFinancialWritesAttempted": False,
+        "demoExecutionAttempted": False,
+        "liveExecutionAttempted": False,
+    }
+
+
+okx = load_venue(okx_path, okx_rc, okx_stderr, "OKX")
+bn = load_venue(bn_path, bn_rc, bn_stderr, "BINANCE")
+okx_pass = okx_rc == 0 and okx.get("standing") == "PASS_PUBLIC_STREAM_RECONNECT"
+bn_pass = bn_rc == 0 and bn.get("standing") == "PASS_PUBLIC_STREAM_RECONNECT"
+passed = okx_pass and bn_pass
+
+r = {
+    "schemaVersion": 1,
+    "kind": "ordivon.capital.market.crypto-stream-resilience-r3-session",
+    "standing": (
+        "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
+        if passed
+        else "PARTIAL_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
+    ),
+    "okx": {
+        "returnCode": okx_rc,
+        "standing": okx.get("standing"),
+        "error": okx.get("error"),
+        "reconnectLatencyMs": okx.get("reconnectLatencyMs"),
+        "measuredRoundCount": len(okx.get("measured", [])),
+        "reconnectedGeneration": okx.get("reconnectedGeneration"),
+    },
+    "binance": {
+        "returnCode": bn_rc,
+        "standing": bn.get("standing"),
+        "error": bn.get("error"),
+        "reconnectLatencyMs": bn.get("reconnectLatencyMs"),
+        "measuredRoundCount": len(bn.get("measured", [])),
+        "reconnectedGeneration": bn.get("reconnectedGeneration"),
+    },
+    "brokerCredentialsUsed": False,
+    "privateAccountDataUsed": False,
+    "externalFinancialWritesAttempted": False,
+    "demoExecutionAttempted": False,
+    "liveExecutionAttempted": False,
 }
-json.dump(r,open(sys.argv[3],'w'),indent=2,sort_keys=True); open(sys.argv[3],'a').write('\n')
-print(json.dumps(r,sort_keys=True))
-if not passed: raise SystemExit(2)
+result_path.write_text(json.dumps(r, indent=2, sort_keys=True) + "\n")
+print(json.dumps(r, sort_keys=True))
+raise SystemExit(0 if passed else 2)
 PY

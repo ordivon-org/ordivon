@@ -8,17 +8,6 @@ if [[ -z "$proxy" || "$proxy" == "null" ]]; then
   exit 3
 fi
 
-ready=0
-for _ in {1..12}; do
-  if /usr/bin/curl -fsS --proxy "$proxy" --connect-timeout 1 --max-time 3       "https://openapi.okx.com/api/v5/public/time" >/dev/null 2>&1; then
-    ready=1
-    break
-  fi
-  /usr/bin/sleep 0.25
-done
-if [[ "$ready" != 1 ]]; then
-  echo "OKX Network v2 public REST endpoint is not ready" >&2
-  exit 4
-fi
-
+readiness="$(printf '%s' "$binding" | /usr/bin/jq -r '.readinessCommand')"
+"$readiness" okx 30 >/dev/null
 exec "$repo/scripts/run-capability-python" -m ordivon_capital.market.okx_factor_observer --proxy "$proxy" "$@"

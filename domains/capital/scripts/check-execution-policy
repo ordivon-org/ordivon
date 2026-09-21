@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 -m ordivon_capital.market.opa_policy --repo "$repo" --config "$repo/config/execution_policy.json" "$@"
+"$repo/scripts/check-language-baseline" >/dev/null
+PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}" \
+  exec "$repo/.venv/bin/python" -m ordivon_capital.market.policy_decision \
+  --repo "$repo" \
+  --config "$repo/config/execution_policy.json" \
+  "$@"
