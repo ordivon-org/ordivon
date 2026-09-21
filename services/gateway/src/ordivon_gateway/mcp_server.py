@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
+import uvicorn
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.responses import JSONResponse
 
+from .access_auth import (
+    CloudflareAccessConfig,
+    CloudflareAccessMiddleware,
+    CloudflareAccessVerifier,
+)
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
@@ -96,6 +104,100 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
     return server
 
 
+def _bool_env(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes"}:
+        return True
+    if normalized in {"0", "false", "no"}:
+        return False
+    raise RuntimeError(f"{name} must be true or false")
+
+
+def _access_verifier_from_env() -> CloudflareAccessVerifier | None:
+    if not _bool_env("ORDIVON_GATEWAY_TRUST_CF_ACCESS"):
+        return None
+    issuer = os.environ.get("ORDIVON_GATEWAY_CF_ACCESS_ISSUER", "").strip().rstrip("/")
+    audience = os.environ.get("ORDIVON_GATEWAY_CF_ACCESS_AUDIENCE", "").strip()
+    if not issuer or not audience:
+        raise RuntimeError("Gateway Cloudflare Access trust requires issuer and audience")
+    jwks_url = os.environ.get(
+        "ORDIVON_GATEWAY_CF_ACCESS_JWKS_URL",
+        f"{issuer}/cdn-cgi/access/certs",
+    ).strip()
+    return CloudflareAccessVerifier(
+        CloudflareAccessConfig(
+            issuer=issuer,
+            audience=audience,
+            jwks_url=jwks_url,
+        )
+    )
+
+
+def build_http_app(
+    server: MCPServer,
+    *,
+    host: str,
+    path: str,
+    public_origin: str | None,
+    access_verifier: CloudflareAccessVerifier | None,
+):
+    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+    allowed_origins = [
+        "http://127.0.0.1:*",
+        "http://localhost:*",
+        "http://[::1]:*",
+    ]
+    if public_origin:
+        parsed = urlsplit(public_origin)
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path not in ("", "/")
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise RuntimeError("ORDIVON_GATEWAY_PUBLIC_ORIGIN must be one canonical HTTPS origin")
+        if access_verifier is None:
+            raise RuntimeError(
+                "public Gateway origin requires Cloudflare Access assertion verification"
+            )
+        allowed_hosts.append(parsed.netloc)
+        allowed_origins.append(f"https://{parsed.netloc}")
+
+    app = server.streamable_http_app(
+        streamable_http_path=path,
+        stateless_http=True,
+        json_response=True,
+        max_sessions=256,
+        host=host,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=allowed_hosts,
+            allowed_origins=allowed_origins,
+        ),
+    )
+
+    async def health(_request):
+        return JSONResponse(
+            {"status": "ok", "service": "ordivon-gateway"},
+            headers={"Cache-Control": "no-store"},
+        )
+
+    app.add_route("/health", health, methods=["GET"])
+    if access_verifier is not None:
+        return CloudflareAccessMiddleware(
+            app,
+            access_verifier,
+            protected_path_prefix=path,
+        )
+    return app
+
+
 def main() -> None:
     server = build_server()
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
@@ -113,44 +215,16 @@ def main() -> None:
     if not path.startswith("/"):
         raise RuntimeError("ORDIVON_GATEWAY_PATH must start with /")
 
-    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
-    allowed_origins = [
-        "http://127.0.0.1:*",
-        "http://localhost:*",
-        "http://[::1]:*",
-    ]
     public_origin = os.environ.get("ORDIVON_GATEWAY_PUBLIC_ORIGIN")
-    if public_origin:
-        from urllib.parse import urlsplit
-
-        parsed = urlsplit(public_origin)
-        if (
-            parsed.scheme != "https"
-            or not parsed.hostname
-            or parsed.username is not None
-            or parsed.password is not None
-            or parsed.path not in ("", "/")
-            or parsed.query
-            or parsed.fragment
-        ):
-            raise RuntimeError("ORDIVON_GATEWAY_PUBLIC_ORIGIN must be one canonical HTTPS origin")
-        allowed_hosts.append(parsed.netloc)
-        allowed_origins.append(f"https://{parsed.netloc}")
-
-    server.run(
-        transport="streamable-http",
+    access_verifier = _access_verifier_from_env()
+    app = build_http_app(
+        server,
         host=host,
-        port=port,
-        streamable_http_path=path,
-        stateless_http=True,
-        json_response=True,
-        max_sessions=256,
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=allowed_hosts,
-            allowed_origins=allowed_origins,
-        ),
+        path=path,
+        public_origin=public_origin,
+        access_verifier=access_verifier,
     )
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":

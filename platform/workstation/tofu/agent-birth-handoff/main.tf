@@ -17,9 +17,18 @@ locals {
     }
   }
 
+  gateway = {
+    hostname = "gateway-mcp.ordivon.com"
+    service  = "http://127.0.0.1:8899"
+  }
+
   handoff_hostnames = toset([
     for handoff in values(local.handoffs) : handoff.hostname
   ])
+  managed_hostnames = setunion(
+    local.handoff_hostnames,
+    toset([local.gateway.hostname]),
+  )
 }
 
 data "cloudflare_zero_trust_tunnel_cloudflareds" "production" {
@@ -88,6 +97,18 @@ locals {
   owner_template_auto_redirect = one([
     for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.auto_redirect_to_identity
   ])
+  owner_template_oauth_configuration = one([
+    for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.oauth_configuration
+  ])
+  owner_template_session_duration = one([
+    for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.session_duration
+  ])
+  owner_template_enable_binding_cookie = one([
+    for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.enable_binding_cookie
+  ])
+  owner_template_http_only_cookie_attribute = one([
+    for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.http_only_cookie_attribute
+  ])
   production_zone_id = one([
     for zone in data.cloudflare_zones.production.result : zone.id
   ])
@@ -105,7 +126,7 @@ locals {
 
   unmanaged_ingress = [
     for rule in local.current_ingress : rule
-    if try(rule.hostname, null) != null && !contains(local.handoff_hostnames, rule.hostname)
+    if try(rule.hostname, null) != null && !contains(local.managed_hostnames, rule.hostname)
   ]
 
   catch_all_ingress = [
@@ -118,6 +139,13 @@ check "one_owner_email_identity" {
   assert {
     condition     = length(local.owner_email_candidates) == 1
     error_message = "Owner template must expose exactly one email allow identity."
+  }
+}
+
+check "owner_template_managed_oauth_enabled" {
+  assert {
+    condition     = try(local.owner_template_oauth_configuration.enabled, false)
+    error_message = "Owner template must retain Managed OAuth before Gateway projection."
   }
 }
 
@@ -161,6 +189,35 @@ resource "cloudflare_zero_trust_access_application" "handoff" {
   ]
 }
 
+resource "cloudflare_zero_trust_access_application" "gateway_mcp" {
+  account_id                 = var.account_id
+  name                       = "Ordivon Gateway MCP"
+  domain                     = local.gateway.hostname
+  type                       = "self_hosted"
+  session_duration           = local.owner_template_session_duration
+  app_launcher_visible       = false
+  auto_redirect_to_identity  = local.owner_template_auto_redirect
+  allowed_idps               = toset(local.owner_template_allowed_idps)
+  enable_binding_cookie      = local.owner_template_enable_binding_cookie
+  http_only_cookie_attribute = local.owner_template_http_only_cookie_attribute
+  oauth_configuration        = local.owner_template_oauth_configuration
+
+  policies = [
+    {
+      name       = "Allow owner"
+      decision   = "allow"
+      precedence = 1
+      include = [
+        {
+          email = {
+            email = one(local.owner_email_candidates)
+          }
+        }
+      ]
+    }
+  ]
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "production" {
   account_id = var.account_id
   tunnel_id  = local.production_tunnel_id
@@ -174,11 +231,20 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "production" {
           service  = handoff.service
         }
       ],
+      [
+        {
+          hostname = local.gateway.hostname
+          service  = local.gateway.service
+        }
+      ],
       local.catch_all_ingress,
     )
   }
 
-  depends_on = [cloudflare_zero_trust_access_application.handoff]
+  depends_on = [
+    cloudflare_zero_trust_access_application.handoff,
+    cloudflare_zero_trust_access_application.gateway_mcp,
+  ]
 
   lifecycle {
     prevent_destroy = true
@@ -195,6 +261,17 @@ resource "cloudflare_dns_record" "handoff" {
 
   zone_id = local.production_zone_id
   name    = each.value.hostname
+  content = "${local.production_tunnel_id}.cfargotunnel.com"
+  type    = "CNAME"
+  ttl     = 1
+  proxied = true
+
+  depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]
+}
+
+resource "cloudflare_dns_record" "gateway_mcp" {
+  zone_id = local.production_zone_id
+  name    = local.gateway.hostname
   content = "${local.production_tunnel_id}.cfargotunnel.com"
   type    = "CNAME"
   ttl     = 1
