@@ -1,0 +1,55 @@
+{
+  "realm": "agent-admission-lab",
+  "enabled": true,
+  "displayName": "Agent Admission Lab",
+  "accessTokenLifespan": 300,
+  "clients": [
+    {
+      "clientId": "agent-research-17",
+      "name": "Agent Research 17",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "lab-only-agent-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "dpop.bound.access.tokens": "true",
+        "access.token.header.type.rfc9068": "true",
+        "client.use.lightweight.access.token.enabled": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "agent-admission-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "http://127.0.0.1:8788",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "rfc9068-client-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "client_id",
+            "claim.value": "agent-research-17",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+diff --git a/build/index.js b/build/index.js
+--- a/build/index.js
++++ b/build/index.js
+@@ -2359,7 +2359,15 @@ export async function validateJwtAccessToken(as, request, expectedAudience, opti
+         if (!isJsonObject(claims.cnf)) {
+             throw OPE('unexpected JWT "cnf" (confirmation) claim value', INVALID_REQUEST, { claims });
+         }
+-        const { 0: cnf, length } = Object.keys(claims.cnf);
++        const keycloakJktType = claims.cnf['kc-jkt-type'];
++        if (keycloakJktType !== undefined && keycloakJktType !== 'DPoP') {
++            throw new UnsupportedOperationError('unsupported Keycloak jkt type', {
++                cause: { claims },
++            });
++        }
++        const { 0: cnf, length } = Object.keys(claims.cnf).filter(
++            (name) => name !== 'kc-jkt-type',
++        );
+         if (length) {
+             if (length !== 1) {
+                 throw new UnsupportedOperationError('multiple confirmation claims are not supported', {

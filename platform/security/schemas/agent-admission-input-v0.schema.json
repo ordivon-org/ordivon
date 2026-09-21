@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.com/schemas/security/agent-admission-input-v0.schema.json",
+  "title": "Ordivon Agent Admission v0 normalized input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "nowEpochSeconds", "principal", "agent", "grant", "effect", "approval"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "nowEpochSeconds": {"type": "integer", "minimum": 0},
+    "principal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principalId", "authenticated", "authnMethod"],
+      "properties": {
+        "principalId": {"type": "string", "minLength": 1},
+        "authenticated": {"type": "boolean"},
+        "authnMethod": {"enum": ["webauthn", "session", "federated"]}
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agentId", "authenticated", "credentialKind"],
+      "properties": {
+        "agentId": {"type": "string", "minLength": 1},
+        "authenticated": {"type": "boolean"},
+        "credentialKind": {"enum": ["dpop-key", "spiffe-svid", "mtls", "gnap-key"]}
+      }
+    },
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grantId", "grantDigest", "active", "principalId", "agentId", "audience",
+        "allowedActions", "resourcePrefixes", "expiresAtEpochSeconds", "maxRiskClass",
+        "stepUpAtOrAbove", "remainingEffects"
+      ],
+      "properties": {
+        "grantId": {"type": "string", "minLength": 1},
+        "grantDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "active": {"type": "boolean"},
+        "principalId": {"type": "string", "minLength": 1},
+        "agentId": {"type": "string", "minLength": 1},
+        "audience": {"type": "string", "minLength": 1},
+        "allowedActions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "resourcePrefixes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "expiresAtEpochSeconds": {"type": "integer", "minimum": 0},
+        "maxRiskClass": {"enum": ["R0", "R1", "R2", "R3", "R4", "R5"]},
+        "stepUpAtOrAbove": {"enum": ["R0", "R1", "R2", "R3", "R4", "R5"]},
+        "remainingEffects": {"type": "integer", "minimum": 0}
+      }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effectId", "effectDigest", "action", "resource", "audience", "riskClass", "effectType"],
+      "properties": {
+        "effectId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "effectDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "action": {"type": "string", "minLength": 1},
+        "resource": {"type": "string", "minLength": 1},
+        "audience": {"type": "string", "minLength": 1},
+        "riskClass": {"enum": ["R0", "R1", "R2", "R3", "R4", "R5"]},
+        "effectType": {"type": "string", "minLength": 1}
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified", "principalId", "effectId", "method"],
+      "properties": {
+        "verified": {"type": "boolean"},
+        "principalId": {"type": ["string", "null"]},
+        "effectId": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+        "method": {"type": ["string", "null"], "enum": ["webauthn", null]}
+      }
+    }
+  }
+}

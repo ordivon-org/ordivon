@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "nowEpochSeconds": 1789930400,
+  "principal": {"principalId": "principal:user-123", "authenticated": true, "authnMethod": "webauthn"},
+  "agent": {"agentId": "agent:ordivon/research-17", "authenticated": true, "credentialKind": "dpop-key"},
+  "grant": {
+    "grantId": "grant:research-17-v1",
+    "grantDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "active": true,
+    "principalId": "principal:user-123",
+    "agentId": "agent:ordivon/research-17",
+    "audience": "https://www.example.test/api",
+    "allowedActions": ["article.read", "comment.create", "comment.read"],
+    "resourcePrefixes": ["/articles/", "/comments/"],
+    "expiresAtEpochSeconds": 1790016800,
+    "maxRiskClass": "R4",
+    "stepUpAtOrAbove": "R4",
+    "remainingEffects": 3
+  },
+  "effect": {
+    "effectId": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "effectDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "action": "comment.create",
+    "resource": "/comments/article-42",
+    "audience": "https://www.example.test/api",
+    "riskClass": "R2",
+    "effectType": "website.comment.create"
+  },
+  "approval": {"verified": false, "principalId": null, "effectId": null, "method": null}
+}
