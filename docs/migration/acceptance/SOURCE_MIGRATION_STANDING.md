@@ -6,6 +6,8 @@
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
 | Harness | identity-preserving current-source supersession | ACCEPTED_SOURCE_ONLY |
+| Next | legacy-rewritten import bridged to identity-preserving current-source supersession at `5e556869` | ACCEPTED_SOURCE_ONLY |
+| Runtime | identity-preserving current-source supersession at production-accepted `d3613c2e` | ACCEPTED_SOURCE_ONLY |
 | Distribution | optional effect-safety/profile source | ACCEPTED_SOURCE_ONLY |
 | Preservation | standard-native local preservation profile | ACCEPTED_SOURCE_ONLY |
 | Creative Library | Media-hosted cross-domain catalog/presentation projection; owner-native work/source truth preserved | ACCEPTED_SOURCE_ONLY |
