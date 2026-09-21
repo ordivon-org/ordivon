@@ -1,0 +1,119 @@
+{
+  "cleanup": {
+    "keycloakContainerExistsAfterRun": false,
+    "labListenersAfterRun": []
+  },
+  "compatibility": {
+    "keycloakPrivateCnfMember": "kc-jkt-type",
+    "patchScope": "ignore only kc-jkt-type when it is absent or exactly DPoP; retain single-jkt and upstream signature/DPoP validation",
+    "patchedOauth4webapi": true,
+    "unpatchedControlFirstEffectStatus": 401
+  },
+  "database": {
+    "comment": {
+      "agent_id": "oauth-client:agent-research-17",
+      "article_id": "article-42",
+      "comment_id": "d9acb330-b713-4b67-9d90-220f625252a0",
+      "effect_id": "sha256:3e67852402afab17d3e98cf8ad1eb70a7ed21db19a107d80534ca86c312cbdd6",
+      "principal_id": "principal:lab-owner"
+    },
+    "counts": {
+      "comments": 1,
+      "dpop_proofs": 4,
+      "effects": 1,
+      "grants": 2
+    },
+    "effect": {
+      "action": "comment.create",
+      "committed_at": 1789970338,
+      "effect_digest": "sha256:94840119b76fc67050aa02f2b412ad9f9d0924300e84ccacaf5e9eadd07fe211",
+      "effect_id": "sha256:3e67852402afab17d3e98cf8ad1eb70a7ed21db19a107d80534ca86c312cbdd6",
+      "grant_id": "grant:research-comment-v1",
+      "resource": "/comments/article-42"
+    },
+    "grants": [
+      {
+        "active": 1,
+        "grant_id": "grant:research-comment-v1",
+        "remaining_effects": 4,
+        "revision": 2
+      },
+      {
+        "active": 1,
+        "grant_id": "grant:research-publish-probe-v1",
+        "remaining_effects": 1,
+        "revision": 1
+      }
+    ]
+  },
+  "effectId": "sha256:3e67852402afab17d3e98cf8ad1eb70a7ed21db19a107d80534ca86c312cbdd6",
+  "expectedMatrix": {
+    "conflict": 409,
+    "first": 201,
+    "noProof": 401,
+    "proofReplay": 401,
+    "publish": 428,
+    "replay": 200,
+    "wrongKey": 401
+  },
+  "kind": "ordivon.agent-admission.e2e-evidence",
+  "matrix": {
+    "conflict": 409,
+    "first": 201,
+    "noProof": 401,
+    "proofReplay": 401,
+    "publish": 428,
+    "replay": 200,
+    "wrongKey": 401
+  },
+  "observedAt": "2026-09-21T13:59:00.626820+08:00",
+  "productionEligible": false,
+  "receipt": {
+    "agentId": "oauth-client:agent-research-17",
+    "articleId": "article-42",
+    "commentId": "d9acb330-b713-4b67-9d90-220f625252a0",
+    "content": "Agent Admission DPoP E2E",
+    "effectId": "sha256:3e67852402afab17d3e98cf8ad1eb70a7ed21db19a107d80534ca86c312cbdd6",
+    "principalId": "principal:lab-owner"
+  },
+  "replayReceipt": {
+    "agentId": "oauth-client:agent-research-17",
+    "articleId": "article-42",
+    "commentId": "d9acb330-b713-4b67-9d90-220f625252a0",
+    "content": "Agent Admission DPoP E2E",
+    "effectId": "sha256:3e67852402afab17d3e98cf8ad1eb70a7ed21db19a107d80534ca86c312cbdd6",
+    "principalId": "principal:lab-owner"
+  },
+  "schemaVersion": 1,
+  "token": {
+    "confirmationKeys": [
+      "jkt",
+      "kc-jkt-type"
+    ],
+    "confirmationType": "DPoP",
+    "header": {
+      "alg": "RS256",
+      "typ": "at+jwt"
+    },
+    "tokenType": "dpop"
+  },
+  "topology": {
+    "keycloak": "host-network; Keycloak binds 127.0.0.1:18080",
+    "production": false,
+    "resourceServer": "127.0.0.1:8788"
+  },
+  "versions": {
+    "keycloak": "26.7.4",
+    "keycloakImageId": "b2f3e1b85071d17a1da8d2cbcc54707853d19c74ae027071789ea1bb12b3ec89",
+    "keycloakRepoDigests": [
+      "quay.io/keycloak/keycloak@sha256:3d911baa186f352563854039b95f21a7e2c01c76b527fdc64f24a0885b927bdf",
+      "quay.io/keycloak/keycloak@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c"
+    ],
+    "node": "v26.9.0",
+    "oauth4webapi": "3.8.8",
+    "opa": "1.20.2",
+    "pnpm": "12.5.1",
+    "typescript": "7.0.2"
+  },
+  "workspaceHead": "562ae353cdb6e1d422e80bed65169a8337730af3"
+}

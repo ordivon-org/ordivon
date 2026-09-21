@@ -1,0 +1,5 @@
+packages:
+  - '.'
+
+patchedDependencies:
+  oauth4webapi@3.8.8: patches/oauth4webapi@3.8.8.patch

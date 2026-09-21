@@ -1,0 +1,27 @@
+{
+  "name": "@ordivon/agent-admission-rs-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=26.9.0 <27",
+    "pnpm": ">=12 <13"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "start": "node src/server.ts",
+    "bootstrap-grant": "node src/bootstrap-grant.ts",
+    "e2e-client": "node src/e2e-client.ts",
+    "e2e": "bash ./e2e.sh",
+    "ci": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "oauth4webapi": "3.8.8"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "typescript": "7.0.2"
+  }
+}
