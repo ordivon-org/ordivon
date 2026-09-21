@@ -24,9 +24,11 @@ updates:
 
   - package-ecosystem: npm
     directories:
+      - "/apps/web"
       - "/capabilities/artifact/artifact-delivery/node"
       - "/capabilities/media"
       - "/domains/game"
+      - "/platform/security/contracts/agent-request-verifier-v1"
       - "/platform/security/labs/agent-admission-rs"
       - "/platform/workstation/providers/cloudflare"
     schedule:
