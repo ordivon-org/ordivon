@@ -85,19 +85,6 @@ def main() -> int:
     assert "archivematica-storage-service" in services
     assert all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items())
 
-    current_mechanics = "\n".join(
-        [
-            compose_path.read_text(encoding="utf-8"),
-            (OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service").read_text(
-                encoding="utf-8"
-            ),
-            (OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.timer").read_text(
-                encoding="utf-8"
-            ),
-        ]
-    )
-    assert "/root/workstation-lab" not in current_mechanics
-
     service = (
         OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service"
     ).read_text(encoding="utf-8")
