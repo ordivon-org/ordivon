@@ -1203,7 +1203,14 @@ pub(crate) fn windows_visible_path(path: &Path, field: &str) -> RuntimeResult<St
                 field,
             ));
         }
-        return path
+        // Win32 treats repeated separators and explicit current-directory components as
+        // lexical aliases. Rebuild the path from std::path components before crossing the
+        // native launcher/evidence boundary so an equivalent OS-rendered path cannot be
+        // misclassified as a different execution identity. Do not canonicalize here:
+        // canonicalization would consult filesystem/reparse-point state and would change the
+        // meaning of the frozen path identity rather than only its lexical presentation.
+        let normalized = path.components().collect::<PathBuf>();
+        return normalized
             .to_str()
             .map(str::to_string)
             .ok_or_else(|| RuntimeError::invalid("Windows-visible path must be UTF-8", field));
@@ -1585,6 +1592,19 @@ mod tests {
             ]
         );
     }
+    #[cfg(windows)]
+    #[test]
+    fn windows_visible_path_normalizes_equivalent_repeated_separators() {
+        let repeated = Path::new(r"C:\\Windows\\System32\\cmd.exe");
+        let canonical = Path::new(r"C:\Windows\System32\cmd.exe");
+
+        let repeated = windows_visible_path(repeated, "execution.executable").unwrap();
+        let canonical = windows_visible_path(canonical, "execution.executable").unwrap();
+
+        assert_eq!(repeated, canonical);
+        assert_eq!(canonical, r"C:\Windows\System32\cmd.exe");
+    }
+
     #[test]
     fn deadline_owner_termination_receipt_is_identity_bound_and_replay_safe() {
         let terminated = br#"{"schemaVersion":1,"processId":42,"expectedProcessCreationTimeFileTime":123,"observedProcessCreationTimeFileTime":123,"disposition":"terminated"}"#;
