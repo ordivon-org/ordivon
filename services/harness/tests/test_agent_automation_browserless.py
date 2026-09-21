@@ -1471,7 +1471,8 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
             self.assertEqual(diagnosis["substrateStanding"], "HEALTHY")
             self.assertEqual(diagnosis["providerAdmission"], "NOT_ADMISSIBLE")
             self.assertEqual(diagnosis["carrierRouting"], "PRESERVE_SELECTED_CARRIER")
-            self.assertTrue(diagnosis["humanVerificationEligible"])
+            self.assertEqual(diagnosis["providerAction"], "PRE_EFFECT_HOLD")
+            self.assertFalse(diagnosis["humanVerificationEligible"])
             self.assertFalse(diagnosis["automaticInfrastructureMutationAllowed"])
             command = run.call_args.args[0]
             self.assertIn("--endpoint-id", command)
