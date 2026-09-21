@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:composition-gate-result:v1",
+  "title": "Composition Gate Result v1",
+  "description": "A verifier-owned bounded result for one task-local composition obligation. SATISFIED means only that the named assumption/guarantee obligation was discharged within the recorded support scope; it never establishes domain completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "circuitId",
+    "manifestDigest",
+    "gateId",
+    "verifierOwnerId",
+    "standing",
+    "evidenceRefs",
+    "supportScope",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.composition-gate-result" },
+    "circuitId": { "type": "string", "minLength": 1 },
+    "manifestDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "gateId": { "type": "string", "minLength": 1 },
+    "verifierOwnerId": { "type": "string", "minLength": 1 },
+    "standing": { "enum": ["SATISFIED", "UNSATISFIED", "UNKNOWN"] },
+    "evidenceRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "supportScope": { "type": "string", "minLength": 1 },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "standing": { "enum": ["SATISFIED", "UNSATISFIED"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidenceRefs": { "minItems": 1 }
+        }
+      }
+    }
+  ]
+}
