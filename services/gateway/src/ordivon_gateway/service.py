@@ -16,7 +16,7 @@ from .contracts import (
     OwnerDescriptor,
     SystemDescription,
 )
-from .registry import CapabilityRoute, default_routes
+from .routes import CapabilityRoute, default_routes
 from .upstream import OwnerToolCaller
 
 
