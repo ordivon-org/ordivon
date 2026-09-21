@@ -57,7 +57,7 @@ The full path performed authenticated provider reality reads without disclosing 
 
 - Private-account-data admission remains NOT_ADMITTED pending fresh permission verification in the R0-R5 policy state.
 - Optional Binance testnet / OKX demo provider registration remains external and pending; it is not required for the current bounded closure.
-- Prometheus Market-domain TSDB/alerting is not active; only static Prometheus text projection and validated candidate rules exist.
+- Capital has no active TSDB/PromQL/alert-delivery contract. The legacy Market-Capital Prometheus projection/rules were retired after live zero-consumer proof; Prometheus remains a candidate for any future domain-correct observability contract.
 - LEAN latest remains supply-chain blocked for core admission despite passing functional qualification.
 - A broader sizing, leverage, derivatives, multi-lot, brokerage-fee, fill, slippage, distributed-accounting, or observability contract must reopen comparative qualification rather than silently expanding the bounded local implementation.
 

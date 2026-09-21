@@ -127,7 +127,7 @@ Do not calculate one synthetic total score.
 6. If the local implementation is simple, stable, well-tested and built directly from mature primitives, retaining it is valid.
 7. Re-run qualification when the contract or a material candidate version changes.
 
-## Current Market Capital implications
+## Current Ordivon Capital implications
 
 ### Already supported by comparative/local qualification evidence for bounded contracts
 

@@ -9,8 +9,13 @@ This document records ownership, not a new Ordivon methodology. `config/capital_
 ```text
 Ordivon
 └── Capital
-    ├── accounting/   bounded accounting semantics + SQLite WAL/FULL substrate
-    └── market/       currently instantiated Market domain
+    ├── markets/      public market/reference reality and public transport qualification
+    ├── trading/      provider/private reality, order intent, execution and reconciliation
+    ├── portfolio/    portfolio counterfactual projection
+    ├── risk/         exposure and risk measurement
+    ├── research/     model/evidence validation and monitoring
+    ├── governance/   authorization and policy gates
+    └── accounting/   durable ledger mechanics and SQLite WAL/FULL substrate
 ```
 
 Treasury, Compute, Enterprise, Human, Distribution, and other conceptual domains are intentionally **not** local packages. They remain external-owner entries until a real use case exists.
