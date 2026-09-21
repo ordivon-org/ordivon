@@ -4,6 +4,8 @@
 | --- | --- | --- |
 | M1 | Next / Security / Network | ACCEPTED_SOURCE_ONLY |
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
+| Artifact | canonical monorepo owner active at capabilities/artifact; standalone source carrier physically retired with 43-ref Git restore, dirty PPT worktree recovery, live Temporal readback, and post-delete 381-test hermetic proof | ACCEPTED_SOURCE_ONLY |
+| Artifact standalone carrier | /root/projects/ordivon-artifact-v2 physically absent; Git/worktree recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
 | Capital | current source-of-truth domains/capital; identity-preserving lineage updated to 808353c; Market package decomposed into Markets/Trading/Portfolio/Risk/Research/Governance/Accounting owner domains; standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
 | Game | canonical monorepo owner active at domains/game; standalone source carrier physically retired with 413-ref Git restore, non-Git payload restore, dirty-worktree recovery, and post-delete 584-test proof | ACCEPTED_SOURCE_ONLY |
