@@ -1,0 +1,32 @@
+{
+  "a3mReturnCode": 0,
+  "bagZipSha256": "sha256:eca409f70df6464582fb5381633d2119f036d06e902f07efe06ef6ce19c5d9fd",
+  "bagZipBytes": 165831,
+  "expectedGitignoreSha256": "sha256:4afb118f793fdfeeadab4520876d4c089b75c2f379d38993e2ea0b6d769f87fa",
+  "expectedGitignoreBytes": 56,
+  "completedAipCount": 1,
+  "aipSha256": "sha256:0be65575cff5cd84e3312deaf39b8304e7e0cc953b8ea5cd1f90e2bd7c19c1e1",
+  "gitignoreOriginalMatches": [
+    {
+      "href": "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/.gitignore",
+      "digest": "4afb118f793fdfeeadab4520876d4c089b75c2f379d38993e2ea0b6d769f87fa",
+      "size": "56"
+    }
+  ],
+  "hiddenPreserved": true,
+  "originalHrefSample": [
+    "objects/one-bell-bag.zip",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/bag-info.txt",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/bagit.txt",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/.gitignore",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/README.md",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/browser-acceptance.json",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/browser-check.py",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/consumer.py",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/index.html",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/one-bell.wav",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/data/play/one-bell-three-rooms/verify.py",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/manifest-sha256.txt",
+    "objects/one-bell-bag.zip-2026-09-11T04_19_55.918987_00_00/one-bell-bag/tagmanifest-sha256.txt"
+  ]
+}

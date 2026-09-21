@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-preservation.a3m-premis-fixity-verification",
+  "pilotId": "creative-preservation-external-pilot-r1",
+  "verification": "METS fileGrp USE=original -> ADMID -> PREMIS objectCharacteristics/fixity compared with exact frozen Git blob SHA-256 and size",
+  "summary": {
+    "workCount": 12,
+    "worksWithAllExpectedOriginals": 9,
+    "worksWithExactOriginalSets": 9,
+    "expectedFiles": 86,
+    "matchedFiles": 83,
+    "missingFiles": 3,
+    "extraOriginalFiles": 0
+  },
+  "rows": [
+    {
+      "workId": "media:gesture-orrery",
+      "expectedCount": 4,
+      "metsOriginalCount": 4,
+      "matchedCount": 4,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "media:one-bell-three-rooms",
+      "expectedCount": 8,
+      "metsOriginalCount": 7,
+      "matchedCount": 7,
+      "missingCount": 1,
+      "extraOriginalCount": 0,
+      "matchedAll": false,
+      "exactOriginalSet": false,
+      "missing": [
+        {
+          "relative": ".gitignore",
+          "sha256": "4afb118f793fdfeeadab4520876d4c089b75c2f379d38993e2ea0b6d769f87fa",
+          "size": 56,
+          "mode": "100644"
+        }
+      ],
+      "extraOriginals": []
+    },
+    {
+      "workId": "media:almost-arriving",
+      "expectedCount": 5,
+      "metsOriginalCount": 5,
+      "matchedCount": 5,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "web:article:the-future-will-not-wait",
+      "expectedCount": 1,
+      "metsOriginalCount": 1,
+      "matchedCount": 1,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "game:batch-zero",
+      "expectedCount": 4,
+      "metsOriginalCount": 4,
+      "matchedCount": 4,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "game:nine-wells",
+      "expectedCount": 9,
+      "metsOriginalCount": 8,
+      "matchedCount": 8,
+      "missingCount": 1,
+      "extraOriginalCount": 0,
+      "matchedAll": false,
+      "exactOriginalSet": false,
+      "missing": [
+        {
+          "relative": ".gitignore",
+          "sha256": "e6199062cb0766888f2c4f420767abde4ae61a6748bcfa5eb5944bd935f4dc1f",
+          "size": 41,
+          "mode": "100644"
+        }
+      ],
+      "extraOriginals": []
+    },
+    {
+      "workId": "workstation:signal-seed",
+      "expectedCount": 18,
+      "metsOriginalCount": 18,
+      "matchedCount": 18,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "game:seen-not-approved-pcb",
+      "expectedCount": 2,
+      "metsOriginalCount": 2,
+      "matchedCount": 2,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "web:note:semantic-core-after-measurement",
+      "expectedCount": 1,
+      "metsOriginalCount": 1,
+      "matchedCount": 1,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "game:look-away-garden",
+      "expectedCount": 4,
+      "metsOriginalCount": 4,
+      "matchedCount": 4,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    },
+    {
+      "workId": "game:signal-garden-evidence-petals",
+      "expectedCount": 8,
+      "metsOriginalCount": 7,
+      "matchedCount": 7,
+      "missingCount": 1,
+      "extraOriginalCount": 0,
+      "matchedAll": false,
+      "exactOriginalSet": false,
+      "missing": [
+        {
+          "relative": ".gitignore",
+          "sha256": "4f8edc0904b1b049300d42fab5f928dde41df2162c922dde41ed8c49b3c6034f",
+          "size": 39,
+          "mode": "100644"
+        }
+      ],
+      "extraOriginals": []
+    },
+    {
+      "workId": "game:adaptive-query-bench",
+      "expectedCount": 22,
+      "metsOriginalCount": 22,
+      "matchedCount": 22,
+      "missingCount": 0,
+      "extraOriginalCount": 0,
+      "matchedAll": true,
+      "exactOriginalSet": true,
+      "missing": [],
+      "extraOriginals": []
+    }
+  ],
+  "finding": "All observed omissions are hidden .gitignore files removed by a3m 0.8.1 default remove_hidden_files_and_directories workflow step; this policy is not exposed in stable ProcessingConfig CLI fields."
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-preservation.a3m-bagit-zip-pilot",
+  "pilotId": "creative-preservation-external-pilot-r1",
+  "composition": [
+    "exact frozen Git source roots",
+    "BagIt RFC 8493 SHA-256 transfer bag",
+    "ZIP transfer container",
+    "a3m 0.8.1 embedded ingest",
+    "a3m BagIt AIP + METS/PREMIS"
+  ],
+  "engine": {
+    "a3m": "0.8.1",
+    "python": "3.12.13",
+    "workspaceLocalTools": {
+      "tree": "2.3.2",
+      "atool": "0.39.0"
+    }
+  },
+  "input": {
+    "workCount": 12,
+    "frozenFileCount": 86,
+    "bagZipSha256": "sha256:62c78514c1fed50b7075a05069aaec5380bba19964026b1ce57e28328cc48b4c",
+    "bagZipBytes": 2899472
+  },
+  "aip": {
+    "sha256": "sha256:6b9a7b249426d18296e90f185cd61c282ee5f649166c76bce9e7b5f130838f67",
+    "bytes": 8238010,
+    "bagitValidation": "PASS",
+    "metsSha256": "sha256:011cc1cc352f89de3684c37d89842354be23f57597032ac45f86e70938232195",
+    "originalFileGrpCount": 91
+  },
+  "verification": {
+    "matchedFrozenFiles": 86,
+    "missingFrozenFiles": 0,
+    "allFrozenFilesPreserved": true,
+    "hiddenFrozenFilesMatched": 3,
+    "missing": []
+  },
+  "boundary": "The AIP additionally contains the submitted ZIP and extracted BagIt tag files as originals. allFrozenFilesPreserved concerns the 86 exact source files as a verified PREMIS-original subset; it does not claim a3m production maturity or E-ARK conformance."
+}

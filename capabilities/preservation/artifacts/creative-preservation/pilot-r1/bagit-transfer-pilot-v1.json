@@ -1,0 +1,53 @@
+{
+  "bag": {
+    "bagInfo": {
+      "Bag-Software-Agent": "bagit.py v1.9.0 <https://github.com/LibraryOfCongress/bagit-python>",
+      "Bagging-Date": "2026-09-11",
+      "External-Identifier": "creative-preservation-external-pilot-r1",
+      "Internal-Sender-Description": "12-work heterogeneous exact-Git-revision pilot transfer; not a preservation AIP",
+      "Payload-Oxum": "4200279.86",
+      "Source-Organization": "Ordivon local creative preservation pilot"
+    },
+    "bagitTxt": [
+      "BagIt-Version: 0.97",
+      "Tag-File-Character-Encoding: UTF-8"
+    ],
+    "payloadManifestAlgorithm": "sha256",
+    "payloadManifestEntries": 86,
+    "payloadManifestSha256": "sha256:86f23123711a40ed0d7fecb04c00ee000e8a253bc9b8ea317f2447bb398dba7d",
+    "payloadOxum": "4200279.86",
+    "tagManifestEntries": 3,
+    "tagManifestSha256": "sha256:f52c760c9b4f8e007d8198ded6f7f2ea8a6748391367af3af1f0bcb85996718b",
+    "validation": "PASS_REOPENED_BAG_VALIDATE"
+  },
+  "boundary": "This proves standards-conformant transfer packaging and fixity validation for the 12-work pilot. It is not an E-ARK AIP, PREMIS/METS preservation package, repository deposit, or proof of long-term preservation.",
+  "input": {
+    "materializedTopLevel": [
+      "01-media--gesture-orrery",
+      "02-media--one-bell-three-rooms",
+      "03-media--almost-arriving",
+      "04-web--article--the-future-will-not-wait",
+      "05-game--batch-zero",
+      "06-game--nine-wells",
+      "07-workstation--signal-seed",
+      "08-game--seen-not-approved-pcb",
+      "09-web--note--semantic-core-after-measurement",
+      "10-game--look-away-garden",
+      "11-game--signal-garden-evidence-petals",
+      "12-game--adaptive-query-bench"
+    ],
+    "preBagBytes": 4200279,
+    "preBagFileCount": 86,
+    "source": "exact Git revision source roots from corpus-v1.json",
+    "workCount": 12
+  },
+  "kind": "ordivon.creative-preservation.bagit-pilot",
+  "pilotId": "creative-preservation-external-pilot-r1",
+  "schemaVersion": 1,
+  "standard": "BagIt File Packaging Format v1.0 / RFC 8493",
+  "tool": {
+    "implementation": "LibraryOfCongress/bagit-python",
+    "package": "bagit",
+    "version": "1.9.0"
+  }
+}

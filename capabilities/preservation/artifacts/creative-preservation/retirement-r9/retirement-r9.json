@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "creative-preservation-forward-implementation-retirement-r9",
+  "date": "2026-09-14",
+  "preRetirementWorkstationRevision": "9a777e1ddf219cc0adaf4bd21143102d41d3900c",
+  "standing": "IMPLEMENTATION_RETIRED_HISTORY_RETAINED",
+  "deletedTrackedFiles": {
+    "scripts/creative_forward_ingest.py": "sha256:08cc9e9527bcba2b87bb9fe84aa4c58a0f9e8ae65631f1df161e3232038bc830",
+    "tests/test_creative_forward_ingest.py": "sha256:c405c5169f93d4dfc99fa814688ef57671041327093043e90604809e06752206",
+    "requirements/creative-preservation-forward-r1.txt": "sha256:cc8b924967759eb839b6252c0c0eb41632e3f7d86c7d5dab12891d82890f543c",
+    "requirements/creative-preservation-forward-r1.lock.txt": "sha256:e85a056df6aa92e510864a59835ee48ea7f0ce1ed2cccd530ab4e66900ac5b29"
+  },
+  "deletedRuntimeState": {
+    "privateToolEnvironment": "/root/.local/share/ordivon-workstation/creative-preservation-tools-r1",
+    "privateToolEnvironmentBytesApprox": 8912896,
+    "forwardR1DisposableCatalog": {
+      "path": "/var/lib/ordivon/creative-preservation/forward-r1/catalog",
+      "historicalManifestSha256": "ec778530fb19106cc86fed5ed66dba1f5a3b9be1a959ee700549ac6e1a229499"
+    },
+    "forwardR2DisposableCatalog": {
+      "path": "/var/lib/ordivon/creative-preservation/forward-r2/catalog",
+      "historicalManifestSha256": "e62b64622132d935df366ed3776210cc0ef89fa3183d9b1d9e7f06441ba8e917"
+    }
+  },
+  "preservedHistoricalEvidence": {
+    "forwardR1": {
+      "bags": 4,
+      "receipts": 4
+    },
+    "forwardR2": {
+      "bags": 13,
+      "receipts": 13
+    }
+  },
+  "replacement": {
+    "submissionProfile": "E-ARK SIP 2.2.0 / CSIP 2.2.0",
+    "creatorValidator": "Commons-IP 2.11.3",
+    "proofReceipt": "artifacts/creative-preservation/standards-r8/migration-r8.json"
+  },
+  "nonClaims": [
+    "Historical R4/R5 bags and receipts were not deleted or rewritten.",
+    "Owner-domain approval and exact-byte authority were not deleted.",
+    "The current Archivematica engine adapter is not claimed to ingest E-ARK SIP directly."
+  ],
+  "generatedAt": "2026-09-14T14:07:38.281094+08:00",
+  "evidenceJobs": [
+    "job-01a09e85-0566-73f2-8e85-01655ab7d275",
+    "job-01a09e85-b959-7533-842f-f12ba12aaae1",
+    "job-01a09e86-e752-7d12-9979-ef7b5f5b6ea3"
+  ]
+}

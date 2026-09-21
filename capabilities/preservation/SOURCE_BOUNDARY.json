@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.preservation-source-boundary",
+  "historicalSourceRepo": "/root/workstation-lab",
+  "historicalObservedHead": "c45aa22ca9b4632dd98fdacef539bf167db61ab0",
+  "filterTool": "git-filter-repo",
+  "filterToolRevision": "a40bce548d2c",
+  "includedPaths": [
+    "artifacts/creative-preservation/**",
+    "config/archivematica-preservation-r10.compose.yml",
+    "docs/creative-preservation-*.md",
+    "systemd/ordivon-preservation-fixity-r7.service",
+    "systemd/ordivon-preservation-fixity-r7.timer"
+  ],
+  "excludedCurrentOwner": {
+    "creativeLibrary": "Media-facing presentation/read-model; not included"
+  },
+  "authorityBoundary": {
+    "runtimeFrameworkOwnedByOrdivon": false,
+    "localProfileOnly": true,
+    "archivematicaVersionObserved": "1.18.0",
+    "dockerProfileClaim": "validated-local-only"
+  }
+}

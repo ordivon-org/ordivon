@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.creative-preservation.external-composition-acceptance",
+  "pilotId": "creative-preservation-external-pilot-r1",
+  "standing": "EXTERNAL_PRESERVATION_COMPOSITION_PILOT_ACCEPTED_R1",
+  "scope": {
+    "workCount": 12,
+    "frozenFileCount": 86,
+    "catalogStanding": "SOURCE_COMPLETE_DECLARED_SCOPE_R1",
+    "heterogeneousCoverage": [
+      [
+        "static-raster-artwork"
+      ],
+      [
+        "audio"
+      ],
+      [
+        "video"
+      ],
+      [
+        "text-publication"
+      ],
+      [
+        "historical-html-js"
+      ],
+      [
+        "godot-playable"
+      ],
+      [
+        "cad-step"
+      ],
+      [
+        "kicad-eda"
+      ],
+      [
+        "historical-web-publication"
+      ],
+      [
+        "deterministic-derived-preview",
+        "godot-source"
+      ],
+      [
+        "cross-work-relation",
+        "godot-source"
+      ],
+      [
+        "historical-carrier-absent-current-head"
+      ]
+    ]
+  },
+  "decisions": {
+    "swhid": {
+      "standing": "ADOPT",
+      "reason": "Official Software Heritage swh.model locally computed standard intrinsic content/directory SWHIDs without network archive dependency.",
+      "tool": "swh.model 8.4.1",
+      "standard": "ISO/IEC 18670:2025",
+      "receipt": "swhid-pilot-v1.json",
+      "receiptSha256": "sha256:2e17f1030e814948a48d650ca883d9f1cd721ee7ef1be8a908f6d317bb79ef0f"
+    },
+    "bagitTransfer": {
+      "standing": "ADOPT",
+      "reason": "LoC bagit-python produced SHA-256 BagIt transfer package and passed fresh reopen validation for all 86 files.",
+      "tool": "bagit-python 1.9.0",
+      "standard": "BagIt v1.0 / RFC 8493",
+      "receipt": "bagit-transfer-pilot-v1.json",
+      "receiptSha256": "sha256:0ccb394129b08d0f96bd4d62d6ccb93f9a6132bd20cd6947d2a70db30731f60d"
+    },
+    "formalFormatIdentification": {
+      "standing": "PROVISIONAL_NOT_GRADUATED",
+      "reason": "FIDO 1.6.1 executed successfully but its bundled/updater signature set is PRONOM v109, stale relative to newer current signature sets. Extension-only matches are never promoted.",
+      "receipt": "format-identification-fido-v109.json",
+      "receiptSha256": "sha256:5fe2c38909cac2e36a78231ed16c5b212192e247d8edf5388bf83af98a3046ef",
+      "strongSignatureIdentified": 6,
+      "unidentified": 5,
+      "weakExtensionOnly": 1
+    },
+    "a3mDirectIngest": {
+      "standing": "FEASIBILITY_PASS_WITH_POLICY_BLOCKER",
+      "reason": "12/12 exact source roots generated BagIt/METS/PREMIS AIPs, but default workflow removes hidden files; stable ProcessingConfig has no hidden-file toggle.",
+      "receipt": "a3m-pilot-pass1.json",
+      "receiptSha256": "sha256:9d7b59890eb47991bca093ff4710a517edf51a4c55371a43b71cd8483dc9f963",
+      "aipsGenerated": 12,
+      "expectedFrozenFiles": 86,
+      "premisOriginalFixityMatched": 83,
+      "missingFrozenFiles": [
+        "media:one-bell-three-rooms/.gitignore",
+        "game:nine-wells/.gitignore",
+        "game:signal-garden-evidence-petals/.gitignore"
+      ],
+      "fixityReceipt": "a3m-premis-fixity-v1.json",
+      "fixityReceiptSha256": "sha256:fe6262576f8efbec121dbe9c97d5e8692f9ad5d9de8fb16ca134003e2ffc2889"
+    },
+    "bagitZipToA3m": {
+      "standing": "PILOT_ACCEPTED_NOT_PRODUCTION_AUTHORITY",
+      "reason": "Standards composition avoids a3m hidden-file deletion without unstable workflow patch: exact source roots -> BagIt -> ZIP -> a3m. All 86 frozen files were verified as PREMIS-original subset by SHA-256/size, including all 3 hidden files.",
+      "receipt": "a3m-bagit-zip-12work-v1.json",
+      "receiptSha256": "sha256:d9b515eb0177f7c57fdc4475f944bf4d9f0d4f089fc49afcee80f9b13ba2dc3b",
+      "frozenFilesMatched": 86,
+      "missingFrozenFiles": 0,
+      "hiddenFilesMatched": 3,
+      "aipBagitValidation": "PASS",
+      "aipSha256": "sha256:6b9a7b249426d18296e90f185cd61c282ee5f649166c76bce9e7b5f130838f67",
+      "metsSha256": "sha256:011cc1cc352f89de3684c37d89842354be23f57597032ac45f86e70938232195"
+    },
+    "a3mProductionAuthority": {
+      "standing": "DO_NOT_GRADUATE",
+      "reason": "Upstream a3m 0.8.1 is proof-of-concept and its stable CLI cannot disable hidden-file removal. It is accepted as an AIP-engine feasibility result only."
+    },
+    "productionPreservationEngine": {
+      "standing": "PENDING_EXTERNAL_PILOT",
+      "preferred": "Enduro + Archivematica 1.18",
+      "alternative": "RODA Community",
+      "reason": "Production authority must still be tested against the same corpus before bulk migration of 302 works."
+    }
+  },
+  "externalReplacementConsequences": [
+    "Do not create an Ordivon-native software persistent-identifier scheme; store SWHID alongside local Git resolution context.",
+    "Do not create a custom transfer/fixity package schema; use BagIt.",
+    "Freeze custom AIP/PREMIS-event ontology growth; external preservation engines demonstrably generate BagIt AIP + METS/PREMIS.",
+    "Keep Creative Library suffix mapping presentation-only; formal format identity remains external and ungraduated until current PRONOM tooling is admitted.",
+    "Do not patch a3m hidden-file workflow. Use standards packaging for the pilot; use configurable production Archivematica/Enduro or another mature repository after comparative acceptance."
+  ],
+  "mechanicalEvidence": {
+    "corpusSha256": "sha256:bffbaa2041f6b577e6d3f01871c53330c12f082ead28cd250a26a347c6074186",
+    "metsCombinedSha256": "sha256:011cc1cc352f89de3684c37d89842354be23f57597032ac45f86e70938232195",
+    "metsSummarySha256": "sha256:2664910b1d131c37d8d4626389a2b8c1fe897fb2766c08a69aae9c545914e418",
+    "metsFileGrpCounts": {
+      "original": 91,
+      "metadata": 1
+    },
+    "premisEventTypes": {
+      "filename change": 90,
+      "format identification": 92,
+      "ingestion": 2,
+      "message digest calculation": 92,
+      "transcription": 8,
+      "unpacking": 90
+    },
+    "unknownFormatCount": 2,
+    "hiddenPolicyBypassProofSha256": "sha256:5476ef50a47caeaab66ee0bc074233a423762454c4a22c904ebba058765d5126"
+  },
+  "truthBoundary": "This acceptance proves the external standards composition on a 12-work/86-file heterogeneous local corpus. It does not prove long-term repository operations, E-ARK conformance, off-machine durability, current-complete PRONOM identification, production maturity of a3m, Human/artistic quality, gameplay correctness, or physical realization."
+}
