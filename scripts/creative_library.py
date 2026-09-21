@@ -32,7 +32,6 @@ PRESENTATION_KIND_EXTENSIONS = {
     "video": {".mp4", ".webm", ".mov", ".mkv"},
     "html": {".html", ".htm"},
     "pdf": {".pdf"},
-    "geospatial": {".gpkg", ".geojson", ".kml"},
     "cad": {".step", ".stp", ".stl", ".obj", ".3mf", ".fcstd"},
     "eda": {".kicad_pcb", ".kicad_sch", ".sch", ".pcb", ".cir", ".spice", ".raw", ".gbr", ".gbrjob", ".drl"},
     "model": {".glb", ".gltf"},
