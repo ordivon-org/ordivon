@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import math
 import re
 import sqlite3
@@ -31,7 +32,9 @@ import sys
 import time
 from pathlib import Path
 
-HARNESS_CURRENT = Path("/opt/ordivon/agent-automation/current")
+HARNESS_CURRENT = Path(
+    os.environ.get("ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT", "/opt/ordivon/agent-automation/current")
+)
 HARNESS_SCRIPTS = HARNESS_CURRENT / "scripts"
 if str(HARNESS_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(HARNESS_SCRIPTS))

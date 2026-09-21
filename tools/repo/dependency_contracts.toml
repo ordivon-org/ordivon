@@ -133,3 +133,11 @@ source_glob = "platform/workstation/tests/test_workstation_consequences.py"
 allowed_fragment = "capabilities/media"
 kind = "TEST_ONLY_ENVIRONMENT_BINDING"
 contract_ref = "platform/workstation/README.md"
+
+[[seams]]
+from_owner = "next"
+to_owner = "harness"
+source_glob = "meta/next/mise.toml"
+allowed_fragment = "services/harness"
+kind = "TEST_ONLY_SOURCE_BINDING"
+contract_ref = "services/harness/docs/AGENT_AUTOMATION_OWNER_MIGRATION_R7.md"

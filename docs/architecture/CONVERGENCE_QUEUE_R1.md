@@ -225,7 +225,7 @@ runtime
   -> owner-component:runtime
 
 security
-  -> owner-component:harness+security+web
+  -> owner-component:harness+next+security+skills+web
 
 media
   -> owner-component:artifact+distribution+game+media+workstation
