@@ -23,6 +23,9 @@ def test_gateway_access_app_declares_managed_oauth_for_remote_mcp_clients() -> N
     assert 'type                       = "self_hosted"' in text
     assert "oauth_configuration = {" in text
     assert "dynamic_client_registration = {" in text
+    assert 'allowed_uris          = ["https://chatgpt.com/connector/oauth/*"]' in text
+    assert "allow_any_on_localhost = false" in text
+    assert "allow_any_on_loopback  = false" in text
     assert 'access_token_lifetime = "15m"' in text
     assert 'session_duration      = "336h"' in text
     assert "owner_template_oauth_configuration" not in text
