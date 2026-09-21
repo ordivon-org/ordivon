@@ -208,3 +208,54 @@ With /root/projects/ordivon-next physically absent:
 - provider mutation from this retirement: NONE
 
 If historical Next source or Chaoxing WIP must be recovered, materialize it from the recorded bundle/capsule into a bounded recovery path. Do not recreate /root/projects/ordivon-next as a compatibility alias.
+
+
+## Post-retirement canonicalization of the recovered Chaoxing lineage
+
+After the standalone source carrier had already been retired, the preserved Chaoxing recovery lineage was re-evaluated against the canonical monorepo.
+
+The recovery evidence had two distinct parts:
+
+1. five committed MVP commits ending at `ce5e54898bbd4bb74435c3038c960417427ea3ae`;
+2. one untracked future TDD contract, `tests/test_chaoxing_http_adapter.py`, whose frontier remains `EXPECTED_RED_UNIMPLEMENTED_HTTP_ADAPTER`.
+
+The committed branch patch from the restore-proven capsule applied cleanly under canonical `meta/next`. Before any normalization, the recovered implementation and plan/test files were compared against the restored recovery head. The Chaoxing implementation files under `experiments/chaoxing-autosign-mvp/**` matched byte-for-byte.
+
+The historical test harness did not initially satisfy the current monorepo Ruff gates. Only the test harness was normalized:
+
+- two unused imports were removed;
+- the experiment-local package-path injection was made explicit for Ruff;
+- Ruff import ordering and formatting were applied.
+
+The experiment implementation bytes were not changed by that normalization.
+
+The recovered committed MVP then passed:
+
+- Chaoxing MVP unit tests: **11/11 PASS**;
+- Ruff check: PASS;
+- Ruff format check: PASS;
+- full canonical `next:verify`: PASS;
+- full Next pytest surface observed by the owner gate: **121 passed**;
+- dependency vulnerability scan: no known vulnerabilities.
+
+The recovered committed lineage entered canonical main as:
+
+`e9b93799a353b48767d0d1996212e9a0f1510c8a`
+
+Canonical owner location:
+
+`meta/next/experiments/chaoxing-autosign-mvp`
+
+The untracked HTTP-adapter TDD contract was deliberately **not** imported into the executable canonical test suite because its required module remains unimplemented. It remains preserved in the recovery capsule with exact status and byte-level restore proof.
+
+The prior 432-ref retirement archive remains authoritative for reconstructing the historical standalone repository and the original recovery refs. Canonicalization of the recovered MVP does not rewrite or replace that archive.
+
+## Archived-source reference fence
+
+After post-retirement canonicalization, a dedicated archived-source policy was added for the locator:
+
+`/root/projects/ordivon-next`
+
+Allowed references are limited to explicit historical migration records, frozen creation-time topology/evidence/planning snapshots, and two negative regression tests that assert the retired locator is not used by current consumers.
+
+Current operational namespaces under Next/Skills contain zero references to the retired source path. Any future current source, script, Skill, package metadata, or service binding that reintroduces the old locator must fail the repository retirement gate.

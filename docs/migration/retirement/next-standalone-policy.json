@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "next-standalone",
+  "legacyLocator": "/root/projects/ordivon-next",
+  "archivedSource": {
+    "revision": "5e556869df0617a7da09e39ae57f646f11061689",
+    "standing": "RETIRED_ARCHIVED",
+    "preserveGitHistoryForHistoricalLookup": false,
+    "recoveryMode": "432-ref-all-refs-bundle-plus-chaoxing-recovery-capsule"
+  },
+  "allowedReferenceClasses": [
+    {
+      "id": "migration-acceptance-and-receipts",
+      "globs": [
+        "docs/migration/acceptance/**",
+        "docs/migration/receipts/**"
+      ],
+      "reason": "Migration receipts and acceptances retain exact historical standalone coordinates."
+    },
+    {
+      "id": "frozen-system-topology",
+      "globs": [
+        "capabilities/media/productions/ordivon-system-constellation-atlas/**"
+      ],
+      "reason": "Creation-time Atlas source/render carriers preserve the repository topology observed at production time."
+    }
+  ],
+  "allowedExactPaths": [
+    {
+      "path": "meta/next/docs/MONOREPO_M0_ARCHITECTURE.md",
+      "reason": "M0 architecture records the pre-cutover Skills/Next source census."
+    },
+    {
+      "path": "meta/next/docs/superpowers/plans/2026-09-16-agent-plugin-release-reconciliation.md",
+      "reason": "Frozen pre-monorepo release reconciliation plan."
+    },
+    {
+      "path": "meta/next/docs/superpowers/plans/2026-09-20-monorepo-m0-migration.md",
+      "reason": "Frozen M0 migration plan naming the original standalone source."
+    },
+    {
+      "path": "meta/next/evidence/acceptance/agent-architecture-lego-catalog-r1.json",
+      "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
+    },
+    {
+      "path": "meta/next/evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json",
+      "reason": "Historical acceptance evidence records the source repository observed at evidence creation."
+    },
+    {
+      "path": "meta/next/evidence/analysis/local-capability-pack-r1-20260913.md",
+      "reason": "Historical capability census records the then-current local Skill source."
+    },
+    {
+      "path": "meta/next/evidence/data-lifecycle/preservation-r1/acceptance.json",
+      "reason": "Historical preservation acceptance records the then-current source repository."
+    },
+    {
+      "path": "meta/next/planning/monorepo-migration-baseline-r1.json",
+      "reason": "Frozen M0 baseline records the original source path and old Skills path."
+    },
+    {
+      "path": "meta/next/tests/test_web_provider_routing_skill.py",
+      "reason": "Negative regression assertion forbidding the retired web-provider-routing script path."
+    },
+    {
+      "path": "platform/skills/tests/test_owner_boundary.py",
+      "reason": "Negative regression assertion forbidding the retired Next source path in live Skills ownership."
+    }
+  ]
+}
