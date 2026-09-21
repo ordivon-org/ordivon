@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -8,6 +9,7 @@ PUBLIC = ROOT / "systemd" / "ordivon-gateway.service.d" / "20-public-access.exam
 WINDOWS = (
     ROOT / "systemd" / "ordivon-gateway.service.d" / "30-windows-service-identity.example.conf"
 )
+INSTALLER = ROOT / "packaging" / "install_release.sh"
 
 
 def test_gateway_unit_is_loopback_dynamic_user_and_credential_scoped() -> None:
@@ -17,12 +19,33 @@ def test_gateway_unit_is_loopback_dynamic_user_and_credential_scoped() -> None:
     assert "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE=%d/linux-runtime-bearer" in text
     assert "ORDIVON_GATEWAY_HOST=127.0.0.1" in text
     assert "ORDIVON_GATEWAY_PORT=8899" in text
+    assert "ExecStart=/opt/ordivon/gateway/current/.venv/bin/ordivon-gateway" in text
+    assert "current-env" not in text
     assert "NoNewPrivileges=true" in text
     assert "ProtectSystem=strict" in text
+    assert "ProtectHome=true" in text
     assert "CapabilityBoundingSet=" in text
     assert "AmbientCapabilities=" in text
     assert "ORDIVON_GATEWAY_PUBLIC_ORIGIN" not in text
     assert "WINDOWS_ACCESS_CLIENT_SECRET" not in text
+
+
+def test_release_python_uses_same_managed_pattern_as_host() -> None:
+    text = INSTALLER.read_text(encoding="utf-8")
+    assert "UV_PYTHON_INSTALL_DIR" in text
+    assert "python install" in text
+    assert "python find" in text
+    assert "--managed-python" in text
+    assert '--project "$RELEASE"' in text
+    assert 'mv "$TMP" "$RELEASE"' in text
+    assert "current-env" not in text
+    assert "/root/" not in text
+
+
+def test_python_pin_matches_project_requirement() -> None:
+    pinned = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert project["project"]["requires-python"] == f"=={pinned}"
 
 
 def test_public_access_is_a_separate_cutover_dropin() -> None:
