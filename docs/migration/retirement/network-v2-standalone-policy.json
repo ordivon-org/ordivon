@@ -5,19 +5,24 @@
   "legacyLocator": "/root/projects/ordivon-network-v2",
   "archivedSource": {
     "revision": "9aec70bbfa3c8847dbd52c03a939c61f45e2f338",
-    "standing": "RETIREMENT_CANDIDATE",
+    "standing": "RETIRED_ARCHIVED",
     "preserveGitHistoryForHistoricalLookup": false,
     "recoveryMode": "all-ordinary-refs-bundle-plus-dirty-finance-wip-capsule"
   },
   "allowedReferenceClasses": [
     {
       "id": "migration-acceptance-and-receipts",
-      "globs": ["docs/migration/acceptance/**", "docs/migration/receipts/**"],
+      "globs": [
+        "docs/migration/acceptance/**",
+        "docs/migration/receipts/**"
+      ],
       "reason": "Migration receipts and acceptances preserve exact historical Network source coordinates."
     },
     {
       "id": "historical-next-migration-records",
-      "globs": ["meta/next/migrations/records/network-*.md"],
+      "globs": [
+        "meta/next/migrations/records/network-*.md"
+      ],
       "reason": "Dated Network migration records preserve pre-retirement topology."
     },
     {
@@ -30,7 +35,10 @@
     },
     {
       "id": "frozen-production-topology",
-      "globs": ["capabilities/media/productions/*/source/**", "capabilities/media/productions/*/render/**"],
+      "globs": [
+        "capabilities/media/productions/*/source/**",
+        "capabilities/media/productions/*/render/**"
+      ],
       "reason": "Creation-time topology carriers remain immutable historical evidence."
     }
   ],

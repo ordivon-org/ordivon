@@ -22,7 +22,8 @@
 | Media standalone carrier | /root/projects/ordivon-media historical Git/recovery carrier only; 899-ref archive restore-proven; 137 exact Creative Library bindings retained in place | ARCHIVED_IN_PLACE |
 | Security | canonical monorepo owner active; legacy f5db8508 standalone carrier physically retired with complete all-refs restore proof | ACCEPTED_SOURCE_ONLY |
 | Security standalone carrier | /root/projects/ordivon-security-v2 physically absent; archive bundle restore-proven; no compatibility alias | RETIRED_ARCHIVED |
-| Network | standalone main aligned ff-only to accepted `9aec70bb`; original source identity attached | ACCEPTED_SOURCE_ONLY |
+| Network | canonical monorepo owner active at platform/network; original source identity attached, seven-authority Finance recovery reconciled, current metadata rebound, and standalone source physically retired | ACCEPTED_SOURCE_ONLY |
+| Network standalone carrier | /root/projects/ordivon-network-v2 physically absent; 36-ref final Git restore, dirty Finance WIP recovery, zero non-Git state, and post-delete live carrier readback proven | RETIRED_ARCHIVED |
 | Distribution | canonical monorepo owner active at capabilities/distribution; optional effect-safety/profile semantics retained; standalone carrier physically retired with 16-ref restore proof | ACCEPTED_SOURCE_ONLY |
 | Distribution standalone carrier | /root/projects/ordivon-distribution-v2 physically absent; Git/Web-handoff recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Preservation | standard-native local preservation profile | ACCEPTED_SOURCE_ONLY |
@@ -40,5 +41,6 @@
 | --- | --- | --- |
 | Skills MCP live | platform/skills release 60ed225b; Python 3.14.7 owner env; project binding /root/projects/ordivon/meta/next; real search/resolve/read fence acceptance | ACCEPTED_LIVE |
 | Host MCP live | immutable release /opt/ordivon/host-v2/releases/a95a8e112edfbe85582ff8e6fa25bb268038ea48; PostgreSQL schema 5 continuity authority; source carrier absent; history Doctor healthy | ACCEPTED_LIVE |
+| Network live | 11 source-independent network-v2 services remain active; deployed Finance carrier has six validated authorities and dual DNS; canonical source has seven authorities; wallet convergence is a separate effect-bearing change | ACCEPTED_LIVE_CURRENT / SEVEN_AUTHORITY_CONVERGENCE_PENDING |
 
 These standings cover source/history relocation and owner-native behavior only. Deployment, external effects, durable state, scientific standing, and old-repository retirement require separate evidence and gates.
