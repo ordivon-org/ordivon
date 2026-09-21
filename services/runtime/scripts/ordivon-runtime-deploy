@@ -250,9 +250,31 @@ def git_text(git: Path, repo: Path, arguments: list[str]) -> str:
     return run([str(git), "-C", str(repo), *arguments]).stdout.strip()
 
 
+def source_repository_context(
+    git: Path, source_repo: Path
+) -> tuple[Path, Path]:
+    if source_repo.is_symlink() or not source_repo.is_dir():
+        raise RuntimeError(f"source-repo is missing or unsafe: {source_repo}")
+    owner_root = source_repo.resolve()
+    top_level_text = git_text(git, owner_root, ["rev-parse", "--show-toplevel"])
+    top_level = Path(top_level_text).resolve()
+    try:
+        owner_relative = owner_root.relative_to(top_level)
+    except ValueError as error:
+        raise RuntimeError("source-repo is not beneath its Git top-level") from error
+    return top_level, owner_relative
+
+
+def committed_source_path(git: Path, source_repo: Path, relative: Path) -> str:
+    _top_level, owner_relative = source_repository_context(git, source_repo)
+    path = owner_relative / relative
+    return relative.as_posix() if owner_relative == Path(".") else path.as_posix()
+
+
 @contextmanager
 def exact_source_checkout(source_repo: Path, commit: str):
     git = Path("/usr/bin/git")
+    git_top_level, owner_relative = source_repository_context(git, source_repo)
     with tempfile.TemporaryDirectory(prefix="ordivon-runtime-release-source-") as temporary:
         checkout = Path(temporary) / "source"
         run(
@@ -262,7 +284,7 @@ def exact_source_checkout(source_repo: Path, commit: str):
                 "--quiet",
                 "--shared",
                 "--no-checkout",
-                str(source_repo),
+                str(git_top_level),
                 str(checkout),
             ]
         )
@@ -275,7 +297,12 @@ def exact_source_checkout(source_repo: Path, commit: str):
         status = git_text(git, checkout, ["status", "--porcelain", "--untracked-files=all"])
         if status:
             raise RuntimeError("detached release source is not clean after exact checkout")
-        yield checkout
+        owner_checkout = checkout / owner_relative
+        if owner_checkout.is_symlink() or not owner_checkout.is_dir():
+            raise RuntimeError(
+                "source-repo owner path is absent or unsafe in the exact Commit"
+            )
+        yield owner_checkout
 
 
 def executable_identity(path: Path) -> dict[str, object]:
@@ -461,7 +488,8 @@ def candidate_runtime_policy(source_root: Path) -> dict[str, object]:
 
 
 def committed_runtime_policy(git: Path, source_repo: Path, commit: str) -> dict[str, object]:
-    text = git_text(git, source_repo, ["show", f"{commit}:{RUNTIME_POLICY_SOURCE.as_posix()}"])
+    source_path = committed_source_path(git, source_repo, RUNTIME_POLICY_SOURCE)
+    text = git_text(git, source_repo, ["show", f"{commit}:{source_path}"])
     policy = runtime_policy_from_text(text, label="Committed Runtime policy")
     return validate_runtime_policy(policy, require_complete=True)
 

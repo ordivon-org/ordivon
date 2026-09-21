@@ -545,6 +545,89 @@ class DeployReclaimTests(unittest.TestCase):
                 hashlib.sha256((repo / "scripts/mcp_probe.py").read_bytes()).hexdigest(),
             )
 
+    def test_default_prepare_supports_monorepo_owner_subdirectory_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "monorepo"
+            initialize_git_repository(repo, remote=False)
+            owner = repo / "services" / "runtime"
+            owner.mkdir(parents=True)
+            commit = add_release_operator_sources(owner, push=False)
+            candidate = owner / "target" / "ordivon-release-candidates" / commit / "release"
+            manifest = candidate / "ordivon-deployment-manifest.json"
+            cargo = fake_cargo_for_default_release(root)
+
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "prepare",
+                    "--source-repo",
+                    str(owner),
+                    "--commit",
+                    commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--cargo",
+                    str(cargo),
+                ],
+                cwd=REPO,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["commit"], commit)
+            self.assertEqual(report["sourceRepo"], str(owner.resolve()))
+            self.assertEqual(report["sourceMaterialization"], "detached_git_checkout")
+            self.assertEqual(
+                report["runtimePolicy"],
+                {
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                },
+            )
+            self.assertEqual(
+                (candidate / "ordivon-runtime-status").read_bytes(),
+                (owner / "scripts" / "ordivon-runtime-status").read_bytes(),
+            )
+            stored = json.loads(manifest.read_text(encoding="utf-8"))
+            self.assertEqual(stored["sourceRepo"], str(owner.resolve()))
+
+    def test_committed_runtime_policy_resolves_monorepo_owner_prefix(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "monorepo"
+            initialize_git_repository(repo, remote=False)
+            owner = repo / "services" / "runtime"
+            owner.mkdir(parents=True)
+            commit = add_release_operator_sources(owner, push=False)
+
+            policy = module["committed_runtime_policy"](
+                Path("/usr/bin/git"),
+                owner,
+                commit,
+            )
+
+            self.assertEqual(
+                policy,
+                {
+                    "schemaVersion": 1,
+                    "defaultRuntimeMs": 3_600_000,
+                    "maxRuntimeMs": 86_400_000,
+                },
+            )
+
     def test_default_apply_and_rollback_cover_operator_and_support_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

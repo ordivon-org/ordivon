@@ -4,6 +4,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Runtime release preparation and policy verification now accept a real Runtime owner directory beneath a containing Git repository, so the canonical modular-monorepo `services/runtime` source can retain the existing exact-Commit, manifest, required-ref, Workspace, and rollback contracts without inventing a second public `sourceSubdir` protocol. Standalone owner roots remain behaviorally unchanged.
+
 - Workspace closure now recovers residual directories whose Git worktree metadata was lost or corrupted: non-forced close refuses to guess cleanliness, exact source-state fencing fails closed when no longer provable, and forced recovery first preserves any recoverable HEAD, delegates broken registration cleanup to git worktree prune, then commits recovered_missing without direct Git-metadata or Registry mutation.
 
 - Windows-native execution now prefers a live WSL Session Relay interop listener after any valid ambient `WSL_INTEROP`, instead of falling through numeric listener order that could select the long-lived `/run/WSL/2_interop` init listener and intermittently fail with `UtilAcceptVsock: accept4 failed 110`; other listeners remain bounded fallbacks, and launcher retry semantics are otherwise unchanged.

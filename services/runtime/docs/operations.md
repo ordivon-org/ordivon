@@ -129,25 +129,30 @@ apply     lock, retain previous artifacts, install, restart, probe, receipt
 rollback  restore the exact previous artifact set from one receipt
 ```
 
-A normal production deployment is:
+A normal production deployment is run from the Runtime owner root. The owner root may itself be
+the Git top-level (standalone checkout) or a real subdirectory of a containing monorepo such as
+`services/runtime`. Release identity remains the containing Git Commit; Runtime artifacts and policy
+are materialized only from the configured owner root inside that exact detached Commit.
 
 ```bash
-repo=$(git rev-parse --show-toplevel)
-commit=$(git -C "$repo" rev-parse HEAD)
-candidate="$repo/target/ordivon-release-candidates/$commit/release"
+source=$(pwd -P)
+test -f "$source/Cargo.toml"
+test -x "$source/scripts/ordivon-runtime-deploy"
+commit=$(git -C "$source" rev-parse HEAD)
+candidate="$source/target/ordivon-release-candidates/$commit/release"
 manifest="$candidate/ordivon-deployment-manifest.json"
 cargo=$(command -v cargo)
 test -x "$cargo"
 
 scripts/ordivon-runtime-deploy prepare \
-  --source-repo "$repo" \
+  --source-repo "$source" \
   --commit "$commit" \
   --candidate-dir "$candidate" \
   --candidate-manifest "$manifest" \
   --cargo "$cargo"
 
 scripts/ordivon-runtime-deploy plan \
-  --source-repo "$repo" \
+  --source-repo "$source" \
   --commit "$commit" \
   --candidate-dir "$candidate" \
   --candidate-manifest "$manifest" \
@@ -159,7 +164,7 @@ scripts/ordivon-runtime-deploy plan \
   --pretty
 
 scripts/ordivon-runtime-deploy apply \
-  --source-repo "$repo" \
+  --source-repo "$source" \
   --commit "$commit" \
   --confirm-commit "$commit" \
   --candidate-dir "$candidate" \
@@ -176,8 +181,9 @@ The default production release has one artifact authority rather than separate b
 
 Eligibility requires:
 
-- the exact requested Commit can be materialized from the source repository;
-- `prepare` constructs a temporary detached Git checkout of that exact Commit and both builds binaries and stages operator/support artifacts from that checkout, so mutable checkout state, including Git index flags such as `assume-unchanged`, cannot enter the candidate;
+- the exact requested Commit can be materialized from the Git repository containing `--source-repo`;
+- `--source-repo` is a real Runtime owner directory, never a symlink; it may equal the Git top-level or be a descendant such as `services/runtime`;
+- `prepare` resolves the containing Git top-level plus the owner-relative path, constructs a temporary detached checkout of that exact Commit, then builds and stages only from the corresponding Runtime owner directory. Mutable checkout state, including Git index flags such as `assume-unchanged`, therefore cannot enter the candidate;
 - the detached release source remains clean after the build;
 - the explicit required ref (by default `origin/main`) resolves to the requested Commit; local `HEAD` and dirty state remain visible in the plan as diagnostics but do not become release authority;
 - the candidate manifest binds the exact source repository, Commit, `sourceMaterialization=detached_git_checkout`, candidate directory, complete release artifact set, modes, sizes, digests, and for a full release the positive `defaultRuntimeMs <= maxRuntimeMs` timeout policy extracted from that exact source;
@@ -191,7 +197,7 @@ Runtime startup does not run an unbounded reconciliation scan before binding MCP
 
 The tool first stages receipt-local previous artifacts without replacing the running release. It then takes an exclusive Registry `admission.lock`. Runtime new admission takes a shared lock only after exact replay has been checked, so a deployed Runtime returns retryable `DEPLOYMENT_IN_PROGRESS` for new work while already committed requests remain replayable. Under the exclusive fence, `apply` waits for active/held reservations to drain naturally and then stops MCP ingress immediately. It rechecks the Registry with ingress closed, reruns the complete deployment plan, and writes that final plan to the receipt before any release replacement. Only then are `.next` / `.previous` install artifacts staged. For a full release, the deployer verifies that the two timeout-policy keys still match the pre-drain observation, atomically updates only those keys in the installation-owned environment file, and then commits the staged Runtime artifact set below `--install-dir`; unrelated environment lines are preserved. If the post-commit probe fails, the deployer re-observes the Registry migration version before choosing any binary rollback. Automatic restoration of the receipt-local previous Runtime artifact set and previous timeout-policy values is permitted only when the Registry migration version is provably unchanged from the pre-commit cut. If the schema advanced, otherwise changed, or cannot be re-observed reliably, previous-binary restoration is suppressed and the release is receipted as reconciliation_required; this prevents a schema-new Registry from being restarted under a schema-old Runtime. The new service must become `active`, complete modern discovery, expose the expected 23-Tool catalog including `release.apply`, `release.get`, `runtime.describe`, and `workspace.content`, and match the bound candidate identities.
 
-Structured self-release is opt-in operator authority. Set `ORDIVON_RELEASE_SOURCE_REPO` to the canonical Runtime source repository; optional `ORDIVON_RELEASE_INSTALL_DIR`, `ORDIVON_RELEASE_ENV_FILE`, `ORDIVON_RELEASE_RECEIPT_ROOT`, `ORDIVON_RELEASE_REQUIRED_REF`, and `ORDIVON_RELEASE_TIMEOUT_MS` refine the installation-owned boundary. `ORDIVON_RELEASE_DRAIN_TIMEOUT_MS` is an installation-owned deployer policy for structured releases: when present, the candidate deployer uses that positive millisecond window while holding the exclusive admission fence, rather than the compatibility CLI drain value supplied by an older Runtime. Agents cannot set or override this value through `release.apply`, and the applied plan records both the effective drain duration and its policy source. The Registry database is derived from `ORDIVON_REGISTRY_ROOT`. Callers do not provide these host paths. `runtime.describe.structuredReleaseConfigured` reports whether the authority exists. `release.apply` accepts only a Workspace identity, exact Commit, exact candidate-manifest digest, expected Tool count, and durable `clientRequestId`. If the initiating connection disappears while Runtime replaces itself, do **not** send a new release request: reconnect and call `release.get` with the same `clientRequestId`. A deterministic `effect-<effectId>` receipt is the release-effect evidence; generic process exit or transport loss is not. Explicit rollback remains `ordivon-runtime-deploy rollback --receipt <receipt>` and is never selected automatically by Runtime.
+Structured self-release is opt-in operator authority. Set `ORDIVON_RELEASE_SOURCE_REPO` to the canonical Runtime owner root. In a standalone checkout this is the Git top-level; in the modular monorepo it is the real `services/runtime` directory. The deployer resolves the containing Git repository internally, while the Workspace, candidate directory, manifest, and operator artifacts remain bound to the Runtime owner root. The configured required ref (default `origin/main`) is still resolved by Git in the containing repository and is not weakened merely because the owner is nested. Optional `ORDIVON_RELEASE_INSTALL_DIR`, `ORDIVON_RELEASE_ENV_FILE`, `ORDIVON_RELEASE_RECEIPT_ROOT`, `ORDIVON_RELEASE_REQUIRED_REF`, and `ORDIVON_RELEASE_TIMEOUT_MS` refine the installation-owned boundary. `ORDIVON_RELEASE_DRAIN_TIMEOUT_MS` is an installation-owned deployer policy for structured releases: when present, the candidate deployer uses that positive millisecond window while holding the exclusive admission fence, rather than the compatibility CLI drain value supplied by an older Runtime. Agents cannot set or override this value through `release.apply`, and the applied plan records both the effective drain duration and its policy source. The Registry database is derived from `ORDIVON_REGISTRY_ROOT`. Callers do not provide these host paths. `runtime.describe.structuredReleaseConfigured` reports whether the authority exists. `release.apply` accepts only a Workspace identity, exact Commit, exact candidate-manifest digest, expected Tool count, and durable `clientRequestId`. If the initiating connection disappears while Runtime replaces itself, do **not** send a new release request: reconnect and call `release.get` with the same `clientRequestId`. A deterministic `effect-<effectId>` receipt is the release-effect evidence; generic process exit or transport loss is not. Explicit rollback remains `ordivon-runtime-deploy rollback --receipt <receipt>` and is never selected automatically by Runtime.
 
 ### External MCP client catalog acceptance
 
