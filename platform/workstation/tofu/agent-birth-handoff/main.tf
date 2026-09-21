@@ -97,9 +97,6 @@ locals {
   owner_template_auto_redirect = one([
     for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.auto_redirect_to_identity
   ])
-  owner_template_oauth_configuration = one([
-    for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.oauth_configuration
-  ])
   owner_template_session_duration = one([
     for app in data.cloudflare_zero_trust_access_applications.owner_template.result : app.session_duration
   ])
@@ -139,13 +136,6 @@ check "one_owner_email_identity" {
   assert {
     condition     = length(local.owner_email_candidates) == 1
     error_message = "Owner template must expose exactly one email allow identity."
-  }
-}
-
-check "owner_template_managed_oauth_enabled" {
-  assert {
-    condition     = try(local.owner_template_oauth_configuration.enabled, false)
-    error_message = "Owner template must retain Managed OAuth before Gateway projection."
   }
 }
 
@@ -200,7 +190,16 @@ resource "cloudflare_zero_trust_access_application" "gateway_mcp" {
   allowed_idps               = toset(local.owner_template_allowed_idps)
   enable_binding_cookie      = local.owner_template_enable_binding_cookie
   http_only_cookie_attribute = local.owner_template_http_only_cookie_attribute
-  oauth_configuration        = local.owner_template_oauth_configuration
+  oauth_configuration = {
+    enabled = true
+    dynamic_client_registration = {
+      enabled = true
+    }
+    grant = {
+      access_token_lifetime = "15m"
+      session_duration      = "336h"
+    }
+  }
 
   policies = [
     {

@@ -17,12 +17,16 @@ def test_gateway_reuses_the_single_existing_production_tunnel_owner() -> None:
     assert "prevent_destroy = true" in text
 
 
-def test_gateway_access_app_projects_live_owner_oauth_configuration() -> None:
+def test_gateway_access_app_declares_managed_oauth_for_remote_mcp_clients() -> None:
     text = MAIN.read_text(encoding="utf-8")
     assert 'resource "cloudflare_zero_trust_access_application" "gateway_mcp"' in text
-    assert "oauth_configuration        = local.owner_template_oauth_configuration" in text
+    assert 'type                       = "self_hosted"' in text
+    assert "oauth_configuration = {" in text
+    assert "dynamic_client_registration = {" in text
+    assert 'access_token_lifetime = "15m"' in text
+    assert 'session_duration      = "336h"' in text
+    assert "owner_template_oauth_configuration" not in text
     assert "allowed_idps               = toset(local.owner_template_allowed_idps)" in text
-    assert "owner_template_managed_oauth_enabled" in text
     assert "one(local.owner_email_candidates)" in text
     assert "client_secret" not in text.lower()
     assert "api_token" not in text.lower()
