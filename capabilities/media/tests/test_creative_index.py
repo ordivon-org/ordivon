@@ -157,7 +157,7 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn("equipment:blender", ids)
         self.assertTrue(any(row["id"] == "source:media" for row in result["sources"]))
 
-    def test_workstation_catalog_projects_works_without_copying_carriers(self) -> None:
+    def test_creative_library_catalog_projects_works_without_copying_carriers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
             catalog = workstation / "artifacts/creative-library/catalog-v1.json"
@@ -180,7 +180,7 @@ class CreativeIndexTests(unittest.TestCase):
                 }],
                 "relations": [],
             }), encoding="utf-8")
-            index = build_creative_index(ROOT, workstation_root=workstation)
+            index = build_creative_index(ROOT, creative_library_root=workstation)
             node = next(row for row in index["nodes"] if row["id"] == "work:game:batch-zero")
             self.assertEqual(node["title"], "Batch Zero")
             self.assertEqual(node["catalogProjection"]["carrierCount"], 99)
@@ -189,7 +189,7 @@ class CreativeIndexTests(unittest.TestCase):
             self.assertNotIn("carriers", node["catalogProjection"])
             self.assertEqual(node["catalogProjection"]["heroCarrier"], {"kind": "html", "relativePath": "index.html"})
 
-    def test_workstation_catalog_membership_does_not_create_shared_query_hub(self) -> None:
+    def test_creative_library_catalog_membership_does_not_create_shared_query_hub(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
             catalog = workstation / "artifacts/creative-library/catalog-v1.json"
@@ -204,14 +204,14 @@ class CreativeIndexTests(unittest.TestCase):
                 ],
                 "relations": [],
             }), encoding="utf-8")
-            index = build_creative_index(ROOT, workstation_root=workstation)
+            index = build_creative_index(ROOT, creative_library_root=workstation)
             result = query_creative_index(index, "Needle Work")
             ids = {row["id"] for row in result["nodes"]}
             self.assertIn("work:game:needle-work", ids)
-            self.assertIn("source:workstation", ids)
+            self.assertIn("source:creative-library", ids)
             self.assertNotIn("work:game:unrelated-work", ids)
 
-    def test_workstation_catalog_never_overwrites_owner_native_work(self) -> None:
+    def test_creative_library_catalog_never_overwrites_owner_native_work(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
             catalog = workstation / "artifacts/creative-library/catalog-v1.json"
@@ -228,14 +228,14 @@ class CreativeIndexTests(unittest.TestCase):
                 }],
                 "relations": [],
             }), encoding="utf-8")
-            index = build_creative_index(ROOT, workstation_root=workstation)
+            index = build_creative_index(ROOT, creative_library_root=workstation)
             node = next(row for row in index["nodes"] if row["id"] == "work:media:runtime-introduction")
             self.assertEqual(node["title"], "Ordivon Runtime Introduction")
             self.assertNotEqual(node["status"], "historical-recovered")
-            self.assertIn("workstation:creative-library", node["collections"])
+            self.assertIn("creative-library", node["collections"])
             self.assertEqual(node["catalogProjection"]["sourcePath"], "old/runtime")
 
-    def test_workstation_catalog_projects_explicit_lineage_relations(self) -> None:
+    def test_creative_library_catalog_projects_explicit_lineage_relations(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
             catalog = workstation / "artifacts/creative-library/catalog-v1.json"
@@ -253,7 +253,7 @@ class CreativeIndexTests(unittest.TestCase):
                     "relation_type": "DERIVATIVE_OF", "evidence_summary": "Exact lineage evidence."
                 }],
             }), encoding="utf-8")
-            index = build_creative_index(ROOT, workstation_root=workstation)
+            index = build_creative_index(ROOT, creative_library_root=workstation)
             relation = next(row for row in index["relations"] if row["type"] == "derivativeOf")
             self.assertEqual(relation["from"], "work:game:child")
             self.assertEqual(relation["to"], "work:media:parent")
@@ -299,8 +299,8 @@ class CreativeIndexTests(unittest.TestCase):
                     "truthBoundary": "Exact shared STEP geometry; preview is not physical-mechanism evidence.",
                 }
             }), encoding="utf-8")
-            index = build_creative_index(ROOT, workstation_root=workstation)
-            evidence_id = "evidence:workstation:cad-cross-work-derived-preview-r1"
+            index = build_creative_index(ROOT, creative_library_root=workstation)
+            evidence_id = "evidence:creative-library:cad-cross-work-derived-preview-r1"
             evidence = next(row for row in index["nodes"] if row["id"] == evidence_id)
             projection = evidence["derivedProjection"]
             self.assertTrue(projection["sharedGeometryByteEqual"])
@@ -310,7 +310,7 @@ class CreativeIndexTests(unittest.TestCase):
             relations = {(row["from"], row["type"], row["to"]) for row in index["relations"]}
             self.assertIn(("work:workstation:signal-garden-cam-encoder", "evidencedBy", evidence_id), relations)
 
-    def test_workstation_derived_preview_projects_real_work_and_tool_evidence(self) -> None:
+    def test_creative_library_derived_preview_projects_real_work_and_tool_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workstation = Path(directory)
             preview = workstation / "artifacts/creative-library/derived/kicad-derived-preview-r1.json"
@@ -327,10 +327,10 @@ class CreativeIndexTests(unittest.TestCase):
                     "standing": "DERIVED_VISUAL_PROJECTION_NOT_ORIGINAL_CARRIER"
                 }
             }), encoding="utf-8")
-            index = build_creative_index(ROOT, workstation_root=workstation)
+            index = build_creative_index(ROOT, creative_library_root=workstation)
             nodes = {row["id"]: row for row in index["nodes"]}
             relations = {(row["from"], row["type"], row["to"]) for row in index["relations"]}
-            evidence = "evidence:workstation:kicad-derived-preview-r1"
+            evidence = "evidence:creative-library:kicad-derived-preview-r1"
             self.assertIn("work:game:seen-not-approved-pcb", nodes)
             self.assertIn(("work:game:seen-not-approved-pcb", "evidencedBy", evidence), relations)
             self.assertIn(("equipment:kicad", "evidencedBy", evidence), relations)

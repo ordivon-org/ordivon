@@ -1,9 +1,9 @@
 import importlib.util
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts" / "creative_library.py"
 spec = importlib.util.spec_from_file_location("creative_library", MODULE_PATH)

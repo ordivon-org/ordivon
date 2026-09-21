@@ -6,12 +6,12 @@ import hashlib
 import json
 import mimetypes
 import os
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 
 SCHEMA_VERSION = 1
@@ -114,8 +114,9 @@ def is_direct_carrier(carrier: dict | None) -> bool:
 
 
 def _run_git(repo: str, args: list[str], *, binary: bool = False) -> bytes | str:
-    proc = subprocess.run(["/usr/bin/git", "-C", repo, *args], stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, check=False)
+    proc = subprocess.run(
+        ["/usr/bin/git", "-C", repo, *args], capture_output=True, check=False
+    )
     if proc.returncode:
         raise RuntimeError(f"git {' '.join(args)} failed in {repo}: {proc.stderr.decode('utf-8', 'replace').strip()}")
     return proc.stdout if binary else proc.stdout.decode("utf-8", "replace")
@@ -160,7 +161,7 @@ def canonical_digest(value: object) -> str:
 
 def _psql_json_lines(sql: str, *, socket: str, port: int, database: str) -> list[dict]:
     cmd = ["/usr/bin/runuser", "-u", "postgres", "--", "/usr/bin/psql", "-h", socket, "-p", str(port), "-d", database, "-At", "-c", sql]
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if proc.returncode:
         raise RuntimeError(proc.stderr.strip())
     return [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
