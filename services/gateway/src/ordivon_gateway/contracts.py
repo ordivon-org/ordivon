@@ -67,8 +67,10 @@ class ExecutionObservation(ExecutionReceipt):
     execution_disposition: str | None = None
     exit_code: int | None = None
     recovery_required: bool | None = None
+    artifacts_available: bool | None = None
     artifact_count: int | None = None
     artifact_ids: list[str] = Field(default_factory=list)
+    artifact_projection_complete: bool | None = None
 
 
 class ArtifactChunk(StrictModel):
