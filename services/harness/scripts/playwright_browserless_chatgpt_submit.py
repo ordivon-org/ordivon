@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Submit one ChatGPT materialization through Browserless without persisting Browserless credentials.
+"""Submit one ChatGPT materialization through the selected Browserless carrier.
 
-Provider challenges/authentication expiry are never solved automatically. On self-hosted Browserless,
-the exact headful running session is exposed through a bounded local noVNC transport while this
-process keeps the automation connection attached; it resumes automatically only after the human
-returns the page to a normal READY composer. Hosted/enterprise deployments may alternatively use
-Browserless.liveURL/reconnect. No prompt is filled before provider admission succeeds.
+Provider admission is decided before this executor by the leased worker preflight. If auth or a
+challenge appears again after that observation, this executor fails closed before SEND. Human
+control transfer belongs exclusively to the durable CfT session authority, never this process.
 """
 
 from __future__ import annotations
@@ -15,15 +13,9 @@ import hashlib
 import json
 import os
 import time
+import urllib.parse
 from pathlib import Path
 
-from browserless_human_handoff import (
-    authenticated_connection_endpoint,
-    mint_handoff,
-    tracking_id,
-    update_handoff_state,
-    write_private_handoff,
-)
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import chatgpt_resource_from_page_url
 from provider_boundary_diagnosis import (
@@ -31,6 +23,27 @@ from provider_boundary_diagnosis import (
     PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER,
     provider_action_for_standing,
 )
+
+
+def tracking_id(effect_id: str) -> str:
+    return "h-" + hashlib.sha256(effect_id.encode()).hexdigest()[:24]
+
+
+def authenticated_connection_endpoint(
+    public_endpoint: str, token_file: Path, *, tracking: str | None = None
+) -> str:
+    token = Path(token_file).read_text(encoding="utf-8").strip()
+    if not token or any(ch.isspace() for ch in token):
+        raise ValueError("Browserless token is missing or malformed")
+    parsed = urllib.parse.urlsplit(public_endpoint)
+    query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    query.append(("token", token))
+    if tracking:
+        query.append(("trackingId", tracking))
+    return urllib.parse.urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment)
+    )
+
 
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
@@ -41,7 +54,6 @@ SIGNUP_SELECTOR = "text=/^Sign up$/i"
 PRE_EFFECT_BLOCKER_SELECTOR = '[data-testid="modal-conversation-history-rate-limit"]'
 NEW_CHAT_URL = "https://chatgpt.com/"
 PRE_EFFECT_BLOCKED_EXIT = 42
-HUMAN_REQUIRED_EXIT = 43
 
 
 def digest_bytes(raw: bytes) -> str:
@@ -64,15 +76,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--prompt-digest", required=True)
     p.add_argument("--handle-out", type=Path, required=True)
     p.add_argument("--pre-effect-out", type=Path, required=True)
-    p.add_argument("--human-handoff-out", type=Path, required=True)
     p.add_argument("--wait-stable-seconds", type=int, default=150)
-    p.add_argument("--reconnect-ms", type=int, default=60000)
-    p.add_argument("--human-handoff-ms", type=int, default=60000)
-    p.add_argument(
-        "--human-handoff-mode",
-        choices=("self-hosted-vnc", "live-url"),
-        default="self-hosted-vnc",
-    )
     return p
 
 
@@ -178,85 +182,14 @@ def human_blocker(page) -> str | None:
     return None
 
 
-def park_for_human(page, a, blocker: str) -> dict | None:
-    try:
-        handoff = mint_handoff(
-            page=page,
-            effect_id=a.effect_id,
-            prompt_digest=a.prompt_digest,
-            endpoint_id=a.endpoint_id,
-            blocker=blocker,
-            handoff_ms=a.human_handoff_ms,
-            reconnect_ms=a.reconnect_ms,
-            mode=a.human_handoff_mode,
-            tracking=tracking_id(a.effect_id),
-        )
-        write_private_handoff(a.human_handoff_out, handoff)
-        return handoff
-    except Exception as error:
-        write_pre_effect(
-            a.pre_effect_out,
-            effect_id=a.effect_id,
-            prompt_digest=a.prompt_digest,
-            blocker=f"human-handoff-unavailable:{type(error).__name__}",
-            page_url=page.url,
-        )
-        return None
-
-
-def wait_for_human_provider_admission(page, a, handoff: dict) -> bool:
-    """Observe only. The operator interacts through the exact Browserless X display."""
-    from browserless_human_interaction import close_transport
-
-    deadline = time.monotonic() + (a.human_handoff_ms / 1000.0)
-    state = "handoff-window-expired"
-    ready = False
-    try:
-        while time.monotonic() < deadline:
-            if human_blocker(page) is None and visible(page, PROMPT_SELECTOR):
-                state = "human-verified-ready"
-                ready = True
-                break
-            page.wait_for_timeout(500)
-    except Exception:
-        state = "handoff-transport-lost"
-    try:
-        update_handoff_state(a.human_handoff_out, active=False, state=state)
-    except Exception:
-        pass
-    if handoff.get("mode") == "self-hosted-vnc":
-        try:
-            close_transport(int(handoff["transportInstance"]))
-        except Exception:
-            pass
-    return ready
-
-
-def handle_human_gate(page, a, blocker: str) -> tuple[str, bool]:
-    """Return (decision, transport_handed_off). decision is ready/human-required/failed."""
-    handoff = park_for_human(page, a, blocker)
-    if handoff is None:
-        return "failed", False
-    if handoff.get("mode") == "self-hosted-vnc":
-        # Playwright stays attached while the human sees and interacts with that exact X display.
-        return (
-            "ready" if wait_for_human_provider_admission(page, a, handoff) else "human-required"
-        ), False
-    # live-url mode preserves the remote session through Browserless.reconnect after this process
-    # disconnects; a separate human-resume operation revalidates that exact session.
-    return "human-required", True
-
-
 def route_provider_blocker(page, a, blocker: str) -> tuple[str, bool]:
-    """Execute the single provider-boundary action for one observed local blocker."""
+    """Fail closed for any provider gate observed after leased worker preflight."""
     standing = {
         "challenge-gated": "CHALLENGE_GATED",
         "auth-required": "AUTH_REQUIRED",
     }.get(blocker)
     action = provider_action_for_standing(standing or "CONTEXT_UNAVAILABLE")
-    if action == PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER:
-        return handle_human_gate(page, a, blocker)
-    if action != PROVIDER_ACTION_HOLD:
+    if action not in {PROVIDER_ACTION_HOLD, PROVIDER_ACTION_HUMAN_CONTROL_TRANSFER}:
         raise RuntimeError(f"unexpected provider action for blocker {blocker!r}: {action}")
     write_pre_effect(
         a.pre_effect_out,
@@ -265,7 +198,7 @@ def route_provider_blocker(page, a, blocker: str) -> tuple[str, bool]:
         blocker=(
             "automated-browser-challenge-unsupported"
             if blocker == "challenge-gated"
-            else f"provider-policy-hold:{blocker}"
+            else "auth-required-after-browserless-preflight"
         ),
         page_url=page.url,
     )
@@ -284,7 +217,6 @@ def main() -> int:
         raise SystemExit("bootstrap prompt must be non-empty and trimmed")
 
     browser = None
-    handed_off = False
     pw_cm = None
     try:
         try:
@@ -352,10 +284,7 @@ def main() -> int:
 
         blocker = human_blocker(page)
         if blocker is not None:
-            decision, transport_handoff = route_provider_blocker(page, a, blocker)
-            handed_off = transport_handoff
-            if decision == "human-required":
-                return HUMAN_REQUIRED_EXIT
+            decision, _ = route_provider_blocker(page, a, blocker)
             if decision == "failed":
                 browser.close()
                 return PRE_EFFECT_BLOCKED_EXIT
@@ -366,14 +295,8 @@ def main() -> int:
         except Exception as error:
             blocker = human_blocker(page)
             if blocker is not None:
-                decision, transport_handoff = route_provider_blocker(page, a, blocker)
-                handed_off = transport_handoff
-                if decision == "human-required":
-                    return HUMAN_REQUIRED_EXIT
-                if decision == "ready":
-                    composer = page.locator(PROMPT_SELECTOR)
-                    composer.wait_for(state="visible", timeout=10_000)
-                else:
+                decision, _ = route_provider_blocker(page, a, blocker)
+                if decision == "failed":
                     browser.close()
                     return PRE_EFFECT_BLOCKED_EXIT
             else:
@@ -436,27 +359,6 @@ def main() -> int:
             hard_timeout_seconds=a.wait_stable_seconds,
         )
 
-        reconnect_endpoint = None
-        if (
-            resource is None
-            and generation_started
-            and a.reconnect_ms > 0
-            and a.human_handoff_mode == "live-url"
-        ):
-            try:
-                cdp = ctx.new_cdp_session(page)
-                reconnect = cdp.send("Browserless.reconnect", {"timeout": a.reconnect_ms})
-                candidate = (
-                    reconnect.get("browserWSEndpoint")
-                    if isinstance(reconnect, dict) and not reconnect.get("error")
-                    else None
-                )
-                if isinstance(candidate, str) and candidate.startswith(("ws://", "wss://")):
-                    reconnect_endpoint = candidate
-                    handed_off = True
-            except Exception:
-                reconnect_endpoint = None
-
         handle = {
             "schemaVersion": 1,
             "kind": "ordivon.browserless-chatgpt-page-binding",
@@ -468,7 +370,6 @@ def main() -> int:
             "providerResource": resource,
             "generationStarted": generation_started,
             "composerCleared": True,
-            "reconnectEndpoint": reconnect_endpoint,
             "assistantOutputRead": False,
         }
         handle["bindingDigest"] = digest_obj(handle)
@@ -482,12 +383,11 @@ def main() -> int:
             browser.close()
         return 0
     finally:
-        if not handed_off:
-            try:
-                if browser is not None:
-                    browser.close()
-            except Exception:
-                pass
+        try:
+            if browser is not None:
+                browser.close()
+        except Exception:
+            pass
         try:
             if pw_cm is not None:
                 pw_cm.__exit__(None, None, None)

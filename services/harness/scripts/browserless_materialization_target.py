@@ -251,12 +251,6 @@ class BrowserlessMaterializationTarget:
             str(handoff_path),
             "--wait-stable-seconds",
             str(self.wait_stable_seconds),
-            "--reconnect-ms",
-            str(self.reconnect_ms),
-            "--human-handoff-ms",
-            str(self.human_handoff_ms),
-            "--human-handoff-mode",
-            self.human_handoff_mode,
         ]
         return self._run_observation(
             request,

@@ -240,7 +240,7 @@ def build_server(settings: McpSettings) -> MCPServer:
         instructions=(
             "Use campaign.register only for controller-classified L0 Direct work. L1/L2 campaign registration is intentionally unavailable until authoritative current Host Inquiry standing can be verified; L1/L2 work MUST NOT fall back to campaign.register. "
             "campaign.launch and materialization.reconcile admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
-            "A challenge/auth gate may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use materialization.humanHandoff to obtain the bounded interactive operator URL, then materialization.humanResume only after a bounded self-hosted handoff expires or current-session absence is proven. "
+            "AUTH_REQUIRED may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use materialization.humanHandoff to obtain the durable CfT operator URL, complete authentication in that exact systemd-owned session, then materialization.humanResume to update the same materialization workflow/effect identity. CHALLENGE_GATED remains pre-effect HOLD. "
             "The SQLite effect fence remains authoritative at ChatGPT SEND, so UNKNOWN/ambiguous never authorizes blind resend. "
             "Use provider.preflight for one explicit read-only endpoint admission observation."
         ),
@@ -284,7 +284,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="campaign.launch",
         title="Launch registered campaign",
-        description="Materialize all missing materializations of one registered campaignRef. READY proceeds normally; challenge/auth admission may enter a bounded HUMAN_REQUIRED handoff without filling the composer or crossing SEND. Existing effects remain idempotent and ambiguous states never blind-resend.",
+        description="Materialize all missing materializations of one registered campaignRef. READY proceeds normally; AUTH_REQUIRED may enter a durable CfT HUMAN_REQUIRED handoff without filling the composer or crossing SEND, while CHALLENGE_GATED remains a pre-effect HOLD. Existing effects remain idempotent and ambiguous states never blind-resend.",
         annotations=ToolAnnotations(
             readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
@@ -329,7 +329,7 @@ def build_server(settings: McpSettings) -> MCPServer:
     @server.tool(
         name="materialization.humanHandoff",
         title="Open human provider verification",
-        description="Read the private interactive URL for one currently active HUMAN_REQUIRED provider-admission session. This is an operator handoff only: it never fills the composer, clicks the provider challenge, or crosses SEND.",
+        description="Read the operator URL for one current HUMAN_REQUIRED provider-admission session. New AUTH_REQUIRED handoffs use a durable systemd-owned CfT session; legacy Browserless handoffs are read only for pre-cutover recovery. This never fills the composer, clicks a provider challenge, or crosses SEND.",
         annotations=ToolAnnotations(
             readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
         ),
@@ -346,7 +346,7 @@ def build_server(settings: McpSettings) -> MCPServer:
         title="Resume after human provider verification",
         description="Resume the same durable HUMAN_REQUIRED materialization workflow after verified human provider admission. The handoff digest is sent as an exact Temporal update to the same provider-effect identity; no second workflow or fresh materialization effect is minted.",
         annotations=ToolAnnotations(
-            readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
         ),
     )
     async def materialization_human_resume(campaignRef: str, agentId: str) -> CallToolResult:

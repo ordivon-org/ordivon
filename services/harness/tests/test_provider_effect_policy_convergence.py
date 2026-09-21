@@ -32,9 +32,7 @@ def args(tmp_path: Path) -> SimpleNamespace:
 
 def test_submit_challenge_is_pre_effect_hold_without_handoff(tmp_path: Path) -> None:
     a = args(tmp_path)
-    with mock.patch.object(submit, "handle_human_gate") as handoff:
-        decision, handed_off = submit.route_provider_blocker(Page(), a, "challenge-gated")
-    handoff.assert_not_called()
+    decision, handed_off = submit.route_provider_blocker(Page(), a, "challenge-gated")
     assert decision == "failed"
     assert handed_off is False
     receipt = json.loads(a.pre_effect_out.read_text())
@@ -42,16 +40,14 @@ def test_submit_challenge_is_pre_effect_hold_without_handoff(tmp_path: Path) -> 
     assert receipt["providerEffectAttempted"] is False
 
 
-def test_submit_auth_uses_authorized_human_handoff(tmp_path: Path) -> None:
+def test_submit_auth_race_is_pre_effect_hold_for_durable_cft_reentry(tmp_path: Path) -> None:
     a = args(tmp_path)
-    with mock.patch.object(
-        submit, "handle_human_gate", return_value=("human-required", True)
-    ) as handoff:
-        decision, handed_off = submit.route_provider_blocker(Page(), a, "auth-required")
-    handoff.assert_called_once()
-    assert decision == "human-required"
-    assert handed_off is True
-    assert not a.pre_effect_out.exists()
+    decision, handed_off = submit.route_provider_blocker(Page(), a, "auth-required")
+    assert decision == "failed"
+    assert handed_off is False
+    receipt = json.loads(a.pre_effect_out.read_text())
+    assert receipt["blocker"] == "auth-required-after-browserless-preflight"
+    assert receipt["providerEffectAttempted"] is False
 
 
 def test_resume_challenge_blocks_without_repark(tmp_path: Path) -> None:
@@ -61,9 +57,7 @@ def test_resume_challenge_blocks_without_repark(tmp_path: Path) -> None:
         mock.patch.object(resume, "repark") as repark,
         mock.patch.object(resume, "close_old_live_url") as close,
     ):
-        decision, handed_off = resume.route_provider_blocker(
-            Page(), a, handoff, "challenge-gated"
-        )
+        decision, handed_off = resume.route_provider_blocker(Page(), a, handoff, "challenge-gated")
     repark.assert_not_called()
     close.assert_called_once()
     assert decision == "failed"
@@ -80,9 +74,7 @@ def test_resume_auth_can_repark_same_session(tmp_path: Path) -> None:
         mock.patch.object(resume, "repark", return_value=True) as repark,
         mock.patch.object(resume, "close_old_live_url") as close,
     ):
-        decision, handed_off = resume.route_provider_blocker(
-            Page(), a, handoff, "auth-required"
-        )
+        decision, handed_off = resume.route_provider_blocker(Page(), a, handoff, "auth-required")
     close.assert_called_once()
     repark.assert_called_once()
     assert decision == "human-required"

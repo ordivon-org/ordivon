@@ -39,6 +39,7 @@ try:
     )
     from chatgpt_conversation_discovery import discover_exact_marker
     from cft_human_session import resolve_session
+    from cft_human_materialization import load_verified_handoff as load_verified_cft_handoff
     from standard_identifiers import require_uuid7
     from sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict
     from browserless_human_handoff import load_verified_handoff
@@ -62,6 +63,9 @@ except ModuleNotFoundError:
     )
     from scripts.chatgpt_conversation_discovery import discover_exact_marker
     from scripts.cft_human_session import resolve_session
+    from scripts.cft_human_materialization import (
+        load_verified_handoff as load_verified_cft_handoff,
+    )
     from scripts.standard_identifiers import require_uuid7
     from scripts.sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict
     from scripts.browserless_human_handoff import load_verified_handoff
@@ -519,6 +523,20 @@ class BrowserlessAutomationService:
     def _binding_path(self, materialization) -> Path:
         return self._materialization_dir(materialization) / "carrier-binding.json"
 
+    def _durable_human_handoff_path(self, materialization) -> Path:
+        return (
+            self._materialization_dir(materialization)
+            / "durable-human-handoff"
+            / f"{_suffix(materialization.request_id)}.json"
+        )
+
+    def _legacy_human_handoff_path(self, materialization) -> Path:
+        return (
+            self._materialization_dir(materialization)
+            / "human-handoff"
+            / f"{_suffix(materialization.request_id)}.json"
+        )
+
     def _endpoint_by_id(self, endpoint_id: str):
         rows = [e for e in self.config.browserless_pool.endpoints if e.endpoint_id == endpoint_id]
         if len(rows) != 1:
@@ -599,9 +617,27 @@ class BrowserlessAutomationService:
             materialization = by_agent.get(row.get("agentId"))
             if materialization is None:
                 continue
-            path = (
-                self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
-            )
+            durable_path = self._durable_human_handoff_path(materialization)
+            if durable_path.is_file():
+                try:
+                    handoff = load_verified_cft_handoff(durable_path)
+                    session = resolve_session(handoff["sessionId"])
+                except Exception:
+                    continue
+                available = (
+                    handoff.get("effectId") == materialization.request_id
+                    and handoff.get("providerEffectAttempted") is False
+                    and session.get("standing") == "READY"
+                    and session.get("sessionActive") is True
+                    and session.get("sessionId") == handoff.get("sessionId")
+                    and row.get("materializationStanding") == "human-required"
+                )
+                if available:
+                    row["humanHandoffAvailable"] = True
+                    row["humanHandoffMode"] = "durable-cft-session"
+                    active += 1
+                continue
+            path = self._legacy_human_handoff_path(materialization)
             if not path.is_file():
                 continue
             try:
@@ -915,16 +951,63 @@ class BrowserlessAutomationService:
         materialization = self._materialization(spec, agent_id)
         census = campaign_census(spec, self.config.ledger)
         row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
-        # While a self-hosted VNC handoff is actively attached, the effect ledger may remain UNKNOWN
-        # because the effect attempt was durably claimed before target execution. The private handoff
-        # receipt independently proves providerEffectAttempted=false during that bounded window.
         if row.get("materializationStanding") not in {"human-required", "unknown"}:
             raise BrowserlessAutomationHold(
                 "materialization is not waiting for human provider verification"
             )
-        path = self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
+
+        durable_path = self._durable_human_handoff_path(materialization)
+        if durable_path.is_file():
+            value = load_verified_cft_handoff(durable_path)
+            if (
+                value.get("effectId") != materialization.request_id
+                or value.get("providerEffectAttempted") is not False
+            ):
+                raise BrowserlessAutomationConflict(
+                    "durable human handoff identity/effect proof mismatch"
+                )
+            try:
+                session = resolve_session(value["sessionId"])
+            except Exception as error:
+                raise BrowserlessAutomationHold(
+                    f"durable human session is not currently usable: {error}"
+                ) from error
+            if (
+                session.get("standing") != "READY"
+                or session.get("sessionActive") is not True
+                or session.get("sessionId") != value.get("sessionId")
+            ):
+                raise BrowserlessAutomationHold(
+                    "durable human session is not currently READY"
+                )
+            handoff_url = session.get("operatorURL")
+            if not isinstance(handoff_url, str) or not handoff_url:
+                raise BrowserlessAutomationHold(
+                    "durable human verification operator URL is unavailable"
+                )
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.provider-human-verification-handoff",
+                "agentId": agent_id,
+                "effectId": materialization.request_id,
+                "standing": "HUMAN_REQUIRED",
+                "ledgerStanding": row.get("materializationStanding"),
+                "mode": "durable-cft-session",
+                "blocker": value.get("blocker"),
+                "handoffURL": handoff_url,
+                "sessionId": value.get("sessionId"),
+                "sessionActive": True,
+                "handoffDigest": value.get("handoffDigest"),
+                "providerEffectAttempted": False,
+            }
+
+        # Legacy Browserless handoffs remain readable only so pre-cutover HUMAN_REQUIRED ledger
+        # entries can be reconciled. Current materialization no longer creates this surface.
+        path = self._legacy_human_handoff_path(materialization)
         if not path.is_file():
-            raise BrowserlessAutomationHold("human verification handoff receipt is unavailable")
+            raise BrowserlessAutomationHold(
+                "human verification handoff receipt is unavailable"
+            )
         value = load_verified_handoff(path)
         if (
             value.get("effectId") != materialization.request_id
@@ -934,7 +1017,7 @@ class BrowserlessAutomationService:
         liveness = self._human_handoff_liveness(value)
         if liveness != "CURRENT":
             raise BrowserlessAutomationHold(
-                f"human verification handoff is not currently usable: {liveness}; resume only after current-session absence is proven"
+                f"legacy human verification handoff is not currently usable: {liveness}; resume only after current-session absence is proven"
             )
         mode = value.get("mode")
         endpoint_id = value.get("browserlessEndpointId")
@@ -948,8 +1031,7 @@ class BrowserlessAutomationService:
             and endpoint_id in (self.config.browserless_human_public_origins or {})
         ):
             handoff_url = _project_public_handoff_url(
-                self.config.browserless_human_public_origins[endpoint_id],
-                handoff_url,
+                self.config.browserless_human_public_origins[endpoint_id], handoff_url
             )
         if not isinstance(handoff_url, str) or not handoff_url:
             raise BrowserlessAutomationHold("human verification interactive URL is unavailable")
@@ -978,20 +1060,44 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationHold(
                 "only a HUMAN_REQUIRED materialization may resume after human verification"
             )
-        handoff_path = (
-            self._materialization_dir(materialization) / "human-handoff" / f"{_suffix(materialization.request_id)}.json"
-        )
-        if not handoff_path.is_file():
-            raise BrowserlessAutomationHold(
-                "HUMAN_REQUIRED materialization has no private handoff receipt"
-            )
-        handoff = load_verified_handoff(handoff_path)
-        liveness = self._human_handoff_liveness(handoff)
-        if handoff.get("mode") == "self-hosted-vnc" and liveness != "INACTIVE":
-            raise BrowserlessAutomationHold(
-                f"self-hosted human resume requires proven current-session absence; observed {liveness}"
-            )
-        resume_id = handoff.get("handoffDigest")
+
+        durable_path = self._durable_human_handoff_path(materialization)
+        if durable_path.is_file():
+            handoff = load_verified_cft_handoff(durable_path)
+            if handoff.get("effectId") != materialization.request_id:
+                raise BrowserlessAutomationConflict(
+                    "durable human handoff belongs to another materialization effect"
+                )
+            try:
+                session = resolve_session(handoff["sessionId"])
+            except Exception as error:
+                raise BrowserlessAutomationHold(
+                    f"durable human session is unavailable for resume: {error}"
+                ) from error
+            if (
+                session.get("standing") != "READY"
+                or session.get("sessionActive") is not True
+                or session.get("sessionId") != handoff.get("sessionId")
+            ):
+                raise BrowserlessAutomationHold(
+                    "durable human session is not READY for resume"
+                )
+            resume_id = handoff.get("handoffDigest")
+        else:
+            # Legacy Browserless handoff resume remains only for already-persisted pre-cutover rows.
+            handoff_path = self._legacy_human_handoff_path(materialization)
+            if not handoff_path.is_file():
+                raise BrowserlessAutomationHold(
+                    "HUMAN_REQUIRED materialization has no private handoff receipt"
+                )
+            handoff = load_verified_handoff(handoff_path)
+            liveness = self._human_handoff_liveness(handoff)
+            if handoff.get("mode") == "self-hosted-vnc" and liveness != "INACTIVE":
+                raise BrowserlessAutomationHold(
+                    f"legacy self-hosted human resume requires proven current-session absence; observed {liveness}"
+                )
+            resume_id = handoff.get("handoffDigest")
+
         if not isinstance(resume_id, str) or not resume_id.startswith("sha256:"):
             raise BrowserlessAutomationConflict("human handoff lacks stable resume identity")
         temporal = self._temporal_admit(

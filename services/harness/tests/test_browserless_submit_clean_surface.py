@@ -162,10 +162,10 @@ class CleanSurfaceTests(unittest.TestCase):
         self.assertLess(stabilize, fill_prompt)
         self.assertLess(fill_prompt, click)
         self.assertIn('providerEffectAttempted": False', text)
-        self.assertIn('a.human_handoff_mode == "live-url"', text)
-        reconnect = text.index('cdp.send("Browserless.reconnect"')
-        live_only = text.rindex('a.human_handoff_mode == "live-url"', 0, reconnect)
-        self.assertLess(live_only, reconnect)
+        self.assertNotIn("Browserless.reconnect", text)
+        self.assertNotIn("human_handoff_mode", text)
+        self.assertNotIn("handle_human_gate", text)
+        self.assertIn("auth-required-after-browserless-preflight", text)
 
 
 if __name__ == "__main__":
