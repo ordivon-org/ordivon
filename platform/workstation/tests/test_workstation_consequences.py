@@ -13,11 +13,12 @@ def test_pnpm_first_path_uses_mise_and_project_package_manager() -> None:
     config = pathlib.Path("/root/.config/mise/config.toml").read_text()
     assert 'idiomatic_version_file_enable_tools = ["node", "pnpm"]' in config
 
-    for root_text in (
-        "/root/projects/ordivon-game",
-        "/root/projects/ordivon-media",
+    monorepo_root = pathlib.Path(__file__).resolve().parents[3]
+    for root in (
+        monorepo_root / "domains" / "game",
+        monorepo_root / "capabilities" / "media",
     ):
-        root = pathlib.Path(root_text)
+        root_text = str(root)
         package = json.loads((root / "package.json").read_text())
         package_manager = package.get("packageManager")
         assert isinstance(package_manager, str) and package_manager.startswith("pnpm@"), (
