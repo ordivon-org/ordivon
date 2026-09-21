@@ -24,7 +24,13 @@ def test_handoff_surface_is_exact_and_loopback_origin_only():
 
 def test_access_precedes_tunnel_and_dns_publication():
     source = (TOFU / "main.tf").read_text(encoding="utf-8")
-    assert "depends_on = [cloudflare_zero_trust_access_application.handoff]" in source
+    assert "cloudflare_zero_trust_access_application.handoff" in source
+    assert "cloudflare_zero_trust_access_application.gateway_mcp" in source
+    tunnel = source.split(
+        'resource "cloudflare_zero_trust_tunnel_cloudflared_config" "production"', 1
+    )[1].split('resource "cloudflare_dns_record" "handoff"', 1)[0]
+    assert "cloudflare_zero_trust_access_application.handoff" in tunnel
+    assert "cloudflare_zero_trust_access_application.gateway_mcp" in tunnel
     assert "depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]" in source
 
 
