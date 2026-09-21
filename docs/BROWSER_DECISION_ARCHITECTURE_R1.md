@@ -225,3 +225,34 @@ AX+DOM projector is reused.
 This narrows the custom residual further: effect binding, ephemeral context projection and semantic
 witnessing remain ours; accessibility semantics, DOM facts and cross-process browser transport do
 not.
+
+
+## Decision Provider Duel R1
+
+The first digest-bound Browser Decision Corpus contains 42 controlled-fixture cases after singleton
+candidate sets are removed from the ranking problem. System-1 benchmark semantics now support a
+generic dynamic_choice primitive so each case may expose its own candidate set while retaining the
+existing EXECUTED / ERROR / BLOCKED, Brier, NLL, ECE, latency and digest contracts.
+
+On the frozen R1 corpus:
+
+- ms-marco MiniLM CrossEncoder: 39/42 (92.86%), MRR 0.9643, full coverage;
+- base Laya via independent per-candidate noul normalization: 5/42 (11.90%), full coverage;
+- Jev Windows route: 0/42 executed because the existing route readiness gate remains blocked by
+  missing TYPESAFE_API_KEY; those cases remain BLOCKED rather than becoming wrong or zero-latency.
+
+A name-only zero-training lexical baseline reaches 36/42, showing that much of the controlled
+corpus is deliberately easy. The important CrossEncoder evidence is 8/8 on context-required cases,
+where the same name-only baseline is 4/8.
+
+Two of the CrossEncoder's three errors disappear under a diagnostic semantic effect-class
+reduction that separates CLICK-to-focus candidates from CLICK-to-activate candidates. The
+reduction changes no previously correct case and reduces candidate pairs from 638 to 416.
+The remaining g17 case was shown by live AX ancestry inspection to reintroduce a parent/child
+ambiguity already removed by the observation projector, so it is retained as benchmark-design
+negative evidence rather than training justification.
+
+R1 therefore does not authorize Browser-specific model training. The training gate reopens only
+after a larger real-page / real-application census leaves a reproducible residual that cannot be
+explained by observation completeness, effect partitioning, deterministic reduction or benchmark
+contamination. Production Jev routing remains unchanged.

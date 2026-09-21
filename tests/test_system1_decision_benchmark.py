@@ -95,3 +95,155 @@ class System1DecisionBenchmarkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def dynamic_corpus() -> dict:
+    raw = {
+        "schemaVersion": 1,
+        "kind": "ordivon.system1-decision-corpus",
+        "corpusId": "dynamic-choice-fixture",
+        "standing": "CONTROLLED_FIXTURE_ONLY",
+        "nonClaims": ["representative_population"],
+        "questions": {
+            "target": {
+                "type": "dynamic_choice",
+                "candidateSetField": "candidates",
+                "instructions": "Choose the candidate that fulfills the goal.",
+            }
+        },
+        "cases": [
+            {
+                "caseId": "d1",
+                "state": {
+                    "goal": "Apply",
+                    "candidates": [
+                        {"candidateId": "a", "text": "How to apply"},
+                        {"candidateId": "b", "text": "Apply now"},
+                        {"candidateId": "c", "text": "Deadline"},
+                    ],
+                },
+                "expected": {"target": "b"},
+            },
+            {
+                "caseId": "d2",
+                "state": {
+                    "goal": "Register",
+                    "candidates": [
+                        {"candidateId": "x", "text": "FAQ"},
+                        {"candidateId": "y", "text": "Register now"},
+                    ],
+                },
+                "expected": {"target": "y"},
+            },
+        ],
+    }
+    import json
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "corpus.json"
+        path.write_text(json.dumps(raw), encoding="utf-8")
+        return B.load_corpus(path)
+
+
+class DynamicChoiceSystem1DecisionBenchmarkTests(unittest.TestCase):
+    def test_dynamic_choice_scores_variable_candidate_sets(self) -> None:
+        corpus = dynamic_corpus()
+        rows = []
+        observations = {
+            "d1": {"choice": "b", "probabilities": {"a": 0.1, "b": 0.8, "c": 0.1}},
+            "d2": {"choice": "x", "probabilities": {"x": 0.6, "y": 0.4}},
+        }
+        for case in corpus["cases"]:
+            rows.append(
+                {
+                    "caseId": case["caseId"],
+                    "caseDigest": case["caseDigest"],
+                    "standing": "EXECUTED",
+                    "latencyMs": 5.0,
+                    "answers": {"target": observations[case["caseId"]]},
+                }
+            )
+        obs = {
+            "schemaVersion": 1,
+            "kind": "ordivon.system1-decision-benchmark-observation",
+            "corpusDigest": corpus["corpusDigest"],
+            "provider": {"providerId": "dynamic-fixture"},
+            "cases": rows,
+        }
+
+        score = B.score_observation(obs, corpus)
+
+        self.assertEqual(score["choice"]["accuracy"], 0.5)
+        self.assertEqual(score["choice"]["meanExpectedRank"], 1.5)
+        self.assertEqual(score["choice"]["meanReciprocalRank"], 0.75)
+
+    def test_dynamic_choice_rejects_probability_key_drift(self) -> None:
+        corpus = dynamic_corpus()
+        rows = []
+        for index, case in enumerate(corpus["cases"]):
+            if index == 0:
+                answer = {
+                    "target": {
+                        "choice": "b",
+                        "probabilities": {"a": 0.5, "b": 0.5},
+                    }
+                }
+                standing = "EXECUTED"
+                latency = 1.0
+            else:
+                answer = None
+                standing = "BLOCKED"
+                latency = None
+            rows.append(
+                {
+                    "caseId": case["caseId"],
+                    "caseDigest": case["caseDigest"],
+                    "standing": standing,
+                    "latencyMs": latency,
+                    "answers": answer,
+                }
+            )
+        obs = {
+            "schemaVersion": 1,
+            "kind": "ordivon.system1-decision-benchmark-observation",
+            "corpusDigest": corpus["corpusDigest"],
+            "provider": {"providerId": "bad"},
+            "cases": rows,
+        }
+        with self.assertRaisesRegex(ValueError, "probability key set mismatch"):
+            B.validate_observation(obs, corpus)
+
+    def test_dynamic_choice_requires_expected_candidate_to_exist(self) -> None:
+        import json
+        import tempfile
+
+        raw = {
+            "schemaVersion": 1,
+            "kind": "ordivon.system1-decision-corpus",
+            "corpusId": "bad-dynamic",
+            "standing": "CONTROLLED_FIXTURE_ONLY",
+            "questions": {
+                "target": {
+                    "type": "dynamic_choice",
+                    "candidateSetField": "candidates",
+                }
+            },
+            "cases": [
+                {
+                    "caseId": "x",
+                    "state": {
+                        "candidates": [
+                            {"candidateId": "a"},
+                            {"candidateId": "b"},
+                        ]
+                    },
+                    "expected": {"target": "missing"},
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unknown expected dynamic choice"):
+                B.load_corpus(path)

@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-benchmark-observation",
+  "corpusDigest": "sha256:8802010b219530c280298c5aafe62f32e9956d2f19cb372f8c2d93fe9b036ff3",
+  "provider": {
+    "providerId": "jev-fast-windows-v1",
+    "implementation": "jev-ultrafast",
+    "version": "0.1.0",
+    "sourceRevision": "452c1ad2dd628008f1d5608f28158d76e49e6cc0",
+    "routeStanding": "WORKSTATION_PROVIDER_UNHEALTHY",
+    "missingEnvironmentNames": [
+      "TYPESAFE_API_KEY"
+    ],
+    "standing": "BLOCKED_BY_EXISTING_ROUTE_READINESS"
+  },
+  "cases": [
+    {
+      "caseId": "g01-submit",
+      "caseDigest": "sha256:90ee43e08e58a2b1a285a2fa4ba54bbe5c56d9530c7434bc7f287f08a788b736",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g02-grant-guide",
+      "caseDigest": "sha256:a0ac75094b590d812e53fa2fa0133ce27f55f1201b9d806aefc9d0f9808913f6",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g03-email-updates",
+      "caseDigest": "sha256:82fc848e53625f5c7cfbd0ade90d4dfd36eb9aa25aefe4a5d74f9edf2e947278",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g04-remote-participation",
+      "caseDigest": "sha256:f3c6849ccfaba9fe46a72e8557f145c35eedd2f4673a27fcc5570b802f1e85de",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g05-personal-statement-focus",
+      "caseDigest": "sha256:9add93551785411762e26cd6328630be9f13f8895a0beb32c3d21fd68cde6715",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g06-enable-alerts",
+      "caseDigest": "sha256:29fb135513a3ab896bace169d76c30fe14d71a83d203f312a925677993268116",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g07-keyword-open",
+      "caseDigest": "sha256:2774de42a551e18e43c354c488dedb68d176459f4a80d6e6124abb783e796a14",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g08-fellowship",
+      "caseDigest": "sha256:b2027e77873dea778aac6fc40a4f6c549f7f03b924a33a388f097c09c9325bfd",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g09-confirm-eligibility",
+      "caseDigest": "sha256:b49434029e32f29a68c0fab28972f6d6f015855b0ccbae95500b49355a1fbf13",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g10-search-open",
+      "caseDigest": "sha256:ae8b5dcd9463e69b123b3eea5a9d4febcaaba888ed1fe430ccb09bb433f86b3e",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g11-readonly",
+      "caseDigest": "sha256:e2c651966f46b3853a9d0154fb311bd21ac5a4acd5388ee28906082dc059739c",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g12-advanced",
+      "caseDigest": "sha256:3eeafc4c17b1bc4c4088b034ac04555df636a7659ff79b22562a222c8ba354b8",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g13-deadlines",
+      "caseDigest": "sha256:dd0dbaaf1c685a1b8a49996c02bdfab328ea2befe2be2afaed7b65dcb4d9b25f",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g14-save-draft",
+      "caseDigest": "sha256:3c6cbeaf48f3897ebb995538db4d23999f5d63ab625d721b06c6297557104e27",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g15-private",
+      "caseDigest": "sha256:c0332d5dcf7943e43027abef7b9d592cca87fae695c2c9de0cff657d91e09db1",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g16-scholarship-cell",
+      "caseDigest": "sha256:99aa912618532a62afdfe6c87169aed907d129e3f57204666a2001940a8a39ba",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g17-nested-button",
+      "caseDigest": "sha256:04a996c72a4d6caaff0687587e35158c149d4dd3b59a5048cccb369d352a035a",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g18-shadow-apply",
+      "caseDigest": "sha256:99fa00d7e238c1b3d653af7816cdb3437f1d9610949c58e68bb11b49dd9b6b4f",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g19-shadow-search-open",
+      "caseDigest": "sha256:cb2fd3091ebdcd0b881ae1eb584507a14c750a8ef0ef8e76bf0fc32f489039b2",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g20-frame-apply",
+      "caseDigest": "sha256:71ccb794d3fe2429148201e21e7a659b06c144438ceb9e1706a244e351acfae3",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g21-frame-query-open",
+      "caseDigest": "sha256:edad469a92100ebcb55a6810a4385baa8a118e2fe734011442e5de61e6283a17",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g22-fill-personal",
+      "caseDigest": "sha256:1b1ad9b310719abde8792a49d56ead879dfc29a3b7170f05aec996232664aa31",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g23-fill-keyword",
+      "caseDigest": "sha256:dbac6f1334affdb1600d3b43d0f6ba751c008effd2995ba43bc29d34eb45a6d1",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g24-fill-search",
+      "caseDigest": "sha256:1bd28cd60c75bc6cfdb429fad638995b1e975e98adb3a48476fbd14c36acf237",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g25-fill-name",
+      "caseDigest": "sha256:f1418e3295c5c5fe863f46dbcd3ccefe83884a2011de7c0af9e143c20389f7d5",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g26-fill-team",
+      "caseDigest": "sha256:4e7a091c8d792ee5ce15095f65336379a65c9a40272e5500fe2e81bd3606a7eb",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g27-fill-shadow",
+      "caseDigest": "sha256:9f3e5ccfd7b076b78fd1544a6b7a8966a842b23d628dd016ad3fb5c17cfb00bd",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g28-fill-frame",
+      "caseDigest": "sha256:ecaf4ec7b7d66f5afe14b37b1d5caf6cd31999c00d84c66d23c9b5d1684578ce",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g29-select-research",
+      "caseDigest": "sha256:e755537053f7f95e2d4aa89c7391cbe9e46a37d393a2abc4e03313c18aa77889",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "g30-select-industry",
+      "caseDigest": "sha256:19bd83191a1657f89da895a3a4a110c633aad841b845a00e23e4ea1a06f434ac",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t01-free-cancel",
+      "caseDigest": "sha256:59b56754dccb68722aa590a0b3f87982bea1c89d4f207b85e7a9f9821708651c",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t02-reading-room",
+      "caseDigest": "sha256:19a97e602e8e3157acacf7623f312223ea1d4ff50121489dca3e30ed4d9b3534",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t03-find-stays",
+      "caseDigest": "sha256:e5f42a689840dcc8d068ba8c09b46ccab206b1511406358db376b302281f9f4e",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t04-casa",
+      "caseDigest": "sha256:4344e80ad2b85159867543f31ab434caa071f4ff5948c8b28bc0e476fa9a4eae",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t05-glasshouse",
+      "caseDigest": "sha256:e437279ff0058f2e2bfb4515ef33fadaebcc5fdd001f2a5ffe3cc2cfbca41a22",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t06-serra",
+      "caseDigest": "sha256:3fc50cd35a10ae2e5b3b92e64c1e6b5c2e6c7ddae53df38f2ce526244efb7498",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t08-design",
+      "caseDigest": "sha256:068ec0941f78f4c5e376d26c57cfa6c6bb2eb30faf7500881bcc2636fa1d6ce1",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t09-nature",
+      "caseDigest": "sha256:4dd660d8e5c8d6abb1a22d92d88aa4ee5ba854990cb9af80c688e287dc5e41f2",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "t10-coastal",
+      "caseDigest": "sha256:246b7bea5aa61b3288beffab2f621ccede66c5e430e00e24b117f30202f01e22",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "r01-choice",
+      "caseDigest": "sha256:0db5e57756241a9526aa8b3d5f5e85026b8cfe775acac310d687fbd34c12a70e",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "r02-latency",
+      "caseDigest": "sha256:c7d6db9e1c6ef267459c037e301e0be4e7ccb26fe8d63d4dc7f12339467389ba",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    },
+    {
+      "caseId": "r03-confidence",
+      "caseDigest": "sha256:9d2eea1605e524a6617e4d44a3c235b39be1e2a6da5de09780598317d1efcc4c",
+      "standing": "BLOCKED",
+      "latencyMs": null,
+      "answers": null
+    }
+  ]
+}

@@ -14,6 +14,8 @@ from typing import Any
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CORPUS = SOURCE_ROOT / "config/system1-decision-corpus-r1.json"
+CORPUS_STANDINGS = frozenset({"SYNTHETIC_SMOKE_ONLY", "CONTROLLED_FIXTURE_ONLY"})
+SUPPORTED_QUESTION_TYPES = frozenset({"choice", "dynamic_choice", "noul"})
 
 
 def canonical_digest(value: Any) -> str:
@@ -32,8 +34,8 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> dict[str, Any]:
     value = _read_json(path)
     if value.get("schemaVersion") != 1 or value.get("kind") != "ordivon.system1-decision-corpus":
         raise ValueError("decision corpus identity mismatch")
-    if value.get("standing") != "SYNTHETIC_SMOKE_ONLY":
-        raise ValueError("R1 only admits explicitly synthetic smoke corpus")
+    if value.get("standing") not in CORPUS_STANDINGS:
+        raise ValueError("unsupported decision corpus standing")
     questions = value.get("questions")
     cases = value.get("cases")
     if not isinstance(questions, dict) or not questions:
@@ -44,12 +46,16 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> dict[str, Any]:
         if not isinstance(qid, str) or not qid or not isinstance(q, dict):
             raise ValueError("invalid question")
         qtype = q.get("type")
-        if qtype not in {"choice", "noul"}:
+        if qtype not in SUPPORTED_QUESTION_TYPES:
             raise ValueError(f"unsupported R1 question type: {qtype}")
         if qtype == "choice":
             criteria = q.get("criteria")
             if not isinstance(criteria, dict) or len(criteria) < 2:
                 raise ValueError("choice question requires at least two criteria")
+        elif qtype == "dynamic_choice":
+            field = q.get("candidateSetField")
+            if not isinstance(field, str) or not field or field != field.strip():
+                raise ValueError("dynamic_choice requires candidateSetField")
     seen: set[str] = set()
     normalized = []
     for row in cases:
@@ -69,6 +75,12 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> dict[str, Any]:
             exp = expected[qid]
             if q["type"] == "choice" and exp not in q["criteria"]:
                 raise ValueError(f"unknown expected choice: {cid}:{qid}")
+            if q["type"] == "dynamic_choice":
+                if not isinstance(state, dict):
+                    raise TypeError(f"dynamic_choice requires object state: {cid}:{qid}")
+                candidate_ids = _dynamic_candidate_ids(state, q, f"{cid}:{qid}")
+                if exp not in candidate_ids:
+                    raise ValueError(f"unknown expected dynamic choice: {cid}:{qid}")
             if q["type"] == "noul" and type(exp) is not bool:
                 raise ValueError(f"noul expected answer must be boolean: {cid}:{qid}")
         case = {"caseId": cid, "state": state, "expected": expected}
@@ -85,6 +97,34 @@ def load_corpus(path: Path = DEFAULT_CORPUS) -> dict[str, Any]:
     }
     result["corpusDigest"] = canonical_digest(result)
     return result
+
+
+def _dynamic_candidate_ids(
+    state: Mapping[str, Any],
+    question: Mapping[str, Any],
+    label: str,
+) -> list[str]:
+    field = question.get("candidateSetField")
+    if not isinstance(field, str):
+        raise ValueError(f"{label} dynamic candidate field is invalid")
+    rows = state.get(field)
+    if not isinstance(rows, list) or len(rows) < 2:
+        raise ValueError(f"{label} dynamic candidate set requires at least two candidates")
+    ids: list[str] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise TypeError(f"{label} dynamic candidate must be object")
+        candidate_id = row.get("candidateId")
+        if (
+            not isinstance(candidate_id, str)
+            or not candidate_id
+            or candidate_id != candidate_id.strip()
+        ):
+            raise ValueError(f"{label} candidateId must be non-empty trimmed text")
+        ids.append(candidate_id)
+    if len(ids) != len(set(ids)):
+        raise ValueError(f"{label} candidateId values must be unique")
+    return ids
 
 
 def _probabilities(answer: Mapping[str, Any], keys: list[str], label: str) -> list[float]:
@@ -141,10 +181,16 @@ def validate_observation(observation: Mapping[str, Any], corpus: Mapping[str, An
                 answer = answers[qid]
                 if not isinstance(answer, dict):
                     raise TypeError(f"invalid answer: {cid}:{qid}")
-                if q["type"] == "choice":
-                    keys = list(q["criteria"])
+                if q["type"] in {"choice", "dynamic_choice"}:
+                    keys = (
+                        list(q["criteria"])
+                        if q["type"] == "choice"
+                        else _dynamic_candidate_ids(
+                            expected_by_id[cid]["state"], q, f"{cid}:{qid}"
+                        )
+                    )
                     _probabilities(answer, keys, f"{cid}:{qid}")
-                    if answer.get("choice") not in q["criteria"]:
+                    if answer.get("choice") not in keys:
                         raise ValueError(f"invalid choice: {cid}:{qid}")
                 else:
                     p = answer.get("noul")
@@ -189,6 +235,8 @@ def score_observation(observation: Mapping[str, Any], corpus: Mapping[str, Any])
     choice_conf: list[float] = []
     choice_brier: list[float] = []
     choice_nll: list[float] = []
+    choice_expected_rank: list[float] = []
+    choice_reciprocal_rank: list[float] = []
     noul_correct: list[int] = []
     noul_conf: list[float] = []
     noul_brier: list[float] = []
@@ -198,15 +246,30 @@ def score_observation(observation: Mapping[str, Any], corpus: Mapping[str, Any])
         expected = by_case[row["caseId"]]["expected"]
         for qid, q in corpus["questions"].items():
             answer = row["answers"][qid]
-            if q["type"] == "choice":
-                keys = list(q["criteria"])
+            if q["type"] in {"choice", "dynamic_choice"}:
+                keys = (
+                    list(q["criteria"])
+                    if q["type"] == "choice"
+                    else _dynamic_candidate_ids(
+                        by_case[row["caseId"]]["state"], q, f"{row['caseId']}:{qid}"
+                    )
+                )
                 probs = _probabilities(answer, keys, f"{row['caseId']}:{qid}")
                 truth = expected[qid]
                 idx = keys.index(truth)
+                truth_probability = probs[idx]
+                better = sum(value > truth_probability for value in probs)
+                tied_other = sum(
+                    index != idx and value == truth_probability
+                    for index, value in enumerate(probs)
+                )
+                rank = 1.0 + better + 0.5 * tied_other
                 choice_correct.append(int(answer["choice"] == truth))
                 choice_conf.append(max(probs))
                 choice_brier.append(sum((p - int(i == idx)) ** 2 for i, p in enumerate(probs)))
-                choice_nll.append(-math.log(max(probs[idx], 1e-12)))
+                choice_nll.append(-math.log(max(truth_probability, 1e-12)))
+                choice_expected_rank.append(rank)
+                choice_reciprocal_rank.append(1.0 / rank)
             else:
                 p = float(answer["noul"])
                 y = int(expected[qid])
@@ -239,6 +302,10 @@ def score_observation(observation: Mapping[str, Any], corpus: Mapping[str, Any])
             "meanBrier": mean(choice_brier) if choice_brier else None,
             "meanNll": mean(choice_nll) if choice_nll else None,
             "ece10MaxProbability": _ece(choice_conf, choice_correct),
+            "meanExpectedRank": mean(choice_expected_rank) if choice_expected_rank else None,
+            "meanReciprocalRank": (
+                mean(choice_reciprocal_rank) if choice_reciprocal_rank else None
+            ),
         },
         "noul": {
             "n": len(noul_correct),

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.system1-decision-benchmark-score",
+  "provider": {
+    "providerId": "laya-base-independent-noul",
+    "implementation": "laya",
+    "version": "0.3.4",
+    "modelRevision": "1c5edc17a7acd8701df6fc341c0d179f1c62c982",
+    "modelSha256": "891102d372688fc2a094dac56a384bc537b87c63f21f9f3dac0be2b7cbc8d86c",
+    "distribution": "normalized_independent_noul_probabilities",
+    "standing": "EXPERIMENTAL_BASE_MODEL"
+  },
+  "corpusId": "browser-decision-r1-controlled",
+  "corpusDigest": "sha256:8802010b219530c280298c5aafe62f32e9956d2f19cb372f8c2d93fe9b036ff3",
+  "coverage": {
+    "totalCases": 42,
+    "executedCases": 42,
+    "fraction": 1.0,
+    "standings": {
+      "EXECUTED": 42,
+      "ERROR": 0,
+      "BLOCKED": 0
+    }
+  },
+  "choice": {
+    "n": 42,
+    "accuracy": 0.11904761904761904,
+    "meanBrier": 0.8804449254270652,
+    "meanNll": 2.4670512707694847,
+    "ece10MaxProbability": 0.10350274107667076,
+    "meanExpectedRank": 8.321428571428571,
+    "meanReciprocalRank": 0.2579421900850472
+  },
+  "noul": {
+    "n": 0,
+    "accuracyAt0_5": null,
+    "meanBrier": null,
+    "meanNll": null,
+    "ece10": null
+  },
+  "latencyMs": {
+    "median": 114.91761350043816,
+    "mean": 117.92519259428705,
+    "p95": 187.29103800433222
+  },
+  "nonClaims": [
+    "production_calibration",
+    "provider_superiority",
+    "representative_external_population"
+  ],
+  "scoreDigest": "sha256:ab84b1fe1210cadc53d61c395b7b74f20a4ecc330b289b2486cf0c46d3a9e545"
+}
