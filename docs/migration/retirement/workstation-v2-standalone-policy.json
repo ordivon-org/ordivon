@@ -5,23 +5,34 @@
   "legacyLocator": "/root/projects/ordivon-workstation-v2",
   "archivedSource": {
     "revision": "add96799759383ea0b5b318d9aa5a7c53c7d00bd",
-    "standing": "RETIREMENT_CANDIDATE",
-    "preserveGitHistoryForHistoricalLookup": false
+    "standing": "RETIRED_ARCHIVED",
+    "preserveGitHistoryForHistoricalLookup": false,
+    "recoveryMode": "all-refs-bundle-plus-residual-capsule"
   },
   "allowedReferenceClasses": [
     {
       "id": "migration-acceptance-and-receipts",
-      "globs": ["docs/migration/acceptance/**", "docs/migration/receipts/**"],
+      "globs": [
+        "docs/migration/acceptance/**",
+        "docs/migration/receipts/**"
+      ],
       "reason": "Migration receipts and acceptances preserve exact historical source coordinates."
     },
     {
       "id": "historical-next-migration-records",
-      "globs": ["meta/next/migrations/records/**", "meta/next/planning/**", "meta/next/docs/superpowers/plans/**"],
+      "globs": [
+        "meta/next/migrations/records/**",
+        "meta/next/planning/**",
+        "meta/next/docs/superpowers/plans/**"
+      ],
       "reason": "Migration/planning snapshots preserve historical repository topology."
     },
     {
       "id": "frozen-production-topology",
-      "globs": ["capabilities/media/productions/*/source/**", "capabilities/media/productions/*/render/**"],
+      "globs": [
+        "capabilities/media/productions/*/source/**",
+        "capabilities/media/productions/*/render/**"
+      ],
       "reason": "Creation-time system-topology carriers remain immutable historical evidence."
     }
   ],

@@ -4,7 +4,8 @@
 | --- | --- | --- |
 | M1 | Next / Security / Network | ACCEPTED_SOURCE_ONLY |
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
-| Workstation | canonical owner active at platform/workstation; immutable recovery generation v1 binds full monorepo Git source and backs up /root/projects/ordivon; standalone carrier pending worktree drainage | ACCEPTED_LIVE_RECOVERY_CUTOVER |
+| Workstation | canonical monorepo owner active at platform/workstation; recovery generation v1, Edge carrier, current metadata, and owner verification bind the monorepo; standalone source carrier physically retired with 47-ref Git restore and dirty Playwright residual recovery | ACCEPTED_SOURCE_ONLY |
+| Workstation standalone carrier | /root/projects/ordivon-workstation-v2 physically absent; Operations compatibility alias removed; Git/worktree residual recovery proven | RETIRED_ARCHIVED |
 | Artifact | canonical monorepo owner active at capabilities/artifact; standalone source carrier physically retired with 43-ref Git restore, dirty PPT worktree recovery, live Temporal readback, and post-delete 381-test hermetic proof | ACCEPTED_SOURCE_ONLY |
 | Artifact standalone carrier | /root/projects/ordivon-artifact-v2 physically absent; Git/worktree recovery proven; no compatibility alias | RETIRED_ARCHIVED |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
