@@ -9,6 +9,7 @@ rm -f /usr/local/bin/ordivon-world-evidence
 install -m 0750 scripts/ordivon_edge_release.py /usr/local/sbin/ordivon-edge-release
 install -m 0750 scripts/ordivon_edge_gc.py /usr/local/sbin/ordivon-edge-gc
 install -m 0750 scripts/configure_r2_lifecycle.py /usr/local/sbin/ordivon-edge-lifecycle
+install -m 0750 scripts/ordivon_cloudflare_tofu_handoff.py /usr/local/sbin/ordivon-cloudflare-handoff-tofu
 install -m 0644 deploy/systemd/ordivon-edge-gc.service /etc/systemd/system/ordivon-edge-gc.service
 install -m 0644 deploy/systemd/ordivon-edge-gc.timer /etc/systemd/system/ordivon-edge-gc.timer
 systemctl daemon-reload

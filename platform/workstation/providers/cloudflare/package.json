@@ -11,7 +11,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/contracts.test.ts test/transactions.test.ts test/worker.test.ts",
-    "check:python": "python3 -m py_compile scripts/ordivon_edge_client.py scripts/ordivon_edge_release.py scripts/ordivon_edge_gc.py scripts/check-policy-config.py scripts/configure_r2_lifecycle.py && python3 -m unittest discover -s test -p 'client_test.py' && python3 -m unittest discover -s test -p 'release_controller_test.py' && python3 -m unittest discover -s test -p 'gc_test.py' && python3 -m unittest discover -s test -p 'lifecycle_test.py'",
+    "check:python": "python3 -m py_compile scripts/ordivon_edge_client.py scripts/ordivon_edge_release.py scripts/ordivon_edge_gc.py scripts/ordivon_cloudflare_tofu_handoff.py scripts/check-policy-config.py scripts/configure_r2_lifecycle.py && python3 -m unittest discover -s test -p 'client_test.py' && python3 -m unittest discover -s test -p 'release_controller_test.py' && python3 -m unittest discover -s test -p 'gc_test.py' && python3 -m unittest discover -s test -p 'lifecycle_test.py' && python3 -m unittest discover -s test -p 'handoff_tofu_test.py'",
     "check:operations": "scripts/check-operations",
     "check:policy": "python3 scripts/check-policy-config.py",
     "build": "node scripts/wrangler-dry-run.mjs",
