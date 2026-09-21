@@ -17,7 +17,7 @@
 | Distribution | optional effect-safety/profile source | ACCEPTED_SOURCE_ONLY |
 | Preservation | standard-native local preservation profile | ACCEPTED_SOURCE_ONLY |
 | Creative Library | Media-hosted cross-domain catalog/presentation projection; owner-native work/source truth preserved | ACCEPTED_SOURCE_ONLY |
-| workstation-lab | Preservation + Creative Library extracted; remaining live/recovery consumers under residual census | DRAINING |
+| workstation-lab | historical Git carrier only; active/current responsibilities drained; exact revision lookup retained in place | ARCHIVED_IN_PLACE |
 | Research shared layer | composition profile / method-authority binding, no Research runtime owner | PROFILE_ONLY_NO_CODE_IMPORT |
 | Paper1 frozen | frozen Research-v2 worktree/ref; archive in place | ARCHIVED_IN_PLACE |
 | Paper2 | active independent scientific authority | KEEP_INDEPENDENT_ACTIVE |
