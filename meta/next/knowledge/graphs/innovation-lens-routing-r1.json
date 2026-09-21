@@ -1,0 +1,117 @@
+{
+  "date": "2026-09-21",
+  "kind": "ordivon.innovation-lens-routing-r1",
+  "routes": [
+    [
+      "new_arrangement_known_components",
+      "Henderson-Clark Architectural Innovation"
+    ],
+    [
+      "module_boundary",
+      "Simon near-decomposability + DSM + Baldwin-Clark Design Rules"
+    ],
+    [
+      "modularity_economic_value",
+      "Baldwin-Clark real options"
+    ],
+    [
+      "explore_or_exploit",
+      "March exploration/exploitation"
+    ],
+    [
+      "search_depth_scope",
+      "Katila-Ahuja"
+    ],
+    [
+      "boundary_spanning_search",
+      "Rosenkopf-Nerkar"
+    ],
+    [
+      "cognitive_or_experiential_search",
+      "Gavetti-Levinthal"
+    ],
+    [
+      "paradigm_trajectory",
+      "Dosi"
+    ],
+    [
+      "rugged_interactions",
+      "Kauffman NK"
+    ],
+    [
+      "external_knowledge_absorption",
+      "Cohen-Levinthal absorptive capacity"
+    ],
+    [
+      "capability_recombination",
+      "Kogut-Zander combinative capabilities"
+    ],
+    [
+      "specialist_knowledge_integration",
+      "Grant knowledge integration"
+    ],
+    [
+      "cross_domain_analogy",
+      "Hargadon-Sutton technology brokering"
+    ],
+    [
+      "knowledge_boundary_type",
+      "Carlile transfer-translation-transformation"
+    ],
+    [
+      "internal_or_external_innovation",
+      "Chesbrough open innovation"
+    ],
+    [
+      "missing_complements",
+      "Teece complementary assets"
+    ],
+    [
+      "continuous_reconfiguration",
+      "Dynamic capabilities"
+    ],
+    [
+      "independent_complementors",
+      "Ecosystem/Platform theory"
+    ],
+    [
+      "generate_combinations",
+      "Morphological analysis"
+    ],
+    [
+      "delay_design_commitment",
+      "Set-Based Concurrent Engineering"
+    ],
+    [
+      "multiobjective_architecture",
+      "MATE tradespace exploration"
+    ],
+    [
+      "compositional_contract",
+      "Assume-Guarantee"
+    ],
+    [
+      "reachable_state",
+      "Control/Formal Reachability"
+    ],
+    [
+      "integration_vv",
+      "Systems Engineering"
+    ],
+    [
+      "managed_variability",
+      "Software Product Lines"
+    ],
+    [
+      "ai_prioritized_search",
+      "AI prioritized-search literature"
+    ],
+    [
+      "ai_task_boundary",
+      "Jagged technological frontier"
+    ]
+  ],
+  "rule": "Select the smallest mature lens set whose assumptions match the current decision; never enable lenses merely because vocabulary overlaps.",
+  "schemaVersion": 1,
+  "standing": "ACTIVE_EXTERNAL_LENSES_FIRST"
+}

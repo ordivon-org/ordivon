@@ -47,3 +47,23 @@ The minimal, capability-neutral semantics and rules required to discover, contex
 ## Active Working Set
 
 The bounded set of knowledge, methods, standards, algorithms, tools, agents and execution services activated for the current problem. It is analogous to working memory: contextual, replaceable and releasable. It carries no architectural permanence.
+
+## Primitive
+
+An externally or locally realizable unit that can participate in a composition under explicit assumptions, guarantees, side effects, provenance, costs and natural authority. A Primitive may be a tool, method, standard, API, algorithm, dataset, human step, organizational role or physical component. A catalog record is only a projection of the primitive.
+
+## Composition Space
+
+The set of admissible arrangements of selected Primitives, relations, adapters and boundaries for a defined problem context. The space is constrained by interfaces, assumptions, authority, cost, lifecycle and other domain rules.
+
+## Dynamic / Control Space
+
+The set of admissible state-transition, scheduling, feedback, retry, resource-allocation and decision policies for an otherwise defined composition.
+
+## Reachable Capability
+
+A capability or state that can be achieved by a composition under a defined environment, dynamic/control policy, authority boundary and validation condition. Technical reachability does not imply authorization, economic desirability or semantic success.
+
+## Composition Innovation
+
+A context-relative change whose material novelty lies primarily in relations among existing primitives rather than in creation of new primitives. It is descriptive, not a value judgment: a novel composition may be worse than the baseline.
