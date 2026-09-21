@@ -65,3 +65,24 @@ def test_windows_machine_identity_is_credential_file_only() -> None:
         "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_SECRET_FILE=%d/windows-access-client-secret" in text
     )
     assert "CF-Access-Client-Secret" not in text
+
+
+WINDOWS_ENABLER = ROOT / "packaging" / "enable_windows_service_identity.sh"
+
+
+def test_windows_identity_enabler_is_fixed_path_and_fail_closed() -> None:
+    text = WINDOWS_ENABLER.read_text(encoding="utf-8")
+    assert "CREDENTIAL_DIR=/etc/ordivon/gateway" in text
+    assert 'CLIENT_ID="$CREDENTIAL_DIR/windows-access-client-id"' in text
+    assert 'CLIENT_SECRET="$CREDENTIAL_DIR/windows-access-client-secret"' in text
+    assert "/etc/systemd/system/ordivon-gateway.service.d" in text
+    assert "30-windows-service-identity.conf" in text
+    assert "30-windows-service-identity.example.conf" in text
+    assert "mode=$(stat -Lc '%a' \"$path\")" in text
+    assert "root:root" in text
+    assert "systemctl daemon-reload" in text
+    assert "systemctl restart ordivon-gateway.service" in text
+    assert "http://127.0.0.1:8899/health" in text
+    assert "$1" not in text
+    assert "$2" not in text
+    assert "cat " not in text
