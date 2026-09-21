@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-plugin-r4-composition-acceptance",
+  "date": "2026-09-21",
+  "standing": "ACCEPTED_COMPOSITION_CANDIDATE_C02_CUTOVER_PENDING",
+  "skillComposition": "selected",
+  "skillSelection": [
+    "method-router"
+  ],
+  "outputTreeDigest": "sha256:048a75c739bc3fc1ed1c5f24c4343a56d954e010930b2d80dcc74ff533b5a136",
+  "outputFileCount": 4,
+  "portableFiles": [
+    "plugin.json",
+    "mcp.json",
+    "skills/method-router/SKILL.md",
+    "skills/method-router/references/method-map.md"
+  ],
+  "localToolExtension": "NOT_ADDED_NO_CONCRETE_REQUIREMENT",
+  "publicGatewayCutover": "DEFER_C02"
+}

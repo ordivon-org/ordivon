@@ -149,7 +149,12 @@ def copy_regular_tree(source: Path, destination: Path) -> None:
 
 
 def materialize(
-    plugin: Path, skills_root: Path | None, output: Path, receipt: Path
+    plugin: Path,
+    skills_root: Path | None,
+    output: Path,
+    receipt: Path,
+    *,
+    selected_skill_names: list[str] | None = None,
 ) -> dict:
     plugin = plugin.resolve(strict=True)
     resolved_skills_root = None
@@ -188,6 +193,23 @@ def materialize(
         if resolved_skills_root is not None
         else []
     )
+    selected_names: list[str] | None = None
+    if selected_skill_names is not None:
+        if resolved_skills_root is None:
+            raise SystemExit(
+                "selected Skills require the canonical Agent Skills source"
+            )
+        selected_names = sorted(set(selected_skill_names))
+        if not selected_names:
+            raise SystemExit("selected Skills must contain at least one Skill name")
+        by_name = {skill.name: skill for skill in skills}
+        missing = [name for name in selected_names if name not in by_name]
+        if missing:
+            raise SystemExit(
+                "selected Skill is not present in canonical Agent Skills source: "
+                + ", ".join(missing)
+            )
+        skills = [by_name[name] for name in selected_names]
 
     output.parent.mkdir(parents=True, exist_ok=True)
     receipt.parent.mkdir(parents=True, exist_ok=True)
@@ -236,9 +258,12 @@ def materialize(
         "pluginSource": plugin.relative_to(ROOT).as_posix()
         if ROOT in plugin.parents
         else str(plugin),
-        "skillComposition": "included"
-        if resolved_skills_root is not None
-        else "omitted",
+        "skillComposition": (
+            "selected"
+            if selected_names is not None
+            else ("included" if resolved_skills_root is not None else "omitted")
+        ),
+        "skillSelection": selected_names,
         "skillSource": skill_source,
         "skillCount": len(skill_rows),
         "skills": skill_rows,
@@ -274,11 +299,18 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Materialize a disposable Agent Plugins release directory. Agent Skills are composed only "
-            "when --include-skills is explicitly requested."
+            "when --skill or --include-skills is explicitly requested."
         )
     )
     parser.add_argument("--plugin", type=Path, default=DEFAULT_PLUGIN)
-    parser.add_argument("--include-skills", action="store_true")
+    skill_mode = parser.add_mutually_exclusive_group()
+    skill_mode.add_argument("--include-skills", action="store_true")
+    skill_mode.add_argument(
+        "--skill",
+        action="append",
+        default=[],
+        help="Compose one named canonical Agent Skill; repeat for multiple Skills.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--receipt", type=Path)
     return parser.parse_args()
@@ -287,8 +319,19 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     receipt = args.receipt or args.output.with_name(args.output.name + ".receipt.json")
-    skills_root = DEFAULT_SKILLS if args.include_skills else None
-    value = materialize(args.plugin, skills_root, args.output, receipt)
+    selected_skill_names = args.skill or None
+    skills_root = (
+        DEFAULT_SKILLS
+        if args.include_skills or selected_skill_names is not None
+        else None
+    )
+    value = materialize(
+        args.plugin,
+        skills_root,
+        args.output,
+        receipt,
+        selected_skill_names=selected_skill_names,
+    )
     print(
         json.dumps(
             {"output": str(args.output), "receipt": str(receipt), **value},

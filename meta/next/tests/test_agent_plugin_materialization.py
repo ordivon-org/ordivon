@@ -212,6 +212,86 @@ class AgentPluginMaterializationTests(unittest.TestCase):
                     plugin, canonical_link, root / "release", root / "receipt.json"
                 )
 
+    def test_materializes_only_explicitly_selected_canonical_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            skills = self._skills(root)
+            output = root / "release" / "test-plugin"
+            receipt = root / "receipts" / "test-plugin.json"
+            value = MODULE.materialize(
+                plugin,
+                skills,
+                output,
+                receipt,
+                selected_skill_names=["beta"],
+            )
+            self.assertEqual(value["skillComposition"], "selected")
+            self.assertEqual(value["skillSelection"], ["beta"])
+            self.assertEqual(value["skillCount"], 1)
+            self.assertTrue((output / "skills" / "beta" / "SKILL.md").is_file())
+            self.assertFalse((output / "skills" / "alpha").exists())
+
+    def test_selected_skill_must_exist_in_canonical_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            skills = self._skills(root)
+            with self.assertRaises(SystemExit):
+                MODULE.materialize(
+                    plugin,
+                    skills,
+                    root / "release",
+                    root / "receipt.json",
+                    selected_skill_names=["missing"],
+                )
+
+    def test_selected_skill_names_are_deduplicated_and_sorted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plugin = self._plugin(root)
+            skills = self._skills(root)
+            value = MODULE.materialize(
+                plugin,
+                skills,
+                root / "release",
+                root / "receipt.json",
+                selected_skill_names=["beta", "alpha", "beta"],
+            )
+            self.assertEqual(value["skillSelection"], ["alpha", "beta"])
+            self.assertEqual(value["skillCount"], 2)
+
+    def test_cli_skill_selection_is_explicit_and_exclusive_with_all_skills(
+        self,
+    ) -> None:
+        with patch(
+            "sys.argv",
+            [
+                "materialize_agent_plugin.py",
+                "--output",
+                "/tmp/plugin",
+                "--skill",
+                "method-router",
+            ],
+        ):
+            args = MODULE.parse_args()
+            self.assertEqual(args.skill, ["method-router"])
+            self.assertFalse(args.include_skills)
+
+        with patch(
+            "sys.argv",
+            [
+                "materialize_agent_plugin.py",
+                "--output",
+                "/tmp/plugin",
+                "--include-skills",
+                "--skill",
+                "method-router",
+            ],
+        ):
+            with self.assertRaises(SystemExit):
+                MODULE.parse_args()
+
 
 if __name__ == "__main__":
     unittest.main()
