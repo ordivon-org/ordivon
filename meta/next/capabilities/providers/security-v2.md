@@ -1,9 +1,9 @@
 # Provider: Security v2
 
-- Source: `/root/projects/ordivon-security-v2`
-- Observed revision: `17ebfb63f710`
+- Source: /root/projects/ordivon/platform/security
+- Observed owner revision: e8f2b0f8d47c7def9eef63946413ca6af4a4e6d3
 - Role: security verification capability family
-- Migration mode: metadata registration plus reusable evidence/authority lessons
+- Migration mode: canonical monorepo owner; legacy standalone Security-v2 identity retained only as migration/recovery provenance
 
 ## Provider composition
 
