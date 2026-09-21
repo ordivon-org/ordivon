@@ -35,9 +35,22 @@ tools/repo/test-check-archived-source-boundary.sh
 run = """
 set -euo pipefail
 python3 tools/repo/test_affected_owners.py
+tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
 git diff --check
+"""
+
+[tasks."repo:integration:test"]
+run = """
+set -euo pipefail
+tools/repo/migration/test-integrate-main.sh
+"""
+
+[tasks."repo:primary:verify"]
+run = """
+set -euo pipefail
+tools/repo/migration/check-primary-main.sh /root/projects/ordivon
 """
 
 [tasks."next:verify"]

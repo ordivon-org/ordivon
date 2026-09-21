@@ -16,6 +16,7 @@ updates:
       - "/platform/security"
       - "/platform/skills"
       - "/platform/workstation"
+      - "/services/gateway"
       - "/services/harness"
       - "/services/host"
     schedule:
