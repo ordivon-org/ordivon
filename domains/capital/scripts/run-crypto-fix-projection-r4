@@ -5,7 +5,7 @@ source_ev="$repo/evidence/crypto-shadow-mechanics-r1-20260913.json"
 outdir="$repo/.artifacts/crypto-fix-r4"
 input="$outdir/input.json"
 projected="$outdir/projected.json"
-canonical="$repo/evidence/crypto-fix44-projection-r4-20260914.json"
+canonical="$outdir/evidence.json"
 
 "$repo/scripts/check-execution-policy" --mode non-live >/dev/null
 [[ -f "$source_ev" ]] || { echo 'source mechanics evidence unavailable' >&2; exit 2; }
