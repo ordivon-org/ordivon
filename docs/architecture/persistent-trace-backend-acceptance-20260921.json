@@ -1,0 +1,51 @@
+{
+  "authenticatedGatewayTrace": {
+    "executionState": "succeeded",
+    "exitCode": 0,
+    "nativeId": "job-01a0c454-d438-7122-9df4-ebf27cb44422",
+    "operationRef": "ordivon-exec:v1:runtime.linux:job-01a0c454-d438-7122-9df4-ebf27cb44422",
+    "ownerId": "runtime.linux",
+    "sameSpanVerifiedPrincipalCorrelation": true,
+    "spanCount": 4,
+    "spanId": "4d1088536291c876",
+    "tempoExactTraceLookup": true,
+    "tempoTraceQlOperationRefMatch": true,
+    "traceId": "5e4ab79372e017988f1d720d77325442"
+  },
+  "differential": {
+    "afterFix": {
+      "directTempoHttp": 200,
+      "directTempoTraceId": "3e59be31b2cbb658d378ab46de3b6b75",
+      "vectorWarnings": 0,
+      "viaVectorHttp": 200,
+      "viaVectorTraceId": "5c17c945cbb1e081d715f62bf0776dfd"
+    },
+    "beforeFix": {
+      "directTempoHttp": 200,
+      "directTempoTraceId": "ec7c5e668553041a5cc317b47c39288b",
+      "viaVectorHttp": 404,
+      "viaVectorTraceId": "f66f18873786bb72b7cd4f611e69ed76"
+    }
+  },
+  "kind": "ordivon.persistent-trace-backend-acceptance",
+  "observedAt": "2026-09-21",
+  "operationalPosture": {
+    "activation": "on-demand",
+    "gatewayBaseExporter": "none",
+    "productCorrectnessDependsOnTelemetry": false
+  },
+  "schemaVersion": 1,
+  "status": "ACCEPTED_DEPLOYED_ON_DEMAND",
+  "tempo": {
+    "imageDigest": "sha256:0296560ac66f8a3600d7fb3014a52c189d4d9c3549ad6ff441bf2409855d68d5",
+    "otlpHttp": "127.0.0.1:14318",
+    "queryApi": "127.0.0.1:3200",
+    "version": "3.0.3"
+  },
+  "truthRole": "observability-only-non-authoritative",
+  "vector": {
+    "otlpHttp": "127.0.0.1:4318",
+    "preserveOtlpTraces": true,
+    "rootCauseCorrected": "use_otlp_decoding.traces=false converted traces before an OTLP sink"
+  }
+}

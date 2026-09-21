@@ -36,6 +36,7 @@ def test_tempo_config_is_monolithic_loopback_local_storage() -> None:
 
 def test_vector_forwards_otlp_traces_to_tempo_instead_of_blackhole() -> None:
     text = (ROOT / "observability/vector.yaml").read_text(encoding="utf-8")
+    assert "traces: true" in text
     assert "otel_traces_tempo:" in text
     assert "inputs: [otel.traces]" in text
     assert "uri: http://127.0.0.1:14318/v1/traces" in text

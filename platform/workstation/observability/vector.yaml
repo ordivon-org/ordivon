@@ -19,7 +19,7 @@ sources:
     use_otlp_decoding:
       logs: false
       metrics: true
-      traces: false
+      traces: true
 
 sinks:
   loki:

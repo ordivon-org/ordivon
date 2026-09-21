@@ -61,15 +61,43 @@ def test_default_plugin_rejects_direct_owner_servers() -> None:
         module.validate_plugin(value)
 
 
-def test_observability_profile_stays_optional_and_cold() -> None:
+def test_persistent_trace_backend_cannot_regress_to_not_admitted() -> None:
     value = graph()
-    value["observability"]["gatewayDefaultTraceExporter"] = "otlp_proto_http"
-    with pytest.raises(module.ArchitectureDocsError, match="opt-in"):
+    value["notAdmitted"].append("persistent-queryable-trace-backend")
+    with pytest.raises(module.ArchitectureDocsError, match="cannot remain not-admitted"):
         module.validate_deployed_graph(value)
 
 
-def test_tempo_is_optional_trace_storage_owner_not_product_truth() -> None:
+def test_vector_trace_preservation_is_architecture_contract() -> None:
     value = graph()
-    value["observability"]["heavyProfile"]["requiredForProductCorrectness"] = True
+    value["observability"]["ingress"]["preserveOtlpTraces"] = False
+    with pytest.raises(module.ArchitectureDocsError, match="preserve OTLP trace"):
+        module.validate_deployed_graph(value)
+
+
+def test_tempo_remains_on_demand_non_semantic_backend() -> None:
+    value = graph()
+    value["observability"]["status"] = "semantic-authority"
+    with pytest.raises(module.ArchitectureDocsError, match="deployed-on-demand"):
+        module.validate_deployed_graph(value)
+
+
+def test_gateway_trace_export_remains_opt_in_by_default() -> None:
+    value = graph()
+    value["observability"]["gatewayExport"]["base"] = "OTEL_TRACES_EXPORTER=otlp_proto_http"
+    with pytest.raises(module.ArchitectureDocsError, match="base trace exporter"):
+        module.validate_deployed_graph(value)
+
+
+def test_trace_storage_never_becomes_product_correctness_authority() -> None:
+    value = graph()
+    value["observability"]["gatewayExport"]["requiredForProductCorrectness"] = True
     with pytest.raises(module.ArchitectureDocsError, match="product correctness"):
+        module.validate_deployed_graph(value)
+
+
+def test_heavy_observability_default_posture_stays_cold() -> None:
+    value = graph()
+    value["observability"]["defaultPosture"] = "always-on"
+    with pytest.raises(module.ArchitectureDocsError, match="cold by default"):
         module.validate_deployed_graph(value)

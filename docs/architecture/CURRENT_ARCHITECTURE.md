@@ -59,7 +59,7 @@ The remote Skills MCP remains only an exact compatibility edge for ChatGPT while
 | long-lived orchestration where explicitly used | Temporal/provider-native workflow owner | deployed only for named consumers |
 | Agent Automation / Browserless carrier | Harness/Workstation automation stack | live separate system; not Agent Service |
 | historical Agent Service | none | retired; do not reconstruct |
-| persistent/queryable trace backend | Workstation Tempo heavy-observability profile | installed capability, cold/inactive by default |
+| persistent/queryable trace backend | Vector OTLP → Tempo | deployed on demand; currently cold/inactive by default; observability-only |
 | Temporal cross-process trace propagation | none proven | not claimed |
 
 ## 3. Gateway Capability Router
@@ -168,19 +168,34 @@ The public principal is not replayed as downstream authorization.
 
 MCP 2.x owns W3C Trace Context propagation for Gateway server/client calls. OpenTelemetry owns span/export semantics.
 
-Gateway runs through the standard Python OpenTelemetry zero-code launcher, but production defaults to:
+Gateway runs through the standard Python OpenTelemetry zero-code launcher. Its base production unit still defaults to:
 
 ```text
 OTEL_TRACES_EXPORTER=none
 ```
 
-because Workstation heavy observability is intentionally cold by default.
+because Workstation heavy observability is intentionally cold by default and telemetry availability must never gate product correctness. The existing opt-in trace profile switches Gateway to standard OTLP/HTTP export when the observability profile is intentionally activated.
+
+The deployed on-demand trace path is:
+
+```text
+Gateway OpenTelemetry
+  -> Vector OTLP HTTP 127.0.0.1:4318
+     (OTLP traces preserved)
+  -> Tempo OTLP HTTP 127.0.0.1:14318
+  -> Tempo query API 127.0.0.1:3200
+  -> Grafana Tempo datasource
+```
+
+Tempo 3.0.3 is the natural owner for trace persistence/query semantics; Workstation owns its local deployment. Vector remains the local observability carrier. Neither becomes Runtime, Host, authorization, completion, replay, currentness, or domain truth.
+
+Live acceptance on 2026-09-21 proved both a direct Tempo control span and a Vector-forwarded span were queryable by exact trace ID, then proved one real Cloudflare-authenticated Gateway `execution.submit` trace was queryable in Tempo and correlated with the exact Runtime operation reference. The observability profile remains on-demand rather than a prerequisite for Gateway correctness.
+
+Current default running posture is cold: the heavy observability target and Tempo service are inactive, the Gateway trace-export drop-in is absent, and Gateway reports `OTEL_TRACES_EXPORTER=none`. This is compatible with the deployed-on-demand standing: the capability is admitted and live-accepted, while activation remains explicit.
 
 Harness keeps telemetry outside its semantic core. Its canonical `TraceRecorder.event_sink` may be projected by caller-owned adapters such as `services/harness/scripts/harness_otel_event_sink.py`.
 
 Telemetry is observability only. It is never authorization, currentness, replay, completion, or owner truth.
-
-The Workstation heavy-observability profile now contains a standards-native local trace pipeline: Gateway OTLP → Vector → Tempo. This capability is installed but intentionally **cold/inactive by default**. The current live Gateway has no trace-export drop-in and reports `OTEL_TRACES_EXPORTER=none`; the heavy observability target and Tempo service are inactive. When the profile is explicitly activated, Tempo owns local persistent/queryable trace storage. Product correctness does not depend on that profile being active.
 
 ## 8. Plugin and Skill boundary
 
@@ -221,7 +236,7 @@ Current examples:
 - Method Router Skill;
 - Gateway Capability Router;
 - Gateway trace/audit projection;
-- optional Workstation Vector → Tempo heavy-observability profile (installed capability; cold by default);
+- Workstation Vector OTLP → Tempo persistent/queryable tracing (deployed on demand; cold by default);
 - exact ChatGPT Skills MCP compatibility edge.
 
 Not currently admitted/deployed as architecture truth:

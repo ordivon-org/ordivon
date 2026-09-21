@@ -13,6 +13,12 @@ ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 METHOD_ROUTER = ROOT / "meta" / "next" / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
 
+TEMPO_CONFIG = ROOT / "platform" / "workstation" / "observability" / "tempo.yaml"
+VECTOR_CONFIG = ROOT / "platform" / "workstation" / "observability" / "vector.yaml"
+GRAFANA_DATASOURCES = ROOT / "platform" / "workstation" / "observability" / "grafana-datasources.yaml"
+HEAVY_TARGET = ROOT / "platform" / "workstation" / "systemd" / "ordivon-observability-heavy.target"
+TRACE_ACCEPTANCE = ROOT / "docs" / "architecture" / "persistent-trace-backend-acceptance-20260921.json"
+
 HISTORICAL = {
     ROOT / "docs" / "architecture" / "ARCHITECTURE_CONVERGENCE_A01R2.md":
         "Historical standing: SUPERSEDED FOR CURRENT DEPLOYMENT STATUS",
@@ -77,21 +83,6 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
     if not isinstance(capabilities, list) or set(capabilities) != EXPECTED_CAPABILITIES:
         raise ArchitectureDocsError("deployed Gateway capability set drifted")
 
-    observability = value.get("observability")
-    if not isinstance(observability, dict):
-        raise ArchitectureDocsError("observability standing is missing")
-    if observability.get("gatewayDefaultTraceExporter") != "none":
-        raise ArchitectureDocsError("Gateway tracing must remain opt-in by default")
-    heavy = observability.get("heavyProfile")
-    if not isinstance(heavy, dict):
-        raise ArchitectureDocsError("heavy observability profile standing is missing")
-    if heavy.get("standing") != "installed-cold-inactive-by-default":
-        raise ArchitectureDocsError("heavy observability profile must remain cold by default")
-    if heavy.get("persistentTraceOwner") != "tempo":
-        raise ArchitectureDocsError("Tempo must own optional persistent trace storage")
-    if heavy.get("requiredForProductCorrectness") is not False:
-        raise ArchitectureDocsError("observability must not become a product correctness dependency")
-
     retired = value.get("retired")
     if not isinstance(retired, list) or not any(
         isinstance(item, dict)
@@ -100,6 +91,31 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
         for item in retired
     ):
         raise ArchitectureDocsError("retired Agent Service standing is missing")
+
+    observability = value.get("observability")
+    if not isinstance(observability, dict):
+        raise ArchitectureDocsError("deployed observability projection is missing")
+    if observability.get("status") != "deployed-on-demand":
+        raise ArchitectureDocsError("trace backend must remain deployed-on-demand")
+    ingress = observability.get("ingress")
+    backend = observability.get("traceBackend")
+    export = observability.get("gatewayExport")
+    if not isinstance(ingress, dict) or ingress.get("preserveOtlpTraces") is not True:
+        raise ArchitectureDocsError("Vector must preserve OTLP trace envelopes")
+    if not isinstance(backend, dict) or backend.get("owner") != "tempo":
+        raise ArchitectureDocsError("Tempo must own trace persistence/query semantics")
+    if backend.get("queryApi") != "127.0.0.1:3200":
+        raise ArchitectureDocsError("Tempo query API must remain loopback")
+    if not isinstance(export, dict) or export.get("base") != "OTEL_TRACES_EXPORTER=none":
+        raise ArchitectureDocsError("Gateway base trace exporter must remain disabled")
+    if export.get("requiredForProductCorrectness") is not False:
+        raise ArchitectureDocsError("observability must not become a product correctness dependency")
+    if observability.get("defaultPosture") != "cold-inactive":
+        raise ArchitectureDocsError("heavy observability must remain cold by default")
+    if "always-on-mandatory-trace-backend" not in value.get("notAdmitted", []):
+        raise ArchitectureDocsError("always-on mandatory tracing must remain not-admitted")
+    if "persistent-queryable-trace-backend" in value.get("notAdmitted", []):
+        raise ArchitectureDocsError("persistent trace backend cannot remain not-admitted")
 
 
 def validate_plugin(value: dict[str, Any]) -> None:
@@ -122,7 +138,8 @@ def validate_current_document(text: str) -> None:
         "Harness is not currently a routed Gateway owner",
         "historical Ordivon Agent Service is **RETIRED**",
         "OTEL_TRACES_EXPORTER=none",
-        "Vector → Tempo",
+        "Vector OTLP → Tempo",
+        "deployed on demand",
         "cold/inactive by default",
     ]
     missing = [item for item in required if item not in text]
@@ -161,6 +178,26 @@ def validate_repository(root: Path = ROOT) -> None:
         raise ArchitectureDocsError("canonical Method Router Skill is missing")
     if "docs/architecture/CURRENT_ARCHITECTURE.md" not in readme.read_text(encoding="utf-8"):
         raise ArchitectureDocsError("root README must point to canonical current architecture")
+
+    tempo = (root / TEMPO_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
+    vector = (root / VECTOR_CONFIG.relative_to(ROOT)).read_text(encoding="utf-8")
+    datasources = (root / GRAFANA_DATASOURCES.relative_to(ROOT)).read_text(encoding="utf-8")
+    target = (root / HEAVY_TARGET.relative_to(ROOT)).read_text(encoding="utf-8")
+    trace_acceptance = _load_json(root / TRACE_ACCEPTANCE.relative_to(ROOT))
+    if "http_listen_address: 127.0.0.1" not in tempo or 'endpoint: "127.0.0.1:14318"' not in tempo:
+        raise ArchitectureDocsError("Tempo trace endpoints must remain loopback")
+    if "backend: local" not in tempo:
+        raise ArchitectureDocsError("Tempo local backend contract drifted")
+    if "traces: true" not in vector or "otel_traces_tempo:" not in vector:
+        raise ArchitectureDocsError("Vector OTLP trace preservation/Tempo sink drifted")
+    if "http://127.0.0.1:14318/v1/traces" not in vector:
+        raise ArchitectureDocsError("Vector Tempo OTLP sink endpoint drifted")
+    if "uid: operations-tempo" not in datasources or "type: tempo" not in datasources:
+        raise ArchitectureDocsError("Grafana Tempo datasource drifted")
+    if "ordivon-tempo.service" not in target:
+        raise ArchitectureDocsError("heavy observability profile lost Tempo")
+    if trace_acceptance.get("status") != "ACCEPTED_DEPLOYED_ON_DEMAND":
+        raise ArchitectureDocsError("persistent trace backend lacks accepted live evidence")
 
     for path, marker in HISTORICAL.items():
         candidate = root / path.relative_to(ROOT)

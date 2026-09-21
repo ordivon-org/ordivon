@@ -66,6 +66,11 @@
       "id": "cloudflare-access-oauth",
       "status": "deployed",
       "authority": "public authentication and provider IAM"
+    },
+    {
+      "id": "tempo",
+      "status": "deployed-on-demand",
+      "authority": "trace persistence/query only; observability is non-authoritative"
     }
   ],
   "compatibilitySurfaces": [
@@ -98,13 +103,27 @@
     "universal-third-party-mcp-proxy"
   ],
   "observability": {
-    "gatewayDefaultTraceExporter": "none",
-    "heavyProfile": {
-      "owner": "workstation",
-      "standing": "installed-cold-inactive-by-default",
-      "transport": "Gateway OTLP -> Vector -> Tempo",
-      "persistentTraceOwner": "tempo",
+    "status": "deployed-on-demand",
+    "truthRole": "observability-only-non-authoritative",
+    "ingress": {
+      "owner": "vector",
+      "otlpGrpc": "127.0.0.1:4317",
+      "otlpHttp": "127.0.0.1:4318",
+      "preserveOtlpTraces": true
+    },
+    "traceBackend": {
+      "owner": "tempo",
+      "version": "3.0.3",
+      "otlpHttp": "127.0.0.1:14318",
+      "queryApi": "127.0.0.1:3200",
+      "storage": "local",
+      "activation": "ordivon-observability-heavy.target"
+    },
+    "gatewayExport": {
+      "base": "OTEL_TRACES_EXPORTER=none",
+      "activation": "40-otel-traces.example.conf",
       "requiredForProductCorrectness": false
-    }
+    },
+    "defaultPosture": "cold-inactive"
   }
 }
