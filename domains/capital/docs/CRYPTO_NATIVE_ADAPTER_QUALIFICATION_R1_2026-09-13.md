@@ -1,5 +1,8 @@
 # Crypto Native Adapter Qualification R1
 
+> **Historical qualification notice — 2026-09-21:** this document preserves the 2026-09-13 native-adapter experiment. Its former OKX Nautilus public-data admission is superseded. Current public market-data ownership is provider-native OKX/Binance REST/WebSocket plus Network v2, as recorded in config/crypto_data_adapters.json and docs/ARCHITECTURE.md; Nautilus rc4 remains candidate evidence only.
+
+
 ## Decision
 
 Market Capital does **not** require one framework to own every market-data transport. Adapter admission is venue-specific and evidence-based.

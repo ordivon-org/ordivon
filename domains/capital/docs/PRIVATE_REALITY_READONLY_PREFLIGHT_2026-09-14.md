@@ -1,5 +1,8 @@
 # Private Reality Read-Only Preflight — 2026-09-14
 
+> **Historical qualification notice — 2026-09-21:** this document records the 2026-09-14 preflight. The former Nautilus OKXHttpClient read-path choice is superseded. Current OKX private read preflight uses the bounded Python 3.14 GET-only client, while provider truth remains OKX; see config/private_reality_policy.json and docs/ARCHITECTURE.md. Nautilus rc4 is retained only as candidate/historical read-surface evidence.
+
+
 ## Standing
 
 `OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT`

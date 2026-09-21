@@ -1,5 +1,8 @@
 # Crypto Execution Lane — OKX + Binance
 
+> **Historical qualification notice — 2026-09-21:** this document records the 2026-09-13 qualification stage as it occurred. It is not current implementation-owner authority. Current ownership is governed by docs/ARCHITECTURE.md, config/external_owner_census.json, and config/candidate_tool_surface_registry.json; NautilusTrader rc4 is historical/candidate evidence only, while current public market data uses provider-native OKX/Binance REST/WebSocket paths.
+
+
 ## Decision
 
 The future broker/venue qualification path is changed from Interactive Brokers to **OKX + Binance**.

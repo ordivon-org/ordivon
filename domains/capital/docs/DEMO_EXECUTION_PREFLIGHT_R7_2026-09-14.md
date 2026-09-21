@@ -1,5 +1,8 @@
 # Demo/Testnet Execution Preflight R7 — 2026-09-14
 
+> **Historical qualification notice — 2026-09-21:** this document records the 2026-09-14 demo/testnet component preflight. Nautilus rc4 config construction remains replayable candidate evidence under tools/nautilus_rc4, but it is not a current execution owner. Current demo/live write authority remains fail-closed under config/demo_execution_policy.json and the external-write policy.
+
+
 ## Standing
 
 `PREPARED_NOT_ADMITTED`

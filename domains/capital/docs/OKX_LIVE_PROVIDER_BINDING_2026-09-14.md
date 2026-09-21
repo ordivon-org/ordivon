@@ -1,5 +1,8 @@
 # OKX LIVE provider binding — 2026-09-14
 
+> **Historical qualification notice — 2026-09-21:** this document preserves the 2026-09-14 binding evidence. Current OKX capability audit uses the bounded Python 3.14 GET-only client and does not execute Nautilus rc4. The Nautilus live config is now an unadmitted candidate reference only; see config/okx_live_provider.json, config/candidate_tool_surface_registry.json, and docs/ARCHITECTURE.md.
+
+
 ## Standing
 
 `PASS_OKX_LIVE_PROVIDER_BOUND_CURRENT_NO_EFFECT_ADMISSION`
