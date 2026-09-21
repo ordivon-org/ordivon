@@ -37,7 +37,8 @@
         "All component types have one-sentence responsibility and truth boundary",
         "No universal Task/State/Registry/Workflow is introduced",
         "Gateway is explicitly non-authoritative"
-      ]
+      ],
+      "authorityBoundary": "Architecture-description authority only; no runtime, domain, credential, or workflow truth."
     },
     {
       "id": "C01",
@@ -56,7 +57,8 @@
         "Every edge names producer and consumer",
         "Every node declares authority/effect boundary",
         "The file is documentation/projection only"
-      ]
+      ],
+      "authorityBoundary": "Architecture-description authority only; no runtime, domain, credential, or workflow truth."
     },
     {
       "id": "C02",
@@ -77,7 +79,8 @@
         "Reject duplicate node ids and missing dependencies",
         "Reject forbidden Gateway truth ownership declarations",
         "repo:ci passes"
-      ]
+      ],
+      "authorityBoundary": "Repository mechanics only; no owner semantic truth."
     },
     {
       "id": "G01",
@@ -99,7 +102,8 @@
         "Modern discovery/call path is exercised",
         "No Gateway persistence or owner truth is added",
         "mise run gateway:verify passes"
-      ]
+      ],
+      "authorityBoundary": "Non-authoritative northbound routing, compatibility, and owner-derived projection only."
     },
     {
       "id": "G02",
@@ -119,7 +123,8 @@
         "Bearer and CF service-token modes remain mutually exclusive",
         "Secrets remain file-referenced and are not projected",
         "Auth failure is fail-closed"
-      ]
+      ],
+      "authorityBoundary": "Non-authoritative northbound routing, compatibility, and owner-derived projection only."
     },
     {
       "id": "G03",
@@ -140,7 +145,8 @@
         "Python MCP v2 client accepts Runtime tools/list and tool results with normal validation",
         "_RuntimeCompatibilitySession is deleted",
         "mise run runtime:verify and mise run gateway:verify pass"
-      ]
+      ],
+      "authorityBoundary": "Runtime owns physical Workspace/Job/Attempt/execution/artifact truth; not domain semantic completion."
     },
     {
       "id": "G04",
@@ -162,7 +168,8 @@
         "No mutable capability database exists",
         "Route declarations select natural owners only",
         "Capability availability remains owner-derived"
-      ]
+      ],
+      "authorityBoundary": "Non-authoritative northbound routing, compatibility, and owner-derived projection only."
     },
     {
       "id": "G05",
@@ -184,7 +191,8 @@
         "No two canonical tools have identical semantics",
         "Any retained compatibility alias is documented as compatibility debt",
         "Gateway ABI remains owner-neutral"
-      ]
+      ],
+      "authorityBoundary": "Non-authoritative northbound routing, compatibility, and owner-derived projection only."
     },
     {
       "id": "E01",
@@ -207,7 +215,8 @@
         "No delete/replace",
         "No unexpected mutation",
         "Gateway Access OAuth/DCR and Windows service-token census pass"
-      ]
+      ],
+      "authorityBoundary": "Workstation owns node/provider realization while Cloudflare owns edge state; neither transfers domain truth to Gateway."
     },
     {
       "id": "E02",
@@ -227,7 +236,8 @@
         "Exactly one compatible Service Auth policy exists",
         "Credential files are root-owned mode 0600",
         "No secret bytes enter Git or receipts"
-      ]
+      ],
+      "authorityBoundary": "Workstation owns node/provider realization while Cloudflare owns edge state; neither transfers domain truth to Gateway."
     },
     {
       "id": "E03",
@@ -249,7 +259,8 @@
         "Cloudflare Access assertion verification is enabled",
         "Gateway health is green",
         "Windows owner is configured through service identity"
-      ]
+      ],
+      "authorityBoundary": "Gateway owns northbound adapter configuration and Workstation owns deployment realization; no domain or Runtime truth is copied."
     },
     {
       "id": "E04",
@@ -273,7 +284,8 @@
         "Linux execution round-trip succeeds",
         "Host continuity read succeeds",
         "Windows capability is configured and a bounded Windows execution/read path succeeds"
-      ]
+      ],
+      "authorityBoundary": "Non-authoritative northbound routing, compatibility, and owner-derived projection only."
     },
     {
       "id": "E05",
@@ -293,7 +305,8 @@
         "Public Gateway is accepted as the default northbound MCP",
         "Direct owner MCPs remain internal/operator surfaces",
         "No claim is made that Gateway owns Runtime/Host/Harness truth"
-      ]
+      ],
+      "authorityBoundary": "Non-authoritative northbound routing, compatibility, and owner-derived projection only."
     },
     {
       "id": "P01",
@@ -313,7 +326,8 @@
         "mcp.json contains one Ordivon Gateway server",
         "No Runtime/Host public endpoint remains in the default package",
         "No credentials or node-local tool bindings are added"
-      ]
+      ],
+      "authorityBoundary": "Portable package composition only; Plugin owns no Runtime, Host, Skill, or domain semantics."
     },
     {
       "id": "P02",
@@ -334,7 +348,8 @@
         "Selected Skills remain copied from canonical .agents/skills only",
         "Two identical materializations are byte-stable",
         "Portable package has no private Ordivon component type"
-      ]
+      ],
+      "authorityBoundary": "Portable package composition only; Plugin owns no Runtime, Host, Skill, or domain semantics."
     },
     {
       "id": "P03",
@@ -354,7 +369,8 @@
         "OAuth completes through the Gateway path",
         "A Gateway capability call succeeds",
         "Selected Skill activation is separately proven when that release includes one"
-      ]
+      ],
+      "authorityBoundary": "Consumer-local installation/enablement evidence only; no Ordivon owner truth."
     },
     {
       "id": "P04",
@@ -373,7 +389,8 @@
         "No live consumer is orphaned",
         "Default Agent distribution points only to Gateway",
         "Internal/operator direct owner access remains explicitly documented"
-      ]
+      ],
+      "authorityBoundary": "Public-route/distribution realization only; owner semantic truth remains with the routed owner."
     },
     {
       "id": "S01",
@@ -393,7 +410,8 @@
         "Unscoped method-router is absent by design",
         "workspaceId=ordivon-next resolves method-router",
         "Project trust/snapshot fences remain intact"
-      ]
+      ],
+      "authorityBoundary": "Agent Skill discovery/compatibility projection only; canonical Skill bytes remain source-owned and advisory."
     },
     {
       "id": "S02",
@@ -416,7 +434,8 @@
         "Plugin-selected Skill path tested",
         "Remote Skills MCP path tested only where needed",
         "No path becomes a second Skill authority"
-      ]
+      ],
+      "authorityBoundary": "Consumption/package-composition evidence only; neither bridge nor Plugin becomes Skill semantic authority."
     },
     {
       "id": "S03",
@@ -435,7 +454,8 @@
         "Every retained bridge consumer has a named client gap",
         "No new registry/marketplace/workflow semantics are added",
         "Bridge removal criteria are explicit"
-      ]
+      ],
+      "authorityBoundary": "Agent Skill discovery/compatibility projection only; canonical Skill bytes remain source-owned and advisory."
     },
     {
       "id": "M01",
@@ -460,7 +480,8 @@
         "Changes under capabilities/preservation select a Preservation verify task",
         "Cross-cutting paths still select all owners",
         "mise run repo:ci passes"
-      ]
+      ],
+      "authorityBoundary": "Repository mechanics only; no owner semantic truth."
     },
     {
       "id": "B01",
@@ -482,7 +503,8 @@
         "Default Plugin cannot reference direct Runtime/Host public MCP endpoints",
         "Gateway route declarations cannot claim domain semantic authority",
         "Node-local Workstation tool paths cannot enter portable Plugin metadata"
-      ]
+      ],
+      "authorityBoundary": "Repository mechanics only; no owner semantic truth."
     },
     {
       "id": "O01",
@@ -501,7 +523,8 @@
         "Runtime Job remains canonical",
         "No Gateway Task database",
         "Promotion requires real client interoperability evidence"
-      ]
+      ],
+      "authorityBoundary": "Gateway may project a standard task/resource surface; Runtime remains canonical Job/execution owner."
     },
     {
       "id": "O02",
@@ -519,7 +542,8 @@
       "acceptance": [
         "Each Resource candidate has stable addressability and read-only semantics",
         "No duplicate source of truth is created"
-      ]
+      ],
+      "authorityBoundary": "Gateway may project owner data; source owners remain canonical."
     },
     {
       "id": "O03",
@@ -537,7 +561,8 @@
       "acceptance": [
         "Embedded UI use case is concrete",
         "Web authority is not duplicated"
-      ]
+      ],
+      "authorityBoundary": "App owns experience composition and Gateway owns routing only; lower-owner truth remains external."
     },
     {
       "id": "O04",
@@ -556,7 +581,8 @@
         "Peer agent is independently owned",
         "A2A solves an actual inter-agent boundary",
         "Host remains internal continuity owner"
-      ]
+      ],
+      "authorityBoundary": "Peer-agent interoperability adapter only; Host continuity and domain truth remain separately owned."
     }
   ],
   "criticalPath": [
@@ -577,11 +603,10 @@
     "P04"
   ],
   "initialParallelSet": [
-    "C00",
-    "G01-after-C00",
-    "G03-after-C00",
-    "S01-after-C00",
-    "M01-after-C00"
+    "G01",
+    "G03",
+    "S01",
+    "M01"
   ],
   "doNotBuild": [
     "universal-capability-registry",
