@@ -5,7 +5,7 @@
 | M1 | Next / Security / Network | ACCEPTED_SOURCE_ONLY |
 | M2 | Workstation / Media / Artifact | ACCEPTED_SOURCE_ONLY |
 | Wave 3 | Game / Capital / Host | ACCEPTED_SOURCE_ONLY |
-| Capital | identity-preserving legacy bridge + qualified supersession + linear updates to 18ca785b; domains/capital is current source-of-truth, standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
+| Capital | current source-of-truth domains/capital; identity-preserving lineage updated to 808353c; Market package decomposed into Markets/Trading/Portfolio/Risk/Research/Governance/Accounting owner domains; standalone repo provenance/recovery only | ACCEPTED_SOURCE_ONLY |
 | Harness | monorepo-native post-Skills owner; validated Browser Security donor composed at 0fe2187b, canonical tree 47f7b476 | ACCEPTED_SOURCE_ONLY |
 | Skills bridge | canonical platform/skills owner; source/package/artifact boundaries accepted; live cutover recorded separately | ACCEPTED_SOURCE_ONLY |
 | Host | exact current source tree; legacy rewritten import bridged to original a95a8e11 identity | ACCEPTED_SOURCE_ONLY |
