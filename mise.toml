@@ -6,6 +6,15 @@ config_roots = [
 ]
 lockfile = false
 
+[tasks."repo:retirement:verify"]
+run = """
+set -euo pipefail
+python3 tools/repo/check_archived_source_boundary.py \
+  --policy docs/migration/retirement/workstation-lab-policy.json
+tools/repo/test-check-archived-source-boundary.sh
+"""
+
+
 [tasks."next:verify"]
 dir = "meta/next"
 run = """

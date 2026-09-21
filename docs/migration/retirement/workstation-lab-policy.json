@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "workstation-lab",
+  "legacyLocator": "/root/workstation-lab",
+  "archivedSource": {
+    "revision": "ee41e995d0bd98ac08de54d9d11c876345f4f182",
+    "standing": "ARCHIVED_IN_PLACE",
+    "preserveGitHistoryForHistoricalLookup": true
+  },
+  "allowedReferenceClasses": [
+    {
+      "id": "documentation",
+      "globs": ["**/*.md"],
+      "reason": "Historical, migration, architecture, and negative documentation may name the retired locator."
+    },
+    {
+      "id": "historical-artifacts",
+      "globs": ["**/artifacts/**", "**/evidence/**"],
+      "reason": "Committed evidence and projections retain exact historical source locators."
+    },
+    {
+      "id": "frozen-production-carriers",
+      "globs": ["**/productions/*/source/**", "**/productions/*/render/**"],
+      "reason": "Creation-time source snapshots and rendered/query carriers remain byte-stable historical evidence."
+    },
+    {
+      "id": "historical-experiments",
+      "globs": ["**/experiments/**", "**/evals/fixtures/**"],
+      "reason": "Experiment and evaluation fixtures preserve the environment observed when they were created."
+    },
+    {
+      "id": "authority-and-planning-snapshots",
+      "globs": [
+        "meta/next/authorities/records/**",
+        "meta/next/planning/**",
+        "meta/next/migrations/records/**"
+      ],
+      "reason": "Authority observations, planning snapshots, and migration records are historical records, not forward executors."
+    }
+  ],
+  "allowedExactPaths": [
+    {
+      "path": "capabilities/media/creative-library/SOURCE_BOUNDARY.json",
+      "reason": "The extraction boundary names its historical source."
+    },
+    {
+      "path": "capabilities/preservation/SOURCE_BOUNDARY.json",
+      "reason": "The extraction boundary names its historical source."
+    },
+    {
+      "path": "platform/workstation/tests/test_gatus_deployment.py",
+      "reason": "Negative fence proving deployed Gatus no longer uses the retired locator."
+    },
+    {
+      "path": "platform/workstation/tests/test_recovery_restic_mirror.py",
+      "reason": "Synthetic historical mirror-identity fixture; it is not a configured backup path."
+    },
+    {
+      "path": "platform/workstation/tests/test_workstation_agent_automation_carrier.py",
+      "reason": "Negative fence against legacy carrier reuse."
+    },
+    {
+      "path": "services/harness/tests/test_agent_automation_release.py",
+      "reason": "Negative release fences against legacy working directory and scripts."
+    }
+  ]
+}
