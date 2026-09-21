@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "research-publication-closure-composition-profile",
+  "id": "publication-closure-r1",
+  "truthRole": "composition-profile-not-scientific-truth",
+  "runtimeOwner": null,
+  "ownerBindings": {
+    "scientificTruth": "Study authority",
+    "methodAuthority": "external/domain-native standards",
+    "carrierMechanics": "capabilities/artifact",
+    "renderingToolchain": "mature external tools selected per Study",
+    "physicalExecution": "services/runtime when exact execution evidence is needed",
+    "distributionEffect": "capabilities/distribution or venue-native submission surface"
+  },
+  "freezeOrder": [
+    "SCIENCE_FREEZE",
+    "CLAIM_FREEZE",
+    "MANUSCRIPT_SEMANTIC_FREEZE",
+    "CARRIER_BUILD",
+    "CARRIER_SEMANTIC_LINT",
+    "VENUE_CONTRACT_VALIDATION",
+    "PERCEPTUAL_REVIEW",
+    "ARTIFACT_CARRIER_REBIND",
+    "COLD_REPLAY",
+    "SUBMISSION_FREEZE"
+  ],
+  "carrierLayers": [
+    "SOURCE_SYNTAX",
+    "PUBLICATION_METADATA",
+    "COMPILATION",
+    "PDF_STRUCTURE",
+    "TEXT_LAYER_SEMANTICS",
+    "VISUAL_PRESENTATION",
+    "IDENTITY_AND_DIGEST_BINDING"
+  ],
+  "reviewerExperienceGates": [
+    "NORMAL_ZOOM_READABILITY",
+    "FIGURE_TABLE_LEGIBILITY",
+    "CAPTION_PROXIMITY_AND_UNIQUENESS",
+    "FIRST_PAGE_PROFESSIONALISM",
+    "PRODUCTION_RESIDUE_SCAN"
+  ],
+  "stopRules": [
+    "Do not reopen science to repair a carrier-only defect unless contradictory evidence appears.",
+    "Do not treat deterministic rendering as venue conformance.",
+    "Do not treat machine layout PASS as Human perceptual signoff.",
+    "Do not freeze reviewer artifact bytes before carrier QA has closed.",
+    "Venue rules stay external-authority-bound and dated; Artifact interprets contracts but does not own policy."
+  ],
+  "studyOverlay": {
+    "role": "Study-local additions such as identity-leak patterns, exact figure/caption counts, required supplements, and claim/artifact consistency bindings.",
+    "mayChangeScientificTruth": false
+  }
+}

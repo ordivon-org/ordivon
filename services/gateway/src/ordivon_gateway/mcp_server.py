@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from importlib.metadata import version as package_version
 from urllib.parse import urlsplit
 
 import uvicorn
@@ -29,7 +30,7 @@ from .upstream import McpOwnerCaller
 
 def build_server(service: GatewayService | None = None) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
-    server = MCPServer("ordivon-gateway")
+    server = MCPServer("ordivon-gateway", version=package_version("ordivon-gateway"))
     server.middleware.append(GatewayAuditMiddleware())
 
     @server.tool(name="system.describe")

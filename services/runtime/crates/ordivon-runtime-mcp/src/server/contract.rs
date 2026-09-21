@@ -270,6 +270,76 @@ impl RuntimeReleaseExecutionPlatform {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct RuntimeReleaseSourceIdentity {
+    owner_root: PathBuf,
+    git_root: PathBuf,
+    owner_prefix: PathBuf,
+}
+
+fn runtime_release_git_text(source_repo: &std::path::Path, args: &[&str]) -> Result<String, String> {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(source_repo)
+        .args(args)
+        .output()
+        .map_err(|error| format!("cannot execute Git for Runtime release source: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Git Runtime release source query failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn runtime_release_source_identity(
+    source_repo: &std::path::Path,
+) -> Result<RuntimeReleaseSourceIdentity, String> {
+    let owner_root = std::fs::canonicalize(source_repo)
+        .map_err(|error| format!("cannot canonicalize Runtime release owner: {error}"))?;
+    let git_root = PathBuf::from(runtime_release_git_text(
+        &owner_root,
+        &["rev-parse", "--show-toplevel"],
+    )?);
+    let git_root = std::fs::canonicalize(&git_root)
+        .map_err(|error| format!("cannot canonicalize Runtime release Git root: {error}"))?;
+    let prefix = runtime_release_git_text(&owner_root, &["rev-parse", "--show-prefix"])?;
+    let owner_prefix = PathBuf::from(prefix.trim_end_matches('/'));
+    let expected_owner = std::fs::canonicalize(git_root.join(&owner_prefix))
+        .map_err(|error| format!("cannot resolve Runtime release owner prefix: {error}"))?;
+    if expected_owner != owner_root {
+        return Err("Runtime release owner does not match its Git prefix".to_string());
+    }
+    Ok(RuntimeReleaseSourceIdentity {
+        owner_root,
+        git_root,
+        owner_prefix,
+    })
+}
+
+fn runtime_release_owner_commit(
+    source_repo: &std::path::Path,
+    revision: &str,
+) -> Result<String, String> {
+    let identity = runtime_release_source_identity(source_repo)?;
+    let exact = runtime_release_git_text(
+        &identity.owner_root,
+        &["rev-parse", "--verify", &format!("{revision}^{{commit}}")],
+    )?;
+    if identity.owner_prefix.as_os_str().is_empty() {
+        return Ok(exact);
+    }
+    let owner = runtime_release_git_text(
+        &identity.owner_root,
+        &["log", "-1", "--format=%H", &exact, "--", "."],
+    )?;
+    if owner.len() != 40 || !owner.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
+        return Err("Runtime release revision has no exact owner commit".to_string());
+    }
+    Ok(owner)
+}
+
 #[derive(Clone, Debug)]
 pub struct RuntimeReleaseExecutionConfig {
     pub platform: RuntimeReleaseExecutionPlatform,

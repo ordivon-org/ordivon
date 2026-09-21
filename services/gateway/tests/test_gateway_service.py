@@ -76,6 +76,21 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
         async with Client(build_server(service), raise_exceptions=True) as client:
             tools = await client.list_tools()
             by_name = {tool.name: tool for tool in tools.tools}
+            assert client.server_info is not None
+            assert client.server_info.name == "ordivon-gateway"
+            assert client.server_info.version == "0.2.0"
+            assert set(by_name) == {
+                "system.describe",
+                "capability.describe",
+                "execution.submit",
+                "execution.get",
+                "execution.cancel",
+                "artifact.read",
+                "continuity.get",
+                "continuity.list",
+            }
+            assert tools.ttl_ms == 0
+            assert tools.cache_scope == "private"
             assert "capability.list" not in by_name
             assert "capability.describe" in by_name
             submit = by_name["execution.submit"].input_schema
@@ -83,6 +98,11 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             assert "enum" not in submit["properties"]["capability"]
 
     asyncio.run(scenario())
+
+
+def test_system_description_uses_package_release_identity() -> None:
+    service = GatewayService(FakeOwnerCaller())
+    assert service.system_describe().gateway_version == "0.2.0"
 
 
 def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:

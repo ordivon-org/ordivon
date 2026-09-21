@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from importlib.metadata import version as package_version
 from typing import Any
 
 from .contracts import (
@@ -82,6 +83,7 @@ class GatewayService:
             for owner_id, role in _OWNER_ROLES.items()
         ]
         return SystemDescription(
+            gateway_version=package_version("ordivon-gateway"),
             owners=owners,
             capabilities=sorted(self._routes),
         )

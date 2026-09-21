@@ -42,7 +42,9 @@ def test_official_mcp_v2_exposes_migrated_host_surface_and_runs_vertical_slice()
             listed = await client.list_tools()
             assert client.server_info is not None
             assert client.server_info.name == "ordivon-host-v2"
-            assert client.server_info.version == "0.1.0"
+            assert client.server_info.version == "0.2.0"
+            assert listed.ttl_ms == 0
+            assert listed.cache_scope == "private"
             names = {tool.name for tool in listed.tools}
             assert names == {
                 "host.status",

@@ -32,7 +32,7 @@ class CapabilityDescriptor(StrictModel):
 class SystemDescription(StrictModel):
     schema_version: Literal[1] = 1
     kind: Literal["ordivon.gateway-system-description"] = "ordivon.gateway-system-description"
-    gateway_version: str = "0.1.0"
+    gateway_version: str
     truth_role: Literal["non-authoritative-routing-projection"] = (
         "non-authoritative-routing-projection"
     )
