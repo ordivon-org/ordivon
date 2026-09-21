@@ -73,6 +73,7 @@ class McpCatalogTests(unittest.TestCase):
                 "materialization.reconcile",
                 "materialization.humanHandoff",
                 "materialization.humanResume",
+                "conversation.adopt",
                 "conversation.continue",
                 "provider.preflight",
             }
@@ -93,6 +94,12 @@ class McpCatalogTests(unittest.TestCase):
             self.assertIn(
                 "L1/L2 registration is unavailable", tools["campaign.register"].description
             )
+            adopt = json.dumps(tools["conversation.adopt"].parameters, sort_keys=True)
+            self.assertIn("adoptionRequestId", adopt)
+            self.assertIn("markerProof", adopt)
+            self.assertNotIn("cookie", adopt.lower())
+            self.assertFalse(tools["conversation.adopt"].annotations.read_only_hint)
+            self.assertTrue(tools["conversation.adopt"].annotations.idempotent_hint)
             cont = json.dumps(tools["conversation.continue"].parameters, sort_keys=True)
             self.assertIn("turnRequestId", cont)
             self.assertIn("prompt", cont)

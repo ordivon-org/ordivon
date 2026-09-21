@@ -32,6 +32,11 @@ try:
         compile_campaign,
     )
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from sqlite_conversation_binding import (
+        ConversationBindingConflict,
+        SQLiteConversationBindingStore,
+    )
+    from chatgpt_conversation_discovery import discover_exact_marker
     from standard_identifiers import require_uuid7
     from browserless_human_handoff import load_verified_handoff
     from provider_boundary_diagnosis import (
@@ -47,6 +52,11 @@ except ModuleNotFoundError:
         compile_campaign,
     )
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from scripts.sqlite_conversation_binding import (
+        ConversationBindingConflict,
+        SQLiteConversationBindingStore,
+    )
+    from scripts.chatgpt_conversation_discovery import discover_exact_marker
     from scripts.standard_identifiers import require_uuid7
     from scripts.browserless_human_handoff import load_verified_handoff
     from scripts.provider_boundary_diagnosis import (
@@ -961,6 +971,78 @@ class BrowserlessAutomationService:
             "effectId": materialization.request_id,
             "temporal": temporal,
             "census": census,
+        }
+
+    def adopt_conversation(
+        self,
+        spec_path: Path,
+        campaign_ref: str,
+        agent_id: str,
+        *,
+        adoption_request_id: str,
+        marker_proof: dict,
+    ) -> dict:
+        """Adopt one exact existing provider conversation without crossing SEND."""
+        spec = self.load_spec(spec_path)
+        if agent_id not in {role.agent_id for role in spec.roster}:
+            raise BrowserlessAutomationConflict(
+                "agentId does not identify exactly one campaign role"
+            )
+        if not isinstance(marker_proof, dict) or set(marker_proof) != {
+            "sessionId",
+            "cdpEndpoint",
+            "markerDigest",
+        }:
+            raise BrowserlessAutomationConflict(
+                "markerProof must contain exactly sessionId, cdpEndpoint, and markerDigest"
+            )
+        discovery = discover_exact_marker(
+            {
+                "sessionId": marker_proof["sessionId"],
+                "cdpEndpoint": marker_proof["cdpEndpoint"],
+            },
+            marker_proof["markerDigest"],
+        )
+        standing = discovery.get("standing")
+        if standing == "NO_MATCH":
+            raise BrowserlessAutomationHold(
+                "conversation adoption found no exact provider conversation"
+            )
+        if standing == "AMBIGUOUS_MATCH":
+            raise BrowserlessAutomationConflict(
+                "conversation adoption found multiple exact provider conversations"
+            )
+        if standing != "EXACT_MATCH" or discovery.get("matchCount") != 1:
+            raise BrowserlessAutomationConflict(
+                "conversation adoption discovery returned an unsupported standing"
+            )
+        resource = discovery.get("providerResource")
+        evidence = discovery.get("evidenceDigest")
+        if not isinstance(resource, str) or not isinstance(evidence, str):
+            raise BrowserlessAutomationConflict(
+                "exact conversation discovery lacks binding evidence"
+            )
+        try:
+            binding = SQLiteConversationBindingStore(self.config.ledger).adopt_binding(
+                campaign_ref=campaign_ref,
+                agent_id=agent_id,
+                provider_resource=resource,
+                evidence_digest=evidence,
+                request_id=adoption_request_id,
+            )
+        except ConversationBindingConflict as error:
+            raise BrowserlessAutomationConflict(str(error)) from error
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-adoption",
+            "standing": "ADOPTED",
+            "campaignRef": campaign_ref,
+            "agentId": agent_id,
+            "providerResource": binding["providerResource"],
+            "bindingDigest": binding["bindingDigest"],
+            "discoveryEvidenceDigest": evidence,
+            "providerEffectAttempted": False,
+            "sendAttempted": False,
         }
 
     def _turn_effect_row(self, turn_request_id: str) -> dict | None:

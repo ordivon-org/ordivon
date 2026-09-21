@@ -58,6 +58,13 @@ class CampaignSpecInput(BaseModel):
     roster: list[RoleCardInput] = Field(min_length=1, max_length=256)
 
 
+class ConversationMarkerProofInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    sessionId: str = Field(min_length=1, max_length=512)
+    cdpEndpoint: str = Field(min_length=1, max_length=2048)
+    markerDigest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+
 @dataclass(frozen=True, slots=True)
 class McpSettings:
     config_file: Path
@@ -349,6 +356,33 @@ def build_server(settings: McpSettings) -> MCPServer:
         except Exception as error:
             return _tool_error(str(error))
         return await _invoke(current_service().launch_human_resume, path, agentId)
+
+    @server.tool(
+        name="conversation.adopt",
+        title="Adopt existing provider conversation",
+        description="Bind one already-existing provider conversation to a registered campaign role after an exact read-only marker proof. Adoption performs zero provider SEND, fails closed on zero/multiple matches, and persists only the exact binding evidence.",
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+        ),
+    )
+    async def conversation_adopt(
+        campaignRef: str,
+        agentId: str,
+        adoptionRequestId: str,
+        markerProof: ConversationMarkerProofInput,
+    ) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(
+            current_service().adopt_conversation,
+            path,
+            campaignRef,
+            agentId,
+            adoption_request_id=adoptionRequestId,
+            marker_proof=markerProof.model_dump(exclude_none=True),
+        )
 
     @server.tool(
         name="conversation.continue",
