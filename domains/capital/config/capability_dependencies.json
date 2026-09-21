@@ -32,24 +32,29 @@
       "duckdbVersion": "1.5.5",
       "interpreter": "./.venv/bin/python",
       "nonResponsibility": "does not implement a generic Research/Data platform, experiment-tracking server, lineage graph, scientific-method authority, Wave-A research pipeline, or borrow the ordivon-research-v2 virtualenv",
-      "provider": "PyArrow / DuckDB / jsonschema / NumPy / SciPy / scikit-learn primitives consumed directly by the Capital Risk/Research domains",
+      "provider": "PyArrow / DuckDB / NumPy / SciPy / scikit-learn primitives consumed directly by the Capital Risk/Research domains",
       "pythonVersion": "3.14.7",
       "requiredPythonModules": [
-        "jsonschema",
         "numpy",
         "pyarrow",
         "scikit-learn",
         "scipy"
       ],
-      "responsibility": "bounded monitoring-evidence validation/materialization/readback plus quantitative-inventory schema validation and admitted numerical/model primitives",
+      "responsibility": "bounded monitoring-evidence materialization/readback plus admitted numerical/model primitives; fixed Risk/Research document contracts are validated by domain-local bounded validators",
       "removedBroadDependencies": {
         "mlflow": "NO_ACTIVE_EXPERIMENT_TRACKING_CONTRACT",
         "pandera": "SINGLE_BOUNDED_SCHEMA_REPLACED_AFTER_400_CASE_ZERO_MISMATCH_DIFFERENTIAL",
-        "pandas": "NO_REMAINING_DIRECT_CONSUMER"
+        "pandas": "NO_REMAINING_DIRECT_CONSUMER",
+        "jsonschema": "TWO_FIXED_SCHEMAS_REPLACED_BY_DOMAIN_LOCAL_VALIDATORS_AFTER_R18_6000_CASE_ZERO_MISMATCH_DIFFERENTIAL"
       },
       "parquetQualificationContract": "contracts/parquet-materialization-readback-v1.json",
       "parquetOwnerStanding": "PYARROW_25_0_1_REQUALIFIED_R16",
-      "independentReadbackOwnerStanding": "DUCKDB_1_5_5_REQUALIFIED_R16"
+      "independentReadbackOwnerStanding": "DUCKDB_1_5_5_REQUALIFIED_R16",
+      "boundedDocumentValidators": {
+        "riskBudget": "src/ordivon_capital/risk/risk_budget_validation.py",
+        "quantitativeInventory": "src/ordivon_capital/research/quantitative_inventory_validation.py",
+        "standing": "R18_LOCAL_EXACT_CONTRACT_VALIDATORS"
+      }
     },
     "publicWebSocketProtocol": {
       "provider": "websockets",

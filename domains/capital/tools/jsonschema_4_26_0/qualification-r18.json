@@ -1,0 +1,71 @@
+{
+  "activeContracts": [
+    "contracts/portfolio-risk-budget-v2.schema.json",
+    "schema/quantitative_component_inventory.schema.json"
+  ],
+  "asOfDate": "2026-09-21",
+  "canonicalLocalImplementation": {
+    "benchmarkPairs": 5000,
+    "externalMs": 6694.126870992477,
+    "files": [
+      "src/ordivon_capital/risk/risk_budget_validation.py",
+      "src/ordivon_capital/research/quantitative_inventory_validation.py"
+    ],
+    "functionLoc": 212,
+    "localMs": 281.20293900428806,
+    "physicalLoc": 277,
+    "schemaIdentityBinding": "SHA256_FAIL_CLOSED",
+    "speedup": 23.805323282522302
+  },
+  "decision": "Replace the generic jsonschema runtime dependency with two explicit domain-local validators for the two current fixed contracts. Do not claim a general JSON Schema implementation. Requalify jsonschema if schemas grow into refs/combinators/formats/recursion or otherwise exceed the bounded validators.",
+  "differential": {
+    "canonicalImplementationReplay": "PASS_ZERO_MISMATCH_6000",
+    "inventoryCases": 4000,
+    "mismatches": 0,
+    "riskCases": 2000,
+    "seed": 20260921,
+    "totalCases": 6000
+  },
+  "externalCandidate": {
+    "name": "jsonschema",
+    "python": "3.14.7",
+    "roleAfterR18": "HISTORICAL_DIFFERENTIAL_ORACLE_AND_FUTURE_COMPLEX_SCHEMA_CANDIDATE",
+    "version": "4.26.0"
+  },
+  "externalDependencyClosure": {
+    "bytes": 1874489,
+    "packages": {
+      "attrs": {
+        "bytes": 233865,
+        "version": "26.1.0"
+      },
+      "jsonschema": {
+        "bytes": 476734,
+        "version": "4.26.0"
+      },
+      "jsonschema-specifications": {
+        "bytes": 47479,
+        "version": "2025.9.1"
+      },
+      "referencing": {
+        "bytes": 115554,
+        "version": "0.37.0"
+      },
+      "rpds-py": {
+        "bytes": 1000857,
+        "version": "2026.6.3"
+      }
+    }
+  },
+  "externalFinancialWriteAttempted": false,
+  "kind": "ordivon.capital.jsonschema-owner-requalification-r18",
+  "localBaseline": {
+    "benchmarkPairs": 5000,
+    "externalMs": 6660.905347001972,
+    "localMs": 320.0903050019406,
+    "productionCandidateLoc": 189,
+    "speedup": 20.80945671554029
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_LOCAL_BOUNDED_VALIDATORS_PREFERRED"
+}

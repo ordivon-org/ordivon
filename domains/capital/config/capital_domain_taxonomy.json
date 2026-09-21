@@ -52,7 +52,8 @@
       "portfolio_counterfactuals.py"
     ],
     "risk": [
-      "portfolio_risk.py"
+      "portfolio_risk.py",
+      "risk_budget_validation.py"
     ],
     "research": [
       "model_monitoring.py",
@@ -60,6 +61,7 @@
       "monitoring_persistence_cli.py",
       "okx_factor_observer.py",
       "prospective_validation.py",
+      "quantitative_inventory_validation.py",
       "standards_inventory.py"
     ],
     "governance": [
