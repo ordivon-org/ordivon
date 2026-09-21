@@ -28,3 +28,9 @@ Public authentication is intentionally standardized on the same Cloudflare Acces
 ## Cloudflare machine-client note
 
 The zone currently has Browser Integrity Check enabled. Validation on 2026-09-16 showed that Cloudflare Error 1010 is triggered specifically by the default `Python-urllib/3.12` browser signature, while explicit machine-client signatures including `python-httpx/0.28.1`, `mcp-python/2.0.0`, `OpenAI-MCP/1.0`, `ChatGPT-MCP/1.0`, and Node reached the Access/origin boundary normally. Therefore BIC does not need to be disabled for the MCP hostname today. The readiness checker sends its own explicit machine-client User-Agent rather than relying on urllib's default signature.
+
+## Retained-consumer boundary
+
+As of 2026-09-21, ChatGPT is the only evidence-backed consumer that requires this public compatibility bridge. Local Codex and Hermes installations consume their own native Agent Skill roots and must not be configured to call this endpoint merely because those roots are also projected as bridge input sources. The canonical consumer census is recorded in `docs/architecture/C03_SKILL_BRIDGE_CONSUMER_CENSUS_R1.md`.
+
+The bridge remains temporary. Retire it when ChatGPT can directly consume the same local Agent Skills / Agent Plugin package with equivalent discovery, exact activation/read, refresh and trust semantics.

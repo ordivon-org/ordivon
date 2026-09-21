@@ -16,7 +16,11 @@ Environment=ORDIVON_GATEWAY_PATH=/mcp
 Environment=ORDIVON_GATEWAY_LINUX_RUNTIME_URL=http://127.0.0.1:8897/mcp
 Environment=ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE=%d/linux-runtime-bearer
 Environment=ORDIVON_GATEWAY_HOST_URL=http://127.0.0.1:8898/mcp
-ExecStart=/opt/ordivon/gateway/current/.venv/bin/ordivon-gateway
+Environment=OTEL_SERVICE_NAME=ordivon-gateway
+Environment=OTEL_TRACES_EXPORTER=none
+Environment=OTEL_METRICS_EXPORTER=none
+Environment=OTEL_LOGS_EXPORTER=none
+ExecStart=/opt/ordivon/gateway/current/.venv/bin/opentelemetry-instrument /opt/ordivon/gateway/current/.venv/bin/ordivon-gateway
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=20

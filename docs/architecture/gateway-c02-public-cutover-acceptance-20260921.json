@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-c02-public-cutover-acceptance",
+  "date": "2026-09-21",
+  "status": "ACCEPTED",
+  "publicHostname": "gateway-mcp.ordivon.com",
+  "gatewayRelease": "c0d6f94fd69c10d7c3112f515c00dc6d66d25688",
+  "cloudflare": {
+    "planSha256": "0869b0cd6500f62fe2e074c96ac0e67ceec6f9153388046172957ba4d34d637a",
+    "sourceCommit": "18976e1f0ac64a7bff198548527ec2fbdde270ba",
+    "sourceDigest": "sha256:f3c9c126f7a3ae03979ddd5da4a6e99e627518abdb35ad3f6a7dfe8be7e24466",
+    "counts": {
+      "create": 0,
+      "update": 0,
+      "delete": 0,
+      "replace": 0,
+      "noOp": 10
+    },
+    "safeNoDeleteReplace": true,
+    "semanticGate": true,
+    "eligibleForApply": true,
+    "applyStatus": "applied",
+    "zeroDrift": true,
+    "gatewayAudience": "033a28ccc44c7a696b0e09bf7b8c533a8ab3454e198c8d10aad570ab992e04ae",
+    "windowsServiceAuth": {
+      "policyDisposition": "existing",
+      "verified": true,
+      "credentialsMaterialized": true,
+      "credentialMode": "0600",
+      "credentialOwner": "root:root"
+    }
+  },
+  "deployment": {
+    "loopback": "127.0.0.1:8899",
+    "serviceActive": true,
+    "serviceEnabled": true,
+    "accessJwtVerification": true,
+    "healthGreen": true
+  },
+  "publicE2E": {
+    "unauthenticatedBoundary": {
+      "httpStatus": 401,
+      "cloudflareManagedOAuthChallenge": true
+    },
+    "authenticatedDiscovery": true,
+    "hostContinuityRead": true,
+    "projectionDigest": "sha256:9389efa988373d5e921c982185c4ba907dcc8f0db186e5b09677dfb4cb4d296f",
+    "linux": {
+      "operationRef": "ordivon-exec:v1:runtime.linux:job-01a0c412-3113-78a2-84c1-1547ec4ac080",
+      "state": "succeeded",
+      "terminal": true,
+      "deliveryDisposition": "committed",
+      "executionDisposition": "succeeded",
+      "exitCode": 0,
+      "recoveryRequired": false,
+      "artifactCount": 4
+    },
+    "windows": {
+      "workspaceId": "ws-win-launch-identity-diagnosis-r1-20260921",
+      "operationRef": "ordivon-exec:v1:runtime.windows:job-01a0c413-2594-76c3-8c2d-e8b411696f25",
+      "authority": "limited",
+      "state": "succeeded",
+      "terminal": true,
+      "deliveryDisposition": "committed",
+      "executionDisposition": "succeeded",
+      "exitCode": 0,
+      "recoveryRequired": false,
+      "artifactCount": 5,
+      "windowsStartArtifact": true
+    }
+  },
+  "residuals": [
+    {
+      "id": "consumer-tool-catalog-cache",
+      "owner": "consumer",
+      "severity": "non-blocking-for-c02",
+      "observation": "ChatGPT connector still advertises retired capability.list; live Gateway returns Unknown tool for it.",
+      "carriedTo": "P03-real-consumer-e2e"
+    }
+  ],
+  "authorizes": [
+    "W3-single-gateway-agent-plugin"
+  ],
+  "nonClaims": [
+    "Agent Plugin cutover complete",
+    "consumer connector metadata refreshed",
+    "direct Runtime/Host public endpoints retired",
+    "Skills MCP bridge retired",
+    "domain semantic success",
+    "Gateway owns Runtime/Host/domain truth"
+  ]
+}

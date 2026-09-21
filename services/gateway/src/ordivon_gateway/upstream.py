@@ -10,6 +10,7 @@ from typing import Any, Protocol
 
 from mcp import Client
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
+from mcp.shared._otel import inject_trace_context
 
 
 class OwnerCallError(RuntimeError):
@@ -164,7 +165,13 @@ class McpOwnerCaller:
             # MCP v2 Client owns modern discovery, output-schema validation, and
             # legacy fallback. Gateway does not hand-code protocol negotiation.
             async with Client(transport, mode="auto", raise_exceptions=False) as client:
-                result = await client.call_tool(tool_name, arguments)
+                meta: dict[str, Any] = {}
+                inject_trace_context(meta)
+                result = await client.call_tool(
+                    tool_name,
+                    arguments,
+                    meta=meta or None,
+                )
 
         if result.is_error:
             detail = None

@@ -14,7 +14,7 @@ from ordivon_gateway.service import GatewayError, GatewayService
 class FakeOwnerCaller:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, dict[str, Any]]] = []
-        self.responses: dict[tuple[str, str], dict[str, Any]] = {}
+        self.responses: dict[tuple[str, str], dict[str, Any] | list[dict[str, Any]]] = {}
 
     async def call_tool(
         self, owner_id: str, tool_name: str, arguments: dict[str, Any]
@@ -23,7 +23,12 @@ class FakeOwnerCaller:
         key = (owner_id, tool_name)
         if key not in self.responses:
             raise AssertionError(f"unexpected owner call: {key}")
-        return self.responses[key]
+        response = self.responses[key]
+        if isinstance(response, list):
+            if not response:
+                raise AssertionError(f"exhausted owner response sequence: {key}")
+            return response.pop(0)
+        return response
 
 
 def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
@@ -54,6 +59,13 @@ def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
     assert tool.output_schema is not None
     assert tool.output_schema.get("type") is None
     assert len(tool.output_schema["oneOf"]) == 2
+
+
+def test_gateway_server_registers_sdk_open_telemetry_middleware() -> None:
+    from mcp.server._otel import OpenTelemetryMiddleware
+
+    server = build_server(GatewayService(FakeOwnerCaller()))
+    assert any(isinstance(item, OpenTelemetryMiddleware) for item in server.middleware)
 
 
 def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
@@ -149,6 +161,26 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
     )
     assert caller.calls[-1][2]["execution"]["windowsAuthority"] == "future_provider_context"
 
+    caller.responses[("runtime.windows", "workspace.exec")]["jobId"] = "job-win-3"
+    asyncio.run(
+        service.execution_submit(
+            capability="execution.windows",
+            request_id="req-env",
+            workspace_id="ws-win",
+            executable=r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            args=["-NoProfile"],
+            context="active_user",
+            env={
+                "ORDIVON_JEV_TYPESAFE_DPAPI_FILE": r"C:\Users\u\secret.dpapi",
+                "PYTHONUTF8": "1",
+            },
+        )
+    )
+    assert caller.calls[-1][2]["execution"]["env"] == {
+        "ORDIVON_JEV_TYPESAFE_DPAPI_FILE": r"C:\Users\u\secret.dpapi",
+        "PYTHONUTF8": "1",
+    }
+
 
 def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     caller = FakeOwnerCaller()
@@ -175,6 +207,15 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
             },
         ],
     }
+    caller.responses[("runtime.windows", "job.get")] = {
+        "job": {"jobId": "job-9"},
+        "artifacts": {
+            "count": 2,
+            "bytes": 123,
+            "truncated": 0,
+            "byKind": {"stdout": 1, "terminal_evidence": 1},
+        },
+    }
     caller.responses[("runtime.windows", "job.cancel")] = {
         "jobId": "job-9",
         "status": "cancelled",
@@ -187,20 +228,15 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
     observed = asyncio.run(service.execution_get(ref))
     assert observed.native_id == "job-9"
     assert observed.exit_code == 0
+    assert observed.artifacts_available is True
     assert observed.artifact_count == 2
     assert observed.artifact_ids == ["artifact-stdout", "artifact-terminal"]
+    assert observed.artifact_projection_complete is True
     assert observed.recovery_required is False
     assert caller.calls[-1] == (
         "runtime.windows",
-        "job.observe",
-        {
-            "schemaVersion": 1,
-            "jobId": "job-9",
-            "waitMs": 0,
-            "waitUntil": "change_or_terminal",
-            "stdoutTailBytes": 0,
-            "stderrTailBytes": 0,
-        },
+        "job.get",
+        {"schemaVersion": 1, "jobId": "job-9", "eventLimit": 1},
     )
 
     cancelled = asyncio.run(service.execution_cancel(ref))
@@ -210,6 +246,73 @@ def test_execution_get_and_cancel_route_by_operation_reference() -> None:
         "job.cancel",
         {"schemaVersion": 1, "jobId": "job-9"},
     )
+
+
+def test_execution_get_reobserves_when_terminal_artifacts_lag_summary() -> None:
+    caller = FakeOwnerCaller()
+    caller.responses[("runtime.windows", "job.observe")] = [
+        {
+            "jobId": "job-lag",
+            "status": "succeeded",
+            "executionTerminal": True,
+            "executionDisposition": "succeeded",
+            "deliveryDisposition": "committed",
+            "exitCode": 0,
+            "recoveryRequired": False,
+            "artifactsAvailable": True,
+            "artifacts": [],
+        },
+        {
+            "jobId": "job-lag",
+            "status": "succeeded",
+            "executionTerminal": True,
+            "executionDisposition": "succeeded",
+            "deliveryDisposition": "committed",
+            "exitCode": 0,
+            "recoveryRequired": False,
+            "artifactsAvailable": True,
+            "artifacts": [
+                {"artifactId": "a.stdout", "kind": "stdout", "digest": "sha256:a"},
+                {"artifactId": "a.result", "kind": "execution_result", "digest": "sha256:b"},
+            ],
+        },
+    ]
+    caller.responses[("runtime.windows", "job.get")] = {
+        "job": {"jobId": "job-lag"},
+        "artifacts": {"count": 2, "bytes": 10, "truncated": 0, "byKind": {}},
+    }
+    service = GatewayService(caller)
+    observed = asyncio.run(service.execution_get("ordivon-exec:v1:runtime.windows:job-lag"))
+    assert observed.artifact_count == 2
+    assert observed.artifact_ids == ["a.stdout", "a.result"]
+    assert observed.artifact_projection_complete is True
+    assert [call[1] for call in caller.calls] == ["job.observe", "job.get", "job.observe"]
+
+
+def test_execution_get_preserves_incomplete_artifact_projection_without_inventing_ids() -> None:
+    caller = FakeOwnerCaller()
+    empty = {
+        "jobId": "job-lag",
+        "status": "succeeded",
+        "executionTerminal": True,
+        "executionDisposition": "succeeded",
+        "deliveryDisposition": "committed",
+        "exitCode": 0,
+        "recoveryRequired": False,
+        "artifactsAvailable": True,
+        "artifacts": [],
+    }
+    caller.responses[("runtime.windows", "job.observe")] = [dict(empty), dict(empty)]
+    caller.responses[("runtime.windows", "job.get")] = {
+        "job": {"jobId": "job-lag"},
+        "artifacts": {"count": 2, "bytes": 10, "truncated": 0, "byKind": {}},
+    }
+    service = GatewayService(caller)
+    observed = asyncio.run(service.execution_get("ordivon-exec:v1:runtime.windows:job-lag"))
+    assert observed.artifacts_available is True
+    assert observed.artifact_count == 2
+    assert observed.artifact_ids == []
+    assert observed.artifact_projection_complete is False
 
 
 def test_artifact_read_is_bound_to_execution_owner() -> None:

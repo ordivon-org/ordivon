@@ -231,7 +231,7 @@ def main() -> int:
     parser.add_argument("--namespace", default="default")
     parser.add_argument("--suffix", required=True)
     parser.add_argument("--driver", required=True)
-    parser.add_argument("--harness-python", default="/root/projects/ordivon-harness/.venv/bin/python")
+    parser.add_argument("--harness-python", default="/root/projects/ordivon/services/harness/.venv/bin/python")
     parser.add_argument("--harness-source-root", required=True)
     args = parser.parse_args()
     print(json.dumps(asyncio.run(execute(args)), sort_keys=True))

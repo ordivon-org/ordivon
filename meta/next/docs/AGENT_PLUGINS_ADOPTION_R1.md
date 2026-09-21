@@ -107,7 +107,7 @@ The materializer intentionally does **not** implement another Agent Skills YAML/
 
 The current Skill MCP implementation is not the target Skill architecture. It is a **temporary compatibility bridge** for remote/client gaps.
 
-The bridge is currently publicly reachable at `skills-mcp.ordivon.com` behind a dedicated Cloudflare Access Managed OAuth application while the origin remains loopback-bound. Public reachability does not promote the bridge into canonical Skill ownership. It exists only because a remote ChatGPT-style consumer cannot directly read the local filesystem/package state.
+The bridge is currently publicly reachable at `skills-mcp.ordivon.com` behind a dedicated Cloudflare Access Managed OAuth application while the origin remains loopback-bound. Public reachability does not promote the bridge into canonical Skill ownership. The current evidence-backed retained consumer is ChatGPT: it cannot directly read the same local Ordivon/vendor Agent Skill filesystem/package state. Local Codex and Hermes clients use native Skill roots and are not bridge consumers; their roots may still appear as bridge input sources for the remote ChatGPT projection.
 
 Allowed bridge responsibilities are limited to:
 

@@ -1,0 +1,27 @@
+[Unit]
+Description=Ordivon Operations Tempo trace backend
+PartOf=ordivon-observability-heavy.target
+Before=vector.service ordivon-grafana.service
+
+[Container]
+Image=docker.io/grafana/tempo@sha256:0296560ac66f8a3600d7fb3014a52c189d4d9c3549ad6ff441bf2409855d68d5
+ContainerName=ordivon-tempo
+Pull=never
+Network=host
+User=10001
+Group=10001
+Volume=/var/lib/ordivon-operations/tempo:/var/tempo
+Volume=/etc/ordivon-tempo/tempo.yaml:/etc/tempo.yaml:ro
+Exec=-target=all -config.file=/etc/tempo.yaml
+ReadOnly=true
+ReadOnlyTmpfs=true
+Tmpfs=/tmp:rw,mode=1777
+NoNewPrivileges=true
+DropCapability=all
+StopTimeout=60
+
+[Service]
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=120
+TimeoutStopSec=75

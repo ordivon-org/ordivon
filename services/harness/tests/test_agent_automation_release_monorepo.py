@@ -56,6 +56,25 @@ def test_monorepo_materialization_strips_harness_subtree_without_changing_releas
     assert marker["sourceSubtree"] == "services/harness"
 
 
+def test_exact_commit_is_owner_scoped_from_git_root_or_owner_subtree(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    init(repo)
+    harness = repo / "services/harness"
+    harness.mkdir(parents=True)
+    (harness / "owner.txt").write_text("one\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-qm", "owner")
+    owner_commit = git(repo, "rev-parse", "HEAD")
+    (repo / "unrelated.txt").write_text("outside\n")
+    git(repo, "add", "unrelated.txt")
+    git(repo, "commit", "-qm", "unrelated")
+    repo_head = git(repo, "rev-parse", "HEAD")
+    assert repo_head != owner_commit
+    assert release.exact_commit(repo, "HEAD") == owner_commit
+    assert release.exact_commit(harness, "HEAD") == owner_commit
+    assert release.source_repo_identity(harness) == str(repo.resolve())
+
+
 def test_standalone_fixture_materialization_remains_supported(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     releases = tmp_path / "releases"

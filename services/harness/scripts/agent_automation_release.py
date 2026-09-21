@@ -424,16 +424,21 @@ def finalize_materialization_state_migration(receipt: dict) -> dict:
     return {**receipt, "standing": "FINALIZED"}
 
 
-def exact_commit(repo: Path, revision: str) -> str:
-    p = run(["/usr/bin/git", "-C", str(repo), "rev-parse", "--verify", f"{revision}^{{commit}}"])
-    v = p.stdout.strip()
-    if len(v) != 40 or any(c not in "0123456789abcdef" for c in v):
-        raise ReleaseError("revision is not one exact Git commit")
-    return v
+def git_top_level(repo: Path) -> Path:
+    proc = run(
+        ["/usr/bin/git", "-C", str(repo), "rev-parse", "--show-toplevel"],
+        timeout=20,
+    )
+    value = Path(proc.stdout.strip())
+    try:
+        return value.resolve(strict=True)
+    except OSError as error:
+        raise ReleaseError(f"Git top-level repository unavailable: {value}") from error
 
 
 def release_source_subtree(repo: Path, commit: str) -> Path | None:
-    """Return the Harness source subtree present in this exact commit, if any."""
+    """Return the Harness owner subtree present in this exact commit, if any."""
+    repo = git_top_level(repo)
     probe = run(
         [
             "/usr/bin/git",
@@ -449,7 +454,43 @@ def release_source_subtree(repo: Path, commit: str) -> Path | None:
     return SOURCE_SUBTREE if probe.returncode == 0 else None
 
 
+def exact_commit(repo: Path, revision: str) -> str:
+    """Resolve a revision to the exact owner-scoped Harness commit identity.
+
+    In the modular monorepo, unrelated sibling-owner commits do not mint new Harness releases.
+    Standalone fixture repositories retain ordinary repository commit identity.
+    """
+    git_root = git_top_level(repo)
+    p = run(
+        ["/usr/bin/git", "-C", str(git_root), "rev-parse", "--verify", f"{revision}^{{commit}}"],
+        timeout=20,
+    )
+    value = p.stdout.strip()
+    if len(value) != 40 or any(c not in "0123456789abcdef" for c in value):
+        raise ReleaseError("revision is not one exact Git commit")
+    subtree = release_source_subtree(git_root, value)
+    if subtree is None:
+        return value
+    owner = run(
+        [
+            "/usr/bin/git",
+            "-C",
+            str(git_root),
+            "log",
+            "-1",
+            "--format=%H",
+            value,
+            "--",
+            f":(top){subtree.as_posix()}",
+        ],
+        timeout=20,
+    ).stdout.strip()
+    if len(owner) != 40 or any(c not in "0123456789abcdef" for c in owner):
+        raise ReleaseError("revision has no exact commit for the Harness owner subtree")
+    return owner
+
 def archive_bytes(repo: Path, commit: str, *, source_subtree: Path | None = None) -> bytes:
+    repo = git_top_level(repo)
     subtree = release_source_subtree(repo, commit) if source_subtree is None else source_subtree
     paths = (
         tuple((subtree / path).as_posix() for path in RELEASE_PATHS)
@@ -478,7 +519,7 @@ def marker(path: Path) -> dict | None:
 
 
 def materialize(repo: Path, commit: str, release_root: Path = RELEASE_ROOT) -> dict:
-    repo = Path(repo)
+    repo = git_top_level(Path(repo))
     subtree = release_source_subtree(repo, commit)
     raw = archive_bytes(repo, commit, source_subtree=subtree)
     ad = sha(raw)
@@ -866,9 +907,9 @@ def restore_optional_file(path: Path, raw: bytes | None, mode: int) -> None:
 def source_repo_identity(repo: Path | None = None) -> str:
     repo = SOURCE_REPO if repo is None else Path(repo)
     try:
-        return str(repo.resolve(strict=True))
-    except OSError as e:
-        raise ReleaseError(f"Agent Automation source repository unavailable: {repo}") from e
+        return str(git_top_level(repo))
+    except (OSError, ReleaseError) as error:
+        raise ReleaseError(f"Agent Automation source repository unavailable: {repo}") from error
 
 
 def _close_admission(commit: str, repo: Path | None = None) -> None:

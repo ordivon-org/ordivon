@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.deployed-architecture",
+  "observedDate": "2026-09-21",
+  "status": "CURRENT_DEPLOYED_BASELINE",
+  "defaultNorthbound": {
+    "component": "gateway",
+    "protocol": "MCP",
+    "endpoint": "https://gateway-mcp.ordivon.com/mcp",
+    "authoritative": false,
+    "directRuntimeHostAreDefault": false
+  },
+  "routers": {
+    "methodRouter": {
+      "kind": "agent-skill",
+      "path": "meta/next/.agents/skills/method-router/SKILL.md",
+      "status": "deployed",
+      "authority": "advisory-procedure-only"
+    },
+    "capabilityRouter": {
+      "kind": "gateway-static-owner-projection",
+      "path": "services/gateway/src/ordivon_gateway/routes.py",
+      "status": "deployed",
+      "authority": "non-authoritative-routing-projection",
+      "capabilities": [
+        "artifact.runtime",
+        "continuity.external",
+        "execution.linux",
+        "execution.windows"
+      ]
+    }
+  },
+  "owners": [
+    {
+      "id": "gateway",
+      "status": "deployed",
+      "authority": "northbound ABI/routing/compatibility/projection only"
+    },
+    {
+      "id": "runtime.linux",
+      "status": "deployed",
+      "authority": "Linux Workspace/Job/Attempt/execution/artifact physical truth"
+    },
+    {
+      "id": "runtime.windows",
+      "status": "deployed",
+      "authority": "Windows Workspace/Job/Attempt/execution/artifact physical truth"
+    },
+    {
+      "id": "host",
+      "status": "deployed",
+      "authority": "external semantic continuity/checkpoint/collaboration"
+    },
+    {
+      "id": "harness",
+      "status": "deployed-separate",
+      "authority": "bounded Agent Run/cognition/provider-tool continuity",
+      "gatewayRouted": false
+    },
+    {
+      "id": "workstation",
+      "status": "deployed",
+      "authority": "node/service/deployment/platform realization"
+    },
+    {
+      "id": "cloudflare-access-oauth",
+      "status": "deployed",
+      "authority": "public authentication and provider IAM"
+    },
+    {
+      "id": "tempo",
+      "status": "deployed-on-demand",
+      "authority": "trace persistence/query only; observability is non-authoritative"
+    }
+  ],
+  "compatibilitySurfaces": [
+    {
+      "id": "runtime-direct-mcp",
+      "standing": "operator-admin-recovery-only"
+    },
+    {
+      "id": "host-direct-mcp",
+      "standing": "operator-admin-recovery-only"
+    },
+    {
+      "id": "skills-mcp",
+      "standing": "exact-chatgpt-compatibility-edge"
+    }
+  ],
+  "retired": [
+    {
+      "id": "agent-service",
+      "standing": "RETIRED_DO_NOT_RECONSTRUCT"
+    }
+  ],
+  "notAdmitted": [
+    "gateway-database",
+    "gateway-task-workflow-authority",
+    "universal-capability-registry",
+    "agent-service-replacement",
+    "always-on-mandatory-trace-backend",
+    "proven-temporal-cross-process-trace-propagation",
+    "universal-third-party-mcp-proxy"
+  ],
+  "observability": {
+    "status": "deployed-on-demand",
+    "truthRole": "observability-only-non-authoritative",
+    "ingress": {
+      "owner": "vector",
+      "otlpGrpc": "127.0.0.1:4317",
+      "otlpHttp": "127.0.0.1:4318",
+      "preserveOtlpTraces": true
+    },
+    "traceBackend": {
+      "owner": "tempo",
+      "version": "3.0.3",
+      "otlpHttp": "127.0.0.1:14318",
+      "queryApi": "127.0.0.1:3200",
+      "storage": "local",
+      "activation": "ordivon-observability-heavy.target"
+    },
+    "gatewayExport": {
+      "base": "OTEL_TRACES_EXPORTER=none",
+      "activation": "40-otel-traces.example.conf",
+      "requiredForProductCorrectness": false
+    },
+    "defaultPosture": "cold-inactive"
+  }
+}

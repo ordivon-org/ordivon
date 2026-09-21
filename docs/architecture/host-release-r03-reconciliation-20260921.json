@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-release-reconciliation-receipt",
+  "observedDate": "2026-09-21",
+  "status": "ACCEPTED",
+  "source": {
+    "gitCommit": "69e8fc5f231c2c95cd5c5aac3f184e53989ecb04",
+    "sourceSubtree": "services/host",
+    "gitTreeObject": "4203ec1818446748a150a8e5825c4f89ee1268ec",
+    "subtreeArchiveSha256": "sha256:278b472fbe82a0fa4cb1db93646d48f6412ae3397bf86ef9dc43dcb4f6d64387"
+  },
+  "release": {
+    "prefix": "/opt/ordivon/host-v2",
+    "releaseDirectory": "/opt/ordivon/host-v2/releases/69e8fc5f231c2c95cd5c5aac3f184e53989ecb04",
+    "currentPointer": "/opt/ordivon/host-v2/releases/69e8fc5f231c2c95cd5c5aac3f184e53989ecb04",
+    "previousObservedRelease": "/opt/ordivon/host-v2/releases/a95a8e112edfbe85582ff8e6fa25bb268038ea48",
+    "installerSourceSubtreeReceipt": "services/host",
+    "pythonRequest": "3.14.7",
+    "packageName": "ordivon-host-v2",
+    "packageVersion": "0.1.0",
+    "immutableRelease": true
+  },
+  "liveService": {
+    "systemdUnit": "ordivon-host-v2.service",
+    "activeState": "active",
+    "subState": "running",
+    "result": "success",
+    "restartCount": 0,
+    "dynamicUser": true
+  },
+  "mcp": {
+    "serverInfo": {
+      "name": "ordivon-host-v2",
+      "version": "0.1.0"
+    },
+    "protocolVersion": "2025-11-25",
+    "capabilityKeys": [
+      "experimental",
+      "prompts",
+      "resources",
+      "tools"
+    ],
+    "toolCount": 10,
+    "toolNames": [
+      "attention.delta",
+      "board.list",
+      "board.post",
+      "board.search",
+      "host.status",
+      "task.adopt",
+      "task.checkpoint",
+      "task.list",
+      "task.observe",
+      "task.resume"
+    ],
+    "toolCatalogDigest": "sha256:80d5cdc944479874e8b114429cdfbef61f5f630742ba1396c34ae2de96ebd571"
+  },
+  "journal": {
+    "backend": "postgresql",
+    "schemaVersion": 5,
+    "doctorHealthy": true,
+    "doctorChecks": {
+      "postgres.schema": "ok",
+      "task.current_checkpoint": "ok",
+      "task.current_event": "ok",
+      "command_receipts.complete": "ok",
+      "board.reply_integrity": "ok"
+    }
+  },
+  "identityBoundary": {
+    "gitCommit": "immutable source/release selection identity",
+    "gitTreeObject": "exact services/host source-tree content identity",
+    "subtreeArchiveSha256": "portable archived subtree content witness",
+    "packageVersion": "Python package semantic version only",
+    "mcpServerInfo": "MCP implementation-advertised name/version only",
+    "journalSchemaVersion": "PostgreSQL continuity schema identity only",
+    "toolCatalogDigest": "live normalized MCP tool-catalog identity only"
+  },
+  "acceptance": {
+    "canonicalMonorepoInstallerVerified": true,
+    "canonicalReleaseDeployed": true,
+    "sourceSubtreeReceiptVerified": true,
+    "liveHostHealthy": true,
+    "liveToolCatalogObserved": true,
+    "journalIntegrityHealthy": true,
+    "identityAxesKeptDistinct": true
+  }
+}
