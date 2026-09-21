@@ -79,7 +79,8 @@ summary={
   'standing':'PASS_CRYPTO_MECHANICS_TO_FIX44_PROJECTION',
   'purpose':'MECHANICS_ONLY_NON_ECONOMIC',
   'composition':{
-    'sourceMechanics':'NautilusTrader local OMS/Risk evidence',
+    'sourceMechanics':'frozen historical NautilusTrader rc4 mechanics evidence',
+    'sourceMechanicsStanding':'HISTORICAL_CANDIDATE_EVIDENCE_ONLY',
     'orderSemantics':'FIX 4.4 NewOrderSingle',
     'fixImplementation':'LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR',
     'quickfixDifferentialReference':'QuickFIX/n 1.14.1; 120/120 byte-exact; 0 mismatches',
@@ -90,7 +91,7 @@ summary={
   'projectionInputSha256':hashlib.sha256(inputp.read_bytes()).hexdigest(),
   'projectionOutputSha256':hashlib.sha256(projectedp.read_bytes()).hexdigest(),
   'projectedIntents':rows,
-  'identityContinuity':'Nautilus mechanics clientOrderId == FIX ClOrdID',
+  'identityContinuity':'frozen mechanics evidence clientOrderId == FIX ClOrdID',
   'networkSessionEnabled':False,
   'brokerCredentialsUsed':False,
   'privateAccountDataUsed':False,

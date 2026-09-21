@@ -1,9 +1,18 @@
 from __future__ import annotations
 
-from ordivon_capital.trading.nonlive_effect_qualification import (
-    reconcile_nautilus_episode,
-    reconcile_unknown_after_submission,
-)
+import importlib.util
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+MODULE_PATH = ROOT / "tools/nautilus_rc4/nonlive_effect_qualification.py"
+
+spec = importlib.util.spec_from_file_location("nautilus_rc4_nonlive_effect_qualification", MODULE_PATH)
+assert spec is not None and spec.loader is not None
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+reconcile_nautilus_episode = module.reconcile_nautilus_episode
+reconcile_unknown_after_submission = module.reconcile_unknown_after_submission
 
 
 def episode(status: str, *, filled: str = "0", fills=None):

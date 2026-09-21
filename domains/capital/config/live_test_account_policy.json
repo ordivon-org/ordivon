@@ -69,7 +69,6 @@
     "OKX": {
       "credentialPermissionEvidence": "evidence/okx-live-provider-binding-20260914.json",
       "endpointClass": "LIVE",
-      "executionProvider": "NautilusTrader 2.0.0rc4 OKX LIVE",
       "executorCredentialBinding": "/root/.config/ordivon/secrets/okx/live-trade/config.toml",
       "observerCredential": "/root/.config/ordivon/secrets/okx/observer/config.toml",
       "providerBinding": "config/okx_live_provider.json",
@@ -79,7 +78,11 @@
       "qualificationStanding": "PASS_CURRENT_PROVIDER_BINDING_NO_ORDER_ADMISSION",
       "role": "TEST_ACCOUNT_BY_OWNER_POLICY",
       "readClient": "LOCAL_BOUNDED_OKX_READONLY_CLIENT",
-      "externalReferenceClient": "@okx_ai/okx-trade-cli 1.4.7"
+      "externalReferenceClient": "@okx_ai/okx-trade-cli 1.4.7",
+      "executionCandidateReference": {
+        "providerBinding": "config/okx_live_provider.json#executionCandidateReference",
+        "standing": "NOT_ADMITTED_CANDIDATE_EVIDENCE_ONLY"
+      }
     }
   },
   "withdrawalAuthorized": false

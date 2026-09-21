@@ -12,5 +12,7 @@
     "UNKNOWN_AFTER_SUBMISSION"
   ],
   "schemaVersion": 2,
-  "effectClassification": "CURRENT_RECONCILIATION_DISPOSITION_CONTRACT"
+  "effectClassification": "CURRENT_RECONCILIATION_DISPOSITION_CONTRACT",
+  "providerBinding": "PROVIDER_NEUTRAL",
+  "candidateQualificationEvidence": "contracts/nonlive-effect-admission-v2.json#qualificationEvidence"
 }
