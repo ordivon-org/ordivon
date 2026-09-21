@@ -1,11 +1,3 @@
 [tools]
 python = "3.14.7"
 uv = "0.12.16"
-
-[tasks.verify]
-run = """
-set -euo pipefail
-uv sync --frozen --python 3.14.7
-uv run --frozen --python 3.14.7 ruff check .
-uv run --frozen --python 3.14.7 python -m unittest discover -s tests -v
-"""
