@@ -185,3 +185,20 @@ The residual Ordivon/Jev-owned responsibility is narrowed to a decision-bound se
 It should bind only the observed facts that materially influenced the decision and fail closed if
 those facts change before mutation. It must not duplicate accessible-name calculation, ARIA role
 semantics, browser candidate enumeration, or general DOM representation.
+
+
+## AX action-space migration probe
+
+An experimental Chromium AX projection was compared directly against the legacy Jev snapshot on the
+same live local fixture page.
+
+- Travel: both produced 13 actions with identical operation counts: 9 CLICK, 1 FILL and 3 SELECT.
+- Research: both produced 6 CLICK actions.
+- Research matched directly for all six normalized action tuples.
+- Travel differences were presentation-level: Jev prefixes the searchbox CLICK label with
+  "Open", while the AX projection preserves the browser-owned accessible name; Jev also flattens
+  SELECT control and option into one label while the AX projection keeps optionName structural.
+
+This supports continuing the AX migration experiment without copying Jev's operation-specific
+presentation strings. It does not prove general web equivalence. Affordance binding and context
+selection remain experimental policy.
