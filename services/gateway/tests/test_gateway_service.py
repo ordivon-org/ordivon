@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from mcp import Client
+from mcp.types import Tool
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayError, GatewayService
@@ -25,6 +26,36 @@ class FakeOwnerCaller:
         return self.responses[key]
 
 
+def test_current_mcp_sdk_accepts_runtime_tool_outcome_union_schema() -> None:
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {
+            "Success": {
+                "type": "object",
+                "properties": {"jobId": {"type": "string"}},
+                "required": ["jobId"],
+            },
+            "Error": {
+                "type": "object",
+                "properties": {"error": {"type": "object"}},
+                "required": ["error"],
+            },
+        },
+        "oneOf": [{"$ref": "#/$defs/Success"}, {"$ref": "#/$defs/Error"}],
+    }
+    tool = Tool.model_validate(
+        {
+            "name": "runtime.synthetic",
+            "description": "Runtime ToolOutcome compatibility fixture",
+            "inputSchema": {"type": "object"},
+            "outputSchema": schema,
+        }
+    )
+    assert tool.output_schema is not None
+    assert tool.output_schema.get("type") is None
+    assert len(tool.output_schema["oneOf"]) == 2
+
+
 def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
     caller = FakeOwnerCaller()
     service = GatewayService(caller)
@@ -33,6 +64,8 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
         async with Client(build_server(service), raise_exceptions=True) as client:
             tools = await client.list_tools()
             by_name = {tool.name: tool for tool in tools.tools}
+            assert "capability.list" not in by_name
+            assert "capability.describe" in by_name
             submit = by_name["execution.submit"].input_schema
             assert "enum" not in submit["properties"]["context"]
             assert "enum" not in submit["properties"]["capability"]

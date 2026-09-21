@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -31,7 +33,6 @@ def test_cloudflare_service_identity_headers_are_loaded_from_private_files(tmp_p
             "https://windows-runtime.example/mcp",
             access_client_id_file=client_id,
             access_client_secret_file=client_secret,
-            validate_tool_results=False,
         )
     )
 
@@ -87,6 +88,65 @@ def test_windows_service_identity_env_is_file_reference_only(
     assert endpoint.bearer_token_file is None
     assert endpoint.access_client_id_file == client_id
     assert endpoint.access_client_secret_file == client_secret
+
+
+def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    import ordivon_gateway.upstream as upstream
+
+    observed: dict[str, object] = {}
+
+    class FakeHttpContext:
+        async def __aenter__(self):
+            return object()
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class FakeClient:
+        def __init__(self, transport, **kwargs):
+            observed["transport"] = transport
+            observed["client_kwargs"] = kwargs
+
+        async def __aenter__(self):
+            observed["entered"] = True
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def call_tool(self, name, arguments):
+            observed["call"] = (name, arguments)
+            return SimpleNamespace(
+                is_error=False,
+                structured_content={"task": {"task_id": "task:1"}},
+                content=[],
+            )
+
+    fake_transport = object()
+    monkeypatch.setattr(upstream, "create_mcp_http_client", lambda headers=None: FakeHttpContext())
+    monkeypatch.setattr(
+        upstream,
+        "streamable_http_client",
+        lambda url, http_client=None: (
+            observed.update({"url": url, "http_client": http_client}) or fake_transport
+        ),
+    )
+    monkeypatch.setattr(upstream, "Client", FakeClient)
+
+    caller = McpOwnerCaller(
+        {
+            "host": OwnerEndpoint(
+                "https://host.example/mcp",
+            )
+        }
+    )
+    result = asyncio.run(caller.call_tool("host", "task.list", {"limit": 1}))
+
+    assert result == {"task": {"task_id": "task:1"}}
+    assert observed["url"] == "https://host.example/mcp"
+    assert observed["transport"] is fake_transport
+    assert observed["client_kwargs"] == {"mode": "auto", "raise_exceptions": False}
+    assert observed["call"] == ("task.list", {"limit": 1})
 
 
 def test_systemd_credential_projection_accepts_provider_native_group_read(

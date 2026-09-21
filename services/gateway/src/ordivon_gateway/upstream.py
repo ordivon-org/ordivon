@@ -8,20 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-from mcp import ClientSession
+from mcp import Client
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
-from mcp.types import CallToolResult
 
 
 class OwnerCallError(RuntimeError):
     pass
-
-
-class _RuntimeCompatibilitySession(ClientSession):
-    """Use MCP transport/session semantics while skipping incompatible tools/list validation."""
-
-    async def validate_tool_result(self, name: str, result: CallToolResult) -> None:
-        return None
 
 
 @dataclass(frozen=True)
@@ -30,7 +22,6 @@ class OwnerEndpoint:
     bearer_token_file: str | None = None
     access_client_id_file: str | None = None
     access_client_secret_file: str | None = None
-    validate_tool_results: bool = True
 
 
 class OwnerToolCaller(Protocol):
@@ -117,7 +108,6 @@ class McpOwnerCaller:
                 bearer_token_file=endpoint.bearer_token_file,
                 access_client_id_file=endpoint.access_client_id_file,
                 access_client_secret_file=endpoint.access_client_secret_file,
-                validate_tool_results=endpoint.validate_tool_results,
             )
         self._owners = normalized
 
@@ -128,19 +118,16 @@ class McpOwnerCaller:
             "runtime.linux": {
                 "url": "ORDIVON_GATEWAY_LINUX_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE",
-                "validate": False,
             },
             "runtime.windows": {
                 "url": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_URL",
                 "bearer": "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE",
                 "access_id": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_ID_FILE",
                 "access_secret": "ORDIVON_GATEWAY_WINDOWS_ACCESS_CLIENT_SECRET_FILE",
-                "validate": False,
             },
             "host": {
                 "url": "ORDIVON_GATEWAY_HOST_URL",
                 "bearer": "ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE",
-                "validate": True,
             },
         }
         for owner_id, keys in mapping.items():
@@ -157,7 +144,6 @@ class McpOwnerCaller:
                 bearer_token_file=token_file.strip() if token_file else None,
                 access_client_id_file=access_id.strip() if access_id else None,
                 access_client_secret_file=access_secret.strip() if access_secret else None,
-                validate_tool_results=bool(keys["validate"]),
             )
         return cls(owners)
 
@@ -173,15 +159,12 @@ class McpOwnerCaller:
 
         headers = _headers_for_endpoint(endpoint)
 
-        session_type = (
-            ClientSession if endpoint.validate_tool_results else _RuntimeCompatibilitySession
-        )
         async with create_mcp_http_client(headers=headers) as http_client:
-            async with streamable_http_client(endpoint.url, http_client=http_client) as streams:
-                read_stream, write_stream = streams
-                async with session_type(read_stream, write_stream) as session:
-                    await session.initialize()
-                    result = await session.call_tool(tool_name, arguments)
+            transport = streamable_http_client(endpoint.url, http_client=http_client)
+            # MCP v2 Client owns modern discovery, output-schema validation, and
+            # legacy fallback. Gateway does not hand-code protocol negotiation.
+            async with Client(transport, mode="auto", raise_exceptions=False) as client:
+                result = await client.call_tool(tool_name, arguments)
 
         if result.is_error:
             detail = None
