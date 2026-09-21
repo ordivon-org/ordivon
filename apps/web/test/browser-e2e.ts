@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
@@ -175,6 +176,227 @@ try {
   assert.equal(session.sameSite, "Lax");
   assert.equal(session.path, "/");
 
+  const grantFlow = await page.evaluate(async () => {
+    const api = (globalThis as unknown as {
+      SimpleWebAuthnBrowser: {
+        startAuthentication(input: { optionsJSON: unknown }): Promise<unknown>;
+      };
+    }).SimpleWebAuthnBrowser;
+    const csrf = await fetch("/api/session/csrf");
+    const csrfBody = (await csrf.json()) as { token: string };
+
+    const optionsResponse = await fetch("/api/security/agents/grants/options", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-csrf-token": csrfBody.token,
+      },
+      body: JSON.stringify({ agentId: "oauth-client:agent-browser-e2e" }),
+    });
+    const optionsBody = (await optionsResponse.json()) as {
+      challengeId: string;
+      options: unknown;
+      grant: { grantId: string };
+    };
+    const assertion = await api.startAuthentication({
+      optionsJSON: optionsBody.options,
+    });
+    const verifyResponse = await fetch("/api/security/agents/grants/verify", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-csrf-token": csrfBody.token,
+      },
+      body: JSON.stringify({
+        challengeId: optionsBody.challengeId,
+        response: assertion,
+      }),
+    });
+    const verifyBody = await verifyResponse.json();
+    const replayResponse = await fetch("/api/security/agents/grants/verify", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-csrf-token": csrfBody.token,
+      },
+      body: JSON.stringify({
+        challengeId: optionsBody.challengeId,
+        response: assertion,
+      }),
+    });
+    const grantsResponse = await fetch("/api/security/agents/grants");
+    return {
+      optionsStatus: optionsResponse.status,
+      verifyStatus: verifyResponse.status,
+      verifyBody,
+      replayStatus: replayResponse.status,
+      replayBody: await replayResponse.json(),
+      grantsStatus: grantsResponse.status,
+      grantsBody: await grantsResponse.json(),
+      csrfToken: csrfBody.token,
+    };
+  });
+
+  assert.equal(grantFlow.optionsStatus, 200);
+  assert.equal(grantFlow.verifyStatus, 201);
+  assert.equal(grantFlow.replayStatus, 409);
+  assert.equal(grantFlow.grantsStatus, 200);
+  assert.equal(grantFlow.grantsBody.grants.length, 1);
+  assert.equal(grantFlow.grantsBody.grants[0].active, true);
+
+  const pendingEffect = {
+    effectId:
+      "sha256:" +
+      createHash("sha256").update("browser-e2e-pending-effect").digest("hex"),
+    effectDigest:
+      "sha256:" +
+      createHash("sha256").update("browser-e2e-pending-digest").digest("hex"),
+    action: "canary.note.publish",
+    resource: "/canary/notes/browser-e2e-note",
+    audience: config.origin,
+    riskClass: "R4" as const,
+    effectType: "website.canary.note.publish",
+  };
+  store.registerPendingEffectApproval(
+    "principal:browser-e2e",
+    pendingEffect,
+    Math.floor(Date.now() / 1000),
+  );
+
+  const approvalFlow = await page.evaluate(
+    async ({ effectId }) => {
+      const api = (globalThis as unknown as {
+        SimpleWebAuthnBrowser: {
+          startAuthentication(input: { optionsJSON: unknown }): Promise<unknown>;
+        };
+      }).SimpleWebAuthnBrowser;
+      const csrf = await fetch("/api/session/csrf");
+      const csrfBody = (await csrf.json()) as { token: string };
+      const optionsResponse = await fetch("/api/security/agent-approvals/options", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfBody.token,
+        },
+        body: JSON.stringify({ effectId }),
+      });
+      const optionsBody = (await optionsResponse.json()) as {
+        challengeId: string;
+        options: unknown;
+      };
+      const assertion = await api.startAuthentication({
+        optionsJSON: optionsBody.options,
+      });
+      const verifyResponse = await fetch("/api/security/agent-approvals/verify", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfBody.token,
+        },
+        body: JSON.stringify({
+          challengeId: optionsBody.challengeId,
+          response: assertion,
+        }),
+      });
+      const verifyBody = await verifyResponse.json();
+      const replayResponse = await fetch("/api/security/agent-approvals/verify", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfBody.token,
+        },
+        body: JSON.stringify({
+          challengeId: optionsBody.challengeId,
+          response: assertion,
+        }),
+      });
+      return {
+        optionsStatus: optionsResponse.status,
+        verifyStatus: verifyResponse.status,
+        verifyBody,
+        replayStatus: replayResponse.status,
+        replayBody: await replayResponse.json(),
+      };
+    },
+    { effectId: pendingEffect.effectId },
+  );
+
+  assert.equal(approvalFlow.optionsStatus, 200);
+  assert.equal(approvalFlow.verifyStatus, 201);
+  assert.equal(approvalFlow.replayStatus, 409);
+  assert.equal(
+    store.effectApproval(
+      "principal:browser-e2e",
+      pendingEffect,
+      Math.floor(Date.now() / 1000),
+    ).verified,
+    true,
+  );
+
+  const issuedGrantId = grantFlow.verifyBody.grant.grantId as string;
+  const revokeFlow = await page.evaluate(
+    async ({ grantId }) => {
+      const api = (globalThis as unknown as {
+        SimpleWebAuthnBrowser: {
+          startAuthentication(input: { optionsJSON: unknown }): Promise<unknown>;
+        };
+      }).SimpleWebAuthnBrowser;
+      const csrf = await fetch("/api/session/csrf");
+      const csrfBody = (await csrf.json()) as { token: string };
+      const optionsResponse = await fetch("/api/security/agents/grants/revoke/options", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfBody.token,
+        },
+        body: JSON.stringify({ grantId }),
+      });
+      const optionsBody = (await optionsResponse.json()) as {
+        challengeId: string;
+        options: unknown;
+      };
+      const assertion = await api.startAuthentication({
+        optionsJSON: optionsBody.options,
+      });
+      const verifyResponse = await fetch("/api/security/agents/grants/revoke/verify", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfBody.token,
+        },
+        body: JSON.stringify({
+          challengeId: optionsBody.challengeId,
+          response: assertion,
+        }),
+      });
+      const verifyBody = await verifyResponse.json();
+      const replayResponse = await fetch("/api/security/agents/grants/revoke/verify", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": csrfBody.token,
+        },
+        body: JSON.stringify({
+          challengeId: optionsBody.challengeId,
+          response: assertion,
+        }),
+      });
+      return {
+        optionsStatus: optionsResponse.status,
+        verifyStatus: verifyResponse.status,
+        verifyBody,
+        replayStatus: replayResponse.status,
+        replayBody: await replayResponse.json(),
+      };
+    },
+    { grantId: issuedGrantId },
+  );
+
+  assert.equal(revokeFlow.optionsStatus, 200);
+  assert.equal(revokeFlow.verifyStatus, 200);
+  assert.equal(revokeFlow.replayStatus, 409);
+  assert.equal(revokeFlow.verifyBody.grant.active, false);
+
   const browserFlow = await page.evaluate(async () => {
     const me = await fetch("/api/me");
     const meBody = await me.json();
@@ -248,6 +470,9 @@ try {
     JSON.stringify(
       {
         auth,
+        grantFlow,
+        approvalFlow,
+        revokeFlow,
         sessionCookie: {
           secure: session.secure,
           httpOnly: session.httpOnly,

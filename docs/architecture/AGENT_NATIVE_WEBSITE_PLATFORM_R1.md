@@ -121,9 +121,24 @@ canary.note.create   R2
 canary.note.publish  R4
 ```
 
-A Human Session can currently create a draft. The next Security integration
-slice will allow a delegated Agent to create drafts under a Grant and require
-effect-bound Principal approval for publish.
+A Human Session can create a draft. The Website authority slice now also
+implements the product/domain half of delegated Agent execution:
+
+```text
+Principal WebAuthn
+  -> Agent Grant issue/revoke
+  -> unique Grant resolution
+  -> Security Agent Admission contract
+  -> R2 Agent draft create
+  -> R4 publish STEP_UP
+  -> effect-bound WebAuthn approval
+  -> transaction fence
+  -> durable receipt
+```
+
+The remaining Agent ingress gate is OAuth/DPoP request verification as a
+Security-owned public contract. Website tests deliberately inject a verified
+Agent fixture rather than importing the Security lab verifier.
 
 ## External owners
 
@@ -144,9 +159,9 @@ Grant, Effect, risk, approval, fence, replay and evidence boundaries.
 - real HTTPS origin and RP ID;
 - existing-account-bound first credential enrollment;
 - passkey add/revoke and recovery;
-- explicit website-to-Security Agent Admission contract;
+- production OAuth/DPoP verifier contract binding;
 - Agent Passport / Grant management product surface;
-- effect-bound R4 publish canary;
+- browser-visible R4 approval product UI;
 - production storage/backup/restore acceptance;
 - notification/security-event delivery;
 - edge deployment and external scan acceptance.

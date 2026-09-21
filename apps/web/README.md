@@ -117,6 +117,50 @@ pnpm test
 pnpm e2e
 ```
 
-The website is not yet production eligible. Agent Grant/Effect integration,
-real account-bound initial enrollment, recovery, production TLS/origin
-configuration, and deploy/release acceptance remain separate gates.
+## Delegated Agent authority
+
+The website now owns the product/domain half of delegated Agent authority:
+
+```text
+Principal WebAuthn
+  -> issue/revoke Agent Grant
+  -> Agent request
+  -> exact-replay check
+  -> unique Grant resolution
+  -> Security-owned Agent Admission contract
+  -> Effect Admission
+  -> R2 canary.note.create
+  -> R4 canary.note.publish STEP_UP
+  -> effect-bound WebAuthn approval
+  -> transaction fence
+  -> Effect receipt
+```
+
+Browser authority routes remain on the Human trust rail and require the opaque
+Session cookie plus CSRF/Origin protections. Agent mutation routes do not
+consume browser Cookies or CSRF tokens.
+
+The website does not import Security Rego internals. It invokes the public
+`platform/security/contracts/agent-admission-v1` evaluator. Agent request
+authentication is an injected `AgentRequestVerifier` boundary; the current
+application tests use a verified-Agent fixture while exercising the real
+Security admission contract. Promoting the existing oauth4webapi OAuth/DPoP
+verifier from the Security lab to a public Security contract remains the final
+identity-ingress integration gate.
+
+Current evidence:
+
+```text
+evidence/HUMAN-RAIL-BROWSER-E2E-R1.json
+evidence/AGENT-AUTHORITY-BROWSER-E2E-R1.json
+```
+
+The Agent authority tests additionally prove R2 commit/exact replay/conflict,
+R4 effect-bound approval consumption, Grant revocation semantics, fail-closed
+ambiguous Grant resolution, and fail-closed behavior when no Security-owned
+Agent verifier is configured.
+
+The website is not yet production eligible. Real account-bound initial
+enrollment, production OAuth/DPoP verifier binding, recovery, production
+TLS/origin configuration, Agent Passport UI, and deploy/release acceptance
+remain separate gates.
