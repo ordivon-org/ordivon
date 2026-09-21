@@ -365,6 +365,20 @@ pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
 
+pub(crate) fn parse_sha256_digest(value: &str) -> Option<[u8; 32]> {
+    let encoded = value.strip_prefix("sha256:")?;
+    if encoded.len() != 64
+        || !encoded
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return None;
+    }
+    let mut digest = [0_u8; 32];
+    hex::decode_to_slice(encoded, &mut digest).ok()?;
+    Some(digest)
+}
+
 pub(crate) fn sha256_file(path: &Path) -> Result<String, UniversalExecError> {
     let mut file = File::open(path).map_err(|error| io_error(path, "open", error))?;
     let mut hasher = Sha256::new();

@@ -113,32 +113,6 @@ fn wait_for_file(path: &Path) {
     assert!(path.is_file(), "{} was not written in time", path.display());
 }
 
-fn integration_source_repo(root: &Path) -> (PathBuf, String) {
-    let repo = root.join("source");
-    fs::create_dir_all(&repo).unwrap();
-    command_output("git", &["init", "-q"], &repo);
-    command_output(
-        "git",
-        &[
-            "config",
-            "user.email",
-            "runtime-integration@ordivon.invalid",
-        ],
-        &repo,
-    );
-    command_output(
-        "git",
-        &["config", "user.name", "Ordivon Runtime Integration"],
-        &repo,
-    );
-    fs::write(repo.join("README.md"), "integration source\n").unwrap();
-    command_output("git", &["add", "README.md"], &repo);
-    command_output("git", &["commit", "-qm", "integration source"], &repo);
-    let repo = fs::canonicalize(repo).unwrap();
-    let revision = command_output("git", &["rev-parse", "HEAD"], &repo);
-    (repo, revision)
-}
-
 #[test]
 #[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
 fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
@@ -147,9 +121,11 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     }
     let runner_path =
         PathBuf::from(std::env::var("ORDIVON_RUNNER_PATH").expect("ORDIVON_RUNNER_PATH"));
+    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let repo = fs::canonicalize(repo).unwrap();
+    let revision = command_output("git", &["rev-parse", "HEAD"], &repo);
     let root =
         PathBuf::from("/root/.local/share/ordivon-integration").join(Uuid::now_v7().to_string());
-    let (repo, revision) = integration_source_repo(&root);
     let store = root.join("store");
     let executor = UniversalExecutorConfig {
         store_root: store.clone(),
@@ -669,9 +645,11 @@ impl IntegrationContext {
     fn new(label: &str) -> Self {
         let runner_path =
             PathBuf::from(std::env::var("ORDIVON_RUNNER_PATH").expect("ORDIVON_RUNNER_PATH"));
+        let repo =
+            fs::canonicalize(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+        let revision = command_output("git", &["rev-parse", "HEAD"], &repo);
         let root = PathBuf::from("/root/.local/share/ordivon-integration")
             .join(format!("{label}-{}", Uuid::now_v7()));
-        let (repo, revision) = integration_source_repo(&root);
         let executor = UniversalExecutorConfig {
             store_root: root.join("store"),
             workspace_root: None,
@@ -910,10 +888,11 @@ fn contained_local_hides_unmounted_state_blocks_egress_and_preserves_evidence() 
     }
     let runner_path =
         PathBuf::from(std::env::var("ORDIVON_RUNNER_PATH").expect("ORDIVON_RUNNER_PATH"));
+    let repo = fs::canonicalize(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let revision = command_output("git", &["rev-parse", "HEAD"], &repo);
     let root =
         PathBuf::from("/var/lib/ordivon-contained-integration").join(Uuid::now_v7().to_string());
     fs::create_dir_all(&root).unwrap();
-    let (repo, revision) = integration_source_repo(&root);
     let secret_path = root.join("unmounted-secret.txt");
     fs::write(&secret_path, "MUST_NOT_BE_VISIBLE").unwrap();
     let executor = UniversalExecutorConfig {

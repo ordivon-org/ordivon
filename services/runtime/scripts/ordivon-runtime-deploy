@@ -388,6 +388,14 @@ def active_job_ids(database: Path) -> tuple[list[str], str | None]:
     return jobs, current_job_id
 
 
+def registry_migration_version(database: Path) -> int:
+    projection = registry_projection(database, None)
+    value = projection.get("migrationVersion")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise RuntimeError("Runtime registry inspection returned invalid migrationVersion")
+    return value
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -1251,6 +1259,7 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
         previous_runtime_policy = (
             runtime_policy_state(args.env_file) if runtime_policy is not None else None
         )
+        registry_migration_before: int | None = None
         previous_records: list[dict[str, object]] = []
         commit_started = False
         policy_committed = False
@@ -1326,6 +1335,8 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                     "deployment is not eligible after ingress stop: "
                     + "; ".join(plan["blockers"])
                 )
+            registry_migration_before = registry_migration_version(args.database)
+            plan["registryMigrationBefore"] = registry_migration_before
             plan["admissionFence"] = str(admission_fence_path(args.database))
             plan["drainSeconds"] = drain_seconds
             plan["drainPolicySource"] = drain_policy_source
@@ -1399,23 +1410,54 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                 name = str(spec["name"])
                 (args.install_dir / f"{name}.next").unlink(missing_ok=True)
             rollback_error: Exception | None = None
+            reconciliation_issue: str | None = None
+            registry_migration_after: int | None = None
+            registry_migration_error: str | None = None
             if commit_started:
                 try:
-                    rollback = restore_previous(
-                        previous,
-                        args.install_dir,
-                        previous_records,
-                        args.systemctl,
-                        args.service,
-                        args.env_file,
-                        args.wait_seconds,
-                        runtime_policy=(previous_runtime_policy if policy_committed else None),
-                        expected_current_runtime_policy=(runtime_policy if policy_committed else None),
-                    )
+                    registry_migration_after = registry_migration_version(args.database)
                 except Exception as error:
-                    rollback_error = error
-                    rollback = {"serviceActive": service_active(args.systemctl, args.service)}
-                status = "rolled_back" if rollback_error is None else "rollback_failed"
+                    registry_migration_error = str(error)
+
+                migration_unchanged = (
+                    registry_migration_before is not None
+                    and registry_migration_after is not None
+                    and registry_migration_after == registry_migration_before
+                )
+                if migration_unchanged:
+                    try:
+                        rollback = restore_previous(
+                            previous,
+                            args.install_dir,
+                            previous_records,
+                            args.systemctl,
+                            args.service,
+                            args.env_file,
+                            args.wait_seconds,
+                            runtime_policy=(previous_runtime_policy if policy_committed else None),
+                            expected_current_runtime_policy=(runtime_policy if policy_committed else None),
+                        )
+                    except Exception as error:
+                        rollback_error = error
+                        rollback = {"serviceActive": service_active(args.systemctl, args.service)}
+                    status = "rolled_back" if rollback_error is None else "rollback_failed"
+                else:
+                    if registry_migration_error is not None:
+                        reconciliation_issue = "REGISTRY_SCHEMA_STATE_UNKNOWN_ROLLBACK_UNSAFE"
+                    elif (
+                        registry_migration_before is not None
+                        and registry_migration_after is not None
+                        and registry_migration_after > registry_migration_before
+                    ):
+                        reconciliation_issue = "REGISTRY_SCHEMA_ADVANCED_ROLLBACK_UNSAFE"
+                    else:
+                        reconciliation_issue = "REGISTRY_SCHEMA_CHANGED_ROLLBACK_UNSAFE"
+                    rollback = {
+                        "suppressed": True,
+                        "reason": reconciliation_issue,
+                        "serviceActive": service_active(args.systemctl, args.service),
+                    }
+                    status = "reconciliation_required"
             else:
                 recovery_error: Exception | None = None
                 recovery: dict[str, object] | None = None
@@ -1451,6 +1493,12 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                 "deploymentError": str(deployment_error),
                 "rollbackError": str(rollback_error) if rollback_error else None,
                 "rollback": rollback,
+                "reconciliationIssue": reconciliation_issue,
+                "registryMigration": {
+                    "before": registry_migration_before,
+                    "after": registry_migration_after,
+                    "inspectionError": registry_migration_error,
+                },
                 "serviceWasStopped": stopped,
                 "receipt": str(receipt),
                 "releaseEffect": release_effect,

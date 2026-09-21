@@ -669,6 +669,20 @@ fn workspace_content_never_follows_replaced_symlink_after_fd_binding() {
 }
 
 #[test]
+fn workspace_content_rejects_noncanonical_uppercase_digest() {
+    let request = WorkspaceContentRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        workspace_id: "workspace-content-uppercase".to_string(),
+        relative_path: "out/view.png".to_string(),
+        expected_digest: format!("sha256:{}", "A".repeat(64)),
+        max_bytes: 1024,
+    };
+    let error = request.validate_shape().unwrap_err();
+    assert_eq!(error.code, UniversalExecErrorCode::InvalidRequest);
+    assert_eq!(error.field.as_deref(), Some("expectedDigest"));
+}
+
+#[test]
 fn workspace_content_fails_closed_on_digest_drift_and_forged_image_type() {
     let sandbox = Sandbox::new("workspace-content-drift");
     let source = sandbox.root.join("source");
@@ -687,10 +701,12 @@ fn workspace_content_fails_closed_on_digest_drift_and_forged_image_type() {
     let workspace = config.workspace_path("workspace-content-drift");
     fs::create_dir_all(workspace.join("out")).unwrap();
     let original = b"\x89PNG\r\n\x1a\nfirst";
+    let replacement = b"\x89PNG\r\n\x1a\nsecond";
     let path = workspace.join("out/view.png");
     fs::write(&path, original).unwrap();
     let expected_digest = sha256_bytes(original);
-    fs::write(&path, b"\x89PNG\r\n\x1a\nsecond").unwrap();
+    let observed_digest = sha256_bytes(replacement);
+    fs::write(&path, replacement).unwrap();
 
     let drift = read_workspace_content(
         &config,
@@ -698,13 +714,16 @@ fn workspace_content_fails_closed_on_digest_drift_and_forged_image_type() {
             schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
             workspace_id: "workspace-content-drift".to_string(),
             relative_path: "out/view.png".to_string(),
-            expected_digest,
+            expected_digest: expected_digest.clone(),
             max_bytes: 1024,
         },
     )
     .unwrap_err();
     assert_eq!(drift.code, UniversalExecErrorCode::RevisionMismatch);
     assert_eq!(drift.field.as_deref(), Some("expectedDigest"));
+    assert!(drift.message.contains(&expected_digest));
+    assert!(drift.message.contains(&observed_digest));
+    assert_ne!(expected_digest, observed_digest);
 
     fs::write(&path, b"not-a-png").unwrap();
     let forged_bytes = fs::read(&path).unwrap();

@@ -15,15 +15,15 @@ use std::thread::{self, JoinHandle};
 
 use super::{
     canonical_directory, invalid, io_error, now_unix_ms, open_directory_nofollow,
-    open_regular_file_beneath, sha256_bytes, sha256_file, validate_relative_path,
-    write_bytes_atomic, write_json_atomic, GitWorkspaceCreateRequest, UniversalExecError,
-    UniversalExecErrorCode, UniversalExecutorConfig, WorkspaceChangeCursor, WorkspaceChangeEntry,
-    WorkspaceChangeKind, WorkspaceChangePageRequest, WorkspaceChangePageResult,
-    WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceClosureDisposition,
-    WorkspaceContentMetadata, WorkspaceContentReadResult, WorkspaceContentRequest,
-    WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceReadRequest, WorkspaceReadResult,
-    WorkspaceRecord, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
-    UNIVERSAL_EXEC_SCHEMA_VERSION,
+    open_regular_file_beneath, parse_sha256_digest, sha256_bytes, sha256_file,
+    validate_relative_path, write_bytes_atomic, write_json_atomic, GitWorkspaceCreateRequest,
+    UniversalExecError, UniversalExecErrorCode, UniversalExecutorConfig, WorkspaceChangeCursor,
+    WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
+    WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
+    WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
+    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceReadRequest,
+    WorkspaceReadResult, WorkspaceRecord, WorkspaceRenamedPath, WorkspaceWriteRequest,
+    WorkspaceWriteResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

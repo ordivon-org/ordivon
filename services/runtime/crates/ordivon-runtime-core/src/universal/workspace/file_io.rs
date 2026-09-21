@@ -129,7 +129,11 @@ pub fn read_workspace_content(
     let (file, logical_path) = open_workspace_regular_file(&record, &request.relative_path)?;
     let bytes = read_workspace_file_bounded(file, &logical_path, request.max_bytes)?;
     let digest = sha256_bytes(&bytes);
-    if digest != request.expected_digest {
+    let expected_digest = parse_sha256_digest(&request.expected_digest)
+        .expect("validated workspace.content expectedDigest must decode");
+    let observed_digest =
+        parse_sha256_digest(&digest).expect("Runtime-generated SHA-256 digest must decode");
+    if observed_digest != expected_digest {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::RevisionMismatch,
             format!(

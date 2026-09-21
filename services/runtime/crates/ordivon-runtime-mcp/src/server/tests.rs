@@ -1360,6 +1360,46 @@ fn tool_inputs_default_missing_schema_version_to_pinned_version() {
 }
 
 #[test]
+fn structured_release_keeps_workspace_identity_out_of_deployer_cli() {
+    let tools_source = include_str!("tools.rs");
+    let release_start = tools_source
+        .find("name = \"release.apply\"")
+        .expect("release.apply source");
+    let release_end = tools_source[release_start..]
+        .find("name = \"release.get\"")
+        .map(|offset| release_start + offset)
+        .expect("release.get source");
+    let release_apply_source = &tools_source[release_start..release_end];
+    assert!(
+        !release_apply_source.contains("\"--workspace-id\""),
+        "workspace identity belongs to the Runtime release effect, not the deployer CLI"
+    );
+    assert!(
+        release_apply_source.contains("workspace_id: request.workspace_id.clone()"),
+        "release effect identity must continue to bind the Workspace"
+    );
+
+    let server = Sandbox::new("release-workspace-owner").server();
+    let tool = server
+        .tool_router
+        .list_all()
+        .into_iter()
+        .find(|tool| tool.name.as_ref() == "release.apply")
+        .expect("release.apply tool");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let required = schema
+        .pointer("/required")
+        .and_then(Value::as_array)
+        .expect("release.apply required fields");
+    assert!(
+        required
+            .iter()
+            .any(|value| value.as_str() == Some("workspaceId")),
+        "release.apply must still bind Workspace identity at the Runtime boundary"
+    );
+}
+
+#[test]
 fn server_identity_names_the_runtime_component() {
     let sandbox = Sandbox::new("identity");
     let info = serde_json::to_value(sandbox.server().get_info()).unwrap();
@@ -1844,6 +1884,12 @@ fn workspace_content_schema_requires_exact_digest_binding() {
     assert!(required.contains(&"relativePath"));
     assert!(required.contains(&"expectedDigest"));
     assert!(required.contains(&"maxBytes"));
+    assert_eq!(
+        schema
+            .pointer("/properties/expectedDigest/pattern")
+            .and_then(Value::as_str),
+        Some(r"^sha256:[0-9a-f]{64}$")
+    );
 }
 
 #[test]
