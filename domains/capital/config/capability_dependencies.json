@@ -54,7 +54,15 @@
         "riskBudget": "src/ordivon_capital/risk/risk_budget_validation.py",
         "quantitativeInventory": "src/ordivon_capital/research/quantitative_inventory_validation.py",
         "standing": "R18_LOCAL_EXACT_CONTRACT_VALIDATORS"
-      }
+      },
+      "duckdbLauncher": "/opt/ordivon/external/duckdb/1.5.5-1/duckdb",
+      "duckdbLauncherSha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0",
+      "duckdbEngineBinary": "/opt/ordivon/external/duckdb/1.5.5-1/rootfs/usr/bin/duckdb",
+      "duckdbEngineSha256": "02f1b93ff8b0dc40f3600b04d55b5f2ca4e968ef22e8c1a3cc49dcf34f880a06",
+      "duckdbPackageSha256": "81a5ec42e26876ba0161fde1a29b6b7bf822ccbbc08bb063a05842016a728136",
+      "duckdbPackageSignatureSha256": "d912cb65f4268911b03879b6b947c9e4055e91a9ad8366f0a65df379e0727ddd",
+      "duckdbPackageSignatureVerification": "PASS_REVERIFIED_VIA_PACMAN_KEY_2026-09-21",
+      "pyarrowCp314ManylinuxX8664WheelSha256": "9171748cdf796972d85a4b60157c279913e242992e350c90c7450182a9838b2a"
     },
     "publicWebSocketProtocol": {
       "provider": "websockets",

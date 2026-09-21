@@ -1441,7 +1441,9 @@
         "name": "PyArrow",
         "version": "25.0.1",
         "latestStableObserved": true,
-        "python3147ExecutableQualification": "PASS"
+        "python3147ExecutableQualification": "PASS",
+        "latestStableObservedAsOf": "2026-09-21",
+        "cp314ManylinuxX8664WheelSha256": "9171748cdf796972d85a4b60157c279913e242992e350c90c7450182a9838b2a"
       },
       "evidence": {
         "r16Standing": "PASS_RETAIN_PYARROW_AND_DUCKDB_BOUNDED_OWNERS",
@@ -1455,7 +1457,17 @@
         "garbageParquetRejectedByBoth": true,
         "pyarrowInstalledFileCount": 755,
         "pyarrowInstalledFootprintBytes": 157189802,
-        "duckdbBinarySha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0"
+        "duckdbLauncherSha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0",
+        "duckdbEngineSha256": "02f1b93ff8b0dc40f3600b04d55b5f2ca4e968ef22e8c1a3cc49dcf34f880a06",
+        "duckdbPackageSha256": "81a5ec42e26876ba0161fde1a29b6b7bf822ccbbc08bb063a05842016a728136",
+        "duckdbPackageSignatureSha256": "d912cb65f4268911b03879b6b947c9e4055e91a9ad8366f0a65df379e0727ddd",
+        "duckdbPackageSignatureVerification": "PASS_REVERIFIED_VIA_PACMAN_KEY_2026-09-21",
+        "multiRowGroupStressRows": 513,
+        "multiRowGroups": 9,
+        "parquetRequiredOptionalFidelity": true,
+        "parquetSchemaTypeFidelity": true,
+        "describeNullabilityIsNotSchemaAuthority": true,
+        "provenanceCorrection": "R19_LAUNCHER_ENGINE_IDENTITY_SPLIT"
       },
       "standing": "PYARROW_REQUALIFIED_R16_RETAIN_AS_PARQUET_MATERIALIZATION_OWNER",
       "externalOwnerAdmitted": true,
@@ -1474,7 +1486,8 @@
       "externalCandidate": {
         "name": "DuckDB",
         "version": "1.5.5",
-        "latestStableObserved": true
+        "latestStableObserved": true,
+        "latestStableObservedAsOf": "2026-09-21"
       },
       "standing": "DUCKDB_REQUALIFIED_R16_RETAIN_AS_INDEPENDENT_READBACK_OWNER",
       "externalOwnerAdmitted": true,
@@ -1491,7 +1504,17 @@
         ],
         "truncatedParquetRejected": true,
         "garbageParquetRejected": true,
-        "duckdbBinarySha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0"
+        "duckdbLauncherSha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0",
+        "duckdbEngineSha256": "02f1b93ff8b0dc40f3600b04d55b5f2ca4e968ef22e8c1a3cc49dcf34f880a06",
+        "duckdbPackageSha256": "81a5ec42e26876ba0161fde1a29b6b7bf822ccbbc08bb063a05842016a728136",
+        "duckdbPackageSignatureSha256": "d912cb65f4268911b03879b6b947c9e4055e91a9ad8366f0a65df379e0727ddd",
+        "duckdbPackageSignatureVerification": "PASS_REVERIFIED_VIA_PACMAN_KEY_2026-09-21",
+        "multiRowGroupStressRows": 513,
+        "multiRowGroups": 9,
+        "parquetRequiredOptionalFidelity": true,
+        "parquetSchemaTypeFidelity": true,
+        "describeNullabilityIsNotSchemaAuthority": true,
+        "provenanceCorrection": "R19_LAUNCHER_ENGINE_IDENTITY_SPLIT"
       },
       "decision": "Retain DuckDB only for independent Parquet parsing/readback and bounded SQL assertions. It is not a generic Research platform owner."
     },
