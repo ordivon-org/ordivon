@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from affected_owners import load_owners
+
 ROOT = Path(__file__).resolve().parents[2]
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
@@ -97,24 +99,21 @@ def main() -> int:
     assert "jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14" in workflow
     assert "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e" in workflow
 
+    owners = load_owners()
     codeowners = CODEOWNERS.read_text(encoding="utf-8")
-    for root in (
-        "/meta/next/",
-        "/services/runtime/",
-        "/services/host/",
-        "/services/harness/",
-        "/platform/skills/",
-        "/platform/security/",
-        "/platform/network/",
-        "/platform/workstation/",
-        "/capabilities/artifact/",
-        "/capabilities/distribution/",
-        "/capabilities/media/",
-        "/domains/game/",
-        "/domains/capital/",
-        "/.github/",
-    ):
+    for owner in owners:
+        root = "/" + owner.root
+        assert (ROOT / owner.root).is_dir(), f"owner root does not exist: {owner.name}={owner.root}"
         assert root in codeowners, f"missing CODEOWNERS boundary: {root}"
+
+    for root in ("/.github/", "/tools/repo/", "/mise.toml"):
+        assert root in codeowners, f"missing repository-mechanics CODEOWNERS boundary: {root}"
+
+    mise = (ROOT / "mise.toml").read_text(encoding="utf-8")
+    for owner in owners:
+        assert f'[tasks."{owner.task}"]' in mise, (
+            f"owner verify task is not exposed by root mise: {owner.name}={owner.task}"
+        )
 
     print(
         "github governance: valid "

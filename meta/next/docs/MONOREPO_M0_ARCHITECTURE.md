@@ -3,6 +3,20 @@
 Date: 2026-09-20
 
 Status: **M0 DESIGN CANDIDATE — migration architecture, not runtime authority**
+
+## Current supersession boundary
+
+This document records the original M0 migration design. Current source-migration standing is governed by `docs/migration/acceptance/ARCHITECTURE_CONVERGENCE_A02_MONOREPO_ACCEPTANCE_20260921.md`, `docs/migration/acceptance/SOURCE_MIGRATION_STANDING.md`, and `docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md`.
+
+The current accepted architecture does **not** authorize the original candidate relocation of the shared Research layer or active Studies merely to complete the directory sketch:
+
+- shared Research = `PROFILE_ONLY_NO_CODE_IMPORT`;
+- Paper1 frozen = `ARCHIVED_IN_PLACE`;
+- Paper2 = `KEEP_INDEPENDENT_ACTIVE`;
+- Paper3 = `HOLD_EXTRACTION_UNTIL_FREEZE`.
+
+The target-layout section below is therefore historical M0 design evidence where it conflicts with these later accepted dispositions. New Agents must re-enter the current acceptance records rather than treating the old layout sketch as migration authority.
+
 Source baseline: `ordivon-next@ae1ac43130f95b264d908f7c73f268809300c0ea`
 
 ## 1. Decision

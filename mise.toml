@@ -15,6 +15,7 @@ config_roots = [
   "capabilities/media",
   "domains/game",
   "domains/capital",
+  "apps/web",
 ]
 lockfile = false
 
@@ -183,4 +184,19 @@ uv sync --locked
 uv run ruff check .
 uv run ruff format --check .
 uv run python -m pytest -q
+"""
+
+
+[tasks."web:verify"]
+run = """
+set -euo pipefail
+cd apps/web
+mise install
+mise run verify
+"""
+
+[tasks."preservation:verify"]
+run = """
+set -euo pipefail
+uv run --with pyyaml==6.0.3 python capabilities/preservation/scripts/verify_source.py
 """
