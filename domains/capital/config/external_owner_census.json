@@ -239,17 +239,23 @@
       "id": "parquet-materialization",
       "ownerClass": "IMPLEMENTATION_OWNER",
       "owner": "PyArrow 25.0.1 / Apache Parquet",
-      "currentStanding": "ADMITTED_FOR_TYPED_COLUMNAR_MATERIALIZATION",
+      "currentStanding": "REQUALIFIED_R16_ADMITTED_FOR_TYPED_COLUMNAR_MATERIALIZATION",
       "applicability": "PARQUET_SCHEMA_AND_FILE_MATERIALIZATION_ONLY",
-      "source": "https://arrow.apache.org/"
+      "source": "https://arrow.apache.org/",
+      "qualificationContract": "contracts/parquet-materialization-readback-v1.json",
+      "latestStableObserved": "25.0.1",
+      "python3147ExecutableQualification": "PASS"
     },
     {
       "id": "independent-parquet-readback",
       "ownerClass": "IMPLEMENTATION_OWNER",
       "owner": "DuckDB 1.5.5",
-      "currentStanding": "ADMITTED_FOR_INDEPENDENT_PARQUET_READBACK_AND_BOUNDED_ANALYTICAL_ASSERTIONS",
+      "currentStanding": "REQUALIFIED_R16_ADMITTED_FOR_INDEPENDENT_PARQUET_READBACK_AND_BOUNDED_ANALYTICAL_ASSERTIONS",
       "applicability": "INDEPENDENT_ANALYTICAL_READBACK_ONLY",
-      "source": "https://duckdb.org/"
+      "source": "https://duckdb.org/",
+      "qualificationContract": "contracts/parquet-materialization-readback-v1.json",
+      "latestStableObserved": "1.5.5",
+      "executableQualification": "PASS"
     },
     {
       "id": "json-schema-validation",
@@ -1405,33 +1411,67 @@
       "contractId": "typed-parquet-materialization",
       "scope": "materialize the validated monitoring table to typed Apache Parquet",
       "localBaseline": {
-        "standing": "NO_CREDIBLE_LOCAL_FORMAT_IMPLEMENTATION",
-        "reason": "hand-implementing Parquet encoding/schema metadata would enlarge the trusted binary-format surface without a current benefit"
+        "standing": "NO_CREDIBLE_CONTRACT_EQUIVALENT_LOCAL_FORMAT_IMPLEMENTATION",
+        "sameEnginePyarrowReadbackContractEquivalent": false,
+        "reason": "a Python-local replacement would need to implement Apache Parquet binary-format/schema semantics; replacing Parquet with JSON/CSV changes the contract, while PyArrow self-readback violates the independent-engine rule"
       },
       "externalCandidate": {
         "name": "PyArrow",
-        "version": "25.0.1"
+        "version": "25.0.1",
+        "latestStableObserved": true,
+        "python3147ExecutableQualification": "PASS"
       },
       "evidence": {
-        "canonicalReadback": "DuckDB 1.5.5 independently reads emitted Parquet",
-        "r1PrimitiveWitness": "PASS_PARQUET_DUCKDB_PRIMITIVE_READBACK"
+        "r16Standing": "PASS_RETAIN_PYARROW_AND_DUCKDB_BOUNDED_OWNERS",
+        "producerConsumerRoundTrip": "PASS_PYARROW_TO_DUCKDB",
+        "reverseRoundTrip": "PASS_DUCKDB_TO_PYARROW",
+        "unicodeRoundTrip": true,
+        "int64Above53BitRoundTrip": true,
+        "nullableRoundTrip": true,
+        "explicitTypeMismatchRejected": true,
+        "truncatedParquetRejectedByBoth": true,
+        "garbageParquetRejectedByBoth": true,
+        "pyarrowInstalledFileCount": 755,
+        "pyarrowInstalledFootprintBytes": 157189802,
+        "duckdbBinarySha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0"
       },
-      "standing": "PYARROW_RETAIN_AS_PARQUET_MATERIALIZATION_OWNER",
-      "externalOwnerAdmitted": true
+      "standing": "PYARROW_REQUALIFIED_R16_RETAIN_AS_PARQUET_MATERIALIZATION_OWNER",
+      "externalOwnerAdmitted": true,
+      "qualificationContract": "contracts/parquet-materialization-readback-v1.json",
+      "decision": "Retain PyArrow for the bounded typed-Parquet producer contract. The qualification is based on current Python 3.14.7 executable support, cross-engine interoperability with DuckDB, typed edge cases, and corruption rejection; not on project maturity alone."
     },
     {
       "contractId": "independent-parquet-readback",
       "scope": "independently read Parquet and execute bounded row-count/min/max analytical assertions outside PyArrow",
       "localBaseline": {
-        "standing": "NO_CREDIBLE_LOCAL_SQL_PARQUET_ENGINE_BASELINE",
-        "reason": "a local Parquet/SQL engine would duplicate a mature independent implementation"
+        "standing": "NO_CREDIBLE_CONTRACT_EQUIVALENT_INDEPENDENT_LOCAL_READER",
+        "sameEnginePyarrowReadbackContractEquivalent": false,
+        "pythonArithmeticAfterPyarrowReadContractEquivalent": false,
+        "reason": "the contract requires a distinct Parquet implementation for readback; local arithmetic after producer-side PyArrow parsing does not independently validate the file"
       },
       "externalCandidate": {
         "name": "DuckDB",
-        "version": "1.5.5"
+        "version": "1.5.5",
+        "latestStableObserved": true
       },
-      "standing": "DUCKDB_RETAIN_AS_INDEPENDENT_READBACK_OWNER",
-      "externalOwnerAdmitted": true
+      "standing": "DUCKDB_REQUALIFIED_R16_RETAIN_AS_INDEPENDENT_READBACK_OWNER",
+      "externalOwnerAdmitted": true,
+      "qualificationContract": "contracts/parquet-materialization-readback-v1.json",
+      "evidence": {
+        "r16Standing": "PASS_RETAIN_PYARROW_AND_DUCKDB_BOUNDED_OWNERS",
+        "independentImplementation": true,
+        "pyarrowProducedParquetRead": "PASS",
+        "duckdbProducedParquetPyarrowRead": "PASS",
+        "boundedSqlAssertions": [
+          "row_count",
+          "min_overlap",
+          "max_overlap"
+        ],
+        "truncatedParquetRejected": true,
+        "garbageParquetRejected": true,
+        "duckdbBinarySha256": "9268d6c7b8853d3b78a38c806da4b6c3905bbdb76d76429ca0994af3eae4b2d0"
+      },
+      "decision": "Retain DuckDB only for independent Parquet parsing/readback and bounded SQL assertions. It is not a generic Research platform owner."
     },
     {
       "contractId": "json-schema-draft-2020-12-validation",

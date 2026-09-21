@@ -23,7 +23,7 @@ External mature systems provide the active evidence mechanics:
 - market/account providers own current external reality;
 - NumPy 2.5.3, SciPy 1.18.1 and scikit-learn 1.9.1 own only their admitted numerical/statistical/estimator mechanics;
 - jsonschema 4.26.0 owns Draft 2020-12 schema evaluation for the two active domain schemas;
-- PyArrow 25.0.1 / Apache Parquet owns typed columnar materialization and DuckDB 1.5.5 supplies independent readback;
+- PyArrow 25.0.1 / Apache Parquet owns only the bounded typed-Parquet materialization contract, while DuckDB 1.5.5 owns only independent Parquet parsing/readback plus bounded SQL assertions. R16 requalification passed Python 3.14.7, bidirectional cross-engine round-trip, Unicode/int64/nullability cases, explicit type rejection, and truncated/garbage Parquet rejection; same-engine PyArrow self-readback is deliberately not treated as an independent baseline;
 - the single monitoring-row contract is validated locally after a 400-case zero-mismatch Pandera differential; MLflow, Pandera and pandas are not current Capital Research runtime dependencies.
 
 The historical Wave-A GLEIF/SEC/Cboe/equal-weight generation pipeline is retired. Its frozen target-portfolio fixture remains only as a bound Wave-B regression/execution-mechanics input. Capital does not retain a duplicate research platform or lineage graph.
