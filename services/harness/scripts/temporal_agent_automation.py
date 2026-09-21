@@ -27,6 +27,7 @@ with workflow.unsafe.imports_passed_through():
         BrowserlessAutomationService,
         diagnose_provider_preflight,
         _carrier_lease,
+        _conversation_session_lease,
         _read_json,
     )
     from agent_automation_browserless_effects import BrowserlessEffectAdapter
@@ -57,6 +58,7 @@ class AgentContinueInput:
     agent_id: str
     turn_request_id: str
     prompt: str
+    campaign_ref: str | None = None
 
 
 class BrowserlessActivities:
@@ -267,6 +269,50 @@ class BrowserlessActivities:
 
     @activity.defn(name=CONTINUE_ACTIVITY)
     def continue_turn(self, value: AgentContinueInput) -> dict:
+        if value.campaign_ref is not None:
+            candidate = self._current_config()
+            context = BrowserlessAutomationService(candidate)
+            affinity = context.conversation_affinity(
+                Path(value.spec_path), value.campaign_ref, value.agent_id
+            )
+            if affinity.get("affinityKind") == "DURABLE_CFT_SESSION":
+                if affinity.get("standing") != "READY":
+                    raise BrowserlessAutomationHold(
+                        "durable CfT conversation affinity is not READY"
+                    )
+                session_id = affinity.get("sessionId")
+                if not isinstance(session_id, str):
+                    raise RuntimeError("durable CfT affinity lacks session identity")
+                with self._endpoint_lock("cft:" + session_id):
+                    with _conversation_session_lease(candidate, session_id, blocking=True):
+                        current = self._current_config()
+                        current_affinity = BrowserlessAutomationService(
+                            current
+                        ).conversation_affinity(
+                            Path(value.spec_path), value.campaign_ref, value.agent_id
+                        )
+                        if (
+                            current_affinity.get("standing") != "READY"
+                            or current_affinity.get("affinityKind")
+                            != "DURABLE_CFT_SESSION"
+                            or current_affinity.get("sessionId") != session_id
+                            or current_affinity.get("providerResource")
+                            != affinity.get("providerResource")
+                        ):
+                            raise BrowserlessAutomationHold(
+                                "durable CfT conversation affinity changed while waiting for serialization"
+                            )
+                        return self._effects(current).send_adopted_turn(
+                            Path(value.spec_path),
+                            value.campaign_ref,
+                            value.agent_id,
+                            turn_request_id=value.turn_request_id,
+                            prompt=value.prompt,
+                        )
+            if affinity.get("affinityKind") != "BROWSERLESS_MATERIALIZATION":
+                raise BrowserlessAutomationHold(
+                    "conversation continuation has no usable provider affinity"
+                )
         return self._run_serialized(
             value,
             self._continue_endpoint_id,

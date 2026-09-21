@@ -40,6 +40,7 @@ try:
     from chatgpt_conversation_discovery import discover_exact_marker
     from cft_human_session import resolve_session
     from standard_identifiers import require_uuid7
+    from sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict
     from browserless_human_handoff import load_verified_handoff
     from provider_boundary_diagnosis import (
         CARRIER_FAILOVER_STANDINGS,
@@ -62,6 +63,7 @@ except ModuleNotFoundError:
     from scripts.chatgpt_conversation_discovery import discover_exact_marker
     from scripts.cft_human_session import resolve_session
     from scripts.standard_identifiers import require_uuid7
+    from scripts.sqlite_wake_turn_map import SQLiteWakeTurnMap, WakeTurnConflict
     from scripts.browserless_human_handoff import load_verified_handoff
     from scripts.provider_boundary_diagnosis import (
         CARRIER_FAILOVER_STANDINGS,
@@ -443,6 +445,28 @@ def _carrier_lease(config: BrowserlessAutomationConfig, endpoint_id: str, *, blo
             fcntl.flock(handle.fileno(), operation)
         except BlockingIOError as error:
             raise BrowserlessCarrierBusy(f"Browserless carrier busy: {endpoint_id}") from error
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _conversation_session_lease(
+    config: BrowserlessAutomationConfig, session_id: str, *, blocking: bool
+):
+    session_id = require_uuid7(session_id, "sessionId")
+    lock_root = config.state_root / "conversation-session-leases"
+    lock_root.mkdir(parents=True, exist_ok=True)
+    path = lock_root / f"{_suffix(session_id, 32)}.lock"
+    with path.open("a+") as handle:
+        operation = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
+        try:
+            fcntl.flock(handle.fileno(), operation)
+        except BlockingIOError as error:
+            raise BrowserlessCarrierBusy(
+                f"conversation session busy: {session_id}"
+            ) from error
         try:
             yield
         finally:
@@ -1181,7 +1205,13 @@ class BrowserlessAutomationService:
         }
 
     def launch_continue(
-        self, spec_path: Path, agent_id: str, *, prompt: str, turn_request_id: str
+        self,
+        spec_path: Path,
+        agent_id: str,
+        *,
+        prompt: str,
+        turn_request_id: str,
+        campaign_ref: str | None = None,
     ) -> dict:
         spec = self.load_spec(spec_path)
         materialization = self._materialization(spec, agent_id)
@@ -1191,16 +1221,36 @@ class BrowserlessAutomationService:
             raise BrowserlessAutomationConflict(str(error)) from error
         prompt = _continuation_prompt(prompt)
         census = campaign_census(spec, self.config.ledger)
-        row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
-        if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
-            raise BrowserlessAutomationHold("materialization is not provider-bound")
-        binding = self._current_binding(materialization)
-        if binding is None:
-            raise BrowserlessAutomationHold(
-                "provider-bound materialization has no current carrier binding"
-            )
-        endpoint = self._endpoint_by_id(binding["endpointId"])
         ledger_before = self._turn_effect_row(turn_request_id)
+        affinity: dict | None = None
+        endpoint = None
+        if ledger_before is None:
+            if campaign_ref is not None:
+                affinity = self.conversation_affinity(spec_path, campaign_ref, agent_id)
+                if affinity["placementAction"] == "HOLD_EXISTING_AFFINITY":
+                    raise BrowserlessAutomationHold(
+                        "existing conversation affinity is not currently usable"
+                    )
+                if affinity["placementAction"] != "CONTINUE":
+                    raise BrowserlessAutomationHold(
+                        "conversation has no existing affinity; materialization fallback is required"
+                    )
+                if affinity["affinityKind"] == "BROWSERLESS_MATERIALIZATION":
+                    endpoint = self._endpoint_by_id(affinity["endpointId"])
+                elif affinity["affinityKind"] != "DURABLE_CFT_SESSION":
+                    raise BrowserlessAutomationConflict(
+                        "conversation affinity kind is unsupported for continuation"
+                    )
+            else:
+                row = next(r for r in census["materializations"] if r["agentId"] == agent_id)
+                if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
+                    raise BrowserlessAutomationHold("materialization is not provider-bound")
+                binding = self._current_binding(materialization)
+                if binding is None:
+                    raise BrowserlessAutomationHold(
+                        "provider-bound materialization has no current carrier binding"
+                    )
+                endpoint = self._endpoint_by_id(binding["endpointId"])
         # A claimed turn is never re-sent. Temporal replay remains useful for recovering the
         # original workflow identity, and provider readiness is irrelevant once the effect fence
         # exists.
@@ -1220,10 +1270,12 @@ class BrowserlessAutomationService:
                 "temporal": temporal,
                 "turnLedgerStanding": ledger_before["state"],
                 "retryAdmitted": False,
+                "affinityKind": "REPLAY_FENCED" if affinity is None else affinity["affinityKind"],
                 "census": census,
             }
 
-        self._require_provider_ready(endpoint.endpoint_id)
+        if endpoint is not None:
+            self._require_provider_ready(endpoint.endpoint_id)
         temporal = self._temporal_admit(
             spec_path, "continue", agent_id=agent_id, prompt=prompt, turn_request_id=turn_request_id
         )
@@ -1253,7 +1305,67 @@ class BrowserlessAutomationService:
             "temporal": temporal,
             "turnLedgerStanding": None,
             "retryAdmitted": retry_admitted,
+            "affinityKind": (
+                affinity["affinityKind"] if affinity is not None else "BROWSERLESS_MATERIALIZATION"
+            ),
             "census": census,
+        }
+
+    def launch_wake(
+        self,
+        spec_path: Path,
+        campaign_ref: str,
+        agent_id: str,
+        *,
+        wake_intent_id: str,
+        prompt: str,
+    ) -> dict:
+        prompt = _continuation_prompt(prompt)
+        prompt_digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()
+        try:
+            mapping = SQLiteWakeTurnMap(self.config.turn_ledger).allocate(
+                campaign_ref=campaign_ref,
+                agent_id=agent_id,
+                wake_intent_id=wake_intent_id,
+                prompt_digest=prompt_digest,
+            )
+        except WakeTurnConflict as error:
+            raise BrowserlessAutomationConflict(str(error)) from error
+        affinity = self.conversation_affinity(spec_path, campaign_ref, agent_id)
+        if affinity["placementAction"] == "HOLD_EXISTING_AFFINITY":
+            raise BrowserlessAutomationHold(
+                "existing conversation affinity is not currently usable"
+            )
+        if affinity["placementAction"] == "MATERIALIZE_FALLBACK":
+            materialization = self.launch_reconcile(spec_path, agent_id)
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.conversation-wake",
+                "campaignRef": campaign_ref,
+                "agentId": agent_id,
+                "wakeIntentId": wake_intent_id,
+                "turnRequestId": mapping["turnRequestId"],
+                "placementAction": "MATERIALIZE_FALLBACK",
+                "promptSent": False,
+                "materialization": materialization,
+            }
+        continuation = self.launch_continue(
+            spec_path,
+            agent_id,
+            campaign_ref=campaign_ref,
+            prompt=prompt,
+            turn_request_id=mapping["turnRequestId"],
+        )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-wake",
+            "campaignRef": campaign_ref,
+            "agentId": agent_id,
+            "wakeIntentId": wake_intent_id,
+            "turnRequestId": mapping["turnRequestId"],
+            "placementAction": "CONTINUE",
+            "promptSent": True,
+            "continuation": continuation,
         }
 
     def _provider_preflight_under_carrier_lease(self, endpoint_id: str) -> dict:

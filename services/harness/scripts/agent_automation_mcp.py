@@ -384,6 +384,47 @@ def build_server(settings: McpSettings) -> MCPServer:
         )
 
     @server.tool(
+        name="conversation.affinity",
+        title="Read preferred conversation affinity",
+        description="Read the current continue-first conversation placement for one campaign role. Existing adopted affinity is preferred; stale affinity is held rather than silently materializing a duplicate conversation. No provider effect.",
+        annotations=ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
+        ),
+    )
+    async def conversation_affinity(campaignRef: str, agentId: str) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(
+            current_service().conversation_affinity, path, campaignRef, agentId
+        )
+
+    @server.tool(
+        name="conversation.wake",
+        title="Wake role with continue-first placement",
+        description="Map one stable wakeIntentId to one UUIDv7 turnRequestId, continue the preferred existing conversation when available, or admit materialization fallback without sending the wake prompt. Exact replay converges on the same turn identity.",
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+        ),
+    )
+    async def conversation_wake(
+        campaignRef: str, agentId: str, wakeIntentId: str, prompt: str
+    ) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(
+            current_service().launch_wake,
+            path,
+            campaignRef,
+            agentId,
+            wake_intent_id=wakeIntentId,
+            prompt=prompt,
+        )
+
+    @server.tool(
         name="conversation.continue",
         title="Continue provider conversation",
         description="Send exactly one continuation turn to the same provider-bound conversation. The routed Browserless endpoint must pass read-only READY preflight before Temporal admission; turnRequestId is an RFC 9562 UUIDv7 and provider SEND remains fenced by the turn ledger.",
@@ -407,6 +448,7 @@ def build_server(settings: McpSettings) -> MCPServer:
             agentId,
             prompt=prompt,
             turn_request_id=turnRequestId,
+            campaign_ref=campaignRef,
         )
 
     @server.tool(

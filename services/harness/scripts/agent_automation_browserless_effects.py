@@ -28,6 +28,7 @@ try:
     from chatgpt_provider_resource import canonical_chatgpt_resource
     from campaign_materialization import campaign_census
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from cft_human_session import resolve_session
 except ModuleNotFoundError:
     from scripts.agent_automation_browserless import (
         BrowserlessAutomationConfig,
@@ -42,6 +43,7 @@ except ModuleNotFoundError:
     from scripts.chatgpt_provider_resource import canonical_chatgpt_resource
     from scripts.campaign_materialization import campaign_census
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from scripts.cft_human_session import resolve_session
 
 
 class BrowserlessEffectAdapter:
@@ -283,6 +285,97 @@ class BrowserlessEffectAdapter:
             "safeToResend": False,
             "census": campaign_census(spec, self.config.ledger),
         }
+
+    def send_adopted_turn(
+        self,
+        spec_path: Path,
+        campaign_ref: str,
+        agent_id: str,
+        *,
+        turn_request_id: str,
+        prompt: str,
+    ) -> dict:
+        if not isinstance(prompt, str) or not prompt or prompt != prompt.strip():
+            raise ValueError("continuation prompt must be non-empty and trimmed")
+        if len(prompt.encode("utf-8")) > 32768:
+            raise ValueError("continuation prompt exceeds 32768 UTF-8 bytes")
+        affinity = self.context.conversation_affinity(spec_path, campaign_ref, agent_id)
+        if (
+            affinity.get("standing") != "READY"
+            or affinity.get("affinityKind") != "DURABLE_CFT_SESSION"
+        ):
+            raise BrowserlessAutomationHold(
+                "durable CfT conversation affinity is not READY"
+            )
+        session_id = affinity.get("sessionId")
+        if not isinstance(session_id, str):
+            raise BrowserlessAutomationConflict(
+                "durable CfT conversation affinity lacks session identity"
+            )
+        try:
+            session = resolve_session(session_id)
+        except Exception as error:
+            raise BrowserlessAutomationHold(
+                f"durable CfT session is unavailable: {error}"
+            ) from error
+        if session.get("standing") != "READY" or session.get("sessionId") != session_id:
+            raise BrowserlessAutomationHold("durable CfT session is not READY")
+        cdp_endpoint = session.get("cdpEndpoint")
+        resource = affinity.get("providerResource")
+        if not isinstance(cdp_endpoint, str) or not isinstance(resource, str):
+            raise BrowserlessAutomationConflict(
+                "durable CfT continuation lacks exact session/resource coordinates"
+            )
+        transient: tempfile.TemporaryDirectory[str] | None = tempfile.TemporaryDirectory(
+            prefix="ordivon-cft-turn-"
+        )
+        effective_prompt_file = Path(transient.name) / "prompt.txt"
+        effective_prompt_file.write_text(prompt, encoding="utf-8")
+        os.chmod(effective_prompt_file, 0o600)
+        try:
+            spec = self.context.load_spec(spec_path)
+            materialization = self.context._materialization(spec, agent_id)
+            receipt_out = (
+                self.context._materialization_dir(materialization)
+                / "turns"
+                / f"{_suffix(turn_request_id)}.json"
+            )
+            cmd = [
+                str(self.config.playwright_python),
+                str(self.config.turn_script),
+                "--cdp-endpoint",
+                cdp_endpoint,
+                "--session-id",
+                session_id,
+                "--target-resource",
+                resource,
+                "--prompt-file",
+                str(effective_prompt_file),
+                "--turn-request-id",
+                turn_request_id,
+                "--ledger",
+                str(self.config.turn_ledger),
+                "--receipt-out",
+                str(receipt_out),
+            ]
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=75, check=False
+            )
+            if proc.returncode != 0:
+                detail = (proc.stderr or "").strip().replace("\n", " ")[-1200:]
+                suffix = f"; detail={detail}" if detail else ""
+                raise BrowserlessAutomationHold(
+                    f"CfT continuation failed closed (rc={proc.returncode}{suffix})"
+                )
+            try:
+                return json.loads(proc.stdout.strip().splitlines()[-1])
+            except Exception as error:
+                raise BrowserlessAutomationConflict(
+                    "CfT continuation returned no receipt"
+                ) from error
+        finally:
+            if transient is not None:
+                transient.cleanup()
 
     def send_turn(
         self, spec_path: Path, agent_id: str, *, turn_request_id: str, prompt: str

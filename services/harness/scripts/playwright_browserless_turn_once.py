@@ -17,6 +17,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, expect, 
 
 from chatgpt_provider_gate import challenge_gated
 from chatgpt_provider_resource import canonical_chatgpt_resource, chatgpt_resource_from_page_url
+from standard_identifiers import require_uuid7
 
 PROMPT_SELECTOR = "#prompt-textarea"
 SEND_SELECTOR = 'button[data-testid="send-button"]'
@@ -101,6 +102,44 @@ def auth(url: str, token_file: Path) -> str:
     return urlunsplit((p.scheme, p.netloc, p.path, urlencode(q), p.fragment))
 
 
+def connector_spec(a) -> dict:
+    browser_values = (a.browserless_endpoint, a.browserless_token_file, a.endpoint_id)
+    cft_values = (a.cdp_endpoint, a.session_id)
+    browser_mode = all(value is not None for value in browser_values) and not any(
+        value is not None for value in cft_values
+    )
+    cft_mode = all(value is not None for value in cft_values) and not any(
+        value is not None for value in browser_values
+    )
+    if browser_mode:
+        return {
+            "connectorKind": "browserless",
+            "connectionEndpoint": auth(a.browserless_endpoint, a.browserless_token_file),
+            "receiptIdentity": {"browserlessEndpointId": a.endpoint_id},
+        }
+    if cft_mode:
+        require_uuid7(a.session_id, "sessionId")
+        parsed = urlsplit(a.cdp_endpoint)
+        if (
+            parsed.scheme not in {"http", "https", "ws", "wss"}
+            or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}
+            or parsed.port is None
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("CfT continuation requires one explicit loopback CDP endpoint")
+        return {
+            "connectorKind": "cft-human-session",
+            "connectionEndpoint": a.cdp_endpoint,
+            "receiptIdentity": {"sessionId": a.session_id},
+        }
+    raise ValueError(
+        "continuation requires exactly one connector: Browserless or durable CfT session"
+    )
+
+
 def ensure_schema(db: sqlite3.Connection) -> None:
     db.execute("""
         CREATE TABLE IF NOT EXISTS turn_effects (
@@ -117,15 +156,18 @@ def ensure_schema(db: sqlite3.Connection) -> None:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--browserless-endpoint", required=True)
-    p.add_argument("--browserless-token-file", type=Path, required=True)
-    p.add_argument("--endpoint-id", required=True)
+    p.add_argument("--browserless-endpoint")
+    p.add_argument("--browserless-token-file", type=Path)
+    p.add_argument("--endpoint-id")
+    p.add_argument("--cdp-endpoint")
+    p.add_argument("--session-id")
     p.add_argument("--target-resource", required=True)
     p.add_argument("--prompt-file", type=Path, required=True)
     p.add_argument("--turn-request-id", required=True)
     p.add_argument("--ledger", type=Path, required=True)
     p.add_argument("--receipt-out", type=Path, required=True)
     a = p.parse_args()
+    connector = connector_spec(a)
 
     raw = a.prompt_file.read_bytes()
     prompt = raw.decode("utf-8")
@@ -162,7 +204,7 @@ def main() -> int:
 
         with sync_playwright() as pw:
             browser = pw.chromium.connect_over_cdp(
-                auth(a.browserless_endpoint, a.browserless_token_file), timeout=20_000
+                connector["connectionEndpoint"], timeout=20_000
             )
             try:
                 if len(browser.contexts) != 1:
@@ -309,7 +351,8 @@ def main() -> int:
                     "turnRequestId": a.turn_request_id,
                     "promptDigest": prompt_digest,
                     "targetResource": target_resource,
-                    "browserlessEndpointId": a.endpoint_id,
+                    "connectorKind": connector["connectorKind"],
+                    **connector["receiptIdentity"],
                     "pageUrlBeforeSend": page_url_before_send,
                     "observedResourceBeforeSend": observed_resource_before_send,
                     "historyHydratedBeforeSend": True,

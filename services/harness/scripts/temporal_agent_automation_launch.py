@@ -258,6 +258,7 @@ async def run(a) -> None:
             agent_id=a.agent_id,
             turn_request_id=turn_request_id,
             prompt=prompt,
+            campaign_ref=a.campaign_ref,
         )
         if a.operation == "continue-retry":
             admission = await _admit_failed_continue_retry(
