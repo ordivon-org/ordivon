@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon-web-human-rail-browser-e2e-r1",
+  "source": {
+    "workspaceId": "ws-website-p0-r1-20260921",
+    "baseRevision": "39a41ff0f2b8b6237b429dca1a16989e111a6224",
+    "attemptId": "attempt-01a0c308-9e3b-7ff0-98eb-988d27abee9e",
+    "jobId": "job-01a0c308-9e3b-7ff0-98eb-987862ebdd0d",
+    "operationDigest": "sha256:66b4c3869892c4745901a1cc95e13eb57987558e4ffd2ba132c9dabe0a3ff3a0",
+    "executionDisposition": "succeeded"
+  },
+  "matrix": {
+    "enrollOptions": 200,
+    "enrollVerify": 200,
+    "enrollReplay": 409,
+    "loginOptions": 200,
+    "loginVerify": 200,
+    "loginReplay": 409,
+    "me": 200,
+    "r2CanaryCreate": 201,
+    "sessions": 200,
+    "passkeys": 200,
+    "logout": 200,
+    "afterLogout": 401
+  },
+  "sessionCookie": {
+    "secure": true,
+    "httpOnly": true,
+    "sameSite": "Lax",
+    "path": "/"
+  },
+  "auditCount": 5,
+  "productionHumanPresenceClaim": false,
+  "notes": [
+    "Chromium used a CDP virtual CTAP2 authenticator with user verification enabled.",
+    "The result proves browser/WebAuthn/session/cookie/CSRF wiring, not physical human presence.",
+    "Initial Principal enrollment remains guarded by a canary bootstrap token and is not production account enrollment.",
+    "The session cookie is opaque; only a SHA-256 hash is retained server-side."
+  ]
+}
