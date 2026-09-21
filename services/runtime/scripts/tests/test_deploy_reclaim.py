@@ -455,6 +455,68 @@ def fake_systemctl(root: Path) -> Path:
 
 
 class DeployReclaimTests(unittest.TestCase):
+    def test_release_source_owner_revision_ignores_sibling_monorepo_commits(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-deploy"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            owner = root / "services" / "runtime"
+            owner.mkdir(parents=True)
+            subprocess.run(["git", "-C", str(root), "init", "-q", "-b", "main"], check=True)
+            subprocess.run(
+                ["git", "-C", str(root), "config", "user.email", "runtime@example.invalid"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(root), "config", "user.name", "Runtime Test"],
+                check=True,
+            )
+            policy = owner / "packaging/systemd/ordivon-runtime.env.example"
+            policy.parent.mkdir(parents=True)
+            policy.write_text(
+                "ORDIVON_DEFAULT_RUNTIME_MS=3600000\n"
+                "ORDIVON_MAX_RUNTIME_MS=86400000\n",
+                encoding="utf-8",
+            )
+            (owner / "owner.txt").write_text("runtime-owner\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "-qm", "runtime owner"], check=True)
+            owner_commit = subprocess.check_output(
+                ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+            ).strip()
+
+            (root / "sibling.txt").write_text("gateway-only\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "sibling.txt"], check=True)
+            subprocess.run(["git", "-C", str(root), "commit", "-qm", "sibling owner"], check=True)
+            repo_head = subprocess.check_output(
+                ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+            ).strip()
+            self.assertNotEqual(owner_commit, repo_head)
+
+            git = Path(shutil.which("git") or "/usr/bin/git")
+            git_root, owner_prefix = module["release_source_layout"](git, owner)
+            self.assertEqual(git_root, root.resolve())
+            self.assertEqual(owner_prefix, Path("services/runtime"))
+            self.assertEqual(
+                module["owner_revision"](git, owner, "HEAD"),
+                owner_commit,
+            )
+            policy_state = module["committed_runtime_policy"](git, owner, owner_commit)
+            self.assertEqual(policy_state["defaultRuntimeMs"], 3_600_000)
+            self.assertEqual(policy_state["maxRuntimeMs"], 86_400_000)
+
+            with module["exact_source_checkout"](owner, owner_commit) as materialized:
+                self.assertEqual(materialized.relative_to(materialized.parents[1]), Path("services/runtime"))
+                self.assertEqual(
+                    (materialized / "owner.txt").read_text(encoding="utf-8"),
+                    "runtime-owner\n",
+                )
+                self.assertFalse((materialized.parents[1] / "sibling.txt").exists())
+
     def test_reclaim_accepts_compact_open_record_identity_from_location(self) -> None:
         module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
         with tempfile.TemporaryDirectory() as temporary:

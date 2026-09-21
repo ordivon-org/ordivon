@@ -137,6 +137,18 @@ Compatibility code is removed only when:
 
 The current inventory and deletion rules are [`compatibility.md`](compatibility.md).
 
+## Tagged release supply-chain attestations
+
+The live monorepo release authority is the root workflow `.github/workflows/runtime-release.yml`, triggered only by `runtime-v*` tags. The tag name must exactly match the Runtime workspace package version. The workflow records both the tagged repository Commit and the owner-scoped Runtime Commit resolved from `services/runtime`; unrelated sibling-owner commits therefore do not become Runtime release identity.
+
+The tagged workflow runs the Runtime owner verification and cargo-deny policy first, then reuses `scripts/ordivon-runtime-deploy prepare` to build the canonical 12-artifact release set from the exact owner Commit. The candidate manifest remains the authority for artifact names, modes, byte lengths, SHA-256 digests, toolchain identity, owner prefix, and Runtime policy.
+
+Attestation subjects are derived from that manifest and re-verified before staging. Only the 12 canonical artifacts enter the clean SBOM scan root. Syft produces SPDX JSON, and GitHub artifact attestations bind the exact subject checksums to build provenance and to the SPDX SBOM. The workflow also retains the candidate manifest, prepare result, checksums, SBOM, and a release-identity record connecting tag, repository Commit, owner Commit, owner tree, and package version.
+
+These standardized attestations complement rather than replace Runtime deployment receipts. A deployment receipt proves the exact artifact set installed on one Runtime node and supports rollback/reconciliation. A GitHub attestation proves what the tagged workflow produced under its workflow identity. Repository configuration alone is not evidence that a particular tag has been attested: the tag's attestation must exist and verify through GitHub's attestation verification surface before a provenance claim is made. No SLSA level is inferred merely from the presence of this workflow.
+
+The owner-local `services/runtime/.github/workflows/release-acceptance.yml` remains portable source for a future extracted Runtime repository; GitHub does not treat nested owner workflow directories as the monorepo's live Actions entry point.
+
 ## Publication
 
 The Rust crates are currently repository-internal and set `publish = false`. Public distribution is through source, tagged releases, and receipted installed binaries until a separate crates.io publication contract is deliberately adopted.

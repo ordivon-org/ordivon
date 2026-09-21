@@ -250,9 +250,41 @@ def git_text(git: Path, repo: Path, arguments: list[str]) -> str:
     return run([str(git), "-C", str(repo), *arguments]).stdout.strip()
 
 
+def release_source_layout(git: Path, source_repo: Path) -> tuple[Path, Path]:
+    owner_root = source_repo.resolve(strict=True)
+    git_root = Path(git_text(git, owner_root, ["rev-parse", "--show-toplevel"])).resolve(strict=True)
+    prefix_text = git_text(git, owner_root, ["rev-parse", "--show-prefix"]).rstrip("/")
+    owner_prefix = Path(prefix_text) if prefix_text else Path()
+    expected_owner = (git_root / owner_prefix).resolve(strict=True)
+    if expected_owner != owner_root:
+        raise RuntimeError(
+            f"release source owner {owner_root} does not match Git prefix {owner_prefix}"
+        )
+    return git_root, owner_prefix
+
+
+def owner_revision(git: Path, source_repo: Path, revision: str) -> str:
+    exact = git_text(git, source_repo, ["rev-parse", "--verify", f"{revision}^{{commit}}"])
+    if not COMMIT_PATTERN.fullmatch(exact):
+        raise RuntimeError("release source revision is not one exact Git commit")
+    _git_root, owner_prefix = release_source_layout(git, source_repo)
+    if owner_prefix == Path():
+        return exact
+    owner = git_text(git, source_repo, ["log", "-1", "--format=%H", exact, "--", "."])
+    if not COMMIT_PATTERN.fullmatch(owner):
+        raise RuntimeError("release source revision has no commit for the configured owner")
+    return owner
+
+
 @contextmanager
 def exact_source_checkout(source_repo: Path, commit: str):
     git = Path("/usr/bin/git")
+    git_root, owner_prefix = release_source_layout(git, source_repo)
+    resolved_owner = owner_revision(git, source_repo, commit)
+    if resolved_owner != commit:
+        raise RuntimeError(
+            f"requested commit {commit} is not the exact configured owner revision {resolved_owner}"
+        )
     with tempfile.TemporaryDirectory(prefix="ordivon-runtime-release-source-") as temporary:
         checkout = Path(temporary) / "source"
         run(
@@ -262,7 +294,7 @@ def exact_source_checkout(source_repo: Path, commit: str):
                 "--quiet",
                 "--shared",
                 "--no-checkout",
-                str(source_repo),
+                str(git_root),
                 str(checkout),
             ]
         )
@@ -275,7 +307,12 @@ def exact_source_checkout(source_repo: Path, commit: str):
         status = git_text(git, checkout, ["status", "--porcelain", "--untracked-files=all"])
         if status:
             raise RuntimeError("detached release source is not clean after exact checkout")
-        yield checkout
+        materialized_owner = checkout / owner_prefix
+        if not materialized_owner.is_dir():
+            raise RuntimeError(
+                f"configured release owner is absent at commit {commit}: {owner_prefix}"
+            )
+        yield materialized_owner
 
 
 def executable_identity(path: Path) -> dict[str, object]:
@@ -461,7 +498,9 @@ def candidate_runtime_policy(source_root: Path) -> dict[str, object]:
 
 
 def committed_runtime_policy(git: Path, source_repo: Path, commit: str) -> dict[str, object]:
-    text = git_text(git, source_repo, ["show", f"{commit}:{RUNTIME_POLICY_SOURCE.as_posix()}"])
+    _git_root, owner_prefix = release_source_layout(git, source_repo)
+    source_path = (owner_prefix / RUNTIME_POLICY_SOURCE).as_posix()
+    text = git_text(git, source_repo, ["show", f"{commit}:{source_path}"])
     policy = runtime_policy_from_text(text, label="Committed Runtime policy")
     return validate_runtime_policy(policy, require_complete=True)
 
@@ -661,10 +700,12 @@ def prepare_candidate(args: argparse.Namespace) -> dict[str, object]:
             raise RuntimeError("candidate build changed the detached release source")
     candidate = candidate_artifacts(args)
     binary_set = set(binary_names)
+    _git_root, owner_prefix = release_source_layout(Path("/usr/bin/git"), args.source_repo)
     manifest = {
         "schemaVersion": SCHEMA_VERSION,
         "commit": args.commit,
         "sourceRepo": str(args.source_repo.resolve()),
+        "sourceOwnerPrefix": "" if owner_prefix == Path() else owner_prefix.as_posix(),
         "sourceMaterialization": "detached_git_checkout",
         "candidateDir": str(args.candidate_dir.resolve()),
         "builtAtMs": int(time.time() * 1000),
@@ -689,6 +730,12 @@ def validate_candidate_manifest(
         blockers.append("candidate manifest commit does not match requested commit")
     if Path(str(manifest.get("sourceRepo"))).resolve() != args.source_repo.resolve():
         blockers.append("candidate manifest source repository does not match source-repo")
+    _git_root, owner_prefix = release_source_layout(args.git, args.source_repo)
+    if (
+        "sourceOwnerPrefix" in manifest
+        and manifest.get("sourceOwnerPrefix") != ("" if owner_prefix == Path() else owner_prefix.as_posix())
+    ):
+        blockers.append("candidate manifest source owner prefix does not match source-repo")
     if Path(str(manifest.get("candidateDir"))).resolve() != args.candidate_dir.resolve():
         blockers.append("candidate manifest directory does not match candidate-dir")
     if manifest.get("sourceMaterialization") != "detached_git_checkout":
@@ -770,9 +817,13 @@ def validate_candidate_manifest(
 
 def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
     specs = release_artifact_specs(args)
-    head = git_text(args.git, args.source_repo, ["rev-parse", "HEAD"])
-    status = git_text(args.git, args.source_repo, ["status", "--porcelain"])
-    required_ref = git_text(args.git, args.source_repo, ["rev-parse", args.require_ref])
+    repository_head = git_text(args.git, args.source_repo, ["rev-parse", "HEAD"])
+    head = owner_revision(args.git, args.source_repo, repository_head)
+    status = git_text(args.git, args.source_repo, ["status", "--porcelain", "--", "."])
+    required_repository_ref = git_text(
+        args.git, args.source_repo, ["rev-parse", "--verify", f"{args.require_ref}^{{commit}}"]
+    )
+    required_ref = owner_revision(args.git, args.source_repo, required_repository_ref)
     jobs, ignored_current_job_id = active_job_ids(args.database)
     candidate = candidate_artifacts(args)
     candidate_manifest, manifest_blockers = validate_candidate_manifest(args, candidate)
@@ -808,9 +859,11 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
         "commit": args.commit,
         "sourceRepo": str(args.source_repo),
         "sourceHead": head,
+        "sourceRepositoryHead": repository_head,
         "sourceHeadMatchesCommit": head == args.commit,
         "requiredRef": args.require_ref,
         "requiredRefCommit": required_ref,
+        "requiredRefRepositoryCommit": required_repository_ref,
         "sourceClean": not bool(status),
         "activeJobIds": jobs,
         "ignoredCurrentJobId": ignored_current_job_id,
