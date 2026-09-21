@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "media-standalone",
+  "legacyLocator": "/root/projects/ordivon-media",
+  "archivedSource": {
+    "revision": "30f6d1228a4270a68cd715ca9a7b17742478958e",
+    "standing": "ARCHIVED_IN_PLACE",
+    "preserveGitHistoryForHistoricalLookup": true
+  },
+  "allowedReferenceClasses": [
+    {
+      "id": "documentation",
+      "globs": ["**/*.md"],
+      "reason": "Historical, migration, architecture, and research documentation may name the recovery carrier."
+    },
+    {
+      "id": "historical-artifacts",
+      "globs": ["**/artifacts/**", "**/evidence/**"],
+      "reason": "Committed lineage, evidence, and catalog projections retain exact historical Media source locators."
+    },
+    {
+      "id": "frozen-production-carriers",
+      "globs": ["**/productions/*/source/**", "**/productions/*/render/**"],
+      "reason": "Creation-time source snapshots and rendered carriers retain the repository observed when produced."
+    },
+    {
+      "id": "migration-and-planning-records",
+      "globs": [
+        "meta/next/planning/**",
+        "meta/next/migrations/records/**",
+        "docs/migration/**"
+      ],
+      "reason": "Migration and planning records preserve historical topology."
+    }
+  ],
+  "allowedExactPaths": [
+    {
+      "path": "capabilities/media/research/media/engineering-consumption/fixtures/studio-expression-card-lineage.json",
+      "reason": "OMPC Fixture B explicitly treats this repository as a recovery locator for one historical Studio revision, not current semantic authority."
+    }
+  ]
+}
