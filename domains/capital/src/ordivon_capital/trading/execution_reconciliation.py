@@ -154,8 +154,8 @@ def _lifecycle(order: dict[str,Any] | None, exec_type: str | None, ord_status: s
 def _result(intent: dict[str,Any], venue: str, standing: str, lifecycle: dict[str,Any] | None, fills: list[dict[str,Any]], reason: str) -> dict[str,Any]:
     resolution = reservation_resolution_for_standing(standing)
     return {
-        'schemaVersion':1,
-        'kind':'ordivon.capital.market.execution-reconciliation',
+        'schemaVersion':2,
+        'kind':'ordivon.capital.governance.execution-reconciliation',
         'protocol':'FIX.4.4',
         'clOrdId':intent.get('clOrdId'),
         'venue':venue,

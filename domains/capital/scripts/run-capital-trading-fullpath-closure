@@ -75,8 +75,8 @@ def main() -> int:
     standing='PASS_FULL_EFFECT_PATH_OKX_LIVE_PROVIDER_BOUND_NO_EXTERNAL_EFFECT_ADMISSION'
 
     receipt={
-        'schemaVersion':1,
-        'kind':'ordivon.capital.market.fullpath-closure-receipt',
+        'schemaVersion':2,
+        'kind':'ordivon.capital.acceptance.trading-fullpath-closure-receipt',
         'standing':standing,
         'localFullEffectPath':'PASS',
         'providerExecution':{

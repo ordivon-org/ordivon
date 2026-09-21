@@ -39,8 +39,8 @@ def load_venue(path: Path, rc: int, stderr_path: Path, venue: str) -> dict:
         parse_error = "output file missing"
     stderr = stderr_path.read_text(errors="replace")[-4000:] if stderr_path.is_file() else ""
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.crypto-stream-reconnect-qualification",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.crypto-stream-reconnect-qualification",
         "standing": "VENUE_RESULT_UNAVAILABLE",
         "targetVenue": venue,
         "returnCode": rc,
@@ -61,8 +61,8 @@ bn_pass = bn_rc == 0 and bn.get("standing") == "PASS_PUBLIC_STREAM_RECONNECT"
 passed = okx_pass and bn_pass
 
 r = {
-    "schemaVersion": 1,
-    "kind": "ordivon.capital.market.crypto-stream-resilience-r3-session",
+    "schemaVersion": 2,
+    "kind": "ordivon.capital.markets.crypto-stream-resilience-r3-session",
     "standing": (
         "PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT"
         if passed

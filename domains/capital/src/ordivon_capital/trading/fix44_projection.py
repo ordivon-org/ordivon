@@ -124,7 +124,7 @@ def project_new_order_single(
 
 
 def project_document(document: dict[str, Any]) -> dict[str, Any]:
-    if document.get("kind") != "ordivon.capital.market.fix44-projection-input":
+    if document.get("kind") != "ordivon.capital.trading.fix44-projection-input":
         raise Fix44ProjectionError("unexpected projection input kind")
     if document.get("purpose") != "MECHANICS_ONLY_NON_ECONOMIC":
         raise Fix44ProjectionError("only mechanics-only non-economic projection is admitted")
@@ -164,8 +164,8 @@ def project_document(document: dict[str, Any]) -> dict[str, Any]:
         rows.append(result)
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.fix44-projection-result",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.fix44-projection-result",
         "standing": "PASS_BOUNDED_LOCAL_FIX44_TAGVALUE_PROJECTION",
         "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
         "projectionImplementation": "LOCAL_BOUNDED_FIX44_TAGVALUE_PROJECTOR",

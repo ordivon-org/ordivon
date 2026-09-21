@@ -73,7 +73,9 @@ def test_trading_fullpath_runner_replaces_ambiguous_market_runner_name():
     assert not (ROOT / "scripts/run-capital-market-fullpath-closure").exists()
 
 
-def test_protocol_identity_rename_requires_versioned_migration():
+def test_protocol_identity_migration_is_versioned_and_has_no_runtime_v1_shim():
     migration = TAXONOMY["contractIdentityMigration"]
-    assert migration["prefix"] == "ordivon.capital.market.*"
-    assert migration["standing"] == "DEFERRED_REQUIRES_VERSIONED_SCHEMA_MIGRATION"
+    assert migration["legacyPrefix"] == "ordivon.capital.market.*"
+    assert migration["standing"] == "ACCEPTED_V2_NO_RUNTIME_V1_SHIM"
+    assert migration["currentSchemaVersion"] == 2
+    assert migration["legacyReplay"] == "HISTORICAL_SOURCE_REVISION_OR_BUNDLE_ONLY"

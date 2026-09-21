@@ -75,8 +75,8 @@ def open_interest_change(
         change_pct = (end_oi / start_oi - Decimal("1")) * Decimal("100")
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.open-interest-change",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.open-interest-change",
         "componentId": "open-interest-change",
         "instrumentId": instrument_id,
         "sampleCount": len(rows),
@@ -146,8 +146,8 @@ def repeated_microstructure(
     median_spread = Decimal(str(median(spreads)))
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.repeated-microstructure",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.repeated-microstructure",
         "componentId": "repeated-microstructure-summary",
         "instrumentId": instrument_id,
         "sampleCount": len(rows),
@@ -198,8 +198,8 @@ def reconcile_underlying_reopen(
         raise MarketSensorError("validation_tolerance_bps cannot be negative")
 
     base = {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.underlying-reopen-reconciliation",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.markets.underlying-reopen-reconciliation",
         "componentId": "underlying-reopen-reconciliation",
         "instrumentId": instrument_id,
         "weekendPerpPrice": _fmt(weekend_price),
@@ -287,7 +287,7 @@ def merge_market_observations(
         raise MarketSensorError("market.instrumentId is required")
 
     if oi_change is not None:
-        if oi_change.get("kind") != "ordivon.capital.market.open-interest-change":
+        if oi_change.get("kind") != "ordivon.capital.markets.open-interest-change":
             raise MarketSensorError("unexpected OI sensor kind")
         if oi_change.get("instrumentId") != instrument_id:
             raise MarketSensorError("OI sensor instrument does not match market")
@@ -296,7 +296,7 @@ def merge_market_observations(
         result["openInterestChangeSampleCount"] = oi_change.get("sampleCount")
 
     if microstructure is not None:
-        if microstructure.get("kind") != "ordivon.capital.market.repeated-microstructure":
+        if microstructure.get("kind") != "ordivon.capital.markets.repeated-microstructure":
             raise MarketSensorError("unexpected microstructure sensor kind")
         if microstructure.get("instrumentId") != instrument_id:
             raise MarketSensorError("microstructure sensor instrument does not match market")

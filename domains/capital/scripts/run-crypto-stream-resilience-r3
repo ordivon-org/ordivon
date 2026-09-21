@@ -18,6 +18,6 @@ cp "$out/network-v2/network-v2-binding.json" "$out/network-v2-binding.json"
 python3 - "$out/result.json" "$out/network-v2-binding.json" "$start" "$end" <<'PY'
 import json,sys
 s=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2]))
-r={'schemaVersion':1,'kind':'ordivon.capital.market.crypto-stream-resilience-r3-result','standing':'PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER','selectedCandidate':'network-v2-provider-auto','elapsedMs':(int(sys.argv[4])-int(sys.argv[3]))/1_000_000,'transportBindingDigest':b['bindingDigest'],'session':s,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
+r={'schemaVersion':2,'kind':'ordivon.capital.markets.crypto-stream-resilience-r3-result','standing':'PASS_DUAL_VENUE_PUBLIC_STREAM_RECONNECT_WITH_NETWORK_V2_FAILOVER','selectedCandidate':'network-v2-provider-auto','elapsedMs':(int(sys.argv[4])-int(sys.argv[3]))/1_000_000,'transportBindingDigest':b['bindingDigest'],'session':s,'brokerCredentialsUsed':False,'privateAccountDataUsed':False,'externalFinancialWritesAttempted':False,'demoExecutionAttempted':False,'liveExecutionAttempted':False}
 print(json.dumps(r,sort_keys=True))
 PY

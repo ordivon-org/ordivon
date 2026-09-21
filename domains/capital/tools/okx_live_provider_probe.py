@@ -115,8 +115,8 @@ def main() -> int:
         raise SystemExit("Nautilus live execution config probe failed")
 
     result = {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.okx-live-provider-binding-evidence",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.trading.okx-live-provider-binding-evidence",
         "standing": "PASS_OKX_LIVE_PROVIDER_BOUND_CURRENT_NO_EFFECT_ADMISSION",
         "credentialClass": cfg["credentialClass"],
         "providerCapabilityAuditOnly": cfg["providerCapabilityAuditOnly"],

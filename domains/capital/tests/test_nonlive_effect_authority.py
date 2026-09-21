@@ -11,8 +11,8 @@ def load(path: str):
 
 
 def test_nonlive_effect_authority_is_distinct_from_real_financial_write_authority():
-    nonlive=load('contracts/nonlive-effect-admission-v1.json')
-    real=load('contracts/external-write-policy-input-v1.json')
+    nonlive=load('contracts/nonlive-effect-admission-v2.json')
+    real=load('contracts/external-write-policy-input-v2.json')
     assert nonlive['state']=='ADMITTED'
     assert nonlive['providerWriteCapabilityBound'] is True
     assert nonlive['realMoney'] is False
@@ -24,7 +24,7 @@ def test_nonlive_effect_authority_is_distinct_from_real_financial_write_authorit
 
 
 def test_nonlive_authority_requires_reconciliation_and_capital_resolution():
-    x=load('contracts/nonlive-effect-admission-v1.json')
+    x=load('contracts/nonlive-effect-admission-v2.json')
     assert x['requiresReconciliation'] is True
     assert x['requiresCapitalResolution'] is True
 

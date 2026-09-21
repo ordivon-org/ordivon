@@ -27,7 +27,7 @@ def load_registered_risk_budget(path: Path | None = None) -> dict[str, Any]:
     """
     repo = Path(__file__).resolve().parents[3]
     config_path = path or (repo / "config/portfolio_risk_budget.json")
-    schema_path = repo / "contracts/portfolio-risk-budget-v1.schema.json"
+    schema_path = repo / "contracts/portfolio-risk-budget-v2.schema.json"
     try:
         doc = json.loads(config_path.read_text())
         schema = json.loads(schema_path.read_text())
@@ -35,8 +35,8 @@ def load_registered_risk_budget(path: Path | None = None) -> dict[str, Any]:
     except Exception as exc:
         raise PortfolioRiskError(f"invalid registered portfolio risk budget: {exc}") from exc
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.registered-risk-budget",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.registered-risk-budget",
         "standing": doc["standing"],
         "owner": doc["owner"],
         "source": str(config_path.relative_to(repo)) if config_path.is_relative_to(repo) else str(config_path),
@@ -154,8 +154,8 @@ def build_exposure_ledger(
     ]
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.exposure-ledger",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.exposure-ledger",
         "componentId": "exposure-ledger",
         "equityUsd": _fmt(equity),
         "availableEquityUsd": _fmt(available),
@@ -304,8 +304,8 @@ def analyze_dependence(
         return {k: format(v, ".6f") for k, v in stat.items()}
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.historical-dependence-analysis",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.historical-dependence-analysis",
         "componentId": "portfolio-dependence-analysis",
         "baseInstrumentId": base_instrument_id,
         "proxyInstrumentId": proxy_instrument_id,
@@ -456,8 +456,8 @@ def validate_dependence_model(
         }
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.dependence-model-validation",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.dependence-model-validation",
         "componentId": "portfolio-dependence-analysis",
         "validationMethod": "SCIKIT_LEARN_WALK_FORWARD_TIME_SERIES_SPLIT",
         "baseInstrumentId": base_instrument_id,
@@ -508,8 +508,8 @@ def historical_expected_shortfall(
     expected_shortfall = float(np.mean(tail))
 
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.historical-expected-shortfall",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.historical-expected-shortfall",
         "componentId": "historical-expected-shortfall",
         "method": "EMPIRICAL_HISTORICAL_TAIL_MEAN",
         "confidence": format(confidence, ".6f"),
@@ -564,8 +564,8 @@ def build_factor_observatory(
         for factor, proxies in sorted(grouped.items())
     ]
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.factor-proxy-analysis",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.factor-proxy-analysis",
         "componentId": "factor-proxy-aggregation",
         "baseInstrumentId": base_instrument_id,
         "factors": factors,
@@ -627,8 +627,8 @@ def build_portfolio_risk_report(
         budget=effective_budget,
     )
     return {
-        "schemaVersion": 1,
-        "kind": "ordivon.capital.market.portfolio-risk-report",
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.risk.portfolio-risk-report",
         "nodes": {
             "exposureLedger": exposure_ledger,
             "factorDependenceAnalysis": factor_observatory,

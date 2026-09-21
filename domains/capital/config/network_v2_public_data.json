@@ -58,10 +58,10 @@
     }
   },
   "directFallback": false,
-  "kind": "ordivon.capital.market.network-v2-public-data-authority-set",
+  "kind": "ordivon.capital.markets.network-v2-public-data-authority-set",
   "providerSelection": "sing-box-provider-auto",
   "publicReadOnly": true,
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "serviceUnit": "network-v2-finance-egress.service",
   "targetUnit": "network-v2-finance.target",
   "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",

@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.capital.market.crypto-shadow-mechanics",
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.trading.crypto-shadow-mechanics",
   "standing": "LOCAL_SIMULATION_ONLY",
   "purpose": "MECHANICS_ONLY_NON_ECONOMIC",
   "syntheticNotionalUsdtPerInstrument": "10",
