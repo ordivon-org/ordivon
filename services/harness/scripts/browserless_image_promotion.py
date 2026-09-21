@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_SOURCE_REPO = Path("/root/projects/ordivon-harness")
+CANONICAL_SOURCE_REPO = Path("/root/projects/ordivon")
 SOURCE_QUADLET = ROOT / "containers/ordivon-browserless@.container"
 INSTALLED_QUADLET = Path("/etc/containers/systemd/ordivon-browserless@.container")
 AUTOMATION_CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
@@ -74,12 +74,22 @@ def _source_revision(root: Path = ROOT) -> str:
     marker = root / ".ordivon-agent-automation-release.json"
     value = _load_json(marker, "immutable Agent Automation release marker")
     commit = value.get("commit")
+    schema = value.get("schemaVersion")
     if (
-        value.get("schemaVersion") != 1
+        schema not in {1, 2}
         or not isinstance(commit, str)
         or COMMIT_RE.fullmatch(commit) is None
     ):
         raise PromotionError("immutable Agent Automation release marker has invalid commit")
+    if schema == 2:
+        source_repo = value.get("sourceRepo")
+        source_subtree = value.get("sourceSubtree")
+        if (
+            not isinstance(source_repo, str)
+            or not source_repo.startswith("/")
+            or source_subtree not in {"services/harness", None}
+        ):
+            raise PromotionError("immutable Agent Automation release marker has invalid source authority")
     return commit
 
 

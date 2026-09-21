@@ -18,7 +18,8 @@ import re
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
-SOURCE_REPO = Path("/root/projects/ordivon-harness")
+SOURCE_REPO = Path("/root/projects/ordivon")
+SOURCE_SUBTREE = Path("services/harness")
 RELEASE_ROOT = Path("/opt/ordivon/agent-automation/releases")
 CURRENT = Path("/opt/ordivon/agent-automation/current")
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
@@ -431,9 +432,32 @@ def exact_commit(repo: Path, revision: str) -> str:
     return v
 
 
-def archive_bytes(repo: Path, commit: str) -> bytes:
+def release_source_subtree(repo: Path, commit: str) -> Path | None:
+    """Return the Harness source subtree present in this exact commit, if any."""
+    probe = run(
+        [
+            "/usr/bin/git",
+            "-C",
+            str(repo),
+            "cat-file",
+            "-e",
+            f"{commit}:{SOURCE_SUBTREE.as_posix()}",
+        ],
+        check=False,
+        timeout=20,
+    )
+    return SOURCE_SUBTREE if probe.returncode == 0 else None
+
+
+def archive_bytes(repo: Path, commit: str, *, source_subtree: Path | None = None) -> bytes:
+    subtree = release_source_subtree(repo, commit) if source_subtree is None else source_subtree
+    paths = (
+        tuple((subtree / path).as_posix() for path in RELEASE_PATHS)
+        if subtree is not None
+        else RELEASE_PATHS
+    )
     p = subprocess.run(
-        ["/usr/bin/git", "-C", str(repo), "archive", "--format=tar", commit, "--", *RELEASE_PATHS],
+        ["/usr/bin/git", "-C", str(repo), "archive", "--format=tar", commit, "--", *paths],
         capture_output=True,
         check=True,
         timeout=60,
@@ -454,10 +478,18 @@ def marker(path: Path) -> dict | None:
 
 
 def materialize(repo: Path, commit: str, release_root: Path = RELEASE_ROOT) -> dict:
-    raw = archive_bytes(repo, commit)
+    repo = Path(repo)
+    subtree = release_source_subtree(repo, commit)
+    raw = archive_bytes(repo, commit, source_subtree=subtree)
     ad = sha(raw)
     target = release_root / commit
-    expected = {"schemaVersion": 1, "commit": commit, "archiveDigest": ad}
+    expected = {
+        "schemaVersion": 2,
+        "commit": commit,
+        "archiveDigest": ad,
+        "sourceRepo": source_repo_identity(repo),
+        "sourceSubtree": subtree.as_posix() if subtree is not None else None,
+    }
     if target.exists():
         if marker(target) != expected:
             raise ReleaseError(f"existing release identity differs: {target}")
@@ -470,13 +502,21 @@ def materialize(repo: Path, commit: str, release_root: Path = RELEASE_ROOT) -> d
     release_root.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{commit[:12]}.", dir=release_root))
     try:
+        payload = staging / "payload"
+        payload.mkdir()
         with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as tf:
             members = tf.getmembers()
             for m in members:
                 p = PurePosixPath(m.name)
                 if p.is_absolute() or ".." in p.parts or m.ischr() or m.isblk() or m.isfifo():
                     raise ReleaseError(f"unsafe archive member: {m.name}")
-            tf.extractall(staging, members=members, filter="data")
+            tf.extractall(payload, members=members, filter="data")
+        source_root = payload / subtree if subtree is not None else payload
+        if not source_root.is_dir():
+            raise ReleaseError("release archive lacks resolved Harness source root")
+        for child in list(source_root.iterdir()):
+            os.replace(child, staging / child.name)
+        shutil.rmtree(payload)
         (staging / MARKER).write_text(json.dumps(expected, sort_keys=True) + "\n")
         for p in sorted(staging.rglob("*"), reverse=True):
             if p.is_symlink():
@@ -823,14 +863,16 @@ def restore_optional_file(path: Path, raw: bytes | None, mode: int) -> None:
         write_atomic(path, raw, mode)
 
 
-def source_repo_identity(repo: Path = SOURCE_REPO) -> str:
+def source_repo_identity(repo: Path | None = None) -> str:
+    repo = SOURCE_REPO if repo is None else Path(repo)
     try:
         return str(repo.resolve(strict=True))
     except OSError as e:
         raise ReleaseError(f"Agent Automation source repository unavailable: {repo}") from e
 
 
-def _close_admission(commit: str, repo: Path = SOURCE_REPO) -> None:
+def _close_admission(commit: str, repo: Path | None = None) -> None:
+    repo = SOURCE_REPO if repo is None else Path(repo)
     ADMISSION_ROOT.mkdir(parents=True, exist_ok=True)
     write_atomic(
         ADMISSION_CLOSED,
@@ -890,8 +932,9 @@ def _restore_admission_gate(was_closed: bool) -> None:
 
 
 def candidate_fast_forwards_closed_gate(
-    old_commit: str, new_commit: str, repo: Path = SOURCE_REPO
+    old_commit: str, new_commit: str, repo: Path | None = None
 ) -> bool:
+    repo = SOURCE_REPO if repo is None else Path(repo)
     if old_commit == new_commit:
         return True
     p = run(
@@ -903,7 +946,8 @@ def candidate_fast_forwards_closed_gate(
 
 
 @contextmanager
-def release_admission_fence(commit: str):
+def release_admission_fence(commit: str, repo: Path | None = None):
+    repo = SOURCE_REPO if repo is None else Path(repo)
     ADMISSION_ROOT.mkdir(parents=True, exist_ok=True)
     with ADMISSION_LOCK.open("a+") as handle:
         os.chmod(ADMISSION_LOCK, 0o600)
@@ -916,19 +960,19 @@ def release_admission_fence(commit: str):
                 raise ReleaseError(
                     f"legacy closed admission gate requires explicit reconciliation before owner migration: {old_commit}"
                 )
-            current_source = source_repo_identity(SOURCE_REPO)
+            current_source = source_repo_identity(repo)
             if existing.get("sourceRepo") != current_source:
                 raise ReleaseError(
                     f"closed admission gate belongs to another source repository: {existing.get('sourceRepo')}"
                 )
-            if not candidate_fast_forwards_closed_gate(old_commit, commit, SOURCE_REPO):
+            if not candidate_fast_forwards_closed_gate(old_commit, commit, repo):
                 raise ReleaseError(
                     f"existing closed admission gate belongs to non-ancestor candidate: {old_commit}"
                 )
             # Repair candidates may advance a still-closed gate only within the same exact source repository.
-            _close_admission(commit, SOURCE_REPO)
+            _close_admission(commit, repo)
         if not was_closed:
-            _close_admission(commit, SOURCE_REPO)
+            _close_admission(commit, repo)
         try:
             yield was_closed
         finally:
@@ -945,7 +989,7 @@ def activate(repo: Path, revision: str) -> dict:
     require_mcp_runtime_importable(release)
     require_worker_runtime_importable(release)
     require_playwright_runtime_importable(release)
-    with release_admission_fence(commit) as admission_was_closed:
+    with release_admission_fence(commit, repo) as admission_was_closed:
         # Snapshot every rollback-relevant pre-state before the first service/file mutation. Early
         # failures (including quiescence observation or worker stop) must restore the same state.
         mcp_was = active(MCP_UNIT)
