@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ordivon_harness.skills import (
+from ordivon_skills import (
     SkillCatalog,
     SkillCatalogError,
     SkillContext,
@@ -12,7 +12,7 @@ from ordivon_harness.skills import (
     SourceHealth,
     TrustState,
 )
-from ordivon_harness.skills.parser import SkillParseError, parse_skill_frontmatter
+from ordivon_skills.parser import SkillParseError, parse_skill_frontmatter
 
 
 def write_skill(
@@ -153,7 +153,7 @@ class AgentSkillsStandardsTests(unittest.TestCase):
 
 
     def test_ordivon_owned_project_skills_are_strict_agent_skills(self) -> None:
-        root = Path("/root/projects/ordivon-next/.agents/skills")
+        root = Path("/root/projects/ordivon/meta/next/.agents/skills")
         if not root.is_dir():
             self.skipTest("Ordivon Next project Skills are not installed")
         paths = sorted(root.glob("*/SKILL.md"))
@@ -177,14 +177,14 @@ class AgentSkillsStandardsTests(unittest.TestCase):
 
 class SkillCatalogR2IntegrationTests(unittest.TestCase):
     def test_config_v2_uses_standard_interop_roots_without_manual_priority(self) -> None:
-        from ordivon_harness.skills.config import load_skills_mcp_config
+        from ordivon_skills.config import load_skills_mcp_config
 
         config = load_skills_mcp_config(Path("config/skills-mcp.example.json").resolve())
         by_id = {source.source_id: source for source in config.sources}
         self.assertEqual(by_id["user-agents"].root, Path.home() / ".agents" / "skills")
         self.assertEqual(
             by_id["project-ordivon-next"].root,
-            Path("/root/projects/ordivon-next/.agents/skills"),
+            Path("/root/projects/ordivon/meta/next/.agents/skills"),
         )
         self.assertEqual(by_id["user-agents"].validation_mode, "lenient")
         self.assertEqual(by_id["project-ordivon-next"].validation_mode, "lenient")
@@ -442,7 +442,8 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
 
     def test_resource_mutation_after_package_precheck_fails_closed(self) -> None:
         from unittest import mock
-        import ordivon_harness.skills.catalog as catalog_module
+
+        import ordivon_skills.catalog as catalog_module
 
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "skills"
@@ -591,11 +592,11 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
         config_path = Path("config/skills-mcp.example.json").resolve()
         if not config_path.is_file():
             self.skipTest("Skills MCP example config unavailable")
-        from ordivon_harness.skills.config import load_skills_mcp_config
+        from ordivon_skills.config import load_skills_mcp_config
 
         config = load_skills_mcp_config(config_path)
         required = [
-            Path("/root/projects/ordivon-next/.agents/skills"),
+            Path("/root/projects/ordivon/meta/next/.agents/skills"),
             Path("/root/.agents/skills"),
             Path("/root/.codex/skills"),
             Path("/root/.hermes/skills"),
@@ -631,7 +632,7 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
         self.assertEqual(
             catalog.resolve(
                 "web-provider-routing",
-                context=SkillContext(workspace_path=Path("/root/projects/ordivon-next")),
+                context=SkillContext(workspace_path=Path("/root/projects/ordivon/meta/next")),
                 invocation_mode="implicit",
             ).resolved.source_id,
             "project-ordivon-next",

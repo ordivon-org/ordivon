@@ -23,14 +23,9 @@ def main() -> int:
         fail("base dependencies must contain only HTTPX and jsonschema")
     if "optional-dependencies" in project:
         fail("Harness must not expose compatibility dependency extras")
-    skills_runtime = [
-        line.strip()
-        for line in (ROOT / "config/skills-mcp-requirements.txt").read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    ]
     expected_groups = {
         "dev": ["ruff==0.15.17"],
-        "test": [*skills_runtime, "playwright==1.63.0", "rfc8785==0.1.4", "pytest==9.1.1"],
+        "test": ["mcp==2.0.0", "uvicorn==0.52.1", "playwright==1.63.0", "rfc8785==0.1.4", "pytest==9.1.1"],
     }
     if raw.get("dependency-groups") != expected_groups:
         fail("Harness dependency groups must preserve exact dev/test separation")
@@ -114,7 +109,7 @@ def main() -> int:
 
     print(
         "dependency contract: valid canonical=owner-local-compat host=absent "
-        "runtime=httpx+jsonschema dev=ruff test=skills-mcp-runtime+playwright+pytest"
+        "runtime=httpx+jsonschema dev=ruff test=agent-mcp+playwright+pytest"
     )
     return 0
 

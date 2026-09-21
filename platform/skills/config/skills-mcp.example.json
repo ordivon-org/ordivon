@@ -3,7 +3,7 @@
   "ttlMs": 30000,
   "workspaces": {
     "ordivon-next": {
-      "path": "/root/projects/ordivon-next",
+      "path": "/root/projects/ordivon/meta/next",
       "trusted": true
     }
   },

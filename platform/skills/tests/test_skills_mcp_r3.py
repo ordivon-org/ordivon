@@ -13,8 +13,9 @@ for candidate in (ROOT / "src", ROOT / "scripts"):
         sys.path.insert(0, str(candidate))
 
 from skills_mcp import CatalogProvider, build_server  # noqa: E402
-from ordivon_harness.skills.catalog import SkillCatalog, SkillCatalogError  # noqa: E402
-from ordivon_harness.skills.config import load_skills_mcp_config  # noqa: E402
+
+from ordivon_skills.catalog import SkillCatalog, SkillCatalogError  # noqa: E402
+from ordivon_skills.config import load_skills_mcp_config  # noqa: E402
 
 
 def write_skill(root: Path, name: str, body: str, description: str = "Research helper") -> None:

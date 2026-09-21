@@ -27,8 +27,6 @@ class RepositoryBoundaryTests(unittest.TestCase):
                 "test": [
                     "mcp==2.0.0",
                     "uvicorn==0.52.1",
-                    "PyYAML==6.0.3",
-                    "pyjwt==2.13.0",
                     "playwright==1.63.0",
                     "rfc8785==0.1.4",
                     "pytest==9.1.1",

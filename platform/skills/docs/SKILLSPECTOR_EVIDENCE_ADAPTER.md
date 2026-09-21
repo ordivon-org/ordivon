@@ -2,7 +2,7 @@
 
 The Harness SkillSpector adapter is an **explicit single-Skill evidence producer**, not a catalog trust engine.
 
-`ordivon_harness.skills.skillspector_adapter.run_skillspector_scan()` runs a locally approved SkillSpector executable against one exact filesystem-backed Skill package using `--no-llm --format json`, binds the result to the package revision, and normalizes scanner output into one bounded evidence record.
+`ordivon_skills.skillspector_adapter.run_skillspector_scan()` runs a locally approved SkillSpector executable against one exact filesystem-backed Skill package using `--no-llm --format json`, binds the result to the package revision, and normalizes scanner output into one bounded evidence record.
 
 The normalized `evidenceState` is one of:
 
@@ -17,7 +17,7 @@ This adapter deliberately does **not** write `TrustState`, authorize tools/effec
 A typical operator/runtime call is equivalent to:
 
 ```python
-from ordivon_harness.skills.skillspector_adapter import run_skillspector_scan
+from ordivon_skills.skillspector_adapter import run_skillspector_scan
 
 evidence = run_skillspector_scan(
     "/path/to/one-skill",

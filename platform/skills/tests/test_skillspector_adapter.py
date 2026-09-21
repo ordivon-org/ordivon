@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-from ordivon_harness.skills.skillspector_adapter import run_skillspector_scan  # noqa: E402
+from ordivon_skills.skillspector_adapter import run_skillspector_scan  # noqa: E402
 
 
 def write_skill(root: Path) -> Path:

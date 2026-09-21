@@ -19,7 +19,6 @@ from urllib.parse import urlsplit
 
 import jwt
 from jwt import PyJWKClient
-
 from mcp.server import MCPServer
 from mcp.server.caching import CacheHint
 from mcp.server.extension import Extension, MethodBinding
@@ -33,13 +32,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from ordivon_harness.skills import (  # noqa: E402
+from ordivon_skills import (  # noqa: E402
     SkillCatalog,
     SkillCatalogError,
     SkillContext,
 )
-from ordivon_harness.skills.config import load_skills_mcp_config  # noqa: E402
-from ordivon_harness.skills.sep2640 import (  # noqa: E402
+from ordivon_skills.config import load_skills_mcp_config  # noqa: E402
+from ordivon_skills.sep2640 import (  # noqa: E402
     AgentSkillsConformanceError,
     manifest_contains,
     parse_skill_uri,

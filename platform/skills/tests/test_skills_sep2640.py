@@ -20,7 +20,7 @@ except ImportError as exc:  # pragma: no cover
 
 from skills_mcp import CatalogProvider, McpSettings, build_app  # noqa: E402
 
-from ordivon_harness.skills.sep2640 import (  # noqa: E402
+from ordivon_skills.sep2640 import (  # noqa: E402
     AgentSkillsConformanceError,
     parse_skill_uri,
     parse_standard_frontmatter,
@@ -253,6 +253,7 @@ class Sep2640SkillsTests(unittest.TestCase):
 
     def test_resources_read_rejects_bytes_changed_after_manifest_check(self) -> None:
         from unittest import mock
+
         import skills_mcp as skills_mcp_module
 
         td, base, provider, token_file = self.make_fixture()
