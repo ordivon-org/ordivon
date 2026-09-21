@@ -1,0 +1,201 @@
+name: Runtime Tagged Release
+
+on:
+  push:
+    tags:
+      - "runtime-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  runtime-release:
+    name: runtime-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout exact tagged revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install monorepo toolchain
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14 # v4.2.3
+        with:
+          version: 2026.9.12
+          install: true
+          cache: true
+
+      - name: Bind Runtime tag to repository and owner revisions
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 - <<'PY'
+          import tomllib
+          with open("services/runtime/Cargo.toml", "rb") as stream:
+              print(tomllib.load(stream)["workspace"]["package"]["version"])
+          PY
+          )
+          test "$GITHUB_REF_NAME" = "runtime-v$version"
+          repository_commit=$(git rev-parse "${GITHUB_SHA}^{commit}")
+          owner_commit=$(git -C services/runtime log -1 --format=%H "$repository_commit" -- .)
+          test -n "$owner_commit"
+          git merge-base --is-ancestor "$owner_commit" "$repository_commit"
+          owner_tree=$(git rev-parse "$owner_commit:services/runtime")
+          test -n "$owner_tree"
+          {
+            echo "version=$version"
+            echo "repository_commit=$repository_commit"
+            echo "owner_commit=$owner_commit"
+            echo "owner_tree=$owner_tree"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify Runtime owner
+        run: mise run runtime:verify
+
+      - name: Runtime dependency and license policy
+        uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
+        with:
+          rust-version: "1.95.0"
+          manifest-path: services/runtime/Cargo.toml
+          command: check
+          arguments: --config services/runtime/deny.toml
+
+      - name: Build exact canonical Runtime release artifact set
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/ordivon-runtime-tagged-release"
+          owner="$GITHUB_WORKSPACE/services/runtime"
+          rm -rf "$root"
+          mkdir -p "$root"
+          (
+            cd "$owner"
+            python3 scripts/ordivon-runtime-deploy prepare \
+              --source-repo "$owner" \
+              --commit "${{ steps.release.outputs.owner_commit }}" \
+              --candidate-dir "$root/target/release" \
+              --candidate-manifest "$root/candidate-manifest.json" \
+              --cargo "$(command -v cargo)" \
+              --pretty > "$root/prepare.json"
+          )
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "ordivon-runtime-tagged-release"
+          identity = {
+              "schemaVersion": 1,
+              "tag": os.environ["GITHUB_REF_NAME"],
+              "repositoryCommit": "${{ steps.release.outputs.repository_commit }}",
+              "owner": "services/runtime",
+              "ownerCommit": "${{ steps.release.outputs.owner_commit }}",
+              "ownerTree": "${{ steps.release.outputs.owner_tree }}",
+              "version": "${{ steps.release.outputs.version }}",
+          }
+          (root / "release-identity.json").write_text(
+              json.dumps(identity, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Materialize exact attestation subjects and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import shutil
+          import stat
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "ordivon-runtime-tagged-release"
+          manifest = json.loads((root / "candidate-manifest.json").read_text(encoding="utf-8"))
+          artifacts = manifest.get("artifacts")
+          if not isinstance(artifacts, list) or len(artifacts) != 12:
+              raise SystemExit("canonical Runtime release manifest must contain exactly 12 artifacts")
+          if manifest.get("sourceOwnerPrefix") != "services/runtime":
+              raise SystemExit("tagged Runtime release must bind the monorepo Runtime owner prefix")
+
+          stage = root / "attest-subjects"
+          stage.mkdir()
+          checksums = []
+          names = set()
+          for artifact in artifacts:
+              name = artifact.get("name")
+              if not isinstance(name, str) or not name or Path(name).name != name or name in names:
+                  raise SystemExit(f"invalid or duplicate canonical artifact name: {name!r}")
+              names.add(name)
+              source = Path(str(artifact.get("path")))
+              payload = source.read_bytes()
+              digest = hashlib.sha256(payload).hexdigest()
+              if artifact.get("digest") != f"sha256:{digest}":
+                  raise SystemExit(f"candidate manifest digest mismatch: {name}")
+              mode = stat.S_IMODE(source.stat().st_mode)
+              if artifact.get("mode") != mode:
+                  raise SystemExit(f"candidate manifest mode mismatch: {name}")
+
+              destination = stage / name
+              shutil.copyfile(source, destination)
+              destination.chmod(mode)
+              if hashlib.sha256(destination.read_bytes()).hexdigest() != digest:
+                  raise SystemExit(f"attestation staging changed canonical bytes: {name}")
+              if stat.S_IMODE(destination.stat().st_mode) != mode:
+                  raise SystemExit(f"attestation staging changed canonical mode: {name}")
+              checksums.append(f"{digest}  {name}\n")
+
+          (root / "subjects.sha256").write_text("".join(checksums), encoding="utf-8")
+          PY
+          (
+            cd "$RUNNER_TEMP/ordivon-runtime-tagged-release/attest-subjects"
+            sha256sum --check --strict ../subjects.sha256
+          )
+
+      - name: Generate SPDX SBOM for canonical Runtime release set
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        env:
+          SYFT_SOURCE_NAME: ordivon-runtime
+          SYFT_SOURCE_VERSION: ${{ github.ref_name }}
+        with:
+          path: ${{ runner.temp }}/ordivon-runtime-tagged-release/attest-subjects
+          format: spdx-json
+          output-file: ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Attest canonical Runtime release build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/ordivon-runtime-tagged-release/subjects.sha256
+
+      - name: Attest canonical Runtime release SPDX SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/ordivon-runtime-tagged-release/subjects.sha256
+          sbom-path: ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
+
+      - name: Retain canonical Runtime release evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ordivon-runtime-release-${{ github.ref_name }}
+          path: |
+            ${{ runner.temp }}/ordivon-runtime-tagged-release/attest-subjects/*
+            ${{ runner.temp }}/ordivon-runtime-tagged-release/candidate-manifest.json
+            ${{ runner.temp }}/ordivon-runtime-tagged-release/prepare.json
+            ${{ runner.temp }}/ordivon-runtime-tagged-release/release-identity.json
+            ${{ runner.temp }}/ordivon-runtime-tagged-release/subjects.sha256
+            ${{ runner.temp }}/ordivon-runtime-tagged-release/sbom.spdx.json
+          if-no-files-found: error
+          retention-days: 30
