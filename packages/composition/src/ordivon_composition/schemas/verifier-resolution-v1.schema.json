@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:verifier-resolution:v1",
+  "title": "Task-local Verifier Resolution v1",
+  "description": "A deterministic validation projection over exact caller-authored verifier bindings. It proves only binding closure, not verifier availability, execution, gate discharge, or domain acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "circuitRef",
+    "obligationSetDigest",
+    "bindingSetDigest",
+    "standing",
+    "resolvedBindings",
+    "missingRequiredGateIds",
+    "unboundOptionalGateIds",
+    "mechanicalResolution",
+    "executionAuthorityGranted",
+    "domainAcceptanceEstablished",
+    "claimBoundary",
+    "resolutionDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.verifier-resolution" },
+    "truthRole": {
+      "const": "task-local-non-authoritative-verifier-binding-projection"
+    },
+    "circuitRef": { "$ref": "#/$defs/boundRef" },
+    "obligationSetDigest": { "$ref": "#/$defs/sha256" },
+    "bindingSetDigest": { "$ref": "#/$defs/sha256" },
+    "standing": {
+      "enum": ["VERIFIER_BINDINGS_RESOLVED", "VERIFIER_BINDINGS_OPEN"]
+    },
+    "resolvedBindings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/resolvedBinding" }
+    },
+    "missingRequiredGateIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "unboundOptionalGateIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "mechanicalResolution": { "type": "boolean" },
+    "executionAuthorityGranted": { "const": false },
+    "domainAcceptanceEstablished": { "const": false },
+    "claimBoundary": { "type": "string", "minLength": 1 },
+    "resolutionDigest": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "resolvedBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateId",
+        "obligationDigest",
+        "verifierOwnerId",
+        "verifierRef",
+        "verifierClass",
+        "nativeSpecificationRef",
+        "supportScope"
+      ],
+      "properties": {
+        "gateId": { "$ref": "#/$defs/identifier" },
+        "obligationDigest": { "$ref": "#/$defs/sha256" },
+        "verifierOwnerId": { "$ref": "#/$defs/identifier" },
+        "verifierRef": { "$ref": "#/$defs/boundRef" },
+        "verifierClass": { "$ref": "#/$defs/identifier" },
+        "nativeSpecificationRef": {
+          "anyOf": [
+            { "$ref": "#/$defs/boundRef" },
+            { "type": "null" }
+          ]
+        },
+        "supportScope": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
