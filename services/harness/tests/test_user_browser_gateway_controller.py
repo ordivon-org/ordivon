@@ -133,3 +133,11 @@ def test_classify_uses_active_user_without_prompt_or_provider_effect():
     assert '-Mode' in req.args and 'classify' in req.args
     assert '-PromptPath' not in req.args
     assert '-PromptDigest' not in req.args
+
+
+def test_classify_driver_does_not_require_effect_identity_parameters():
+    script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
+    assert '[Parameter(Mandatory=$true)][string]$EffectId' not in script
+    assert '[Parameter(Mandatory=$true)][string]$RequestDigest' not in script
+    assert "if($Mode -ne 'classify'" in script
+    assert 'EffectId and RequestDigest are required outside classify mode' in script

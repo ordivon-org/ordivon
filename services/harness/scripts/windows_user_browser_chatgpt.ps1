@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)][ValidateSet('classify','materialize','reconcile')][string]$Mode,
-    [Parameter(Mandatory=$true)][string]$EffectId,
-    [Parameter(Mandatory=$true)][string]$RequestDigest,
+    [string]$EffectId,
+    [string]$RequestDigest,
     [string]$PromptPath,
     [string]$PromptDigest,
     [Parameter(Mandatory=$true)][string]$ProxyUrl,
@@ -82,8 +82,15 @@ function Get-AddressValue($Root) {
 }
 
 if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
-    Emit-Receipt 'pre-effect-failed' $null 'user-browser:chrome-unavailable' $false 'chrome-unavailable'
+    if($Mode -eq 'classify'){
+        Emit-Classification 'UNKNOWN' 'normal Chrome executable unavailable'
+    } else {
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:chrome-unavailable' $false 'chrome-unavailable'
+    }
     exit 0
+}
+if($Mode -ne 'classify' -and ([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($RequestDigest))){
+    throw 'EffectId and RequestDigest are required outside classify mode'
 }
 if($Mode -eq 'classify'){
     $existing=@(Get-Process chrome -ErrorAction SilentlyContinue)
