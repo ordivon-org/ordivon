@@ -1,7 +1,7 @@
 # Structure R2 S1B — Composition Consumer Cutover Acceptance
 
 Date: 2026-09-22
-Status: **VERIFIED CANDIDATE — requires main integration/post-merge verification**
+Status: **ACCEPTED / POST-MERGE VERIFIED**
 
 ## Scope
 
@@ -28,4 +28,7 @@ S1B does not move Method Router, capability discovery, R3 seam ownership, Admiss
 - root `repo:ci` — PASS.
 - owner-boundary scan — PASS at 1,952 active files / 18 seams / 23 references.
 - repository checks — 31 passed.
-- post-merge repetition remains required before final acceptance.
+- integrated through serialized main helper as merge commit `cd2bbbbe1bed11519302301f8010fa9d440d6454`.
+- post-merge `composition:verify`, `next:verify`, and root `repo:ci` — PASS.
+- post-merge owner-boundary scan — PASS at 1,952 active files / 18 seams / 23 references.
+- S1 is closed; S2-S9 remain open.
