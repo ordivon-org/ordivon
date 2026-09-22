@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.verified-reintegration-external-owner-convergence-plan",
+  "date": "2026-09-22",
+  "sourceRevision": "5f8e6c47475b5e301b400b7100f488ccf9b184fd",
+  "status": "PLANNING",
+  "governingRule": "EXTERNAL_OWNER_OR_DELETE",
+  "invariants": [
+    "mechanicalClosure != domainAcceptanceEstablished",
+    "external projection != owner truth",
+    "formal refinement != execution authority",
+    "lineage != domain acceptance",
+    "no new universal verifier",
+    "no new generic evidence store"
+  ],
+  "dispositions": [
+    {
+      "owner": "Pacti",
+      "role": "assume-guarantee composition/refinement/quotient",
+      "disposition": "SHADOW_CANDIDATE"
+    },
+    {
+      "owner": "OCRA",
+      "role": "temporal-contract refinement",
+      "disposition": "DEFER_TEMPORAL"
+    },
+    {
+      "owner": "OMG SACM 2.3",
+      "role": "assurance claim/argument/evidence interchange",
+      "disposition": "ACTIVATE_AS_PROJECTION_CANDIDATE"
+    },
+    {
+      "owner": "GSN v3",
+      "role": "human assurance argument view",
+      "disposition": "VIEW_ONLY"
+    },
+    {
+      "owner": "W3C PROV-O",
+      "role": "semantic provenance",
+      "disposition": "KEEP_EXISTING_OWNER"
+    },
+    {
+      "owner": "OpenLineage",
+      "role": "runtime Job/Run/Dataset lineage",
+      "disposition": "KEEP_EXISTING_OWNER"
+    },
+    {
+      "owner": "SLSA/in-toto",
+      "role": "artifact/build provenance and attestation",
+      "disposition": "KEEP_EXISTING_OWNER"
+    },
+    {
+      "owner": "Sigstore/Cosign",
+      "role": "attestation trust verification",
+      "disposition": "KEEP_EXISTING_OWNER"
+    }
+  ],
+  "waves": [
+    {
+      "id": "W0",
+      "goal": "Freeze current R1/R2/R3.1 owner boundaries",
+      "exit": [
+        "current verification green",
+        "no new registry/store/control plane"
+      ]
+    },
+    {
+      "id": "W1",
+      "goal": "Run one pinned formal-contract shadow on a machine-expressible real seam",
+      "exit": [
+        "accepted case reproduced",
+        "deliberate incompatibility detected",
+        "no authority change"
+      ]
+    },
+    {
+      "id": "W2",
+      "goal": "Run one quotient LEGO experiment",
+      "exit": [
+        "compose(known,quotient) refines(required)",
+        "quotient remains obligation not implementation"
+      ]
+    },
+    {
+      "id": "W3",
+      "goal": "Export one disposable SACM-compatible assurance projection",
+      "exit": [
+        "identity/evidence/scope/nonClaims preserved",
+        "no standing upgrade",
+        "no SACM service/store"
+      ]
+    },
+    {
+      "id": "W4",
+      "goal": "Generate optional GSN view only for a real Human review consumer",
+      "exit": [
+        "regenerable view",
+        "no new authority"
+      ]
+    },
+    {
+      "id": "W5",
+      "goal": "Evaluate temporal-contract tooling after repeated temporal pressure",
+      "exit": [
+        "new defect found or bespoke verification reduced"
+      ]
+    },
+    {
+      "id": "W6",
+      "goal": "Make external-owner admission decision",
+      "dispositions": [
+        "ADOPT_EXTERNAL",
+        "KEEP_SHADOW",
+        "DEFER",
+        "DELETE_EXPERIMENT"
+      ]
+    }
+  ],
+  "pactiProbe": {
+    "attempted": true,
+    "python": "3.14.6",
+    "uv": "0.12.3",
+    "disposition": "INCONCLUSIVE_NETWORK",
+    "failureBoundary": "Runtime egress to github.com:443 failed during git ls-remote before package acquisition",
+    "nonClaims": [
+      "This does not show Pacti is incompatible with Python 3.14.",
+      "This does not admit Pacti as a project dependency.",
+      "No Pacti algebra result was produced locally."
+    ]
+  },
+  "noBuildYet": [
+    "formal-contract registry",
+    "SACM service",
+    "GSN database",
+    "new provenance graph store",
+    "universal verifier",
+    "automatic Goal-to-Circuit synthesis"
+  ]
+}
