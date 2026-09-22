@@ -197,6 +197,7 @@ class SemanticBackupGitAuthorityTests(unittest.TestCase):
                  mock.patch.object(MODULE, "ensure_repository"), \
                  mock.patch.object(MODULE, "snapshot_metadata", return_value=metadata), \
                  mock.patch.object(MODULE, "checked", side_effect=fake_checked), \
+                 mock.patch.object(MODULE, "semantic_staging_parent", return_value=temp_root), \
                  mock.patch.object(MODULE, "verify_snapshot_witness", return_value={"digestMatches": True}) as verify, \
                  mock.patch.dict(MODULE.REC, {"semantic_receipt": str(temp_root / "absent-receipt.json")}, clear=False):
                 result = MODULE.restore_test("snapshot-1")

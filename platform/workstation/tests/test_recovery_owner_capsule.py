@@ -61,7 +61,7 @@ def test_backup_snapshot_id_requires_one_summary() -> None:
             raise AssertionError("missing restic summary was accepted")
 
 
-def test_daily_backup_does_not_run_retention_or_check() -> None:
+def test_daily_backup_does_not_run_retention_or_check(tmp_path: Path) -> None:
     cfg = M.load_owner("finance")
     calls: list[list[str]] = []
     capsule_tree = {"treeSha256": "tree", "files": 1, "bytes": 1, "entries": []}
@@ -77,6 +77,7 @@ def test_daily_backup_does_not_run_retention_or_check() -> None:
          mock.patch.object(M, "resolved_exporter", return_value=Path("/bin/true")), \
          mock.patch.object(M, "capsule_tree", return_value=capsule_tree), \
          mock.patch.object(M, "checked", side_effect=fake_checked), \
+         mock.patch.object(M, "staging_parent", return_value=tmp_path), \
          mock.patch.object(M, "verify_restored_snapshot", return_value={"snapshotId":"snap-1"}), \
          mock.patch.object(M, "write_receipt"):
         result = M.backup_locked(cfg)
