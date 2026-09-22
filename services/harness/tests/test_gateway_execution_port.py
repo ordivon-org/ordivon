@@ -10,10 +10,11 @@ from ordivon_harness.gateway_execution_port import (
 
 
 class FakeGateway:
-    def __init__(self, *, lose_submit: bool = False, resolve_state: str = 'found'):
+    def __init__(self, *, lose_submit: bool = False, resolve_state: str = 'found', working_observations: int = 0):
         self.lose_submit = lose_submit
         self.resolve_state = resolve_state
         self.calls: list[tuple[str, dict]] = []
+        self.working_observations = working_observations
 
     def call_tool(self, name, arguments):
         self.calls.append((name, dict(arguments)))
@@ -40,6 +41,14 @@ class FakeGateway:
                 'native_id': 'job-1',
             }
         if name == 'execution.get':
+            if self.working_observations > 0:
+                self.working_observations -= 1
+                return False, {
+                    'operation_ref': arguments['operationRef'],
+                    'native_id': 'job-1',
+                    'state': 'working',
+                    'terminal': False,
+                }
             return False, {
                 'operation_ref': arguments['operationRef'],
                 'native_id': 'job-1',
@@ -106,3 +115,13 @@ def test_absent_after_submit_response_loss_is_ambiguous_not_redispatched():
     names = [name for name, _ in client.calls]
     assert names == ['execution.submit', 'execution.resolve']
     assert names.count('execution.submit') == 1
+
+
+def test_long_running_execution_is_client_polled_beyond_old_twenty_observation_ceiling():
+    client = FakeGateway(working_observations=25)
+    port = GatewayExecutionPort(client, max_observations=40, poll_interval_seconds=0)
+    result = port.execute(request())
+    assert result.state == 'succeeded'
+    gets = [args for name, args in client.calls if name == 'execution.get']
+    assert len(gets) == 26
+    assert all('waitMs' not in args for args in gets)

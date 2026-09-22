@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 
 from anc_canonical import JsonValue, validate_json_value
 
@@ -94,16 +95,16 @@ class GatewayExecutionPort:
         self,
         client: HarnessMcpClient,
         *,
-        max_observations: int = 20,
-        wait_ms: int = 30_000,
+        max_observations: int = 4096,
+        poll_interval_seconds: float = 0.25,
     ) -> None:
         if max_observations < 1:
             raise ValueError('max_observations must be positive')
-        if not 0 <= wait_ms <= 30_000:
-            raise ValueError('wait_ms must be between 0 and 30000')
+        if not 0 <= poll_interval_seconds <= 5:
+            raise ValueError('poll_interval_seconds must be between 0 and 5')
         self.client = client
         self.max_observations = max_observations
-        self.wait_ms = wait_ms
+        self.poll_interval_seconds = poll_interval_seconds
 
     def _call(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
         is_error, payload = self.client.call_tool(name, arguments)
@@ -147,10 +148,12 @@ class GatewayExecutionPort:
             native_id = _required_text(_field(receipt, 'native_id', 'nativeId'), 'nativeId')
 
         last: dict[str, JsonValue] | None = None
+        execution_budget = (request.timeout_ms or 60_000) / 1000 + 15.0
+        deadline = time.monotonic() + execution_budget
         for _ in range(self.max_observations):
             last = self._call(
                 'execution.get',
-                {'operationRef': operation_ref, 'eventLimit': 10, 'waitMs': self.wait_ms},
+                {'operationRef': operation_ref, 'eventLimit': 10},
             )
             observed_native = _required_text(
                 _field(last, 'native_id', 'nativeId'), 'observation nativeId'
@@ -182,6 +185,11 @@ class GatewayExecutionPort:
                 )
             if terminal is not False:
                 raise GatewayExecutionError('Gateway observation omitted terminal')
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            if self.poll_interval_seconds:
+                time.sleep(min(self.poll_interval_seconds, remaining))
         state = last.get('state') if isinstance(last, dict) else None
         raise GatewayExecutionAmbiguous(
             f'Gateway execution remained non-terminal after bounded observation; state={state}'
