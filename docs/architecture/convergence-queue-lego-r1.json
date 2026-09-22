@@ -3,9 +3,9 @@
   "kind": "ordivon.convergence-queue-lego",
   "truthRole": "architecture-decomposition-not-runtime-or-merge-authority",
   "date": "2026-09-22",
-  "status": "R1_CURRENT_MAIN_EXPERIMENT",
+  "status": "R1_REMOTE_CUTOVER_ACCEPTED",
   "decision": {
-    "publicationSubstrate": "GitHub Merge Queue preferred; not remotely enabled in R1",
+    "publicationSubstrate": "GitHub Merge Queue canonical for remote main convergence",
     "ordivonKernel": [
       "owner/scope projection",
       "verification planning",
@@ -219,10 +219,58 @@
     "queueVerifyTasks projection with explicit portable-owner overrides"
   ],
   "nonClaims": [
-    "remote GitHub merge queue enabled",
     "semantic independence proven",
     "custom queue scheduler admitted",
     "predictive cost model admitted",
-    "domain acceptance transferred to GitHub"
-  ]
+    "domain acceptance transferred to GitHub",
+    "advanced scheduling pressure gates satisfied"
+  ],
+  "remoteCutover": {
+    "standing": "ACCEPTED",
+    "ruleset": {
+      "id": 23819262,
+      "name": "main-convergence-queue-r1",
+      "enforcement": "active"
+    },
+    "requiredCheck": "root-verification",
+    "proof": {
+      "firstMergeGroup": {
+        "sha": "3425d361f678ae688d5ac81863ea33095b62411b",
+        "runId": 35721081039
+      },
+      "multiProducerWave": [
+        {
+          "sha": "03a6e451b0bb8aa5e346cce52c091758d2b71edb",
+          "runId": 35721556672
+        },
+        {
+          "sha": "6be42de4c698b658fbc10cc34b06b8a122074470",
+          "runId": 35721558190
+        }
+      ],
+      "realProducer": {
+        "sha": "06b932777ee03b421e45f021f51efebd0053a089",
+        "runId": 35726560495
+      },
+      "postMergeMainRunId": 35726848574
+    }
+  },
+  "advancedScheduling": {
+    "adaptiveSpeculation": {
+      "standing": "DEFER_PRESSURE_NOT_ESTABLISHED",
+      "gate": "queue contention or meaningful CI waste"
+    },
+    "batchingBisection": {
+      "standing": "DEFER_PRESSURE_NOT_ESTABLISHED",
+      "gate": "repeated high queue depth plus nontrivial per-build fixed cost"
+    },
+    "costPrediction": {
+      "standing": "DEFER_TELEMETRY_INSUFFICIENT",
+      "gate": "enough clean historical runs to validate prediction error"
+    },
+    "externalSmartQueue": {
+      "standing": "DEFER_NATIVE_QUEUE_ADEQUATE",
+      "gate": "GitHub-native queue demonstrably fails throughput/cost requirements"
+    }
+  }
 }
