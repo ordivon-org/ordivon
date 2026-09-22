@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.cognitive-circuit-manifest",
+  "circuitId": "circuit:admission-workload-r1",
+  "objectiveRef": {
+    "id": "objective:admission-fabric-r1",
+    "digest": "sha256:654d02743e7875be5458e72cf2e891f90b13492978792c86670de5ff4210aa04"
+  },
+  "methodBindings": [],
+  "capabilityBindings": [
+    {
+      "id": "capability:workload-identity",
+      "capability": "identity.workload",
+      "ownerId": "workload-identity-provider",
+      "sourceKind": "external-provider",
+      "bindingDigest": null,
+      "truthBoundary": "The selected mature provider owns workload credential issuance and verification semantics."
+    },
+    {
+      "id": "capability:security-authorization",
+      "capability": "security.authorization",
+      "ownerId": "security",
+      "sourceKind": "direct-owner",
+      "bindingDigest": null,
+      "truthBoundary": "Security owns capability authorization semantics; policy does not execute effects."
+    },
+    {
+      "id": "capability:continuity-external",
+      "capability": "continuity.external",
+      "ownerId": "host",
+      "sourceKind": "gateway-projection",
+      "bindingDigest": null,
+      "truthBoundary": "Host owns external semantic continuity; Gateway is only a routing projection."
+    }
+  ],
+  "stages": [
+    {
+      "id": "stage:workload-authn",
+      "ownerId": "workload-identity-provider",
+      "responsibility": "Authenticate a first-party software workload without browser or Human interaction during ordinary operation.",
+      "dependsOn": [],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:workload-identity"
+      ],
+      "inputs": [
+        "workload-identity-material"
+      ],
+      "outputs": [
+        "verified-workload-context"
+      ]
+    },
+    {
+      "id": "stage:security-authorization",
+      "ownerId": "security",
+      "responsibility": "Bind verified workload identity to a bounded capability decision.",
+      "dependsOn": [
+        "stage:workload-authn"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:security-authorization"
+      ],
+      "inputs": [
+        "verified-workload-context"
+      ],
+      "outputs": [
+        "capability-authorization-decision"
+      ]
+    },
+    {
+      "id": "stage:gateway-route",
+      "ownerId": "gateway",
+      "responsibility": "Enforce the admitted decision and route to the natural owner without storing workload credentials.",
+      "dependsOn": [
+        "stage:security-authorization"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:continuity-external"
+      ],
+      "inputs": [
+        "capability-authorization-decision"
+      ],
+      "outputs": [
+        "owner-request"
+      ]
+    },
+    {
+      "id": "stage:natural-owner",
+      "ownerId": "host",
+      "responsibility": "Answer the bounded continuity request under Host-owned semantics.",
+      "dependsOn": [
+        "stage:gateway-route"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:continuity-external"
+      ],
+      "inputs": [
+        "owner-request"
+      ],
+      "outputs": [
+        "owner-result"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:workload-security",
+      "from": {
+        "stageId": "stage:workload-authn",
+        "port": "verified-workload-context"
+      },
+      "to": {
+        "stageId": "stage:security-authorization",
+        "port": "verified-workload-context"
+      },
+      "contractRef": "contract:verified-workload-evidence"
+    },
+    {
+      "id": "edge:security-route",
+      "from": {
+        "stageId": "stage:security-authorization",
+        "port": "capability-authorization-decision"
+      },
+      "to": {
+        "stageId": "stage:gateway-route",
+        "port": "capability-authorization-decision"
+      },
+      "contractRef": "contract:security-decision-enforcement"
+    },
+    {
+      "id": "edge:route-owner",
+      "from": {
+        "stageId": "stage:gateway-route",
+        "port": "owner-request"
+      },
+      "to": {
+        "stageId": "stage:natural-owner",
+        "port": "owner-request"
+      },
+      "contractRef": "contract:gateway-owner-routing"
+    }
+  ],
+  "gateRequirements": [
+    {
+      "id": "gate:workload-identity-security",
+      "producerStageId": "stage:workload-authn",
+      "consumerStageId": "stage:security-authorization",
+      "assumption": "Security receives provider-verified workload identity and currentness evidence.",
+      "guarantee": "The workload identity provider does not require browser or Human callback in ordinary operation.",
+      "verifierOwnerId": "security",
+      "supportScope": "first-party workload identity verification seam only",
+      "required": true
+    },
+    {
+      "id": "gate:security-gateway-enforcement",
+      "producerStageId": "stage:security-authorization",
+      "consumerStageId": "stage:gateway-route",
+      "assumption": "Gateway receives a bounded capability decision that it can enforce without owning policy semantics.",
+      "guarantee": "Security decision identity is bound to the verified workload and requested capability.",
+      "verifierOwnerId": "gateway",
+      "supportScope": "workload capability authorization enforcement seam only",
+      "required": true
+    },
+    {
+      "id": "gate:gateway-owner-boundary",
+      "producerStageId": "stage:gateway-route",
+      "consumerStageId": "stage:natural-owner",
+      "assumption": "Host remains the semantic continuity owner.",
+      "guarantee": "Gateway performs routing/projection only and does not reinterpret Host truth.",
+      "verifierOwnerId": "host",
+      "supportScope": "Gateway continuity routing to Host truth boundary only",
+      "required": true
+    }
+  ],
+  "unresolvedAssumptions": [
+    "No production workload identity provider is selected or live-bound for Gateway admission.",
+    "Public Gateway capability-scoped authorization is not yet implemented as a proven Security-to-Gateway enforcement seam."
+  ],
+  "nonClaims": [
+    "This circuit does not deploy SPIFFE/SPIRE, mint credentials, or authorize a workload.",
+    "Workload admission does not require or imply a Human browser flow.",
+    "Authorization does not establish owner effect truth or domain completion."
+  ]
+}

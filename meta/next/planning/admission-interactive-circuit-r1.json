@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.cognitive-circuit-manifest",
+  "circuitId": "circuit:admission-interactive-r1",
+  "objectiveRef": {
+    "id": "objective:admission-fabric-r1",
+    "digest": "sha256:654d02743e7875be5458e72cf2e891f90b13492978792c86670de5ff4210aa04"
+  },
+  "methodBindings": [],
+  "capabilityBindings": [
+    {
+      "id": "capability:network-route",
+      "capability": "network.route",
+      "ownerId": "network",
+      "sourceKind": "direct-owner",
+      "bindingDigest": null,
+      "truthBoundary": "Network owns route mechanics and provider transport state, not identity or authorization."
+    },
+    {
+      "id": "capability:interactive-authn",
+      "capability": "identity.interactive",
+      "ownerId": "cloudflare.access",
+      "sourceKind": "external-provider",
+      "bindingDigest": null,
+      "truthBoundary": "The external identity provider owns OAuth/user authentication semantics and credential issuance."
+    },
+    {
+      "id": "capability:security-authorization",
+      "capability": "security.authorization",
+      "ownerId": "security",
+      "sourceKind": "direct-owner",
+      "bindingDigest": null,
+      "truthBoundary": "Security owns authorization semantics; an ALLOW decision is permission only, not effect truth."
+    },
+    {
+      "id": "capability:continuity-external",
+      "capability": "continuity.external",
+      "ownerId": "host",
+      "sourceKind": "gateway-projection",
+      "bindingDigest": null,
+      "truthBoundary": "Host owns external semantic continuity; Gateway is only a routing projection."
+    }
+  ],
+  "stages": [
+    {
+      "id": "stage:transport",
+      "ownerId": "network",
+      "responsibility": "Establish a reachable HTTPS route to the protected Gateway without owning identity semantics.",
+      "dependsOn": [],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:network-route"
+      ],
+      "inputs": [
+        "gateway-endpoint"
+      ],
+      "outputs": [
+        "reachable-protected-resource"
+      ]
+    },
+    {
+      "id": "stage:interactive-authn",
+      "ownerId": "cloudflare.access",
+      "responsibility": "Perform provider-native interactive authentication and emit provider-verifiable identity evidence.",
+      "dependsOn": [
+        "stage:transport"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:interactive-authn"
+      ],
+      "inputs": [
+        "reachable-protected-resource"
+      ],
+      "outputs": [
+        "verified-provider-context"
+      ]
+    },
+    {
+      "id": "stage:ingress-verification",
+      "ownerId": "gateway",
+      "responsibility": "Verify the provider assertion and project only trusted Principal attribution into request state.",
+      "dependsOn": [
+        "stage:interactive-authn"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [],
+      "inputs": [
+        "verified-provider-context"
+      ],
+      "outputs": [
+        "authenticated-principal-projection"
+      ]
+    },
+    {
+      "id": "stage:capability-authorization",
+      "ownerId": "security",
+      "responsibility": "Evaluate capability authority separately from ingress authentication.",
+      "dependsOn": [
+        "stage:ingress-verification"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:security-authorization"
+      ],
+      "inputs": [
+        "authenticated-principal-projection"
+      ],
+      "outputs": [
+        "capability-authorization-decision"
+      ]
+    },
+    {
+      "id": "stage:gateway-route",
+      "ownerId": "gateway",
+      "responsibility": "Enforce the admitted decision and route the stable capability to its natural owner without acquiring owner truth.",
+      "dependsOn": [
+        "stage:capability-authorization"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:continuity-external"
+      ],
+      "inputs": [
+        "capability-authorization-decision"
+      ],
+      "outputs": [
+        "owner-request"
+      ]
+    },
+    {
+      "id": "stage:natural-owner",
+      "ownerId": "host",
+      "responsibility": "Answer the bounded continuity request under Host-owned semantics.",
+      "dependsOn": [
+        "stage:gateway-route"
+      ],
+      "methodBindings": [],
+      "capabilityBindings": [
+        "capability:continuity-external"
+      ],
+      "inputs": [
+        "owner-request"
+      ],
+      "outputs": [
+        "owner-result"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:transport-authn",
+      "from": {
+        "stageId": "stage:transport",
+        "port": "reachable-protected-resource"
+      },
+      "to": {
+        "stageId": "stage:interactive-authn",
+        "port": "reachable-protected-resource"
+      },
+      "contractRef": "contract:transport-only"
+    },
+    {
+      "id": "edge:authn-ingress",
+      "from": {
+        "stageId": "stage:interactive-authn",
+        "port": "verified-provider-context"
+      },
+      "to": {
+        "stageId": "stage:ingress-verification",
+        "port": "verified-provider-context"
+      },
+      "contractRef": "contract:verified-provider-evidence"
+    },
+    {
+      "id": "edge:ingress-authz",
+      "from": {
+        "stageId": "stage:ingress-verification",
+        "port": "authenticated-principal-projection"
+      },
+      "to": {
+        "stageId": "stage:capability-authorization",
+        "port": "authenticated-principal-projection"
+      },
+      "contractRef": "contract:authn-not-authz"
+    },
+    {
+      "id": "edge:authz-route",
+      "from": {
+        "stageId": "stage:capability-authorization",
+        "port": "capability-authorization-decision"
+      },
+      "to": {
+        "stageId": "stage:gateway-route",
+        "port": "capability-authorization-decision"
+      },
+      "contractRef": "contract:security-decision-enforcement"
+    },
+    {
+      "id": "edge:route-owner",
+      "from": {
+        "stageId": "stage:gateway-route",
+        "port": "owner-request"
+      },
+      "to": {
+        "stageId": "stage:natural-owner",
+        "port": "owner-request"
+      },
+      "contractRef": "contract:gateway-owner-routing"
+    }
+  ],
+  "gateRequirements": [
+    {
+      "id": "gate:provider-gateway-identity",
+      "producerStageId": "stage:interactive-authn",
+      "consumerStageId": "stage:ingress-verification",
+      "assumption": "Gateway receives identity evidence only through the trusted provider injection path.",
+      "guarantee": "The provider evidence is cryptographically verifiable for the configured issuer and audience.",
+      "verifierOwnerId": "gateway",
+      "supportScope": "interactive provider assertion to Gateway Principal projection only",
+      "required": true
+    },
+    {
+      "id": "gate:authn-authz-separation",
+      "producerStageId": "stage:ingress-verification",
+      "consumerStageId": "stage:capability-authorization",
+      "assumption": "Security receives verified identity context rather than caller-self-asserted authority fields.",
+      "guarantee": "Gateway Principal attribution does not claim per-capability authorization.",
+      "verifierOwnerId": "security",
+      "supportScope": "authenticated Principal attribution versus capability authorization seam only",
+      "required": true
+    },
+    {
+      "id": "gate:gateway-owner-boundary",
+      "producerStageId": "stage:gateway-route",
+      "consumerStageId": "stage:natural-owner",
+      "assumption": "Host remains the semantic continuity owner.",
+      "guarantee": "Gateway performs routing/projection only and does not reinterpret Host truth.",
+      "verifierOwnerId": "host",
+      "supportScope": "Gateway continuity routing to Host truth boundary only",
+      "required": true
+    }
+  ],
+  "unresolvedAssumptions": [
+    "Public Gateway capability-scoped authorization is not yet implemented as a proven Security-to-Gateway enforcement seam.",
+    "The live authenticated H2 trace acceptance remains separate from this static composition manifest."
+  ],
+  "nonClaims": [
+    "Compilation does not grant OAuth, credential, network, execution, or Host authority.",
+    "Interactive browser presentation is not part of transaction identity.",
+    "Authentication and authorization do not establish external-effect or domain success."
+  ]
+}

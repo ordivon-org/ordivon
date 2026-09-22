@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.admission-fabric-r1-acceptance",
+  "observedAt": "2026-09-22",
+  "originWorkspaceId": "ws-admission-fabric-r1-20260922",
+  "originSourceRevision": "d09916aa10d48365830049c265e8a56c539b4322",
+  "requalificationWorkspaceId": "ws-admission-fabric-integrate-r1-20260922",
+  "requalifiedAgainstMain": "ebae0c364a0dce4985b075e04d72c3cd7cc14395",
+  "truthRole": "bounded-static-composition-and-regression-evidence-not-live-authorization",
+  "slices": {
+    "AF-S1": {
+      "status": "PASS",
+      "claim": "Interactive and workload admission are represented as distinct task-local circuits that converge on Security -> Gateway -> natural owner without granting authority.",
+      "evidence": [
+        "circuit:admission-interactive-r1 compiledDigest sha256:fca6c1b41f310fa45969c9bc5faa22dc22f0eb2b868f2b31ea1c0eec33a2cfa2",
+        "circuit:admission-workload-r1 compiledDigest sha256:b49863aca04ac57a9cb6892fd7fa18324868df7aca46cc3517fc54f7656284f4",
+        "focused Admission/Cognitive Circuit tests 16/16 PASS",
+        "latest-main next:verify PASS",
+        "latest-main gateway:verify PASS",
+        "latest-main repo:ci PASS"
+      ]
+    },
+    "AF-S2": {
+      "status": "OPEN",
+      "claim": "Gateway capability-scoped authorization is not yet closed.",
+      "blocker": "Ingress currently proves a Cloudflare Access Principal, but no trusted Gateway seam supplies the Agent identity plus bounded Grant/effect authority evidence required by the existing Security Agent Admission contract.",
+      "forbiddenShortcut": [
+        "Do not treat Cloudflare authentication as capability authorization.",
+        "Do not let tool arguments self-assert principal, agent, grant, scope, or approval.",
+        "Do not invent a second Gateway policy vocabulary or static allowlist as a substitute for Security-owned authorization semantics."
+      ],
+      "nextProof": "Select one low-risk capability and bind a trusted grant/agent evidence source to Security ALLOW/STEP_UP/DENY, then enforce that exact decision at Gateway before owner routing."
+    },
+    "AF-S3": {
+      "status": "OPEN",
+      "claim": "No production workload identity provider has been selected or live-bound.",
+      "nextProof": "Use one real first-party unattended consumer; prove a non-browser workload identity and read-only capability path before adding write/execution authority."
+    },
+    "AF-S4": {
+      "status": "REFERENCE_WITNESS_PENDING",
+      "claim": "Existing H2 interactive OAuth/browser path remains a reference circuit, with callback transaction isolation as the invariant rather than fixed port identity."
+    },
+    "AF-S5": {
+      "status": "OPEN",
+      "claim": "MCP wire-currentness is a separate interface-contract concern and is not inferred from stateless_http=True."
+    }
+  },
+  "verification": {
+    "securityPythonTests": {
+      "status": "PASS",
+      "count": 57
+    },
+    "securityThreatModelBinding": {
+      "status": "PASS"
+    },
+    "securityLocalOpaPolicyTests": {
+      "status": "PASS",
+      "count": 34,
+      "opaVersion": "1.20.2"
+    },
+    "securityPinnedOciReplay": {
+      "status": "BLOCKED_EXTERNAL_TRANSPORT",
+      "image": "openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f",
+      "errorClass": "docker-registry-proxy-timeout",
+      "detail": "Docker daemon failed to reach registry-1.docker.io through proxy 10.254.177.2:19381; no policy-test failure was observed."
+    }
+  },
+  "nonClaims": [
+    "AF-S1 does not authorize any live caller.",
+    "The acceptance artifact does not prove a live H2 OAuth round trip.",
+    "Local OPA policy success is not a substitute for the pinned OCI supply-chain replay.",
+    "Authentication or authorization never establishes Runtime/Host/domain effect truth."
+  ]
+}
