@@ -5,10 +5,18 @@ import json
 import tomllib
 from pathlib import Path
 
+import pytest
+
 from scripts.cognitive_circuit_r1 import (
+    CircuitContractError,
     canonical_digest,
     evaluate_gate_results,
     validate_manifest,
+)
+from scripts.cross_domain_binding_r3 import (
+    load_binding,
+    resolve_repo_file,
+    validate_binding,
 )
 from scripts.research_artifact_gate_r3 import (
     build_gate_result as research_artifact_gate,
@@ -31,7 +39,7 @@ def _load_json(path: Path) -> dict:
 
 
 def _binding() -> dict:
-    return _load_json(BINDING_PATH)
+    return load_binding(BINDING_PATH)
 
 
 def research_artifact_manifest() -> dict:
@@ -225,24 +233,42 @@ def _research_inputs() -> tuple[dict, dict, dict]:
     section = binding["researchArtifact"]
     return (
         binding,
-        _load_json(ROOT / section["profilePath"]),
-        _load_json(ROOT / section["dogfoodPath"]),
+        _load_json(resolve_repo_file(ROOT, section["profilePath"])),
+        _load_json(resolve_repo_file(ROOT, section["dogfoodPath"])),
     )
 
 
 def _web_inputs() -> tuple[dict, dict, dict, str, str, str]:
     binding = _binding()
     paths = binding["webSecurity"]["paths"]
-    with (ROOT / paths["dependencyContracts"]).open("rb") as handle:
+    with resolve_repo_file(ROOT, paths["dependencyContracts"]).open("rb") as handle:
         dependencies = tomllib.load(handle)
     return (
         binding,
         dependencies,
-        _load_json(ROOT / paths["nativeE2e"]),
-        (ROOT / paths["requestSource"]).read_text(encoding="utf-8"),
-        (ROOT / paths["admissionSource"]).read_text(encoding="utf-8"),
-        (ROOT / paths["storeSource"]).read_text(encoding="utf-8"),
+        _load_json(resolve_repo_file(ROOT, paths["nativeE2e"])),
+        resolve_repo_file(ROOT, paths["requestSource"]).read_text(encoding="utf-8"),
+        resolve_repo_file(ROOT, paths["admissionSource"]).read_text(encoding="utf-8"),
+        resolve_repo_file(ROOT, paths["storeSource"]).read_text(encoding="utf-8"),
     )
+
+
+def test_task_local_binding_schema_and_repo_relative_paths_are_valid() -> None:
+    binding = _binding()
+    validate_binding(binding)
+    research = binding["researchArtifact"]
+    web_paths = binding["webSecurity"]["paths"]
+    paths = [
+        research["profilePath"],
+        research["dogfoodPath"],
+        *web_paths.values(),
+    ]
+    assert all(resolve_repo_file(ROOT, relative).is_file() for relative in paths)
+
+
+def test_task_local_binding_path_traversal_fails_closed() -> None:
+    with pytest.raises(CircuitContractError, match="repo-relative"):
+        resolve_repo_file(ROOT, "../outside-owner")
 
 
 def test_research_artifact_real_paper3_dogfood_satisfies_bounded_gate() -> None:
@@ -261,6 +287,21 @@ def test_research_artifact_truth_owner_drift_is_unsatisfied() -> None:
     binding, profile, dogfood = _research_inputs()
     profile = copy.deepcopy(profile)
     profile["ownerBindings"]["scientificTruth"] = "wrong-owner"
+
+    result = research_artifact_gate(
+        research_artifact_manifest(),
+        binding,
+        profile,
+        dogfood,
+    )
+
+    assert result["standing"] == "UNSATISFIED"
+
+
+def test_research_artifact_binding_expectation_drift_is_unsatisfied() -> None:
+    binding, profile, dogfood = _research_inputs()
+    binding = copy.deepcopy(binding)
+    binding["researchArtifact"]["expectedScientificTruth"] = "unexpected-owner"
 
     result = research_artifact_gate(
         research_artifact_manifest(),
@@ -353,6 +394,26 @@ def test_web_security_direct_policy_import_is_unsatisfied() -> None:
     )
     forbidden = binding["webSecurity"]["forbiddenSourceFragments"][0]
     admission_source += f"\n// {forbidden}\n"
+
+    result = web_security_gate(
+        web_security_manifest(),
+        binding,
+        dependencies,
+        e2e,
+        request_source,
+        admission_source,
+        store_source,
+    )
+
+    assert result["standing"] == "UNSATISFIED"
+
+
+def test_web_security_binding_contract_marker_drift_is_unsatisfied() -> None:
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
+    binding = copy.deepcopy(binding)
+    binding["webSecurity"]["admissionContractImport"] = "missing-contract-marker"
 
     result = web_security_gate(
         web_security_manifest(),

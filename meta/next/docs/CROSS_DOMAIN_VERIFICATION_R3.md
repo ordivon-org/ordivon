@@ -1,7 +1,7 @@
 # Cross-domain Verification R3 — Seam-specific Verification Adapters
 
 Date: 2026-09-22
-Status: **R3 CANDIDATE / NO UNIVERSAL VERIFIER**
+Status: **R3.2 ACCEPTED / TYPED TASK-LOCAL BINDING / NO UNIVERSAL VERIFIER**
 
 ## Purpose
 
@@ -250,3 +250,49 @@ Web <-> Security:
 R3.1 additionally requires the repository owner-boundary checker to report zero undeclared
 active cross-owner source-path seams from the R3 adapters/tests. No blanket dependency seam
 or checker exemption is introduced.
+
+## R3.2 hardening — schema-validated binding
+
+R3.1 removed physical cross-owner locators from active verifier source. R3.2 closes the
+remaining structural gap: the task-local binding itself is now validated by an explicit
+Draft 2020-12 JSON Schema before either verifier consumes it.
+
+~~~text
+cross-domain-verification-r3-bindings.json
+        |
+        v
+cross-domain-verification-r3-binding.schema.json
+        |
+        v
+shared repo-relative resolver
+        |
+        +--> Research <-> Artifact verifier
+        +--> Web <-> Security verifier
+~~~
+
+The shared resolver rejects absolute paths, parent traversal, repository escape, and
+non-file locators. The schema rejects unknown fields and incomplete seam declarations.
+This is validation of composition evidence, not a new registry or truth authority.
+
+Focused destroyers now cover 14 cases, including:
+
+- binding schema / locator validity;
+- parent-traversal rejection;
+- binding expectation drift against Research owner-native facts;
+- binding contract-marker drift against Web/Security source facts.
+
+The canonical R3 binding bytes are unchanged from R3.1, so its canonical binding digest
+remains:
+
+~~~text
+sha256:65f8a6ba330c62239bb2d6e7c2c0ab46b44c4515aeef6ee23f5d50dfbc1734a7
+~~~
+
+Local qualification:
+
+~~~text
+focused R3 tests          14 / 14 PASS
+binding JSON Schema       PASS
+owner-boundary checker    PASS
+repo:ci                   PASS
+~~~
