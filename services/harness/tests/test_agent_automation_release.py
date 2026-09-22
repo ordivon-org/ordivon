@@ -26,6 +26,8 @@ class ReleaseTests(unittest.TestCase):
         self._admission_td = tempfile.TemporaryDirectory()
         root = Path(self._admission_td.name) / "admission"
         self._admission_patchers = [
+            patch.object(r.os, "geteuid", return_value=0),
+            patch.object(r, "SOURCE_REPO", ROOT.parents[1]),
             patch.object(r, "ADMISSION_ROOT", root),
             patch.object(r, "ADMISSION_LOCK", root / "release.lock"),
             patch.object(r, "ADMISSION_CLOSED", root / "closed.json"),

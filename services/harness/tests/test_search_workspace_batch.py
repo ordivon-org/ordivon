@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import json
 import subprocess
 from pathlib import Path
@@ -217,6 +219,7 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 self.assertEqual(observation.structured_content["queries"], ["ToolProgram", "__NO_SUCH_LITERAL__"])
                 self.assertEqual([row["status"] for row in observation.structured_content["queryResults"]], ["matched", "no_hits"])
 
+    @pytest.mark.node_qualification
     def test_batch_physical_wrapper_globally_caps_each_query_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runtime = BatchRuntime()
