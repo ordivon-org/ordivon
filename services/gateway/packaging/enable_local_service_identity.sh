@@ -19,4 +19,12 @@ install -d -m 0755 "$DROPIN_DIR"
 install -m 0644 "$SOURCE" "$TARGET"
 systemctl daemon-reload
 systemctl restart ordivon-gateway.service
-curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8899/health >/dev/null
+ready=0
+for _ in {1..40}; do
+  if curl --fail --silent --show-error --max-time 1 http://127.0.0.1:8899/health >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
+  sleep 0.25
+done
+[[ "$ready" == 1 ]]
