@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.cross-domain-verification-r3-acceptance",
+  "effectiveDate": "2026-09-22",
+  "baseRevision": "ebae0c364a0dce4985b075e04d72c3cd7cc14395",
+  "truthRole": "acceptance-evidence-not-domain-truth",
+  "ownerBaselines": {
+    "artifactPublicationFocused": {
+      "standing": "PASS",
+      "tests": 9
+    },
+    "webCi": {
+      "standing": "PASS"
+    },
+    "securityUnit": {
+      "standing": "PASS",
+      "tests": 57
+    }
+  },
+  "focusedDestroyers": {
+    "standing": "PASS",
+    "tests": 10
+  },
+  "seams": {
+    "researchArtifact": {
+      "seamKind": "composition-profile-and-evidence-not-production-source-dependency",
+      "circuitId": "circuit:research-artifact-publication-r3",
+      "manifestDigest": "sha256:33e299e93b6e114af9a1610fb6fff9bb2dcdadc26b8f74e0a499c0dc16e906a2",
+      "gateId": "gate:research-artifact-carrier",
+      "gateStanding": "SATISFIED",
+      "verifierOwnerId": "research",
+      "evidenceRefs": [
+        "research-profile:sha256:6d8939b8590b386276bd6b641acb8c8ac9c69c038444c2d9b866259b2ad947b6",
+        "artifact-publication-dogfood:sha256:c9cb770f4833429112a0e8eaa5e5f5f93b6028cbda13b763e26058d271fb8c3b"
+      ],
+      "projection": {
+        "standing": "COMPOSITION_GATES_SATISFIED",
+        "mechanicalClosure": true,
+        "domainAcceptanceEstablished": false,
+        "projectionDigest": "sha256:50a3e351377f27d38dea18c5062216217709ce57613af253d02eb157655b3890"
+      }
+    },
+    "webSecurity": {
+      "seamKind": "declared-public-source-contract-plus-owner-native-e2e",
+      "circuitId": "circuit:web-security-agent-authority-r3",
+      "manifestDigest": "sha256:161391b0c7b831d999a3976acba24f743a6a0d838a348fa9472dc9f7c5f0e6ca",
+      "gateId": "gate:web-security-agent-authority",
+      "gateStanding": "SATISFIED",
+      "verifierOwnerId": "web",
+      "evidenceRefs": [
+        "repo-dependency-contracts:sha256:6d8fb177a248147395ce46444e7c00a58926853bd15afd63f9074a53870db08d",
+        "web-security-request-consumer:sha256:ec16dafbb35bb446e18fd48ed8faa01d6b5b78fea2f76106be087aec4adeb27b",
+        "web-security-admission-consumer:sha256:46e05ea4532b1ba38b74cb63a529c8d444ecd989445ee105f6de1520c70c6f4a",
+        "web-local-authority-store:sha256:b3ceb29aba9ed576bd1b5e2d1ec2618d4e7a05fccff1f4d9be82f01534b0b523",
+        "web-agent-native-e2e:sha256:b316fc4170d062739ee322cf6bfa217758e1a9dea25015a693b61d488bcd639c"
+      ],
+      "projection": {
+        "standing": "COMPOSITION_GATES_SATISFIED",
+        "mechanicalClosure": true,
+        "domainAcceptanceEstablished": false,
+        "projectionDigest": "sha256:c04bc1eecbab8c60d0865e6fe0001d8d1d22de1111d8850e635a4bfdd9fc5bfb"
+      }
+    }
+  },
+  "nonClaims": [
+    "R3 does not establish scientific correctness or Human perceptual signoff.",
+    "R3 does not establish production eligibility for apps/web.",
+    "R3 does not create a universal cross-domain verifier or ontology.",
+    "R3 mechanical closure is not domain acceptance."
+  ]
+}
