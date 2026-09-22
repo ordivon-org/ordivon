@@ -108,12 +108,14 @@ impl Runtime {
             } else {
                 None
             };
-            workspaces.push(Self::workspace_summary_from_parts(
+            workspaces.push(project_workspace_summary(
                 &record,
-                current_head_revision,
-                dirty,
-                source_state_digest,
-                active_job_ids,
+                WorkspaceProjectionFacts {
+                    current_head_revision,
+                    dirty,
+                    source_state_digest,
+                    active_job_ids,
+                },
             ));
         }
         Ok(RuntimeWorkspaceListResult {
@@ -139,37 +141,19 @@ impl Runtime {
             },
         )
         .map_err(map_universal_error)?;
-        Ok(Self::workspace_summary_from_parts(
+        Ok(project_workspace_summary(
             record,
-            workspace_head_revision(&self.executor, &record.workspace_id)
-                .map_err(map_universal_error)?,
-            diff.byte_length > 0 || !diff.untracked_paths.is_empty(),
-            Some(
-                workspace_source_state_digest(&self.executor, &record.workspace_id)
+            WorkspaceProjectionFacts {
+                current_head_revision: workspace_head_revision(&self.executor, &record.workspace_id)
                     .map_err(map_universal_error)?,
-            ),
-            active_job_ids,
+                dirty: diff.byte_length > 0 || !diff.untracked_paths.is_empty(),
+                source_state_digest: Some(
+                    workspace_source_state_digest(&self.executor, &record.workspace_id)
+                        .map_err(map_universal_error)?,
+                ),
+                active_job_ids,
+            },
         ))
-    }
-
-    fn workspace_summary_from_parts(
-        record: &crate::universal::WorkspaceRecord,
-        current_head_revision: String,
-        dirty: bool,
-        source_state_digest: Option<String>,
-        active_job_ids: Vec<String>,
-    ) -> RuntimeWorkspaceSummary {
-        RuntimeWorkspaceSummary {
-            workspace_id: record.workspace_id.clone(),
-            source_repo: record.source_repo.clone(),
-            source_revision: record.source_revision.clone(),
-            current_head_revision,
-            created_at_ms: u64::try_from(record.created_unix_ms).unwrap_or(u64::MAX),
-            head_mode: "detached".to_string(),
-            dirty,
-            source_state_digest,
-            active_job_ids,
-        }
     }
 
     pub fn mutate_workspace(
@@ -180,17 +164,7 @@ impl Runtime {
         let active = self
             .registry
             .active_job_ids_for_workspace(&request.workspace_id)?;
-        if !active.is_empty() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::WorkspaceBusy,
-                format!(
-                    "workspace source state is committed by active or held Jobs: {}",
-                    active.join(", ")
-                ),
-                Some("workspaceId"),
-                true,
-            ));
-        }
+        ensure_workspace_mutation_allowed(&active)?;
         mutate_workspace(&self.executor, request).map_err(map_universal_error)
     }
 
@@ -202,27 +176,9 @@ impl Runtime {
         let active = self
             .registry
             .active_job_ids_for_workspace(&request.workspace_id)?;
-        if !active.is_empty() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::WorkspaceBusy,
-                format!("workspace has active or held Jobs: {}", active.join(", ")),
-                Some("workspaceId"),
-                true,
-            ));
-        }
         let dependents = workspace_cleanup_dependents(&self.executor, &request.workspace_id)
             .map_err(map_universal_error)?;
-        if !dependents.is_empty() {
-            return Err(RuntimeError::new(
-                RuntimeErrorCode::WorkspaceBusy,
-                format!(
-                    "workspace owns paths required as Git authority by open Workspaces: {}",
-                    dependents.join(", ")
-                ),
-                Some("workspaceId"),
-                true,
-            ));
-        }
+        ensure_workspace_close_allowed(&active, &dependents)?;
         remove_git_workspace(&self.executor, request).map_err(map_universal_error)
     }
 

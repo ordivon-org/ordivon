@@ -12,6 +12,7 @@ mod supervisor;
 mod types;
 mod windows;
 mod windows_broker;
+mod workspace_state;
 
 #[cfg(feature = "operator-tools")]
 pub use doctor::{
