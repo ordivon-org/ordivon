@@ -19,7 +19,9 @@ def test_windows_release_installer_is_exact_sha_and_immutable() -> None:
     assert "releases" in text
     assert '".tmp-$Commit-$nonce"' in text
     assert "Move-Item -LiteralPath $tmp -Destination $release" in text
-    assert "Remove-Item -LiteralPath $release" not in text
+    assert "Assert-ReleaseNotReferenced" in text
+    assert "incomplete release is referenced by service(s)" in text
+    assert "Remove-Item -LiteralPath $release -Recurse -Force" in text
 
 
 def test_windows_release_installer_uses_pinned_managed_python_and_lock() -> None:
@@ -44,4 +46,6 @@ def test_windows_release_installer_emits_mechanical_receipt_without_current_poin
     assert "sourceCommit" in text
     assert "current.next" not in text
     assert "New-Item -ItemType SymbolicLink" not in text
-    assert "Set-Content -LiteralPath $receiptPath" in text
+    assert "receiptPath" in text
+    assert "Move-Item -LiteralPath $receiptTmp -Destination $receiptPath" in text
+    assert "existing release receipt source commit mismatch" in text

@@ -29,6 +29,9 @@ def test_windows_service_materializer_uses_virtual_service_identity_and_exact_re
     assert ".venv\\Scripts\\ordivon-gateway.exe" in text
     assert "ORDIVON_GATEWAY_WINDOWS_SERVICE_NAME" in text
     assert "ORDIVON_GATEWAY_PORT" in text
+    assert "$releaseReceiptPath" in text
+    assert "Gateway release receipt source commit mismatch" in text
+    assert "releaseReceiptSha256" in text
 
 
 def test_windows_service_materializer_never_reads_secret_values() -> None:
@@ -38,7 +41,10 @@ def test_windows_service_materializer_never_reads_secret_values() -> None:
     assert "HostBearerTokenFile" in text
     assert "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE" in text
     assert "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE" in text
-    assert "Get-Content" not in text
+    assert "Get-Content -LiteralPath $releaseReceiptPath" in text
+    assert "Get-Content -LiteralPath $LinuxRuntimeBearerTokenFile" not in text
+    assert "Get-Content -LiteralPath $WindowsRuntimeBearerTokenFile" not in text
+    assert "Get-Content -LiteralPath $HostBearerTokenFile" not in text
 
 
 def test_windows_acl_materializer_uses_service_sid_and_protected_dacls() -> None:

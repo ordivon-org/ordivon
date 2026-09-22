@@ -55,12 +55,23 @@ $shawl = (Resolve-Path -LiteralPath $ShawlPath).Path
 $logs = Join-Path $prefixPath 'logs'
 $credentials = Join-Path $prefixPath 'credentials'
 $receipts = Join-Path $prefixPath 'receipts'
+$releaseReceiptPath = Join-Path $receipts "$ReleaseCommit.json"
 New-Item -ItemType Directory -Force -Path $logs, $credentials, $receipts | Out-Null
 
-foreach ($required in @($release, $gatewayExe, $shawl)) {
+foreach ($required in @($release, $gatewayExe, $shawl, $releaseReceiptPath)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "required Gateway carrier path is missing: $required"
     }
+}
+$releaseReceipt = Get-Content -LiteralPath $releaseReceiptPath -Raw | ConvertFrom-Json
+if ($releaseReceipt.sourceCommit -ne $ReleaseCommit) {
+    throw "Gateway release receipt source commit mismatch"
+}
+if ([System.IO.Path]::GetFullPath([string]$releaseReceipt.releasePath) -ne $release) {
+    throw "Gateway release receipt path mismatch"
+}
+if ([System.IO.Path]::GetFullPath([string]$releaseReceipt.gatewayExecutable) -ne $gatewayExe) {
+    throw "Gateway release receipt executable mismatch"
 }
 
 $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -188,6 +199,7 @@ $receipt = [ordered]@{
     gatewayExecutable = $gatewayExe
     shawlPath = $shawl
     shawlSha256 = (Get-FileHash -LiteralPath $shawl -Algorithm SHA256).Hash.ToLowerInvariant()
+    releaseReceiptSha256 = (Get-FileHash -LiteralPath $releaseReceiptPath -Algorithm SHA256).Hash.ToLowerInvariant()
     serviceSidType = 'UNRESTRICTED'
     wrapperRestartPolicy = 'no-restart'
     scmFailureActionsMs = @(5000, 15000, 60000)
