@@ -47,7 +47,13 @@ class DeployTests(unittest.TestCase):
         with patch.object(browserless_deploy, "resolve_network_binding", return_value=binding):
             value = d.runtime_config(c)
             expected = d.render_browserless_config()
-        self.assertEqual(value, expected)
+        for key, expected_value in expected.items():
+            self.assertEqual(value[key], expected_value, key)
+        self.assertEqual(value["materializationCarrier"], "windows-user-browser")
+        self.assertEqual(
+            value["windowsUserBrowser"]["workspaceId"],
+            "ws-user-browser-prod-r1-20260922",
+        )
         self.assertEqual(
             value["browserSubstrate"]["endpoints"][0]["networkNamespace"], "nv2-browserless-prod"
         )
