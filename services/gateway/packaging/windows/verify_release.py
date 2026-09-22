@@ -5,6 +5,7 @@ import json
 from importlib.metadata import version
 
 from mcp import Client
+
 from ordivon_gateway.mcp_server import build_server
 
 EXPECTED = [
