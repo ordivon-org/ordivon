@@ -18,6 +18,10 @@ use super::supervisor::{
     SupervisorObservation, SupervisorRecoveryDisposition, SupervisorUnitState, TerminationIntent,
 };
 use super::windows::*;
+use super::workspace_state::{
+    ensure_workspace_close_allowed, ensure_workspace_mutation_allowed, project_workspace_summary,
+    WorkspaceProjectionFacts,
+};
 use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
     validate_logical_id, AdmissionOutcome, ArtifactDescriptor, ArtifactReadRequest,
