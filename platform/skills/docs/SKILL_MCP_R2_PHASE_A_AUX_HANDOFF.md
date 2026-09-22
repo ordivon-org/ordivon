@@ -45,7 +45,7 @@ Those should remain later slices rather than being hidden in this foundation.
 The catalog was run against the currently present machine roots:
 
 ```text
-/root/projects/ordivon/meta/next/.agents/skills
+/root/projects/ordivon/.agents/skills
 /root/.codex/skills
 /root/.agents/skills
 /root/.hermes/skills

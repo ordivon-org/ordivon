@@ -52,7 +52,7 @@ The remote Skills MCP remains only an exact compatibility edge for ChatGPT while
 | external semantic continuity / checkpoint / collaboration | Host | deployed authority |
 | bounded Agent Run / cognition / Provider+Tool continuity | Harness | deployed authority, separate from Gateway routes |
 | procedural method selection guidance | Method Router Agent Skill | deployed advisory Skill |
-| canonical project Skill bytes | standard Agent Skill source under `meta/next/.agents/skills` | deployed source |
+| canonical project Skill bytes | standard Agent Skill source under `.agents/skills` | deployed source |
 | ChatGPT Skill compatibility | Skills MCP | retained compatibility edge only |
 | portable composition envelope | Agent Plugins 1.0 package | deployed distribution surface |
 | Workstation service/deployment realization | Workstation | deployed platform owner |
@@ -94,7 +94,7 @@ These are deliberately different components.
 The **Method Router** is the canonical Agent Skill at:
 
 ```text
-meta/next/.agents/skills/method-router/SKILL.md
+.agents/skills/method-router/SKILL.md
 ```
 
 It helps an Agent choose **how to approach a problem**: which mature method, lens, standard, or procedure is appropriate. It is advisory knowledge.
