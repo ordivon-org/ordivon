@@ -1,0 +1,53 @@
+{
+  "driftFinding": {
+    "action": "Do not rewrite the historical acceptance; downstream RW3/RW4 bind this requalification.",
+    "classification": "STALE_ACCEPTANCE_PROJECTION_FACTS",
+    "historicalR5ProjectionDigestSetDigest": "sha256:fd45d9e6d6832c3aa26bbf9274da353139a30e8d789ba115dc2496632ec13d8c",
+    "historicalR5SummaryDigest": "sha256:9e0001af6d302f32d6f5c86fc25e685c85a6ef1593b9ce92d1876586dcdf2d5d",
+    "replayedR5ProjectionDigestSetDigest": "sha256:3ab67ed492de20b65fe05b5caf8748d48a70a0d0718d40c1d183c6dc09033490",
+    "replayedR5SummaryDigest": "sha256:290302b15c12415ed9b4c0a755b4d570929c4e6329e62f0836034fc94dab44a5",
+    "sourceRecordDigestSetUnchanged": true
+  },
+  "effectiveDate": "2026-09-22",
+  "historicalAcceptanceStanding": "PASS_RW2",
+  "kind": "ordivon.experimental-episode-rw2-replay-requalification",
+  "nonClaims": [
+    "This artifact does not replace Runtime or Harness truth.",
+    "The stale historical projection digest is not treated as current replay truth.",
+    "No domain acceptance is inferred from Runtime resolution or Harness acceptance."
+  ],
+  "replay": {
+    "harness": {
+      "episodeIdentityCollisions": 0,
+      "episodeJsonlSha256": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "projectedEpisodes": 7,
+      "projectionDigestSetDigest": "sha256:932a969151c526180eaf507597133fcbfbdea8302c9c67be1139bc6ab6f70c96",
+      "sourceReceipts": 7,
+      "summaryDigest": "sha256:23bbe8e3969af840e11e572ca3b695159b60c27603fc2617ceeda00760ed2624"
+    },
+    "r5": {
+      "episodeIdSetDigest": "sha256:020f83cc7095b6492a702508b00fcb5176ab8ab9b2730b617a0a9b60878388cc",
+      "episodeIdentityCollisions": 0,
+      "episodeJsonlSha256": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "projectedEpisodes": 10000,
+      "projectionDigestSetDigest": "sha256:3ab67ed492de20b65fe05b5caf8748d48a70a0d0718d40c1d183c6dc09033490",
+      "sourceRecordDigestSetDigest": "sha256:3a7d8e44b5fa190f8ad7d6f69a311e1ccc75ae114d2134e7d6befb32a1638430",
+      "sourceRuns": 10000,
+      "summaryDigest": "sha256:290302b15c12415ed9b4c0a755b4d570929c4e6329e62f0836034fc94dab44a5"
+    },
+    "runtimeHarnessExactJoin": {
+      "declaredRuntimeJobRefs": 47,
+      "missingFromCurrentRegistry": 0,
+      "resolutionDistribution": {
+        "failed": 12,
+        "succeeded": 35
+      },
+      "resolvedInCurrentRegistry": 47,
+      "standing": "PASS_EXACT_RUNTIME_JOB_JOIN"
+    }
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
+  "standing": "PASS_RW2_REPLAY_REQUALIFIED",
+  "supersedesProjectionFactsFrom": "meta/next/evidence/acceptance/experimental-episode-r1-20260922.json"
+}

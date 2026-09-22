@@ -1,0 +1,76 @@
+{
+  "deployment": {
+    "permanentDatabaseCreated": false,
+    "reason": "Permanent Workstation realization requires demonstrated analytical consumer value; RW4 provides that next gate."
+  },
+  "effectiveDate": "2026-09-22",
+  "kind": "ordivon.experimental-episode-rw3-acceptance",
+  "nonClaims": [
+    "PostgreSQL does not replace Runtime, Harness, Host, Git, Artifact, or domain truth.",
+    "The clean-room database and roles are ephemeral and were removed after qualification.",
+    "No experiment scheduler, universal evaluator, universal fitness score, or RSI controller is introduced."
+  ],
+  "qualification": {
+    "cleanroomEvidenceDigest": "sha256:de3df21421e5e80a9b8e59c77630dfb21fc47e6e45924246e215bf9c53addb5d",
+    "firstLoadHarness": {
+      "episodeCount": 7,
+      "ingestId": "ingest:sha256:f5914889d6ba17492a2dcc4b862dbcdbc6598f1e70a0e8f9c8ee678fdb49bf0a",
+      "insertedProjectionCountThisRun": 7,
+      "profileId": "harness-rsi-acceptance-v1",
+      "replayExistingIngest": false,
+      "retainedOriginalInsertedProjectionCount": 7,
+      "sourceFileDigest": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    },
+    "firstLoadRuntime": {
+      "episodeCount": 10000,
+      "ingestId": "ingest:sha256:5532332cd1961d49457a2141c59831d93f8e863ccc71c16b9ed146b9c04f8b5e",
+      "insertedProjectionCountThisRun": 10000,
+      "profileId": "runtime-r5c-v1",
+      "replayExistingIngest": false,
+      "retainedOriginalInsertedProjectionCount": 10000,
+      "sourceFileDigest": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    },
+    "logicalDump": {
+      "bytes": 7468299,
+      "sha256": "sha256:ccbabba54b9f812b858a3f17b022ebfa72dab40851eb1dfa6d56ab3daeb81890"
+    },
+    "projectionIdentityCount": 10007,
+    "projectionIdentitySetSha256": "sha256:7080e193ab09c148bd43b9f54f4d4989ef553bd9d2097690b5857da35feed66d",
+    "replayHarness": {
+      "episodeCount": 7,
+      "ingestId": "ingest:sha256:f5914889d6ba17492a2dcc4b862dbcdbc6598f1e70a0e8f9c8ee678fdb49bf0a",
+      "insertedProjectionCountThisRun": 0,
+      "profileId": "harness-rsi-acceptance-v1",
+      "replayExistingIngest": true,
+      "retainedOriginalInsertedProjectionCount": 7,
+      "sourceFileDigest": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    },
+    "replayRuntime": {
+      "episodeCount": 10000,
+      "ingestId": "ingest:sha256:5532332cd1961d49457a2141c59831d93f8e863ccc71c16b9ed146b9c04f8b5e",
+      "insertedProjectionCountThisRun": 0,
+      "profileId": "runtime-r5c-v1",
+      "replayExistingIngest": true,
+      "retainedOriginalInsertedProjectionCount": 10000,
+      "sourceFileDigest": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+    },
+    "restoreIdentityMatch": true,
+    "restoreTableCountsMatch": true,
+    "tableCounts": {
+      "episode_dimensions": 50027,
+      "episode_evidence_bindings": 20014,
+      "episode_measures": 30036,
+      "episode_owner_refs": 70063,
+      "episode_projections": 10007,
+      "projection_ingests": 2
+    }
+  },
+  "rw2RequalificationRef": "meta/next/evidence/acceptance/experimental-episode-rw2-replay-requalification-20260922.json",
+  "schemaVersion": 1,
+  "sourceRevision": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
+  "standing": "RW3_ACCEPTED_ANALYTICAL_STORE_PROVEN_NOT_DEPLOYED"
+}
