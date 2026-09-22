@@ -251,8 +251,13 @@ class BrowserlessAutomationConfig:
     browserless_warm_endpoint_ids: tuple[str, ...] = ()
     browserless_human_public_origins: dict[str, str] | None = None
     windows_user_browser: WindowsUserBrowserAutomationConfig | None = None
+    materialization_carrier: str = "browserless"
 
     def __post_init__(self) -> None:
+        if self.materialization_carrier not in {"browserless", "windows-user-browser"}:
+            raise ValueError("materializationCarrier must be browserless or windows-user-browser")
+        if self.materialization_carrier == "windows-user-browser" and self.windows_user_browser is None:
+            raise ValueError("windows-user-browser materialization requires windowsUserBrowser config")
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
             raise ValueError("browserlessHumanHandoffMode must be self-hosted-vnc or live-url")
         if self.human_handoff_ms <= 0:
@@ -340,6 +345,7 @@ class BrowserlessAutomationConfig:
                 if value.get("windowsUserBrowser") is not None
                 else None
             ),
+            materialization_carrier=str(value.get("materializationCarrier", "browserless")),
         )
 
     @property
@@ -900,6 +906,8 @@ class BrowserlessAutomationService:
                 self.config.temporal_namespace,
                 "--task-queue",
                 self.config.temporal_task_queue,
+                "--carrier",
+                self.config.materialization_carrier,
             ]
             if agent_id is not None:
                 cmd += ["--agent-id", agent_id]

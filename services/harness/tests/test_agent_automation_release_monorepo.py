@@ -212,5 +212,8 @@ def test_runtime_contract_persists_windows_user_browser_binding():
     assert binding['gateway_url'] == 'http://127.0.0.1:8899/mcp'
     assert binding['workspace_id'] == 'ws-user-browser-prod-r1-20260922'
     assert binding['timeout_ms'] == 150000
+    assert contract['agent_automation']['materialization_carrier'] == 'windows-user-browser'
+    deploy = (ROOT / 'scripts' / 'agent_automation_mcp_deploy.py').read_text()
+    assert 'value["materializationCarrier"]' in deploy
     deploy = (ROOT / 'scripts' / 'agent_automation_mcp_deploy.py').read_text()
     assert 'value["windowsUserBrowser"]' in deploy

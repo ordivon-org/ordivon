@@ -82,6 +82,7 @@ def source_revision() -> str:
 
 def runtime_config(c: dict) -> dict:
     value = render_browserless_config()
+    value["materializationCarrier"] = c.get("materialization_carrier", "browserless")
     user_browser = c.get("windows_user_browser")
     if user_browser is not None:
         value["windowsUserBrowser"] = {

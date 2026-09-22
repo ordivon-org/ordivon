@@ -2206,3 +2206,20 @@ class WindowsUserBrowserCarrierTests(unittest.TestCase):
             self.assertEqual(result['receipt']['standing'], 'bound')
             self.assertTrue(effects.config.ledger.is_file())
             self.assertFalse(list((root / 'state' / 'materializations').glob('*/carrier-binding.json')))
+
+
+def test_temporal_admission_passes_configured_materialization_carrier(tmp_path):
+    raw = json.loads(json.dumps(config(tmp_path)))
+    raw["windowsUserBrowser"] = {
+        "gatewayUrl":"http://127.0.0.1:8899/mcp",
+        "workspaceId":"ws-user-browser-prod-r1-20260922",
+        "powershellPath":r"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "driverPath":r"C:\\ProgramData\\Ordivon\\chat-ingress\\windows_user_browser_chatgpt.ps1",
+        "proxyUrl":"http://127.0.0.1:19081",
+        "linuxStageRoot":"/mnt/c/ProgramData/Ordivon/chat-ingress",
+        "windowsStageRoot":r"C:\\ProgramData\\Ordivon\\chat-ingress",
+        "timeoutMs":150000,
+    }
+    raw["materializationCarrier"] = "windows-user-browser"
+    cfg = BrowserlessAutomationConfig.from_dict(raw)
+    assert cfg.materialization_carrier == "windows-user-browser"
