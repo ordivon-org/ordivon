@@ -36,3 +36,12 @@ trap 'rm -rf "$tmp"' EXIT
 uv export --locked --all-groups --no-group security --format pylock.toml --output-file "$tmp/pylock.audit.toml"
 uv run --locked --group security pip-audit --locked "$tmp" --progress-spinner off
 """
+
+[tasks."social:current"]
+run = "uv run --locked python scripts/social_fabric_r1.py current --snapshot evidence/acceptance/social-fabric-r1-dogfood-cut-20260923.json"
+
+[tasks."social:attention"]
+run = "uv run --locked python scripts/social_fabric_r1.py attention --snapshot evidence/acceptance/social-fabric-r1-dogfood-cut-20260923.json"
+
+[tasks."social:reconcile"]
+run = "uv run --locked python scripts/social_fabric_r1.py reconcile --snapshot evidence/acceptance/social-fabric-r1-dogfood-cut-20260923.json"
