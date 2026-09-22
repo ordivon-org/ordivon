@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/research/publication/carrier-attestation-r1.schema.json",
+  "title": "Publication Carrier Attestation R1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "carrierSha256",
+    "venueContractSha256",
+    "evidence",
+    "coverage",
+    "releaseStanding",
+    "standing",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "publication-carrier-attestation"},
+    "truthRole": {
+      "const": "carrier-conformance-attestation-not-scientific-truth"
+    },
+    "carrierSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "venueContractSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      }
+    },
+    "coverage": {"type": "object"},
+    "releaseStanding": {"const": "PASS"},
+    "standing": {"const": "PASS_PUBLICATION_CARRIER_ATTESTATION"},
+    "nonClaims": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/research/publication/observer-report-r1.schema.json",
+  "title": "Publication Perceptual Observer Report R1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "observerId",
+    "role",
+    "independenceKey",
+    "carrierSha256",
+    "standing",
+    "inputScope",
+    "coverage",
+    "findings"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "publication-perceptual-observer-report"},
+    "observerId": {"type": "string", "minLength": 1},
+    "role": {
+      "enum": ["BLIND_VISION", "VENUE_AWARE_VISION", "SEMANTIC_LAYOUT"]
+    },
+    "independenceKey": {"type": "string", "minLength": 1},
+    "carrierSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "standing": {"enum": ["PASS", "FAIL", "UNCERTAIN"]},
+    "inputScope": {
+      "type": "object",
+      "required": ["allowed", "forbidden"],
+      "properties": {
+        "allowed": {"type": "array", "items": {"type": "string"}},
+        "forbidden": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pagesExpected",
+        "pagesReviewed",
+        "figuresExpected",
+        "figuresReviewed",
+        "tablesExpected",
+        "tablesReviewed"
+      ],
+      "properties": {
+        "pagesExpected": {"type": "integer", "minimum": 0},
+        "pagesReviewed": {"type": "integer", "minimum": 0},
+        "figuresExpected": {"type": "integer", "minimum": 0},
+        "figuresReviewed": {"type": "integer", "minimum": 0},
+        "tablesExpected": {"type": "integer", "minimum": 0},
+        "tablesReviewed": {"type": "integer", "minimum": 0}
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "finding-r1.schema.json"}
+    },
+    "nonClaims": {"type": "array", "items": {"type": "string"}}
+  }
+}

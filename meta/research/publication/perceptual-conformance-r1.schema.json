@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/research/publication/perceptual-conformance-r1.schema.json",
+  "title": "Publication Perceptual Conformance Evaluation R1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "carrierSha256",
+    "deterministicStanding",
+    "requiredObserverRoles",
+    "coverage",
+    "standing",
+    "authorReviewRequired"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "publication-perceptual-conformance-evaluation"},
+    "carrierSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "deterministicStanding": {"type": "string"},
+    "visualRegressionStanding": {"type": "string"},
+    "requiredObserverRoles": {
+      "type": "array",
+      "items": {
+        "enum": ["BLIND_VISION", "VENUE_AWARE_VISION", "SEMANTIC_LAYOUT"]
+      },
+      "uniqueItems": true
+    },
+    "observerCount": {"type": "integer", "minimum": 0},
+    "coverage": {"type": "object"},
+    "blockerFindings": {"type": "array"},
+    "uncertainFindings": {"type": "array"},
+    "adjudicationReasons": {"type": "array"},
+    "standing": {
+      "enum": ["PASS_AGENT_ENSEMBLE", "ESCALATE_SPECIALIST", "FAIL"]
+    },
+    "escalationTarget": {
+      "type": ["string", "null"]
+    },
+    "authorReviewRequired": {"const": false},
+    "nonClaims": {"type": "array", "items": {"type": "string"}}
+  }
+}
