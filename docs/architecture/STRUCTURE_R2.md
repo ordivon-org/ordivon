@@ -1,7 +1,7 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **PARTIALLY DEPLOYED — S0 + S1A**
+Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
@@ -175,11 +175,12 @@ a requirement that external natural owners be mirrored as local packages.
 
 ## Current standing
 
-S0 is deployed repository mechanics. S1A is deployed for the generic Composition implementation:
-`packages/composition` is now an independent source owner and `meta/next` consumes it through a
-declared public local-package dependency. The historical Next Python entrypoints remain thin
-compatibility facades, while R3 seam-specific verifiers, Admission dogfood, and task-local
-bindings remain with Next. Therefore S1B and all later relocation waves remain open.
+S0 is deployed repository mechanics. S1A extracted the generic Composition implementation
+into the independent `packages/composition` source owner. S1B migrated the remaining Next
+consumers to the declared public `ordivon_composition` package API and retired the historical
+Python compatibility facades after repository-wide inventory found no external path callers.
+R3 seam-specific verifiers, Admission dogfood, and task-local bindings remain with Next.
+Therefore S1 is closed and S2-S9 remain open.
 
 For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
 `tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment

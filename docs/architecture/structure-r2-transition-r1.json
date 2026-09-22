@@ -10,7 +10,8 @@
   ],
   "deployedSlices": [
     "S0",
-    "S1A"
+    "S1A",
+    "S1B"
   ],
   "forbiddenSemanticRoots": [
     "services/",
@@ -279,7 +280,7 @@
       "wave": "S7"
     },
     {
-      "disposition": "Generic Cognitive Circuit and Interface R2 implementation, five public schemas, owner docs, and Cognitive Circuit owner-native tests are extracted. Next retains thin compatibility facades plus seam-specific R3/Admission/dogfood consumers pending S1B.",
+      "disposition": "Generic Cognitive Circuit and Interface R2 implementation, five public schemas, owner docs, and owner-native tests are extracted. Remaining Next consumers import the public ordivon_composition package directly; historical Python facades are retired. Seam-specific R3/Admission/dogfood semantics remain with Next.",
       "id": "composition-mechanics",
       "mode": "split",
       "owner": "next",
@@ -289,7 +290,7 @@
         "meta/next/scripts/",
         "meta/next/tests/"
       ],
-      "standing": "PARTIALLY_DEPLOYED",
+      "standing": "DEPLOYED",
       "targetPaths": [
         "packages/composition/"
       ],
@@ -456,7 +457,6 @@
     }
   ],
   "openSlices": [
-    "S1B",
     "S2",
     "S3",
     "S4",

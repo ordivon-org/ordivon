@@ -56,8 +56,13 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
         open_slices = value.get("openSlices")
         if not isinstance(deployed, list) or not {"S0", "S1A"}.issubset(set(deployed)):
             raise StructureR2Error("partially-deployed status requires S0 and S1A evidence")
-        if not isinstance(open_slices, list) or "S1B" not in open_slices:
-            raise StructureR2Error("S1B must remain explicitly open while facades remain")
+        if not isinstance(open_slices, list):
+            raise StructureR2Error("partially-deployed status requires openSlices")
+        s1b_deployed = "S1B" in deployed
+        if s1b_deployed and "S1B" in open_slices:
+            raise StructureR2Error("S1B cannot be both deployed and open")
+        if not s1b_deployed and "S1B" not in open_slices:
+            raise StructureR2Error("S1B must remain explicitly open until consumer cutover closes")
     if value.get("truthRole") != "repository-placement-plan-not-runtime-or-domain-authority":
         raise StructureR2Error("unexpected truthRole")
 
@@ -167,10 +172,23 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
         composition = next((m for m in mappings if m.get("id") == "composition-mechanics"), None)
         if composition is None or composition.get("wave") != "S1A":
             raise StructureR2Error("partial deployment requires composition-mechanics in S1A")
-        if composition.get("standing") != "PARTIALLY_DEPLOYED":
-            raise StructureR2Error("S1A composition standing must be PARTIALLY_DEPLOYED")
-        if repo_root is not None and not (repo_root / "packages/composition").is_dir():
-            raise StructureR2Error("S1A claims deployment but packages/composition is absent")
+        deployed = set(value.get("deployedSlices") or [])
+        s1b_deployed = "S1B" in deployed
+        expected_standing = "DEPLOYED" if s1b_deployed else "PARTIALLY_DEPLOYED"
+        if composition.get("standing") != expected_standing:
+            raise StructureR2Error(f"composition standing must be {expected_standing}")
+        if repo_root is not None:
+            if not (repo_root / "packages/composition").is_dir():
+                raise StructureR2Error("S1A claims deployment but packages/composition is absent")
+            facades = [
+                repo_root / "meta/next/scripts/cognitive_circuit_r1.py",
+                repo_root / "meta/next/scripts/interface_contract_r2.py",
+            ]
+            facade_presence = [path.is_file() for path in facades]
+            if s1b_deployed and any(facade_presence):
+                raise StructureR2Error("S1B deployed state requires historical facades to be absent")
+            if not s1b_deployed and not all(facade_presence):
+                raise StructureR2Error("S1B open state requires both historical facades")
 
     missing_legacy = REQUIRED_LEGACY_ROOTS - covered_legacy_roots
     if missing_legacy:

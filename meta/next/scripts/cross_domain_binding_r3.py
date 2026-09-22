@@ -8,12 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
-
-try:
-    from scripts.cognitive_circuit_r1 import CircuitContractError
-except ModuleNotFoundError:
-    from cognitive_circuit_r1 import CircuitContractError
-
+from ordivon_composition import CircuitContractError
 
 BINDING_SCHEMA = (
     Path(__file__).resolve().parents[1]

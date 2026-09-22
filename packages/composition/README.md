@@ -17,11 +17,11 @@ This package is not a planner, scheduler, capability registry, workflow engine, 
 system, credential store, domain verifier, or truth owner. A mechanically closed circuit
 does not establish domain acceptance.
 
-## Compatibility
+## Consumer boundary
 
-During Structure R2 S1A, historical `meta/next/scripts/cognitive_circuit_r1.py` and
-`meta/next/scripts/interface_contract_r2.py` remain thin compatibility facades. They own
-no implementation and may be retired only after their consumers migrate independently.
+Structure R2 S1B migrated the remaining `meta/next` consumers to the public
+`ordivon_composition` API. The historical Next Python compatibility facades were removed
+after repository-wide consumer inventory found no external path callers.
 
 ## Verification
 
