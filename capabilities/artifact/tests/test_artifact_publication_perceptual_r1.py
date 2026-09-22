@@ -17,7 +17,10 @@ from artifact_capabilities.publication.perceptual import (
     combine_carrier_and_perceptual,
     evaluate_perceptual_conformance,
 )
-from artifact_capabilities.publication.visual import compare_raster_sets
+from artifact_capabilities.publication.visual import (
+    attribute_visual_regression,
+    compare_raster_sets,
+)
 
 
 class PublicationPerceptualR1Tests(unittest.TestCase):
@@ -196,6 +199,27 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
             self.assertEqual(same["standing"], "PASS")
             self.assertEqual(diff["standing"], "CHANGED")
             self.assertEqual(diff["changedPages"][0]["page"], 1)
+
+    def test_visual_attribution_requires_explanation_for_pixel_only_change(self) -> None:
+        regression = {
+            "kind": "publication-visual-regression",
+            "changedPages": [{"page": 1}, {"page": 2}],
+        }
+        result = attribute_visual_regression(
+            regression,
+            baseline_pages_text=("old", "same"),
+            candidate_pages_text=("new", "same"),
+        )
+        self.assertEqual(result["standing"], "PENDING_EXPLANATION")
+        self.assertEqual(result["unresolvedPages"], [2])
+        explained = attribute_visual_regression(
+            regression,
+            baseline_pages_text=("old", "same"),
+            candidate_pages_text=("new", "same"),
+            externally_explained_pages={2},
+        )
+        self.assertEqual(explained["standing"], "PASS")
+        self.assertEqual(explained["unexpectedChangeCount"], 0)
 
     def test_inventory_is_routing_evidence_not_semantic_truth(self) -> None:
         pages = (

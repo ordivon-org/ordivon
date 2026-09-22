@@ -14,6 +14,7 @@ from artifact_capabilities.publication.semantic_layout import (
     evaluate_semantic_layout_graph,
 )
 from artifact_capabilities.publication.visual import (
+    attribute_visual_regression,
     compare_raster_sets,
     raster_manifest,
     raster_pdf,
@@ -67,11 +68,27 @@ def main() -> int:
         "standing": "NOT_APPLICABLE",
         "reason": "NO_BASELINE_SUPPLIED",
     }
+    visual_attribution = {
+        "schemaVersion": 1,
+        "kind": "publication-visual-regression-attribution",
+        "standing": "NOT_APPLICABLE",
+        "reason": "NO_BASELINE_SUPPLIED",
+        "unexpectedChangeCount": 0,
+    }
     if args.baseline_pdf is not None:
         baseline_raster = out / "baseline-raster"
         _fresh_dir(baseline_raster)
+        baseline_observation = probe_pdf_carrier(
+            args.baseline_pdf,
+            human_perceptual_signoff=False,
+        )
         baseline_pages = raster_pdf(args.baseline_pdf, baseline_raster, dpi=args.dpi)
         visual_regression = compare_raster_sets(baseline_pages, pages)
+        visual_attribution = attribute_visual_regression(
+            visual_regression,
+            baseline_pages_text=baseline_observation.pages,
+            candidate_pages_text=observation.pages,
+        )
 
     outputs = {
         "carrier-inventory-r1.json": inventory,
@@ -80,6 +97,7 @@ def main() -> int:
         "semantic-layout-graph-r1.json": graph,
         "semantic-layout-evaluation-r1.json": semantic,
         "visual-regression-r1.json": visual_regression,
+        "visual-regression-attribution-r1.json": visual_attribution,
     }
     for name, value in outputs.items():
         (out / name).write_text(
@@ -98,16 +116,22 @@ def main() -> int:
         "geometryStanding": geometry["standing"],
         "semanticLayoutStanding": semantic["standing"],
         "visualRegressionStanding": visual_regression["standing"],
+        "visualAttributionStanding": visual_attribution["standing"],
+        "unexpectedVisualChangeCount": visual_attribution.get("unexpectedChangeCount", 0),
         "standing": (
             "PASS"
             if geometry["standing"] == "PASS"
             and semantic["standing"] == "PASS"
-            and visual_regression["standing"] in {"PASS", "NOT_APPLICABLE", "CHANGED"}
+            and visual_attribution["standing"] in {"PASS", "NOT_APPLICABLE"}
+            else "PENDING_EXPLANATION"
+            if geometry["standing"] == "PASS"
+            and semantic["standing"] == "PASS"
+            and visual_attribution["standing"] == "PENDING_EXPLANATION"
             else "FAIL"
         ),
         "nonClaim": (
-            "CHANGED visual regression is not automatically a failure until change attribution "
-            "classifies expected versus unexpected regions."
+            "Visual attribution explains why changed pixels are expected to exist; "
+            "perceptual observers still judge whether the resulting layout is acceptable."
         ),
     }
     (out / "summary-r1.json").write_text(

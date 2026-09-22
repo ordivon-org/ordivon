@@ -164,3 +164,84 @@ def compare_raster_sets(
             "source/change attribution remains external."
         ),
     }
+
+
+def attribute_visual_regression(
+    regression: dict[str, Any],
+    *,
+    baseline_pages_text: tuple[str, ...],
+    candidate_pages_text: tuple[str, ...],
+    externally_explained_pages: set[int] | None = None,
+) -> dict[str, Any]:
+    """Classify visual changes using deterministic page-text change evidence.
+
+    A raster change is explained when the same page's extracted text changes or
+    when an external caller explicitly binds that page to another accepted cause
+    (for example, an intentionally changed figure asset). Any remaining changed
+    page stays unresolved rather than being silently accepted.
+    """
+
+    if regression.get("kind") != "publication-visual-regression":
+        raise ValueError("invalid publication visual regression")
+    if len(baseline_pages_text) != len(candidate_pages_text):
+        raise ValueError("baseline/candidate text page counts differ")
+
+    external = externally_explained_pages or set()
+    changed_rows = regression.get("changedPages", [])
+    attributed: list[dict[str, Any]] = []
+    unresolved: list[int] = []
+
+    for row in changed_rows:
+        page = int(row["page"])
+        if page < 1 or page > len(candidate_pages_text):
+            unresolved.append(page)
+            attributed.append(
+                {
+                    "page": page,
+                    "standing": "UNRESOLVED",
+                    "reason": "PAGE_OUTSIDE_TEXT_EVIDENCE",
+                }
+            )
+            continue
+
+        if baseline_pages_text[page - 1] != candidate_pages_text[page - 1]:
+            attributed.append(
+                {
+                    "page": page,
+                    "standing": "EXPLAINED",
+                    "reason": "TEXT_LAYER_CHANGED_ON_SAME_PAGE",
+                }
+            )
+        elif page in external:
+            attributed.append(
+                {
+                    "page": page,
+                    "standing": "EXPLAINED",
+                    "reason": "EXTERNALLY_BOUND_ACCEPTED_CHANGE",
+                }
+            )
+        else:
+            unresolved.append(page)
+            attributed.append(
+                {
+                    "page": page,
+                    "standing": "UNRESOLVED",
+                    "reason": "PIXEL_CHANGE_WITHOUT_TEXT_OR_EXTERNAL_EXPLANATION",
+                }
+            )
+
+    standing = "PASS" if not unresolved else "PENDING_EXPLANATION"
+    return {
+        "schemaVersion": 1,
+        "kind": "publication-visual-regression-attribution",
+        "standing": standing,
+        "changedPageCount": len(changed_rows),
+        "explainedPageCount": len(changed_rows) - len(unresolved),
+        "unexpectedChangeCount": len(unresolved),
+        "unresolvedPages": unresolved,
+        "pages": attributed,
+        "nonClaims": [
+            "same-page text change explains that visual change is expected to exist, not that its layout is correct",
+            "asset-only visual changes require an independent external explanation binding",
+        ],
+    }
