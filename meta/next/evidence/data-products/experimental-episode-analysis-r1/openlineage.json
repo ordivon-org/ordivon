@@ -1,0 +1,47 @@
+[
+  {
+    "eventTime": "2026-09-22T12:12:44.174048Z",
+    "eventType": "START",
+    "inputs": [
+      {
+        "name": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b@1.0.0#4664e208-2cdc-5d4f-a83d-e70e187b046a@sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+        "namespace": "urn:ordivon:data-product:experimental"
+      }
+    ],
+    "job": {
+      "name": "experimental-episode-system-analysis-r1",
+      "namespace": "urn:ordivon:meta:experimental-learning"
+    },
+    "outputs": [],
+    "producer": "urn:ordivon:meta:experimental-episode-data-product-r1",
+    "run": {
+      "runId": "cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  },
+  {
+    "eventTime": "2026-09-22T12:12:44.174048Z",
+    "eventType": "COMPLETE",
+    "inputs": [
+      {
+        "name": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b@1.0.0#4664e208-2cdc-5d4f-a83d-e70e187b046a@sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+        "namespace": "urn:ordivon:data-product:experimental"
+      }
+    ],
+    "job": {
+      "name": "experimental-episode-system-analysis-r1",
+      "namespace": "urn:ordivon:meta:experimental-learning"
+    },
+    "outputs": [
+      {
+        "name": "experimental-system-analysis-r1.json@sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+        "namespace": "urn:ordivon:meta:experimental-analysis"
+      }
+    ],
+    "producer": "urn:ordivon:meta:experimental-episode-data-product-r1",
+    "run": {
+      "runId": "cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba"
+    },
+    "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
+  }
+]

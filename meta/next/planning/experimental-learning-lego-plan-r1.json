@@ -110,7 +110,7 @@
       "dependsOn": [
         "RW4"
       ],
-      "standing": "READY"
+      "standing": "PASS_STANDARD_NATIVE_DATA_LIFECYCLE"
     },
     {
       "id": "RW6",
@@ -306,31 +306,31 @@
       "id": "EL50",
       "name": "ExperimentalODCSProfile",
       "owner": "ODCS + bounded Ordivon profile",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_ODPS_1_1_ODCS_3_2"
     },
     {
       "id": "EL51",
       "name": "ArtifactDatasetBinding",
       "owner": "Artifact",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_ARTIFACT_DATASET_INDEX"
     },
     {
       "id": "EL52",
       "name": "OpenLineageProjection",
       "owner": "OpenLineage",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_OPENLINEAGE_2_0_2"
     },
     {
       "id": "EL53",
       "name": "PROVDerivation",
       "owner": "W3C PROV-O",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_PROV_O_DERIVATION"
     },
     {
       "id": "EL54",
       "name": "DataObservability",
       "owner": "OTel/Prometheus",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_OTLP_PROMETHEUS_COLD_RESTORED"
     },
     {
       "id": "EL60",

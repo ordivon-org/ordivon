@@ -13,6 +13,7 @@ updates:
       - "/capabilities/media"
       - "/domains/capital"
       - "/meta/next"
+      - "/meta/next/experimental/episode-store-r1"
       - "/packages/composition"
       - "/platform/security"
       - "/platform/skills"
