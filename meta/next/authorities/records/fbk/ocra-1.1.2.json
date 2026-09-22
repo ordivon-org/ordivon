@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Tool distribution/licensing is not treated here as an Ordivon dependency admission."
+  },
+  "discovery": {
+    "aliases": [
+      "OCRA",
+      "Othello Contracts Refinement Analysis",
+      "OCRA 1.1.2"
+    ],
+    "domains": [
+      "architecture",
+      "engineering",
+      "formal-methods"
+    ],
+    "topics": [
+      "contract-refinement",
+      "temporal-contracts",
+      "ltl",
+      "compositional-verification",
+      "model-checking"
+    ]
+  },
+  "id": "ocra-1.1.2",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "fbk",
+      "name": "Fondazione Bruno Kessler"
+    },
+    "officialSource": "https://es.fbk.eu/index.php/tools/ocra/",
+    "publicationDate": null,
+    "title": "OCRA 1.1.2 — Othello Contracts Refinement Analysis",
+    "versionLabel": "1.1.2"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "FBK OCRA official tool page checked 2026-09-22",
+      "2026 FBK research reports asynchronous LTL composition methods integrated into OCRA"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
