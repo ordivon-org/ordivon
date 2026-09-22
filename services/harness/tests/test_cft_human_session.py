@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import json
 from pathlib import Path
 import subprocess
@@ -11,6 +13,7 @@ SCRIPT = ROOT / "scripts/cft_human_session.py"
 
 
 class CftHumanSessionDoctorTests(unittest.TestCase):
+    @pytest.mark.node_qualification
     def test_doctor_projects_standard_session_dependencies_without_mutation(self):
         proc = subprocess.run(
             [sys.executable, str(SCRIPT), "doctor"],

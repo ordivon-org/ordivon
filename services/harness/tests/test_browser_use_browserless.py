@@ -25,7 +25,7 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         import browserless_podman_deploy as deploy
 
         birth = deploy.render_config(self.binding())
-        browser = deploy.render_browser_use_config(self.binding())
+        browser = deploy.render_browser_use_config(self.binding(), browser_use_executable="/bin/true")
         self.assertEqual(
             [x["id"] for x in birth["browserSubstrate"]["endpoints"]],
             ["chatgpt-carrier-11", "chatgpt-carrier-12", "chatgpt-carrier-13"],

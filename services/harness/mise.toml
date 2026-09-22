@@ -28,9 +28,8 @@ test -n "$wheel"
 uv run python scripts/check_wheel.py "$wheel"
 """
 
-# GitHub merge-group gate. The exact Runtime target executable realization is
-# machine-bound acceptance and remains in verify; queue keeps the full portable
-# Harness suite and all source-level executable-contract tests.
+# GitHub merge-group gate. Node-local provider/equipment realization remains
+# outside queue admission; queue keeps the complete hermetic/source-level suite.
 [tasks.queue]
 run = """
 set -euo pipefail
@@ -38,7 +37,7 @@ uv sync --locked
 uv lock --check
 uv run python -m compileall -q src tests scripts evals
 uvx ruff==0.15.17 check src tests scripts
-uv run python -W error::ResourceWarning -m pytest -q tests
+uv run python -W error::ResourceWarning -m pytest -q -m "not node_qualification" tests
 uv run python scripts/check_dependencies.py
 uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
 uv run python scripts/check_docs.py
@@ -51,4 +50,17 @@ uv build --wheel --out-dir "$tmp"
 wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
 test -n "$wheel"
 uv run python scripts/check_wheel.py "$wheel"
+"""
+
+# Exact local-node qualification. This is intentionally not a GitHub merge-group
+# prerequisite because it consumes materialized machine/provider authority.
+[tasks.node-qualification]
+run = """
+set -euo pipefail
+test -x /bin/bash
+test -x /usr/bin/awk
+test -x /usr/bin/rg
+uv sync --locked
+uv run python scripts/check_runtime_search_profile.py
+uv run python -W error::ResourceWarning -m pytest -q -m node_qualification tests
 """
