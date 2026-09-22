@@ -1,7 +1,7 @@
 [tools]
 python = "3.12.13"
 uv = "0.12.16"
-rust = "1.95.0"
+rust = { version = "1.95.0", components = "clippy,rustfmt" }
 
 [tasks.verify]
 run = """
