@@ -13,7 +13,7 @@
   "routers": {
     "methodRouter": {
       "kind": "agent-skill",
-      "path": "meta/next/.agents/skills/method-router/SKILL.md",
+      "path": ".agents/skills/method-router/SKILL.md",
       "status": "deployed",
       "authority": "advisory-procedure-only"
     },

@@ -99,7 +99,7 @@ Canonical project Skills remain under standard `.agents/skills`. Project visibil
 
 The **Method Router** and **Capability Router** are distinct by design:
 
-- Method Router is the Agent Skill at `meta/next/.agents/skills/method-router/SKILL.md`; it advises **how** to approach a problem and owns no execution authority.
+- Method Router is the Agent Skill at `.agents/skills/method-router/SKILL.md`; it advises **how** to approach a problem and owns no execution authority.
 - Capability Router is the Gateway static projection at `services/gateway/src/ordivon_gateway/routes.py`; it selects **which natural owner** serves an already-named capability and owns no method/planning semantics.
 
 Current Gateway routes cover Linux/Windows execution, external continuity, and Runtime Artifact reads. Harness remains an independent owner and is not currently a Gateway-routed capability.
