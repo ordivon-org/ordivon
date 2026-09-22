@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:interface-contract-expectation:v1",
+  "title": "Interface Contract Expectation v1",
+  "description": "A task-local consumer expectation bound to one exact Cognitive Circuit manifest. Alternate compatibility is explicit evidence, never inferred from a version number.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion","kind","expectationId","consumerId","circuitRef","interfaceId","requiredDigest","acceptedSourceKinds","acceptedAlternates","supportScope","nonClaims"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.interface-contract-expectation" },
+    "expectationId": { "$ref": "#/$defs/identifier" },
+    "consumerId": { "$ref": "#/$defs/identifier" },
+    "circuitRef": { "$ref": "#/$defs/boundRef" },
+    "interfaceId": { "$ref": "#/$defs/identifier" },
+    "requiredDigest": { "$ref": "#/$defs/sha256" },
+    "acceptedSourceKinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["direct-owner-observation","client-effective-surface","retained-projection"] }
+    },
+    "acceptedAlternates": { "type": "array", "items": { "$ref": "#/$defs/alternate" } },
+    "supportScope": { "type": "string", "minLength": 1 },
+    "nonClaims": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "identifier": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id","digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "alternate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest","compatibilityEvidenceRef"],
+      "properties": {
+        "digest": { "$ref": "#/$defs/sha256" },
+        "compatibilityEvidenceRef": { "$ref": "#/$defs/identifier" }
+      }
+    }
+  }
+}

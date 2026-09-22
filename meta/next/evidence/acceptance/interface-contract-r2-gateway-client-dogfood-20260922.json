@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.interface-contract-r2-gateway-client-dogfood",
+  "observedAt": "2026-09-22",
+  "serverAcceptanceRef": "docs/architecture/GATEWAY_HOST_NORTHBOUND_ACCEPTANCE_20260922.md",
+  "serverVersionObservedLive": "0.2.0",
+  "ownerSurface": {
+    "interfaceId": "mcp:gateway-tools",
+    "digest": "sha256:867b90416c96b6d33352991b9c3f942537c13c3a2fb7788d59bc70bc53e36840",
+    "digestInput": "canonical-json(sorted exact Tool names)",
+    "tools": [
+      "artifact.read",
+      "capability.describe",
+      "collaboration.list",
+      "collaboration.post",
+      "collaboration.search",
+      "continuity.adopt",
+      "continuity.attention",
+      "continuity.checkpoint",
+      "continuity.get",
+      "continuity.list",
+      "continuity.observe",
+      "execution.cancel",
+      "execution.get",
+      "execution.submit",
+      "system.describe"
+    ]
+  },
+  "clientEffectiveSurface": {
+    "interfaceId": "mcp:gateway-tools",
+    "digest": "sha256:228db711868b3d95b2aff34825e401447bf68b1e60048e46da5378e13ca70d38",
+    "digestInput": "canonical-json(sorted exact Tool names)",
+    "tools": [
+      "artifact.read",
+      "capability.describe",
+      "capability.list",
+      "continuity.get",
+      "continuity.list",
+      "execution.cancel",
+      "execution.get",
+      "execution.submit",
+      "system.describe"
+    ]
+  },
+  "delta": {
+    "missingFromClient": [
+      "collaboration.list",
+      "collaboration.post",
+      "collaboration.search",
+      "continuity.adopt",
+      "continuity.attention",
+      "continuity.checkpoint",
+      "continuity.observe"
+    ],
+    "staleOrExtraInClient": [
+      "capability.list"
+    ]
+  },
+  "expectedR2Classification": {
+    "compatibilityStanding": "MISMATCH",
+    "compatibilityReasonCode": "INTERFACE_DIGEST_NOT_ACCEPTED",
+    "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+    "evidenceAdmissibility": "INADMISSIBLE",
+    "admissibilityReasonCode": "INTERFACE_MISMATCH"
+  },
+  "nonClaims": [
+    "The client snapshot mismatch does not make the Gateway owner surface incorrect.",
+    "The owner surface does not prove that an attached external connector refreshed.",
+    "This evidence does not grant connector cache invalidation authority to Ordivon."
+  ]
+}

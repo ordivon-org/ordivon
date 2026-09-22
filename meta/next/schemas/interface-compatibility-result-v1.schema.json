@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:interface-compatibility-result:v1",
+  "title": "Interface Contract Evaluation Result v1",
+  "description": "A deterministic task-local projection that keeps interface compatibility, observation currentness, and evidence admissibility orthogonal. It binds one exact observation, expectation, and Cognitive Circuit and never establishes domain success.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "circuitRef",
+    "observationDigest",
+    "expectationDigest",
+    "observedInterfaceRef",
+    "expectedInterfaceRef",
+    "compatibilityStanding",
+    "compatibilityReasonCode",
+    "currentnessStanding",
+    "evidenceAdmissibility",
+    "admissibilityReasonCode",
+    "evidenceRefs",
+    "supportScope",
+    "domainAcceptanceEstablished",
+    "claimBoundary",
+    "resultDigest",
+    "evidenceRef"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.interface-compatibility-result" },
+    "circuitRef": { "$ref": "#/$defs/boundRef" },
+    "observationDigest": { "$ref": "#/$defs/sha256" },
+    "expectationDigest": { "$ref": "#/$defs/sha256" },
+    "observedInterfaceRef": { "$ref": "#/$defs/boundRef" },
+    "expectedInterfaceRef": { "$ref": "#/$defs/boundRef" },
+    "compatibilityStanding": {
+      "enum": [
+        "EXACT_MATCH",
+        "COMPATIBLE_BY_DECLARATION",
+        "MISMATCH"
+      ]
+    },
+    "compatibilityReasonCode": {
+      "enum": [
+        "EXACT_DIGEST_MATCH",
+        "EXPLICIT_ALTERNATE_ACCEPTED",
+        "INTERFACE_ID_MISMATCH",
+        "INTERFACE_DIGEST_NOT_ACCEPTED"
+      ]
+    },
+    "currentnessStanding": {
+      "enum": [
+        "POINT_IN_TIME_OBSERVED",
+        "CURRENT_DECLARED",
+        "HISTORICAL_NOT_CURRENT",
+        "CURRENTNESS_UNKNOWN"
+      ]
+    },
+    "evidenceAdmissibility": {
+      "enum": [
+        "ADMISSIBLE",
+        "INADMISSIBLE",
+        "UNKNOWN"
+      ]
+    },
+    "admissibilityReasonCode": {
+      "enum": [
+        "ACCEPTED_POINT_IN_TIME",
+        "ACCEPTED_CURRENT_DECLARED",
+        "SOURCE_KIND_NOT_ACCEPTED",
+        "INTERFACE_MISMATCH",
+        "OBSERVATION_HISTORICAL",
+        "CURRENTNESS_UNKNOWN"
+      ]
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "supportScope": { "type": "string", "minLength": 1 },
+    "domainAcceptanceEstablished": { "const": false },
+    "claimBoundary": { "type": "string", "minLength": 1 },
+    "resultDigest": { "$ref": "#/$defs/sha256" },
+    "evidenceRef": {
+      "type": "string",
+      "pattern": "^interface-compatibility:sha256:[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}
