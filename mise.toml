@@ -53,8 +53,9 @@ python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
+python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
-uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_architecture_docs.py
+uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml

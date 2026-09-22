@@ -1,0 +1,521 @@
+{
+  "antiGrowth": [
+    "universal-capability-registry",
+    "root-contract-authority",
+    "global-provider-registry",
+    "universal-verifier",
+    "agent-service-2",
+    "universal-workflow-engine",
+    "universal-task-database"
+  ],
+  "forbiddenSemanticRoots": [
+    "services/",
+    "platform/",
+    "capabilities/",
+    "domains/",
+    "meta/",
+    "providers/",
+    "contracts/"
+  ],
+  "id": "structure-r2",
+  "kind": "ordivon.repository-structure-transition",
+  "laws": [
+    "placement-is-not-identity",
+    "package-is-source-locality-not-semantic-type",
+    "source-topology-is-not-runtime-topology",
+    "consumer-depends-on-public-contract-not-provider-internals",
+    "default-provider-is-not-capability",
+    "extensions-grow-at-edge",
+    "skills-do-not-authorize",
+    "runtime-state-is-not-source-truth",
+    "capability-exposure-is-task-compiled",
+    "verification-is-owner-or-seam-specific",
+    "natural-authority-remains-external-to-composition",
+    "source-relocation-is-separate-from-semantic-refactoring"
+  ],
+  "mappings": [
+    {
+      "id": "web",
+      "mode": "retain",
+      "owner": "web",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "apps/web/"
+      ],
+      "targetPaths": [
+        "apps/web/"
+      ],
+      "verifyTasks": [
+        "web:verify"
+      ],
+      "wave": "S0"
+    },
+    {
+      "id": "gateway",
+      "mode": "move",
+      "owner": "gateway",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "services/gateway/"
+      ],
+      "targetPaths": [
+        "packages/gateway/"
+      ],
+      "verifyTasks": [
+        "gateway:verify"
+      ],
+      "wave": "S3"
+    },
+    {
+      "id": "runtime",
+      "mode": "move",
+      "owner": "runtime",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "services/runtime/"
+      ],
+      "targetPaths": [
+        "packages/runtime/"
+      ],
+      "verifyTasks": [
+        "runtime:verify"
+      ],
+      "wave": "S3"
+    },
+    {
+      "id": "host",
+      "mode": "move",
+      "owner": "host",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "services/host/"
+      ],
+      "targetPaths": [
+        "packages/host/"
+      ],
+      "verifyTasks": [
+        "host:verify"
+      ],
+      "wave": "S3"
+    },
+    {
+      "id": "harness",
+      "mode": "move",
+      "owner": "harness",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "services/harness/"
+      ],
+      "targetPaths": [
+        "packages/harness/"
+      ],
+      "verifyTasks": [
+        "harness:verify"
+      ],
+      "wave": "S3"
+    },
+    {
+      "id": "security",
+      "mode": "move",
+      "owner": "security",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "platform/security/"
+      ],
+      "targetPaths": [
+        "packages/security/"
+      ],
+      "verifyTasks": [
+        "security:verify"
+      ],
+      "wave": "S4"
+    },
+    {
+      "id": "network",
+      "mode": "move",
+      "owner": "network",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "platform/network/"
+      ],
+      "targetPaths": [
+        "packages/network/"
+      ],
+      "verifyTasks": [
+        "network:ci"
+      ],
+      "wave": "S4"
+    },
+    {
+      "id": "workstation",
+      "mode": "move",
+      "owner": "workstation",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "platform/workstation/"
+      ],
+      "targetPaths": [
+        "deploy/workstation/"
+      ],
+      "verifyTasks": [
+        "workstation:ci"
+      ],
+      "wave": "S4"
+    },
+    {
+      "id": "skills-compat",
+      "mode": "move",
+      "owner": "skills",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "platform/skills/"
+      ],
+      "targetPaths": [
+        "extensions/chatgpt-skills-mcp/"
+      ],
+      "verifyTasks": [
+        "skills:verify"
+      ],
+      "wave": "S2"
+    },
+    {
+      "id": "artifact",
+      "mode": "move",
+      "owner": "artifact",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "capabilities/artifact/"
+      ],
+      "targetPaths": [
+        "packages/artifact/"
+      ],
+      "verifyTasks": [
+        "artifact:verify"
+      ],
+      "wave": "S6"
+    },
+    {
+      "id": "distribution",
+      "mode": "move",
+      "owner": "distribution",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "capabilities/distribution/"
+      ],
+      "targetPaths": [
+        "packages/distribution/"
+      ],
+      "verifyTasks": [
+        "distribution:verify"
+      ],
+      "wave": "S6"
+    },
+    {
+      "id": "media",
+      "mode": "move",
+      "owner": "media",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "capabilities/media/"
+      ],
+      "targetPaths": [
+        "packages/media/"
+      ],
+      "verifyTasks": [
+        "media:verify"
+      ],
+      "wave": "S6"
+    },
+    {
+      "id": "preservation",
+      "mode": "move",
+      "owner": "preservation",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "capabilities/preservation/"
+      ],
+      "targetPaths": [
+        "packages/preservation/"
+      ],
+      "verifyTasks": [
+        "preservation:verify"
+      ],
+      "wave": "S6"
+    },
+    {
+      "id": "game",
+      "mode": "move",
+      "owner": "game",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "domains/game/"
+      ],
+      "targetPaths": [
+        "packages/game/"
+      ],
+      "verifyTasks": [
+        "game:verify"
+      ],
+      "wave": "S7"
+    },
+    {
+      "id": "capital",
+      "mode": "move",
+      "owner": "capital",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "domains/capital/"
+      ],
+      "targetPaths": [
+        "packages/capital/"
+      ],
+      "verifyTasks": [
+        "capital:verify"
+      ],
+      "wave": "S7"
+    },
+    {
+      "disposition": "Move only Cognitive Circuit, interface evaluation, generic Gate mechanics and their direct tests; unrelated Next code is separately dispositioned.",
+      "id": "composition-mechanics",
+      "mode": "split",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/schemas/",
+        "meta/next/scripts/",
+        "meta/next/tests/"
+      ],
+      "targetPaths": [
+        "packages/composition/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S1"
+    },
+    {
+      "id": "canonical-skills",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/.agents/skills/"
+      ],
+      "targetPaths": [
+        ".agents/skills/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S2"
+    },
+    {
+      "id": "control-plugin",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/plugins/ordivon-control-plane/"
+      ],
+      "targetPaths": [
+        "extensions/ordivon-control-plane/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S2"
+    },
+    {
+      "id": "authority-catalog",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/authorities/"
+      ],
+      "targetPaths": [
+        "catalogs/authorities/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "capability-catalog",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/capabilities/"
+      ],
+      "targetPaths": [
+        "catalogs/capabilities/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "knowledge-catalog",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/knowledge/"
+      ],
+      "targetPaths": [
+        "catalogs/knowledge/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5"
+    },
+    {
+      "id": "domain-profiles",
+      "mode": "move",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/domains/"
+      ],
+      "targetPaths": [
+        "profiles/domains/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5"
+    },
+    {
+      "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",
+      "id": "composition-policies",
+      "mode": "split",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/policies/"
+      ],
+      "targetPaths": [
+        "packages/composition/policies/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5"
+    },
+    {
+      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers.",
+      "id": "next-residual",
+      "mode": "split",
+      "owner": "next",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/next/"
+      ],
+      "targetPaths": [
+        "packages/composition/",
+        "catalogs/",
+        "profiles/",
+        "extensions/",
+        "docs/",
+        "tests/"
+      ],
+      "verifyTasks": [
+        "next:verify"
+      ],
+      "wave": "S5"
+    },
+    {
+      "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
+      "id": "research-meta",
+      "mode": "split",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [
+        "meta/research/"
+      ],
+      "targetPaths": [
+        "profiles/research/",
+        "catalogs/authorities/",
+        "studies/",
+        "tests/"
+      ],
+      "verifyTasks": [
+        "repo:ci"
+      ],
+      "wave": "S5"
+    }
+  ],
+  "schemaVersion": 1,
+  "status": "candidate-not-deployed",
+  "targetRoots": [
+    ".agents/",
+    "apps/",
+    "packages/",
+    "extensions/",
+    "catalogs/",
+    "profiles/",
+    "studies/",
+    "deploy/",
+    "docs/",
+    "tests/",
+    "tools/",
+    "third_party/"
+  ],
+  "truthRole": "repository-placement-plan-not-runtime-or-domain-authority",
+  "waves": [
+    {
+      "id": "S0",
+      "movesSource": false,
+      "purpose": "freeze contract, mapping and falsification gates"
+    },
+    {
+      "id": "S1",
+      "movesSource": true,
+      "purpose": "extract composition mechanics"
+    },
+    {
+      "id": "S2",
+      "movesSource": true,
+      "purpose": "move skill and plugin edges"
+    },
+    {
+      "id": "S3",
+      "movesSource": true,
+      "purpose": "relocate durable owners one at a time"
+    },
+    {
+      "id": "S4",
+      "movesSource": true,
+      "purpose": "relocate security/network and deployment realization"
+    },
+    {
+      "id": "S5",
+      "movesSource": true,
+      "purpose": "split discovery catalogs and reusable profiles"
+    },
+    {
+      "id": "S6",
+      "movesSource": true,
+      "purpose": "relocate artifact/distribution/media/preservation"
+    },
+    {
+      "id": "S7",
+      "movesSource": true,
+      "purpose": "relocate game/capital"
+    },
+    {
+      "id": "S8",
+      "movesSource": false,
+      "purpose": "strengthen contract dependency guards as justified"
+    },
+    {
+      "id": "S9",
+      "movesSource": true,
+      "purpose": "remove empty legacy roots and generate navigation views"
+    }
+  ]
+}
