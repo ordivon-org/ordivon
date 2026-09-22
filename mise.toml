@@ -51,7 +51,6 @@ run = """
 set -euo pipefail
 python3 tools/repo/test_affected_owners.py
 python3 tools/repo/test_convergence_plan.py
-python3 tools/repo/test_queue_telemetry.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
 python3 tools/repo/check_composition_architecture.py
@@ -62,19 +61,6 @@ tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
 git diff --check
-"""
-
-
-[tasks."repo:queue:telemetry"]
-run = """
-set -euo pipefail
-python3 tools/repo/queue_telemetry.py --repo ordivon-org/ordivon
-"""
-
-[tasks."repo:queue:telemetry:test"]
-run = """
-set -euo pipefail
-python3 tools/repo/test_queue_telemetry.py
 """
 
 [tasks."repo:integration:test"]
