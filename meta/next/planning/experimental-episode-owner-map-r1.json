@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.experimental-episode-owner-map",
+  "asOf": "2026-09-22",
+  "truthRole": "planning-projection-not-owner-truth",
+  "owners": [
+    {
+      "ownerId": "runtime",
+      "objects": [
+        "workspace",
+        "job",
+        "attempt",
+        "runtime-artifact"
+      ],
+      "identityExamples": [
+        "workspaceId",
+        "jobId",
+        "attemptId",
+        "artifactId",
+        "operationDigest"
+      ],
+      "authority": "physical execution/artifact truth"
+    },
+    {
+      "ownerId": "harness",
+      "objects": [
+        "agent-run",
+        "assignment",
+        "trace",
+        "working-checkpoint"
+      ],
+      "identityExamples": [
+        "harnessRunId",
+        "assignmentId",
+        "traceDigest"
+      ],
+      "authority": "bounded Agent Run/cognition continuity"
+    },
+    {
+      "ownerId": "host",
+      "objects": [
+        "task",
+        "checkpoint",
+        "board-message"
+      ],
+      "identityExamples": [
+        "taskId",
+        "revision",
+        "checkpointDigest"
+      ],
+      "authority": "external semantic continuity"
+    },
+    {
+      "ownerId": "research-archive",
+      "objects": [
+        "programme",
+        "programme-task",
+        "finding",
+        "standing-observation"
+      ],
+      "identityExamples": [
+        "programme_id",
+        "task_id",
+        "finding_id"
+      ],
+      "authority": "research institutional memory"
+    },
+    {
+      "ownerId": "creative-archive",
+      "objects": [
+        "work",
+        "artifact-object",
+        "occurrence",
+        "adjudication"
+      ],
+      "identityExamples": [
+        "work_id",
+        "artifact digest"
+      ],
+      "authority": "creative institutional memory"
+    },
+    {
+      "ownerId": "openlineage",
+      "objects": [
+        "run",
+        "job",
+        "dataset"
+      ],
+      "identityExamples": [
+        "runId",
+        "namespace",
+        "name"
+      ],
+      "authority": "operational lineage semantics"
+    },
+    {
+      "ownerId": "git",
+      "objects": [
+        "revision"
+      ],
+      "identityExamples": [
+        "commit SHA"
+      ],
+      "authority": "source revision identity"
+    },
+    {
+      "ownerId": "artifact",
+      "objects": [
+        "verified artifact/dataset"
+      ],
+      "identityExamples": [
+        "sha256",
+        "contract digest"
+      ],
+      "authority": "artifact carrier/verification facts"
+    },
+    {
+      "ownerId": "opentelemetry",
+      "objects": [
+        "trace",
+        "span"
+      ],
+      "identityExamples": [
+        "traceId",
+        "spanId"
+      ],
+      "authority": "observability only"
+    }
+  ],
+  "identityLaw": "Cross-owner Episode relations require exact declared owner references; timestamps, names, path similarity and semantic guesses are never identity joins."
+}
