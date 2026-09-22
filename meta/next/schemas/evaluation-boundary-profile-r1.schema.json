@@ -1,0 +1,132 @@
+{
+  "$id": "https://ordivon.local/schemas/evaluation-boundary-profile-r1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "closure": {
+      "additionalProperties": false,
+      "properties": {
+        "distinctOwnerCount": {
+          "minimum": 2,
+          "type": "integer"
+        },
+        "empiricalClosure": {
+          "type": "boolean"
+        },
+        "executedDonorPresent": {
+          "const": true
+        },
+        "mechanicalClosure": {
+          "const": true
+        }
+      },
+      "required": [
+        "distinctOwnerCount",
+        "executedDonorPresent",
+        "mechanicalClosure",
+        "empiricalClosure"
+      ],
+      "type": "object"
+    },
+    "donors": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "donorId": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "sourceDigests": {
+            "items": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "standing": {
+            "enum": [
+              "EXECUTED",
+              "FROZEN_PROTOCOL_ONLY"
+            ]
+          }
+        },
+        "required": [
+          "donorId",
+          "ownerId",
+          "standing",
+          "sourceDigests"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "kind": {
+      "const": "ordivon.evaluation-boundary-profile-r1"
+    },
+    "laws": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluatorSemanticsRemainOwnerNative": {
+          "const": true
+        },
+        "exactSourceIdentityRequired": {
+          "const": true
+        },
+        "freezePrecedesHoldoutExposure": {
+          "const": true
+        },
+        "holdoutEvidenceSeparateFromDevelopmentEvidence": {
+          "const": true
+        },
+        "postExposureMutationPreservesStanding": {
+          "const": false
+        },
+        "thresholdRetuningAfterUnblindingAllowed": {
+          "const": false
+        }
+      },
+      "required": [
+        "exactSourceIdentityRequired",
+        "freezePrecedesHoldoutExposure",
+        "postExposureMutationPreservesStanding",
+        "thresholdRetuningAfterUnblindingAllowed",
+        "holdoutEvidenceSeparateFromDevelopmentEvidence",
+        "evaluatorSemanticsRemainOwnerNative"
+      ],
+      "type": "object"
+    },
+    "nonClaims": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "profileId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "truthRole": {
+      "const": "task-local-non-authoritative-evaluation-boundary"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "profileId",
+    "truthRole",
+    "laws",
+    "donors",
+    "closure",
+    "nonClaims"
+  ],
+  "type": "object"
+}
