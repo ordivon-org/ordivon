@@ -4,7 +4,8 @@
   "truthRole": "point-in-time-mechanical-observation",
   "observedAt": "2026-09-22",
   "source": {
-    "main": "bb666c7cace423f3f15a09a7c115a67e2382ca8d",
+    "main": "2ae7d5a2c5d640ea03b78e08c6402e15c9423404",
+    "gatewayLastChange": "ab9e3b5417559462f112ec6d6b7b131bf20b4f51",
     "gatewayVersion": "0.3.0",
     "toolCount": 16
   },
@@ -12,7 +13,8 @@
     "release": "ad84462ecb8f1e8014e2b087eda0399f210f6bf5",
     "gatewayVersion": "0.3.0",
     "toolCount": 16,
-    "health": 200
+    "health": 200,
+    "carrier": "wsl-systemd"
   },
   "connector": {
     "toolCount": 9,
@@ -37,33 +39,40 @@
     "releaseCommit": "ba3de6c25641c88ba16868dce35426134e57aa19",
     "port": 18999,
     "listenerPresent": true,
-    "historicalAcceptanceEvidence": "GATEWAY_WINDOWS_CANDIDATE_CARRIER_EVIDENCE_R1.json",
     "linuxBearerConfigured": false,
     "windowsBearerConfigured": false,
     "health": 200,
-    "toolCount": 16
+    "toolCount": 16,
+    "serviceIdentity": "NT SERVICE\\OrdivonGatewayCandidateR1",
+    "ownerServiceDependencies": []
   },
   "transport": {
     "windowsToLinuxRuntime": "REACHABLE_AUTH_REQUIRED",
-    "windowsToHost": "REACHABLE_MCP_NEGOTIATION_REQUIRED",
+    "windowsToHost": "VERIFIED_MCP_ROUTE",
     "windowsToWindowsRuntime": "REACHABLE_AUTH_REQUIRED"
   },
-  "r2Implementation": {
-    "baseMain": "bb666c7cace423f3f15a09a7c115a67e2382ca8d",
-    "preCommitHead": "7db79dfe98fe549846a5722b02fbff86bb98a670",
-    "tests": "54/54 PASS",
-    "ruff": "PASS",
-    "installerUncSafeDirectoryFix": "IMPLEMENTED",
-    "credentialMaterializer": "IMPLEMENTED",
-    "candidateDefaultStartMode": "Manual",
-    "head": "ba3de6c25641c88ba16868dce35426134e57aa19",
-    "exactShaReleaseMaterialized": true,
+  "acceptance": {
+    "regression": "54/54 PASS at R2 live-acceptance revision; later control-plane workspace 45/45 PASS",
     "wslOffGatewaySurvived": true,
-    "hostRecoveredWithoutGatewayRestart": true
+    "hostRecoveredWithoutGatewayRestart": true,
+    "hostDirectContinuityReadback": true,
+    "scmCrashRecovery": {
+      "passed": true,
+      "beforePid": 19716,
+      "afterPid": 26640,
+      "healthBefore": 200,
+      "healthAfter": 200,
+      "toolCountAfter": 16,
+      "continuityAfterCrashRecovery": true,
+      "startModeAfter": "Manual"
+    },
+    "coldBoot": "OPEN"
   },
   "securityBoundary": {
-    "linuxBearerCrossBoundary": "BLOCKED_BY_PLATFORM_SAFETY",
+    "runtimeCredentialMaterializer": "IMPLEMENTED_AND_FAIL_CLOSED",
+    "linuxBearerCrossBoundary": "HUMAN_REQUIRED_PLATFORM_SAFETY_BLOCK",
+    "windowsBearerMaterialization": "HUMAN_REQUIRED_PLATFORM_SAFETY_BLOCK",
     "policy": "DO_NOT_BYPASS",
-    "windowsBearer": "SOURCE_LOCATED_BUT_MATERIALIZATION_BLOCKED_BY_PLATFORM_SAFETY"
+    "secretBytesRecordedInEvidence": false
   }
 }

@@ -299,7 +299,13 @@
       "state": "VERIFIED",
       "dependencies": [],
       "mustNotOwn": [],
-      "acceptance": []
+      "acceptance": [
+        "Windows candidate continuity.list directly reads Host state over the WSL loopback route.",
+        "continuity.external re-probes available=true after transient aggregate observation noise."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_R2_CRASH_HOST_READBACK_EVIDENCE.json"
+      ]
     },
     {
       "id": "GW14",
@@ -376,7 +382,14 @@
       "state": "IN_PROGRESS",
       "dependencies": [],
       "mustNotOwn": [],
-      "acceptance": []
+      "acceptance": [
+        "Forced termination of the candidate SCM service process causes SCM recovery to a new PID.",
+        "Recovered candidate restores :18999 health=200, 16 tools, and Host continuity while remaining Manual.",
+        "Cold-boot acceptance remains open."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_R2_CRASH_HOST_READBACK_EVIDENCE.json"
+      ]
     },
     {
       "id": "GW21",
@@ -633,7 +646,7 @@
         "WSL-off test leaves Gateway + Windows Runtime usable; WSL return restores Linux/Host without Gateway restart."
       ],
       "blockers": [
-        "Authenticated Windows Runtime survival and cold-boot/crash acceptance remain."
+        "Authenticated Windows Runtime survival and cold-boot acceptance remain; SCM crash recovery is proven."
       ]
     },
     {
@@ -657,7 +670,7 @@
     "GW12 Linux Runtime bearer requires an approved secure operator-owned cross-boundary handoff.",
     "ChatGPT connector exposes a stale 9-tool catalog while source/candidate expose 16 tools.",
     "Public Cloudflare auth/ingress is not yet attached to the Windows candidate.",
-    "Cold-boot/crash acceptance and authenticated artifact/execution routes remain open."
+    "Cold-boot acceptance and authenticated artifact/execution routes remain open."
   ],
   "doNotOwn": [
     "Runtime Job/Attempt/Workspace/Artifact truth",
@@ -671,9 +684,9 @@
     "provider credential authority"
   ],
   "review": {
-    "sourceRevision": "bb666c7cace423f3f15a09a7c115a67e2382ca8d",
+    "sourceRevision": "2ae7d5a2c5d640ea03b78e08c6402e15c9423404",
     "updatedAt": "2026-09-22",
-    "standing": "R2_LIVE_CANDIDATE_WSL_INDEPENDENCE_PROVEN_AUTH_BLOCKED",
-    "notes": "R2 exact SHA ba3de6c2 materialized and live on Windows :18999 in Manual mode. 54/54 tests and ruff pass. Candidate survives WSLService stop with unchanged PID and health 200; Host availability drops and returns after WSL recovery without Gateway restart. Runtime routes remain auth-blocked; current tool path must not bypass credential safety."
+    "standing": "R2_WSL_AND_SCM_CRASH_INDEPENDENCE_PROVEN_AUTH_HUMAN_REQUIRED",
+    "notes": "Windows candidate ba3de6c2 remains live on :18999 in Manual mode with 16 tools. WSL-off independence and Host recovery without Gateway restart are proven. A forced SCM service-process crash recovered automatically from PID 19716 to PID 26640 with health 200 and Host continuity readback. Runtime routes remain auth-blocked because credential materialization is HUMAN_REQUIRED after the platform safety boundary rejected automated secret handoff; do not bypass. Cold-boot, authenticated Runtime/artifact routes, public canary, connector parity and cutover remain open."
   }
 }
