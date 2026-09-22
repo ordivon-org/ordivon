@@ -104,14 +104,15 @@
       "kind": "state_authority",
       "responsibility": "Extract logical Job identity and physical Attempt-generation lifecycle into explicit state modules.",
       "authority": "Runtime Job/Attempt truth",
-      "state": "IN_PROGRESS",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
         "docs/effect-kernel.md",
         "planning/state-responsibility-census-r1.json",
         "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
-        "R03-A1 candidate verification: owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
+        "R03-A1 candidate verification: owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS",
+        "R03-A2 candidate verification: job_attempt_state 9/9; owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
       ],
       "dependencies": [
         "R00",
@@ -126,7 +127,7 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "R03-A1 JobIdentityContract is implemented and verified. Continue with R03-A2 AttemptLifecycleContract only for generation/state-transition/termination/physical-owner/terminal-evidence laws shared across lifecycle and reconciliation; keep Reservation semantics for R04."
+      "nextAction": "R03 Job/Attempt state-contract extraction is complete at the planned A1/A2 seam. Proceed to R04 ReservationContract for durable holder/acquire/hold/release laws; keep queue, priority, and scheduling outside Runtime."
     },
     {
       "id": "R04",
@@ -914,9 +915,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+    "sourceRevision": "2c5acc76449b42bc920681d7afcfae5e1de9ff59",
     "updatedAt": "2026-09-22",
-    "standing": "RW1_R03_A1_VERIFIED",
-    "notes": "RW0 baseline gate remains complete. R02 first WorkspaceState slice remains integrated. R03-A1 JobIdentityContract now owns canonical request/operation identity and exact replay/conflict law across Registry admission/query; candidate verification passed owner-environment test, extended reference-model, and full local real-system acceptance. R03 remains IN_PROGRESS pending AttemptLifecycleContract."
+    "standing": "RW1_R03_COMPLETE_R04_NEXT",
+    "notes": "RW0 baseline gate remains complete. R02 first WorkspaceState slice remains integrated. R03-A1 JobIdentityContract and R03-A2 AttemptLifecycleContract are implemented and verified. AttemptLifecycleContract now owns initial Attempt generation defaults, transition/terminal law, termination-control classification, physical-owner bind/replay law, terminal resolution, and terminal-evidence completeness while Registry retains SQL/CAS transactions and R04 retains reservation/capacity semantics. Verification passed focused lifecycle regressions, full core/MCP/clippy, owner-environment test, extended reference-model, and full local real-system acceptance. Next frontier is R04 ReservationContract."
   }
 }

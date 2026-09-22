@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.runtime-state-responsibility-census",
   "truthRole": "planning-projection-not-runtime-truth",
-  "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+  "sourceRevision": "2c5acc76449b42bc920681d7afcfae5e1de9ff59",
   "findings": {
     "currentOrganization": "mixed verb-centric engine modules plus storage/query modules",
     "importantCorrection": "Runtime already has engine/workspace.rs and separate admission/execution/reconciliation/release modules. R02/R03 must not be a cosmetic second split; extraction is justified only where a stable state law still spans multiple control-phase modules.",
@@ -240,6 +240,18 @@
         ],
         "excludes": [
           "Linux/Windows mechanics"
+        ],
+        "status": "IMPLEMENTED_VERIFIED",
+        "implementation": "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "verification": [
+          "job_attempt_state contract tests 9/9 PASS",
+          "focused lifecycle regressions PASS: supervisor-owner replay/bind, stopping owner, deadline precedence, cancel-before-dispatch, terminal atomicity, same-key single Attempt",
+          "cargo test --locked -q -p ordivon-runtime-core PASS (256 passed / 0 failed / 36 ignored)",
+          "cargo test --locked -q -p ordivon-runtime-mcp PASS (66/66) and auth 10/10",
+          "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings PASS",
+          "scripts/owner-environment test PASS (279 passed / 0 failed / 36 ignored / 1 filtered; Python 165/165; documentation contract valid)",
+          "scripts/owner-environment extended PASS (reference-model 1/1)",
+          "scripts/local-acceptance run PASS (systemd supervisor 2/2, Runtime integration 36/36, MCP/Workspace/Release E2E; outer job exitCode=0)"
         ]
       },
       {

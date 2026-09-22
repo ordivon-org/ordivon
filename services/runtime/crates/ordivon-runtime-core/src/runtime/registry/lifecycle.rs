@@ -100,10 +100,9 @@ impl Registry {
         if attempt_runner_identity_matches(&attempt, identity) {
             return Ok(attempt);
         }
-        if !matches!(
-            attempt.state,
-            AttemptState::Starting | AttemptState::Recovering
-        ) || attempt.row_version != expected_row_version
+        if AttemptLifecycleContract::runner_identity_bound_state(attempt.state)
+            != Some(AttemptState::Running)
+            || attempt.row_version != expected_row_version
             || attempt.unit_name != identity.unit_name
         {
             return Err(state_conflict(
@@ -224,11 +223,6 @@ impl Registry {
             .map_err(|error| {
                 RuntimeError::from_sql(error, "cannot inspect existing Attempt Supervisor Owner")
             })?;
-        let bound_state = if attempt.state == AttemptState::Stopping {
-            AttemptState::Stopping
-        } else {
-            AttemptState::Running
-        };
         if let Some((existing_json, existing_digest)) = existing {
             if sha256_bytes(existing_json.as_bytes()) != existing_digest {
                 return Err(RuntimeError::new(
@@ -238,12 +232,13 @@ impl Registry {
                     false,
                 ));
             }
-            if existing_digest == owner_digest
-                && matches!(
-                    attempt.state,
-                    AttemptState::Running | AttemptState::Stopping
-                )
-                && attempt.runner_start_digest.as_deref() == Some(start_evidence_digest)
+            if AttemptLifecycleContract::physical_owner_replay_matches(
+                attempt.state,
+                &existing_digest,
+                &owner_digest,
+                attempt.runner_start_digest.as_deref(),
+                start_evidence_digest,
+            )
             {
                 return Ok(attempt);
             }
@@ -251,11 +246,9 @@ impl Registry {
                 "Attempt is already bound to a different Supervisor Owner",
             ));
         }
-        if !matches!(
-            attempt.state,
-            AttemptState::Starting | AttemptState::Recovering | AttemptState::Stopping
-        ) || attempt.row_version != expected_row_version
-        {
+        let bound_state = AttemptLifecycleContract::supervisor_owner_bound_state(attempt.state)
+            .ok_or_else(|| state_conflict("Attempt is not bindable to this Supervisor Owner"))?;
+        if attempt.row_version != expected_row_version {
             return Err(state_conflict(
                 "Attempt is not bindable to this Supervisor Owner",
             ));
@@ -316,10 +309,10 @@ impl Registry {
         let transaction = immediate(&mut connection, "deadline-intent transaction")?;
         let attempt = load_attempt(&transaction, attempt_id)?;
         let job = load_job(&transaction, &attempt.job_id)?;
-        if attempt.state.is_terminal()
-            || attempt.termination_intent == AttemptTerminationIntent::DeadlineExceeded
-            || attempt.termination_intent == AttemptTerminationIntent::StopRequested
-            || job.desired_state == JobDesiredState::Cancelled
+        if AttemptLifecycleContract::deadline_request_is_replay(
+            attempt.state,
+            attempt.termination_intent,
+        ) || job.desired_state == JobDesiredState::Cancelled
         {
             transaction.commit().map_err(|error| {
                 RuntimeError::from_sql(error, "cannot close deadline-intent replay")
@@ -334,13 +327,7 @@ impl Registry {
                 false,
             ));
         }
-        if !matches!(
-            attempt.state,
-            AttemptState::Starting
-                | AttemptState::Running
-                | AttemptState::Recovering
-                | AttemptState::Stopping
-        ) {
+        if !AttemptLifecycleContract::deadline_request_is_admissible(attempt.state) {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::AttemptStateConflict,
                 "deadline termination requires a dispatched nonterminal Attempt",
@@ -473,7 +460,7 @@ impl Registry {
             )
         })?;
         let attempt = load_attempt(&transaction, &attempt_id)?;
-        if attempt.state.is_terminal() {
+        if AttemptLifecycleContract::is_terminal(attempt.state) {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ReconciliationRequired,
                 "Attempt is terminal but Job is unresolved",
@@ -487,7 +474,9 @@ impl Registry {
                 [job_id],
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot persist cancel intent"))?;
-        if attempt.state == AttemptState::Accepted {
+        if AttemptLifecycleContract::cancel_target_state(attempt.state)
+            == Some(AttemptState::Cancelled)
+        {
             let result_digest = sha256_bytes(
                 format!("runtime-cancel-before-dispatch\0{job_id}\0{attempt_id}").as_bytes(),
             );
@@ -521,7 +510,10 @@ impl Registry {
                 serde_json::json!({}),
                 observed_at_ms,
             )?;
-        } else if attempt.state != AttemptState::Stopping {
+        } else if AttemptLifecycleContract::cancel_target_state(attempt.state)
+            == Some(AttemptState::Stopping)
+            && attempt.state != AttemptState::Stopping
+        {
             transaction
                 .execute(
                     "UPDATE attempts SET state='stopping',termination_intent='stop_requested',row_version=row_version+1 WHERE attempt_id=?1 AND state IN ('starting','running','recovering')",
@@ -603,7 +595,7 @@ impl Registry {
     }
 
     pub(super) fn commit_terminal(&self, request: &TerminalCommit) -> RuntimeResult<JobProjection> {
-        if !request.state.is_terminal() {
+        if !AttemptLifecycleContract::is_terminal(request.state) {
             return Err(RuntimeError::invalid(
                 "terminal commit requires a terminal Attempt state",
                 "state",
@@ -617,7 +609,7 @@ impl Registry {
         let transaction = immediate(&mut connection, "terminal transaction")?;
         let attempt = load_attempt(&transaction, &request.attempt_id)?;
         let job = load_job(&transaction, &attempt.job_id)?;
-        if attempt.state.is_terminal() {
+        if AttemptLifecycleContract::is_terminal(attempt.state) {
             if attempt.result_digest.as_deref() == Some(request.result_digest.as_str())
                 && attempt.state == request.state
             {
@@ -638,7 +630,7 @@ impl Registry {
                 "Attempt row version changed before terminal commit",
             ));
         }
-        if !attempt.state.can_transition_to(request.state) {
+        if !AttemptLifecycleContract::can_transition(attempt.state, request.state) {
             return Err(state_conflict(format!(
                 "invalid Attempt transition {:?} -> {:?}",
                 attempt.state, request.state
@@ -711,7 +703,7 @@ impl Registry {
             )?;
         }
 
-        let resolution = resolution_for_state(request.state)?;
+        let resolution = AttemptLifecycleContract::require_terminal_resolution(request.state)?;
         transaction
             .execute(
                 "UPDATE jobs SET resolution=?1,current_attempt_id=NULL,row_version=row_version+1 WHERE job_id=?2 AND resolution IS NULL",

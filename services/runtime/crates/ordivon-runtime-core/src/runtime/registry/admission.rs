@@ -174,9 +174,9 @@ impl Registry {
         let attempt = AttemptRecord {
             attempt_id: attempt_id.clone(),
             job_id: job_id.clone(),
-            attempt_number: 1,
-            state: AttemptState::Accepted,
-            termination_intent: AttemptTerminationIntent::Natural,
+            attempt_number: AttemptLifecycleContract::INITIAL_ATTEMPT_NUMBER,
+            state: AttemptLifecycleContract::initial_state(),
+            termination_intent: AttemptLifecycleContract::initial_termination_intent(),
             launch_token_digest: launch_token_digest.clone(),
             bundle_path: bundle_path.clone(),
             bundle_digest: None,
@@ -366,10 +366,11 @@ impl Registry {
         }
         transaction
             .execute(
-                "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,bundle_digest,boot_id,unit_name,invocation_id,control_group,main_pid,process_start_identity,runner_start_digest,result_digest,exit_code,infrastructure_error_digest,created_at_ms,started_at_ms,finished_at_ms,row_version) VALUES(?1,?2,1,?3,?4,?5,?6,NULL,NULL,?7,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?8,NULL,NULL,0)",
+                "INSERT INTO attempts(attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,bundle_digest,boot_id,unit_name,invocation_id,control_group,main_pid,process_start_identity,runner_start_digest,result_digest,exit_code,infrastructure_error_digest,created_at_ms,started_at_ms,finished_at_ms,row_version) VALUES(?1,?2,?3,?4,?5,?6,?7,NULL,NULL,?8,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?9,NULL,NULL,0)",
                 params![
                     attempt.attempt_id,
                     attempt.job_id,
+                    attempt.attempt_number,
                     attempt.state.as_db(),
                     attempt.termination_intent.as_db(),
                     attempt.launch_token_digest,
@@ -438,7 +439,7 @@ impl Registry {
             None,
             Some(AttemptState::Accepted),
             "ATTEMPT_ACCEPTED",
-            serde_json::json!({"attemptNumber": 1}),
+            serde_json::json!({"attemptNumber": attempt.attempt_number}),
             created_at_ms,
         )?;
 

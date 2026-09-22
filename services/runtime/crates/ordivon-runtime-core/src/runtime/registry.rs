@@ -9,7 +9,9 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-use super::job_attempt_state::{JobIdentityContract, OperationIdentityBindings};
+use super::job_attempt_state::{
+    AttemptLifecycleContract, JobIdentityContract, OperationIdentityBindings,
+};
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwner};
@@ -708,7 +710,7 @@ fn repair_terminal_admin_transaction(
             false,
         ));
     }
-    let source_resolution = resolution_for_state(attempt.state)?;
+    let source_resolution = AttemptLifecycleContract::require_terminal_resolution(attempt.state)?;
     if attempt.row_version != request.expected_row_version
         || job.row_version != audit.expected_job_row_version
         || job.resolution != Some(source_resolution)
@@ -783,7 +785,7 @@ fn repair_terminal_admin_transaction(
         audit.observed_at_ms,
         "ADMIN_RUNTIME_REPAIR",
     )?;
-    let resolution = resolution_for_state(request.state)?;
+    let resolution = AttemptLifecycleContract::require_terminal_resolution(request.state)?;
     let job_changed = transaction
         .execute(
             "UPDATE jobs SET resolution=?1,current_attempt_id=NULL,row_version=row_version+1 WHERE job_id=?2 AND row_version=?3",
@@ -907,11 +909,13 @@ fn terminal_reservation_target(
             false,
         ));
     }
-    let expected_resolution = resolution_for_state(attempt.state)?;
-    let evidence_complete = attempt.result_digest.is_some()
-        && attempt.finished_at_ms.is_some()
-        && job.resolution == Some(expected_resolution)
-        && job.current_attempt_id.is_none();
+    let evidence_complete = AttemptLifecycleContract::terminal_evidence_complete(
+        attempt.state,
+        attempt.result_digest.is_some(),
+        attempt.finished_at_ms.is_some(),
+        job.resolution,
+        job.current_attempt_id.is_some(),
+    );
     if !evidence_complete {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ReconciliationRequired,
@@ -924,21 +928,6 @@ fn terminal_reservation_target(
         Ok(ReservationState::HeldOrphaned)
     } else {
         Ok(ReservationState::Released)
-    }
-}
-
-fn resolution_for_state(state: AttemptState) -> RuntimeResult<JobResolution> {
-    match state {
-        AttemptState::Succeeded => Ok(JobResolution::Succeeded),
-        AttemptState::Failed => Ok(JobResolution::Failed),
-        AttemptState::TimedOut => Ok(JobResolution::TimedOut),
-        AttemptState::Cancelled => Ok(JobResolution::Cancelled),
-        AttemptState::Lost => Ok(JobResolution::Lost),
-        AttemptState::Orphaned => Ok(JobResolution::Orphaned),
-        _ => Err(RuntimeError::invalid(
-            "Attempt state is not terminal",
-            "state",
-        )),
     }
 }
 

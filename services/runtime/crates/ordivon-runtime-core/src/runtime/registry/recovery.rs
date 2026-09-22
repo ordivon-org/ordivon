@@ -176,7 +176,7 @@ impl Registry {
             request.finished_at_ms,
             &request.reason_code,
         )?;
-        let resolution = resolution_for_state(request.state)?;
+        let resolution = AttemptLifecycleContract::require_terminal_resolution(request.state)?;
         transaction
             .execute(
                 "UPDATE jobs SET resolution=?1,row_version=row_version+1 WHERE job_id=?2 AND resolution='orphaned'",

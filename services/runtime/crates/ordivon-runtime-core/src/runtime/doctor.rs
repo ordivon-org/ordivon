@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::evidence::{prepare_runner_terminal_from_bundle, RESULT_FILE};
+use super::job_attempt_state::AttemptLifecycleContract;
 use super::registry::{
     inspect_runtime_invariants_connection, load_attempt, load_job, load_reservation,
     CONDITION_RETIREMENT_MIGRATION_VERSION, MAX_MIGRATION_VERSION,
@@ -462,7 +463,7 @@ fn propose_repair(
     if result_present {
         return match prepare_runner_terminal_from_bundle(attempt) {
             Ok(terminal) => {
-                let expected_resolution = resolution_for_state(terminal.state);
+                let expected_resolution = AttemptLifecycleContract::resolution(terminal.state);
                 let target_reservation = reservation_target(terminal.state);
                 let terminal_matches = attempt.state == terminal.state
                     && attempt.result_digest.as_deref() == Some(terminal.result_digest.as_str())
@@ -484,12 +485,14 @@ fn propose_repair(
         };
     }
 
-    let expected_resolution = resolution_for_state(attempt.state);
-    let evidence_complete = attempt.state.is_terminal()
-        && attempt.result_digest.is_some()
-        && attempt.finished_at_ms.is_some()
-        && job.resolution == expected_resolution
-        && job.current_attempt_id.is_none();
+    let expected_resolution = AttemptLifecycleContract::resolution(attempt.state);
+    let evidence_complete = AttemptLifecycleContract::terminal_evidence_complete(
+        attempt.state,
+        attempt.result_digest.is_some(),
+        attempt.finished_at_ms.is_some(),
+        job.resolution,
+        job.current_attempt_id.is_some(),
+    );
     if evidence_complete {
         let target = reservation_target(attempt.state);
         if reservation.state == target {
@@ -516,18 +519,6 @@ fn propose_repair(
         }
         reasons.push("Runner result bundle is absent".to_string());
         RuntimeDoctorProposal::ManualReview { reasons }
-    }
-}
-
-fn resolution_for_state(state: AttemptState) -> Option<JobResolution> {
-    match state {
-        AttemptState::Succeeded => Some(JobResolution::Succeeded),
-        AttemptState::Failed => Some(JobResolution::Failed),
-        AttemptState::TimedOut => Some(JobResolution::TimedOut),
-        AttemptState::Cancelled => Some(JobResolution::Cancelled),
-        AttemptState::Lost => Some(JobResolution::Lost),
-        AttemptState::Orphaned => Some(JobResolution::Orphaned),
-        _ => None,
     }
 }
 

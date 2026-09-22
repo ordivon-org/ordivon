@@ -170,74 +170,11 @@ impl AttemptState {
     }
 
     pub fn is_terminal(self) -> bool {
-        matches!(
-            self,
-            Self::Succeeded
-                | Self::Failed
-                | Self::TimedOut
-                | Self::Cancelled
-                | Self::Lost
-                | Self::Orphaned
-        )
+        super::job_attempt_state::AttemptLifecycleContract::is_terminal(self)
     }
 
     pub fn can_transition_to(self, next: Self) -> bool {
-        match self {
-            Self::Accepted => matches!(
-                next,
-                Self::Starting | Self::Cancelled | Self::Failed | Self::Lost | Self::Orphaned
-            ),
-            Self::Starting => matches!(
-                next,
-                Self::Running
-                    | Self::Recovering
-                    | Self::Succeeded
-                    | Self::Failed
-                    | Self::TimedOut
-                    | Self::Cancelled
-                    | Self::Lost
-                    | Self::Orphaned
-            ),
-            Self::Running => matches!(
-                next,
-                Self::Stopping
-                    | Self::Recovering
-                    | Self::Succeeded
-                    | Self::Failed
-                    | Self::TimedOut
-                    | Self::Cancelled
-                    | Self::Lost
-                    | Self::Orphaned
-            ),
-            Self::Stopping => matches!(
-                next,
-                Self::Recovering
-                    | Self::Succeeded
-                    | Self::Cancelled
-                    | Self::Failed
-                    | Self::TimedOut
-                    | Self::Lost
-                    | Self::Orphaned
-            ),
-            Self::Recovering => matches!(
-                next,
-                Self::Starting
-                    | Self::Running
-                    | Self::Stopping
-                    | Self::Succeeded
-                    | Self::Failed
-                    | Self::TimedOut
-                    | Self::Cancelled
-                    | Self::Lost
-                    | Self::Orphaned
-            ),
-            Self::Succeeded
-            | Self::Failed
-            | Self::TimedOut
-            | Self::Cancelled
-            | Self::Lost
-            | Self::Orphaned => false,
-        }
+        super::job_attempt_state::AttemptLifecycleContract::can_transition(self, next)
     }
 }
 
