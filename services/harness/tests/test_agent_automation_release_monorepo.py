@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -204,3 +205,12 @@ def test_temporal_worker_dependency_contract_includes_official_mcp_client():
     assert 'ReadWritePaths=/mnt/c/ProgramData/Ordivon/chat-ingress' in unit
     assert 'LoadCredential=gateway-local-bearer:/etc/ordivon/gateway/local-client-bearer' in unit
     assert 'ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE=%d/gateway-local-bearer' in unit
+
+def test_runtime_contract_persists_windows_user_browser_binding():
+    contract = tomllib.loads((ROOT / 'config' / 'agent-automation.toml').read_text())
+    binding = contract['agent_automation']['windows_user_browser']
+    assert binding['gateway_url'] == 'http://127.0.0.1:8899/mcp'
+    assert binding['workspace_id'] == 'ws-user-browser-prod-r1-20260922'
+    assert binding['timeout_ms'] == 150000
+    deploy = (ROOT / 'scripts' / 'agent_automation_mcp_deploy.py').read_text()
+    assert 'value["windowsUserBrowser"]' in deploy

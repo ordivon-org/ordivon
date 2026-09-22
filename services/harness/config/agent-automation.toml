@@ -18,3 +18,13 @@ name = "browserless-prod"
 namespace = "nv2-browserless-prod"
 service_unit = "network-v2-browserless.target"
 receipt = "/var/lib/network-v2/browserless-cutover/production-cutover.json"
+
+[agent_automation.windows_user_browser]
+gateway_url = "http://127.0.0.1:8899/mcp"
+workspace_id = "ws-user-browser-prod-r1-20260922"
+powershell_path = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+driver_path = "C:\\ProgramData\\Ordivon\\chat-ingress\\windows_user_browser_chatgpt.ps1"
+proxy_url = "http://127.0.0.1:19081"
+linux_stage_root = "/mnt/c/ProgramData/Ordivon/chat-ingress"
+windows_stage_root = "C:\\ProgramData\\Ordivon\\chat-ingress"
+timeout_ms = 150000

@@ -81,7 +81,20 @@ def source_revision() -> str:
 
 
 def runtime_config(c: dict) -> dict:
-    return render_browserless_config()
+    value = render_browserless_config()
+    user_browser = c.get("windows_user_browser")
+    if user_browser is not None:
+        value["windowsUserBrowser"] = {
+            "gatewayUrl": user_browser["gateway_url"],
+            "workspaceId": user_browser["workspace_id"],
+            "powershellPath": user_browser["powershell_path"],
+            "driverPath": user_browser["driver_path"],
+            "proxyUrl": user_browser["proxy_url"],
+            "linuxStageRoot": user_browser["linux_stage_root"],
+            "windowsStageRoot": user_browser["windows_stage_root"],
+            "timeoutMs": int(user_browser["timeout_ms"]),
+        }
+    return value
 
 
 def private_token(path: Path, create: bool) -> dict:
