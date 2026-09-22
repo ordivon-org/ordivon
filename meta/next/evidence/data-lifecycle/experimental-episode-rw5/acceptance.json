@@ -50,5 +50,9 @@
   },
   "schemaVersion": 1,
   "sourceRevision": "1214254b38af1485eca368e190704d360ffeb06a",
-  "standing": "RW5_ACCEPTED_STANDARD_NATIVE_DATA_LIFECYCLE"
+  "standing": "RW5_ACCEPTED_STANDARD_NATIVE_DATA_LIFECYCLE",
+  "taskLocalBindings": {
+    "ref": "meta/next/evidence/acceptance/experimental-episode-rw5-bindings.json",
+    "truthRole": "task-local-non-authoritative-cross-owner-locator"
+  }
 }

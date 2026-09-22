@@ -6,12 +6,15 @@ from pathlib import Path
 
 from jsonschema import Draft201909Validator, Draft202012Validator, FormatChecker
 
+from scripts.cross_domain_binding_r3 import resolve_repo_file
+
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCT = ROOT / "data-products/experimental-episode-corpus-r1"
 EVIDENCE = ROOT / "evidence/data-products/experimental-episode-analysis-r1"
 FEDERATION = ROOT / "evidence/data-lifecycle/data-products-r2"
 STANDARDS = ROOT / "evidence/data-lifecycle/github-pilot-r1/standards"
-ARTIFACT_ROOT = ROOT.parents[1] / "capabilities/artifact"
+REPO_ROOT = ROOT.parents[1]
+RW5_BINDINGS = ROOT / "evidence/acceptance/experimental-episode-rw5-bindings.json"
 
 
 def load(path: Path):
@@ -55,10 +58,11 @@ def test_episode_odcs_validates_against_frozen_official_schema() -> None:
 
 def test_artifact_contract_remains_artifact_owned_and_digest_bound() -> None:
     contract = load(PRODUCT / "artifact-dataset-contract.json")
-    schema = load(
-        ARTIFACT_ROOT
-        / "artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json"
-    )
+    bindings = load(RW5_BINDINGS)
+    artifact_binding = bindings["artifactDatasetSchema"]
+    schema_path = resolve_repo_file(REPO_ROOT, artifact_binding["repoRelativePath"])
+    assert sha256(schema_path) == artifact_binding["sha256"]
+    schema = load(schema_path)
     Draft202012Validator(schema).validate(contract)
     acceptance = load(PRODUCT / "acceptance.json")
     verification = load(EVIDENCE / "artifact-index-verification.json")
