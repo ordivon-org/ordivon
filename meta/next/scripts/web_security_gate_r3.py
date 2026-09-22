@@ -21,6 +21,7 @@ try:
         compile_manifest,
         validate_gate_result,
     )
+    from scripts.cross_domain_binding_r3 import resolve_repo_file, validate_binding
 except ModuleNotFoundError:
     from cognitive_circuit_r1 import (
         CircuitContractError,
@@ -28,10 +29,7 @@ except ModuleNotFoundError:
         compile_manifest,
         validate_gate_result,
     )
-
-
-BINDING_KIND = "ordivon.cross-domain-verification-r3-binding"
-BINDING_ROLE = "task-local-acceptance-binding-not-owner-truth"
+    from cross_domain_binding_r3 import resolve_repo_file, validate_binding
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -45,21 +43,8 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _repo_path(repo_root: Path, relative: str) -> Path:
-    root = repo_root.resolve()
-    candidate = (root / relative).resolve()
-    if candidate != root and root not in candidate.parents:
-        raise CircuitContractError(f"binding path escapes repository: {relative}")
-    return candidate
-
-
 def _binding_section(binding: dict[str, Any]) -> dict[str, Any]:
-    if (
-        binding.get("schemaVersion") != 1
-        or binding.get("kind") != BINDING_KIND
-        or binding.get("truthRole") != BINDING_ROLE
-    ):
-        raise CircuitContractError("invalid cross-domain R3 binding identity")
+    validate_binding(binding)
     section = binding.get("webSecurity")
     if not isinstance(section, dict):
         raise CircuitContractError("binding webSecurity section is required")
@@ -235,17 +220,19 @@ def main() -> int:
         binding = _load_json(args.binding)
         section = _binding_section(binding)
         paths = section["paths"]
-        dependency_path = _repo_path(args.repo_root, paths["dependencyContracts"])
+        dependency_path = resolve_repo_file(
+            args.repo_root, paths["dependencyContracts"]
+        )
         with dependency_path.open("rb") as handle:
             dependencies = tomllib.load(handle)
         result = build_gate_result(
             manifest,
             binding,
             dependencies,
-            _load_json(_repo_path(args.repo_root, paths["nativeE2e"])),
-            _read(_repo_path(args.repo_root, paths["requestSource"])),
-            _read(_repo_path(args.repo_root, paths["admissionSource"])),
-            _read(_repo_path(args.repo_root, paths["storeSource"])),
+            _load_json(resolve_repo_file(args.repo_root, paths["nativeE2e"])),
+            _read(resolve_repo_file(args.repo_root, paths["requestSource"])),
+            _read(resolve_repo_file(args.repo_root, paths["admissionSource"])),
+            _read(resolve_repo_file(args.repo_root, paths["storeSource"])),
         )
     except (
         OSError,

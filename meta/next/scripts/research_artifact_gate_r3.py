@@ -21,6 +21,7 @@ try:
         compile_manifest,
         validate_gate_result,
     )
+    from scripts.cross_domain_binding_r3 import resolve_repo_file, validate_binding
 except ModuleNotFoundError:
     from cognitive_circuit_r1 import (
         CircuitContractError,
@@ -28,10 +29,7 @@ except ModuleNotFoundError:
         compile_manifest,
         validate_gate_result,
     )
-
-
-BINDING_KIND = "ordivon.cross-domain-verification-r3-binding"
-BINDING_ROLE = "task-local-acceptance-binding-not-owner-truth"
+    from cross_domain_binding_r3 import resolve_repo_file, validate_binding
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -41,21 +39,8 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
-def _repo_path(repo_root: Path, relative: str) -> Path:
-    root = repo_root.resolve()
-    candidate = (root / relative).resolve()
-    if candidate != root and root not in candidate.parents:
-        raise CircuitContractError(f"binding path escapes repository: {relative}")
-    return candidate
-
-
 def _binding_section(binding: dict[str, Any]) -> dict[str, Any]:
-    if (
-        binding.get("schemaVersion") != 1
-        or binding.get("kind") != BINDING_KIND
-        or binding.get("truthRole") != BINDING_ROLE
-    ):
-        raise CircuitContractError("invalid cross-domain R3 binding identity")
+    validate_binding(binding)
     section = binding.get("researchArtifact")
     if not isinstance(section, dict):
         raise CircuitContractError("binding researchArtifact section is required")
@@ -175,8 +160,8 @@ def main() -> int:
         result = build_gate_result(
             manifest,
             binding,
-            _load(_repo_path(args.repo_root, section["profilePath"])),
-            _load(_repo_path(args.repo_root, section["dogfoodPath"])),
+            _load(resolve_repo_file(args.repo_root, section["profilePath"])),
+            _load(resolve_repo_file(args.repo_root, section["dogfoodPath"])),
         )
     except (OSError, json.JSONDecodeError, CircuitContractError) as exc:
         raise SystemExit(f"research-artifact gate R3 failed: {exc}") from exc

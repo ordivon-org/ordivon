@@ -5,14 +5,18 @@
   "baseRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
   "truthRole": "acceptance-evidence-not-domain-truth",
   "boundaryRepair": {
-    "revision": "R3.1",
+    "revision": "R3.2",
     "bindingPath": "meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json",
     "bindingByteDigest": "sha256:fc83cd8977a69d309283522d23042605de2d0db2685188acd6a57a79648c5964",
     "bindingCanonicalDigest": "sha256:65f8a6ba330c62239bb2d6e7c2c0ab46b44c4515aeef6ee23f5d50dfbc1734a7",
     "activeSourceEmbedsCrossOwnerLocators": false,
     "ownerBoundaryStanding": "PASS",
     "blanketDependencySeamAdded": false,
-    "checkerExemptionAdded": false
+    "checkerExemptionAdded": false,
+    "typedBindingSchema": "meta/next/schemas/cross-domain-verification-r3-binding.schema.json",
+    "typedBindingSchemaStanding": "PASS",
+    "sharedBindingResolver": "meta/next/scripts/cross_domain_binding_r3.py",
+    "repoRelativeTraversalGuard": "PASS"
   },
   "ownerBaselines": {
     "artifactPublicationFocused": {
@@ -29,7 +33,7 @@
   },
   "focusedDestroyers": {
     "standing": "PASS",
-    "tests": 10
+    "tests": 14
   },
   "seams": {
     "researchArtifact": {
@@ -79,6 +83,7 @@
     "R3 does not establish production eligibility for apps/web.",
     "R3 does not create a universal cross-domain verifier or ontology.",
     "R3 task-local binding evidence is not owner truth or a global registry.",
-    "R3 mechanical closure is not domain acceptance."
+    "R3 mechanical closure is not domain acceptance.",
+    "R3.2 schema validation constrains task-local binding shape and path syntax; it does not make the binding owner truth."
   ]
 }
