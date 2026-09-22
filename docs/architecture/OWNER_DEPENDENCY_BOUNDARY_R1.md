@@ -21,6 +21,7 @@ This is repository-boundary enforcement. It is not a universal dependency graph,
 | Skills | Next | OPERATOR_SOURCE_BINDING | Temporary filesystem-to-MCP bridge over operator-configured source roots |
 | Workstation | Distribution | ACCEPTANCE_EVIDENCE_BINDING | n8n acceptance consumes one Distribution evidence input |
 | Workstation | Game / Media | TEST_ONLY_ENVIRONMENT_BINDING | Host toolchain consequence tests only |
+| Next | Composition | PUBLIC_PACKAGE_DEPENDENCY | Next consumes the extracted `ordivon-composition` public Python package through its declared local package source; implementation internals are not imported by path |
 
 Test and E2E variants are declared separately. A production source file cannot inherit permission merely because the same owner pair already has a test seam.
 
@@ -45,7 +46,7 @@ Executable unit checks prove:
 
 ## Current measured standing
 
-At the R1 implementation fence the checker inspected 1,844 active tracked files and found 20 cross-owner literal references covered by 16 narrow seam declarations.
+At the Structure R2 S1A fence the checker inspected 1,936 active tracked files and found 23 cross-owner literal references covered by 18 narrow seam declarations. The new `PUBLIC_PACKAGE_DEPENDENCY` is the explicit Next -> Composition package seam; it does not transfer Composition authority back to Next.
 
 No undeclared active literal seam remained.
 

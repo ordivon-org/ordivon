@@ -141,3 +141,11 @@ source_glob = "meta/next/mise.toml"
 allowed_fragment = "services/harness"
 kind = "TEST_ONLY_SOURCE_BINDING"
 contract_ref = "services/harness/docs/AGENT_AUTOMATION_OWNER_MIGRATION_R7.md"
+
+[[seams]]
+from_owner = "next"
+to_owner = "composition"
+source_glob = "meta/next/pyproject.toml"
+allowed_fragment = "../../packages/composition"
+kind = "PUBLIC_PACKAGE_DEPENDENCY"
+contract_ref = "packages/composition/README.md"

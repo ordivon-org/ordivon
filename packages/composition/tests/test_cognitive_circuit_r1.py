@@ -4,7 +4,7 @@ import copy
 
 import pytest
 
-from scripts.cognitive_circuit_r1 import (
+from ordivon_composition.cognitive_circuit_r1 import (
     CircuitContractError,
     canonical_digest,
     compile_manifest,
@@ -84,9 +84,7 @@ def valid_manifest() -> dict:
                 "assumption": (
                     "Artifact receives claim identifiers bound to the exact research evidence."
                 ),
-                "guarantee": (
-                    "Research emits claim identifiers and exact evidence references."
-                ),
+                "guarantee": ("Research emits claim identifiers and exact evidence references."),
                 "verifierOwnerId": "research",
                 "supportScope": "claim/evidence identity seam only",
                 "required": True,
@@ -113,9 +111,7 @@ def gate_result(manifest: dict, standing: str = "SATISFIED") -> dict:
         "standing": standing,
         "evidenceRefs": evidence,
         "supportScope": "claim/evidence identity seam only",
-        "nonClaims": [
-            "This result does not establish artifact quality or publication acceptance."
-        ],
+        "nonClaims": ["This result does not establish artifact quality or publication acceptance."],
     }
 
 
@@ -215,9 +211,7 @@ def test_gate_result_cannot_widen_support_scope() -> None:
 
 def test_unresolved_manifest_assumption_blocks_mechanical_closure() -> None:
     manifest = valid_manifest()
-    manifest["unresolvedAssumptions"] = [
-        "Venue-specific visual acceptance is unresolved."
-    ]
+    manifest["unresolvedAssumptions"] = ["Venue-specific visual acceptance is unresolved."]
     result = gate_result(manifest)
 
     projection = evaluate_gate_results(manifest, [result])

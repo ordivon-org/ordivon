@@ -1,27 +1,22 @@
-#!/usr/bin/env python3
-"""Compatibility facade for the Composition package.
+"""Public task-local composition mechanics for Ordivon."""
 
-Implementation authority moved to the public ordivon-composition package in Structure R2 S1A.
-"""
-
-from ordivon_composition.cognitive_circuit_r1 import (
+from .cognitive_circuit_r1 import (
     CircuitContractError,
     canonical_digest,
     compile_manifest,
     evaluate_gate_results,
-    main,
     validate_gate_result,
     validate_manifest,
 )
+from .interface_contract_r2 import currentness_standing, evaluate_interface
 
 __all__ = [
     "CircuitContractError",
     "canonical_digest",
     "compile_manifest",
+    "currentness_standing",
     "evaluate_gate_results",
+    "evaluate_interface",
     "validate_gate_result",
     "validate_manifest",
 ]
-
-if __name__ == "__main__":
-    raise SystemExit(main())

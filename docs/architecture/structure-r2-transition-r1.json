@@ -8,6 +8,10 @@
     "universal-workflow-engine",
     "universal-task-database"
   ],
+  "deployedSlices": [
+    "S0",
+    "S1A"
+  ],
   "forbiddenSemanticRoots": [
     "services/",
     "platform/",
@@ -275,7 +279,7 @@
       "wave": "S7"
     },
     {
-      "disposition": "Move only Cognitive Circuit, interface evaluation, generic Gate mechanics and their direct tests; unrelated Next code is separately dispositioned.",
+      "disposition": "Generic Cognitive Circuit and Interface R2 implementation, five public schemas, owner docs, and Cognitive Circuit owner-native tests are extracted. Next retains thin compatibility facades plus seam-specific R3/Admission/dogfood consumers pending S1B.",
       "id": "composition-mechanics",
       "mode": "split",
       "owner": "next",
@@ -285,13 +289,15 @@
         "meta/next/scripts/",
         "meta/next/tests/"
       ],
+      "standing": "PARTIALLY_DEPLOYED",
       "targetPaths": [
         "packages/composition/"
       ],
       "verifyTasks": [
+        "composition:verify",
         "next:verify"
       ],
-      "wave": "S1"
+      "wave": "S1A"
     },
     {
       "id": "canonical-skills",
@@ -449,8 +455,19 @@
       "wave": "S5"
     }
   ],
+  "openSlices": [
+    "S1B",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9"
+  ],
   "schemaVersion": 1,
-  "status": "candidate-not-deployed",
+  "status": "partially-deployed",
   "targetRoots": [
     ".agents/",
     "apps/",
@@ -473,9 +490,14 @@
       "purpose": "freeze contract, mapping and falsification gates"
     },
     {
-      "id": "S1",
+      "id": "S1A",
       "movesSource": true,
-      "purpose": "extract composition mechanics"
+      "purpose": "extract generic composition implementation with compatibility facades"
+    },
+    {
+      "id": "S1B",
+      "movesSource": true,
+      "purpose": "cut remaining consumers to public package API and retire facades when safe"
     },
     {
       "id": "S2",
