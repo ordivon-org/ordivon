@@ -1,0 +1,58 @@
+{
+  "binding": {
+    "digest": "sha256:812aafd2fb53a69e739d1673fd23a682ad8aceddc11b98833b2ff49026e937cc",
+    "ref": "meta/next/evidence/acceptance/evaluation-boundary-rw6-bindings.json"
+  },
+  "donors": [
+    {
+      "claim": "Sealed content holdout uses exact commitment/reveal evidence after visible treatment freeze.",
+      "id": "media-r6-creative-alpha",
+      "owner": "media",
+      "standing": "EXECUTED"
+    },
+    {
+      "claim": "Protocol and Human-holdout threshold boundary are frozen, while candidate generation and Human holdout remain unexecuted.",
+      "id": "game-autonomous-interest-r2",
+      "owner": "game",
+      "standing": "FROZEN_PROTOCOL_ONLY"
+    }
+  ],
+  "effectiveDate": "2026-09-23",
+  "focusedAcceptance": {
+    "ruffFormat": "PASS",
+    "ruffLint": "PASS",
+    "runtimeJobId": "job-01a0ca46-0ef3-7733-96f8-a1d75c9a6094",
+    "terminalEvidence": "sha256:0271b4936146ded5393aefd6dfbb44a4d42ffd572b24ead0b462fbaaf7e5251d",
+    "testsPassed": 6
+  },
+  "kind": "ordivon.evaluation-boundary-rw6-acceptance",
+  "laws": [
+    "freeze precedes holdout exposure/unblinding",
+    "post-exposure mutation does not preserve the same evaluation standing",
+    "threshold retuning after unblinding is forbidden",
+    "holdout evidence remains separate from development/visible evidence",
+    "evaluator semantics remain with natural owners",
+    "mechanical evaluation-boundary closure does not establish domain truth or promotion authority"
+  ],
+  "nodeStanding": {
+    "EL60": "PASS_EVALUATION_BOUNDARY_PROFILE_R1",
+    "EL61": "PASS_EXACT_HOLDOUT_COMMITMENT_AND_SEALED_PROTOCOL",
+    "EL62": "PASS_FREEZE_BEFORE_EVALUATE_BOUNDARY",
+    "EL63": "PASS_TWO_OWNER_DOGFOOD_MEDIA_EXECUTED_GAME_FROZEN_PROTOCOL"
+  },
+  "profile": {
+    "digest": "sha256:10cd88fde09ea0b661c84289891373cd9808c7e3ce155c80d9e0263ab96ad75d",
+    "empiricalClosure": false,
+    "mechanicalClosure": true,
+    "ref": "meta/next/evidence/acceptance/evaluation-boundary-rw6-profile.json"
+  },
+  "remainingBoundaries": [
+    "Game Human holdout has not executed, so RW6 does not claim two-domain empirical replication.",
+    "The profile does not rank, discover, execute, or replace natural evaluators.",
+    "No universal holdout store, evaluator service, reward model, or promotion service is introduced."
+  ],
+  "schemaVersion": 1,
+  "sourceMainRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+  "status": "PASS_MECHANICAL_BOUNDARY_EMPIRICAL_OPEN",
+  "truthRole": "acceptance-evidence-not-domain-truth"
+}
