@@ -13,6 +13,8 @@ def test_windows_service_materializer_keeps_owner_lifecycle_independent() -> Non
     assert "--kill-process-tree" in text
     assert "--stop-timeout" in text
     assert "ownerServiceDependencies = @()" in text
+    assert "[string]$StartMode = 'Manual'" in text
+    assert "$scStartMode" in text
     assert "--dependencies" not in text
     assert "'failure'" in text
     assert "restart/5000/restart/15000/restart/60000" in text
@@ -33,6 +35,7 @@ def test_windows_service_materializer_never_reads_secret_values() -> None:
     text = MATERIALIZER.read_text(encoding="utf-8")
     assert "LinuxRuntimeBearerTokenFile" in text
     assert "WindowsRuntimeBearerTokenFile" in text
+    assert "HostBearerTokenFile" in text
     assert "ORDIVON_GATEWAY_LINUX_RUNTIME_BEARER_TOKEN_FILE" in text
     assert "ORDIVON_GATEWAY_WINDOWS_RUNTIME_BEARER_TOKEN_FILE" in text
     assert "Get-Content" not in text

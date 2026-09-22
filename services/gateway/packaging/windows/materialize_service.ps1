@@ -24,6 +24,11 @@ param(
     [Parameter()]
     [string]$WindowsRuntimeBearerTokenFile = '',
     [Parameter()]
+    [string]$HostBearerTokenFile = '',
+    [Parameter()]
+    [ValidateSet('Manual', 'Automatic')]
+    [string]$StartMode = 'Manual',
+    [Parameter()]
     [switch]$ReplaceExisting
 )
 
@@ -103,6 +108,11 @@ if ($WindowsRuntimeBearerTokenFile) {
         [System.IO.Path]::GetFullPath($WindowsRuntimeBearerTokenFile)
     )
 }
+if ($HostBearerTokenFile) {
+    $envPairs.ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE = (
+        [System.IO.Path]::GetFullPath($HostBearerTokenFile)
+    )
+}
 
 $shawlArgs = @(
     'add',
@@ -122,9 +132,11 @@ Invoke-NativeChecked -FilePath $shawl -ArgumentList $shawlArgs | Out-Null
 
 $sc = "$env:SystemRoot\System32\sc.exe"
 $serviceAccount = "NT SERVICE\$ServiceName"
+$scStartMode = if ($StartMode -eq 'Automatic') { 'auto' } else { 'demand' }
+$expectedCimStartMode = if ($StartMode -eq 'Automatic') { 'Auto' } else { 'Manual' }
 Invoke-NativeChecked -FilePath $sc -ArgumentList @(
     'config', $ServiceName,
-    'start=', 'auto',
+    'start=', $scStartMode,
     'obj=', $serviceAccount
 ) | Out-Null
 Invoke-NativeChecked -FilePath $sc -ArgumentList @(
@@ -143,8 +155,8 @@ $service = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'"
 if (-not $service) {
     throw "SCM read-back failed for $ServiceName"
 }
-if ($service.StartMode -ne 'Auto') {
-    throw "Gateway candidate service is not automatic-start"
+if ($service.StartMode -ne $expectedCimStartMode) {
+    throw "Gateway candidate service start mode mismatch: $($service.StartMode)"
 }
 if ($service.StartName -ne $serviceAccount) {
     throw "Gateway candidate service account mismatch: $($service.StartName)"
@@ -167,6 +179,7 @@ $receipt = [ordered]@{
     kind = 'ordivon.gateway-windows-service-materialization'
     serviceName = $ServiceName
     serviceAccount = $serviceAccount
+    requestedStartMode = $StartMode
     startMode = $service.StartMode
     state = $service.State
     port = $Port
@@ -184,6 +197,7 @@ $receipt = [ordered]@{
     hostUrl = $HostUrl
     linuxBearerConfigured = [bool]$LinuxRuntimeBearerTokenFile
     windowsBearerConfigured = [bool]$WindowsRuntimeBearerTokenFile
+    hostBearerConfigured = [bool]$HostBearerTokenFile
 }
 $receiptPath = Join-Path $receipts "$ServiceName.materialization.json"
 $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $receiptPath -Encoding utf8

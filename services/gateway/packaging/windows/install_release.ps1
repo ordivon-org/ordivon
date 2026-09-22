@@ -40,8 +40,15 @@ $repoPath = (Resolve-Path -LiteralPath $Repo).Path
 $uvResolved = (Resolve-Path -LiteralPath $UvPath).Path
 $prefixPath = [System.IO.Path]::GetFullPath($Prefix)
 
-$resolved = (& $git -C $repoPath rev-parse --verify "$Commit^{commit}").Trim()
-if ($LASTEXITCODE -ne 0 -or $resolved -ne $Commit) {
+$resolvedOutput = @(
+    & $git '-c' "safe.directory=$repoPath" '-C' $repoPath 'rev-parse' '--verify' "$Commit^{commit}" 2>&1
+)
+$resolveExitCode = $LASTEXITCODE
+if ($resolveExitCode -ne 0) {
+    throw "commit resolution failed with exit code $resolveExitCode: $($resolvedOutput | Out-String)"
+}
+$resolved = ($resolvedOutput | Out-String).Trim()
+if ($resolved -ne $Commit) {
     throw "commit must resolve exactly to the requested full Git SHA"
 }
 
@@ -61,6 +68,7 @@ if (-not (Test-Path -LiteralPath $release -PathType Container)) {
     New-Item -ItemType Directory -Path $tmp | Out-Null
     try {
         Invoke-Checked -FilePath $git -ArgumentList @(
+            '-c', "safe.directory=$repoPath",
             '-C', $repoPath,
             'archive',
             '--format=tar',
