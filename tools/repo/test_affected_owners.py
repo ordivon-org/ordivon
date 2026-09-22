@@ -65,6 +65,12 @@ class AffectedOwnersTests(unittest.TestCase):
             self.queue_tasks("capabilities/artifact/README.md"), ["artifact:queue"]
         )
 
+    def test_control_plugin_is_a_first_class_owner(self) -> None:
+        self.assertEqual(
+            self.tasks("extensions/ordivon-control-plane/plugin.json"),
+            ["control-plugin:verify"],
+        )
+
     def test_gateway_is_a_first_class_owner(self) -> None:
         self.assertEqual(
             self.tasks("services/gateway/src/ordivon_gateway/service.py"),

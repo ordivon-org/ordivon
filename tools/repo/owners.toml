@@ -13,6 +13,11 @@ root = "packages/composition/"
 verify_task = "composition:verify"
 
 [[owners]]
+name = "control-plugin"
+root = "extensions/ordivon-control-plane/"
+verify_task = "control-plugin:verify"
+
+[[owners]]
 name = "runtime"
 root = "services/runtime/"
 verify_task = "runtime:verify"

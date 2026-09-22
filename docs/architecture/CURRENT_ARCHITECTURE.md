@@ -215,7 +215,7 @@ mcp.json
 [skills/]
 ```
 
-The canonical `ordivon-control-plane` package declares exactly one MCP server: Gateway.
+The canonical `ordivon-control-plane` package is sourced from `extensions/ordivon-control-plane/` and declares exactly one MCP server: Gateway.
 
 Selected Skills may be copied into a materialized Plugin, but canonical Skill ownership remains with the standard Skill source. Plugin packaging does not transfer semantic ownership.
 

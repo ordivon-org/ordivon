@@ -92,3 +92,19 @@ def test_s1b_deployment_requires_deployed_composition_standing() -> None:
     mapping["standing"] = "PARTIALLY_DEPLOYED"
     with pytest.raises(module.StructureR2Error, match="composition standing must be DEPLOYED"):
         module.validate_plan(value)
+
+
+def test_deployed_move_rejects_retained_source_path() -> None:
+    value = load_plan()
+    mapping = next(m for m in value["mappings"] if m["id"] == "control-plugin")
+    mapping["sourcePaths"] = ["extensions/ordivon-control-plane/"]
+    with pytest.raises(module.StructureR2Error, match="deployed move retains source path"):
+        module.validate_plan(value, repo_root=ROOT)
+
+
+def test_deployed_move_rejects_missing_target_path() -> None:
+    value = load_plan()
+    mapping = next(m for m in value["mappings"] if m["id"] == "control-plugin")
+    mapping["targetPaths"] = ["extensions/missing-control-plugin/"]
+    with pytest.raises(module.StructureR2Error, match="deployed move target missing"):
+        module.validate_plan(value, repo_root=ROOT)

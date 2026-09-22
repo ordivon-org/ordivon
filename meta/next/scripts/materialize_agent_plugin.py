@@ -12,7 +12,8 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PLUGIN = ROOT / "plugins" / "ordivon-control-plane"
+REPO_ROOT = ROOT.parents[1]
+DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"
 DEFAULT_SKILLS = ROOT / ".agents" / "skills"
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
@@ -255,8 +256,8 @@ def materialize(
         "kind": "ordivon.agent-plugin-release-materialization-receipt",
         "sourceOfTruth": ".agents/skills" if resolved_skills_root is not None else None,
         "sourceGitRevision": git_head(),
-        "pluginSource": plugin.relative_to(ROOT).as_posix()
-        if ROOT in plugin.parents
+        "pluginSource": plugin.relative_to(REPO_ROOT).as_posix()
+        if REPO_ROOT in plugin.parents
         else str(plugin),
         "skillComposition": (
             "selected"

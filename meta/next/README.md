@@ -48,7 +48,6 @@ ordivon-next/
 ├── capabilities/    # capability/provider routing knowledge and task-local inventories
 ├── domains/         # domain-native life-cycle profiles
 ├── policies/        # native OPA/Rego policy artifacts where declarative policy is justified
-├── plugins/         # Agent Plugins standard packaging artifacts
 ├── tests/           # behavior, integration, architecture and historical-integrity regression tests
 ├── scripts/         # current commands/validators only; historical reproducers do not live here
 ├── schemas/         # minimal cross-domain contracts after demonstrated reuse

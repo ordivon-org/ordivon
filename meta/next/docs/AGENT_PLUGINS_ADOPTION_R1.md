@@ -47,10 +47,10 @@ Ordivon continues to own only state and semantics that are genuinely local to Or
 
 ## First standards-native package
 
-`plugins/ordivon-control-plane/` is a direct Agent Plugins 1.0 package skeleton. It contains no Ordivon-specific manifest schema and no copied implementation code:
+`extensions/ordivon-control-plane/` is a direct Agent Plugins 1.0 package skeleton. It contains no Ordivon-specific manifest schema and no copied implementation code:
 
 ```text
-plugins/ordivon-control-plane/
+extensions/ordivon-control-plane/
 ├── plugin.json
 └── mcp.json
 ```
@@ -75,7 +75,7 @@ Current rule:
 5. do not make release-artifact duplication into a second source of truth;
 6. bundling a Skill does not transfer its semantic ownership to Agent Plugin.
 
-The release path is executable through the stdlib-only `scripts/materialize_agent_plugin.py`. It treats `plugins/ordivon-control-plane/` as the portable package skeleton, rejects symlinks/non-regular package input and overwrites, writes only to a caller-selected release directory, and writes its digest receipt outside the portable package.
+The release path is executable through the stdlib-only `scripts/materialize_agent_plugin.py`. It treats `extensions/ordivon-control-plane/` as the portable package skeleton, rejects symlinks/non-regular package input and overwrites, writes only to a caller-selected release directory, and writes its digest receipt outside the portable package.
 
 MCP-only/default release:
 
