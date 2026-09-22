@@ -163,6 +163,14 @@ mise install
 mise run verify
 """
 
+[tasks."artifact:queue"]
+run = """
+set -euo pipefail
+cd capabilities/artifact
+mise install
+mise run queue
+"""
+
 [tasks."distribution:verify"]
 run = """
 set -euo pipefail
@@ -202,6 +210,14 @@ cd platform/network
 task all:validate
 """
 
+
+[tasks."harness:queue"]
+run = """
+set -euo pipefail
+cd services/harness
+mise install
+mise run queue
+"""
 
 [tasks."gateway:verify"]
 dir = "services/gateway"

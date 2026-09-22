@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           if [[ "$EVENT_NAME" == "workflow_dispatch" || "$EVENT_NAME" == "schedule" ]]; then
             mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
-            mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format tasks)
+            mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format queue-tasks)
           else
             if [[ "$EVENT_NAME" == "pull_request" ]]; then
               base="$PR_BASE"
@@ -70,10 +70,16 @@ jobs:
             fi
             if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
               mapfile -t owners < <(python3 tools/repo/affected_owners.py --all --format names)
-              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format tasks)
+              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --all --format queue-tasks)
             else
-              mapfile -t owners < <(python3 tools/repo/affected_owners.py --base "$base" --head "$head" --format names)
-              mapfile -t tasks < <(python3 tools/repo/affected_owners.py --base "$base" --head "$head" --format tasks)
+              plan="$RUNNER_TEMP/ordivon-convergence-plan.json"
+              python3 tools/repo/convergence_plan.py --base "$base" --head "$head" > "$plan"
+              mapfile -t owners < <(
+                python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["verificationOwners"], sep="\n")' "$plan"
+              )
+              mapfile -t tasks < <(
+                python3 -c 'import json,sys; print(*json.load(open(sys.argv[1], encoding="utf-8"))["queueVerifyTasks"], sep="\n")' "$plan"
+              )
             fi
           fi
           printf 'owners=%s\n' "$(IFS=,; echo "${owners[*]-}")" >> "$GITHUB_OUTPUT"

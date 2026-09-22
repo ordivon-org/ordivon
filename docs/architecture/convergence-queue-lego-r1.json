@@ -25,7 +25,8 @@
     "canonical publication remains linear",
     "mechanical green does not imply domain semantic success",
     "absence of declared dependency does not establish semantic independence",
-    "stale candidate qualification cannot publish without replay/requalification"
+    "stale candidate qualification cannot publish without replay/requalification",
+    "queue-provider mechanical verification does not replace full owner or domain semantic acceptance"
   ],
   "nodes": [
     {
@@ -214,7 +215,8 @@
   "r1Implementation": [
     "tools/repo/convergence_plan.py",
     "tools/repo/test_convergence_plan.py",
-    ".github/workflows/ci.yml merge_group compatibility"
+    ".github/workflows/ci.yml merge_group compatibility",
+    "queueVerifyTasks projection with explicit portable-owner overrides"
   ],
   "nonClaims": [
     "remote GitHub merge queue enabled",

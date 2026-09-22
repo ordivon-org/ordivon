@@ -17,6 +17,7 @@ class Owner:
     name: str
     root: str
     task: str
+    queue_task: str
 
 
 def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
@@ -36,19 +37,28 @@ def load_owners(path: Path = MANIFEST_PATH) -> tuple[Owner, ...]:
         name = row.get("name")
         root = row.get("root")
         task = row.get("verify_task")
-        if not all(isinstance(value, str) and value.strip() for value in (name, root, task)):
-            raise ValueError(f"owner row {index} requires non-empty name/root/verify_task")
+        queue_task = row.get("queue_verify_task", task)
+        if not all(isinstance(value, str) and value.strip() for value in (name, root, task, queue_task)):
+            raise ValueError(
+                f"owner row {index} requires non-empty name/root/verify_task and optional queue_verify_task"
+            )
         if root.startswith("/") or not root.endswith("/"):
             raise ValueError(f"owner {name}: root must be repository-relative and end with '/': {root}")
         normalized = PurePosixPath(root).as_posix().rstrip("/") + "/"
         if normalized != root:
             raise ValueError(f"owner {name}: root is not canonical: {root}")
-        owners.append(Owner(name=name, root=root, task=task))
+        owners.append(Owner(name=name, root=root, task=task, queue_task=queue_task))
 
     names = [owner.name for owner in owners]
     roots = [owner.root for owner in owners]
     tasks = [owner.task for owner in owners]
-    for label, values in (("name", names), ("root", roots), ("verify_task", tasks)):
+    queue_tasks = [owner.queue_task for owner in owners]
+    for label, values in (
+        ("name", names),
+        ("root", roots),
+        ("verify_task", tasks),
+        ("queue_verify_task", queue_tasks),
+    ):
         if len(values) != len(set(values)):
             raise ValueError(f"owner manifest contains duplicate {label}")
 
@@ -118,7 +128,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument(
         "--format",
-        choices=("json", "names", "tasks"),
+        choices=("json", "names", "tasks", "queue-tasks"),
         default="json",
     )
     return parser
@@ -144,13 +154,21 @@ def main() -> int:
     elif args.format == "tasks":
         for owner in selected:
             print(owner.task)
+    elif args.format == "queue-tasks":
+        for owner in selected:
+            print(owner.queue_task)
     else:
         print(
             json.dumps(
                 {
                     "changedPaths": list(paths),
                     "owners": [
-                        {"name": owner.name, "root": owner.root, "task": owner.task}
+                        {
+                            "name": owner.name,
+                            "root": owner.root,
+                            "task": owner.task,
+                            "queueTask": owner.queue_task,
+                        }
                         for owner in selected
                     ],
                 },

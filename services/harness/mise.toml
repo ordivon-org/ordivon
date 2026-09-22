@@ -27,3 +27,28 @@ wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
 test -n "$wheel"
 uv run python scripts/check_wheel.py "$wheel"
 """
+
+# GitHub merge-group gate. The exact Runtime target executable realization is
+# machine-bound acceptance and remains in verify; queue keeps the full portable
+# Harness suite and all source-level executable-contract tests.
+[tasks.queue]
+run = """
+set -euo pipefail
+uv sync --locked
+uv lock --check
+uv run python -m compileall -q src tests scripts evals
+uvx ruff==0.15.17 check src tests scripts
+uv run python -W error::ResourceWarning -m pytest -q tests
+uv run python scripts/check_dependencies.py
+uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
+uv run python scripts/check_docs.py
+uv run python scripts/check_evidence.py
+uv run python scripts/demo_deterministic_run.py
+tmp=$(mktemp -d -t ordivon-harness-wheel-XXXXXX)
+trap 'rm -rf "$tmp"' EXIT
+rm -rf build
+uv build --wheel --out-dir "$tmp"
+wheel=$(find "$tmp" -maxdepth 1 -type f -name '*.whl' -print -quit)
+test -n "$wheel"
+uv run python scripts/check_wheel.py "$wheel"
+"""

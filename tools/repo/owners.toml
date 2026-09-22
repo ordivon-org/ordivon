@@ -26,6 +26,7 @@ verify_task = "host:verify"
 name = "harness"
 root = "services/harness/"
 verify_task = "harness:verify"
+queue_verify_task = "harness:queue"
 
 [[owners]]
 name = "gateway"
@@ -56,6 +57,7 @@ verify_task = "network:ci"
 name = "artifact"
 root = "capabilities/artifact/"
 verify_task = "artifact:verify"
+queue_verify_task = "artifact:queue"
 
 [[owners]]
 name = "distribution"

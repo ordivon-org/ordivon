@@ -200,6 +200,7 @@ changedPaths
 directOwners
 verificationOwners
 verifyTasks
+queueVerifyTasks
 scopeIds
 crossCutting
 ownerManifestDigest
@@ -234,6 +235,12 @@ media
 A cross-cutting repository-mechanics change projects to all owners.
 
 Absence of a declared edge is not promoted into a semantic-independence claim.
+
+### Queue-portable verification vs. full owner acceptance
+
+`verifyTasks` retains each owner's full verification contract. `queueVerifyTasks` is the mechanically portable gate executed on GitHub synthetic trees; it defaults to the full owner task and may narrow only environment-bound checks that cannot run on the queue provider. A queue PASS therefore proves the exact synthetic tree passed its admitted mechanical gate; it does not replace Domain/Study semantic acceptance or machine-bound owner acceptance.
+
+R1.2 keeps two explicit provider-portability overrides, each narrower than the full owner contract. Next now uses its full `next:verify` task in the queue because the Browser Security cases are source-bound through the Harness locked environment. `harness:queue` omits only the physical realization probe for the Runtime target's exact `/bin/bash`, `/usr/bin/awk`, and `/usr/bin/rg` paths; source-level executable-contract tests remain. `artifact:queue` retains Artifact's portable unit/semantic suite and Ruff gate while excluding only node-local binding assertions that require exact workstation FreeCAD/OCCT/warcio/skopeo/sndfile or pinned local Python/Node materialization. All omitted checks remain in the corresponding full owner verify tasks.
 
 ## 6. GitHub queue compatibility
 

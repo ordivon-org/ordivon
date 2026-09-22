@@ -22,6 +22,9 @@ class AffectedOwnersTests(unittest.TestCase):
     def tasks(self, *paths: str) -> list[str]:
         return [owner.task for owner in MODULE.owners_for_paths(paths)]
 
+    def queue_tasks(self, *paths: str) -> list[str]:
+        return [owner.queue_task for owner in MODULE.owners_for_paths(paths)]
+
     def test_owner_local_change_selects_only_that_owner(self) -> None:
         self.assertEqual(
             self.names("platform/skills/src/ordivon_skills/catalog.py"),
@@ -36,6 +39,30 @@ class AffectedOwnersTests(unittest.TestCase):
                 "services/host/src/ordivon_host/api.py",
             ),
             ["runtime", "host", "game"],
+        )
+
+    def test_next_queue_verification_defaults_to_full_verify(self) -> None:
+        self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
+        self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
+
+    def test_harness_has_explicit_queue_portable_verification(self) -> None:
+        self.assertEqual(self.tasks("services/harness/README.md"), ["harness:verify"])
+        self.assertEqual(
+            self.queue_tasks("services/harness/README.md"), ["harness:queue"]
+        )
+
+    def test_gateway_queue_verification_defaults_to_full_verify(self) -> None:
+        self.assertEqual(
+            self.queue_tasks("services/gateway/src/ordivon_gateway/service.py"),
+            ["gateway:verify"],
+        )
+
+    def test_artifact_has_explicit_queue_portable_verification(self) -> None:
+        self.assertEqual(
+            self.tasks("capabilities/artifact/README.md"), ["artifact:verify"]
+        )
+        self.assertEqual(
+            self.queue_tasks("capabilities/artifact/README.md"), ["artifact:queue"]
         )
 
     def test_gateway_is_a_first_class_owner(self) -> None:
@@ -115,9 +142,11 @@ class AffectedOwnersTests(unittest.TestCase):
         names = [owner.name for owner in MODULE.OWNERS]
         roots = [owner.root for owner in MODULE.OWNERS]
         tasks = [owner.task for owner in MODULE.OWNERS]
+        queue_tasks = [owner.queue_task for owner in MODULE.OWNERS]
         self.assertEqual(len(names), len(set(names)))
         self.assertEqual(len(roots), len(set(roots)))
         self.assertEqual(len(tasks), len(set(tasks)))
+        self.assertEqual(len(queue_tasks), len(set(queue_tasks)))
 
     def test_manifest_rejects_duplicate_names(self) -> None:
         content = """schema_version = 1
