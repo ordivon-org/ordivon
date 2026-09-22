@@ -433,8 +433,23 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
             receipt["runtimeDependencyClosureDigest"],
             "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
         )
+        self.assertEqual(
+            current["implementationPaths"],
+            [
+                "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+                "src/ordivon_harness/plugin_gateway_effect.py",
+            ],
+        )
+        self.assertEqual(
+            current["runtimeDependencyClosureDigest"],
+            receipt["runtimeDependencyClosureDigest"],
+        )
         current_ok, current_invalidating = check_evidence._verified_revision_is_current(
-            str(current["implementationRevision"])
+            str(current["implementationRevision"]),
+            tuple(current["implementationPaths"]),
+            runtime_dependency_closure_digest=str(
+                current["runtimeDependencyClosureDigest"]
+            ),
         )
         self.assertTrue(current_ok, current_invalidating)
         self.assertEqual(current_invalidating, [])

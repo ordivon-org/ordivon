@@ -730,7 +730,12 @@
       "file": "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json",
       "status": "verified",
       "implementationRevision": "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
-      "scope": "Current Harness H2b Gateway effect control acceptance: known owner Jobs receive one cooperative execution.cancel on Harness control stop; non-terminal acknowledgement is durably cancel-requested and remains cancel_unknown until later owner reconciliation proves terminal state."
+      "scope": "Current Harness H2b Gateway effect control acceptance: known owner Jobs receive one cooperative execution.cancel on Harness control stop; non-terminal acknowledgement is durably cancel-requested and remains cancel_unknown until later owner reconciliation proves terminal state.",
+      "implementationPaths": [
+        "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+        "src/ordivon_harness/plugin_gateway_effect.py"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5"
     }
   ]
 }
