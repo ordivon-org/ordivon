@@ -358,3 +358,6 @@ These checks prove the R1 projection and queue-compatible carrier only. They do 
 - Uber SubmitQueue — predictive speculative execution for large monorepos, 2025.
 
 External products remain replaceable. The architectural contracts above are the retained kernel.
+
+Remote cutover is accepted only after the repository ruleset produces a real
+merge_group synthetic revision and root-verification passes on that exact revision.
