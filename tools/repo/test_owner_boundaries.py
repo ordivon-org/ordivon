@@ -54,20 +54,6 @@ class OwnerBoundaryTests(unittest.TestCase):
             "meta/next/domains/game/game-autonomous-interest-protocol-r7.json"
         ))
 
-    def test_cross_domain_verifier_contract_observation_is_allowed(self) -> None:
-        finding = self.finding(
-            "meta/next/scripts/web_security_gate_r3.py",
-            "REQUEST_CONTRACT = \"platform/security/contracts/agent-request-verifier-v1/\"",
-        )
-        self.assertTrue(MODULE._allowed(finding, SEAMS))
-
-    def test_cross_domain_verifier_permission_is_source_scoped(self) -> None:
-        finding = self.finding(
-            "meta/next/scripts/interface_contract_r2.py",
-            "REQUEST_CONTRACT = \"platform/security/contracts/agent-request-verifier-v1/\"",
-        )
-        self.assertFalse(MODULE._allowed(finding, SEAMS))
-
     def test_real_web_source_is_scanned(self) -> None:
         self.assertTrue(MODULE.is_active_path("apps/web/src/security-agent-verifier.ts"))
 

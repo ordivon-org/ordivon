@@ -34,7 +34,6 @@ class Seam:
     allowed_fragment: str
     kind: str
     contract_ref: str
-    convergence: str
 
 
 @dataclass(frozen=True)
@@ -68,10 +67,7 @@ def load_policy(path: Path = POLICY) -> tuple[Seam, ...]:
             raise ValueError(f"seam {index} has missing/empty fields")
         if values["from_owner"] == values["to_owner"]:
             raise ValueError(f"seam {index} cannot point to the same owner")
-        convergence = row.get("convergence", "interaction")
-        if convergence not in {"interaction", "observe"}:
-            raise ValueError(f"seam {index} has invalid convergence mode: {convergence!r}")
-        result.append(Seam(**values, convergence=convergence))
+        result.append(Seam(**values))
     return tuple(result)
 
 
