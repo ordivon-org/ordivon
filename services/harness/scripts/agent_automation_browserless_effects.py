@@ -115,7 +115,7 @@ class BrowserlessEffectAdapter:
             timeout_seconds=max(1.0, cfg.timeout_ms / 1000),
         )
         controller = UserBrowserGatewayController(
-            GatewayExecutionPort(client, max_observations=20, wait_ms=30_000),
+            GatewayExecutionPort(client, max_observations=4096, poll_interval_seconds=0.25),
             UserBrowserGatewayConfig(
                 workspace_id=cfg.workspace_id,
                 powershell_path=cfg.powershell_path,

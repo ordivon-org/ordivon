@@ -2230,3 +2230,9 @@ def test_temporal_admission_projects_release_src_into_subprocess_pythonpath():
     assert 'source_python = str(SOURCE_ROOT / "src")' in source
     assert 'temporal_env["PYTHONPATH"] = source_python' in source
     assert 'env=temporal_env' in source
+
+
+def test_user_browser_effect_adapter_uses_client_side_gateway_polling_contract():
+    source = (ROOT / "scripts" / "agent_automation_browserless_effects.py").read_text()
+    assert 'wait_ms=' not in source
+    assert 'poll_interval_seconds=0.25' in source
