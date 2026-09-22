@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.verified-reintegration-external-methods-r4-acceptance",
+  "effectiveDate": "2026-09-22",
+  "truthRole": "tool-and-method-selection-evidence-not-domain-truth",
+  "baseRevision": "76614e0b81cd9fd340c858ed448ee01e4c3de7f5",
+  "pactiPilot": {
+    "authorityId": "pacti-0.3.1",
+    "python": "3.14.7",
+    "packageVersion": "0.3.1",
+    "installationMode": "isolated-uv-with-no-lockfile-admission",
+    "importStanding": "PASS",
+    "exposedOperations": [
+      "compose",
+      "quotient",
+      "merge",
+      "refines"
+    ],
+    "polyhedralPilot": {
+      "composeStanding": "PASS",
+      "quotientStanding": "PASS",
+      "reconstructedRefinesTop": true,
+      "strongerRefinesWeaker": true,
+      "weakerRefinesStronger": false,
+      "quotient": {
+        "input_vars": [
+          "o"
+        ],
+        "output_vars": [
+          "o_p"
+        ],
+        "assumptions": [
+          "|o| <= 2"
+        ],
+        "guarantees": [
+          "-o + o_p = 1"
+        ]
+      }
+    },
+    "admissionStanding": "OPTIONAL_PROVIDER_CANDIDATE",
+    "nonClaims": [
+      "Pacti is not admitted as a packages/composition runtime dependency by this evidence.",
+      "Pacti does not give formal semantics to existing natural-language R1 gate assumptions or guarantees.",
+      "This pilot does not establish temporal-protocol verification coverage."
+    ]
+  },
+  "decisions": [
+    {
+      "authorityId": "pacti-0.3.1",
+      "standing": "ADOPT_OPTIONAL_PROVIDER",
+      "scope": "Formalizable assume-guarantee algebra: composition, quotient, merge and refinement.",
+      "boundary": "Invoke only when a seam has an explicit Pacti-representable contract. Keep packages/composition independent of Pacti until a real recurring consumer justifies dependency admission."
+    },
+    {
+      "authorityId": "ocra-1.1.2",
+      "standing": "ADAPT_REFERENCE_DEFER_BINARY",
+      "scope": "Temporal-contract refinement, LTL proof obligations and asynchronous compositional verification.",
+      "boundary": "Use OCRA semantics/research as a reference for temporal seams. Do not admit the binary until an actual temporal seam requires it and packaging/licensing/toolchain admission is independently verified."
+    },
+    {
+      "authorityId": "omg-sacm-2.3",
+      "standing": "ADOPT_ASSURANCE_INTERCHANGE_TARGET",
+      "scope": "Claims/arguments/evidence assurance-case projection and interchange.",
+      "boundary": "Do not replace R1 gate truth with SACM. Add a projection only when an assurance consumer needs one."
+    },
+    {
+      "authorityId": "gsn-3",
+      "standing": "ADOPT_HUMAN_ARGUMENT_PROJECTION",
+      "scope": "Human-readable assurance argument visualization, context, assumptions and challenges/dialectics.",
+      "boundary": "GSN is a presentation/argument structure, not proof or domain acceptance authority."
+    },
+    {
+      "authorityId": "w3c-prov-o-2013",
+      "standing": "KEEP_EXISTING_OWNER",
+      "scope": "Semantic provenance of claims/evidence/activities/agents.",
+      "boundary": "Do not create an Ordivon provenance ontology."
+    },
+    {
+      "authorityId": "openlineage-spec",
+      "standing": "KEEP_EXISTING_OWNER",
+      "scope": "Operational Job/Run/Dataset lineage and exact runtime dataflow.",
+      "boundary": "Do not use OpenLineage as a semantic assurance argument graph."
+    },
+    {
+      "authorityId": "slsa-1.2",
+      "standing": "KEEP_EXISTING_OWNER",
+      "scope": "Software supply-chain provenance/verification claims.",
+      "boundary": "Composition consumes verified attestations; it must not synthesize SLSA provenance."
+    },
+    {
+      "authorityId": "in-toto-1.0",
+      "standing": "KEEP_EXISTING_OWNER",
+      "scope": "Attestation statement/envelope interchange.",
+      "boundary": "Do not replace R1 gate results with a private attestation format."
+    }
+  ],
+  "coreDecision": {
+    "packagesCompositionDependencyChange": false,
+    "newUniversalVerifier": false,
+    "newGlobalRegistry": false,
+    "newPrivateProvenanceOntology": false,
+    "rationale": "The mature external methods are admitted as scoped owners/providers/projections around the thin composition waist, not copied into it."
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "authorityId": "ocra-1.1.2",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "FBK's official OCRA page advertises version 1.1.2; 2026 FBK work reports new asynchronous LTL composition methods integrated into the OCRA contract-refinement suite. This observation does not admit the OCRA binary into Ordivon.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://es.fbk.eu/index.php/tools/ocra/",
+  "schemaVersion": 1,
+  "versionObserved": "1.1.2"
+}

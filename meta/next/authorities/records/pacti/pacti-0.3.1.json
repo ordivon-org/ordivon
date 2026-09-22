@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "Pacti",
+      "Pacti 0.3.1"
+    ],
+    "domains": [
+      "architecture",
+      "engineering",
+      "formal-methods"
+    ],
+    "topics": [
+      "assume-guarantee",
+      "contract-algebra",
+      "composition",
+      "quotient",
+      "refinement",
+      "smt"
+    ]
+  },
+  "id": "pacti-0.3.1",
+  "identity": {
+    "authorityKind": "open-source-release",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "pacti-org",
+      "name": "Pacti project"
+    },
+    "officialSource": "https://pypi.org/project/pacti/0.3.1/",
+    "publicationDate": "2026-07-22",
+    "title": "Pacti 0.3.1",
+    "versionLabel": "0.3.1"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "Pacti 0.3.1 official PyPI release checked 2026-09-22",
+      "Local isolated CPython 3.14.7 composition/quotient/refinement pilot"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

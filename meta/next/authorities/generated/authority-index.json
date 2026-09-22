@@ -1226,6 +1226,39 @@
     },
     {
       "aliases": [
+        "Goal Structuring Notation",
+        "Goal Structuring Notation Community Standard Version 3",
+        "GSN",
+        "GSN v3"
+      ],
+      "authorityKind": "method-standard",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "assurance",
+        "safety",
+        "security"
+      ],
+      "id": "gsn-3",
+      "identityMode": "versioned",
+      "issuer": "SCSC Assurance Case Working Group",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:271fe9482a2e15fa8c2dce7bfe801c24e07a9e0303fa6078711bafa11abf5f19",
+      "recordDigest": "sha256:5053b74fe0310d907e213f1cfc59919e0e6a48c3fa5df258649b2d7e55fc729c",
+      "title": "Goal Structuring Notation Community Standard Version 3",
+      "topics": [
+        "arguments",
+        "assumptions",
+        "assurance-case",
+        "claims",
+        "context",
+        "dialectics",
+        "evidence"
+      ],
+      "versionLabel": "3"
+    },
+    {
+      "aliases": [
         "Global Privacy Protocol",
         "GPP",
         "IAB Tech Lab Privacy Standards"
@@ -3048,6 +3081,35 @@
     },
     {
       "aliases": [
+        "OCRA",
+        "OCRA 1.1.2",
+        "Othello Contracts Refinement Analysis"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "ocra-1.1.2",
+      "identityMode": "versioned",
+      "issuer": "Fondazione Bruno Kessler",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:3cf4aad791b5cc8f9c9b1c91a00c2be7a1d62f46291a0328ee9960c57dcaab9e",
+      "recordDigest": "sha256:37ffb56833386bc9e0d21ae4e72e0444419f92dd0d14a14fde806e794ba9c412",
+      "title": "OCRA 1.1.2 — Othello Contracts Refinement Analysis",
+      "topics": [
+        "compositional-verification",
+        "contract-refinement",
+        "ltl",
+        "model-checking",
+        "temporal-contracts"
+      ],
+      "versionLabel": "1.1.2"
+    },
+    {
+      "aliases": [
         "GeoPackage",
         "GeoPackage 1.4.0",
         "GPKG"
@@ -3178,6 +3240,37 @@
         "traceability"
       ],
       "versionLabel": "1.2"
+    },
+    {
+      "aliases": [
+        "SACM",
+        "SACM 2.3",
+        "Structured Assurance Case Metamodel"
+      ],
+      "authorityKind": "formal-specification",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "assurance",
+        "safety",
+        "security"
+      ],
+      "id": "omg-sacm-2.3",
+      "identityMode": "versioned",
+      "issuer": "Object Management Group",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:9a10916566cd46772462b30d9b20f42333b19fd6935e41e5679d81d288532e90",
+      "recordDigest": "sha256:f972ba293e9e247a2a93017bb68c10d0ee061f2be870df3a4b9116488c1601d9",
+      "title": "Structured Assurance Case Metamodel (SACM) 2.3",
+      "topics": [
+        "argumentation",
+        "arguments",
+        "assurance-case",
+        "claims",
+        "evidence",
+        "interchange"
+      ],
+      "versionLabel": "2.3"
     },
     {
       "aliases": [
@@ -3410,6 +3503,35 @@
         "web-security"
       ],
       "versionLabel": "5.0.0"
+    },
+    {
+      "aliases": [
+        "Pacti",
+        "Pacti 0.3.1"
+      ],
+      "authorityKind": "open-source-release",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "pacti-0.3.1",
+      "identityMode": "versioned",
+      "issuer": "Pacti project",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:0f8347e0acc10694af1fb46682e29c89aaa232ee585840ed5c1d326deb195af9",
+      "recordDigest": "sha256:89c2bfd1291b2abfdd3fe4dd3803d008a3d774fa72a991a75784fb17bb31e7e2",
+      "title": "Pacti 0.3.1",
+      "topics": [
+        "assume-guarantee",
+        "composition",
+        "contract-algebra",
+        "quotient",
+        "refinement",
+        "smt"
+      ],
+      "versionLabel": "0.3.1"
     },
     {
       "aliases": [
@@ -4679,7 +4801,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 168,
-  "recordsDigest": "sha256:24b433258a8021f66699f6ca3ad77f53b966ee71b719e3ef2d4227d0596dbc50",
+  "recordCount": 172,
+  "recordsDigest": "sha256:288e40ba9e47ec17668bdabcd1759f87474e3bc4ef25dd10e97076fa36d8c091",
   "schemaVersion": 1
 }

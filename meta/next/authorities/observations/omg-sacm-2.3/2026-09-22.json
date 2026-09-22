@@ -1,0 +1,11 @@
+{
+  "authorityId": "omg-sacm-2.3",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "current",
+  "note": "OMG's specification catalog lists SACM 2.3 as formal (October 2023); the current issue tracker continues to reference the 2.3 formal document and machine-readable profile.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://www.omg.org/spec/SACM/2.3",
+  "schemaVersion": 1,
+  "versionObserved": "2.3"
+}

@@ -1,0 +1,55 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "SACM",
+      "SACM 2.3",
+      "Structured Assurance Case Metamodel"
+    ],
+    "domains": [
+      "architecture",
+      "assurance",
+      "safety",
+      "security"
+    ],
+    "topics": [
+      "assurance-case",
+      "claims",
+      "arguments",
+      "evidence",
+      "argumentation",
+      "interchange"
+    ]
+  },
+  "id": "omg-sacm-2.3",
+  "identity": {
+    "authorityKind": "formal-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "omg",
+      "name": "Object Management Group"
+    },
+    "officialSource": "https://www.omg.org/spec/SACM/2.3",
+    "publicationDate": null,
+    "title": "Structured Assurance Case Metamodel (SACM) 2.3",
+    "versionLabel": "2.3"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "OMG specification catalog lists SACM 2.3 as formal, October 2023",
+      "OMG SACM issue tracker/formal document references checked 2026-09-22"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}
