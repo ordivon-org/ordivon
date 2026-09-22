@@ -1,0 +1,445 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.windows-authority-factorization-lego-r1",
+  "truthRole": "execution-plan-not-runtime-authority",
+  "objective": "Factor Windows execution identity and payload privilege into orthogonal LEGO dimensions, preserve backward compatibility, prove active_user+elevated as a fail-closed provider capability, then use it to unblock Gateway Windows public cutover.",
+  "targetModel": {
+    "brokerAuthority": "provider-internal privileged transport, not caller-facing payload authority",
+    "payloadIdentity": [
+      "service",
+      "active_user"
+    ],
+    "payloadPrivilege": [
+      "limited",
+      "elevated"
+    ],
+    "canonicalContext": "WindowsExecutionContextRequest(identity, privilege)",
+    "legacyMapping": {
+      "limited": {
+        "identity": "service",
+        "privilege": "limited"
+      },
+      "elevated": {
+        "identity": "service",
+        "privilege": "elevated"
+      },
+      "active_user": {
+        "identity": "active_user",
+        "privilege": "limited"
+      }
+    }
+  },
+  "invariants": [
+    "Gateway does not gain Runtime execution truth.",
+    "Privileged Broker remains the only LocalSystem token-acquisition/launch seam.",
+    "active_user+elevated must bind the same admission-frozen user SID and session as active_user.",
+    "An elevated linked token must prove High-or-higher integrity and enabled Administrators membership.",
+    "If the interactive user has no suitable linked elevated token, admission or dispatch fails closed.",
+    "No UAC prompt is synthesized and no credential/password collection is added.",
+    "Legacy windowsAuthority values preserve exact historical semantics and replay identity.",
+    "Immutable-input Windows admission remains limited-only until separately proven.",
+    "No bearer bytes or user token handles enter durable Job state."
+  ],
+  "waves": [
+    {
+      "id": "WA0",
+      "name": "ContractFreeze",
+      "effect": "E0",
+      "nodes": [
+        "WA01",
+        "WA02",
+        "WA03",
+        "WA04"
+      ]
+    },
+    {
+      "id": "WA1",
+      "name": "CanonicalModel",
+      "effect": "E1",
+      "nodes": [
+        "WA05",
+        "WA06",
+        "WA07",
+        "WA08"
+      ]
+    },
+    {
+      "id": "WA2",
+      "name": "ProviderTokenAcquisition",
+      "effect": "E2",
+      "nodes": [
+        "WA09",
+        "WA10",
+        "WA11",
+        "WA12"
+      ]
+    },
+    {
+      "id": "WA3",
+      "name": "EvidenceAndAdmission",
+      "effect": "E2",
+      "nodes": [
+        "WA13",
+        "WA14",
+        "WA15",
+        "WA16"
+      ]
+    },
+    {
+      "id": "WA4",
+      "name": "CompatibilityAndSurface",
+      "effect": "E1",
+      "nodes": [
+        "WA17",
+        "WA18",
+        "WA19",
+        "WA20"
+      ]
+    },
+    {
+      "id": "WA5",
+      "name": "NativeAcceptance",
+      "effect": "E3",
+      "nodes": [
+        "WA21",
+        "WA22",
+        "WA23",
+        "WA24"
+      ]
+    },
+    {
+      "id": "WA6",
+      "name": "GatewayUnblock",
+      "effect": "E4",
+      "nodes": [
+        "WA25",
+        "WA26",
+        "WA27",
+        "WA28"
+      ]
+    },
+    {
+      "id": "WA7",
+      "name": "CutoverContinuation",
+      "effect": "E5+",
+      "nodes": [
+        "WA29",
+        "WA30",
+        "WA31",
+        "WA32"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "WA01",
+      "owner": "runtime",
+      "task": "Freeze current WindowsAuthority legacy semantics and live advertised capabilities.",
+      "depends": [],
+      "accept": "limited/elevated/active_user mapping captured with tests and evidence."
+    },
+    {
+      "id": "WA02",
+      "owner": "runtime",
+      "task": "Freeze launcher/broker current token evidence fields and provider digests.",
+      "depends": [],
+      "accept": "current limited/elevated/active_user evidence contract has golden fixtures."
+    },
+    {
+      "id": "WA03",
+      "owner": "runtime",
+      "task": "Freeze compatibility rule: old requests and exact replays must not change identity.",
+      "depends": [],
+      "accept": "operation/request digests remain stable for legacy request shapes."
+    },
+    {
+      "id": "WA04",
+      "owner": "runtime",
+      "task": "Create authority-factorization ADR with brokerAuthority vs payloadIdentity vs payloadPrivilege terminology.",
+      "depends": [
+        "WA01",
+        "WA02"
+      ],
+      "accept": "no caller-visible field is ambiguously called authority if it describes identity."
+    },
+    {
+      "id": "WA05",
+      "owner": "runtime-core",
+      "task": "Add WindowsExecutionIdentity enum: service|active_user.",
+      "depends": [
+        "WA04"
+      ],
+      "accept": "serde/schema/unit tests pass."
+    },
+    {
+      "id": "WA06",
+      "owner": "runtime-core",
+      "task": "Add WindowsPayloadPrivilege enum: limited|elevated.",
+      "depends": [
+        "WA04"
+      ],
+      "accept": "serde/schema/unit tests pass."
+    },
+    {
+      "id": "WA07",
+      "owner": "runtime-core",
+      "task": "Add canonical WindowsExecutionContextRequest {identity, privilege}.",
+      "depends": [
+        "WA05",
+        "WA06"
+      ],
+      "accept": "canonicalization is deterministic and deny_unknown_fields remains enforced."
+    },
+    {
+      "id": "WA08",
+      "owner": "runtime-core",
+      "task": "Implement legacy WindowsAuthority -> canonical context compiler.",
+      "depends": [
+        "WA07"
+      ],
+      "accept": "limited->service+limited; elevated->service+elevated; active_user->active_user+limited, with compatibility tests."
+    },
+    {
+      "id": "WA09",
+      "owner": "windows-launcher",
+      "task": "Refactor token acquisition API to accept payload identity and payload privilege separately.",
+      "depends": [
+        "WA07"
+      ],
+      "accept": "existing three contexts still produce identical effective token evidence."
+    },
+    {
+      "id": "WA10",
+      "owner": "windows-launcher",
+      "task": "Implement active_user+elevated token discovery using active session token plus Windows linked-token semantics.",
+      "depends": [
+        "WA09"
+      ],
+      "accept": "same SID/session bound; linked token handle is closed; no password/UAC prompt path."
+    },
+    {
+      "id": "WA11",
+      "owner": "windows-launcher",
+      "task": "Validate elevated active-user token: primary token, expected SID/session, elevated, High+ integrity, Administrators enabled.",
+      "depends": [
+        "WA10"
+      ],
+      "accept": "all mismatches fail closed before target process spawn."
+    },
+    {
+      "id": "WA12",
+      "owner": "windows-broker",
+      "task": "Extend broker argument validator for the exact new launcher context without broadening arbitrary spawn surface.",
+      "depends": [
+        "WA09",
+        "WA10"
+      ],
+      "accept": "only Runtime-bound bundle/job/attempt launch can request composed active-user elevated context."
+    },
+    {
+      "id": "WA13",
+      "owner": "runtime-core",
+      "task": "Replace token-class-only validation with identity+privilege evidence validation.",
+      "depends": [
+        "WA09",
+        "WA11"
+      ],
+      "accept": "start evidence independently proves identity and privilege dimensions."
+    },
+    {
+      "id": "WA14",
+      "owner": "runtime-core",
+      "task": "Freeze admission SID/session and privilege intent into execution plan identity.",
+      "depends": [
+        "WA07",
+        "WA13"
+      ],
+      "accept": "session/user change after admission fails closed."
+    },
+    {
+      "id": "WA15",
+      "owner": "runtime-core",
+      "task": "Bind privileged broker digest for all contexts that require broker transport.",
+      "depends": [
+        "WA12",
+        "WA14"
+      ],
+      "accept": "provider drift invalidates dispatch before effect."
+    },
+    {
+      "id": "WA16",
+      "owner": "runtime-core",
+      "task": "Keep immutable-input Windows authority contract limited-only.",
+      "depends": [
+        "WA07"
+      ],
+      "accept": "active_user/elevated/composed contexts remain rejected for immutable-input entrypoints until separately graduated."
+    },
+    {
+      "id": "WA17",
+      "owner": "runtime-mcp",
+      "task": "Add optional structured windowsContext to ordinary workspace.exec/plan contracts while retaining windowsAuthority legacy field.",
+      "depends": [
+        "WA08",
+        "WA14"
+      ],
+      "accept": "old clients continue to work; new clients can express active_user+elevated."
+    },
+    {
+      "id": "WA18",
+      "owner": "runtime-mcp",
+      "task": "Define conflict rule when legacy windowsAuthority and windowsContext are both supplied.",
+      "depends": [
+        "WA17"
+      ],
+      "accept": "equivalent pair canonicalized; conflicting pair rejected deterministically."
+    },
+    {
+      "id": "WA19",
+      "owner": "runtime-mcp",
+      "task": "Extend runtime.describe from flat authorities to structured supported Windows contexts, retaining legacy projection during migration.",
+      "depends": [
+        "WA17"
+      ],
+      "accept": "availability advertised only after provider probe proves each context."
+    },
+    {
+      "id": "WA20",
+      "owner": "gateway",
+      "task": "Keep Gateway context strings provider-defined; verify no Gateway enum needs new semantic authority.",
+      "depends": [
+        "WA17",
+        "WA19"
+      ],
+      "accept": "Gateway forwards new provider context without owning its semantics."
+    },
+    {
+      "id": "WA21",
+      "owner": "runtime-tests",
+      "task": "Unit/property tests for all four identity×privilege combinations and invalid combinations.",
+      "depends": [
+        "WA11",
+        "WA13",
+        "WA18"
+      ],
+      "accept": "deterministic PASS with fail-closed negatives."
+    },
+    {
+      "id": "WA22",
+      "owner": "windows-native-acceptance",
+      "task": "Real-machine context probe for active_user+elevated, no target effect.",
+      "depends": [
+        "WA21"
+      ],
+      "accept": "same interactive SID/session, elevated=true, High+ integrity, Administrators enabled."
+    },
+    {
+      "id": "WA23",
+      "owner": "windows-native-acceptance",
+      "task": "Harmless process smoke under active_user+elevated and compare with limited/elevated/active_user.",
+      "depends": [
+        "WA22"
+      ],
+      "accept": "identity/session/integrity evidence matches requested context; Job lifecycle succeeds."
+    },
+    {
+      "id": "WA24",
+      "owner": "windows-native-acceptance",
+      "task": "Negative acceptance: no-linked-token/session-change/provider-drift/cancel/timeout/descendant cleanup.",
+      "depends": [
+        "WA23"
+      ],
+      "accept": "all unsafe states fail closed; Job Object cleanup remains intact."
+    },
+    {
+      "id": "WA25",
+      "owner": "gateway-cutover",
+      "task": "Use composed context to stage latest immutable Gateway release from WSL source into protected Windows candidate root.",
+      "depends": [
+        "WA23",
+        "WA24"
+      ],
+      "accept": "release receipt binds exact source SHA and ProgramData artifact digests."
+    },
+    {
+      "id": "WA26",
+      "owner": "gateway-cutover",
+      "task": "Use composed context for repository file-to-file Runtime bearer materialization without emitting secret bytes.",
+      "depends": [
+        "WA23",
+        "WA24"
+      ],
+      "accept": "credential receipts contain destination/length/digest/DACL only; candidate stopped during copy."
+    },
+    {
+      "id": "WA27",
+      "owner": "gateway-cutover",
+      "task": "Rebind/protect/start Windows Gateway candidate on latest release and re-run GC3-05..GC3-10.",
+      "depends": [
+        "WA25",
+        "WA26"
+      ],
+      "accept": "Windows/Linux execution + artifacts + Host + 16-tool parity all PASS."
+    },
+    {
+      "id": "WA28",
+      "owner": "gateway-cutover",
+      "task": "Retire superseded manual H1 classification and update Host continuity/current-state artifacts.",
+      "depends": [
+        "WA27"
+      ],
+      "accept": "no current planning artifact claims inherent HUMAN_REQUIRED for this effect."
+    },
+    {
+      "id": "WA29",
+      "owner": "gateway-cutover",
+      "task": "GC3-11 Windows northbound Cloudflare Access binding and isolated canary ingress.",
+      "depends": [
+        "WA27"
+      ],
+      "accept": "authenticated canary reaches Windows Gateway; production unchanged."
+    },
+    {
+      "id": "WA30",
+      "owner": "gateway-cutover",
+      "task": "GC3-13/14 semantic differential and owner-fault matrix.",
+      "depends": [
+        "WA29"
+      ],
+      "accept": "WSL and Windows carriers semantically equivalent; owner failures are scoped."
+    },
+    {
+      "id": "WA31",
+      "owner": "gateway-cutover",
+      "task": "GC3-15..17 WSL-off, WSL-return-without-Gateway-restart, and cold-boot acceptance.",
+      "depends": [
+        "WA30"
+      ],
+      "accept": "Gateway+Windows execution survive WSL absence; WSL capabilities recover independently."
+    },
+    {
+      "id": "WA32",
+      "owner": "gateway-cutover",
+      "task": "GC3-18..24 reviewed public cutover, marker proof, rollback drill, WSL public ingress retirement, closure.",
+      "depends": [
+        "WA31"
+      ],
+      "accept": "public marker lands only on Windows carrier; rollback proven; old ingress retired only after proof."
+    }
+  ],
+  "currentFrontier": [
+    "WA01",
+    "WA02",
+    "WA03",
+    "WA04"
+  ],
+  "doNotBuild": [
+    "a second Windows execution engine",
+    "a Gateway-owned privilege model",
+    "a new credential store",
+    "a password/UAC-prompt automation path",
+    "global ACL relaxation",
+    "a permanent active_user_elevated enum if structured identity+privilege can represent it",
+    "duplicate Job/Attempt/effect lifecycle outside Runtime"
+  ]
+}

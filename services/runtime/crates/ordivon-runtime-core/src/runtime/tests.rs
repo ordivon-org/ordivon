@@ -1363,6 +1363,63 @@ fn oversized_exec_string_is_rejected_before_admission() {
 }
 
 #[test]
+fn windows_authority_factorization_preserves_exact_legacy_mapping() {
+    use super::{
+        WindowsAuthority, WindowsExecutionContextRequest, WindowsExecutionIdentity,
+        WindowsPayloadPrivilege,
+    };
+    let cases = [
+        (
+            WindowsAuthority::Limited,
+            WindowsExecutionContextRequest::new(
+                WindowsExecutionIdentity::Service,
+                WindowsPayloadPrivilege::Limited,
+            ),
+        ),
+        (
+            WindowsAuthority::Elevated,
+            WindowsExecutionContextRequest::new(
+                WindowsExecutionIdentity::Service,
+                WindowsPayloadPrivilege::Elevated,
+            ),
+        ),
+        (
+            WindowsAuthority::ActiveUser,
+            WindowsExecutionContextRequest::new(
+                WindowsExecutionIdentity::ActiveUser,
+                WindowsPayloadPrivilege::Limited,
+            ),
+        ),
+    ];
+    for (legacy, canonical) in cases {
+        assert_eq!(legacy.canonical_context(), canonical);
+        assert_eq!(canonical.legacy_authority(), Some(legacy));
+    }
+    let composed = WindowsExecutionContextRequest::new(
+        WindowsExecutionIdentity::ActiveUser,
+        WindowsPayloadPrivilege::Elevated,
+    );
+    assert_eq!(composed.legacy_authority(), None);
+}
+
+#[test]
+fn windows_execution_context_request_has_stable_orthogonal_wire_shape() {
+    let context = super::WindowsExecutionContextRequest::new(
+        super::WindowsExecutionIdentity::ActiveUser,
+        super::WindowsPayloadPrivilege::Elevated,
+    );
+    let value = serde_json::to_value(context).unwrap();
+    assert_eq!(value["identity"], "active_user");
+    assert_eq!(value["privilege"], "elevated");
+    assert!(
+        serde_json::from_value::<super::WindowsExecutionContextRequest>(
+            serde_json::json!({"identity":"active_user","privilege":"elevated","unexpected":true})
+        )
+        .is_err()
+    );
+}
+
+#[test]
 fn windows_execution_context_is_durable_plan_evidence_not_request_identity_input() {
     let context = super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
