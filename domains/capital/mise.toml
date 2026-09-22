@@ -9,5 +9,14 @@ set -euo pipefail
 uv lock --check
 uv sync --locked --group test
 uv run --group test ruff check .
-uv run --group test python -m pytest
+uv run --group test python -m pytest -m "not provider_qualification"
+"""
+
+[tasks."verify:provider"]
+description = "Run node-local external-provider and credential-bound qualification tests"
+run = """
+set -euo pipefail
+uv lock --check
+uv sync --locked --group test
+uv run --group test python -m pytest -m provider_qualification
 """

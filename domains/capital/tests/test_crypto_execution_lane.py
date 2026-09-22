@@ -3,6 +3,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "tools/nautilus_rc4/config/crypto_execution_lane.json"
 
@@ -22,6 +24,7 @@ class CryptoExecutionLaneTests(unittest.TestCase):
         self.assertEqual(cfg["networkTransport"]["providerSelectionOwner"], "network-v2-sing-box-provider-auto")
         self.assertFalse(cfg["networkTransport"]["directFallback"])
 
+    @pytest.mark.provider_qualification
     def test_nautilus_candidate_public_data_configs_construct_without_credentials(self):
         out = subprocess.check_output([str(ROOT / "tools/nautilus_rc4/check-crypto-execution-lane")], text=True)
         result = json.loads(out)

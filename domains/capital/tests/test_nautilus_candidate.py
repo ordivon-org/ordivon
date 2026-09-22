@@ -3,6 +3,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "tools/nautilus_rc4/config/nautilus_candidate.json"
 
@@ -16,6 +18,7 @@ class NautilusCandidateBoundaryTests(unittest.TestCase):
         self.assertFalse(cfg["externalFinancialWritesAllowed"])
         self.assertFalse(cfg["productionLiveAdmitted"])
 
+    @pytest.mark.provider_qualification
     def test_pinned_candidate_environment_is_available(self):
         out = subprocess.check_output([str(ROOT / "tools/nautilus_rc4/check-candidate")], text=True)
         result = json.loads(out)

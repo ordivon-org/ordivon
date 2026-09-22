@@ -4,6 +4,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -18,6 +20,7 @@ def test_exact_contract_requires_distinct_parquet_producer_and_readback_engine()
     assert contract["externalFinancialWritesAllowed"] is False
 
 
+@pytest.mark.provider_qualification
 def test_r16_cross_engine_falsification_passes():
     out = subprocess.check_output(
         [str(ROOT / "scripts/run-parquet-duckdb-owner-requalification-r16")],

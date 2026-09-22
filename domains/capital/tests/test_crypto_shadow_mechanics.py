@@ -3,6 +3,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -15,6 +17,7 @@ class CryptoShadowMechanicsTests(unittest.TestCase):
         self.assertFalse(cfg['economicDecisionClaimed'])
         self.assertFalse(cfg['alphaClaimed'])
 
+    @pytest.mark.provider_qualification
     def test_nautilus_candidate_crypto_mechanics_passes(self):
         out=subprocess.check_output([str(ROOT/'tools/nautilus_rc4/run-crypto-shadow-mechanics-r1')],text=True)
         x=json.loads(out)

@@ -81,6 +81,7 @@ def test_monitoring_validation_fails_closed(path, value, match):
         monitoring_table(evidence)
 
 
+@pytest.mark.provider_qualification
 def test_persist_monitoring_evidence_parquet_duckdb_manifest(tmp_path):
     evidence_path = tmp_path / "evidence.json"
     evidence_path.write_text(json.dumps(_evidence()))

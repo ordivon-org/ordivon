@@ -48,3 +48,20 @@ Execution Reconciliation R6 now passes offline: authoritative normalized venue r
 Demo/Testnet Execution R7 preflight is prepared but not admitted: the installed NautilusTrader execution configs construct successfully for OKX DEMO and Binance Spot TESTNET without credentials or network access. Demo/live write authority remains false.
 
 Live endpoint test-account policy is now explicit: the user authorizes the existing OKX/Binance LIVE endpoints for non-production qualification, but they remain semantically LIVE. Fresh authoritative account reality must prove an effectively empty account (no positions/open orders/nonquote balances and <=1 quote unit), trade-only authority, clock health and reconciliation health before order submission can be enabled.
+
+## Verification boundary
+
+Required repository CI is hermetic and authority-free. The capital:verify task runs the
+Capital source suite with provider_qualification tests excluded. Tests carrying that
+marker require node-local external-owner runtimes, exact candidate binaries, or
+credential bindings and therefore are not evidence that a clean GitHub runner can or
+should reproduce provider reality.
+
+Run those separately on a qualified local node with:
+
+    mise run //domains/capital:verify:provider
+
+The split does not weaken the provider gates: provider-bound tests remain tracked and
+must pass in the environment that actually owns the required external evidence. It
+prevents local credentials, /root candidate environments, or /opt provider binaries
+from becoming hidden prerequisites of repository CI.
