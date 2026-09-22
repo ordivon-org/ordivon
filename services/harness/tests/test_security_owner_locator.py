@@ -25,7 +25,7 @@ class SecurityOwnerLocatorTests(unittest.TestCase):
         self.assertEqual(release.SOURCE_REPO, CANONICAL_REPO_ROOT)
         self.assertEqual(release.SOURCE_SUBTREE, Path("services/harness"))
         self.assertEqual(release.SOURCE_REPO / release.SOURCE_SUBTREE, CANONICAL_HARNESS_ROOT)
-        self.assertEqual(release.source_repo_identity(CANONICAL_HARNESS_ROOT), str(CANONICAL_REPO_ROOT))
+        self.assertEqual(release.source_repo_identity(ROOT), str(ROOT.parents[1]))
         self.assertEqual(promotion.CANONICAL_SOURCE_REPO, CANONICAL_REPO_ROOT)
 
     def test_default_security_root_is_canonical_monorepo_owner(self) -> None:

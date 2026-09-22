@@ -55,5 +55,6 @@ target-version = "py314"
 line-length = 100
 
 [tool.pytest.ini_options]
+markers = ["node_qualification: requires exact node-local provider/equipment materialization"]
 testpaths = ["tests"]
 pythonpath = ["scripts"]
