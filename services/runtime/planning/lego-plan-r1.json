@@ -104,12 +104,14 @@
       "kind": "state_authority",
       "responsibility": "Extract logical Job identity and physical Attempt-generation lifecycle into explicit state modules.",
       "authority": "Runtime Job/Attempt truth",
-      "state": "PROPOSED",
+      "state": "IN_PROGRESS",
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
         "docs/effect-kernel.md",
-        "planning/state-responsibility-census-r1.json"
+        "planning/state-responsibility-census-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "R03-A1 candidate verification: owner-environment test PASS; extended reference-model 1/1 PASS; local-acceptance supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
       ],
       "dependencies": [
         "R00",
@@ -124,7 +126,7 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "Extract JobIdentityContract and AttemptLifecycleContract from shared laws spanning admission/execution/reconciliation/Registry; preserve the existing control-phase modules as consumers."
+      "nextAction": "R03-A1 JobIdentityContract is implemented and verified. Continue with R03-A2 AttemptLifecycleContract only for generation/state-transition/termination/physical-owner/terminal-evidence laws shared across lifecycle and reconciliation; keep Reservation semantics for R04."
     },
     {
       "id": "R04",
@@ -763,10 +765,11 @@
       ],
       "evidence": [
         "crates/ordivon-runtime-core/src/runtime/workspace_state.rs",
-        "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9"
+        "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs (R03-A1 canonical v3/v4/v5/v6 operation identity + exact replay/conflict law)"
       ],
       "blockers": [],
-      "nextAction": "Continue with R03-A1 JobIdentityContract while keeping R02 open only for additional proven duplicate Workspace laws; do not introduce cosmetic noun facades."
+      "nextAction": "Continue R03-A2 AttemptLifecycleContract; keep R02 open only for additional proven Workspace-law duplication, then proceed to R04 ReservationContract."
     },
     {
       "id": "RW2",
@@ -913,7 +916,7 @@
   "review": {
     "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
     "updatedAt": "2026-09-22",
-    "standing": "RW0_BASELINE_GATE_COMPLETE_RW1_IN_PROGRESS",
-    "notes": "R00 remains implemented. R01 baseline acceptance is complete with two independently runnable MCP contract partitions (Tool Catalog 4/4 and projection contract 3/3), while broader physical taxonomy splits remain opportunistic RW0 work. R02 first WorkspaceState contract slice is integrated and current real-system local acceptance is green (supervisor 2/2, Runtime integration 36/36, MCP/Workspace/Release E2E). RW1 therefore proceeds with R03-A1 without claiming R02's entire long-term responsibility set is closed."
+    "standing": "RW1_R03_A1_VERIFIED",
+    "notes": "RW0 baseline gate remains complete. R02 first WorkspaceState slice remains integrated. R03-A1 JobIdentityContract now owns canonical request/operation identity and exact replay/conflict law across Registry admission/query; candidate verification passed owner-environment test, extended reference-model, and full local real-system acceptance. R03 remains IN_PROGRESS pending AttemptLifecycleContract."
   }
 }

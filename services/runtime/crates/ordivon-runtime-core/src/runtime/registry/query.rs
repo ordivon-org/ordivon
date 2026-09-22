@@ -199,28 +199,18 @@ impl Registry {
                 false,
             ));
         }
-        let expected_operation_digest = match (host_digest, release_digest) {
-            (Some(host_digest), None) => sha256_bytes(
-                format!(
-                    "runtime-operation-v6\0{}\0{}\0{}\0{}",
-                    job.request_digest, job.execution_plan_digest, committed_digest, host_digest
-                )
-                .as_bytes(),
-            ),
-            (None, Some(release_digest)) => sha256_bytes(
-                format!(
-                    "runtime-operation-v5\0{}\0{}\0{}\0{}",
-                    job.request_digest, job.execution_plan_digest, committed_digest, release_digest
-                )
-                .as_bytes(),
-            ),
-            (None, None) => sha256_bytes(
-                format!(
-                    "runtime-operation-v4\0{}\0{}\0{}",
-                    job.request_digest, job.execution_plan_digest, committed_digest
-                )
-                .as_bytes(),
-            ),
+        let identity_bindings = match (host_digest, release_digest) {
+            (Some(host_digest), None) => OperationIdentityBindings::ProviderWithHostDependencies {
+                provider_digest: committed_digest,
+                host_dependencies_digest: host_digest,
+            },
+            (None, Some(release_digest)) => OperationIdentityBindings::ProviderWithRuntimeRelease {
+                provider_digest: committed_digest,
+                runtime_release_digest: release_digest,
+            },
+            (None, None) => OperationIdentityBindings::Provider {
+                provider_digest: committed_digest,
+            },
             (Some(_), Some(_)) => {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,
@@ -230,6 +220,11 @@ impl Registry {
                 ));
             }
         };
+        let expected_operation_digest = JobIdentityContract::operation_digest(
+            &job.request_digest,
+            &job.execution_plan_digest,
+            identity_bindings,
+        );
         if job.operation_digest != expected_operation_digest {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,

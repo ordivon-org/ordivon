@@ -8,9 +8,9 @@ impl Registry {
     ) -> RuntimeResult<Option<RuntimeJobRecord>> {
         validate_identifier(principal, "principal")?;
         validate_client_request_id(client_request_id, "clientRequestId")?;
-        validate_request_identity_digest(request_identity_digest)?;
+        JobIdentityContract::validate_request_identity_digest(request_identity_digest)?;
         if let Some(digest) = compatible_request_identity_digest {
-            validate_request_identity_digest(digest)?;
+            JobIdentityContract::validate_request_identity_digest(digest)?;
         }
         let connection = self.open_connection()?;
         let job_id: Option<String> = connection
@@ -25,11 +25,13 @@ impl Registry {
             return Ok(None);
         };
         let job = load_job(&connection, &job_id)?;
-        let stored_identity = job_request_identity_digest(&job)?;
-        if stored_identity != request_identity_digest
-            && compatible_request_identity_digest != Some(stored_identity.as_str())
-        {
-            return Err(idempotency_conflict());
+        let stored_identity = JobIdentityContract::stored_request_identity_digest(&job)?;
+        if !JobIdentityContract::compatible_request_identity_matches(
+            &stored_identity,
+            request_identity_digest,
+            compatible_request_identity_digest,
+        ) {
+            return Err(JobIdentityContract::idempotency_conflict());
         }
         Ok(Some(job))
     }
@@ -111,20 +113,16 @@ impl Registry {
         let runtime_release_digest = runtime_release_json
             .as_deref()
             .map(|json| sha256_bytes(json.as_bytes()));
-        let request_json = serde_json::to_vec(request).map_err(|error| {
-            RuntimeError::new(
-                RuntimeErrorCode::InvalidRequest,
-                format!("cannot serialize submit request: {error}"),
-                None,
-                false,
-            )
-        })?;
-        let legacy_request_digest = sha256_bytes(&request_json);
-        let request_digest = request
-            .request_identity_digest
-            .clone()
-            .unwrap_or(legacy_request_digest);
         let plan_digest = sha256_bytes(plan_json.as_bytes());
+        let identity = JobIdentityContract::from_submit(
+            request,
+            &plan_digest,
+            execution_provider_digest.as_deref(),
+            host_dependencies_digest.as_deref(),
+            runtime_release_digest.as_deref(),
+        )?;
+        let request_digest = identity.request_digest;
+        let operation_digest = identity.operation_digest;
         let mut workspace_snapshot = serde_json::json!({
             "workspaceId": request.plan.workspace_id,
             "workspacePath": request.plan.workspace_path,
@@ -144,49 +142,6 @@ impl Registry {
                 serde_json::Value::String(release_digest.to_string());
         }
         let workspace_snapshot_json = workspace_snapshot.to_string();
-        let operation_digest = match (
-            execution_provider_digest.as_deref(),
-            host_dependencies_digest.as_deref(),
-            runtime_release_digest.as_deref(),
-        ) {
-            (Some(provider_digest), Some(host_digest), None) => sha256_bytes(
-                format!(
-                    "runtime-operation-v6\0{request_digest}\0{plan_digest}\0{provider_digest}\0{host_digest}"
-                )
-                .as_bytes(),
-            ),
-            (Some(provider_digest), None, Some(release_digest)) => sha256_bytes(
-                format!(
-                    "runtime-operation-v5\0{request_digest}\0{plan_digest}\0{provider_digest}\0{release_digest}"
-                )
-                .as_bytes(),
-            ),
-            (Some(provider_digest), None, None) => sha256_bytes(
-                format!("runtime-operation-v4\0{request_digest}\0{plan_digest}\0{provider_digest}")
-                    .as_bytes(),
-            ),
-            (None, None, None) => sha256_bytes(
-                format!("runtime-operation-v3\0{request_digest}\0{plan_digest}").as_bytes(),
-            ),
-            (Some(_), Some(_), Some(_)) => {
-                return Err(RuntimeError::invalid(
-                    "Runtime Release effect and Host Dependencies cannot share one Job",
-                    "hostDependencies",
-                ));
-            }
-            (None, Some(_), _) => {
-                return Err(RuntimeError::invalid(
-                    "Host Dependencies require a committed execution provider",
-                    "executionProvider",
-                ));
-            }
-            (None, None, Some(_)) => {
-                return Err(RuntimeError::invalid(
-                    "Runtime Release effect requires a committed execution provider",
-                    "executionProvider",
-                ));
-            }
-        };
         let job_id = ids.job_id.clone();
         let attempt_id = ids.attempt_id.clone();
         let reservation_id = ids.reservation_id.clone();
@@ -255,25 +210,23 @@ impl Registry {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| RuntimeError::from_sql(error, "cannot begin admission transaction"))?;
 
-        if let Some((existing_operation_digest, existing_job_id)) = transaction
+        if let Some(existing_job_id) = transaction
             .query_row(
-                "SELECT operation_digest, job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
+                "SELECT job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
                 params![request.plan.principal, request.client_request_id],
-                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+                |row| row.get::<_, String>(0),
             )
             .optional()
             .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?
         {
             let existing = load_job(&transaction, &existing_job_id)?;
-            let matches = if let Some(request_identity_digest) =
-                request.request_identity_digest.as_deref()
-            {
-                job_request_identity_digest(&existing)? == request_identity_digest
-            } else {
-                existing_operation_digest == operation_digest
-            };
+            let matches = JobIdentityContract::exact_replay_matches(
+                &existing,
+                request.request_identity_digest.as_deref(),
+                &operation_digest,
+            )?;
             if !matches {
-                return Err(idempotency_conflict());
+                return Err(JobIdentityContract::idempotency_conflict());
             }
             transaction
                 .commit()
@@ -512,7 +465,7 @@ impl Registry {
             match durable {
                 Ok(Some((existing_operation_digest, existing_job_id))) => {
                     if existing_operation_digest != operation_digest {
-                        return Err(idempotency_conflict());
+                        return Err(JobIdentityContract::idempotency_conflict());
                     }
                     return match load_job(&connection, &existing_job_id) {
                         Ok(existing) => Ok(AdmissionOutcome::Existing {

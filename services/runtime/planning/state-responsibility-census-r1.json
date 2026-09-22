@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.runtime-state-responsibility-census",
   "truthRole": "planning-projection-not-runtime-truth",
-  "sourceRevision": "97a8d1b48b2e10e20f4b6869dc12ecb8380a8ee8",
+  "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
   "findings": {
     "currentOrganization": "mixed verb-centric engine modules plus storage/query modules",
     "importantCorrection": "Runtime already has engine/workspace.rs and separate admission/execution/reconciliation/release modules. R02/R03 must not be a cosmetic second split; extraction is justified only where a stable state law still spans multiple control-phase modules.",
@@ -216,6 +216,16 @@
           "dispatch",
           "provider",
           "reconciliation"
+        ],
+        "status": "IMPLEMENTED_VERIFIED",
+        "implementation": "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs",
+        "verification": [
+          "job_attempt_state contract tests 3/3 PASS",
+          "identity/replay targeted tests including reference-model PASS",
+          "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings PASS",
+          "scripts/owner-environment test PASS",
+          "scripts/owner-environment extended PASS (reference-model 1/1)",
+          "scripts/local-acceptance run PASS (supervisor 2/2, Runtime integration 36/36, MCP/Workspace/Release E2E)"
         ]
       },
       {

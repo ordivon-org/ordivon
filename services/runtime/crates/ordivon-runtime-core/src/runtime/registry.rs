@@ -9,20 +9,21 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+use super::job_attempt_state::{JobIdentityContract, OperationIdentityBindings};
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwner};
 #[cfg(any(test, feature = "operator-tools"))]
 use super::RuntimeInvariantViolation;
 use super::{
-    operation_request_identity_digest_from_plan, validate_client_request_id, AdmissionOutcome,
-    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent, CreatedAdmission,
-    ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, JobDesiredState,
-    JobProjection, JobResolution, ReservationRecord, ReservationState, RunnerIdentity,
-    RuntimeArtifactRecord, RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode,
-    RuntimeExecutionPlan, RuntimeJobListCursor, RuntimeJobListRequest, RuntimeJobListResult,
-    RuntimeJobRecord, RuntimeJobSummary, RuntimeReleaseContract, RuntimeReleaseEffectBinding,
-    RuntimeResult, SubmitRequest, TerminalCommit, MAX_RUNTIME_LIST_LIMIT, RUNTIME_SCHEMA_VERSION,
+    validate_client_request_id, AdmissionOutcome, ArtifactRegistration, AttemptRecord,
+    AttemptState, AttemptTerminationIntent, CreatedAdmission, ExecutionProviderContract,
+    ExecutionProviderSnapshot, HostDependencyBinding, JobDesiredState, JobProjection,
+    JobResolution, ReservationRecord, ReservationState, RunnerIdentity, RuntimeArtifactRecord,
+    RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
+    RuntimeJobListCursor, RuntimeJobListRequest, RuntimeJobListResult, RuntimeJobRecord,
+    RuntimeJobSummary, RuntimeReleaseContract, RuntimeReleaseEffectBinding, RuntimeResult,
+    SubmitRequest, TerminalCommit, MAX_RUNTIME_LIST_LIMIT, RUNTIME_SCHEMA_VERSION,
 };
 
 const MIGRATION_V1: i64 = 1;
@@ -1161,67 +1162,6 @@ fn project_job(
     }
 }
 
-fn job_request_identity_digest(job: &RuntimeJobRecord) -> RuntimeResult<String> {
-    if job
-        .request_digest
-        .starts_with(super::REQUEST_IDENTITY_PREFIX)
-        || job
-            .request_digest
-            .starts_with(super::PROPOSAL_IDENTITY_PREFIX)
-        || job
-            .request_digest
-            .starts_with(super::INPUT_BOUND_IDENTITY_PREFIX)
-        || job
-            .request_digest
-            .starts_with(super::INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX)
-        || job
-            .request_digest
-            .starts_with(super::CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX)
-        || job
-            .request_digest
-            .starts_with(super::RUNTIME_RELEASE_IDENTITY_PREFIX)
-    {
-        validate_request_identity_digest(&job.request_digest)?;
-        return Ok(job.request_digest.clone());
-    }
-    let plan: RuntimeExecutionPlan =
-        serde_json::from_str(&job.execution_plan_json).map_err(|error| {
-            RuntimeError::new(
-                RuntimeErrorCode::RegistryCorrupt,
-                format!("stored execution plan is invalid: {error}"),
-                Some("executionPlan"),
-                false,
-            )
-        })?;
-    operation_request_identity_digest_from_plan(&plan)
-}
-
-fn validate_request_identity_digest(value: &str) -> RuntimeResult<()> {
-    let digest = value
-        .strip_prefix(super::REQUEST_IDENTITY_PREFIX)
-        .or_else(|| value.strip_prefix(super::PROPOSAL_IDENTITY_PREFIX))
-        .or_else(|| value.strip_prefix(super::INPUT_BOUND_IDENTITY_PREFIX))
-        .or_else(|| value.strip_prefix(super::INPUT_BOUND_PROPOSAL_IDENTITY_PREFIX))
-        .or_else(|| value.strip_prefix(super::CREDENTIAL_BOUND_PROPOSAL_IDENTITY_PREFIX))
-        .or_else(|| value.strip_prefix(super::RUNTIME_RELEASE_IDENTITY_PREFIX))
-        .ok_or_else(|| {
-            RuntimeError::invalid(
-                "unsupported request identity digest",
-                "requestIdentityDigest",
-            )
-        })?;
-    validate_digest(digest, "requestIdentityDigest")
-}
-
-fn idempotency_conflict() -> RuntimeError {
-    RuntimeError::new(
-        RuntimeErrorCode::IdempotencyConflict,
-        "clientRequestId is already bound to a different operation request",
-        Some("clientRequestId"),
-        false,
-    )
-}
-
 fn validate_execution_provider_snapshot(
     snapshot: &ExecutionProviderSnapshot,
     field: &str,
@@ -1316,7 +1256,7 @@ fn validate_runtime_release_effect_binding(
             "runtimeReleaseEffect.requestDigest",
         ));
     }
-    validate_request_identity_digest(&release.request_digest)?;
+    JobIdentityContract::validate_request_identity_digest(&release.request_digest)?;
     if request.request_identity_digest.as_deref() != Some(release.request_digest.as_str()) {
         return Err(RuntimeError::invalid(
             "Runtime Release side truth must match the committed request identity",
@@ -1444,7 +1384,7 @@ fn validate_submit(request: &SubmitRequest) -> RuntimeResult<()> {
     }
     validate_client_request_id(&request.client_request_id, "clientRequestId")?;
     if let Some(digest) = request.request_identity_digest.as_deref() {
-        validate_request_identity_digest(digest)?;
+        JobIdentityContract::validate_request_identity_digest(digest)?;
     }
     validate_identifier(&request.plan.principal, "plan.principal")?;
     validate_identifier(&request.plan.workspace_id, "plan.workspaceId")?;
