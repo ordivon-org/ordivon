@@ -1,0 +1,54 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": "Catalog registration is discovery/currentness evidence, not dependency admission."
+  },
+  "discovery": {
+    "aliases": [
+      "TLA+",
+      "TLC",
+      "TLA+ Tools 1.7.4"
+    ],
+    "domains": [
+      "architecture",
+      "engineering",
+      "formal-methods"
+    ],
+    "topics": [
+      "temporal-logic",
+      "state-machines",
+      "model-checking",
+      "concurrency",
+      "safety",
+      "liveness"
+    ]
+  },
+  "id": "tla-tools-1.7.4",
+  "identity": {
+    "authorityKind": "provider-authority",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "tlaplus-foundation",
+      "name": "TLA+ Foundation"
+    },
+    "officialSource": "https://github.com/tlaplus/tlaplus/releases/tag/v1.7.4",
+    "publicationDate": null,
+    "title": "TLA+ Tools / TLC 1.7.4",
+    "versionLabel": "1.7.4"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-22",
+    "registrationBasis": [
+      "official upstream source checked 2026-09-22",
+      "verified reintegration temporal owner currentness review"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

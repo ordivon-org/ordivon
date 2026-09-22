@@ -52,10 +52,22 @@
       "boundary": "Invoke only when a seam has an explicit Pacti-representable contract. Keep packages/composition independent of Pacti until a real recurring consumer justifies dependency admission."
     },
     {
-      "authorityId": "ocra-1.1.2",
+      "authorityId": "tla-tools-1.7.4",
+      "standing": "KEEP_EXISTING_OWNER",
+      "scope": "Concurrent/state-machine safety and liveness model checking for bounded TLA+ abstractions.",
+      "boundary": "Runtime already uses digest-pinned TLC for RuntimeDispatchR1. A passing model is abstraction evidence, not implementation refinement proof."
+    },
+    {
+      "authorityId": "ocra-2.1.0",
       "standing": "ADAPT_REFERENCE_DEFER_BINARY",
       "scope": "Temporal-contract refinement, LTL proof obligations and asynchronous compositional verification.",
-      "boundary": "Use OCRA semantics/research as a reference for temporal seams. Do not admit the binary until an actual temporal seam requires it and packaging/licensing/toolchain admission is independently verified."
+      "boundary": "Use OCRA temporal-refinement semantics as a reference. Official latest release is 2.1.0 (2021); do not admit the binary without a real gap, licensing/toolchain review, and comparative evidence against existing TLA+/TLC."
+    },
+    {
+      "authorityId": "apalache-0.58.3",
+      "standing": "DEFER_OPTIONAL_SYMBOLIC_PROVIDER",
+      "scope": "Symbolic/bounded TLA+/Quint model checking when SMT/state-space pressure exceeds TLC.",
+      "boundary": "Do not add Apalache until a real model demonstrates TLC scaling or symbolic-analysis pressure."
     },
     {
       "authorityId": "omg-sacm-2.3",

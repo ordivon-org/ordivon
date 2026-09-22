@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<sacm:AssuranceCasePackage xmlns:sacm="http://www.omg.org/spec/SACM/20220301" xmlns:xmi="http://www.omg.org/spec/XMI/20131001" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmi:version="2.0" xmi:id="acp_ordivon_reintegration_w3">
+  <name content="Ordivon R3.2 Research-Artifact composition gate shadow" />
+  <description content="{&quot;circuitId&quot;:&quot;circuit:research-artifact-publication-r3&quot;,&quot;gateId&quot;:&quot;gate:research-artifact-carrier&quot;,&quot;gateStanding&quot;:&quot;SATISFIED&quot;,&quot;manifestDigest&quot;:&quot;sha256:33e299e93b6e114af9a1610fb6fff9bb2dcdadc26b8f74e0a499c0dc16e906a2&quot;,&quot;verifierOwnerId&quot;:&quot;research&quot;}" />
+  <artifactPackage xmi:id="artpkg_gate_evidence">
+    <name content="Exact Ordivon evidence references" />
+    <artifactElement xsi:type="sacm:Artifact" xmi:id="art_1">
+      <name content="Ordivon evidence 1" />
+      <description content="r3-binding:sha256:65f8a6ba330c62239bb2d6e7c2c0ab46b44c4515aeef6ee23f5d50dfbc1734a7" />
+    </artifactElement>
+    <artifactElement xsi:type="sacm:Artifact" xmi:id="art_2">
+      <name content="Ordivon evidence 2" />
+      <description content="research-profile:sha256:6d8939b8590b386276bd6b641acb8c8ac9c69c038444c2d9b866259b2ad947b6" />
+    </artifactElement>
+    <artifactElement xsi:type="sacm:Artifact" xmi:id="art_3">
+      <name content="Ordivon evidence 3" />
+      <description content="artifact-publication-dogfood:sha256:c9cb770f4833429112a0e8eaa5e5f5f93b6028cbda13b763e26058d271fb8c3b" />
+    </artifactElement>
+  </artifactPackage>
+  <argumentPackage xmi:id="argpkg_gate">
+    <name content="Bounded composition-gate argument" />
+    <argumentElement xsi:type="sacm:Claim" xmi:id="claim_top" assertionDeclaration="asserted">
+      <name content="Research may consume the carrier-machine result without treating it as scientific, perceptual, venue, or submission closure." />
+    </argumentElement>
+    <argumentElement xsi:type="sacm:Claim" xmi:id="claim_assumption" assertionDeclaration="assumed">
+      <name content="Artifact carrier evidence is bounded to carrier mechanics and preserves external scientific and Human authority." />
+    </argumentElement>
+    <argumentElement xsi:type="sacm:Claim" xmi:id="claim_scope" assertionDeclaration="axiomatic">
+      <name content="Artifact publication carrier machine mechanics may satisfy the Research carrier stage without establishing scientific, Human perceptual, venue-policy, or submission authority." />
+    </argumentElement>
+    <argumentElement xsi:type="sacm:Claim" xmi:id="claim_nonclaim_1" assertionDeclaration="asserted">
+      <name content="Artifact carrier machine PASS is not scientific correctness." />
+    </argumentElement>
+    <argumentElement xsi:type="sacm:Claim" xmi:id="claim_nonclaim_2" assertionDeclaration="asserted">
+      <name content="Artifact carrier machine PASS is not Human perceptual signoff." />
+    </argumentElement>
+    <argumentElement xsi:type="sacm:Claim" xmi:id="claim_nonclaim_3" assertionDeclaration="asserted">
+      <name content="Artifact does not become venue-policy or submission authority." />
+    </argumentElement>
+    <argumentElement xsi:type="sacm:ArtifactReference" xmi:id="ref_1" referencedArtifactElement="art_1" />
+    <argumentElement xsi:type="sacm:AssertedEvidence" xmi:id="ev_1" source="ref_1" target="claim_top" />
+    <argumentElement xsi:type="sacm:ArtifactReference" xmi:id="ref_2" referencedArtifactElement="art_2" />
+    <argumentElement xsi:type="sacm:AssertedEvidence" xmi:id="ev_2" source="ref_2" target="claim_top" />
+    <argumentElement xsi:type="sacm:ArtifactReference" xmi:id="ref_3" referencedArtifactElement="art_3" />
+    <argumentElement xsi:type="sacm:AssertedEvidence" xmi:id="ev_3" source="ref_3" target="claim_top" />
+    <argumentElement xsi:type="sacm:AssertedContext" xmi:id="ctx_claim_assumption" source="claim_assumption" target="claim_top" />
+    <argumentElement xsi:type="sacm:AssertedContext" xmi:id="ctx_claim_scope" source="claim_scope" target="claim_top" />
+    <argumentElement xsi:type="sacm:AssertedContext" xmi:id="ctx_claim_nonclaim_1" source="claim_nonclaim_1" target="claim_top" />
+    <argumentElement xsi:type="sacm:AssertedContext" xmi:id="ctx_claim_nonclaim_2" source="claim_nonclaim_2" target="claim_top" />
+    <argumentElement xsi:type="sacm:AssertedContext" xmi:id="ctx_claim_nonclaim_3" source="claim_nonclaim_3" target="claim_top" />
+  </argumentPackage>
+</sacm:AssuranceCasePackage>

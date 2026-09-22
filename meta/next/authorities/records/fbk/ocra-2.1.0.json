@@ -2,13 +2,13 @@
   "access": {
     "fullText": "public",
     "metadata": "public",
-    "note": "Tool distribution/licensing is not treated here as an Ordivon dependency admission."
+    "note": "Official OCRA homepage lists 2.1.0 as latest release; binary admission remains deferred."
   },
   "discovery": {
     "aliases": [
       "OCRA",
       "Othello Contracts Refinement Analysis",
-      "OCRA 1.1.2"
+      "OCRA 2.1.0"
     ],
     "domains": [
       "architecture",
@@ -23,7 +23,7 @@
       "model-checking"
     ]
   },
-  "id": "ocra-1.1.2",
+  "id": "ocra-2.1.0",
   "identity": {
     "authorityKind": "provider-authority",
     "identityMode": "versioned",
@@ -31,25 +31,27 @@
       "id": "fbk",
       "name": "Fondazione Bruno Kessler"
     },
-    "officialSource": "https://es.fbk.eu/index.php/tools/ocra/",
+    "officialSource": "https://ocra.fbk.eu/",
     "publicationDate": null,
-    "title": "OCRA 1.1.2 — Othello Contracts Refinement Analysis",
-    "versionLabel": "1.1.2"
+    "title": "OCRA 2.1.0 — Othello Contracts Refinement Analysis",
+    "versionLabel": "2.1.0"
   },
   "kind": "ordivon.external-authority-record",
   "provenance": {
     "registeredDate": "2026-09-22",
     "registrationBasis": [
-      "FBK OCRA official tool page checked 2026-09-22",
-      "2026 FBK research reports asynchronous LTL composition methods integrated into OCRA"
+      "official upstream source checked 2026-09-22",
+      "verified reintegration temporal owner currentness review"
     ]
   },
   "relations": {
-    "related": [],
-    "supersededBy": [
-      "ocra-2.1.0"
+    "related": [
+      "nuxmv-2.2.0"
     ],
-    "supersedes": []
+    "supersededBy": [],
+    "supersedes": [
+      "ocra-1.1.2"
+    ]
   },
   "schemaVersion": 1
 }
