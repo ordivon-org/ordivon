@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-service-carrier-evidence",
+  "truthRole": "mechanical-carrier-qualification-evidence",
+  "carrier": "Shawl",
+  "version": "1.9.0",
+  "release": {
+    "tag": "v1.9.0",
+    "prerelease": false,
+    "publishedAt": "2026-05-03T05:37:28Z",
+    "win64ArchiveSha256": "f883c5d09c9beae2efaeabd8513e7d3f57cd1d0864cec3df4f4a7b6ee904351c",
+    "shawlExeSha256": "0985555b71e7f943b8f3fc639952a9890aa62e66617942a2d0996985fe8e7c6d"
+  },
+  "lifecycle": {
+    "serviceReachedRunning": true,
+    "parentAliveBeforeStop": true,
+    "childAliveBeforeStop": true,
+    "serviceStopped": true,
+    "parentAliveAfterStop": false,
+    "childAliveAfterStop": false,
+    "temporaryServiceDeleted": true
+  },
+  "noRestart": {
+    "nonzeroFixtureExit": 7,
+    "invocationCount": 1,
+    "finalServiceStatus": "Stopped",
+    "temporaryServiceDeleted": true
+  },
+  "productionCaveat": "Qualification used temporary LocalSystem default only to test carrier mechanics. Production Gateway identity/ACL is a separate GW08 gate.",
+  "verdict": "PASS"
+}

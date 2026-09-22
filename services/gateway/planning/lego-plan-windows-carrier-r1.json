@@ -1,0 +1,642 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "project": {
+    "id": "gateway-windows-control-plane-r1",
+    "purpose": "Migrate Ordivon Gateway deployment carrier from WSL/systemd to an independent Windows workstation control plane while preserving Gateway non-authoritative semantics and Runtime/Host natural-owner truth.",
+    "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+    "sourceEvidence": [
+      "services/gateway/README.md",
+      "services/gateway/src/ordivon_gateway/mcp_server.py",
+      "services/gateway/src/ordivon_gateway/routes.py",
+      "services/gateway/src/ordivon_gateway/service.py",
+      "services/gateway/src/ordivon_gateway/upstream.py",
+      "services/gateway/systemd/ordivon-gateway.service",
+      "services/gateway/tests/test_gateway_service.py"
+    ]
+  },
+  "invariants": [
+    "Gateway remains non-authoritative-routing-projection.",
+    "Runtime remains sole owner of Workspace/Job/Attempt/process/artifact physical truth.",
+    "Host remains sole owner of semantic continuity/collaboration truth.",
+    "Owner unavailability degrades only routed capabilities and must not terminate Gateway.",
+    "Windows Gateway must start and serve system/capability projection with WSL fully stopped.",
+    "Carrier migration must not create Gateway scheduler, Registry, Job store, Task store, or Artifact store."
+  ],
+  "baseline": {
+    "sourceGatewayVersion": "0.3.0",
+    "liveGatewayVersionObserved": "0.2.0",
+    "sourcePublicTools": [
+      "system.describe",
+      "capability.describe",
+      "execution.submit",
+      "execution.resolve",
+      "execution.get",
+      "execution.cancel",
+      "artifact.read",
+      "continuity.get",
+      "continuity.list",
+      "continuity.observe",
+      "continuity.adopt",
+      "continuity.checkpoint",
+      "continuity.attention",
+      "collaboration.post",
+      "collaboration.list",
+      "collaboration.search"
+    ],
+    "connectorToolsObserved": [
+      "system.describe",
+      "capability.list",
+      "capability.describe",
+      "execution.submit",
+      "execution.get",
+      "execution.cancel",
+      "artifact.read",
+      "continuity.get",
+      "continuity.list"
+    ],
+    "routes": {
+      "execution.linux": "runtime.linux",
+      "execution.windows": "runtime.windows",
+      "continuity.external": "host",
+      "artifact.runtime": "runtime.dynamic"
+    },
+    "regression": "39/39 PASS under uv.lock with CPython 3.14.7",
+    "liveTopology": {
+      "wsl.runtime": "127.0.0.1:8897",
+      "wsl.host": "127.0.0.1:8898",
+      "wsl.gateway": "127.0.0.1:8899",
+      "windows.runtime": "127.0.0.1:18997"
+    },
+    "windowsToWslLoopback": "PROVEN_REACHABLE"
+  },
+  "nodes": [
+    {
+      "id": "GW01",
+      "label": "BaselineFreeze",
+      "kind": "verifier",
+      "responsibility": "Freeze source/live/connector/topology/release identities before mutation.",
+      "authority": "Architecture/V&V",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW02",
+      "label": "SemanticContractFreeze",
+      "kind": "contract",
+      "responsibility": "Preserve current 16-tool northbound schema, reference grammar, truth roles, and carrier-independent behavior.",
+      "authority": "Gateway",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW03",
+      "label": "OwnerRouteContract",
+      "kind": "routing_contract",
+      "responsibility": "Keep four capability routes owner-derived and prevent domain-route scope creep.",
+      "authority": "Gateway",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW04",
+      "label": "WindowsToolchain",
+      "kind": "toolchain",
+      "responsibility": "Install pinned uv and uv-managed CPython 3.14.7 under candidate ProgramData root.",
+      "authority": "Workstation",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": [
+        "uv 0.12.17 is installed under isolated ProgramData candidate root.",
+        "Installed uv.exe is byte-identical to the official 0.12.17 x86_64 Windows release archive.",
+        "uv-managed CPython 3.14.7 is installed under the candidate root.",
+        "No Windows Runtime executable allow-root was broadened."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_TOOLCHAIN_EVIDENCE_R1.json"
+      ]
+    },
+    {
+      "id": "GW05",
+      "label": "WindowsReleaseLayout",
+      "kind": "artifact_carrier",
+      "responsibility": "Materialize immutable Git-SHA Gateway releases with release-local .venv and exact lockfile.",
+      "authority": "Workstation",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": [
+        "PowerShell parser reports zero errors on Windows.",
+        "Exact Git SHA 5bd241df24da3259c1c6e3637bf3fc513129e4b9 materializes as Gateway 0.3.0 with Python 3.14.7.",
+        "Release-local MCP probe reports the exact 16-tool current source surface.",
+        "Replay of the same source commit reuses the same release path and reports releaseCreated=false.",
+        "uv.lock and pyproject.toml digests are recorded in the release receipt."
+      ],
+      "evidence": [
+        "services/gateway/packaging/windows/install_release.ps1",
+        "services/gateway/packaging/windows/verify_release.py",
+        "services/gateway/tests/test_windows_release_contract.py",
+        "services/gateway/planning/GATEWAY_WINDOWS_RELEASE_EVIDENCE_R1.json"
+      ]
+    },
+    {
+      "id": "GW06",
+      "label": "ServiceCarrierQualification",
+      "kind": "adapter_selection",
+      "responsibility": "Qualify current stable generic Windows service carrier; Shawl 1.9.0 primary candidate, WinSW reference.",
+      "authority": "Workstation",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": [
+        "Shawl v1.9.0 official win64 archive digest matches GitHub release metadata.",
+        "shawl.exe reports version 1.9.0 and exposes no-restart, stop-timeout, kill-process-tree and cwd controls.",
+        "Temporary SCM service starts a parent and child process; SCM stop reaches Stopped and both processes are gone.",
+        "A child exiting nonzero under --no-restart is invoked exactly once and service reaches Stopped.",
+        "All qualification services are deleted after the experiment."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_SERVICE_CARRIER_EVIDENCE_R1.json"
+      ]
+    },
+    {
+      "id": "GW07",
+      "label": "GatewayWindowsService",
+      "kind": "service_carrier",
+      "responsibility": "Run Gateway candidate as independent Windows SCM service without owner dependencies.",
+      "authority": "Workstation",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": [
+        "Candidate is registered as AutoStart Windows SCM service under NT SERVICE\\OrdivonGatewayCandidateR1.",
+        "Candidate binds isolated port 18999 and returns /health 200 while production :8899 remains healthy.",
+        "SCM service has no owner service dependencies and uses Shawl no-restart plus SCM failure actions."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_CANDIDATE_CARRIER_EVIDENCE_R1.json"
+      ]
+    },
+    {
+      "id": "GW08",
+      "label": "ServiceIdentityAcl",
+      "kind": "security",
+      "responsibility": "Use restricted service identity/service SID and protected resource-class ACLs.",
+      "authority": "Security",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": [
+        "Service SID type is UNRESTRICTED.",
+        "Release and uv-managed Python trees grant service RX; logs M; credentials R; SYSTEM/Administrators retain FullControl.",
+        "Descendant files inherit the intended ACL instead of becoming ACL-empty."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_CANDIDATE_CARRIER_EVIDENCE_R1.json"
+      ]
+    },
+    {
+      "id": "GW09",
+      "label": "CredentialCarrier",
+      "kind": "security",
+      "responsibility": "Carry owner credential file references on Windows with startup ACL verification; never inline secrets.",
+      "authority": "Security",
+      "state": "IN_PROGRESS",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW10",
+      "label": "WindowsGatewayConfig",
+      "kind": "configuration",
+      "responsibility": "Translate existing ORDIVON_GATEWAY_* contract to Windows non-secret config/environment carrier.",
+      "authority": "Gateway deployment",
+      "state": "VERIFIED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": [
+        "Candidate uses Windows-carried ORDIVON_GATEWAY_* configuration on port 18999.",
+        "Actual network MCP endpoint reports Gateway 0.3.0 and exact 16-tool current-source surface.",
+        "Uncredentialed Runtime owner probes degrade to available=false while Host remains available and Gateway stays healthy."
+      ],
+      "evidence": [
+        "services/gateway/planning/GATEWAY_WINDOWS_CANDIDATE_CARRIER_EVIDENCE_R1.json"
+      ]
+    },
+    {
+      "id": "GW11",
+      "label": "WindowsRuntimeRoute",
+      "kind": "adapter",
+      "responsibility": "Route runtime.windows to local native Windows Runtime over loopback with owner authentication.",
+      "authority": "Gateway",
+      "state": "READY",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW12",
+      "label": "LinuxRuntimeRoute",
+      "kind": "adapter",
+      "responsibility": "Route runtime.linux through existing Windows-to-WSL localhost forwarding; fail scoped when WSL is down.",
+      "authority": "Gateway",
+      "state": "READY",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW13",
+      "label": "HostRoute",
+      "kind": "adapter",
+      "responsibility": "Route host through existing Windows-to-WSL localhost forwarding; fail scoped when Host/WSL is down.",
+      "authority": "Gateway",
+      "state": "READY",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW14",
+      "label": "OwnerHealthProjection",
+      "kind": "projection",
+      "responsibility": "Keep Gateway alive while capability.describe reports per-owner availability/errors.",
+      "authority": "Gateway",
+      "state": "READY",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW15",
+      "label": "ArtifactRoute",
+      "kind": "projection",
+      "responsibility": "Preserve operation_ref-driven runtime.dynamic artifact reads without byte ownership.",
+      "authority": "Gateway",
+      "state": "READY",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW16",
+      "label": "NorthboundAuth",
+      "kind": "security",
+      "responsibility": "Preserve Cloudflare Access assertion verification and canonical public-origin rules on Windows.",
+      "authority": "Security/Gateway",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW17",
+      "label": "CloudflareIngress",
+      "kind": "network_adapter",
+      "responsibility": "Point Windows-native cloudflared ingress to Windows Gateway candidate after local acceptance.",
+      "authority": "Network",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW18",
+      "label": "ConnectorCurrentness",
+      "kind": "compatibility",
+      "responsibility": "Converge source/deployed/public/ChatGPT connector tool catalogs; remove stale capability.list.",
+      "authority": "Plugin/Connector",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW19",
+      "label": "FailureMatrix",
+      "kind": "experimental_verifier",
+      "responsibility": "Inject owner, WSL, Gateway and ingress faults and prove scoped degradation.",
+      "authority": "V&V",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW20",
+      "label": "WindowsLifecycleAcceptance",
+      "kind": "experimental_verifier",
+      "responsibility": "Prove SCM start/stop/restart/crash/cold-boot/ACL/release identity.",
+      "authority": "V&V",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW21",
+      "label": "CanaryCutover",
+      "kind": "release_gate",
+      "responsibility": "Run WSL production and Windows candidate side-by-side and compare semantic outputs.",
+      "authority": "Operations",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    },
+    {
+      "id": "GW22",
+      "label": "WslGatewayRetirement",
+      "kind": "retirement",
+      "responsibility": "Move normal ingress to Windows Gateway then disable WSL Gateway only after destructive gates pass.",
+      "authority": "Operations",
+      "state": "BLOCKED",
+      "dependencies": [],
+      "mustNotOwn": [],
+      "acceptance": []
+    }
+  ],
+  "edges": [
+    {
+      "from": "GW01",
+      "to": "GW02",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "GW02",
+      "to": "GW03",
+      "type": "CONTRACT"
+    },
+    {
+      "from": "GW03",
+      "to": "GW04",
+      "type": "CONTROL"
+    },
+    {
+      "from": "GW03",
+      "to": "GW05",
+      "type": "CONTROL"
+    },
+    {
+      "from": "GW03",
+      "to": "GW06",
+      "type": "CONTROL"
+    },
+    {
+      "from": "GW04",
+      "to": "GW07",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "GW05",
+      "to": "GW07",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "GW06",
+      "to": "GW07",
+      "type": "DEPENDENCY"
+    },
+    {
+      "from": "GW07",
+      "to": "GW08",
+      "type": "SECURITY"
+    },
+    {
+      "from": "GW08",
+      "to": "GW09",
+      "type": "SECURITY"
+    },
+    {
+      "from": "GW09",
+      "to": "GW10",
+      "type": "CONTROL"
+    },
+    {
+      "from": "GW10",
+      "to": "GW11",
+      "type": "ROUTING"
+    },
+    {
+      "from": "GW10",
+      "to": "GW12",
+      "type": "ROUTING"
+    },
+    {
+      "from": "GW10",
+      "to": "GW13",
+      "type": "ROUTING"
+    },
+    {
+      "from": "GW11",
+      "to": "GW14",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "GW12",
+      "to": "GW14",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "GW13",
+      "to": "GW14",
+      "type": "OBSERVATION"
+    },
+    {
+      "from": "GW14",
+      "to": "GW15",
+      "type": "CONTROL"
+    },
+    {
+      "from": "GW15",
+      "to": "GW16",
+      "type": "SECURITY"
+    },
+    {
+      "from": "GW16",
+      "to": "GW17",
+      "type": "NETWORK"
+    },
+    {
+      "from": "GW17",
+      "to": "GW18",
+      "type": "COMPATIBILITY"
+    },
+    {
+      "from": "GW18",
+      "to": "GW19",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "GW19",
+      "to": "GW20",
+      "type": "EVIDENCE"
+    },
+    {
+      "from": "GW20",
+      "to": "GW21",
+      "type": "RELEASE"
+    },
+    {
+      "from": "GW21",
+      "to": "GW22",
+      "type": "RETIREMENT"
+    }
+  ],
+  "slices": [
+    {
+      "id": "GW0",
+      "objective": "Freeze current truth and carrier-independent contracts.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "GW01",
+        "GW02",
+        "GW03"
+      ],
+      "acceptance": [
+        "Current source regression green; source/live/connector drift explicitly recorded."
+      ],
+      "blockers": []
+    },
+    {
+      "id": "GW1",
+      "objective": "Build Windows substrate without creating a production service.",
+      "status": "COMPLETE",
+      "nodeIds": [
+        "GW04",
+        "GW05",
+        "GW06"
+      ],
+      "acceptance": [
+        "Pinned toolchain and immutable release materialize under isolated ProgramData candidate root; service wrapper qualification passes."
+      ],
+      "blockers": []
+    },
+    {
+      "id": "GW2",
+      "objective": "Materialize least-privilege Windows Gateway candidate.",
+      "status": "IN_PROGRESS",
+      "nodeIds": [
+        "GW07",
+        "GW08",
+        "GW09",
+        "GW10"
+      ],
+      "acceptance": [
+        "Candidate service runs on non-production port with protected credentials and no owner lifecycle dependency."
+      ],
+      "blockers": [
+        "GW09 credential carrier acceptance"
+      ]
+    },
+    {
+      "id": "GW3",
+      "objective": "Bind three independent natural owners.",
+      "status": "BLOCKED",
+      "nodeIds": [
+        "GW11",
+        "GW12",
+        "GW13"
+      ],
+      "acceptance": [
+        "Windows, Linux and Host owner failures are independently observable."
+      ],
+      "blockers": [
+        "GW2"
+      ]
+    },
+    {
+      "id": "GW4",
+      "objective": "Prove degraded capability projection and artifact routing.",
+      "status": "BLOCKED",
+      "nodeIds": [
+        "GW14",
+        "GW15"
+      ],
+      "acceptance": [
+        "Gateway remains available when any owner is unavailable."
+      ],
+      "blockers": [
+        "GW3"
+      ]
+    },
+    {
+      "id": "GW5",
+      "objective": "Attach public auth/ingress and converge consumer catalog.",
+      "status": "BLOCKED",
+      "nodeIds": [
+        "GW16",
+        "GW17",
+        "GW18"
+      ],
+      "acceptance": [
+        "Source/deployed/public/connector schema parity and auth pass."
+      ],
+      "blockers": [
+        "GW4"
+      ]
+    },
+    {
+      "id": "GW6",
+      "objective": "Destructively prove independence and lifecycle recovery.",
+      "status": "BLOCKED",
+      "nodeIds": [
+        "GW19",
+        "GW20"
+      ],
+      "acceptance": [
+        "WSL-off test leaves Gateway + Windows Runtime usable; WSL return restores Linux/Host without Gateway restart."
+      ],
+      "blockers": [
+        "GW5"
+      ]
+    },
+    {
+      "id": "GW7",
+      "objective": "Canary, cut over, retire old WSL carrier.",
+      "status": "BLOCKED",
+      "nodeIds": [
+        "GW21",
+        "GW22"
+      ],
+      "acceptance": [
+        "Differential canary passes, public ingress moves, old WSL Gateway disabled without truth migration."
+      ],
+      "blockers": [
+        "GW6"
+      ]
+    }
+  ],
+  "gaps": [
+    "Windows credential-file ACL validation contract is not implemented.",
+    "Live Gateway 0.2.0 lags source 0.3.0.",
+    "ChatGPT connector exposes stale 9-tool catalog including retired capability.list.",
+    "WSL Gateway service currently Requires Linux Runtime and Host, coupling northbound availability to WSL."
+  ],
+  "doNotOwn": [
+    "Runtime Job/Attempt/Workspace/Artifact truth",
+    "Host Task/Checkpoint/Board/Attention truth",
+    "workflow scheduling",
+    "domain semantics",
+    "Harness run truth",
+    "Cloudflare policy truth",
+    "WSL lifecycle",
+    "Windows privilege elevation",
+    "provider credential authority"
+  ],
+  "review": {
+    "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+    "updatedAt": "2026-09-22",
+    "standing": "GW07_GW08_GW10_VERIFIED_GW09_IN_PROGRESS",
+    "notes": "Planning uses current WSL monorepo as source authority. Older Windows structured-release source clone was stale and must not define current Gateway surface. GW04 verified with pinned official uv release checksum and uv-managed CPython 3.14.7; Runtime executable authority remained unchanged. GW05 dynamically accepted on Windows: exact Git bundle -> immutable SHA release, frozen sync, 16-tool semantic probe, replay reuse. GW06 qualified Shawl 1.9.0 against SCM lifecycle, Job-Object process-tree stop, and no-wrapper-restart behavior. Windows candidate live on :18999 beside production :8899; actual network MCP reports 0.3.0/16 tools. Runtime owners are unavailable without credentials while Host is available, proving scoped degraded projection."
+  }
+}

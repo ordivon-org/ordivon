@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-r2-wsl-off-evidence",
+  "truthRole": "destructive-fault-acceptance-evidence",
+  "observedAt": "2026-09-22",
+  "implementationHead": "ba3de6c25641c88ba16868dce35426134e57aa19",
+  "before": {
+    "candidateProcessId": 4764,
+    "healthStatus": 200,
+    "continuity.external": true
+  },
+  "fault": {
+    "action": "Stop WSLService",
+    "wslServiceStatus": "Stopped",
+    "candidateProcessId": 4764,
+    "candidateHealthStatus": 200,
+    "continuity.external": false,
+    "toolCount": 16
+  },
+  "recovery": {
+    "action": "Start WSLService + Ordivon WSL Control Plane Recovery",
+    "supervisorStatus": "healthy",
+    "runtimeService": "active",
+    "hostService": "active",
+    "candidateProcessId": 4764,
+    "candidateHealthStatus": 200,
+    "continuity.external": true,
+    "gatewayRestarted": false
+  },
+  "limitations": [
+    "execution.windows remained unavailable because GW09 Windows Runtime bearer handoff is blocked by platform safety",
+    "execution.linux remained unavailable because GW12 bearer handoff is intentionally unresolved"
+  ],
+  "verdict": "PASS_FOR_GATEWAY_INDEPENDENCE_AND_HOST_AUTO_RECOVERY_PARTIAL_GW19_GW20"
+}

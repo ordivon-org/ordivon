@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-powershell-parser-evidence",
+  "truthRole": "mechanical-platform-parser-evidence",
+  "observedAt": "2026-09-22",
+  "workspace": "ws-gateway-windows-carrier-r2-20260922",
+  "files": {
+    "packaging/windows/install_release.ps1": 0,
+    "packaging/windows/materialize_service.ps1": 0,
+    "packaging/windows/materialize_credentials.ps1": 0,
+    "packaging/windows/protect_candidate_acl.ps1": 0
+  },
+  "regression": "54/54 PASS; ruff PASS; git diff --check PASS",
+  "defectClosed": "UNC installer error-path interpolation used an ambiguous PowerShell variable followed by ':'; changed to ${resolveExitCode}: and reran native parser gate.",
+  "verdict": "PASS"
+}

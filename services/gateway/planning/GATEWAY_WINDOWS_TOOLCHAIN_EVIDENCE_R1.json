@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-toolchain-evidence",
+  "truthRole": "mechanical-installation-evidence",
+  "observedAt": "2026-09-22",
+  "candidateRoot": "C:\\ProgramData\\Ordivon\\GatewayCandidateR1",
+  "uv": {
+    "version": "0.12.17",
+    "path": "C:\\ProgramData\\Ordivon\\GatewayCandidateR1\\toolchain\\uv\\uv.exe",
+    "officialArchiveSha256": "a252121d5b59398fcb137c6ea448176459a44010f33f67e0072305a637119ca7",
+    "executableSha256": "2019cdf564cb8f749262f5f021cedc75a99abb1c6081227ca340bbcda972611d",
+    "byteIdenticalToOfficialArchive": true
+  },
+  "python": {
+    "version": "3.14.7",
+    "path": "C:\\ProgramData\\Ordivon\\GatewayCandidateR1\\python\\cpython-3.14.7-windows-x86_64-none\\python.exe",
+    "executableSha256": "716fbcb56cb6753dd9ea9f7acb3f988e9c4ba65ab492cb32b9bcd0ab81938737",
+    "managedBy": "uv 0.12.17"
+  },
+  "runtimeAuthority": {
+    "directCandidateExecutableAdmission": "REJECTED_AS_EXPECTED",
+    "reason": "Candidate root is outside configured Windows Runtime allowed executable roots.",
+    "authorityBroadened": false,
+    "realization": "Approved PowerShell carrier invoked verified uv; Runtime policy was not changed."
+  },
+  "verdict": "PASS"
+}

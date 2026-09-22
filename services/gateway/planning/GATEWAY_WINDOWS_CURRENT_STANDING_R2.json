@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-current-standing",
+  "truthRole": "point-in-time-mechanical-observation",
+  "observedAt": "2026-09-22",
+  "source": {
+    "main": "bb666c7cace423f3f15a09a7c115a67e2382ca8d",
+    "gatewayVersion": "0.3.0",
+    "toolCount": 16
+  },
+  "production": {
+    "release": "ad84462ecb8f1e8014e2b087eda0399f210f6bf5",
+    "gatewayVersion": "0.3.0",
+    "toolCount": 16,
+    "health": 200
+  },
+  "connector": {
+    "toolCount": 9,
+    "staleExtra": [
+      "capability.list"
+    ],
+    "missingFromCurrent": [
+      "execution.resolve",
+      "continuity.observe",
+      "continuity.adopt",
+      "continuity.checkpoint",
+      "continuity.attention",
+      "collaboration.post",
+      "collaboration.list",
+      "collaboration.search"
+    ]
+  },
+  "candidate": {
+    "serviceName": "OrdivonGatewayCandidateR1",
+    "state": "Running",
+    "startMode": "Manual",
+    "releaseCommit": "ba3de6c25641c88ba16868dce35426134e57aa19",
+    "port": 18999,
+    "listenerPresent": true,
+    "historicalAcceptanceEvidence": "GATEWAY_WINDOWS_CANDIDATE_CARRIER_EVIDENCE_R1.json",
+    "linuxBearerConfigured": false,
+    "windowsBearerConfigured": false,
+    "health": 200,
+    "toolCount": 16
+  },
+  "transport": {
+    "windowsToLinuxRuntime": "REACHABLE_AUTH_REQUIRED",
+    "windowsToHost": "REACHABLE_MCP_NEGOTIATION_REQUIRED",
+    "windowsToWindowsRuntime": "REACHABLE_AUTH_REQUIRED"
+  },
+  "r2Implementation": {
+    "baseMain": "bb666c7cace423f3f15a09a7c115a67e2382ca8d",
+    "preCommitHead": "7db79dfe98fe549846a5722b02fbff86bb98a670",
+    "tests": "54/54 PASS",
+    "ruff": "PASS",
+    "installerUncSafeDirectoryFix": "IMPLEMENTED",
+    "credentialMaterializer": "IMPLEMENTED",
+    "candidateDefaultStartMode": "Manual",
+    "head": "ba3de6c25641c88ba16868dce35426134e57aa19",
+    "exactShaReleaseMaterialized": true,
+    "wslOffGatewaySurvived": true,
+    "hostRecoveredWithoutGatewayRestart": true
+  },
+  "securityBoundary": {
+    "linuxBearerCrossBoundary": "BLOCKED_BY_PLATFORM_SAFETY",
+    "policy": "DO_NOT_BYPASS",
+    "windowsBearer": "SOURCE_LOCATED_BUT_MATERIALIZATION_BLOCKED_BY_PLATFORM_SAFETY"
+  }
+}

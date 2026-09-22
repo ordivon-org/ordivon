@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-windows-release-evidence",
+  "truthRole": "mechanical-release-carrier-evidence",
+  "sourceCommit": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+  "packageVersion": "0.3.0",
+  "pythonVersion": "3.14.7",
+  "parserErrors": 0,
+  "releasePath": "C:\\ProgramData\\Ordivon\\GatewayCandidateR1\\releases\\5bd241df24da3259c1c6e3637bf3fc513129e4b9",
+  "gatewayExecutable": "C:\\ProgramData\\Ordivon\\GatewayCandidateR1\\releases\\5bd241df24da3259c1c6e3637bf3fc513129e4b9\\.venv\\Scripts\\ordivon-gateway.exe",
+  "uvSha256": "2019cdf564cb8f749262f5f021cedc75a99abb1c6081227ca340bbcda972611d",
+  "lockSha256": "98f9be66def7ba004a6c99296b6e0651fa985ce12d55e1f5f583c01c8141110b",
+  "pyprojectSha256": "f0fa9e22f757e58eff4629cf4a2ceb068e6e8d8dddbf9f4ee8af1c99dceea2d5",
+  "semanticProbe": {
+    "toolCount": 16,
+    "packageVersion": "0.3.0",
+    "serverVersion": "0.3.0",
+    "matchesExpected": true
+  },
+  "replay": {
+    "releaseCreated": false,
+    "samePath": true
+  },
+  "verdict": "PASS"
+}
