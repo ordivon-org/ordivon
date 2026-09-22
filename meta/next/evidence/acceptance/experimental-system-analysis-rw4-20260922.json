@@ -1,0 +1,39 @@
+{
+  "analysisDigest": "sha256:fbf5b4268f9d8483e5c8e4077c563de5d2301e04bb8218b764c795a0e3d3c2a5",
+  "analysisRef": "meta/next/evidence/analysis/experimental-system-analysis-r1.json",
+  "decision": {
+    "permanentPostgresDeployment": "ELIGIBLE_BUT_NOT_YET_REALIZED",
+    "reason": "RW4 demonstrates real analytical value and also identifies missing study-design evidence. Permanent realization should be Workstation-owned and preserve the same non-authoritative projection boundary.",
+    "rw5DataLifecycleIntegration": "READY",
+    "rw6HoldoutBoundary": "READY"
+  },
+  "effectiveDate": "2026-09-22",
+  "keyFacts": {
+    "assignedInterventionEpisodes": 0,
+    "developmentEpisodes": 0,
+    "harnessEpisodes": 7,
+    "harnessProviderCostCoverageEpisodes": 2,
+    "judgeEpisodes": 0,
+    "populationEpisodes": 10007,
+    "terminalEpisodes": 9999,
+    "terminalUnsuccessfulEpisodes": 1072,
+    "terminalUnsuccessfulRate": 0.1072107210721072
+  },
+  "kind": "ordivon.experimental-system-analysis-rw4-acceptance",
+  "nonClaims": [
+    "DESCRIPTIVE_ONLY is not causal identification.",
+    "PARTIAL_COVERAGE is not complete cost accounting.",
+    "NOT_IDENTIFIED is not evidence of no effect.",
+    "No candidate ranking or promotion decision is produced."
+  ],
+  "results": {
+    "capability": "DESCRIPTIVE_ONLY",
+    "cost": "PARTIAL_COVERAGE",
+    "failure": "DESCRIPTIVE_ONLY",
+    "generalization": "NOT_IDENTIFIED",
+    "intervention": "NOT_IDENTIFIED"
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
+  "standing": "RW4_ACCEPTED_WITH_EXPLICIT_NON_IDENTIFICATION"
+}

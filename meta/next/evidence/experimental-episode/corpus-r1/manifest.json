@@ -1,0 +1,61 @@
+{
+  "asOf": "2026-09-22",
+  "corpusId": "experimental-episode-corpus-r1",
+  "kind": "ordivon.experimental-episode-corpus-manifest",
+  "profiles": [
+    {
+      "artifactBytesObserved": 111214745,
+      "artifactRowsBound": 39998,
+      "episodeIdSetDigest": "sha256:020f83cc7095b6492a702508b00fcb5176ab8ab9b2730b617a0a9b60878388cc",
+      "episodeIdentityCollisions": 0,
+      "eventRowsBound": 79996,
+      "profileId": "runtime-r5c-v1",
+      "projectedEpisodes": 10000,
+      "projectionDigestSetDigest": "sha256:3ab67ed492de20b65fe05b5caf8748d48a70a0d0718d40c1d183c6dc09033490",
+      "replayBytesSha256": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "sourceRuns": 10000,
+      "summaryDigest": "sha256:290302b15c12415ed9b4c0a755b4d570929c4e6329e62f0836034fc94dab44a5"
+    },
+    {
+      "citedRuntimeJobCount": 47,
+      "episodeIdSetDigest": "sha256:7633b8c1d5c650090375e647c77f750e8b560948b2b1538c38799f43a299da2b",
+      "episodeIdentityCollisions": 0,
+      "exactRuntimeJoin": {
+        "declaredRuntimeJobRefs": 47,
+        "missingFromCurrentRegistry": 0,
+        "resolutionDistribution": {
+          "failed": 12,
+          "succeeded": 35
+        },
+        "resolvedInCurrentRegistry": 47,
+        "standing": "PASS_EXACT_RUNTIME_JOB_JOIN"
+      },
+      "measureCount": 36,
+      "profileId": "harness-rsi-acceptance-v1",
+      "projectedEpisodes": 7,
+      "projectionDigestSetDigest": "sha256:932a969151c526180eaf507597133fcbfbdea8302c9c67be1139bc6ab6f70c96",
+      "replayBytesSha256": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "sourceReceipts": 7,
+      "summaryDigest": "sha256:23bbe8e3969af840e11e572ca3b695159b60c27603fc2617ceeda00760ed2624"
+    }
+  ],
+  "projectionAssets": {
+    "harnessAdapter": "meta/next/scripts/experimental_episode_harness_r1.py",
+    "harnessAdapterByteDigest": "sha256:fd9080762d4fc2e094308e6657bebf29ed16b04bba68c4ed1da16769024fc373",
+    "r5SourceQuery": "meta/next/scripts/experimental_episode_r5c_source_r1.sql",
+    "r5SourceQueryByteDigest": "sha256:bfbfd38b962839a5bea7a9a8c24e6241ea4565ee7f1f7c83a8de886e37b368dc",
+    "runtimeAdapter": "meta/next/scripts/experimental_episode_r1.py",
+    "runtimeAdapterByteDigest": "sha256:c33dad088626608777548087f9edb41eb8e3a10993d297fee7d07f525060aa9a",
+    "schema": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+    "schemaByteDigest": "sha256:8709829c155b34af4528b3aaf2eda53c4adc0de948afa9c4559938abe352dbbd"
+  },
+  "requalificationRef": "meta/next/evidence/acceptance/experimental-episode-rw2-replay-requalification-20260922.json",
+  "schemaVersion": 1,
+  "sourceRevision": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
+  "standing": "PASS_RW2_EPISODE_CORPUS_R1",
+  "storageDecision": {
+    "nextEligibleConsumer": "PostgreSQL analytical projection",
+    "storeFullCorpusInGit": false
+  },
+  "truthRole": "replayable-analytical-projection-manifest-not-owner-truth"
+}
