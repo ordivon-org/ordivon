@@ -8,7 +8,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
 DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
-PLUGIN = ROOT / "meta" / "next" / "plugins" / "ordivon-control-plane" / "mcp.json"
+PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
 HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-host-northbound-acceptance-20260922.json"

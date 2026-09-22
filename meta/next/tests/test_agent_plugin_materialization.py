@@ -17,6 +17,11 @@ SPEC.loader.exec_module(MODULE)
 
 
 class AgentPluginMaterializationTests(unittest.TestCase):
+    def test_default_plugin_source_is_repository_extension(self) -> None:
+        expected = ROOT.parents[1] / "extensions" / "ordivon-control-plane"
+        self.assertEqual(MODULE.DEFAULT_PLUGIN, expected)
+        MODULE.validate_plugin_skeleton(MODULE.DEFAULT_PLUGIN)
+
     def _plugin(self, root: Path) -> Path:
         plugin = root / "plugin"
         plugin.mkdir()

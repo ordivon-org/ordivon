@@ -149,9 +149,11 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
             if source_root in REQUIRED_LEGACY_ROOTS:
                 covered_legacy_roots.add(source_root)
             if repo_root is not None and not (repo_root / source.rstrip("/")).exists():
-                raise StructureR2Error(
-                    f"{mapping_id}: current source path does not exist: {source}"
-                )
+                deployed_move = mode == "move" and mapping.get("standing") == "DEPLOYED"
+                if not deployed_move:
+                    raise StructureR2Error(
+                        f"{mapping_id}: current source path does not exist: {source}"
+                    )
 
         for target in target_paths:
             target = _text(target, field=f"{mapping_id}.targetPath")
@@ -167,6 +169,17 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
 
         for task in verify_tasks:
             _text(task, field=f"{mapping_id}.verifyTask")
+
+    if repo_root is not None:
+        for mapping in mappings:
+            if mapping.get("standing") != "DEPLOYED" or mapping.get("mode") != "move":
+                continue
+            for source in mapping.get("sourcePaths", []):
+                if (repo_root / source).exists():
+                    raise StructureR2Error(f"{mapping.get('id')}: deployed move retains source path: {source}")
+            for target in mapping.get("targetPaths", []):
+                if not (repo_root / target).exists():
+                    raise StructureR2Error(f"{mapping.get('id')}: deployed move target missing: {target}")
 
     if status == "partially-deployed":
         composition = next((m for m in mappings if m.get("id") == "composition-mechanics"), None)

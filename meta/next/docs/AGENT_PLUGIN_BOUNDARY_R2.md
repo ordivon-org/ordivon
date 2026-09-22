@@ -361,7 +361,7 @@ Do not put OpenAI app IDs, workspace policy, OAuth secrets or marketplace state 
 Current canonical package:
 
 ```text
-plugins/ordivon-control-plane/
+extensions/ordivon-control-plane/
 ├── plugin.json
 └── mcp.json
 ```

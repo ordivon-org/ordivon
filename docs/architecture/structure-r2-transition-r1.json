@@ -11,7 +11,8 @@
   "deployedSlices": [
     "S0",
     "S1A",
-    "S1B"
+    "S1B",
+    "S2A"
   ],
   "forbiddenSemanticRoots": [
     "services/",
@@ -181,7 +182,7 @@
       "verifyTasks": [
         "skills:verify"
       ],
-      "wave": "S2"
+      "wave": "S2C"
     },
     {
       "id": "artifact",
@@ -314,12 +315,12 @@
       "verifyTasks": [
         "next:verify"
       ],
-      "wave": "S2"
+      "wave": "S2B"
     },
     {
       "id": "control-plugin",
       "mode": "move",
-      "owner": "next",
+      "owner": "control-plugin",
       "semanticTypeClaim": "none",
       "sourcePaths": [
         "meta/next/plugins/ordivon-control-plane/"
@@ -328,9 +329,12 @@
         "extensions/ordivon-control-plane/"
       ],
       "verifyTasks": [
+        "control-plugin:verify",
         "next:verify"
       ],
-      "wave": "S2"
+      "wave": "S2A",
+      "standing": "DEPLOYED",
+      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics."
     },
     {
       "id": "authority-catalog",
@@ -457,7 +461,8 @@
     }
   ],
   "openSlices": [
-    "S2",
+    "S2B",
+    "S2C",
     "S3",
     "S4",
     "S5",
@@ -500,9 +505,19 @@
       "purpose": "cut remaining consumers to public package API and retire facades when safe"
     },
     {
-      "id": "S2",
+      "id": "S2A",
       "movesSource": true,
-      "purpose": "move skill and plugin edges"
+      "purpose": "relocate portable control Plugin to repository extension boundary"
+    },
+    {
+      "id": "S2B",
+      "movesSource": true,
+      "purpose": "relocate canonical Agent Skills to root .agents/skills"
+    },
+    {
+      "id": "S2C",
+      "movesSource": true,
+      "purpose": "relocate ChatGPT Skills MCP compatibility owner to extensions"
     },
     {
       "id": "S3",
