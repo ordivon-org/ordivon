@@ -57,6 +57,7 @@ pub use runtime::{
     RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
     RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
     RuntimeWorkspaceSummary, WindowsAuthority, WindowsExecutionConfig,
+    WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
     WindowsPrivilegedBrokerConfig, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
     CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, LOGICAL_ID_MAX_LENGTH,
     LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_INSPECTION_EVENT_LIMIT, MAX_TASK_TAIL_BYTES,
