@@ -47,13 +47,9 @@ def _validate_windows_private_secret_file(path: Path, label: str) -> None:
         )
 
     try:
-        service_sid = win32security.LookupAccountName(
-            None, rf"NT SERVICE\{service_name}"
-        )[0]
+        service_sid = win32security.LookupAccountName(None, rf"NT SERVICE\{service_name}")[0]
     except Exception as exc:
-        raise OwnerCallError(
-            f"{label} cannot resolve Gateway Windows service identity"
-        ) from exc
+        raise OwnerCallError(f"{label} cannot resolve Gateway Windows service identity") from exc
 
     service_sid_text = win32security.ConvertSidToStringSid(service_sid)
     system_sid_text = "S-1-5-18"
@@ -101,21 +97,13 @@ def _validate_windows_private_secret_file(path: Path, label: str) -> None:
         if ace_flags & 0x10:
             raise OwnerCallError(f"{label} Windows credential has inherited ACE")
         if sid_text not in allowed_sids:
-            raise OwnerCallError(
-                f"{label} Windows credential grants an unexpected principal"
-            )
+            raise OwnerCallError(f"{label} Windows credential grants an unexpected principal")
         seen_sids.add(sid_text)
         if sid_text == service_sid_text:
-            if (
-                access_mask & ntsecuritycon.FILE_GENERIC_READ
-            ) != ntsecuritycon.FILE_GENERIC_READ:
-                raise OwnerCallError(
-                    f"{label} Gateway service SID lacks generic read access"
-                )
+            if (access_mask & ntsecuritycon.FILE_GENERIC_READ) != ntsecuritycon.FILE_GENERIC_READ:
+                raise OwnerCallError(f"{label} Gateway service SID lacks generic read access")
             if access_mask & service_forbidden_mask:
-                raise OwnerCallError(
-                    f"{label} Gateway service SID has write/control access"
-                )
+                raise OwnerCallError(f"{label} Gateway service SID has write/control access")
             service_read = True
 
     if seen_sids != allowed_sids:

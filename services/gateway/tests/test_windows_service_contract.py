@@ -22,7 +22,7 @@ def test_windows_service_materializer_keeps_owner_lifecycle_independent() -> Non
 
 def test_windows_service_materializer_uses_virtual_service_identity_and_exact_release() -> None:
     text = MATERIALIZER.read_text(encoding="utf-8")
-    assert 'NT SERVICE\\$ServiceName' in text
+    assert "NT SERVICE\\$ServiceName" in text
     assert "'sidtype', $ServiceName, 'unrestricted'" in text
     assert "ValidatePattern('^[0-9a-f]{40}$')" in text
     assert "releases" in text
