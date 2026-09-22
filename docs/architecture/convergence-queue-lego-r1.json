@@ -281,10 +281,11 @@
     ],
     "projection": "tools/repo/queue_telemetry.py",
     "baseline": "docs/architecture/evidence/CONVERGENCE_QUEUE_TELEMETRY_BASELINE_R1.json",
-    "observations": 8,
-    "observedPeakQueueDepthLowerBound": 2,
-    "requeues": 0,
-    "unsuccessfulMergeGroupRuns": 0,
-    "observedWastedVerificationSeconds": 0.0
+    "baselineObservations": 8,
+    "baselineObservedPeakQueueDepthLowerBound": 2,
+    "baselineRequeues": 0,
+    "baselineUnsuccessfulMergeGroupRuns": 0,
+    "baselineObservedWastedVerificationSeconds": 0.0,
+    "liveValues": "rebuild from provider; never treated as canonical snapshot state"
   }
 }
