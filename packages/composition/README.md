@@ -9,13 +9,16 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Cognitive Circuit manifest validation and deterministic compilation.
 - Generic verifier-owned Composition Gate result validation/evaluation.
 - Interface compatibility, currentness, and evidence-admissibility evaluation.
+- Deterministic Composition Gate → verification-obligation projection.
+- Exact task-local verifier-binding validation without discovery or ranking.
 - Public JSON Schemas for those contracts.
 
 ## Non-claims
 
 This package is not a planner, scheduler, capability registry, workflow engine, permission
-system, credential store, domain verifier, or truth owner. A mechanically closed circuit
-does not establish domain acceptance.
+system, credential store, domain verifier, verifier registry/ranker, generic verifier
+executor, or truth owner. A mechanically closed circuit or resolved verifier binding does
+not establish domain acceptance.
 
 ## Consumer boundary
 
