@@ -43,6 +43,11 @@ def test_broker_surface_is_capture_plus_elevated_runtime_spawn_not_generic_admin
     assert "broker spawn omitted required Runtime launcher identity" in text
     assert 'Contains(args, "--emit-launcher-start")' in text
     assert "broker spawn requires parent-owned launcher-start evidence" in text
+    assert 'Contains(args, "--payload-privilege")' in text
+    assert 'ContainsPair(args, "--identity", "active_user")' in text
+    assert 'ContainsPair(args, "--payload-privilege", "elevated")' in text
+    assert "broker spawn payload privilege is restricted to active_user elevated Runtime execution" in text
+    assert "broker capture payload privilege is restricted to active_user elevated runtime-context probes" in text
     assert "options.LauncherPath" in text
     assert "ProcessStartInfo" in text
 
