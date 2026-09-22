@@ -99,3 +99,17 @@ def test_windows_service_materializer_never_claims_elevated_profile_without_effe
     assert "builtinAdministratorsMembershipObserved" in text
     assert "acceptance must prove" in text
     assert "Start-Service" not in text
+
+
+def test_windows_runtime_concurrency_policy_is_host_specific():
+    windows_env = ENV.read_text(encoding="utf-8")
+    linux_env = (
+        ROOT / "packaging" / "systemd" / "ordivon-runtime.env.example"
+    ).read_text(encoding="utf-8")
+    registry = (
+        ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "registry.rs"
+    ).read_text(encoding="utf-8")
+
+    assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=12" in windows_env
+    assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=8" in linux_env
+    assert "const WORKSPACE_EXECUTION_LIMIT: u32 = 1;" in registry
