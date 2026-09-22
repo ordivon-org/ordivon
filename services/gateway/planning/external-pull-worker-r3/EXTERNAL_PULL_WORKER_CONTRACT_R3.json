@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.external-pull-worker-contract-r3",
+  "northboundPreserved": [
+    "execution.submit",
+    "execution.resolve",
+    "execution.get",
+    "execution.cancel",
+    "artifact.read",
+    "capability.describe"
+  ],
+  "workerHttp": [
+    {"method":"POST","path":"/v1/workers/enroll","auth":"operator bootstrap bearer","purpose":"register worker public key and capability ceiling"},
+    {"method":"POST","path":"/v1/workers/{worker}/heartbeat","auth":"Ed25519 signed","purpose":"freshness and capability subset"},
+    {"method":"POST","path":"/v1/workers/{worker}/claim","auth":"Ed25519 signed","purpose":"claim at most one queued parcel"},
+    {"method":"POST","path":"/v1/operations/{operation}/started","auth":"Ed25519 signed","purpose":"attempt state"},
+    {"method":"POST","path":"/v1/operations/{operation}/events","auth":"Ed25519 signed","purpose":"idempotent attempt evidence"},
+    {"method":"POST","path":"/v1/operations/{operation}/artifacts","auth":"Ed25519 signed","purpose":"idempotent artifact upload"},
+    {"method":"POST","path":"/v1/operations/{operation}/complete","auth":"Ed25519 signed","purpose":"terminal success/failure by exit code"},
+    {"method":"POST","path":"/v1/operations/{operation}/fail","auth":"Ed25519 signed","purpose":"terminal non-zero failure"}
+  ],
+  "signature": {
+    "algorithm": "Ed25519",
+    "canonicalFields": [
+      "worker_id",
+      "generation",
+      "timestamp_ms",
+      "nonce",
+      "HTTP method",
+      "canonical path",
+      "sha256 canonical JSON body"
+    ],
+    "replayFence": "durable per-worker nonce",
+    "generationFence": true,
+    "revocationFence": true
+  },
+  "lease": {
+    "truthRole": "transport-mechanics-only",
+    "oneActiveAttemptPerOperation": true,
+    "expiryRequeues": true,
+    "staleAttemptCommitRejected": true,
+    "duplicateTerminalReplay": "idempotent only for identical terminal digest"
+  }
+}

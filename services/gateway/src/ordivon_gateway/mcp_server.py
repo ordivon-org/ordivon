@@ -32,8 +32,10 @@ from .contracts import (
     ExecutionResolution,
     SystemDescription,
 )
+from .external_worker import ExternalPullWorkerTransport
 from .service import GatewayService
 from .upstream import McpOwnerCaller
+from .worker_http import attach_worker_routes
 
 
 def build_server(service: GatewayService | None = None) -> MCPServer:
@@ -239,6 +241,8 @@ def build_http_app(
     public_origin: str | None,
     access_verifier: CloudflareAccessVerifier | None,
     local_bearer_token_file: str | None = None,
+    external_workers: ExternalPullWorkerTransport | None = None,
+    worker_enrollment_token_file: str | None = None,
 ):
     allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
     allowed_origins = [
@@ -285,6 +289,12 @@ def build_http_app(
         )
 
     app.add_route("/health", health, methods=["GET"])
+    if external_workers is not None:
+        attach_worker_routes(
+            app,
+            external_workers,
+            enrollment_token_file=worker_enrollment_token_file,
+        )
     if access_verifier is not None or local_bearer_token_file is not None:
         return CloudflareAccessMiddleware(
             app,
@@ -296,7 +306,14 @@ def build_http_app(
 
 
 def main() -> None:
-    server = build_server()
+    external_worker_db = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB")
+    external_workers = (
+        ExternalPullWorkerTransport(external_worker_db.strip())
+        if external_worker_db and external_worker_db.strip()
+        else None
+    )
+    gateway = GatewayService(McpOwnerCaller.from_env(), external_workers=external_workers)
+    server = build_server(gateway)
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
     if transport == "stdio":
         server.run()
@@ -324,6 +341,10 @@ def main() -> None:
         public_origin=public_origin,
         access_verifier=access_verifier,
         local_bearer_token_file=local_bearer_token_file,
+        external_workers=external_workers,
+        worker_enrollment_token_file=(
+            os.environ.get("ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE") or None
+        ),
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

@@ -24,3 +24,18 @@ The default external Plugin connects only to Gateway. Gateway exposes normal Hos
 Gateway intentionally does not expose host.status; owner administration and Doctor remain direct-owner recovery/admin concerns.
 
 Checkpoint payloads are opaque objects at the Gateway boundary. Host validates the current WorkingCheckpoint schema; Gateway does not maintain a second Host checkpoint ontology.
+
+## External pull workers (candidate R3)
+
+Gateway can optionally enable the provider-neutral external pull-worker transport by setting
+ORDIVON_GATEWAY_EXTERNAL_WORKER_DB to a durable SQLite path. When enabled, enrolled workers
+contribute their current operator-bounded capabilities to the normal Gateway capability
+projection and execution.submit/get/cancel plus artifact.read remain the northbound API.
+
+Worker HTTP routes live under /v1/workers/* and /v1/operations/*. Runtime requests are
+Ed25519 signed and replay-fenced. Enrollment is disabled unless
+ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE is configured.
+
+This transport is execution-delivery mechanics only. It does not close Admission Fabric
+AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
+grant shell workers browser authority.

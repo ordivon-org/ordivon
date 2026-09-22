@@ -27,6 +27,7 @@ from .contracts import (
     OwnerDescriptor,
     SystemDescription,
 )
+from .external_worker import ExternalPullWorkerTransport, WorkerConflict
 from .routes import CapabilityRoute, default_routes
 from .upstream import OwnerToolCaller
 
@@ -39,6 +40,7 @@ _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",
     "runtime.windows": "physical execution owner",
     "host": "external semantic continuity owner",
+    "external.pull": "provider-neutral outbound pull execution transport",
 }
 
 
@@ -62,7 +64,7 @@ def _parse_execution_ref(value: str) -> tuple[str, str]:
         owner_id, native_id = rest.rsplit(":", 1)
     except ValueError as exc:
         raise GatewayError("invalid execution operationRef") from exc
-    if owner_id not in {"runtime.linux", "runtime.windows"} or not native_id:
+    if owner_id not in {"runtime.linux", "runtime.windows", "external.pull"} or not native_id:
         raise GatewayError("unsupported execution operationRef owner")
     return owner_id, native_id
 
@@ -105,31 +107,47 @@ class GatewayService:
         self,
         caller: OwnerToolCaller,
         routes: dict[str, CapabilityRoute] | None = None,
+        *,
+        external_workers: ExternalPullWorkerTransport | None = None,
     ) -> None:
         self._caller = caller
         self._routes = routes or default_routes()
+        self._external_workers = external_workers
 
     def system_describe(self) -> SystemDescription:
         owners = [
             OwnerDescriptor(
                 owner_id=owner_id,
                 role=role,
-                configured=_configured(self._caller, owner_id),
+                configured=(
+                    self._external_workers is not None
+                    if owner_id == "external.pull"
+                    else _configured(self._caller, owner_id)
+                ),
             )
             for owner_id, role in _OWNER_ROLES.items()
+            if owner_id != "external.pull" or self._external_workers is not None
         ]
+        capabilities = set(self._routes)
+        if self._external_workers is not None:
+            capabilities.update(self._external_workers.capability_projection())
         return SystemDescription(
             gateway_version=package_version("ordivon-gateway"),
             owners=owners,
-            capabilities=sorted(self._routes),
+            capabilities=sorted(capabilities),
         )
 
     async def capability_describe(self, capability: str | None = None) -> CapabilityProjection:
+        external_projection = (
+            self._external_workers.capability_projection()
+            if self._external_workers is not None
+            else {}
+        )
         if capability is not None:
             route = self._routes.get(capability)
-            if route is None:
+            if route is None and capability not in external_projection:
                 raise GatewayError(f"unknown capability: {capability}")
-            selected = [route]
+            selected = [route] if route is not None else []
         else:
             selected = [self._routes[key] for key in sorted(self._routes)]
 
@@ -323,6 +341,31 @@ class GatewayService:
                 )
             )
 
+        external_keys = (
+            [capability]
+            if capability is not None and capability in external_projection
+            else sorted(external_projection)
+            if capability is None
+            else []
+        )
+        for external_capability in external_keys:
+            nodes = external_projection[external_capability]
+            values.append(
+                CapabilityDescriptor(
+                    capability=external_capability,
+                    owner_id="external.pull",
+                    category="execution",
+                    configured=True,
+                    available=bool(nodes),
+                    context_mode="none",
+                    owner_node_ids=nodes,
+                    truth_boundary=(
+                        "External worker transport owns queue/lease/attempt delivery mechanics only; "
+                        "workers do not acquire Task ownership or domain authority."
+                    ),
+                )
+            )
+
         payload = [value.model_dump(mode="json") for value in values]
         digest = (
             "sha256:"
@@ -355,6 +398,42 @@ class GatewayService:
         authority_references: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
         route = self._routes.get(capability)
+        if route is None and self._external_workers is not None:
+            external_projection = self._external_workers.capability_projection()
+            if capability in external_projection:
+                if not request_id or not workspace_id or not executable:
+                    raise GatewayError("requestId, workspaceId, and executable are required")
+                parcel: dict[str, Any] = {
+                    "workspace_id": workspace_id,
+                    "executable": executable,
+                    "args": list(args),
+                    "cwd_relative": cwd_relative,
+                }
+                if context is not None:
+                    parcel["context"] = context
+                if env is not None:
+                    parcel["env"] = dict(env)
+                if timeout_ms is not None:
+                    parcel["timeout_ms"] = timeout_ms
+                if authority_references is not None:
+                    parcel["authority_references"] = [dict(item) for item in authority_references]
+                try:
+                    operation = self._external_workers.submit(
+                        capability=capability,
+                        request_id=request_id,
+                        parcel=parcel,
+                    )
+                except WorkerConflict as exc:
+                    raise GatewayError(str(exc)) from exc
+                return ExecutionReceipt(
+                    operation_ref=_execution_ref("external.pull", operation.operation_id),
+                    capability=capability,
+                    owner_id="external.pull",
+                    native_id=operation.operation_id,
+                    state=operation.state,
+                    terminal=operation.terminal,
+                    delivery_disposition="queued" if not operation.terminal else "committed",
+                )
         if route is None:
             raise GatewayError(f"unknown capability: {capability}")
         if route.category != "execution" or route.owner_tool != "workspace.exec":
@@ -416,6 +495,23 @@ class GatewayService:
 
     async def execution_resolve(self, *, capability: str, request_id: str) -> ExecutionResolution:
         route = self._routes.get(capability)
+        if route is None and self._external_workers is not None:
+            operation = self._external_workers.resolve(capability, request_id)
+            if operation is None:
+                return ExecutionResolution(
+                    request_id=request_id,
+                    capability=capability,
+                    owner_id="external.pull",
+                    resolution="absent",
+                )
+            return ExecutionResolution(
+                request_id=request_id,
+                capability=capability,
+                owner_id="external.pull",
+                resolution="found",
+                operation_ref=_execution_ref("external.pull", operation.operation_id),
+                native_id=operation.operation_id,
+            )
         if route is None:
             raise GatewayError(f"unknown capability: {capability}")
         if route.category != "execution" or route.owner_tool != "workspace.exec":
@@ -467,6 +563,35 @@ class GatewayService:
         self, operation_ref: str, *, event_limit: int = 10, wait_ms: int = 0
     ) -> ExecutionObservation:
         owner_id, native_id = _parse_execution_ref(operation_ref)
+        if owner_id == "external.pull":
+            if self._external_workers is None:
+                raise GatewayError("external pull worker transport is not configured")
+            try:
+                operation = self._external_workers.get(native_id)
+            except WorkerConflict as exc:
+                raise GatewayError(str(exc)) from exc
+            return ExecutionObservation(
+                operation_ref=operation_ref,
+                capability=operation.capability,
+                owner_id=owner_id,
+                native_id=native_id,
+                state=operation.state,
+                terminal=operation.terminal,
+                delivery_disposition="committed" if operation.terminal else "in_progress",
+                execution_disposition=(
+                    "succeeded"
+                    if operation.terminal and operation.exit_code == 0
+                    else "failed"
+                    if operation.terminal and operation.exit_code is not None
+                    else None
+                ),
+                exit_code=operation.exit_code,
+                recovery_required=False,
+                artifacts_available=bool(operation.artifact_ids),
+                artifact_count=len(operation.artifact_ids),
+                artifact_ids=operation.artifact_ids,
+                artifact_projection_complete=True,
+            )
         # eventLimit is retained on the northbound surface for connector compatibility.
         # Runtime's execution observation authority is job.observe; Gateway does not
         # project the job.get event timeline, so forwarding eventLimit would add no truth.
@@ -588,6 +713,22 @@ class GatewayService:
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
         owner_id, native_id = _parse_execution_ref(operation_ref)
+        if owner_id == "external.pull":
+            if self._external_workers is None:
+                raise GatewayError("external pull worker transport is not configured")
+            try:
+                operation = self._external_workers.cancel(native_id)
+            except WorkerConflict as exc:
+                raise GatewayError(str(exc)) from exc
+            return ExecutionReceipt(
+                operation_ref=operation_ref,
+                capability=operation.capability,
+                owner_id=owner_id,
+                native_id=native_id,
+                state=operation.state,
+                terminal=operation.terminal,
+                delivery_disposition="committed" if operation.terminal else "in_progress",
+            )
         result = await self._caller.call_tool(
             owner_id,
             "job.cancel",
@@ -618,6 +759,26 @@ class GatewayService:
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
         owner_id, native_id = _parse_execution_ref(operation_ref)
+        if owner_id == "external.pull":
+            if self._external_workers is None:
+                raise GatewayError("external pull worker transport is not configured")
+            try:
+                result = self._external_workers.read_artifact(
+                    native_id, artifact_id, offset=offset, max_bytes=max_bytes
+                )
+            except WorkerConflict as exc:
+                raise GatewayError(str(exc)) from exc
+            return ArtifactChunk(
+                operation_ref=operation_ref,
+                owner_id=owner_id,
+                native_id=native_id,
+                artifact_id=artifact_id,
+                offset=int(result["offset"]),
+                next_offset=int(result["next_offset"]),
+                eof=bool(result["eof"]),
+                digest=str(result["digest"]),
+                content=str(result["content"]),
+            )
         result = await self._caller.call_tool(
             owner_id,
             "artifact.read",
