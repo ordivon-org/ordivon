@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.experimental-episode-r1-acceptance",
+  "effectiveDate": "2026-09-22",
+  "truthRole": "analytical-projection-acceptance-not-owner-truth",
+  "baseRevision": "411b3bc56769f8bb78d3e3318a73ef04add5e5ad",
+  "standing": "PASS_RW2",
+  "architecture": {
+    "commonCore": [
+      "profileId",
+      "episodeId",
+      "dataClass",
+      "anchor",
+      "ownerRefs",
+      "evidenceBindings",
+      "dimensions",
+      "measures",
+      "unresolved",
+      "nonClaims",
+      "projectionDigest"
+    ],
+    "identityLaw": "episodeId identifies the stable analytical episode; projectionDigest identifies the exact current projection.",
+    "authorityLaw": "Owner-native evidence remains authoritative. Experimental Episode is a derived non-authoritative analytical projection.",
+    "sensitiveDataLaw": "Projection is deny-by-default and does not copy owner credentials, tokens, raw Runtime workspace snapshots, raw execution plans, raw event payloads, or artifact bytes."
+  },
+  "r5cHistoricalDogfood": {
+    "source": "ordivon_r5_pilot.r5c",
+    "sourceRuns": 10000,
+    "projectedEpisodes": 10000,
+    "episodeIdentityCollisions": 0,
+    "eventRowsBound": 79996,
+    "artifactRowsBound": 39998,
+    "artifactBytesObserved": 111214745,
+    "executionStateDistribution": {
+      "cancelled": 17,
+      "failed": 955,
+      "running": 1,
+      "succeeded": 8927,
+      "timed_out": 100
+    },
+    "resolutionDistribution": {
+      "<null>": 1,
+      "cancelled": 17,
+      "failed": 955,
+      "succeeded": 8927,
+      "timed_out": 100
+    },
+    "standing": "PASS_EXACT_ONE_EPISODE_PER_SOURCE_RUN",
+    "summaryDigest": "sha256:9e0001af6d302f32d6f5c86fc25e685c85a6ef1593b9ce92d1876586dcdf2d5d",
+    "episodeIdSetDigest": "sha256:020f83cc7095b6492a702508b00fcb5176ab8ab9b2730b617a0a9b60878388cc",
+    "projectionDigestSetDigest": "sha256:fd45d9e6d6832c3aa26bbf9274da353139a30e8d789ba115dc2496632ec13d8c",
+    "sourceRecordDigestSetDigest": "sha256:3a7d8e44b5fa190f8ad7d6f69a311e1ccc75ae114d2134e7d6befb32a1638430",
+    "sourceRunIdSetDigest": "sha256:e8b4f4c4ca9621ee73e8cc562d7f198b2a536cb8e0778fa4202fa2db5e5d0e3e",
+    "independentSqlDifferential": "PASS"
+  },
+  "harnessRsiDogfood": {
+    "sourceReceipts": 7,
+    "projectedEpisodes": 7,
+    "episodeIdentityCollisions": 0,
+    "citedRuntimeJobCount": 47,
+    "measureCount": 36,
+    "statusDistribution": {
+      "accepted": 6,
+      "falsified": 1
+    },
+    "standing": "PASS_HARNESS_RSI_EPISODE_PROJECTION",
+    "summaryDigest": "sha256:23bbe8e3969af840e11e572ca3b695159b60c27603fc2617ceeda00760ed2624",
+    "episodeIdSetDigest": "sha256:7633b8c1d5c650090375e647c77f750e8b560948b2b1538c38799f43a299da2b",
+    "projectionDigestSetDigest": "sha256:932a969151c526180eaf507597133fcbfbdea8302c9c67be1139bc6ab6f70c96",
+    "citedRuntimeJobSetDigest": "sha256:9ee272d494c7b53a5311f6b7dacbb896a3cfcde930ec16e834baac354f883779"
+  },
+  "runtimeHarnessExactJoin": {
+    "sourceReceiptCount": 7,
+    "declaredRuntimeJobRefs": 47,
+    "resolvedInCurrentRegistry": 47,
+    "missingFromCurrentRegistry": 0,
+    "resolutionDistribution": {
+      "failed": 12,
+      "succeeded": 35
+    },
+    "standing": "PASS_EXACT_RUNTIME_JOB_JOIN",
+    "evidenceDigest": "sha256:473bce52b4b380a0225296e3afc989fd01d4a34c267633f25ab271f1dcb603b0",
+    "identityBoundary": "Exact owner IDs only. No timestamp, name, path, or semantic fuzzy joins."
+  },
+  "verification": {
+    "focusedTests": {
+      "suite": [
+        "meta/next/tests/test_experimental_episode_r1.py",
+        "meta/next/tests/test_experimental_episode_harness_r1.py"
+      ],
+      "passed": 14,
+      "standing": "PASS",
+      "jobId": "job-01a0c8d7-e23a-7421-bcf2-e43e17d44613",
+      "operationDigest": "sha256:05625406dda0efb113bd843c65732e46c401d6dbb6e19f6b83f177da9d481892"
+    },
+    "nextVerify": {
+      "standing": "PASS",
+      "command": "mise run //:next:verify",
+      "jobId": "job-01a0c8d8-0158-75f3-80a9-cc3dd55ad0d4",
+      "operationDigest": "sha256:55dcc7f7e9eeaf47a543d7f74acb3ec9e13e2c1b6d5269ec50ed4ab488508a2d"
+    },
+    "repoCi": {
+      "standing": "PASS",
+      "command": "mise run //:repo:ci",
+      "jobId": "job-01a0c8d8-7f0f-7371-a05b-6947724257be",
+      "operationDigest": "sha256:1d889708b7876caa84d32aa49d6fb0f693af943b98fdef04260030fc2bd8669f"
+    },
+    "latestMainRequalification": {
+      "standing": "PASS",
+      "baseRevision": "411b3bc56769f8bb78d3e3318a73ef04add5e5ad",
+      "sourceCandidateCommit": "90285269fa5fbe8806693921b2f60ad86ec3af71",
+      "replayMode": "cherry-pick-no-commit",
+      "conflictCount": 0,
+      "focusedTests": {
+        "passed": 14,
+        "jobId": "job-01a0c8da-9df4-70b2-8b97-1ce9a866f933",
+        "operationDigest": "sha256:b9957d0a78f76ffc8426b3b68cebe0c872cccd4769c797fc1b72d12629a7dfca"
+      },
+      "nextVerify": {
+        "standing": "PASS",
+        "jobId": "job-01a0c8da-c248-7440-8aa6-4c4bfae66b79",
+        "operationDigest": "sha256:1c782ea40953969ae3d5b94e766aa4998f4ced73886c9654ff14e3c38a4e9295"
+      },
+      "repoCi": {
+        "standing": "PASS",
+        "jobId": "job-01a0c8db-0f1d-7341-841d-ad67516f2f34",
+        "operationDigest": "sha256:369e4fa64a9da94d99723df95b2042042d0c8cb6d9edb4d404273ca4d8d98d97"
+      }
+    }
+  },
+  "postgresAdmission": "ADMITTED_FOR_RW3_DESIGN_AND_IMPLEMENTATION_AFTER_INTEGRATION",
+  "nonClaims": [
+    "Experimental Episode does not own Runtime, Harness, Host, artifact, Git, or domain truth.",
+    "Runtime resolution or Harness acceptance status is not promoted into cross-domain semantic success.",
+    "This acceptance does not establish a universal experiment database, evaluator, scheduler, fitness score, or RSI controller.",
+    "PostgreSQL experimental persistence is not admitted by this artifact.",
+    "RW2 acceptance admits only the Episode analytical projection; RW3 must still design PostgreSQL persistence without becoming owner truth."
+  ]
+}
