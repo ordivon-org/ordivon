@@ -205,7 +205,7 @@
       "kind": "service_carrier",
       "responsibility": "Run Gateway candidate as independent Windows SCM service without owner dependencies.",
       "authority": "Workstation",
-      "state": "NEEDS_REVALIDATION",
+      "state": "VERIFIED",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": [
@@ -240,7 +240,7 @@
       "kind": "security",
       "responsibility": "Carry owner credential file references on Windows with startup ACL verification; never inline secrets.",
       "authority": "Security",
-      "state": "IN_PROGRESS",
+      "state": "BLOCKED",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": [
@@ -256,7 +256,7 @@
       "kind": "configuration",
       "responsibility": "Translate existing ORDIVON_GATEWAY_* contract to Windows non-secret config/environment carrier.",
       "authority": "Gateway deployment",
-      "state": "NEEDS_REVALIDATION",
+      "state": "VERIFIED",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": [
@@ -274,7 +274,7 @@
       "kind": "adapter",
       "responsibility": "Route runtime.windows to local native Windows Runtime over loopback with owner authentication.",
       "authority": "Gateway",
-      "state": "READY",
+      "state": "BLOCKED",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": []
@@ -296,7 +296,7 @@
       "kind": "adapter",
       "responsibility": "Route host through existing Windows-to-WSL localhost forwarding; fail scoped when Host/WSL is down.",
       "authority": "Gateway",
-      "state": "READY",
+      "state": "VERIFIED",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": []
@@ -307,7 +307,7 @@
       "kind": "projection",
       "responsibility": "Keep Gateway alive while capability.describe reports per-owner availability/errors.",
       "authority": "Gateway",
-      "state": "READY",
+      "state": "VERIFIED",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": []
@@ -362,7 +362,7 @@
       "kind": "experimental_verifier",
       "responsibility": "Inject owner, WSL, Gateway and ingress faults and prove scoped degradation.",
       "authority": "V&V",
-      "state": "BLOCKED",
+      "state": "IN_PROGRESS",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": []
@@ -373,7 +373,7 @@
       "kind": "experimental_verifier",
       "responsibility": "Prove SCM start/stop/restart/crash/cold-boot/ACL/release identity.",
       "authority": "V&V",
-      "state": "BLOCKED",
+      "state": "IN_PROGRESS",
       "dependencies": [],
       "mustNotOwn": [],
       "acceptance": []
@@ -560,7 +560,7 @@
     {
       "id": "GW2",
       "objective": "Materialize least-privilege Windows Gateway candidate.",
-      "status": "IN_PROGRESS",
+      "status": "PARTIAL_BLOCKED",
       "nodeIds": [
         "GW07",
         "GW08",
@@ -571,8 +571,7 @@
         "Candidate service runs on non-production port with protected credentials and no owner lifecycle dependency."
       ],
       "blockers": [
-        "R2 exact-SHA candidate has not yet been rematerialized and started.",
-        "Linux Runtime credential secure handoff remains unresolved."
+        "GW09 credential materialization is blocked by platform safety; do not bypass."
       ]
     },
     {
@@ -588,13 +587,13 @@
         "Windows, Linux and Host owner failures are independently observable."
       ],
       "blockers": [
-        "GW12 Linux Runtime credential handoff"
+        "GW11/GW12 Runtime credential handoff"
       ]
     },
     {
       "id": "GW4",
       "objective": "Prove degraded capability projection and artifact routing.",
-      "status": "BLOCKED",
+      "status": "PARTIAL",
       "nodeIds": [
         "GW14",
         "GW15"
@@ -603,7 +602,7 @@
         "Gateway remains available when any owner is unavailable."
       ],
       "blockers": [
-        "GW3"
+        "GW15 artifact route requires at least one authenticated Runtime owner"
       ]
     },
     {
@@ -625,7 +624,7 @@
     {
       "id": "GW6",
       "objective": "Destructively prove independence and lifecycle recovery.",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "nodeIds": [
         "GW19",
         "GW20"
@@ -634,7 +633,7 @@
         "WSL-off test leaves Gateway + Windows Runtime usable; WSL return restores Linux/Host without Gateway restart."
       ],
       "blockers": [
-        "GW5"
+        "Authenticated Windows Runtime survival and cold-boot/crash acceptance remain."
       ]
     },
     {
@@ -654,11 +653,11 @@
     }
   ],
   "gaps": [
-    "Current Windows candidate SCM instance is a historical R1 materialization and must be rematerialized from the R2 exact implementation SHA.",
-    "Linux Runtime bearer cannot be copied across the WSL/Windows boundary by this agent path; the safety boundary must not be bypassed.",
-    "ChatGPT connector exposes a stale 9-tool catalog while source and deployed Gateway each expose 16 tools.",
+    "GW09/GW11 Windows Runtime bearer materialization is blocked by platform safety in the current agent path; do not bypass.",
+    "GW12 Linux Runtime bearer requires an approved secure operator-owned cross-boundary handoff.",
+    "ChatGPT connector exposes a stale 9-tool catalog while source/candidate expose 16 tools.",
     "Public Cloudflare auth/ingress is not yet attached to the Windows candidate.",
-    "Destructive WSL-off and cold-boot acceptance are not yet rerun on the R2 candidate."
+    "Cold-boot/crash acceptance and authenticated artifact/execution routes remain open."
   ],
   "doNotOwn": [
     "Runtime Job/Attempt/Workspace/Artifact truth",
@@ -674,7 +673,7 @@
   "review": {
     "sourceRevision": "bb666c7cace423f3f15a09a7c115a67e2382ca8d",
     "updatedAt": "2026-09-22",
-    "standing": "R2_PRE_REMATERIALIZATION",
-    "notes": "R1 Windows carrier commit replayed cleanly onto current main. R2 regression is 54/54 PASS and ruff PASS. Production Gateway v0.3.0 and deployed bytes expose 16 tools; ChatGPT connector remains stale at 9. Existing CandidateR1 is stopped on historical 5bd release. Windows Runtime credential path is known and can be handed to Gateway without exposing bytes; Linux Runtime credential cross-boundary read was blocked by platform safety and is intentionally not bypassed."
+    "standing": "R2_LIVE_CANDIDATE_WSL_INDEPENDENCE_PROVEN_AUTH_BLOCKED",
+    "notes": "R2 exact SHA ba3de6c2 materialized and live on Windows :18999 in Manual mode. 54/54 tests and ruff pass. Candidate survives WSLService stop with unchanged PID and health 200; Host availability drops and returns after WSL recovery without Gateway restart. Runtime routes remain auth-blocked; current tool path must not bypass credential safety."
   }
 }
