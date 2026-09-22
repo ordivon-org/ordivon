@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.cognitive_circuit_r1 import compile_manifest
+from ordivon_composition import compile_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 

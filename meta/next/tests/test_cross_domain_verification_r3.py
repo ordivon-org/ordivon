@@ -6,13 +6,13 @@ import tomllib
 from pathlib import Path
 
 import pytest
-
-from scripts.cognitive_circuit_r1 import (
+from ordivon_composition import (
     CircuitContractError,
     canonical_digest,
     evaluate_gate_results,
     validate_manifest,
 )
+
 from scripts.cross_domain_binding_r3 import (
     load_binding,
     resolve_repo_file,

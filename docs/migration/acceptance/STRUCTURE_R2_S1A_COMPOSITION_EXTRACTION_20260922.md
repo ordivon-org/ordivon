@@ -1,7 +1,7 @@
 # Structure R2 S1A — Composition Extraction Acceptance
 
 Date: 2026-09-22
-Status: **ACCEPTED CANDIDATE — requires main integration/post-merge verification**
+Status: **ACCEPTED / POST-MERGE VERIFIED**
 
 ## Scope
 
@@ -45,8 +45,12 @@ Candidate evidence:
 - owner-boundary unit tests — PASS.
 - owner-boundary scan — PASS at 1,936 active files / 18 seams / 23 references.
 - full root `mise run repo:ci` — PASS.
-- post-merge verification remains required before S1A becomes current main truth.
+- integrated through serialized main helper as merge commit `76614e0b81cd9fd340c858ed448ee01e4c3de7f5`.
+- post-merge `composition:verify`, `next:verify`, and root `repo:ci` — PASS.
+- post-merge owner-boundary scan — PASS at 1,954 active files / 18 seams / 23 references.
 
-## Remaining S1B
+## S1B handoff
 
-S1B remains open. It may migrate remaining Next consumers directly to the public package API and retire compatibility facades only after consumer inventory proves they are unnecessary. Facade retirement is not required merely for directory aesthetics.
+Post-merge consumer inventory established that the two historical facade paths had no external
+path callers; only `meta/next` internal scripts/tests still imported them. S1B therefore owns
+that bounded consumer cutover and facade retirement.

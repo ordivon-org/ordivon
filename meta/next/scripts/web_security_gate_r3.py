@@ -14,21 +14,16 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from ordivon_composition import (
+    CircuitContractError,
+    canonical_digest,
+    compile_manifest,
+    validate_gate_result,
+)
+
 try:
-    from scripts.cognitive_circuit_r1 import (
-        CircuitContractError,
-        canonical_digest,
-        compile_manifest,
-        validate_gate_result,
-    )
     from scripts.cross_domain_binding_r3 import resolve_repo_file, validate_binding
 except ModuleNotFoundError:
-    from cognitive_circuit_r1 import (
-        CircuitContractError,
-        canonical_digest,
-        compile_manifest,
-        validate_gate_result,
-    )
     from cross_domain_binding_r3 import resolve_repo_file, validate_binding
 
 

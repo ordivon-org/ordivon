@@ -5,15 +5,14 @@ import json
 from pathlib import Path
 
 import pytest
-
-from scripts.cognitive_circuit_r1 import (
+from ordivon_composition import (
     CircuitContractError,
     canonical_digest,
     compile_manifest,
     evaluate_gate_results,
+    evaluate_interface,
     validate_manifest,
 )
-from scripts.interface_contract_r2 import evaluate_interface
 
 ROOT = Path(__file__).resolve().parents[1]
 DOGFOOD = (
