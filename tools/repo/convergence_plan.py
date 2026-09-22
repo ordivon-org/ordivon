@@ -30,12 +30,14 @@ def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_dependency_graph(
+def load_dependency_policy(
     owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
     path: Path = DEPENDENCY_PATH,
-) -> dict[str, set[str]]:
+) -> tuple[dict[str, set[str]], dict[str, set[str]], tuple[tuple[str, str], ...]]:
     names = {owner.name for owner in owners}
     graph = {name: set() for name in names}
+    observers = {name: set() for name in names}
+    observation_edges: set[tuple[str, str]] = set()
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     if data.get("schema_version") != 1:
         raise ValueError("dependency contract schema_version must be 1")
@@ -53,8 +55,27 @@ def load_dependency_graph(
             raise ValueError(f"dependency seam {index} references unknown owner: {left!r}->{right!r}")
         if left == right:
             raise ValueError(f"dependency seam {index} must cross owner boundaries")
-        graph[left].add(right)
-        graph[right].add(left)
+        convergence = seam.get("convergence", "interaction")
+        if convergence == "interaction":
+            graph[left].add(right)
+            graph[right].add(left)
+        elif convergence == "observe":
+            # from_owner is the verifier/observer; a direct change in to_owner
+            # adds the observer's native verification without joining components.
+            observers[right].add(left)
+            observation_edges.add((left, right))
+        else:
+            raise ValueError(
+                f"dependency seam {index} has invalid convergence mode: {convergence!r}"
+            )
+    return graph, observers, tuple(sorted(observation_edges))
+
+
+def load_dependency_graph(
+    owners: tuple[affected_owners.Owner, ...] = affected_owners.OWNERS,
+    path: Path = DEPENDENCY_PATH,
+) -> dict[str, set[str]]:
+    graph, _, _ = load_dependency_policy(owners=owners, path=path)
     return graph
 
 
@@ -107,14 +128,23 @@ def build_plan(
     direct = affected_owners.owners_for_paths(paths)
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
-    graph = load_dependency_graph(owners=owners, path=dependency_path)
+    graph, observers, observation_edges = load_dependency_policy(
+        owners=owners, path=dependency_path
+    )
 
+    observer_verification_names: tuple[str, ...] = ()
     if cross_cutting:
         verification_names = tuple(sorted(owner.name for owner in owners))
         scope_ids = ("owner-component:ALL",)
         queue_class = "CROSS_CUTTING"
     elif direct_names:
-        verification_names = connected_closure(direct_names, graph)
+        interaction_names = connected_closure(direct_names, graph)
+        observer_verification_names = tuple(
+            sorted({observer for name in direct_names for observer in observers[name]})
+        )
+        verification_names = tuple(
+            sorted(set(interaction_names) | set(observer_verification_names))
+        )
         scope_ids = tuple(
             sorted(
                 {
@@ -154,11 +184,13 @@ def build_plan(
         "verifyTasks": list(verify_tasks),
         "scopeIds": list(scope_ids),
         "crossCutting": cross_cutting,
-        "dependencyStanding": "CONSERVATIVE_UNDIRECTED_CLOSURE_OF_DECLARED_OWNER_SEAMS",
+        "dependencyStanding": "CONSERVATIVE_INTERACTION_CLOSURE_PLUS_DIRECT_OBSERVERS",
+        "observerVerificationOwners": list(observer_verification_names),
         "independenceClaim": "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         "ownerManifestDigest": _digest(affected_owners.MANIFEST_PATH),
         "dependencyContractDigest": _digest(dependency_path),
         "declaredInteractionEdges": [list(edge) for edge in declared_edges],
+        "declaredObservationEdges": [list(edge) for edge in observation_edges],
     }
 
 
