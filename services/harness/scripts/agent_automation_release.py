@@ -94,6 +94,16 @@ RELEASE_PATHS = (
     "scripts/sqlite_conversation_binding.py",
     "scripts/sqlite_wake_turn_map.py",
     "scripts/standard_identifiers.py",
+    "scripts/windows_user_browser_materialization_target.py",
+    "scripts/windows_user_browser_chatgpt.ps1",
+    "src/anc_canonical",
+    "src/ordivon_harness/__init__.py",
+    "src/ordivon_harness/version.py",
+    "src/ordivon_harness/ordivon/__init__.py",
+    "src/ordivon_harness/ordivon/tool_errors.py",
+    "src/ordivon_harness/mcp_http_client.py",
+    "src/ordivon_harness/gateway_execution_port.py",
+    "src/ordivon_harness/user_browser_gateway.py",
     "systemd/ordivon-agent-automation-mcp.service",
     "systemd/ordivon-agent-temporal-worker.service",
     "systemd/ordivon-cft-human-session@.target",
@@ -113,6 +123,8 @@ GATE_SCHEMA_VERSION = 2
 WORKER_RUNTIME_VERSIONS = {
     "temporalio": "1.32.0",
     "rfc8785": "0.1.4",
+    "mcp": "2.2.0",
+    "httpx": "0.28.1",
 }
 PLAYWRIGHT_RUNTIME_VERSIONS = {
     "playwright": "1.63.0",
@@ -668,14 +680,16 @@ def require_operator_carrier_available() -> None:
 
 def require_worker_runtime_importable(release: Path) -> None:
     scripts = release / "scripts"
+    source = release / "src"
     code = (
         "import sys,json,importlib.metadata as m;"
-        "sys.path.insert(0,sys.argv[1]);"
-        "import temporal_agent_automation;"
-        "names=['temporalio','rfc8785'];"
+        "sys.path.insert(0,sys.argv[1]);sys.path.insert(0,sys.argv[2]);"
+        "import temporal_agent_automation,windows_user_browser_materialization_target;"
+        "import ordivon_harness.mcp_http_client,ordivon_harness.gateway_execution_port,ordivon_harness.user_browser_gateway;"
+        "names=['temporalio','rfc8785','mcp','httpx'];"
         "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
     )
-    p = run([str(WORKER_PY), "-c", code, str(scripts)], check=False, timeout=30)
+    p = run([str(WORKER_PY), "-c", code, str(scripts), str(source)], check=False, timeout=30)
     if p.returncode != 0:
         detail = (p.stderr or p.stdout or "").strip().replace("\n", " ")[-1200:]
         raise ReleaseError(

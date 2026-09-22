@@ -238,6 +238,7 @@ def build_http_app(
     path: str,
     public_origin: str | None,
     access_verifier: CloudflareAccessVerifier | None,
+    local_bearer_token_file: str | None = None,
 ):
     allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
     allowed_origins = [
@@ -284,11 +285,12 @@ def build_http_app(
         )
 
     app.add_route("/health", health, methods=["GET"])
-    if access_verifier is not None:
+    if access_verifier is not None or local_bearer_token_file is not None:
         return CloudflareAccessMiddleware(
             app,
             access_verifier,
             protected_path_prefix=path,
+            local_bearer_token_file=local_bearer_token_file,
         )
     return app
 
@@ -312,12 +314,16 @@ def main() -> None:
 
     public_origin = os.environ.get("ORDIVON_GATEWAY_PUBLIC_ORIGIN")
     access_verifier = _access_verifier_from_env()
+    local_bearer_token_file = os.environ.get("ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE")
+    if local_bearer_token_file is not None:
+        local_bearer_token_file = local_bearer_token_file.strip() or None
     app = build_http_app(
         server,
         host=host,
         path=path,
         public_origin=public_origin,
         access_verifier=access_verifier,
+        local_bearer_token_file=local_bearer_token_file,
     )
     uvicorn.run(app, host=host, port=port, log_level="info")
 

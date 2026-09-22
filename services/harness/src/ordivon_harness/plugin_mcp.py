@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass
-from typing import Any, Protocol
 
-from anc_canonical import JsonValue, canonical_digest, validate_json_value
+from anc_canonical import JsonValue, canonical_digest
 from .agent_plugin import AgentPluginMcpComponent
 from .agent_tool_observation import HarnessToolObservation
 from .ordivon.model import AgentToolCall, AgentToolDefinition
 from .ordivon.tool_errors import ToolBridgeError, ToolBridgeErrorKind
+from .mcp_http_client import HarnessMcpClient, OfficialMcpClient
 
 OBSERVATION_ONLY_GATEWAY_TOOLS = frozenset(
     {
@@ -19,106 +17,6 @@ OBSERVATION_ONLY_GATEWAY_TOOLS = frozenset(
     }
 )
 
-
-class HarnessMcpClient(Protocol):
-    def list_tools(self) -> tuple[dict[str, JsonValue], ...]: ...
-
-    def call_tool(
-        self, name: str, arguments: dict[str, JsonValue]
-    ) -> tuple[bool, dict[str, JsonValue]]: ...
-
-
-@dataclass(slots=True)
-class OfficialMcpClient:
-    """Synchronous Harness port over the official MCP v2 async Client.
-
-    Authentication is supplied by the embedding application as an httpx-compatible
-    Auth object (for example MCP's OAuthClientProvider). Harness does not copy or
-    reinterpret OAuth tokens.
-    """
-
-    component: AgentPluginMcpComponent
-    auth: Any | None = None
-    headers: dict[str, str] | None = None
-    timeout_seconds: float = 30.0
-
-    def _run(self, coroutine):
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(coroutine)
-        raise RuntimeError(
-            "OfficialMcpClient synchronous port cannot run inside an active event loop"
-        )
-
-    @staticmethod
-    def _sdk():
-        try:
-            from mcp import Client
-            from mcp.client.streamable_http import (
-                create_mcp_http_client,
-                streamable_http_client,
-            )
-        except ImportError as exc:
-            raise RuntimeError(
-                "OfficialMcpClient requires the standard MCP adapter; install ordivon-harness[mcp]"
-            ) from exc
-        return Client, create_mcp_http_client, streamable_http_client
-
-    async def _list_tools(self) -> tuple[dict[str, JsonValue], ...]:
-        Client, create_mcp_http_client, streamable_http_client = self._sdk()
-        async with create_mcp_http_client(
-            headers=self.headers,
-            auth=self.auth,
-        ) as http_client:
-            transport = streamable_http_client(self.component.url, http_client=http_client)
-            async with Client(
-                transport,
-                mode="auto",
-                raise_exceptions=False,
-                read_timeout_seconds=self.timeout_seconds,
-            ) as client:
-                result = await client.list_tools()
-        values: list[dict[str, JsonValue]] = []
-        for tool in result.tools:
-            value = tool.model_dump(mode="json", by_alias=True, exclude_none=True)
-            validate_json_value(value)
-            values.append(value)
-        return tuple(values)
-
-    def list_tools(self) -> tuple[dict[str, JsonValue], ...]:
-        return self._run(self._list_tools())
-
-    async def _call_tool(
-        self, name: str, arguments: dict[str, JsonValue]
-    ) -> tuple[bool, dict[str, JsonValue]]:
-        Client, create_mcp_http_client, streamable_http_client = self._sdk()
-        async with create_mcp_http_client(
-            headers=self.headers,
-            auth=self.auth,
-        ) as http_client:
-            transport = streamable_http_client(self.component.url, http_client=http_client)
-            async with Client(
-                transport,
-                mode="auto",
-                raise_exceptions=False,
-                read_timeout_seconds=self.timeout_seconds,
-            ) as client:
-                result = await client.call_tool(name, arguments)
-        content = result.structured_content
-        if not isinstance(content, dict):
-            raise ToolBridgeError(
-                f"MCP Tool {name} omitted structured object content",
-                kind=ToolBridgeErrorKind.PROTOCOL_INVALID,
-            )
-        validate_json_value(content)
-        return bool(result.is_error), dict(content)
-
-    def call_tool(
-        self, name: str, arguments: dict[str, JsonValue]
-    ) -> tuple[bool, dict[str, JsonValue]]:
-        validate_json_value(arguments)
-        return self._run(self._call_tool(name, arguments))
 
 
 class PluginMcpObservationBridge:

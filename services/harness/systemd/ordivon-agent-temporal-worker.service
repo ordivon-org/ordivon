@@ -6,8 +6,11 @@ After=temporal.service
 [Service]
 Type=simple
 User=root
+LoadCredential=gateway-local-bearer:/etc/ordivon/gateway/local-client-bearer
+Environment=ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE=%d/gateway-local-bearer
 WorkingDirectory=/opt/ordivon/agent-automation/current
 Environment=OTEL_SERVICE_NAME=ordivon-agent-temporal-worker
+Environment=PYTHONPATH=/opt/ordivon/agent-automation/current/src
 Environment=OTEL_RESOURCE_ATTRIBUTES=service.namespace=ordivon,service.instance.id=9300397b-60de-542b-a69a-fc18221d1e69,deployment.environment.name=production
 ExecStart=/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python /opt/ordivon/agent-automation/current/scripts/temporal_agent_automation_worker.py --config /etc/ordivon/agent-automation-browserless.json --address 127.0.0.1:17233 --namespace default --task-queue ordivon-agent-automation
 Restart=on-failure
@@ -17,6 +20,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ReadWritePaths=/root/.local/state/ordivon-workstation/agent-automation/state
+ReadWritePaths=/mnt/c/ProgramData/Ordivon/chat-ingress
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectKernelLogs=true

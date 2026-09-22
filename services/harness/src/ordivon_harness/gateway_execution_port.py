@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from anc_canonical import JsonValue, validate_json_value
 
-from .plugin_mcp import HarnessMcpClient
+from .mcp_http_client import HarnessMcpClient
 
 
 class GatewayExecutionError(RuntimeError):

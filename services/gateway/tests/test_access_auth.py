@@ -123,3 +123,40 @@ def test_middleware_rejects_missing_assertion_and_projects_verified_identity() -
 
     # Health is intentionally not a business-authority path.
     assert asyncio.run(call([], path="/health")) == 204
+
+def test_loopback_bearer_is_authenticated_without_weakening_remote_cloudflare(tmp_path) -> None:
+    credential = tmp_path / 'gateway-local-bearer'
+    credential.write_text('x' * 64, encoding='utf-8')
+    credential.chmod(0o600)
+    seen: list[dict[str, Any]] = []
+
+    async def app(scope, receive, send):
+        seen.append(scope)
+        await send({'type': 'http.response.start', 'status': 204, 'headers': []})
+        await send({'type': 'http.response.body', 'body': b''})
+
+    class NeverCloudflare:
+        def verify_identity(self, token: str):
+            raise AssertionError('local service identity must not invoke Cloudflare verification')
+
+    middleware = CloudflareAccessMiddleware(
+        app, NeverCloudflare(), local_bearer_token_file=str(credential)
+    )
+
+    async def call(client_host: str, token: str) -> int:
+        messages: list[dict[str, Any]] = []
+        async def receive():
+            return {'type': 'http.request', 'body': b'', 'more_body': False}
+        async def send(message):
+            messages.append(message)
+        await middleware(
+            {'type':'http','path':'/mcp','method':'POST','headers':[(b'authorization', f'Bearer {token}'.encode())],'state':{},'client':(client_host,12345)},
+            receive, send
+        )
+        return next(m['status'] for m in messages if m['type']=='http.response.start')
+
+    assert asyncio.run(call('127.0.0.1', 'x' * 64)) == 204
+    assert seen[-1]['state']['ordivon_access_principal'] == 'principal:local-service:harness'
+    assert seen[-1]['state']['ordivon_access_issuer'] == 'ordivon-local-service'
+    assert asyncio.run(call('192.0.2.10', 'x' * 64)) == 403
+    assert asyncio.run(call('127.0.0.1', 'wrong' * 16)) == 403

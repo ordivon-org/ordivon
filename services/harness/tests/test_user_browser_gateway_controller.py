@@ -141,3 +141,12 @@ def test_classify_driver_does_not_require_effect_identity_parameters():
     assert '[Parameter(Mandatory=$true)][string]$RequestDigest' not in script
     assert "if($Mode -ne 'classify'" in script
     assert 'EffectId and RequestDigest are required outside classify mode' in script
+
+
+def test_windows_driver_canonicalizes_chrome_omnibox_coordinate_and_waits_for_stable_binding():
+    script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
+    assert 'function Get-CanonicalChatResource' in script
+    assert "(?:https://)?chatgpt\\.com/c/" in script
+    assert "return 'https://chatgpt.com/c/' + $Matches[1]" in script
+    assert '$deadline=(Get-Date).AddSeconds(90)' in script
+    assert '$resource=Get-CanonicalChatResource $url' in script

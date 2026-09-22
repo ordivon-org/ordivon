@@ -2150,3 +2150,59 @@ class BrowserlessAutomationServiceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WindowsUserBrowserCarrierTests(unittest.TestCase):
+    def test_config_admits_explicit_windows_user_browser_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            raw['windowsUserBrowser'] = {
+                'gatewayUrl': 'http://127.0.0.1:8899/mcp',
+                'workspaceId': 'ws-user-browser-prod-r1',
+                'powershellPath': r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
+                'driverPath': r'C:\ProgramData\Ordivon\chat-ingress\windows_user_browser_chatgpt.ps1',
+                'proxyUrl': 'http://127.0.0.1:19081',
+                'linuxStageRoot': '/mnt/c/ProgramData/Ordivon/chat-ingress',
+                'windowsStageRoot': r'C:\ProgramData\Ordivon\chat-ingress',
+                'timeoutMs': 90000,
+            }
+            cfg = BrowserlessAutomationConfig.from_dict(raw)
+            self.assertEqual(cfg.windows_user_browser.workspace_id, 'ws-user-browser-prod-r1')
+            self.assertEqual(cfg.windows_user_browser.gateway_url, 'http://127.0.0.1:8899/mcp')
+
+    def test_user_browser_materialize_reuses_existing_effect_ledger(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            raw = config(root)
+            raw['windowsUserBrowser'] = {
+                'gatewayUrl': 'http://127.0.0.1:8899/mcp',
+                'workspaceId': 'ws-user-browser-prod-r1',
+                'powershellPath': r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe',
+                'driverPath': r'C:\ProgramData\Ordivon\chat-ingress\windows_user_browser_chatgpt.ps1',
+                'proxyUrl': 'http://127.0.0.1:19081',
+                'linuxStageRoot': '/mnt/c/ProgramData/Ordivon/chat-ingress',
+                'windowsStageRoot': r'C:\ProgramData\Ordivon\chat-ingress',
+                'timeoutMs': 90000,
+            }
+            sp = root / 'spec.json'
+            sp.write_text(json.dumps(spec()))
+            effects = BrowserlessEffectAdapter(BrowserlessAutomationConfig.from_dict(raw))
+
+            class Target:
+                def materialize(self, request):
+                    return TargetMaterializationObservation(
+                        standing=MaterializationStanding.BOUND,
+                        provider_conversation_coordinate='https://chatgpt.com/c/user-browser-canary',
+                        evidence_digest='sha256:' + '7' * 64,
+                        detail='fake user browser bound',
+                    )
+                def reconcile(self, request):
+                    raise AssertionError
+
+            with mock.patch.object(effects, '_user_browser_target', return_value=Target()):
+                result = effects.materialize_user_browser(sp, 'A01')
+            self.assertEqual(result['kind'], 'ordivon.user-browser-materialization')
+            self.assertEqual(result['receipt']['standing'], 'bound')
+            self.assertTrue(effects.config.ledger.is_file())
+            self.assertFalse(list((root / 'state' / 'materializations').glob('*/carrier-binding.json')))

@@ -173,3 +173,34 @@ def test_modern_conversation_modules_are_carried_by_immutable_release() -> None:
         "scripts/sqlite_wake_turn_map.py",
     }
     assert required <= set(release.RELEASE_PATHS)
+
+
+def test_user_browser_release_contains_internal_gateway_client_closure():
+    import agent_automation_release as release
+    required = {
+        'src/anc_canonical',
+        'src/ordivon_harness/__init__.py',
+        'src/ordivon_harness/version.py',
+        'src/ordivon_harness/ordivon/__init__.py',
+        'src/ordivon_harness/ordivon/tool_errors.py',
+        'src/ordivon_harness/mcp_http_client.py',
+        'src/ordivon_harness/gateway_execution_port.py',
+        'src/ordivon_harness/user_browser_gateway.py',
+        'scripts/windows_user_browser_materialization_target.py',
+        'scripts/windows_user_browser_chatgpt.ps1',
+    }
+    assert required <= set(release.RELEASE_PATHS)
+    assert release.WORKER_RUNTIME_VERSIONS['mcp'] == '2.2.0'
+    assert release.WORKER_RUNTIME_VERSIONS['httpx'] == '0.28.1'
+
+
+def test_temporal_worker_dependency_contract_includes_official_mcp_client():
+    root = Path(__file__).resolve().parents[1]
+    deps = (root / 'config' / 'agent-automation-temporal-requirements.txt').read_text().splitlines()
+    assert 'mcp==2.2.0' in deps
+    assert 'httpx==0.28.1' in deps
+    unit = (root / 'systemd' / 'ordivon-agent-temporal-worker.service').read_text()
+    assert 'PYTHONPATH=/opt/ordivon/agent-automation/current/src' in unit
+    assert 'ReadWritePaths=/mnt/c/ProgramData/Ordivon/chat-ingress' in unit
+    assert 'LoadCredential=gateway-local-bearer:/etc/ordivon/gateway/local-client-bearer' in unit
+    assert 'ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE=%d/gateway-local-bearer' in unit

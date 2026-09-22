@@ -81,6 +81,15 @@ function Get-AddressValue($Root) {
     } catch { return $null }
 }
 
+function Get-CanonicalChatResource([string]$Address) {
+    if([string]::IsNullOrWhiteSpace($Address)){return $null}
+    $value=$Address.Trim()
+    if($value -match '^(?:https://)?chatgpt\.com/c/([^/?#\s]+)'){
+        return 'https://chatgpt.com/c/' + $Matches[1]
+    }
+    return $null
+}
+
 if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
     if($Mode -eq 'classify'){
         Emit-Classification 'UNKNOWN' 'normal Chrome executable unavailable'
@@ -242,12 +251,12 @@ try {
     $send.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
     $resource=$null
     $composerCleared=$false
-    $deadline=(Get-Date).AddSeconds(20)
+    $deadline=(Get-Date).AddSeconds(90)
     while((Get-Date) -lt $deadline){
         Start-Sleep -Milliseconds 500
         $root=Get-Root $browser
         $url=Get-AddressValue $root
-        if($url -match '^https://chatgpt\.com/c/[^/?#]+'){$resource=$Matches[0]}
+        $resource=Get-CanonicalChatResource $url
         $current=Get-EditById $root 'prompt-textarea'
         if($null -ne $current){
             try {

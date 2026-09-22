@@ -112,6 +112,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=agent_id,
                 effect_id=materializations[agent_id].request_id,
+                carrier=a.carrier,
             )
             for agent_id in requested_ids
         ]
@@ -147,6 +148,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=a.agent_id,
                 effect_id=materialization.request_id,
+                carrier=a.carrier,
             ),
             workflow_id=workflow_id,
             task_queue=a.task_queue,
@@ -170,6 +172,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=a.agent_id,
                 effect_id=materialization.request_id,
+                carrier=a.carrier,
             ),
             workflow_id=retry_id,
             task_queue=a.task_queue,
@@ -198,6 +201,7 @@ async def run(a) -> None:
                 spec_path=str(a.spec.resolve()),
                 agent_id=a.agent_id,
                 effect_id=materialization.request_id,
+                carrier=a.carrier,
             ),
             workflow_id=workflow_id,
             task_queue=a.task_queue,
@@ -300,6 +304,11 @@ p.add_argument(
     default="campaign-materialize",
 )
 p.add_argument("--agent-id")
+p.add_argument(
+    "--carrier",
+    choices=("browserless", "windows-user-browser"),
+    default="browserless",
+)
 p.add_argument("--campaign-ref")
 p.add_argument("--campaign-agent-id", action="append", default=[])
 p.add_argument("--prompt-file", type=Path)

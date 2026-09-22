@@ -128,3 +128,23 @@ def test_trace_export_enabler_requires_live_local_observability_and_is_fixed_pat
     assert "systemctl restart ordivon-gateway.service" in text
     assert "http://127.0.0.1:8899/health" in text
     assert "$1" not in text
+
+LOCAL_SERVICE = ROOT / 'systemd' / 'ordivon-gateway.service.d' / '10-local-service-identity.example.conf'
+
+def test_local_service_identity_is_optional_loadcredential_not_loopback_trust() -> None:
+    text = LOCAL_SERVICE.read_text(encoding='utf-8')
+    assert 'LoadCredential=local-client-bearer:/etc/ordivon/gateway/local-client-bearer' in text
+    assert 'ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE=%d/local-client-bearer' in text
+    assert 'TRUST_LOOPBACK' not in text
+
+LOCAL_SERVICE_ENABLER = ROOT / 'packaging' / 'enable_local_service_identity.sh'
+
+def test_local_service_identity_enabler_generates_private_credential_without_printing_it() -> None:
+    text = LOCAL_SERVICE_ENABLER.read_text(encoding='utf-8')
+    assert 'openssl rand -hex 32 > "$CREDENTIAL"' in text
+    assert 'umask 077' in text
+    assert 'root:root' in text
+    assert "'600'" in text and "'400'" in text
+    assert 'systemctl restart ordivon-gateway.service' in text
+    assert 'http://127.0.0.1:8899/health' in text
+    assert 'cat "$CREDENTIAL"' not in text

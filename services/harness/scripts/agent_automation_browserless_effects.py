@@ -14,6 +14,13 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from ordivon_harness.gateway_execution_port import GatewayExecutionPort
+from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
+from ordivon_harness.user_browser_gateway import (
+    UserBrowserGatewayConfig,
+    UserBrowserGatewayController,
+)
+
 try:
     from agent_automation_browserless import (
         BrowserlessAutomationConfig,
@@ -28,6 +35,7 @@ try:
     from chatgpt_provider_resource import canonical_chatgpt_resource
     from campaign_materialization import campaign_census
     from sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from windows_user_browser_materialization_target import WindowsUserBrowserMaterializationTarget
     from cft_human_session import DurableSessionAuthority, resolve_session
     from cft_human_materialization import (
         CftAuthenticatedSendTarget,
@@ -48,6 +56,7 @@ except ModuleNotFoundError:
     from scripts.chatgpt_provider_resource import canonical_chatgpt_resource
     from scripts.campaign_materialization import campaign_census
     from scripts.sqlite_conversation_materializer import SQLiteConversationMaterializer
+    from scripts.windows_user_browser_materialization_target import WindowsUserBrowserMaterializationTarget
     from scripts.cft_human_session import DurableSessionAuthority, resolve_session
     from scripts.cft_human_materialization import (
         CftAuthenticatedSendTarget,
@@ -92,6 +101,121 @@ class BrowserlessEffectAdapter:
             human_handoff_mode=self.config.human_handoff_mode,
             session_timeout_ms=self.config.browser_session_timeout_ms,
         )
+
+    def _user_browser_target(self):
+        cfg = self.config.windows_user_browser
+        if cfg is None:
+            raise BrowserlessAutomationHold("Windows user-browser carrier is not configured")
+        bearer_path = os.environ.get("ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE", "").strip()
+        if not bearer_path:
+            raise BrowserlessAutomationHold("Gateway local service credential is not injected")
+        client = OfficialMcpClient(
+            LoopbackMcpEndpoint(cfg.gateway_url),
+            bearer_token_file=Path(bearer_path),
+            timeout_seconds=max(1.0, cfg.timeout_ms / 1000),
+        )
+        controller = UserBrowserGatewayController(
+            GatewayExecutionPort(client, max_observations=20, wait_ms=30_000),
+            UserBrowserGatewayConfig(
+                workspace_id=cfg.workspace_id,
+                powershell_path=cfg.powershell_path,
+                driver_path=cfg.driver_path,
+                proxy_url=cfg.proxy_url,
+                linux_stage_root=str(cfg.linux_stage_root),
+                windows_stage_root=cfg.windows_stage_root,
+                timeout_ms=cfg.timeout_ms,
+            ),
+        )
+        return WindowsUserBrowserMaterializationTarget(
+            state_dir=cfg.linux_stage_root,
+            controller=controller,
+        )
+
+    @staticmethod
+    def _user_browser_receipt(receipt) -> dict:
+        return {
+            "standing": receipt.standing.value,
+            "providerResource": (
+                canonical_chatgpt_resource(receipt.provider_conversation_coordinate)
+                if receipt.provider_conversation_coordinate
+                else None
+            ),
+            "evidenceDigest": receipt.evidence_digest,
+            "detail": receipt.detail,
+            "receiptDigest": receipt.receipt_digest,
+        }
+
+    def materialize_user_browser(self, spec_path: Path, agent_id: str) -> dict:
+        spec = self.context.load_spec(spec_path)
+        request = self.context._materialization(spec, agent_id)
+        census = campaign_census(spec, self.config.ledger)
+        row = next(item for item in census["materializations"] if item["agentId"] == agent_id)
+        standing = row.get("materializationStanding")
+        if standing in {"bound", "ready-confirmed"}:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.user-browser-materialization",
+                "action": "existing-terminal",
+                "agentId": agent_id,
+                "effectId": request.request_id,
+                "materialization": row,
+                "census": census,
+            }
+        if standing == "human-required":
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.user-browser-materialization",
+                "action": "existing-human-required-no-blind-resume",
+                "agentId": agent_id,
+                "effectId": request.request_id,
+                "safeToResend": False,
+                "materialization": row,
+                "census": census,
+            }
+        if standing in {"unknown", "submit-observed"}:
+            return self.reconcile_user_browser(spec_path, agent_id)
+        receipt = SQLiteConversationMaterializer(
+            self.config.ledger, self._user_browser_target()
+        ).materialize(request)
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.user-browser-materialization",
+            "action": "materialize",
+            "agentId": agent_id,
+            "effectId": request.request_id,
+            "receipt": self._user_browser_receipt(receipt),
+            "census": campaign_census(spec, self.config.ledger),
+        }
+
+    def reconcile_user_browser(self, spec_path: Path, agent_id: str) -> dict:
+        spec = self.context.load_spec(spec_path)
+        request = self.context._materialization(spec, agent_id)
+        census = campaign_census(spec, self.config.ledger)
+        row = next(item for item in census["materializations"] if item["agentId"] == agent_id)
+        if row.get("materializationStanding") not in {"unknown", "submit-observed"}:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.user-browser-reconcile",
+                "action": "existing-non-ambiguous-standing",
+                "agentId": agent_id,
+                "effectId": request.request_id,
+                "safeToResend": False,
+                "materialization": row,
+                "census": census,
+            }
+        receipt = SQLiteConversationMaterializer(
+            self.config.ledger, self._user_browser_target()
+        ).reconcile(request)
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.user-browser-reconcile",
+            "action": "reconcile-existing-effect",
+            "agentId": agent_id,
+            "effectId": request.request_id,
+            "safeToResend": False,
+            "receipt": self._user_browser_receipt(receipt),
+            "census": campaign_census(spec, self.config.ledger),
+        }
 
     def materialize(
         self,

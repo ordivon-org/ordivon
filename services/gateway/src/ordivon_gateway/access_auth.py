@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import hmac
 import logging
+import stat
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import jwt
@@ -16,6 +19,22 @@ logger = logging.getLogger("ordivon_gateway.access_auth")
 
 class AccessAuthError(RuntimeError):
     pass
+
+
+def _read_private_token_file(path_text: str) -> str:
+    path = Path(path_text)
+    if not path.is_absolute() or path.is_symlink():
+        raise AccessAuthError("local service bearer path must be one absolute non-symlink file")
+    info = path.stat()
+    if not stat.S_ISREG(info.st_mode) or info.st_size > 16_384:
+        raise AccessAuthError("local service bearer file is invalid")
+    mode = stat.S_IMODE(info.st_mode)
+    if mode & 0o007 or mode & 0o030:
+        raise AccessAuthError("local service bearer file permissions are too broad")
+    token = path.read_text(encoding="utf-8").strip()
+    if len(token) < 32 or any(ch.isspace() for ch in token):
+        raise AccessAuthError("local service bearer token is invalid")
+    return token
 
 
 @dataclass(frozen=True)
@@ -109,10 +128,12 @@ class CloudflareAccessMiddleware:
         verifier: Any,
         *,
         protected_path_prefix: str = "/mcp",
+        local_bearer_token_file: str | None = None,
     ) -> None:
         self._app = app
         self._verifier = verifier
         self._protected_path_prefix = protected_path_prefix
+        self._local_bearer_token_file = local_bearer_token_file
 
     async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope.get("type") != "http" or not str(scope.get("path", "")).startswith(
@@ -125,6 +146,19 @@ class CloudflareAccessMiddleware:
             key.decode("latin-1").lower(): value.decode("latin-1")
             for key, value in scope.get("headers", [])
         }
+        authorization = headers.get("authorization", "")
+        client = scope.get("client")
+        client_host = client[0] if isinstance(client, (tuple, list)) and client else None
+        if self._local_bearer_token_file and client_host in {"127.0.0.1", "::1"}:
+            expected = _read_private_token_file(self._local_bearer_token_file)
+            supplied = authorization[7:] if authorization.startswith("Bearer ") else ""
+            if supplied and hmac.compare_digest(supplied, expected):
+                state = scope.setdefault("state", {})
+                state["ordivon_access_principal"] = "principal:local-service:harness"
+                state["ordivon_access_issuer"] = "ordivon-local-service"
+                await self._app(scope, receive, send)
+                return
+
         assertion = headers.get("cf-access-jwt-assertion")
         if not assertion:
             logger.warning(

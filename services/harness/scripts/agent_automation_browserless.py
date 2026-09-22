@@ -159,6 +159,72 @@ def _project_public_handoff_url(public_origin: str, local_url: str) -> str:
 
 
 @dataclass(frozen=True, slots=True)
+class WindowsUserBrowserAutomationConfig:
+    gateway_url: str
+    workspace_id: str
+    powershell_path: str
+    driver_path: str
+    proxy_url: str
+    linux_stage_root: Path
+    windows_stage_root: str
+    timeout_ms: int = 150_000
+
+    def __post_init__(self) -> None:
+        parsed = urllib.parse.urlsplit(self.gateway_url)
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname != "127.0.0.1"
+            or parsed.port is None
+            or parsed.path != "/mcp"
+            or parsed.query
+            or parsed.fragment
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise ValueError(
+                "windowsUserBrowser.gatewayUrl must be exact loopback HTTP /mcp"
+            )
+        for value, label in (
+            (self.workspace_id, "workspaceId"),
+            (self.powershell_path, "powershellPath"),
+            (self.driver_path, "driverPath"),
+            (self.proxy_url, "proxyUrl"),
+            (self.windows_stage_root, "windowsStageRoot"),
+        ):
+            if not isinstance(value, str) or not value or value != value.strip():
+                raise ValueError(f"windowsUserBrowser.{label} must be non-empty and trimmed")
+        proxy = urllib.parse.urlsplit(self.proxy_url)
+        if (
+            proxy.scheme != "http"
+            or proxy.hostname != "127.0.0.1"
+            or proxy.port is None
+            or proxy.path not in {"", "/"}
+            or proxy.query
+            or proxy.fragment
+        ):
+            raise ValueError("windowsUserBrowser.proxyUrl must be loopback HTTP")
+        if not self.linux_stage_root.is_absolute():
+            raise ValueError("windowsUserBrowser.linuxStageRoot must be absolute")
+        if type(self.timeout_ms) is not int or not 1 <= self.timeout_ms <= 900_000:
+            raise ValueError("windowsUserBrowser.timeoutMs must be between 1 and 900000")
+
+    @classmethod
+    def from_dict(cls, value: dict) -> "WindowsUserBrowserAutomationConfig":
+        if not isinstance(value, dict):
+            raise ValueError("windowsUserBrowser must be an object")
+        return cls(
+            gateway_url=str(value["gatewayUrl"]),
+            workspace_id=str(value["workspaceId"]),
+            powershell_path=str(value["powershellPath"]),
+            driver_path=str(value["driverPath"]),
+            proxy_url=str(value["proxyUrl"]),
+            linux_stage_root=_abs(value["linuxStageRoot"]),
+            windows_stage_root=str(value["windowsStageRoot"]),
+            timeout_ms=int(value.get("timeoutMs", 150_000)),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class BrowserlessAutomationConfig:
     state_root: Path
     browserless_pool: BrowserlessPool
@@ -184,6 +250,7 @@ class BrowserlessAutomationConfig:
     browserless_idle_ttl_seconds: int = 900
     browserless_warm_endpoint_ids: tuple[str, ...] = ()
     browserless_human_public_origins: dict[str, str] | None = None
+    windows_user_browser: WindowsUserBrowserAutomationConfig | None = None
 
     def __post_init__(self) -> None:
         if self.human_handoff_mode not in {"self-hosted-vnc", "live-url"}:
@@ -268,6 +335,11 @@ class BrowserlessAutomationConfig:
             browserless_idle_ttl_seconds=int(value.get("browserlessIdleTtlSeconds", 900)),
             browserless_warm_endpoint_ids=tuple(warm),
             browserless_human_public_origins=dict(public_origins),
+            windows_user_browser=(
+                WindowsUserBrowserAutomationConfig.from_dict(value["windowsUserBrowser"])
+                if value.get("windowsUserBrowser") is not None
+                else None
+            ),
         )
 
     @property
@@ -449,6 +521,26 @@ def _carrier_lease(config: BrowserlessAutomationConfig, endpoint_id: str, *, blo
             fcntl.flock(handle.fileno(), operation)
         except BlockingIOError as error:
             raise BrowserlessCarrierBusy(f"Browserless carrier busy: {endpoint_id}") from error
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _user_browser_carrier_lease(
+    config: BrowserlessAutomationConfig, *, blocking: bool
+):
+    """Serialize the single Normal-Chrome user-browser carrier across processes."""
+    lock_root = config.state_root / "carrier-leases"
+    lock_root.mkdir(parents=True, exist_ok=True)
+    path = lock_root / "windows-user-browser.lock"
+    with path.open("a+") as handle:
+        operation = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
+        try:
+            fcntl.flock(handle.fileno(), operation)
+        except BlockingIOError as error:
+            raise BrowserlessCarrierBusy("Windows user-browser carrier busy") from error
         try:
             yield
         finally:

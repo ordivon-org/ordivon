@@ -159,7 +159,12 @@ class TemporalAgentAutomationContractTests(unittest.TestCase):
     def test_temporal_sdk_is_pinned(self):
         self.assertEqual(
             (ROOT / "config/agent-automation-temporal-requirements.txt").read_text().splitlines(),
-            ["temporalio==1.32.0", "rfc8785==0.1.4"],
+            [
+                "temporalio==1.32.0",
+                "rfc8785==0.1.4",
+                "mcp==2.2.0",
+                "httpx==0.28.1",
+            ],
         )
 
 
@@ -186,3 +191,19 @@ class TemporalCampaignParentStandardTests(unittest.TestCase):
         self.assertNotIn("asyncio.gather(", campaign)
         self.assertIn("CAMPAIGN_MATERIALIZE_WORKFLOW", campaign)
         self.assertIn("campaign_ref", campaign)
+
+
+class ExplicitMaterializationCarrierTests(unittest.TestCase):
+    def test_materialization_input_freezes_explicit_carrier(self):
+        text = (ROOT / 'scripts/temporal_agent_automation.py').read_text()
+        self.assertIn('carrier: str = "browserless"', text)
+        self.assertIn('{"browserless", "windows-user-browser"}', text)
+        self.assertNotIn('"automatic-failover"', text)
+
+    def test_windows_user_browser_is_explicit_not_browserless_failover(self):
+        text = (ROOT / 'scripts/temporal_agent_automation.py').read_text()
+        self.assertIn('value.carrier == "windows-user-browser"', text)
+        self.assertIn('materialize_user_browser(', text)
+        launcher = (ROOT / 'scripts/temporal_agent_automation_launch.py').read_text()
+        self.assertIn('--carrier', launcher)
+        self.assertIn('choices=("browserless", "windows-user-browser")', launcher)

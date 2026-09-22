@@ -28,6 +28,7 @@ with workflow.unsafe.imports_passed_through():
         diagnose_provider_preflight,
         _carrier_lease,
         _conversation_session_lease,
+        _user_browser_carrier_lease,
         _read_json,
     )
     from agent_automation_browserless_effects import BrowserlessEffectAdapter
@@ -50,6 +51,11 @@ class MaterializationInput:
     spec_path: str
     agent_id: str
     effect_id: str
+    carrier: str = "browserless"
+
+    def __post_init__(self) -> None:
+        if self.carrier not in {"browserless", "windows-user-browser"}:
+            raise ValueError("materialization carrier must be browserless or windows-user-browser")
 
 
 @dataclass(frozen=True)
@@ -150,7 +156,35 @@ class BrowserlessActivities:
         )
 
     def _run_materialization_failover(self, value: MaterializationInput) -> dict:
-        # New/proven-pre-effect Materializations may move only across physically/provider-unavailable carriers.
+        if value.carrier == "windows-user-browser":
+            candidate = self._current_config()
+            if candidate.windows_user_browser is None:
+                raise BrowserlessAutomationHold("Windows user-browser carrier is not configured")
+            context = BrowserlessAutomationService(candidate)
+            spec = context.load_spec(Path(value.spec_path))
+            request = context._materialization(spec, value.agent_id)
+            if request.request_id != value.effect_id:
+                raise RuntimeError(
+                    "Temporal user-browser input effect identity differs from registered campaign bytes"
+                )
+            with self._endpoint_lock("windows-user-browser"):
+                with _user_browser_carrier_lease(candidate, blocking=True):
+                    current = self._current_config()
+                    if current.windows_user_browser is None:
+                        raise BrowserlessAutomationHold(
+                            "Windows user-browser carrier was disabled while waiting for serialization"
+                        )
+                    current_context = BrowserlessAutomationService(current)
+                    current_spec = current_context.load_spec(Path(value.spec_path))
+                    current_request = current_context._materialization(current_spec, value.agent_id)
+                    if current_request.request_id != value.effect_id:
+                        raise RuntimeError(
+                            "Temporal user-browser effect identity changed while waiting for serialization"
+                        )
+                    return self._effects(current).materialize_user_browser(
+                        Path(value.spec_path), value.agent_id
+                    )
+        # New/proven-pre-effect Browserless Materializations may move only across physically/provider-unavailable carriers.
         # Every provider preflight and the subsequent binding/SEND attempt happen under the same
         # cross-process carrier lease. Once an effect has a post-SEND/ambiguous standing, normal
         # bound-carrier reconciliation is used instead and failover is forbidden.
@@ -253,6 +287,14 @@ class BrowserlessActivities:
 
     @activity.defn(name=RECONCILE_ACTIVITY)
     def reconcile(self, value: MaterializationInput) -> dict:
+        if value.carrier == "windows-user-browser":
+            candidate = self._current_config()
+            with self._endpoint_lock("windows-user-browser"):
+                with _user_browser_carrier_lease(candidate, blocking=True):
+                    current = self._current_config()
+                    return self._effects(current).reconcile_user_browser(
+                        Path(value.spec_path), value.agent_id
+                    )
         return self._run_serialized(
             value,
             self._materialization_endpoint_id,
@@ -261,6 +303,10 @@ class BrowserlessActivities:
 
     @activity.defn(name=HUMAN_RESUME_ACTIVITY)
     def human_resume(self, value: MaterializationInput) -> dict:
+        if value.carrier == "windows-user-browser":
+            raise BrowserlessAutomationHold(
+                "Windows user-browser carrier does not implement blind human resume"
+            )
         return self._run_serialized(
             value,
             self._materialization_endpoint_id,

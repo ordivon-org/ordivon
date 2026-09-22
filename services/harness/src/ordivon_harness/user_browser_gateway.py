@@ -19,7 +19,7 @@ class UserBrowserGatewayConfig:
     proxy_url: str
     linux_stage_root: str
     windows_stage_root: str
-    timeout_ms: int = 90_000
+    timeout_ms: int = 150_000
 
     def __post_init__(self) -> None:
         for value, label in (
