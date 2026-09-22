@@ -40,6 +40,10 @@ class TemporalDeployTests(unittest.TestCase):
         self.assertNotIn("BLUE_", text)
         self.assertNotIn("GREEN_", text)
         self.assertNotIn("127.0.0.1:7233", text)
+        self.assertIn('"mcp": "2.2.0"', text)
+        self.assertIn('"httpx": "0.28.1"', text)
+        self.assertIn('"pip", "install", "--python"', text)
+        self.assertIn('agent-automation-temporal-requirements.txt', text)
 
 
 if __name__ == "__main__":

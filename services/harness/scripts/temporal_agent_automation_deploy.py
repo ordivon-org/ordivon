@@ -15,12 +15,16 @@ WORKER = "ordivon-agent-temporal-worker.service"
 SYSTEMD = Path("/etc/systemd/system")
 CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
 VENV_PY = Path("/root/.local/share/ordivon-workstation/temporal-agent-automation/.venv/bin/python")
+UV = Path("/usr/bin/uv")
+REQUIREMENTS = ROOT / "config" / "agent-automation-temporal-requirements.txt"
 TEMPORAL = Path("/opt/ordivon/external/temporal-cli/1.8.3/temporal")
 TEMPORAL_SHA = "76aea8d71fafe2d39c1104bef3ce86c1600d9adbff79953d102f60e535ae1413"
 PRODUCTION_ADDRESS = "127.0.0.1:17233"
 EXPECTED_RUNTIME_VERSIONS = {
     "temporalio": "1.32.0",
     "rfc8785": "0.1.4",
+    "mcp": "2.2.0",
+    "httpx": "0.28.1",
 }
 
 
@@ -53,7 +57,7 @@ def runtime_versions() -> dict[str, str] | None:
         return None
     code = (
         "import importlib.metadata as m,json;"
-        "names=['temporalio','rfc8785'];"
+        "names=['temporalio','rfc8785','mcp','httpx'];"
         "print(json.dumps({n:m.version(n) for n in names},sort_keys=True))"
     )
     proc = subprocess.run(
@@ -70,6 +74,16 @@ def runtime_versions() -> dict[str, str] | None:
     except json.JSONDecodeError:
         return None
     return value if isinstance(value, dict) else None
+
+
+def provision_runtime_dependencies() -> None:
+    if not UV.is_file() or not REQUIREMENTS.is_file() or not VENV_PY.is_file():
+        raise RuntimeError("Temporal worker dependency provisioning inputs are unavailable")
+    subprocess.run(
+        [str(UV), "pip", "install", "--python", str(VENV_PY), "-r", str(REQUIREMENTS)],
+        check=True,
+        timeout=180,
+    )
 
 
 def config_address() -> str | None:
@@ -114,6 +128,8 @@ def apply() -> dict:
         raise RuntimeError("Temporal CLI exact binary is unavailable")
     if not current["temporalSdkPresent"]:
         raise RuntimeError("Temporal SDK venv is unavailable")
+    provision_runtime_dependencies()
+    current = plan()
     if not current["runtimeVersionsExact"]:
         raise RuntimeError(
             f"Temporal worker runtime versions differ from contract: {current['runtimeVersions']}"
