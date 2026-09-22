@@ -1,7 +1,7 @@
 # Harness Queue Portability R1
 
 Date: 2026-09-22
-Status: ACCEPTED LOCALLY; REMOTE PROOF PENDING
+Status: REMOTE PROVEN
 
 Harness verification is split by authority rather than by test convenience:
 
@@ -24,3 +24,18 @@ source semantics -> queue admission -> node qualification
 
 GitHub Merge Queue owns repository convergence ordering; it does not certify
 that a particular Runtime/Workstation node has materialized its providers.
+
+## Remote evidence
+
+- Harness portability PR #21 head b2aa6e10e545eb6a75f944490f7e4704950195f6:
+  pull-request run 35725482208 passed.
+- Merge Queue synthesized ceba591066c98999e404bdfe5f72a66ef3ed76ea:
+  merge-group run 35725780805 passed and became main.
+- The previously failing real Experimental Episode producer PR #20 was refreshed
+  onto that protected main. Pull-request run 35726259787 passed.
+- Merge Queue then synthesized 06b932777ee03b421e45f021f51efebd0053a089:
+  merge-group run 35726560495 passed and merged.
+- Final main push run 35726848574 passed on that exact synthetic revision.
+
+Therefore the split is proven on both a Harness-owner change and the real
+cross-owner producer that originally exposed the clean-runner failure.
