@@ -199,7 +199,7 @@ class PublicationPerceptualR1Tests(unittest.TestCase):
 
     def test_inventory_is_routing_evidence_not_semantic_truth(self) -> None:
         pages = (
-            "Anonymous Author\nFig. 1. Overview\nTable 1. Counts\n",
+            "Anonymous Author\n86   Fig. 1. Overview\n281   Table 1. Counts\n",
             "Fig. 2. Results\n",
         )
         observation = CarrierObservation(

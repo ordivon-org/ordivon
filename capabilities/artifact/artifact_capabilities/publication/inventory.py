@@ -5,8 +5,13 @@ from typing import Any
 
 from .contract import CarrierObservation
 
-_FIGURE_CAPTION = re.compile(r"^\s*(?:Fig\.|Figure)\s+(\d+)\s*[:.]\s*", re.IGNORECASE)
-_TABLE_CAPTION = re.compile(r"^\s*Table\s+(\d+)\s*[:.]\s*", re.IGNORECASE)
+_LINE_PREFIX = r"^\s*(?:\d+\s+)?"
+_FIGURE_CAPTION = re.compile(
+    _LINE_PREFIX + r"(?:Fig\.|Figure)\s+(\d+)\s*[:.]\s*", re.IGNORECASE
+)
+_TABLE_CAPTION = re.compile(
+    _LINE_PREFIX + r"Table\s+(\d+)\s*[:.]\s*", re.IGNORECASE
+)
 
 
 def build_carrier_inventory(observation: CarrierObservation) -> dict[str, Any]:

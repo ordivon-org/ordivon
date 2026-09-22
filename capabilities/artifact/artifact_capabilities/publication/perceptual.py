@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 SHA256_RX = re.compile(r"^sha256:[0-9a-f]{64}$")
 ROLES = ("BLIND_VISION", "VENUE_AWARE_VISION", "SEMANTIC_LAYOUT")
