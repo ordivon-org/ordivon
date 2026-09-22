@@ -5,8 +5,6 @@ import importlib.util
 import sys
 import tempfile
 import unittest
-
-from test_queue_telemetry import QueueTelemetryTests  # noqa: F401
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).with_name("convergence_plan.py")

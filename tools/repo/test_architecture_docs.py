@@ -122,3 +122,58 @@ def test_connector_catalog_owner_stays_external() -> None:
     value["hostNorthbound"]["connectorCatalogOwner"] = "gateway"
     with pytest.raises(module.ArchitectureDocsError, match="catalog freshness owner"):
         module.validate_deployed_graph(value)
+
+
+QUEUE_TELEMETRY_PATH = ROOT / "tools" / "repo" / "queue_telemetry.py"
+queue_spec = importlib.util.spec_from_file_location("queue_telemetry", QUEUE_TELEMETRY_PATH)
+assert queue_spec is not None and queue_spec.loader is not None
+queue_module = importlib.util.module_from_spec(queue_spec)
+import sys
+sys.modules[queue_spec.name] = queue_module
+queue_spec.loader.exec_module(queue_module)
+
+
+def test_queue_telemetry_provider_projection_is_deterministic() -> None:
+    snapshot = queue_module.ProviderSnapshot(
+        repository="o/r",
+        pulls=[
+            {"number": 7, "merged_at": "2026-09-22T12:00:40Z"},
+            {"number": 8, "merged_at": "2026-09-22T12:01:00Z"},
+        ],
+        timelines={
+            "7": [
+                {"event": "added_to_merge_queue", "created_at": "2026-09-22T12:00:00Z"},
+                {"event": "removed_from_merge_queue", "created_at": "2026-09-22T12:00:40Z"},
+            ],
+            "8": [
+                {"event": "added_to_merge_queue", "created_at": "2026-09-22T12:00:10Z"},
+                {"event": "removed_from_merge_queue", "created_at": "2026-09-22T12:01:00Z"},
+            ],
+        },
+        merge_group_runs=[
+            {"id": 70, "head_branch": "gh-readonly-queue/main/pr-7-base",
+             "head_sha": "a", "created_at": "2026-09-22T12:00:05Z", "conclusion": "success"},
+            {"id": 80, "head_branch": "gh-readonly-queue/main/pr-8-base",
+             "head_sha": "b", "created_at": "2026-09-22T12:00:20Z", "conclusion": "failure"},
+            {"id": 81, "head_branch": "gh-readonly-queue/main/pr-8-base2",
+             "head_sha": "c", "created_at": "2026-09-22T12:00:30Z", "conclusion": "success"},
+        ],
+        jobs={
+            "70": [{"name": "root-verification", "created_at": "2026-09-22T12:00:06Z",
+                    "started_at": "2026-09-22T12:00:08Z", "completed_at": "2026-09-22T12:00:30Z"}],
+            "80": [{"name": "root-verification", "created_at": "2026-09-22T12:00:21Z",
+                    "started_at": "2026-09-22T12:00:22Z", "completed_at": "2026-09-22T12:00:27Z"}],
+            "81": [{"name": "root-verification", "created_at": "2026-09-22T12:00:31Z",
+                    "started_at": "2026-09-22T12:00:32Z", "completed_at": "2026-09-22T12:00:50Z"}],
+        },
+    )
+    result = queue_module.analyze(snapshot)
+    assert result["authority"]["durableLocalQueueState"] is False
+    assert result["coverage"]["queueAttributedPullRequests"] == 2
+    assert result["metrics"]["observedPeakQueueDepthLowerBound"] == 2
+    assert result["metrics"]["unsuccessfulMergeGroupRuns"] == 1
+    assert result["metrics"]["observedWastedVerificationSeconds"] == 5
+    assert result["metrics"]["queueDispatchSeconds"]["median"] == 12.5
+    by_pr = {row["pr"]: row for row in result["observations"]}
+    assert by_pr[7]["verificationSeconds"] == 22
+    assert by_pr[8]["mergeGroupRuns"] == 2
