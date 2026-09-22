@@ -48,8 +48,16 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
         raise StructureR2Error("schemaVersion must be 1")
     if value.get("kind") != "ordivon.repository-structure-transition":
         raise StructureR2Error("unexpected plan kind")
-    if value.get("status") != "candidate-not-deployed":
-        raise StructureR2Error("S0 plan must remain candidate-not-deployed")
+    status = value.get("status")
+    if status not in {"candidate-not-deployed", "partially-deployed"}:
+        raise StructureR2Error("unexpected Structure R2 deployment status")
+    if status == "partially-deployed":
+        deployed = value.get("deployedSlices")
+        open_slices = value.get("openSlices")
+        if not isinstance(deployed, list) or not {"S0", "S1A"}.issubset(set(deployed)):
+            raise StructureR2Error("partially-deployed status requires S0 and S1A evidence")
+        if not isinstance(open_slices, list) or "S1B" not in open_slices:
+            raise StructureR2Error("S1B must remain explicitly open while facades remain")
     if value.get("truthRole") != "repository-placement-plan-not-runtime-or-domain-authority":
         raise StructureR2Error("unexpected truthRole")
 
@@ -154,6 +162,15 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
 
         for task in verify_tasks:
             _text(task, field=f"{mapping_id}.verifyTask")
+
+    if status == "partially-deployed":
+        composition = next((m for m in mappings if m.get("id") == "composition-mechanics"), None)
+        if composition is None or composition.get("wave") != "S1A":
+            raise StructureR2Error("partial deployment requires composition-mechanics in S1A")
+        if composition.get("standing") != "PARTIALLY_DEPLOYED":
+            raise StructureR2Error("S1A composition standing must be PARTIALLY_DEPLOYED")
+        if repo_root is not None and not (repo_root / "packages/composition").is_dir():
+            raise StructureR2Error("S1A claims deployment but packages/composition is absent")
 
     missing_legacy = REQUIRED_LEGACY_ROOTS - covered_legacy_roots
     if missing_legacy:

@@ -44,7 +44,7 @@ class ConvergencePlanTests(unittest.TestCase):
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["harness", "next", "security", "skills", "web"],
+            ["composition", "harness", "next", "security", "skills", "web"],
         )
 
     def test_cross_cutting_change_requires_all_owner_verification(self) -> None:

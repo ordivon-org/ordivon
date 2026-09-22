@@ -3,7 +3,9 @@ name = "ordivon-next"
 version = "0.0.0"
 description = "Repository environment for Ordivon Next."
 requires-python = "==3.14.7"
-dependencies = []
+dependencies = [
+  "ordivon-composition",
+]
 
 [dependency-groups]
 test = [
@@ -34,6 +36,9 @@ reasoning = [
   "up-pyperplan",
   "z3-solver>=4,<5",
 ]
+
+[tool.uv.sources]
+ordivon-composition = { path = "../../packages/composition" }
 
 [tool.uv]
 package = false

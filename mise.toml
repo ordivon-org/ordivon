@@ -7,6 +7,7 @@ shell = "bash -c"
 [monorepo]
 config_roots = [
   "meta/next",
+  "packages/composition",
   "services/runtime",
   "services/host",
   "services/harness",
@@ -78,6 +79,14 @@ tools/repo/migration/check-primary-main.sh /root/projects/ordivon
 run = """
 set -euo pipefail
 cd meta/next
+mise install
+mise run verify
+"""
+
+[tasks."composition:verify"]
+run = """
+set -euo pipefail
+cd packages/composition
 mise install
 mise run verify
 """

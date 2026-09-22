@@ -13,6 +13,7 @@ updates:
       - "/capabilities/media"
       - "/domains/capital"
       - "/meta/next"
+      - "/packages/composition"
       - "/platform/security"
       - "/platform/skills"
       - "/platform/workstation"

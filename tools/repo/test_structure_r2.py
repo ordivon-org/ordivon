@@ -60,3 +60,25 @@ def test_s0_cannot_move_source() -> None:
     s0["movesSource"] = True
     with pytest.raises(module.StructureR2Error, match="S0 must not move source"):
         module.validate_plan(value)
+
+
+def test_partial_deployment_requires_s1a_evidence() -> None:
+    value = load_plan()
+    value["deployedSlices"] = ["S0"]
+    with pytest.raises(module.StructureR2Error, match="requires S0 and S1A"):
+        module.validate_plan(value)
+
+
+def test_s1b_must_remain_open_while_facades_remain() -> None:
+    value = load_plan()
+    value["openSlices"] = [item for item in value["openSlices"] if item != "S1B"]
+    with pytest.raises(module.StructureR2Error, match="S1B must remain explicitly open"):
+        module.validate_plan(value)
+
+
+def test_partial_deployment_requires_composition_standing() -> None:
+    value = load_plan()
+    mapping = next(m for m in value["mappings"] if m["id"] == "composition-mechanics")
+    mapping["standing"] = "PLANNED"
+    with pytest.raises(module.StructureR2Error, match="S1A composition standing"):
+        module.validate_plan(value)

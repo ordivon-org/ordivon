@@ -1,7 +1,7 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **S0 CANDIDATE / SOURCE-LAYOUT TARGET / NOT DEPLOYED**
+Status: **PARTIALLY DEPLOYED — S0 + S1A**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
@@ -145,8 +145,11 @@ No universal verifier or global evidence registry is introduced.
 ## Waves
 
 - **S0 — Freeze:** contract, machine mapping, checker and falsification tests. No source moves.
-- **S1 — Composition extraction:** `packages/composition` from already-proven Cognitive
-  Circuit / Interface R2 / generic Gate mechanics without semantic change.
+- **S1A — Composition implementation extraction:** generic Cognitive Circuit / Interface R2 /
+  Composition Gate implementation, schemas, owner docs, and owner-native tests move to
+  `packages/composition`; historical Next Python entrypoints remain thin compatibility facades.
+- **S1B — Composition consumer cutover:** migrate remaining Next consumers to the public
+  `ordivon-composition` package API and retire facades only when no real consumer requires them.
 - **S2 — Knowledge/package edges:** canonical Skills to `.agents/skills`; control Plugin to
   `extensions/`.
 - **S3 — Durable owners:** Gateway, Runtime, Host, Harness -> `packages/`, one at a time.
@@ -172,7 +175,13 @@ a requirement that external natural owners be mirrored as local packages.
 
 ## Current standing
 
-S0 is repository mechanics only. Until an individual migration wave is accepted, deployed
-paths in `CURRENT_ARCHITECTURE.md`, `tools/repo/owners.toml`,
-`dependency_contracts.toml`, root `mise.toml`, and owner deployment configuration remain
-authoritative for current source/deployment location.
+S0 is deployed repository mechanics. S1A is deployed for the generic Composition implementation:
+`packages/composition` is now an independent source owner and `meta/next` consumes it through a
+declared public local-package dependency. The historical Next Python entrypoints remain thin
+compatibility facades, while R3 seam-specific verifiers, Admission dogfood, and task-local
+bindings remain with Next. Therefore S1B and all later relocation waves remain open.
+
+For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
+`tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment
+configuration remain authoritative. Structure R2 never infers deployment relocation from a
+planned target path.

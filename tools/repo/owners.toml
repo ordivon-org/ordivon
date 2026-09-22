@@ -8,6 +8,11 @@ root = "meta/next/"
 verify_task = "next:verify"
 
 [[owners]]
+name = "composition"
+root = "packages/composition/"
+verify_task = "composition:verify"
+
+[[owners]]
 name = "runtime"
 root = "services/runtime/"
 verify_task = "runtime:verify"
