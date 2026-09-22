@@ -197,3 +197,46 @@ R1 is accepted only when:
 
 The next implementation pressure should come from one real task-local consumer, not from
 adding generic features by anticipation.
+
+
+## Verification Obligation R1 relation
+
+The later Verification Obligation R1 layer now lowers existing R1 Composition Gates without
+changing their truth semantics:
+
+```text
+Cognitive Circuit Gate requirement
+        |
+        v
+Verification Obligation projection
+        +
+exact caller-authored verifier binding
+        |
+        v
+natural verifier owner/provider
+        |
+        v
+existing composition-gate-result
+        |
+        v
+R1 gate evaluator
+```
+
+The obligation compiler is one-to-one over already-authored Gates; it does not invent
+properties. Binding resolution validates exact obligation/verifier identity and support scope
+but does not discover, rank, install, probe, or execute verifiers.
+
+Therefore these standings remain distinct:
+
+```text
+VERIFIER_BINDINGS_RESOLVED
+    != verifier executed
+    != gate SATISFIED
+    != mechanicalClosure
+    != domainAcceptanceEstablished
+```
+
+Owner-native R3 verifiers and the Pacti 0.3.1 timeout-contract shadow have both exercised this
+thin waist. Formal/native specifications remain with their natural owners and are referenced
+by exact digest; Composition does not interpret TLA+, Rego, Pacti, Lean, test, or domain
+languages.
