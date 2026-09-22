@@ -52,3 +52,28 @@ def test_pacti_remains_outside_project_dependencies() -> None:
     flattened = [item for values in all_groups.values() for item in values]
 
     assert not any(item.startswith("pacti") for item in [*dependencies, *flattened])
+
+
+def test_frozen_pacti_shadow_acceptance_preserves_boundaries() -> None:
+    from ordivon_composition import canonical_digest
+
+    evidence_path = (
+        NEXT_ROOT
+        / "evidence"
+        / "acceptance"
+        / "verified-reintegration-external-owner-dogfood-r1"
+        / "pacti-timeout-obligation-r2.json"
+    )
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    run = evidence["run"]
+
+    assert evidence["sourceRevision"] == "7dc50e0908c2d739be5a1a16c1d4582ad9508220"
+    assert evidence["runner"]["projectDependencyAdded"] is False
+    assert run["specRef"]["digest"] == canonical_digest(_spec())
+    assert run["resolution"]["standing"] == "VERIFIER_BINDINGS_RESOLVED"
+    assert run["formalResult"]["acceptedCase"]["refinesTopRequirement"] is True
+    assert run["formalResult"]["quotient"]["recomposedRefinesTopRequirement"] is True
+    assert run["formalResult"]["deliberateMismatch"]["rejected"] is True
+    assert run["gateResult"]["standing"] == "SATISFIED"
+    assert run["projection"]["mechanicalClosure"] is True
+    assert run["projection"]["domainAcceptanceEstablished"] is False
