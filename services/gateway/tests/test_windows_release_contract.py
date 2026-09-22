@@ -12,6 +12,7 @@ def test_windows_release_installer_is_exact_sha_and_immutable() -> None:
     assert "safe.directory=$repoPath" in text
     assert "'rev-parse' '--verify'" in text
     assert "$resolveExitCode = $LASTEXITCODE" in text
+    assert "${resolveExitCode}:" in text
     assert "'archive'" in text
     assert "'services/gateway'" in text
     assert "releases" in text

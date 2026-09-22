@@ -45,7 +45,7 @@ $resolvedOutput = @(
 )
 $resolveExitCode = $LASTEXITCODE
 if ($resolveExitCode -ne 0) {
-    throw "commit resolution failed with exit code $resolveExitCode: $($resolvedOutput | Out-String)"
+    throw "commit resolution failed with exit code ${resolveExitCode}: $($resolvedOutput | Out-String)"
 }
 $resolved = ($resolvedOutput | Out-String).Trim()
 if ($resolved -ne $Commit) {
