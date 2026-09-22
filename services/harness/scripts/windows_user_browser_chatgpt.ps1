@@ -85,7 +85,10 @@ function Get-CanonicalChatResource([string]$Address) {
     if([string]::IsNullOrWhiteSpace($Address)){return $null}
     $value=$Address.Trim()
     if($value -match '^(?:https://)?chatgpt\.com/c/([^/?#\s]+)'){
-        return 'https://chatgpt.com/c/' + $Matches[1]
+        $conversationId=$Matches[1]
+        if($conversationId.StartsWith('WEB:')){return $null}
+        if($conversationId -notmatch '^[A-Za-z0-9_-]{8,256}$'){return $null}
+        return 'https://chatgpt.com/c/' + $conversationId
     }
     return $null
 }
