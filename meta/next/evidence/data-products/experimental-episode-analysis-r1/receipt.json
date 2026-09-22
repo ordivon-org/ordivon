@@ -1,0 +1,17 @@
+{
+  "artifactVerificationSha256": "1d63df720b1d9c30a3e282d7e13851c2718a1de4857c41a11046de6c4b0d0249",
+  "authorityTransfer": false,
+  "contractId": "66cca360-d1c5-5f8d-8c7d-3f6fe6137d0d",
+  "corpusManifestSha256": "67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+  "generationClaim": "ANALYSIS_DERIVED_FROM_LOGICAL_PRODUCT_PARQUET_IS_OPTIONAL_INTERCHANGE_VIEW",
+  "kind": "ordivon.experimental-episode-product-consumption",
+  "openLineageRunId": "cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+  "openLineageSha256": "75f8d32f423098c879f201709ba706defc45a389d61f7a3626ce9afd67c7d9cf",
+  "productId": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+  "productVersion": "1.0.0",
+  "provenanceSha256": "eea41c2c57d62064da12de11afe5a9a6289d6a2fc80ed6d85e9ee4666e898b1c",
+  "qualifiedParquetIndexSha256": "7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+  "schemaVersion": 1,
+  "standing": "PASS_PRODUCT_TO_SYSTEM_ANALYSIS_WITHOUT_AUTHORITY_TRANSFER",
+  "systemAnalysisSha256": "e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d"
+}
