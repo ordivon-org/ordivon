@@ -159,7 +159,7 @@ class CreativeIndexTests(unittest.TestCase):
         self.assertIn("source:media", sources)
         self.assertEqual(
             sources["source:artifact"]["repository"],
-            "/root/projects/ordivon/capabilities/artifact",
+            str((ROOT.parents[1] / "capabilities/artifact").resolve()),
         )
 
     def test_creative_library_catalog_projects_works_without_copying_carriers(self) -> None:
