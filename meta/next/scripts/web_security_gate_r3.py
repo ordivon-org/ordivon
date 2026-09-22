@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Web <-> Security public-contract seam verifier for Cross-domain R3.
 
-This adapter verifies only the current delegated-Agent seam: Web consumes the two
-Security-owned public contracts, avoids Security internal policy/lab imports, keeps
-local replay/Grant/effect state in WebStore, and has owner-native E2E evidence for
-the expected fail-closed and replay semantics. It does not claim production
+The adapter consumes a task-local seam binding rather than embedding repository
+topology. It verifies only the delegated-Agent seam and does not claim production
 eligibility, physical human presence, or global Security correctness.
 """
 
@@ -32,37 +30,8 @@ except ModuleNotFoundError:
     )
 
 
-REQUEST_SOURCE = "apps/web/src/security-agent-verifier.ts"
-ADMISSION_SOURCE = "apps/web/src/agent-authority.ts"
-STORE_SOURCE = "apps/web/src/store.ts"
-
-REQUIRED_SEAMS = {
-    (
-        REQUEST_SOURCE,
-        "platform/security/contracts/agent-request-verifier-v1/",
-        "PUBLIC_SOURCE_CONTRACT",
-    ),
-    (
-        ADMISSION_SOURCE,
-        "platform/security/contracts/agent-admission-v1/",
-        "PUBLIC_SOURCE_CONTRACT",
-    ),
-}
-
-EXPECTED_MATRIX = {
-    "noProof": 401,
-    "wrongKey": 401,
-    "firstCreate": 201,
-    "proofReplay": 401,
-    "exactReplay": 200,
-    "conflict": 409,
-    "publishStepUp": 428,
-    "approval": 201,
-    "publishApproved": 200,
-    "revoke": 200,
-    "newEffectAfterRevoke": 403,
-    "historicalReplayAfterRevoke": 200,
-}
+BINDING_KIND = "ordivon.cross-domain-verification-r3-binding"
+BINDING_ROLE = "task-local-acceptance-binding-not-owner-truth"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -76,19 +45,67 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _repo_path(repo_root: Path, relative: str) -> Path:
+    root = repo_root.resolve()
+    candidate = (root / relative).resolve()
+    if candidate != root and root not in candidate.parents:
+        raise CircuitContractError(f"binding path escapes repository: {relative}")
+    return candidate
+
+
+def _binding_section(binding: dict[str, Any]) -> dict[str, Any]:
+    if (
+        binding.get("schemaVersion") != 1
+        or binding.get("kind") != BINDING_KIND
+        or binding.get("truthRole") != BINDING_ROLE
+    ):
+        raise CircuitContractError("invalid cross-domain R3 binding identity")
+    section = binding.get("webSecurity")
+    if not isinstance(section, dict):
+        raise CircuitContractError("binding webSecurity section is required")
+    paths = section.get("paths")
+    if not isinstance(paths, dict):
+        raise CircuitContractError("binding webSecurity paths are required")
+    for key in (
+        "dependencyContracts",
+        "nativeE2e",
+        "requestSource",
+        "admissionSource",
+        "storeSource",
+    ):
+        if not isinstance(paths.get(key), str) or not paths[key]:
+            raise CircuitContractError(f"binding webSecurity path is missing: {key}")
+    for key in (
+        "requiredSeams",
+        "forbiddenSourceFragments",
+        "requiredStoreMarkers",
+    ):
+        if not isinstance(section.get(key), list) or not section[key]:
+            raise CircuitContractError(f"binding webSecurity list is missing: {key}")
+    for key in ("requestContractImport", "admissionContractImport"):
+        if not isinstance(section.get(key), str) or not section[key]:
+            raise CircuitContractError(f"binding webSecurity value is missing: {key}")
+    matrix = section.get("expectedMatrix")
+    if not isinstance(matrix, dict) or not matrix:
+        raise CircuitContractError("binding webSecurity expectedMatrix is required")
+    return section
+
+
 def _evidence_ref(prefix: str, value: Any) -> str:
     return f"{prefix}:{canonical_digest(value)}"
 
 
-def _dependency_contract_ok(value: dict[str, Any]) -> bool:
+def _dependency_contract_ok(
+    value: dict[str, Any],
+    binding: dict[str, Any],
+) -> bool:
+    section = _binding_section(binding)
     seams = value.get("seams")
     if not isinstance(seams, list):
         return False
     found: set[tuple[str, str, str]] = set()
     for row in seams:
         if not isinstance(row, dict):
-            continue
-        if row.get("from_owner") != "web" or row.get("to_owner") != "security":
             continue
         found.add(
             (
@@ -97,55 +114,57 @@ def _dependency_contract_ok(value: dict[str, Any]) -> bool:
                 str(row.get("kind")),
             )
         )
-    return REQUIRED_SEAMS.issubset(found)
+    required: set[tuple[str, str, str]] = set()
+    for row in section["requiredSeams"]:
+        if not isinstance(row, dict):
+            return False
+        required.add(
+            (
+                str(row.get("sourceGlob")),
+                str(row.get("allowedFragment")),
+                str(row.get("kind")),
+            )
+        )
+    return required.issubset(found)
 
 
 def _source_boundary_ok(
+    binding: dict[str, Any],
     request_source: str,
     admission_source: str,
     store_source: str,
 ) -> bool:
-    forbidden = (
-        "platform/security/policies/",
-        "platform/security/labs/",
-        "agent_admission.rego",
-        "effect_admission.rego",
-    )
-    if any(token in request_source or token in admission_source for token in forbidden):
+    section = _binding_section(binding)
+    combined = "\n".join((request_source, admission_source, store_source))
+    forbidden = tuple(str(item) for item in section["forbiddenSourceFragments"])
+    if any(token in combined for token in forbidden):
         return False
 
-    request_contract = (
-        "../../../platform/security/contracts/agent-request-verifier-v1/src/index.ts"
-    )
-    admission_contract = (
-        "../../../platform/security/contracts/agent-admission-v1/evaluate.py"
-    )
-    required_store_markers = (
-        "CREATE TABLE IF NOT EXISTS agent_grants",
-        "CREATE TABLE IF NOT EXISTS dpop_proofs",
-        "consumeDpopProof(",
-        "createAgentGrant(",
-        "revokeAgentGrant(",
-        "requirePendingEffectApproval(",
-        "putEffectApproval(",
+    required_store_markers = tuple(
+        str(item) for item in section["requiredStoreMarkers"]
     )
     return (
-        request_contract in request_source
-        and admission_contract in admission_source
+        section["requestContractImport"] in request_source
+        and section["admissionContractImport"] in admission_source
         and all(marker in store_source for marker in required_store_markers)
     )
 
 
-def _native_e2e_ok(evidence: dict[str, Any]) -> bool:
+def _native_e2e_ok(
+    evidence: dict[str, Any],
+    binding: dict[str, Any],
+) -> bool:
+    section = _binding_section(binding)
     source = evidence.get("source")
     matrix = evidence.get("matrix")
     if not isinstance(source, dict) or not isinstance(matrix, dict):
         return False
+    expected = section["expectedMatrix"]
     return (
         evidence.get("schemaVersion") == 1
         and evidence.get("kind") == "ordivon-agent-native-website-e2e-r1"
         and source.get("executionDisposition") == "succeeded"
-        and all(matrix.get(key) == value for key, value in EXPECTED_MATRIX.items())
+        and all(matrix.get(key) == value for key, value in expected.items())
         and evidence.get("approvalConsumed") is True
         and evidence.get("productionHumanPresenceClaim") is False
         and evidence.get("productionEligible") is False
@@ -154,6 +173,7 @@ def _native_e2e_ok(evidence: dict[str, Any]) -> bool:
 
 def build_gate_result(
     manifest: dict[str, Any],
+    binding: dict[str, Any],
     dependency_contracts: dict[str, Any],
     native_e2e: dict[str, Any],
     request_source: str,
@@ -162,6 +182,7 @@ def build_gate_result(
     *,
     gate_id: str = "gate:web-security-agent-authority",
 ) -> dict[str, Any]:
+    _binding_section(binding)
     compiled = compile_manifest(manifest)
     gates = {row["id"]: row for row in manifest["gateRequirements"]}
     gate = gates.get(gate_id)
@@ -169,9 +190,9 @@ def build_gate_result(
         raise CircuitContractError(f"manifest does not declare {gate_id}")
 
     checks = (
-        _dependency_contract_ok(dependency_contracts),
-        _source_boundary_ok(request_source, admission_source, store_source),
-        _native_e2e_ok(native_e2e),
+        _dependency_contract_ok(dependency_contracts, binding),
+        _source_boundary_ok(binding, request_source, admission_source, store_source),
+        _native_e2e_ok(native_e2e, binding),
     )
     standing = "SATISFIED" if all(checks) else "UNSATISFIED"
 
@@ -184,6 +205,7 @@ def build_gate_result(
         "verifierOwnerId": gate["verifierOwnerId"],
         "standing": standing,
         "evidenceRefs": [
+            f"r3-binding:{canonical_digest(binding)}",
             _evidence_ref("repo-dependency-contracts", dependency_contracts),
             _evidence_ref("web-security-request-consumer", request_source),
             _evidence_ref("web-security-admission-consumer", admission_source),
@@ -204,25 +226,30 @@ def build_gate_result(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("manifest", type=Path)
-    parser.add_argument("dependency_contracts", type=Path)
-    parser.add_argument("native_e2e", type=Path)
+    parser.add_argument("binding", type=Path)
     parser.add_argument("--repo-root", type=Path, required=True)
     args = parser.parse_args()
 
     try:
         manifest = _load_json(args.manifest)
-        with args.dependency_contracts.open("rb") as handle:
+        binding = _load_json(args.binding)
+        section = _binding_section(binding)
+        paths = section["paths"]
+        dependency_path = _repo_path(args.repo_root, paths["dependencyContracts"])
+        with dependency_path.open("rb") as handle:
             dependencies = tomllib.load(handle)
         result = build_gate_result(
             manifest,
+            binding,
             dependencies,
-            _load_json(args.native_e2e),
-            _read(args.repo_root / REQUEST_SOURCE),
-            _read(args.repo_root / ADMISSION_SOURCE),
-            _read(args.repo_root / STORE_SOURCE),
+            _load_json(_repo_path(args.repo_root, paths["nativeE2e"])),
+            _read(_repo_path(args.repo_root, paths["requestSource"])),
+            _read(_repo_path(args.repo_root, paths["admissionSource"])),
+            _read(_repo_path(args.repo_root, paths["storeSource"])),
         )
     except (
         OSError,
+        KeyError,
         json.JSONDecodeError,
         tomllib.TOMLDecodeError,
         CircuitContractError,

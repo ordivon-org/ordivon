@@ -194,3 +194,59 @@ Domain/owner-native verifier
 ```
 
 New seams should add narrow adapters only when a real composition requires them.
+
+
+## R3.1 boundary repair — task-local binding
+
+Post-merge requalification against the stricter owner-boundary checker exposed a separate
+physical-coupling defect: the R3 adapters and tests embedded cross-owner repository locators
+directly in active Python source.
+
+R3.1 removes that coupling without changing either seam's semantic standing.
+
+The exact task-local binding is:
+
+```text
+meta/next/evidence/acceptance/cross-domain-verification-r3-bindings.json
+byteDigest =
+  sha256:fc83cd8977a69d309283522d23042605de2d0db2685188acd6a57a79648c5964
+canonicalBindingDigest =
+  sha256:65f8a6ba330c62239bb2d6e7c2c0ab46b44c4515aeef6ee23f5d50dfbc1734a7
+```
+
+The repaired structure is:
+
+```text
+owner-native facts / locators
+          |
+          v
+Next-local task binding evidence
+          |
+          v
+seam-specific adapter
+          |
+          v
+R1 Composition Gate Result
+```
+
+The verifier therefore knows the **seam contract**, while physical repository topology is
+provided as bounded task-local evidence. This does not make the binding an owner authority or
+a global registry.
+
+The semantic projections are unchanged:
+
+```text
+Research <-> Artifact:
+  gate = SATISFIED
+  mechanicalClosure = true
+  domainAcceptanceEstablished = false
+
+Web <-> Security:
+  gate = SATISFIED
+  mechanicalClosure = true
+  domainAcceptanceEstablished = false
+```
+
+R3.1 additionally requires the repository owner-boundary checker to report zero undeclared
+active cross-owner source-path seams from the R3 adapters/tests. No blanket dependency seam
+or checker exemption is introduced.

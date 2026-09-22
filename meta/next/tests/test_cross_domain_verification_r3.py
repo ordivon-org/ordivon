@@ -17,14 +17,21 @@ from scripts.web_security_gate_r3 import build_gate_result as web_security_gate
 
 ROOT = Path(__file__).resolve().parents[3]
 NEXT_ROOT = Path(__file__).resolve().parents[1]
+BINDING_PATH = (
+    NEXT_ROOT / "evidence" / "acceptance" / "cross-domain-verification-r3-bindings.json"
+)
 
 
 def _digest(label: str) -> str:
     return canonical_digest({"fixture": label})
 
 
-def _load_json(relative: str) -> dict:
-    return json.loads((ROOT / relative).read_text(encoding="utf-8"))
+def _load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _binding() -> dict:
+    return _load_json(BINDING_PATH)
 
 
 def research_artifact_manifest() -> dict:
@@ -213,30 +220,36 @@ def web_security_manifest() -> dict:
     return manifest
 
 
-def _research_inputs() -> tuple[dict, dict]:
+def _research_inputs() -> tuple[dict, dict, dict]:
+    binding = _binding()
+    section = binding["researchArtifact"]
     return (
-        _load_json("meta/research/publication-closure-profile-r1.json"),
-        _load_json("meta/research/evidence/publication-carrier-paper3-dogfood-r1.json"),
+        binding,
+        _load_json(ROOT / section["profilePath"]),
+        _load_json(ROOT / section["dogfoodPath"]),
     )
 
 
-def _web_inputs() -> tuple[dict, dict, str, str, str]:
-    with (ROOT / "tools/repo/dependency_contracts.toml").open("rb") as handle:
+def _web_inputs() -> tuple[dict, dict, dict, str, str, str]:
+    binding = _binding()
+    paths = binding["webSecurity"]["paths"]
+    with (ROOT / paths["dependencyContracts"]).open("rb") as handle:
         dependencies = tomllib.load(handle)
     return (
+        binding,
         dependencies,
-        _load_json("apps/web/evidence/AGENT-NATIVE-WEBSITE-E2E-R1.json"),
-        (ROOT / "apps/web/src/security-agent-verifier.ts").read_text(encoding="utf-8"),
-        (ROOT / "apps/web/src/agent-authority.ts").read_text(encoding="utf-8"),
-        (ROOT / "apps/web/src/store.ts").read_text(encoding="utf-8"),
+        _load_json(ROOT / paths["nativeE2e"]),
+        (ROOT / paths["requestSource"]).read_text(encoding="utf-8"),
+        (ROOT / paths["admissionSource"]).read_text(encoding="utf-8"),
+        (ROOT / paths["storeSource"]).read_text(encoding="utf-8"),
     )
 
 
 def test_research_artifact_real_paper3_dogfood_satisfies_bounded_gate() -> None:
-    profile, dogfood = _research_inputs()
+    binding, profile, dogfood = _research_inputs()
     manifest = research_artifact_manifest()
 
-    result = research_artifact_gate(manifest, profile, dogfood)
+    result = research_artifact_gate(manifest, binding, profile, dogfood)
     projection = evaluate_gate_results(manifest, [result])
 
     assert result["standing"] == "SATISFIED"
@@ -245,12 +258,13 @@ def test_research_artifact_real_paper3_dogfood_satisfies_bounded_gate() -> None:
 
 
 def test_research_artifact_truth_owner_drift_is_unsatisfied() -> None:
-    profile, dogfood = _research_inputs()
+    binding, profile, dogfood = _research_inputs()
     profile = copy.deepcopy(profile)
-    profile["ownerBindings"]["scientificTruth"] = "capabilities/artifact"
+    profile["ownerBindings"]["scientificTruth"] = "wrong-owner"
 
     result = research_artifact_gate(
         research_artifact_manifest(),
+        binding,
         profile,
         dogfood,
     )
@@ -259,12 +273,13 @@ def test_research_artifact_truth_owner_drift_is_unsatisfied() -> None:
 
 
 def test_research_artifact_machine_failure_is_unsatisfied() -> None:
-    profile, dogfood = _research_inputs()
+    binding, profile, dogfood = _research_inputs()
     dogfood = copy.deepcopy(dogfood)
     dogfood["evaluation"]["machineStanding"] = "FAIL"
 
     result = research_artifact_gate(
         research_artifact_manifest(),
+        binding,
         profile,
         dogfood,
     )
@@ -273,12 +288,13 @@ def test_research_artifact_machine_failure_is_unsatisfied() -> None:
 
 
 def test_research_artifact_missing_truth_boundary_nonclaims_is_unsatisfied() -> None:
-    profile, dogfood = _research_inputs()
+    binding, profile, dogfood = _research_inputs()
     dogfood = copy.deepcopy(dogfood)
     dogfood["nonClaims"] = ["Carrier observation only."]
 
     result = research_artifact_gate(
         research_artifact_manifest(),
+        binding,
         profile,
         dogfood,
     )
@@ -287,11 +303,14 @@ def test_research_artifact_missing_truth_boundary_nonclaims_is_unsatisfied() -> 
 
 
 def test_web_security_real_native_e2e_satisfies_bounded_gate() -> None:
-    dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
     manifest = web_security_manifest()
 
     result = web_security_gate(
         manifest,
+        binding,
         dependencies,
         e2e,
         request_source,
@@ -306,16 +325,18 @@ def test_web_security_real_native_e2e_satisfies_bounded_gate() -> None:
 
 
 def test_web_security_missing_public_seam_declaration_is_unsatisfied() -> None:
-    dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
     dependencies = copy.deepcopy(dependencies)
+    target = binding["webSecurity"]["requiredSeams"][1]["sourceGlob"]
     dependencies["seams"] = [
-        row
-        for row in dependencies["seams"]
-        if row.get("source_glob") != "apps/web/src/agent-authority.ts"
+        row for row in dependencies["seams"] if row.get("source_glob") != target
     ]
 
     result = web_security_gate(
         web_security_manifest(),
+        binding,
         dependencies,
         e2e,
         request_source,
@@ -327,11 +348,15 @@ def test_web_security_missing_public_seam_declaration_is_unsatisfied() -> None:
 
 
 def test_web_security_direct_policy_import_is_unsatisfied() -> None:
-    dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
-    admission_source += "\n// platform/security/policies/agent_admission.rego\n"
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
+    forbidden = binding["webSecurity"]["forbiddenSourceFragments"][0]
+    admission_source += f"\n// {forbidden}\n"
 
     result = web_security_gate(
         web_security_manifest(),
+        binding,
         dependencies,
         e2e,
         request_source,
@@ -343,11 +368,14 @@ def test_web_security_direct_policy_import_is_unsatisfied() -> None:
 
 
 def test_web_security_missing_local_replay_owner_is_unsatisfied() -> None:
-    dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
     store_source = store_source.replace("consumeDpopProof(", "removedReplayMethod(")
 
     result = web_security_gate(
         web_security_manifest(),
+        binding,
         dependencies,
         e2e,
         request_source,
@@ -359,12 +387,15 @@ def test_web_security_missing_local_replay_owner_is_unsatisfied() -> None:
 
 
 def test_web_security_e2e_failure_matrix_drift_is_unsatisfied() -> None:
-    dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
     e2e = copy.deepcopy(e2e)
     e2e["matrix"]["proofReplay"] = 200
 
     result = web_security_gate(
         web_security_manifest(),
+        binding,
         dependencies,
         e2e,
         request_source,
@@ -376,12 +407,15 @@ def test_web_security_e2e_failure_matrix_drift_is_unsatisfied() -> None:
 
 
 def test_web_security_production_claim_cannot_be_smuggled_into_dogfood() -> None:
-    dependencies, e2e, request_source, admission_source, store_source = _web_inputs()
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
     e2e = copy.deepcopy(e2e)
     e2e["productionEligible"] = True
 
     result = web_security_gate(
         web_security_manifest(),
+        binding,
         dependencies,
         e2e,
         request_source,
