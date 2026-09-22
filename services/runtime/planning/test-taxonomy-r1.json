@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.runtime-test-taxonomy",
   "truthRole": "planning-projection",
-  "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+  "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
   "currentAggregates": [
     {
       "path": "crates/ordivon-runtime-core/src/runtime/tests.rs",
@@ -119,7 +119,7 @@
     ]
   },
   "progress": {
-    "status": "IN_PROGRESS",
+    "status": "BASELINE_GATE_COMPLETE",
     "completedMoves": [
       {
         "id": "R01-B1",
@@ -145,6 +145,11 @@
         "verification": "cargo test --locked -q -p ordivon-runtime-mcp => 66 passed + 10 auth passed; clippy -D warnings PASS"
       }
     ],
-    "next": "Continue only if the second projection-contract split preserves all MCP/auth tests; then consider one final low-conflict schema category before core state extraction."
+    "next": "Baseline R01 acceptance is complete. Continue broader taxonomy-driven physical splits opportunistically where they reduce conflict or improve feedback; they no longer block state-contract extraction.",
+    "baselineVerification": [
+      "tool_catalog:: => 4 passed / 0 failed",
+      "projection_contract:: => 3 passed / 0 failed",
+      "current-main local acceptance => supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS"
+    ]
   }
 }

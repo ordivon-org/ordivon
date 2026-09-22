@@ -47,13 +47,14 @@
       "kind": "verification_structure",
       "responsibility": "Partition the current large tests into contract, property, provider, migration, recovery, and integration suites without changing behavior.",
       "authority": "Runtime verification",
-      "state": "IN_PROGRESS",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "crates/ordivon-runtime-core/src/runtime/tests.rs",
         "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
         "planning/test-taxonomy-r1.json",
-        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs"
+        "crates/ordivon-runtime-mcp/src/server/tests/tool_catalog.rs",
+        "crates/ordivon-runtime-mcp/src/server/tests/projection_contract.rs"
       ],
       "dependencies": [
         "R00"
@@ -66,7 +67,7 @@
         "Contract tests are runnable independently from provider/system acceptance.",
         "No semantic behavior change is required to complete the split."
       ],
-      "nextAction": "Continue splitting low-conflict MCP schema/contract categories before moving core Runtime state tests."
+      "nextAction": "Keep the independently runnable Tool Catalog and projection contract partitions as the baseline feedback gate; continue broader taxonomy-driven physical splits opportunistically without blocking noun-level state extraction."
     },
     {
       "id": "R02",
@@ -74,11 +75,12 @@
       "kind": "state_authority",
       "responsibility": "Extract Workspace identity, source-state commitment, lifecycle CAS, dependency fence, and tombstone semantics from the historical engine aggregation.",
       "authority": "Runtime Workspace truth",
-      "state": "PROPOSED",
+      "state": "IN_PROGRESS",
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
-        "planning/state-responsibility-census-r1.json"
+        "planning/state-responsibility-census-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/workspace_state.rs"
       ],
       "dependencies": [
         "R00",
@@ -94,7 +96,7 @@
         "sourceRevision/currentHeadRevision/sourceStateDigest invariants remain unchanged.",
         "Workspace lifecycle tests no longer require unrelated Job/Provider internals except through declared interfaces."
       ],
-      "nextAction": "Extract a WorkspaceStateContract only where stable Workspace laws still span engine/workspace, Registry query/inspection, and universal Git authority primitives; do not duplicate Git mechanics."
+      "nextAction": "The first WorkspaceState contract slice is integrated (projection plus mutation/close guards); extract additional Workspace laws only where duplicate semantics remain, without duplicating Git mechanics."
     },
     {
       "id": "R03",
@@ -741,12 +743,12 @@
         "cargo test --locked -q -p ordivon-runtime-mcp => 66/66 + 10/10 PASS"
       ],
       "blockers": [],
-      "nextAction": "Continue R01 test partition; R00 invariant freeze is complete."
+      "nextAction": "R00 and the R01 baseline gate are complete; continue broader physical test partition opportunistically while RW1 state-contract extraction proceeds behind independently runnable contract and real-system gates."
     },
     {
       "id": "RW1",
       "objective": "Extract durable state ownership from historical engine/registry aggregation.",
-      "status": "BLOCKED_ON_RW0",
+      "status": "IN_PROGRESS",
       "nodeIds": [
         "R02",
         "R03",
@@ -759,11 +761,12 @@
         "Registry is storage/transaction/migration rather than the semantic owner.",
         "Registry schema remains v6 unless a separately reviewed semantic migration is unavoidable."
       ],
-      "evidence": [],
-      "blockers": [
-        "RW0"
+      "evidence": [
+        "crates/ordivon-runtime-core/src/runtime/workspace_state.rs",
+        "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9"
       ],
-      "nextAction": "Implement Workspace and Job/Attempt extraction in separate commits; introduce Registry seam only after noun ownership is explicit."
+      "blockers": [],
+      "nextAction": "Continue with R03-A1 JobIdentityContract while keeping R02 open only for additional proven duplicate Workspace laws; do not introduce cosmetic noun facades."
     },
     {
       "id": "RW2",
@@ -908,9 +911,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "75dc93c56e367535cbff0d50921d188798c9de5e",
+    "sourceRevision": "5bd241df24da3259c1c6e3637bf3fc513129e4b9",
     "updatedAt": "2026-09-22",
-    "standing": "RW0_IN_PROGRESS",
-    "notes": "RW0 started: R00 invariant freeze is implemented with 20 machine-readable invariants and proof mapping. R01 test partition is in progress; the first Tool Catalog contract module split preserved the full 66-test MCP suite plus 10 auth tests. Public Tool necessity audit found no immediate deletion candidate; workspace.diff remains compatibility-review and workspace.mutate/execPlan remain narrow-boundary reviews. R02/R03 census corrected the migration model: current engine/Registry are already split by control phase, so the next extraction is noun-level contract ownership rather than another cosmetic module split."
+    "standing": "RW0_BASELINE_GATE_COMPLETE_RW1_IN_PROGRESS",
+    "notes": "R00 remains implemented. R01 baseline acceptance is complete with two independently runnable MCP contract partitions (Tool Catalog 4/4 and projection contract 3/3), while broader physical taxonomy splits remain opportunistic RW0 work. R02 first WorkspaceState contract slice is integrated and current real-system local acceptance is green (supervisor 2/2, Runtime integration 36/36, MCP/Workspace/Release E2E). RW1 therefore proceeds with R03-A1 without claiming R02's entire long-term responsibility set is closed."
   }
 }
