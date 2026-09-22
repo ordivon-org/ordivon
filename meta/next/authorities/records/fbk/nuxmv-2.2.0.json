@@ -2,13 +2,12 @@
   "access": {
     "fullText": "public",
     "metadata": "public",
-    "note": "Tool distribution/licensing is not treated here as an Ordivon dependency admission."
+    "note": "Official download page states nuXmv is available only for non-commercial or academic purposes; catalog registration is not dependency admission."
   },
   "discovery": {
     "aliases": [
-      "OCRA",
-      "Othello Contracts Refinement Analysis",
-      "OCRA 1.1.2"
+      "nuXmv",
+      "nuXmv 2.2.0"
     ],
     "domains": [
       "architecture",
@@ -16,14 +15,14 @@
       "formal-methods"
     ],
     "topics": [
-      "contract-refinement",
-      "temporal-contracts",
+      "model-checking",
       "ltl",
-      "compositional-verification",
-      "model-checking"
+      "ctl",
+      "infinite-state",
+      "vmt"
     ]
   },
-  "id": "ocra-1.1.2",
+  "id": "nuxmv-2.2.0",
   "identity": {
     "authorityKind": "provider-authority",
     "identityMode": "versioned",
@@ -31,24 +30,22 @@
       "id": "fbk",
       "name": "Fondazione Bruno Kessler"
     },
-    "officialSource": "https://es.fbk.eu/index.php/tools/ocra/",
+    "officialSource": "https://nuxmv.fbk.eu/download.html",
     "publicationDate": null,
-    "title": "OCRA 1.1.2 — Othello Contracts Refinement Analysis",
-    "versionLabel": "1.1.2"
+    "title": "nuXmv 2.2.0",
+    "versionLabel": "2.2.0"
   },
   "kind": "ordivon.external-authority-record",
   "provenance": {
     "registeredDate": "2026-09-22",
     "registrationBasis": [
-      "FBK OCRA official tool page checked 2026-09-22",
-      "2026 FBK research reports asynchronous LTL composition methods integrated into OCRA"
+      "official upstream source checked 2026-09-22",
+      "verified reintegration temporal owner currentness review"
     ]
   },
   "relations": {
     "related": [],
-    "supersededBy": [
-      "ocra-2.1.0"
-    ],
+    "supersededBy": [],
     "supersedes": []
   },
   "schemaVersion": 1

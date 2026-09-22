@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.verified-reintegration-pacti-shadow",
+  "date": "2026-09-22",
+  "sourceRevision": "a891da0c941f631d1c31b9606b016bed233cff14",
+  "truthRole": "shadow-formal-analysis-not-runtime-authority",
+  "externalOwner": {
+    "name": "Pacti",
+    "version": "0.3.1",
+    "acquisition": "ephemeral PyPI install through uv --isolated --with pacti==0.3.1",
+    "projectDependencyAdded": false
+  },
+  "seam": {
+    "id": "seam:harness-gateway-runtime-timeout",
+    "variables": {
+      "timeoutMs": "positive integer milliseconds",
+      "grantMaxMs": 300000,
+      "gatewayHardMaxMs": 900000,
+      "runtimeSourceFallbackMaxMs": 900000,
+      "liveRuntimeDefaultMs": 3600000,
+      "liveRuntimeMaxMs": 86400000
+    },
+    "observedImplementation": [
+      "Harness PluginGatewayExecutionGrant constrains max_timeout_ms to 1..900000 and defaults to 300000.",
+      "Harness GatewayExecutionRequest constrains timeout_ms to 1..900000.",
+      "Gateway execution.submit passes timeoutMs through unchanged when present.",
+      "Runtime new-admission policy rejects execution.timeoutMs above max_runtime_ms; source fallback max_runtime_ms is 900000, while live runtime.describe on 2026-09-22 observed defaultRuntimeMs=3600000 and maxRuntimeMs=86400000."
+    ]
+  },
+  "w1": {
+    "deliberateMismatch": {
+      "grantMaxMs": 900000,
+      "runtimeMaxMs": 600000,
+      "gatewayCompose": "PASS",
+      "runtimeCompose": "REJECT",
+      "errorType": "IncompatibleArgsError"
+    },
+    "conclusion": "Pacti reproduces the accepted timeout seam and rejects a deliberately incompatible producer/consumer bound.",
+    "sourceFallbackCase": {
+      "grantMaxMs": 300000,
+      "runtimeSourceFallbackMaxMs": 900000,
+      "gatewayCompose": "PASS",
+      "runtimeCompose": "PASS"
+    },
+    "liveOwnerCase": {
+      "grantMaxMs": 300000,
+      "liveRuntimeDefaultMs": 3600000,
+      "liveRuntimeMaxMs": 86400000,
+      "runtimeDescribeObserved": true,
+      "runtimeCompose": "PASS",
+      "composedGuarantee": [
+        "timeout remains >=1ms",
+        "timeout remains <=300000ms"
+      ]
+    }
+  },
+  "w2": {
+    "topLevelRequirement": "caller-granted timeout is preserved exactly through the seam and remains within the bounded accepted domain",
+    "existingSubsystem": "Harness-to-Gateway pass-through",
+    "quotientMissingSubsystem": {
+      "input": "t_gateway",
+      "output": "t_runtime",
+      "assumptions": [
+        "1 <= t_gateway",
+        "t_gateway <= 300000"
+      ],
+      "guarantees": [
+        "t_runtime = t_gateway"
+      ]
+    },
+    "recomposedRefinesTop": true,
+    "conclusion": "The quotient is an obligation contract, not an invented Runtime implementation; both the 900000ms source fallback ceiling and the 86400000ms live ceiling are redundant under the tighter 300000ms caller grant and are correctly absent from the quotient."
+  },
+  "nonClaims": [
+    "This does not prove Pacti is appropriate for semantic natural-language gates.",
+    "This does not add Pacti to Ordivon production dependencies.",
+    "This does not replace Runtime owner-native admission tests.",
+    "This does not grant execution authority."
+  ]
+}

@@ -13,7 +13,8 @@ selected by problem class:
 R1/R2 thin composition waist
         |
         +-- formalizable assume/guarantee algebra -> Pacti
-        +-- temporal refinement / LTL             -> OCRA reference
+        +-- temporal state-machine verification        -> TLA+/TLC existing owner
+        +-- temporal refinement / LTL             -> OCRA reference; Apalache symbolic candidate
         +-- assurance interchange                 -> SACM
         +-- human assurance projection            -> GSN
         +-- semantic provenance                   -> W3C PROV
@@ -73,13 +74,17 @@ Use it only when a real seam has an explicit formal contract representable by Pa
 Natural-language R1 gates stay opaque to Pacti. Dependency admission requires a recurring
 real consumer, not a toy example.
 
-## OCRA 1.1.2 — ADAPT_REFERENCE_DEFER_BINARY
+## TLA+/TLC 1.7.4 — KEEP_EXISTING_OWNER
 
-OCRA is an FBK tool for logic-based contract refinement and compositional verification,
-including temporal contracts. FBK's current material continues to use OCRA in 2026 work on
-asynchronous LTL composition.
+Runtime already has a digest-pinned TLA+/TLC formal slice for concurrent dispatch/recovery invariants. The 2026-09-19 accepted finite model generated 25 states / 20 distinct states to depth 9 with zero invariant violations. This is bounded abstraction evidence, not Rust refinement proof.
 
-This makes OCRA a stronger reference than inventing an Ordivon temporal-contract calculus.
+TLA+ 1.7.4 remains the current stable release observed on 2026-09-22; 1.8.0 is a prerelease channel.
+
+## OCRA 2.1.0 — ADAPT_REFERENCE_DEFER_BINARY
+
+OCRA is an FBK tool for logic-based contract refinement and compositional verification, including temporal contracts. The official OCRA homepage currently lists 2.1.0 as the latest release. Its semantics remain a useful reference, but its binary release line is materially older than current TLA+/Apalache/nuXmv tooling.
+
+Ordivon therefore does not treat OCRA as the default temporal executor. Existing TLA+/TLC remains the current local owner; Apalache is a deferred symbolic candidate when a real bounded/SMT pressure appears.
 
 ### Boundary
 
@@ -170,7 +175,9 @@ The R1 gate carrier remains generic. External methods own specialized semantics.
 | Candidate | Decision | Owns | Does not own |
 |---|---|---|---|
 | Pacti 0.3.1 | ADOPT_OPTIONAL_PROVIDER | algebraic assume-guarantee operations | all R1 gates / domain truth |
-| OCRA 1.1.2 | ADAPT_REFERENCE_DEFER_BINARY | temporal refinement model | generic composition runtime |
+| TLA+/TLC 1.7.4 | KEEP_EXISTING_OWNER | bounded concurrent/state-machine model checking | implementation refinement/domain truth |
+| OCRA 2.1.0 | ADAPT_REFERENCE_DEFER_BINARY | temporal refinement model/reference | generic composition runtime |
+| Apalache 0.58.3 | DEFER_OPTIONAL_SYMBOLIC_PROVIDER | symbolic/bounded TLA+/Quint checking | default temporal owner |
 | SACM 2.3 | ADOPT_ASSURANCE_INTERCHANGE_TARGET | assurance-case metamodel | gate truth |
 | GSN v3 | ADOPT_HUMAN_ARGUMENT_PROJECTION | human argument structure | proof/domain acceptance |
 | W3C PROV | KEEP_EXISTING_OWNER | semantic provenance | execution lineage |
@@ -181,7 +188,7 @@ The R1 gate carrier remains generic. External methods own specialized semantics.
 
 R4 does not:
 
-- add Pacti or OCRA to the Composition runtime dependency graph;
+- add Pacti, OCRA, Apalache or TLC to the Composition runtime dependency graph;
 - translate every natural-language gate into SMT;
 - introduce a universal contract language;
 - introduce a universal assurance ontology;

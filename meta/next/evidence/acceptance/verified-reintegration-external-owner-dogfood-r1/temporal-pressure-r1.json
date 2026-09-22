@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.verified-reintegration-temporal-pressure-r1",
+  "date": "2026-09-22",
+  "truthRole": "formal-method-selection-evidence-not-domain-truth",
+  "sourceRevision": "a891da0c941f631d1c31b9606b016bed233cff14",
+  "pressure": {
+    "webSecurity": {
+      "semantics": [
+        "proof replay rejection",
+        "grant revocation",
+        "step-up approval",
+        "historical replay after revoke"
+      ],
+      "boundedLexicalCensus": {
+        "replay": {
+          "occurrences": 26,
+          "files": 4
+        },
+        "revoke": {
+          "occurrences": 55,
+          "files": 4
+        },
+        "approvalOrStepUp": {
+          "occurrences": 98,
+          "files": 10
+        }
+      },
+      "boundary": "Counts are pressure indicators over scoped source/tests, not proof of distinct temporal contracts."
+    },
+    "runtimeHarness": {
+      "semantics": [
+        "durable admission before dispatch",
+        "at-most-once dispatch per Attempt",
+        "ambiguous dispatch blocks redispatch",
+        "explicit retry as new Attempt",
+        "cancel/reconcile/terminal evidence"
+      ],
+      "boundedLexicalCensus": {
+        "cancel": {
+          "occurrences": 561,
+          "files": 51
+        },
+        "retryOrReconcile": {
+          "occurrences": 851,
+          "files": 100
+        },
+        "terminalOrFinality": {
+          "occurrences": 1078,
+          "files": 72
+        }
+      },
+      "existingFormalModel": "services/runtime/formal/RuntimeDispatchR1.tla"
+    },
+    "capital": {
+      "semantics": [
+        "reservation lifecycle",
+        "execution reconciliation",
+        "cancel/finality boundaries"
+      ],
+      "boundedLexicalCensus": {
+        "reservation": {
+          "occurrences": 151,
+          "files": 18
+        },
+        "retryOrReconcile": {
+          "occurrences": 67,
+          "files": 17
+        },
+        "terminalOrFinality": {
+          "occurrences": 36,
+          "files": 12
+        }
+      },
+      "boundary": "Capital semantics remain Capital-owned; this census grants no finance effect authority."
+    }
+  },
+  "existingTemporalOwner": {
+    "authorityId": "tla-tools-1.7.4",
+    "model": "services/runtime/formal/RuntimeDispatchR1.tla",
+    "acceptedResult": {
+      "date": "2026-09-19",
+      "tlc": "2.19",
+      "tlaTools": "1.7.4",
+      "statesGenerated": 25,
+      "distinctStates": 20,
+      "graphDepth": 9,
+      "invariantViolations": 0
+    },
+    "currentTurnRequalification": {
+      "standing": "NOT_RERUN_CACHE_MISSING",
+      "reason": "isolated Runtime workspace and canonical checkout did not expose the ignored digest-pinned tla2tools JAR cache; this is not a model failure"
+    }
+  },
+  "candidateCurrentness": {
+    "ocra": {
+      "authorityId": "ocra-2.1.0",
+      "latestOfficialRelease": "2.1.0",
+      "releaseAgeBoundary": "official OCRA homepage still lists 2.1.0 from 2021; semantics retained as reference, binary deferred"
+    },
+    "nuxmv": {
+      "authorityId": "nuxmv-2.2.0",
+      "latestObserved": "2.2.0",
+      "releaseDateObserved": "2026-06",
+      "licenseBoundary": "official download page states non-commercial or academic use"
+    },
+    "apalache": {
+      "authorityId": "apalache-0.58.3",
+      "latestObserved": "0.58.3",
+      "releaseDateObserved": "2026-07-09",
+      "role": "active symbolic TLA+/Quint candidate when TLC state-space/SMT pressure is demonstrated"
+    }
+  },
+  "decision": {
+    "standing": "REUSE_EXISTING_TLA_TLC_DEFER_NEW_BINARY",
+    "rationale": [
+      "repeated temporal pressure is real",
+      "Runtime already owns a checked TLA+/TLC abstraction",
+      "OCRA adds a second temporal stack without demonstrated defect-finding benefit",
+      "Apalache is active but no current state-space pressure requires it"
+    ],
+    "noDependencyAdded": true
+  },
+  "nonClaims": [
+    "Lexical occurrence counts are not formal coverage metrics.",
+    "The 2026-09-19 TLC result proves only its bounded abstraction, not Rust refinement.",
+    "No OCRA, nuXmv, or Apalache binary is admitted by this evidence."
+  ]
+}

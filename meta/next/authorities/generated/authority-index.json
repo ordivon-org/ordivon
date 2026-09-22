@@ -301,6 +301,34 @@
     },
     {
       "aliases": [
+        "Apalache",
+        "Apalache 0.58.3"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "apalache-0.58.3",
+      "identityMode": "versioned",
+      "issuer": "Apalache / TLA+ Foundation",
+      "lifecycleStatus": "published-current",
+      "observationDigest": "sha256:fdc9dfe7dbb9fa86edcadb92c5955750eff8bf5e544b3c1d9e5babe97722a53d",
+      "recordDigest": "sha256:28ef746c6f3e3da1183eae0317f28515688b4239ada255bb97c10e7dd3d2d16f",
+      "title": "Apalache 0.58.3",
+      "topics": [
+        "bounded-model-checking",
+        "quint",
+        "smt",
+        "symbolic-model-checking",
+        "tla-plus"
+      ],
+      "versionLabel": "0.58.3"
+    },
+    {
+      "aliases": [
         "ArchiMate",
         "ArchiMate 3.2",
         "ArchiMate Specification"
@@ -2945,6 +2973,34 @@
     },
     {
       "aliases": [
+        "nuXmv",
+        "nuXmv 2.2.0"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "nuxmv-2.2.0",
+      "identityMode": "versioned",
+      "issuer": "Fondazione Bruno Kessler",
+      "lifecycleStatus": "published-current-license-bounded",
+      "observationDigest": "sha256:3c082a6f931c5dc9202316a394b47a5a7f956f334a398b380767b96db0e26e54",
+      "recordDigest": "sha256:5579b8b0a9478e5475b37d214dee6c1a108d338731227e198bfadfb089ded7b9",
+      "title": "nuXmv 2.2.0",
+      "topics": [
+        "ctl",
+        "infinite-state",
+        "ltl",
+        "model-checking",
+        "vmt"
+      ],
+      "versionLabel": "2.2.0"
+    },
+    {
+      "aliases": [
         "ODF",
         "OpenDocument",
         "OpenDocument 1.3"
@@ -3097,7 +3153,7 @@
       "issuer": "Fondazione Bruno Kessler",
       "lifecycleStatus": "current",
       "observationDigest": "sha256:3cf4aad791b5cc8f9c9b1c91a00c2be7a1d62f46291a0328ee9960c57dcaab9e",
-      "recordDigest": "sha256:37ffb56833386bc9e0d21ae4e72e0444419f92dd0d14a14fde806e794ba9c412",
+      "recordDigest": "sha256:3c7ce53314c068ead2f4a3d705e43ad191e9997122b97f2a8fc3cf0dff266e81",
       "title": "OCRA 1.1.2 — Othello Contracts Refinement Analysis",
       "topics": [
         "compositional-verification",
@@ -3107,6 +3163,35 @@
         "temporal-contracts"
       ],
       "versionLabel": "1.1.2"
+    },
+    {
+      "aliases": [
+        "OCRA",
+        "OCRA 2.1.0",
+        "Othello Contracts Refinement Analysis"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "ocra-2.1.0",
+      "identityMode": "versioned",
+      "issuer": "Fondazione Bruno Kessler",
+      "lifecycleStatus": "latest-release-confirmed-aged",
+      "observationDigest": "sha256:9fb7b8c432f7589dabeba27fc944e87f40350e6b104812b4b1d3610c2b31d707",
+      "recordDigest": "sha256:c2db8b9ecad6348cef170582769e9c6003541683f6f89e70381652fbea1c0d11",
+      "title": "OCRA 2.1.0 — Othello Contracts Refinement Analysis",
+      "topics": [
+        "compositional-verification",
+        "contract-refinement",
+        "ltl",
+        "model-checking",
+        "temporal-contracts"
+      ],
+      "versionLabel": "2.1.0"
     },
     {
       "aliases": [
@@ -4463,6 +4548,36 @@
     },
     {
       "aliases": [
+        "TLA+",
+        "TLA+ Tools 1.7.4",
+        "TLC"
+      ],
+      "authorityKind": "provider-authority",
+      "currentnessChecked": "2026-09-22",
+      "domains": [
+        "architecture",
+        "engineering",
+        "formal-methods"
+      ],
+      "id": "tla-tools-1.7.4",
+      "identityMode": "versioned",
+      "issuer": "TLA+ Foundation",
+      "lifecycleStatus": "published-current-stable",
+      "observationDigest": "sha256:e776606622759ad6a15071ca0f31066a1baecfad84f757d84d30a499f8fc41bd",
+      "recordDigest": "sha256:2d01da6328c456297515ac8c8c3cc55b88d0ba38f071cd2b6094267e25f51baf",
+      "title": "TLA+ Tools / TLC 1.7.4",
+      "topics": [
+        "concurrency",
+        "liveness",
+        "model-checking",
+        "safety",
+        "state-machines",
+        "temporal-logic"
+      ],
+      "versionLabel": "1.7.4"
+    },
+    {
+      "aliases": [
         "TOGAF",
         "TOGAF 10",
         "TOGAF Standard 10th Edition"
@@ -4801,7 +4916,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 172,
-  "recordsDigest": "sha256:288e40ba9e47ec17668bdabcd1759f87474e3bc4ef25dd10e97076fa36d8c091",
+  "recordCount": 176,
+  "recordsDigest": "sha256:e6d5f33ab73ed50e62ef7842765252cfa9bece47df955192ff7bf249d95d548c",
   "schemaVersion": 1
 }

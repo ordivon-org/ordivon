@@ -3,7 +3,7 @@
   "kind": "ordivon.verified-reintegration-external-owner-convergence-plan",
   "date": "2026-09-22",
   "sourceRevision": "5f8e6c47475b5e301b400b7100f488ccf9b184fd",
-  "status": "PLANNING",
+  "status": "COMPLETE_R1_DECISION",
   "governingRule": "EXTERNAL_OWNER_OR_DELETE",
   "invariants": [
     "mechanicalClosure != domainAcceptanceEstablished",
@@ -15,24 +15,34 @@
   ],
   "dispositions": [
     {
-      "owner": "Pacti",
+      "owner": "Pacti 0.3.1",
       "role": "assume-guarantee composition/refinement/quotient",
-      "disposition": "SHADOW_CANDIDATE"
+      "disposition": "KEEP_SHADOW_OPTIONAL_PROVIDER"
     },
     {
-      "owner": "OCRA",
-      "role": "temporal-contract refinement",
-      "disposition": "DEFER_TEMPORAL"
+      "owner": "TLA+/TLC 1.7.4",
+      "role": "concurrent/state-machine temporal model checking",
+      "disposition": "KEEP_EXISTING_OWNER"
+    },
+    {
+      "owner": "OCRA 2.1.0",
+      "role": "temporal-contract refinement reference",
+      "disposition": "DEFER_BINARY"
+    },
+    {
+      "owner": "Apalache 0.58.3",
+      "role": "symbolic/bounded TLA+/Quint model checking",
+      "disposition": "DEFER_UNTIL_SYMBOLIC_PRESSURE"
     },
     {
       "owner": "OMG SACM 2.3",
       "role": "assurance claim/argument/evidence interchange",
-      "disposition": "ACTIVATE_AS_PROJECTION_CANDIDATE"
+      "disposition": "KEEP_SHADOW_PROJECTION_TARGET"
     },
     {
       "owner": "GSN v3",
       "role": "human assurance argument view",
-      "disposition": "VIEW_ONLY"
+      "disposition": "VIEW_ONLY_DEFER_NO_CONSUMER"
     },
     {
       "owner": "W3C PROV-O",
@@ -59,6 +69,7 @@
     {
       "id": "W0",
       "goal": "Freeze current R1/R2/R3.1 owner boundaries",
+      "status": "PASS",
       "exit": [
         "current verification green",
         "no new registry/store/control plane"
@@ -67,6 +78,7 @@
     {
       "id": "W1",
       "goal": "Run one pinned formal-contract shadow on a machine-expressible real seam",
+      "status": "PASS",
       "exit": [
         "accepted case reproduced",
         "deliberate incompatibility detected",
@@ -76,6 +88,7 @@
     {
       "id": "W2",
       "goal": "Run one quotient LEGO experiment",
+      "status": "PASS",
       "exit": [
         "compose(known,quotient) refines(required)",
         "quotient remains obligation not implementation"
@@ -84,6 +97,7 @@
     {
       "id": "W3",
       "goal": "Export one disposable SACM-compatible assurance projection",
+      "status": "PASS_SHADOW_NOT_CONFORMANCE_CLAIM",
       "exit": [
         "identity/evidence/scope/nonClaims preserved",
         "no standing upgrade",
@@ -93,6 +107,7 @@
     {
       "id": "W4",
       "goal": "Generate optional GSN view only for a real Human review consumer",
+      "status": "DEFER_NO_EXPLICIT_CONSUMER",
       "exit": [
         "regenerable view",
         "no new authority"
@@ -101,6 +116,7 @@
     {
       "id": "W5",
       "goal": "Evaluate temporal-contract tooling after repeated temporal pressure",
+      "status": "PASS_DECISION_REUSE_TLA_TLC_DEFER_NEW_BINARY",
       "exit": [
         "new defect found or bespoke verification reduced"
       ]
@@ -108,6 +124,7 @@
     {
       "id": "W6",
       "goal": "Make external-owner admission decision",
+      "status": "COMPLETE_R1_DECISION",
       "dispositions": [
         "ADOPT_EXTERNAL",
         "KEEP_SHADOW",
@@ -118,15 +135,66 @@
   ],
   "pactiProbe": {
     "attempted": true,
-    "python": "3.14.6",
-    "uv": "0.12.3",
-    "disposition": "INCONCLUSIVE_NETWORK",
-    "failureBoundary": "Runtime egress to github.com:443 failed during git ls-remote before package acquisition",
+    "initialGitHubProbe": {
+      "python": "3.14.6",
+      "uv": "0.12.3",
+      "disposition": "INCONCLUSIVE_NETWORK",
+      "failureBoundary": "Runtime egress to github.com:443 failed during git ls-remote before package acquisition"
+    },
+    "pypiShadow": {
+      "package": "pacti==0.3.1",
+      "python": "3.14",
+      "dependencyMutation": false,
+      "seam": "Harness PluginGatewayExecutionGrant max_timeout_ms -> Gateway execution.submit timeoutMs pass-through -> Runtime max_runtime_ms admission",
+      "deliberateMismatch": {
+        "grantMaxMs": 900000,
+        "gatewayMaxMs": 900000,
+        "runtimeMaxMs": 600000,
+        "composition": "REJECT",
+        "errorType": "IncompatibleArgsError"
+      },
+      "quotient": {
+        "standing": "PASS",
+        "recomposedRefinesTop": true,
+        "meaning": "missing subsystem contract constrains gateway timeout to the caller-granted domain and preserves timeout identity; it specifies an obligation, not an implementation"
+      },
+      "sourceFallbackCase": {
+        "grantMaxMs": 300000,
+        "runtimeSourceFallbackMaxMs": 900000,
+        "composition": "PASS"
+      },
+      "liveOwnerCase": {
+        "grantMaxMs": 300000,
+        "liveRuntimeDefaultMs": 3600000,
+        "liveRuntimeMaxMs": 86400000,
+        "composition": "PASS",
+        "observedVia": "runtime.describe"
+      }
+    },
     "nonClaims": [
-      "This does not show Pacti is incompatible with Python 3.14.",
-      "This does not admit Pacti as a project dependency.",
-      "No Pacti algebra result was produced locally."
+      "The shadow result does not grant execution or effect authority.",
+      "Pacti is not a project dependency.",
+      "Natural-language semantic gates are not automatically Pacti contracts.",
+      "One successful seam does not justify a universal formal-contract registry."
     ]
+  },
+  "sacmShadow": {
+    "version": "2.3",
+    "namespace": "http://www.omg.org/spec/SACM/20220301",
+    "normativeModelUrl": "https://www.omg.org/spec/SACM/20220301/SACM.xml",
+    "normativeModelSha256": "sha256:4bc12020fe38018fe24d39e56ec04f2fc9190fe7cf1161d85452fda5f3fbeb1e",
+    "sourceGate": "gate:research-artifact-carrier",
+    "standing": "PASS_SHADOW_NOT_CONFORMANCE_CLAIM",
+    "xmiSha256": "sha256:2552407d0c39a56ae2b495f00f87a1385fcb0593cdd9d72eee8ae9747ba127ac",
+    "roundTripPreserved": [
+      "assumption",
+      "evidenceRefs",
+      "guarantee",
+      "meta",
+      "nonClaims",
+      "supportScope"
+    ],
+    "fullSacmConformanceClaimed": false
   },
   "noBuildYet": [
     "formal-contract registry",
@@ -135,5 +203,7 @@
     "new provenance graph store",
     "universal verifier",
     "automatic Goal-to-Circuit synthesis"
-  ]
+  ],
+  "temporalPressureEvidence": "meta/next/evidence/acceptance/verified-reintegration-external-owner-dogfood-r1/temporal-pressure-r1.json",
+  "finalDecisionBoundary": "External methods remain scoped providers/references/projections. No new universal formal runtime, registry, evidence store, SACM service, GSN database, OCRA/Apalache binary, or Pacti production dependency is introduced."
 }

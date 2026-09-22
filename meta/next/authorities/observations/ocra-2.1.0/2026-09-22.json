@@ -1,0 +1,11 @@
+{
+  "authorityId": "ocra-2.1.0",
+  "basis": "official-source",
+  "kind": "ordivon.external-authority-observation",
+  "lifecycleStatus": "latest-release-confirmed-aged",
+  "note": "FBK official OCRA homepage lists 2.1.0 as latest release. The release is materially older than current nuXmv/Apalache/TLA+ tooling, so Ordivon keeps OCRA as a semantic/reference candidate and defers binary admission.",
+  "observedDate": "2026-09-22",
+  "officialSource": "https://ocra.fbk.eu/",
+  "schemaVersion": 1,
+  "versionObserved": "2.1.0"
+}
