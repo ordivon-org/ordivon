@@ -920,7 +920,19 @@ class BrowserlessAutomationService:
                 cmd += ["--turn-request-id", turn_request_id]
             if resume_id is not None:
                 cmd += ["--resume-id", resume_id]
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
+            temporal_env = dict(os.environ)
+            source_python = str(SOURCE_ROOT / "src")
+            temporal_env["PYTHONPATH"] = source_python + (
+                os.pathsep + temporal_env["PYTHONPATH"] if temporal_env.get("PYTHONPATH") else ""
+            )
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+                env=temporal_env,
+            )
         finally:
             if prompt_dir is not None:
                 prompt_dir.cleanup()

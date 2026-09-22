@@ -2223,3 +2223,10 @@ def test_temporal_admission_passes_configured_materialization_carrier(tmp_path):
     raw["materializationCarrier"] = "windows-user-browser"
     cfg = BrowserlessAutomationConfig.from_dict(raw)
     assert cfg.materialization_carrier == "windows-user-browser"
+
+
+def test_temporal_admission_projects_release_src_into_subprocess_pythonpath():
+    source = (ROOT / "scripts" / "agent_automation_browserless.py").read_text()
+    assert 'source_python = str(SOURCE_ROOT / "src")' in source
+    assert 'temporal_env["PYTHONPATH"] = source_python' in source
+    assert 'env=temporal_env' in source
