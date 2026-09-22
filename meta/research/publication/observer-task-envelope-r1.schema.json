@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/research/publication/observer-task-envelope-r1.schema.json",
+  "title": "Publication Perceptual Observer Task Envelope R1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "taskId",
+    "role",
+    "carrierSha256",
+    "inputViewDigest",
+    "allowedRead",
+    "forbiddenRead",
+    "requiredOutputs",
+    "acceptancePredicates",
+    "truthBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "publication-perceptual-observer-task"},
+    "taskId": {"type": "string", "minLength": 1},
+    "role": {
+      "enum": ["BLIND_VISION", "VENUE_AWARE_VISION", "SEMANTIC_LAYOUT"]
+    },
+    "carrierSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "inputViewDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "allowedRead": {"type": "array", "items": {"type": "string"}},
+    "forbiddenRead": {"type": "array", "items": {"type": "string"}},
+    "requiredOutputs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "acceptancePredicates": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "truthBoundary": {"type": "string", "minLength": 1}
+  }
+}
