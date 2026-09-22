@@ -9,6 +9,7 @@ mod platform;
 mod registry;
 #[cfg(feature = "operator-tools")]
 mod repair;
+mod reservation_state;
 mod supervisor;
 mod types;
 mod windows;
