@@ -47,6 +47,23 @@ class ConvergencePlanTests(unittest.TestCase):
             ["harness", "next", "security", "skills", "web"],
         )
 
+    def test_artifact_change_adds_direct_verifier_without_joining_components(self) -> None:
+        plan = MODULE.build_plan(changed_files=["capabilities/artifact/README.md"])
+        self.assertEqual(
+            plan["verificationOwners"],
+            ["artifact", "distribution", "game", "media", "next", "workstation"],
+        )
+        self.assertEqual(plan["observerVerificationOwners"], ["next"])
+        self.assertNotIn("security", plan["verificationOwners"])
+        self.assertNotIn("web", plan["verificationOwners"])
+
+    def test_verifier_change_does_not_reverse_observation_edge(self) -> None:
+        plan = MODULE.build_plan(
+            changed_files=["meta/next/scripts/research_artifact_gate_r3.py"]
+        )
+        self.assertNotIn("artifact", plan["verificationOwners"])
+        self.assertNotIn("distribution", plan["verificationOwners"])
+
     def test_cross_cutting_change_requires_all_owner_verification(self) -> None:
         plan = MODULE.build_plan(
             changed_files=["tools/repo/dependency_contracts.toml"]

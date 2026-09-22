@@ -21,8 +21,18 @@ This is repository-boundary enforcement. It is not a universal dependency graph,
 | Skills | Next | OPERATOR_SOURCE_BINDING | Temporary filesystem-to-MCP bridge over operator-configured source roots |
 | Workstation | Distribution | ACCEPTANCE_EVIDENCE_BINDING | n8n acceptance consumes one Distribution evidence input |
 | Workstation | Game / Media | TEST_ONLY_ENVIRONMENT_BINDING | Host toolchain consequence tests only |
+| Next verifier | Artifact / Distribution | VERIFIER_PROFILE_OBSERVATION | Reads bounded publication-profile owner bindings only to evaluate the R3 composition seam |
+| Next verifier | Web | VERIFIER_SOURCE_OBSERVATION | Reads exact Web source/evidence locators required by the R3 seam verifier |
+| Next verifier | Security | VERIFIER_CONTRACT_OBSERVATION / VERIFIER_BOUNDARY_RULE_LOCATOR | Observes exact public-contract locators and forbidden-internal-boundary tokens; this is not an import permission |
+| Next tests | Web / Security / Artifact | TEST_ONLY_VERIFIER_FIXTURE_BINDING | R3 mutation fixtures only |
 
 Test and E2E variants are declared separately. A production source file cannot inherit permission merely because the same owner pair already has a test seam.
+
+### Convergence semantics
+
+A declared literal seam may additionally set `convergence = "observe"`. This means the `from_owner` is a verifier/observer of the `to_owner`: a direct change in the observed owner adds the observer's native verification, but the seam does not join the two owners into the conservative undirected interaction component and is not traversed transitively. Omitted `convergence` means the existing `interaction` behavior.
+
+This distinction prevents verifier source locators from being misclassified as runtime/source dependencies while still ensuring that a directly changed observed owner can trigger the relevant verifier. It does not alter truth ownership.
 
 ## Explicit non-edges
 
@@ -45,9 +55,9 @@ Executable unit checks prove:
 
 ## Current measured standing
 
-At the R1 implementation fence the checker inspected 1,844 active tracked files and found 20 cross-owner literal references covered by 16 narrow seam declarations.
+At the current 2026-09-22 fence the checker inspects 1,928 active tracked files and finds 40 cross-owner literal references covered by 26 narrow seam declarations. The increase from the original R1 measurement is the admitted Cross-domain Verification R3 observer/rule surface; it does not add production owner imports.
 
-No undeclared active literal seam remained.
+No undeclared active literal seam remains.
 
 ## Scope limit
 
