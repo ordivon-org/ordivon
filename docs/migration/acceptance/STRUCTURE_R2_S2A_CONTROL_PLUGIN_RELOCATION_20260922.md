@@ -1,7 +1,7 @@
 # Structure R2 S2A — Control Plugin Relocation
 
 Date: 2026-09-22
-Status: **CANDIDATE — requires verification/integration**
+Status: **ACCEPTED / POST-MERGE VERIFIED**
 
 ## Scope
 
@@ -24,10 +24,34 @@ The Next materializer resolves the Plugin from repo-level `extensions/` and reco
 `extensions/ordivon-control-plane` in release receipts. Structure R2 now mechanically rejects
 an S2A deployed claim if the old source remains or the new target is missing.
 
-## Required verification
+## Verification
 
-- `next:verify`
-- Structure R2 checker/tests
-- composition architecture checker
-- root `repo:ci`
-- post-merge repetition before final acceptance
+Candidate verification:
+
+- `control-plugin:verify` — PASS (17 tests; Agent Plugins 1.0 schemas; Gateway-only MCP surface).
+- `next:verify` — PASS.
+- Structure R2 checker — PASS.
+- architecture documentation drift checker — PASS.
+- root `repo:ci` — PASS.
+- owner-boundary scan — PASS at 1,952 active files / 18 seams / 23 references.
+- repository architecture tests — 33 passed.
+
+Serialized integration:
+
+```text
+candidate = 96db72e07832a2b0c653e13fe62903acb13b55cc
+previous_main = 4d46d741994ce08c8282c62c5154aef57f20331a
+main = 466f44387f1698481d1253982a004aad21ebfac2
+integration = MERGE_COMMIT
+```
+
+Fresh post-merge verification from `main@466f44387f1698481d1253982a004aad21ebfac2`:
+
+- `control-plugin:verify` — PASS.
+- Structure R2 checker — PASS.
+- `next:verify` — PASS.
+- root `repo:ci` — PASS.
+- owner-boundary scan — PASS at 1,952 active files / 18 seams / 23 references.
+- repository architecture tests — 33 passed.
+
+S2A is closed. S2B-S9 remain open.
