@@ -9,6 +9,7 @@ INSTALLER = ROOT / "packaging" / "windows" / "install_release.ps1"
 def test_windows_release_installer_is_exact_sha_and_immutable() -> None:
     text = INSTALLER.read_text(encoding="utf-8")
     assert "ValidatePattern('^[0-9a-f]{40}$')" in text
+    assert "ProviderPath" in text
     assert "safe.directory=$repoPath" in text
     assert "'rev-parse' '--verify'" in text
     assert "$resolveExitCode = $LASTEXITCODE" in text

@@ -36,8 +36,8 @@ function Get-Sha256Lower {
 $git = (Get-Command git.exe -ErrorAction Stop).Source
 $tar = (Get-Command tar.exe -ErrorAction Stop).Source
 
-$repoPath = (Resolve-Path -LiteralPath $Repo).Path
-$uvResolved = (Resolve-Path -LiteralPath $UvPath).Path
+$repoPath = (Resolve-Path -LiteralPath $Repo).ProviderPath
+$uvResolved = (Resolve-Path -LiteralPath $UvPath).ProviderPath
 $prefixPath = [System.IO.Path]::GetFullPath($Prefix)
 
 $resolvedOutput = @(
