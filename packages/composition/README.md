@@ -10,6 +10,7 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Generic verifier-owned Composition Gate result validation/evaluation.
 - Interface compatibility, currentness, and evidence-admissibility evaluation.
 - Deterministic Composition Gate → verification-obligation projection.
+- Deterministic explicit authority-requirement → task-local authority-obligation projection.
 - Exact task-local verifier-binding validation without discovery or ranking.
 - Successor Contract predecessor/candidate binding and verifier-owned succession-gate
   evaluation.
@@ -39,6 +40,10 @@ promotion, release, or Git authority into this package.
 Agent Run Binding R1 adds a disposable exact-reference projection for one prospective Agent
 Run without moving Harness contract semantics, provider/tool selection, authorization,
 execution, workflow, or domain acceptance into this package.
+
+Authority Obligation R1 binds explicit caller-authored Circuit/stage/capability prerequisites
+to exact external authority-contract references. It never infers effect coverage and always
+leaves authority and execution authority false.
 
 ## Verification
 
