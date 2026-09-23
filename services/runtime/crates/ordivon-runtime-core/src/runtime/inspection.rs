@@ -5,10 +5,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::registry::{
-    load_attempt, load_job, load_reservation, CONDITION_RETIREMENT_MIGRATION_VERSION,
-    MAX_MIGRATION_VERSION,
-};
+use super::registry::{CONDITION_RETIREMENT_MIGRATION_VERSION, MAX_MIGRATION_VERSION};
+use super::registry_storage::RegistryStorageBoundary;
 use super::{
     AttemptState, AttemptTerminationIntent, JobDesiredState, JobResolution, ReservationState,
     RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan, RuntimeResult,
