@@ -194,6 +194,44 @@
       "licenseStanding": "CC-BY-4.0_OBSERVED_HF_DATASET_CARD",
       "inferenceBoundary": "Annotations ground claims to evidence/context but do not confer scientific-truth, causal, adequacy, or submission authority.",
       "reuseStanding": "ADMIT_IDENTITY_AND_SNIPPET_CORE_CONTENT_EXPANSION_SEPARATE"
+    },
+    {
+      "id": "aries-review-response-core-r1",
+      "owner": "shared-research-data-catalog",
+      "catalogRole": "review-thread-response-context-bridge-to-aries-revision-correspondence",
+      "status": "MATERIALIZED_REVIEW_RESPONSE_CORE",
+      "rawExternalRoot": "/root/projects/ordivon-corpora/scholarly-data/aries/aries-review-response-core-r1-20260923",
+      "admissionReceipt": "meta/research/evidence/aries-review-response-core-r1.json",
+      "analyticalBaselines": [
+        "meta/research/evidence/aries-lifecycle-fork-baseline-r1.json"
+      ],
+      "observedScale": {
+        "chainedAuthorResponses": 1976,
+        "concernResponseContextLinks": 270,
+        "directAuthorResponses": 8488,
+        "manualConcernExactReviewJoins": 196,
+        "manualConcernForumMismatches": 0,
+        "manualConcernRows": 196,
+        "manualConcernsWithAnyResponse": 196,
+        "manualConcernsWithBothBranches": 87,
+        "manualConcernsWithPositiveRevision": 87,
+        "orphanReplyParents": 0,
+        "relevantAuthorResponses": 10464,
+        "relevantForums": 1720,
+        "relevantOfficialReviews": 6380,
+        "sourceAuthorReplies": 32691,
+        "sourceReviewRecords": 23706
+      },
+      "featureFamilies": [
+        "official review record identity",
+        "author reply thread topology",
+        "manual concern to exact source-review identity",
+        "review-level response context for manual concerns",
+        "same-concern lifecycle fork with separate revision correspondence"
+      ],
+      "licenseStanding": "ODC-BY-1.0_OBSERVED_UPSTREAM_SNAPSHOT",
+      "inferenceBoundary": "Review-thread response context is not concern-specific semantic resolution and is not a Response-to-Revision causal edge.",
+      "reuseStanding": "ADMIT_FOR_NONCAUSAL_REVIEW_LIFECYCLE_IDENTITY_AND_TOPOLOGY_RESEARCH"
     }
   ],
   "externalCandidates": [
@@ -305,14 +343,18 @@
         "reviewComments": 4088,
         "editUnits": 213955,
         "manualTestLabelRows": 196,
-        "syntheticDevLabelRows": 542
+        "syntheticDevLabelRows": 542,
+        "reviewReplySourceRecords": 23706,
+        "reviewReplySourceAuthorReplies": 32691,
+        "relevantOfficialReviews": 6380,
+        "relevantAuthorResponses": 10464
       },
       "useCases": [
         "review-comment to paper-edit linkage",
         "resolution effectiveness",
         "revision planning evaluation"
       ],
-      "acquisitionState": "MATERIALIZED_BOUNDED_CORE",
+      "acquisitionState": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE",
       "licenseStanding": "ODC-BY-1.0_OBSERVED_UPSTREAM_SNAPSHOT",
       "priority": "A"
     },

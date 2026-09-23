@@ -21,6 +21,8 @@ PEERSUM_RECEIPT = META / "research/evidence/peersum-hf-bounded-core-r1.json"
 PEERSUM_BASELINE = META / "research/evidence/peersum-meta-review-structure-baseline-r1.json"
 CONTEXT24_RECEIPT = META / "research/evidence/context24-identity-core-r1.json"
 CONTEXT24_BASELINE = META / "research/evidence/context24-claim-evidence-baseline-r1.json"
+ARIES_RESPONSE_RECEIPT = META / "research/evidence/aries-review-response-core-r1.json"
+ARIES_FORK_BASELINE = META / "research/evidence/aries-lifecycle-fork-baseline-r1.json"
 
 
 def fail(message: str) -> None:
@@ -284,6 +286,8 @@ def main() -> int:
     peersum_baseline = load(PEERSUM_BASELINE)
     context24_receipt = load(CONTEXT24_RECEIPT)
     context24_baseline = load(CONTEXT24_BASELINE)
+    aries_response_receipt = load(ARIES_RESPONSE_RECEIPT)
+    aries_fork_baseline = load(ARIES_FORK_BASELINE)
 
     if catalog.get("truthRole") != "data-asset-catalog-not-scientific-truth":
         fail("catalog authority boundary drifted")
@@ -297,7 +301,7 @@ def main() -> int:
     if not isinstance(assets, list):
         fail("materializedLocalAssets must be a list")
     by_asset = {row.get("id"): row for row in assets}
-    required_assets = {"emse-writing-benchmark-r16", "aries-bounded-core-r1", "disapere-bounded-core-r1", "peersum-hf-bounded-core-r1", "context24-identity-core-r1"}
+    required_assets = {"emse-writing-benchmark-r16", "aries-bounded-core-r1", "aries-review-response-core-r1", "disapere-bounded-core-r1", "peersum-hf-bounded-core-r1", "context24-identity-core-r1"}
     if not required_assets.issubset(by_asset):
         fail(f"missing materialized assets: {sorted(required_assets - set(by_asset))}")
     if len(by_asset) != len(assets):
@@ -306,6 +310,15 @@ def main() -> int:
     emse = verify_emse(by_asset["emse-writing-benchmark-r16"])
     aries = verify_aries(by_asset["aries-bounded-core-r1"], aries_receipt)
     disapere = verify_disapere(by_asset["disapere-bounded-core-r1"], disapere_receipt)
+
+    if aries_response_receipt.get("status") != "MATERIALIZED_REVIEW_RESPONSE_CORE_ANALYTICAL_VIEWS_PASS":
+        fail("ARIES response-core admission standing drifted")
+    if aries_response_receipt.get("parentAsset", {}).get("snapshotIdentity") != aries_receipt["snapshot"]["identity"]:
+        fail("ARIES response-core parent binding drifted")
+    if aries_fork_baseline.get("sourceSnapshotIdentity") != aries_response_receipt["snapshot"]["identity"]:
+        fail("ARIES lifecycle fork baseline identity drifted")
+    if aries_fork_baseline.get("counts", {}).get("manualConcernsWithBothBranches") != 87:
+        fail("ARIES lifecycle fork count drifted")
 
     if aries_baseline.get("sourceSnapshotIdentity") != aries_receipt["snapshot"]["identity"]:
         fail("ARIES baseline source identity drifted")
@@ -390,7 +403,7 @@ def main() -> int:
         if not standing or not any(token in standing for token in ("VERIFY", "MUST_BE_BOUND", "OBSERVED")):
             fail(f"{row.get('id')}: license/access standing is not explicit")
     aries_candidate = by_candidate["aries"]
-    if aries_candidate.get("acquisitionState") != "MATERIALIZED_BOUNDED_CORE":
+    if aries_candidate.get("acquisitionState") != "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE":
         fail("ARIES candidate/local asset state mismatch")
     if by_candidate["context24"].get("acquisitionState") != "MATERIALIZED_IDENTITY_CORE":
         fail("Context24 candidate/local asset state mismatch")
@@ -407,7 +420,7 @@ def main() -> int:
     by_wave = {row["id"]: row for row in plan.get("waves", [])}
     if by_wave.get("SD1", {}).get("standing") != "IN_PROGRESS_CONTEXT24_IDENTITY_CORE_MATERIALIZED_OTHER_LICENSE_BLOCKERS_REMAIN":
         fail("SD1 standing drifted")
-    if by_wave.get("SD2", {}).get("standing") != "IN_PROGRESS_ARIES_DISAPERE_PEERSUM_MATERIALIZED":
+    if by_wave.get("SD2", {}).get("standing") != "IN_PROGRESS_ARIES_RESPONSE_DISAPERE_PEERSUM_MATERIALIZED":
         fail("SD2 standing drifted")
     if by_wave.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
         fail("large scholarly fulltext acquisition was prematurely promoted")
@@ -432,11 +445,11 @@ def main() -> int:
     if context24_transport.get("standing") != "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE":
         fail("historical Context24 direct-transport evidence drifted")
 
-    if sd2.get("standing") != "IN_PROGRESS_THREE_COMPLEMENTARY_ASSETS_MATERIALIZED":
+    if sd2.get("standing") != "IN_PROGRESS_THREE_DATASETS_FOUR_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED":
         fail("SD2 readiness standing drifted")
     sd2_by_id = {row["id"]: row for row in sd2.get("datasets", [])}
     expected_sd2 = {
-        "aries": "MATERIALIZED_BOUNDED_CORE",
+        "aries": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE",
         "peersum": "MATERIALIZED_DIGEST_BOUND",
         "nlpeer-v2": "LICENSE_OBSERVED_ACCESS_RESTRICTED_LARGE_NOT_ACQUIRED",
         "peerread-v1": "PARTIAL_COMPONENT_LICENSE_CONSTRAINTS_REQUIRE_SECTION_LEVEL_BINDING",
@@ -449,21 +462,23 @@ def main() -> int:
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
-        "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_ARIES_DISAPERE_PEERSUM",
+        "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_ARIES_RESPONSE_DISAPERE_PEERSUM",
         "materializedLocalAssetCount": len(assets),
         "externalCandidateCount": len(candidates),
         "emse": emse,
         "aries": aries,
+        "ariesResponse": aries_response_receipt["counts"],
+        "ariesLifecycleFork": {"manualConcerns": 196, "withResponseContext": 196, "withPositiveRevision": 87, "withBothBranches": 87},
         "disapere": disapere,
         "peersum": peersum_receipt["counts"],
         "context24": context24_receipt["counts"],
         "context24HistoricalDirectTransport": context24_transport["standing"],
         "ariesManualBaseline": expected_baseline,
         "disapereCoverageBaseline": {key: {"targeted": value[0], "total": value[1]} for key, value in expected_coverage.items()},
-        "nextWaves": ["SD1 transport recovery", "SD2 lifecycle expansion"],
+        "nextWaves": ["Context24 evidence-content resolver", "PeerSum semantic-disagreement annotation", "ARIES response-to-revision identification"],
         "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
         "truthBoundary": (
-            "Acceptance proves current local EMSE, Context24, ARIES, DISAPERE, and PeerSum physical/schema bindings, "
+            "Acceptance proves current local EMSE, Context24, ARIES core, ARIES review-response core, DISAPERE, and PeerSum physical/schema bindings, "
             "including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels "
             "into reviewer/scientific truth, authorize manuscript or submission effects, or "
             "generalize dataset frequencies to scholarly populations."

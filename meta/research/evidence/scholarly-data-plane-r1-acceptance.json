@@ -10,6 +10,12 @@
     "positiveAlignments": 724,
     "reviewComments": 4088
   },
+  "ariesLifecycleFork": {
+    "manualConcerns": 196,
+    "withBothBranches": 87,
+    "withPositiveRevision": 87,
+    "withResponseContext": 196
+  },
   "ariesManualBaseline": {
     "commentsWithPositiveEditAlignment": 87,
     "commentsWithoutPositiveEditAlignment": 109,
@@ -17,6 +23,23 @@
     "manualTestComments": 196,
     "negativeEditLinks": 24738,
     "positiveEditLinks": 182
+  },
+  "ariesResponse": {
+    "chainedAuthorResponses": 1976,
+    "concernResponseContextLinks": 270,
+    "directAuthorResponses": 8488,
+    "manualConcernExactReviewJoins": 196,
+    "manualConcernForumMismatches": 0,
+    "manualConcernRows": 196,
+    "manualConcernsWithAnyResponse": 196,
+    "manualConcernsWithBothBranches": 87,
+    "manualConcernsWithPositiveRevision": 87,
+    "orphanReplyParents": 0,
+    "relevantAuthorResponses": 10464,
+    "relevantForums": 1720,
+    "relevantOfficialReviews": 6380,
+    "sourceAuthorReplies": 32691,
+    "sourceReviewRecords": 23706
   },
   "context24": {
     "task1CrossSplitExactClaimOverlap": 0,
@@ -87,10 +110,11 @@
   "externalCandidateCount": 14,
   "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
   "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
-  "materializedLocalAssetCount": 5,
+  "materializedLocalAssetCount": 6,
   "nextWaves": [
-    "SD1 transport recovery",
-    "SD2 lifecycle expansion"
+    "Context24 evidence-content resolver",
+    "PeerSum semantic-disagreement annotation",
+    "ARIES response-to-revision identification"
   ],
   "peersum": {
     "authorMessages": 95943,
@@ -104,6 +128,6 @@
     "replyEdges": 178272
   },
   "schemaVersion": 1,
-  "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_ARIES_DISAPERE_PEERSUM",
-  "truthBoundary": "Acceptance proves current local EMSE, Context24, ARIES, DISAPERE, and PeerSum physical/schema bindings, including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
+  "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_ARIES_RESPONSE_DISAPERE_PEERSUM",
+  "truthBoundary": "Acceptance proves current local EMSE, Context24, ARIES core, ARIES review-response core, DISAPERE, and PeerSum physical/schema bindings, including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
 }

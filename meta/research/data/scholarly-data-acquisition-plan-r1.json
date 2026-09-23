@@ -32,7 +32,7 @@
     {
       "id": "SD2",
       "goal": "Peer-review lifecycle corpora",
-      "standing": "IN_PROGRESS_ARIES_DISAPERE_PEERSUM_MATERIALIZED",
+      "standing": "IN_PROGRESS_ARIES_RESPONSE_DISAPERE_PEERSUM_MATERIALIZED",
       "candidates": [
         "peerread-v1",
         "nlpeer",
@@ -41,7 +41,7 @@
         "aries"
       ],
       "gate": "license/privacy/ethics verified + paper/review/rebuttal/version identity preserved",
-      "unlocks": "review concern, disagreement, rebuttal and revision research"
+      "unlocks": "review concern/response/revision fork, rebuttal discourse, and meta-review topology; direct response->revision and semantic disagreement remain research gaps"
     },
     {
       "id": "SD3",

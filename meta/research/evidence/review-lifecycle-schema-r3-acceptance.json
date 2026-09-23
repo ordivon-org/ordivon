@@ -1,0 +1,23 @@
+{
+  "kind": "ordivon.research.review-lifecycle-schema-acceptance",
+  "newR3Relations": [
+    "source_review_for_concern"
+  ],
+  "sameAuthorityFork": {
+    "manualConcerns": 196,
+    "withBothBranches": 87,
+    "withPositiveRevisionCorrespondence": 87,
+    "withReviewResponseContext": 196
+  },
+  "schemaVersion": 3,
+  "sourceAssets": [
+    "aries-bounded-core-r1",
+    "aries-review-response-core-r1",
+    "disapere-bounded-core-r1",
+    "peersum-hf-bounded-core-r1"
+  ],
+  "standing": "PASS_SAME_AUTHORITY_ARIES_LIFECYCLE_FORK_R3",
+  "truthBoundary": "R3 proves exact concern source-review identity, reply topology, and separate revision correspondence under ARIES. It does not prove concern-specific response adequacy or a Response->Revision semantic/causal edge.",
+  "unresolved": "Response->Revision semantic/causal linkage remains NOT_IDENTIFIED",
+  "validatedSampleCount": 7
+}

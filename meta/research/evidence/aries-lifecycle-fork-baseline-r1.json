@@ -1,0 +1,48 @@
+{
+  "counts": {
+    "chainedAuthorResponses": 1976,
+    "concernResponseContextLinks": 270,
+    "directAuthorResponses": 8488,
+    "manualConcernExactReviewJoins": 196,
+    "manualConcernForumMismatches": 0,
+    "manualConcernRows": 196,
+    "manualConcernsWithAnyResponse": 196,
+    "manualConcernsWithBothBranches": 87,
+    "manualConcernsWithPositiveRevision": 87,
+    "orphanReplyParents": 0,
+    "relevantAuthorResponses": 10464,
+    "relevantForums": 1720,
+    "relevantOfficialReviews": 6380,
+    "sourceAuthorReplies": 32691,
+    "sourceReviewRecords": 23706
+  },
+  "id": "aries-lifecycle-fork-baseline-r1",
+  "interpretationCeiling": [
+    "Exact review identity plus reply topology establishes review-level response context, not concern-specific semantic resolution.",
+    "Annotated concern-edit correspondence remains separate from author reply topology; no Response->Revision causal or semantic edge is asserted.",
+    "The lifecycle fork is same-authority identity evidence, not proof of reviewer correctness, response adequacy, or revision quality."
+  ],
+  "kind": "ordivon.research.aries-lifecycle-fork-baseline",
+  "observedAt": "2026-09-23",
+  "population": "ARIES 196 manual test concerns with exact source-review identity",
+  "positiveRevisionCountPerConcern": {
+    "0": 109,
+    "1": 50,
+    "2": 18,
+    "3": 4,
+    "4": 2,
+    "5": 7,
+    "6": 4,
+    "8": 1,
+    "9": 1
+  },
+  "responseCountPerConcern": {
+    "1": 128,
+    "2": 62,
+    "3": 6
+  },
+  "schemaVersion": 1,
+  "sourceParentAsset": "aries-bounded-core-r1",
+  "sourceReplyAsset": "aries-review-response-core-r1",
+  "sourceSnapshotIdentity": "sha256:3a251f14e1b4b49763a1791e11b7482f929ee017fd4f7d7fd603fd4fd475802e"
+}
