@@ -204,7 +204,7 @@ pub(super) fn filesystem_available_bytes(path: &Path) -> RuntimeResult<u64> {
         ));
     }
     let value = unsafe { value.assume_init() };
-    Ok((value.f_bavail as u64).saturating_mul(value.f_frsize as u64))
+    Ok(value.f_bavail.saturating_mul(value.f_frsize))
 }
 
 #[cfg(windows)]
