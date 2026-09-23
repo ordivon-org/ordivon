@@ -34,6 +34,23 @@ CQ-P31/P32 currently have one durable cross-cutting cost episode:
 `docs/architecture/evidence/CONVERGENCE_OWNER_COST_F2EC_R1.json`.
 That episode is evidence, not enough history to admit generalized long-tail optimization.
 
+CQ-M80 now reuses the existing Experimental Episode analytical substrate instead of
+creating a Queue-specific database:
+
+- adapter: `meta/next/scripts/experimental_episode_convergence_r1.py`;
+- queue profile: `convergence-queue-observation-v1`;
+- CI profile: `convergence-ci-observation-v1`;
+- shared contract: `meta/next/schemas/experimental-episode-binding-r1.schema.json`;
+- PostgreSQL consumer: `meta/next/experimental/episode-store-r1`.
+
+The adapter emits stable Episode identities plus exact projection digests and binds only
+bounded owner references, evidence-set digests, scalar dimensions and numeric measures.
+It does not create a Queue schema, store raw provider payloads, or transfer GitHub authority
+into PostgreSQL. An isolated PostgreSQL 18.6 acceptance run ingested 13 Queue Episodes and
+20 CI Episodes into the existing schema, then replayed both ingests with zero new projection
+rows. Evidence is frozen in
+`docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json`.
+
 ## Economic classification
 
 Provider conclusions are deliberately not treated as economic truth:
@@ -105,5 +122,7 @@ The following remain blocked by evidence:
 - cancellation controller;
 - predictive cost scheduling.
 
-The next data-plane step is persistence of normalized Queue/CI observations into the shared
-observation/event substrate, not a Queue-specific database.
+CQ-M80 persistence is now implemented through the existing Experimental Episode consumer.
+The next evidence step is accumulation of comparable owner-cost episodes and explicit CI
+economic annotations; control experiments remain blocked until the corresponding pressure
+gate becomes `PROVEN`.

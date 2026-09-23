@@ -322,6 +322,21 @@
       "adaptive speculation",
       "batching/bisection",
       "predictive cost scheduling"
-    ]
+    ],
+    "analyticalPersistence": {
+      "standing": "PASS_EXISTING_EXPERIMENTAL_EPISODE_STORE_REUSE",
+      "lego": "CQ-M80",
+      "adapter": "meta/next/scripts/experimental_episode_convergence_r1.py",
+      "profiles": [
+        "convergence-queue-observation-v1",
+        "convergence-ci-observation-v1"
+      ],
+      "episodeContract": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+      "postgresConsumer": "meta/next/experimental/episode-store-r1",
+      "acceptanceEvidence": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json",
+      "authority": "rebuildable analytical materialization only",
+      "schemaChangeRequired": false,
+      "queueSpecificDatabase": false
+    }
   }
 }
