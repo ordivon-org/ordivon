@@ -1,0 +1,120 @@
+{
+  "cases": [
+    {
+      "actualConflictObserved": false,
+      "evidenceRefs": [
+        "maintenance/archlinux-vhd coordination warning",
+        "HOLD_ON_NO_ACTIVE_USER standing"
+      ],
+      "inSocialScope": true,
+      "missClass": "NONE_OBSERVED",
+      "nonClaims": [
+        "The Board warning is not a lock or lease.",
+        "No causal claim is made that Social Fabric prevented a duplicate effect."
+      ],
+      "observedCaseId": "CONC-VHD-EXCLUSIVE-MAINTENANCE",
+      "pairwiseModelDetected": true,
+      "participants": [
+        "host",
+        "runtime.linux",
+        "runtime.windows"
+      ],
+      "sourceRefs": [
+        "host:board:17812",
+        "host:board:17813",
+        "host:task:task:social-fabric-crossdisciplinary-r2-20260923@6",
+        "runtime.windows:job:job-01a0cf07-82d8-7322-a7f6-69e98fa79f7a"
+      ],
+      "subjects": [
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ]
+    },
+    {
+      "actualConflictObserved": false,
+      "evidenceRefs": [
+        "84 local-only / 0 provider-only semantic frontier",
+        "open PR27 navigation coordinate"
+      ],
+      "inSocialScope": true,
+      "missClass": "CURRENTNESS_AND_SUPERSESSION_NOT_DEADLOCK",
+      "nonClaims": [
+        "Local Git main is not provider canonical authority.",
+        "Divergence is not itself a resource deadlock."
+      ],
+      "observedCaseId": "CONC-CANONICALIZATION-MOVING-MAIN",
+      "pairwiseModelDetected": true,
+      "participants": [
+        "git",
+        "github-provider",
+        "host"
+      ],
+      "sourceRefs": [
+        "host:task:task:canonical-convergence-ci-economics-20260924-r1@1",
+        "git:/root/projects/ordivon:main@e3c50f70b012ad51b3aabfe6e3fbc87cde83e3f0",
+        "runtime.linux:job:job-01a0cf08-5e78-7b91-8cfa-de0165ee17b0"
+      ],
+      "subjects": [
+        "git:ordivon:main",
+        "provider:github:main",
+        "provider:github:pr:27"
+      ]
+    },
+    {
+      "actualConflictObserved": true,
+      "evidenceRefs": [
+        "DEPLOYMENT_IN_PROGRESS admission rejection is Runtime-owned"
+      ],
+      "inSocialScope": false,
+      "missClass": "OWNER_ENFORCED_ADMISSION_NOT_SOCIAL_GAP",
+      "nonClaims": [
+        "Social Fabric must not duplicate Runtime admission control."
+      ],
+      "observedCaseId": "CONC-PAPER2-RUNTIME-DEPLOYMENT-FENCE",
+      "pairwiseModelDetected": false,
+      "participants": [
+        "runtime.linux",
+        "paper2"
+      ],
+      "sourceRefs": [
+        "host:task:task:paper2-coding-agent-reproducibility-20260914@82",
+        "runtime.linux:job:job-01a0cf07-5d35-7b32-8c70-39f84246284d"
+      ],
+      "subjects": [
+        "runtime:linux:deployment-fence",
+        "paper2:crossref:C08-02"
+      ]
+    },
+    {
+      "actualConflictObserved": false,
+      "evidenceRefs": [
+        "two PRE_EFFECT_FAILED attempts with providerResource=null and retry stopped"
+      ],
+      "inSocialScope": false,
+      "missClass": "RETRY_CURRENTNESS_NOT_CONCURRENCY_GAP",
+      "nonClaims": [
+        "No provider SEND/effect occurred.",
+        "Retry history is not evidence of a multi-resource cycle."
+      ],
+      "observedCaseId": "CONC-CAPITAL-A02-PRE-EFFECT-RETRIES",
+      "pairwiseModelDetected": false,
+      "participants": [
+        "capital",
+        "agent-automation"
+      ],
+      "sourceRefs": [
+        "host:task:task:market-capital-r2-trading-substrate-readmission-20260915@5"
+      ],
+      "subjects": [
+        "capital:A02:LEAN-oracle-successor"
+      ]
+    }
+  ],
+  "kind": "ordivon.social-fabric-concurrency-gap-measurement",
+  "nonClaims": [
+    "No command text was used to infer authority.",
+    "Only explicit owner-native references and exact Host re-entry coordinates are treated as evidence locators."
+  ],
+  "observedAt": "2026-09-24T00:11:00+08:00",
+  "schemaVersion": 1,
+  "truthRole": "measurement-over-owner-native-references-not-authority"
+}

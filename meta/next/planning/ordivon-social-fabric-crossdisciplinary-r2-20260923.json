@@ -1,5 +1,6 @@
 {
   "baselineRevision": "354d885d411de5acbb360df2694aa95e310715bc",
+  "closeoutRevision": "2026-09-24-r1",
   "externalCurrentness": {
     "a2a": "1.0.0 latest released",
     "cellml": "2.0",
@@ -128,24 +129,31 @@
       "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-concurrency-gap-measurement-r1-20260924.json",
       "id": "CONC60",
+      "implementation": "meta/next/scripts/social_fabric_closeout_r1.py#validate_concurrency",
       "name": "ConcurrencyGapMeasurement",
-      "status": "MEASURE_FIRST"
+      "status": "MEASURED_PAIRWISE_SUFFICIENT_NO_PROVEN_GAP"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-gate79-r1-20260924.json",
       "id": "CONC62",
       "name": "PetriNetShadow",
-      "status": "HOLD"
+      "status": "KILLED_NO_PROVEN_REPRESENTATIONAL_GAP"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-cascade-measurement-r1-20260924.json",
       "id": "CASCADE61",
+      "implementation": "meta/next/scripts/social_fabric_closeout_r1.py#validate_cascade",
       "name": "AutocatalyticCascadeMeasurement",
-      "status": "MEASURE_FIRST"
+      "status": "MEASURED_NO_PROVEN_SELF_AMPLIFICATION"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-gate79-r1-20260924.json",
       "id": "GATE79",
+      "implementation": "meta/next/scripts/social_fabric_closeout_r1.py#compile_gate",
       "name": "PromoteHoldKill",
-      "status": "REQUIRED"
+      "status": "COMPLETE_PROMOTE_HOLD_KILL"
     },
     {
       "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
@@ -181,8 +189,33 @@
       "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
       "name": "ComponentCompartmentVisibility",
       "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG70",
+      "name": "CanonicalizationDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG71",
+      "name": "WSLVHDDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG72",
+      "name": "PapersDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG73",
+      "name": "CapitalDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
     }
   ],
+  "packageStanding": "PROMOTE_BOUNDED_CORE_WITH_OPTIONAL_LEGOS_HELD_OR_KILLED",
   "schemaVersion": 1,
   "truthRole": "planning-projection-not-authority",
   "waves": [
@@ -244,6 +277,10 @@
     {
       "id": "7",
       "nodes": [
+        "DOG70",
+        "DOG71",
+        "DOG72",
+        "DOG73",
         "GATE79"
       ]
     }

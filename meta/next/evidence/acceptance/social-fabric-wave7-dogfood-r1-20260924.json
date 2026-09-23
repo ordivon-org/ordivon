@@ -1,0 +1,122 @@
+{
+  "cases": [
+    {
+      "domain": "canonicalization",
+      "effectAuthorityClaimed": false,
+      "executionAdmissionClaimed": false,
+      "falsePositives": [],
+      "id": "DOG70",
+      "misses": [
+        "Provider currentness still requires provider-native re-read before publication."
+      ],
+      "ownerBoundaryPreserved": true,
+      "preflightStanding": "SOCIAL_READ_RECOMMENDED",
+      "sourceRefs": [
+        "host:task:task:canonical-convergence-ci-economics-20260924-r1@1",
+        "git:/root/projects/ordivon:main@e3c50f70b012ad51b3aabfe6e3fbc87cde83e3f0"
+      ],
+      "utilityFindings": [
+        "CURRENT separates local main, provider main, open PR and Host checkpoint instead of collapsing them.",
+        "ATTENTION exposes the new 00:11 canonical-convergence task without treating it as priority.",
+        "COORDINATION makes concurrent workspace/provider publication seams visible without scheduling them.",
+        "AUTHORITY keeps Git/provider/Host roles distinct and supplies re-entry coordinates."
+      ],
+      "viewsUsed": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION",
+        "AUTHORITY"
+      ]
+    },
+    {
+      "domain": "wsl-vhd",
+      "effectAuthorityClaimed": false,
+      "executionAdmissionClaimed": false,
+      "falsePositives": [],
+      "id": "DOG71",
+      "misses": [
+        "Social Fabric cannot create the active-user Windows authority needed for compact and must not attempt to."
+      ],
+      "ownerBoundaryPreserved": true,
+      "preflightStanding": "SOCIAL_READ_RECOMMENDED",
+      "sourceRefs": [
+        "host:board:17812",
+        "host:board:17813",
+        "host:task:task:wsl-maintenance-preflight-r1-20260918@7",
+        "runtime.windows:job:job-01a0cf07-82d8-7322-a7f6-69e98fa79f7a",
+        "runtime.linux:job:job-01a0cf0a-37ad-7512-bbde-685805371cc2"
+      ],
+      "utilityFindings": [
+        "CURRENT shows about 39 GiB D: free versus the 48 GiB Runtime workspace floor without turning that into effect authorization.",
+        "ATTENTION preserves the explicit maintenance warning and HOLD_ON_NO_ACTIVE_USER standing.",
+        "COORDINATION exposes the shared VHD subject before an effect and makes duplicate maintenance intent visible.",
+        "AUTHORITY directs execution back to Windows/Runtime owners rather than Social Fabric."
+      ],
+      "viewsUsed": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION",
+        "AUTHORITY"
+      ]
+    },
+    {
+      "domain": "papers",
+      "effectAuthorityClaimed": false,
+      "executionAdmissionClaimed": false,
+      "falsePositives": [],
+      "id": "DOG72",
+      "misses": [
+        "Social projection cannot determine scientific acceptance or journal outcome."
+      ],
+      "ownerBoundaryPreserved": true,
+      "preflightStanding": "SOCIAL_READ_RECOMMENDED",
+      "sourceRefs": [
+        "host:task:task:paper1-methodology-upgrade-20260914@84",
+        "host:task:task:paper2-coding-agent-reproducibility-20260914@82"
+      ],
+      "utilityFindings": [
+        "CURRENT separates Paper1 engineering closure from human P1-PUB-12/P1-PUB-13 authorization and Paper2 execution blockers.",
+        "ATTENTION preserves unresolved external credential/provider gates without converting them into paper priority.",
+        "AUTHORITY distinguishes human submission approval, Runtime execution, scientific evidence, and repository artifact custody."
+      ],
+      "viewsUsed": [
+        "CURRENT",
+        "ATTENTION",
+        "AUTHORITY"
+      ]
+    },
+    {
+      "domain": "capital",
+      "effectAuthorityClaimed": false,
+      "executionAdmissionClaimed": false,
+      "falsePositives": [],
+      "id": "DOG73",
+      "misses": [
+        "Social Fabric cannot establish Capital Truth, settlement truth, or ProductionAuthorization."
+      ],
+      "ownerBoundaryPreserved": true,
+      "preflightStanding": "SOCIAL_READ_RECOMMENDED",
+      "sourceRefs": [
+        "host:task:task:market-capital-r2-trading-substrate-readmission-20260915@5"
+      ],
+      "utilityFindings": [
+        "CURRENT preserves NON_LIVE/read-only standing and unresolved A02/cutover boundaries.",
+        "COORDINATION exposes A02 pre-effect retry history without scheduling another retry.",
+        "AUTHORITY preserves Capital domain truth, Runtime input-authority owner, and external EffectAuthority separation."
+      ],
+      "viewsUsed": [
+        "CURRENT",
+        "COORDINATION",
+        "AUTHORITY"
+      ]
+    }
+  ],
+  "kind": "ordivon.social-fabric-wave7-dogfood",
+  "nonClaims": [
+    "Dogfood utility is observational and does not claim Social Fabric caused successful coordination outcomes.",
+    "Mixed owner horizons remain explicit; this artifact is not a same-cut global snapshot."
+  ],
+  "observedAt": "2026-09-24T00:11:00+08:00",
+  "schemaVersion": 1,
+  "truthRole": "bounded-agent-ux-utility-evaluation-not-domain-truth"
+}

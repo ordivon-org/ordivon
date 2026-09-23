@@ -1,0 +1,231 @@
+{
+  "DOG70": {
+    "advice": {
+      "adviceDigest": "sha256:8f6831f7a9ebe5ac2bb038db1cd1abd3b9072ab98eb8ed0f7eb065af238cdaf9",
+      "compartmentRefs": [
+        "canonicalization"
+      ],
+      "effectAuthorizationIncluded": false,
+      "executionAdmissionIncluded": false,
+      "explicitTraits": {
+        "durable": true,
+        "effectful": true,
+        "scarce": false,
+        "shared": true
+      },
+      "kind": "ordivon.social-fabric-agent-preflight-advice",
+      "nonClaims": [
+        "Preflight uses only caller-declared durable/shared/effectful/scarce traits and does not infer risk or priority.",
+        "A recommendation to read Social Fabric is not a requirement, allow/deny decision, scheduler decision, lease, or EffectAuthority.",
+        "Natural owners remain responsible for any enforceable admission, authorization, resource lock, or external effect."
+      ],
+      "operationRef": "canonical-provider-convergence-read",
+      "recommendationReasonCodes": [
+        "DURABLE_CONTINUITY",
+        "SHARED_COORDINATION",
+        "EFFECT_OWNER_BINDING"
+      ],
+      "recommendedViews": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION",
+        "AUTHORITY"
+      ],
+      "schemaVersion": 1,
+      "standing": "SOCIAL_READ_RECOMMENDED",
+      "subjectRefs": [
+        "git:ordivon:main",
+        "provider:github:main"
+      ],
+      "truthRole": "advisory-view-selection-not-admission-or-effect-authority"
+    },
+    "request": {
+      "compartmentRefs": [
+        "canonicalization"
+      ],
+      "kind": "ordivon.social-preflight-request",
+      "operationRef": "canonical-provider-convergence-read",
+      "schemaVersion": 1,
+      "subjectRefs": [
+        "git:ordivon:main",
+        "provider:github:main"
+      ],
+      "traits": {
+        "durable": true,
+        "effectful": true,
+        "scarce": false,
+        "shared": true
+      }
+    }
+  },
+  "DOG71": {
+    "advice": {
+      "adviceDigest": "sha256:32df4cba9f6c0cf580d273ca8bd812eeddb6da4c1a5a97b79ee5dc63d8fc6d31",
+      "compartmentRefs": [
+        "maintenance/archlinux-vhd"
+      ],
+      "effectAuthorizationIncluded": false,
+      "executionAdmissionIncluded": false,
+      "explicitTraits": {
+        "durable": true,
+        "effectful": true,
+        "scarce": true,
+        "shared": true
+      },
+      "kind": "ordivon.social-fabric-agent-preflight-advice",
+      "nonClaims": [
+        "Preflight uses only caller-declared durable/shared/effectful/scarce traits and does not infer risk or priority.",
+        "A recommendation to read Social Fabric is not a requirement, allow/deny decision, scheduler decision, lease, or EffectAuthority.",
+        "Natural owners remain responsible for any enforceable admission, authorization, resource lock, or external effect."
+      ],
+      "operationRef": "archlinux-vhd-maintenance-preflight",
+      "recommendationReasonCodes": [
+        "DURABLE_CONTINUITY",
+        "SHARED_COORDINATION",
+        "EFFECT_OWNER_BINDING",
+        "SCARCE_RESOURCE_COORDINATION"
+      ],
+      "recommendedViews": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION",
+        "AUTHORITY"
+      ],
+      "schemaVersion": 1,
+      "standing": "SOCIAL_READ_RECOMMENDED",
+      "subjectRefs": [
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthRole": "advisory-view-selection-not-admission-or-effect-authority"
+    },
+    "request": {
+      "compartmentRefs": [
+        "maintenance/archlinux-vhd"
+      ],
+      "kind": "ordivon.social-preflight-request",
+      "operationRef": "archlinux-vhd-maintenance-preflight",
+      "schemaVersion": 1,
+      "subjectRefs": [
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "traits": {
+        "durable": true,
+        "effectful": true,
+        "scarce": true,
+        "shared": true
+      }
+    }
+  },
+  "DOG72": {
+    "advice": {
+      "adviceDigest": "sha256:b82264200f1b0db699be31830fb9a160e6df5f04878e81757ed185a55d86fbea",
+      "compartmentRefs": [
+        "papers"
+      ],
+      "effectAuthorizationIncluded": false,
+      "executionAdmissionIncluded": false,
+      "explicitTraits": {
+        "durable": true,
+        "effectful": false,
+        "scarce": false,
+        "shared": true
+      },
+      "kind": "ordivon.social-fabric-agent-preflight-advice",
+      "nonClaims": [
+        "Preflight uses only caller-declared durable/shared/effectful/scarce traits and does not infer risk or priority.",
+        "A recommendation to read Social Fabric is not a requirement, allow/deny decision, scheduler decision, lease, or EffectAuthority.",
+        "Natural owners remain responsible for any enforceable admission, authorization, resource lock, or external effect."
+      ],
+      "operationRef": "paper-coordination-read",
+      "recommendationReasonCodes": [
+        "DURABLE_CONTINUITY",
+        "SHARED_COORDINATION"
+      ],
+      "recommendedViews": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION"
+      ],
+      "schemaVersion": 1,
+      "standing": "SOCIAL_READ_RECOMMENDED",
+      "subjectRefs": [
+        "paper:paper1",
+        "paper:paper2"
+      ],
+      "truthRole": "advisory-view-selection-not-admission-or-effect-authority"
+    },
+    "request": {
+      "compartmentRefs": [
+        "papers"
+      ],
+      "kind": "ordivon.social-preflight-request",
+      "operationRef": "paper-coordination-read",
+      "schemaVersion": 1,
+      "subjectRefs": [
+        "paper:paper1",
+        "paper:paper2"
+      ],
+      "traits": {
+        "durable": true,
+        "effectful": false,
+        "scarce": false,
+        "shared": true
+      }
+    }
+  },
+  "DOG73": {
+    "advice": {
+      "adviceDigest": "sha256:356d9df2352fdc8e20e6039d8ad3282fa7f38c1dac4cf949f5d0be902306211e",
+      "compartmentRefs": [
+        "capital"
+      ],
+      "effectAuthorizationIncluded": false,
+      "executionAdmissionIncluded": false,
+      "explicitTraits": {
+        "durable": true,
+        "effectful": false,
+        "scarce": false,
+        "shared": true
+      },
+      "kind": "ordivon.social-fabric-agent-preflight-advice",
+      "nonClaims": [
+        "Preflight uses only caller-declared durable/shared/effectful/scarce traits and does not infer risk or priority.",
+        "A recommendation to read Social Fabric is not a requirement, allow/deny decision, scheduler decision, lease, or EffectAuthority.",
+        "Natural owners remain responsible for any enforceable admission, authorization, resource lock, or external effect."
+      ],
+      "operationRef": "capital-readonly-coordination-read",
+      "recommendationReasonCodes": [
+        "DURABLE_CONTINUITY",
+        "SHARED_COORDINATION"
+      ],
+      "recommendedViews": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION"
+      ],
+      "schemaVersion": 1,
+      "standing": "SOCIAL_READ_RECOMMENDED",
+      "subjectRefs": [
+        "domain:capital"
+      ],
+      "truthRole": "advisory-view-selection-not-admission-or-effect-authority"
+    },
+    "request": {
+      "compartmentRefs": [
+        "capital"
+      ],
+      "kind": "ordivon.social-preflight-request",
+      "operationRef": "capital-readonly-coordination-read",
+      "schemaVersion": 1,
+      "subjectRefs": [
+        "domain:capital"
+      ],
+      "traits": {
+        "durable": true,
+        "effectful": false,
+        "scarce": false,
+        "shared": true
+      }
+    }
+  }
+}
