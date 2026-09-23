@@ -19,6 +19,9 @@ REAL_REQUIRE_MCP_RUNTIME_IMPORTABLE = r.require_mcp_runtime_importable
 REAL_REQUIRE_BROWSER_SECURITY_RELEASE_QUALIFICATION = (
     r.require_browser_security_release_qualification
 )
+REAL_PROVIDER_POLICY_PROJECTION_FROM_BYTES = r.provider_policy_projection_from_bytes
+REAL_EXACT_SOURCE_PROVIDER_POLICY = r.exact_source_provider_policy
+REAL_RELEASE_PROVIDER_POLICY = r.release_provider_policy
 
 
 class ReleaseTests(unittest.TestCase):
@@ -35,6 +38,16 @@ class ReleaseTests(unittest.TestCase):
             patch.object(r, "require_mcp_runtime_importable", return_value=None),
             patch.object(r, "require_worker_runtime_importable", return_value=None),
             patch.object(r, "require_playwright_runtime_importable", return_value=None),
+            patch.object(
+                r,
+                "require_candidate_provider_policy_source_current",
+                return_value={"candidateMatchesSource": True},
+            ),
+            patch.object(
+                r,
+                "require_current_provider_policy_source_current",
+                return_value={"candidateMatchesSource": True, "activeMatchesSource": True},
+            ),
             patch.object(
                 r,
                 "require_browser_security_release_qualification",
@@ -1083,3 +1096,59 @@ class PlaywrightRuntimeContractTests(unittest.TestCase):
             r.PLAYWRIGHT_RUNTIME_VERSIONS,
             {"playwright": "1.63.0", "rfc8785": "0.1.4"},
         )
+
+
+class ProviderPolicyCurrentnessTests(unittest.TestCase):
+    def test_semantic_policy_digest_ignores_source_formatting_but_detects_behavior_change(self):
+        one = b"""POLICY_VERSION = "r1"
+def provider_boundary_policy():
+    return {"policyVersion": POLICY_VERSION, "providerActions": {"READY": "CONTINUE"}}
+"""
+        same = b"""# comment-only source change
+POLICY_VERSION="r1"
+def provider_boundary_policy():
+    return {
+        "providerActions": {"READY": "CONTINUE"},
+        "policyVersion": POLICY_VERSION,
+    }
+"""
+        changed = b"""POLICY_VERSION = "r1"
+def provider_boundary_policy():
+    return {"policyVersion": POLICY_VERSION, "providerActions": {"READY": "HOLD"}}
+"""
+        a = REAL_PROVIDER_POLICY_PROJECTION_FROM_BYTES(one, source_label="one.py")
+        b = REAL_PROVIDER_POLICY_PROJECTION_FROM_BYTES(same, source_label="same.py")
+        c = REAL_PROVIDER_POLICY_PROJECTION_FROM_BYTES(changed, source_label="changed.py")
+        self.assertEqual(a, b)
+        self.assertNotEqual(a["semanticDigest"], c["semanticDigest"])
+        self.assertEqual(a["policyVersion"], "r1")
+
+    def test_exact_git_policy_matches_current_source_semantics(self):
+        repo = ROOT.parents[1]
+        commit = r.exact_commit(repo, "HEAD")
+        source = REAL_EXACT_SOURCE_PROVIDER_POLICY(repo, commit)
+        current_tree = REAL_PROVIDER_POLICY_PROJECTION_FROM_BYTES(
+            (ROOT / "scripts/provider_boundary_diagnosis.py").read_bytes(),
+            source_label="workspace-provider-policy",
+        )
+        self.assertEqual(source, current_tree)
+
+    def test_activation_gates_candidate_before_effectful_release_work_and_current_after_switch(self):
+        tree = ast.parse((ROOT / "scripts/agent_automation_release.py").read_text())
+        fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "activate")
+        calls = [node for node in ast.walk(fn) if isinstance(node, ast.Call)]
+
+        def line(name):
+            return next(
+                node.lineno
+                for node in calls
+                if isinstance(node.func, ast.Name) and node.func.id == name
+            )
+
+        pre = line("require_candidate_provider_policy_source_current")
+        operator = line("require_operator_carrier_available")
+        switch = line("atomic_link")
+        post = line("require_current_provider_policy_source_current")
+        self.assertLess(pre, operator)
+        self.assertLess(switch, post)
+
