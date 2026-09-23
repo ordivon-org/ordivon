@@ -2,8 +2,9 @@ use std::collections::BTreeSet;
 
 use super::{
     CredentialBindingRequest, ExecutionProfile, ExecutionTarget, HostDependencyBinding,
-    InputBindingRequest, JobRunProposal, RuntimeError, RuntimeResult, WindowsAuthority,
-    WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
+    InputBindingRequest, JobRunProposal, JobRunRequest, RuntimeError, RuntimeResult,
+    WindowsAuthority, WindowsExecutionContextRequest, WindowsExecutionIdentity,
+    WindowsPayloadPrivilege,
 };
 
 /// Internal authority composition selected by one already-typed Runtime execution family.
@@ -34,6 +35,49 @@ pub(crate) struct AuthorityContract {
 }
 
 impl AuthorityContract {
+    pub(crate) fn validate_ordinary_realization(
+        &self,
+        request: &JobRunRequest,
+        validated_host_dependencies: &[HostDependencyBinding],
+    ) -> RuntimeResult<()> {
+        if self.family != ExecutionAuthorityFamily::Ordinary {
+            return Err(RuntimeError::invalid(
+                "ordinary execution circuit requires ordinary AuthorityContract",
+                "authorityContract",
+            ));
+        }
+        let execution = &request.execution;
+        let effective_windows_context = match execution.execution_target {
+            ExecutionTarget::LocalLinux => None,
+            ExecutionTarget::WindowsNative => Some(
+                execution
+                    .windows_context
+                    .unwrap_or_else(|| execution.windows_authority.canonical_context()),
+            ),
+        };
+        let executable_paths = sorted_unique(
+            std::iter::once(execution.executable.as_str())
+                .chain(execution.steps.iter().map(|step| step.executable.as_str())),
+        );
+        let declared_host_dependencies = sorted_host_dependencies(&execution.host_dependencies);
+        let validated_host_dependencies = sorted_host_dependencies(validated_host_dependencies);
+        if self.principal != request.principal
+            || self.execution_target != execution.execution_target
+            || self.execution_profile != execution.execution_profile
+            || self.legacy_windows_authority != execution.windows_authority
+            || self.windows_context != effective_windows_context
+            || self.executable_paths != executable_paths
+            || self.host_dependencies != declared_host_dependencies
+            || self.host_dependencies != validated_host_dependencies
+        {
+            return Err(RuntimeError::invalid(
+                "ordinary execution realization drifted from its AuthorityContract",
+                "authorityContract",
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn ordinary(proposal: &JobRunProposal) -> RuntimeResult<Self> {
         Self::compile(ExecutionAuthorityFamily::Ordinary, proposal, &[], &[])
     }

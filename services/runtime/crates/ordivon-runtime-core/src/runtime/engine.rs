@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
 use super::evidence::prepare_runner_terminal_from_bundle;
+use super::operation_circuit::OperationCircuitCompiler;
 use super::platform::*;
 use super::registry::JobSnapshot;
 use super::supervisor::{

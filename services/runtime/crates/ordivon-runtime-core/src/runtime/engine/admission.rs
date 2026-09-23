@@ -301,7 +301,7 @@ impl Runtime {
             )? {
                 (existing.job_id, false)
             } else {
-                let _authority_contract =
+                let authority_contract =
                     super::authority_contract::AuthorityContract::ordinary(proposal)?;
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
@@ -311,7 +311,11 @@ impl Runtime {
                     self.executor.max_output_bytes,
                 )?;
                 (
-                    self.admit_new_job(&request, request_identity_digest)?,
+                    self.admit_new_job(
+                        &request,
+                        request_identity_digest,
+                        Some(&authority_contract),
+                    )?,
                     true,
                 )
             }
@@ -348,7 +352,7 @@ impl Runtime {
                     self.executor.max_runtime_ms,
                     self.executor.max_output_bytes,
                 )?;
-                (self.admit_new_job(request, request_identity_digest)?, true)
+                (self.admit_new_job(request, request_identity_digest, None)?, true)
             }
         };
         if created {
@@ -366,22 +370,34 @@ impl Runtime {
         &self,
         request: &JobRunRequest,
         request_identity_digest: String,
+        authority_contract: Option<&super::authority_contract::AuthorityContract>,
     ) -> RuntimeResult<String> {
         self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let host_dependencies = self.validate_host_dependencies(request)?;
         let plan = self.resolve_plan(request)?;
-        let submit = SubmitRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            client_request_id: request.client_request_id.clone(),
-            request_identity_digest: Some(request_identity_digest),
-            execution_provider: Some(
-                self.current_execution_provider_snapshot(request.execution.execution_target)?,
-            ),
-            runtime_release_effect: None,
-            host_dependencies,
-            plan,
-            global_limit: request.global_limit,
+        let provider =
+            self.current_execution_provider_snapshot(request.execution.execution_target)?;
+        let submit = match authority_contract {
+            Some(authority_contract) => OperationCircuitCompiler::ordinary(
+                authority_contract,
+                request,
+                request_identity_digest,
+                provider,
+                host_dependencies,
+                plan,
+            )?
+            .into_submit_request(),
+            None => SubmitRequest {
+                schema_version: RUNTIME_SCHEMA_VERSION,
+                client_request_id: request.client_request_id.clone(),
+                request_identity_digest: Some(request_identity_digest),
+                execution_provider: Some(provider),
+                runtime_release_effect: None,
+                host_dependencies,
+                plan,
+                global_limit: request.global_limit,
+            },
         };
         match self.registry.submit(&submit)? {
             AdmissionOutcome::Created(created) => Ok(created.job.job_id.clone()),

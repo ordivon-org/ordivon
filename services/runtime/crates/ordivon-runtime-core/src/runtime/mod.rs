@@ -7,6 +7,7 @@ mod error;
 mod evidence;
 mod inspection;
 mod job_attempt_state;
+mod operation_circuit;
 mod platform;
 mod registry;
 mod registry_storage;
