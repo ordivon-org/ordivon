@@ -1233,7 +1233,7 @@
       ]
     },
     {
-      "legoId": "capital.governance.composition-contract",
+      "legoId": "capital.governance.financial-circuit-lowering",
       "ownerDomain": "governance",
       "sourceClass": "CANONICAL",
       "status": "ACTIVE",
@@ -1241,8 +1241,8 @@
         "Validate"
       ],
       "implementation": {
-        "path": "src/ordivon_capital/governance/composition_contract.py",
-        "symbol": "compile_composition"
+        "path": "src/ordivon_capital/governance/circuit_lowering.py",
+        "symbol": "lower_financial_circuit"
       },
       "authorityRequirement": "NONE",
       "effectClass": "NONE",
@@ -1251,26 +1251,31 @@
       "currentnessRequirement": "IMMUTABLE_INPUT",
       "riskTier": "CRITICAL",
       "inputContracts": [
-        "contracts/lego-composition-envelope-v1.json",
+        "contracts/capital-financial-circuit-v2.json",
+        "config/capital_lego_registry.json",
         "contracts/capital-authority-requirement-v1.json",
-        "contracts/capital-effect-class-v1.json",
-        "contracts/capital-evidence-obligation-v1.json"
+        "contracts/capital-effect-class-v1.json"
       ],
       "outputContracts": [
-        "ordivon.capital.composition-admission"
+        "ordivon.capital.financial-circuit-lowering",
+        "ordivon.cognitive-circuit-manifest",
+        "ordivon.authority-requirement-set"
       ],
       "evidenceObligations": [
-        "registered LEGO identities",
-        "explicit authority set",
-        "explicit requested use"
+        "exact Capital financial circuit spec",
+        "exact registered LEGO bindings",
+        "shared Composition compiled manifest",
+        "explicit authority-obligation projection"
       ],
       "permittedUses": [
-        "pre-execution Capital LEGO composition validation"
+        "lower Capital financial semantics into shared Ordivon Composition contracts"
       ],
       "prohibitedUses": [
-        "grant financial authority",
-        "execute provider effect",
-        "establish semantic completion"
+        "generic DAG ownership",
+        "provider permission grant",
+        "financial authority grant",
+        "workflow scheduling",
+        "domain acceptance"
       ]
     },
     {
