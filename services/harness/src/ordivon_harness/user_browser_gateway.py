@@ -57,9 +57,16 @@ class UserBrowserGatewayController:
 
     @staticmethod
     def _request_id(
-        mode: str, effect_id: str, request_digest: str, prompt_digest: str
+        mode: str,
+        effect_id: str,
+        request_digest: str,
+        prompt_digest: str,
+        attachment_manifest_digest: str | None = None,
     ) -> str:
-        suffix = _digest_text('|'.join((mode, effect_id, request_digest, prompt_digest)))[7:39]
+        parts = [mode, effect_id, request_digest, prompt_digest]
+        if attachment_manifest_digest is not None:
+            parts.append(attachment_manifest_digest)
+        suffix = _digest_text('|'.join(parts))[7:39]
         return f'user-browser:{mode}:{suffix}'
 
     @staticmethod
@@ -147,6 +154,8 @@ class UserBrowserGatewayController:
         request_digest: str,
         prompt_path: str,
         prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
     ) -> dict:
         if mode == 'materialize':
             admitted, evidence, detail, contexts = self._active_user_admission()
@@ -163,7 +172,7 @@ class UserBrowserGatewayController:
                     'requiredContext': 'active_user',
                     'observedContexts': list(contexts),
                 }
-        args = (
+        args_list = [
             '-NoProfile',
             '-NonInteractive',
             '-File',
@@ -180,11 +189,31 @@ class UserBrowserGatewayController:
             prompt_digest,
             '-ProxyUrl',
             self.config.proxy_url,
-        )
+        ]
+        if (attachment_manifest_path is None) != (attachment_manifest_digest is None):
+            raise ValueError('attachment manifest path and digest must be supplied together')
+        if attachment_manifest_path is not None and attachment_manifest_digest is not None:
+            args_list.extend(
+                [
+                    '-AttachmentManifestPath',
+                    self.config.windows_prompt_path(attachment_manifest_path),
+                    '-AttachmentManifestDigest',
+                    attachment_manifest_digest,
+                    '-StageRoot',
+                    self.config.windows_stage_root,
+                ]
+            )
+        args = tuple(args_list)
         result = self.port.execute(
             GatewayExecutionRequest(
                 capability='execution.windows',
-                request_id=self._request_id(mode, effect_id, request_digest, prompt_digest),
+                request_id=self._request_id(
+                    mode,
+                    effect_id,
+                    request_digest,
+                    prompt_digest,
+                    attachment_manifest_digest,
+                ),
                 workspace_id=self.config.workspace_id,
                 executable=self.config.powershell_path,
                 args=args,

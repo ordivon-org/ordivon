@@ -4,10 +4,21 @@
   "title": "Ordivon Agent Campaign Specification v2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["campaignId", "sharedPrompt", "roster"],
+  "required": [
+    "campaignId",
+    "sharedPrompt",
+    "roster"
+  ],
   "properties": {
-    "campaignId": {"type": "string", "minLength": 1, "maxLength": 512},
-    "sharedPrompt": {"type": "string", "minLength": 1},
+    "campaignId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "sharedPrompt": {
+      "type": "string",
+      "minLength": 1
+    },
     "roster": {
       "type": "array",
       "minItems": 1,
@@ -15,10 +26,58 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["agentId", "roleCard"],
+        "required": [
+          "agentId",
+          "roleCard"
+        ],
         "properties": {
-          "agentId": {"type": "string", "minLength": 1, "maxLength": 128},
-          "roleCard": {"type": "string", "minLength": 1}
+          "agentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "roleCard": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "sharedAttachments": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stagingRelativePath",
+          "digest",
+          "mediaType",
+          "presentationName"
+        ],
+        "properties": {
+          "stagingRelativePath": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "mediaType": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256,
+            "pattern": "^[^\\s/]+/[^\\s/]+$"
+          },
+          "presentationName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[^/\\\\]+$"
+          }
         }
       }
     }

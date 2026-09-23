@@ -5,6 +5,9 @@ param(
     [string]$RequestDigest,
     [string]$PromptPath,
     [string]$PromptDigest,
+    [string]$AttachmentManifestPath,
+    [string]$AttachmentManifestDigest,
+    [string]$StageRoot,
     [Parameter(Mandatory=$true)][string]$ProxyUrl,
     [string]$ChromePath='C:\Program Files\Google\Chrome\Application\chrome.exe'
 )
@@ -28,7 +31,7 @@ function Emit-Receipt(
 ) {
     $resource=$null
     if($ProviderResource){$resource=$ProviderResource}
-    $evidence=Get-Sha256Text ($EffectId+'|'+$RequestDigest+'|'+$PromptDigest+'|'+$Standing+'|'+$EvidenceSeed)
+    $evidence=Get-Sha256Text ($EffectId+'|'+$RequestDigest+'|'+$PromptDigest+'|'+$AttachmentManifestDigest+'|'+$Standing+'|'+$EvidenceSeed)
     [ordered]@{
         schemaVersion=1
         kind='ordivon.windows-user-browser-attempt'
@@ -79,6 +82,92 @@ function Get-AddressValue($Root) {
         $vp=$address.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
         return [string]$vp.Current.Value
     } catch { return $null }
+}
+
+
+function Get-UploadControl($Root) {
+    $all=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+    for($i=0;$i -lt [Math]::Min($all.Count,6000);$i++){
+        $item=$all.Item($i)
+        $name=[string]$item.Current.Name
+        $id=[string]$item.Current.AutomationId
+        $type=$item.Current.ControlType
+        if(($type -eq [System.Windows.Automation.ControlType]::Button -or $type -eq [System.Windows.Automation.ControlType]::MenuItem) -and
+           ($id -match '(?i)attach|upload|composer-plus' -or $name -match '(?i)attach|add photos.*files|upload.*file')){
+            return $item
+        }
+    }
+    return $null
+}
+
+function Get-FileDialog() {
+    $desktop=[System.Windows.Automation.AutomationElement]::RootElement
+    $cond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Window)
+    $windows=$desktop.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cond)
+    for($i=0;$i -lt [Math]::Min($windows.Count,300);$i++){
+        $window=$windows.Item($i)
+        $name=[string]$window.Current.Name
+        if($name -match '(?i)^open$|choose.*file|select.*file|file upload'){ return $window }
+    }
+    return $null
+}
+
+function Set-FileDialogPath($Dialog,[string]$Path) {
+    $editCond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Edit)
+    $edits=$Dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants,$editCond)
+    $fileEdit=$null
+    for($i=0;$i -lt $edits.Count;$i++){
+        $candidate=$edits.Item($i)
+        $id=[string]$candidate.Current.AutomationId
+        $name=[string]$candidate.Current.Name
+        if($id -eq '1148' -or $name -match '(?i)file name'){ $fileEdit=$candidate; break }
+    }
+    if($null -eq $fileEdit -and $edits.Count -gt 0){$fileEdit=$edits.Item($edits.Count-1)}
+    if($null -eq $fileEdit){throw 'file dialog path editor unavailable'}
+    $fileEdit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Path)
+
+    $buttonCond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button)
+    $buttons=$Dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants,$buttonCond)
+    $open=$null
+    for($i=0;$i -lt $buttons.Count;$i++){
+        $candidate=$buttons.Item($i)
+        $id=[string]$candidate.Current.AutomationId
+        $name=[string]$candidate.Current.Name
+        if($id -eq '1' -or $name -match '(?i)^open$|^choose$|^select$'){ $open=$candidate; break }
+    }
+    if($null -eq $open){throw 'file dialog Open control unavailable'}
+    $script:providerEffectAttempted=$true
+    $open.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+}
+
+function Upload-ExactAttachment($Browser,$Root,[string]$Path,[string]$PresentationName) {
+    $control=Get-UploadControl $Root
+    if($null -eq $control){throw 'attachment control unavailable before provider effect'}
+    $control.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    Start-Sleep -Milliseconds 700
+    $dialog=Get-FileDialog
+    if($null -eq $dialog){
+        $root2=Get-Root $Browser
+        $menu=Get-UploadControl $root2
+        if($null -ne $menu){
+            try{$menu.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()}catch{}
+            Start-Sleep -Milliseconds 700
+            $dialog=Get-FileDialog
+        }
+    }
+    if($null -eq $dialog){throw 'attachment file dialog unavailable'}
+    Set-FileDialogPath $dialog $Path
+    $deadline=(Get-Date).AddSeconds(25)
+    while((Get-Date) -lt $deadline){
+        Start-Sleep -Milliseconds 500
+        $root2=Get-Root $Browser
+        $names=Read-AllNames $root2
+        if($names -match [regex]::Escape($PresentationName)){return}
+    }
+    throw 'attachment upload was not visibly acknowledged by provider UI'
 }
 
 function Get-CanonicalChatResource([string]$Address) {
@@ -159,6 +248,43 @@ if(-not $PromptDigest -or $observedPrompt -ne $PromptDigest){
     Emit-Receipt 'pre-effect-failed' $null 'user-browser:prompt-digest-mismatch' $false 'prompt-digest-mismatch'
     exit 0
 }
+$attachment=$null
+if($AttachmentManifestPath -or $AttachmentManifestDigest -or $StageRoot){
+    if(-not $AttachmentManifestPath -or -not $AttachmentManifestDigest -or -not $StageRoot -or -not (Test-Path -LiteralPath $AttachmentManifestPath -PathType Leaf)){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-manifest-unavailable' $false 'attachment-manifest-unavailable'
+        exit 0
+    }
+    $observedManifest='sha256:' + (Get-FileHash -LiteralPath $AttachmentManifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if($observedManifest -ne $AttachmentManifestDigest){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-manifest-digest-mismatch' $false 'attachment-manifest-digest-mismatch'
+        exit 0
+    }
+    try{$manifest=Get-Content -LiteralPath $AttachmentManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json}catch{
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-manifest-invalid' $false 'attachment-manifest-invalid'; exit 0
+    }
+    if($manifest.schemaVersion -ne 1 -or $manifest.kind -ne 'ordivon.user-browser-attachment-manifest' -or @($manifest.attachments).Count -ne 1){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-manifest-unsupported' $false 'attachment-manifest-unsupported'
+        exit 0
+    }
+    $attachment=@($manifest.attachments)[0]
+    $relative=[string]$attachment.stagingRelativePath
+    if([string]::IsNullOrWhiteSpace($relative) -or [IO.Path]::IsPathRooted($relative) -or $relative -match '(^|/)\.\.(/|$)' -or $relative.Contains('\')){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-relative-path-invalid' $false 'attachment-relative-path-invalid'
+        exit 0
+    }
+    $rootFull=[IO.Path]::GetFullPath($StageRoot).TrimEnd('\')
+    $attachmentPath=[IO.Path]::GetFullPath((Join-Path $rootFull ($relative -replace '/','\')))
+    if(-not $attachmentPath.StartsWith($rootFull+'\',[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $attachmentPath -PathType Leaf)){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-path-unavailable' $false 'attachment-path-unavailable'
+        exit 0
+    }
+    $observedAttachment='sha256:' + (Get-FileHash -LiteralPath $attachmentPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if($observedAttachment -ne [string]$attachment.digest){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-digest-mismatch' $false 'attachment-digest-mismatch'
+        exit 0
+    }
+    $attachment | Add-Member -NotePropertyName resolvedPath -NotePropertyValue $attachmentPath -Force
+}
 if($Mode -eq 'reconcile'){
     Emit-Receipt 'unknown' $null 'user-browser:reconcile-has-no-exact-provider-binding-evidence; resend-forbidden' $true 'reconcile-no-binding'
     exit 0
@@ -230,6 +356,12 @@ try {
             Emit-Receipt 'pre-effect-failed' $null 'user-browser:composer-unavailable' $false 'composer-unavailable'
         }
         exit 0
+    }
+    if($null -ne $attachment){
+        Upload-ExactAttachment $browser $root ([string]$attachment.resolvedPath) ([string]$attachment.presentationName)
+        $root=Get-Root $browser
+        $composer=Get-EditById $root 'prompt-textarea'
+        if($null -eq $composer){throw 'composer unavailable after attachment upload'}
     }
     $prompt=[IO.File]::ReadAllText($PromptPath,[Text.Encoding]::UTF8)
     $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($prompt)
