@@ -104,6 +104,8 @@ class ContinuityItem(StrictModel):
     revision: int
     state: str
     checkpoint_digest: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class ContinuityObservation(ContinuityItem):
@@ -123,6 +125,7 @@ class ContinuityPage(StrictModel):
     items: list[ContinuityItem]
     has_more: bool
     next_cursor: str | None = None
+    sort_key: Literal["created", "updated"] = "created"
 
 
 class ContinuityEvent(StrictModel):
@@ -146,6 +149,17 @@ class ContinuityMutationReceipt(ContinuityObservation):
 class ContinuityAttention(StrictModel):
     schema_version: Literal[1] = 1
     kind: Literal["ordivon.gateway-continuity-attention"] = "ordivon.gateway-continuity-attention"
+    truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
+    board_fence: dict[str, Any]
+    summary: dict[str, Any]
+    routed_tasks: list[dict[str, Any]]
+    unrouted_messages: list[dict[str, Any]]
+    truth_boundary: str | None = None
+
+
+class ContinuityChanges(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-continuity-changes"] = "ordivon.gateway-continuity-changes"
     truth_role: Literal["host-navigation-projection"] = "host-navigation-projection"
     board_fence: dict[str, Any]
     summary: dict[str, Any]

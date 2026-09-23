@@ -14,6 +14,8 @@ OBSERVATION_ONLY_GATEWAY_TOOLS = frozenset(
         "capability.describe",
         "continuity.get",
         "continuity.list",
+        "continuity.find",
+        "continuity.changes",
     }
 )
 

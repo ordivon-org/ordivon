@@ -23,6 +23,7 @@ from .contracts import (
     CollaborationPostReceipt,
     CollaborationSearch,
     ContinuityAttention,
+    ContinuityChanges,
     ContinuityMutationReceipt,
     ContinuityObservation,
     ContinuityObserved,
@@ -109,15 +110,37 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
     @server.tool(name="continuity.list")
     async def continuity_list(
         goalId: str | None = None,
+        runtimeWorkspaceId: str | None = None,
         limit: int = 50,
         cursor: str | None = None,
         includeTerminal: bool = False,
     ) -> ContinuityPage:
         return await gateway.continuity_list(
             goal_id=goalId,
+            runtime_workspace_id=runtimeWorkspaceId,
             limit=limit,
             cursor=cursor,
             include_terminal=includeTerminal,
+            sort_key="created",
+        )
+
+    @server.tool(name="continuity.find")
+    async def continuity_find(
+        goalId: str | None = None,
+        runtimeWorkspaceId: str | None = None,
+        limit: int = 20,
+        cursor: str | None = None,
+        includeTerminal: bool = False,
+        sortKey: Literal["updated", "created"] = "updated",
+    ) -> ContinuityPage:
+        """Discover continuity coordinates using mechanical filters and recency ordering."""
+        return await gateway.continuity_list(
+            goal_id=goalId,
+            runtime_workspace_id=runtimeWorkspaceId,
+            limit=limit,
+            cursor=cursor,
+            include_terminal=includeTerminal,
+            sort_key=sortKey,
         )
 
     @server.tool(name="continuity.observe")
@@ -152,8 +175,14 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
             writer_label=writerLabel,
         )
 
+    @server.tool(name="continuity.changes")
+    async def continuity_changes(afterSequence: int, limit: int = 100) -> ContinuityChanges:
+        """Return collaboration changes since a Board sequence without implying priority."""
+        return await gateway.continuity_changes(after_sequence=afterSequence, limit=limit)
+
     @server.tool(name="continuity.attention")
     async def continuity_attention(afterSequence: int, limit: int = 100) -> ContinuityAttention:
+        """Compatibility alias for continuity.changes."""
         return await gateway.continuity_attention(after_sequence=afterSequence, limit=limit)
 
     @server.tool(name="collaboration.post")
@@ -174,6 +203,29 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
             topic=topic,
             reply_to_client_message_id=replyToClientMessageId,
             task_id=taskId,
+        )
+
+    @server.tool(name="collaboration.publish")
+    async def collaboration_publish(
+        clientMessageId: str,
+        authorLabel: str,
+        message: str,
+        scope: Literal["global", "continuity"],
+        continuityId: str | None = None,
+        messageKind: Literal["note", "question", "proposal", "warning", "reply"] = "note",
+        topic: str | None = None,
+        replyToClientMessageId: str | None = None,
+    ) -> CollaborationPostReceipt:
+        """Preferred publication surface: unrouted global scope must be explicit."""
+        return await gateway.collaboration_publish(
+            client_message_id=clientMessageId,
+            author_label=authorLabel,
+            message=message,
+            scope=scope,
+            continuity_id=continuityId,
+            message_kind=messageKind,
+            topic=topic,
+            reply_to_client_message_id=replyToClientMessageId,
         )
 
     @server.tool(name="collaboration.list")

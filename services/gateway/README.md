@@ -18,8 +18,10 @@ B01 is intentionally small. The public schema avoids fast-moving closed enums su
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
 
-- continuity get/list/observe and adopt/checkpoint/attention
-- collaboration list/search/post
+- continuity get/list/observe and adopt/checkpoint/attention (compatibility)
+- continuity find/changes (preferred discovery/change vocabulary; mechanical recency only)
+- collaboration list/search/post (compatibility)
+- collaboration publish (preferred write vocabulary; explicit global or continuity scope)
 
 Gateway intentionally does not expose host.status; owner administration and Doctor remain direct-owner recovery/admin concerns.
 

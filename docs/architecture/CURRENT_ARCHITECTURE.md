@@ -81,7 +81,7 @@ For Runtime execution, the normal Gateway northbound surface includes submit/get
 
 ### Host normal northbound completion
 
-The Gateway now covers Host's normal Agent-facing continuity/collaboration seam: `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.
+The Gateway now covers Host's normal Agent-facing continuity/collaboration seam. The compatibility surface remains `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`; the preferred Agent-facing discovery/change/publication surface adds `continuity.find`, `continuity.changes`, and `collaboration.publish`. `continuity.find` preserves only mechanical filters and defaults to `updated` ordering; `collaboration.publish` requires an explicit `global` or `continuity` scope. These are Gateway projections, not Host priority, assignment, unread, scheduler, or domain-truth semantics. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.
 
 Gateway keeps WorkingCheckpoint payloads opaque and delegates their validation to Host. `host.status`/Doctor remains direct-owner admin/recovery only. Connector catalog freshness remains a client/connector responsibility; a stale consumer snapshot does not redefine the live Gateway surface.
 

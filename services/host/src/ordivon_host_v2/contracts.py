@@ -12,6 +12,8 @@ class TaskSummaryWire(TypedDict):
     state: TaskStateWire
     checkpoint_digest: str
     writer_label: str | None
+    created_at: NotRequired[str]
+    updated_at: NotRequired[str]
 
 
 class TaskWire(TaskSummaryWire):
