@@ -9,8 +9,18 @@
     "workspaceId": "ws-capital-lego-execution-plan-r1-20260923"
   },
   "scope": {
-    "completedWaves": ["W0", "W1", "W2", "W3", "W4", "W5", "W7"],
-    "deferredWaves": ["W6_DEFERRED"],
+    "completedWaves": [
+      "W0",
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "W7"
+    ],
+    "deferredWaves": [
+      "W6_DEFERRED"
+    ],
     "productionDeferredByDesign": true
   },
   "inventory": {
@@ -75,5 +85,30 @@
     "no investment recommendation or scenario winner is produced",
     "no external provider effect was attempted by this R1 acceptance",
     "W6 deferred nodes are not counted as incomplete R1 work"
-  ]
+  ],
+  "integration": {
+    "baseMain": "268681bbe2edde120deb529bcbe2e7696edf082b",
+    "integratedCandidateCommit": "d1b058f6d534c3f980d5b65307be243bfa4ddcf5",
+    "workspaceId": "ws-capital-lego-r1-integrate-20260923",
+    "verificationRuntimeJob": "job-01a0cd36-be1f-7d83-90ce-ca5441cd16c2",
+    "affectedOwners": [
+      "next",
+      "capital"
+    ],
+    "gates": {
+      "nextVerify": "PASS",
+      "capitalVerify": "PASS",
+      "repoCi": "PASS",
+      "structureR2": "PASS",
+      "ownerBoundary": "PASS"
+    },
+    "capitalVerify": {
+      "pytestPassed": 369,
+      "providerBoundDeselected": 11,
+      "pytestFailed": 0
+    },
+    "skillCanonicalRoot": ".agents/skills/",
+    "crossOwnerSkillSeamAdded": false,
+    "standing": "INTEGRATION_VERIFIED_READY_FOR_REPO_NATIVE_MERGE"
+  }
 }

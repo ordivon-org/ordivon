@@ -143,6 +143,21 @@ failed             0
 
 W7 targeted architecture/information-flow/FMEA gates independently passed 8/8 in Runtime Job `job-01a0cd25-bb18-7f83-92dc-d08bd6897ec7`.
 
+
+## Latest-main integration verification
+
+The R1 source/acceptance commits were replayed onto monorepo main revision `268681bbe2edde120deb529bcbe2e7696edf082b` in isolated workspace `ws-capital-lego-r1-integrate-20260923`.
+
+The cumulative integration candidate is:
+
+`d1b058f6d534c3f980d5b65307be243bfa4ddcf5`
+
+Structure R2 required canonical Agent Skill bytes at repository-root `.agents/skills/`, so the three Capital Skills were relocated from the retired `meta/next/.agents/skills/` path. Capital active contracts depend only on advisory Skill IDs and do not depend on the physical Skill source path. No new Capital→Next owner seam was admitted.
+
+The exact clean integration candidate passed `next:verify`, `capital:verify`, and `repo:ci` in Runtime Job `job-01a0cd36-be1f-7d83-90ce-ca5441cd16c2`. Capital remained at 369 passed / 11 provider-bound deselected / 0 failed; Structure R2 and owner-boundary checks passed without widening the dependency graph.
+
+This integration receipt does not mean canonical main has already moved. Repository-native merge authority remains separate.
+
 ## Authority standing after R1
 
 Nothing in this acceptance widens financial authority:
