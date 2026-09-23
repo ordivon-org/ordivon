@@ -1,8 +1,8 @@
 # Harness UX Execution Plan R1
 
 Date: 2026-09-23
-Canonical integration: `10cdbcdb33e19d9fe7fda7d57f3d33fa3eb8022c`
-Current worktree: `ws-hux40-latestmain-r2-20260923`
+Canonical integration: `6784677ce09a7495d133be436807af6f690c5867`
+Current worktree: `ws-hux40-canonical-record-r1-20260923`
 
 ## Objective
 
@@ -28,7 +28,7 @@ Composition, Gateway, or an Agent Service replacement.
 | HUX-32 | generic Tool-surface lowering | **DEFERRED_BY_EVIDENCE** |
 | HUX-33 | generic Skill/Cognition lowering | **DEFERRED_BY_EVIDENCE** |
 | HUX-34 | generic ExecutionBinding lowering | **DEFERRED_BY_EVIDENCE** |
-| HUX-40 | read-only Product Run View | qualified candidate on latest-main replay; integration pending |
+| HUX-40 | read-only Product Run View | canonical in `apps/agent` |
 | HUX-41..65 | richer product/session UX | real-consumer driven only |
 | HUX-70..79 | loop/store internal refactor | later; behavior remains frozen first |
 | HUX-80..84 | real workload differential/failure campaign | choose only after a concrete app workload requires the relevant lowerers |
@@ -131,3 +131,5 @@ HUX-40 latest-main qualified candidate:
 - real Harness vertical maps durable `completed` to product `run_finished`.
 - exact semantic acceptance remains false in the product view.
 - `git diff --check`: PASS.
+- serialized integration: `FAST_FORWARD` from `e82ac3c19c18eb17e4d3a6df39333e0b1686739a` to `6784677ce09a7495d133be436807af6f690c5867`.
+- post-integration primary-main invariant: PASS.

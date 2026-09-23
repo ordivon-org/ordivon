@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.harness-ux-execution-plan",
-  "canonicalIntegrationRevision": "10cdbcdb33e19d9fe7fda7d57f3d33fa3eb8022c",
-  "workspaceId": "ws-hux40-latestmain-r2-20260923",
+  "canonicalIntegrationRevision": "6784677ce09a7495d133be436807af6f690c5867",
+  "workspaceId": "ws-hux40-canonical-record-r1-20260923",
   "authorityChange": false,
   "canonical": [
     "HUX-00",
@@ -15,11 +15,10 @@
     "HUX-21",
     "HUX-22",
     "HUX-23",
-    "HUX-30"
-  ],
-  "implementedCandidate": [
+    "HUX-30",
     "HUX-40"
   ],
+  "implementedCandidate": [],
   "deferredByEvidence": {
     "HUX-31": "HarnessRunContract plus Harness adapter revalidation already own provider/adapter/model identity; no otherwise-inexpressible provider-owner configuration reference exists.",
     "HUX-32": "No production Tool-bearing apps/agent consumer exists; observed manual digest copying is limited to Harness-internal scripts/tests, while PluginGateway factory owns its natural binding.",
@@ -27,7 +26,6 @@
     "HUX-34": "External production census found no app/domain/capability ExecutionBinding constructor; natural PluginGateway factory already builds its own exact binding."
   },
   "next": {
-    "HUX-40": "qualify and integrate the read-only Product Run View",
     "HUX-41..65": "advance only from concrete product-consumer evidence",
     "HUX-70..79": "internal refactor only after behavior remains frozen by current regression suite",
     "HUX-80..84": "select a real workload only when its composition requirements are concrete"
@@ -43,13 +41,13 @@
   "verification": {
     "compositionAgentRunBinding": "9 passed",
     "agentAppHux30": "7 passed",
-    "agentAppWithHux40": "23 passed on latest-main replay e82ac3c19c18eb17e4d3a6df39333e0b1686739a",
+    "agentAppWithHux40": "23 passed on canonical replay base e82ac3c19c18eb17e4d3a6df39333e0b1686739a",
     "harnessHuxRegression": "10 passed",
     "compositionOwnerVerify": "passed",
     "agentAppOwnerVerify": "passed",
-    "harnessOwnerVerify": "1065 tests + 121 subtests passed",
+    "harnessOwnerVerify": "1065 tests + 121 subtests passed; dependency/docs/evidence/wheel checks passed",
     "repoMechanics": "62 passed",
     "repoIntegration": "passed",
-    "primaryMainIntegration": "FAST_FORWARD to 10cdbcdb33e19d9fe7fda7d57f3d33fa3eb8022c; invariant PASS"
+    "primaryMainIntegration": "FAST_FORWARD e82ac3c19c18eb17e4d3a6df39333e0b1686739a -> 6784677ce09a7495d133be436807af6f690c5867; invariant PASS"
   }
 }
