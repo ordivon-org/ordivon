@@ -3,6 +3,35 @@
   "entries": [
     {
       "aliases": [
+        "A2A",
+        "A2A Protocol",
+        "Agent2Agent",
+        "Agent2Agent 1.0.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-23",
+      "domains": [
+        "agents",
+        "engineering",
+        "integration"
+      ],
+      "id": "a2a-protocol-1.0.0",
+      "identityMode": "versioned",
+      "issuer": "A2A Project",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:aad89b58394a4aacdf88b2c79b7fa8746ca01548f1ccd69a8f96fe8d1dfcdc75",
+      "recordDigest": "sha256:367161e688c0404bfa2ba8de358a6266a0c731026836b3a94e2926c5f293a7f6",
+      "title": "Agent2Agent (A2A) Protocol Specification 1.0.0",
+      "topics": [
+        "agent-interoperability",
+        "agent-to-agent",
+        "protocols",
+        "tasks"
+      ],
+      "versionLabel": "1.0.0"
+    },
+    {
+      "aliases": [
         "SIGSOFT Benchmarking Standard"
       ],
       "authorityKind": "method-standard",
@@ -556,6 +585,34 @@
         "interoperability"
       ],
       "versionLabel": "1.0.2"
+    },
+    {
+      "aliases": [
+        "CloudEvents documented extensions",
+        "CloudEvents extension attributes"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-23",
+      "domains": [
+        "data",
+        "engineering",
+        "integration",
+        "operations"
+      ],
+      "id": "cloudevents-documented-extensions",
+      "identityMode": "rolling-source",
+      "issuer": "CNCF CloudEvents",
+      "lifecycleStatus": "rolling",
+      "observationDigest": "sha256:aaad7c7df18a57cd94430ba839b6334b5ca31a48912324ab17ddd095b1090f96",
+      "recordDigest": "sha256:9ebe46aca58bff1fea18199cd254faff054a66b8a7bf0384bd98a5e175328056",
+      "title": "CloudEvents Documented Extension Attributes",
+      "topics": [
+        "event-envelope",
+        "events",
+        "extensions",
+        "interoperability"
+      ],
+      "versionLabel": null
     },
     {
       "aliases": [
@@ -4916,7 +4973,7 @@
     }
   ],
   "kind": "ordivon.external-authority-discovery-index",
-  "recordCount": 176,
-  "recordsDigest": "sha256:e6d5f33ab73ed50e62ef7842765252cfa9bece47df955192ff7bf249d95d548c",
+  "recordCount": 178,
+  "recordsDigest": "sha256:5a494e6814a8dcdfae1814326284750f2826961bb68d07254d7179c4ac3ff7fa",
   "schemaVersion": 1
 }

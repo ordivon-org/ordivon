@@ -68,3 +68,6 @@ run = "uv run --locked python scripts/social_fabric_commitment_r3.py current --c
 
 [tasks."social:commitment:vhd"]
 run = "uv run --locked python scripts/social_fabric_commitment_r3.py current --cut evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json --policy policies/social-fabric-commitment-r3/profile.json --rego policies/social-fabric-commitment-r3/policy.rego"
+
+[tasks."social:flux"]
+run = "uv run --locked python scripts/social_fabric_flow_r1.py --pair evidence/acceptance/social-fabric-flow-r1-host-pair-20260923.json"

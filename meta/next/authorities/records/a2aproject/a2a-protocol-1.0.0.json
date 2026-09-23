@@ -1,0 +1,53 @@
+{
+  "access": {
+    "fullText": "public",
+    "metadata": "public",
+    "note": null
+  },
+  "discovery": {
+    "aliases": [
+      "A2A",
+      "A2A Protocol",
+      "Agent2Agent",
+      "Agent2Agent 1.0.0"
+    ],
+    "domains": [
+      "agents",
+      "integration",
+      "engineering"
+    ],
+    "topics": [
+      "agent-interoperability",
+      "agent-to-agent",
+      "tasks",
+      "protocols"
+    ]
+  },
+  "id": "a2a-protocol-1.0.0",
+  "identity": {
+    "authorityKind": "open-specification",
+    "identityMode": "versioned",
+    "issuer": {
+      "id": "a2aproject",
+      "name": "A2A Project"
+    },
+    "officialSource": "https://a2a-protocol.org/v1.0.0/specification",
+    "publicationDate": "2026-03-12",
+    "title": "Agent2Agent (A2A) Protocol Specification 1.0.0",
+    "versionLabel": "1.0.0"
+  },
+  "kind": "ordivon.external-authority-record",
+  "provenance": {
+    "registeredDate": "2026-09-23",
+    "registrationBasis": [
+      "A2A official specification page checked 2026-09-23",
+      "A2A official release history checked 2026-09-23"
+    ]
+  },
+  "relations": {
+    "related": [],
+    "supersededBy": [],
+    "supersedes": []
+  },
+  "schemaVersion": 1
+}

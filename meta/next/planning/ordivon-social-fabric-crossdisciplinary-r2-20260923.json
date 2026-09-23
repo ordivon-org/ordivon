@@ -1,0 +1,190 @@
+{
+  "baselineRevision": "354d885d411de5acbb360df2694aa95e310715bc",
+  "externalCurrentness": {
+    "a2a": "1.0.0 latest released",
+    "cellml": "2.0",
+    "cloudeventsCore": "ce@v1.0.2 stable; main is 1.0.3-wip",
+    "cloudeventsExtensions": "documented optional extensions without versioned-core standing",
+    "iso15909": [
+      "ISO/IEC 15909-1:2019",
+      "ISO/IEC 15909-3:2021"
+    ],
+    "iupacGoldBook": "5th edition / online 5.0.0 (2025)",
+    "sbgn": "PD/ER/AF orthogonal languages; PD 2.1 current",
+    "sbml": "Level 3 Version 2 Core Release 2"
+  },
+  "kind": "ordivon.social-fabric-crossdisciplinary-plan-r2",
+  "laws": [
+    "Natural owners retain mutable truth and EffectAuthority.",
+    "DELETE-CUSTOM-BY-DEFAULT.",
+    "Cross-disciplinary mechanisms require testable invariants.",
+    "Agent UX hides implementation plumbing."
+  ],
+  "nodes": [
+    {
+      "id": "XD02",
+      "name": "ExternalStandardCurrentnessCorrection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "id": "XD03",
+      "name": "CloudEventsExtensionMaturityContract",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "gate": [
+        "positive exact window",
+        "matching owner/unit/key contracts",
+        "monotonic regression fails closed",
+        "dimensioned rates",
+        "no score/priority"
+      ],
+      "id": "FLOW40",
+      "name": "DimensionalSocialFluxProjection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "id": "REAL20",
+      "name": "W3CProvProjectionAdapter",
+      "status": "DESIGN_REUSE_EXISTING_OWNER"
+    },
+    {
+      "id": "REAL21",
+      "name": "TransactiveMemoryProjection",
+      "status": "READY_TO_DESIGN_BY_REUSE"
+    },
+    {
+      "id": "REAL22",
+      "name": "FreshnessSupersessionProjection",
+      "status": "READY_TO_DESIGN_BY_REUSE"
+    },
+    {
+      "id": "SIG30",
+      "name": "PropagationModeSeparation",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "SIG31",
+      "name": "CompartmentContextProjection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "SIG34",
+      "name": "AttentionAdaptationHysteresis",
+      "status": "MEASURE_FIRST"
+    },
+    {
+      "id": "EPI40",
+      "name": "MechanismStandingBridge",
+      "status": "READY_TO_DESIGN_WITH_VERIFICATION_OWNER"
+    },
+    {
+      "id": "UX50",
+      "name": "CurrentView",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX51",
+      "name": "AttentionView",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX52",
+      "name": "CoordinationView",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX53",
+      "name": "AuthorityView",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX55",
+      "name": "SocialPreflight",
+      "status": "HOLD_UNTIL_VIEWS_DOGFOOD"
+    },
+    {
+      "id": "CONC60",
+      "name": "ConcurrencyGapMeasurement",
+      "status": "MEASURE_FIRST"
+    },
+    {
+      "id": "CONC62",
+      "name": "PetriNetShadow",
+      "status": "HOLD"
+    },
+    {
+      "id": "CASCADE61",
+      "name": "AutocatalyticCascadeMeasurement",
+      "status": "MEASURE_FIRST"
+    },
+    {
+      "id": "GATE79",
+      "name": "PromoteHoldKill",
+      "status": "REQUIRED"
+    }
+  ],
+  "schemaVersion": 1,
+  "truthRole": "planning-projection-not-authority",
+  "waves": [
+    {
+      "id": "0",
+      "nodes": [
+        "XD02",
+        "XD03"
+      ]
+    },
+    {
+      "id": "1",
+      "nodes": [
+        "FLOW40"
+      ]
+    },
+    {
+      "id": "2",
+      "nodes": [
+        "REAL20",
+        "REAL21",
+        "REAL22"
+      ]
+    },
+    {
+      "id": "3",
+      "nodes": [
+        "SIG30",
+        "SIG31",
+        "SIG34"
+      ]
+    },
+    {
+      "id": "4",
+      "nodes": [
+        "EPI40"
+      ]
+    },
+    {
+      "id": "5",
+      "nodes": [
+        "UX50",
+        "UX51",
+        "UX52",
+        "UX53",
+        "UX55"
+      ]
+    },
+    {
+      "id": "6",
+      "nodes": [
+        "CONC60",
+        "CONC62",
+        "CASCADE61"
+      ]
+    },
+    {
+      "id": "7",
+      "nodes": [
+        "GATE79"
+      ]
+    }
+  ]
+}
