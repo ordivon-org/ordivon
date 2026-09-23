@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.functional-lego-map",
+  "truthRole": "COMPOSITION_LENS_NOT_SOURCE_OWNER_TAXONOMY",
+  "asOfDate": "2026-09-23",
+  "sourceOwnerTaxonomy": "config/capital_domain_taxonomy.json",
+  "principle": "Seven domains own source/business responsibility. Functional LEGOs describe composable computation/effect roles and must not rename or replace those owners.",
+  "functionalLegos": {
+    "Observe": {
+      "primaryDomains": [
+        "markets",
+        "trading",
+        "research"
+      ],
+      "responsibility": "Acquire bounded public/private/provider observations without inventing provider truth."
+    },
+    "Normalize": {
+      "primaryDomains": [
+        "markets",
+        "trading"
+      ],
+      "responsibility": "Map provider/native representations into bounded domain documents without changing authority."
+    },
+    "Validate": {
+      "primaryDomains": [
+        "markets",
+        "trading",
+        "risk",
+        "research",
+        "governance"
+      ],
+      "responsibility": "Check contracts, currentness, completeness, model-use and policy preconditions; validation does not create external truth."
+    },
+    "Measure": {
+      "primaryDomains": [
+        "markets",
+        "risk",
+        "research"
+      ],
+      "responsibility": "Compute descriptive/statistical quantities from admitted inputs."
+    },
+    "Model": {
+      "primaryDomains": [
+        "risk",
+        "research"
+      ],
+      "responsibility": "Run registered quantitative models under explicit validation standing and use restrictions."
+    },
+    "Counterfactual": {
+      "primaryDomains": [
+        "portfolio"
+      ],
+      "responsibility": "Project caller-supplied what-if portfolio transformations without ranking or recommending them."
+    },
+    "Decide": {
+      "primaryDomains": [
+        "portfolio",
+        "research"
+      ],
+      "responsibility": "Represent a frozen caller/agent decision boundary; there is no general autonomous decision engine in current Capital.",
+      "standing": "BOUNDARY_NO_GENERAL_IMPLEMENTATION_OWNER"
+    },
+    "Authorize": {
+      "primaryDomains": [
+        "governance"
+      ],
+      "responsibility": "Evaluate bounded policy/mandate/risk/effect admission without inventing owner or provider grants."
+    },
+    "Reserve": {
+      "primaryDomains": [
+        "accounting"
+      ],
+      "responsibility": "Establish durable local capital reservation identity before admitted effects."
+    },
+    "Effect": {
+      "primaryDomains": [
+        "trading"
+      ],
+      "responsibility": "Realize an already-authorized provider effect; current canonical production/live implementation is intentionally absent.",
+      "standing": "NONLIVE_ONLY_NO_CANONICAL_PRODUCTION_IMPLEMENTATION"
+    },
+    "Reconcile": {
+      "primaryDomains": [
+        "trading",
+        "markets",
+        "accounting"
+      ],
+      "responsibility": "Compare expected/effect identity with authoritative observations and fail closed on ambiguity."
+    },
+    "Account": {
+      "primaryDomains": [
+        "accounting"
+      ],
+      "responsibility": "Apply durable local reservation/post/void accounting instructions; not settlement or venue truth."
+    }
+  },
+  "moduleCoverage": {
+    "src/ordivon_capital/accounting/durable.py": [
+      "Reconcile",
+      "Account"
+    ],
+    "src/ordivon_capital/accounting/sqlite_ledger.py": [
+      "Reserve",
+      "Account"
+    ],
+    "src/ordivon_capital/accounting/substrate.py": [
+      "Reserve",
+      "Account"
+    ],
+    "src/ordivon_capital/governance/policy_decision.py": [
+      "Authorize"
+    ],
+    "src/ordivon_capital/markets/binance_usdm_public_capture.py": [
+      "Observe"
+    ],
+    "src/ordivon_capital/markets/binance_usdm_reference.py": [
+      "Normalize"
+    ],
+    "src/ordivon_capital/markets/crypto_public_shadow.py": [
+      "Validate",
+      "Measure"
+    ],
+    "src/ordivon_capital/markets/crypto_public_streaming.py": [
+      "Observe",
+      "Validate"
+    ],
+    "src/ordivon_capital/markets/crypto_stream_health.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/markets/crypto_stream_resilience.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/markets/market_sensors.py": [
+      "Normalize",
+      "Measure",
+      "Reconcile"
+    ],
+    "src/ordivon_capital/markets/okx_sensor_capture.py": [
+      "Observe",
+      "Measure"
+    ],
+    "src/ordivon_capital/markets/websocket_proxy_lifecycle.py": [
+      "Observe"
+    ],
+    "src/ordivon_capital/portfolio/portfolio_counterfactuals.py": [
+      "Counterfactual",
+      "Validate"
+    ],
+    "src/ordivon_capital/research/model_monitoring.py": [
+      "Validate",
+      "Measure"
+    ],
+    "src/ordivon_capital/research/monitoring_persistence.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/research/monitoring_persistence_cli.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/research/okx_factor_observer.py": [
+      "Observe",
+      "Measure"
+    ],
+    "src/ordivon_capital/research/prospective_validation.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/research/quantitative_inventory_validation.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/research/standards_inventory.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/risk/portfolio_risk.py": [
+      "Measure",
+      "Model"
+    ],
+    "src/ordivon_capital/risk/risk_budget_validation.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/trading/binance_usdm_private_capture.py": [
+      "Observe",
+      "Validate"
+    ],
+    "src/ordivon_capital/trading/binance_usdm_provider.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/trading/execution_feasibility.py": [
+      "Measure",
+      "Validate"
+    ],
+    "src/ordivon_capital/trading/execution_reconciliation.py": [
+      "Reconcile"
+    ],
+    "src/ordivon_capital/trading/fix44_projection.py": [
+      "Normalize"
+    ],
+    "src/ordivon_capital/trading/okx_readonly_client.py": [
+      "Observe"
+    ],
+    "src/ordivon_capital/trading/private_reality.py": [
+      "Normalize"
+    ],
+    "src/ordivon_capital/governance/composition_contract.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/governance/read_circuit.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/trading/simulated_effect.py": [
+      "Effect"
+    ],
+    "src/ordivon_capital/governance/nonlive_effect_circuit.py": [
+      "Validate"
+    ]
+  },
+  "crossCuttingEvidenceRole": "Evidence binding/materialization is cross-cutting and is not promoted into a thirteenth finance-domain ontology term."
+}

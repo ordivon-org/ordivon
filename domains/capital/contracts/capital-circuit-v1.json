@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.readonly-circuit-contract",
+  "standing": "ACTIVE_R1",
+  "truthRole": "COMPOSITION_PLAN_NOT_RUNTIME_OR_FINANCIAL_TRUTH",
+  "laws": [
+    "R1 circuits reference registered Capital LEGOs and may not invent implementation ownership",
+    "R1 read-only circuits admit only NONE or LOCAL_STATE effect classes and never external financial writes",
+    "circuit compilation does not grant authority, execute nodes, infer risk appetite, rank scenarios, or establish semantic completion",
+    "runner invokes owner-native deterministic primitives only; Runtime remains physical process truth when an external process is ever required",
+    "receipt binds mechanical node outputs and unresolved evidence obligations without promoting execution success to financial truth"
+  ],
+  "families": {
+    "PUBLIC_MARKET_OBSERVATION_R1": {
+      "requestedUse": "descriptive market monitoring",
+      "terminalClaim": "DESCRIPTIVE_MARKET_OBSERVATION",
+      "requiredInputs": [
+        "market"
+      ],
+      "optionalInputs": [
+        "oiSamples",
+        "microstructureSamples"
+      ]
+    },
+    "PORTFOLIO_RISK_R1": {
+      "requestedUse": "exposure/risk measurement",
+      "terminalClaim": "READ_ONLY_PORTFOLIO_RISK_REPORT",
+      "requiredInputs": [
+        "portfolio"
+      ],
+      "optionalInputs": [
+        "returns",
+        "riskBudget"
+      ]
+    },
+    "COUNTERFACTUAL_ANALYSIS_R1": {
+      "requestedUse": "what-if portfolio projection",
+      "terminalClaim": "COUNTERFACTUAL_EVIDENCE_COMPLETENESS",
+      "requiredInputs": [
+        "portfolio",
+        "scenario"
+      ],
+      "optionalInputs": [
+        "riskBudget",
+        "evidence"
+      ]
+    }
+  }
+}

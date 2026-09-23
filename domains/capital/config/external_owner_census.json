@@ -508,6 +508,48 @@
       "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
     },
     {
+      "id": "governance-composition-admission",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/composition_contract.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Assume-guarantee / contract-based compositional verification as method authority; no external runtime owner currently admitted"
+      ],
+      "localStanding": "BOUNDED_LOCAL_COMPOSITION_ADMISSION",
+      "localResponsibility": "compose registered Capital LEGO assumptions and guarantees over current authority/effect/evidence contracts; fail closed on unsatisfied authority, prohibited uses, challenger ownership and incomplete effect closure; do not execute nodes, grant provider/owner authority, evaluate semantic completion, or grow a generic workflow/policy engine"
+    },
+    {
+      "id": "governance-readonly-circuit-composition",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/read_circuit.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Contract-based compositional verification as method authority; owner-native Capital domain primitives remain implementation owners"
+      ],
+      "localStanding": "BOUNDED_READONLY_CIRCUIT_COMPOSITION",
+      "localResponsibility": "compile, mechanically run, and receipt three bounded effect-free R1 circuits over existing owner-native Capital primitives; no generic workflow runtime, financial recommendation, authority grant, provider effect, or semantic completion truth"
+    },
+    {
+      "id": "governance-nonlive-circuit-composition",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/nonlive_effect_circuit.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Contract-based composition method authority; Trading reconciliation and Accounting SQLite remain owner-native mechanics"
+      ],
+      "localStanding": "BOUNDED_NONLIVE_EFFECT_CIRCUIT_COMPOSITION",
+      "localResponsibility": "bind current non-live admission, reservation, simulated provider episode, authoritative reconciliation semantics and durable accounting resolution into one bounded qualification circuit; no workflow engine, live provider write, production authority or semantic-completion claim"
+    },
+    {
       "id": "trading-execution-reconciliation",
       "sourcePatterns": [
         "src/ordivon_capital/trading/execution_reconciliation.py",
@@ -537,6 +579,20 @@
         "FIX lifecycle semantics"
       ],
       "downstreamSubstrate": "SQLite accounting substrate after reconciliation disposition"
+    },
+    {
+      "id": "trading-simulated-effect-provider",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/simulated_effect.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "No current external implementation owner; provider-neutral bounded simulator retained only for admitted non-live qualification"
+      ],
+      "localStanding": "BOUNDED_SIMULATED_PROVIDER_ADAPTER",
+      "localResponsibility": "materialize deterministic simulated exchange episodes for the admitted non-live effect class only; never contact a live venue, hold credentials, or establish venue/accounting truth"
     },
     {
       "id": "markets-provider-observation",

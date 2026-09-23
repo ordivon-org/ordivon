@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.fmea-fta",
+  "standing": "ACTIVE_R1",
+  "topEvents": [
+    {
+      "id": "false-production-write-admission",
+      "controls": ["production-authorization BLOCK_NOT_GRANTED", "authority/effect composition contract"],
+      "tests": ["test_capital_lego_registry.py", "test_effect_admission.py"]
+    },
+    {
+      "id": "blind-resend-after-ambiguous-effect",
+      "controls": ["UNKNOWN -> NO_MUTATION", "reconciliation before accounting resolution"],
+      "tests": ["test_execution_reconciliation.py", "test_nonlive_effect_destroyer.py"]
+    },
+    {
+      "id": "terminal-accounting-resurrection",
+      "controls": ["stable reservation/resolution identity", "SQLite terminal replay guard", "durable reconciliation no-repair"],
+      "tests": ["test_sqlite_ledger.py", "test_accounting_durable.py", "test_nonlive_effect_destroyer.py"]
+    },
+    {
+      "id": "risk-budget-inference",
+      "controls": ["OWNER_PRINCIPAL UNSET standing", "read-only circuit preserves UNSET"],
+      "tests": ["test_portfolio_risk.py", "test_readonly_circuit.py", "test_capital_skill_boundary.py"]
+    },
+    {
+      "id": "historical-evidence-mutation",
+      "controls": ["protocol v2 frozen evidence manifest", "new current acceptance root"],
+      "tests": ["test_protocol_identity_v2.py", "test_readonly_circuit_acceptance.py", "test_nonlive_circuit_acceptance.py"]
+    },
+    {
+      "id": "candidate-framework-becomes-owner",
+      "controls": ["registry sourceClass", "candidate tool isolation"],
+      "tests": ["test_capital_lego_registry.py", "test_architecture_boundaries.py"]
+    }
+  ],
+  "interpretation": "FMEA/FTA is a verification lens only. It does not create new runtime controls unless a demonstrated gap survives existing owner-native controls."
+}

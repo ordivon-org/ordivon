@@ -1,0 +1,58 @@
+{
+  "assertions": {
+    "allDurableLedgerReconciliationsMatch": true,
+    "externalFinancialWritesAttempted": false,
+    "productionAuthorizationUnchanged": "BLOCK_NOT_GRANTED",
+    "scenarioCount": 5
+  },
+  "kind": "ordivon.capital.nonlive-circuit-acceptance",
+  "scenarios": [
+    {
+      "accountingResolution": "POST_PENDING_TRANSFER",
+      "circuitDigest": "sha256:e41210b8b76db697bf662f5c71708e42ce06a4c407aeb6930dc9292c1b1b45ec",
+      "durableLedgerReconciliation": "MATCH",
+      "externalFinancialWritesAttempted": false,
+      "reconciliationStanding": "POSITIVE_EXECUTION",
+      "resultDigest": "sha256:ce12235fc38d41c46f7eb9c4bb43917514e61f46b2c684d39eef8754e88f65f7",
+      "scenario": "FILL"
+    },
+    {
+      "accountingResolution": "POST_PENDING_TRANSFER",
+      "circuitDigest": "sha256:34db672b9542c31378649421c06864c675437ce996b7a29a5b70442fa2ad5799",
+      "durableLedgerReconciliation": "MATCH",
+      "externalFinancialWritesAttempted": false,
+      "reconciliationStanding": "POSITIVE_EXECUTION",
+      "resultDigest": "sha256:7a237aed7f1edc0ad5ee097790703f44f2d706df79d961fbac3abbc012215cf8",
+      "scenario": "PARTIAL_FILL_SLICES"
+    },
+    {
+      "accountingResolution": "VOID_PENDING_TRANSFER",
+      "circuitDigest": "sha256:e6d9145d08438e703670e181bae39deb3505c5ae4968ed0821cc85cbced33ac3",
+      "durableLedgerReconciliation": "MATCH",
+      "externalFinancialWritesAttempted": false,
+      "reconciliationStanding": "RECONCILED_ZERO_FILL_TERMINAL",
+      "resultDigest": "sha256:64f9f8320195a1b20c601cc4c86580edb607ea6251f1aea9f282b0f27560c8dd",
+      "scenario": "CANCEL"
+    },
+    {
+      "accountingResolution": "VOID_PENDING_TRANSFER",
+      "circuitDigest": "sha256:05a42b2a52cb9f8d9a98526c713ab962016e7bbf545ade94348a21492fe825fa",
+      "durableLedgerReconciliation": "MATCH",
+      "externalFinancialWritesAttempted": false,
+      "reconciliationStanding": "PROVEN_NO_EFFECT",
+      "resultDigest": "sha256:4373957cf220b9fd1fcecb1a0fec679ada79c58c183edff2953437e741710a32",
+      "scenario": "DENY"
+    },
+    {
+      "accountingResolution": "NO_MUTATION",
+      "circuitDigest": "sha256:ef9e753eb6464fac10de6a824b25a1229866f28b1a5abc9ecfca9bdce6e9f774",
+      "durableLedgerReconciliation": "MATCH",
+      "externalFinancialWritesAttempted": false,
+      "reconciliationStanding": "UNKNOWN",
+      "resultDigest": "sha256:09f628f2d42d1131e4950b518a0b982f5cbb4725d1e904a1d599a377b8333e65",
+      "scenario": "UNKNOWN_AFTER_SUBMISSION"
+    }
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS"
+}

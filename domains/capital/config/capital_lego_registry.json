@@ -1,0 +1,1319 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.lego-registry",
+  "truthRole": "REBUILDABLE_REGISTRY_PROJECTION_NOT_AUTHORITY",
+  "schemaIdentity": {
+    "path": "schema/capital-lego-registry-v1.schema.json",
+    "sha256": "sha256:a944deb4c640c52eb6f07b6295b21612f4dd11aaaa79f61a992bdac66184fe0e"
+  },
+  "entries": [
+    {
+      "legoId": "capital.accounting.durable-reconciliation",
+      "ownerDomain": "accounting",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Reconcile",
+        "Account"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/accounting/durable.py",
+        "symbol": "reconcile_durable_history"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_DB_WRITE"
+      ],
+      "replayClass": "LOCAL_IDEMPOTENT",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "reservation identity",
+        "authoritative reconciliation standing"
+      ],
+      "permittedUses": [
+        "durable accounting reconciliation"
+      ],
+      "prohibitedUses": [
+        "venue truth",
+        "settlement finality"
+      ]
+    },
+    {
+      "legoId": "capital.accounting.sqlite-ledger",
+      "ownerDomain": "accounting",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Reserve",
+        "Account"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/accounting/sqlite_ledger.py",
+        "symbol": "SQLiteAccountingLedger"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_DB_WRITE"
+      ],
+      "replayClass": "LOCAL_IDEMPOTENT",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "database transaction receipt"
+      ],
+      "permittedUses": [
+        "single-host reservation/post/void accounting"
+      ],
+      "prohibitedUses": [
+        "legal ownership",
+        "venue execution truth",
+        "production-write admission"
+      ]
+    },
+    {
+      "legoId": "capital.accounting.substrate-mapping",
+      "ownerDomain": "accounting",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Reserve",
+        "Account"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/accounting/substrate.py",
+        "symbol": "resolution_instruction"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "reconciliation standing"
+      ],
+      "permittedUses": [
+        "map reconciliation to accounting instruction"
+      ],
+      "prohibitedUses": [
+        "provider repair",
+        "settlement truth"
+      ]
+    },
+    {
+      "legoId": "capital.governance.policy-decision",
+      "ownerDomain": "governance",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Authorize"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/governance/policy_decision.py",
+        "symbol": "evaluate_execution_policy"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "CRITICAL",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "explicit policy input"
+      ],
+      "permittedUses": [
+        "bounded deterministic policy evaluation"
+      ],
+      "prohibitedUses": [
+        "invent owner mandate",
+        "invent provider permission",
+        "automatic strategy selection"
+      ]
+    },
+    {
+      "legoId": "capital.markets.binance-usdm-public-capture",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/binance_usdm_public_capture.py",
+        "symbol": "capture"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "provider response",
+        "capture timestamps"
+      ],
+      "permittedUses": [
+        "public market observation"
+      ],
+      "prohibitedUses": [
+        "account truth",
+        "trade approval"
+      ]
+    },
+    {
+      "legoId": "capital.markets.binance-usdm-reference",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Normalize"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/binance_usdm_reference.py",
+        "symbol": "normalize_exchange_symbol"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "LOW",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [],
+      "permittedUses": [
+        "normalize provider symbol/filter metadata"
+      ],
+      "prohibitedUses": [
+        "order admission"
+      ]
+    },
+    {
+      "legoId": "capital.markets.crypto-public-shadow",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/crypto_public_shadow.py",
+        "symbol": "analyze"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "EPISODE_BOUND",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "source authority",
+        "timeliness",
+        "clock agreement",
+        "lineage"
+      ],
+      "permittedUses": [
+        "public risk-data quality analysis"
+      ],
+      "prohibitedUses": [
+        "executable arbitrage claim",
+        "causal inference"
+      ]
+    },
+    {
+      "legoId": "capital.markets.crypto-public-streaming",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/crypto_public_streaming.py",
+        "symbol": "capture_streaming"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "stream timestamps",
+        "source identity"
+      ],
+      "permittedUses": [
+        "public streaming observation"
+      ],
+      "prohibitedUses": [
+        "private account observation",
+        "write authority"
+      ]
+    },
+    {
+      "legoId": "capital.markets.stream-health",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/crypto_stream_health.py",
+        "symbol": "evaluate_stream_health"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "observation timestamps"
+      ],
+      "permittedUses": [
+        "missing/stale/divergence checks"
+      ],
+      "prohibitedUses": [
+        "market direction forecast"
+      ]
+    },
+    {
+      "legoId": "capital.markets.stream-resilience",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/crypto_stream_resilience.py",
+        "symbol": "qualify_reconnect"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "EPISODE_BOUND",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "disconnect/reconnect episode"
+      ],
+      "permittedUses": [
+        "transport resilience qualification"
+      ],
+      "prohibitedUses": [
+        "provider availability guarantee"
+      ]
+    },
+    {
+      "legoId": "capital.markets.market-sensors",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Normalize",
+        "Measure",
+        "Reconcile"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/market_sensors.py",
+        "symbol": "merge_market_observations"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "timestamp-bounded observations"
+      ],
+      "permittedUses": [
+        "descriptive market monitoring",
+        "session-boundary reconciliation"
+      ],
+      "prohibitedUses": [
+        "directional recommendation",
+        "causal attribution"
+      ]
+    },
+    {
+      "legoId": "capital.markets.okx-sensor-capture",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/okx_sensor_capture.py",
+        "symbol": "capture_window"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "OKX public responses",
+        "timestamps"
+      ],
+      "permittedUses": [
+        "public sensor capture"
+      ],
+      "prohibitedUses": [
+        "private account truth"
+      ]
+    },
+    {
+      "legoId": "capital.markets.websocket-proxy-lifecycle",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/websocket_proxy_lifecycle.py",
+        "symbol": "NetworkV2ProxyClientConnection"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "EPISODE_BOUND",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "Network v2 authority binding"
+      ],
+      "permittedUses": [
+        "bounded websocket proxy mechanics"
+      ],
+      "prohibitedUses": [
+        "route selection",
+        "financial effect authority"
+      ]
+    },
+    {
+      "legoId": "capital.portfolio.counterfactuals",
+      "ownerDomain": "portfolio",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Counterfactual",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/portfolio/portfolio_counterfactuals.py",
+        "symbol": "build_action_counterfactual"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "caller-supplied action",
+        "current exposure ledger"
+      ],
+      "permittedUses": [
+        "what-if portfolio projection"
+      ],
+      "prohibitedUses": [
+        "automatic scenario ranking",
+        "order generation"
+      ]
+    },
+    {
+      "legoId": "capital.research.model-monitoring",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/model_monitoring.py",
+        "symbol": "monitor_dependence_outcomes"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "frozen reference sample",
+        "strictly later realized sample"
+      ],
+      "permittedUses": [
+        "model outcome/drift monitoring"
+      ],
+      "prohibitedUses": [
+        "automatic model approval",
+        "trade sizing"
+      ]
+    },
+    {
+      "legoId": "capital.research.monitoring-persistence",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/monitoring_persistence.py",
+        "symbol": "persist_monitoring_evidence"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_FILE_WRITE"
+      ],
+      "replayClass": "LOCAL_IDEMPOTENT",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "content-addressed manifest",
+        "DuckDB independent readback"
+      ],
+      "permittedUses": [
+        "monitoring evidence persistence"
+      ],
+      "prohibitedUses": [
+        "market-data authority",
+        "trade approval"
+      ]
+    },
+    {
+      "legoId": "capital.research.monitoring-persistence-cli",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/monitoring_persistence_cli.py",
+        "symbol": "main"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_FILE_WRITE"
+      ],
+      "replayClass": "LOCAL_IDEMPOTENT",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "monitoring persistence receipt"
+      ],
+      "permittedUses": [
+        "CLI adapter for evidence persistence"
+      ],
+      "prohibitedUses": [
+        "external financial write"
+      ]
+    },
+    {
+      "legoId": "capital.research.okx-factor-observer",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/okx_factor_observer.py",
+        "symbol": "capture_okx_factor_observatory"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "public factor observations",
+        "sample boundaries"
+      ],
+      "permittedUses": [
+        "descriptive factor research"
+      ],
+      "prohibitedUses": [
+        "causal factor attribution",
+        "automatic hedge sizing"
+      ]
+    },
+    {
+      "legoId": "capital.research.prospective-validation",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/prospective_validation.py",
+        "symbol": "evaluate_prospective_validation"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "frozen decision boundary",
+        "post-decision aligned holdout"
+      ],
+      "permittedUses": [
+        "look-ahead leakage control"
+      ],
+      "prohibitedUses": [
+        "causal-effect inference"
+      ]
+    },
+    {
+      "legoId": "capital.research.quantitative-inventory-validation",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/quantitative_inventory_validation.py",
+        "symbol": "validate_quantitative_component_inventory_document"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "exact schema identity"
+      ],
+      "permittedUses": [
+        "validate model/component inventory"
+      ],
+      "prohibitedUses": [
+        "approve model use"
+      ]
+    },
+    {
+      "legoId": "capital.research.standards-inventory",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/standards_inventory.py",
+        "symbol": "validate_inventory"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "LOW",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "inventory document"
+      ],
+      "permittedUses": [
+        "standards/component inventory validation"
+      ],
+      "prohibitedUses": [
+        "provider authority"
+      ]
+    },
+    {
+      "legoId": "capital.risk.portfolio-risk",
+      "ownerDomain": "risk",
+      "sourceClass": "CANONICAL",
+      "status": "VALIDATION_REQUIRED",
+      "functionalRoles": [
+        "Measure",
+        "Model"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/risk/portfolio_risk.py",
+        "symbol": "build_portfolio_risk_report"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "quantitative component inventory",
+        "sample boundaries"
+      ],
+      "permittedUses": [
+        "exposure/risk measurement",
+        "registered model analysis"
+      ],
+      "prohibitedUses": [
+        "automatic allocation",
+        "risk appetite inference",
+        "automatic trade sizing"
+      ]
+    },
+    {
+      "legoId": "capital.risk.risk-budget-validation",
+      "ownerDomain": "risk",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/risk/risk_budget_validation.py",
+        "symbol": "validate_registered_risk_budget_document"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "CRITICAL",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "owner-supplied risk budget document"
+      ],
+      "permittedUses": [
+        "validate explicit risk-budget registration"
+      ],
+      "prohibitedUses": [
+        "infer missing risk limits"
+      ]
+    },
+    {
+      "legoId": "capital.trading.binance-usdm-private-capture",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "BLOCKED_BY_AUTHORITY",
+      "functionalRoles": [
+        "Observe",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/binance_usdm_private_capture.py",
+        "symbol": "capture"
+      },
+      "authorityRequirement": "PRIVATE_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "CRITICAL",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "fresh provider permission",
+        "credential authority",
+        "USER_DATA response"
+      ],
+      "permittedUses": [
+        "read-only private reality after admission"
+      ],
+      "prohibitedUses": [
+        "TRADE",
+        "withdrawal",
+        "ambient secret discovery"
+      ]
+    },
+    {
+      "legoId": "capital.trading.binance-usdm-provider",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/binance_usdm_provider.py",
+        "symbol": "qualify_provider_contract"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "provider config",
+        "official SDK capability surface"
+      ],
+      "permittedUses": [
+        "provider contract qualification"
+      ],
+      "prohibitedUses": [
+        "grant product eligibility",
+        "grant write authority"
+      ]
+    },
+    {
+      "legoId": "capital.trading.execution-feasibility",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Measure",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/execution_feasibility.py",
+        "symbol": "bounded_us_equity_target_quantity"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "bounded fee mechanics",
+        "explicit buffer"
+      ],
+      "permittedUses": [
+        "bounded US-equity feasibility sizing"
+      ],
+      "prohibitedUses": [
+        "general buying-power engine",
+        "unsupported asset mechanics"
+      ]
+    },
+    {
+      "legoId": "capital.trading.execution-reconciliation",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Reconcile"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/execution_reconciliation.py",
+        "symbol": "reconcile_fix_intent"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "CRITICAL",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "authoritative venue order/fill reality"
+      ],
+      "permittedUses": [
+        "map venue reality to lifecycle/accounting standing"
+      ],
+      "prohibitedUses": [
+        "broad snapshot absence implies no-effect",
+        "provider repair",
+        "blind resend"
+      ]
+    },
+    {
+      "legoId": "capital.trading.fix44-projection",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Normalize"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/fix44_projection.py",
+        "symbol": "project_new_order_single"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "frozen order intent"
+      ],
+      "permittedUses": [
+        "bounded sessionless FIX 4.4 projection"
+      ],
+      "prohibitedUses": [
+        "claim FIX session transport",
+        "grant execution authority"
+      ]
+    },
+    {
+      "legoId": "capital.trading.okx-readonly-client",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "BLOCKED_BY_AUTHORITY",
+      "functionalRoles": [
+        "Observe"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/okx_readonly_client.py",
+        "symbol": "OkxReadOnlyClient"
+      },
+      "authorityRequirement": "PRIVATE_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "CRITICAL",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "fresh Read-only provider permission",
+        "credential authority"
+      ],
+      "permittedUses": [
+        "bounded GET-only private observation after admission"
+      ],
+      "prohibitedUses": [
+        "Trade",
+        "Withdraw",
+        "write methods"
+      ]
+    },
+    {
+      "legoId": "capital.trading.private-reality-normalization",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Normalize"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/private_reality.py",
+        "symbol": "normalize_binance_usdm_observer"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "provider-native observer envelope"
+      ],
+      "permittedUses": [
+        "pure offline private-reality normalization"
+      ],
+      "prohibitedUses": [
+        "credential access",
+        "network access",
+        "execution authority"
+      ]
+    },
+    {
+      "legoId": "capital.trading.simulated-effect",
+      "ownerDomain": "trading",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Effect"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/trading/simulated_effect.py",
+        "symbol": "simulate_exchange_episode"
+      },
+      "authorityRequirement": "SIMULATED_EFFECT",
+      "effectClass": "SIMULATED_EXCHANGE_ORDER_EFFECT",
+      "sideEffects": [
+        "PROVIDER_WRITE"
+      ],
+      "replayClass": "EXTERNAL_RECONCILE_REQUIRED",
+      "currentnessRequirement": "EPISODE_BOUND",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "contracts/nonlive-effect-admission-v2.json",
+        "contracts/capital-nonlive-effect-circuit-v1.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.trading.simulated-exchange-episode"
+      ],
+      "evidenceObligations": [
+        "exact simulated effect identity",
+        "episode-bound simulated reality",
+        "post-effect reconciliation"
+      ],
+      "permittedUses": [
+        "bounded simulated exchange qualification"
+      ],
+      "prohibitedUses": [
+        "real-money trading",
+        "live provider write",
+        "production financial write"
+      ]
+    },
+    {
+      "legoId": "capital.governance.nonlive-circuit-composition",
+      "ownerDomain": "governance",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/governance/nonlive_effect_circuit.py",
+        "symbol": "compile_nonlive_effect_circuit"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_DB_WRITE"
+      ],
+      "replayClass": "LOCAL_IDEMPOTENT",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "CRITICAL",
+      "inputContracts": [
+        "contracts/capital-nonlive-effect-circuit-v1.json",
+        "contracts/capital-reservation-v1.json",
+        "contracts/nonlive-effect-admission-v2.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.nonlive-effect-circuit",
+        "ordivon.capital.nonlive-effect-circuit-result"
+      ],
+      "evidenceObligations": [
+        "current non-live admission",
+        "stable reservation identity",
+        "provider reconciliation",
+        "durable accounting reconciliation"
+      ],
+      "permittedUses": [
+        "compile and mechanically execute bounded non-live simulated effect circuits"
+      ],
+      "prohibitedUses": [
+        "real-money effect",
+        "production financial write",
+        "blind resend",
+        "semantic completion claim"
+      ]
+    },
+    {
+      "legoId": "capital.candidate.nautilus-nonlive-effect",
+      "ownerDomain": "trading",
+      "sourceClass": "CANDIDATE",
+      "status": "CHALLENGER",
+      "functionalRoles": [
+        "Effect",
+        "Reconcile"
+      ],
+      "implementation": {
+        "path": "tools/nautilus_rc4/nonlive_effect_matrix.py",
+        "symbol": "*"
+      },
+      "authorityRequirement": "SIMULATED_EFFECT",
+      "effectClass": "SIMULATED_EXCHANGE_ORDER_EFFECT",
+      "sideEffects": [
+        "PROVIDER_WRITE"
+      ],
+      "replayClass": "HISTORICAL_ONLY",
+      "currentnessRequirement": "EPISODE_BOUND",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "historical rc4 effect matrix"
+      ],
+      "permittedUses": [
+        "differential qualification"
+      ],
+      "prohibitedUses": [
+        "canonical effect ownership",
+        "live write"
+      ]
+    },
+    {
+      "legoId": "capital.candidate.quickfixn-projector",
+      "ownerDomain": "trading",
+      "sourceClass": "CANDIDATE",
+      "status": "CHALLENGER",
+      "functionalRoles": [
+        "Normalize"
+      ],
+      "implementation": {
+        "path": "tools/quickfixn_1_14_1/fix44-projector/Program.cs",
+        "symbol": "*"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "HISTORICAL_ONLY",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "LOW",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "120/120 differential"
+      ],
+      "permittedUses": [
+        "differential oracle"
+      ],
+      "prohibitedUses": [
+        "canonical runtime dependency"
+      ]
+    },
+    {
+      "legoId": "capital.candidate.opa-policy",
+      "ownerDomain": "governance",
+      "sourceClass": "CANDIDATE",
+      "status": "CHALLENGER",
+      "functionalRoles": [
+        "Authorize"
+      ],
+      "implementation": {
+        "path": "tools/opa_1_20_2/market_controls.rego",
+        "symbol": "*"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "HISTORICAL_ONLY",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "historical differential"
+      ],
+      "permittedUses": [
+        "policy differential oracle"
+      ],
+      "prohibitedUses": [
+        "current policy ownership"
+      ]
+    },
+    {
+      "legoId": "capital.candidate.tigerbeetle-accounting",
+      "ownerDomain": "accounting",
+      "sourceClass": "CANDIDATE",
+      "status": "CHALLENGER",
+      "functionalRoles": [
+        "Reserve",
+        "Account"
+      ],
+      "implementation": {
+        "path": "tools/tigerbeetle_0_17_9/tigerbeetle_capital_substrate.json",
+        "symbol": "*"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_DB_WRITE"
+      ],
+      "replayClass": "HISTORICAL_ONLY",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "historical restart/reconciliation qualification"
+      ],
+      "permittedUses": [
+        "future distributed-accounting challenger"
+      ],
+      "prohibitedUses": [
+        "current single-host accounting ownership"
+      ]
+    },
+    {
+      "legoId": "capital.retired.regime-card",
+      "ownerDomain": "risk",
+      "sourceClass": "HISTORICAL_RETIRED",
+      "status": "RETIRED",
+      "functionalRoles": [
+        "Model"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/market/regime_card.py",
+        "symbol": "*"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "HISTORICAL_ONLY",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [],
+      "outputContracts": [],
+      "evidenceObligations": [],
+      "permittedUses": [
+        "historical repository archaeology"
+      ],
+      "prohibitedUses": [
+        "current market analysis",
+        "trade recommendation",
+        "risk decision support"
+      ]
+    },
+    {
+      "legoId": "capital.governance.composition-contract",
+      "ownerDomain": "governance",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/governance/composition_contract.py",
+        "symbol": "compile_composition"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "CRITICAL",
+      "inputContracts": [
+        "contracts/lego-composition-envelope-v1.json",
+        "contracts/capital-authority-requirement-v1.json",
+        "contracts/capital-effect-class-v1.json",
+        "contracts/capital-evidence-obligation-v1.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.composition-admission"
+      ],
+      "evidenceObligations": [
+        "registered LEGO identities",
+        "explicit authority set",
+        "explicit requested use"
+      ],
+      "permittedUses": [
+        "pre-execution Capital LEGO composition validation"
+      ],
+      "prohibitedUses": [
+        "grant financial authority",
+        "execute provider effect",
+        "establish semantic completion"
+      ]
+    },
+    {
+      "legoId": "capital.governance.readonly-circuit-composition",
+      "ownerDomain": "governance",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/governance/read_circuit.py",
+        "symbol": "compile_readonly_circuit"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "contracts/capital-circuit-v1.json",
+        "contracts/lego-composition-envelope-v1.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.readonly-circuit",
+        "ordivon.capital.readonly-circuit-receipt"
+      ],
+      "evidenceObligations": [
+        "registered LEGO identities",
+        "explicit goal kind",
+        "input provenance/currentness"
+      ],
+      "permittedUses": [
+        "compile and mechanically execute bounded read-only Capital circuits"
+      ],
+      "prohibitedUses": [
+        "financial recommendation",
+        "risk appetite inference",
+        "provider effect",
+        "external financial write",
+        "semantic completion claim"
+      ]
+    }
+  ]
+}
