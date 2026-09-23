@@ -19,7 +19,7 @@
     {
       "id": "SD1",
       "goal": "Small labeled discourse and citation corpora",
-      "standing": "PARTIAL_READY_TRANSPORT_BLOCKED_FOR_CONTEXT24",
+      "standing": "IN_PROGRESS_CONTEXT24_IDENTITY_CORE_MATERIALIZED_OTHER_LICENSE_BLOCKERS_REMAIN",
       "candidates": [
         "scicite",
         "scidtb",

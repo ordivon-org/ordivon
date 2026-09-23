@@ -153,6 +153,47 @@
       "licenseStanding": "APACHE-2.0_OBSERVED_HF_DATASET_CARD",
       "inferenceBoundary": "Rating spread is structural only; meta-review and acceptance fields are not reviewer/scientific/decision truth.",
       "reuseStanding": "ADMIT_DIGEST_BOUND_RESEARCH_AND_INTERFACE_USE_SOURCE_TERMS_APPLY"
+    },
+    {
+      "id": "context24-identity-core-r1",
+      "owner": "shared-research-data-catalog",
+      "catalogRole": "claim-to-evidence-and-method-context-grounding",
+      "status": "MATERIALIZED_IDENTITY_CORE",
+      "rawExternalRoot": "/root/projects/ordivon-corpora/scholarly-data/context24/context24-identity-core-r1-20260923",
+      "admissionReceipt": "meta/research/evidence/context24-identity-core-r1.json",
+      "analyticalBaselines": [
+        "meta/research/evidence/context24-claim-evidence-baseline-r1.json"
+      ],
+      "observedScale": {
+        "task1CrossSplitExactClaimOverlap": 0,
+        "task1CrossSplitPaperOverlap": 6,
+        "task1GoldEvidenceLinks": 679,
+        "task1TestPapers": 46,
+        "task1TestRows": 111,
+        "task1TotalRows": 585,
+        "task1TrainPapers": 229,
+        "task1TrainRows": 474,
+        "task1TrainingExactUniqueRows": 463,
+        "task1TrainingNativeIdCollisionGroups": 19,
+        "task1UniqueNativeIds": 566,
+        "task2ExactClaimsAlsoInTask1": 145,
+        "task2GoldMethodContextSnippets": 210,
+        "task2NativeIdsNotInTask1": 5,
+        "task2TestRows": 109,
+        "task2TotalRows": 151,
+        "task2TrainRows": 42,
+        "task2UniqueNativeIds": 151
+      },
+      "featureFamilies": [
+        "scientific claim text",
+        "paper citekey",
+        "figure/table evidence identity",
+        "method-context snippet",
+        "gold-availability provenance"
+      ],
+      "licenseStanding": "CC-BY-4.0_OBSERVED_HF_DATASET_CARD",
+      "inferenceBoundary": "Annotations ground claims to evidence/context but do not confer scientific-truth, causal, adequacy, or submission authority.",
+      "reuseStanding": "ADMIT_IDENTITY_AND_SNIPPET_CORE_CONTENT_EXPANSION_SEPARATE"
     }
   ],
   "externalCandidates": [
@@ -373,15 +414,18 @@
       "sourceType": "peer-reviewed-shared-task-paper",
       "sourceUrl": "https://aclanthology.org/2024.sdp-1.3/",
       "reportedScale": {
-        "scientificClaims": 585
+        "task1Rows": 585,
+        "task1GoldEvidenceLinks": 679,
+        "task2Rows": 151,
+        "task2GoldMethodContextSnippets": 210
       },
       "useCases": [
         "claim to supporting figure/table grounding",
         "claim to methodological context grounding",
         "ClaimPermission evidence adapters"
       ],
-      "acquisitionState": "READY_LICENSE_VERIFIED_TRANSPORT_BLOCKED",
-      "licenseStanding": "CC-BY-4.0_OBSERVED_HUGGINGFACE_2026-09-23",
+      "acquisitionState": "MATERIALIZED_IDENTITY_CORE",
+      "licenseStanding": "CC-BY-4.0_OBSERVED_HF_DATASET_CARD",
       "priority": "A"
     },
     {

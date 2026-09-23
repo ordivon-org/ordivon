@@ -18,7 +18,27 @@
     "negativeEditLinks": 24738,
     "positiveEditLinks": 182
   },
-  "context24Transport": "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE",
+  "context24": {
+    "task1CrossSplitExactClaimOverlap": 0,
+    "task1CrossSplitPaperOverlap": 6,
+    "task1GoldEvidenceLinks": 679,
+    "task1TestPapers": 46,
+    "task1TestRows": 111,
+    "task1TotalRows": 585,
+    "task1TrainPapers": 229,
+    "task1TrainRows": 474,
+    "task1TrainingExactUniqueRows": 463,
+    "task1TrainingNativeIdCollisionGroups": 19,
+    "task1UniqueNativeIds": 566,
+    "task2ExactClaimsAlsoInTask1": 145,
+    "task2GoldMethodContextSnippets": 210,
+    "task2NativeIdsNotInTask1": 5,
+    "task2TestRows": 109,
+    "task2TotalRows": 151,
+    "task2TrainRows": 42,
+    "task2UniqueNativeIds": 151
+  },
+  "context24HistoricalDirectTransport": "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE",
   "disapere": {
     "explicitLocalAlignedRebuttalSentences": 9416,
     "explicitLocalAlignmentLinks": 21675,
@@ -67,7 +87,7 @@
   "externalCandidateCount": 14,
   "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
   "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
-  "materializedLocalAssetCount": 4,
+  "materializedLocalAssetCount": 5,
   "nextWaves": [
     "SD1 transport recovery",
     "SD2 lifecycle expansion"
@@ -84,6 +104,6 @@
     "replyEdges": 178272
   },
   "schemaVersion": 1,
-  "standing": "PASS_DATA_PLANE_WITH_ARIES_DISAPERE_PEERSUM",
-  "truthBoundary": "Acceptance proves current local EMSE, ARIES, DISAPERE, and PeerSum physical/schema bindings, including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
+  "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_ARIES_DISAPERE_PEERSUM",
+  "truthBoundary": "Acceptance proves current local EMSE, Context24, ARIES, DISAPERE, and PeerSum physical/schema bindings, including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
 }

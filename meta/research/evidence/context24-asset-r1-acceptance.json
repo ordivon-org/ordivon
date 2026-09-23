@@ -1,0 +1,13 @@
+{
+  "kind": "ordivon.research.context24-asset-acceptance",
+  "nativeIdCollisionGroups": 19,
+  "schemaVersion": 1,
+  "snapshotIdentity": "sha256:fe95ee5748e301cd4885deb5184f99605ec1fd5a538208db2a7be4025159822b",
+  "standing": "PASS_CONTEXT24_IDENTITY_CORE",
+  "task1GoldEvidenceLinks": 679,
+  "task1Rows": 585,
+  "task2GoldMethodContextSnippets": 210,
+  "task2Rows": 151,
+  "testGoldStanding": "WITHHELD_NOT_FABRICATED",
+  "truthBoundary": "Acceptance proves exact claim/evidence-identity/method-context bindings and identity anomalies. It does not prove scientific truth, causal support, method adequacy, or hidden test gold."
+}
