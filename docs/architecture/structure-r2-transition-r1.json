@@ -13,7 +13,8 @@
     "S1A",
     "S1B",
     "S2A",
-    "S2B"
+    "S2B",
+    "S2C"
   ],
   "forbiddenSemanticRoots": [
     "services/",
@@ -183,7 +184,9 @@
       "verifyTasks": [
         "skills:verify"
       ],
-      "wave": "S2C"
+      "wave": "S2C",
+      "standing": "DEPLOYED",
+      "disposition": "ChatGPT-only Skills MCP compatibility owner relocated to extensions/chatgpt-skills-mcp; protocol, release identity, deployment path, read-only semantics and advisory authority unchanged."
     },
     {
       "id": "artifact",
@@ -464,7 +467,6 @@
     }
   ],
   "openSlices": [
-    "S2C",
     "S3",
     "S4",
     "S5",

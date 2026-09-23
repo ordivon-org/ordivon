@@ -16,7 +16,7 @@ updates:
       - "/meta/next/experimental/episode-store-r1"
       - "/packages/composition"
       - "/platform/security"
-      - "/platform/skills"
+      - "/extensions/chatgpt-skills-mcp"
       - "/platform/workstation"
       - "/services/gateway"
       - "/services/harness"
