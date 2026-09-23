@@ -60,6 +60,7 @@ fn proposal_from_concrete_request(request: &JobRunRequest) -> JobRunProposal {
             execution_profile: request.execution.execution_profile,
             execution_target: request.execution.execution_target,
             windows_authority: request.execution.windows_authority,
+            windows_context: None,
             foreign_references: request.execution.foreign_references.clone(),
             host_dependencies: request.execution.host_dependencies.clone(),
         },
@@ -346,6 +347,7 @@ fn request(sandbox: &Sandbox, client_request_id: &str, global_limit: u32) -> Sub
             execution_profile: super::ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             windows_execution_context: None,
             foreign_references: Vec::new(),
             input_set_id: None,
@@ -1272,6 +1274,7 @@ fn representation_cardinality_is_not_runtime_admission_policy() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references,
             host_dependencies: Vec::new(),
         },
@@ -1306,6 +1309,7 @@ fn operator_runtime_and_output_ceilings_are_enforced_before_admission() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1350,6 +1354,7 @@ fn oversized_exec_string_is_rejected_before_admission() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1363,9 +1368,73 @@ fn oversized_exec_string_is_rejected_before_admission() {
 }
 
 #[test]
+fn windows_authority_factorization_preserves_exact_legacy_mapping() {
+    use super::{
+        WindowsAuthority, WindowsExecutionContextRequest, WindowsExecutionIdentity,
+        WindowsPayloadPrivilege,
+    };
+    let cases = [
+        (
+            WindowsAuthority::Limited,
+            WindowsExecutionContextRequest::new(
+                WindowsExecutionIdentity::Service,
+                WindowsPayloadPrivilege::Limited,
+            ),
+        ),
+        (
+            WindowsAuthority::Elevated,
+            WindowsExecutionContextRequest::new(
+                WindowsExecutionIdentity::Service,
+                WindowsPayloadPrivilege::Elevated,
+            ),
+        ),
+        (
+            WindowsAuthority::ActiveUser,
+            WindowsExecutionContextRequest::new(
+                WindowsExecutionIdentity::ActiveUser,
+                WindowsPayloadPrivilege::Limited,
+            ),
+        ),
+    ];
+    for (legacy, canonical) in cases {
+        assert_eq!(legacy.canonical_context(), canonical);
+        assert_eq!(canonical.legacy_authority(), Some(legacy));
+    }
+    let composed = WindowsExecutionContextRequest::new(
+        WindowsExecutionIdentity::ActiveUser,
+        WindowsPayloadPrivilege::Elevated,
+    );
+    assert_eq!(composed.legacy_authority(), None);
+    // windowsAuthority has a legacy wire default of limited. Structured callers therefore
+    // use limited as the compatibility sentinel; non-default legacy values remain conflicts.
+    assert!(composed.compatible_with_legacy(WindowsAuthority::Limited));
+    assert!(!composed.compatible_with_legacy(WindowsAuthority::Elevated));
+    assert!(!composed.compatible_with_legacy(WindowsAuthority::ActiveUser));
+}
+
+#[test]
+fn windows_execution_context_request_has_stable_orthogonal_wire_shape() {
+    let context = super::WindowsExecutionContextRequest::new(
+        super::WindowsExecutionIdentity::ActiveUser,
+        super::WindowsPayloadPrivilege::Elevated,
+    );
+    let value = serde_json::to_value(context).unwrap();
+    assert_eq!(value["identity"], "active_user");
+    assert_eq!(value["privilege"], "elevated");
+    assert!(
+        serde_json::from_value::<super::WindowsExecutionContextRequest>(
+            serde_json::json!({"identity":"active_user","privilege":"elevated","unexpected":true})
+        )
+        .is_err()
+    );
+}
+
+#[test]
 fn windows_execution_context_is_durable_plan_evidence_not_request_identity_input() {
     let context = super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
+        payload_identity: None,
+        payload_privilege: None,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
@@ -1403,6 +1472,7 @@ fn request_identity_excludes_observation_preferences_and_capacity_policy() {
             execution_profile: super::ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1507,6 +1577,7 @@ fn elevated_windows_authority_is_rejected_for_local_linux_before_admission() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Elevated,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1540,6 +1611,7 @@ fn input_bound_task_request(workspace_id: &str, client_request_id: &str) -> JobR
             execution_profile: ExecutionProfile::ContainedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1571,6 +1643,7 @@ fn input_bound_proposal_identity_preserves_proposal_and_binding_semantics() {
             execution_profile: ExecutionProfile::ContainedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1861,6 +1934,7 @@ fn execution_profile_and_foreign_references_are_part_of_request_identity() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -1941,6 +2015,7 @@ fn duplicate_foreign_references_are_rejected_before_admission() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: vec![reference.clone(), reference],
             host_dependencies: Vec::new(),
         },
@@ -1965,6 +2040,8 @@ fn terminal_evidence_is_a_durable_artifact_with_native_binding() {
     submit.plan.execution_target = super::ExecutionTarget::WindowsNative;
     submit.plan.windows_execution_context = Some(super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
+        payload_identity: None,
+        payload_privilege: None,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
@@ -2356,6 +2433,7 @@ fn v2_proposal_identity_can_reattach_proven_equivalent_v1_job_without_alias_stat
             execution_profile: concrete.plan.execution_profile,
             execution_target: concrete.plan.execution_target,
             windows_authority: concrete.plan.windows_authority,
+            windows_context: None,
             foreign_references: concrete.plan.foreign_references.clone(),
             host_dependencies: Vec::new(),
         },
@@ -2422,6 +2500,7 @@ fn v1_compatibility_identity_is_never_guessed_from_incomplete_proposal() {
             execution_profile: concrete.plan.execution_profile,
             execution_target: concrete.plan.execution_target,
             windows_authority: concrete.plan.windows_authority,
+            windows_context: None,
             foreign_references: concrete.plan.foreign_references,
             host_dependencies: Vec::new(),
         },
@@ -2465,6 +2544,7 @@ fn proposal_identity_preserves_omission_and_normalizes_equivalent_paths() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -6893,6 +6973,8 @@ fn native_windows_running_attempt_replay_after_registry_reopen_does_not_redrive(
     submission.plan.execution_target = super::ExecutionTarget::WindowsNative;
     submission.plan.windows_execution_context = Some(super::WindowsExecutionContext {
         token_class: super::WindowsTokenClass::Limited,
+        payload_identity: None,
+        payload_privilege: None,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
@@ -7246,6 +7328,8 @@ fn native_windows_runtime_release_requires_elevated_broker_context() {
     submission.plan.windows_authority = WindowsAuthority::Elevated;
     submission.plan.windows_execution_context = Some(WindowsExecutionContext {
         token_class: WindowsTokenClass::Elevated,
+        payload_identity: None,
+        payload_privilege: None,
         token_user_sid: "S-1-5-18".to_string(),
         session_id: None,
         environment_source: "windows_privileged_broker_profile_allowlist_v1".to_string(),
@@ -7302,6 +7386,8 @@ fn native_windows_runtime_release_rejects_limited_authority() {
     submission.plan.windows_authority = WindowsAuthority::Limited;
     submission.plan.windows_execution_context = Some(WindowsExecutionContext {
         token_class: WindowsTokenClass::Limited,
+        payload_identity: None,
+        payload_privilege: None,
         token_user_sid: "S-1-5-21-test-1001".to_string(),
         session_id: None,
         environment_source: "windows_user_machine_profile_allowlist_v1".to_string(),
@@ -7352,6 +7438,8 @@ fn native_windows_runtime_release_rejects_missing_broker_digest() {
     submission.plan.windows_authority = WindowsAuthority::Elevated;
     submission.plan.windows_execution_context = Some(WindowsExecutionContext {
         token_class: WindowsTokenClass::Elevated,
+        payload_identity: None,
+        payload_privilege: None,
         token_user_sid: "S-1-5-18".to_string(),
         session_id: None,
         environment_source: "windows_privileged_broker_profile_allowlist_v1".to_string(),
@@ -7739,6 +7827,7 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
     assert!(linux.structured_plan);
     assert!(linux.immutable_inputs);
     assert!(linux.windows_authorities.is_empty());
+    assert!(linux.windows_contexts.is_empty());
     assert!(linux.windows_immutable_input_authorities.is_empty());
     assert_eq!(
         linux.execution_provider.as_ref().unwrap().contract,
@@ -8000,6 +8089,7 @@ fn credential_bound_identity_is_logical_and_digest_free() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: super::ExecutionTarget::LocalLinux,
             windows_authority: super::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },

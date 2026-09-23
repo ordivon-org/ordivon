@@ -543,6 +543,7 @@ pub(crate) struct WindowsNativeRunSpec<'a> {
     pub launch_token_digest: &'a str,
     pub request_digest: &'a str,
     pub authority: WindowsAuthority,
+    pub payload_privilege: super::WindowsPayloadPrivilege,
     pub expected_privileged_broker_digest: Option<&'a str>,
     pub expected_user_sid: Option<&'a str>,
     pub expected_session_id: Option<u32>,
@@ -574,6 +575,7 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub request_digest: &'a str,
     pub job_name: &'a str,
     pub authority: WindowsAuthority,
+    pub payload_privilege: super::WindowsPayloadPrivilege,
     pub expected_user_sid: Option<&'a str>,
     pub expected_session_id: Option<u32>,
     pub executable: &'a str,
@@ -595,17 +597,37 @@ pub(crate) fn snapshot_windows_runtime_context(
     config: &WindowsExecutionConfig,
     authority: WindowsAuthority,
 ) -> RuntimeResult<WindowsRuntimeContextSnapshot> {
-    snapshot_windows_runtime_context_with_transport(config, authority).map(|(snapshot, _)| snapshot)
+    snapshot_windows_runtime_context_for(config, authority.canonical_context())
+}
+
+pub(crate) fn snapshot_windows_runtime_context_for(
+    config: &WindowsExecutionConfig,
+    context: super::WindowsExecutionContextRequest,
+) -> RuntimeResult<WindowsRuntimeContextSnapshot> {
+    snapshot_windows_runtime_context_for_with_transport(config, context)
+        .map(|(snapshot, _)| snapshot)
 }
 
 pub(crate) fn snapshot_windows_runtime_context_with_transport(
     config: &WindowsExecutionConfig,
     authority: WindowsAuthority,
 ) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
+    snapshot_windows_runtime_context_for_with_transport(config, authority.canonical_context())
+}
+
+pub(crate) fn snapshot_windows_runtime_context_for_with_transport(
+    config: &WindowsExecutionConfig,
+    context: super::WindowsExecutionContextRequest,
+) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
     config.validate()?;
-    let (launcher_authority, launcher_identity) = match authority {
-        WindowsAuthority::ActiveUser => ("elevated", Some("active_user")),
-        _ => (authority.as_str(), None),
+    let authority = context.transport_authority();
+    let launcher_identity = match context.identity {
+        super::WindowsExecutionIdentity::ActiveUser => Some("active_user"),
+        super::WindowsExecutionIdentity::Service => None,
+    };
+    let launcher_authority = match authority {
+        WindowsAuthority::ActiveUser => "elevated",
+        _ => authority.as_str(),
     };
     let mut launcher_args = vec![
         "--describe-runtime-context".to_string(),
@@ -615,6 +637,12 @@ pub(crate) fn snapshot_windows_runtime_context_with_transport(
     if let Some(identity) = launcher_identity {
         launcher_args.push("--identity".to_string());
         launcher_args.push(identity.to_string());
+    }
+    if context.identity == super::WindowsExecutionIdentity::ActiveUser
+        && context.privilege == super::WindowsPayloadPrivilege::Elevated
+    {
+        launcher_args.push("--payload-privilege".to_string());
+        launcher_args.push("elevated".to_string());
     }
     for name in WINDOWS_BASELINE_ENVIRONMENT_NAMES {
         launcher_args.push("--context-env".to_string());
@@ -655,7 +683,7 @@ pub(crate) fn snapshot_windows_runtime_context_with_transport(
                 false,
             )
         })?;
-    validate_windows_runtime_context(&snapshot, authority)?;
+    validate_windows_runtime_context_request(&snapshot, context)?;
     Ok((snapshot, output.transport))
 }
 
@@ -663,8 +691,15 @@ fn validate_windows_runtime_context(
     snapshot: &WindowsRuntimeContextSnapshot,
     authority: WindowsAuthority,
 ) -> RuntimeResult<()> {
-    let token_authority_valid = match authority {
-        WindowsAuthority::Limited => {
+    validate_windows_runtime_context_request(snapshot, authority.canonical_context())
+}
+
+fn validate_windows_runtime_context_request(
+    snapshot: &WindowsRuntimeContextSnapshot,
+    context: super::WindowsExecutionContextRequest,
+) -> RuntimeResult<()> {
+    let token_authority_valid = match (context.identity, context.privilege) {
+        (super::WindowsExecutionIdentity::Service, crate::WindowsPayloadPrivilege::Limited) => {
             !snapshot.token_is_elevated
                 && snapshot.token_integrity_level_rid <= 8192
                 && (snapshot.administrators_group_attributes == u32::MAX
@@ -679,7 +714,7 @@ fn validate_windows_runtime_context(
                     || (snapshot.administrators_group_attributes & 0x10) != 0)
                 && matches!(snapshot.execution_identity.as_str(), "" | "service")
         }
-        WindowsAuthority::Elevated => {
+        (super::WindowsExecutionIdentity::Service, super::WindowsPayloadPrivilege::Elevated) => {
             snapshot.token_is_elevated
                 && snapshot.token_integrity_level_rid >= 12288
                 && snapshot.administrators_group_attributes != u32::MAX
@@ -688,13 +723,27 @@ fn validate_windows_runtime_context(
                 && snapshot.token_selection == "current_elevated"
                 && matches!(snapshot.execution_identity.as_str(), "" | "service")
         }
-        WindowsAuthority::ActiveUser => {
+        (super::WindowsExecutionIdentity::ActiveUser, crate::WindowsPayloadPrivilege::Limited) => {
             !snapshot.token_is_elevated
                 && snapshot.token_integrity_level_rid <= 8192
                 && (snapshot.administrators_group_attributes == u32::MAX
                     || (snapshot.administrators_group_attributes & 0x4) == 0
                     || (snapshot.administrators_group_attributes & 0x10) != 0)
                 && snapshot.token_selection == "active_user"
+                && snapshot.execution_identity == "active_user"
+                && snapshot.session_id.is_some()
+        }
+        (super::WindowsExecutionIdentity::ActiveUser, super::WindowsPayloadPrivilege::Elevated) => {
+            snapshot.token_is_elevated
+                && snapshot.token_integrity_level_rid >= 12288
+                && snapshot.administrators_group_attributes != u32::MAX
+                && (snapshot.administrators_group_attributes & 0x4) != 0
+                && (snapshot.administrators_group_attributes & 0x10) == 0
+                && matches!(snapshot.token_elevation_type, 1 | 2)
+                && matches!(
+                    snapshot.token_selection.as_str(),
+                    "active_user_elevated_current" | "active_user_elevated_linked"
+                )
                 && snapshot.execution_identity == "active_user"
                 && snapshot.session_id.is_some()
         }
@@ -707,8 +756,9 @@ fn validate_windows_runtime_context(
         return Err(RuntimeError::new(
             RuntimeErrorCode::InvalidRequest,
             format!(
-                "Windows runtime context did not prove requested {} authority",
-                authority.as_str()
+                "Windows runtime context did not prove requested {} x {} context",
+                context.identity.as_str(),
+                context.privilege.as_str()
             ),
             Some("windows.runtimeContext"),
             false,
@@ -928,6 +978,7 @@ pub(crate) fn spawn_windows_native(
         request_digest: spec.request_digest,
         job_name: &job_name,
         authority: spec.authority,
+        payload_privilege: spec.payload_privilege,
         expected_user_sid: spec.expected_user_sid,
         expected_session_id: spec.expected_session_id,
         executable: &executable,
@@ -1103,6 +1154,9 @@ pub(crate) fn append_windows_launcher_arguments(
             _ => spec.authority.as_str(),
         });
     if spec.authority == WindowsAuthority::ActiveUser {
+        if spec.payload_privilege == super::WindowsPayloadPrivilege::Elevated {
+            command.arg("--payload-privilege").arg("elevated");
+        }
         let expected_user_sid = spec.expected_user_sid.ok_or_else(|| {
             RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
@@ -1426,6 +1480,45 @@ mod tests {
     }
 
     #[test]
+    fn windows_runtime_context_proves_active_user_elevated_as_a_distinct_fourth_cell() {
+        let environment: BTreeMap<String, String> = REQUIRED_WINDOWS_BASELINE_ENVIRONMENT_NAMES
+            .iter()
+            .map(|name| ((*name).to_string(), format!("value:{name}")))
+            .collect();
+        let requested = super::super::WindowsExecutionContextRequest::new(
+            super::super::WindowsExecutionIdentity::ActiveUser,
+            super::super::WindowsPayloadPrivilege::Elevated,
+        );
+        let mut snapshot = WindowsRuntimeContextSnapshot {
+            schema_version: 1,
+            token_selection: "active_user_elevated_linked".to_string(),
+            execution_identity: "active_user".to_string(),
+            session_id: Some(7),
+            token_user_sid: "S-1-5-21-test-1001".to_string(),
+            token_type: 1,
+            token_elevation_type: 2,
+            token_is_elevated: true,
+            token_integrity_level_rid: 12288,
+            token_is_restricted: false,
+            administrators_group_attributes: 0x4,
+            environment,
+        };
+        validate_windows_runtime_context_request(&snapshot, requested).unwrap();
+
+        snapshot.token_is_elevated = false;
+        assert!(validate_windows_runtime_context_request(&snapshot, requested).is_err());
+        snapshot.token_is_elevated = true;
+        snapshot.token_integrity_level_rid = 8192;
+        assert!(validate_windows_runtime_context_request(&snapshot, requested).is_err());
+        snapshot.token_integrity_level_rid = 12288;
+        snapshot.administrators_group_attributes = 0x10;
+        assert!(validate_windows_runtime_context_request(&snapshot, requested).is_err());
+        snapshot.administrators_group_attributes = 0x4;
+        snapshot.session_id = None;
+        assert!(validate_windows_runtime_context_request(&snapshot, requested).is_err());
+    }
+
+    #[test]
     fn active_user_launcher_contract_uses_broker_authority_and_user_identity() {
         let args = Vec::<String>::new();
         let environment = BTreeMap::new();
@@ -1440,6 +1533,7 @@ mod tests {
                 "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-active-user",
             authority: WindowsAuthority::ActiveUser,
+            payload_privilege: crate::WindowsPayloadPrivilege::Limited,
             expected_user_sid: Some("S-1-5-21-test-1001"),
             expected_session_id: Some(1),
             executable: "C:\\Windows\\System32\\whoami.exe",
@@ -1498,6 +1592,26 @@ mod tests {
             "active_user must not be passed as a launcher authority"
         );
 
+        spec.payload_privilege = crate::WindowsPayloadPrivilege::Elevated;
+        let mut elevated = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
+        append_windows_launcher_arguments(&mut elevated, &spec).unwrap();
+        let elevated_args = elevated
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            elevated_args
+                .windows(2)
+                .any(|pair| pair == ["--payload-privilege", "elevated"]),
+            "active_user x elevated must explicitly bind elevated payload privilege"
+        );
+        assert!(elevated_args
+            .windows(2)
+            .any(|pair| pair == ["--authority", "elevated"]));
+        assert!(elevated_args
+            .windows(2)
+            .any(|pair| pair == ["--identity", "active_user"]));
+
         spec.expected_session_id = None;
         let mut missing_fence = Command::new("/native/Ordivon.WindowsJobLauncher.exe");
         let error = append_windows_launcher_arguments(&mut missing_fence, &spec).unwrap_err();
@@ -1527,6 +1641,7 @@ mod tests {
                 "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-1",
             authority: WindowsAuthority::Limited,
+            payload_privilege: crate::WindowsPayloadPrivilege::Limited,
             expected_user_sid: None,
             expected_session_id: None,
             executable: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
@@ -1649,6 +1764,7 @@ mod tests {
                 "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             job_name: "Ordivon.attempt-2",
             authority: WindowsAuthority::Limited,
+            payload_privilege: crate::WindowsPayloadPrivilege::Limited,
             expected_user_sid: None,
             expected_session_id: None,
             executable: "C:\\Windows\\System32\\cmd.exe",

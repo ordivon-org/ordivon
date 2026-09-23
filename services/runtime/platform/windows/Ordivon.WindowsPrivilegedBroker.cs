@@ -468,6 +468,16 @@ internal static class OrdivonWindowsPrivilegedBroker
             throw new InvalidOperationException("runtime context broker probe must request elevated authority");
         if (!runtimeContext && Contains(args, "--authority"))
             throw new InvalidOperationException("owner probes must not carry authority arguments");
+        if (Contains(args, "--payload-privilege"))
+        {
+            if (!runtimeContext
+                || !ContainsPair(args, "--identity", "active_user")
+                || !ContainsPair(args, "--payload-privilege", "elevated"))
+            {
+                throw new InvalidOperationException(
+                    "broker capture payload privilege is restricted to active_user elevated runtime-context probes");
+            }
+        }
         if (Contains(args, "--executable") || Contains(args, "--runtime-bundle"))
             throw new InvalidOperationException("capture operation cannot request process execution");
     }
@@ -479,6 +489,13 @@ internal static class OrdivonWindowsPrivilegedBroker
     {
         if (!ContainsPair(args, "--authority", "elevated"))
             throw new InvalidOperationException("broker spawn requires elevated authority");
+        if (Contains(args, "--payload-privilege")
+            && (!ContainsPair(args, "--identity", "active_user")
+                || !ContainsPair(args, "--payload-privilege", "elevated")))
+        {
+            throw new InvalidOperationException(
+                "broker spawn payload privilege is restricted to active_user elevated Runtime execution");
+        }
         string bundle = ValueAfter(args, "--runtime-bundle");
         if (bundle == null) throw new InvalidOperationException("broker spawn requires --runtime-bundle");
         if (!Contains(args, "--runtime-job-id") || !Contains(args, "--runtime-attempt-id")
