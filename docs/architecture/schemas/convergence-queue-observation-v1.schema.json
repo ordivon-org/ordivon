@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:convergence-queue-observation:1",
+  "title": "Ordivon Convergence Queue Observation Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "authority",
+    "coverage",
+    "episodes",
+    "episodeMetrics",
+    "metrics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "kind": {
+      "const": "ordivon.queue-observation-projection"
+    },
+    "authority": {
+      "type": "object"
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "repository",
+        "queueAttributedPullRequests",
+        "mergeGroupRunsFetched",
+        "historicalDepthIsLowerBound"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "mergedPullRequestsFetched": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queueAttributedPullRequests": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mergeGroupRunsFetched": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historicalDepthIsLowerBound": {
+          "type": "boolean"
+        }
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/queueEpisode"
+      }
+    },
+    "episodeMetrics": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "metrics": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "queueEpisode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "provider",
+        "repository",
+        "pr",
+        "enqueueTimes",
+        "removalTimes",
+        "mergedAt",
+        "mergeGroupRuns"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "kind": {
+          "const": "ordivon.queue-episode"
+        },
+        "provider": {
+          "const": "github"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "pr": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "prHeadSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enqueueTimes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removalTimes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mergedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mergeGroupRuns": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
