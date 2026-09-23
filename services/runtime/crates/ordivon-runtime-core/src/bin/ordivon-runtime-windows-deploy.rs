@@ -61,6 +61,8 @@ struct CandidateManifest {
     platform: String,
     commit: String,
     source_repo: String,
+    #[serde(default)]
+    source_owner_prefix: Option<String>,
     source_materialization: String,
     candidate_dir: String,
     required_ref: String,
@@ -629,6 +631,150 @@ fn same_path(left: &Path, right: &Path) -> Result<bool, String> {
     Ok(canonical(left)? == canonical(right)?)
 }
 
+fn git_safe_root(cwd: &Path) -> Result<PathBuf, String> {
+    let mut candidate = canonical(cwd)?;
+    loop {
+        let marker = candidate.join(".git");
+        if marker.exists() {
+            return Ok(candidate);
+        }
+        if !candidate.pop() {
+            return Err(format!(
+                "cannot locate Git root above Runtime owner {}",
+                cwd.display()
+            ));
+        }
+    }
+}
+
+fn git_output(cwd: &Path, args: &[&str]) -> Result<String, String> {
+    let safe_root = git_safe_root(cwd)?;
+    let output = Command::new("git")
+        .arg("-c")
+        .arg(format!("safe.directory={}", safe_root.display()))
+        .arg("-C")
+        .arg(cwd)
+        .args(args)
+        .output()
+        .map_err(|error| format!("cannot execute Git release-authority check: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "Git release-authority check failed (git -C {} {}): {}",
+            cwd.display(),
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn git_status(cwd: &Path, args: &[&str]) -> Result<std::process::ExitStatus, String> {
+    let safe_root = git_safe_root(cwd)?;
+    Command::new("git")
+        .arg("-c")
+        .arg(format!("safe.directory={}", safe_root.display()))
+        .arg("-C")
+        .arg(cwd)
+        .args(args)
+        .status()
+        .map_err(|error| format!("cannot execute Git release-authority check: {error}"))
+}
+
+fn verify_publication_authority(
+    source_repo: &Path,
+    owner_commit: &str,
+    required_ref: &str,
+    manifest_required_ref_commit: &str,
+    manifest_owner_prefix: Option<&str>,
+) -> Result<(), String> {
+    let git_root = PathBuf::from(git_output(source_repo, &["rev-parse", "--show-toplevel"])?);
+    let git_root = canonical(&git_root)?;
+    let owner_root = canonical(source_repo)?;
+    let prefix = git_output(source_repo, &["rev-parse", "--show-prefix"])?
+        .trim_end_matches('/')
+        .to_string();
+    let expected_owner_root = if prefix.is_empty() {
+        git_root.clone()
+    } else {
+        canonical(&git_root.join(Path::new(&prefix)))?
+    };
+    if expected_owner_root != owner_root {
+        return Err("configured Runtime owner path does not match its Git prefix".to_string());
+    }
+    match (prefix.is_empty(), manifest_owner_prefix) {
+        (true, None | Some("")) => {}
+        (false, Some(value)) if value == prefix => {}
+        _ => {
+            return Err(
+                "candidate manifest sourceOwnerPrefix does not match source repository".to_string(),
+            )
+        }
+    }
+
+    let required_ref_commit = git_output(
+        source_repo,
+        &[
+            "rev-parse",
+            "--verify",
+            &format!("{required_ref}^{{commit}}"),
+        ],
+    )?;
+    if required_ref_commit != manifest_required_ref_commit {
+        return Err(
+            "candidate manifest requiredRefCommit does not match current publication ref"
+                .to_string(),
+        );
+    }
+
+    let resolved_owner_commit = if prefix.is_empty() {
+        required_ref_commit.clone()
+    } else {
+        git_output(
+            source_repo,
+            &["log", "-1", "--format=%H", &required_ref_commit, "--", "."],
+        )?
+    };
+    if resolved_owner_commit != owner_commit {
+        return Err(
+            "requested Runtime owner commit is not the owner revision published by required ref"
+                .to_string(),
+        );
+    }
+
+    let ancestry = git_status(
+        &git_root,
+        &[
+            "merge-base",
+            "--is-ancestor",
+            owner_commit,
+            &required_ref_commit,
+        ],
+    )?;
+    if !ancestry.success() {
+        return Err(
+            "Runtime owner commit is not an ancestor of the required publication ref".to_string(),
+        );
+    }
+
+    if !prefix.is_empty() {
+        let owner_tree = git_output(
+            &git_root,
+            &["rev-parse", &format!("{owner_commit}:{prefix}")],
+        )?;
+        let published_tree = git_output(
+            &git_root,
+            &["rev-parse", &format!("{required_ref_commit}:{prefix}")],
+        )?;
+        if owner_tree != published_tree {
+            return Err(
+                "required publication ref does not preserve the candidate Runtime owner tree"
+                    .to_string(),
+            );
+        }
+    }
+    Ok(())
+}
+
 fn run_self_check(runtime: &Path) -> Result<CompiledSelfCheck, String> {
     let output = Command::new(runtime)
         .arg("--self-check")
@@ -662,7 +808,6 @@ fn load_candidate(args: &Args) -> Result<CandidateProof, String> {
         || manifest.commit != args.commit
         || manifest.source_materialization != "detached_git_checkout"
         || manifest.required_ref != args.require_ref
-        || manifest.required_ref_commit != args.commit
     {
         return Err("candidate manifest release identity does not match request".to_string());
     }
@@ -671,6 +816,13 @@ fn load_candidate(args: &Args) -> Result<CandidateProof, String> {
     {
         return Err("candidate manifest path identity does not match request".to_string());
     }
+    verify_publication_authority(
+        &args.source_repo,
+        &args.commit,
+        &args.require_ref,
+        &manifest.required_ref_commit,
+        manifest.source_owner_prefix.as_deref(),
+    )?;
 
     let expected_names = REQUIRED_ARTIFACTS.into_iter().collect::<BTreeSet<_>>();
     let observed_names = manifest
@@ -1377,6 +1529,60 @@ mod tests {
         assert!(format!("runtime-release-v1:sha256:{}", "f".repeat(64))
             .strip_prefix("runtime-release-v1:")
             .is_some_and(is_sha256));
+    }
+
+    #[test]
+    fn nested_owner_publication_allows_sibling_only_main_commit() {
+        let unique = format!(
+            "ordivon-windows-release-owner-tree-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        );
+        let root = std::env::temp_dir().join(unique);
+        fs::create_dir_all(root.join("services/runtime")).expect("create owner");
+        let git = |args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(&root)
+                .args(args)
+                .output()
+                .expect("git");
+            assert!(
+                output.status.success(),
+                "git {:?}: {}",
+                args,
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        };
+        git(&["init", "-q"]);
+        git(&["config", "user.name", "Ordivon Test"]);
+        git(&["config", "user.email", "ordivon-test@local.invalid"]);
+        fs::write(root.join("services/runtime/runtime.txt"), b"runtime-v1\n").expect("write owner");
+        git(&["add", "."]);
+        git(&["commit", "-qm", "runtime"]);
+        let owner_commit = git(&["rev-parse", "HEAD"]);
+        fs::write(root.join("sibling.txt"), b"sibling-v1\n").expect("write sibling");
+        git(&["add", "sibling.txt"]);
+        git(&["commit", "-qm", "sibling"]);
+        let main_commit = git(&["rev-parse", "HEAD"]);
+        git(&["update-ref", "refs/remotes/origin/main", &main_commit]);
+
+        let owner = root.join("services/runtime");
+        verify_publication_authority(
+            &owner,
+            &owner_commit,
+            "origin/main",
+            &main_commit,
+            Some("services/runtime"),
+        )
+        .expect("nested owner should be authorized by sibling-only main commit");
+        assert_ne!(owner_commit, main_commit);
+
+        fs::remove_dir_all(root).expect("cleanup");
     }
 
     #[test]
