@@ -1,0 +1,240 @@
+{
+  "compiled": {
+    "authorityBoundary": "This projection grants no candidate-generation, evaluation, mutation, promotion, deployment, Git, release, or domain-verdict authority.",
+    "candidateRef": {
+      "digest": "sha256:c8929cb11b0596030a6d63c6a4550011102b7ecfb342c805887c2b36e833a0f9",
+      "id": "system:ordivon-rw6-aec6cd0f"
+    },
+    "changeTargets": [
+      "data",
+      "method"
+    ],
+    "compiledDigest": "sha256:ea65ba52f9f70e8e7634ed2d9e6a5ebcfce2b1eda482deace702a4443ae1d995",
+    "contractDigest": "sha256:d25f1acf73a53bcb995ad08930e78c57f72ba90e38ceffe3f7a72603ab57064e",
+    "contractId": "successor:experimental-rw6-prospective-r3",
+    "evaluationAnchorIds": [
+      "anchor:rw6-next-verify-r3",
+      "anchor:rw6-repo-ci-r3"
+    ],
+    "evaluationGroundingMode": "EXTERNALLY_ANCHORED",
+    "externallyGrounded": true,
+    "improvementProcessRef": {
+      "digest": "sha256:8fb2490f01832c660e30f8fb8fbb4c7c97a68268f1467db0afab31185feb9cf5",
+      "id": "improvement-process:evaluation-boundary-r1"
+    },
+    "kind": "ordivon.successor-contract-compiled",
+    "objectiveRef": {
+      "digest": "sha256:08ca383d090bad236a0ca0b59eb844b86b8b3081759987869a0a22c93449d282",
+      "id": "objective:extract-evaluation-boundary-rw6"
+    },
+    "predecessorRef": {
+      "digest": "sha256:831319ce744281098bfd0eb8cb6bccf2e0f5261b75a58a9548e21214cbc5f788",
+      "id": "system:ordivon-main-977e57e6"
+    },
+    "promotionPolicyRef": {
+      "digest": "sha256:c678aed15bf30dce5024d64cf7e8bea39e393798bdca8a1a8c8a55b87e5344af",
+      "id": "policy:primary-main-integrate-main-r1"
+    },
+    "recursionClass": "PERSISTENT_SELF_CHANGE_NO_MECHANISM_RECURSION",
+    "requiredGateIds": [
+      "gate:rw6-next-verification-r3",
+      "gate:rw6-repository-boundary-r3"
+    ],
+    "schemaVersion": 1,
+    "selfBoundaryRef": {
+      "digest": "sha256:58abc9daa6af91a8fef01652c91d658282c88b6e0ea5da85def2e8d6109977b3",
+      "id": "self:ordivon-governed-improvement"
+    },
+    "truthRole": "task-local-non-authoritative-succession-projection",
+    "unresolvedAssumptions": []
+  },
+  "contract": {
+    "candidateRef": {
+      "digest": "sha256:c8929cb11b0596030a6d63c6a4550011102b7ecfb342c805887c2b36e833a0f9",
+      "id": "system:ordivon-rw6-aec6cd0f"
+    },
+    "changeTargets": [
+      "method",
+      "data"
+    ],
+    "contractId": "successor:experimental-rw6-prospective-r3",
+    "evaluationGrounding": {
+      "anchors": [
+        {
+          "digest": "sha256:1975c68ee485c4033b49e618f8241e54f23e87c19607195861892fade00e4f4c",
+          "id": "anchor:rw6-next-verify-r3",
+          "ownerId": "verification:meta-next",
+          "ref": "runtime-job:job-01a0cd21-c2dd-7952-9faa-f4e04548232b",
+          "relation": "EXTERNAL_TO_CANDIDATE"
+        },
+        {
+          "digest": "sha256:8649eb4c11ebd9fea242fd1046e9db162a5cd014c882bc5421f4c177d6ef7ddb",
+          "id": "anchor:rw6-repo-ci-r3",
+          "ownerId": "verification:repository-governance",
+          "ref": "runtime-job:job-01a0cd22-01fb-7173-baf1-4e0d1bb08eaf",
+          "relation": "EXTERNAL_TO_CANDIDATE"
+        }
+      ],
+      "mode": "EXTERNALLY_ANCHORED"
+    },
+    "gateRequirements": [
+      {
+        "anchorRefIds": [
+          "anchor:rw6-next-verify-r3"
+        ],
+        "id": "gate:rw6-next-verification-r3",
+        "required": true,
+        "supportScope": "The exact RW6 candidate aec6cd0f passes the current meta/next verification suite, including Evaluation Boundary R1 tests and natural-owner evidence bindings.",
+        "verifierOwnerId": "verification:meta-next"
+      },
+      {
+        "anchorRefIds": [
+          "anchor:rw6-repo-ci-r3"
+        ],
+        "id": "gate:rw6-repository-boundary-r3",
+        "required": true,
+        "supportScope": "The exact RW6 candidate aec6cd0f passes repository CI, owner-boundary enforcement, architecture drift checks, integration smoke, and GitHub governance.",
+        "verifierOwnerId": "verification:repository-governance"
+      }
+    ],
+    "improvementProcessRef": {
+      "digest": "sha256:8fb2490f01832c660e30f8fb8fbb4c7c97a68268f1467db0afab31185feb9cf5",
+      "id": "improvement-process:evaluation-boundary-r1"
+    },
+    "kind": "ordivon.successor-contract",
+    "nonClaims": [
+      "Mechanical successor closure does not grant Git, release, deployment, or promotion authority.",
+      "RW6 mechanical closure does not claim two-domain empirical evaluation because Game contributes a frozen protocol only.",
+      "This transition is a bounded prospective successor dogfood, not open-ended recursive self-improvement.",
+      "Concurrent scholarly and other mainline changes are part of the predecessor state and are not attributed to RW6."
+    ],
+    "objectiveRef": {
+      "digest": "sha256:08ca383d090bad236a0ca0b59eb844b86b8b3081759987869a0a22c93449d282",
+      "id": "objective:extract-evaluation-boundary-rw6"
+    },
+    "predecessorRef": {
+      "digest": "sha256:831319ce744281098bfd0eb8cb6bccf2e0f5261b75a58a9548e21214cbc5f788",
+      "id": "system:ordivon-main-977e57e6"
+    },
+    "promotionPolicyRef": {
+      "digest": "sha256:c678aed15bf30dce5024d64cf7e8bea39e393798bdca8a1a8c8a55b87e5344af",
+      "id": "policy:primary-main-integrate-main-r1"
+    },
+    "schemaVersion": 1,
+    "selfBoundaryRef": {
+      "digest": "sha256:58abc9daa6af91a8fef01652c91d658282c88b6e0ea5da85def2e8d6109977b3",
+      "id": "self:ordivon-governed-improvement"
+    },
+    "unresolvedAssumptions": []
+  },
+  "effectiveDate": "2026-09-23",
+  "gateResults": [
+    {
+      "anchorRefIds": [
+        "anchor:rw6-next-verify-r3"
+      ],
+      "contractDigest": "sha256:d25f1acf73a53bcb995ad08930e78c57f72ba90e38ceffe3f7a72603ab57064e",
+      "contractId": "successor:experimental-rw6-prospective-r3",
+      "evidenceRefs": [
+        "runtime-job:job-01a0cd21-c2dd-7952-9faa-f4e04548232b",
+        "terminal-evidence:sha256:1975c68ee485c4033b49e618f8241e54f23e87c19607195861892fade00e4f4c"
+      ],
+      "gateId": "gate:rw6-next-verification-r3",
+      "kind": "ordivon.successor-gate-result",
+      "nonClaims": [
+        "Execution success and test closure do not establish domain truth."
+      ],
+      "schemaVersion": 1,
+      "standing": "SATISFIED",
+      "supportScope": "The exact RW6 candidate aec6cd0f passes the current meta/next verification suite, including Evaluation Boundary R1 tests and natural-owner evidence bindings.",
+      "verifierOwnerId": "verification:meta-next"
+    },
+    {
+      "anchorRefIds": [
+        "anchor:rw6-repo-ci-r3"
+      ],
+      "contractDigest": "sha256:d25f1acf73a53bcb995ad08930e78c57f72ba90e38ceffe3f7a72603ab57064e",
+      "contractId": "successor:experimental-rw6-prospective-r3",
+      "evidenceRefs": [
+        "runtime-job:job-01a0cd22-01fb-7173-baf1-4e0d1bb08eaf",
+        "terminal-evidence:sha256:8649eb4c11ebd9fea242fd1046e9db162a5cd014c882bc5421f4c177d6ef7ddb"
+      ],
+      "gateId": "gate:rw6-repository-boundary-r3",
+      "kind": "ordivon.successor-gate-result",
+      "nonClaims": [
+        "Repository qualification does not grant promotion authority."
+      ],
+      "schemaVersion": 1,
+      "standing": "SATISFIED",
+      "supportScope": "The exact RW6 candidate aec6cd0f passes repository CI, owner-boundary enforcement, architecture drift checks, integration smoke, and GitHub governance.",
+      "verifierOwnerId": "verification:repository-governance"
+    }
+  ],
+  "kind": "ordivon.prospective-successor-dogfood-rw7",
+  "postClosurePromotionObservation": {
+    "authorityBoundary": "Promotion occurred only after successor-gate closure through the accepted serialized Git integration mechanic. The Successor Contract did not grant, execute, or own this promotion.",
+    "authorityOwner": "repository:primary-main-integrator",
+    "candidate": "aec6cd0f061703ae367584aa93040b2609c32444",
+    "integrationMode": "FAST_FORWARD",
+    "policyRef": {
+      "digest": "sha256:c678aed15bf30dce5024d64cf7e8bea39e393798bdca8a1a8c8a55b87e5344af",
+      "id": "policy:primary-main-integrate-main-r1"
+    },
+    "previousMain": "977e57e6813afa923bf6d69f59e5b25322f336da",
+    "resultingMain": "aec6cd0f061703ae367584aa93040b2609c32444",
+    "runtimeJobId": "job-01a0cd22-317e-7d32-8190-67a8e6096574",
+    "standing": "OBSERVED_EXTERNAL_PROMOTION",
+    "terminalEvidence": "sha256:354eba6b2c9e385321c0d6f42c33542595d74f1191272ed4e4fa4600c65a9566"
+  },
+  "projection": {
+    "candidateRef": {
+      "digest": "sha256:c8929cb11b0596030a6d63c6a4550011102b7ecfb342c805887c2b36e833a0f9",
+      "id": "system:ordivon-rw6-aec6cd0f"
+    },
+    "claimBoundary": "Mechanical successor closure means only that every required verifier-owned gate for this exact predecessor/candidate contract is SATISFIED and no contract assumption remains unresolved. Promotion authority and domain improvement remain with their natural owners.",
+    "contractDigest": "sha256:d25f1acf73a53bcb995ad08930e78c57f72ba90e38ceffe3f7a72603ab57064e",
+    "contractId": "successor:experimental-rw6-prospective-r3",
+    "domainImprovementEstablished": false,
+    "evaluationGroundingMode": "EXTERNALLY_ANCHORED",
+    "externallyGrounded": true,
+    "kind": "ordivon.successor-gate-projection",
+    "mechanicalSuccessorClosure": true,
+    "missingGateIds": [],
+    "predecessorRef": {
+      "digest": "sha256:831319ce744281098bfd0eb8cb6bccf2e0f5261b75a58a9548e21214cbc5f788",
+      "id": "system:ordivon-main-977e57e6"
+    },
+    "projectionDigest": "sha256:0cba1b739337d87488f74803b22b19d41460a3e6981ac49475fbea39544b819a",
+    "promotionAuthorityEstablished": false,
+    "recursionClass": "PERSISTENT_SELF_CHANGE_NO_MECHANISM_RECURSION",
+    "requiredGateIds": [
+      "gate:rw6-next-verification-r3",
+      "gate:rw6-repository-boundary-r3"
+    ],
+    "satisfiedGateIds": [
+      "gate:rw6-next-verification-r3",
+      "gate:rw6-repository-boundary-r3"
+    ],
+    "schemaVersion": 1,
+    "standing": "SUCCESSOR_GATES_SATISFIED",
+    "truthRole": "bounded-succession-gate-projection-not-promotion-verdict",
+    "unknownGateIds": [],
+    "unresolvedAssumptions": [],
+    "unsatisfiedGateIds": []
+  },
+  "schemaVersion": 1,
+  "stateBinding": {
+    "candidate": {
+      "commit": "aec6cd0f061703ae367584aa93040b2609c32444",
+      "digest": "sha256:c8929cb11b0596030a6d63c6a4550011102b7ecfb342c805887c2b36e833a0f9",
+      "tree": "472eacbb4cf25c4020ca92b3090d442b37ec673e"
+    },
+    "candidateDirectParentIsPredecessor": true,
+    "predecessor": {
+      "commit": "977e57e6813afa923bf6d69f59e5b25322f336da",
+      "digest": "sha256:831319ce744281098bfd0eb8cb6bccf2e0f5261b75a58a9548e21214cbc5f788",
+      "tree": "0a55aeb7d28e9c71e1a707a5e56d81637779d89e"
+    }
+  },
+  "truthRole": "bounded-succession-analysis-not-promotion-verdict"
+}

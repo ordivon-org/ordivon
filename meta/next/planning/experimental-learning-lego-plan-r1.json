@@ -258,13 +258,13 @@
       "id": "EL73",
       "name": "ProspectiveSuccessorDogfood",
       "owner": "selected domain",
-      "standing": "READY_PROSPECTIVE"
+      "standing": "PASS_PROSPECTIVE_SUCCESSOR_AND_EXTERNAL_PROMOTION_OBSERVED"
     },
     {
       "id": "EL74",
       "name": "CompositionExtractionDecision",
       "owner": "architecture",
-      "standing": "BLOCKED_UNTIL_EL73"
+      "standing": "PASS_EXTRACT_THIN_PROFILE_NO_NEW_RUNTIME_OBJECT"
     }
   ],
   "retainedExternalOwners": {
@@ -280,7 +280,7 @@
     "semanticProvenance": "W3C PROV-O"
   },
   "schemaVersion": 1,
-  "sourceRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+  "sourceRevision": "aec6cd0f061703ae367584aa93040b2609c32444",
   "thesis": "Reuse existing owner-native evidence, data-lifecycle standards and PostgreSQL substrate. Add only a non-authoritative Experimental Episode join/projection layer, prove it against historical Runtime and Harness evidence, then admit PostgreSQL and cross-owner analytics.",
   "waves": [
     {
@@ -397,7 +397,18 @@
         "EL73",
         "EL74"
       ],
-      "standing": "READY_EL73_AFTER_RW6"
+      "standing": "PASS_PROSPECTIVE_SUCCESSOR_PROFILE_EXTRACTED"
     }
-  ]
+  ],
+  "compositionExtractionDecision": {
+    "standing": "PASS_EXTRACT_THIN_PROFILE_NO_NEW_RUNTIME_OBJECT",
+    "profileRef": "meta/next/docs/IMPROVEMENT_CIRCUIT_PROFILE_R1.md",
+    "evidenceRefs": [
+      "meta/next/evidence/acceptance/rsi-successor-contract-r1-20260922.json",
+      "meta/next/evidence/acceptance/experimental-rw7-successor-acceptance-20260923.json",
+      "meta/next/evidence/acceptance/improvement-circuit-profile-r1-acceptance-20260923.json"
+    ],
+    "decision": "Represent governed improvement as a task-local composition profile over existing Cognitive Circuit / Evaluation Boundary / Verification Obligation / Successor Contract objects. The observed RW6 Git promotion remains an external post-closure authority event. Do not add a new controller, service, scheduler, database, evaluator, fitness score, or promotion authority.",
+    "profileAcceptanceRef": "meta/next/evidence/acceptance/improvement-circuit-profile-r1-acceptance-20260923.json"
+  }
 }
