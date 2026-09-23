@@ -13,7 +13,7 @@ The event envelope reuses the repository CloudEvents 1.0 contract: `specversion`
 Thin Social Fabric extensions are:
 
 - `ordivonscope`: self/direct/neighborhood/domain/system.
-- `ordivonexpiresat`: bounded signal validity.
+- CloudEvents documented `expirytime`: bounded signal validity. Legacy `ordivonexpiresat` is accepted only to replay historical checked-in cuts and must not be emitted by new producers.
 - `ordivonrefreshes`: explicit refresh lineage preserving type/source/subject.
 - `ordivonsupersedes`: explicit currentness replacement for the same subject.
 
@@ -39,7 +39,7 @@ Support is recorded as evidence linkage only. Support count is not a score, rank
 
 ## Lease boundary
 
-`ordivonexpiresat` bounds a Social Fabric signal. It is **not** an owner-native lease.
+CloudEvents `expirytime` bounds a Social Fabric signal. It is **not** an owner-native lease. Historical cuts using legacy `ordivonexpiresat` remain read-compatible; if both encodings are present the compiler fails closed rather than guessing precedence.
 
 The current Runtime reservation contract owns global/workspace execution capacity and Attempt lifecycle. It does not own arbitrary subject-level resource exclusion. Therefore R2 does not reuse or reinterpret Runtime capacity reservations as VHD locks.
 

@@ -96,7 +96,7 @@ def test_explicit_blocking_damage_is_policy_visible_without_scoring() -> None:
             "time": "2026-09-23T15:24:00+08:00",
             "datacontenttype": "application/json",
             "ordivonscope": "system",
-            "ordivonexpiresat": "2026-09-23T16:00:00+08:00",
+            "expirytime": "2026-09-23T16:00:00+08:00",
             "data": {
                 "reasonCode": "FILESYSTEM_UNSAFE",
                 "evidenceRefs": ["evidence:filesystem-unsafe"],

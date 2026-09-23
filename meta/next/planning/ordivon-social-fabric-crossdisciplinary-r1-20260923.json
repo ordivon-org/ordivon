@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-crossdisciplinary-plan",
+  "truthRole": "planning-projection-not-authority",
+  "baselineRevision": "d3345713a0113deb7800ed523e9b503fb78be60a",
+  "laws": [
+    "Natural owners retain mutable truth and effect authority.",
+    "DELETE-CUSTOM-BY-DEFAULT when a mature standard expresses the same semantics.",
+    "Biology/chemistry mechanisms are adopted only when they yield a testable invariant.",
+    "Historical evidence is immutable; compatibility is read-side or successor evidence.",
+    "Agent UX exposes CURRENT/ATTENTION/COORDINATION/AUTHORITY, not R1/R2/R3 plumbing."
+  ],
+  "waves": [
+    {
+      "id": "A",
+      "name": "standards-contraction",
+      "nodes": [
+        "XD00",
+        "XD01",
+        "STD10",
+        "STD11"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "reality-completion",
+      "nodes": [
+        "REAL20",
+        "REAL21",
+        "REAL22"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "signaling-recompile",
+      "nodes": [
+        "SIG30",
+        "SIG31",
+        "SIG32"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "regulation-flow",
+      "nodes": [
+        "FLOW40",
+        "FLOW41",
+        "FLOW42"
+      ]
+    },
+    {
+      "id": "E",
+      "name": "agent-ux",
+      "nodes": [
+        "UX50",
+        "UX51",
+        "UX52",
+        "UX53",
+        "UX54",
+        "UX55"
+      ]
+    },
+    {
+      "id": "F",
+      "name": "formal-concurrency-optional",
+      "nodes": [
+        "CONC60",
+        "CONC61"
+      ]
+    },
+    {
+      "id": "G",
+      "name": "dogfood-promotion",
+      "nodes": [
+        "DOG70",
+        "DOG71",
+        "DOG72",
+        "DOG73",
+        "GATE79"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "STD10",
+      "name": "CloudEventsExpiryMigration",
+      "owner": "Social Fabric projection",
+      "status": "IMPLEMENT_NOW",
+      "inputs": [
+        "R2 event cut"
+      ],
+      "outputs": [
+        "canonical expirytime read/write contract"
+      ],
+      "gate": [
+        "new producers use expirytime",
+        "legacy cut replays",
+        "dual encoding fails closed"
+      ],
+      "rollback": "revert code/tests/docs; historical cuts unchanged"
+    },
+    {
+      "id": "STD11",
+      "name": "TraceContextProjection",
+      "owner": "Harness/OTel -> Social projection",
+      "status": "READY_TO_DESIGN",
+      "gate": [
+        "no fabricated trace ids",
+        "OTel owner remains authoritative"
+      ]
+    },
+    {
+      "id": "REAL20",
+      "name": "ProvenanceProjection",
+      "owner": "Evidence/owner refs -> W3C PROV projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "REAL21",
+      "name": "TransactiveMemoryProjection",
+      "owner": "Social projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "REAL22",
+      "name": "FreshnessSupersessionProjection",
+      "owner": "Social projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "SIG30",
+      "name": "PropagationModeSeparation",
+      "owner": "Social projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "SIG31",
+      "name": "ReceptorBoundary",
+      "owner": "Social projection + OPA",
+      "status": "KEEP_SIMPLE"
+    },
+    {
+      "id": "SIG32",
+      "name": "AnomalyOriginProjection",
+      "owner": "Natural anomaly owner -> Social projection",
+      "status": "HOLD_FOR_OWNER_FACTS"
+    },
+    {
+      "id": "FLOW40",
+      "name": "SocialFluxProjection",
+      "owner": "Social projection",
+      "status": "READY_TO_PROTOTYPE"
+    },
+    {
+      "id": "FLOW41",
+      "name": "RegulatedVariableProjection",
+      "owner": "Social projection",
+      "status": "READY_TO_PROTOTYPE"
+    },
+    {
+      "id": "FLOW42",
+      "name": "AllostaticAdvisory",
+      "owner": "Social projection",
+      "status": "HOLD_UNTIL_FLOW_VALIDATED"
+    },
+    {
+      "id": "UX50",
+      "name": "CurrentView",
+      "owner": "Agent UX projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX51",
+      "name": "AttentionView",
+      "owner": "Agent UX projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX52",
+      "name": "CoordinationView",
+      "owner": "Agent UX projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX53",
+      "name": "AuthorityView",
+      "owner": "Agent UX projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "UX54",
+      "name": "SocialPreflight",
+      "owner": "Agent harness/composition",
+      "status": "HOLD_UNTIL_VIEWS_DOGFOOD"
+    },
+    {
+      "id": "UX55",
+      "name": "ProgressiveDisclosure",
+      "owner": "Agent UX projection",
+      "status": "READY_TO_DESIGN"
+    },
+    {
+      "id": "CONC60",
+      "name": "ConcurrencyGapMeasurement",
+      "owner": "Social verification",
+      "status": "MEASURE_FIRST"
+    },
+    {
+      "id": "CONC61",
+      "name": "PetriNetShadow",
+      "owner": "Optional formal projection",
+      "status": "HOLD",
+      "promotionGate": "CONC60 demonstrates missed real conflicts/deadlocks"
+    },
+    {
+      "id": "GATE79",
+      "name": "PromoteHoldKill",
+      "owner": "verification",
+      "status": "REQUIRED"
+    }
+  ]
+}
