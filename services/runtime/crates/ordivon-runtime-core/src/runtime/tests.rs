@@ -714,6 +714,72 @@ fn run_git_command(directory: &Path, args: &[&str]) {
     );
 }
 
+#[test]
+fn workspace_headroom_guard_blocks_new_open_but_not_close() {
+    let sandbox = Sandbox::new("workspace-headroom-guard", 5_000);
+    let source = sandbox.root.join("workspace-source");
+    fs::create_dir_all(&source).unwrap();
+    fs::write(source.join("README.md"), "headroom\n").unwrap();
+    run_git_command(&source, &["init", "-q"]);
+    run_git_command(
+        &source,
+        &["config", "user.email", "runtime-tests@ordivon.local"],
+    );
+    run_git_command(&source, &["config", "user.name", "Ordivon Runtime Tests"]);
+    run_git_command(&source, &["add", "."]);
+    run_git_command(&source, &["commit", "-qm", "fixture"]);
+
+    let config = runtime_config(&sandbox);
+    let unguarded = Runtime::new(config.clone()).unwrap();
+    let existing_id = "workspace-headroom-existing";
+    unguarded
+        .open_workspace(&crate::GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: existing_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        })
+        .unwrap();
+    drop(unguarded);
+
+    let guarded = Runtime::new_with_authorities_default_runtime_and_workspace_headroom(
+        config,
+        Vec::new(),
+        Vec::new(),
+        60_000,
+        Some(WorkspaceHeadroomConfig {
+            path: sandbox.root.clone(),
+            minimum_free_bytes: u64::MAX,
+        }),
+    )
+    .unwrap();
+
+    let error = guarded
+        .open_workspace(&crate::GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: "workspace-headroom-rejected".to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        })
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::WorkspaceCapacityExceeded);
+    assert_eq!(error.field.as_deref(), Some("workspaceHeadroom"));
+    assert!(error.retryable);
+    assert_eq!(error.retry_after_ms, Some(60_000));
+    assert!(error.message.contains("availableBytes="));
+    assert!(error.message.contains("minimumFreeBytes="));
+
+    let closed = guarded
+        .close_workspace(&WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: existing_id.to_string(),
+            force: true,
+            expected_source_state_digest: None,
+        })
+        .unwrap();
+    assert!(closed.removed);
+}
+
 fn workspace_fixture(
     label: &str,
     workspace_id: &str,

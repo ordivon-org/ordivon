@@ -204,6 +204,12 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     *poll_index = poll_index.saturating_add(1);
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkspaceHeadroomConfig {
+    pub path: PathBuf,
+    pub minimum_free_bytes: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct RuntimeConfig {
     pub node_id: String,
@@ -257,6 +263,7 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
+    workspace_headroom: Option<WorkspaceHeadroomConfig>,
     lifecycle_lock: Arc<Mutex<()>>,
     control_terminal_lock: Arc<Mutex<()>>,
 }

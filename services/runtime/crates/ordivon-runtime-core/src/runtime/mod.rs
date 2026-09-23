@@ -22,7 +22,9 @@ pub use doctor::{
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
     RuntimeDoctorReservationState, RuntimeDoctorSummary, RUNTIME_DOCTOR_SCHEMA_VERSION,
 };
-pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
+pub use engine::{
+    ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig, WorkspaceHeadroomConfig,
+};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
 pub use inspection::{

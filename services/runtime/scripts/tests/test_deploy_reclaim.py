@@ -1821,6 +1821,69 @@ class DeployReclaimTests(unittest.TestCase):
         with self.assertRaises(Exception):
             module["nonnegative_float"]("nan")
 
+    def test_reclaim_requested_selection_does_not_scan_unrelated_workspaces(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            selected = "selected-stale"
+            (records / f"{selected}.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": selected,
+                        "sourceRepo": "/source",
+                        "sourceRevision": "a" * 40,
+                        "workspacePath": str(workspaces / selected),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            unrelated = workspaces / "unrelated-orphan"
+            unrelated.mkdir()
+            (unrelated / "payload.txt").write_text("unrelated\n", encoding="utf-8")
+            args = type(
+                "Args",
+                (),
+                {
+                    "database": database,
+                    "busy_timeout_ms": 5_000,
+                    "runtime_store_root": runtime,
+                    "workspace_root": None,
+                    "measure_bytes": False,
+                },
+            )()
+            previous = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+            os.environ["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            try:
+                report = module["inspect_workspaces"](
+                    args,
+                    selected_workspace_ids={selected},
+                )
+            finally:
+                if previous is None:
+                    os.environ.pop("ORDIVON_RUNTIME_INSPECT", None)
+                else:
+                    os.environ["ORDIVON_RUNTIME_INSPECT"] = previous
+            self.assertEqual(report["selection"], "requested")
+            self.assertEqual(report["summary"]["counts"], {"stale_record": 1})
+            self.assertEqual(
+                [item["workspaceId"] for item in report["candidates"]],
+                [selected],
+            )
+
     def test_reclaim_inspect_reports_orphan_directory_without_record(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

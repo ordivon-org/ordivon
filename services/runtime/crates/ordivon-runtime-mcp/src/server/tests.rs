@@ -61,6 +61,7 @@ impl Sandbox {
                 },
                 input_authorities: Vec::new(),
                 credential_authorities: Vec::new(),
+                workspace_headroom: None,
                 execution: ExecutionContext {
                     principal: "principal:mcp-test".to_string(),
                     global_limit: 4,
@@ -102,6 +103,7 @@ impl Sandbox {
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
+            workspace_headroom: None,
             execution: ExecutionContext {
                 principal: "principal:mcp-test-ingress".to_string(),
                 global_limit: 4,
@@ -956,6 +958,7 @@ print(json.dumps({{
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
+            workspace_headroom: None,
             execution: ExecutionContext {
                 principal: "principal:mcp-test-reconcile".to_string(),
                 global_limit: 4,
@@ -1169,6 +1172,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
         },
         input_authorities: Vec::new(),
         credential_authorities: Vec::new(),
+        workspace_headroom: None,
         execution: ExecutionContext {
             principal: "principal:mcp-test-private-host".to_string(),
             global_limit: 4,
