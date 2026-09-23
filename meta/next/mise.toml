@@ -33,7 +33,9 @@ uv run --locked --group authority python ../research/scripts/check_scholarly_int
 uv run --locked --group authority python ../research/scripts/check_scholarly_live_profiles_r2.py
 uv run --locked --group authority python ../research/scripts/check_scholarly_pressure_r1.py
 uv run --locked --group authority python ../research/scripts/check_scholarly_data_plane_r1.py
+uv run --locked --group authority python ../research/scripts/check_peersum_asset_r1.py
 uv run --locked --group authority python ../research/scripts/check_review_lifecycle_schema_r1.py
+uv run --locked --group authority python ../research/scripts/check_review_lifecycle_schema_r2.py
 uv run --locked --group reasoning python scripts/check_reasoning_waist_r1.py
 uv run --locked --group security bandit -r scripts -q -s B404,B603
 tmp=$(mktemp -d)

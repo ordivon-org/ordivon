@@ -67,12 +67,23 @@
   "externalCandidateCount": 14,
   "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
   "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
-  "materializedLocalAssetCount": 3,
+  "materializedLocalAssetCount": 4,
   "nextWaves": [
     "SD1 transport recovery",
     "SD2 lifecycle expansion"
   ],
+  "peersum": {
+    "authorMessages": 95943,
+    "messages": 178272,
+    "nonemptyMetaReviews": 14993,
+    "officialReviewMessages": 79354,
+    "orphanReplyTargets": 0,
+    "papers": 14993,
+    "publicMessages": 2975,
+    "replyCycles": 0,
+    "replyEdges": 178272
+  },
   "schemaVersion": 1,
-  "standing": "PASS_DATA_PLANE_WITH_ARIES_AND_DISAPERE",
-  "truthBoundary": "Acceptance proves current local EMSE, ARIES, and DISAPERE physical/schema bindings, including exact analytical product digests and DISAPERE non-commercial/privacy gates. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
+  "standing": "PASS_DATA_PLANE_WITH_ARIES_DISAPERE_PEERSUM",
+  "truthBoundary": "Acceptance proves current local EMSE, ARIES, DISAPERE, and PeerSum physical/schema bindings, including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
 }

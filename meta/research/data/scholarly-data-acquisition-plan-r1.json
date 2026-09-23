@@ -32,7 +32,7 @@
     {
       "id": "SD2",
       "goal": "Peer-review lifecycle corpora",
-      "standing": "IN_PROGRESS_ARIES_AND_DISAPERE_MATERIALIZED",
+      "standing": "IN_PROGRESS_ARIES_DISAPERE_PEERSUM_MATERIALIZED",
       "candidates": [
         "peerread-v1",
         "nlpeer",

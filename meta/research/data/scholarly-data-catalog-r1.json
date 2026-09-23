@@ -121,6 +121,38 @@
       "licenseStanding": "CC-BY-NC-4.0_OBSERVED_CANONICAL_REPO",
       "inferenceBoundary": "Corpus frequencies and alignments are descriptive DISAPERE evidence, not reviewer population truth or response adequacy.",
       "reuseStanding": "ADMIT_NONCOMMERCIAL_RESEARCH_ONLY_COMMERCIAL_USE_BLOCKED"
+    },
+    {
+      "id": "peersum-hf-bounded-core-r1",
+      "owner": "shared-research-data-catalog",
+      "catalogRole": "review-discussion-to-meta-review-synthesis",
+      "status": "MATERIALIZED_DIGEST_BOUND",
+      "rawExternalRoot": "/root/projects/ordivon-corpora/scholarly-data/peersum/peersum-hf-bounded-r1-20260923",
+      "admissionReceipt": "meta/research/evidence/peersum-hf-bounded-core-r1.json",
+      "analyticalBaselines": [
+        "meta/research/evidence/peersum-meta-review-structure-baseline-r1.json"
+      ],
+      "observedScale": {
+        "papers": 14993,
+        "messages": 178272,
+        "officialReviewMessages": 79354,
+        "authorMessages": 95943,
+        "publicMessages": 2975,
+        "nonemptyMetaReviews": 14993,
+        "replyEdges": 178272,
+        "orphanReplyTargets": 0,
+        "replyCycles": 0
+      },
+      "featureFamilies": [
+        "review/discussion message topology",
+        "writer role",
+        "official review rating/confidence",
+        "meta-review synthesis",
+        "native acceptance metadata retained without quality normalization"
+      ],
+      "licenseStanding": "APACHE-2.0_OBSERVED_HF_DATASET_CARD",
+      "inferenceBoundary": "Rating spread is structural only; meta-review and acceptance fields are not reviewer/scientific/decision truth.",
+      "reuseStanding": "ADMIT_DIGEST_BOUND_RESEARCH_AND_INTERFACE_USE_SOURCE_TERMS_APPLY"
     }
   ],
   "externalCandidates": [
@@ -317,15 +349,22 @@
       "sourceUrl": "https://aclanthology.org/2023.findings-emnlp.472/",
       "doi": "10.18653/v1/2023.findings-emnlp.472",
       "reportedScale": {
-        "note": "meta-reviews with reviews, multi-turn discussions and paper abstracts; exact count not copied without dataset manifest verification"
+        "papers": 14993,
+        "messages": 178272,
+        "metaReviews": 14993,
+        "currentCarrierSplit": {
+          "train": 11992,
+          "val": 1496,
+          "test": 1505
+        }
       },
       "useCases": [
         "meta-review synthesis",
         "review disagreement preservation",
         "review-conversation structure"
       ],
-      "acquisitionState": "NOT_ACQUIRED",
-      "licenseStanding": "VERIFY_DATASET_LICENSE_BEFORE_DOWNLOAD",
+      "acquisitionState": "MATERIALIZED_DIGEST_BOUND",
+      "licenseStanding": "APACHE-2.0_OBSERVED_HF_DATASET_CARD",
       "priority": "A"
     },
     {

@@ -17,6 +17,8 @@ CONTEXT24_TRANSPORT = META / "research/evidence/context24-transport-blocker-r1.j
 ARIES_BASELINE = META / "research/evidence/aries-review-revision-baseline-r1.json"
 DISAPERE_RECEIPT = META / "research/evidence/disapere-bounded-core-r1.json"
 DISAPERE_BASELINE = META / "research/evidence/disapere-review-rebuttal-baseline-r1.json"
+PEERSUM_RECEIPT = META / "research/evidence/peersum-hf-bounded-core-r1.json"
+PEERSUM_BASELINE = META / "research/evidence/peersum-meta-review-structure-baseline-r1.json"
 
 
 def fail(message: str) -> None:
@@ -276,6 +278,8 @@ def main() -> int:
     aries_baseline = load(ARIES_BASELINE)
     disapere_receipt = load(DISAPERE_RECEIPT)
     disapere_baseline = load(DISAPERE_BASELINE)
+    peersum_receipt = load(PEERSUM_RECEIPT)
+    peersum_baseline = load(PEERSUM_BASELINE)
 
     if catalog.get("truthRole") != "data-asset-catalog-not-scientific-truth":
         fail("catalog authority boundary drifted")
@@ -289,7 +293,7 @@ def main() -> int:
     if not isinstance(assets, list):
         fail("materializedLocalAssets must be a list")
     by_asset = {row.get("id"): row for row in assets}
-    required_assets = {"emse-writing-benchmark-r16", "aries-bounded-core-r1", "disapere-bounded-core-r1"}
+    required_assets = {"emse-writing-benchmark-r16", "aries-bounded-core-r1", "disapere-bounded-core-r1", "peersum-hf-bounded-core-r1"}
     if not required_assets.issubset(by_asset):
         fail(f"missing materialized assets: {sorted(required_assets - set(by_asset))}")
     if len(by_asset) != len(assets):
@@ -346,6 +350,15 @@ def main() -> int:
     }:
         fail("DISAPERE request-linked stance drifted")
 
+    if peersum_receipt.get("status") != "MATERIALIZED_DIGEST_BOUND_ANALYTICAL_VIEWS_PASS":
+        fail("PeerSum admission receipt standing drifted")
+    if peersum_receipt.get("counts", {}).get("papers") != 14993:
+        fail("PeerSum admission count drifted")
+    if peersum_baseline.get("sourceSnapshotIdentity") != peersum_receipt["snapshot"]["identity"]:
+        fail("PeerSum baseline source identity drifted")
+    if peersum_baseline.get("splitCountStanding") != "CURRENT_CARRIER_DIFFERS_FROM_HISTORICAL_DOCUMENTATION":
+        fail("PeerSum split drift boundary missing")
+
     candidates = catalog.get("externalCandidates")
     if not isinstance(candidates, list) or len(candidates) < 10:
         fail("external candidate coverage is unexpectedly small")
@@ -372,6 +385,8 @@ def main() -> int:
         fail("Context24 transport-blocked state missing")
     if by_candidate["disapere"].get("acquisitionState") != "MATERIALIZED_BOUNDED_CORE_NONCOMMERCIAL":
         fail("DISAPERE candidate/local asset state mismatch")
+    if by_candidate["peersum"].get("acquisitionState") != "MATERIALIZED_DIGEST_BOUND":
+        fail("PeerSum candidate/local asset state mismatch")
 
     prohibited = " ".join(catalog.get("prohibitedInterpretations", [])).casefold()
     for token in ("acceptance", "reviewer truth", "redistribution"):
@@ -381,7 +396,7 @@ def main() -> int:
     by_wave = {row["id"]: row for row in plan.get("waves", [])}
     if by_wave.get("SD1", {}).get("standing") != "PARTIAL_READY_TRANSPORT_BLOCKED_FOR_CONTEXT24":
         fail("SD1 standing drifted")
-    if by_wave.get("SD2", {}).get("standing") != "IN_PROGRESS_ARIES_AND_DISAPERE_MATERIALIZED":
+    if by_wave.get("SD2", {}).get("standing") != "IN_PROGRESS_ARIES_DISAPERE_PEERSUM_MATERIALIZED":
         fail("SD2 standing drifted")
     if by_wave.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
         fail("large scholarly fulltext acquisition was prematurely promoted")
@@ -402,12 +417,12 @@ def main() -> int:
     if context24_transport.get("standing") != "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE":
         fail("Context24 transport evidence standing drifted")
 
-    if sd2.get("standing") != "IN_PROGRESS_TWO_COMPLEMENTARY_ASSETS_MATERIALIZED":
+    if sd2.get("standing") != "IN_PROGRESS_THREE_COMPLEMENTARY_ASSETS_MATERIALIZED":
         fail("SD2 readiness standing drifted")
     sd2_by_id = {row["id"]: row for row in sd2.get("datasets", [])}
     expected_sd2 = {
         "aries": "MATERIALIZED_BOUNDED_CORE",
-        "peersum": "READY_LICENSE_OBSERVED_NOT_ACQUIRED",
+        "peersum": "MATERIALIZED_DIGEST_BOUND",
         "nlpeer-v2": "LICENSE_OBSERVED_ACCESS_RESTRICTED_LARGE_NOT_ACQUIRED",
         "peerread-v1": "PARTIAL_COMPONENT_LICENSE_CONSTRAINTS_REQUIRE_SECTION_LEVEL_BINDING",
         "disapere": "MATERIALIZED_BOUNDED_CORE_NONCOMMERCIAL",
@@ -419,20 +434,21 @@ def main() -> int:
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
-        "standing": "PASS_DATA_PLANE_WITH_ARIES_AND_DISAPERE",
+        "standing": "PASS_DATA_PLANE_WITH_ARIES_DISAPERE_PEERSUM",
         "materializedLocalAssetCount": len(assets),
         "externalCandidateCount": len(candidates),
         "emse": emse,
         "aries": aries,
         "disapere": disapere,
+        "peersum": peersum_receipt["counts"],
         "context24Transport": context24_transport["standing"],
         "ariesManualBaseline": expected_baseline,
         "disapereCoverageBaseline": {key: {"targeted": value[0], "total": value[1]} for key, value in expected_coverage.items()},
         "nextWaves": ["SD1 transport recovery", "SD2 lifecycle expansion"],
         "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
         "truthBoundary": (
-            "Acceptance proves current local EMSE, ARIES, and DISAPERE physical/schema bindings, "
-            "including exact analytical product digests and DISAPERE non-commercial/privacy gates. It does not turn dataset labels "
+            "Acceptance proves current local EMSE, ARIES, DISAPERE, and PeerSum physical/schema bindings, "
+            "including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels "
             "into reviewer/scientific truth, authorize manuscript or submission effects, or "
             "generalize dataset frequencies to scholarly populations."
         ),
