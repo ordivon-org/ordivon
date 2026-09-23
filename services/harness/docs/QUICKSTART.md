@@ -157,7 +157,7 @@ run = HarnessAgentRun.create(
 execution = run.run((), cognition_seed=seed)
 ```
 
-This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, and `continuity.list`. It rejects `execution.submit`, `execution.cancel`, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition must use the H2 durable intent/receipt/reconciliation slice below; a generic MCP call must not bypass Harness recovery semantics.
+This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, `continuity.list`, `continuity.find`, and `continuity.changes`. `continuity.find` is a mechanical discovery projection and `continuity.changes` is sequence-bounded change navigation; neither grants priority, assignment, ownership, unread state, or execution authority. The bridge rejects `execution.submit`, `execution.cancel`, collaboration writes, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition must use the H2 durable intent/receipt/reconciliation slice below; a generic MCP call must not bypass Harness recovery semantics.
 
 The portable package contains component identity, not credentials. OAuth/token storage and interactive authorization remain application/client concerns. Harness accepts the official MCP SDK Auth port and does not define a second OAuth protocol or credential database.
 

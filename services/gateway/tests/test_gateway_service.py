@@ -89,13 +89,16 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
                 "artifact.read",
                 "continuity.get",
                 "continuity.list",
+                "continuity.find",
                 "continuity.observe",
                 "continuity.adopt",
                 "continuity.checkpoint",
+                "continuity.changes",
                 "continuity.attention",
                 "collaboration.list",
                 "collaboration.search",
                 "collaboration.post",
+                "collaboration.publish",
             }
             assert tools.ttl_ms == 0
             assert tools.cache_scope == "private"
@@ -491,6 +494,28 @@ def test_continuity_reads_route_to_host_and_normalize_projection() -> None:
     page = asyncio.run(service.continuity_list(goal_id="goal:x", limit=10))
     assert page.items[0].task_id == "task:x"
     assert page.has_more is False
+    assert page.sort_key == "created"
+
+    found = asyncio.run(
+        service.continuity_list(
+            goal_id="goal:x",
+            runtime_workspace_id="ws:x",
+            limit=10,
+            sort_key="updated",
+        )
+    )
+    assert found.sort_key == "updated"
+    assert caller.calls[-1] == (
+        "host",
+        "task.list",
+        {
+            "limit": 10,
+            "includeTerminal": False,
+            "goalId": "goal:x",
+            "runtimeWorkspaceId": "ws:x",
+            "sortKey": "updated",
+        },
+    )
 
 
 def test_unknown_capability_fails_closed_before_owner_call() -> None:
@@ -520,13 +545,16 @@ def test_gateway_public_surface_covers_normal_host_continuity_without_admin_stat
             assert {
                 "continuity.get",
                 "continuity.list",
+                "continuity.find",
                 "continuity.observe",
                 "continuity.adopt",
                 "continuity.checkpoint",
+                "continuity.changes",
                 "continuity.attention",
                 "collaboration.list",
                 "collaboration.search",
                 "collaboration.post",
+                "collaboration.publish",
             } <= names
             assert "host.status" not in names
             adopt = next(tool for tool in listed.tools if tool.name == "continuity.adopt")
@@ -704,8 +732,14 @@ def test_attention_and_collaboration_are_thin_host_projections() -> None:
     service = GatewayService(caller)
 
     delta = asyncio.run(service.continuity_attention(after_sequence=12, limit=20))
+    assert delta.kind == "ordivon.gateway-continuity-attention"
     assert delta.board_fence["lastSequence"] == 20
     assert not hasattr(delta, "futureHostProjection")
+    assert caller.calls[-1] == ("host", "attention.delta", {"afterSequence": 12, "limit": 20})
+
+    changes = asyncio.run(service.continuity_changes(after_sequence=12, limit=20))
+    assert changes.kind == "ordivon.gateway-continuity-changes"
+    assert changes.board_fence["lastSequence"] == 20
     assert caller.calls[-1] == ("host", "attention.delta", {"afterSequence": 12, "limit": 20})
 
     posted = asyncio.run(
@@ -720,6 +754,40 @@ def test_attention_and_collaboration_are_thin_host_projections() -> None:
     )
     assert posted.message.client_message_id == "msg:1"
     assert posted.message.author_identity_role == "self-asserted-label"
+
+    published = asyncio.run(
+        service.collaboration_publish(
+            client_message_id="msg:publish",
+            author_label="agent-a",
+            message="scoped hello",
+            scope="continuity",
+            continuity_id="task:x",
+        )
+    )
+    assert published.message.task_id == "task:x"
+    assert caller.calls[-1][0:2] == ("host", "board.post")
+    assert caller.calls[-1][2]["taskId"] == "task:x"
+
+    with pytest.raises(GatewayError, match="requires continuity_id"):
+        asyncio.run(
+            service.collaboration_publish(
+                client_message_id="msg:bad",
+                author_label="agent-a",
+                message="bad",
+                scope="continuity",
+            )
+        )
+
+    with pytest.raises(GatewayError, match="cannot reply"):
+        asyncio.run(
+            service.collaboration_publish(
+                client_message_id="msg:global-reply",
+                author_label="agent-a",
+                message="ambiguous",
+                scope="global",
+                reply_to_client_message_id="msg:1",
+            )
+        )
 
     page = asyncio.run(service.collaboration_list(after_sequence=20, limit=10))
     assert page.messages[0].task_id == "task:x"

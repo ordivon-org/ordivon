@@ -134,18 +134,22 @@
     "normalTools": [
       "continuity.get",
       "continuity.list",
+      "continuity.find",
       "continuity.observe",
       "continuity.adopt",
       "continuity.checkpoint",
+      "continuity.changes",
       "continuity.attention",
       "collaboration.list",
       "collaboration.search",
-      "collaboration.post"
+      "collaboration.post",
+      "collaboration.publish"
     ],
     "adminOnlyDirect": [
       "host.status"
     ],
     "connectorCatalogOwner": "mcp-client-connector",
-    "currentConsumerStanding": "server-current-client-refresh-pending"
+    "currentConsumerStanding": "server-current-client-refresh-pending",
+    "uxProjectionStanding": "preferred find/changes/publish additive surface; legacy list/attention/post retained for compatibility"
   }
 }

@@ -372,15 +372,20 @@ class HostV2:
         goal_id: str | None = None,
         runtime_workspace_id: str | None = None,
         cursor: str | None = None,
+        sort_key: str = "created",
     ) -> tuple[list[dict[str, Any]], bool, str | None]:
         """Return one compact current-task inventory page without hydrating checkpoints."""
         if not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
+        if sort_key not in {"created", "updated"}:
+            raise ValueError("sortKey must be created or updated")
         scope = {
             "includeTerminal": include_terminal,
             "goalId": goal_id,
             "runtimeWorkspaceId": runtime_workspace_id,
         }
+        if sort_key != "created":
+            scope["sortKey"] = sort_key
         clauses = [] if include_terminal else ["t.state='open'"]
         params: list[Any] = []
         if goal_id is not None:
@@ -389,24 +394,27 @@ class HostV2:
         if runtime_workspace_id is not None:
             clauses.append("c.payload #>> '{runtime,workspaceId}' = %s")
             params.append(runtime_workspace_id)
+        sort_column = "created_at" if sort_key == "created" else "updated_at"
+        cursor_field = "createdAt" if sort_key == "created" else "updatedAt"
         if cursor is not None:
             position = decode_cursor(cursor, "task.list", scope)
-            created_at = position.get("createdAt")
+            sort_value = position.get(cursor_field)
             task_id = position.get("taskId")
-            if not isinstance(created_at, str) or not isinstance(task_id, str):
+            if not isinstance(sort_value, str) or not isinstance(task_id, str):
                 raise ValueError("task.list cursor position is invalid")
             clauses.append(
-                "(t.created_at < %s::timestamptz OR (t.created_at = %s::timestamptz AND t.task_id < %s))"
+                f"(t.{sort_column} < %s::timestamptz OR "
+                f"(t.{sort_column} = %s::timestamptz AND t.task_id < %s))"
             )
-            params.extend([created_at, created_at, task_id])
+            params.extend([sort_value, sort_value, task_id])
         where = "WHERE " + " AND ".join(clauses) if clauses else ""
         params.append(limit + 1)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn:
             rows = conn.execute(
-                "SELECT t.task_id,t.goal_id,t.revision,t.state,t.created_at,"
+                "SELECT t.task_id,t.goal_id,t.revision,t.state,t.created_at,t.updated_at,"
                 "c.checkpoint_digest,c.writer_label FROM tasks t "
                 "JOIN checkpoints c ON c.task_id=t.task_id AND c.revision=t.revision "
-                f"{where} ORDER BY t.created_at DESC,t.task_id DESC LIMIT %s",
+                f"{where} ORDER BY t.{sort_column} DESC,t.task_id DESC LIMIT %s",
                 params,
             ).fetchall()
         has_more = len(rows) > limit
@@ -419,6 +427,8 @@ class HostV2:
                 "state": row["state"],
                 "checkpoint_digest": row["checkpoint_digest"],
                 "writer_label": row["writer_label"],
+                "created_at": row["created_at"].isoformat(),
+                "updated_at": row["updated_at"].isoformat(),
             }
             for row in page
         ]
@@ -428,7 +438,7 @@ class HostV2:
             next_cursor = encode_cursor(
                 "task.list",
                 scope,
-                {"createdAt": last["created_at"].isoformat(), "taskId": last["task_id"]},
+                {cursor_field: last[sort_column].isoformat(), "taskId": last["task_id"]},
             )
         return tasks, has_more, next_cursor
 
