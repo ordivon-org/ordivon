@@ -29,6 +29,8 @@ impl Runtime {
             )? {
                 existing.job_id
             } else {
+                let _authority_contract =
+                    super::authority_contract::AuthorityContract::immutable_inputs(proposal, &inputs)?;
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
                 self.admit_new_job_with_inputs(&request, request_identity_digest, &inputs)?
@@ -97,6 +99,11 @@ impl Runtime {
             )? {
                 existing.job_id
             } else {
+                let _authority_contract =
+                    super::authority_contract::AuthorityContract::credential_bound_trusted(
+                        proposal,
+                        &credentials,
+                    )?;
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
                 self.admit_new_job_with_credentials(
@@ -294,6 +301,8 @@ impl Runtime {
             )? {
                 (existing.job_id, false)
             } else {
+                let _authority_contract =
+                    super::authority_contract::AuthorityContract::ordinary(proposal)?;
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
                 validate_new_admission_policy(
