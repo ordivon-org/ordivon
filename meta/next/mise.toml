@@ -84,3 +84,9 @@ run = "uv run --locked python scripts/social_fabric_reality_r2.py memory --cut e
 
 [tasks."social:reality:freshness"]
 run = "uv run --locked python scripts/social_fabric_reality_r2.py freshness --cut evidence/acceptance/social-fabric-reality-r2-owner-cut-20260923.json"
+
+[tasks."social:signaling:r3"]
+run = "uv run --locked python scripts/social_fabric_signaling_r3.py project --cut evidence/acceptance/social-fabric-signaling-r3-vhd-cut-20260923.json"
+
+[tasks."social:attention:measure"]
+run = "uv run --locked python scripts/social_fabric_signaling_r3.py measure-attention --manifest evidence/acceptance/social-fabric-attention-history-manifest-20260923.json"

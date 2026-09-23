@@ -65,19 +65,25 @@
       "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
       "id": "SIG30",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
       "name": "PropagationModeSeparation",
-      "status": "READY_TO_DESIGN"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
       "id": "SIG31",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
       "name": "CompartmentContextProjection",
-      "status": "READY_TO_DESIGN"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-attention-recurrence-measurement-20260923.json",
       "id": "SIG34",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py#measure_attention_history",
       "name": "AttentionAdaptationHysteresis",
-      "status": "MEASURE_FIRST"
+      "status": "MEASURED_HOLD_INSUFFICIENT_LONGITUDINAL_EVIDENCE"
     },
     {
       "id": "EPI40",
@@ -128,6 +134,20 @@
       "id": "GATE79",
       "name": "PromoteHoldKill",
       "status": "REQUIRED"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
+      "id": "SIG32",
+      "implementation": "meta/next/tests/test_social_fabric_signaling_r3.py",
+      "name": "ReceptorBoundaryRegression",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
+      "id": "SIG33",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
+      "name": "OwnerSuppliedAnomalyOrigin",
+      "status": "VERIFIED_CANDIDATE"
     }
   ],
   "schemaVersion": 1,
