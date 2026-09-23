@@ -3,20 +3,21 @@
   "kind": "ordivon.capital.skill-boundary",
   "standing": "ACTIVE_R1",
   "truthRole": "ADVISORY_SKILL_BOUNDARY_NOT_FINANCIAL_AUTHORITY",
-  "canonicalSkillRoot": "meta/next/.agents/skills",
+  "canonicalSkillStandard": "Agent Skills",
+  "bindingTruthRole": "EXTERNAL_PROJECT_SCOPE_ADVISORY_BINDING_NOT_CAPITAL_SOURCE_DEPENDENCY",
   "skills": {
     "capital-observe": {
-      "path": "meta/next/.agents/skills/capital-observe/SKILL.md",
+      "skillId": "capital-observe",
       "maySelect": ["PUBLIC_MARKET_OBSERVATION_R1"],
       "mustNotOwn": ["credential discovery", "provider write", "provider truth"]
     },
     "capital-risk": {
-      "path": "meta/next/.agents/skills/capital-risk/SKILL.md",
+      "skillId": "capital-risk",
       "maySelect": ["PORTFOLIO_RISK_R1", "COUNTERFACTUAL_ANALYSIS_R1"],
       "mustNotOwn": ["risk appetite inference", "scenario ranking", "trade approval"]
     },
     "capital-reconcile": {
-      "path": "meta/next/.agents/skills/capital-reconcile/SKILL.md",
+      "skillId": "capital-reconcile",
       "maySelect": [],
       "standing": "RECOVERY_GUIDANCE_ONLY_UNTIL_W5",
       "mustNotOwn": ["order submission", "blind resend", "accounting truth"]
@@ -25,6 +26,7 @@
   "laws": [
     "Skill text is advisory procedure only and never grants Capital, provider, Runtime, credential or financial-write authority",
     "registered LEGO/contracts/source remain executable semantic owners; removing a Skill cannot remove Capital semantics",
+    "Skill package placement and discovery are externally owned project-scope bindings, not a Capital source dependency",
     "production write remains structurally unreachable while contracts/production-authorization.json is BLOCK_NOT_GRANTED"
   ]
 }

@@ -352,7 +352,7 @@ W6_DEFERRED  P01 → P02 → P03
 - **Kind:** skill
 - **Responsibility:** Provide project-scoped guidance for selecting public/private-read observation circuits while preserving explicit admission boundaries.
 - **Depends on:** `S01`
-- **Files:** `meta/next/.agents/skills/capital-observe/SKILL.md`
+- **Files:** `.agents/skills/capital-observe/SKILL.md`
 - **Must not own:** credential discovery; provider write
 - **Authority boundary:** Advisory selection of registered observation circuits.
 - **Acceptance:**
@@ -368,7 +368,7 @@ W6_DEFERRED  P01 → P02 → P03
 - **Kind:** skill
 - **Responsibility:** Guide exposure/risk/counterfactual circuit selection and preserve the distinction between measurement, scenario projection and recommendation.
 - **Depends on:** `S01`
-- **Files:** `meta/next/.agents/skills/capital-risk/SKILL.md`
+- **Files:** `.agents/skills/capital-risk/SKILL.md`
 - **Must not own:** risk appetite inference; scenario ranking
 - **Authority boundary:** Advisory analysis composition only.
 - **Acceptance:**
@@ -384,7 +384,7 @@ W6_DEFERRED  P01 → P02 → P03
 - **Kind:** skill
 - **Responsibility:** Guide exact re-entry into reconciliation/accounting-resolution circuits after an already-existing effect or ambiguous outcome; never initiate an effect.
 - **Depends on:** `S01`, `E05`
-- **Files:** `meta/next/.agents/skills/capital-reconcile/SKILL.md`
+- **Files:** `.agents/skills/capital-reconcile/SKILL.md`
 - **Must not own:** order submission; blind retry
 - **Authority boundary:** Advisory recovery/reconciliation guidance only.
 - **Acceptance:**

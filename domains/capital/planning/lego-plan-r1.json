@@ -503,7 +503,7 @@
       "state": "READY_AFTER_S01",
       "responsibility": "Provide project-scoped guidance for selecting public/private-read observation circuits while preserving explicit admission boundaries.",
       "files": [
-        "meta/next/.agents/skills/capital-observe/SKILL.md"
+        ".agents/skills/capital-observe/SKILL.md"
       ],
       "dependsOn": [
         "S01"
@@ -529,7 +529,7 @@
       "state": "READY_AFTER_S01",
       "responsibility": "Guide exposure/risk/counterfactual circuit selection and preserve the distinction between measurement, scenario projection and recommendation.",
       "files": [
-        "meta/next/.agents/skills/capital-risk/SKILL.md"
+        ".agents/skills/capital-risk/SKILL.md"
       ],
       "dependsOn": [
         "S01"
@@ -555,7 +555,7 @@
       "state": "READY_AFTER_E05",
       "responsibility": "Guide exact re-entry into reconciliation/accounting-resolution circuits after an already-existing effect or ambiguous outcome; never initiate an effect.",
       "files": [
-        "meta/next/.agents/skills/capital-reconcile/SKILL.md"
+        ".agents/skills/capital-reconcile/SKILL.md"
       ],
       "dependsOn": [
         "S01",

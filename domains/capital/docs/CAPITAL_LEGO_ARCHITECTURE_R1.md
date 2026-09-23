@@ -51,9 +51,9 @@ Read-only families:
 
 Standard Skills are canonical at:
 
-- `meta/next/.agents/skills/capital-observe/SKILL.md`
-- `meta/next/.agents/skills/capital-risk/SKILL.md`
-- `meta/next/.agents/skills/capital-reconcile/SKILL.md`
+- `.agents/skills/capital-observe/SKILL.md`
+- `.agents/skills/capital-risk/SKILL.md`
+- `.agents/skills/capital-reconcile/SKILL.md`
 
 They are advisory routing/procedure only. Removing a Skill does not remove executable Capital semantics, and a Skill cannot grant provider, credential, Runtime, owner, or financial-write authority.
 

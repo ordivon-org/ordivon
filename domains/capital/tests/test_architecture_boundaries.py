@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
 CAPITAL = Path(__file__).resolve().parents[1]
 REPO = CAPITAL.parents[1]
-FORBIDDEN_MARKETS = {"trading", "portfolio", "risk", "research", "governance", "accounting"}
+FORBIDDEN_MARKETS = {
+    "trading",
+    "portfolio",
+    "risk",
+    "research",
+    "governance",
+    "accounting",
+}
 
 
 def test_markets_owner_has_no_upward_capital_domain_imports():
@@ -43,7 +51,12 @@ def test_platform_services_do_not_import_capital_domain_source():
 
 
 def test_candidate_tool_paths_are_not_imported_by_canonical_capital_source():
-    forbidden = ("tools/nautilus_rc4", "tools/quickfixn_", "tools/opa_", "tools/tigerbeetle_")
+    forbidden = (
+        "tools/nautilus_rc4",
+        "tools/quickfixn_",
+        "tools/opa_",
+        "tools/tigerbeetle_",
+    )
     offenders = []
     for path in (CAPITAL / "src/ordivon_capital").rglob("*.py"):
         text = path.read_text()
@@ -52,7 +65,14 @@ def test_candidate_tool_paths_are_not_imported_by_canonical_capital_source():
     assert offenders == []
 
 
-def test_capital_skills_live_only_in_standard_agent_skills_source():
+def test_capital_has_no_private_skill_subsystem_or_physical_skill_source_dependency():
     assert not (CAPITAL / "skills").exists()
-    for name in ("capital-observe", "capital-risk", "capital-reconcile"):
-        assert (REPO / "meta/next/.agents/skills" / name / "SKILL.md").is_file()
+    contract = json.loads(
+        (CAPITAL / "contracts/capital-skill-boundary-v1.json").read_text()
+    )
+    assert contract["canonicalSkillStandard"] == "Agent Skills"
+    assert (
+        contract["bindingTruthRole"]
+        == "EXTERNAL_PROJECT_SCOPE_ADVISORY_BINDING_NOT_CAPITAL_SOURCE_DEPENDENCY"
+    )
+    assert all("path" not in row for row in contract["skills"].values())

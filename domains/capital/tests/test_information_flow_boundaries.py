@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 CAPITAL = Path(__file__).resolve().parents[1]
-REPO = CAPITAL.parents[1]
 
 
 def load(rel: str):
@@ -22,13 +21,12 @@ def test_private_reality_keeps_observer_and_effect_authority_separate():
         assert row["copyIntoRepository"] is False
 
 
-def test_skills_and_current_acceptance_do_not_embed_secret_paths():
+def test_current_capital_contracts_and_acceptance_do_not_embed_secret_paths():
     paths = [
-        REPO / "meta/next/.agents/skills/capital-observe/SKILL.md",
-        REPO / "meta/next/.agents/skills/capital-risk/SKILL.md",
-        REPO / "meta/next/.agents/skills/capital-reconcile/SKILL.md",
+        CAPITAL / "contracts/capital-skill-boundary-v1.json",
         CAPITAL / "acceptance/capital-circuit-readonly-r1.json",
         CAPITAL / "acceptance/capital-nonlive-circuit-r1.json",
+        CAPITAL / "acceptance/capital-lego-architecture-r1.json",
     ]
     for path in paths:
         text = path.read_text()
