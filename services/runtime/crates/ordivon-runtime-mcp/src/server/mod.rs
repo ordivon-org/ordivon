@@ -23,13 +23,14 @@ use ordivon_runtime_core::{
     WindowsExecutionContextRequest, WorkspaceChangeCursor,
     WorkspaceChangePageRequest as ExecWorkspaceChangePageRequest, WorkspaceChangePageResult,
     WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceContentMetadata, WorkspaceContentRequest,
-    WorkspaceDiffRequest as ExecWorkspaceDiffRequest, WorkspaceMutateRequest,
-    WorkspaceMutateResult, WorkspaceReadRequest as ExecWorkspaceReadRequest,
-    WorkspaceReadSliceRequest, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
-    CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, ENVIRONMENT_VARIABLE_NAME_PATTERN,
-    MAX_INSPECTION_EVENT_LIMIT, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
-    MAX_WORKSPACE_CHANGE_PAGE_ENTRIES, MAX_WORKSPACE_IO_BYTES, RUNTIME_SCHEMA_VERSION,
-    WORKSPACE_ID_MAX_LENGTH, WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
+    WorkspaceDiffRequest as ExecWorkspaceDiffRequest, WorkspaceHeadroomConfig,
+    WorkspaceMutateRequest, WorkspaceMutateResult,
+    WorkspaceReadRequest as ExecWorkspaceReadRequest, WorkspaceReadSliceRequest,
+    CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
+    DEFAULT_INSPECTION_EVENT_LIMIT, ENVIRONMENT_VARIABLE_NAME_PATTERN, MAX_INSPECTION_EVENT_LIMIT,
+    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
+    MAX_WORKSPACE_IO_BYTES, RUNTIME_SCHEMA_VERSION, WORKSPACE_ID_MAX_LENGTH,
+    WORKSPACE_ID_MIN_LENGTH, WORKSPACE_ID_PATTERN,
 };
 use rmcp::handler::server::common::FromContextPart;
 use rmcp::handler::server::router::tool::ToolRouter;

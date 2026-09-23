@@ -17,7 +17,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Router;
 use ordivon_runtime_core::{
     CredentialAuthority, InputAuthority, RegistryConfig, RuntimeConfig, UniversalExecutorConfig,
-    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig,
+    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig, WorkspaceHeadroomConfig,
 };
 use ordivon_runtime_mcp::server::{
     AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
@@ -940,6 +940,22 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
                 .into(),
         );
     }
+    let workspace_headroom = match (
+        optional_env("ORDIVON_WORKSPACE_HEADROOM_PATH")?,
+        optional_env("ORDIVON_WORKSPACE_MIN_FREE_BYTES")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(minimum_free_bytes)) => Some(WorkspaceHeadroomConfig {
+            path: PathBuf::from(path),
+            minimum_free_bytes: minimum_free_bytes.parse()?,
+        }),
+        _ => {
+            return Err(
+                "ORDIVON_WORKSPACE_HEADROOM_PATH and ORDIVON_WORKSPACE_MIN_FREE_BYTES must be configured together"
+                    .into(),
+            )
+        }
+    };
     let node_id = std::env::var("ORDIVON_NODE_ID").unwrap_or_else(|_| {
         if cfg!(windows) {
             "windows-local".to_string()
@@ -983,6 +999,7 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             },
             input_authorities,
             credential_authorities,
+            workspace_headroom,
             execution: ExecutionContext {
                 principal,
                 global_limit,
