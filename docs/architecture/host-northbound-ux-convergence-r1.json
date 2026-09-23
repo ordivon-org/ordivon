@@ -174,7 +174,7 @@
       "currentMainRepoCi": "PASS"
     },
     "integrationPolicy": "Use tools/repo/migration/integrate-main.sh with EXPECTED_MAIN bound to the exact revision from the final incremental drift audit; the concrete fence is operational, not a durable architecture constant; fail closed and requalify on further main movement.",
-    "standing": "ALL_REQUIRED_OWNER_GATES_AND_INCREMENTAL_MERGED_TREE_CLOSURE_GREEN_PENDING_LOCKED_MAIN_INTEGRATION",
+    "standing": "SOURCE_MERGED_SERVER_DEPLOYED_E2E_ACCEPTED_CONSUMER_REFRESH_PENDING",
     "evidenceJobs": [
       "job-01a0cd6c-229f-7613-b8f8-1b6f83907449",
       "job-01a0cd6c-6f69-73f1-92e1-937be12ef71d",
@@ -235,6 +235,31 @@
         "job-01a0cd7e-d8a4-7cd3-8d4b-2a138fdb701a",
         "job-01a0cd7f-34e9-7101-b099-1495ce20cfd4",
         "job-01a0cd80-bf9a-7020-93f5-d61fa55be167"
+      ]
+    },
+    "integrationCommit": "aea965f212d7dda6b0ab25abec2a9104542f0089",
+    "liveCloseout": {
+      "observedDate": "2026-09-23",
+      "qualifiedSourceRevision": "4b092fa709acb6aca3a43c8f74a09fc3427102ff",
+      "gatewayRelease": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+      "hostPreviousRelease": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+      "hostRelease": "4b092fa709acb6aca3a43c8f74a09fc3427102ff",
+      "hostCanary": "PASS: sortKey schema, distinct created/updated ordering, non-null timestamps, cursor scope rejection, Doctor healthy",
+      "hostProduction": "PASS: immutable release cutover, service active, live cwd/current bind new release, Doctor healthy schema 5",
+      "gatewayHostE2E": "PASS: updated projection differs from created projection with non-null timestamps",
+      "continuityChanges": "PASS",
+      "collaborationPublish": {
+        "status": "PASS",
+        "clientMessageId": "host-hux-live-closeout-20260923-r1",
+        "boardSequence": 17811
+      },
+      "consumerCatalog": "REFRESH_PENDING",
+      "evidenceJobs": [
+        "job-01a0ce64-574b-76d0-9d89-e748deb8d110",
+        "job-01a0ce64-be45-7680-ad28-61516233dda5",
+        "job-01a0ce65-c803-7f01-922e-60b010b595e2",
+        "job-01a0ce68-3531-7ad1-896c-e714dc4c7cc5",
+        "job-01a0ce69-df13-76e3-ba65-1bc4a6125ec9"
       ]
     }
   }

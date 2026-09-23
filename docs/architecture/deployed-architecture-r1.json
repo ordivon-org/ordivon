@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.deployed-architecture",
-  "observedDate": "2026-09-22",
+  "observedDate": "2026-09-23",
   "status": "CURRENT_DEPLOYED_BASELINE",
   "defaultNorthbound": {
     "component": "gateway",
@@ -150,6 +150,16 @@
     ],
     "connectorCatalogOwner": "mcp-client-connector",
     "currentConsumerStanding": "server-current-client-refresh-pending",
-    "uxProjectionStanding": "preferred find/changes/publish additive surface; legacy list/attention/post retained for compatibility"
+    "uxProjectionStanding": "preferred find/changes/publish additive surface; legacy list/attention/post retained for compatibility",
+    "serverStanding": "SOURCE_MERGED_GATEWAY_DEPLOYED_HOST_DEPLOYED_E2E_ACCEPTED",
+    "deploymentEvidence": {
+      "integrationCommit": "aea965f212d7dda6b0ab25abec2a9104542f0089",
+      "gatewayRelease": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+      "hostRelease": "4b092fa709acb6aca3a43c8f74a09fc3427102ff",
+      "hostDoctor": "healthy-schema-5",
+      "continuityFindE2E": "accepted-real-updated-order-with-timestamps",
+      "continuityChangesE2E": "accepted",
+      "collaborationPublishE2E": "accepted-board-sequence-17811"
+    }
   }
 }
