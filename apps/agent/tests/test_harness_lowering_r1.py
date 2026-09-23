@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 
 import pytest
 from ordivon_composition import canonical_digest, compile_manifest
@@ -18,8 +19,10 @@ from ordivon_harness.ordivon.model import AgentRunConclusion, ScriptedTurnAdapte
 from ordivon_agent import (
     AgentRunLoweringError,
     compile_no_tool_harness_binding,
+    compile_no_tool_harness_run_contract,
     create_no_tool_harness_run,
     validate_no_tool_harness_binding,
+    validate_no_tool_harness_run_contract,
 )
 
 
@@ -240,3 +243,116 @@ def test_product_lowerer_imports_only_public_harness_surface() -> None:
         "ordivon_harness.sqlite_store",
     ):
         assert forbidden not in source
+
+
+def _compiled_contract() -> HarnessRunContract:
+    return compile_no_tool_harness_run_contract(
+        _manifest(),
+        harness_run_id="harness-run:hux30-lowered-r1",
+        harness_implementation_id="ordivon-harness@hux30",
+        caller_id="caller:hux30",
+        caller_run_ref="agent-request:hux30-lowered-r1",
+        context_refs=(HarnessBoundReference("context:hux30", "context", _digest("context")),),
+        provider_id="provider:scripted",
+        adapter_id=ScriptedTurnAdapter.adapter_id,
+        requested_model_id=ScriptedTurnAdapter.model_id,
+        budget={
+            "maxModelCalls": 2,
+            "maxToolCalls": 0,
+            "maxObservationBytes": 65536,
+            "maxWallTimeMs": 10000,
+            "maxTotalTokens": 10000,
+            "maxModelRetries": 1,
+            "maxToolCorrections": 2,
+            "maxConclusionCorrections": 3,
+            "maxObservationOnlyTurns": 4,
+            "maxNoProgressTurns": 3,
+        },
+        completion_contract={"mode": "record"},
+        system_manifest_ref=HarnessBoundReference(
+            "manifest:hux30", "system-manifest", _digest("system-manifest")
+        ),
+        created_at_ms=1000,
+    )
+
+
+def test_c06_lowering_derives_only_circuit_and_no_tool_fields() -> None:
+    contract = _compiled_contract()
+    compiled = compile_manifest(_manifest())
+
+    assert contract.objective_ref == HarnessBoundReference(
+        "objective:hux30", "objective", _digest("objective")
+    )
+    assert contract.source_refs[0] == HarnessBoundReference(
+        compiled["circuitId"], "cognitive-circuit", compiled["compiledDigest"]
+    )
+    assert contract.tool_catalog_digest == NO_TOOL_AGENT_SURFACE_DIGEST
+    assert contract.tool_grant_digest == NO_TOOL_AGENT_GRANT_DIGEST
+    assert contract.provider_id == "provider:scripted"
+    assert contract.requested_model_id == ScriptedTurnAdapter.model_id
+
+
+def test_c06_lowering_is_deterministic_for_exact_inputs() -> None:
+    first = _compiled_contract()
+    second = _compiled_contract()
+    assert first.to_dict() == second.to_dict()
+    assert first.digest == second.digest
+
+
+def test_c06_lowering_rejects_unresolved_circuit() -> None:
+    with pytest.raises(AgentRunLoweringError) as error:
+        compile_no_tool_harness_run_contract(
+            _manifest(unresolved=True),
+            harness_run_id="harness-run:hux30-unresolved",
+            harness_implementation_id="ordivon-harness@hux30",
+            caller_id="caller:hux30",
+            caller_run_ref="agent-request:hux30-unresolved",
+            context_refs=(HarnessBoundReference("context:hux30", "context", _digest("context")),),
+            provider_id="provider:scripted",
+            adapter_id=ScriptedTurnAdapter.adapter_id,
+            requested_model_id=ScriptedTurnAdapter.model_id,
+            budget={"maxModelCalls": 1},
+            completion_contract={"mode": "record"},
+            system_manifest_ref=HarnessBoundReference(
+                "manifest:hux30", "system-manifest", _digest("system-manifest")
+            ),
+            created_at_ms=1000,
+        )
+    assert error.value.code == "CIRCUIT_UNRESOLVED"
+
+
+def test_c06_validator_rejects_objective_mismatch() -> None:
+    contract = replace(
+        _compiled_contract(),
+        objective_ref=HarnessBoundReference(
+            "objective:other", "objective", _digest("other-objective")
+        ),
+    )
+    with pytest.raises(AgentRunLoweringError) as error:
+        validate_no_tool_harness_run_contract(_manifest(), contract)
+    assert error.value.code == "OBJECTIVE_BINDING_MISMATCH"
+
+
+def test_c06_validator_rejects_missing_circuit_source() -> None:
+    contract = replace(_compiled_contract(), source_refs=())
+    with pytest.raises(AgentRunLoweringError) as error:
+        validate_no_tool_harness_run_contract(_manifest(), contract)
+    assert error.value.code == "CIRCUIT_SOURCE_BINDING_MISMATCH"
+
+
+def test_c06_lowered_contract_flows_into_existing_binding_and_harness(tmp_path) -> None:
+    manifest = _manifest()
+    contract = _compiled_contract()
+    binding = compile_no_tool_harness_binding(
+        manifest, contract, adapter_binding_ref=_adapter_ref()
+    )
+    run = create_no_tool_harness_run(
+        tmp_path,
+        manifest,
+        binding,
+        contract,
+        lambda _exact: ScriptedTurnAdapter((_completed(),)),
+        adapter_binding_ref=_adapter_ref(),
+    )
+    execution = run.run(({"role": "user", "content": "Execute the C06 canary."},))
+    assert execution.loop_result.stop_code.value == "candidate_completed"

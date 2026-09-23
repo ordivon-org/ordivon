@@ -7,7 +7,7 @@ Runtime authority, own workflow/session state, or establish domain completion.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,8 @@ from ordivon_harness.api import (
     NO_TOOL_AGENT_SURFACE_DIGEST,
     AgentTurnAdapter,
     HarnessAgentRun,
+    HarnessBoundReference,
+    HarnessPrivacyPolicy,
     HarnessRunContract,
 )
 
@@ -44,6 +46,112 @@ def _assert_no_tool_contract(contract: HarnessRunContract) -> None:
             "TOOL_LOWERING_REQUIRED",
             "HUX-30 admits only the canonical no-Tool Harness surface",
         )
+
+
+def _compiled_circuit_reference(compiled: dict[str, Any]) -> HarnessBoundReference:
+    return HarnessBoundReference(
+        compiled["circuitId"],
+        "cognitive-circuit",
+        compiled["compiledDigest"],
+    )
+
+
+def _compiled_objective_reference(compiled: dict[str, Any]) -> HarnessBoundReference:
+    objective = compiled["objectiveRef"]
+    return HarnessBoundReference(objective["id"], "objective", objective["digest"])
+
+
+def validate_no_tool_harness_run_contract(
+    manifest: dict[str, Any], contract: HarnessRunContract
+) -> None:
+    """Fail closed when a caller-authored Harness contract is stale or cross-bound."""
+
+    compiled = compile_manifest(manifest)
+    if compiled["unresolvedAssumptions"]:
+        raise AgentRunLoweringError(
+            "CIRCUIT_UNRESOLVED",
+            "Harness Run Contract lowering requires a Circuit with no unresolved assumptions",
+        )
+    _assert_no_tool_contract(contract)
+
+    if contract.objective_ref != _compiled_objective_reference(compiled):
+        raise AgentRunLoweringError(
+            "OBJECTIVE_BINDING_MISMATCH",
+            "Harness Run Contract objective differs from the compiled Cognitive Circuit",
+        )
+
+    circuit_ref = _compiled_circuit_reference(compiled)
+    if circuit_ref not in contract.source_refs:
+        raise AgentRunLoweringError(
+            "CIRCUIT_SOURCE_BINDING_MISMATCH",
+            "Harness Run Contract does not bind the exact compiled Cognitive Circuit source",
+        )
+
+
+def compile_no_tool_harness_run_contract(
+    manifest: dict[str, Any],
+    *,
+    harness_run_id: str,
+    harness_implementation_id: str,
+    caller_id: str,
+    caller_run_ref: str,
+    context_refs: tuple[HarnessBoundReference, ...],
+    provider_id: str,
+    adapter_id: str,
+    requested_model_id: str,
+    budget: Mapping[str, Any],
+    completion_contract: Mapping[str, Any],
+    system_manifest_ref: HarnessBoundReference,
+    created_at_ms: int,
+    source_refs: tuple[HarnessBoundReference, ...] = (),
+    prior_artifact_refs: tuple[HarnessBoundReference, ...] = (),
+    privacy: HarnessPrivacyPolicy | None = None,
+    deadline_ms: int | None = None,
+) -> HarnessRunContract:
+    """Lower one resolved Circuit plus exact caller selections into the public Harness waist.
+
+    This function selects nothing and grants nothing. The only derived fields are the exact
+    Circuit/objective references and the canonical no-Tool surface digests. Everything else
+    is caller-selected and independently validated by HarnessRunContract.
+    """
+
+    compiled = compile_manifest(manifest)
+    if compiled["unresolvedAssumptions"]:
+        raise AgentRunLoweringError(
+            "CIRCUIT_UNRESOLVED",
+            "Harness Run Contract lowering requires a Circuit with no unresolved assumptions",
+        )
+
+    circuit_ref = _compiled_circuit_reference(compiled)
+    if any(reference.ref == circuit_ref.ref for reference in source_refs):
+        raise AgentRunLoweringError(
+            "CIRCUIT_SOURCE_DUPLICATED",
+            "caller source_refs must not duplicate the derived Cognitive Circuit reference",
+        )
+
+    contract = HarnessRunContract(
+        harness_run_id=harness_run_id,
+        harness_implementation_id=harness_implementation_id,
+        caller_id=caller_id,
+        caller_run_ref=caller_run_ref,
+        objective_ref=_compiled_objective_reference(compiled),
+        context_refs=context_refs,
+        provider_id=provider_id,
+        adapter_id=adapter_id,
+        requested_model_id=requested_model_id,
+        tool_catalog_digest=NO_TOOL_AGENT_SURFACE_DIGEST,
+        tool_grant_digest=NO_TOOL_AGENT_GRANT_DIGEST,
+        budget=budget,
+        completion_contract=completion_contract,
+        system_manifest_ref=system_manifest_ref,
+        created_at_ms=created_at_ms,
+        source_refs=(circuit_ref, *source_refs),
+        prior_artifact_refs=prior_artifact_refs,
+        privacy=privacy if privacy is not None else HarnessPrivacyPolicy(),
+        deadline_ms=deadline_ms,
+    )
+    validate_no_tool_harness_run_contract(manifest, contract)
+    return contract
 
 
 def compile_no_tool_harness_binding(
@@ -153,6 +261,8 @@ def create_no_tool_harness_run(
 __all__ = [
     "AgentRunLoweringError",
     "compile_no_tool_harness_binding",
+    "compile_no_tool_harness_run_contract",
     "create_no_tool_harness_run",
     "validate_no_tool_harness_binding",
+    "validate_no_tool_harness_run_contract",
 ]

@@ -61,8 +61,11 @@ Harness-facing consumer still independently validates its own contract/binding s
 Deleting this projection must not destroy any canonical owner truth. Given the same exact
 input references, recompilation produces the same `bindingDigest`.
 
-## Future lowering boundary
+## Cross-owner lowering boundary
 
-R1 deliberately stops before `CognitiveCircuit -> HarnessRunContract` lowering. That next
-adapter belongs at the cross-owner consumer seam and must consume public owner contracts
-rather than importing owner internals into Composition.
+Composition still stops before `CognitiveCircuit -> HarnessRunContract` lowering. The bounded
+C06 implementation lives in `apps/agent`, where the product-side consumer may project a
+resolved Circuit plus exact caller-selected fields into the public Harness owner contract.
+That adapter derives only the exact Circuit/objective references and canonical no-Tool
+digests; it owns no Provider/model selection, Tool discovery/grant, authority, workflow,
+Runtime effect, or domain verdict.
