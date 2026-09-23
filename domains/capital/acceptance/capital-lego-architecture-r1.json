@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.lego-architecture-r1-acceptance",
+  "standing": "PASS_R1_ACTIVE_SCOPE",
+  "truthRole": "IMPLEMENTATION_ACCEPTANCE_RECEIPT_NOT_PROVIDER_OR_FINANCIAL_TRUTH",
+  "implementation": {
+    "commit": "847099db22b0f21b2f36b5776133b8c8f748418e",
+    "baseRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+    "workspaceId": "ws-capital-lego-execution-plan-r1-20260923"
+  },
+  "scope": {
+    "completedWaves": ["W0", "W1", "W2", "W3", "W4", "W5", "W7"],
+    "deferredWaves": ["W6_DEFERRED"],
+    "productionDeferredByDesign": true
+  },
+  "inventory": {
+    "functionalLegos": 12,
+    "registryEntries": 39,
+    "canonicalRegistryEntries": 34,
+    "readOnlyCircuitFamilies": 3,
+    "capitalAgentSkills": 3,
+    "nonLiveEffectScenarios": 5
+  },
+  "verification": {
+    "exactImplementationRuntimeJob": "job-01a0cd27-d7d6-73b1-b1b7-bfe084bc5555",
+    "capitalVerify": {
+      "ruff": "PASS",
+      "pytestPassed": 369,
+      "providerBoundDeselected": 11,
+      "pytestFailed": 0
+    },
+    "w7TargetedRuntimeJob": "job-01a0cd25-bb18-7f83-92dc-d08bd6897ec7",
+    "w7TargetedTestsPassed": 8,
+    "nonLiveDogfoodRuntimeJob": "job-01a0cd22-b849-7933-8ae3-b6d9c82f7534"
+  },
+  "readOnlyCircuits": [
+    "PUBLIC_MARKET_OBSERVATION_R1",
+    "PORTFOLIO_RISK_R1",
+    "COUNTERFACTUAL_ANALYSIS_R1"
+  ],
+  "nonLiveScenarios": {
+    "FILL": "POST_PENDING_TRANSFER",
+    "PARTIAL_FILL_SLICES": "POST_PENDING_TRANSFER",
+    "CANCEL": "VOID_PENDING_TRANSFER",
+    "DENY": "VOID_PENDING_TRANSFER",
+    "UNKNOWN_AFTER_SUBMISSION": "NO_MUTATION"
+  },
+  "authorityStanding": {
+    "executionLane": "NON_LIVE",
+    "productionAuthorization": "BLOCK_NOT_GRANTED",
+    "externalFinancialWriteAllowed": false,
+    "privateAccountDataAdmission": "NOT_ADMITTED",
+    "portfolioRiskBudget": "UNSET"
+  },
+  "historicalIntegrity": {
+    "frozenEvidenceFileCount": 54,
+    "frozenEvidenceManifest": "sha256:c6a4f1293de042a5df2797afc8e49b90b736d704135ea4aad20914d7cb2e82be",
+    "frozenFixtureFileCount": 4,
+    "frozenFixtureManifest": "sha256:69ca14c2747c05f4adbe08f178ebc4351d381283da0ef71ea5507af4819d5159",
+    "currentAcceptanceRoot": "acceptance/"
+  },
+  "architectureClaims": [
+    "Capital remains a financial-domain composition/control plane rather than a new trading, accounting, risk, workflow, or policy framework",
+    "seven source-owner domains remain markets, trading, portfolio, risk, research, governance, accounting",
+    "functional LEGO are composition roles and do not replace source-owner domains",
+    "Skills are advisory Agent Skills under the standard project Skill source and own no financial authority",
+    "read-only circuit mechanical completion does not establish semantic or financial completion",
+    "simulated provider effect reality does not replace reconciliation or accounting truth",
+    "Runtime physical execution, Host continuity, Network transport, provider reality, and owner/provider grants remain externally owned"
+  ],
+  "nonClaims": [
+    "no live or production financial-write path is admitted",
+    "no private-account-data admission is claimed",
+    "no owner risk appetite is inferred",
+    "no investment recommendation or scenario winner is produced",
+    "no external provider effect was attempted by this R1 acceptance",
+    "W6 deferred nodes are not counted as incomplete R1 work"
+  ]
+}
