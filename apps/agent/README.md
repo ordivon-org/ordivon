@@ -31,6 +31,22 @@ and objective references plus canonical no-Tool digests; it does not select a Pr
 adapter, budget, context, privacy policy, Tool, authority, or domain outcome. Later HUX waves may add separate lowerers after real-consumer evidence; they must
 not widen this function implicitly.
 
+## Product Run view
+
+HUX-40 adds a lossy read-only projection over an already validated `HarnessAgentRun`:
+
+```text
+Harness exact status + composition projection
+                  ↓
+        Ordivon Agent Run View
+ready / running / attention_required / stopped / run_finished / failed
+```
+
+`run_finished` means only that the bounded Harness Run reached its durable terminal
+state. The product view always reports that Harness has not established Task/domain
+semantic acceptance, and it never probes Provider or Runtime liveness. The exact Harness
+projection remains the proof surface.
+
 ## Verify
 
 ```bash
