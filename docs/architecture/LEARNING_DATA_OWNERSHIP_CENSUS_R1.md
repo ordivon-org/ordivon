@@ -11,4 +11,4 @@ Three data classes must remain separate: authoritative owner evidence, derived a
 
 `L02 = DEFER_NEW_POSTGRES_STORE` until a named live consumer demonstrates a query/availability requirement that the existing study/file projection cannot satisfy. PostgreSQL remains a valid later read model, but storage is not an architecture objective by itself.
 
-The next useful test is not a database migration. It is to project one real compiled C08 task into an Experimental Episode carrying exact Circuit, Harness Run, Runtime operation, evidence, verifier, and domain/study verdict references. Only then measure whether a PostgreSQL query model materially improves analysis.
+That test is now materialized by `INTEGRATED_C08_CAPITAL_READONLY_DOGFOOD_R1.md`: one real compiled C08 task binds exact Circuit, Harness Run, Runtime operation/recovery evidence, Capital owner-native verifier/verdict references, and an Experimental Episode. The next step is to measure actual analytical/query pressure over this and subsequent real Episodes; PostgreSQL remains deferred until that evidence satisfies the existing admission gate.

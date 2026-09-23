@@ -75,11 +75,24 @@
       "backup/retention owner named"
     ]
   },
-  "nextExecutableSlice": "Use one real C08 compiled task to materialize an Experimental Episode with Circuit/Run/Runtime/evidence/verdict references; then evaluate whether PostgreSQL adds measured value.",
+  "nextExecutableSlice": "Measure real analysis/query pressure over the first C08 Episode and additional owner-native Episodes; keep L02 DEFER_NEW_POSTGRES_STORE until the existing PostgreSQL admission gate is satisfied.",
   "nonClaims": [
     "Experimental Episode is not Runtime or Harness truth.",
     "Acceptance status is not cross-domain success.",
     "OTel traces are not labels.",
     "Historical RSI evidence is not open-ended recursive self-improvement."
-  ]
+  ],
+  "c08Dogfood": {
+    "domainVerdictKind": "ordivon.capital.readonly-circuit-acceptance",
+    "domainVerdictOwner": "capital",
+    "domainVerdictStanding": "PASS",
+    "episode": "meta/next/evidence/acceptance/integrated-c08-capital-readonly-episode-r1.json",
+    "externalFinancialWritesAttempted": false,
+    "receipt": "docs/architecture/integrated-c08-capital-readonly-dogfood-r1.json",
+    "requalifiedAgainstRevision": "5f9a41313624406b3381a06612b87e493951ab9e",
+    "runtimeJobId": "job-01a0ce08-8fe3-7012-be1e-42994bba5dc7",
+    "runtimeSemanticCompletionEvaluated": false,
+    "sourceRevision": "832468936934e03aa2b8f67836182a8543b124a6",
+    "status": "FIRST_REAL_C08_EPISODE_MATERIALIZED"
+  }
 }
