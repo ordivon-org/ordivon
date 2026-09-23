@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-data-acquisition-plan",
+  "id": "scholarly-data-acquisition-plan-r1",
+  "truthRole": "planning-projection-not-data-license-authority",
+  "principle": "Register before acquiring; verify license and task fit before materializing; acquire the smallest snapshot that changes a research decision.",
+  "waves": [
+    {"id": "SD0", "goal": "Catalog and provenance", "standing": "IMPLEMENTED_R1", "outputs": ["external candidate registry", "local EMSE corpus registration", "task-to-corpus map", "explicit non-claims"]},
+    {"id": "SD1", "goal": "Small labeled discourse and citation corpora", "standing": "NEXT", "candidates": ["scicite", "scidtb", "coresc-azii-chemistry", "context24"], "gate": "license verified + immutable snapshot manifest + checksum + schema census", "unlocks": "SI-R3 ClaimPermission research"},
+    {"id": "SD2", "goal": "Peer-review lifecycle corpora", "standing": "NEXT", "candidates": ["peerread-v1", "nlpeer", "disapere", "peersum", "aries"], "gate": "license/privacy/ethics verified + paper/review/rebuttal/version identity preserved", "unlocks": "review concern, disagreement, rebuttal and revision research"},
+    {"id": "SD3", "goal": "Bounded live OpenReview snapshots", "standing": "PLANNED", "candidates": ["openreview-api"], "gate": "public venue + exact invitation schemas + access date + raw response digests + no private reviewer identity collection", "unlocks": "venue/year drift and contemporary review-form analysis"},
+    {"id": "SD4", "goal": "Large-scale scholarly fulltext", "standing": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST", "candidates": ["s2orc-2020", "semantic-scholar-datasets-current"], "gate": "specific query workload cannot be met by bounded API/sample + storage budget + license verified", "unlocks": "cross-domain morphology and citation statistics"},
+    {"id": "SD5", "goal": "Canonical analytical products", "standing": "PLANNED", "outputs": ["Parquet normalized observations", "DuckDB reproducible analysis views", "versioned feature definitions", "sampling/nonresponse audits", "dataset cards and provenance receipts"], "notAuthorized": ["shared scientific truth database", "acceptance decision model", "reviewer ranking authority"]}
+  ],
+  "priorityOrder": ["SD1", "SD2", "SD3", "SD4", "SD5"]
+}

@@ -1,0 +1,21 @@
+{
+  "emse": {
+    "accessibleRandomBaselineFulltexts": 109,
+    "externalPdfBytes": 575426096,
+    "externalPdfFiles": 211,
+    "focusedTopicOversampleAssignment": 100,
+    "publisherFinalFulltexts": 133,
+    "publisherOriginalPaperFrame": 675,
+    "stratifiedBaselineAssignment": 250,
+    "uniqueAcquisitionTargets": 350,
+    "validatedFulltexts": 149
+  },
+  "externalCandidateCount": 14,
+  "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
+  "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
+  "materializedLocalAssetCount": 1,
+  "nextWave": "SD1",
+  "schemaVersion": 1,
+  "standing": "PASS_CATALOG_AND_LOCAL_EMSE_BINDING",
+  "truthBoundary": "Acceptance proves catalog structure and current local EMSE corpus bindings. It does not prove external candidate licenses, downloadability, scientific truth, or cross-domain representativeness."
+}

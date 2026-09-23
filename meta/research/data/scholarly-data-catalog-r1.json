@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-data-catalog",
+  "id": "scholarly-data-catalog-r1",
+  "effectiveDate": "2026-09-23",
+  "truthRole": "data-asset-catalog-not-scientific-truth",
+  "storagePolicy": {
+    "rawExternalBytes": "OUTSIDE_GIT",
+    "canonicalRawRoot": "/root/projects/ordivon-corpora/scholarly-data",
+    "gitOwns": [
+      "catalog metadata",
+      "source and license observations",
+      "snapshot manifests and digests",
+      "compact derived statistics",
+      "task mappings and acceptance receipts"
+    ],
+    "analyticsPreferred": ["Parquet", "DuckDB"],
+    "sharedPostgresStanding": "NOT_JUSTIFIED_YET"
+  },
+  "materializedLocalAssets": [
+    {
+      "id": "emse-writing-benchmark-r16",
+      "owner": "paper1-study-corpus",
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "catalogRole": "venue-specific-manuscript-morphology-and-style",
+      "status": "MATERIALIZED_EXTERNAL_CORPUS",
+      "paths": {
+        "samplingSummary": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_benchmark_r2/EMSE_R16_SAMPLING_SUMMARY_R1.json",
+        "fulltextMetrics": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_benchmark_r2/EMSE_R16_FULLTEXT_METRICS_R1.csv",
+        "sectionGrammar": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_benchmark_r2/EMSE_R16_SECTION_GRAMMAR_R1.json",
+        "currentComparison": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_benchmark_r2/EMSE_R16_CURRENT_COMPARISON_R1.json",
+        "acquisitionManifest": "papers/first_paper_r2_finite_family/publication_r3_descoped/emse_benchmark_r2/EMSE_R16_ACQUISITION_MANIFEST_R1.csv"
+      },
+      "rawExternalRoot": "/root/projects/ordivon-corpora/paper1-emse-benchmark-r2",
+      "observedScale": {
+        "publisherOriginalPaperFrame": 675,
+        "stratifiedBaselineAssignment": 250,
+        "focusedTopicOversampleAssignment": 100,
+        "uniqueAcquisitionTargets": 350,
+        "validatedFulltexts": 149,
+        "accessibleRandomBaselineFulltexts": 109,
+        "publisherFinalFulltexts": 133,
+        "externalPdfFiles": 211,
+        "externalPdfBytes": 575426096
+      },
+      "featureFamilies": [
+        "body word count before references",
+        "abstract and introduction length",
+        "average sentence length",
+        "section-heading presence and ordering",
+        "RQ count and explicit answer-to-RQ usage",
+        "Threats and Data Availability presence",
+        "figure/table caption density",
+        "page count and publisher layout geometry",
+        "negation density",
+        "authorial we density",
+        "task-specific boundary/control lexeme densities"
+      ],
+      "inferenceBoundary": "Full-text responder statistics are descriptive for the accessible subset; they are not unbiased EMSE population estimates. Publisher-final layout is not submission-format authority.",
+      "reuseStanding": "ADMIT_AS_SHARED_CATALOG_ENTRY_KEEP_BYTES_AND_SEMANTICS_WITH_STUDY_OWNER"
+    }
+  ],
+  "externalCandidates": [
+    {
+      "id": "s2orc-2020",
+      "family": "large-scale-scholarly-fulltext",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/2020.acl-main.447/",
+      "doi": "10.18653/v1/2020.acl-main.447",
+      "reportedScale": {"englishPapers": 81100000, "structuredOpenAccessFulltexts": 8100000},
+      "useCases": ["large-scale section and citation morphology", "cross-domain writing statistics", "citation-context sampling"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_PROVIDER_SNAPSHOT_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "B_HEAVY_ON_DEMAND"
+    },
+    {
+      "id": "semantic-scholar-datasets-current",
+      "family": "live-scholarly-graph-provider",
+      "sourceType": "provider-documentation",
+      "sourceUrl": "https://www.semanticscholar.org/product/api",
+      "reportedScale": {"papersCurrentProviderPage": 214000000, "citationsCurrentProviderPage": 2490000000},
+      "useCases": ["current metadata refresh", "bounded corpus discovery", "dataset snapshots when justified"],
+      "acquisitionState": "PROVIDER_AVAILABLE_NOT_SNAPSHOTTED_FOR_SI",
+      "licenseStanding": "VERIFY_PER_DATASET_README_AND_PROVIDER_TERMS",
+      "priority": "A_PROVIDER"
+    },
+    {
+      "id": "peerread-v1",
+      "family": "peer-review",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/N18-1149/",
+      "doi": "10.18653/v1/N18-1149",
+      "reportedScale": {"paperDrafts": 14700, "textualPeerReviews": 10700},
+      "useCases": ["review text distributions", "review aspect and score analysis", "paper-review-outcome descriptive association"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_DATASET_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "A"
+    },
+    {
+      "id": "nlpeer",
+      "family": "peer-review",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/2023.acl-long.277/",
+      "doi": "10.18653/v1/2023.acl-long.277",
+      "reportedScale": {"papers": "more-than-5000", "reviewReports": "more-than-11000", "venues": 5},
+      "useCases": ["multi-domain peer-review analysis", "paper-version and review alignment", "guided reviewer skimming"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_RELEASE_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "A"
+    },
+    {
+      "id": "disapere",
+      "family": "review-rebuttal-discourse",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/2022.naacl-main.89/",
+      "doi": "10.18653/v1/2022.naacl-main.89",
+      "reportedScale": {"sentences": 20000, "reviewRebuttalPairs": 506},
+      "useCases": ["review concern discourse", "author stance to reviewer arguments", "concern-resolution relation analysis"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_DATASET_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "A"
+    },
+    {
+      "id": "aries",
+      "family": "review-to-revision",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/2024.acl-long.377/",
+      "doi": "10.18653/v1/2024.acl-long.377",
+      "reportedScale": {"note": "high-precision silver training data plus expert-labeled test set; exact row count not copied without source verification"},
+      "useCases": ["review-comment to paper-edit linkage", "resolution effectiveness", "revision planning evaluation"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_RELEASE_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "A"
+    },
+    {
+      "id": "coresc-azii-chemistry",
+      "family": "scientific-discourse-rhetorical-zoning",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/L10-1440/",
+      "reportedScale": {"coreScFullPapers": 265, "coreScExpertAnnotators": 16},
+      "useCases": ["scientific move and investigation-structure analysis", "argument and rhetorical realization", "cross-section discourse statistics"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_CORPUS_ACCESS_AND_LICENSE",
+      "priority": "A"
+    },
+    {
+      "id": "scidtb",
+      "family": "scientific-discourse",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/P18-2071/",
+      "doi": "10.18653/v1/P18-2071",
+      "reportedScale": {"note": "scientific abstract discourse dependency treebank; exact cardinality not copied without source-table verification"},
+      "useCases": ["abstract discourse structure", "discourse dependency parsing", "move-transition statistics"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_DATA_RELEASE_LICENSE",
+      "priority": "A"
+    },
+    {
+      "id": "scicite",
+      "family": "citation-intent",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/N19-1361/",
+      "doi": "10.18653/v1/N19-1361",
+      "reportedScale": {"note": "reported as more than five times larger than ACL-ARC and multi-domain; exact instance count not copied without dataset manifest verification"},
+      "useCases": ["citation intent distribution", "related-work function analysis", "claim-support citation diagnostics"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_ALLENAI_RELEASE_LICENSE",
+      "priority": "A"
+    },
+    {
+      "id": "acl-arc",
+      "family": "bibliographic-reference-corpus",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/L08-1005/",
+      "useCases": ["bibliographic structure", "citation-network and scholarly document processing baseline"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_CURRENT_CORPUS_DISTRIBUTION_TERMS",
+      "priority": "B"
+    },
+    {
+      "id": "peersum",
+      "family": "meta-review-and-review-conflict",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/2023.findings-emnlp.472/",
+      "doi": "10.18653/v1/2023.findings-emnlp.472",
+      "reportedScale": {"note": "meta-reviews with reviews, multi-turn discussions and paper abstracts; exact count not copied without dataset manifest verification"},
+      "useCases": ["meta-review synthesis", "review disagreement preservation", "review-conversation structure"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_DATASET_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "A"
+    },
+    {
+      "id": "context24",
+      "family": "claim-grounding",
+      "sourceType": "peer-reviewed-shared-task-paper",
+      "sourceUrl": "https://aclanthology.org/2024.sdp-1.3/",
+      "reportedScale": {"scientificClaims": 585},
+      "useCases": ["claim to supporting figure/table grounding", "claim to methodological context grounding", "ClaimPermission evidence adapters"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_HUGGINGFACE_DATASET_LICENSE",
+      "priority": "A"
+    },
+    {
+      "id": "aclsum",
+      "family": "scientific-aspect-summarization",
+      "sourceType": "peer-reviewed-dataset-paper",
+      "sourceUrl": "https://aclanthology.org/2024.naacl-long.371/",
+      "doi": "10.18653/v1/2024.naacl-long.371",
+      "reportedScale": {"note": "expert-crafted multi-aspect summaries covering challenges, approaches and outcomes"},
+      "useCases": ["contribution summary structure", "challenge-approach-outcome realization", "abstract and related-work compression analysis"],
+      "acquisitionState": "NOT_ACQUIRED",
+      "licenseStanding": "VERIFY_DATASET_LICENSE_BEFORE_DOWNLOAD",
+      "priority": "B"
+    },
+    {
+      "id": "openreview-api",
+      "family": "live-peer-review-provider",
+      "sourceType": "provider-documentation",
+      "sourceUrl": "https://docs.openreview.net/how-to-guides/data-retrieval-and-modification/how-to-get-all-notes-for-submissions-reviews-rebuttals-etc",
+      "reportedScale": {"note": "dynamic provider; no fixed global cardinality claimed"},
+      "useCases": ["venue-bounded submissions", "reviews and ratings", "rebuttals and comments", "meta-reviews and decisions", "longitudinal venue drift snapshots"],
+      "acquisitionState": "PROVIDER_AVAILABLE_NOT_SNAPSHOTTED_FOR_SI",
+      "licenseStanding": "PER_VENUE_PUBLICNESS_SCHEMA_AND_TERMS_MUST_BE_BOUND",
+      "priority": "A_PROVIDER"
+    }
+  ],
+  "derivedResearchFeatureFamilies": [
+    {"id": "manuscript-morphology", "examples": ["word count", "section count/order", "sentence length", "display density", "page count"]},
+    {"id": "rhetorical-discourse", "examples": ["move labels", "CoreSC/AZ zones", "discourse dependencies", "claim/evidence positioning"]},
+    {"id": "citation-function", "examples": ["background", "method use", "comparison", "related-work role"]},
+    {"id": "review-behavior", "examples": ["concern categories", "rating/confidence", "review length", "disagreement", "actionability"]},
+    {"id": "review-rebuttal-resolution", "examples": ["concern to rebuttal stance", "concern to revision edit", "unresolved concern", "meta-review synthesis"]},
+    {"id": "venue-time", "examples": ["venue/year distributions", "policy drift", "review-form schema drift", "acceptance-outcome association as descriptive evidence only"]},
+    {"id": "claim-grounding", "examples": ["claim to evidence", "claim to method", "claim to figure/table", "claim-ceiling inputs"]}
+  ],
+  "prohibitedInterpretations": [
+    "dataset frequency is not universal scholarly prevalence",
+    "review-score correlation is not reviewer truth",
+    "acceptance prediction is not submission or scientific authority",
+    "cross-domain transfer does not erase venue or discipline differences",
+    "LLM-generated labels are not facts without validation",
+    "public availability does not imply unrestricted redistribution"
+  ]
+}
