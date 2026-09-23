@@ -3,6 +3,7 @@ pub struct ServerConfig {
     pub runtime: RuntimeConfig,
     pub input_authorities: Vec<InputAuthority>,
     pub credential_authorities: Vec<CredentialAuthority>,
+    pub workspace_headroom: Option<WorkspaceHeadroomConfig>,
     pub execution: ExecutionContext,
     pub release: Option<RuntimeReleaseExecutionConfig>,
     pub input_ingress: Option<InputIngressExecutionConfig>,
@@ -37,11 +38,9 @@ impl RuntimeServer {
     ) -> Result<Self, ToolError> {
         let executor = config.runtime.executor.clone();
         executor.ensure_store().map_err(ToolError::from)?;
-        let runtime = Runtime::new_with_authorities_and_default_runtime(
-            config.runtime,
-            config.input_authorities,
-            config.credential_authorities,
-            default_runtime_ms,
+        let runtime = Runtime::new_with_authorities_default_runtime_and_workspace_headroom(
+            config.runtime, config.input_authorities, config.credential_authorities,
+            default_runtime_ms, config.workspace_headroom,
         )
         .map_err(ToolError::from)?;
         if let Some(release) = config.release.as_ref() {

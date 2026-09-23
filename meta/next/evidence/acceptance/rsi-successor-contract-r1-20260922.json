@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.rsi-successor-contract-r1-acceptance",
+  "effectiveDate": "2026-09-22",
+  "status": "POST_MAIN_REQUALIFIED_READY_FOR_INTEGRATION",
+  "baseRevision": "4d46d741994ce08c8282c62c5154aef57f20331a",
+  "truthRole": "acceptance-evidence-not-domain-truth",
+  "subject": {
+    "owner": "packages/composition",
+    "feature": "Successor Contract R1",
+    "responsibility": "Exact predecessor/candidate binding plus verifier-owned succession-gate mechanics only"
+  },
+  "implementation": {
+    "module": "packages/composition/src/ordivon_composition/successor_contract_r1.py",
+    "schemas": [
+      "packages/composition/src/ordivon_composition/schemas/successor-contract-v1.schema.json",
+      "packages/composition/src/ordivon_composition/schemas/successor-gate-result-v1.schema.json"
+    ],
+    "docs": [
+      "packages/composition/docs/SUCCESSOR_CONTRACT_R1.md",
+      "packages/composition/docs/META_IMPROVEMENT_MEASUREMENT_R1.md"
+    ],
+    "cli": "ordivon-successor"
+  },
+  "authorityLaws": [
+    "mechanicalSuccessorClosure != promotionAuthorityEstablished",
+    "mechanicalSuccessorClosure != domainImprovementEstablished",
+    "recursive improvement != recursive authority",
+    "evaluation grounding identity is explicit and digest-bound",
+    "no universal fitness function or RSI controller is introduced"
+  ],
+  "unitAcceptance": {
+    "runtimeJobId": "job-01a0c7e2-aef7-7032-8221-65691c48c3d9",
+    "terminalEvidence": "sha256:c93d215b5a5eb402c735ec2aedbe881c24d0fd583dd6b2a60af0c947968c976a",
+    "testsPassed": 26,
+    "ruffLint": "PASS",
+    "ruffFormat": "PASS",
+    "uvLockCheck": "PASS"
+  },
+  "historicalDogfood": {
+    "subject": "Harness RSI P2 -> P3 improvement-of-improvement",
+    "contract": "meta/next/evidence/analysis/rsi-successor-p2-p3-contract-r1.json",
+    "contractDigest": "sha256:11b4855c47e9ebb473741700b374cb584a7fa0ec1382f8d04f57ecef6b4e2931",
+    "compiledDigest": "sha256:17aff0b50ad3cad2637de106bac41c4bbae81758355988475b6336a3a3bd70da",
+    "projectionDigest": "sha256:fa3bb7fe011463edfc86cd9bb22d7af7e5fa1b4bbb43ff5b8a1ed0f88b1bf901",
+    "recursionClass": "IMPROVEMENT_MECHANISM_IN_CHANGE_SET",
+    "evaluationGroundingMode": "EXTERNALLY_ANCHORED",
+    "mechanicalSuccessorClosure": true,
+    "promotionAuthorityEstablished": false,
+    "domainImprovementEstablished": false,
+    "runtimeJobId": "job-01a0c7e4-9d37-7381-b57e-914d028120e1",
+    "terminalEvidence": "sha256:1305788b81740d15410fb5f508aaec07e9d903fbba513f3e7e455c92983ed3fa"
+  },
+  "postMainRequalification": {
+    "mainBaseRevision": "4d46d741994ce08c8282c62c5154aef57f20331a",
+    "runtimeJobId": "job-01a0c7e8-23f2-7e71-91a4-d10db5649e10",
+    "terminalEvidence": "sha256:f259c729c4bd51593be42513dae991f152b1ecd823f29d6e91add15c58a8c5d5",
+    "compositionTestsPassed": 26,
+    "repoTestsPassed": 31,
+    "ruffLint": "PASS",
+    "ruffFormat": "PASS",
+    "uvLockCheck": "PASS",
+    "ownerBoundary": "PASS",
+    "architectureDrift": "PASS",
+    "integrationSmoke": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "externalAlignment": [
+    "arXiv:2609.13406 Generalized Agent Iteration",
+    "arXiv:2607.07663 Recursive Self-Improvement in AI survey",
+    "arXiv:2505.22954 Darwin Godel Machine",
+    "ICLR 2026 ShinkaEvolve",
+    "RSI-Exam 0.1",
+    "arXiv:2609.14857 ModularRSI",
+    "arXiv:2608.20318 AI4AI-Bench",
+    "arXiv:2608.24876 Recuris"
+  ],
+  "remainingBoundaries": [
+    "The feature is not yet integrated into main.",
+    "Meta-improvement measurement remains a study profile, not a universal package metric.",
+    "No long-horizon repeated successor benchmark has yet been run for Ordivon-wide RSI.",
+    "No evaluator-evolution protocol is generalized by this change.",
+    "No automatic promotion, deployment, Git mutation, scheduler, or RSI controller is introduced."
+  ]
+}

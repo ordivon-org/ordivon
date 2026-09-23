@@ -1,0 +1,233 @@
+{
+  "kind": "ordivon.verification-obligation-pacti-shadow-acceptance-r2",
+  "nonClaims": [
+    "This acceptance proves only the frozen algebraic shadow and obligation/binding integration.",
+    "This acceptance does not prove Harness/Gateway/Runtime implementation conformance.",
+    "This acceptance does not grant execution authority or establish domain acceptance.",
+    "Pacti remains outside Ordivon production dependencies."
+  ],
+  "run": {
+    "bindingSet": {
+      "bindings": [
+        {
+          "gateId": "gate:pacti-timeout-contract",
+          "nativeSpecificationRef": {
+            "digest": "sha256:2701af1f0d84343577a05672cbcd5e2baa88ae982ce43227e91f6d83d3bc767c",
+            "id": "spec:pacti-timeout-obligation-r2"
+          },
+          "nonClaims": [
+            "Pacti is a scoped algebra provider, not Ordivon domain truth."
+          ],
+          "obligationDigest": "sha256:cc7cb49354060dd0f43e47505109f737f222ee1f1aed12bff6b9649c16673e48",
+          "supportScope": "Algebraic timeout-domain compatibility/refinement only; not implementation conformance, Runtime admission truth, or execution authority.",
+          "verifierClass": "contract-algebra",
+          "verifierOwnerId": "next.formal-shadow",
+          "verifierRef": {
+            "digest": "sha256:7651dde441d76e60dc81d8a7e76435227768bef82de506b9bc684ed64a165930",
+            "id": "provider:pacti:0.3.1"
+          }
+        }
+      ],
+      "circuitRef": {
+        "digest": "sha256:2c5188cde86e8cf7476da4be51797950c346954b2f04d07f7d183dce5d70cdae",
+        "id": "circuit:pacti-timeout-obligation-r2"
+      },
+      "kind": "ordivon.task-local-verifier-binding-set",
+      "nonClaims": [
+        "This task-local binding does not install or activate Pacti globally.",
+        "Formal refinement does not establish implementation conformance.",
+        "Binding resolution does not grant execution authority."
+      ],
+      "obligationSetDigest": "sha256:f025cc3a0f909b7c37429af6ee0fb1d6e79dc710f90262f42a6e49a2d719031d",
+      "schemaVersion": 1
+    },
+    "formalResult": {
+      "acceptedCase": {
+        "composedContract": {
+          "assumptions": [],
+          "guarantees": [
+            "-t_runtime <= -1",
+            "t_runtime <= 3e+05"
+          ],
+          "input_vars": [],
+          "output_vars": [
+            "t_runtime"
+          ]
+        },
+        "grantMaxMs": 300000,
+        "refinesTopRequirement": true,
+        "runtimeMaxMs": 900000
+      },
+      "deliberateMismatch": {
+        "error": "Could not eliminate variables ['t_gateway', 't_runtime']\nby refining the assumptions \n[\n  t_gateway <= 6e+05\n]\nusing guarantees \n[\n  -t_gateway <= -1\n  t_gateway <= 9e+05\n]\n",
+        "errorType": "IncompatibleArgsError",
+        "grantMaxMs": 900000,
+        "rejected": true,
+        "runtimeMaxMs": 600000
+      },
+      "formalResultDigest": "sha256:bb671816b8904a97a9c846675a94a34911eed977b593bd77ab4332abf5f0b77a",
+      "pactiVersion": "0.3.1",
+      "quotient": {
+        "contract": {
+          "assumptions": [
+            "-t_gateway <= -1",
+            "t_gateway <= 3e+05"
+          ],
+          "guarantees": [
+            "-t_runtime <= -1",
+            "t_runtime <= 3e+05"
+          ],
+          "input_vars": [
+            "t_gateway"
+          ],
+          "output_vars": [
+            "t_runtime"
+          ]
+        },
+        "recomposedRefinesTopRequirement": true
+      }
+    },
+    "gateResult": {
+      "circuitId": "circuit:pacti-timeout-obligation-r2",
+      "evidenceRefs": [
+        "pacti-provider:sha256:7651dde441d76e60dc81d8a7e76435227768bef82de506b9bc684ed64a165930",
+        "pacti-spec:sha256:2701af1f0d84343577a05672cbcd5e2baa88ae982ce43227e91f6d83d3bc767c",
+        "pacti-run:sha256:bb671816b8904a97a9c846675a94a34911eed977b593bd77ab4332abf5f0b77a"
+      ],
+      "gateId": "gate:pacti-timeout-contract",
+      "kind": "ordivon.composition-gate-result",
+      "manifestDigest": "sha256:2c5188cde86e8cf7476da4be51797950c346954b2f04d07f7d183dce5d70cdae",
+      "nonClaims": [
+        "Pacti PASS establishes only the frozen algebraic contract relation.",
+        "Pacti PASS does not prove Gateway or Runtime implementation conformance.",
+        "Pacti PASS does not grant execution authority or establish domain acceptance."
+      ],
+      "schemaVersion": 1,
+      "standing": "SATISFIED",
+      "supportScope": "Algebraic timeout-domain compatibility/refinement only; not implementation conformance, Runtime admission truth, or execution authority.",
+      "verifierOwnerId": "next.formal-shadow"
+    },
+    "kind": "ordivon.verification-obligation-pacti-shadow-r2",
+    "nonClaims": [
+      "This spec does not prove Harness/Gateway/Runtime implementation conformance.",
+      "This spec does not add Pacti to project dependencies.",
+      "This spec does not grant execution or effect authority.",
+      "This spec is not a universal formal-contract language."
+    ],
+    "obligationSet": {
+      "circuitRef": {
+        "digest": "sha256:2c5188cde86e8cf7476da4be51797950c346954b2f04d07f7d183dce5d70cdae",
+        "id": "circuit:pacti-timeout-obligation-r2"
+      },
+      "kind": "ordivon.verification-obligation-set",
+      "nonClaims": [
+        "This projection does not discover, select, rank, or execute verifiers.",
+        "This projection grants no Tool, credential, workflow, retry, or domain authority.",
+        "Verification closure does not establish domain acceptance."
+      ],
+      "obligationSetDigest": "sha256:f025cc3a0f909b7c37429af6ee0fb1d6e79dc710f90262f42a6e49a2d719031d",
+      "obligations": [
+        {
+          "assumption": "Runtime contract accepts the complete caller-granted timeout domain.",
+          "circuitRef": {
+            "digest": "sha256:2c5188cde86e8cf7476da4be51797950c346954b2f04d07f7d183dce5d70cdae",
+            "id": "circuit:pacti-timeout-obligation-r2"
+          },
+          "consumerStageId": "stage:runtime-timeout-contract",
+          "gateId": "gate:pacti-timeout-contract",
+          "guarantee": "Gateway contract preserves caller timeout exactly through the seam.",
+          "nonClaims": [
+            "This obligation is a task-local projection of an existing Composition Gate.",
+            "Discharging it establishes only the named support scope, not domain acceptance."
+          ],
+          "obligationDigest": "sha256:cc7cb49354060dd0f43e47505109f737f222ee1f1aed12bff6b9649c16673e48",
+          "producerStageId": "stage:gateway-timeout-contract",
+          "required": true,
+          "requiredStanding": "SATISFIED",
+          "resultKind": "ordivon.composition-gate-result",
+          "sourceGateDigest": "sha256:bc722f0c4102d24df67aecdffd30e7f9578c13b232f75f25d20cb1e1b4b3fb40",
+          "supportScope": "Algebraic timeout-domain compatibility/refinement only; not implementation conformance, Runtime admission truth, or execution authority.",
+          "verifierOwnerId": "next.formal-shadow"
+        }
+      ],
+      "requiredGateIds": [
+        "gate:pacti-timeout-contract"
+      ],
+      "schemaVersion": 1,
+      "truthRole": "task-local-non-authoritative-verification-obligation-projection"
+    },
+    "projection": {
+      "circuitId": "circuit:pacti-timeout-obligation-r2",
+      "claimBoundary": "Mechanical closure means only that all required task-local composition obligations have verifier-owned SATISFIED records and no unresolved manifest assumptions remain. It does not establish domain success.",
+      "domainAcceptanceEstablished": false,
+      "kind": "ordivon.cognitive-circuit-gate-projection",
+      "manifestDigest": "sha256:2c5188cde86e8cf7476da4be51797950c346954b2f04d07f7d183dce5d70cdae",
+      "mechanicalClosure": true,
+      "missingGateIds": [],
+      "projectionDigest": "sha256:5b1ffeaaa611c540bbc6af06923dcc77622cf65b37d37dfe41c51896fb41c8b3",
+      "requiredGateIds": [
+        "gate:pacti-timeout-contract"
+      ],
+      "satisfiedGateIds": [
+        "gate:pacti-timeout-contract"
+      ],
+      "schemaVersion": 1,
+      "standing": "COMPOSITION_GATES_SATISFIED",
+      "truthRole": "bounded-composition-gate-projection-not-domain-verdict",
+      "unknownGateIds": [],
+      "unresolvedAssumptions": [],
+      "unsatisfiedGateIds": []
+    },
+    "resolution": {
+      "bindingSetDigest": "sha256:aec6ecf23cccea13f80a389a1d865680b013ea4781c1ec2eec8f7aac5600bedb",
+      "circuitRef": {
+        "digest": "sha256:2c5188cde86e8cf7476da4be51797950c346954b2f04d07f7d183dce5d70cdae",
+        "id": "circuit:pacti-timeout-obligation-r2"
+      },
+      "claimBoundary": "Resolution means only that every required task-local obligation has an exact caller-authored verifier binding whose owner, obligation digest, and support scope match. It does not prove verifier availability, execute verification, grant authority, discharge a gate, or establish domain acceptance.",
+      "domainAcceptanceEstablished": false,
+      "executionAuthorityGranted": false,
+      "kind": "ordivon.verifier-resolution",
+      "mechanicalResolution": true,
+      "missingRequiredGateIds": [],
+      "obligationSetDigest": "sha256:f025cc3a0f909b7c37429af6ee0fb1d6e79dc710f90262f42a6e49a2d719031d",
+      "resolutionDigest": "sha256:96ba093cb660679fe9c7e0bf1aa754d6309b41f51d55479b019e409a75fc0c0a",
+      "resolvedBindings": [
+        {
+          "gateId": "gate:pacti-timeout-contract",
+          "nativeSpecificationRef": {
+            "digest": "sha256:2701af1f0d84343577a05672cbcd5e2baa88ae982ce43227e91f6d83d3bc767c",
+            "id": "spec:pacti-timeout-obligation-r2"
+          },
+          "obligationDigest": "sha256:cc7cb49354060dd0f43e47505109f737f222ee1f1aed12bff6b9649c16673e48",
+          "supportScope": "Algebraic timeout-domain compatibility/refinement only; not implementation conformance, Runtime admission truth, or execution authority.",
+          "verifierClass": "contract-algebra",
+          "verifierOwnerId": "next.formal-shadow",
+          "verifierRef": {
+            "digest": "sha256:7651dde441d76e60dc81d8a7e76435227768bef82de506b9bc684ed64a165930",
+            "id": "provider:pacti:0.3.1"
+          }
+        }
+      ],
+      "schemaVersion": 1,
+      "standing": "VERIFIER_BINDINGS_RESOLVED",
+      "truthRole": "task-local-non-authoritative-verifier-binding-projection",
+      "unboundOptionalGateIds": []
+    },
+    "resultDigest": "sha256:8c74bdd1f2287fdc1aab7c1b17527625b341b06d44872d0f2659ebf068ccf834",
+    "schemaVersion": 1,
+    "specRef": {
+      "digest": "sha256:2701af1f0d84343577a05672cbcd5e2baa88ae982ce43227e91f6d83d3bc767c",
+      "id": "spec:pacti-timeout-obligation-r2"
+    }
+  },
+  "runner": {
+    "dependencyMode": "uv-isolated-ephemeral",
+    "pacti": "0.3.1",
+    "projectDependencyAdded": false,
+    "python": "3.14"
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "7dc50e0908c2d739be5a1a16c1d4582ad9508220",
+  "truthRole": "acceptance-evidence-not-runtime-or-domain-authority"
+}

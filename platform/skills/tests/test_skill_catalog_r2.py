@@ -153,7 +153,7 @@ class AgentSkillsStandardsTests(unittest.TestCase):
 
 
     def test_ordivon_owned_project_skills_are_strict_agent_skills(self) -> None:
-        root = Path("/root/projects/ordivon/meta/next/.agents/skills")
+        root = Path("/root/projects/ordivon/.agents/skills")
         if not root.is_dir():
             self.skipTest("Ordivon Next project Skills are not installed")
         paths = sorted(root.glob("*/SKILL.md"))
@@ -184,7 +184,7 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
         self.assertEqual(by_id["user-agents"].root, Path.home() / ".agents" / "skills")
         self.assertEqual(
             by_id["project-ordivon-next"].root,
-            Path("/root/projects/ordivon/meta/next/.agents/skills"),
+            Path("/root/projects/ordivon/.agents/skills"),
         )
         self.assertEqual(by_id["user-agents"].validation_mode, "lenient")
         self.assertEqual(by_id["project-ordivon-next"].validation_mode, "lenient")
@@ -596,7 +596,7 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
 
         config = load_skills_mcp_config(config_path)
         required = [
-            Path("/root/projects/ordivon/meta/next/.agents/skills"),
+            Path("/root/projects/ordivon/.agents/skills"),
             Path("/root/.agents/skills"),
             Path("/root/.codex/skills"),
             Path("/root/.hermes/skills"),

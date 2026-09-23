@@ -1,7 +1,7 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B + S2A**
+Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B + S2A + S2B**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
@@ -151,7 +151,7 @@ No universal verifier or global evidence registry is introduced.
 - **S1B — Composition consumer cutover:** migrate remaining Next consumers to the public
   `ordivon-composition` package API and retire facades only when no real consumer requires them.
 - **S2A — Control Plugin edge:** portable control Plugin source -> `extensions/ordivon-control-plane`.
-- **S2B — Canonical Skill source:** project Skills -> root `.agents/skills`.
+- **S2B — Canonical Skill source:** **DEPLOYED** — project Skills -> root `.agents/skills`.
 - **S2C — ChatGPT Skills compatibility edge:** temporary Skills MCP owner ->
   `extensions/chatgpt-skills-mcp`.
 - **S3 — Durable owners:** Gateway, Runtime, Host, Harness -> `packages/`, one at a time.

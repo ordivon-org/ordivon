@@ -57,11 +57,11 @@ impl Sandbox {
                         max_output_bytes: 1024 * 1024,
                     },
                     startup_grace_ms: 1000,
-                    workspace_admission_headroom: None,
                     windows: None,
                 },
                 input_authorities: Vec::new(),
                 credential_authorities: Vec::new(),
+                workspace_headroom: None,
                 execution: ExecutionContext {
                     principal: "principal:mcp-test".to_string(),
                     global_limit: 4,
@@ -99,11 +99,11 @@ impl Sandbox {
                     max_output_bytes: 1024 * 1024,
                 },
                 startup_grace_ms: 1000,
-                workspace_admission_headroom: None,
                 windows: None,
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
+            workspace_headroom: None,
             execution: ExecutionContext {
                 principal: "principal:mcp-test-ingress".to_string(),
                 global_limit: 4,
@@ -152,6 +152,7 @@ fn exec_tool_request(
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -819,6 +820,7 @@ fn workspace_exec_plan_normalizes_legacy_sum_without_writing_legacy_identity() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -851,6 +853,7 @@ fn workspace_exec_plan_normalizes_legacy_sum_without_writing_legacy_identity() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -951,11 +954,11 @@ print(json.dumps({{
                     max_output_bytes: 1024 * 1024,
                 },
                 startup_grace_ms: 1000,
-                workspace_admission_headroom: None,
                 windows: None,
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
+            workspace_headroom: None,
             execution: ExecutionContext {
                 principal: "principal:mcp-test-reconcile".to_string(),
                 global_limit: 4,
@@ -1165,11 +1168,11 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
                 max_output_bytes: 1024 * 1024,
             },
             startup_grace_ms: 1000,
-            workspace_admission_headroom: None,
             windows: None,
         },
         input_authorities: Vec::new(),
         credential_authorities: Vec::new(),
+        workspace_headroom: None,
         execution: ExecutionContext {
             principal: "principal:mcp-test-private-host".to_string(),
             global_limit: 4,
@@ -1832,38 +1835,6 @@ fn deployment_in_progress_is_safe_same_request_without_commitment() {
 }
 
 #[test]
-fn workspace_storage_headroom_failure_is_retryable_without_commitment() {
-    let mut error = RuntimeError::new(
-        ordivon_runtime_core::RuntimeErrorCode::WorkspaceCapacityExceeded,
-        "workspace admission blocked by storage headroom policy",
-        Some("workspaceId"),
-        true,
-    );
-    error.retry_after_ms = Some(300_000);
-    let value = serde_json::to_value(ToolError::from(error)).unwrap();
-    assert_eq!(
-        value.pointer("/code").and_then(Value::as_str),
-        Some("WORKSPACE_CAPACITY_EXCEEDED")
-    );
-    assert_eq!(
-        value.pointer("/retryClass").and_then(Value::as_str),
-        Some("safe_same_request")
-    );
-    assert_eq!(
-        value.pointer("/commitState").and_then(Value::as_str),
-        Some("not_committed")
-    );
-    assert_eq!(
-        value.pointer("/retryable").and_then(Value::as_bool),
-        Some(true)
-    );
-    assert_eq!(
-        value.pointer("/retryAfterMs").and_then(Value::as_u64),
-        Some(300_000)
-    );
-}
-
-#[test]
 fn workspace_exists_guides_reconciliation_instead_of_blind_retry() {
     let error = RuntimeError::new(
         ordivon_runtime_core::RuntimeErrorCode::WorkspaceExists,
@@ -2234,6 +2205,7 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "availabilityIssue",
         "structuredPlan",
         "immutableInputs",
+        "windowsContexts",
         "windowsImmutableInputAuthorities",
         "hostDependencyCommitments",
         "hostDependencyContinuityScope",

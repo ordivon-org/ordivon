@@ -204,8 +204,8 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     *poll_index = poll_index.saturating_add(1);
 }
 
-#[derive(Clone, Debug)]
-pub struct WorkspaceAdmissionHeadroomConfig {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkspaceHeadroomConfig {
     pub path: PathBuf,
     pub minimum_free_bytes: u64,
 }
@@ -216,7 +216,6 @@ pub struct RuntimeConfig {
     pub registry: RegistryConfig,
     pub executor: UniversalExecutorConfig,
     pub startup_grace_ms: u64,
-    pub workspace_admission_headroom: Option<WorkspaceAdmissionHeadroomConfig>,
     pub windows: Option<WindowsExecutionConfig>,
 }
 
@@ -259,12 +258,12 @@ pub struct Runtime {
     executor: UniversalExecutorConfig,
     default_runtime_ms: u64,
     startup_grace_ms: u64,
-    workspace_admission_headroom: Option<WorkspaceAdmissionHeadroomConfig>,
     execution_path: String,
     execution_home: String,
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
+    workspace_headroom: Option<WorkspaceHeadroomConfig>,
     lifecycle_lock: Arc<Mutex<()>>,
     control_terminal_lock: Arc<Mutex<()>>,
 }
@@ -1053,6 +1052,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: ExecutionProfile::ContainedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1086,6 +1086,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: request.execution.execution_profile,
                 execution_target: request.execution.execution_target,
                 windows_authority: request.execution.windows_authority,
+                windows_context: None,
                 foreign_references: request.execution.foreign_references.clone(),
                 host_dependencies: request.execution.host_dependencies.clone(),
             },
@@ -1124,7 +1125,6 @@ mod trusted_systemd_command_tests {
                             max_output_bytes: 1_048_576,
                         },
                         startup_grace_ms: 2_000,
-                        workspace_admission_headroom: None,
                         windows: None,
                     },
                     vec![InputAuthority {
@@ -1341,7 +1341,6 @@ mod trusted_systemd_command_tests {
                     max_output_bytes,
                 },
                 startup_grace_ms: 2_000,
-                workspace_admission_headroom: None,
                 windows: None,
             },
             Vec::new(),
@@ -1382,6 +1381,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: ExecutionProfile::TrustedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1547,6 +1547,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: crate::runtime::ExecutionProfile::TrustedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1581,6 +1582,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: crate::runtime::ExecutionProfile::ContainedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1644,7 +1646,6 @@ mod trusted_systemd_command_tests {
                 max_output_bytes: 1_048_576,
             },
             startup_grace_ms: 2_000,
-            workspace_admission_headroom: None,
             windows: None,
         })
         .unwrap();
@@ -1680,7 +1681,6 @@ mod trusted_systemd_command_tests {
                 max_output_bytes: 1_048_576,
             },
             startup_grace_ms: 2_000,
-            workspace_admission_headroom: None,
             windows: None,
         })
         .unwrap();

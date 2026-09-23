@@ -73,13 +73,16 @@ AIMD-style speculation control law before predictive ML.
 
 ## Commands
 
-Live projection:
+The R1 baseline above is fixed historical evidence. The current observation
+implementation is R2 and is invoked directly:
 
-    mise run repo:queue:telemetry
+    python3 tools/repo/queue_telemetry.py --repo ordivon-org/ordivon
 
-Hermetic analyzer tests:
+Hermetic queue-observation contract test:
 
-    mise run repo:queue:telemetry:test
+    uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_architecture_docs.py -k queue_telemetry
 
 The analyzer also accepts --input for deterministic replay of a saved provider
-snapshot and --snapshot-output for ephemeral diagnostic capture.
+snapshot, --snapshot-output for raw diagnostic capture, and --normalized-output
+for the canonical observation form. Diagnosis now lives separately in
+tools/repo/convergence_pressure.py.

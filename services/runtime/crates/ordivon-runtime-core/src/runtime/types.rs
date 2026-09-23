@@ -293,6 +293,111 @@ impl WindowsAuthority {
             Self::ActiveUser => "active_user",
         }
     }
+
+    /// Compile the legacy flat Windows authority profile into the canonical
+    /// orthogonal payload identity x payload privilege model.
+    pub fn canonical_context(self) -> WindowsExecutionContextRequest {
+        match self {
+            Self::Limited => WindowsExecutionContextRequest {
+                identity: WindowsExecutionIdentity::Service,
+                privilege: WindowsPayloadPrivilege::Limited,
+            },
+            Self::Elevated => WindowsExecutionContextRequest {
+                identity: WindowsExecutionIdentity::Service,
+                privilege: WindowsPayloadPrivilege::Elevated,
+            },
+            Self::ActiveUser => WindowsExecutionContextRequest {
+                identity: WindowsExecutionIdentity::ActiveUser,
+                privilege: WindowsPayloadPrivilege::Limited,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowsExecutionIdentity {
+    #[default]
+    Service,
+    ActiveUser,
+}
+
+impl WindowsExecutionIdentity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Service => "service",
+            Self::ActiveUser => "active_user",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowsPayloadPrivilege {
+    #[default]
+    Limited,
+    Elevated,
+}
+
+impl WindowsPayloadPrivilege {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Limited => "limited",
+            Self::Elevated => "elevated",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WindowsExecutionContextRequest {
+    #[serde(default)]
+    pub identity: WindowsExecutionIdentity,
+    #[serde(default)]
+    pub privilege: WindowsPayloadPrivilege,
+}
+
+impl WindowsExecutionContextRequest {
+    pub const fn new(
+        identity: WindowsExecutionIdentity,
+        privilege: WindowsPayloadPrivilege,
+    ) -> Self {
+        Self {
+            identity,
+            privilege,
+        }
+    }
+
+    pub fn legacy_authority(self) -> Option<WindowsAuthority> {
+        match (self.identity, self.privilege) {
+            (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Limited) => {
+                Some(WindowsAuthority::Limited)
+            }
+            (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Elevated) => {
+                Some(WindowsAuthority::Elevated)
+            }
+            (WindowsExecutionIdentity::ActiveUser, WindowsPayloadPrivilege::Limited) => {
+                Some(WindowsAuthority::ActiveUser)
+            }
+            (WindowsExecutionIdentity::ActiveUser, WindowsPayloadPrivilege::Elevated) => None,
+        }
+    }
+
+    pub fn transport_authority(self) -> WindowsAuthority {
+        match (self.identity, self.privilege) {
+            (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Limited) => {
+                WindowsAuthority::Limited
+            }
+            (WindowsExecutionIdentity::Service, WindowsPayloadPrivilege::Elevated) => {
+                WindowsAuthority::Elevated
+            }
+            (WindowsExecutionIdentity::ActiveUser, _) => WindowsAuthority::ActiveUser,
+        }
+    }
+
+    pub fn compatible_with_legacy(self, authority: WindowsAuthority) -> bool {
+        authority == WindowsAuthority::Limited || self.legacy_authority() == Some(authority)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -307,6 +412,10 @@ pub(crate) enum WindowsTokenClass {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WindowsExecutionContext {
     pub token_class: WindowsTokenClass,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload_identity: Option<WindowsExecutionIdentity>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload_privilege: Option<WindowsPayloadPrivilege>,
     pub token_user_sid: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_id: Option<u32>,
@@ -535,6 +644,9 @@ pub struct RuntimeExecutionTargetCapability {
     pub execution_profiles: Vec<ExecutionProfile>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub windows_authorities: Vec<WindowsAuthority>,
+    /// Canonical Windows identity x payload-privilege contexts proven available by the live provider.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub windows_contexts: Vec<WindowsExecutionContextRequest>,
     /// Windows authorities for which Runtime can present exact immutable inputs.
     /// Empty for non-Windows targets and when no safe native presentation is available.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -556,19 +668,6 @@ pub struct RuntimeExecutionTargetCapability {
 
 #[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RuntimeWorkspaceAdmissionHeadroom {
-    pub path: String,
-    pub minimum_free_bytes: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub available_bytes: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub admission_allowed: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub observation_issue: Option<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct RuntimeCapabilities {
     pub schema_version: u32,
     pub node: RuntimeNodeIdentity,
@@ -579,8 +678,6 @@ pub struct RuntimeCapabilities {
     pub input_authorities: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub credential_authorities: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub workspace_admission_headroom: Option<RuntimeWorkspaceAdmissionHeadroom>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
 }
 
@@ -712,6 +809,8 @@ pub(crate) struct RuntimeExecutionPlan {
     #[serde(default)]
     pub windows_authority: WindowsAuthority,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_context: Option<WindowsExecutionContextRequest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub windows_execution_context: Option<WindowsExecutionContext>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
@@ -817,6 +916,8 @@ struct OperationRequestIdentity {
     execution_target: ExecutionTarget,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     windows_authority: Option<WindowsAuthority>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    windows_context: Option<WindowsExecutionContextRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     foreign_references: Vec<ForeignReference>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -877,6 +978,8 @@ struct ProposalRequestIdentity {
     execution_target: ExecutionTarget,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     windows_authority: Option<WindowsAuthority>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    windows_context: Option<WindowsExecutionContextRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     foreign_references: Vec<ForeignReference>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -930,6 +1033,7 @@ fn operation_request_identity(request: &JobRunRequest) -> OperationRequestIdenti
             request.execution.execution_target,
             request.execution.windows_authority,
         ),
+        windows_context: request.execution.windows_context,
         foreign_references: request.execution.foreign_references.clone(),
         host_dependencies: host_dependency_identities(&request.execution.host_dependencies),
     }
@@ -1011,6 +1115,7 @@ fn proposal_request_identity(proposal: &JobRunProposal) -> ProposalRequestIdenti
             proposal.execution.execution_target,
             proposal.execution.windows_authority,
         ),
+        windows_context: proposal.execution.windows_context,
         foreign_references: proposal.execution.foreign_references.clone(),
         host_dependencies: host_dependency_identities(&proposal.execution.host_dependencies),
     }
@@ -1062,6 +1167,7 @@ pub(crate) fn legacy_request_identity_digest_from_proposal(
             proposal.execution.execution_target,
             proposal.execution.windows_authority,
         ),
+        windows_context: proposal.execution.windows_context,
         foreign_references: proposal.execution.foreign_references.clone(),
         host_dependencies: host_dependency_identities(&proposal.execution.host_dependencies),
     })
@@ -1174,6 +1280,7 @@ pub(crate) fn operation_request_identity_digest_from_plan(
             plan.execution_target,
             plan.windows_authority,
         ),
+        windows_context: plan.windows_context,
         foreign_references: plan.foreign_references.clone(),
         host_dependencies: Vec::new(),
     })
@@ -1680,6 +1787,8 @@ pub struct ExecutionProposal {
     pub execution_target: ExecutionTarget,
     #[serde(default)]
     pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_context: Option<WindowsExecutionContextRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -1733,6 +1842,8 @@ pub(crate) struct UniversalExecutionRequest {
     pub execution_target: ExecutionTarget,
     #[serde(default)]
     pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_context: Option<WindowsExecutionContextRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

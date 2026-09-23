@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[1]
 DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"
-DEFAULT_SKILLS = ROOT / ".agents" / "skills"
+DEFAULT_SKILLS = REPO_ROOT / ".agents" / "skills"
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 
@@ -237,8 +237,8 @@ def materialize(
         skill_rows.append(
             {
                 "name": skill.name,
-                "sourceRelativePath": skill.relative_to(ROOT).as_posix()
-                if ROOT in skill.parents
+                "sourceRelativePath": skill.relative_to(REPO_ROOT).as_posix()
+                if REPO_ROOT in skill.parents
                 else str(skill),
                 "packageDigest": sha256_bytes(canonical_bytes(package_manifest)),
                 "fileCount": len(package_manifest),
@@ -247,8 +247,8 @@ def materialize(
     skill_source = None
     if resolved_skills_root is not None:
         skill_source = (
-            resolved_skills_root.relative_to(ROOT).as_posix()
-            if ROOT in resolved_skills_root.parents
+            resolved_skills_root.relative_to(REPO_ROOT).as_posix()
+            if REPO_ROOT in resolved_skills_root.parents
             else str(resolved_skills_root)
         )
     value = {

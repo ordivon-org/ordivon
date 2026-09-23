@@ -443,6 +443,7 @@ impl Runtime {
                 execution_profile: proposal.execution.execution_profile,
                 execution_target: proposal.execution.execution_target,
                 windows_authority: proposal.execution.windows_authority,
+                windows_context: proposal.execution.windows_context,
                 foreign_references: proposal.execution.foreign_references.clone(),
                 host_dependencies: proposal.execution.host_dependencies.clone(),
             },

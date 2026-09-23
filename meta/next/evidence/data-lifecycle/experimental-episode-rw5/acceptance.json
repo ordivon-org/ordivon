@@ -1,0 +1,58 @@
+{
+  "effectiveDate": "2026-09-22",
+  "federation": {
+    "acceptance": "meta/next/evidence/data-lifecycle/data-products-r2/acceptance.json",
+    "catalog": "meta/next/evidence/data-lifecycle/data-products-r2/federated-catalog.dcat.jsonld",
+    "catalogSha256": "sha256:afd6bb303a20b2ba924b9026ff250740330373abd6babe689f043902e6ddf22e",
+    "standing": "PASS_THREE_PRODUCT_FEDERATION"
+  },
+  "kind": "ordivon.experimental-episode-rw5-data-lifecycle-acceptance",
+  "lego": {
+    "EL50": {
+      "ref": "meta/next/data-products/experimental-episode-corpus-r1/odcs.json",
+      "standing": "PASS_ODPS_1_1_ODCS_3_2"
+    },
+    "EL51": {
+      "ref": "meta/next/evidence/data-products/experimental-episode-analysis-r1/artifact-index-verification.json",
+      "standing": "PASS_ARTIFACT_DATASET_INDEX"
+    },
+    "EL52": {
+      "ref": "meta/next/evidence/data-products/experimental-episode-analysis-r1/openlineage.json",
+      "standing": "PASS_OPENLINEAGE_2_0_2"
+    },
+    "EL53": {
+      "ref": "meta/next/evidence/data-products/experimental-episode-analysis-r1/provenance.prov.jsonld",
+      "standing": "PASS_PROV_O_DERIVATION"
+    },
+    "EL54": {
+      "ref": "meta/next/evidence/data-lifecycle/experimental-episode-rw5/observability.json",
+      "standing": "PASS_BOUNDED_OTLP_PROMETHEUS_READBACK_COLD_STATE_RESTORED"
+    }
+  },
+  "next": {
+    "RW6": "READY_HOLDOUT_BOUNDARY_AND_THIRD_DOMAIN_DOGFOOD",
+    "permanentPostgres": "ELIGIBLE_FOR_WORKSTATION_DESIRED_STATE_WITH_CURRENTNESS_POLICY"
+  },
+  "preservedBoundaries": [
+    "Runtime/Harness/domain owners retain source truth.",
+    "PostgreSQL is a rebuildable materialization, not product identity.",
+    "Artifact Parquet is a derived interchange view, not full Episode semantics.",
+    "OpenLineage is operational lineage; PROV-O records semantic derivation.",
+    "Prometheus/OTel are observability evidence, never currentness/authorization/completion truth.",
+    "Rights, external redistribution, retention and formal privacy remain fail-closed where unassigned."
+  ],
+  "product": {
+    "acceptance": "meta/next/data-products/experimental-episode-corpus-r1/acceptance.json",
+    "acceptanceSha256": "sha256:cf97dfaeae7644ced230b78e62f1d41c917ef9f88de6460b5a21193ab2cf2849",
+    "contractId": "66cca360-d1c5-5f8d-8c7d-3f6fe6137d0d",
+    "id": "4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b",
+    "version": "1.0.0"
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "1214254b38af1485eca368e190704d360ffeb06a",
+  "standing": "RW5_ACCEPTED_STANDARD_NATIVE_DATA_LIFECYCLE",
+  "taskLocalBindings": {
+    "ref": "meta/next/evidence/acceptance/experimental-episode-rw5-bindings.json",
+    "truthRole": "task-local-non-authoritative-cross-owner-locator"
+  }
+}

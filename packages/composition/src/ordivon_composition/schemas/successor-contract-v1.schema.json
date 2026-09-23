@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:successor-contract:v1",
+  "title": "Ordivon Successor Contract v1",
+  "description": "A deterministic task-local proposal binding one exact predecessor system state to one exact candidate successor, the improvement mechanism that produced it, evaluation anchors, and verifier-owned succession gates. It does not grant promotion authority or establish domain improvement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "contractId",
+    "selfBoundaryRef",
+    "predecessorRef",
+    "candidateRef",
+    "objectiveRef",
+    "improvementProcessRef",
+    "changeTargets",
+    "evaluationGrounding",
+    "promotionPolicyRef",
+    "gateRequirements",
+    "unresolvedAssumptions",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.successor-contract" },
+    "contractId": { "$ref": "#/$defs/identifier" },
+    "selfBoundaryRef": { "$ref": "#/$defs/boundRef" },
+    "predecessorRef": { "$ref": "#/$defs/boundRef" },
+    "candidateRef": { "$ref": "#/$defs/boundRef" },
+    "objectiveRef": { "$ref": "#/$defs/boundRef" },
+    "improvementProcessRef": { "$ref": "#/$defs/boundRef" },
+    "changeTargets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "knowledge",
+          "memory",
+          "method",
+          "cognitive-circuit",
+          "harness",
+          "tool",
+          "capability-binding",
+          "model",
+          "data",
+          "training",
+          "evaluator",
+          "improvement-mechanism",
+          "authority-policy"
+        ]
+      }
+    },
+    "evaluationGrounding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "anchors"],
+      "properties": {
+        "mode": {
+          "enum": [
+            "EXTERNALLY_ANCHORED",
+            "MIXED",
+            "SELF_REFERENTIAL"
+          ]
+        },
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "ownerId", "ref", "digest", "relation"],
+            "properties": {
+              "id": { "$ref": "#/$defs/identifier" },
+              "ownerId": { "$ref": "#/$defs/identifier" },
+              "ref": { "$ref": "#/$defs/identifier" },
+              "digest": { "$ref": "#/$defs/sha256" },
+              "relation": {
+                "enum": [
+                  "EXTERNAL_TO_CANDIDATE",
+                  "CANDIDATE_OWNED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "promotionPolicyRef": { "$ref": "#/$defs/boundRef" },
+    "gateRequirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "verifierOwnerId",
+          "supportScope",
+          "required",
+          "anchorRefIds"
+        ],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "verifierOwnerId": { "$ref": "#/$defs/identifier" },
+          "supportScope": { "type": "string", "minLength": 1 },
+          "required": { "type": "boolean" },
+          "anchorRefIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "#/$defs/identifier" }
+          }
+        }
+      }
+    },
+    "unresolvedAssumptions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

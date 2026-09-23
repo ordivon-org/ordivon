@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.evidence-boundary-census",
+  "date": "2026-09-23",
+  "sourceRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+  "truthRole": "architecture-census-not-evidence-or-domain-truth",
+  "decision": "NO_UNIVERSAL_EVIDENCE_OBJECT_OR_STORE",
+  "owners": [
+    {
+      "owner": "runtime",
+      "nativeForms": [
+        "terminal evidence",
+        "Result",
+        "Artifact",
+        "Job/Attempt state"
+      ],
+      "truth": "physical execution and artifact facts",
+      "doNotPromote": "domain success"
+    },
+    {
+      "owner": "harness",
+      "nativeForms": [
+        "Run receipt",
+        "trace digest",
+        "CompletionProposal",
+        "Tool intent/effect bindings"
+      ],
+      "truth": "bounded Agent Run structural/cognition/effect-intent facts",
+      "doNotPromote": "caller/domain completion"
+    },
+    {
+      "owner": "host",
+      "nativeForms": [
+        "Task revision",
+        "checkpoint digest",
+        "Board sequence"
+      ],
+      "truth": "external semantic continuity/collaboration",
+      "doNotPromote": "foreign Runtime/Git/domain currentness"
+    },
+    {
+      "owner": "security",
+      "nativeForms": [
+        "provider-native SARIF/CycloneDX/OPA JSON",
+        "EvidenceRef"
+      ],
+      "truth": "security evidence binding and policy decision",
+      "doNotPromote": "provider/domain effect truth"
+    },
+    {
+      "owner": "composition",
+      "nativeForms": [
+        "evidenceRefs",
+        "supportScope",
+        "nonClaims",
+        "VerificationObligation",
+        "CompositionGateResult"
+      ],
+      "truth": "task-local mechanical compatibility/verification projection",
+      "doNotPromote": "owner currentness or domain acceptance"
+    }
+  ],
+  "commonMechanicalAxes": [
+    "owner/source identity",
+    "subject identity/revision",
+    "digest",
+    "currentness/applicability",
+    "evidence reference",
+    "support scope",
+    "limitations/nonClaims",
+    "verifier owner",
+    "standing"
+  ],
+  "existingReusableContracts": [
+    "composition VerificationObligationSet",
+    "composition CompositionGateResult",
+    "composition interface compatibility/currentness evaluation",
+    "security EvidenceRef"
+  ],
+  "d02Disposition": {
+    "status": "REUSE_EXISTING_CONTRACTS",
+    "reason": "Current shared mechanics already exist; a new universal Evidence payload would flatten provider-native and owner-native semantics.",
+    "next": "Add seam-specific adapters only when a concrete consumer must translate owner-native evidence into an existing verification obligation/result."
+  },
+  "forbidden": [
+    "global evidence truth store",
+    "universal finding schema",
+    "verifier registry/ranker",
+    "telemetry-as-truth",
+    "mechanical SATISFIED-as-domain-completion"
+  ],
+  "nonClaims": [
+    "This census does not validate any specific evidence artifact.",
+    "Common axes do not make owner-native evidence interchangeable."
+  ]
+}

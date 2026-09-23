@@ -56,6 +56,7 @@ fn proposal_from_concrete_request(request: &JobRunRequest) -> JobRunProposal {
             execution_profile: request.execution.execution_profile,
             execution_target: request.execution.execution_target,
             windows_authority: request.execution.windows_authority,
+            windows_context: None,
             foreign_references: request.execution.foreign_references.clone(),
             host_dependencies: request.execution.host_dependencies.clone(),
         },
@@ -194,7 +195,6 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         },
         executor: executor.clone(),
         startup_grace_ms: 2000,
-        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();
@@ -217,6 +217,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
             execution_profile: crate::ExecutionProfile::TrustedLocal,
             execution_target: crate::ExecutionTarget::LocalLinux,
             windows_authority: crate::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -715,7 +716,6 @@ impl IntegrationContext {
             registry: self.registry.clone(),
             executor: self.executor.clone(),
             startup_grace_ms,
-            workspace_admission_headroom: None,
             windows: None,
         })
         .unwrap()
@@ -732,7 +732,6 @@ impl IntegrationContext {
                 registry: self.registry.clone(),
                 executor: self.executor.clone(),
                 startup_grace_ms,
-                workspace_admission_headroom: None,
                 windows: None,
             },
             authorities,
@@ -774,6 +773,7 @@ impl IntegrationContext {
                 execution_profile: crate::ExecutionProfile::TrustedLocal,
                 execution_target: crate::ExecutionTarget::LocalLinux,
                 windows_authority: crate::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -984,7 +984,6 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
         },
         executor: executor.clone(),
         startup_grace_ms: 5000,
-        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();
@@ -1007,6 +1006,7 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
             execution_profile: crate::ExecutionProfile::ContainedLocal,
             execution_target: crate::ExecutionTarget::LocalLinux,
             windows_authority: crate::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: vec![crate::ForeignReference {
                 namespace: "ordivon.edge".to_string(),
                 reference_type: "supervisor_generation".to_string(),
@@ -1991,6 +1991,7 @@ impl IntegrationContext {
                 execution_profile: crate::ExecutionProfile::TrustedLocal,
                 execution_target: crate::ExecutionTarget::LocalLinux,
                 windows_authority: crate::WindowsAuthority::Limited,
+                windows_context: None,
                 windows_execution_context: None,
                 foreign_references: Vec::new(),
                 input_set_id: None,
@@ -2493,7 +2494,6 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
             registry,
             executor: executor.clone(),
             startup_grace_ms: 2_000,
-            workspace_admission_headroom: None,
             windows: None,
         },
         vec![InputAuthority {
@@ -2571,6 +2571,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
             execution_profile: crate::ExecutionProfile::ContainedLocal,
             execution_target: crate::ExecutionTarget::LocalLinux,
             windows_authority: crate::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: vec![ForeignReference {
                 namespace: "ordivon.finance".to_string(),
                 reference_type: "state_version".to_string(),
@@ -2652,7 +2653,6 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         },
         executor: executor.clone(),
         startup_grace_ms: 2_000,
-        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();
@@ -3202,7 +3202,6 @@ fn runtime_executable_runtime_drift_is_witnessed_without_rewriting_script_identi
         registry: context.registry.clone(),
         executor,
         startup_grace_ms: 2_000,
-        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();

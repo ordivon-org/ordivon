@@ -17,6 +17,8 @@ dev = [
 [project.scripts]
 ordivon-circuit = "ordivon_composition.cognitive_circuit_r1:main"
 ordivon-interface-contract = "ordivon_composition.interface_contract_r2:main"
+ordivon-verification-obligations = "ordivon_composition.verification_obligation_r1:main"
+ordivon-successor = "ordivon_composition.successor_contract_r1:main"
 
 [build-system]
 requires = ["uv_build>=0.12.3,<0.13.0"]

@@ -172,8 +172,249 @@ def test_queue_telemetry_provider_projection_is_deterministic() -> None:
     assert result["coverage"]["queueAttributedPullRequests"] == 2
     assert result["metrics"]["observedPeakQueueDepthLowerBound"] == 2
     assert result["metrics"]["unsuccessfulMergeGroupRuns"] == 1
-    assert result["metrics"]["observedWastedVerificationSeconds"] == 5
+    assert result["metrics"]["unsuccessfulMergeGroupExecutionSeconds"] == 5
     assert result["metrics"]["queueDispatchSeconds"]["median"] == 12.5
-    by_pr = {row["pr"]: row for row in result["observations"]}
+    assert "pressureGate" not in result
+    assert result == queue_module.project(queue_module.normalize(snapshot))
+    by_pr = {row["pr"]: row for row in result["episodeMetrics"]}
     assert by_pr[7]["verificationSeconds"] == 22
     assert by_pr[8]["mergeGroupRuns"] == 2
+
+
+CI_TELEMETRY_PATH = ROOT / "tools" / "repo" / "ci_telemetry.py"
+ci_spec = importlib.util.spec_from_file_location("ci_telemetry", CI_TELEMETRY_PATH)
+assert ci_spec is not None and ci_spec.loader is not None
+ci_module = importlib.util.module_from_spec(ci_spec)
+sys.modules[ci_spec.name] = ci_module
+ci_spec.loader.exec_module(ci_module)
+
+PRESSURE_PATH = ROOT / "tools" / "repo" / "convergence_pressure.py"
+pressure_spec = importlib.util.spec_from_file_location("convergence_pressure", PRESSURE_PATH)
+assert pressure_spec is not None and pressure_spec.loader is not None
+pressure_module = importlib.util.module_from_spec(pressure_spec)
+sys.modules[pressure_spec.name] = pressure_module
+pressure_spec.loader.exec_module(pressure_module)
+
+
+def ci_fixture():
+    return ci_module.ProviderSnapshot(
+        repository="o/r",
+        runs=[
+            {
+                "id": 101,
+                "workflow_id": 1,
+                "name": "Monorepo Required",
+                "event": "pull_request",
+                "head_sha": "pr-a",
+                "head_branch": "agent/a",
+                "run_attempt": 1,
+                "status": "completed",
+                "conclusion": "cancelled",
+                "created_at": "2026-09-23T00:00:00Z",
+                "run_started_at": "2026-09-23T00:00:02Z",
+                "updated_at": "2026-09-23T00:00:55Z",
+            },
+            {
+                "id": 102,
+                "workflow_id": 1,
+                "name": "Monorepo Required",
+                "event": "merge_group",
+                "head_sha": "mg-a",
+                "head_branch": "gh-readonly-queue/main/pr-7-a",
+                "run_attempt": 1,
+                "status": "completed",
+                "conclusion": "success",
+                "created_at": "2026-09-23T00:01:00Z",
+                "run_started_at": "2026-09-23T00:01:03Z",
+                "updated_at": "2026-09-23T00:01:43Z",
+            },
+        ],
+        jobs={
+            "101": [
+                {
+                    "id": 1001,
+                    "name": "root-verification",
+                    "status": "completed",
+                    "conclusion": "cancelled",
+                    "created_at": "2026-09-23T00:00:01Z",
+                    "started_at": "2026-09-23T00:00:03Z",
+                    "completed_at": "2026-09-23T00:00:53Z",
+                    "steps": [
+                        {
+                            "number": 1,
+                            "name": "Repository mechanics",
+                            "status": "completed",
+                            "conclusion": "success",
+                            "started_at": "2026-09-23T00:00:03Z",
+                            "completed_at": "2026-09-23T00:00:13Z",
+                        },
+                        {
+                            "number": 2,
+                            "name": "Verify affected owners",
+                            "status": "completed",
+                            "conclusion": "success",
+                            "started_at": "2026-09-23T00:00:13Z",
+                            "completed_at": "2026-09-23T00:00:43Z",
+                        },
+                    ],
+                }
+            ],
+            "102": [
+                {
+                    "id": 1002,
+                    "name": "root-verification",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "created_at": "2026-09-23T00:01:01Z",
+                    "started_at": "2026-09-23T00:01:04Z",
+                    "completed_at": "2026-09-23T00:01:40Z",
+                    "steps": [
+                        {
+                            "number": 1,
+                            "name": "Verify affected owners",
+                            "status": "completed",
+                            "conclusion": "success",
+                            "started_at": "2026-09-23T00:01:05Z",
+                            "completed_at": "2026-09-23T00:01:35Z",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+
+def test_ci_telemetry_keeps_termination_separate_from_economic_judgment() -> None:
+    normalized = ci_module.normalize(ci_fixture())
+    result = ci_module.project(normalized)
+    assert result["metrics"]["runs"] == 2
+    assert result["metrics"]["terminationReasonCounts"] == {
+        "CANCELLED": 1,
+        "SUCCESS": 1,
+    }
+    assert result["metrics"]["economicOutcomeCounts"] == {"UNCLASSIFIED": 2}
+    assert result["metrics"]["explicitAvoidableWasteRuns"] == 0
+    assert result["metrics"]["stepSecondsByName"]["Verify affected owners"]["max"] == 30
+    assert all(run["economicOutcome"] == "UNCLASSIFIED" for run in result["runs"])
+
+
+def test_ci_telemetry_requires_explicit_evidence_to_call_work_waste() -> None:
+    normalized = ci_module.normalize(
+        ci_fixture(),
+        economic_annotations={
+            "101": {
+                "economicOutcome": "AVOIDABLE_WASTE",
+                "reason": "fixture establishes superseded work",
+            }
+        },
+    )
+    result = ci_module.project(normalized)
+    assert result["metrics"]["explicitAvoidableWasteRuns"] == 1
+    assert result["metrics"]["explicitAvoidableWasteExecutionSeconds"] == 50
+
+
+def test_pressure_gate_has_no_provider_or_control_side_effects() -> None:
+    queue_snapshot = queue_module.ProviderSnapshot(
+        repository="o/r",
+        pulls=[{"number": 7, "merged_at": "2026-09-23T00:00:40Z"}],
+        timelines={
+            "7": [
+                {"event": "added_to_merge_queue", "created_at": "2026-09-23T00:00:00Z"},
+                {"event": "removed_from_merge_queue", "created_at": "2026-09-23T00:00:40Z"},
+            ]
+        },
+        merge_group_runs=[
+            {
+                "id": 70,
+                "head_branch": "gh-readonly-queue/main/pr-7-base",
+                "head_sha": "a",
+                "created_at": "2026-09-23T00:00:05Z",
+                "conclusion": "success",
+            }
+        ],
+        jobs={
+            "70": [
+                {
+                    "name": "root-verification",
+                    "created_at": "2026-09-23T00:00:06Z",
+                    "started_at": "2026-09-23T00:00:08Z",
+                    "completed_at": "2026-09-23T00:00:30Z",
+                }
+            ]
+        },
+    )
+    queue_projection = queue_module.analyze(queue_snapshot)
+    ci_projection = ci_module.project(ci_module.normalize(ci_fixture()))
+    assessment = pressure_module.assess(queue_projection, ci_projection)
+    gates = {row["gate"]: row for row in assessment["gates"]}
+    assert gates["QUEUE_CONTENTION"]["status"] == "NOT_PROVEN"
+    assert gates["CI_WASTE"]["status"] == "INSUFFICIENT_EVIDENCE"
+    assert assessment["controlsAdmitted"] == []
+
+    annotated_ci = ci_module.project(
+        ci_module.normalize(
+            ci_fixture(),
+            economic_annotations={
+                "101": {
+                    "economicOutcome": "AVOIDABLE_WASTE",
+                    "reason": "fixture establishes superseded work",
+                }
+            },
+        )
+    )
+    admitted = pressure_module.assess(queue_projection, annotated_ci)
+    admitted_gates = {row["gate"]: row for row in admitted["gates"]}
+    assert admitted_gates["CI_WASTE"]["status"] == "PROVEN"
+    assert admitted["controlsAdmitted"] == [
+        "cancellation-optimization",
+        "ci-deduplication",
+    ]
+
+
+SCHEMA_DIR = ROOT / "docs" / "architecture" / "schemas"
+
+
+@pytest.mark.parametrize(
+    ("name", "kind", "schema_version"),
+    [
+        (
+            "convergence-queue-observation-v1.schema.json",
+            "ordivon.queue-observation-projection",
+            2,
+        ),
+        (
+            "convergence-ci-observation-v1.schema.json",
+            "ordivon.ci-observation-projection",
+            1,
+        ),
+        (
+            "convergence-pressure-assessment-v1.schema.json",
+            "ordivon.convergence-pressure-assessment",
+            1,
+        ),
+    ],
+)
+def test_convergence_observation_schema_contracts(
+    name: str, kind: str, schema_version: int
+) -> None:
+    value = json.loads((SCHEMA_DIR / name).read_text(encoding="utf-8"))
+    assert value["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    assert value["$id"].startswith("urn:ordivon:schema:")
+    assert value["type"] == "object"
+    assert value["properties"]["schemaVersion"]["const"] == schema_version
+    assert value["properties"]["kind"]["const"] == kind
+    assert {"schemaVersion", "kind"} <= set(value["required"])
+
+
+def test_convergence_observation_r2_keeps_control_out_of_observation() -> None:
+    value = json.loads(
+        (ROOT / "docs" / "architecture" / "convergence-queue-lego-r1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    r2 = value["convergenceObservationR2"]
+    assert r2["standing"] == "OBSERVATION_IMPLEMENTED_CONTROL_BLOCKED"
+    assert r2["authorityBoundary"]["observation"] == "rebuildable non-authoritative projection"
+    assert "adaptive speculation" in r2["blockedControls"]
+    assert "batching/bisection" in r2["blockedControls"]
+    assert "predictive cost scheduling" in r2["blockedControls"]

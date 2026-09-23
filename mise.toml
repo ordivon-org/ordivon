@@ -7,6 +7,7 @@ shell = "bash -c"
 [monorepo]
 config_roots = [
   "meta/next",
+  "meta/next/experimental/episode-store-r1",
   "packages/composition",
   "services/runtime",
   "services/host",
@@ -34,7 +35,11 @@ gitleaks = "8.30.1"
 run = """
 set -euo pipefail
 gitleaks git --no-banner --redact=100 --timeout 120 .
-gitleaks dir --no-banner --redact=100 --timeout 120 .
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  echo "GitHub Actions scans durable Git candidate/history only; workspace build artifacts are out of scope."
+else
+  gitleaks dir --no-banner --redact=100 --timeout 120 .
+fi
 """
 
 [tasks."repo:retirement:verify"]
@@ -79,6 +84,9 @@ tools/repo/migration/check-primary-main.sh /root/projects/ordivon
 run = """
 set -euo pipefail
 cd meta/next
+mise install
+mise run verify
+cd experimental/episode-store-r1
 mise install
 mise run verify
 """

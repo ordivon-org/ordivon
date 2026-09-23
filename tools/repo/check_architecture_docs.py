@@ -12,7 +12,7 @@ PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
 HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-host-northbound-acceptance-20260922.json"
-METHOD_ROUTER = ROOT / "meta" / "next" / ".agents" / "skills" / "method-router" / "SKILL.md"
+METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
 
 TEMPO_CONFIG = ROOT / "platform" / "workstation" / "observability" / "tempo.yaml"

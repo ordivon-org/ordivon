@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.verification-architecture-plan",
+  "truthRole": "planning-projection-not-project-or-domain-truth",
+  "sourceRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+  "status": "V01_V03_IMPLEMENTED_V04_DOGFOODED_REMAINDER_GATED",
+  "purpose": "Converge existing Ordivon verification islands through a thin task-local obligation/binding waist while preserving natural verifier ownership and keeping execution, evidence, formal proof, and domain acceptance distinct.",
+  "invariants": [
+    "verifier binding resolution != verifier execution",
+    "verifier execution != gate discharge unless the natural verifier emits admissible evidence",
+    "mechanical resolution != mechanical composition closure",
+    "mechanical composition closure != domain acceptance",
+    "formal refinement != implementation conformance",
+    "Runtime execution success != semantic completion",
+    "evidence provenance/currentness != claim truth",
+    "no universal verifier, verifier registry/ranker, proof language, or global evidence truth store"
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "V01",
+        "label": "VerificationObligationCarrier",
+        "state": "IMPLEMENTED",
+        "owner": "packages/composition",
+        "responsibility": "Project each existing Cognitive Circuit Composition Gate into an exact digest-bound task-local obligation without inventing new domain semantics.",
+        "evidence": [
+          "packages/composition/src/ordivon_composition/verification_obligation_r1.py",
+          "packages/composition/src/ordivon_composition/schemas/verification-obligation-set-v1.schema.json",
+          "packages/composition/tests/test_verification_obligation_r1.py",
+          "commit:dd8128ac1386174d6bdf04b9160c6b3465b2098f"
+        ]
+      },
+      {
+        "id": "V02",
+        "label": "VerificationObligationCompiler",
+        "state": "IMPLEMENTED",
+        "owner": "packages/composition",
+        "responsibility": "Compile already-authored Gate requirements deterministically into V01 obligations while preserving exact Circuit/gate/support-scope identity.",
+        "evidence": [
+          "compile_verification_obligations",
+          "packages/composition/docs/VERIFICATION_OBLIGATION_R1.md",
+          "packages/composition verify: 27/27 PASS"
+        ]
+      },
+      {
+        "id": "V03",
+        "label": "TaskLocalVerifierBinding",
+        "state": "IMPLEMENTED",
+        "owner": "packages/composition",
+        "responsibility": "Validate exact caller-authored verifier bindings against obligations; no discovery, ranking, installation, liveness probing, or execution.",
+        "evidence": [
+          "resolve_verifier_bindings",
+          "verifier-binding-set-v1.schema.json",
+          "verifier-resolution-v1.schema.json",
+          "Research<->Artifact and Web<->Security R3 dogfood PASS"
+        ]
+      },
+      {
+        "id": "V04",
+        "label": "NaturalVerifierProviders",
+        "state": "PARTIAL_EXISTING_OWNERS_PLUS_SHADOW",
+        "owner": "natural verifier owners",
+        "responsibility": "Use owner-native/formal/empirical/reality verifiers through exact task-local bindings instead of introducing a universal verifier runtime.",
+        "providers": [
+          {
+            "class": "owner-native",
+            "examples": [
+              "Research<->Artifact R3",
+              "Web<->Security R3"
+            ],
+            "standing": "LIVE_DOGFOOD"
+          },
+          {
+            "class": "contract-algebra",
+            "examples": [
+              "Pacti 0.3.1 timeout seam"
+            ],
+            "standing": "KEEP_SHADOW_OPTIONAL_PROVIDER"
+          },
+          {
+            "class": "temporal-model-checker",
+            "examples": [
+              "TLA+/TLC 1.7.4 RuntimeDispatchR1"
+            ],
+            "standing": "KEEP_EXISTING_OWNER"
+          },
+          {
+            "class": "policy",
+            "examples": [
+              "OPA/Rego consequence verification"
+            ],
+            "standing": "KEEP_EXISTING_OWNER"
+          },
+          {
+            "class": "theorem-prover",
+            "examples": [
+              "Lean/Coq/Isabelle"
+            ],
+            "standing": "DEFER_UNTIL_REAL_THEOREM_PRESSURE"
+          }
+        ],
+        "evidence": [
+          "meta/next/evidence/acceptance/verified-reintegration-external-owner-dogfood-r1/pacti-timeout-obligation-r2.json",
+          "TLA+/TLC: 25 generated / 20 distinct / depth 9 / 0 violations",
+          "OPA consequence verifier: 8/8 PASS"
+        ]
+      },
+      {
+        "id": "V05",
+        "label": "EvidenceClaimThinModel",
+        "state": "GATED_ON_RUNTIME_RW1_RW2",
+        "owner": "services/runtime R13 plus natural evidence owners",
+        "responsibility": "Represent physical machine claims as subject+claim+scope+witness+observation+boundary+limitation without replacing owner-native evidence schemas.",
+        "blockers": [
+          "Runtime RW1 state ownership extraction",
+          "Runtime RW2 AuthorityContract/OperationCircuitCompiler"
+        ],
+        "evidence": [
+          "services/runtime/planning/COMPLETE_ARCHITECTURE_R1_EXECUTION_PLAN.md#R13",
+          "services/runtime/planning/lego-plan-r1.json"
+        ]
+      },
+      {
+        "id": "V06",
+        "label": "EvidenceCurrentnessAndInvalidation",
+        "state": "PARTIAL",
+        "owner": "owner-specific currentness plus task-local compatibility layer",
+        "responsibility": "Keep compatibility, currentness, and admissibility distinct and invalidate retained support when exact owner/currentness conditions no longer hold.",
+        "evidence": [
+          "packages/composition/src/ordivon_composition/interface_contract_r2.py",
+          "services/harness/docs/VERIFICATION.md"
+        ],
+        "nextTrigger": "Add broader dependency-aware incremental invalidation only when repeated revalidation cost or stale-support defects justify it."
+      },
+      {
+        "id": "V07",
+        "label": "ModelImplementationRefinement",
+        "state": "OPEN_WITH_BOUNDED_MODEL_EVIDENCE",
+        "owner": "each implementation/formal-model owner pair",
+        "responsibility": "Trace or prove that production implementation preserves the properties expressed by its formal abstraction; model checking alone is not implementation proof.",
+        "evidence": [
+          "services/runtime/formal/RuntimeDispatchR1.tla",
+          "services/runtime/formal/README.md"
+        ],
+        "nextAction": "Choose one high-value Runtime invariant and build an explicit implementation-to-model trace/refinement gate before claiming stronger formal coverage."
+      },
+      {
+        "id": "V08",
+        "label": "CompletionSemantics",
+        "state": "PARTIAL_OWNER_SEPARATED",
+        "owner": "composition + Runtime + domain/reality owners",
+        "responsibility": "Keep physical execution terminality, evidence availability, obligation discharge, mechanical closure, and domain acceptance as separate standings.",
+        "evidence": [
+          "Runtime semanticCompletionEvaluated=false",
+          "composition mechanicalClosure/domainAcceptanceEstablished split",
+          "Security executor receipt != authoritative consequence observation"
+        ],
+        "nonGoal": "No global semantic Task-completion authority."
+      }
+    ],
+    "edges": [
+      {
+        "from": "V01",
+        "to": "V02",
+        "relation": "COMPILED_BY"
+      },
+      {
+        "from": "V02",
+        "to": "V03",
+        "relation": "BOUND_BY"
+      },
+      {
+        "from": "V03",
+        "to": "V04",
+        "relation": "ROUTES_TO_NATURAL_OWNER"
+      },
+      {
+        "from": "V03",
+        "to": "V06",
+        "relation": "REQUIRES_CURRENT_BINDING_EVIDENCE_WHERE_APPLICABLE"
+      },
+      {
+        "from": "V04",
+        "to": "V07",
+        "relation": "FORMAL_PROVIDER_RESULTS_REQUIRE_IMPLEMENTATION_TRACE_BEFORE_CONFORMANCE_CLAIM"
+      },
+      {
+        "from": "V05",
+        "to": "V08",
+        "relation": "SUPPLIES_PHYSICAL_EVIDENCE_CLAIMS"
+      },
+      {
+        "from": "V06",
+        "to": "V08",
+        "relation": "CONTROLS_SUPPORT_ADMISSIBILITY"
+      },
+      {
+        "from": "V07",
+        "to": "V08",
+        "relation": "BOUNDS_FORMAL_CONFORMANCE_CLAIMS"
+      }
+    ]
+  },
+  "sequencing": [
+    {
+      "wave": "VA0",
+      "state": "COMPLETE",
+      "items": [
+        "V01",
+        "V02",
+        "V03"
+      ],
+      "exit": "Task-local obligation/binding thin waist implemented and real R3 owner-native seams dogfooded."
+    },
+    {
+      "wave": "VA1",
+      "state": "COMPLETE_SHADOW",
+      "items": [
+        "V04:contract-algebra"
+      ],
+      "exit": "Pacti exact-version formal provider passed accepted/refinement/quotient/negative-control dogfood without project dependency admission."
+    },
+    {
+      "wave": "VA2",
+      "state": "WAIT_RUNTIME_RW1_RW2",
+      "items": [
+        "V05",
+        "Runtime R07",
+        "Runtime R08",
+        "Runtime R13"
+      ],
+      "exit": "Physical ExecutionCircuit can carry evidence obligations without duplicating Composition/domain truth."
+    },
+    {
+      "wave": "VA3",
+      "state": "TRIGGERED_BY_MEASURED_PRESSURE_ONLY",
+      "items": [
+        "V06 broader invalidation",
+        "V07 stronger refinement",
+        "Lean/SMT/Apalache optional providers"
+      ],
+      "exit": "Each new mechanism must have a repeated real consumer and a natural external owner."
+    },
+    {
+      "wave": "VA4",
+      "state": "LONG_TERM",
+      "items": [
+        "V08 end-to-end verified work"
+      ],
+      "exit": "Effect exists + evidence admissible + required obligations discharged + owner/domain acceptance, with no standing collapse."
+    }
+  ],
+  "immediateNextActions": [
+    "Continue Runtime RW1 with R04 ReservationContract; do not divert Runtime into verification orchestration.",
+    "After Runtime RW1 closes, implement R07 AuthorityContract and R08 OperationCircuitCompiler using existing EvidenceObligations design.",
+    "Only then connect physical execution evidence to V05/R13; preserve owner-native evidence schemas.",
+    "Add one explicit Runtime model-to-implementation trace gate for a high-value invariant.",
+    "Do not install/admit Lean until a real theorem-proof workload cannot be adequately served by cheaper natural verifiers.",
+    "Do not promote Pacti beyond shadow until a second independent production-relevant formal-contract seam creates recurring demand."
+  ],
+  "verifiedBaseline": {
+    "mainRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+    "composition": "27/27 PASS",
+    "crossDomainAndPactiFocused": "19/19 PASS",
+    "metaNextExcludingConfirmedBaselineBrowserEnvironmentBlockers": "145/145 PASS",
+    "repoStructureComposition": "25/25 PASS",
+    "repoCi": "PASS",
+    "runtimeTla": "25 states generated / 20 distinct / depth 9 / 0 invariant violations",
+    "securityOpa": "8/8 PASS",
+    "knownBaselineBlocker": "Five historical Browser Security collection tests require external /opt/ordivon agent-automation environment dependencies (rfc8785/scripts.browserless_substrate); reproduced unchanged on clean base workspace."
+  }
+}

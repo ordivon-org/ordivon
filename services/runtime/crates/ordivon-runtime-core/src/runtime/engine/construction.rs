@@ -50,6 +50,18 @@ impl Runtime {
         credential_authorities: Vec<CredentialAuthority>,
         default_runtime_ms: u64,
     ) -> RuntimeResult<Self> {
+        Self::new_with_authorities_default_runtime_and_workspace_headroom(
+            config, input_authorities, credential_authorities, default_runtime_ms, None,
+        )
+    }
+
+    pub fn new_with_authorities_default_runtime_and_workspace_headroom(
+        config: RuntimeConfig,
+        input_authorities: Vec<InputAuthority>,
+        credential_authorities: Vec<CredentialAuthority>,
+        default_runtime_ms: u64,
+        workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    ) -> RuntimeResult<Self> {
         super::validate_logical_id(&config.node_id, "nodeId")?;
         config.executor.validate().map_err(map_universal_error)?;
         if default_runtime_ms == 0 || default_runtime_ms > config.executor.max_runtime_ms {
@@ -67,25 +79,19 @@ impl Runtime {
         if let Some(windows) = &config.windows {
             windows.validate()?;
         }
+        if let Some(headroom) = workspace_headroom.as_ref() {
+            if !headroom.path.is_absolute() {
+                return Err(RuntimeError::invalid("workspace headroom path must be absolute", "workspaceHeadroom.path"));
+            }
+            if headroom.minimum_free_bytes == 0 {
+                return Err(RuntimeError::invalid("workspace minimum free bytes must be positive", "workspaceHeadroom.minimumFreeBytes"));
+            }
+        }
         if config.startup_grace_ms == 0 {
             return Err(RuntimeError::invalid(
                 "startupGraceMs must be positive",
                 "startupGraceMs",
             ));
-        }
-        if let Some(headroom) = &config.workspace_admission_headroom {
-            if !headroom.path.is_absolute() {
-                return Err(RuntimeError::invalid(
-                    "workspace admission headroom path must be absolute",
-                    "workspaceAdmissionHeadroom.path",
-                ));
-            }
-            if headroom.minimum_free_bytes == 0 {
-                return Err(RuntimeError::invalid(
-                    "workspace admission minimum free bytes must be positive",
-                    "workspaceAdmissionHeadroom.minimumFreeBytes",
-                ));
-            }
         }
         if Instant::now()
             .checked_add(Duration::from_millis(config.startup_grace_ms))
@@ -207,12 +213,12 @@ impl Runtime {
             executor: config.executor,
             default_runtime_ms,
             startup_grace_ms: config.startup_grace_ms,
-            workspace_admission_headroom: config.workspace_admission_headroom,
             execution_path,
             execution_home,
             windows: config.windows,
             input_authorities: configured_input_authorities,
             credential_authorities: configured_credential_authorities,
+            workspace_headroom,
             lifecycle_lock: Arc::new(Mutex::new(())),
             control_terminal_lock: Arc::new(Mutex::new(())),
         };

@@ -286,6 +286,42 @@
     "baselineRequeues": 0,
     "baselineUnsuccessfulMergeGroupRuns": 0,
     "baselineObservedWastedVerificationSeconds": 0.0,
-    "liveValues": "rebuild from provider; never treated as canonical snapshot state"
+    "liveValues": "rebuild from provider; never treated as canonical snapshot state",
+    "projectionSchemaVersion": 2,
+    "r1BaselineFrozen": true
+  },
+  "convergenceObservationR2": {
+    "standing": "OBSERVATION_IMPLEMENTED_CONTROL_BLOCKED",
+    "authorityBoundary": {
+      "provider": [
+        "GitHub Merge Queue",
+        "GitHub Actions"
+      ],
+      "observation": "rebuildable non-authoritative projection",
+      "diagnosis": "evidence-derived pressure assessment",
+      "control": "not admitted without PROVEN pressure gate"
+    },
+    "queueProjection": "tools/repo/queue_telemetry.py",
+    "ciProjection": "tools/repo/ci_telemetry.py",
+    "pressureAssessment": "tools/repo/convergence_pressure.py",
+    "schemas": [
+      "docs/architecture/schemas/convergence-queue-observation-v1.schema.json",
+      "docs/architecture/schemas/convergence-ci-observation-v1.schema.json",
+      "docs/architecture/schemas/convergence-pressure-assessment-v1.schema.json"
+    ],
+    "invariants": [
+      "provider conclusion is not economic outcome",
+      "cancelled is not automatically waste",
+      "observation code has no provider mutation authority",
+      "pressure diagnosis does not execute controls",
+      "live observation is rebuildable and not canonical mutable queue state"
+    ],
+    "blockedControls": [
+      "verification evidence reuse",
+      "cancellation controller",
+      "adaptive speculation",
+      "batching/bisection",
+      "predictive cost scheduling"
+    ]
   }
 }

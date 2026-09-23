@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.pacti-timeout-obligation-spec",
+  "id": "spec:pacti-timeout-obligation-r2",
+  "pactiVersion": "0.3.1",
+  "acceptedCase": {
+    "grantMaxMs": 300000,
+    "runtimeMaxMs": 900000
+  },
+  "deliberateMismatch": {
+    "grantMaxMs": 900000,
+    "runtimeMaxMs": 600000
+  },
+  "supportScope": "Algebraic timeout-domain compatibility/refinement only; not implementation conformance, Runtime admission truth, or execution authority.",
+  "nonClaims": [
+    "This spec does not prove Harness/Gateway/Runtime implementation conformance.",
+    "This spec does not add Pacti to project dependencies.",
+    "This spec does not grant execution or effect authority.",
+    "This spec is not a universal formal-contract language."
+  ]
+}
