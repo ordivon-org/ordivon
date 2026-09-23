@@ -1,0 +1,82 @@
+{
+  "kind": "ordivon.social-fabric-freshness-projection",
+  "nonClaims": [
+    "Git tip recency does not mint semantic currentness.",
+    "Host Task state does not mint activity/currentness or domain completion.",
+    "Point-in-time observation is not durable freshness.",
+    "Supersession is projected only when an owner-native source states it explicitly; no transitive semantic replacement is inferred.",
+    "Different owners retain separate currentness views; this projection does not elect a global winner."
+  ],
+  "observedAt": "2026-09-23T20:27:00+08:00",
+  "ownerViews": [
+    {
+      "currentVersionRefs": [],
+      "historicalVersionRefs": [],
+      "owner": "authority-catalog",
+      "pointInTimeObservationCount": 1,
+      "sourceRefs": [
+        "authority-index:a2a-protocol-1.0.0#sha256:aad89b58394a4aacdf88b2c79b7fa8746ca01548f1ccd69a8f96fe8d1dfcdc75"
+      ],
+      "standing": "POINT_IN_TIME_OBSERVED",
+      "subjectRef": "authority:a2a-protocol-1.0.0",
+      "unknownObservationCount": 0
+    },
+    {
+      "currentVersionRefs": [],
+      "historicalVersionRefs": [],
+      "owner": "authority-catalog",
+      "pointInTimeObservationCount": 1,
+      "sourceRefs": [
+        "authority-index:cloudevents-documented-extensions#sha256:aaad7c7df18a57cd94430ba839b6334b5ca31a48912324ab17ddd095b1090f96"
+      ],
+      "standing": "POINT_IN_TIME_OBSERVED",
+      "subjectRef": "authority:cloudevents-documented-extensions",
+      "unknownObservationCount": 0
+    },
+    {
+      "currentVersionRefs": [
+        "sha256:dbdbb759b2b86b898a343cbb81646b283c589676989e919537f1a6cbc2b1df91"
+      ],
+      "historicalVersionRefs": [
+        "sha256:bfadaaaad3b01f9c4388e4e4a75e77c782c2c3111849e5c4598052ec740ee79f"
+      ],
+      "owner": "research-owner:network",
+      "pointInTimeObservationCount": 0,
+      "sourceRefs": [
+        "services/runtime/research/programme/evidence/C4-CROSS-OWNER-STANDING-CURRENTNESS.json"
+      ],
+      "standing": "CURRENT_DECLARED",
+      "subjectRef": "authority:network-research-owner",
+      "unknownObservationCount": 0
+    },
+    {
+      "currentVersionRefs": [],
+      "historicalVersionRefs": [],
+      "owner": "authority-catalog",
+      "pointInTimeObservationCount": 1,
+      "sourceRefs": [
+        "authority-index:openlineage-spec#sha256:3fa16b9c449140187641d0bd5f3c45857f28dd057ad9f210ba113ff89144b28c"
+      ],
+      "standing": "POINT_IN_TIME_OBSERVED",
+      "subjectRef": "authority:openlineage-spec",
+      "unknownObservationCount": 0
+    },
+    {
+      "currentVersionRefs": [],
+      "historicalVersionRefs": [],
+      "owner": "authority-catalog",
+      "pointInTimeObservationCount": 1,
+      "sourceRefs": [
+        "authority-index:w3c-prov-o-2013#sha256:f2f73f4aa1eb87b1188e37f27c3721ecc2787566e8192c97df34cf29d3d8d2c7"
+      ],
+      "standing": "POINT_IN_TIME_OBSERVED",
+      "subjectRef": "authority:w3c-prov-o-2013",
+      "unknownObservationCount": 0
+    }
+  ],
+  "projectionDigest": "sha256:39610663d0142df589675b01b2bc42db78f426e4c29cdc449b1f05e757ae13b6",
+  "schemaVersion": 1,
+  "sourceCutDigest": "sha256:c6bb4d275d81b0b4740ab8e0dbdc6ef07c9c41cd883c444c34baef9b0baf65f7",
+  "supersession": [],
+  "truthRole": "owner-scoped-currentness-and-explicit-supersession-projection"
+}

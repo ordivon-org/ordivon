@@ -75,3 +75,12 @@ run = "uv run --locked python scripts/social_fabric_commitment_r3.py current --c
 
 [tasks."social:flux"]
 run = "uv run --locked python scripts/social_fabric_flow_r1.py --pair evidence/acceptance/social-fabric-flow-r1-host-pair-20260923.json"
+
+[tasks."social:reality:prov"]
+run = "uv run --locked python scripts/social_fabric_reality_r2.py prov --document evidence/data-lifecycle/data-products-r2/product-provenance.prov.jsonld"
+
+[tasks."social:reality:memory"]
+run = "uv run --locked python scripts/social_fabric_reality_r2.py memory --cut evidence/acceptance/social-fabric-reality-r2-owner-cut-20260923.json"
+
+[tasks."social:reality:freshness"]
+run = "uv run --locked python scripts/social_fabric_reality_r2.py freshness --cut evidence/acceptance/social-fabric-reality-r2-owner-cut-20260923.json"

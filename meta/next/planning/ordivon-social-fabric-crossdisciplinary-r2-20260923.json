@@ -44,19 +44,25 @@
       "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-reality-r2-acceptance-20260923.json",
       "id": "REAL20",
+      "implementation": "meta/next/scripts/social_fabric_reality_r2.py",
       "name": "W3CProvProjectionAdapter",
-      "status": "DESIGN_REUSE_EXISTING_OWNER"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-reality-r2-acceptance-20260923.json",
       "id": "REAL21",
+      "implementation": "meta/next/scripts/social_fabric_reality_r2.py",
       "name": "TransactiveMemoryProjection",
-      "status": "READY_TO_DESIGN_BY_REUSE"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-reality-r2-acceptance-20260923.json",
       "id": "REAL22",
+      "implementation": "meta/next/scripts/social_fabric_reality_r2.py",
       "name": "FreshnessSupersessionProjection",
-      "status": "READY_TO_DESIGN_BY_REUSE"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
       "id": "SIG30",
