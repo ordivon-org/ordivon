@@ -27,7 +27,7 @@ param(
     [string]$HostBearerTokenFile = '',
     [Parameter()]
     [ValidateSet('Manual', 'Automatic')]
-    [string]$StartMode = 'Manual',
+    [string]$StartMode = 'Automatic',
     [Parameter()]
     [switch]$ReplaceExisting
 )
