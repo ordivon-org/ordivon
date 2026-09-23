@@ -1,4 +1,16 @@
 {
+  "aries": {
+    "alignmentRows": 25462,
+    "editUnits": 213955,
+    "manualTestComments": 196,
+    "negativeAlignments": 24738,
+    "orphanAlignmentComments": 0,
+    "orphanAlignmentEdits": 0,
+    "paperEditDocuments": 1720,
+    "positiveAlignments": 724,
+    "reviewComments": 4088
+  },
+  "context24Transport": "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE",
   "emse": {
     "accessibleRandomBaselineFulltexts": 109,
     "externalPdfBytes": 575426096,
@@ -13,9 +25,12 @@
   "externalCandidateCount": 14,
   "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
   "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
-  "materializedLocalAssetCount": 1,
-  "nextWave": "SD1",
+  "materializedLocalAssetCount": 2,
+  "nextWaves": [
+    "SD1 transport recovery",
+    "SD2 lifecycle expansion"
+  ],
   "schemaVersion": 1,
-  "standing": "PASS_CATALOG_AND_LOCAL_EMSE_BINDING",
-  "truthBoundary": "Acceptance proves catalog structure and current local EMSE corpus bindings. It does not prove external candidate licenses, downloadability, scientific truth, or cross-domain representativeness."
+  "standing": "PASS_DATA_PLANE_WITH_ARIES_BOUNDED_CORE",
+  "truthBoundary": "Acceptance proves current local EMSE and ARIES physical/schema bindings, including exact ARIES analytical product digests. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
 }

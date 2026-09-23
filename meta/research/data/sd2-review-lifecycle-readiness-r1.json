@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.review-lifecycle-data-readiness",
+  "id": "sd2-review-lifecycle-readiness-r1",
+  "observedAt": "2026-09-23",
+  "truthRole": "acquisition-readiness-observation-not-reviewer-truth-or-legal-advice",
+  "standing": "IN_PROGRESS_FIRST_ASSET_MATERIALIZED",
+  "datasets": [
+    {
+      "id": "aries",
+      "standing": "MATERIALIZED_BOUNDED_CORE",
+      "licenseObserved": "ODC-BY-1.0",
+      "localAsset": "aries-bounded-core-r1",
+      "scope": "comment-edit identity and alignment; S2ORC text omitted"
+    },
+    {
+      "id": "peersum",
+      "standing": "READY_LICENSE_OBSERVED_NOT_ACQUIRED",
+      "licenseObserved": "Apache-2.0 on Hugging Face dataset card",
+      "reportedSamples": 14993,
+      "next": "bounded snapshot if meta-review/disagreement research becomes active"
+    },
+    {
+      "id": "nlpeer-v2",
+      "standing": "LICENSE_OBSERVED_ACCESS_RESTRICTED_LARGE_NOT_ACQUIRED",
+      "licenseObserved": "CC-BY-NC-4.0 except where otherwise noted",
+      "releaseDate": "2025-02-07",
+      "filesObserved": [
+        "ARR-EMNLP-24-v1.1.zip 11.3 GB",
+        "EMNLP23.zip 3.56 GB",
+        "ELIFE.zip 30.37 GB",
+        "PLOS.zip 2.77 GB"
+      ],
+      "next": "request/access only a task-justified subset; preserve per-paper licenses and intended-use constraints"
+    },
+    {
+      "id": "peerread-v1",
+      "standing": "PARTIAL_COMPONENT_LICENSE_CONSTRAINTS_REQUIRE_SECTION_LEVEL_BINDING",
+      "reportedScale": {
+        "paperDrafts": 14700,
+        "textualPeerReviews": 10700
+      },
+      "next": "bind venue-section-specific acquisition instructions/licenses before snapshot"
+    },
+    {
+      "id": "disapere",
+      "standing": "RELEASE_LICENSE_NOT_YET_BOUND",
+      "reportedReviewRebuttalPairs": 506,
+      "next": "locate canonical release and explicit data license before acquisition"
+    }
+  ],
+  "nonClaims": [
+    "Acceptance outcomes are descriptive labels, not scientific truth.",
+    "Reviewer identities/profiles are not a target of this data plane.",
+    "A dataset-wide license does not erase per-paper or per-component license metadata where supplied."
+  ]
+}
