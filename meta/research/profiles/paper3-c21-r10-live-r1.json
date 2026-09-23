@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-intelligence-profile",
+  "truthRole": "non-authoritative-study-projection",
+  "profileId": "paper3-c21-r10-live-r1",
+  "studyAuthority": {
+    "owner": "paper3-c21-study-in-research-v2",
+    "sourceRepo": "/root/projects/ordivon-research-v2",
+    "sourceRevision": "a5752fd8728d60bbf963b32d7fc29cde6064e9fb",
+    "subjectRef": "research/paper3/c21/artifact_release_r10/current-submission-closure-r4.json"
+  },
+  "standardNativeBinding": null,
+  "semanticRefs": {
+    "requirements": [],
+    "claims": [],
+    "evidence": [
+      {"owner":"paper3-study","id":"P3-EV-R10-CLOSURE","location":"research/paper3/c21/artifact_release_r10/current-submission-closure-r4.json","digest":"sha256:32138254821bd51822fbb8b4d86082fa805e8b6a4809d09625d5b0d2438efe13"},
+      {"owner":"paper3-study","id":"P3-EV-R10-HUMAN-HANDOFF","location":"research/paper3/c21/artifact_release_r10/human-submission-handoff-r4.json","digest":"sha256:eac96857edaeafaa05982ffec0422c569d576688bcff7800494f75bbf356d84e"},
+      {"owner":"paper3-study","id":"P3-EV-R10-INTEGRATION","location":"research/paper3/c21/artifact_release_r10/main-integration-receipt-r10.json","digest":"sha256:fd08167e7e6fdf83e4e4e40a936c282e53b74fac1e496d3c96db4cb74b2a4b66"}
+    ],
+    "concerns": [],
+    "resolutions": []
+  },
+  "stateAxes": {
+    "requirements": {"owner":"paper3-study","state":"FSE2027_POLICY_BINDING_EXISTS_STUDY_NATIVE_NOT_PROJECTED","evidenceRefs":["P3-EV-R10-CLOSURE"]},
+    "evidence": {"owner":"paper3-study","state":"SCIENCE_CLOSED_FROZEN_NO_RESULT_CHANGE","evidenceRefs":["P3-EV-R10-CLOSURE","P3-EV-R10-INTEGRATION"]},
+    "inference": {"owner":"paper3-study","state":"SCIENCE_CLOSED_FROZEN_NO_RESULT_CHANGE","evidenceRefs":["P3-EV-R10-CLOSURE"]},
+    "claims": {"owner":"paper3-study","state":"STUDY_CLAIMSET_NOT_PROJECTED_BY_SI_R2","evidenceRefs":[]},
+    "argument": {"owner":"paper3-study","state":"R10_REVIEWER_PRESENTATION_PACKAGING_CLOSED","evidenceRefs":["P3-EV-R10-CLOSURE"]},
+    "venue": {"owner":"paper3-study","state":"FSE2027_SUBMISSION_CARRIER_BOUND_STUDY_NATIVE","evidenceRefs":["P3-EV-R10-CLOSURE"]},
+    "review": {"owner":"paper3-study","state":"PERCEPTUAL_CONFORMANCE_PENDING_INDEPENDENT_OBSERVER_EXECUTION","evidenceRefs":["P3-EV-R10-CLOSURE","P3-EV-R10-HUMAN-HANDOFF"]},
+    "publication": {"owner":"paper3-study","state":"R10_PACKAGING_CLOSED_INTEGRATED_PENDING_SYSTEM_AND_HUMAN_GATES","evidenceRefs":["P3-EV-R10-CLOSURE","P3-EV-R10-INTEGRATION"]},
+    "learning": {"owner":"research-shared-profile","state":"LIVE_PROJECTION_INITIALIZED","evidenceRefs":[]}
+  },
+  "nonClaims": [
+    "This projection does not establish FSE 2027 acceptance or final submission.",
+    "R10 packaging closure does not satisfy PERCEPTUAL_CONFORMANCE_R1 independent observer consensus.",
+    "The shared profile does not grant authorship, portal metadata, attestation, or final submission authority.",
+    "The shared profile does not reinterpret Paper3 scientific claims or frozen evidence."
+  ],
+  "notes": [
+    "The Study reports paper SHA256 3f19620d... and reviewer artifact SHA256 2475cdd5... in its owner-native closure receipt.",
+    "Human work is restricted to submission authority while routine perceptual QA remains system-owned."
+  ]
+}

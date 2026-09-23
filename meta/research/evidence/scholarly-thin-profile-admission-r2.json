@@ -1,0 +1,71 @@
+{
+  "admission": {
+    "explicitlyNotAdmitted": [
+      "universal scientific ontology",
+      "ClaimPermission as a shared executable policy",
+      "Concern-to-gap routing as a shared executable policy",
+      "experiment-admission policy",
+      "reviewer acceptance prediction",
+      "shared scientific database"
+    ],
+    "target": "THIN_PROFILE_PROTOCOL_ONLY",
+    "verdict": "ADMIT_THIN_PROFILE_PROTOCOL"
+  },
+  "candidateRule": {
+    "id": "axis-local-closure-does-not-transfer-authority-r1",
+    "statement": "Closure or PASS on one scholarly axis does not authorize, imply, or overwrite closure on another axis; route next work through the unresolved owner-native axis."
+  },
+  "counterexampleStanding": "PASS_COUNTEREXAMPLE_PRESSURE_FOR_PROFILE_ONLY",
+  "crossStudyPressureStanding": "PASS_CROSS_STUDY_PRESSURE_R1",
+  "externalSubstitutionStanding": "PASS_FOR_THIN_PROFILE_ONLY",
+  "files": [
+    {
+      "path": "meta/research/schemas/scholarly-intelligence-profile-v1.schema.json",
+      "sha256": "sha256:3961c3f08460a3f48a04ac8646b897d2608e33e989fcdef55cc79612e669ae66"
+    },
+    {
+      "path": "meta/research/profiles/paper1-r25-live-r1.json",
+      "sha256": "sha256:8d5963d2c6d6476d5edb4a99d7f301bd99c02797811965078b988d6757c3961a"
+    },
+    {
+      "path": "meta/research/profiles/paper2-live-r1.json",
+      "sha256": "sha256:8e38690e9b202290ba01ec252aeda91e7c66d76e205fb8ba6378c57bf9fc91f6"
+    },
+    {
+      "path": "meta/research/profiles/paper3-c21-r10-live-r1.json",
+      "sha256": "sha256:9857234c9a8131473fca454adb4131a34a01e90dce5072e854d786ba60599dc0"
+    },
+    {
+      "path": "meta/research/pressure-tests/axis-authority-isolation-r1.json",
+      "sha256": "sha256:03e4579455b34b1226ea42cc41b4d8ef2c661951f2e8670ca867e90613e3a68e"
+    },
+    {
+      "path": "meta/research/evidence/scholarly-live-profiles-r2-acceptance.json",
+      "sha256": "sha256:0d7bc15468410c853ce258c61bd929ace2312b4a4646e7bab0504d7f078009d0"
+    },
+    {
+      "path": "meta/research/evidence/scholarly-cross-study-pressure-r1.json",
+      "sha256": "sha256:ec15ad72f5fd40d46ac18212aefe301455725ea77c4ecd85dc93e9b3ebb42aa9"
+    },
+    {
+      "path": "meta/research/SCHOLARLY_INTELLIGENCE_R2.md",
+      "sha256": "sha256:62bab5bd635799a9dc74f920af081c9b1ebfab5e0efec98aedee4fda6ee225ac"
+    }
+  ],
+  "id": "scholarly-intelligence-thin-profile-admission-r2",
+  "kind": "ordivon.research.scholarly-intelligence-thin-profile-admission",
+  "liveProfileStanding": "PASS_EXACT_LIVE_PROFILES",
+  "next": "Commit the isolated implementation, rebase/cherry-pick onto exact current main, rerun live/profile/pressure and relevant monorepo verification, then decide integration.",
+  "nonClaims": [
+    "This does not transfer scientific truth authority from any Study.",
+    "This does not admit ClaimPermission, concern routing, experiment admission, acceptance prediction, or a shared scientific database.",
+    "This receipt is not final main-integration evidence until rebased and rerun on the current main revision."
+  ],
+  "profileCount": 3,
+  "prospectiveCurrentMainRevision": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+  "schemaVersion": 1,
+  "sourceWorkspace": "ws-scholarly-intelligence-kernel-r1-20260923",
+  "standing": "ADMIT_THIN_PROFILE_PROTOCOL",
+  "truthRole": "architecture-admission-not-study-truth",
+  "workspaceBaseRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802"
+}
