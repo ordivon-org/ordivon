@@ -8,6 +8,7 @@ mod inspection;
 mod job_attempt_state;
 mod platform;
 mod registry;
+mod registry_storage;
 #[cfg(feature = "operator-tools")]
 mod repair;
 mod reservation_state;

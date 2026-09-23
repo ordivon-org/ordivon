@@ -24,7 +24,7 @@ impl Registry {
         let Some(job_id) = job_id else {
             return Ok(None);
         };
-        let job = load_job(&connection, &job_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &job_id)?;
         let stored_identity = JobIdentityContract::stored_request_identity_digest(&job)?;
         if !JobIdentityContract::compatible_request_identity_matches(
             &stored_identity,
@@ -219,7 +219,7 @@ impl Registry {
             .optional()
             .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?
         {
-            let existing = load_job(&transaction, &existing_job_id)?;
+            let existing = RegistryStorageBoundary::load_job(&transaction, &existing_job_id)?;
             let matches = JobIdentityContract::exact_replay_matches(
                 &existing,
                 request.request_identity_digest.as_deref(),
@@ -468,7 +468,7 @@ impl Registry {
                     if existing_operation_digest != operation_digest {
                         return Err(JobIdentityContract::idempotency_conflict());
                     }
-                    return match load_job(&connection, &existing_job_id) {
+                    return match RegistryStorageBoundary::load_job(&connection, &existing_job_id) {
                         Ok(existing) => Ok(AdmissionOutcome::Existing {
                             job: Box::new(existing),
                         }),

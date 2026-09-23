@@ -65,17 +65,19 @@
     ]
   },
   "l02Disposition": {
-    "status": "DEFER_NEW_POSTGRES_STORE",
-    "reason": "The Episode contract already supplies a derived analytical waist. No current query/availability requirement shown by this census requires a new persistent service/database.",
-    "postgresAdmissionGate": [
+    "status": "CLOSED_REUSE_EXISTING_CONSUMER",
+    "reason": "The qualified Experimental Episode PostgreSQL consumer already exists at meta/next/experimental/episode-store-r1 and accepts the first real C08 Episode unchanged. No second/new store is admitted; only permanent realization remains demand-gated.",
+    "existingConsumer": "meta/next/experimental/episode-store-r1",
+    "deploymentStatus": "DEFER_ACTIVATION",
+    "deploymentAdmissionGate": [
       "named live consumer",
-      "query pattern not satisfied by existing files/study store",
+      "query/availability requirement not satisfied by file/Parquet/DuckDB projections",
       "rebuild/reconciliation semantics specified",
       "foreign owner truth remains referenced rather than copied",
-      "backup/retention owner named"
+      "Workstation deployment/backup/retention owner named"
     ]
   },
-  "nextExecutableSlice": "Measure real analysis/query pressure over the first C08 Episode and additional owner-native Episodes; keep L02 DEFER_NEW_POSTGRES_STORE until the existing PostgreSQL admission gate is satisfied.",
+  "nextExecutableSlice": "Accumulate a second real owner-native Episode only when it tests a distinct seam; keep the existing Episode Store R1 dormant/on-demand until a named live consumer requirement is not satisfied by file/Parquet/DuckDB projections.",
   "nonClaims": [
     "Experimental Episode is not Runtime or Harness truth.",
     "Acceptance status is not cross-domain success.",
@@ -94,5 +96,15 @@
     "runtimeSemanticCompletionEvaluated": false,
     "sourceRevision": "832468936934e03aa2b8f67836182a8543b124a6",
     "status": "FIRST_REAL_C08_EPISODE_MATERIALIZED"
+  },
+  "postgresDecision": {
+    "newStore": "CLOSED_REUSE_EXISTING_EPISODE_STORE_R1",
+    "existingConsumer": "meta/next/experimental/episode-store-r1",
+    "existingHistoricalQualificationEpisodes": 10007,
+    "c08EphemeralCompatibility": "PASS_IDEMPOTENT_PROJECTION_INGEST",
+    "permanentDeployment": "DEFER_ACTIVATION_UNTIL_NAMED_LIVE_QUERY_OR_AVAILABILITY_REQUIREMENT",
+    "defaultAnalyticalPath": "FILE_OR_PARQUET_DUCKDB_AS_APPROPRIATE",
+    "evidence": "docs/architecture/learning-query-pressure-r1.json",
+    "evidenceDigest": "sha256:bd8c1daf5a06e78d220b23d35be642f3c1084b3cdbb2d620c24cdd684a166150"
   }
 }

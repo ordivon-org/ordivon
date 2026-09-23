@@ -9,7 +9,7 @@ impl Registry {
         validate_digest(bundle_digest, "bundleDigest")?;
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "bundle-ready transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt.state != AttemptState::Accepted || attempt.row_version != expected_row_version {
             return Err(state_conflict(
                 "Attempt is not the expected accepted version",
@@ -39,7 +39,7 @@ impl Registry {
         transaction
             .commit()
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit bundle identity"))?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn mark_dispatch_issued(
@@ -50,7 +50,7 @@ impl Registry {
     ) -> RuntimeResult<AttemptRecord> {
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "dispatch-intent transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt.state != AttemptState::Accepted
             || attempt.row_version != expected_row_version
             || attempt.bundle_digest.is_none()
@@ -84,7 +84,7 @@ impl Registry {
         transaction
             .commit()
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit dispatch intent"))?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn bind_running(
@@ -96,7 +96,7 @@ impl Registry {
         validate_runner_identity(identity)?;
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "runner-bind transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt_runner_identity_matches(&attempt, identity) {
             return Ok(attempt);
         }
@@ -151,7 +151,7 @@ impl Registry {
         transaction
             .commit()
             .map_err(|error| RuntimeError::from_sql(error, "cannot commit Runner identity"))?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(crate) fn attempt_supervisor_owner(
@@ -212,7 +212,7 @@ impl Registry {
         let start_evidence_digest = owner.start_evidence_digest();
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "supervisor-owner bind transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let existing: Option<(String, String)> = transaction
             .query_row(
                 "SELECT owner_json,owner_digest FROM attempt_supervisor_owners WHERE attempt_id=?1",
@@ -297,7 +297,7 @@ impl Registry {
         transaction.commit().map_err(|error| {
             RuntimeError::from_sql(error, "cannot commit Attempt Supervisor Owner")
         })?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn request_deadline_termination(
@@ -307,8 +307,8 @@ impl Registry {
     ) -> RuntimeResult<AttemptRecord> {
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "deadline-intent transaction")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
         if AttemptLifecycleContract::deadline_request_is_replay(
             attempt.state,
             attempt.termination_intent,
@@ -317,7 +317,7 @@ impl Registry {
             transaction.commit().map_err(|error| {
                 RuntimeError::from_sql(error, "cannot close deadline-intent replay")
             })?;
-            return load_attempt(&connection, attempt_id);
+            return RegistryStorageBoundary::load_attempt(&connection, attempt_id);
         }
         if job.resolution.is_some() {
             return Err(RuntimeError::new(
@@ -363,7 +363,7 @@ impl Registry {
         transaction.commit().map_err(|error| {
             RuntimeError::from_sql(error, "cannot commit Attempt deadline intent")
         })?;
-        load_attempt(&connection, attempt_id)
+        RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
     pub(super) fn request_cancel(
@@ -373,7 +373,7 @@ impl Registry {
     ) -> RuntimeResult<JobProjection> {
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "cancel-intent transaction")?;
-        let job = load_job(&transaction, job_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, job_id)?;
         if job.resolution.is_some() {
             if job.resolution == Some(JobResolution::Orphaned) {
                 let attempt_id: String = transaction
@@ -392,8 +392,8 @@ impl Registry {
                             false,
                         )
                     })?;
-                let attempt = load_attempt(&transaction, &attempt_id)?;
-                let reservation = load_reservation(&transaction, &attempt_id)?;
+                let attempt = RegistryStorageBoundary::load_attempt(&transaction, &attempt_id)?;
+                let reservation = RegistryStorageBoundary::load_reservation(&transaction, &attempt_id)?;
                 if attempt.state != AttemptState::Orphaned
                     || reservation.state != ReservationState::HeldOrphaned
                 {
@@ -459,7 +459,7 @@ impl Registry {
                 false,
             )
         })?;
-        let attempt = load_attempt(&transaction, &attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, &attempt_id)?;
         if AttemptLifecycleContract::is_terminal(attempt.state) {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ReconciliationRequired,
@@ -607,8 +607,8 @@ impl Registry {
         }
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "terminal transaction")?;
-        let attempt = load_attempt(&transaction, &request.attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, &request.attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
         if AttemptLifecycleContract::is_terminal(attempt.state) {
             if attempt.result_digest.as_deref() == Some(request.result_digest.as_str())
                 && attempt.state == request.state
@@ -751,7 +751,7 @@ impl Registry {
                     None,
                 ));
             }
-            return match load_attempt(&connection, &request.attempt_id) {
+            return match RegistryStorageBoundary::load_attempt(&connection, &request.attempt_id) {
                 Ok(current)
                     if current.state == request.state
                         && current.result_digest.as_deref()
