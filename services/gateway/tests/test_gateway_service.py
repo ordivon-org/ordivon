@@ -231,7 +231,7 @@ def test_execution_submit_windows_context_passes_through_as_string() -> None:
 
 def test_execution_resolve_projects_request_identity_without_redispatch() -> None:
     caller = FakeOwnerCaller()
-    caller.responses[("runtime.linux", "task.list")] = {
+    caller.responses[("runtime.linux", "job.list")] = {
         "jobs": [
             {
                 "jobId": "job-resolved",
@@ -254,12 +254,12 @@ def test_execution_resolve_projects_request_identity_without_redispatch() -> Non
     assert caller.calls == [
         (
             "runtime.linux",
-            "task.list",
+            "job.list",
             {"limit": 2, "clientRequestId": "req-resolved"},
         )
     ]
 
-    caller.responses[("runtime.linux", "task.list")] = {
+    caller.responses[("runtime.linux", "job.list")] = {
         "jobs": [],
         "nextCursor": None,
     }
@@ -272,7 +272,7 @@ def test_execution_resolve_projects_request_identity_without_redispatch() -> Non
     assert absent.resolution == "absent"
     assert absent.operation_ref is None
 
-    caller.responses[("runtime.linux", "task.list")] = {
+    caller.responses[("runtime.linux", "job.list")] = {
         "jobs": [
             {"jobId": "job-a", "clientRequestId": "req-many"},
             {"jobId": "job-b", "clientRequestId": "req-many"},

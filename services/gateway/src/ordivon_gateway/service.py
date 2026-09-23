@@ -522,7 +522,7 @@ class GatewayService:
 
         page = await self._caller.call_tool(
             route.owner_id,
-            "task.list",
+            "job.list",
             {
                 "limit": 2,
                 "clientRequestId": request_id,
@@ -530,10 +530,10 @@ class GatewayService:
         )
         jobs = page.get("jobs")
         if not isinstance(jobs, list) or any(not isinstance(item, dict) for item in jobs):
-            raise GatewayError("Runtime task.list omitted jobs")
+            raise GatewayError("Runtime job.list omitted jobs")
         for job in jobs:
             if job.get("clientRequestId") != request_id:
-                raise GatewayError("Runtime task.list returned another clientRequestId")
+                raise GatewayError("Runtime job.list returned another clientRequestId")
         next_cursor = page.get("nextCursor")
         ambiguous = len(jobs) > 1 or next_cursor is not None
         if ambiguous:
