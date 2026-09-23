@@ -167,12 +167,17 @@
       "kind": "state_authority",
       "responsibility": "Separate Artifact/result identity and structured Runtime release effect state from generic engine/storage aggregation while preserving their distinct semantics.",
       "authority": "Runtime Artifact truth and Runtime self-release effect truth",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
         "docs/effect-kernel.md",
-        "docs/operations.md"
+        "docs/operations.md",
+        "crates/ordivon-runtime-core/src/runtime/artifact_release_state.rs",
+        "commit:2954b576fc06a9cbe2646d0a7a9adf216729b182",
+        "core qualification job-01a0ce0a-9ceb-77d2-b9e0-ff7ba85b37e9 PASS: 269 runnable core tests PASS with 36 opt-in ignored; platform owner boundary 2/2 PASS",
+        "owner verification job-01a0ce0e-7915-78d2-9a79-fcdb8d324756 PASS: cargo fmt, owner environment, all-features clippy, transactional Runtime 292 PASS with 36 opt-in ignored, MCP 66/66 PASS, auth 10/10 PASS, extended reference-model 1/1 PASS, documentation contract valid; terminal-evidence sha256:384885d11bb3b43656fc722fc6e6a3f4cef70f0bdea7d0e0df0da82a16de5dba",
+        "Registry MAX_MIGRATION_VERSION remains 6; R05 introduces no SQL/schema migration and no public MCP Tool change"
       ],
       "dependencies": [
         "R03"
@@ -186,7 +191,7 @@
         "release.apply/release.get remain the only graduated structured external effect in Runtime.",
         "No generic EffectAdapter, effect registry, or caller-supplied effect class is introduced."
       ],
-      "nextAction": "Extract state/contracts without generalizing release into a universal effect abstraction."
+      "nextAction": "R05 is closed. Proceed to R06 RegistryStorageBoundary; preserve Artifact/result and Runtime self-release as distinct operation-specific semantics and do not introduce a generic Effect framework."
     },
     {
       "id": "R06",
@@ -773,10 +778,11 @@
         "crates/ordivon-runtime-core/src/runtime/workspace_state.rs",
         "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9",
         "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs (R03-A1 canonical v3/v4/v5/v6 operation identity + exact replay/conflict law)",
-        "R04 ReservationContract: integrated e48b2eab, tree-equivalent to verified candidate 4131cbe0; full owner verification PASS; prior equivalent-patch focused real-system acceptance PASS"
+        "R04 ReservationContract: integrated e48b2eab, tree-equivalent to verified candidate 4131cbe0; full owner verification PASS; prior equivalent-patch focused real-system acceptance PASS",
+        "R05 ArtifactAndReleaseStateModule: commit 2954b576; full owner verification PASS; Registry v6/public MCP surface preserved; no generic Effect abstraction"
       ],
       "blockers": [],
-      "nextAction": "R04 is complete. Proceed to R05 ArtifactAndReleaseStateModule, then R06 RegistryStorageBoundary; keep R02 open only for additional proven Workspace-law duplication."
+      "nextAction": "R05 is complete. Proceed to R06 RegistryStorageBoundary; keep R02 open only for additional proven Workspace-law duplication."
     },
     {
       "id": "RW2",
@@ -921,9 +927,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+    "sourceRevision": "2954b576fc06a9cbe2646d0a7a9adf216729b182",
     "updatedAt": "2026-09-23",
-    "standing": "RW1_R04_COMPLETE_R05_NEXT",
-    "notes": "RW0 baseline remains complete. R02 first WorkspaceState slice remains integrated; R03 Job/Attempt extraction is complete. R04 ReservationContract now owns durable holder/acquire/hold/release and terminal reservation-target laws, is consumed by admission/Registry/Doctor paths, and preserves fail-closed incomplete-evidence behavior without introducing queue/scheduling semantics. Integrated commit e48b2eab is byte-identical to verified candidate 4131cbe0 across all five R04 responsibility files; candidate 4131cbe0 passed full owner verification (job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31), with prior equivalent-patch focused real-system acceptance. RW1 remains open: next frontier is R05 ArtifactAndReleaseStateModule, then R06 RegistryStorageBoundary."
+    "standing": "RW1_R05_COMPLETE_R06_NEXT",
+    "notes": "RW0 baseline remains complete. R02 first WorkspaceState slice remains integrated; R03 Job/Attempt and R04 ReservationContract are complete. R05 now gives Artifact/result identity plus Runtime self-release request/binding/receipt interpretation an explicit owner-local module while preserving Registry v6, the public MCP Tool surface, digest-bound Artifact reads, and release.apply/release.get as the only graduated structured external effect. Full Runtime owner verification passed on the exact candidate. RW1 remains open: next frontier is R06 RegistryStorageBoundary."
   }
 }
