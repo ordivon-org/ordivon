@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-coordination-r2-acceptance",
+  "truthRole": "candidate-acceptance-evidence-not-owner-lease",
+  "observedAt": "2026-09-23",
+  "sourceBase": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+  "primaryMainObservedBeforeCandidateCommit": "e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+  "standards": {
+    "eventEnvelope": "CloudEvents 1.0",
+    "correlationBoundary": "OpenTelemetry/W3C Trace Context remains external to coordination authority",
+    "thinExtensions": [
+      "ordivonscope",
+      "ordivonexpiresat",
+      "ordivonrefreshes",
+      "ordivonsupersedes",
+      "io.ordivon.social.retract.v1"
+    ]
+  },
+  "implementation": {
+    "newDaemon": false,
+    "newDatabase": false,
+    "newBroker": false,
+    "hostSchemaChanged": false,
+    "gatewaySurfaceChanged": false,
+    "runtimeSchemaChanged": false,
+    "runtimeCapacityReservationReinterpretedAsResourceLock": false,
+    "ownerNativeLeaseMinted": false,
+    "implemented": [
+      "SF30 SemanticReceptor",
+      "SF31 ScopeModel",
+      "SF32 expiry/refresh/supersede/retract lifecycle",
+      "SF33 DamageSignals",
+      "SF34 ModulatorySignals",
+      "SF40 Candidate/Support/Inhibition shadow projection",
+      "social:coordination",
+      "social:coordination:attention",
+      "social:coordination:route"
+    ]
+  },
+  "verification": {
+    "targetedTests": "11/11 PASS",
+    "ruffLint": "PASS",
+    "ruffFormat": "PASS",
+    "metaNextVerify": "PASS",
+    "dependencyAudit": "No known vulnerabilities",
+    "repoCi": "PASS",
+    "ownerBoundary": "PASS",
+    "architectureDocDrift": "PASS",
+    "integrateMainSmoke": "PASS"
+  },
+  "dogfood": {
+    "scenario": "real WSL/VHD maintenance collision reconstructed as a bounded historical cut",
+    "projectionDigest": "sha256:a17c7862762290709ad4a95247c8183826a64699ee2b0b400d629f2c6cb94a3a",
+    "activeSignals": 5,
+    "activeCandidates": 3,
+    "inhibitedCandidates": 3,
+    "subjectModeConflicts": 3,
+    "activeDamageSignals": 1,
+    "activeModulatorySignals": 1,
+    "receptorDeliveries": 5,
+    "currentProjectionFileSha256": "sha256:0585a7216f72224914cfe7b59046e3989c960dc8319a4cb2c5fb46399777e46b",
+    "attentionProjectionFileSha256": "sha256:44eb85a63cdcacb2bdf359e98fcecc38f7bde17a6a7227e2fae813ecb8f5743c",
+    "routeProjectionFileSha256": "sha256:0bc2a73aa131001f9da253b47b833b8dcd3c1e31d29c51f7d4957d48ab54a994"
+  },
+  "currentStanding": "CANDIDATE_READY_FOR_LATEST_MAIN_REQUALIFICATION",
+  "nextBoundary": {
+    "sf41QuorumPolicyShadow": "NOT_IMPLEMENTED",
+    "sf42CommitmentProjection": "NOT_IMPLEMENTED",
+    "ownerNativeSubjectExclusion": "NOT_IMPLEMENTED"
+  },
+  "nonClaims": [
+    "No candidate is selected as a winner.",
+    "Support count is not a score, rank, vote, quorum, or priority.",
+    "Signal expiry is not an owner-native lease.",
+    "Shadow inhibition does not itself block an external effect.",
+    "No active subject-level execution authority is created.",
+    "Latest-main requalification is required because primary main advanced beyond the candidate base."
+  ]
+}

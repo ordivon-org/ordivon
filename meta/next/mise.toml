@@ -48,3 +48,12 @@ run = "uv run --locked python scripts/social_fabric_r1.py attention --snapshot e
 
 [tasks."social:reconcile"]
 run = "uv run --locked python scripts/social_fabric_r1.py reconcile --snapshot evidence/acceptance/social-fabric-r1-dogfood-cut-20260923.json"
+
+[tasks."social:coordination"]
+run = "uv run --locked python scripts/social_fabric_coordination_r2.py current --cut evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json"
+
+[tasks."social:coordination:attention"]
+run = "uv run --locked python scripts/social_fabric_coordination_r2.py attention --cut evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json"
+
+[tasks."social:coordination:route"]
+run = "uv run --locked python scripts/social_fabric_coordination_r2.py route --cut evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json"
