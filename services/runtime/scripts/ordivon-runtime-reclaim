@@ -167,7 +167,11 @@ def registry_workspace_projection(
     return value
 
 
-def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
+def inspect_workspaces(
+    args: argparse.Namespace,
+    *,
+    selected_workspace_ids: set[str] | None = None,
+) -> dict[str, object]:
     workspace_root = args.workspace_root or args.runtime_store_root / "workspaces"
     records_root = args.runtime_store_root / "workspace-records"
     registry = registry_projection(args.database, args.busy_timeout_ms)
@@ -186,7 +190,16 @@ def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
 
     record_ids: set[str] = set()
     candidates: list[dict[str, object]] = []
-    for record_path in sorted(records_root.glob("*.json")) if records_root.exists() else []:
+    if selected_workspace_ids is None:
+        record_paths = sorted(records_root.glob("*.json")) if records_root.exists() else []
+    else:
+        record_paths = [
+            records_root / f"{workspace_id}.json"
+            for workspace_id in sorted(selected_workspace_ids)
+            if (records_root / f"{workspace_id}.json").exists()
+            or (records_root / f"{workspace_id}.json").is_symlink()
+        ]
+    for record_path in record_paths:
         workspace_id = record_path.stem
         record_ids.add(workspace_id)
         record_candidate = classify_record(
@@ -200,9 +213,18 @@ def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
             candidates.append(record_candidate)
 
     if workspace_root.exists():
-        for workspace_path in sorted(
-            path for path in workspace_root.iterdir() if path.is_dir() and not path.is_symlink()
-        ):
+        if selected_workspace_ids is None:
+            workspace_paths = sorted(
+                path for path in workspace_root.iterdir() if path.is_dir() and not path.is_symlink()
+            )
+        else:
+            workspace_paths = [
+                workspace_root / workspace_id
+                for workspace_id in sorted(selected_workspace_ids)
+                if (workspace_root / workspace_id).is_dir()
+                and not (workspace_root / workspace_id).is_symlink()
+            ]
+        for workspace_path in workspace_paths:
             if workspace_path.name not in record_ids:
                 candidates.append(
                     candidate(
@@ -228,6 +250,7 @@ def inspect_workspaces(args: argparse.Namespace) -> dict[str, object]:
         "generatedAtMs": int(time.time() * 1000),
         "registryVersion": registry_version,
         "releaseTool": "workspace.close",
+        "selection": "all" if selected_workspace_ids is None else "requested",
         "summary": {
             "counts": dict(sorted(counts.items())),
             "estimatedBytes": dict(sorted(estimated_bytes.items())),
@@ -725,7 +748,11 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
     requested = set(args.workspace_ids or [])
     cutoff_ms = int((time.time() - args.minimum_age_hours * 3600) * 1000)
     with exclusive_lock(args.lock_file):
-        before = inspect_workspaces(args)
+        selected_workspace_ids = requested or None
+        before = inspect_workspaces(
+            args,
+            selected_workspace_ids=selected_workspace_ids,
+        )
         candidates_by_id = {
             str(item["workspaceId"]): item for item in before["candidates"]
         }
@@ -827,7 +854,10 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                         "error": str(error),
                     }
                 )
-        after = inspect_workspaces(args)
+        after = inspect_workspaces(
+            args,
+            selected_workspace_ids=selected_workspace_ids,
+        )
         write_json_atomic(receipt / "after.json", after)
         status = "completed" if not failures and not missing_requested else "partial"
         result = {
