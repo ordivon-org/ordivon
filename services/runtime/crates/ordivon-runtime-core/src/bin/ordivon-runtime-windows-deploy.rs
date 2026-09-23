@@ -32,6 +32,7 @@ const REQUIRED_ARTIFACTS: [&str; 6] = [
     "ordivon-runtime-windows-deploy.exe",
 ];
 const BOOTSTRAP_RECOVERY_ATTEMPT_ENV: &str = "ORDIVON_RELEASE_BOOTSTRAP_RECOVERY_ATTEMPT_ID";
+const BOOTSTRAP_LAUNCHER_START_FILE: &str = "windows-launcher-start.json";
 
 #[derive(Debug)]
 struct Args {
@@ -1089,6 +1090,16 @@ fn regular_file_digest(path: &Path, label: &str) -> Result<String, String> {
     sha256_file(path)
 }
 
+fn bootstrap_control_result_is_supported(control: &serde_json::Value) -> bool {
+    control
+        .get("reasonCode")
+        .and_then(serde_json::Value::as_str)
+        == Some("RUNNER_RESULT_QUARANTINED")
+        && control
+            .get("detail")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|detail| detail.contains("LaunchIdentityMismatch"))
+}
 fn bootstrap_recovery_proof(
     args: &Args,
     candidate: &CandidateProof,
@@ -1156,7 +1167,7 @@ fn bootstrap_recovery_proof(
     let bundle = registry_root.join("attempts").join(attempt_id);
     let result_path = bundle.join("result.json");
     let control_path = bundle.join("control-result.json");
-    let start_path = bundle.join("windows-start.json");
+    let start_path = bundle.join(BOOTSTRAP_LAUNCHER_START_FILE);
     let runner_result_digest = regular_file_digest(&result_path, "bootstrap Runner Result")?;
     let control_result_digest = regular_file_digest(&control_path, "bootstrap control result")?;
     let start_digest = regular_file_digest(&start_path, "bootstrap Windows start evidence")?;
@@ -1169,13 +1180,7 @@ fn bootstrap_recovery_proof(
         .map_err(|error| format!("cannot read bootstrap control result: {error}"))?;
     let control: serde_json::Value = serde_json::from_slice(&control_bytes)
         .map_err(|error| format!("cannot decode bootstrap control result: {error}"))?;
-    if control.get("reason").and_then(serde_json::Value::as_str)
-        != Some("RUNNER_RESULT_QUARANTINED")
-        || !control
-            .get("detail")
-            .and_then(serde_json::Value::as_str)
-            .is_some_and(|detail| detail.contains("LaunchIdentityMismatch"))
-    {
+    if !bootstrap_control_result_is_supported(&control) {
         return Err(
             "bootstrap recovery is limited to quarantined Windows LaunchIdentityMismatch results"
                 .to_string(),
@@ -1862,6 +1867,26 @@ mod tests {
         assert!(output.contains("OTHER=value"));
     }
 
+    #[test]
+    fn bootstrap_recovery_uses_parent_observed_launcher_start_evidence() {
+        assert_eq!(BOOTSTRAP_LAUNCHER_START_FILE, "windows-launcher-start.json");
+        assert_ne!(BOOTSTRAP_LAUNCHER_START_FILE, "windows-start.json");
+    }
+
+    #[test]
+    fn bootstrap_recovery_accepts_historical_control_result_shape() {
+        let control = serde_json::json!({
+            "schemaVersion": 1,
+            "status": "orphaned",
+            "reasonCode": "RUNNER_RESULT_QUARANTINED",
+            "detail": "LaunchIdentityMismatch: Windows start identity does not match committed Attempt"
+        });
+        assert!(bootstrap_control_result_is_supported(&control));
+        assert!(!bootstrap_control_result_is_supported(&serde_json::json!({
+            "reason": "RUNNER_RESULT_QUARANTINED",
+            "detail": "LaunchIdentityMismatch"
+        })));
+    }
     #[test]
     fn bootstrap_attempt_id_is_path_safe() {
         assert!(valid_bootstrap_attempt_id(
