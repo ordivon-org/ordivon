@@ -1,6 +1,6 @@
 # Infrastructure Liveness Contract R1
 
-Status: **IMPLEMENTED CONTRACT / LIVE ACCEPTANCE PENDING**
+Status: **ACCEPTED / LIVE LINUX+INGRESS RECOVERY VERIFIED / WINDOWS RECOVERY CONFIGURATION-ONLY / COLD-START NOT PHYSICALLY EXECUTED**
 
 ## Decision
 
@@ -20,9 +20,16 @@ Ordivon Runtime, Host, Gateway, and production ingress are infrastructure. Their
 - restart Host: Gateway remains active and keeps the same process identity; Host-backed capability recovers without Gateway restart;
 - terminate Gateway process unexpectedly: systemd automatically creates a replacement process;
 - explicit `systemctl stop ordivon-gateway.service`: Gateway remains stopped until an explicit start, proving operator intent wins;
-- Windows Gateway is Automatic and retains SCM restart actions;
+- terminate production ingress A and B unexpectedly, one at a time: the failed tunnel self-recovers, the peer remains running, and public Gateway ingress remains reachable;
+- Windows Gateway is Automatic and retains SCM restart actions; destructive Windows recovery is recorded separately and must not be claimed if it was not executed;
 - boot/cold-start standing is recorded separately because this change does not claim a machine reboot that was not physically executed.
+
+## Acceptance standing
+
+Live acceptance evidence is recorded in `docs/architecture/INFRASTRUCTURE_LIVENESS_ACCEPTANCE_R1.md`.
+
+The Linux Runtime, Host, Gateway, and production ingress failure-isolation/recovery cases passed live acceptance on 2026-09-24. Windows SCM configuration was freshly verified, but destructive Windows live recovery was intentionally not executed during concurrent Windows authority-cutover work. No machine reboot/cold-start was executed.
 
 ## Truth boundary
 
-This contract proves service-manager liveness and failure isolation only. It does not make an unavailable owner healthy, does not change Runtime/Host/Gateway semantic authority, and does not make domain effects idempotent.
+This contract proves service-manager liveness and failure isolation only. It does not make an unavailable owner healthy, does not change Runtime/Host/Gateway semantic authority, and does not make domain effects idempotent. Configuration evidence for Automatic/enabled startup is not physical cold-boot evidence.
