@@ -552,6 +552,8 @@ pub struct WorkspaceExecPlanInput {
     pub execution_target: ExecutionTarget,
     #[serde(default)]
     pub windows_authority: WindowsAuthority,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows_context: Option<WindowsExecutionContextRequest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub foreign_references: Vec<ForeignReference>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -428,10 +428,9 @@
     }
   ],
   "currentFrontier": [
-    "WA01",
-    "WA02",
-    "WA03",
-    "WA04"
+    "WA22",
+    "WA23",
+    "WA24"
   ],
   "doNotBuild": [
     "a second Windows execution engine",
@@ -441,5 +440,56 @@
     "global ACL relaxation",
     "a permanent active_user_elevated enum if structured identity+privilege can represent it",
     "duplicate Job/Attempt/effect lifecycle outside Runtime"
-  ]
+  ],
+  "progress": {
+    "observedAt": "2026-09-23T17:02:00+08:00",
+    "sourceHeadBeforeClosure": "8f0e35c9c1731ee2e59c2a7cdd90269e1ae763f6",
+    "statuses": {
+      "WA01": "PASS_SOURCE",
+      "WA02": "PASS_SOURCE",
+      "WA03": "PASS_SOURCE",
+      "WA04": "PASS_SOURCE",
+      "WA05": "PASS_SOURCE",
+      "WA06": "PASS_SOURCE",
+      "WA07": "PASS_SOURCE",
+      "WA08": "PASS_SOURCE",
+      "WA09": "PASS_SOURCE_STATIC",
+      "WA10": "PASS_SOURCE_STATIC",
+      "WA11": "PASS_SOURCE_STATIC",
+      "WA12": "PASS_SOURCE_STATIC",
+      "WA13": "PASS_SOURCE",
+      "WA14": "PASS_SOURCE",
+      "WA15": "PASS_SOURCE",
+      "WA16": "PASS_EXISTING_INVARIANT",
+      "WA17": "PASS_SOURCE",
+      "WA18": "PASS_SOURCE",
+      "WA19": "PASS_SOURCE_LIVE_PROBE_REQUIRED",
+      "WA20": "WAIT_GATEWAY_ADAPTER",
+      "WA21": "PASS_SOURCE_TEST_MATRIX",
+      "WA22": "READY_AFTER_WINDOWS_CANDIDATE_DEPLOYMENT",
+      "WA23": "WAIT_WA22",
+      "WA24": "PARTIAL_NO_ACTIVE_SESSION_FAIL_CLOSED_OBSERVED",
+      "WA25": "WAIT_WA22_WA24",
+      "WA26": "WAIT_WA22_WA24",
+      "WA27": "WAIT_WA25_WA26",
+      "WA28": "PARTIAL_SUPERSEDED_H1_RECORDED",
+      "WA29": "WAIT",
+      "WA30": "WAIT",
+      "WA31": "WAIT",
+      "WA32": "WAIT"
+    },
+    "mechanicalEvidence": {
+      "core": "258 passed; 0 failed; 36 ignored; 1 known long-tail property test filtered",
+      "mcp": "66 passed; 0 failed",
+      "windowsStatic": "16 passed; 0 failed",
+      "launcherCompile": "PASS at provider-seam commit 8f0e35c9",
+      "launcherProbeSha256": "7b325f52213b54730fd6715e23a65dd299f0ddb786fbaa6b1ead458097bc9c3a",
+      "nativeFourthCell": "NOT_YET_PROVEN",
+      "noActiveSessionObservation": "WTSQueryUserToken returned Win32 1008 and Runtime failed closed"
+    },
+    "infrastructureObservation": {
+      "linuxBuildCacheGap": "Runtime failed closed when workspace build-cache directory was missing; directory restored through another healthy Runtime workspace.",
+      "classification": "execution infrastructure evidence, not authority semantic failure"
+    }
+  }
 }
