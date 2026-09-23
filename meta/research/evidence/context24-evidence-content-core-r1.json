@@ -1,0 +1,86 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 186676,
+      "path": "derived/parquet/captions.parquet",
+      "sha256": "sha256:4527fd631fd7f869a06d17d8f8be0039a6710d30415f0ca716497131d62c72a8"
+    },
+    {
+      "bytes": 7492,
+      "path": "derived/parquet/claim_evidence_content_links.parquet",
+      "sha256": "sha256:a7822aab7e1909ee1070f874f43db3ffeecbd7d5e88c903f870fe702d99274fd"
+    },
+    {
+      "bytes": 21583,
+      "path": "derived/parquet/evidence_contents.parquet",
+      "sha256": "sha256:a6ddef435b5255abfd5e872c9166453a3f4ed49e1837cf24dd8bf958704c788d"
+    },
+    {
+      "bytes": 9313988,
+      "path": "derived/parquet/fulltexts.parquet",
+      "sha256": "sha256:7ecb093350d4bb6a847b7993832a9c5626ed47f1d472a7a9dd2eb09c5266ba45"
+    },
+    {
+      "bytes": 5151,
+      "path": "derived/parquet/unresolved_gold_links.parquet",
+      "sha256": "sha256:6f442e5fed034f56df376433e64fa87f07450cbf540269645db7f0b74ee4f2c6"
+    },
+    {
+      "bytes": 34877440,
+      "path": "derived/context24-evidence-content-core-r1.duckdb",
+      "sha256": "sha256:f1df1169ec5c81d9edd0232e3ea61f0d065466f6723d4d97d15774b0d3af0db2"
+    }
+  ],
+  "boundaries": [
+    "Dataset card CC BY 4.0 is observed for the dataset release, but underlying source-paper figure/table/full-text rights are not independently verified here. External redistribution and commercial media reuse are not authorized by this admission.",
+    "A byte-level evidence-content binding proves only that the upstream dataset maps an evidence identity to specific content bytes. It does not establish scientific truth, causal support, evidence adequacy, or ClaimPermission. Test gold remains withheld and is never inferred from test media.",
+    "Only exact upstream paths are content-bound; 423 unresolved gold identities remain identity-only rather than being guessed.",
+    "Challenge-test gold remains withheld; test media/full text are not used to infer hidden evidence labels."
+  ],
+  "counts": {
+    "captionCarrierFiles": 32,
+    "exactGoldContentLinks": 256,
+    "fulltextTestCarrierKeys": 91,
+    "fulltextTrainCarrierKeys": 319,
+    "identityOnlyGoldLinks": 423,
+    "normalizedFulltextRows": 410,
+    "task1GoldEvidenceLinks": 679,
+    "task1TrainRows": 474,
+    "uniqueContentImages": 223
+  },
+  "coverage": {
+    "goldContentLinkFraction": 0.37702503681885124,
+    "task1TestFulltextCitekeys": "46/46",
+    "task1TrainFulltextCitekeys": "229/229"
+  },
+  "id": "context24-evidence-content-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "parentAsset": {
+    "id": "context24-identity-core-r1",
+    "snapshotIdentity": "sha256:fe95ee5748e301cd4885deb5184f99605ec1fd5a538208db2a7be4025159822b"
+  },
+  "rights": {
+    "commercialMediaReuse": "NOT_AUTHORIZED_BY_CATALOG",
+    "datasetCardLicenseObserved": "CC-BY-4.0",
+    "externalRedistribution": "NOT_AUTHORIZED_BY_CATALOG",
+    "underlyingPaperMediaRights": "NOT_INDEPENDENTLY_VERIFIED"
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:a9d8cceedb6e19329a2c359b88000325b3e7c77fbf2c11e9b5fd51c16663ef48",
+    "identity": "sha256:ca984af3235e404ebe21bd0c02595db8cfe4201d74d9f0b63211c193bd01da53",
+    "manifestSha256": "sha256:a39396770b771d926c3c4aeea37e89ef82369dacf0b8e1cf69e641c6c18aaf9e",
+    "normalizationSummarySha256": "sha256:a761bf26dae4b55fbc34c0fc6e05533a7709fb7f72dcafab3c07b87ebafde556",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/context24/context24-evidence-content-core-r1-20260923",
+    "schemaCensusSha256": "sha256:a4a9b8d307523776325ea615ba6087cea3bb98af7c4e00ede9b3254dca37813d"
+  },
+  "source": {
+    "datasetCardLicenseObserved": "CC-BY-4.0",
+    "repo": "https://huggingface.co/datasets/joelchan/contextualizing-scientific-claims",
+    "repoCommit": "457d3b5cb4bb8ade34e37458f4900c6eae0959bb",
+    "transportResolver": "https://hf-mirror.com",
+    "underlyingPaperMediaRights": "NOT_INDEPENDENTLY_VERIFIED"
+  },
+  "status": "MATERIALIZED_PARTIAL_GOLD_EVIDENCE_CONTENT_CORE_PASS",
+  "truthRole": "external-evidence-content-byte-binding-not-scientific-truth-or-claim-permission"
+}

@@ -232,6 +232,38 @@
       "licenseStanding": "ODC-BY-1.0_OBSERVED_UPSTREAM_SNAPSHOT",
       "inferenceBoundary": "Review-thread response context is not concern-specific semantic resolution and is not a Response-to-Revision causal edge.",
       "reuseStanding": "ADMIT_FOR_NONCAUSAL_REVIEW_LIFECYCLE_IDENTITY_AND_TOPOLOGY_RESEARCH"
+    },
+    {
+      "id": "context24-evidence-content-core-r1",
+      "owner": "shared-research-data-catalog",
+      "catalogRole": "evidence-identity-to-exact-byte-content-and-focal-fulltext",
+      "status": "MATERIALIZED_PARTIAL_GOLD_EVIDENCE_CONTENT_CORE",
+      "rawExternalRoot": "/root/projects/ordivon-corpora/scholarly-data/context24/context24-evidence-content-core-r1-20260923",
+      "admissionReceipt": "meta/research/evidence/context24-evidence-content-core-r1.json",
+      "analyticalBaselines": [
+        "meta/research/evidence/context24-evidence-content-baseline-r1.json"
+      ],
+      "observedScale": {
+        "captionCarrierFiles": 32,
+        "exactGoldContentLinks": 256,
+        "fulltextTestCarrierKeys": 91,
+        "fulltextTrainCarrierKeys": 319,
+        "identityOnlyGoldLinks": 423,
+        "normalizedFulltextRows": 410,
+        "task1GoldEvidenceLinks": 679,
+        "task1TrainRows": 474,
+        "uniqueContentImages": 223
+      },
+      "featureFamilies": [
+        "exact gold evidence PNG bytes",
+        "evidence identity to content binding",
+        "focal train/test fulltext carriers",
+        "available upstream OCR caption carriers",
+        "explicit unresolved identity-only gold links"
+      ],
+      "licenseStanding": "DATASET_CC-BY-4.0_OBSERVED_UNDERLYING_PAPER_MEDIA_RIGHTS_NOT_INDEPENDENTLY_VERIFIED",
+      "inferenceBoundary": "Exact content bytes do not establish evidential sufficiency, scientific truth, causal support, method adequacy, or ClaimPermission.",
+      "reuseStanding": "ADMIT_FOR_INTERNAL_RESEARCH_EXTERNAL_REDISTRIBUTION_AND_COMMERCIAL_MEDIA_REUSE_BLOCKED_UNTIL_RIGHTS_BOUND"
     }
   ],
   "externalCandidates": [
@@ -459,15 +491,20 @@
         "task1Rows": 585,
         "task1GoldEvidenceLinks": 679,
         "task2Rows": 151,
-        "task2GoldMethodContextSnippets": 210
+        "task2GoldMethodContextSnippets": 210,
+        "contentBoundGoldEvidenceLinks": 256,
+        "identityOnlyGoldEvidenceLinks": 423,
+        "uniqueContentImages": 223,
+        "focalFulltextTask1TrainCoverage": "229/229",
+        "focalFulltextTask1TestCoverage": "46/46"
       },
       "useCases": [
         "claim to supporting figure/table grounding",
         "claim to methodological context grounding",
         "ClaimPermission evidence adapters"
       ],
-      "acquisitionState": "MATERIALIZED_IDENTITY_CORE",
-      "licenseStanding": "CC-BY-4.0_OBSERVED_HF_DATASET_CARD",
+      "acquisitionState": "MATERIALIZED_IDENTITY_PLUS_PARTIAL_CONTENT_CORE",
+      "licenseStanding": "CC-BY-4.0_DATASET_CARD_OBSERVED_UNDERLYING_PAPER_MEDIA_RIGHTS_UNVERIFIED",
       "priority": "A"
     },
     {

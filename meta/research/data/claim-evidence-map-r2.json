@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.research.claim-evidence-map",
+  "id": "claim-evidence-map-r2",
+  "truthRole": "claim-grounding-interface-not-scientific-truth",
+  "inherits": "claim-evidence-map-r1",
+  "sourceAssets": [
+    "context24-identity-core-r1",
+    "context24-evidence-content-core-r1"
+  ],
+  "principle": "Extend evidence identity to exact upstream content bytes without promoting byte availability into evidential sufficiency or ClaimPermission.",
+  "sharedKinds": [
+    "claim",
+    "evidence_identity",
+    "evidence_content",
+    "method_context",
+    "correspondence"
+  ],
+  "adapters": [
+    {
+      "sourceTable": "claims",
+      "toKind": "claim",
+      "identityField": "claim_instance_id",
+      "nativeIdStanding": "non_unique_source_metadata"
+    },
+    {
+      "sourceTable": "task1_evidence_links",
+      "toKind": "evidence_identity",
+      "representationStanding": "identity_only"
+    },
+    {
+      "sourceTable": "task1_evidence_links",
+      "toKind": "correspondence",
+      "relationType": "annotated_supporting_evidence_identity",
+      "relationCeiling": "annotation_not_scientific_truth_or_causality"
+    },
+    {
+      "sourceTable": "task2_method_contexts",
+      "toKind": "method_context",
+      "representationStanding": "content_bound"
+    },
+    {
+      "sourceTable": "task2_method_contexts",
+      "toKind": "correspondence",
+      "relationType": "annotated_method_context",
+      "relationCeiling": "method_context_annotation_not_claim_validity"
+    },
+    {
+      "sourceAsset": "context24-evidence-content-core-r1",
+      "sourceTable": "evidence_contents",
+      "toKind": "evidence_content",
+      "representationStanding": "content_bound",
+      "rightsStanding": "underlying_source_media_not_independently_verified"
+    },
+    {
+      "sourceAsset": "context24-evidence-content-core-r1",
+      "sourceTable": "claim_evidence_content_links",
+      "toKind": "correspondence",
+      "relationType": "materializes_evidence_identity",
+      "relationCeiling": "byte_content_binding_not_support_adequacy"
+    }
+  ],
+  "goldPolicy": {
+    "train": "use_public_gold",
+    "challengeTest": "withheld_do_not_infer_or_fabricate"
+  },
+  "contentExpansion": {
+    "figureTablePixels": "PARTIAL_256_OF_679_PUBLIC_TRAIN_GOLD_LINKS_CONTENT_BOUND",
+    "captions": "PARTIAL_32_UPSTREAM_OCR_CARRIERS_BOUND",
+    "fullText": "FOCAL_CLAIM_CITEKEYS_BOUND_TRAIN_229_OF_229_TEST_46_OF_46",
+    "silverCorpus": "NOT_BOUND_R2"
+  },
+  "rights": {
+    "datasetCardLicenseObserved": "CC-BY-4.0",
+    "underlyingPaperMediaRights": "NOT_INDEPENDENTLY_VERIFIED",
+    "externalRedistribution": "NOT_AUTHORIZED_BY_CATALOG",
+    "commercialMediaReuse": "NOT_AUTHORIZED_BY_CATALOG"
+  },
+  "notYetIdentified": [
+    "423 public train gold evidence identities remain identity_only because no exact upstream PNG path exists at the bound release commit",
+    "semantic evidential adequacy or support strength of a content-bound figure/table",
+    "ClaimPermission or claim ceiling derived from evidence content",
+    "independent per-paper rights basis for external redistribution or commercial media reuse",
+    "challenge-test evidence labels, which remain withheld"
+  ],
+  "nonClaims": [
+    "An annotated evidence identity is not scientific-truth authority.",
+    "An annotated evidence relation is not causal proof.",
+    "A method-context snippet is not proof of method adequacy or claim validity.",
+    "A native Context24 claim id is not assumed unique.",
+    "Withheld challenge-test gold is not inferred.",
+    "EvidenceContent availability is not evidential sufficiency.",
+    "An exact upstream PNG does not prove the claim is true or well-supported.",
+    "R2 does not authorize ClaimPermission decisions.",
+    "The dataset-card license is not silently propagated as an independent rights determination for every underlying paper media object."
+  ],
+  "physicalPolicy": "VIRTUAL_ADAPTER_ONLY_RAW_BYTES_REMAIN_IN_CONTEXT24_ASSETS"
+}

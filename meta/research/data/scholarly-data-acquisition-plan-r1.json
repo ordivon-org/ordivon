@@ -19,7 +19,7 @@
     {
       "id": "SD1",
       "goal": "Small labeled discourse and citation corpora",
-      "standing": "IN_PROGRESS_CONTEXT24_IDENTITY_CORE_MATERIALIZED_OTHER_LICENSE_BLOCKERS_REMAIN",
+      "standing": "PARTIAL_CONTEXT24_IDENTITY_AND_CONTENT_CORE_MATERIALIZED",
       "candidates": [
         "scicite",
         "scidtb",
@@ -27,7 +27,8 @@
         "context24"
       ],
       "gate": "license verified + immutable snapshot manifest + checksum + schema census",
-      "unlocks": "SI-R3 ClaimPermission research"
+      "unlocks": "Claim-Evidence R2 exact content binding; evidence sufficiency/ClaimPermission remains research work",
+      "next": "Use content-bound subset for ClaimPermission pressure tests while preserving 423 identity-only links and withheld test gold."
     },
     {
       "id": "SD2",
