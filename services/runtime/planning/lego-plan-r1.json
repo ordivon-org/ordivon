@@ -235,11 +235,14 @@
       "kind": "typed_contract",
       "responsibility": "Compile execution target, profile, principal, input authority, credential authority, Windows authority, executable identity and Host Dependency commitments into one internal enforceable authority contract.",
       "authority": "Runtime authority binding; grants remain external/provider owned",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "docs/runtime.md",
-        "docs/status.md"
+        "AuthorityContract implementation: commit 163db3230483ec932fa8152fb1c9e6bd756e59d5",
+        "crates/ordivon-runtime-core/src/runtime/authority_contract.rs plus runtime/engine/admission.rs integration",
+        "existing-Job replay resolves before AuthorityContract compilation/current authority reinterpretation",
+        "public MCP Tool surface unchanged; Registry semantic schema remains v6; Runtime does not mint Security/provider/domain grants",
+        "current-main runtime:verify PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896: fmt + owner-environment test + clippy + transactional Runtime + extended Registry reference model + owner-boundary + docs"
       ],
       "dependencies": [
         "R00",
@@ -255,7 +258,7 @@
         "Runtime consumes and enforces authority; it does not invent provider/domain permission.",
         "Replay resolves existing Jobs before current authority/policy reinterpretation exactly as today."
       ],
-      "nextAction": "Model current four execution families as internal authority compositions before changing any public Tool."
+      "nextAction": "R07 is closed. Proceed to R08 OperationCircuitCompiler with one existing execution family first; prove exact parity and fail-closed behavior before migrating the remaining families."
     },
     {
       "id": "R08",
@@ -795,7 +798,7 @@
     {
       "id": "RW2",
       "objective": "Compile existing execution variants from orthogonal authority and operation LEGO instead of bespoke feature paths.",
-      "status": "READY",
+      "status": "IN_PROGRESS",
       "nodeIds": [
         "R07",
         "R08"
@@ -805,9 +808,12 @@
         "Replay/identity compatibility is preserved.",
         "No generic public authority object is introduced."
       ],
-      "evidence": [],
+      "evidence": [
+        "R07 AuthorityContract implemented at 163db3230483ec932fa8152fb1c9e6bd756e59d5",
+        "current-main Runtime owner qualification PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896"
+      ],
       "blockers": [],
-      "nextAction": "Start R07 with the existing Tool→authority→provider→evidence composition matrix; migrate one authority family at a time without changing the public Tool surface."
+      "nextAction": "R08 is the next RW2 frontier: freeze the smallest immutable OperationCircuit contract, migrate one execution family, and prove parity before expansion."
     },
     {
       "id": "RW3",
@@ -933,9 +939,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "7523f282994d82ed2891a16fd142c1503f7f1f46",
-    "updatedAt": "2026-09-23",
-    "standing": "RW1_R06_COMPLETE_RW2_R07_NEXT",
-    "notes": "RW0 baseline remains complete. RW1 durable state ownership is now complete: R02 WorkspaceState, R03 Job/Attempt, R04 ReservationContract, R05 Artifact/Release and R06 RegistryStorageBoundary each have explicit owner-local contracts. R06 moves typed Job/Attempt/Reservation row decoding and loading behind RegistryStorageBoundary while Registry retains SQLite transaction/migration/query mechanics; schema remains v6 and the public MCP Tool surface is unchanged. Full core, MCP/clippy, owner-environment/documentation and the extended 512-case Registry reference-model gates pass. Next frontier is RW2: R07 AuthorityContract followed by R08 OperationCircuitCompiler."
+    "sourceRevision": "163db3230483ec932fa8152fb1c9e6bd756e59d5",
+    "updatedAt": "2026-09-24",
+    "standing": "RW2_R07_COMPLETE_R08_NEXT",
+    "notes": "RW0 and RW1 remain complete. R07 AuthorityContract is implemented and current-main qualified: existing execution families compile after exact replay into internal ordinary, immutable-input reduced/trusted, or credential-bound trusted authority variants; widening combinations fail closed. Public MCP Tool schemas and Registry schema v6 are unchanged, and Runtime does not acquire Security/provider/domain grant authority. RW2 remains in progress with R08 OperationCircuitCompiler as the next frontier; launch-token timing/late-result reconciliation remains a separate supervisor-evidence lane."
   }
 }

@@ -1,20 +1,21 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW1_IN_PROGRESS_R04_COMPLETE
+Status: RW2_IN_PROGRESS_R07_COMPLETE
 Truth role: planning projection, not Runtime project truth
-Source revision: `e48b2eab5fb743efa3b50cb1eceae4539e1c99a7`
+Source revision: `163db3230483ec932fa8152fb1c9e6bd756e59d5`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
 
-## Current progress checkpoint — 2026-09-23
+## Current progress checkpoint — 2026-09-24
 
 - R00/R01: implemented baseline/invariant and verification partition.
 - R02: first WorkspaceState extraction integrated; residual extraction remains evidence-driven.
 - R03: JobIdentityContract + AttemptLifecycleContract implemented and verified.
 - R04: **implemented** as `ReservationContract` on `e48b2eab5fb743efa3b50cb1eceae4539e1c99a7`. It owns durable capacity-holder/acquire/hold/release and terminal reservation-target laws only; queue/priority/scheduling remain explicitly out of scope.
 - R04 verification: integrated `e48b2eab` is byte-identical to verified candidate `4131cbe0` across the five R04 responsibility files. Candidate owner gate `job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31` PASS (`exitCode=0`), including the slow reference-model property gate; the equivalent R04 patch on an earlier base also passed focused real-system fast-success and timeout-descendant-pipe acceptance.
-- RW1 remains **IN_PROGRESS**. Next: R05 Artifact/Release state ownership, then R06 Registry storage boundary.
-- RW2 (R07/R08) remains blocked on RW1. R13/V05 evidence thin-waist integration remains gated on RW1+RW2.
+- RW1 is **COMPLETE**: R05 Artifact/Release state ownership and R06 RegistryStorageBoundary are integrated; Registry semantic schema remains v6.
+- R07 `AuthorityContract` is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `163db3230483ec932fa8152fb1c9e6bd756e59d5`. Existing execution families compile internally only after exact replay lookup; the public Tool surface and current authority semantics are unchanged. `runtime:verify` PASS: `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`.
+- RW2 is **IN_PROGRESS**. Next: R08 OperationCircuitCompiler, starting with one execution family and parity/fail-closed proof before wider migration. R13/V05 remains gated on RW2.
 
 ## Global rules
 
@@ -271,6 +272,13 @@ to explicit AuthorityContract variants.
 - do not introduce a public "universal authority JSON";
 - do not let Runtime grant provider/domain permission;
 - exact replay precedes current authority reinterpretation.
+
+**Standing — implemented / verified on `163db3230483ec932fa8152fb1c9e6bd756e59d5`**
+- `ordinary`, `immutable-input reduced`, `immutable-input trusted`, and `credential-bound trusted` are explicit internal variants;
+- admission compiles the contract only after exact replay lookup returns no existing Job;
+- widening combinations fail closed, including Windows/input/credential/Host-Dependency incompatibilities;
+- public MCP Tool schemas, Registry schema v6, and provider/domain/Security authority ownership are unchanged;
+- full current-main owner gate `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896` passed `fmt`, owner environment, clippy, transactional Runtime tests, the extended Registry reference model, platform owner-boundary tests, and documentation checks.
 
 ### R08 — OperationCircuitCompiler
 
@@ -643,12 +651,10 @@ Rollback unit is the smallest completed LEGO extraction commit, not the whole pr
 
 The old bootstrap queue through R04 is complete. The current queue is:
 
-1. **R05-A** — census Artifact/result identity and structured Runtime release-state semantics still embedded in Registry/engine paths.
-2. **R05-B** — extract the smallest Artifact/Release state contracts without introducing a generic Effect abstraction.
-3. **R06-A** — define the narrow transactional persistence/query seam only after R05 ownership is explicit.
-4. **R06-B** — prove Registry remains schema-v6 storage/migration/query rather than semantic ownership.
-5. **R07-A** — refresh the existing Tool→Authority composition matrix against post-RW1 code; implementation remains blocked until RW1 closes.
-6. **R08-A** — keep the OperationCircuit output design frozen; do not migrate an execution Tool until R07 is enforceable.
-7. **R13-A / V05** — retain the evidence-claim matrix as planning input only until R08 can carry physical evidence obligations without owning domain truth.
+1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5` and current-main qualified by `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`; do not reopen absent a proven authority/replay regression.
+2. **R08-A** — census the post-R07 admission/materialization/dispatch seams and freeze the smallest `OperationCircuitCompiler` input/output contract.
+3. **R08-B** — migrate exactly one existing execution family through the compiler and prove before/after parity plus fail-closed behavior before expanding.
+4. **R13-A / V05** — retain the evidence-claim matrix as planning input only until R08 can carry physical evidence obligations without owning domain truth.
+5. Keep launch-token timing / late-result reconciliation as a separate supervisor-evidence lane; do not fold it into R08.
 
 Do not reopen R04 for launch-evidence timing/reconciliation races already reproduced on a clean baseline; those remain with the reconciliation/supervisor evidence owner.

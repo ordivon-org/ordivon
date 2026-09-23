@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-09
+updated: 2026-09-24
 summary: Canonical Runtime architecture for Workspace-bound admission, Jobs, Attempts, execution evidence, reconciliation, and recovery.
 evidence_status: verified
 readiness: READY
@@ -159,6 +159,8 @@ Linux trusted-local dispatch verifies the Job-owned ciphertext manifest and pass
 Encrypted credential bytes are execution capabilities rather than historical evidence. Startup and periodic maintenance reconciliation retain them only while the owning Job is unresolved; durable Job resolution is sufficient authority to remove prepared or Job-owned ciphertext without a time-based retention policy. Exact replay uses Registry Job/Attempt/result truth and therefore does not require reopening a rotated CredentialAuthority or retaining the old encrypted blob. Missing ciphertext for an unresolved executable Job is reconciliation-required rather than permission to silently fetch the current credential version.
 
 ## Execution authority profiles
+
+On a new admission, only after exact existing-Job replay has failed to resolve historical truth, Runtime compiles the existing public execution family into an internal `AuthorityContract`: ordinary execution, immutable-input reduced authority, immutable-input trusted authority, or credential-bound trusted authority. The contract binds the authenticated principal, target/profile, effective Windows context when applicable, executable identity paths, named input/credential authorities, and declared Host Dependency commitments, and rejects widening combinations fail-closed. This is Runtime admission truth only: it is not a caller-facing universal Authority object, a Security Grant, provider IAM, or a domain verdict, and R07 changes no public MCP Tool schema.
 
 `workspace.exec` and `workspace.execPlan` accept `executionProfile` with two values. `workspace.execBound` does not expose this choice: the target determines the reduced-authority input boundary. `local_linux` uses `contained_local`; configured `windows_native` uses `trusted_local` with `windowsAuthority=limited`. `workspace.execBoundTrusted` is a separate local-Linux-only operation identity that structurally selects `trusted_local` while retaining the same exact named-authority input materialization and read-only `/run/ordivon/inputs` presentation. It deliberately preserves ambient trusted-local host/network authority and therefore must not be described as containment, controlled egress, a secret broker, or proof of external provider permission. Elevated Windows input-bound admission remains rejected.
 
