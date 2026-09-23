@@ -9,6 +9,7 @@ from typing import Any
 META = Path(__file__).resolve().parents[2]
 CATALOG = META / "research/data/scholarly-data-catalog-r1.json"
 PLAN = META / "research/data/scholarly-data-acquisition-plan-r1.json"
+READINESS = META / "research/data/sd1-acquisition-readiness-r1.json"
 
 
 def fail(message: str) -> None:
@@ -30,6 +31,7 @@ def count_csv_rows(path: Path) -> int:
 def main() -> int:
     catalog = load(CATALOG)
     plan = load(PLAN)
+    readiness = load(READINESS)
 
     if catalog.get("truthRole") != "data-asset-catalog-not-scientific-truth":
         fail("catalog authority boundary drifted")
@@ -111,6 +113,17 @@ def main() -> int:
         fail("small labeled corpora must remain the next acquisition wave")
     if by_id.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
         fail("large scholarly fulltext acquisition was prematurely promoted")
+
+    if readiness.get("standing") != "PARTIAL_READY":
+        fail("SD1 readiness standing drifted")
+    readiness_by_id = {row["id"]: row for row in readiness.get("candidates", [])}
+    if readiness_by_id.get("context24", {}).get("standing") != "READY_FOR_BOUNDED_SNAPSHOT":
+        fail("Context24 bounded snapshot readiness missing")
+    for blocked in ("scicite", "scidtb", "coresc-azii-chemistry"):
+        if not str(readiness_by_id.get(blocked, {}).get("standing", "")).startswith("BLOCKED_"):
+            fail(f"{blocked}: fail-closed license readiness lost")
+    if readiness.get("admission", {}).get("bulkDownloadAuthorized") is not False:
+        fail("bulk download was silently authorized")
 
     result = {
         "schemaVersion": 1,

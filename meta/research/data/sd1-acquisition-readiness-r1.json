@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-data-acquisition-readiness",
+  "id": "sd1-acquisition-readiness-r1",
+  "observedAt": "2026-09-23",
+  "truthRole": "acquisition-readiness-observation-not-license-legal-advice",
+  "standing": "PARTIAL_READY",
+  "candidates": [
+    {
+      "id": "context24",
+      "standing": "READY_FOR_BOUNDED_SNAPSHOT",
+      "release": "joelchan/contextualizing-scientific-claims",
+      "releaseUrl": "https://huggingface.co/datasets/joelchan/contextualizing-scientific-claims",
+      "licenseObserved": "CC-BY-4.0",
+      "paperUrl": "https://aclanthology.org/2024.sdp-1.3/",
+      "reportedClaims": 585,
+      "next": "materialize exact bounded snapshot with upstream revision/file digests and preserve paper/media provenance"
+    },
+    {
+      "id": "scicite",
+      "standing": "BLOCKED_DATASET_LICENSE_AMBIGUOUS",
+      "releaseUrl": "https://github.com/allenai/scicite",
+      "repositoryLicenseObserved": "Apache-2.0",
+      "paperUrl": "https://aclanthology.org/N19-1361/",
+      "reportedInstances": 11020,
+      "reportedPapers": 6627,
+      "boundary": "Repository license alone is not treated as proof that separately downloadable scholarly text examples carry the same redistribution rights.",
+      "next": "bind an explicit dataset license/terms observation before materialization"
+    },
+    {
+      "id": "scidtb",
+      "standing": "BLOCKED_NO_EXPLICIT_DATASET_LICENSE_OBSERVED",
+      "releaseUrl": "https://github.com/PKU-TANGENT/SciDTB",
+      "paperUrl": "https://aclanthology.org/P18-2071/",
+      "reportedTextsFromSecondaryResourceIndex": 1355,
+      "boundary": "Public repository visibility is not treated as redistribution authorization.",
+      "next": "locate explicit dataset license or author distribution terms"
+    },
+    {
+      "id": "coresc-azii-chemistry",
+      "standing": "BLOCKED_ORIGINAL_265_CORPUS_LICENSE_NOT_BOUND",
+      "paperUrl": "https://aclanthology.org/L10-1440/",
+      "reportedCoreScFullPapers": 265,
+      "reportedExpertAnnotators": 16,
+      "next": "bind the exact distribution endpoint and license for the original 265-paper corpus"
+    },
+    {
+      "id": "oa-stm-coresc-alternative",
+      "standing": "READY_AS_DISTINCT_CC_BY_ALTERNATIVE_NOT_IDENTITY_EQUIVALENT",
+      "releaseUrl": "https://github.com/elsevierlabs/OA-STM-Corpus",
+      "licenseObserved": "source corpus selected from CC-BY articles; repository describes redistribution basis",
+      "reportedArticles": 110,
+      "reportedCoreScAnnotatedArticles": 110,
+      "boundary": "This is a distinct multi-domain OA-STM/CoreSC asset and must not be described as the original 265-paper chemistry CoreSC corpus.",
+      "next": "snapshot only if SI-R3 needs full-paper CoreSC labels before original corpus license is resolved"
+    }
+  ],
+  "admission": {
+    "mayMaterializeNow": ["context24"],
+    "conditionalAlternative": ["oa-stm-coresc-alternative"],
+    "blocked": ["scicite", "scidtb", "coresc-azii-chemistry"],
+    "bulkDownloadAuthorized": false
+  },
+  "nonClaims": [
+    "A repository software license is not automatically a dataset-content license.",
+    "Public access is not unrestricted redistribution authority.",
+    "This observation does not replace legal or provider terms.",
+    "Alternative corpora are not identity-equivalent to the originally cited corpus."
+  ]
+}
