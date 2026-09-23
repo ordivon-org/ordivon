@@ -603,7 +603,7 @@ impl Registry {
         }
         validate_digest(&request.result_digest, "resultDigest")?;
         for artifact in &request.artifacts {
-            validate_artifact_registration(artifact)?;
+            ArtifactStateContract::validate_registration(artifact)?;
         }
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "terminal transaction")?;
