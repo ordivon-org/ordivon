@@ -18,6 +18,18 @@ class FakeGateway:
 
     def call_tool(self, name, arguments):
         self.calls.append((name, dict(arguments)))
+        if name == 'capability.describe':
+            return False, {
+                'projection_digest': 'sha256:' + '7' * 64,
+                'capabilities': [
+                    {
+                        'capability': arguments['capability'],
+                        'configured': True,
+                        'available': True,
+                        'contexts': ['limited', 'elevated', 'active_user'],
+                    }
+                ],
+            }
         if name == 'execution.submit':
             if self.lose_submit:
                 self.lose_submit = False
@@ -125,3 +137,15 @@ def test_long_running_execution_is_client_polled_beyond_old_twenty_observation_c
     gets = [args for name, args in client.calls if name == 'execution.get']
     assert len(gets) == 26
     assert all('waitMs' not in args for args in gets)
+
+
+def test_capability_standing_preserves_owner_context_projection():
+    client = FakeGateway()
+    standing = GatewayExecutionPort(client).capability_standing('execution.windows')
+    assert standing.capability == 'execution.windows'
+    assert standing.configured is True
+    assert standing.available is True
+    assert standing.contexts == ('limited', 'elevated', 'active_user')
+    assert standing.supports_context('active_user') is True
+    assert standing.projection_digest == 'sha256:' + '7' * 64
+    assert client.calls == [('capability.describe', {'capability': 'execution.windows'})]

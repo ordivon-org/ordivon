@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from ordivon_harness.gateway_execution_port import GatewayExecutionResult
+from ordivon_harness.gateway_execution_port import (
+    GatewayCapabilityStanding,
+    GatewayExecutionResult,
+)
 from ordivon_harness.user_browser_gateway import (
     UserBrowserGatewayConfig,
     UserBrowserGatewayController,
@@ -13,9 +16,20 @@ from ordivon_harness.user_browser_gateway import (
 
 
 class FakePort:
-    def __init__(self, payload: dict):
+    def __init__(self, payload: dict, *, contexts=('limited', 'elevated', 'active_user')):
         self.payload = payload
+        self.contexts = tuple(contexts)
         self.requests = []
+
+    def capability_standing(self, capability):
+        assert capability == 'execution.windows'
+        return GatewayCapabilityStanding(
+            capability=capability,
+            configured=True,
+            available=True,
+            contexts=self.contexts,
+            projection_digest='sha256:' + '9' * 64,
+        )
 
     def execute(self, request):
         self.requests.append(request)
@@ -73,6 +87,45 @@ def test_materialize_is_fixed_to_active_user_windows_execution():
     assert req.args[i+1] == r'C:\ProgramData\Ordivon\chat-ingress\prompts\p.txt'
     assert req.request_id.startswith('user-browser:materialize:')
 
+
+
+def test_materialize_holds_before_runtime_when_active_user_is_not_advertised():
+    payload = {
+        'schemaVersion': 1,
+        'kind': 'ordivon.windows-user-browser-attempt',
+        'effectId': 'unused',
+        'standing': 'bound',
+        'providerResource': 'https://chatgpt.com/c/unused',
+        'evidenceDigest': 'sha256:' + '2' * 64,
+        'detail': 'unused',
+        'providerEffectAttempted': True,
+    }
+    port = FakePort(payload, contexts=('limited', 'elevated'))
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.materialize(
+        effect_id='effect-held',
+        request_digest='sha256:' + '1' * 64,
+        prompt_path='/mnt/c/ProgramData/Ordivon/chat-ingress/prompts/p.txt',
+        prompt_digest='sha256:' + '3' * 64,
+    )
+    assert result['standing'] == 'pre-effect-failed'
+    assert result['providerEffectAttempted'] is False
+    assert result['providerResource'] is None
+    assert result['requiredContext'] == 'active_user'
+    assert result['observedContexts'] == ['limited', 'elevated']
+    assert result['evidenceDigest'].startswith('sha256:')
+    assert port.requests == []
+
+
+def test_classify_reports_context_unavailable_without_windows_execution():
+    port = FakePort({}, contexts=('limited', 'elevated'))
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.classify()
+    assert result['standing'] == 'CONTEXT_UNAVAILABLE'
+    assert result['providerEffectAttempted'] is False
+    assert result['requiredContext'] == 'active_user'
+    assert result['observedContexts'] == ['limited', 'elevated']
+    assert port.requests == []
 
 def test_effect_identity_mismatch_fails_closed():
     payload = {

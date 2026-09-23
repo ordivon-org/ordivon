@@ -103,6 +103,42 @@ class UserBrowserGatewayController:
             raise RuntimeError('Pre-effect user-browser receipt cannot report SEND attempted')
         return payload
 
+    def _active_user_admission(self) -> tuple[bool, str, str, tuple[str, ...]]:
+        try:
+            standing = self.port.capability_standing('execution.windows')
+        except Exception:
+            detail = 'execution.windows capability projection unavailable; active_user effect held'
+            evidence = _digest_text(
+                json.dumps(
+                    {
+                        'capability': 'execution.windows',
+                        'requiredContext': 'active_user',
+                        'standing': 'PROJECTION_UNAVAILABLE',
+                    },
+                    sort_keys=True,
+                    separators=(',', ':'),
+                )
+            )
+            return False, evidence, detail, ()
+        if standing.supports_context('active_user'):
+            return True, standing.projection_digest, 'active_user available', standing.contexts
+        detail = 'execution.windows active_user context unavailable; provider effect held pre-effect'
+        evidence = _digest_text(
+            json.dumps(
+                {
+                    'available': standing.available,
+                    'capability': standing.capability,
+                    'configured': standing.configured,
+                    'contexts': list(standing.contexts),
+                    'projectionDigest': standing.projection_digest,
+                    'requiredContext': 'active_user',
+                },
+                sort_keys=True,
+                separators=(',', ':'),
+            )
+        )
+        return False, evidence, detail, standing.contexts
+
     def _run(
         self,
         mode: str,
@@ -112,6 +148,21 @@ class UserBrowserGatewayController:
         prompt_path: str,
         prompt_digest: str,
     ) -> dict:
+        if mode == 'materialize':
+            admitted, evidence, detail, contexts = self._active_user_admission()
+            if not admitted:
+                return {
+                    'schemaVersion': 1,
+                    'kind': 'ordivon.windows-user-browser-attempt',
+                    'effectId': effect_id,
+                    'standing': 'pre-effect-failed',
+                    'providerResource': None,
+                    'evidenceDigest': evidence,
+                    'detail': detail,
+                    'providerEffectAttempted': False,
+                    'requiredContext': 'active_user',
+                    'observedContexts': list(contexts),
+                }
         args = (
             '-NoProfile',
             '-NonInteractive',
@@ -162,7 +213,14 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser classification must be an object')
         if payload.get('schemaVersion') != 1 or payload.get('kind') != 'ordivon.windows-user-browser-classification':
             raise RuntimeError('Windows user-browser classification identity is invalid')
-        if payload.get('standing') not in {'READY','AUTH_REQUIRED','CHALLENGE_GATED','BUSY','UNKNOWN'}:
+        if payload.get('standing') not in {
+            'READY',
+            'AUTH_REQUIRED',
+            'CHALLENGE_GATED',
+            'BUSY',
+            'CONTEXT_UNAVAILABLE',
+            'UNKNOWN',
+        }:
             raise RuntimeError('Windows user-browser classification standing is invalid')
         if payload.get('providerEffectAttempted') is not False:
             raise RuntimeError('Windows user-browser classification must remain pre-effect')
@@ -172,6 +230,18 @@ class UserBrowserGatewayController:
         return payload
 
     def classify(self) -> dict:
+        admitted, evidence, detail, contexts = self._active_user_admission()
+        if not admitted:
+            return {
+                'schemaVersion': 1,
+                'kind': 'ordivon.windows-user-browser-classification',
+                'standing': 'CONTEXT_UNAVAILABLE',
+                'detail': detail,
+                'providerEffectAttempted': False,
+                'requiredContext': 'active_user',
+                'observedContexts': list(contexts),
+                'capabilityEvidenceDigest': evidence,
+            }
         request_id = 'user-browser:classify:' + _digest_text(
             '|'.join((self.config.workspace_id, self.config.driver_path, self.config.proxy_url))
         )[7:39]
