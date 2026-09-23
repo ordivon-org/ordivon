@@ -1,0 +1,84 @@
+{
+  "candidates": [
+    {
+      "candidateEventId": "candidate:vhd-compact:capital",
+      "policyDecisionDigest": "sha256:b46ed47d6130cbc2efcc30bf7428588f0e2111e076c48c88de2b3fbd207f0376",
+      "standing": "INFEASIBLE_SHADOW",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "unmetConstraints": [
+        {
+          "code": "CANDIDATE_NOT_ELIGIBLE_SHADOW",
+          "value": "inhibited_shadow"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "operations"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "storage"
+        }
+      ]
+    },
+    {
+      "candidateEventId": "candidate:vhd-compact:gris",
+      "policyDecisionDigest": "sha256:b46ed47d6130cbc2efcc30bf7428588f0e2111e076c48c88de2b3fbd207f0376",
+      "standing": "INFEASIBLE_SHADOW",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "unmetConstraints": [
+        {
+          "code": "CANDIDATE_NOT_ELIGIBLE_SHADOW",
+          "value": "inhibited_shadow"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "operations"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "storage"
+        }
+      ]
+    },
+    {
+      "candidateEventId": "candidate:wslservice-restart",
+      "policyDecisionDigest": "sha256:29abce9609ababbc8fbc139297e814d17ec32ae91f8b3adddc9307255823dd20",
+      "standing": "INFEASIBLE_SHADOW",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "unmetConstraints": [
+        {
+          "code": "CANDIDATE_NOT_ELIGIBLE_SHADOW",
+          "value": "inhibited_shadow"
+        },
+        {
+          "code": "MISSING_CANDIDATE_EVIDENCE_PREFIX",
+          "value": "job:"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "operations"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "storage"
+        }
+      ]
+    }
+  ],
+  "effectAuthorityGranted": false,
+  "externalEffectPerformed": false,
+  "feasibleCandidateIds": [],
+  "kind": "ordivon.social-fabric-feasibility-projection",
+  "nonClaims": [
+    "Feasibility is boolean constraint satisfaction, not a score, rank, vote, priority, or utility function.",
+    "Multiple feasible candidates remain a set; no tie-breaker or winner is inferred.",
+    "An infeasible candidate reports unmet constraints rather than a lower numerical score.",
+    "FEASIBLE_SHADOW is not execution authorization, lease, or EffectAuthority."
+  ],
+  "policyId": "policy:social-fabric:maintenance-shadow:r3",
+  "projectionDigest": "sha256:f2883e71fe7d165be069720d5c6e2e2d0a41a76e1c000cef0136a2bf50588932",
+  "schemaVersion": 1,
+  "sourceCommitmentProjectionDigest": "sha256:b0e80d23f5fc60565016080fc217ebfe493f907ecd9f406856813db2c22d877e",
+  "truthRole": "constraint-feasibility-projection-not-ranking",
+  "winnerSelected": false
+}

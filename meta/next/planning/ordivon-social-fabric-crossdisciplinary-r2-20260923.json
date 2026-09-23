@@ -86,9 +86,11 @@
       "status": "MEASURED_HOLD_INSUFFICIENT_LONGITUDINAL_EVIDENCE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-epistemic-r1-acceptance-20260923.json",
       "id": "EPI40",
+      "implementation": "meta/next/scripts/social_fabric_epistemic_r1.py",
       "name": "MechanismStandingBridge",
-      "status": "READY_TO_DESIGN_WITH_VERIFICATION_OWNER"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
       "id": "UX50",
@@ -147,6 +149,13 @@
       "id": "SIG33",
       "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
       "name": "OwnerSuppliedAnomalyOrigin",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-epistemic-r1-acceptance-20260923.json",
+      "id": "EPI41",
+      "implementation": "meta/next/scripts/social_fabric_epistemic_r1.py",
+      "name": "ConstraintFeasibilityBoundary",
       "status": "VERIFIED_CANDIDATE"
     }
   ],

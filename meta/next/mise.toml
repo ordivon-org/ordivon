@@ -90,3 +90,12 @@ run = "uv run --locked python scripts/social_fabric_signaling_r3.py project --cu
 
 [tasks."social:attention:measure"]
 run = "uv run --locked python scripts/social_fabric_signaling_r3.py measure-attention --manifest evidence/acceptance/social-fabric-attention-history-manifest-20260923.json"
+
+[tasks."social:epistemic"]
+run = "uv run --locked python scripts/social_fabric_epistemic_r1.py epistemic --cut evidence/acceptance/social-fabric-epistemic-r1-cut-20260923.json"
+
+[tasks."social:feasibility:single"]
+run = "uv run --locked python scripts/social_fabric_epistemic_r1.py feasibility --commitment evidence/acceptance/social-fabric-commitment-r3-single-projection-20260923.json"
+
+[tasks."social:feasibility:vhd"]
+run = "uv run --locked python scripts/social_fabric_epistemic_r1.py feasibility --commitment evidence/acceptance/social-fabric-commitment-r3-vhd-projection-20260923.json"
