@@ -10,6 +10,14 @@
     "positiveAlignments": 724,
     "reviewComments": 4088
   },
+  "ariesManualBaseline": {
+    "commentsWithPositiveEditAlignment": 87,
+    "commentsWithoutPositiveEditAlignment": 109,
+    "distinctDocumentsInManualTest": 42,
+    "manualTestComments": 196,
+    "negativeEditLinks": 24738,
+    "positiveEditLinks": 182
+  },
   "context24Transport": "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE",
   "emse": {
     "accessibleRandomBaselineFulltexts": 109,

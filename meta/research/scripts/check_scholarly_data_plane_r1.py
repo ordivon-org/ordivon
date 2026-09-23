@@ -14,6 +14,7 @@ SD1 = META / "research/data/sd1-acquisition-readiness-r1.json"
 SD2 = META / "research/data/sd2-review-lifecycle-readiness-r1.json"
 ARIES_RECEIPT = META / "research/evidence/aries-bounded-core-r1.json"
 CONTEXT24_TRANSPORT = META / "research/evidence/context24-transport-blocker-r1.json"
+ARIES_BASELINE = META / "research/evidence/aries-review-revision-baseline-r1.json"
 
 
 def fail(message: str) -> None:
@@ -181,6 +182,7 @@ def main() -> int:
     sd2 = load(SD2)
     aries_receipt = load(ARIES_RECEIPT)
     context24_transport = load(CONTEXT24_TRANSPORT)
+    aries_baseline = load(ARIES_BASELINE)
 
     if catalog.get("truthRole") != "data-asset-catalog-not-scientific-truth":
         fail("catalog authority boundary drifted")
@@ -202,6 +204,26 @@ def main() -> int:
 
     emse = verify_emse(by_asset["emse-writing-benchmark-r16"])
     aries = verify_aries(by_asset["aries-bounded-core-r1"], aries_receipt)
+
+    if aries_baseline.get("sourceSnapshotIdentity") != aries_receipt["snapshot"]["identity"]:
+        fail("ARIES baseline source identity drifted")
+    baseline_counts = aries_baseline.get("counts", {})
+    expected_baseline = {
+        "manualTestComments": 196,
+        "commentsWithPositiveEditAlignment": 87,
+        "commentsWithoutPositiveEditAlignment": 109,
+        "positiveEditLinks": 182,
+        "negativeEditLinks": 24738,
+        "distinctDocumentsInManualTest": 42,
+    }
+    for key, expected in expected_baseline.items():
+        if baseline_counts.get(key) != expected:
+            fail(f"ARIES manual baseline drift: {key}")
+    rate = aries_baseline.get("rates", {}).get("commentsWithPositiveEditAlignment")
+    if abs(float(rate) - (87 / 196)) > 1e-15:
+        fail("ARIES manual baseline positive-alignment rate drifted")
+    if aries_baseline.get("provenance", {}).get("testAnnotation") != "manual":
+        fail("ARIES manual baseline provenance drifted")
 
     candidates = catalog.get("externalCandidates")
     if not isinstance(candidates, list) or len(candidates) < 10:
@@ -280,6 +302,7 @@ def main() -> int:
         "emse": emse,
         "aries": aries,
         "context24Transport": context24_transport["standing"],
+        "ariesManualBaseline": expected_baseline,
         "nextWaves": ["SD1 transport recovery", "SD2 lifecycle expansion"],
         "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
         "truthBoundary": (

@@ -88,7 +88,10 @@
       ],
       "licenseStanding": "ODC-BY-1.0_OBSERVED_UPSTREAM_SNAPSHOT",
       "inferenceBoundary": "ARIES frequency distributions are dataset-specific and are not reviewer population prevalence.",
-      "reuseStanding": "ADMIT_FOR_REVIEW_TO_REVISION_RESEARCH_KEEP_RAW_BYTES_OUTSIDE_GIT"
+      "reuseStanding": "ADMIT_FOR_REVIEW_TO_REVISION_RESEARCH_KEEP_RAW_BYTES_OUTSIDE_GIT",
+      "analyticalBaselines": [
+        "meta/research/evidence/aries-review-revision-baseline-r1.json"
+      ]
     }
   ],
   "externalCandidates": [
