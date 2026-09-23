@@ -7,6 +7,7 @@ updates:
 
   - package-ecosystem: uv
     directories:
+      - "/apps/agent"
       - "/capabilities/artifact"
       - "/capabilities/artifact/artifact-delivery/python-uv"
       - "/capabilities/distribution"
