@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-owner-cut",
+  "observedAt": "2026-09-23T02:57:00+08:00",
+  "truthRole": "bounded-point-in-time-observation-projection",
+  "host": {
+    "status": {
+      "schemaVersion": 5,
+      "tasks": 2134,
+      "open": 267,
+      "completed": 1817,
+      "abandoned": 50,
+      "taskEvents": 15028,
+      "boardMessages": 17155,
+      "doctor": "PASS"
+    },
+    "tasks": [
+      {
+        "taskId": "task:ordivon-integrated-lego-convergence-r2-20260923",
+        "goalId": "goal:ordivon-architecture-convergence-r2",
+        "revision": 1,
+        "state": "open",
+        "checkpointDigest": "sha256:32e3d9f129dfee921f92776be777c13675d9aa67dcb72fa27a3959544f8d6c63",
+        "runtime": {
+          "workspaceId": "ws-ordivon-current-architecture-r1-20260923",
+          "relevantJobIds": [
+            "job-01a0ca37-7987-7200-8ce5-35419ffe6c68"
+          ],
+          "observedHeadRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802"
+        }
+      },
+      {
+        "taskId": "task:host-northbound-ux-convergence-r1-20260923",
+        "goalId": "goal:ordivon-host-ux-convergence",
+        "revision": 1,
+        "state": "open",
+        "checkpointDigest": "sha256:8b252bf22f1c95f2b60496e90f592a15a35739304141047d3093d40d376fe155",
+        "runtime": {
+          "workspaceId": "ws-host-ux-convergence-r1-20260923",
+          "relevantJobIds": [],
+          "observedHeadRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469"
+        }
+      },
+      {
+        "taskId": "task:gateway-windows-public-cutover-r3-20260923",
+        "goalId": "goal:ordivon-gateway-windows-control-plane-cutover",
+        "revision": 4,
+        "state": "open",
+        "checkpointDigest": "sha256:dd825819d5809968bd58c04331303e70e860729bc04b9a6703f1694e0824b073",
+        "runtime": {
+          "workspaceId": "ws-win-concurrency12-source-r1-20260922",
+          "relevantJobIds": [
+            "job-01a0ca20-2457-7ff3-af0b-72e7617bcfec",
+            "job-01a0ca23-1343-7b92-92a8-94b7ae4444d2"
+          ],
+          "observedHeadRevision": "e63600be001687c555cc3930181992232203cb47"
+        }
+      },
+      {
+        "taskId": "task:agent-materialization-convergence-plan-r1-20260921",
+        "goalId": "goal:agent-birth-v2-external-first-20260911",
+        "revision": 2,
+        "state": "open",
+        "checkpointDigest": "sha256:51ddbc071b3172761d929cbd7b428b9dc874ab19d747c080cbaa909782517c30",
+        "runtime": {
+          "workspaceId": "ws-runtime-live-release-root-7741c2e9-r1-20260922",
+          "relevantJobIds": [],
+          "observedHeadRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e"
+        }
+      },
+      {
+        "taskId": "task:execution-fabric-r1-20260918",
+        "goalId": "goal:ordivon-execution-fabric",
+        "revision": 2,
+        "state": "open",
+        "checkpointDigest": "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac",
+        "runtime": {
+          "workspaceId": "ws-execution-fabric-r1-20260918",
+          "relevantJobIds": [
+            "job-01a0b3a4-cb04-79c0-9768-0b83e740919b"
+          ],
+          "observedHeadRevision": "fa086380375aa035243bf55093b20767b170e9d4"
+        }
+      }
+    ]
+  },
+  "runtime": {
+    "workspaces": [
+      {
+        "workspaceId": "ws-ordivon-current-architecture-r1-20260923",
+        "sourceRepo": "/root/projects/ordivon",
+        "sourceRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+        "currentHeadRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+        "dirty": true,
+        "sourceStateDigest": "sha256:b72885b89a510e87967be0fea0743a81bcf6838b2c1e079d5cba6cc53aeebd26"
+      },
+      {
+        "workspaceId": "ws-host-ux-convergence-r1-20260923",
+        "sourceRepo": "/root/projects/ordivon",
+        "sourceRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+        "currentHeadRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+        "dirty": true,
+        "sourceStateDigest": "sha256:e50b9a2bb479e664e8cd08f4d0ffb31fea9b1b07762e5e1b37032ba2ce5a7c3c"
+      },
+      {
+        "workspaceId": "ws-win-concurrency12-source-r1-20260922",
+        "sourceRepo": "/root/projects/ordivon",
+        "sourceRevision": "223e5cad9a2b6d5739e6f79a0453be44b4708f5e",
+        "currentHeadRevision": "59ba4f80fe50495482f90449088937dbd5d15a38",
+        "dirty": true,
+        "sourceStateDigest": "sha256:d6d84946861f19e5a28748b266a4aa42579fa0f3094d6ec225bc3b2fcf26bff7"
+      },
+      {
+        "workspaceId": "ws-runtime-live-release-root-7741c2e9-r1-20260922",
+        "sourceRepo": "/root/projects/ordivon",
+        "sourceRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+        "currentHeadRevision": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+        "dirty": false,
+        "sourceStateDigest": "sha256:d6cf5ada0139e6f47ae4af620f8b1078f2ad89ba8eef6f535db593d2b98a288e"
+      }
+    ],
+    "closedWorkspaces": [
+      {
+        "workspaceId": "ws-execution-fabric-r1-20260918",
+        "standing": "CLOSED"
+      }
+    ]
+  },
+  "git": {
+    "mainRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+    "knownAncestorOfMain": {
+      "60322a3af8aff6fd31f79f93f812617bb78a5802": true
+    }
+  },
+  "gateway": {
+    "version": "0.3.0",
+    "capabilities": [
+      {
+        "capability": "artifact.runtime",
+        "available": true,
+        "ownerId": "runtime.dynamic"
+      },
+      {
+        "capability": "continuity.external",
+        "available": true,
+        "ownerId": "host"
+      },
+      {
+        "capability": "execution.linux",
+        "available": true,
+        "ownerId": "runtime.linux"
+      },
+      {
+        "capability": "execution.windows",
+        "available": true,
+        "ownerId": "runtime.windows"
+      }
+    ]
+  },
+  "nonClaims": [
+    "This is a bounded dogfood cut, not a live query surface.",
+    "Git ancestry is recorded only where actually established in this cut.",
+    "Five architecture-adjacent Tasks are sampled; absence is not global absence.",
+    "No domain completion, scheduling, priority, assignment, or EffectAuthority is established."
+  ]
+}

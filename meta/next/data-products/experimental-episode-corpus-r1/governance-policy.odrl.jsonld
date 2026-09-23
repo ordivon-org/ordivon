@@ -1,0 +1,19 @@
+{
+  "@context": "http://www.w3.org/ns/odrl.jsonld",
+  "@type": "Set",
+  "prohibition": [
+    {
+      "action": "distribute",
+      "target": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0"
+    },
+    {
+      "action": "grantUse",
+      "target": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0"
+    },
+    {
+      "action": "delete",
+      "target": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0"
+    }
+  ],
+  "uid": "urn:uuid:f4c742f8-78ad-56a4-ae40-cb6d79f5f545"
+}

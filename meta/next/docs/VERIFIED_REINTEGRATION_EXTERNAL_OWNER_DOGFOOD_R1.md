@@ -165,3 +165,54 @@ The current isolated Workspace could not freshly rerun TLC because the ignored J
 - PROV/OpenLineage/SLSA/in-toto/Sigstore-Cosign: **KEEP_EXISTING_OWNER**.
 
 The result is not a new formal-methods subsystem. It is a narrower thin waist with clearer external semantic ownership.
+
+
+## W7 — Verification Obligation thin-waist dogfood
+
+The 2026-09-23 Verification Obligation R1 integration adds no new verifier truth vocabulary.
+It projects existing R1 Composition Gates into exact task-local obligations and validates
+caller-authored verifier bindings before the natural verifier emits the existing
+`ordivon.composition-gate-result`.
+
+Three independent paths now exercise the same waist:
+
+```text
+Research <-> Artifact R3
+  -> owner-native verifier binding
+  -> existing Gate Result
+  -> mechanical closure
+
+Web <-> Security R3
+  -> owner-native verifier binding
+  -> existing Gate Result
+  -> mechanical closure
+
+Harness/Gateway/Runtime timeout seam
+  -> contract-algebra binding
+  -> Pacti 0.3.1 ephemeral shadow
+  -> existing Gate Result
+  -> mechanical closure
+```
+
+The Pacti path is frozen at:
+
+```text
+meta/next/evidence/acceptance/
+  verified-reintegration-external-owner-dogfood-r1/
+  pacti-timeout-obligation-r2.json
+```
+
+Its accepted case refines the frozen top requirement, quotient recomposition refines the same
+requirement, and the deliberate `grantMax=900000 / runtimeMax=600000` mismatch is rejected
+with `IncompatibleArgsError`. The binding class is `contract-algebra` and the native
+specification is exact-digest-bound.
+
+The consequence is deliberately narrow:
+
+- Verification Obligation R1 is admitted as the task-local thin carrier/binding layer.
+- Pacti remains `KEEP_SHADOW_OPTIONAL_PROVIDER`; it is still not a project dependency.
+- Binding resolution is not verifier execution.
+- Formal refinement is not Harness/Gateway/Runtime implementation conformance.
+- A SATISFIED formal Gate yields only bounded mechanical closure; domain acceptance remains
+  false.
+- Lean/SMT/Apalache remain pressure-triggered optional providers, not default dependencies.

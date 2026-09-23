@@ -81,22 +81,6 @@ contract_ref = "capabilities/media/docs/creative-capability-core.md"
 [[seams]]
 from_owner = "skills"
 to_owner = "next"
-source_glob = "platform/skills/config/skills-mcp.example.json"
-allowed_fragment = "meta/next"
-kind = "OPERATOR_SOURCE_BINDING"
-contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
-
-[[seams]]
-from_owner = "skills"
-to_owner = "next"
-source_glob = "platform/skills/tests/test_owner_boundary.py"
-allowed_fragment = "meta/next"
-kind = "TEST_ONLY_SOURCE_BINDING"
-contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
-
-[[seams]]
-from_owner = "skills"
-to_owner = "next"
 source_glob = "platform/skills/tests/test_skill_catalog_r2.py"
 allowed_fragment = "meta/next"
 kind = "TEST_ONLY_SOURCE_BINDING"

@@ -485,3 +485,106 @@ def test_web_security_production_claim_cannot_be_smuggled_into_dogfood() -> None
     )
 
     assert result["standing"] == "UNSATISFIED"
+
+
+def _task_local_verifier_binding_set(
+    obligation_set: dict,
+    *,
+    verifier_id: str,
+    verifier_path: Path,
+) -> dict:
+    import hashlib
+
+    obligation = obligation_set["obligations"][0]
+    verifier_digest = "sha256:" + hashlib.sha256(verifier_path.read_bytes()).hexdigest()
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.task-local-verifier-binding-set",
+        "circuitRef": copy.deepcopy(obligation_set["circuitRef"]),
+        "obligationSetDigest": obligation_set["obligationSetDigest"],
+        "bindings": [
+            {
+                "gateId": obligation["gateId"],
+                "obligationDigest": obligation["obligationDigest"],
+                "verifierOwnerId": obligation["verifierOwnerId"],
+                "verifierRef": {
+                    "id": verifier_id,
+                    "digest": verifier_digest,
+                },
+                "verifierClass": "owner-native",
+                "nativeSpecificationRef": None,
+                "supportScope": obligation["supportScope"],
+                "nonClaims": [
+                    "The exact source binding identifies the verifier implementation only."
+                ],
+            }
+        ],
+        "nonClaims": [
+            "This binding set is task-local and does not create a verifier registry.",
+            "Binding resolution does not execute or certify the verifier.",
+        ],
+    }
+
+
+def test_research_artifact_gate_runs_through_verification_obligation_r1() -> None:
+    from ordivon_composition import (
+        compile_verification_obligations,
+        resolve_verifier_bindings,
+    )
+
+    binding, profile, dogfood = _research_inputs()
+    manifest = research_artifact_manifest()
+    obligations = compile_verification_obligations(manifest)
+    resolution = resolve_verifier_bindings(
+        obligations,
+        _task_local_verifier_binding_set(
+            obligations,
+            verifier_id="verifier:research-artifact-gate-r3",
+            verifier_path=NEXT_ROOT / "scripts" / "research_artifact_gate_r3.py",
+        ),
+    )
+    result = research_artifact_gate(manifest, binding, profile, dogfood)
+    projection = evaluate_gate_results(manifest, [result])
+
+    assert resolution["standing"] == "VERIFIER_BINDINGS_RESOLVED"
+    assert resolution["executionAuthorityGranted"] is False
+    assert result["standing"] == "SATISFIED"
+    assert projection["mechanicalClosure"] is True
+    assert projection["domainAcceptanceEstablished"] is False
+
+
+def test_web_security_gate_runs_through_verification_obligation_r1() -> None:
+    from ordivon_composition import (
+        compile_verification_obligations,
+        resolve_verifier_bindings,
+    )
+
+    binding, dependencies, e2e, request_source, admission_source, store_source = (
+        _web_inputs()
+    )
+    manifest = web_security_manifest()
+    obligations = compile_verification_obligations(manifest)
+    resolution = resolve_verifier_bindings(
+        obligations,
+        _task_local_verifier_binding_set(
+            obligations,
+            verifier_id="verifier:web-security-gate-r3",
+            verifier_path=NEXT_ROOT / "scripts" / "web_security_gate_r3.py",
+        ),
+    )
+    result = web_security_gate(
+        manifest,
+        binding,
+        dependencies,
+        e2e,
+        request_source,
+        admission_source,
+        store_source,
+    )
+    projection = evaluate_gate_results(manifest, [result])
+
+    assert resolution["standing"] == "VERIFIER_BINDINGS_RESOLVED"
+    assert resolution["executionAuthorityGranted"] is False
+    assert result["standing"] == "SATISFIED"
+    assert projection["mechanicalClosure"] is True
+    assert projection["domainAcceptanceEstablished"] is False

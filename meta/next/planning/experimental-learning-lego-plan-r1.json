@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "ordivon.experimental-learning-lego-plan",
   "asOf": "2026-09-22",
-  "sourceRevision": "411b3bc56769f8bb78d3e3318a73ef04add5e5ad",
+  "sourceRevision": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
   "thesis": "Reuse existing owner-native evidence, data-lifecycle standards and PostgreSQL substrate. Add only a non-authoritative Experimental Episode join/projection layer, prove it against historical Runtime and Harness evidence, then admit PostgreSQL and cross-owner analytics.",
   "laws": [
     "Owner-native evidence remains authoritative; Episode is a derived analytical projection.",
@@ -63,7 +63,7 @@
       "dependsOn": [
         "RW1"
       ],
-      "standing": "PASS"
+      "standing": "PASS_REPLAY_REQUALIFIED"
     },
     {
       "id": "RW3",
@@ -79,7 +79,7 @@
       "dependsOn": [
         "RW2"
       ],
-      "standing": "READY_AFTER_RW2_INTEGRATION"
+      "standing": "PASS_CLEANROOM_NOT_DEPLOYED"
     },
     {
       "id": "RW4",
@@ -94,7 +94,8 @@
       ],
       "dependsOn": [
         "RW3"
-      ]
+      ],
+      "standing": "PASS_R1_WITH_EXPLICIT_NON_IDENTIFICATION"
     },
     {
       "id": "RW5",
@@ -108,7 +109,8 @@
       ],
       "dependsOn": [
         "RW4"
-      ]
+      ],
+      "standing": "PASS_STANDARD_NATIVE_DATA_LIFECYCLE"
     },
     {
       "id": "RW6",
@@ -121,7 +123,8 @@
       ],
       "dependsOn": [
         "RW4"
-      ]
+      ],
+      "standing": "READY"
     },
     {
       "id": "RW7",
@@ -225,133 +228,133 @@
       "id": "EL24",
       "name": "EpisodeCorpusR1",
       "owner": "Study/data-product consumer",
-      "standing": "PASS_RW2_ACCEPTANCE"
+      "standing": "PASS_CORPUS_R1"
     },
     {
       "id": "EL30",
       "name": "ExperimentalPostgresAdmission",
       "owner": "future consumer + Workstation substrate",
-      "standing": "READY_AFTER_INTEGRATION"
+      "standing": "PASS_ANALYTICAL_STORE_ADMITTED"
     },
     {
       "id": "EL31",
       "name": "ExperimentalPostgresSchema",
       "owner": "future experimental consumer",
-      "standing": "BLOCKED_UNTIL_RW2"
+      "standing": "PASS_SCHEMA_R1"
     },
     {
       "id": "EL32",
       "name": "AlembicMigrationAuthority",
       "owner": "Alembic",
-      "standing": "BLOCKED_UNTIL_RW2"
+      "standing": "PASS_ALEMBIC_0001"
     },
     {
       "id": "EL33",
       "name": "IdempotentProjectionIngest",
       "owner": "future experimental consumer",
-      "standing": "BLOCKED_UNTIL_RW2"
+      "standing": "PASS_IDEMPOTENT_REPLAY"
     },
     {
       "id": "EL34",
       "name": "Historical10kLoad",
       "owner": "future experimental consumer",
-      "standing": "BLOCKED_UNTIL_RW2"
+      "standing": "PASS_10007_LOAD"
     },
     {
       "id": "EL35",
       "name": "RestoreSemanticProof",
       "owner": "consumer + Workstation",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_LOGICAL_RESTORE"
     },
     {
       "id": "EL40",
       "name": "FailureObservationMap",
       "owner": "analysis projection",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_DESCRIPTIVE_ONLY"
     },
     {
       "id": "EL41",
       "name": "CapabilityObservationMap",
       "owner": "analysis projection",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_DESCRIPTIVE_ONLY"
     },
     {
       "id": "EL42",
       "name": "CostObservationMap",
       "owner": "analysis projection",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_PARTIAL_COVERAGE"
     },
     {
       "id": "EL43",
       "name": "GeneralizationObservationMap",
       "owner": "analysis projection",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_NOT_IDENTIFIED_BY_DESIGN"
     },
     {
       "id": "EL44",
       "name": "InterventionObservationMap",
       "owner": "analysis projection",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_NOT_IDENTIFIED_BY_DESIGN"
     },
     {
       "id": "EL45",
       "name": "SystemAnalysisR1",
       "owner": "Study/analysis consumer",
-      "standing": "BLOCKED_UNTIL_RW3"
+      "standing": "PASS_SYSTEM_ANALYSIS_R1"
     },
     {
       "id": "EL50",
       "name": "ExperimentalODCSProfile",
       "owner": "ODCS + bounded Ordivon profile",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "PASS_ODPS_1_1_ODCS_3_2"
     },
     {
       "id": "EL51",
       "name": "ArtifactDatasetBinding",
       "owner": "Artifact",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "PASS_ARTIFACT_DATASET_INDEX"
     },
     {
       "id": "EL52",
       "name": "OpenLineageProjection",
       "owner": "OpenLineage",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "PASS_OPENLINEAGE_2_0_2"
     },
     {
       "id": "EL53",
       "name": "PROVDerivation",
       "owner": "W3C PROV-O",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "PASS_PROV_O_DERIVATION"
     },
     {
       "id": "EL54",
       "name": "DataObservability",
       "owner": "OTel/Prometheus",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "PASS_OTLP_PROMETHEUS_COLD_RESTORED"
     },
     {
       "id": "EL60",
       "name": "EvaluationBoundaryProfile",
       "owner": "task-local study profile",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "READY_AFTER_RW4"
     },
     {
       "id": "EL61",
       "name": "HoldoutCommitmentBinding",
       "owner": "task-local study profile",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "READY_AFTER_RW4"
     },
     {
       "id": "EL62",
       "name": "FreezeBeforeEvaluateGate",
       "owner": "task-local study profile",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "READY_AFTER_RW4"
     },
     {
       "id": "EL63",
       "name": "MediaGameJudgeDogfood",
       "owner": "Media+Game",
-      "standing": "BLOCKED_UNTIL_RW4"
+      "standing": "READY_AFTER_RW4"
     },
     {
       "id": "EL70",

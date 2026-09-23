@@ -39,11 +39,12 @@ Ordivon does not attempt to re-own mature disciplines, algorithms, tools, workfl
 - execution engines such as Temporal, n8n, Snakemake, CI systems, databases or container runtimes;
 - tools such as Git, Blender, Godot, ffmpeg, R, Python, Lean, browsers, or external APIs.
 
+Canonical repository Agent Skills now live at `../../.agents/skills/`; Next consumes them but does not own their source location.
+
 ## Structure
 
 ```text
 ordivon-next/
-├── .agents/skills/  # standard Agent Skills procedures
 ├── authorities/     # external-authority records, observations and rebuildable discovery index
 ├── capabilities/    # capability/provider routing knowledge and task-local inventories
 ├── domains/         # domain-native life-cycle profiles

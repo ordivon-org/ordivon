@@ -1,0 +1,52 @@
+{
+  "findingCount": 3,
+  "findings": [
+    {
+      "code": "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+      "detail": "Host observed e63600be001687c555cc3930181992232203cb47; Runtime now projects 59ba4f80fe50495482f90449088937dbd5d15a38.",
+      "evidenceRefs": [
+        "sha256:dd825819d5809968bd58c04331303e70e860729bc04b9a6703f1694e0824b073"
+      ],
+      "findingId": "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+      "severity": "warning",
+      "subjectRefs": [
+        "task:gateway-windows-public-cutover-r3-20260923",
+        "ws-win-concurrency12-source-r1-20260922"
+      ],
+      "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+    },
+    {
+      "code": "CHECKPOINT_WORKSPACE_HEAD_DRIFT",
+      "detail": "Host observed 60322a3af8aff6fd31f79f93f812617bb78a5802; Runtime now projects 1b0158d2c65c90b083b7d62f276be2ffbfb6742a.",
+      "evidenceRefs": [
+        "sha256:32e3d9f129dfee921f92776be777c13675d9aa67dcb72fa27a3959544f8d6c63"
+      ],
+      "findingId": "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+      "severity": "warning",
+      "subjectRefs": [
+        "task:ordivon-integrated-lego-convergence-r2-20260923",
+        "ws-ordivon-current-architecture-r1-20260923"
+      ],
+      "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+    },
+    {
+      "code": "TASK_REFERENCES_CLOSED_WORKSPACE",
+      "detail": "Host continuity references a Runtime workspace observed closed.",
+      "evidenceRefs": [
+        "sha256:3223558fd935c4a4750508c604233486d5dfaacf0e3b70b7f9f6adce2d75c5ac"
+      ],
+      "findingId": "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617",
+      "severity": "warning",
+      "subjectRefs": [
+        "task:execution-fabric-r1-20260918",
+        "ws-execution-fabric-r1-20260918"
+      ],
+      "truthBoundary": "Deterministic finding over this cut; not owner-state mutation, priority, assignment, execution authority, or domain verdict."
+    }
+  ],
+  "kind": "ordivon.social-reconciliation-projection",
+  "observedAt": "2026-09-23T02:57:00+08:00",
+  "schemaVersion": 1,
+  "sourceSnapshotDigest": "sha256:0b94b20a772c8fc20fe71321eadb0ba4354f4888d423d984850704550295c1d5",
+  "warningOrErrorCount": 3
+}

@@ -1,0 +1,51 @@
+{
+  "effectiveDate": "2026-09-22",
+  "emitter": {
+    "carrier": "OpenTelemetry Python SDK",
+    "exporterVersion": "1.44.0",
+    "sdkVersion": "1.44.0",
+    "transport": "OTLP/HTTP protobuf via Vector 127.0.0.1:4318"
+  },
+  "kind": "ordivon.experimental-episode-data-observability-acceptance",
+  "nonClaims": [
+    "Prometheus is not Episode, Runtime, Harness, study, or domain truth.",
+    "These gauges describe one qualified corpus/materialization and do not authorize promotion or mutation.",
+    "Cold-state services were started only for bounded acceptance and restored to inactive."
+  ],
+  "readBack": {
+    "ordivon_experimental_episode_count": [
+      10007.0
+    ],
+    "ordivon_experimental_episode_identity_collision_count": [
+      0.0
+    ],
+    "ordivon_experimental_generalization_missing_split_count": [
+      2.0
+    ],
+    "ordivon_experimental_intervention_assigned_count": [
+      0.0
+    ],
+    "ordivon_experimental_runtime_join_missing_count": [
+      0.0
+    ]
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_BOUNDED_OTLP_PROMETHEUS_READBACK_COLD_STATE_RESTORED",
+  "substrate": {
+    "desiredState": "cold-by-default",
+    "initial": {
+      "prometheus": "inactive",
+      "vector": "inactive"
+    },
+    "owner": "platform/workstation",
+    "prometheus": "3.14.0 accepted substrate",
+    "restored": {
+      "port29091": "closed",
+      "port4318": "closed",
+      "prometheus": "inactive",
+      "vector": "inactive"
+    },
+    "vector": "0.57.0 accepted substrate"
+  },
+  "truthRole": "observability-evidence-only"
+}

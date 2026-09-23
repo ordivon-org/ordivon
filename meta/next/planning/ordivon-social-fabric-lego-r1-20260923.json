@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-lego-plan",
+  "truthRole": "planning-projection-not-project-truth",
+  "generatedAt": "2026-09-23",
+  "auditedSourceRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+  "localFacts": {
+    "host": {
+      "schema": 5,
+      "tasks": 2134,
+      "open": 267,
+      "completed": 1817,
+      "abandoned": 50,
+      "events": 15028,
+      "boardMessages": 17155,
+      "doctor": "PASS"
+    },
+    "gateway": {
+      "version": "0.3.0",
+      "visibleTools": 16,
+      "available": [
+        "continuity.external",
+        "execution.linux",
+        "execution.windows",
+        "artifact.runtime"
+      ]
+    },
+    "existingSeams": [
+      "Host checkpoint runtime.workspaceId/relevantJobIds/observedHeadRevision",
+      "Host Board task_id FK + reply route inheritance",
+      "Runtime Workspace/Job/Attempt/artifact owner truth",
+      "Runtime execution.foreignReferences",
+      "Runtime exact sourceRevision/workspaceSourceDigest",
+      "Harness Tool-call lifecycle telemetry owner",
+      "OpenTelemetry + W3C Trace Context correlation owner",
+      "Git/main implementation currentness owner",
+      "Gateway thin owner/capability projection"
+    ]
+  },
+  "laws": [
+    "Freeze Host semantic kernel by default.",
+    "Natural owners retain mutable truth; Social Fabric is rebuildable projection.",
+    "A2A is one direct-communication adapter, not the social model.",
+    "Machine facts come from owner traces; Board remains discourse.",
+    "Task is durable commitment/continuity, not every command/job/workspace/test.",
+    "Start with standard-shaped signals and existing references, not a new event bus.",
+    "No new daemon in R1.",
+    "Projection never grants priority, assignment, execution admission, domain completion or EffectAuthority."
+  ],
+  "waves": [
+    {
+      "id": "W0",
+      "name": "Boundary freeze/census",
+      "nodes": [
+        {
+          "id": "SF00",
+          "name": "CurrentOwnerCensus",
+          "output": "exact owner/API/schema inventory",
+          "gate": "all current claims source/live proven"
+        },
+        {
+          "id": "SF01",
+          "name": "HostKernelFreezeGuard",
+          "output": "static regression gates",
+          "gate": "no Host schema or authority expansion"
+        },
+        {
+          "id": "SF02",
+          "name": "CrossOwnerReferenceContract",
+          "output": "opaque goal/task/circuit/workspace/job/attempt/commit/PR/evidence/authority refs",
+          "gate": "no mutable registry"
+        }
+      ]
+    },
+    {
+      "id": "W1",
+      "name": "Trace spine",
+      "nodes": [
+        {
+          "id": "SF10",
+          "name": "SocialSignalEnvelope",
+          "output": "CloudEvents-shaped normalized observation",
+          "gate": "maps Host/Runtime/Git/Gateway/Harness without re-owning truth"
+        },
+        {
+          "id": "SF11",
+          "name": "ReferenceBinding",
+          "output": "Task↔Workspace/Job/Circuit links using existing seams",
+          "gate": "durable work reconstructable; ephemeral work need not fake Tasks"
+        },
+        {
+          "id": "SF12",
+          "name": "HostTraceAdapter",
+          "output": "continuity/discourse signals",
+          "gate": "read-only, revision/sequence fenced"
+        },
+        {
+          "id": "SF13",
+          "name": "RuntimeTraceAdapter",
+          "output": "realization signals",
+          "gate": "exact source/delivery/recovery preserved"
+        },
+        {
+          "id": "SF14",
+          "name": "GitTraceAdapter",
+          "output": "main/ancestry/merge/supersession signals",
+          "gate": "Git remains truth"
+        },
+        {
+          "id": "SF15",
+          "name": "HarnessTelemetryAdapter",
+          "output": "tool lifecycle/causal observations",
+          "gate": "no Host telemetry table"
+        },
+        {
+          "id": "SF16",
+          "name": "GatewayCapabilityAdapter",
+          "output": "availability/modulatory observations",
+          "gate": "Gateway truth boundary preserved"
+        }
+      ]
+    },
+    {
+      "id": "W2",
+      "name": "Canonical projection compiler",
+      "nodes": [
+        {
+          "id": "SF20",
+          "name": "FactSetCompiler",
+          "output": "digest-bound point-in-time fact set",
+          "gate": "same cut => same digest; conflicts preserved"
+        },
+        {
+          "id": "SF21",
+          "name": "WorkGraphCompiler",
+          "output": "Goal→Task→Circuit→Workspace→Job→Commit→Evidence graph",
+          "gate": "orphans/UNKNOWN explicit"
+        },
+        {
+          "id": "SF22",
+          "name": "TransactiveMemoryProjection",
+          "output": "who owns/knows/verifies + evidence location",
+          "gate": "no identity ontology"
+        },
+        {
+          "id": "SF23",
+          "name": "FreshnessSupersessionEngine",
+          "output": "current/stale/superseded/expired projection",
+          "gate": "history untouched"
+        },
+        {
+          "id": "SF24",
+          "name": "ReconciliationDetector",
+          "output": "typed drift findings",
+          "gate": "every finding source-referenced; no auto mutation"
+        },
+        {
+          "id": "SF25",
+          "name": "CommonOperatingPicture",
+          "output": "Current Architecture + Active Work + Attention + Evidence + Pressure",
+          "gate": "bounded machine + human renderers"
+        }
+      ]
+    },
+    {
+      "id": "W3",
+      "name": "Signal/receptor semantics",
+      "nodes": [
+        {
+          "id": "SF30",
+          "name": "SemanticReceptor",
+          "output": "interest predicates by type/scope/authority/freshness/evidence",
+          "gate": "deterministic; delivery != authority"
+        },
+        {
+          "id": "SF31",
+          "name": "ScopeModel",
+          "output": "self/direct/neighborhood/domain/system",
+          "gate": "scope independent of transport"
+        },
+        {
+          "id": "SF32",
+          "name": "SignalLifecycle",
+          "output": "TTL/refresh/supersede/retract",
+          "gate": "no immortal warning"
+        },
+        {
+          "id": "SF33",
+          "name": "DamageSignals",
+          "output": "typed anomaly signals",
+          "gate": "mechanical cases need no LLM"
+        },
+        {
+          "id": "SF34",
+          "name": "ModulatorySignals",
+          "output": "resource/CI/workspace/canonicalization pressure",
+          "gate": "advisory only"
+        }
+      ]
+    },
+    {
+      "id": "W4",
+      "name": "Collective coordination shadow",
+      "nodes": [
+        {
+          "id": "SF40",
+          "name": "CandidateSupportInhibition",
+          "output": "competing hypotheses + evidence",
+          "gate": "no opaque ranking"
+        },
+        {
+          "id": "SF41",
+          "name": "QuorumPolicyShadow",
+          "output": "required-role/evidence policy evaluation",
+          "gate": "shadow only; one narrow architecture seam"
+        },
+        {
+          "id": "SF42",
+          "name": "CommitmentProjection",
+          "output": "explainable social commitment state",
+          "gate": "does not mint owner truth"
+        }
+      ]
+    },
+    {
+      "id": "W5",
+      "name": "UX/hygiene",
+      "nodes": [
+        {
+          "id": "SF50",
+          "name": "SocialCurrentCLI",
+          "output": "social:current / social:attention / social:reconcile",
+          "gate": "no daemon; bounded deterministic output"
+        },
+        {
+          "id": "SF51",
+          "name": "GatewayProjectionCandidate",
+          "output": "optional thin northbound projection",
+          "gate": "only after CLI dogfood + connector freshness"
+        },
+        {
+          "id": "SF52",
+          "name": "BoardDecontamination",
+          "output": "machine status replaced by traces where possible",
+          "gate": "history preserved; discourse retained"
+        },
+        {
+          "id": "SF53",
+          "name": "TaskHygieneProjection",
+          "output": "stale/open/merged review candidates",
+          "gate": "no automatic abandonment"
+        }
+      ]
+    },
+    {
+      "id": "W6",
+      "name": "Dogfood/measure/decide",
+      "nodes": [
+        {
+          "id": "SF60",
+          "name": "ArchitectureCanonicalizationDogfood",
+          "output": "one current Ordivon work/architecture picture",
+          "gate": "known orphan/stale/superseded cases detected"
+        },
+        {
+          "id": "SF61",
+          "name": "PaperDogfood",
+          "output": "Paper1/2/3 Task↔work↔evidence graph",
+          "gate": "paper domain truth unchanged"
+        },
+        {
+          "id": "SF62",
+          "name": "OutcomeMeasurement",
+          "output": "frozen pre/post metrics",
+          "gate": "coordination/re-entry gain demonstrated"
+        },
+        {
+          "id": "SF63",
+          "name": "PromoteHoldKill",
+          "output": "per-LEGO disposition",
+          "gate": "kill duplicates; no daemon without measured need"
+        }
+      ]
+    }
+  ],
+  "initialDetectors": [
+    "workspace_without_durable_coordinate",
+    "task_without_live_realization",
+    "merged_but_task_open",
+    "completed_task_with_dirty_live_workspace",
+    "board_machine_status_unrouted",
+    "evidence_stale_against_main",
+    "capability_projection_owner_disagreement",
+    "superseded_workspace_still_active"
+  ],
+  "firstExecutableSlice": [
+    "SF00",
+    "SF01",
+    "SF02",
+    "SF10",
+    "SF11",
+    "SF12",
+    "SF13",
+    "SF14",
+    "SF20",
+    "SF21",
+    "SF24",
+    "SF25",
+    "SF50",
+    "SF60"
+  ],
+  "successMetrics": [
+    "durable_work_with_bidirectional_reference_rate",
+    "workspace_orphan_rate",
+    "merged_but_task_open_rate",
+    "unrouted_machine_status_rate",
+    "time_to_reconstruct_current_picture",
+    "explicit_coordination_messages_per_completed_work_unit",
+    "fresh_agent_exact_reentry_success",
+    "projection_conflict_detection_precision"
+  ],
+  "stopRules": [
+    "No Host kernel reopen without measured Host-owned defect.",
+    "No mutable Social Registry.",
+    "No Kafka/NATS/Redpanda in R1; prove snapshot/pull insufficiency first.",
+    "No new Gateway tools before local projection dogfood.",
+    "No quorum sophistication before trace/projection correctness.",
+    "Kill any LEGO that duplicates mutable owner truth."
+  ]
+}
