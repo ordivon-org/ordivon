@@ -29,7 +29,7 @@ impl Registry {
         }
 
         let transaction = immediate(&mut connection, "reconciliation failure transaction")?;
-        let current = load_attempt(&transaction, &attempt.attempt_id)?;
+        let current = RegistryStorageBoundary::load_attempt(&transaction, &attempt.attempt_id)?;
         transaction
             .execute(
                 "UPDATE attempts SET recovery_required=1,recovery_reason_code=?1,recovery_evidence_digest=?2,recovery_observed_at_ms=?3 WHERE attempt_id=?4",
@@ -76,7 +76,7 @@ impl Registry {
         }
 
         let transaction = immediate(&mut connection, "reconciliation success transaction")?;
-        let current = load_attempt(&transaction, attempt_id)?;
+        let current = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let evidence_digest = sha256_bytes(
             format!("runtime-reconciliation-converged\0{attempt_id}\0{observed_at_ms}").as_bytes(),
         );

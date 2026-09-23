@@ -1594,7 +1594,7 @@ fn load_recent_workspace_jobs(
     let observed_at_ms = now_ms()?;
     let mut jobs = Vec::with_capacity(job_ids.len());
     for job_id in job_ids {
-        let job = load_job(connection, &job_id)?;
+        let job = RegistryStorageBoundary::load_job(connection, &job_id)?;
         let latest_attempt_id = connection
             .query_row(
                 "SELECT attempt_id FROM attempts WHERE job_id=?1 ORDER BY attempt_number DESC LIMIT 1",
@@ -1608,7 +1608,7 @@ fn load_recent_workspace_jobs(
             .as_ref()
             .or(latest_attempt_id.as_ref());
         let attempt = attempt_id
-            .map(|attempt_id| load_attempt(connection, attempt_id))
+            .map(|attempt_id| RegistryStorageBoundary::load_attempt(connection, attempt_id))
             .transpose()?;
         let recovery_required = if let Some(attempt) = attempt.as_ref() {
             let recovery_sql = if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {

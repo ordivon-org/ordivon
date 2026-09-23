@@ -189,11 +189,17 @@
       "kind": "replacement_seam",
       "responsibility": "Reduce Registry to transactional persistence, migration, query, and reconstructible-index duties while state semantics remain owned by explicit state modules.",
       "authority": "Runtime durable storage mechanism",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "crates/ordivon-runtime-core/src/runtime/registry.rs",
-        "crates/ordivon-runtime-core/src/runtime/registry/storage.rs"
+        "crates/ordivon-runtime-core/src/runtime/registry/storage.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry_storage.rs",
+        "provider-base:fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+        "code-candidate:7870d2f366b69b766851e7636a297aa21f93d8b4",
+        "current-provider Runtime verification + repo CI job-01a0ce74-22ae-7420-aeb0-faf18e694445 PASS (546s)",
+        "current-provider registry reference-model full gate PASS; extended filtered property gate PASS in 182.85s",
+        "Registry MAX_MIGRATION_VERSION remains 6; R06 changes no SQL/schema migration and introduces no public MCP Tool change"
       ],
       "dependencies": [
         "R02",
@@ -210,7 +216,7 @@
         "Performance-only indexes remain reconstructible and outside semantic migrations.",
         "State modules can be unit-tested against a narrow transactional storage contract."
       ],
-      "nextAction": "Introduce narrow persistence interfaces only after state ownership is explicit."
+      "nextAction": "R06 is closed on the current provider base. Keep RW1 open until remaining R02/R04/R05 state-ownership gaps are requalified or explicitly superseded; only then advance RW2 R07/R08."
     },
     {
       "id": "R07",
@@ -915,9 +921,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "2c5acc76449b42bc920681d7afcfae5e1de9ff59",
-    "updatedAt": "2026-09-22",
-    "standing": "RW1_R03_COMPLETE_R04_NEXT",
-    "notes": "RW0 baseline gate remains complete. R02 first WorkspaceState slice remains integrated. R03-A1 JobIdentityContract and R03-A2 AttemptLifecycleContract are implemented and verified. AttemptLifecycleContract now owns initial Attempt generation defaults, transition/terminal law, termination-control classification, physical-owner bind/replay law, terminal resolution, and terminal-evidence completeness while Registry retains SQL/CAS transactions and R04 retains reservation/capacity semantics. Verification passed focused lifecycle regressions, full core/MCP/clippy, owner-environment test, extended reference-model, and full local real-system acceptance. Next frontier is R04 ReservationContract."
+    "sourceRevision": "7870d2f366b69b766851e7636a297aa21f93d8b4",
+    "updatedAt": "2026-09-23",
+    "standing": "RW1_R06_IMPLEMENTED_REMAINING_R02_R04_R05",
+    "notes": "R06 RegistryStorageBoundary is implemented and requalified on provider base fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b as code candidate 7870d2f366b69b766851e7636a297aa21f93d8b4. Runtime owner verification plus repo CI passed in job-01a0ce74-22ae-7420-aeb0-faf18e694445; Registry schema remains v6 and no public MCP Tool change is introduced. RW1 is not declared complete: R02 remains IN_PROGRESS and R04/R05 remain PROPOSED in the provider-current plan. Requalify or supersede those remaining state-ownership intents before opening RW2."
   }
 }

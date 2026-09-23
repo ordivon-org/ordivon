@@ -14,7 +14,7 @@ pub fn inspect_job(
         ));
     }
     let (connection, migration_version) = open_read_only(config)?;
-    let job = load_job(&connection, job_id)?;
+    let job = RegistryStorageBoundary::load_job(&connection, job_id)?;
     let plan: RuntimeExecutionPlan =
         serde_json::from_str(&job.execution_plan_json).map_err(|error| {
             RuntimeError::new(
@@ -44,8 +44,8 @@ pub fn inspect_job(
 
     let mut attempts = Vec::with_capacity(attempt_ids.len());
     for attempt_id in attempt_ids {
-        let attempt = load_attempt(&connection, &attempt_id)?;
-        let reservation = load_reservation(&connection, &attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&connection, &attempt_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&connection, &attempt_id)?;
         let conditions = load_conditions(&connection, migration_version, &attempt_id)?;
         let (artifact_count, artifact_bytes, truncated_artifacts) = connection
             .query_row(
