@@ -266,11 +266,14 @@
       "kind": "transform",
       "responsibility": "Compile a typed request plus state, authority, inputs, budgets, provider commitment and evidence obligations into one immutable Execution Plan/circuit.",
       "authority": "Runtime mechanical execution plan truth",
-      "state": "PROPOSED",
+      "state": "IN_PROGRESS",
       "sharedRefs": [],
       "evidence": [
-        "docs/effect-kernel.md",
-        "docs/runtime.md"
+        "ordinary-family OperationCircuitCompiler pilot commit 397dee5ef0caa296283253c03da5f277f4fa2a8d",
+        "operation_circuit.rs reuses existing RuntimeExecutionPlan/ExecutionProviderSnapshot/HostDependencyBinding/SubmitRequest rather than adding a persisted circuit schema",
+        "ordinary admission consumes the R07 AuthorityContract only after exact replay; compiler checks authority/request/validated-host-dependency/resolved-plan realization consistency fail closed",
+        "current-main runtime:verify PASS job-01a0cf70-37d7-7a90-8fed-98e4253175c9, including independent slow Registry reference-model property gate",
+        "public MCP Tool schemas, Registry schema v6, request identity, provider authority and domain/Security ownership unchanged"
       ],
       "dependencies": [
         "R03",
@@ -287,7 +290,7 @@
         "Legacy all-explicit request identity remains replay-compatible.",
         "Compiled plans contain only enforceable facts; metadata without enforcement does not enter operation identity."
       ],
-      "nextAction": "Introduce compiler output as an internal type and migrate one Tool path first behind compatibility tests."
+      "nextAction": "Migrate the immutable-input execution family next; prove exact SubmitRequest/identity/error-order parity and preserve materialization ownership before moving trusted-input or credential-bound execution."
     },
     {
       "id": "R09",
@@ -810,10 +813,12 @@
       ],
       "evidence": [
         "R07 AuthorityContract implemented at 163db3230483ec932fa8152fb1c9e6bd756e59d5",
-        "current-main Runtime owner qualification PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896"
+        "current-main Runtime owner qualification PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896",
+        "R08 ordinary-family pilot implemented at 397dee5ef0caa296283253c03da5f277f4fa2a8d",
+        "R08 ordinary-family current-main Runtime owner qualification PASS job-01a0cf70-37d7-7a90-8fed-98e4253175c9"
       ],
       "blockers": [],
-      "nextAction": "R08 is the next RW2 frontier: freeze the smallest immutable OperationCircuit contract, migrate one execution family, and prove parity before expansion."
+      "nextAction": "R08 remains in progress: ordinary execution is qualified; migrate immutable-input execution next, then trusted-input and credential-bound families one at a time with parity/fail-closed proof."
     },
     {
       "id": "RW3",
@@ -939,9 +944,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "163db3230483ec932fa8152fb1c9e6bd756e59d5",
+    "sourceRevision": "397dee5ef0caa296283253c03da5f277f4fa2a8d",
     "updatedAt": "2026-09-24",
-    "standing": "RW2_R07_COMPLETE_R08_NEXT",
-    "notes": "RW0 and RW1 remain complete. R07 AuthorityContract is implemented and current-main qualified: existing execution families compile after exact replay into internal ordinary, immutable-input reduced/trusted, or credential-bound trusted authority variants; widening combinations fail closed. Public MCP Tool schemas and Registry schema v6 are unchanged, and Runtime does not acquire Security/provider/domain grant authority. RW2 remains in progress with R08 OperationCircuitCompiler as the next frontier; launch-token timing/late-result reconciliation remains a separate supervisor-evidence lane."
+    "standing": "RW2_R08_ORDINARY_PILOT_QUALIFIED_INPUT_BOUND_NEXT",
+    "notes": "RW0/RW1 and R07 remain complete. R08 is now real but intentionally partial: ordinary proposal execution compiles through the existing AuthorityContract and a thin OperationCircuitCompiler into the existing SubmitRequest, with current-main full owner qualification PASS. Input-bound, trusted-input and credential-bound execution remain on their current paths and must migrate separately before R08/RW2 can be called complete. Launch-token timing/late-result reconciliation remains a separate supervisor-evidence lane."
   }
 }
