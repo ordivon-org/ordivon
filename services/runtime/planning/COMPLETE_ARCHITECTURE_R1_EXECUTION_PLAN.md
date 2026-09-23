@@ -1,10 +1,20 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW0_IN_PROGRESS
+Status: RW1_IN_PROGRESS_R04_COMPLETE
 Truth role: planning projection, not Runtime project truth
-Source revision: `75dc93c56e367535cbff0d50921d188798c9de5e`
+Source revision: `e48b2eab5fb743efa3b50cb1eceae4539e1c99a7`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
+
+## Current progress checkpoint — 2026-09-23
+
+- R00/R01: implemented baseline/invariant and verification partition.
+- R02: first WorkspaceState extraction integrated; residual extraction remains evidence-driven.
+- R03: JobIdentityContract + AttemptLifecycleContract implemented and verified.
+- R04: **implemented** as `ReservationContract` on `e48b2eab5fb743efa3b50cb1eceae4539e1c99a7`. It owns durable capacity-holder/acquire/hold/release and terminal reservation-target laws only; queue/priority/scheduling remain explicitly out of scope.
+- R04 verification: integrated `e48b2eab` is byte-identical to verified candidate `4131cbe0` across the five R04 responsibility files. Candidate owner gate `job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31` PASS (`exitCode=0`), including the slow reference-model property gate; the equivalent R04 patch on an earlier base also passed focused real-system fast-success and timeout-descendant-pipe acceptance.
+- RW1 remains **IN_PROGRESS**. Next: R05 Artifact/Release state ownership, then R06 Registry storage boundary.
+- RW2 (R07/R08) remains blocked on RW1. R13/V05 evidence thin-waist integration remains gated on RW1+RW2.
 
 ## Global rules
 
@@ -631,16 +641,14 @@ Rollback unit is the smallest completed LEGO extraction commit, not the whole pr
 
 ## Immediate executable queue
 
-The first actual implementation queue is deliberately small:
+The old bootstrap queue through R04 is complete. The current queue is:
 
-1. **R00-A** — write invariant manifest.
-2. **R00-B** — map every invariant to proving tests/evidence.
-3. **R01-A** — produce test taxonomy without moving files.
-4. **R01-B** — split one low-conflict test category and prove zero behavior change.
-5. **R02-A** — census Workspace responsibilities currently inside `engine.rs/types.rs/registry.rs`.
-6. **R03-A** — census Job/Attempt responsibilities and transaction seams.
-7. **R07-A** — read-only Tool→Authority composition matrix.
-8. **R12-A** — read-only recurring control primitive census.
-9. **R13-A** — read-only evidence claim/scope/witness matrix.
+1. **R05-A** — census Artifact/result identity and structured Runtime release-state semantics still embedded in Registry/engine paths.
+2. **R05-B** — extract the smallest Artifact/Release state contracts without introducing a generic Effect abstraction.
+3. **R06-A** — define the narrow transactional persistence/query seam only after R05 ownership is explicit.
+4. **R06-B** — prove Registry remains schema-v6 storage/migration/query rather than semantic ownership.
+5. **R07-A** — refresh the existing Tool→Authority composition matrix against post-RW1 code; implementation remains blocked until RW1 closes.
+6. **R08-A** — keep the OperationCircuit output design frozen; do not migrate an execution Tool until R07 is enforceable.
+7. **R13-A / V05** — retain the evidence-claim matrix as planning input only until R08 can carry physical evidence obligations without owning domain truth.
 
-Only after items 1–4 are green should production Rust module extraction start.
+Do not reopen R04 for launch-evidence timing/reconciliation races already reproduced on a clean baseline; those remain with the reconciliation/supervisor evidence owner.

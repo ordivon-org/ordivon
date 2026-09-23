@@ -127,7 +127,7 @@
         "Attempt generation and terminalization preserve current ambiguity/lost/orphaned behavior.",
         "Physical provider code depends on Job/Attempt contracts rather than engine internals."
       ],
-      "nextAction": "R03 Job/Attempt state-contract extraction is complete at the planned A1/A2 seam. Proceed to R04 ReservationContract for durable holder/acquire/hold/release laws; keep queue, priority, and scheduling outside Runtime."
+      "nextAction": "R03 is closed at the planned A1/A2 seam and R04 ReservationContract is integrated on the verified candidate; proceed to R05 ArtifactAndReleaseStateModule without reopening Job/Attempt ownership."
     },
     {
       "id": "R04",
@@ -135,11 +135,16 @@
       "kind": "state_authority",
       "responsibility": "Extract durable capacity reservation and one-active-execution-per-Workspace laws into an independently testable component.",
       "authority": "Runtime admission capacity truth",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "docs/runtime.md",
-        "planning/state-responsibility-census-r1.json"
+        "planning/state-responsibility-census-r1.json",
+        "crates/ordivon-runtime-core/src/runtime/reservation_state.rs",
+        "commit:e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+        "owner verification on verified candidate 4131cbe02c54ea2ea419aeb80c651231c940ecf3:job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31 PASS (exitCode=0; core 261/261 runnable PASS with 36 opt-in ignored; focused reference-model 1/1 PASS; MCP 66/66 PASS; auth 10/10 PASS; owner environment and documentation contract valid)",
+        "prior equivalent-R04-patch physical acceptance on an earlier base: fast-success race 1/1 PASS and timeout-descendant-pipes 1/1 PASS; clean baseline independently reproduced the launch-evidence race, so it is not owned by R04",
+        "integration equivalence: integrated e48b2eab5fb743efa3b50cb1eceae4539e1c99a7 is byte-identical to verified 4131cbe02c54ea2ea419aeb80c651231c940ecf3 across the five R04 responsibility files"
       ],
       "dependencies": [
         "R03"
@@ -154,7 +159,7 @@
         "Rejected admission remains commitState=not_started.",
         "No queue, priority scheduler, or second in-memory capacity truth is introduced."
       ],
-      "nextAction": "Define ReservationContract around durable holder/acquire/hold/release semantics; keep queue/priority/scheduling outside Runtime."
+      "nextAction": "R04 is closed. Proceed to R05 ArtifactAndReleaseStateModule; keep queue, priority, scheduling, and launch-evidence reconciliation outside ReservationContract."
     },
     {
       "id": "R05",
@@ -767,10 +772,11 @@
       "evidence": [
         "crates/ordivon-runtime-core/src/runtime/workspace_state.rs",
         "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9",
-        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs (R03-A1 canonical v3/v4/v5/v6 operation identity + exact replay/conflict law)"
+        "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs (R03-A1 canonical v3/v4/v5/v6 operation identity + exact replay/conflict law)",
+        "R04 ReservationContract: integrated e48b2eab, tree-equivalent to verified candidate 4131cbe0; full owner verification PASS; prior equivalent-patch focused real-system acceptance PASS"
       ],
       "blockers": [],
-      "nextAction": "Continue R03-A2 AttemptLifecycleContract; keep R02 open only for additional proven Workspace-law duplication, then proceed to R04 ReservationContract."
+      "nextAction": "R04 is complete. Proceed to R05 ArtifactAndReleaseStateModule, then R06 RegistryStorageBoundary; keep R02 open only for additional proven Workspace-law duplication."
     },
     {
       "id": "RW2",
@@ -915,9 +921,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "2c5acc76449b42bc920681d7afcfae5e1de9ff59",
-    "updatedAt": "2026-09-22",
-    "standing": "RW1_R03_COMPLETE_R04_NEXT",
-    "notes": "RW0 baseline gate remains complete. R02 first WorkspaceState slice remains integrated. R03-A1 JobIdentityContract and R03-A2 AttemptLifecycleContract are implemented and verified. AttemptLifecycleContract now owns initial Attempt generation defaults, transition/terminal law, termination-control classification, physical-owner bind/replay law, terminal resolution, and terminal-evidence completeness while Registry retains SQL/CAS transactions and R04 retains reservation/capacity semantics. Verification passed focused lifecycle regressions, full core/MCP/clippy, owner-environment test, extended reference-model, and full local real-system acceptance. Next frontier is R04 ReservationContract."
+    "sourceRevision": "e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+    "updatedAt": "2026-09-23",
+    "standing": "RW1_R04_COMPLETE_R05_NEXT",
+    "notes": "RW0 baseline remains complete. R02 first WorkspaceState slice remains integrated; R03 Job/Attempt extraction is complete. R04 ReservationContract now owns durable holder/acquire/hold/release and terminal reservation-target laws, is consumed by admission/Registry/Doctor paths, and preserves fail-closed incomplete-evidence behavior without introducing queue/scheduling semantics. Integrated commit e48b2eab is byte-identical to verified candidate 4131cbe0 across all five R04 responsibility files; candidate 4131cbe0 passed full owner verification (job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31), with prior equivalent-patch focused real-system acceptance. RW1 remains open: next frontier is R05 ArtifactAndReleaseStateModule, then R06 RegistryStorageBoundary."
   }
 }

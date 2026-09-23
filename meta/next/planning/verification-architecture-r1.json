@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kind": "ordivon.verification-architecture-plan",
   "truthRole": "planning-projection-not-project-or-domain-truth",
-  "sourceRevision": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
-  "status": "V01_V03_IMPLEMENTED_V04_DOGFOODED_REMAINDER_GATED",
+  "sourceRevision": "e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+  "status": "V01_V03_IMPLEMENTED_V04_DOGFOODED_R04_RUNTIME_CLOSED_REMAINDER_GATED",
   "purpose": "Converge existing Ordivon verification islands through a thin task-local obligation/binding waist while preserving natural verifier ownership and keeping execution, evidence, formal proof, and domain acceptance distinct.",
   "invariants": [
     "verifier binding resolution != verifier execution",
@@ -112,7 +112,7 @@
         "owner": "services/runtime R13 plus natural evidence owners",
         "responsibility": "Represent physical machine claims as subject+claim+scope+witness+observation+boundary+limitation without replacing owner-native evidence schemas.",
         "blockers": [
-          "Runtime RW1 state ownership extraction",
+          "Runtime RW1 remaining R05/R06 state/storage ownership extraction",
           "Runtime RW2 AuthorityContract/OperationCircuitCompiler"
         ],
         "evidence": [
@@ -251,8 +251,8 @@
     }
   ],
   "immediateNextActions": [
-    "Continue Runtime RW1 with R04 ReservationContract; do not divert Runtime into verification orchestration.",
-    "After Runtime RW1 closes, implement R07 AuthorityContract and R08 OperationCircuitCompiler using existing EvidenceObligations design.",
+    "Continue Runtime RW1 with R05 ArtifactAndReleaseStateModule and R06 RegistryStorageBoundary; R04 ReservationContract is implemented on the integrated Runtime main.",
+    "After Runtime RW1 closes, implement R07 AuthorityContract and R08 OperationCircuitCompiler using the existing EvidenceObligations design; do not bypass the state/storage boundary.",
     "Only then connect physical execution evidence to V05/R13; preserve owner-native evidence schemas.",
     "Add one explicit Runtime model-to-implementation trace gate for a high-value invariant.",
     "Do not install/admit Lean until a real theorem-proof workload cannot be adequately served by cheaper natural verifiers.",
@@ -267,6 +267,7 @@
     "repoCi": "PASS",
     "runtimeTla": "25 states generated / 20 distinct / depth 9 / 0 invariant violations",
     "securityOpa": "8/8 PASS",
-    "knownBaselineBlocker": "Five historical Browser Security collection tests require external /opt/ordivon agent-automation environment dependencies (rfc8785/scripts.browserless_substrate); reproduced unchanged on clean base workspace."
+    "knownBaselineBlocker": "Five historical Browser Security collection tests require external /opt/ordivon agent-automation environment dependencies (rfc8785/scripts.browserless_substrate); reproduced unchanged on clean base workspace.",
+    "runtimeR04": "ReservationContract integrated at e48b2eab; its five-file R04 responsibility tree is byte-identical to verified candidate 4131cbe0, whose full owner verification passed via job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31; the equivalent R04 patch on an earlier base passed focused real-system acceptance."
   }
 }
