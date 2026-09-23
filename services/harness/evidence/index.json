@@ -728,10 +728,23 @@
     {
       "claimId": "harness.composition.agent-plugin-h2b-cooperative-cancellation",
       "file": "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json",
-      "status": "verified",
+      "status": "historical",
       "implementationRevision": "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
-      "scope": "Current Harness H2b Gateway effect control acceptance: known owner Jobs receive one cooperative execution.cancel on Harness control stop; non-terminal acknowledgement is durably cancel-requested and remains cancel_unknown until later owner reconciliation proves terminal state.",
+      "scope": "Historical H2b Gateway effect control acceptance: known owner Jobs receive one cooperative execution.cancel on Harness control stop; non-terminal acknowledgement is durably cancel-requested and remains cancel_unknown until later owner reconciliation proves terminal state. Superseded as current implementation verification by the Runtime Job Tool Contract R1 requalification after Runtime task.* compatibility names were retired in favor of job.*.",
       "implementationPaths": [
+        "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+        "src/ordivon_harness/plugin_gateway_effect.py"
+      ],
+      "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5"
+    },
+    {
+      "claimId": "harness.runtime.runtime-job-tool-contract-r1",
+      "file": "harness-runtime-job-tool-contract-r1-20260923.json",
+      "status": "verified",
+      "implementationRevision": "045cf62eed2e1039ab39d71bdc179349d1e974b9",
+      "scope": "Current Harness Runtime Job Tool Contract R1 acceptance: Harness reattachment and targeted reconciliation use Runtime job.list/job.observe rather than retired task.* compatibility names, while cooperative Gateway cancellation semantics remain preserved.",
+      "implementationPaths": [
+        "src/ordivon_harness/ordivon/runtime_lowering.py",
         "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
         "src/ordivon_harness/plugin_gateway_effect.py"
       ],

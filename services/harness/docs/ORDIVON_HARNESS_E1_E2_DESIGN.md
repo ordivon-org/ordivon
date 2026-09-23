@@ -340,7 +340,7 @@ The table below is the implementation baseline. Exact semantic action strings sh
 | `diff_workspace` | `workspace.diff` | observe | synchronous | response | natural | receipt | observation-only | workspace-diff-read |
 | `run_check` | `workspace.exec` | change | asynchronous | accepted-verification | keyed | stable-key | process-or-external-effect-possible | workspace-execution-check |
 | `run_in_workspace` | `workspace.exec` | opaque | asynchronous | accepted-verification | keyed | stable-key | process-or-external-effect-possible | workspace-opaque-execution |
-| `observe_job` | `task.observe` | observe | synchronous | response | natural | receipt | observation-only | runtime-job-observation |
+| `observe_job` | `job.observe` | observe | synchronous | response | natural | receipt | observation-only | runtime-job-observation |
 | `read_artifact` | `artifact.read` | observe | synchronous | response | natural | receipt | observation-only | runtime-artifact-read |
 
 Evidence affordances:
