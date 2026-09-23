@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.convergence-owner-cost-observation",
+  "date": "2026-09-23",
+  "truthRole": "measured-validation-cost-evidence-not-scheduling-policy",
+  "measuredCandidate": "3615600ade11fbb797145988eb38e7b94c7de2c6",
+  "providerBase": "f766c41543f420aa5a738c7a1ffde90ea6f2f2b9",
+  "selection": {
+    "queueClass": "CROSS_CUTTING",
+    "ownerCount": 18,
+    "executionShape": "serial-owner-task-loop"
+  },
+  "observations": [
+    {
+      "task": "artifact:queue",
+      "durationSeconds": 82,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "capital:verify",
+      "durationSeconds": 7,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "composition:verify",
+      "durationSeconds": 1,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "control-plugin:verify",
+      "durationSeconds": 1,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "distribution:verify",
+      "durationSeconds": 1,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "game:verify",
+      "durationSeconds": 70,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "gateway:verify",
+      "durationSeconds": 5,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "harness:queue",
+      "durationSeconds": 162,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "host:verify",
+      "durationSeconds": 3,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "media:verify",
+      "durationSeconds": 14,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "network:ci",
+      "durationSeconds": 2,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "next:verify",
+      "durationSeconds": 14,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "preservation:verify",
+      "durationSeconds": 0,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "runtime:verify",
+      "durationSeconds": 485,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "skills:verify",
+      "durationSeconds": 5,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "web:verify",
+      "durationSeconds": 2,
+      "measurement": "rounded-shell-wall-clock"
+    },
+    {
+      "task": "workstation:ci",
+      "durationSeconds": 9,
+      "measurement": "rounded-shell-wall-clock"
+    }
+  ],
+  "securityObservation": {
+    "task": "security:verify",
+    "codeAndUnitTests": "PASS",
+    "normalCarrier": "INFRA_FAILURE_DOCKER_PROXY",
+    "exactLocalOpaFallbackSeconds": 1.569,
+    "exactLocalOpaFallback": "PASS_34_OF_34",
+    "note": "Fallback is evidence for policy semantics only; it is not counted as a successful Docker carrier run."
+  },
+  "derived": {
+    "successfulDirectOwnerSecondsRoundedExcludingSecurity": 863,
+    "dominantOwner": "runtime:verify",
+    "dominantOwnerSeconds": 485,
+    "nextLargest": [
+      {
+        "task": "harness:queue",
+        "seconds": 162
+      },
+      {
+        "task": "artifact:queue",
+        "seconds": 82
+      },
+      {
+        "task": "game:verify",
+        "seconds": 70
+      }
+    ],
+    "topFourSeconds": 799,
+    "topFourShareOfApproximateSuccessfulWork": 0.924
+  },
+  "interpretation": {
+    "queueContentionClaim": "NOT_ESTABLISHED",
+    "ownerLongTailEvidence": "ESTABLISHED_FOR_THIS_CROSS_CUTTING_CUT",
+    "generalOptimizationAdmission": "REQUIRES_MORE_EPISODES",
+    "observedCostDrivers": [
+      "runtime cold/build verification plus expensive registry reference-model property test",
+      "harness verification",
+      "artifact verification",
+      "game verification",
+      "serial owner scheduling"
+    ]
+  }
+}

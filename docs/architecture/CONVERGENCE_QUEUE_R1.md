@@ -2,7 +2,7 @@
 
 Date: 2026-09-22
 
-Status: **CURRENT-MAIN EXPERIMENT / PROVIDER-NEUTRAL ORDIVON PROJECTION ADMITTED / REMOTE MERGE-QUEUE CUTOVER NOT PERFORMED**
+Status: **REMOTE CUTOVER ACCEPTED / GITHUB MERGE QUEUE CANONICAL FOR MAIN CONVERGENCE**
 
 Base revision: `ab91b17aac661621425a72f171df7c812d5c6a30`
 
@@ -80,7 +80,7 @@ The repository is hosted at `github.com:ordivon-org/ordivon`. GitHub Merge Queue
 - status-check timeouts;
 - final publication to the protected branch.
 
-R1 therefore makes the required workflow `merge_group` compatible but does not change repository rules or remotely enable the queue.
+R1 now uses GitHub Merge Queue as the canonical remote-main convergence substrate. Repository ruleset main-convergence-queue-r1 (id 23819262) requires root-verification, enables merge_group qualification, and rejects non-fast-forward updates.
 
 ### GitLab Merge Trains — REJECT for this repository
 
@@ -349,7 +349,23 @@ GitHub workflow actionlint   PASS
 git diff --check             PASS
 ```
 
-These checks prove the R1 projection and queue-compatible carrier only. They do not prove a remote GitHub Merge Queue is enabled or that a speculative scheduling policy has been accepted.
+The original checks proved only the R1 projection and queue-compatible carrier. Remote cutover was subsequently proven on 2026-09-22:
+
+    ruleset                         main-convergence-queue-r1 / active
+    first real merge_group          3425d361... / run 35721081039 / PASS
+    two-producer synthetic wave     03a6e451... + 6be42de4... / PASS
+    Harness portability merge_group ceba5910... / run 35725780805 / PASS
+    real producer merge_group       06b93277... / run 35726560495 / PASS
+    final main after producer       06b93277... / run 35726848574 / PASS
+
+Canonical acceptance evidence lives in
+GITHUB_MERGE_QUEUE_REMOTE_CUTOVER_ACCEPTANCE_R1.md and
+HARNESS_QUEUE_PORTABILITY_R1.md.
+
+Advanced scheduling is still deliberately not admitted. The observed queue
+wave proves correctness and clean-runner portability, but does not establish
+sustained queue contention, meaningful speculative CI waste, repeated high
+queue depth, or enough historical runs to validate a cost predictor.
 
 ## 11. References checked for R1
 
@@ -360,3 +376,6 @@ These checks prove the R1 projection and queue-compatible carrier only. They do 
 - Uber SubmitQueue — predictive speculative execution for large monorepos, 2025.
 
 External products remain replaceable. The architectural contracts above are the retained kernel.
+
+Remote cutover is accepted only after the repository ruleset produces a real
+merge_group synthetic revision and root-verification passes on that exact revision.
