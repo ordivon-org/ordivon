@@ -93,29 +93,39 @@
       "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
       "id": "UX50",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
       "name": "CurrentView",
-      "status": "READY_TO_DESIGN"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
       "id": "UX51",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
       "name": "AttentionView",
-      "status": "READY_TO_DESIGN"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
       "id": "UX52",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
       "name": "CoordinationView",
-      "status": "READY_TO_DESIGN"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
       "id": "UX53",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
       "name": "AuthorityView",
-      "status": "READY_TO_DESIGN"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
       "id": "UX55",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py#compile_preflight",
       "name": "SocialPreflight",
-      "status": "HOLD_UNTIL_VIEWS_DOGFOOD"
+      "status": "VERIFIED_CANDIDATE"
     },
     {
       "id": "CONC60",
@@ -156,6 +166,20 @@
       "id": "EPI41",
       "implementation": "meta/next/scripts/social_fabric_epistemic_r1.py",
       "name": "ConstraintFeasibilityBoundary",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX54",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "ProgressiveDisclosure",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX56",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "ComponentCompartmentVisibility",
       "status": "VERIFIED_CANDIDATE"
     }
   ],
@@ -204,6 +228,8 @@
         "UX51",
         "UX52",
         "UX53",
+        "UX54",
+        "UX56",
         "UX55"
       ]
     },

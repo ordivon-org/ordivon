@@ -103,3 +103,21 @@ run = "uv run --locked python scripts/social_fabric_epistemic_r1.py feasibility 
 
 [tasks."social:feasibility:vhd"]
 run = "uv run --locked python scripts/social_fabric_epistemic_r1.py feasibility --commitment evidence/acceptance/social-fabric-commitment-r3-vhd-projection-20260923.json"
+
+[tasks."social:ux:current"]
+run = "uv run --locked python scripts/social_fabric_agent_ux_r1.py current --manifest evidence/acceptance/social-fabric-agent-ux-r1-manifest-20260923.json"
+
+[tasks."social:ux:attention"]
+run = "uv run --locked python scripts/social_fabric_agent_ux_r1.py attention --manifest evidence/acceptance/social-fabric-agent-ux-r1-manifest-20260923.json"
+
+[tasks."social:ux:coordination"]
+run = "uv run --locked python scripts/social_fabric_agent_ux_r1.py coordination --manifest evidence/acceptance/social-fabric-agent-ux-r1-manifest-20260923.json"
+
+[tasks."social:ux:authority"]
+run = "uv run --locked python scripts/social_fabric_agent_ux_r1.py authority --manifest evidence/acceptance/social-fabric-agent-ux-r1-manifest-20260923.json"
+
+[tasks."social:ux:preflight:vhd"]
+run = "uv run --locked python scripts/social_fabric_agent_ux_r1.py preflight --request evidence/acceptance/social-fabric-agent-ux-r1-preflight-vhd-20260923.json"
+
+[tasks."social:ux:preflight:cheap-read"]
+run = "uv run --locked python scripts/social_fabric_agent_ux_r1.py preflight --request evidence/acceptance/social-fabric-agent-ux-r1-preflight-cheap-read-20260923.json"

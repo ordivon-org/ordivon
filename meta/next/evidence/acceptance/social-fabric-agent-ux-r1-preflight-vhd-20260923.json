@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-preflight-request",
+  "operationRef": "operation:maintenance:archlinux-vhd:offline-compact",
+  "traits": {"durable": true, "shared": true, "effectful": true, "scarce": true},
+  "subjectRefs": ["resource:windows:wsl:archlinux:ext4-vhdx"],
+  "compartmentRefs": ["domain:workstation", "resource:windows:wsl:archlinux:ext4-vhdx"]
+}
