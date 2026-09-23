@@ -194,6 +194,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         },
         executor: executor.clone(),
         startup_grace_ms: 2000,
+        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();
@@ -714,6 +715,7 @@ impl IntegrationContext {
             registry: self.registry.clone(),
             executor: self.executor.clone(),
             startup_grace_ms,
+            workspace_admission_headroom: None,
             windows: None,
         })
         .unwrap()
@@ -730,6 +732,7 @@ impl IntegrationContext {
                 registry: self.registry.clone(),
                 executor: self.executor.clone(),
                 startup_grace_ms,
+                workspace_admission_headroom: None,
                 windows: None,
             },
             authorities,
@@ -981,6 +984,7 @@ print("WRITE_OK=" + pathlib.Path("contained-output.txt").read_text(), flush=True
         },
         executor: executor.clone(),
         startup_grace_ms: 5000,
+        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();
@@ -2489,6 +2493,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
             registry,
             executor: executor.clone(),
             startup_grace_ms: 2_000,
+            workspace_admission_headroom: None,
             windows: None,
         },
         vec![InputAuthority {
@@ -2647,6 +2652,7 @@ fn runtime_finance_i8_graduation_matches_canonical_semantics_with_job_owned_inpu
         },
         executor: executor.clone(),
         startup_grace_ms: 2_000,
+        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();
@@ -3196,6 +3202,7 @@ fn runtime_executable_runtime_drift_is_witnessed_without_rewriting_script_identi
         registry: context.registry.clone(),
         executor,
         startup_grace_ms: 2_000,
+        workspace_admission_headroom: None,
         windows: None,
     })
     .unwrap();

@@ -4,6 +4,7 @@ impl Runtime {
         request: &GitWorkspaceCreateRequest,
     ) -> RuntimeResult<CompactWorkspaceOpenResult> {
         let _guard = self.lock_lifecycle()?;
+        self.enforce_workspace_admission_headroom(request)?;
         create_git_workspace(&self.executor, request).map_err(map_universal_error)
     }
 
@@ -182,4 +183,89 @@ impl Runtime {
         remove_git_workspace(&self.executor, request).map_err(map_universal_error)
     }
 
+}
+
+#[cfg(unix)]
+pub(super) fn filesystem_available_bytes(path: &Path) -> RuntimeResult<u64> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let encoded = CString::new(path.as_os_str().as_bytes()).map_err(|_| {
+        RuntimeError::invalid(
+            "workspace admission headroom path contains NUL",
+            "workspaceAdmissionHeadroom.path",
+        )
+    })?;
+    let mut value = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+    if unsafe { libc::statvfs(encoded.as_ptr(), value.as_mut_ptr()) } != 0 {
+        return Err(io_error(
+            "inspect workspace admission storage headroom",
+            std::io::Error::last_os_error(),
+        ));
+    }
+    let value = unsafe { value.assume_init() };
+    Ok((value.f_bavail as u64).saturating_mul(value.f_frsize as u64))
+}
+
+#[cfg(windows)]
+pub(super) fn filesystem_available_bytes(path: &Path) -> RuntimeResult<u64> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+
+    let mut wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
+    wide.push(0);
+    let mut available = 0_u64;
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut available,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    if ok == 0 {
+        return Err(io_error(
+            "inspect workspace admission storage headroom",
+            std::io::Error::last_os_error(),
+        ));
+    }
+    Ok(available)
+}
+
+#[cfg(not(any(unix, windows)))]
+pub(super) fn filesystem_available_bytes(_path: &Path) -> RuntimeResult<u64> {
+    Err(RuntimeError::new(
+        RuntimeErrorCode::ToolUnavailable,
+        "workspace admission storage headroom is unsupported on this platform",
+        Some("workspaceAdmissionHeadroom.path"),
+        false,
+    ))
+}
+
+impl Runtime {
+    fn enforce_workspace_admission_headroom(
+        &self,
+        request: &GitWorkspaceCreateRequest,
+    ) -> RuntimeResult<()> {
+        let Some(policy) = &self.workspace_admission_headroom else {
+            return Ok(());
+        };
+        let available = filesystem_available_bytes(&policy.path)?;
+        if available >= policy.minimum_free_bytes {
+            return Ok(());
+        }
+        let mut error = RuntimeError::new(
+            RuntimeErrorCode::WorkspaceCapacityExceeded,
+            format!(
+                "workspace admission blocked by storage headroom policy for {}: availableBytes={available}, minimumFreeBytes={}, path={}",
+                request.workspace_id,
+                policy.minimum_free_bytes,
+                policy.path.display()
+            ),
+            Some("workspaceId"),
+            true,
+        );
+        error.retry_after_ms = Some(300_000);
+        Err(error)
+    }
 }

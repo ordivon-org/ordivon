@@ -205,11 +205,18 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
 }
 
 #[derive(Clone, Debug)]
+pub struct WorkspaceAdmissionHeadroomConfig {
+    pub path: PathBuf,
+    pub minimum_free_bytes: u64,
+}
+
+#[derive(Clone, Debug)]
 pub struct RuntimeConfig {
     pub node_id: String,
     pub registry: RegistryConfig,
     pub executor: UniversalExecutorConfig,
     pub startup_grace_ms: u64,
+    pub workspace_admission_headroom: Option<WorkspaceAdmissionHeadroomConfig>,
     pub windows: Option<WindowsExecutionConfig>,
 }
 
@@ -252,6 +259,7 @@ pub struct Runtime {
     executor: UniversalExecutorConfig,
     default_runtime_ms: u64,
     startup_grace_ms: u64,
+    workspace_admission_headroom: Option<WorkspaceAdmissionHeadroomConfig>,
     execution_path: String,
     execution_home: String,
     windows: Option<WindowsExecutionConfig>,
@@ -1116,6 +1124,7 @@ mod trusted_systemd_command_tests {
                             max_output_bytes: 1_048_576,
                         },
                         startup_grace_ms: 2_000,
+                        workspace_admission_headroom: None,
                         windows: None,
                     },
                     vec![InputAuthority {
@@ -1332,6 +1341,7 @@ mod trusted_systemd_command_tests {
                     max_output_bytes,
                 },
                 startup_grace_ms: 2_000,
+                workspace_admission_headroom: None,
                 windows: None,
             },
             Vec::new(),
@@ -1634,6 +1644,7 @@ mod trusted_systemd_command_tests {
                 max_output_bytes: 1_048_576,
             },
             startup_grace_ms: 2_000,
+            workspace_admission_headroom: None,
             windows: None,
         })
         .unwrap();
@@ -1669,6 +1680,7 @@ mod trusted_systemd_command_tests {
                 max_output_bytes: 1_048_576,
             },
             startup_grace_ms: 2_000,
+            workspace_admission_headroom: None,
             windows: None,
         })
         .unwrap();

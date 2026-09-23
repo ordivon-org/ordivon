@@ -54,13 +54,13 @@ pub use runtime::{
     RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity, RuntimeNodePlatform,
     RuntimeReleaseAdmission, RuntimeReleaseContract, RuntimeReleaseDisposition,
     RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult,
-    RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
-    RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, WindowsAuthority, WindowsExecutionConfig,
-    WindowsPrivilegedBrokerConfig, CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH,
-    CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT, LOGICAL_ID_MAX_LENGTH,
-    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_INSPECTION_EVENT_LIMIT, MAX_TASK_TAIL_BYTES,
-    MAX_TASK_WAIT_MS, RUNTIME_MAX_MIGRATION_VERSION, RUNTIME_SCHEMA_VERSION,
+    RuntimeWorkspaceAdmissionHeadroom, RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue,
+    RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest,
+    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, WindowsAuthority, WindowsExecutionConfig,
+    WindowsPrivilegedBrokerConfig, WorkspaceAdmissionHeadroomConfig, CLIENT_REQUEST_ID_MAX_LENGTH,
+    CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, DEFAULT_INSPECTION_EVENT_LIMIT,
+    LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_INSPECTION_EVENT_LIMIT,
+    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_MAX_MIGRATION_VERSION, RUNTIME_SCHEMA_VERSION,
 };
 
 #[cfg(feature = "operator-tools")]

@@ -203,8 +203,117 @@ fn runtime_config(sandbox: &Sandbox) -> RuntimeConfig {
             max_output_bytes: 1_048_576,
         },
         startup_grace_ms: 2_000,
+        workspace_admission_headroom: None,
         windows: None,
     }
+}
+
+#[test]
+fn workspace_headroom_policy_rejects_invalid_operator_configuration() {
+    let sandbox = Sandbox::new("workspace-headroom-config", 5_000);
+
+    let mut relative = runtime_config(&sandbox);
+    relative.workspace_admission_headroom = Some(WorkspaceAdmissionHeadroomConfig {
+        path: PathBuf::from("relative"),
+        minimum_free_bytes: 1,
+    });
+    let error = Runtime::new(relative).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    assert_eq!(
+        error.field.as_deref(),
+        Some("workspaceAdmissionHeadroom.path")
+    );
+
+    let mut zero = runtime_config(&sandbox);
+    zero.workspace_admission_headroom = Some(WorkspaceAdmissionHeadroomConfig {
+        path: sandbox.root.clone(),
+        minimum_free_bytes: 0,
+    });
+    let error = Runtime::new(zero).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+    assert_eq!(
+        error.field.as_deref(),
+        Some("workspaceAdmissionHeadroom.minimumFreeBytes")
+    );
+}
+
+#[test]
+fn workspace_headroom_guard_blocks_new_workspace_before_any_commit() {
+    let sandbox = Sandbox::new("workspace-headroom-block", 5_000);
+    let workspace_id = "workspace-headroom-blocked";
+    let mut config = runtime_config(&sandbox);
+    config.workspace_admission_headroom = Some(WorkspaceAdmissionHeadroomConfig {
+        path: sandbox.root.clone(),
+        minimum_free_bytes: u64::MAX,
+    });
+    let runtime = Runtime::new(config).unwrap();
+    let capabilities = runtime.capabilities();
+    let headroom = capabilities
+        .workspace_admission_headroom
+        .expect("configured headroom projection");
+    assert_eq!(headroom.path, sandbox.root.to_string_lossy());
+    assert_eq!(headroom.minimum_free_bytes, u64::MAX);
+    assert!(headroom.available_bytes.is_some());
+    assert_eq!(headroom.admission_allowed, Some(false));
+    assert!(headroom.observation_issue.is_none());
+
+    let error = runtime
+        .open_workspace(&crate::GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: sandbox
+                .root
+                .join("not-consulted-source")
+                .to_string_lossy()
+                .into_owned(),
+            source_revision: "HEAD".to_string(),
+        })
+        .unwrap_err();
+
+    assert_eq!(error.code, RuntimeErrorCode::WorkspaceCapacityExceeded);
+    assert_eq!(error.field.as_deref(), Some("workspaceId"));
+    assert!(error.retryable);
+    assert_eq!(error.retry_after_ms, Some(300_000));
+    assert!(error.operation_id.is_none());
+    assert!(error.message.contains(workspace_id));
+    assert!(!sandbox
+        .root
+        .join("runtime/workspaces")
+        .join(workspace_id)
+        .exists());
+    assert!(!sandbox
+        .root
+        .join("runtime/workspace-records")
+        .join(format!("{workspace_id}.json"))
+        .exists());
+}
+
+#[test]
+fn workspace_headroom_guard_preserves_existing_workspace_cleanup_path() {
+    let (sandbox, _opening_runtime, executor) = workspace_fixture(
+        "workspace-headroom-cleanup",
+        "workspace-headroom-cleanup-target",
+    );
+    let workspace_id = "workspace-headroom-cleanup-target";
+    assert!(executor.workspace_path(workspace_id).is_dir());
+
+    let mut config = runtime_config(&sandbox);
+    config.workspace_admission_headroom = Some(WorkspaceAdmissionHeadroomConfig {
+        path: sandbox.root.clone(),
+        minimum_free_bytes: u64::MAX,
+    });
+    let guarded_runtime = Runtime::new(config).unwrap();
+    let result = guarded_runtime
+        .close_workspace(&WorkspaceCloseRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            force: true,
+            expected_source_state_digest: None,
+        })
+        .unwrap();
+
+    assert!(result.removed);
+    assert!(!executor.workspace_path(workspace_id).exists());
 }
 
 #[cfg(not(windows))]

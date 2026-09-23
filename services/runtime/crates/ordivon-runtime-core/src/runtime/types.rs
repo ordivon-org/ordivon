@@ -556,6 +556,19 @@ pub struct RuntimeExecutionTargetCapability {
 
 #[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeWorkspaceAdmissionHeadroom {
+    pub path: String,
+    pub minimum_free_bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub available_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admission_allowed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observation_issue: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeCapabilities {
     pub schema_version: u32,
     pub node: RuntimeNodeIdentity,
@@ -566,6 +579,8 @@ pub struct RuntimeCapabilities {
     pub input_authorities: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub credential_authorities: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_admission_headroom: Option<RuntimeWorkspaceAdmissionHeadroom>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
 }
 

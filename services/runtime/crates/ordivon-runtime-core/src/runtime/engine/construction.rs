@@ -73,6 +73,20 @@ impl Runtime {
                 "startupGraceMs",
             ));
         }
+        if let Some(headroom) = &config.workspace_admission_headroom {
+            if !headroom.path.is_absolute() {
+                return Err(RuntimeError::invalid(
+                    "workspace admission headroom path must be absolute",
+                    "workspaceAdmissionHeadroom.path",
+                ));
+            }
+            if headroom.minimum_free_bytes == 0 {
+                return Err(RuntimeError::invalid(
+                    "workspace admission minimum free bytes must be positive",
+                    "workspaceAdmissionHeadroom.minimumFreeBytes",
+                ));
+            }
+        }
         if Instant::now()
             .checked_add(Duration::from_millis(config.startup_grace_ms))
             .is_none()
@@ -193,6 +207,7 @@ impl Runtime {
             executor: config.executor,
             default_runtime_ms,
             startup_grace_ms: config.startup_grace_ms,
+            workspace_admission_headroom: config.workspace_admission_headroom,
             execution_path,
             execution_home,
             windows: config.windows,

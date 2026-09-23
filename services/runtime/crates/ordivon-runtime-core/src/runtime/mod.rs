@@ -21,7 +21,10 @@ pub use doctor::{
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
     RuntimeDoctorReservationState, RuntimeDoctorSummary, RUNTIME_DOCTOR_SCHEMA_VERSION,
 };
-pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
+pub use engine::{
+    ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig,
+    WorkspaceAdmissionHeadroomConfig,
+};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
 pub use inspection::{
@@ -94,12 +97,12 @@ pub use types::{
     RuntimeJobListResult, RuntimeJobSummary, RuntimeNodeIdentity, RuntimeNodePlatform,
     RuntimeReleaseAdmission, RuntimeReleaseContract, RuntimeReleaseDisposition,
     RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest,
-    RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
-    RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, WindowsAuthority, CLIENT_REQUEST_ID_MAX_LENGTH,
-    CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH,
-    LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
-    RUNTIME_SCHEMA_VERSION,
+    RuntimeWorkspaceAdmissionHeadroom, RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue,
+    RuntimeWorkspaceIssueStage, RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest,
+    RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, WindowsAuthority,
+    CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
+    LOGICAL_ID_MAX_LENGTH, LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES,
+    MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 #[cfg(not(any(test, feature = "operator-tools")))]
 pub(crate) use types::{ArtifactRegistration, TerminalCommit};

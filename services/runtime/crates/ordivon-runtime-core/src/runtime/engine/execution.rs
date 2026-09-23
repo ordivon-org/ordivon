@@ -63,6 +63,24 @@ impl Runtime {
             .keys()
             .cloned()
             .collect::<Vec<_>>();
+        let workspace_admission_headroom = self.workspace_admission_headroom.as_ref().map(|policy| {
+            match filesystem_available_bytes(&policy.path) {
+                Ok(available_bytes) => super::RuntimeWorkspaceAdmissionHeadroom {
+                    path: policy.path.to_string_lossy().into_owned(),
+                    minimum_free_bytes: policy.minimum_free_bytes,
+                    available_bytes: Some(available_bytes),
+                    admission_allowed: Some(available_bytes >= policy.minimum_free_bytes),
+                    observation_issue: None,
+                },
+                Err(error) => super::RuntimeWorkspaceAdmissionHeadroom {
+                    path: policy.path.to_string_lossy().into_owned(),
+                    minimum_free_bytes: policy.minimum_free_bytes,
+                    available_bytes: None,
+                    admission_allowed: None,
+                    observation_issue: Some(error.code.as_str().to_string()),
+                },
+            }
+        });
 
         let linux_configured = self.node_identity.platform == super::RuntimeNodePlatform::Linux
             && self.executor.runner_path.is_some();
@@ -158,6 +176,7 @@ impl Runtime {
             allowed_executable_roots,
             input_authorities,
             credential_authorities,
+            workspace_admission_headroom,
             targets,
         }
     }

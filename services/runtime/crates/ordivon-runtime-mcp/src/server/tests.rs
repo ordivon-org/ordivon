@@ -57,6 +57,7 @@ impl Sandbox {
                         max_output_bytes: 1024 * 1024,
                     },
                     startup_grace_ms: 1000,
+                    workspace_admission_headroom: None,
                     windows: None,
                 },
                 input_authorities: Vec::new(),
@@ -98,6 +99,7 @@ impl Sandbox {
                     max_output_bytes: 1024 * 1024,
                 },
                 startup_grace_ms: 1000,
+                workspace_admission_headroom: None,
                 windows: None,
             },
             input_authorities: Vec::new(),
@@ -949,6 +951,7 @@ print(json.dumps({{
                     max_output_bytes: 1024 * 1024,
                 },
                 startup_grace_ms: 1000,
+                workspace_admission_headroom: None,
                 windows: None,
             },
             input_authorities: Vec::new(),
@@ -1162,6 +1165,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
                 max_output_bytes: 1024 * 1024,
             },
             startup_grace_ms: 1000,
+            workspace_admission_headroom: None,
             windows: None,
         },
         input_authorities: Vec::new(),
@@ -1824,6 +1828,38 @@ fn deployment_in_progress_is_safe_same_request_without_commitment() {
     assert_eq!(
         value.pointer("/retryAfterMs").and_then(Value::as_u64),
         Some(1_000)
+    );
+}
+
+#[test]
+fn workspace_storage_headroom_failure_is_retryable_without_commitment() {
+    let mut error = RuntimeError::new(
+        ordivon_runtime_core::RuntimeErrorCode::WorkspaceCapacityExceeded,
+        "workspace admission blocked by storage headroom policy",
+        Some("workspaceId"),
+        true,
+    );
+    error.retry_after_ms = Some(300_000);
+    let value = serde_json::to_value(ToolError::from(error)).unwrap();
+    assert_eq!(
+        value.pointer("/code").and_then(Value::as_str),
+        Some("WORKSPACE_CAPACITY_EXCEEDED")
+    );
+    assert_eq!(
+        value.pointer("/retryClass").and_then(Value::as_str),
+        Some("safe_same_request")
+    );
+    assert_eq!(
+        value.pointer("/commitState").and_then(Value::as_str),
+        Some("not_committed")
+    );
+    assert_eq!(
+        value.pointer("/retryable").and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        value.pointer("/retryAfterMs").and_then(Value::as_u64),
+        Some(300_000)
     );
 }
 

@@ -17,7 +17,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Router;
 use ordivon_runtime_core::{
     CredentialAuthority, InputAuthority, RegistryConfig, RuntimeConfig, UniversalExecutorConfig,
-    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig,
+    WindowsExecutionConfig, WindowsPrivilegedBrokerConfig, WorkspaceAdmissionHeadroomConfig,
 };
 use ordivon_runtime_mcp::server::{
     AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
@@ -852,6 +852,29 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     if max_output_bytes == 0 {
         return Err("ORDIVON_MAX_OUTPUT_BYTES must be positive".into());
     }
+    let workspace_admission_headroom = match (
+        optional_env("ORDIVON_WORKSPACE_ADMISSION_HEADROOM_PATH")?,
+        optional_env("ORDIVON_WORKSPACE_ADMISSION_MIN_FREE_BYTES")?,
+    ) {
+        (None, None) => None,
+        (Some(path), Some(minimum_free_bytes)) => {
+            let path = PathBuf::from(path);
+            if !path.is_absolute() {
+                return Err("ORDIVON_WORKSPACE_ADMISSION_HEADROOM_PATH must be absolute".into());
+            }
+            let minimum_free_bytes: u64 = minimum_free_bytes.parse()?;
+            if minimum_free_bytes == 0 {
+                return Err("ORDIVON_WORKSPACE_ADMISSION_MIN_FREE_BYTES must be positive".into());
+            }
+            Some(WorkspaceAdmissionHeadroomConfig {
+                path,
+                minimum_free_bytes,
+            })
+        }
+        _ => {
+            return Err("ORDIVON_WORKSPACE_ADMISSION_HEADROOM_PATH and ORDIVON_WORKSPACE_ADMISSION_MIN_FREE_BYTES must be configured together".into());
+        }
+    };
     let release = optional_env("ORDIVON_RELEASE_SOURCE_REPO")?
         .map(|source_repo| -> Result<RuntimeReleaseExecutionConfig, Box<dyn std::error::Error>> {
             let timeout_ms: u64 = optional_env("ORDIVON_RELEASE_TIMEOUT_MS")?
@@ -979,6 +1002,7 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
                     max_output_bytes,
                 },
                 startup_grace_ms,
+                workspace_admission_headroom,
                 windows,
             },
             input_authorities,
