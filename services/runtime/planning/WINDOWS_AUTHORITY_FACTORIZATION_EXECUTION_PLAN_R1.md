@@ -194,3 +194,11 @@ WA01 → WA04 can start immediately. No Gateway production-route mutation is req
 - global ACL relaxation
 - a permanent active_user_elevated enum if structured identity+privilege can represent it
 - duplicate Job/Attempt/effect lifecycle outside Runtime
+
+## Current standing — 2026-09-23 17:02 +08:00
+
+Source implementation has crossed WA01-WA21 mechanically. Core, MCP, and Windows static gates are green. `runtime.describe` now projects live-probed `windowsContexts` while preserving legacy `windowsAuthorities`; the immutable-input bound contract intentionally does not expose `windowsContext`.
+
+The current executable frontier is WA22: deploy the isolated Windows Runtime candidate source and prove `active_user x elevated` through the real LocalSystem Privileged Broker. A direct probe launched merely as a SYSTEM payload is not valid evidence for WA22. During this run the machine also had no usable active interactive user token (`WTSQueryUserToken` Win32 1008); this is retained as one WA24 fail-closed observation, not treated as an implementation failure.
+
+Legacy conflict semantics are compatibility-first: the legacy wire field defaults to `windowsAuthority=limited`, so `limited` acts as the sentinel when a structured `windowsContext` is present. Non-default legacy values (`elevated`, `active_user`) remain exact conflict fences.

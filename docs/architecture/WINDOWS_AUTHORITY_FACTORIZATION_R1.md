@@ -35,3 +35,13 @@ R1 adds canonical Core types and the legacy compiler only. It does not add a new
 ## Fourth-cell acceptance
 
 Before active_user x elevated is advertised, native acceptance must prove admission-frozen SID/session, primary payload token, elevated state, High-or-higher integrity, enabled Builtin Administrators membership, exact broker/launcher digests, fail-closed absence behavior, and existing Job Object cleanup semantics. Fallback to service/SYSTEM identity is forbidden.
+
+## R1 source closure
+
+The ordinary execution contract now accepts optional `windowsContext={identity, privilege}`. Legacy `windowsAuthority` remains present for compatibility; because its wire default is `limited`, that default is treated as the compatibility sentinel when structured context is supplied, while non-default legacy values must agree with the structured context.
+
+`runtime.describe` keeps the legacy `windowsAuthorities` projection and adds `windowsContexts`. Structured contexts are not statically advertised: Runtime probes each of the four canonical cells against the installed Windows provider and reports only the cells whose runtime-context evidence validates successfully.
+
+The immutable-input/bound Windows entrypoint remains deliberately limited-only and does not gain a `windowsContext` field in this migration.
+
+Source-level closure is not native graduation. `active_user x elevated` becomes available only after a Windows candidate with the new broker/launcher is deployed and WA22/WA23 prove the real LocalSystem broker path.
