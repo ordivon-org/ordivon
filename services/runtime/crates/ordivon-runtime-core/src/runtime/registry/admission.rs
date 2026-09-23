@@ -199,7 +199,7 @@ impl Registry {
             reservation_id: reservation_id.clone(),
             attempt_id: attempt_id.clone(),
             global_limit: request.global_limit,
-            state: ReservationState::Active,
+            state: ReservationContract::initial_state(),
             acquired_at_ms: created_at_ms,
             released_at_ms: None,
             release_reason: None,
@@ -248,7 +248,7 @@ impl Registry {
                 |row| row.get(0),
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot count workspace reservations"))?;
-        if workspace_active >= WORKSPACE_EXECUTION_LIMIT {
+        if ReservationContract::capacity_exhausted(workspace_active, WORKSPACE_EXECUTION_LIMIT) {
             let (holder_job_ids, holder_workspace_ids) = capacity_holders(
                 &transaction,
                 Some(&request.plan.workspace_id),
@@ -278,7 +278,7 @@ impl Registry {
                 |row| row.get(0),
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot count global reservations"))?;
-        if global_active >= request.global_limit {
+        if ReservationContract::capacity_exhausted(global_active, request.global_limit) {
             let holder_limit = request.global_limit.min(16);
             let (holder_job_ids, holder_workspace_ids) =
                 capacity_holders(&transaction, None, holder_limit)?;

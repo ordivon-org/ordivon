@@ -275,6 +275,7 @@ impl RuntimeServer {
                     execution_profile: ExecutionProfile::TrustedLocal,
                     execution_target: release.execution_target(),
                     windows_authority: release.windows_authority(),
+                    windows_context: None,
                     foreign_references: vec![ForeignReference {
                         namespace: "ordivon.runtime".to_string(),
                         reference_type: "runtime_release".to_string(),

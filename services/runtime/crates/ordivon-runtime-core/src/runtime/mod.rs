@@ -9,6 +9,7 @@ mod platform;
 mod registry;
 #[cfg(feature = "operator-tools")]
 mod repair;
+mod reservation_state;
 mod supervisor;
 mod types;
 mod windows;
@@ -21,7 +22,9 @@ pub use doctor::{
     RuntimeDoctorConfig, RuntimeDoctorJobState, RuntimeDoctorProposal, RuntimeDoctorReport,
     RuntimeDoctorReservationState, RuntimeDoctorSummary, RUNTIME_DOCTOR_SCHEMA_VERSION,
 };
-pub use engine::{ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig};
+pub use engine::{
+    ReconciliationFailure, ReconciliationReport, Runtime, RuntimeConfig, WorkspaceHeadroomConfig,
+};
 pub use error::{RuntimeCapacity, RuntimeError, RuntimeErrorCode, RuntimeResult};
 pub const RUNTIME_MAX_MIGRATION_VERSION: i64 = registry::MAX_MIGRATION_VERSION;
 pub use inspection::{
@@ -96,7 +99,8 @@ pub use types::{
     RuntimeReleaseGetRequest, RuntimeReleaseProjection, RuntimeReleaseRequest,
     RuntimeWorkspaceGetRequest, RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage,
     RuntimeWorkspaceListCursor, RuntimeWorkspaceListRequest, RuntimeWorkspaceListResult,
-    RuntimeWorkspaceSummary, WindowsAuthority, CLIENT_REQUEST_ID_MAX_LENGTH,
+    RuntimeWorkspaceSummary, WindowsAuthority, WindowsExecutionContextRequest,
+    WindowsExecutionIdentity, WindowsPayloadPrivilege, CLIENT_REQUEST_ID_MAX_LENGTH,
     CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN, LOGICAL_ID_MAX_LENGTH,
     LOGICAL_ID_MIN_LENGTH, LOGICAL_ID_PATTERN, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS,
     RUNTIME_SCHEMA_VERSION,

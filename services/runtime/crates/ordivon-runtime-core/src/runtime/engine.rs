@@ -204,6 +204,12 @@ fn sleep_until_poll(deadline: Instant, poll_index: &mut usize) {
     *poll_index = poll_index.saturating_add(1);
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkspaceHeadroomConfig {
+    pub path: PathBuf,
+    pub minimum_free_bytes: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct RuntimeConfig {
     pub node_id: String,
@@ -257,6 +263,7 @@ pub struct Runtime {
     windows: Option<WindowsExecutionConfig>,
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
+    workspace_headroom: Option<WorkspaceHeadroomConfig>,
     lifecycle_lock: Arc<Mutex<()>>,
     control_terminal_lock: Arc<Mutex<()>>,
 }
@@ -1045,6 +1052,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: ExecutionProfile::ContainedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1078,6 +1086,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: request.execution.execution_profile,
                 execution_target: request.execution.execution_target,
                 windows_authority: request.execution.windows_authority,
+                windows_context: None,
                 foreign_references: request.execution.foreign_references.clone(),
                 host_dependencies: request.execution.host_dependencies.clone(),
             },
@@ -1372,6 +1381,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: ExecutionProfile::TrustedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1537,6 +1547,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: crate::runtime::ExecutionProfile::TrustedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },
@@ -1571,6 +1582,7 @@ mod trusted_systemd_command_tests {
                 execution_profile: crate::runtime::ExecutionProfile::ContainedLocal,
                 execution_target: crate::runtime::ExecutionTarget::LocalLinux,
                 windows_authority: crate::runtime::WindowsAuthority::Limited,
+                windows_context: None,
                 foreign_references: Vec::new(),
                 host_dependencies: Vec::new(),
             },

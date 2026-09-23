@@ -157,6 +157,22 @@ fn tool_catalog_uses_transactional_job_contract() {
         exec_schema.pointer("/$defs/WindowsAuthority/enum"),
         Some(&serde_json::json!(["limited", "elevated", "active_user"]))
     );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProposal/properties/windowsContext/anyOf/0/$ref"),
+        Some(&serde_json::json!("#/$defs/WindowsExecutionContextRequest"))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/ExecutionProposal/properties/windowsContext/anyOf/1/type"),
+        Some(&serde_json::json!("null"))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/WindowsExecutionIdentity/enum"),
+        Some(&serde_json::json!(["service", "active_user"]))
+    );
+    assert_eq!(
+        exec_schema.pointer("/$defs/WindowsPayloadPrivilege/enum"),
+        Some(&serde_json::json!(["limited", "elevated"]))
+    );
     assert!(exec_schema
         .pointer("/$defs/ExecutionProposal/properties/foreignReferences/maxItems")
         .is_none());

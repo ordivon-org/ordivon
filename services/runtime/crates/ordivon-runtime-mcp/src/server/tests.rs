@@ -61,6 +61,7 @@ impl Sandbox {
                 },
                 input_authorities: Vec::new(),
                 credential_authorities: Vec::new(),
+                workspace_headroom: None,
                 execution: ExecutionContext {
                     principal: "principal:mcp-test".to_string(),
                     global_limit: 4,
@@ -102,6 +103,7 @@ impl Sandbox {
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
+            workspace_headroom: None,
             execution: ExecutionContext {
                 principal: "principal:mcp-test-ingress".to_string(),
                 global_limit: 4,
@@ -150,6 +152,7 @@ fn exec_tool_request(
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -817,6 +820,7 @@ fn workspace_exec_plan_normalizes_legacy_sum_without_writing_legacy_identity() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -849,6 +853,7 @@ fn workspace_exec_plan_normalizes_legacy_sum_without_writing_legacy_identity() {
             execution_profile: ExecutionProfile::TrustedLocal,
             execution_target: ExecutionTarget::LocalLinux,
             windows_authority: ordivon_runtime_core::WindowsAuthority::Limited,
+            windows_context: None,
             foreign_references: Vec::new(),
             host_dependencies: Vec::new(),
         },
@@ -953,6 +958,7 @@ print(json.dumps({{
             },
             input_authorities: Vec::new(),
             credential_authorities: Vec::new(),
+            workspace_headroom: None,
             execution: ExecutionContext {
                 principal: "principal:mcp-test-reconcile".to_string(),
                 global_limit: 4,
@@ -1166,6 +1172,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
         },
         input_authorities: Vec::new(),
         credential_authorities: Vec::new(),
+        workspace_headroom: None,
         execution: ExecutionContext {
             principal: "principal:mcp-test-private-host".to_string(),
             global_limit: 4,
@@ -2198,6 +2205,7 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         "availabilityIssue",
         "structuredPlan",
         "immutableInputs",
+        "windowsContexts",
         "windowsImmutableInputAuthorities",
         "hostDependencyCommitments",
         "hostDependencyContinuityScope",

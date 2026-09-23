@@ -1739,6 +1739,7 @@ fn validate_run_proposal_structure(proposal: &super::JobRunProposal) -> RuntimeR
             execution_profile: proposal.execution.execution_profile,
             execution_target: proposal.execution.execution_target,
             windows_authority: proposal.execution.windows_authority,
+            windows_context: proposal.execution.windows_context,
             foreign_references: proposal.execution.foreign_references.clone(),
             host_dependencies: Vec::new(),
         },

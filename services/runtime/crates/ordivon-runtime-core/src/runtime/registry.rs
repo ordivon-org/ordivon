@@ -14,6 +14,7 @@ use super::job_attempt_state::{
 };
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
+use super::reservation_state::ReservationContract;
 use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwner};
 #[cfg(any(test, feature = "operator-tools"))]
 use super::RuntimeInvariantViolation;
@@ -901,34 +902,13 @@ fn terminal_reservation_target(
     attempt: &AttemptRecord,
     job: &RuntimeJobRecord,
 ) -> RuntimeResult<ReservationState> {
-    if !attempt.state.is_terminal() {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::ReconciliationRequired,
-            "Attempt is not terminal while repairing terminal reservation",
-            Some("attemptId"),
-            false,
-        ));
-    }
-    let evidence_complete = AttemptLifecycleContract::terminal_evidence_complete(
+    ReservationContract::terminal_target_with_evidence(
         attempt.state,
         attempt.result_digest.is_some(),
         attempt.finished_at_ms.is_some(),
         job.resolution,
         job.current_attempt_id.is_some(),
-    );
-    if !evidence_complete {
-        return Err(RuntimeError::new(
-            RuntimeErrorCode::ReconciliationRequired,
-            "terminal Attempt lacks complete result, Job resolution, or current-Attempt evidence",
-            Some("attemptId"),
-            false,
-        ));
-    }
-    if attempt.state == AttemptState::Orphaned {
-        Ok(ReservationState::HeldOrphaned)
-    } else {
-        Ok(ReservationState::Released)
-    }
+    )
 }
 
 #[cfg(any(test, feature = "operator-tools"))]
