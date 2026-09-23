@@ -687,7 +687,11 @@ impl Runtime {
         }
         if let Some(binding) = self.registry.runtime_release_effect_for_job(&current.job_id)? {
             let snapshot = self.registry.job_snapshot(&current.job_id)?;
-            let receipt = inspect_runtime_release_receipt(&binding, &snapshot)?;
+            let receipt = ReleaseStateContract::inspect_receipt(
+                &binding,
+                snapshot.job.resolution,
+                snapshot.attempt.as_ref().map(|attempt| attempt.state),
+            )?;
             if receipt.disposition == RuntimeReleaseDisposition::Deployed && receipt.terminal {
                 let result_digest = receipt.digest.ok_or_else(|| {
                     RuntimeError::new(

@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
 use super::job_attempt_state::{
     AttemptLifecycleContract, JobIdentityContract, OperationIdentityBindings,
 };
@@ -19,8 +20,8 @@ use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwne
 #[cfg(any(test, feature = "operator-tools"))]
 use super::RuntimeInvariantViolation;
 use super::{
-    validate_client_request_id, AdmissionOutcome, ArtifactRegistration, AttemptRecord,
-    AttemptState, AttemptTerminationIntent, CreatedAdmission, ExecutionProviderContract,
+    validate_client_request_id, AdmissionOutcome, AttemptRecord, AttemptState,
+    AttemptTerminationIntent, CreatedAdmission, ExecutionProviderContract,
     ExecutionProviderSnapshot, HostDependencyBinding, JobDesiredState, JobProjection,
     JobResolution, ReservationRecord, ReservationState, RunnerIdentity, RuntimeArtifactRecord,
     RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
@@ -688,7 +689,7 @@ fn repair_terminal_admin_transaction(
 ) -> RuntimeResult<()> {
     validate_digest(&request.result_digest, "resultDigest")?;
     for artifact in &request.artifacts {
-        validate_artifact_registration(artifact)?;
+        ArtifactStateContract::validate_registration(artifact)?;
     }
     let attempt = load_attempt(transaction, &request.attempt_id)?;
     let job = load_job(transaction, &attempt.job_id)?;
@@ -1195,153 +1196,6 @@ fn validate_host_dependency_bindings(
     Ok(())
 }
 
-fn validate_runtime_release_effect_binding(
-    release: &RuntimeReleaseEffectBinding,
-    request: &SubmitRequest,
-) -> RuntimeResult<()> {
-    if release.contract != RuntimeReleaseContract::RuntimeReleaseV1 {
-        return Err(RuntimeError::invalid(
-            "unsupported Runtime Release contract",
-            "runtimeReleaseEffect.contract",
-        ));
-    }
-    if release.effect_id.len() != 64
-        || !release
-            .effect_id
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release effectId must be 64 lowercase hexadecimal characters",
-            "runtimeReleaseEffect.effectId",
-        ));
-    }
-    if !release
-        .request_digest
-        .starts_with(super::RUNTIME_RELEASE_IDENTITY_PREFIX)
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release request digest has the wrong contract prefix",
-            "runtimeReleaseEffect.requestDigest",
-        ));
-    }
-    JobIdentityContract::validate_request_identity_digest(&release.request_digest)?;
-    if request.request_identity_digest.as_deref() != Some(release.request_digest.as_str()) {
-        return Err(RuntimeError::invalid(
-            "Runtime Release side truth must match the committed request identity",
-            "runtimeReleaseEffect.requestDigest",
-        ));
-    }
-    if release.workspace_id != request.plan.workspace_id {
-        return Err(RuntimeError::invalid(
-            "Runtime Release workspace does not match the execution plan",
-            "runtimeReleaseEffect.workspaceId",
-        ));
-    }
-    if release.commit.len() != 40
-        || !release
-            .commit
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release commit must be exactly 40 lowercase hexadecimal characters",
-            "runtimeReleaseEffect.commit",
-        ));
-    }
-    validate_digest(
-        &release.candidate_manifest_digest,
-        "runtimeReleaseEffect.candidateManifestDigest",
-    )?;
-    if !Path::new(&release.receipt_path).is_absolute()
-        || release.receipt_path.as_bytes().contains(&0)
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release receipt path must be absolute and NUL-free",
-            "runtimeReleaseEffect.receiptPath",
-        ));
-    }
-    if request.plan.execution_profile != super::ExecutionProfile::TrustedLocal {
-        return Err(RuntimeError::invalid(
-            "Runtime Release v1 requires trusted_local execution",
-            "runtimeReleaseEffect.contract",
-        ));
-    }
-    match request.plan.execution_target {
-        super::ExecutionTarget::LocalLinux => {
-            if request.plan.windows_authority != super::WindowsAuthority::Limited
-                || request.plan.windows_execution_context.is_some()
-            {
-                return Err(RuntimeError::invalid(
-                    "local Linux Runtime Release cannot carry Windows elevated authority",
-                    "plan.windowsAuthority",
-                ));
-            }
-            if !matches!(
-                request
-                    .execution_provider
-                    .as_ref()
-                    .map(|provider| provider.contract),
-                Some(ExecutionProviderContract::LocalLinuxRunnerV1)
-            ) {
-                return Err(RuntimeError::invalid(
-                    "local Linux Runtime Release requires a committed local Linux Runner",
-                    "executionProvider",
-                ));
-            }
-        }
-        super::ExecutionTarget::WindowsNative => {
-            if request.plan.windows_authority != super::WindowsAuthority::Elevated {
-                return Err(RuntimeError::invalid(
-                    "native Windows Runtime Release requires elevated authority",
-                    "plan.windowsAuthority",
-                ));
-            }
-            if !matches!(
-                request
-                    .execution_provider
-                    .as_ref()
-                    .map(|provider| provider.contract),
-                Some(ExecutionProviderContract::WindowsNativeLauncherV1)
-            ) {
-                return Err(RuntimeError::invalid(
-                    "native Windows Runtime Release requires a committed Windows launcher",
-                    "executionProvider",
-                ));
-            }
-            let context = request
-                .plan
-                .windows_execution_context
-                .as_ref()
-                .ok_or_else(|| {
-                    RuntimeError::invalid(
-                        "native Windows Runtime Release requires frozen elevated execution context",
-                        "plan.windowsExecutionContext",
-                    )
-                })?;
-            if context.token_class != super::WindowsTokenClass::Elevated
-                || context.environment_source != "windows_privileged_broker_profile_allowlist_v1"
-            {
-                return Err(RuntimeError::invalid(
-                    "native Windows Runtime Release requires privileged broker execution context",
-                    "plan.windowsExecutionContext",
-                ));
-            }
-            let broker_digest = context.privileged_broker_digest.as_deref().ok_or_else(|| {
-                RuntimeError::invalid(
-                    "native Windows Runtime Release requires a frozen privileged broker digest",
-                    "plan.windowsExecutionContext.privilegedBrokerDigest",
-                )
-            })?;
-            validate_digest(
-                broker_digest,
-                "plan.windowsExecutionContext.privilegedBrokerDigest",
-            )?;
-        }
-    }
-    Ok(())
-}
-
 fn validate_submit(request: &SubmitRequest) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION
         || request.plan.schema_version != RUNTIME_SCHEMA_VERSION
@@ -1412,7 +1266,7 @@ fn validate_submit(request: &SubmitRequest) -> RuntimeResult<()> {
         }
     }
     if let Some(release) = request.runtime_release_effect.as_ref() {
-        validate_runtime_release_effect_binding(release, request)?;
+        ReleaseStateContract::validate_committed_binding(release, request)?;
     } else if request
         .request_identity_digest
         .as_deref()
@@ -1678,31 +1532,6 @@ fn validate_runner_identity(identity: &RunnerIdentity) -> RuntimeResult<()> {
         ));
     }
     validate_digest(&identity.runner_start_digest, "runnerStartDigest")
-}
-
-fn validate_artifact_registration(artifact: &ArtifactRegistration) -> RuntimeResult<()> {
-    validate_identifier(&artifact.artifact_id, "artifactId")?;
-    validate_identifier(&artifact.kind, "artifact.kind")?;
-    validate_digest(&artifact.digest, "artifact.digest")?;
-    if artifact.relative_path.is_empty()
-        || Path::new(&artifact.relative_path).is_absolute()
-        || artifact
-            .relative_path
-            .split('/')
-            .any(|segment| segment == "..")
-    {
-        return Err(RuntimeError::invalid(
-            "Artifact path must be a bounded relative path",
-            "artifact.relativePath",
-        ));
-    }
-    if artifact.media_type.is_empty() || artifact.media_type.len() > 256 {
-        return Err(RuntimeError::invalid(
-            "Artifact mediaType must be non-empty and bounded",
-            "artifact.mediaType",
-        ));
-    }
-    Ok(())
 }
 
 fn validate_identifier(value: &str, field: &str) -> RuntimeResult<()> {
