@@ -593,26 +593,12 @@ pub(crate) struct WindowsLauncherInvocationSpec<'a> {
     pub emit_launcher_start: bool,
 }
 
-pub(crate) fn snapshot_windows_runtime_context(
-    config: &WindowsExecutionConfig,
-    authority: WindowsAuthority,
-) -> RuntimeResult<WindowsRuntimeContextSnapshot> {
-    snapshot_windows_runtime_context_for(config, authority.canonical_context())
-}
-
 pub(crate) fn snapshot_windows_runtime_context_for(
     config: &WindowsExecutionConfig,
     context: super::WindowsExecutionContextRequest,
 ) -> RuntimeResult<WindowsRuntimeContextSnapshot> {
     snapshot_windows_runtime_context_for_with_transport(config, context)
         .map(|(snapshot, _)| snapshot)
-}
-
-pub(crate) fn snapshot_windows_runtime_context_with_transport(
-    config: &WindowsExecutionConfig,
-    authority: WindowsAuthority,
-) -> RuntimeResult<(WindowsRuntimeContextSnapshot, Option<PathBuf>)> {
-    snapshot_windows_runtime_context_for_with_transport(config, authority.canonical_context())
 }
 
 pub(crate) fn snapshot_windows_runtime_context_for_with_transport(
@@ -685,13 +671,6 @@ pub(crate) fn snapshot_windows_runtime_context_for_with_transport(
         })?;
     validate_windows_runtime_context_request(&snapshot, context)?;
     Ok((snapshot, output.transport))
-}
-
-fn validate_windows_runtime_context(
-    snapshot: &WindowsRuntimeContextSnapshot,
-    authority: WindowsAuthority,
-) -> RuntimeResult<()> {
-    validate_windows_runtime_context_request(snapshot, authority.canonical_context())
 }
 
 fn validate_windows_runtime_context_request(
@@ -1106,6 +1085,7 @@ pub(crate) fn spawn_windows_native(
         spec.launch_token_digest,
         spec.request_digest,
         spec.authority,
+        spec.payload_privilege,
         spec.expected_privileged_broker_digest,
         spec.expected_user_sid,
         spec.expected_session_id,
@@ -1410,14 +1390,26 @@ mod tests {
                 .map(|name| ((*name).to_string(), format!("value:{name}")))
                 .collect(),
         };
-        validate_windows_runtime_context(&snapshot, WindowsAuthority::Limited).unwrap();
+        validate_windows_runtime_context_request(
+            &snapshot,
+            WindowsAuthority::Limited.canonical_context(),
+        )
+        .unwrap();
         snapshot.token_is_elevated = true;
-        assert!(validate_windows_runtime_context(&snapshot, WindowsAuthority::Limited).is_err());
+        assert!(validate_windows_runtime_context_request(
+            &snapshot,
+            WindowsAuthority::Limited.canonical_context()
+        )
+        .is_err());
         snapshot.token_is_elevated = false;
         snapshot
             .environment
             .insert("PNPM_HOME".to_string(), "C:\\pnpm".to_string());
-        assert!(validate_windows_runtime_context(&snapshot, WindowsAuthority::Limited).is_err());
+        assert!(validate_windows_runtime_context_request(
+            &snapshot,
+            WindowsAuthority::Limited.canonical_context()
+        )
+        .is_err());
     }
 
     #[test]
@@ -1440,10 +1432,22 @@ mod tests {
             administrators_group_attributes: 0x0f,
             environment,
         };
-        validate_windows_runtime_context(&elevated, WindowsAuthority::Elevated).unwrap();
-        assert!(validate_windows_runtime_context(&elevated, WindowsAuthority::Limited).is_err());
+        validate_windows_runtime_context_request(
+            &elevated,
+            WindowsAuthority::Elevated.canonical_context(),
+        )
+        .unwrap();
+        assert!(validate_windows_runtime_context_request(
+            &elevated,
+            WindowsAuthority::Limited.canonical_context()
+        )
+        .is_err());
         elevated.token_is_elevated = false;
-        assert!(validate_windows_runtime_context(&elevated, WindowsAuthority::Elevated).is_err());
+        assert!(validate_windows_runtime_context_request(
+            &elevated,
+            WindowsAuthority::Elevated.canonical_context()
+        )
+        .is_err());
     }
 
     #[test]
@@ -1466,17 +1470,29 @@ mod tests {
             administrators_group_attributes: 0x10,
             environment,
         };
-        validate_windows_runtime_context(&active_user, WindowsAuthority::ActiveUser).unwrap();
-        assert!(validate_windows_runtime_context(&active_user, WindowsAuthority::Limited).is_err());
+        validate_windows_runtime_context_request(
+            &active_user,
+            WindowsAuthority::ActiveUser.canonical_context(),
+        )
+        .unwrap();
+        assert!(validate_windows_runtime_context_request(
+            &active_user,
+            WindowsAuthority::Limited.canonical_context()
+        )
+        .is_err());
         active_user.session_id = None;
-        assert!(
-            validate_windows_runtime_context(&active_user, WindowsAuthority::ActiveUser).is_err()
-        );
+        assert!(validate_windows_runtime_context_request(
+            &active_user,
+            WindowsAuthority::ActiveUser.canonical_context()
+        )
+        .is_err());
         active_user.session_id = Some(1);
         active_user.execution_identity = "service".to_string();
-        assert!(
-            validate_windows_runtime_context(&active_user, WindowsAuthority::ActiveUser).is_err()
-        );
+        assert!(validate_windows_runtime_context_request(
+            &active_user,
+            WindowsAuthority::ActiveUser.canonical_context()
+        )
+        .is_err());
     }
 
     #[test]
