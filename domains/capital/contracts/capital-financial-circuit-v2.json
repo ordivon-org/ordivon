@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-contract",
+  "standing": "R2_MIGRATION_ACTIVE",
+  "schema": "schema/capital-financial-circuit-spec-v2.schema.json",
+  "genericCompositionOwner": "composition",
+  "capitalRetains": [
+    "financial LEGO registry/status/use restrictions",
+    "financial authority-class current admission",
+    "financial effect taxonomy and ordering invariants",
+    "financial evidence-obligation vocabulary",
+    "domain acceptance and financial truth"
+  ],
+  "compositionOwns": [
+    "Cognitive Circuit schema/DAG validation",
+    "cross-owner composition gate mechanics",
+    "authority-obligation mechanical binding",
+    "verification-obligation mechanical binding",
+    "interface compatibility/currentness/admissibility mechanics"
+  ],
+  "nonClaims": [
+    "A compiled shared Circuit is not a financial verdict.",
+    "An authority obligation is not an ALLOW decision or Grant.",
+    "R2 migration does not admit private account data or any external financial write."
+  ]
+}

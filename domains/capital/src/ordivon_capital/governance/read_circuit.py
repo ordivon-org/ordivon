@@ -5,7 +5,7 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from ordivon_capital.governance.composition_contract import compile_composition
+from ordivon_capital.governance.circuit_lowering import load_and_lower
 from ordivon_capital.markets.market_sensors import (
     merge_market_observations,
     open_interest_change,
@@ -27,50 +27,21 @@ class ReadCircuitError(ValueError):
     """Fail-closed error for bounded read-only Capital circuits."""
 
 
-_FAMILIES: dict[str, dict[str, Any]] = {
-    "PUBLIC_MARKET_OBSERVATION_R1": {
-        "requestedUse": "descriptive market monitoring",
-        "terminalClaim": "DESCRIPTIVE_MARKET_OBSERVATION",
-        "nodes": [
-            {
-                "nodeId": "market-observation",
-                "legoId": "capital.markets.market-sensors",
-                "operation": "market_observation",
-                "dependsOn": [],
-            }
-        ],
-    },
-    "PORTFOLIO_RISK_R1": {
-        "requestedUse": "exposure/risk measurement",
-        "terminalClaim": "READ_ONLY_PORTFOLIO_RISK_REPORT",
-        "nodes": [
-            {
-                "nodeId": "portfolio-risk",
-                "legoId": "capital.risk.portfolio-risk",
-                "operation": "portfolio_risk",
-                "dependsOn": [],
-            }
-        ],
-    },
-    "COUNTERFACTUAL_ANALYSIS_R1": {
-        "requestedUse": "what-if portfolio projection",
-        "terminalClaim": "COUNTERFACTUAL_EVIDENCE_COMPLETENESS",
-        "nodes": [
-            {
-                "nodeId": "exposure-ledger",
-                "legoId": "capital.risk.portfolio-risk",
-                "operation": "exposure_ledger",
-                "dependsOn": [],
-            },
-            {
-                "nodeId": "counterfactual-gate",
-                "legoId": "capital.portfolio.counterfactuals",
-                "operation": "counterfactual_gate",
-                "dependsOn": ["exposure-ledger"],
-            },
-        ],
-    },
+_FAMILIES: dict[str, str] = {
+    "PUBLIC_MARKET_OBSERVATION_R1": "circuits/public-market-observation-r2.json",
+    "PORTFOLIO_RISK_R1": "circuits/portfolio-risk-analysis-r2.json",
+    "COUNTERFACTUAL_ANALYSIS_R1": "circuits/counterfactual-analysis-r2.json",
 }
+
+
+def _family_definition(kind: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    relative = _FAMILIES.get(kind)
+    if relative is None:
+        raise ReadCircuitError(f"unsupported read-only circuit kind: {kind or '<blank>'}")
+    lowering = load_and_lower(relative)
+    capital_spec = json.loads((__import__("pathlib").Path(__file__).resolve().parents[3] / relative).read_text())
+    return capital_spec, lowering
+
 
 
 def _json_clone(value: Any, label: str) -> Any:
@@ -118,26 +89,23 @@ def compile_readonly_circuit(
     if not isinstance(goal, Mapping):
         raise ReadCircuitError("goal must be an object")
     kind = str(goal.get("kind") or "").strip().upper()
-    family = _FAMILIES.get(kind)
-    if family is None:
-        raise ReadCircuitError(f"unsupported read-only circuit kind: {kind or '<blank>'}")
+    family, lowering = _family_definition(kind)
 
     normalized_goal = _json_clone(dict(goal), "goal")
     normalized_goal["kind"] = kind
     normalized_context = _json_clone(dict(context or {}), "context")
     authorities = set(available_authorities or set())
-
-    lego_ids: list[str] = []
-    for node in family["nodes"]:
-        if node["legoId"] not in lego_ids:
-            lego_ids.append(node["legoId"])
-    composition = compile_composition(
-        lego_ids=lego_ids,
-        available_authorities=authorities,
-        requested_use=family["requestedUse"],
-    )
-    if composition["effectClasses"]:
+    if lowering["effectClasses"]:
         raise ReadCircuitError("read-only circuit cannot contain provider effect classes")
+    nodes = [
+        {
+            "nodeId": stage["id"],
+            "legoId": stage["legoId"],
+            "operation": stage["operation"],
+            "dependsOn": list(stage["dependsOn"]),
+        }
+        for stage in family["stages"]
+    ]
 
     circuit: dict[str, Any] = {
         "schemaVersion": 1,
@@ -146,10 +114,10 @@ def compile_readonly_circuit(
         "goal": normalized_goal,
         "context": normalized_context,
         "availableAuthorities": sorted(authorities),
-        "nodes": _json_clone(family["nodes"], "nodes"),
+        "nodes": _json_clone(nodes, "nodes"),
         "terminalClaim": family["terminalClaim"],
-        "compositionStanding": composition["standing"],
-        "unresolvedEvidenceObligations": composition["unresolvedEvidenceObligations"],
+        "compositionStanding": "ADMITTED_COMPOSITION_ONLY",
+        "unresolvedEvidenceObligations": lowering["unresolvedEvidenceObligations"],
         "effectClasses": [],
         "externalFinancialWriteAllowed": False,
         "authorityGranted": False,

@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+AUTHORITIES = [
+    "config/protocol_identity_migration_v2.json",
+    "config/execution_policy.json",
+    "contracts/production-authorization.json",
+    "config/portfolio_risk_budget.json",
+    "config/private_reality_policy.json",
+    "config/accounting_substrate.json",
+    "config/capital_lego_registry.json",
+    "planning/functional-lego-map-r1.json",
+]
+
+
+def load(relative: str) -> dict[str, Any]:
+    value = json.loads((ROOT / relative).read_text())
+    if not isinstance(value, dict):
+        raise SystemExit(f"{relative}: expected JSON object")
+    return value
+
+
+def digest(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def canonical(value: Any) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+def build() -> dict[str, Any]:
+    protocol = load("config/protocol_identity_migration_v2.json")
+    execution = load("config/execution_policy.json")
+    production = load("contracts/production-authorization.json")
+    risk = load("config/portfolio_risk_budget.json")
+    private = load("config/private_reality_policy.json")
+    accounting = load("config/accounting_substrate.json")
+    registry = load("config/capital_lego_registry.json")
+    fmap = load("planning/functional-lego-map-r1.json")
+    projection: dict[str, Any] = {
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.generated-current-state",
+        "truthRole": "REBUILDABLE_PROJECTION_NOT_AUTHORITY",
+        "sourceOwner": "domains/capital",
+        "domainOwners": ["markets", "trading", "portfolio", "risk", "research", "governance", "accounting"],
+        "authorityDigests": {relative: digest(ROOT / relative) for relative in AUTHORITIES},
+        "protocol": {
+            "schemaVersion": protocol["schemaVersion"],
+            "standing": protocol["standing"],
+            "authority": "config/protocol_identity_migration_v2.json",
+        },
+        "execution": {"currentLane": execution["currentLane"], "authority": "config/execution_policy.json"},
+        "productionAuthorization": {
+            "state": production["state"],
+            "externalFinancialWriteAllowed": production["externalFinancialWriteAllowed"],
+            "authority": "contracts/production-authorization.json",
+        },
+        "portfolioRiskBudget": {
+            "standing": risk["standing"],
+            "owner": risk["owner"],
+            "authority": "config/portfolio_risk_budget.json",
+        },
+        "privateReality": {
+            "standing": private["standing"],
+            "privateAccountDataAdmission": private["privateAccountDataAdmission"],
+            "privateAccountDataAllowed": private["privateAccountDataAllowed"],
+            "authority": "config/private_reality_policy.json",
+        },
+        "accounting": {
+            "standing": accounting["standing"],
+            "authority": "config/accounting_substrate.json",
+        },
+        "inventory": {
+            "registryEntries": len(registry["entries"]),
+            "canonicalEntries": sum(row["sourceClass"] == "CANONICAL" for row in registry["entries"]),
+            "functionalLegos": len(fmap["functionalLegos"]),
+        },
+        "architectureLaws": [
+            "provider/account/broker/custody reality outranks workflow success, tests and local accounting state",
+            "generic composition mechanics are owned by the Composition owner; Capital retains financial semantics",
+            "mechanical composition closure is not financial/domain acceptance",
+            "read-only reality does not mint write authority",
+        ],
+    }
+    projection["projectionDigest"] = "sha256:" + hashlib.sha256(canonical(projection)).hexdigest()
+    return projection
+
+
+def markdown(doc: dict[str, Any]) -> str:
+    return f'''# Ordivon Capital — Current State\n\nTruth role: **generated rebuildable projection, not authority**. Run `scripts/build-current-state-r2`; machine-readable authorities win on conflict.\n\n## Source and ownership\n\nCanonical source owner is `domains/capital`. Active source-owner domains: Markets, Trading, Portfolio, Risk, Research, Governance, Accounting. Generic task-local composition mechanics are owned by `packages/composition`; Capital retains financial LEGO, authority/effect, reconciliation and accounting semantics.\n\n## Current authority standing\n\n| Boundary | Current standing |\n| --- | --- |\n| Protocol identity | `{doc['protocol']['standing']}` / schema v{doc['protocol']['schemaVersion']} |\n| Execution lane | `{doc['execution']['currentLane']}` |\n| Production external financial write | `{doc['productionAuthorization']['state']}` / allowed={str(doc['productionAuthorization']['externalFinancialWriteAllowed']).lower()} |\n| Portfolio risk budget | `{doc['portfolioRiskBudget']['standing']}` / owner `{doc['portfolioRiskBudget']['owner']}` |\n| Private account data | `{doc['privateReality']['privateAccountDataAdmission']}` / allowed={str(doc['privateReality']['privateAccountDataAllowed']).lower()} |\n| Local accounting mechanics | `{doc['accounting']['standing']}` |\n\n## R2 architecture\n\n```text\nFinancial Circuit Spec\n        ↓\nCapital financial semantic lowering\n        ↓\nOrdivon Cognitive Circuit + Authority Obligations\n        ↓\nowner-native Capital functions\n        ↓\nprovider/local reality\n        ↓\nCapital reconciliation/accounting\n```\n\nRegistry: {doc['inventory']['registryEntries']} entries, {doc['inventory']['canonicalEntries']} canonical; functional LEGO roles: {doc['inventory']['functionalLegos']}.\n\n## Laws\n\n- Provider reality remains authoritative for external financial facts.\n- Shared Composition grants no financial/provider/execution authority.\n- Capital has no canonical production/live external-write implementation.\n- `UNSET` owner risk budget remains `UNSET`; it is never inferred.\n- Historical evidence and prior R1 projections do not become current merely because Git is recent.\n'''
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    doc = build()
+    outputs = {
+        ROOT / "generated/current-state-r2.json": json.dumps(doc, indent=2, ensure_ascii=False) + "\n",
+        ROOT / "docs/CURRENT_STATE.md": markdown(doc),
+    }
+    if args.check:
+        bad = [str(path.relative_to(ROOT)) for path, text in outputs.items() if not path.exists() or path.read_text() != text]
+        if bad:
+            raise SystemExit("CURRENT_STATE_DRIFT=" + ",".join(bad))
+        print("CAPITAL_CURRENT_STATE_R2=PASS")
+        return 0
+    for path, text in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+    print("CAPITAL_CURRENT_STATE_R2=GENERATED")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

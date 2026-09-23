@@ -23,7 +23,7 @@ from ordivon_capital.accounting.substrate import (
     resolution_instruction,
     stable_accounting_id,
 )
-from ordivon_capital.governance.composition_contract import compile_composition
+from ordivon_capital.governance.circuit_lowering import load_and_lower
 from ordivon_capital.trading.execution_reconciliation import reconcile_fix_intent
 from ordivon_capital.trading.simulated_effect import SCENARIOS, simulate_exchange_episode
 
@@ -68,16 +68,7 @@ def compile_nonlive_effect_circuit(
     if production["state"] != "BLOCK_NOT_GRANTED" or production["externalFinancialWriteAllowed"] is not False:
         raise NonLiveEffectCircuitError("R1 requires production financial writes to remain blocked")
 
-    composition = compile_composition(
-        lego_ids=[
-            "capital.accounting.sqlite-ledger",
-            "capital.trading.simulated-effect",
-            "capital.trading.execution-reconciliation",
-            "capital.accounting.durable-reconciliation",
-        ],
-        available_authorities={"LOCAL_STATE", "SIMULATED_EFFECT"},
-        requested_use="bounded simulated exchange qualification",
-    )
+    composition = load_and_lower("circuits/nonlive-effect-qualification-r2.json")
     if composition["effectClasses"] != ["SIMULATED_EXCHANGE_ORDER_EFFECT"]:
         raise NonLiveEffectCircuitError("composition did not bind exactly one simulated effect")
 
@@ -91,7 +82,7 @@ def compile_nonlive_effect_circuit(
         "intent": normalized_intent,
         "effectClass": "SIMULATED_EXCHANGE_ORDER_EFFECT",
         "stages": ["AUTHORIZE", "RESERVE", "EFFECT", "OBSERVE", "RECONCILE", "ACCOUNT"],
-        "compositionStanding": composition["standing"],
+        "compositionStanding": "ADMITTED_COMPOSITION_ONLY",
         "unresolvedEvidenceObligations": composition["unresolvedEvidenceObligations"],
         "externalFinancialWriteAllowed": False,
         "realMoney": False,

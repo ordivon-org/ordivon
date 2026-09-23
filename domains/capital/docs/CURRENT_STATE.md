@@ -1,39 +1,44 @@
 # Ordivon Capital — Current State
 
-Date: 2026-09-23
-Truth role: human-readable projection of canonical Capital configs/contracts; when this page conflicts with those authorities, the machine-readable authorities win.
+Truth role: **generated rebuildable projection, not authority**. Run `scripts/build-current-state-r2`; machine-readable authorities win on conflict.
 
 ## Source and ownership
 
-Canonical source owner is domains/capital in the Ordivon modular monorepo. The active source-owner domains are markets, trading, portfolio, risk, research, governance, and accounting. Execution is a capability inside Trading, not an eighth source-owner domain.
+Canonical source owner is `domains/capital`. Active source-owner domains: Markets, Trading, Portfolio, Risk, Research, Governance, Accounting. Generic task-local composition mechanics are owned by `packages/composition`; Capital retains financial LEGO, authority/effect, reconciliation and accounting semantics.
 
 ## Current authority standing
 
-| Boundary | Current standing | Authority |
-|---|---|---|
-| Protocol identity | ACTIVE_V2_NO_RUNTIME_V1_SHIM / schema v2 | config/protocol_identity_migration_v2.json |
-| Execution lane | NON_LIVE | config/execution_policy.json |
-| Production external financial write | BLOCK_NOT_GRANTED; externalFinancialWriteAllowed=false | contracts/production-authorization.json |
-| Portfolio risk budget | UNSET, owner OWNER_PRINCIPAL | config/portfolio_risk_budget.json |
-| Private account data | NOT_ADMITTED; permission currentness pending | config/private_reality_policy.json |
-| Local accounting mechanics | PASS_BOUNDED_SQLITE_WAL_ACCOUNTING | config/accounting_substrate.json |
+| Boundary | Current standing |
+| --- | --- |
+| Protocol identity | `ACTIVE_V2_NO_RUNTIME_V1_SHIM` / schema v2 |
+| Execution lane | `NON_LIVE` |
+| Production external financial write | `BLOCK_NOT_GRANTED` / allowed=false |
+| Portfolio risk budget | `UNSET` / owner `OWNER_PRINCIPAL` |
+| Private account data | `NOT_ADMITTED` / allowed=false |
+| Local accounting mechanics | `PASS_BOUNDED_SQLITE_WAL_ACCOUNTING` |
 
-## Current architecture laws
+## R2 architecture
 
-Provider/account/broker/custody reality remains authoritative for external financial facts. Engine-local fills, protocol acknowledgements, workflow success, tests, and local accounting state cannot independently establish an external effect.
+```text
+Financial Circuit Spec
+        ↓
+Capital financial semantic lowering
+        ↓
+Ordivon Cognitive Circuit + Authority Obligations
+        ↓
+owner-native Capital functions
+        ↓
+provider/local reality
+        ↓
+Capital reconciliation/accounting
+```
 
-The canonical composition remains:
+Registry: 39 entries, 34 canonical; functional LEGO roles: 12.
 
-Provider/Data Evidence -> Frozen Decision -> Standard Execution Intent -> Bounded Policy Decision -> Provider Effect -> Authoritative Venue Reality -> Reconciliation -> Accounting
+## Laws
 
-Current Capital has no canonical production/live external-write implementation. Read-only and non-live qualification work remain independently usable.
-
-## Current implementation ownership
-
-Mature external mechanisms own only contracts they have actually won. Current narrow owners include websockets for bounded RFC 6455 client mechanics, PyArrow for typed Parquet materialization, DuckDB for independent Parquet readback, NumPy/SciPy/scikit-learn for their admitted numerical/statistical/estimator mechanics, and SQLite for the bounded single-host accounting primitive. LEAN, NautilusTrader, QuickFIX/n, OPA and TigerBeetle remain candidates/oracles/challengers for contracts they do not currently own.
-
-## Current LEGO projection
-
-planning/current-truth-r1.json is the rebuildable machine-readable current-state projection. planning/functional-lego-map-r1.json maps the seven source-owner domains onto the twelve functional composition roles. config/capital_lego_registry.json indexes registered implementations without becoming an authority source.
-
-Historical operational progression is retained under docs/history/; it must not be used as current standing without re-entry through current authorities.
+- Provider reality remains authoritative for external financial facts.
+- Shared Composition grants no financial/provider/execution authority.
+- Capital has no canonical production/live external-write implementation.
+- `UNSET` owner risk budget remains `UNSET`; it is never inferred.
+- Historical evidence and prior R1 projections do not become current merely because Git is recent.

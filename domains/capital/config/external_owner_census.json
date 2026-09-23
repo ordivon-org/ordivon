@@ -508,18 +508,18 @@
       "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
     },
     {
-      "id": "governance-composition-admission",
+      "id": "governance-financial-circuit-lowering",
       "sourcePatterns": [
-        "src/ordivon_capital/governance/composition_contract.py"
+        "src/ordivon_capital/governance/circuit_lowering.py"
       ],
       "ownerClasses": [
         "ORDIVON_GLUE"
       ],
       "externalOwners": [
-        "Assume-guarantee / contract-based compositional verification as method authority; no external runtime owner currently admitted"
+        "Ordivon Composition public package for generic Cognitive Circuit, authority-obligation, verification-obligation and interface mechanics"
       ],
-      "localStanding": "BOUNDED_LOCAL_COMPOSITION_ADMISSION",
-      "localResponsibility": "compose registered Capital LEGO assumptions and guarantees over current authority/effect/evidence contracts; fail closed on unsatisfied authority, prohibited uses, challenger ownership and incomplete effect closure; do not execute nodes, grant provider/owner authority, evaluate semantic completion, or grow a generic workflow/policy engine"
+      "localStanding": "THIN_FINANCIAL_SEMANTIC_LOWERING_ONLY",
+      "localResponsibility": "retain Capital-specific registry standing, financial authority/effect taxonomy, prohibited-use and effect-ordering rules, then lower exact bindings into public ordivon-composition contracts; do not own generic DAG validation, gate mechanics, authority granting, workflow, execution or domain acceptance"
     },
     {
       "id": "governance-readonly-circuit-composition",

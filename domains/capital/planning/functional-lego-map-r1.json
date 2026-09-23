@@ -199,9 +199,6 @@
     "src/ordivon_capital/trading/private_reality.py": [
       "Normalize"
     ],
-    "src/ordivon_capital/governance/composition_contract.py": [
-      "Validate"
-    ],
     "src/ordivon_capital/governance/read_circuit.py": [
       "Validate"
     ],
@@ -209,6 +206,9 @@
       "Effect"
     ],
     "src/ordivon_capital/governance/nonlive_effect_circuit.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/governance/circuit_lowering.py": [
       "Validate"
     ]
   },

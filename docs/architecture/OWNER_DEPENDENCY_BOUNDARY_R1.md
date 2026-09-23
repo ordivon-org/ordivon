@@ -22,6 +22,7 @@ This is repository-boundary enforcement. It is not a universal dependency graph,
 | Workstation | Distribution | ACCEPTANCE_EVIDENCE_BINDING | n8n acceptance consumes one Distribution evidence input |
 | Workstation | Game / Media | TEST_ONLY_ENVIRONMENT_BINDING | Host toolchain consequence tests only |
 | Next | Composition | PUBLIC_PACKAGE_DEPENDENCY | Next consumes the extracted `ordivon-composition` public Python package through its declared local package source; implementation internals are not imported by path |
+| Capital | Composition | PUBLIC_PACKAGE_DEPENDENCY | Capital R2 consumes only the public `ordivon-composition` package for generic Circuit/obligation mechanics; financial authority/effect/reconciliation semantics remain Capital-owned |
 
 Test and E2E variants are declared separately. A production source file cannot inherit permission merely because the same owner pair already has a test seam.
 

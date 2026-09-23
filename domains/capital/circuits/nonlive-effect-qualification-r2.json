@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-spec",
+  "circuitId": "NONLIVE_EFFECT_QUALIFICATION_R2",
+  "goalClass": "NONLIVE_EFFECT_QUALIFICATION",
+  "requestedUse": "bounded simulated exchange qualification",
+  "terminalClaim": "NONLIVE_EFFECT_RECONCILIATION",
+  "stages": [
+    {
+      "id": "reserve",
+      "legoId": "capital.accounting.sqlite-ledger",
+      "dependsOn": [],
+      "inputs": [
+        "effect-intent"
+      ],
+      "outputs": [
+        "reservation"
+      ],
+      "operation": "reserve"
+    },
+    {
+      "id": "effect",
+      "legoId": "capital.trading.simulated-effect",
+      "dependsOn": [
+        "reserve"
+      ],
+      "inputs": [
+        "reservation"
+      ],
+      "outputs": [
+        "provider-episode"
+      ],
+      "operation": "simulated_effect"
+    },
+    {
+      "id": "reconcile",
+      "legoId": "capital.trading.execution-reconciliation",
+      "dependsOn": [
+        "effect"
+      ],
+      "inputs": [
+        "provider-episode"
+      ],
+      "outputs": [
+        "reconciliation"
+      ],
+      "operation": "execution_reconciliation"
+    },
+    {
+      "id": "account",
+      "legoId": "capital.accounting.durable-reconciliation",
+      "dependsOn": [
+        "reconcile"
+      ],
+      "inputs": [
+        "reconciliation"
+      ],
+      "outputs": [
+        "accounting-resolution"
+      ],
+      "operation": "account"
+    }
+  ],
+  "authorityBindings": [
+    {
+      "authorityClass": "LOCAL_STATE",
+      "authorityOwnerId": "capital.accounting",
+      "contractPath": "config/accounting_substrate.json"
+    },
+    {
+      "authorityClass": "SIMULATED_EFFECT",
+      "authorityOwnerId": "capital.governance",
+      "contractPath": "contracts/nonlive-effect-admission-v2.json"
+    }
+  ]
+}

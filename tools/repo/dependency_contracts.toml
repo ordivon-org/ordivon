@@ -149,3 +149,11 @@ source_glob = "apps/agent/pyproject.toml"
 allowed_fragment = "../../services/harness"
 kind = "PUBLIC_PACKAGE_DEPENDENCY"
 contract_ref = "services/harness/docs/API_SURFACES_R1.md"
+
+[[seams]]
+from_owner = "capital"
+to_owner = "composition"
+source_glob = "domains/capital/pyproject.toml"
+allowed_fragment = "../../packages/composition"
+kind = "PUBLIC_PACKAGE_DEPENDENCY"
+contract_ref = "packages/composition/README.md"
