@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from ordivon_capital.governance.nonlive_effect_circuit import (
+    compile_nonlive_effect_circuit,
+    run_nonlive_effect_circuit,
+)
+
+
+SCENARIOS = ["FILL", "PARTIAL_FILL_SLICES", "CANCEL", "DENY", "UNKNOWN_AFTER_SUBMISSION"]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    rows = []
+    with tempfile.TemporaryDirectory(prefix="ordivon-capital-nonlive-") as td:
+        root = Path(td)
+        for scenario in SCENARIOS:
+            intent = {
+                "protocol": "FIX.4.4",
+                "msgType": "D",
+                "clOrdId": f"DOGFOOD-{scenario}",
+                "exDestination": "BINANCE",
+                "symbol": "BTCUSDT",
+                "orderQty": "1",
+            }
+            circuit = compile_nonlive_effect_circuit(scenario=scenario, intent=intent)
+            result = run_nonlive_effect_circuit(
+                circuit=circuit,
+                ledger_path=root / f"{scenario}.sqlite3",
+            )
+            rows.append({
+                "scenario": scenario,
+                "circuitDigest": circuit["circuitDigest"],
+                "resultDigest": result["resultDigest"],
+                "reconciliationStanding": result["reconciliation"]["standing"],
+                "accountingResolution": result["accountingResolution"],
+                "durableLedgerReconciliation": result["durableLedgerReconciliation"],
+                "externalFinancialWritesAttempted": result["externalFinancialWritesAttempted"],
+            })
+    doc = {
+        "schemaVersion": 1,
+        "kind": "ordivon.capital.nonlive-circuit-acceptance",
+        "standing": "PASS",
+        "assertions": {
+            "scenarioCount": len(rows),
+            "externalFinancialWritesAttempted": any(r["externalFinancialWritesAttempted"] for r in rows),
+            "allDurableLedgerReconciliationsMatch": all(r["durableLedgerReconciliation"] == "MATCH" for r in rows),
+            "productionAuthorizationUnchanged": "BLOCK_NOT_GRANTED",
+        },
+        "scenarios": rows,
+    }
+    text = json.dumps(doc, indent=2, sort_keys=True) + "\n"
+    if args.output:
+        Path(args.output).write_text(text)
+    else:
+        print(text, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

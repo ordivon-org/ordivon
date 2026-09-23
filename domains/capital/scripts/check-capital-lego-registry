@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import hashlib, json, sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+REGISTRY = ROOT / "config/capital_lego_registry.json"
+SCHEMA = ROOT / "schema/capital-lego-registry-v1.schema.json"
+CONTRACT = ROOT / "contracts/capital-lego-registry-v1.json"
+FUNCTIONAL = ROOT / "planning/functional-lego-map-r1.json"
+TAXONOMY = ROOT / "config/capital_domain_taxonomy.json"
+PRODUCTION = ROOT / "contracts/production-authorization.json"
+
+ROLES = {"Observe","Normalize","Validate","Measure","Model","Counterfactual","Decide","Authorize","Reserve","Effect","Reconcile","Account"}
+DOMAINS = {"markets","trading","portfolio","risk","research","governance","accounting"}
+STATUSES = {"ACTIVE","VALIDATION_REQUIRED","BLOCKED_BY_AUTHORITY","CHALLENGER","RETIRED"}
+AUTHORITIES = {"NONE","PUBLIC_READ","PRIVATE_READ","LOCAL_STATE","SIMULATED_EFFECT","DEMO_WRITE","LIVE_QUALIFICATION_WRITE","PRODUCTION_WRITE"}
+EFFECTS = {"NONE","LOCAL_STATE","SIMULATED_EXCHANGE_ORDER_EFFECT","DEMO_EXTERNAL_WRITE","LIVE_QUALIFICATION_WRITE","PRODUCTION_FINANCIAL_WRITE"}
+
+def fail(msg: str) -> None:
+    raise SystemExit(msg)
+
+def main() -> int:
+    reg = json.loads(REGISTRY.read_text())
+    schema = json.loads(SCHEMA.read_text())
+    contract = json.loads(CONTRACT.read_text())
+    fmap = json.loads(FUNCTIONAL.read_text())
+    taxonomy = json.loads(TAXONOMY.read_text())
+    production = json.loads(PRODUCTION.read_text())
+
+    expected_sha = "sha256:" + hashlib.sha256(SCHEMA.read_bytes()).hexdigest()
+    if reg.get("schemaIdentity", {}).get("sha256") != expected_sha:
+        fail("registry schema digest mismatch")
+    if contract.get("schemaIdentity", {}).get("sha256") != expected_sha:
+        fail("registry contract schema digest mismatch")
+    if schema.get("$id") != "ordivon.capital.schema.capital-lego-registry-v1":
+        fail("unexpected registry schema identity")
+
+    ids = set()
+    canonical_paths = set()
+    for row in reg.get("entries", []):
+        rid = row.get("legoId")
+        if not isinstance(rid, str) or not rid.startswith("capital.") or rid in ids:
+            fail(f"invalid/duplicate legoId: {rid!r}")
+        ids.add(rid)
+        if row.get("ownerDomain") not in DOMAINS:
+            fail(f"{rid}: invalid ownerDomain")
+        if row.get("status") not in STATUSES:
+            fail(f"{rid}: invalid status")
+        if row.get("authorityRequirement") not in AUTHORITIES:
+            fail(f"{rid}: invalid authorityRequirement")
+        if row.get("effectClass") not in EFFECTS:
+            fail(f"{rid}: invalid effectClass")
+        roles = row.get("functionalRoles")
+        if not isinstance(roles, list) or not roles or not set(roles) <= ROLES:
+            fail(f"{rid}: invalid functionalRoles")
+        impl = row.get("implementation", {})
+        rel = impl.get("path")
+        if not isinstance(rel, str) or not rel:
+            fail(f"{rid}: missing implementation path")
+        source_class = row.get("sourceClass")
+        path = ROOT / rel
+        if source_class == "CANONICAL":
+            if not path.exists():
+                fail(f"{rid}: canonical implementation path missing: {rel}")
+            if rel.startswith("tools/"):
+                fail(f"{rid}: candidate tool cannot be CANONICAL")
+            canonical_paths.add(rel)
+        elif source_class == "CANDIDATE":
+            if row.get("status") != "CHALLENGER":
+                fail(f"{rid}: candidate must be CHALLENGER")
+            if not path.exists():
+                fail(f"{rid}: candidate path missing: {rel}")
+        elif source_class == "HISTORICAL_RETIRED":
+            if row.get("status") != "RETIRED":
+                fail(f"{rid}: historical retired source must be RETIRED")
+        else:
+            fail(f"{rid}: invalid sourceClass")
+
+        effect = row["effectClass"]
+        authority = row["authorityRequirement"]
+        side = set(row.get("sideEffects", []))
+        if effect in {"SIMULATED_EXCHANGE_ORDER_EFFECT","DEMO_EXTERNAL_WRITE","LIVE_QUALIFICATION_WRITE","PRODUCTION_FINANCIAL_WRITE"}:
+            if authority not in {"SIMULATED_EFFECT","DEMO_WRITE","LIVE_QUALIFICATION_WRITE","PRODUCTION_WRITE"}:
+                fail(f"{rid}: effectful entry has insufficient authority class")
+            if "PROVIDER_WRITE" not in side:
+                fail(f"{rid}: effectful entry must declare PROVIDER_WRITE")
+        if effect == "PRODUCTION_FINANCIAL_WRITE" and production.get("state") == "BLOCK_NOT_GRANTED":
+            fail(f"{rid}: production effect registered while production authorization is blocked")
+
+    current_modules = {
+        p.relative_to(ROOT).as_posix()
+        for p in (ROOT / "src/ordivon_capital").glob("*/*.py")
+        if p.name != "__init__.py"
+    }
+    coverage = set(fmap.get("moduleCoverage", {}))
+    if current_modules != coverage:
+        fail(f"functional LEGO module coverage mismatch: missing={sorted(current_modules-coverage)} extra={sorted(coverage-current_modules)}")
+    if not current_modules <= canonical_paths:
+        fail(f"registry misses canonical source modules: {sorted(current_modules-canonical_paths)}")
+
+    if set(taxonomy.get("domains", {})) != DOMAINS:
+        fail("registry domain enum diverges from current source-owner taxonomy")
+
+    print(f"CAPITAL_LEGO_REGISTRY=PASS entries={len(reg['entries'])} canonicalModules={len(current_modules)} schema={expected_sha}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.authority-requirement-contract",
+  "standing": "ACTIVE_R1",
+  "truthRole": "REQUIREMENT_CLASSIFICATION_NOT_GRANT",
+  "classes": {
+    "NONE": {
+      "providerOrOwnerGrantRequired": false,
+      "providerWrite": false,
+      "externalFinancialWrite": false,
+      "currentAdmission": true,
+      "authoritySource": "none"
+    },
+    "PUBLIC_READ": {
+      "providerOrOwnerGrantRequired": false,
+      "providerWrite": false,
+      "externalFinancialWrite": false,
+      "currentAdmission": true,
+      "authoritySource": "public provider surface + Network transport authority"
+    },
+    "PRIVATE_READ": {
+      "providerOrOwnerGrantRequired": true,
+      "providerWrite": false,
+      "externalFinancialWrite": false,
+      "currentAdmission": false,
+      "authoritySource": "config/private_reality_policy.json",
+      "blockedReason": "private account data is NOT_ADMITTED pending fresh provider permission verification"
+    },
+    "LOCAL_STATE": {
+      "providerOrOwnerGrantRequired": false,
+      "providerWrite": false,
+      "externalFinancialWrite": false,
+      "currentAdmission": true,
+      "authoritySource": "Capital local state contract"
+    },
+    "SIMULATED_EFFECT": {
+      "providerOrOwnerGrantRequired": false,
+      "providerWrite": true,
+      "externalFinancialWrite": false,
+      "currentAdmission": true,
+      "authoritySource": "contracts/nonlive-effect-admission-v2.json"
+    },
+    "DEMO_WRITE": {
+      "providerOrOwnerGrantRequired": true,
+      "providerWrite": true,
+      "externalFinancialWrite": false,
+      "currentAdmission": false,
+      "authoritySource": "future demo/testnet admission"
+    },
+    "LIVE_QUALIFICATION_WRITE": {
+      "providerOrOwnerGrantRequired": true,
+      "providerWrite": true,
+      "externalFinancialWrite": true,
+      "currentAdmission": false,
+      "authoritySource": "future live qualification admission"
+    },
+    "PRODUCTION_WRITE": {
+      "providerOrOwnerGrantRequired": true,
+      "providerWrite": true,
+      "externalFinancialWrite": true,
+      "currentAdmission": false,
+      "authoritySource": "contracts/production-authorization.json",
+      "blockedReason": "BLOCK_NOT_GRANTED"
+    }
+  },
+  "laws": [
+    "authority requirement metadata never creates a grant",
+    "PRIVATE_READ requires independently current provider permission and private-data admission",
+    "effect authority classes do not inherit from read authority",
+    "PRODUCTION_WRITE remains unavailable while production authorization is BLOCK_NOT_GRANTED"
+  ]
+}
