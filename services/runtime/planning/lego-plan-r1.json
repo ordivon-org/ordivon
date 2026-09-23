@@ -199,11 +199,18 @@
       "kind": "replacement_seam",
       "responsibility": "Reduce Registry to transactional persistence, migration, query, and reconstructible-index duties while state semantics remain owned by explicit state modules.",
       "authority": "Runtime durable storage mechanism",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "crates/ordivon-runtime-core/src/runtime/registry.rs",
-        "crates/ordivon-runtime-core/src/runtime/registry/storage.rs"
+        "crates/ordivon-runtime-core/src/runtime/registry/storage.rs",
+        "crates/ordivon-runtime-core/src/runtime/registry_storage.rs",
+        "commit:7523f282994d82ed2891a16fd142c1503f7f1f46",
+        "full core gate job-01a0ce4c-f6fc-7de2-b129-261f1c8e1af5 PASS after consumer rewiring",
+        "MCP/clippy/fmt/diff gate job-01a0ce51-1f86-7013-8881-b91b5c17944c PASS",
+        "owner-environment + documentation gate job-01a0ce57-27a8-7d92-ab15-aacb7f69c31a PASS",
+        "extended 512-case Registry reference-model job-01a0ce5a-3e07-7af3-9e46-683ad67c56dc PASS",
+        "Registry MAX_MIGRATION_VERSION remains 6; R06 changes no SQL/schema migration and introduces no public MCP Tool change"
       ],
       "dependencies": [
         "R02",
@@ -220,7 +227,7 @@
         "Performance-only indexes remain reconstructible and outside semantic migrations.",
         "State modules can be unit-tested against a narrow transactional storage contract."
       ],
-      "nextAction": "Introduce narrow persistence interfaces only after state ownership is explicit."
+      "nextAction": "R06 is closed. Proceed to R07 AuthorityContract, then R08 OperationCircuitCompiler; keep Registry limited to transactional persistence, migration, query/decoding and reconstructible indexes rather than semantic ownership."
     },
     {
       "id": "R07",
@@ -761,7 +768,7 @@
     {
       "id": "RW1",
       "objective": "Extract durable state ownership from historical engine/registry aggregation.",
-      "status": "IN_PROGRESS",
+      "status": "COMPLETE",
       "nodeIds": [
         "R02",
         "R03",
@@ -779,15 +786,16 @@
         "local-acceptance: supervisor 2/2 + Runtime integration 36/36 + MCP/Workspace/Release E2E PASS on 5bd241df24da3259c1c6e3637bf3fc513129e4b9",
         "crates/ordivon-runtime-core/src/runtime/job_attempt_state.rs (R03-A1 canonical v3/v4/v5/v6 operation identity + exact replay/conflict law)",
         "R04 ReservationContract: integrated e48b2eab, tree-equivalent to verified candidate 4131cbe0; full owner verification PASS; prior equivalent-patch focused real-system acceptance PASS",
-        "R05 ArtifactAndReleaseStateModule: commit 2954b576; full owner verification PASS; Registry v6/public MCP surface preserved; no generic Effect abstraction"
+        "R05 ArtifactAndReleaseStateModule: commit 2954b576; full owner verification PASS; Registry v6/public MCP surface preserved; no generic Effect abstraction",
+        "R06 RegistryStorageBoundary: commit 7523f282; full core/MCP/clippy/owner-environment/extended reference-model verification PASS; Registry schema remains v6"
       ],
       "blockers": [],
-      "nextAction": "R05 is complete. Proceed to R06 RegistryStorageBoundary; keep R02 open only for additional proven Workspace-law duplication."
+      "nextAction": "RW1 is complete. Begin RW2 with R07 AuthorityContract, then R08 OperationCircuitCompiler; reopen RW1 only for a newly proven ownership violation."
     },
     {
       "id": "RW2",
       "objective": "Compile existing execution variants from orthogonal authority and operation LEGO instead of bespoke feature paths.",
-      "status": "BLOCKED_ON_RW1",
+      "status": "READY",
       "nodeIds": [
         "R07",
         "R08"
@@ -798,10 +806,8 @@
         "No generic public authority object is introduced."
       ],
       "evidence": [],
-      "blockers": [
-        "RW1"
-      ],
-      "nextAction": "Start with a matrix of current Tool→authority→provider→evidence composition, then implement one end-to-end migration."
+      "blockers": [],
+      "nextAction": "Start R07 with the existing Tool→authority→provider→evidence composition matrix; migrate one authority family at a time without changing the public Tool surface."
     },
     {
       "id": "RW3",
@@ -927,9 +933,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "2954b576fc06a9cbe2646d0a7a9adf216729b182",
+    "sourceRevision": "7523f282994d82ed2891a16fd142c1503f7f1f46",
     "updatedAt": "2026-09-23",
-    "standing": "RW1_R05_COMPLETE_R06_NEXT",
-    "notes": "RW0 baseline remains complete. R02 first WorkspaceState slice remains integrated; R03 Job/Attempt and R04 ReservationContract are complete. R05 now gives Artifact/result identity plus Runtime self-release request/binding/receipt interpretation an explicit owner-local module while preserving Registry v6, the public MCP Tool surface, digest-bound Artifact reads, and release.apply/release.get as the only graduated structured external effect. Full Runtime owner verification passed on the exact candidate. RW1 remains open: next frontier is R06 RegistryStorageBoundary."
+    "standing": "RW1_R06_COMPLETE_RW2_R07_NEXT",
+    "notes": "RW0 baseline remains complete. RW1 durable state ownership is now complete: R02 WorkspaceState, R03 Job/Attempt, R04 ReservationContract, R05 Artifact/Release and R06 RegistryStorageBoundary each have explicit owner-local contracts. R06 moves typed Job/Attempt/Reservation row decoding and loading behind RegistryStorageBoundary while Registry retains SQLite transaction/migration/query mechanics; schema remains v6 and the public MCP Tool surface is unchanged. Full core, MCP/clippy, owner-environment/documentation and the extended 512-case Registry reference-model gates pass. Next frontier is RW2: R07 AuthorityContract followed by R08 OperationCircuitCompiler."
   }
 }
