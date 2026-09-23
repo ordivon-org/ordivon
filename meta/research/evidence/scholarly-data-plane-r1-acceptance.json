@@ -19,6 +19,40 @@
     "positiveEditLinks": 182
   },
   "context24Transport": "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE",
+  "disapere": {
+    "explicitLocalAlignedRebuttalSentences": 9416,
+    "explicitLocalAlignmentLinks": 21675,
+    "orphanLocalAlignmentLinks": 0,
+    "rebuttalSentences": 11103,
+    "reviewRebuttalPairs": 506,
+    "reviewSentences": 9946
+  },
+  "disapereCoverageBaseline": {
+    "allReviewSentences": {
+      "targeted": 4096,
+      "total": 9946
+    },
+    "clarityReviewSentences": {
+      "targeted": 600,
+      "total": 1102
+    },
+    "negativePolarityReviewSentences": {
+      "targeted": 2004,
+      "total": 2927
+    },
+    "replicabilityReviewSentences": {
+      "targeted": 214,
+      "total": 284
+    },
+    "requestReviewSentences": {
+      "targeted": 1441,
+      "total": 1971
+    },
+    "soundnessCorrectnessReviewSentences": {
+      "targeted": 626,
+      "total": 953
+    }
+  },
   "emse": {
     "accessibleRandomBaselineFulltexts": 109,
     "externalPdfBytes": 575426096,
@@ -33,12 +67,12 @@
   "externalCandidateCount": 14,
   "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
   "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
-  "materializedLocalAssetCount": 2,
+  "materializedLocalAssetCount": 3,
   "nextWaves": [
     "SD1 transport recovery",
     "SD2 lifecycle expansion"
   ],
   "schemaVersion": 1,
-  "standing": "PASS_DATA_PLANE_WITH_ARIES_BOUNDED_CORE",
-  "truthBoundary": "Acceptance proves current local EMSE and ARIES physical/schema bindings, including exact ARIES analytical product digests. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
+  "standing": "PASS_DATA_PLANE_WITH_ARIES_AND_DISAPERE",
+  "truthBoundary": "Acceptance proves current local EMSE, ARIES, and DISAPERE physical/schema bindings, including exact analytical product digests and DISAPERE non-commercial/privacy gates. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
 }

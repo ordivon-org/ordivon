@@ -15,6 +15,8 @@ SD2 = META / "research/data/sd2-review-lifecycle-readiness-r1.json"
 ARIES_RECEIPT = META / "research/evidence/aries-bounded-core-r1.json"
 CONTEXT24_TRANSPORT = META / "research/evidence/context24-transport-blocker-r1.json"
 ARIES_BASELINE = META / "research/evidence/aries-review-revision-baseline-r1.json"
+DISAPERE_RECEIPT = META / "research/evidence/disapere-bounded-core-r1.json"
+DISAPERE_BASELINE = META / "research/evidence/disapere-review-rebuttal-baseline-r1.json"
 
 
 def fail(message: str) -> None:
@@ -175,6 +177,95 @@ def verify_aries(asset: dict[str, Any], receipt: dict[str, Any]) -> dict[str, in
     return receipt["counts"]
 
 
+def verify_disapere(asset: dict[str, Any], receipt: dict[str, Any]) -> dict[str, int]:
+    expected_status = "MATERIALIZED_BOUNDED_CORE_ANALYTICAL_VIEWS_PASS_NONCOMMERCIAL"
+    if receipt.get("status") != expected_status:
+        fail("DISAPERE admission receipt is not admitted")
+    if receipt.get("truthRole") != "external-review-discourse-physical-and-schema-evidence-not-reviewer-or-scientific-truth":
+        fail("DISAPERE truth boundary drifted")
+    if receipt.get("authority", {}).get("commercialProductOrServiceUse") != "NOT_AUTHORIZED_BY_CC_BY_NC_ADMISSION":
+        fail("DISAPERE commercial-use gate was weakened")
+    if receipt.get("privacy", {}).get("reviewerProfilingAuthorized") is not False:
+        fail("DISAPERE reviewer-profiling boundary was weakened")
+    root = Path(asset["rawExternalRoot"])
+    if root != Path(receipt["snapshot"]["root"]):
+        fail("DISAPERE catalog/receipt root mismatch")
+    required = [
+        "raw/DISAPERE-upstream.zip", "raw/LICENSE.md", "raw/README.md",
+        "SNAPSHOT_MANIFEST_R1.json", "SCHEMA_CENSUS_R1.json",
+        "NORMALIZATION_SUMMARY_R1.json", "ANALYTICAL_BUILD_RECEIPT_R1.json",
+        "derived/jsonl/pairs.jsonl", "derived/jsonl/review_sentences.jsonl",
+        "derived/jsonl/rebuttal_sentences.jsonl", "derived/jsonl/local_alignment_links.jsonl",
+        "derived/parquet/pairs.parquet", "derived/parquet/review_sentences.parquet",
+        "derived/parquet/rebuttal_sentences.parquet",
+        "derived/parquet/local_alignment_links.parquet",
+        "derived/disapere-bounded-r1.duckdb",
+    ]
+    for rel in required:
+        if not (root / rel).is_file():
+            fail(f"DISAPERE materialized file missing: {rel}")
+    receipt_hashes = {
+        "SNAPSHOT_MANIFEST_R1.json": receipt["snapshot"]["manifestSha256"],
+        "SCHEMA_CENSUS_R1.json": receipt["snapshot"]["schemaCensusSha256"],
+        "NORMALIZATION_SUMMARY_R1.json": receipt["snapshot"]["normalizationSummarySha256"],
+        "ANALYTICAL_BUILD_RECEIPT_R1.json": receipt["snapshot"]["analyticalBuildReceiptSha256"],
+    }
+    for rel, expected in receipt_hashes.items():
+        if sha256(root / rel) != expected:
+            fail(f"DISAPERE compact receipt digest drift: {rel}")
+    if sha256(root / "raw/LICENSE.md") != receipt["source"]["licenseFileSha256"]:
+        fail("DISAPERE license bytes drifted")
+    if sha256(root / "raw/DISAPERE-upstream.zip") != receipt["source"]["releaseZipSha256"]:
+        fail("DISAPERE release ZIP bytes drifted")
+    license_text = (root / "raw/LICENSE.md").read_text(encoding="utf-8")
+    if "Attribution-NonCommercial 4.0 International" not in license_text:
+        fail("DISAPERE CC BY-NC 4.0 marker missing")
+
+    manifest = load(root / "SNAPSHOT_MANIFEST_R1.json")
+    if manifest.get("sourceCommit") != "9adab87b997852c5447cfee6e3fd5bfad5e70311":
+        fail("DISAPERE source commit drifted")
+    if manifest.get("canonicalFileCount") != 509:
+        fail("DISAPERE canonical file count drifted")
+
+    census = load(root / "SCHEMA_CENSUS_R1.json")
+    if census.get("status") != "PASS_SCHEMA_AND_LOCAL_ALIGNMENT_REFERENTIAL_INTEGRITY":
+        fail("DISAPERE schema census not accepted")
+    expected_census = {
+        "pairFiles": 506, "reviewSentences": 9946, "rebuttalSentences": 11103,
+        "localAlignmentLinks": 21675, "orphanLocalAlignmentLinks": 0,
+        "duplicateReviewSentenceIdentities": 0,
+    }
+    for key, expected in expected_census.items():
+        if census["counts"].get(key) != expected:
+            fail(f"DISAPERE census drift: {key}")
+    if "commercial product/service use is not authorized" not in census.get("licenseBoundary", ""):
+        fail("DISAPERE license boundary missing commercial-use prohibition")
+
+    analytical = load(root / "ANALYTICAL_BUILD_RECEIPT_R1.json")
+    if analytical.get("counts") != {
+        "pairs": 506, "review_sentences": 9946,
+        "rebuttal_sentences": 11103, "local_alignment_links": 21675,
+    }:
+        fail("DISAPERE analytical counts drifted")
+    if any(value != 0 for value in analytical.get("referential", {}).values()):
+        fail("DISAPERE analytical referential integrity failed")
+    for row in analytical["files"]:
+        if sha256(root / row["path"]) != row["sha256"]:
+            fail(f"DISAPERE analytical product digest drift: {row['path']}")
+
+    forbidden = ('"reviewer":', '"annotator":')
+    for rel in (
+        "derived/jsonl/pairs.jsonl", "derived/jsonl/review_sentences.jsonl",
+        "derived/jsonl/rebuttal_sentences.jsonl", "derived/jsonl/local_alignment_links.jsonl",
+    ):
+        text = (root / rel).read_text(encoding="utf-8")
+        if any(token in text for token in forbidden):
+            fail(f"DISAPERE normalized identity field leaked: {rel}")
+    if receipt["counts"] != asset["observedScale"]:
+        fail("DISAPERE catalog observedScale differs from receipt")
+    return receipt["counts"]
+
+
 def main() -> int:
     catalog = load(CATALOG)
     plan = load(PLAN)
@@ -183,6 +274,8 @@ def main() -> int:
     aries_receipt = load(ARIES_RECEIPT)
     context24_transport = load(CONTEXT24_TRANSPORT)
     aries_baseline = load(ARIES_BASELINE)
+    disapere_receipt = load(DISAPERE_RECEIPT)
+    disapere_baseline = load(DISAPERE_BASELINE)
 
     if catalog.get("truthRole") != "data-asset-catalog-not-scientific-truth":
         fail("catalog authority boundary drifted")
@@ -196,7 +289,7 @@ def main() -> int:
     if not isinstance(assets, list):
         fail("materializedLocalAssets must be a list")
     by_asset = {row.get("id"): row for row in assets}
-    required_assets = {"emse-writing-benchmark-r16", "aries-bounded-core-r1"}
+    required_assets = {"emse-writing-benchmark-r16", "aries-bounded-core-r1", "disapere-bounded-core-r1"}
     if not required_assets.issubset(by_asset):
         fail(f"missing materialized assets: {sorted(required_assets - set(by_asset))}")
     if len(by_asset) != len(assets):
@@ -204,6 +297,7 @@ def main() -> int:
 
     emse = verify_emse(by_asset["emse-writing-benchmark-r16"])
     aries = verify_aries(by_asset["aries-bounded-core-r1"], aries_receipt)
+    disapere = verify_disapere(by_asset["disapere-bounded-core-r1"], disapere_receipt)
 
     if aries_baseline.get("sourceSnapshotIdentity") != aries_receipt["snapshot"]["identity"]:
         fail("ARIES baseline source identity drifted")
@@ -224,6 +318,33 @@ def main() -> int:
         fail("ARIES manual baseline positive-alignment rate drifted")
     if aries_baseline.get("provenance", {}).get("testAnnotation") != "manual":
         fail("ARIES manual baseline provenance drifted")
+
+    if disapere_baseline.get("sourceSnapshotIdentity") != disapere_receipt["snapshot"]["identity"]:
+        fail("DISAPERE baseline source identity drifted")
+    if disapere_baseline.get("counts") != {
+        "pairs": 506, "reviewSentences": 9946, "rebuttalSentences": 11103,
+        "localAlignmentLinks": 21675, "locallyAlignedRebuttalSentences": 9416,
+        "locallyTargetedReviewSentences": 4096, "requestLinkedRebuttalSentences": 5220,
+    }:
+        fail("DISAPERE baseline counts drifted")
+    expected_coverage = {
+        "allReviewSentences": (4096, 9946),
+        "requestReviewSentences": (1441, 1971),
+        "negativePolarityReviewSentences": (2004, 2927),
+        "clarityReviewSentences": (600, 1102),
+        "soundnessCorrectnessReviewSentences": (626, 953),
+        "replicabilityReviewSentences": (214, 284),
+    }
+    for key, (targeted, total) in expected_coverage.items():
+        row = disapere_baseline["explicitLocalAlignmentCoverage"][key]
+        if row.get("targeted") != targeted or row.get("total") != total:
+            fail(f"DISAPERE baseline coverage drift: {key}")
+        if abs(float(row.get("fraction")) - targeted / total) > 1e-15:
+            fail(f"DISAPERE baseline fraction drift: {key}")
+    if disapere_baseline["distributions"]["requestLinkedRebuttalStance"] != {
+        "concur": 3397, "dispute": 471, "nonarg": 1352
+    }:
+        fail("DISAPERE request-linked stance drifted")
 
     candidates = catalog.get("externalCandidates")
     if not isinstance(candidates, list) or len(candidates) < 10:
@@ -249,6 +370,8 @@ def main() -> int:
         fail("ARIES candidate/local asset state mismatch")
     if by_candidate["context24"].get("acquisitionState") != "READY_LICENSE_VERIFIED_TRANSPORT_BLOCKED":
         fail("Context24 transport-blocked state missing")
+    if by_candidate["disapere"].get("acquisitionState") != "MATERIALIZED_BOUNDED_CORE_NONCOMMERCIAL":
+        fail("DISAPERE candidate/local asset state mismatch")
 
     prohibited = " ".join(catalog.get("prohibitedInterpretations", [])).casefold()
     for token in ("acceptance", "reviewer truth", "redistribution"):
@@ -258,7 +381,7 @@ def main() -> int:
     by_wave = {row["id"]: row for row in plan.get("waves", [])}
     if by_wave.get("SD1", {}).get("standing") != "PARTIAL_READY_TRANSPORT_BLOCKED_FOR_CONTEXT24":
         fail("SD1 standing drifted")
-    if by_wave.get("SD2", {}).get("standing") != "IN_PROGRESS_ARIES_BOUNDED_CORE_MATERIALIZED":
+    if by_wave.get("SD2", {}).get("standing") != "IN_PROGRESS_ARIES_AND_DISAPERE_MATERIALIZED":
         fail("SD2 standing drifted")
     if by_wave.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
         fail("large scholarly fulltext acquisition was prematurely promoted")
@@ -279,7 +402,7 @@ def main() -> int:
     if context24_transport.get("standing") != "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE":
         fail("Context24 transport evidence standing drifted")
 
-    if sd2.get("standing") != "IN_PROGRESS_FIRST_ASSET_MATERIALIZED":
+    if sd2.get("standing") != "IN_PROGRESS_TWO_COMPLEMENTARY_ASSETS_MATERIALIZED":
         fail("SD2 readiness standing drifted")
     sd2_by_id = {row["id"]: row for row in sd2.get("datasets", [])}
     expected_sd2 = {
@@ -287,7 +410,7 @@ def main() -> int:
         "peersum": "READY_LICENSE_OBSERVED_NOT_ACQUIRED",
         "nlpeer-v2": "LICENSE_OBSERVED_ACCESS_RESTRICTED_LARGE_NOT_ACQUIRED",
         "peerread-v1": "PARTIAL_COMPONENT_LICENSE_CONSTRAINTS_REQUIRE_SECTION_LEVEL_BINDING",
-        "disapere": "RELEASE_LICENSE_NOT_YET_BOUND",
+        "disapere": "MATERIALIZED_BOUNDED_CORE_NONCOMMERCIAL",
     }
     for key, standing in expected_sd2.items():
         if sd2_by_id.get(key, {}).get("standing") != standing:
@@ -296,18 +419,20 @@ def main() -> int:
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
-        "standing": "PASS_DATA_PLANE_WITH_ARIES_BOUNDED_CORE",
+        "standing": "PASS_DATA_PLANE_WITH_ARIES_AND_DISAPERE",
         "materializedLocalAssetCount": len(assets),
         "externalCandidateCount": len(candidates),
         "emse": emse,
         "aries": aries,
+        "disapere": disapere,
         "context24Transport": context24_transport["standing"],
         "ariesManualBaseline": expected_baseline,
+        "disapereCoverageBaseline": {key: {"targeted": value[0], "total": value[1]} for key, value in expected_coverage.items()},
         "nextWaves": ["SD1 transport recovery", "SD2 lifecycle expansion"],
         "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
         "truthBoundary": (
-            "Acceptance proves current local EMSE and ARIES physical/schema bindings, "
-            "including exact ARIES analytical product digests. It does not turn dataset labels "
+            "Acceptance proves current local EMSE, ARIES, and DISAPERE physical/schema bindings, "
+            "including exact analytical product digests and DISAPERE non-commercial/privacy gates. It does not turn dataset labels "
             "into reviewer/scientific truth, authorize manuscript or submission effects, or "
             "generalize dataset frequencies to scholarly populations."
         ),

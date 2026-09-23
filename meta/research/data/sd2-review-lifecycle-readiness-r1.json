@@ -4,7 +4,7 @@
   "id": "sd2-review-lifecycle-readiness-r1",
   "observedAt": "2026-09-23",
   "truthRole": "acquisition-readiness-observation-not-reviewer-truth-or-legal-advice",
-  "standing": "IN_PROGRESS_FIRST_ASSET_MATERIALIZED",
+  "standing": "IN_PROGRESS_TWO_COMPLEMENTARY_ASSETS_MATERIALIZED",
   "datasets": [
     {
       "id": "aries",
@@ -44,9 +44,11 @@
     },
     {
       "id": "disapere",
-      "standing": "RELEASE_LICENSE_NOT_YET_BOUND",
-      "reportedReviewRebuttalPairs": 506,
-      "next": "locate canonical release and explicit data license before acquisition"
+      "standing": "MATERIALIZED_BOUNDED_CORE_NONCOMMERCIAL",
+      "licenseObserved": "CC-BY-NC-4.0",
+      "localAsset": "disapere-bounded-core-r1",
+      "scope": "review/rebuttal sentence discourse labels, typed context, and explicit local alignments",
+      "commercialUse": "BLOCKED_WITHOUT_DIFFERENT_RIGHTS_BASIS"
     }
   ],
   "nonClaims": [
