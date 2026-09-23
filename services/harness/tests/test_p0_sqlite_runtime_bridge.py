@@ -188,13 +188,13 @@ class FakeRuntime:
         }
 
     @staticmethod
-    def assert_task_list_arguments(arguments: dict[str, JsonValue]) -> None:
+    def assert_job_list_arguments(arguments: dict[str, JsonValue]) -> None:
         if set(arguments) - {"limit", "clientRequestId", "cursor"}:
-            raise AssertionError(f"task.list received unsupported fields: {arguments}")
+            raise AssertionError(f"job.list received unsupported fields: {arguments}")
         if arguments.get("limit") != 100:
-            raise AssertionError("task.list limit differs")
+            raise AssertionError("job.list limit differs")
         if not isinstance(arguments.get("clientRequestId"), str):
-            raise AssertionError("task.list clientRequestId differs")
+            raise AssertionError("job.list clientRequestId differs")
 
     def call_tool(
         self,
@@ -223,8 +223,8 @@ class FakeRuntime:
                     ),
                 )
             return self.terminal()
-        if name == "task.list":
-            self.assert_task_list_arguments(arguments)
+        if name == "job.list":
+            self.assert_job_list_arguments(arguments)
             request_id = arguments.get("clientRequestId")
             assert isinstance(request_id, str)
             if self.mode == "zero":
@@ -255,7 +255,7 @@ class FakeRuntime:
                 "jobs": jobs,
                 "nextCursor": None,
             }
-        if name == "task.observe":
+        if name == "job.observe":
             if self.recovery_observations_remaining > 0:
                 self.recovery_observations_remaining -= 1
             return self.terminal()
@@ -711,7 +711,7 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
                 [name for name, _ in runtime.calls].count("workspace.exec"), 1
             )
             self.assertEqual(
-                [name for name, _ in runtime.calls].count("task.observe"), 1
+                [name for name, _ in runtime.calls].count("job.observe"), 1
             )
             retained = continuity.load_current_tool_step()
             self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
@@ -744,8 +744,8 @@ class SQLiteHarnessRuntimeBridgeTests(unittest.TestCase):
                 [name for name, _ in runtime.calls].count("workspace.exec"),
                 1,
             )
-            self.assertIn("task.list", [name for name, _ in runtime.calls])
-            self.assertIn("task.observe", [name for name, _ in runtime.calls])
+            self.assertIn("job.list", [name for name, _ in runtime.calls])
+            self.assertIn("job.observe", [name for name, _ in runtime.calls])
             retained = continuity.load_current_tool_step()
             self.assertTrue(retained.receipt.reconciled)
             self.assertEqual(retained.receipt.status, HarnessToolStepStatus.OBSERVED)
