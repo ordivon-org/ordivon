@@ -21,6 +21,7 @@ config_roots = [
   "capabilities/media",
   "domains/game",
   "domains/capital",
+  "apps/agent",
   "apps/web",
 ]
 lockfile = false
@@ -258,6 +259,14 @@ uv run ruff format --check .
 uv run python -m pytest -q
 """
 
+
+[tasks."agent-app:verify"]
+run = """
+set -euo pipefail
+cd apps/agent
+mise install
+mise run verify
+"""
 
 [tasks."web:verify"]
 run = """

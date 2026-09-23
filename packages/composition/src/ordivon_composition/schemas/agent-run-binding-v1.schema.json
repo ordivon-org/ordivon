@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:agent-run-binding:v1",
+  "title": "Agent Run Binding v1",
+  "description": "A deterministic task-local projection that binds an already-compiled Cognitive Circuit to exact caller-selected Harness-facing component references. It grants no authority and does not interpret owner-native contract payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "sourceCircuitRef",
+    "runContractRef",
+    "adapterBindingRef",
+    "toolBindingRef",
+    "executionBindingRef",
+    "cognitionBindingRefs",
+    "unresolvedInputs",
+    "readyForHarness",
+    "authorityGranted",
+    "executionDispatched",
+    "domainAcceptanceEstablished",
+    "claimBoundary",
+    "bindingDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.agent-run-binding" },
+    "truthRole": {
+      "const": "task-local-non-authoritative-agent-run-binding-projection"
+    },
+    "sourceCircuitRef": { "$ref": "#/$defs/boundRef" },
+    "runContractRef": { "$ref": "#/$defs/boundRef" },
+    "adapterBindingRef": { "$ref": "#/$defs/boundRef" },
+    "toolBindingRef": {
+      "anyOf": [
+        { "$ref": "#/$defs/boundRef" },
+        { "type": "null" }
+      ]
+    },
+    "executionBindingRef": {
+      "anyOf": [
+        { "$ref": "#/$defs/boundRef" },
+        { "type": "null" }
+      ]
+    },
+    "cognitionBindingRefs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/boundRef" }
+    },
+    "unresolvedInputs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "readyForHarness": { "type": "boolean" },
+    "authorityGranted": { "const": false },
+    "executionDispatched": { "const": false },
+    "domainAcceptanceEstablished": { "const": false },
+    "claimBoundary": { "type": "string", "minLength": 1 },
+    "bindingDigest": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

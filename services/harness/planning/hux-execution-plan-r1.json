@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-ux-execution-plan",
+  "baseRevision": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+  "workspaceId": "ws-harness-ux-f2ec-r2-20260923",
+  "authorityChange": false,
+  "ready": [
+    "HUX-32-evidence-driven"
+  ],
+  "implementedCandidate": [
+    "HUX-00",
+    "HUX-01-binding-scope",
+    "HUX-02-binding-scope",
+    "HUX-10",
+    "HUX-11",
+    "HUX-12",
+    "HUX-20",
+    "HUX-21",
+    "HUX-22",
+    "HUX-23",
+    "HUX-30"
+  ],
+  "blocked": {
+    "HUX-31..38": "HUX-30 seam proven; advance incrementally starting with provider and Tool binding lowerers",
+    "HUX-40..65": "requires at least one real lowering consumer",
+    "HUX-70..79": "requires product behavior characterization first",
+    "HUX-80..84": "requires first lowering implementation",
+    "HUX-32..38": "advance only where a real consumer still performs mechanical exact-owner-reference bookkeeping"
+  },
+  "forbiddenGrowth": [
+    "agent-service-2",
+    "universal-capability-registry",
+    "composition-permission-authority",
+    "composition-provider-ranking",
+    "harness-workflow-engine",
+    "universal-session-database"
+  ],
+  "deferred": {
+    "HUX-31": "generic ProviderBinding duplicates HarnessRunContract provider/adapter/model semantics and Harness adapter revalidation; revisit only with a provider-owner immutable configuration reference"
+  },
+  "verification": {
+    "compositionAgentRunBinding": "9 passed",
+    "agentAppVertical": "7 passed",
+    "harnessHuxRegression": "10 passed",
+    "compositionOwnerVerify": "passed",
+    "agentAppOwnerVerify": "passed",
+    "harnessOwnerVerify": "1065 tests + 121 subtests passed",
+    "repoMechanics": "62 passed",
+    "repoIntegration": "passed"
+  }
+}

@@ -13,13 +13,15 @@ capability discovery, seam-specific verification, workflow state, or domain trut
 - Exact task-local verifier-binding validation without discovery or ranking.
 - Successor Contract predecessor/candidate binding and verifier-owned succession-gate
   evaluation.
+- Deterministic non-authoritative Agent Run binding over already-selected exact references.
 - Public JSON Schemas for those contracts.
 
 ## Non-claims
 
 This package is not a planner, scheduler, capability registry, workflow engine, permission
 system, credential store, domain verifier, verifier registry/ranker, generic verifier
-executor, RSI controller, universal evaluator, promotion authority, or truth owner.
+executor, RSI controller, universal evaluator, promotion authority, Harness contract owner,
+Agent runtime, or truth owner.
 A mechanically closed circuit or resolved verifier binding does not establish domain
 acceptance, and mechanically closed succession gates do not establish that a candidate is
 globally better or authorized for promotion.
@@ -33,6 +35,10 @@ after repository-wide consumer inventory found no external path callers.
 Successor Contract R1 adds a generic representation for an exact predecessor/candidate
 transition without moving candidate generation, domain metrics, evaluation semantics,
 promotion, release, or Git authority into this package.
+
+Agent Run Binding R1 adds a disposable exact-reference projection for one prospective Agent
+Run without moving Harness contract semantics, provider/tool selection, authorization,
+execution, workflow, or domain acceptance into this package.
 
 ## Verification
 
