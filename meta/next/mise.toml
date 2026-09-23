@@ -59,3 +59,12 @@ run = "uv run --locked python scripts/social_fabric_coordination_r2.py attention
 
 [tasks."social:coordination:route"]
 run = "uv run --locked python scripts/social_fabric_coordination_r2.py route --cut evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json"
+
+[tasks."social:commitment:policy-test"]
+run = "opa test policies/social-fabric-commitment-r3 -v"
+
+[tasks."social:commitment"]
+run = "uv run --locked python scripts/social_fabric_commitment_r3.py current --cut evidence/acceptance/social-fabric-commitment-r3-single-cut-20260923.json --policy policies/social-fabric-commitment-r3/profile.json --rego policies/social-fabric-commitment-r3/policy.rego"
+
+[tasks."social:commitment:vhd"]
+run = "uv run --locked python scripts/social_fabric_commitment_r3.py current --cut evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json --policy policies/social-fabric-commitment-r3/profile.json --rego policies/social-fabric-commitment-r3/policy.rego"
