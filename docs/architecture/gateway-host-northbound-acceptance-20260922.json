@@ -8,11 +8,12 @@
     "owner": "mcp-client-connector",
     "serverSidePrivateCatalogWorkaroundAllowed": false,
     "staleRetiredToolLiveResult": "Unknown tool: capability.list",
-    "staleRetiredToolObserved": "capability.list"
+    "staleRetiredToolObserved": "capability.list",
+    "standing": "REFRESH_PENDING_AFTER_SERVER_E2E_ACCEPTANCE"
   },
   "gatewayCheckpointSchemaRole": "opaque-object-pass-through",
-  "gatewayImplementationCommit": "268cfed5accdd7d89de8ae4bf04d6d9c869e5493",
-  "gatewayVersion": "0.2.0",
+  "gatewayImplementationCommit": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+  "gatewayVersion": "0.3.0",
   "kind": "ordivon.gateway-host-northbound-acceptance",
   "liveAcceptance": {
     "attentionRouted": true,
@@ -23,22 +24,35 @@
     "publicSystemDescribe": true,
     "taskId": "task:gateway-host-northbound-acceptance-r1-20260922",
     "terminalRevision": 2,
-    "terminalState": "abandoned"
+    "terminalState": "abandoned",
+    "huxServerE2EAccepted": true,
+    "continuityFindUpdatedOrdering": true,
+    "continuityFindTimestamps": true,
+    "crossSortCursorRejected": true,
+    "continuityChanges": true,
+    "collaborationPublish": true,
+    "huxBoardSequence": 17811,
+    "hostDoctorHealthy": true,
+    "hostJournalSchema": 5
   },
-  "liveRelease": "/opt/ordivon/gateway/releases/268cfed5accdd7d89de8ae4bf04d6d9c869e5493",
+  "liveRelease": "/opt/ordivon/gateway/releases/eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
   "normalHostTools": [
     "continuity.get",
     "continuity.list",
+    "continuity.find",
     "continuity.observe",
     "continuity.adopt",
     "continuity.checkpoint",
+    "continuity.changes",
     "continuity.attention",
     "collaboration.list",
     "collaboration.search",
-    "collaboration.post"
+    "collaboration.post",
+    "collaboration.publish"
   ],
-  "observedAt": "2026-09-22",
+  "observedAt": "2026-09-23",
   "schemaVersion": 1,
   "status": "SERVER_DEPLOYED_LIVE_OWNER_PATH_ACCEPTED_CLIENT_REFRESH_PENDING",
-  "truthRole": "gateway-projection-over-host-owned-continuity"
+  "truthRole": "gateway-projection-over-host-owned-continuity",
+  "hostLiveRelease": "/opt/ordivon/host-v2/releases/4b092fa709acb6aca3a43c8f74a09fc3427102ff"
 }

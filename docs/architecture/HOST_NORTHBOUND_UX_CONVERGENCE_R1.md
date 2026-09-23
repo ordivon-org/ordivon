@@ -58,7 +58,7 @@ Current-main evidence:
 - Harness full owner gate: 1055 tests plus 121 subtests PASS.
 - Security owner local checks: 62 tests PASS, then the gate is blocked while fetching the pinned OPA Docker image through the configured external proxy. This is retained as an external verification-substrate blocker, not reclassified as a Host UX regression.
 
-Standing: all required repository convergence-owner gates are green for this current-main candidate. It is not yet merged or deployed, and direct Host connector/catalog cutover remains deferred.
+Historical candidate standing at that stage: all required repository convergence-owner gates were green, but that candidate had not yet been merged or deployed. Later sections supersede this deployment standing while preserving the qualification evidence.
 
 ### Security verification substrate resolution
 
@@ -87,4 +87,23 @@ While qualification was running, canonical main advanced from `9cab0e9c...` to `
 
 The mainline delta from `66bdd46b...` through `ce764f12...` introduced Agent App / Composition / Harness-facing changes without touching any HUX-owned path. The actual merged tree (`ce764f12...` plus HUX) was nevertheless requalified using the repository planner's queue closure. Agent App, Composition, Harness queue, Next, Security, Skills and Web all pass. Harness reports 1065 tests plus 121 subtests PASS. Security reports 62 Python tests plus OPA 34/34 PASS, and the temporary Runtime-workspace policy read permissions were independently confirmed restored to directory `0700` and files `0600`.
 
-Standing: incremental merged-tree requalification PASS. Final integration still uses the repository integration lock and exact expected-main fence; a later main movement remains a fail-closed condition requiring only the newly affected incremental closure.
+Historical pre-integration standing: incremental merged-tree requalification PASS. Final integration subsequently completed through the repository integration lock; the qualification remains evidence for the admitted source tree rather than a claim that integration is still pending.
+
+
+## Production integration and live closeout — 2026-09-23
+
+HUX is now part of canonical main through integration commit `aea965f212d7dda6b0ab25abec2a9104542f0089`. A later source revision `4b092fa709acb6aca3a43c8f74a09fc3427102ff` was rechecked with no Host/Gateway HUX-path drift and used for the Host production release.
+
+Live server standing:
+
+- stable Gateway runs immutable release `eaa045252ef7fc61d65325aa9dfbb2d40d8f4054` and contains `continuity.find`, `continuity.changes`, `collaboration.publish`, `runtimeWorkspaceId` forwarding, and `sortKey`;
+- production Host was atomically cut over from `140f33cc3b2d992c68b05179daae4e9b44e8443e` to immutable release `4b092fa709acb6aca3a43c8f74a09fc3427102ff`;
+- isolated canary and production wire acceptance both prove real `created` versus `updated` ordering, non-null `created_at` / `updated_at`, updated-order cursor binding, and cross-sort cursor rejection;
+- Host Doctor remains healthy on PostgreSQL journal schema 5 after cutover; no schema migration was required;
+- Gateway-to-live-Host E2E acceptance proves `continuity.find` no longer suffers the earlier mixed-version false projection;
+- `continuity.changes` passed against the live collaboration sequence projection;
+- `collaboration.publish(scope=continuity)` committed Board sequence `17811` for `task:host-northbound-ux-convergence-r1-20260923`.
+
+Consumer standing remains separate from server standing. The ChatGPT connector snapshot observed during closeout still advertises the older Gateway Tool catalog, so `continuity.find`, `continuity.changes`, and `collaboration.publish` require client/connector catalog refresh before normal consumer acceptance. This stale consumer snapshot does not redefine the live server Tool surface, and direct Host remains operator/admin/recovery-only until refreshed Gateway consumer acceptance is proven.
+
+Current standing: **SOURCE_MERGED / GATEWAY_DEPLOYED / HOST_DEPLOYED / SERVER_E2E_ACCEPTED / CONSUMER_CATALOG_REFRESH_PENDING**.
