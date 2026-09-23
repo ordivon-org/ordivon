@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "packaging" / "windows" / "install_release.ps1"
+VERIFY_RELEASE = ROOT / "packaging" / "windows" / "verify_release.py"
 
 
 def test_windows_release_installer_is_exact_sha_and_immutable() -> None:
@@ -35,6 +37,19 @@ def test_windows_release_installer_uses_pinned_managed_python_and_lock() -> None
     assert "'--no-dev'," in text
     assert "requires-python must exactly match .python-version" in text
     assert r".venv\Scripts\ordivon-gateway.exe" in text
+
+
+def test_windows_release_verifier_expected_tool_catalog_is_sorted() -> None:
+    tree = ast.parse(VERIFY_RELEASE.read_text(encoding="utf-8"))
+    assignment = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "EXPECTED" for target in node.targets)
+    )
+    expected = ast.literal_eval(assignment.value)
+    assert expected == sorted(expected)
+    assert {"continuity.find", "continuity.changes", "collaboration.publish"} <= set(expected)
 
 
 def test_windows_release_installer_emits_mechanical_receipt_without_current_pointer() -> None:
