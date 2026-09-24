@@ -155,3 +155,10 @@ def test_windows_controller_only_recovers_after_offline_effect_ownership_begins(
     assert "if($offlineEffectStarted)" in text
     assert "recoveryAttempted=$recoveryAttempted" in text
     assert text.index("$offlineEffectStarted=$true") < text.index("--shutdown")
+
+
+def test_windows_recovery_does_not_shadow_powershell_host_variable():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "$host=" not in text
+    assert "$hostState=" in text
+    assert "host=$hostState" in text

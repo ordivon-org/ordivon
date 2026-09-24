@@ -38,11 +38,11 @@ function Start-ControlPlane {
   & "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl start --no-block $pressureService | Out-Null
   $deadline=(Get-Date).AddMinutes(3)
   do {
-    $runtime=Wsl-Systemctl-State 'ordivon-runtime.service';$host=Wsl-Systemctl-State 'ordivon-host-v2.service';$gateway=Wsl-Systemctl-State 'ordivon-gateway.service';$timer=Wsl-Systemctl-State $pressureTimer
-    if($runtime -eq 'active' -and $host -eq 'active' -and $gateway -eq 'active' -and $timer -eq 'active'){break}
+    $runtimeState=Wsl-Systemctl-State 'ordivon-runtime.service';$hostState=Wsl-Systemctl-State 'ordivon-host-v2.service';$gatewayState=Wsl-Systemctl-State 'ordivon-gateway.service';$timerState=Wsl-Systemctl-State $pressureTimer
+    if($runtimeState -eq 'active' -and $hostState -eq 'active' -and $gatewayState -eq 'active' -and $timerState -eq 'active'){break}
     Start-Sleep -Milliseconds 500
   } while((Get-Date)-lt $deadline)
-  [ordered]@{runtime=$runtime;host=$host;gateway=$gateway;pressureTimer=$timer}
+  [ordered]@{runtime=$runtimeState;host=$hostState;gateway=$gatewayState;pressureTimer=$timerState}
 }
 function Runtime-Health {
   $raw=(((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/local/libexec/ordivon/ordivon-runtime-status --health --json 2>$null)|Out-String)); if([string]::IsNullOrWhiteSpace($raw)){throw 'Runtime health returned no JSON'}; $raw|ConvertFrom-Json
