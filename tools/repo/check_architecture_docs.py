@@ -52,9 +52,12 @@ EXPECTED_GATEWAY_TOOLS = {
     "continuity.adopt",
     "continuity.checkpoint",
     "continuity.attention",
+    "continuity.find",
+    "continuity.changes",
     "collaboration.list",
     "collaboration.search",
     "collaboration.post",
+    "collaboration.publish",
 }
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
@@ -64,9 +67,12 @@ EXPECTED_HOST_NORTHBOUND_TOOLS = {
     "continuity.adopt",
     "continuity.checkpoint",
     "continuity.attention",
+    "continuity.find",
+    "continuity.changes",
     "collaboration.list",
     "collaboration.search",
     "collaboration.post",
+    "collaboration.publish",
 }
 
 

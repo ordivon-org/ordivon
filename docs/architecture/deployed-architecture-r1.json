@@ -138,9 +138,12 @@
       "continuity.adopt",
       "continuity.checkpoint",
       "continuity.attention",
+      "continuity.find",
+      "continuity.changes",
       "collaboration.list",
       "collaboration.search",
-      "collaboration.post"
+      "collaboration.post",
+      "collaboration.publish"
     ],
     "adminOnlyDirect": [
       "host.status"
