@@ -19,16 +19,10 @@ ARIES_BASELINE = STUDY / "evidence/aries-review-revision-baseline-r1.json"
 DISAPERE_RECEIPT = STUDY / "evidence/disapere-bounded-core-r1.json"
 DISAPERE_BASELINE = STUDY / "evidence/disapere-review-rebuttal-baseline-r1.json"
 PEERSUM_RECEIPT = STUDY / "evidence/peersum-hf-bounded-core-r1.json"
-PEERSUM_BASELINE = (
-    STUDY / "evidence/peersum-meta-review-structure-baseline-r1.json"
-)
+PEERSUM_BASELINE = STUDY / "evidence/peersum-meta-review-structure-baseline-r1.json"
 CONTEXT24_RECEIPT = STUDY / "evidence/context24-identity-core-r1.json"
-CONTEXT24_BASELINE = (
-    STUDY / "evidence/context24-claim-evidence-baseline-r1.json"
-)
-CONTEXT24_CONTENT_RECEIPT = (
-    STUDY / "evidence/context24-evidence-content-core-r1.json"
-)
+CONTEXT24_BASELINE = STUDY / "evidence/context24-claim-evidence-baseline-r1.json"
+CONTEXT24_CONTENT_RECEIPT = STUDY / "evidence/context24-evidence-content-core-r1.json"
 CONTEXT24_CONTENT_BASELINE = (
     STUDY / "evidence/context24-evidence-content-baseline-r1.json"
 )
@@ -615,7 +609,7 @@ def main() -> int:
         fail("SD1 standing drifted")
     if (
         by_wave.get("SD2", {}).get("standing")
-        != "IN_PROGRESS_ARIES_ANNOTATION_SUBSTRATE_READY_GOLD_BLOCKED_DISAPERE_PEERSUM_MATERIALIZED"
+        != "IN_PROGRESS_ARIES_R1_RETIRED_R2_PREPARED_PROVIDER_CHALLENGE_GATED_GOLD_BLOCKED_DISAPERE_PEERSUM_MATERIALIZED"
     ):
         fail("SD2 standing drifted")
     if by_wave.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
@@ -656,7 +650,7 @@ def main() -> int:
 
     if (
         sd2.get("standing")
-        != "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_PLUS_ARIES_ANNOTATION_SUBSTRATE_GOLD_BLOCKED"
+        != "IN_PROGRESS_ARIES_R1_RETIRED_R2_PREPARED_PROVIDER_HOLD_GOLD_BLOCKED"
     ):
         fail("SD2 readiness standing drifted")
     sd2_by_id = {row["id"]: row for row in sd2.get("datasets", [])}
@@ -683,11 +677,27 @@ def main() -> int:
     ):
         fail("ARIES annotation substrate cardinality drifted in SD2 readiness")
     if aries_sd2.get("coderEffectStanding") != {
-        "preEffectFailed": 6,
-        "unknown": 2,
+        "r1UnknownArchived": 8,
+        "r1SafeToResend": 0,
+        "r2Launched": 0,
         "bound": 0,
     }:
         fail("ARIES coder effect standing drifted in SD2 readiness")
+    if (
+        aries_sd2.get("coderCampaignR1Retirement")
+        != "aries-response-revision-coder-r1-retirement-r1"
+    ):
+        fail("ARIES R1 retirement receipt projection missing from SD2 readiness")
+    if (
+        aries_sd2.get("coderCampaignR2Standing")
+        != "PREPARED_NOT_LAUNCHED_PROVIDER_CHALLENGE_GATED"
+    ):
+        fail("ARIES R2 clean campaign standing drifted in SD2 readiness")
+    if (
+        aries_sd2.get("providerReadiness")
+        != "aries-response-revision-provider-readiness-r2"
+    ):
+        fail("ARIES provider-readiness projection missing from SD2 readiness")
     if aries_sd2.get("goldStanding") != "BLOCKED_NO_FROZEN_INDEPENDENT_CODER_CUTS":
         fail("ARIES response-revision gold gate silently opened in SD2 readiness")
     if aries_sd2.get("modelTrainingStanding") != "BLOCKED_PENDING_GOLD_ADMISSION":

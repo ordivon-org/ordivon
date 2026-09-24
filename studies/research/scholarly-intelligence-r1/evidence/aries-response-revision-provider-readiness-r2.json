@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.aries-response-revision-provider-readiness",
+  "id": "aries-response-revision-provider-readiness-r2",
+  "observedAt": "2026-09-24",
+  "standing": "HOLD_PROVIDER_CHALLENGE_GATED",
+  "truthRole": "provider-readiness-observation-not-scientific-or-gold-authority",
+  "carrierFamily": "browserless",
+  "endpoints": [
+    {
+      "endpointId": "chatgpt-carrier-11",
+      "identityDigest": "sha256:e3221e3b4650ba9accca55b2d452687668b7b6b8e3e719ec52d70ca4828d6fe0",
+      "standing": "CHALLENGE_GATED",
+      "substrateHealthy": true,
+      "providerEffectAttempted": false,
+      "sendAttempted": false,
+      "observedAtMs": 1790252113344
+    },
+    {
+      "endpointId": "chatgpt-carrier-12",
+      "identityDigest": "sha256:85564f59e8b7a280440e01d8febc7d63f6287a254c52978d6d3d34342b1503a2",
+      "standing": "CHALLENGE_GATED",
+      "substrateHealthy": true,
+      "providerEffectAttempted": false,
+      "sendAttempted": false,
+      "observedAtMs": 1790252115198
+    },
+    {
+      "endpointId": "chatgpt-carrier-13",
+      "identityDigest": "sha256:8ada2ed7cb1413d838ddd6611a9953bda798a8b587a4e190cecd2a842a493acb",
+      "standing": "CHALLENGE_GATED",
+      "substrateHealthy": true,
+      "providerEffectAttempted": false,
+      "sendAttempted": false,
+      "observedAtMs": 1790252116556
+    }
+  ],
+  "providerBoundary": {
+    "state": "SUBSTRATE_HEALTHY_PROVIDER_NOT_ADMISSIBLE",
+    "providerAction": "PRE_EFFECT_HOLD",
+    "providerAdmission": "NOT_ADMISSIBLE",
+    "providerRootCauseEstablished": false,
+    "reentry": "EXPLICIT_AFTER_PROVIDER_CONDITION_CHANGE"
+  },
+  "r2LaunchAuthorized": false,
+  "recheckRule": "This is a historical observation. Launch authority requires a fresh preflight with at least one READY carrier; this file must never be treated as a permanent provider state.",
+  "truthBoundary": "Provider readiness evidence says nothing about response-revision semantics, annotation correctness, gold, adequacy, causality, or scientific correctness."
+}

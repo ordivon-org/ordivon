@@ -4,7 +4,7 @@
   "id": "sd2-review-lifecycle-readiness-r1",
   "observedAt": "2026-09-24",
   "truthRole": "acquisition-readiness-observation-not-reviewer-truth-or-legal-advice",
-  "standing": "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_PLUS_ARIES_ANNOTATION_SUBSTRATE_GOLD_BLOCKED",
+  "standing": "IN_PROGRESS_ARIES_R1_RETIRED_R2_PREPARED_PROVIDER_HOLD_GOLD_BLOCKED",
   "datasets": [
     {
       "id": "aries",
@@ -16,18 +16,22 @@
       "identified": "same-authority concern->source-review->author-response topology plus concern->revision correspondence and text-bearing response/edit candidate substrate",
       "stillNotIdentified": "gold response->revision semantic relation, response adequacy, or causal link",
       "semanticContentCore": "aries-semantic-content-core-r1",
-      "next": "Resolve the two UNKNOWN materialization effects without blind redispatch; after a provider/materializer condition change, obtain two independent frozen coder cuts under the existing campaign identities, compute agreement, and adjudicate before any model training.",
+      "next": "R1 is retired as gold input with 8/8 UNKNOWN effects archived and no resend. R2 is prepared but MUST NOT launch until fresh Browserless preflight reports READY; then obtain two independent frozen coder cuts, agreement, and adjudication before model training.",
       "annotationSubstrate": "PASS_ARIES_RESPONSE_REVISION_ANNOTATION_SUBSTRATE_R1",
       "annotationUnits": 87,
       "annotationCandidatePairs": 248,
-      "coderCampaignAttempt": "BLOCKED_NO_FROZEN_CODER_CUTS_PROVIDER_MATERIALIZATION_UNRESOLVED",
+      "coderCampaignAttempt": "R1_RETIRED_ALL_8_UNKNOWN_NO_RESEND__R2_PREPARED_PROVIDER_CHALLENGE_GATED",
       "coderEffectStanding": {
-        "preEffectFailed": 6,
-        "unknown": 2,
+        "r1UnknownArchived": 8,
+        "r1SafeToResend": 0,
+        "r2Launched": 0,
         "bound": 0
       },
       "goldStanding": "BLOCKED_NO_FROZEN_INDEPENDENT_CODER_CUTS",
-      "modelTrainingStanding": "BLOCKED_PENDING_GOLD_ADMISSION"
+      "modelTrainingStanding": "BLOCKED_PENDING_GOLD_ADMISSION",
+      "coderCampaignR1Retirement": "aries-response-revision-coder-r1-retirement-r1",
+      "coderCampaignR2Standing": "PREPARED_NOT_LAUNCHED_PROVIDER_CHALLENGE_GATED",
+      "providerReadiness": "aries-response-revision-provider-readiness-r2"
     },
     {
       "id": "peersum",

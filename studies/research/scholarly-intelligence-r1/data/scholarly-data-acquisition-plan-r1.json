@@ -33,7 +33,7 @@
     {
       "id": "SD2",
       "goal": "Peer-review lifecycle corpora",
-      "standing": "IN_PROGRESS_ARIES_ANNOTATION_SUBSTRATE_READY_GOLD_BLOCKED_DISAPERE_PEERSUM_MATERIALIZED",
+      "standing": "IN_PROGRESS_ARIES_R1_RETIRED_R2_PREPARED_PROVIDER_CHALLENGE_GATED_GOLD_BLOCKED_DISAPERE_PEERSUM_MATERIALIZED",
       "candidates": [
         "peerread-v1",
         "nlpeer",
@@ -42,8 +42,8 @@
         "aries"
       ],
       "gate": "license/privacy/ethics verified + paper/review/rebuttal/version identity preserved",
-      "unlocks": "review concern/response/revision fork, text-bearing ARIES response-revision candidate substrate, blinded 87-unit/248-pair annotation substrate, rebuttal discourse, and meta-review topology; gold response->revision relation and semantic disagreement remain research gaps",
-      "next": "Preserve the no-gold/no-training gate while resolving A03/B03 UNKNOWN effects and provider materialization readiness; obtain two independent frozen coder cuts before agreement/adjudication."
+      "unlocks": "review concern/response/revision fork, text-bearing ARIES response-revision candidate substrate, blinded 87-unit/248-pair annotation substrate, and a clean R2 coder campaign generation; gold response->revision relation and semantic disagreement remain research gaps",
+      "next": "Do not replay R1. Recheck Browserless provider preflight; launch R2 only after a fresh READY standing. Then obtain two independent frozen coder cuts before agreement/adjudication."
     },
     {
       "id": "SD3",
