@@ -57,6 +57,34 @@ data "cloudflare_zero_trust_tunnel_cloudflared_config" "production" {
   tunnel_id  = local.production_tunnel_id
 }
 
+# Native Windows-owned Cloudflare carrier. It remains separate from the Linux
+# production tunnel so WSL loss cannot remove the Windows Gateway ingress.
+data "cloudflare_zero_trust_tunnel_cloudflareds" "native" {
+  account_id = var.account_id
+  name       = "ordivon-native-canary"
+  status     = "healthy"
+  is_deleted = false
+  max_items  = 2
+}
+
+check "one_healthy_native_tunnel" {
+  assert {
+    condition     = length(data.cloudflare_zero_trust_tunnel_cloudflareds.native.result) == 1
+    error_message = "Expected exactly one healthy remotely managed ordivon-native-canary tunnel."
+  }
+}
+
+locals {
+  native_tunnel_id = one([
+    for tunnel in data.cloudflare_zero_trust_tunnel_cloudflareds.native.result : tunnel.id
+  ])
+}
+
+data "cloudflare_zero_trust_tunnel_cloudflared_config" "native" {
+  account_id = var.account_id
+  tunnel_id  = local.native_tunnel_id
+}
+
 data "cloudflare_zero_trust_access_applications" "owner_template" {
   account_id = var.account_id
   domain     = "skills-mcp.ordivon.com"
@@ -119,7 +147,8 @@ locals {
     if policy.decision == "allow"
   ]))
 
-  current_ingress = data.cloudflare_zero_trust_tunnel_cloudflared_config.production.config.ingress
+  current_ingress        = data.cloudflare_zero_trust_tunnel_cloudflared_config.production.config.ingress
+  native_current_ingress = data.cloudflare_zero_trust_tunnel_cloudflared_config.native.config.ingress
 
   unmanaged_ingress = [
     for rule in local.current_ingress : rule
@@ -128,6 +157,18 @@ locals {
 
   catch_all_ingress = [
     for rule in local.current_ingress : rule
+    if try(rule.hostname, null) == null
+  ]
+
+  # Preserve every existing named native ingress except the Gateway hostname we own,
+  # then add the Windows Gateway route immediately before the unchanged catch-all.
+  native_unmanaged_ingress = [
+    for rule in local.native_current_ingress : rule
+    if try(rule.hostname, null) != null && rule.hostname != local.gateway.hostname
+  ]
+
+  native_catch_all_ingress = [
+    for rule in local.native_current_ingress : rule
     if try(rule.hostname, null) == null
   ]
 }
@@ -146,6 +187,16 @@ check "one_tunnel_catch_all" {
       startswith(local.catch_all_ingress[0].service, "http_status:")
     )
     error_message = "Production tunnel must retain exactly one HTTP status catch-all ingress."
+  }
+}
+
+check "one_native_tunnel_catch_all" {
+  assert {
+    condition = (
+      length(local.native_catch_all_ingress) == 1 &&
+      startswith(local.native_catch_all_ingress[0].service, "http_status:")
+    )
+    error_message = "Native tunnel must retain exactly one HTTP status catch-all ingress."
   }
 }
 
@@ -193,8 +244,8 @@ resource "cloudflare_zero_trust_access_application" "gateway_mcp" {
   oauth_configuration = {
     enabled = true
     dynamic_client_registration = {
-      enabled               = true
-      allowed_uris          = ["https://chatgpt.com/connector/oauth/*"]
+      enabled                = true
+      allowed_uris           = ["https://chatgpt.com/connector/oauth/*"]
       allow_any_on_localhost = true
       allow_any_on_loopback  = true
     }
@@ -265,6 +316,35 @@ import {
   id = "${var.account_id}/${local.production_tunnel_id}"
 }
 
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "native" {
+  account_id = var.account_id
+  tunnel_id  = local.native_tunnel_id
+
+  config = {
+    ingress = concat(
+      local.native_unmanaged_ingress,
+      [
+        {
+          hostname = local.gateway.hostname
+          service  = "http://127.0.0.1:19000"
+        }
+      ],
+      local.native_catch_all_ingress,
+    )
+  }
+
+  depends_on = [cloudflare_zero_trust_access_application.gateway_mcp]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+import {
+  to = cloudflare_zero_trust_tunnel_cloudflared_config.native
+  id = "${var.account_id}/${local.native_tunnel_id}"
+}
+
 resource "cloudflare_dns_record" "handoff" {
   for_each = local.handoffs
 
@@ -275,16 +355,23 @@ resource "cloudflare_dns_record" "handoff" {
   ttl     = 1
   proxied = true
 
-  depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]
+  depends_on = [
+    cloudflare_zero_trust_tunnel_cloudflared_config.production,
+    cloudflare_zero_trust_tunnel_cloudflared_config.native,
+  ]
 }
 
 resource "cloudflare_dns_record" "gateway_mcp" {
   zone_id = local.production_zone_id
   name    = local.gateway.hostname
-  content = "${local.production_tunnel_id}.cfargotunnel.com"
+  content = "${local.native_tunnel_id}.cfargotunnel.com"
   type    = "CNAME"
   ttl     = 1
   proxied = true
 
-  depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]
+  # The native route must exist before the stable hostname can move to the Windows carrier.
+  depends_on = [
+    cloudflare_zero_trust_tunnel_cloudflared_config.production,
+    cloudflare_zero_trust_tunnel_cloudflared_config.native,
+  ]
 }
