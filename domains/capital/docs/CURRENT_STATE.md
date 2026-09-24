@@ -16,6 +16,10 @@ Canonical source owner is `domains/capital`. Active source-owner domains: Market
 | Portfolio risk budget | `UNSET` / owner `OWNER_PRINCIPAL` |
 | Private account data | `NOT_ADMITTED` / allowed=false |
 | Local accounting mechanics | `PASS_BOUNDED_SQLITE_WAL_ACCOUNTING` |
+| U.S. Treasury nominal/real observation | `ACTIVE_OFFICIAL_PUBLIC_OWNER` / `ACTIVE_OFFICIAL_PUBLIC_OWNER` |
+| Brent/WTI observation | `EXTERNAL_CREDENTIAL_REQUIRED_NOT_INTEGRATED` |
+| Fed policy repricing observation | `EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED` |
+| SOXL benchmark identity | `NYSE Semiconductor Index` / `ICESEMIT` / daily target `3.0x` |
 
 ## R2 architecture
 
@@ -42,3 +46,5 @@ Registry: 39 entries, 34 canonical; functional LEGO roles: 12.
 - Capital has no canonical production/live external-write implementation.
 - `UNSET` owner risk budget remains `UNSET`; it is never inferred.
 - Historical evidence and prior R1 projections do not become current merely because Git is recent.
+- Official macro observation owners remain distinct from interpretation and financial decision authority.
+- Derivative observations and factor proxies do not replace SOXL cash-fund or benchmark identity authority.

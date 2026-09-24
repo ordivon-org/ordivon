@@ -20,6 +20,8 @@
     "config/private_reality_policy.json": "sha256:bd55480440dd3ebd7a8bba887d6c51155afba83a5c2d53da9bb28b83e1a6e865",
     "config/accounting_substrate.json": "sha256:2a153fa5a8e42c4430e7467241bfd63d71c16143d8e069b02e25835e5a1f6d0c",
     "config/capital_lego_registry.json": "sha256:e1f4906ca86269a41aa54ff86e1194bf187e2a4a58af2a59992f1753309311a7",
+    "config/macro_observation_owners.json": "sha256:8323c581e1b09bc6e2ac02abb768c9d7ea8e30cc27ba6012cca1ab9c42c8ebc3",
+    "config/soxl_instrument_identity.json": "sha256:e4a94620cb878c3fb4ae8830412b90398647f6a5def79ff8265ec00b3978c0fc",
     "planning/functional-lego-map-r1.json": "sha256:6f95e656055e38fd01da4324edd811ed4bded50bc96ea9d10531978d356e4972"
   },
   "protocol": {
@@ -51,6 +53,21 @@
     "standing": "PASS_BOUNDED_SQLITE_WAL_ACCOUNTING",
     "authority": "config/accounting_substrate.json"
   },
+  "macroObservationOwners": {
+    "authority": "config/macro_observation_owners.json",
+    "usTreasuryNominalCurve": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+    "usTreasuryRealCurve": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+    "brentWti": "EXTERNAL_CREDENTIAL_REQUIRED_NOT_INTEGRATED",
+    "fedPolicyRepricing": "EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED"
+  },
+  "instrumentIdentity": {
+    "authority": "config/soxl_instrument_identity.json",
+    "instrument": "SOXL",
+    "issuer": "Direxion",
+    "benchmarkName": "NYSE Semiconductor Index",
+    "benchmarkSymbol": "ICESEMIT",
+    "dailyTargetMultiple": "3.0"
+  },
   "inventory": {
     "registryEntries": 39,
     "canonicalEntries": 34,
@@ -62,5 +79,5 @@
     "mechanical composition closure is not financial/domain acceptance",
     "read-only reality does not mint write authority"
   ],
-  "projectionDigest": "sha256:08d4e03b53a8e3afd782bd1099fbbb148c4a891b38ea5f136e0093b33fc0c8fd"
+  "projectionDigest": "sha256:a1cea85555dacf5801207c1c14db3f3de6e8e24a525e3f1bede2af48b6541a96"
 }
