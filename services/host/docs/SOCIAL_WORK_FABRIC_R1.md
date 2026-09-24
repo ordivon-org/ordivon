@@ -1,6 +1,6 @@
 # Ordivon Social Work Fabric R1
 
-Status: bounded Social Work core is live at schema 8; final physical retirement of legacy Task/Board storage is candidate-verified for schema 9. Legacy shapes have no inheritance right.
+Status: bounded Social Work core is live at schema 9. Legacy Task/Board active code, MCP routes, and PostgreSQL storage are physically retired; immutable history is retained only as external recovery evidence.
 
 ## Problem
 
@@ -70,3 +70,17 @@ Before deletion, production `tasks`, `checkpoints`, `task_events`, and `board_me
 Migration `0009` deletes only legacy active storage and advances Host to schema 9. A fresh `0001→0009` database passed the full Host suite with zero legacy tables. A second destroyer loaded the real production archive into schema 8, added independent SWF truth, upgraded `0008→0009`, and proved the legacy tables disappeared while the SWF snapshot remained byte-identical. `0009` is intentionally irreversible: historical recovery restores the archive into a separate recovery database instead of recreating active Task/Board storage.
 
 This section records candidate qualification only until the commit is current-main integrated and the production Host is independently observed at schema 9.
+
+## Live schema-9 retirement acceptance
+
+Commit `08c3099daa897a5da585918b3e6623aa90ddbc08` was exact-main integrated and installed as the production Host release. Immediately before the irreversible migration, the four legacy table counts exactly matched the restore-verified archive receipt. Production then upgraded `0008→0009`; legacy active table count became zero while `Work`, `WorkSnapshot`, `ActorRef`, Space/Topic/Message/Subscription counts and the SWF change clock remained identical across the retirement. Host restarted successfully and `host.status(detail=history)` reported schema 9 with every integrity/history check OK.
+
+Release-native MCP introspection exposes 21 tools, zero `task.*`/`board.*` tools, and no legacy package modules. GATE99-held WorkRelation and CoordinationIntent remain internal rather than default northbound surfaces.
+
+The remaining ChatGPT-facing issue is outside Host authority: the public Gateway connector currently returns HTTP 421 `Invalid Host header`, and the direct Host consumer catalog still caches the pre-cutover tool schema. These are connector/Gateway currentness seams; they must not be repaired by reintroducing Task/Board aliases.
+
+## Self-hosting continuity acceptance
+
+After production schema-9 retirement, the migrated SWF continuity object `work:legacy-task:99cbc0f006f2ed7ba9d7a42d041ffcb9` was read through `work.get` at revision 4/open and closed through the production `actor.declare` + `work.snapshot.commit` surface at revision 5/completed. The resulting snapshot digest is `sha256:a62e1739ffd2834e2558d3bf9bc26f9b5dd0d7ecf39feaf29ea3cf6dc04d7836`. This proves the replacement continuity model can close the work that created it without any Task compatibility path.
+
+The self-hosting acceptance also exposed one bounded UX seam: the MCP input model uses `next_actions` and `reference_refs`, whereas the canonical persisted/output payload uses `nextActions` and `referenceRefs`. A first camelCase request was rejected during argument validation and performed no Work mutation; the contract-correct retry succeeded. This is an interface naming inconsistency, not a continuity correctness failure.

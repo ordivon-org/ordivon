@@ -310,7 +310,7 @@
         "SWF74",
         "SWF75"
       ],
-      "standing": "LIVE_SCHEMA8_CUTOVER_DONE_RETIREMENT_CANDIDATE_VERIFIED"
+      "standing": "DONE_LIVE_SCHEMA9_LEGACY_RETIRED"
     },
     {
       "id": "W8",
@@ -398,7 +398,7 @@
     "integrationPolicy": "Use repository-owned tools/repo/migration/integrate-main.sh under its shared main lock; a later disjoint moving main does not authorize stale direct mutation."
   },
   "legacyRetirement": {
-    "standing": "CANDIDATE_VERIFIED_AWAITING_LATEST_MAIN_INTEGRATION_AND_LIVE_SCHEMA9",
+    "standing": "LIVE_SCHEMA9_RETIRED_PASS",
     "sourceBoundary": "Task/Board northbound is already removed in live schema8; remaining retirement removes legacy active package code and PostgreSQL storage after immutable archive verification.",
     "archive": {
       "truthRole": "local immutable recovery evidence; contents are not committed to Git",
@@ -421,8 +421,24 @@
       "schema8To9ProductionArchiveDestroyer": "job-01a0d365-a3d1-7d50-997c-176614abbd85"
     },
     "nonClaims": [
-      "schema9 is not yet live production truth",
-      "Gateway/consumer connector currentness is owned outside Host retirement"
-    ]
+      "Gateway public connector currently returns HTTP 421 Invalid Host header; this is not Host schema or collaboration truth.",
+      "Direct Host consumer catalog is stale and must be refreshed outside Host rather than restored via compatibility aliases."
+    ],
+    "liveAcceptance": {
+      "canonicalIntegrationCommit": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+      "productionRelease": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+      "schemaVersion": 9,
+      "legacyActiveTableCount": 0,
+      "legacyActiveModuleCount": 0,
+      "actualMcpToolCount": 21,
+      "legacyMcpToolCount": 0,
+      "hostDoctorHealthy": true,
+      "selfHostingWork": {
+        "workRef": "work:legacy-task:99cbc0f006f2ed7ba9d7a42d041ffcb9",
+        "revision": 5,
+        "state": "completed",
+        "snapshotDigest": "sha256:a62e1739ffd2834e2558d3bf9bc26f9b5dd0d7ecf39feaf29ea3cf6dc04d7836"
+      }
+    }
   }
 }

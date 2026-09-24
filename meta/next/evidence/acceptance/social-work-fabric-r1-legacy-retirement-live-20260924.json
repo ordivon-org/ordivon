@@ -1,0 +1,62 @@
+{
+  "archive": {
+    "bytes": 38343067,
+    "contentsCommittedToGit": false,
+    "counts": {
+      "board_messages": 17177,
+      "checkpoints": 15145,
+      "task_events": 15145,
+      "tasks": 2155
+    },
+    "restoreVerification": "PASS",
+    "sha256": "sha256:4806bc0c4bb75cb41af84c6d4a2b2933c25beafa2585de00d54e2b3efbef727e"
+  },
+  "canonicalIntegrationCommit": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+  "externalIngress": {
+    "directHostConsumerCatalogStanding": "STALE_LEGACY_CATALOG_WHILE_SERVER_IS_NEW_SURFACE",
+    "gatewayPublicConnectorStanding": "BLOCKED_HTTP_421_INVALID_HOST_HEADER",
+    "hostCoreStanding": "PASS",
+    "ownerBoundary": "Gateway/connector currentness is outside Host collaboration authority and must not resurrect Task/Board compatibility."
+  },
+  "kind": "ordivon.social-work-fabric-r1-legacy-retirement-live-acceptance",
+  "nonClaims": [
+    "The immutable legacy archive is recovery evidence, not active Host state.",
+    "Schema9 does not provide private/confidential messaging without Identity/Security enforcement.",
+    "WorkRelation and CoordinationIntent remain GATE99-held and are not exposed by the production MCP surface.",
+    "Gateway 421 and connector catalog freshness are not solved by reintroducing Host compatibility APIs."
+  ],
+  "production": {
+    "actualLegacyMcpToolCount": 0,
+    "actualMcpToolCount": 21,
+    "actualWorkToolCount": 4,
+    "hostDoctorHealthy": true,
+    "hostSchemaVersion": 9,
+    "hostServiceActive": true,
+    "legacyActiveModuleCount": 0,
+    "legacyActiveTableCount": 0,
+    "mcpInputNamingObservation": "WorkSnapshot MCP input accepts next_actions/reference_refs while canonical persisted output projects nextActions/referenceRefs; the camelCase first attempt was rejected before Work mutation.",
+    "selfHostingContinuity": {
+      "actorRef": "actor:agent:chatgpt-gpt5.6-sol:swf-r1-closeout",
+      "afterRevision": 5,
+      "afterState": "completed",
+      "beforeRevision": 4,
+      "jobId": "job-01a0d373-b739-7232-8c0d-d4ed5a3ff0a1",
+      "snapshotDigest": "sha256:a62e1739ffd2834e2558d3bf9bc26f9b5dd0d7ecf39feaf29ea3cf6dc04d7836",
+      "workRef": "work:legacy-task:99cbc0f006f2ed7ba9d7a42d041ffcb9"
+    },
+    "swfCountsBeforeAndAfterIdentical": "2155,15145,2343,0,0,0,0,19643"
+  },
+  "productionRelease": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+  "schemaVersion": 1,
+  "standing": "PASS_LIVE_SCHEMA9_LEGACY_CORE_PHYSICALLY_RETIRED",
+  "truthBoundary": "PASS establishes production Host schema9 physical retirement and SWF integrity; public Gateway/consumer ingress currentness remains separately owned.",
+  "verificationJobs": {
+    "archiveRestore": "job-01a0d35c-546d-7cb3-89df-d1b0d57ef2ca",
+    "freshSchema1To9FullHost": "job-01a0d363-796a-79e3-8c38-3bb8f4460d51",
+    "postCutoverSurface": "job-01a0d370-5479-7052-973f-04ff7af6a05c",
+    "productionMigration": "job-01a0d36f-9154-7cc2-80ea-1696ce5e7444",
+    "repoCiAndNextVerify": "job-01a0d36a-4518-7c73-83c9-66b04409b62b",
+    "schema8To9ArchiveDestroyer": "job-01a0d365-a3d1-7d50-997c-176614abbd85",
+    "selfHostingContinuity": "job-01a0d373-b739-7232-8c0d-d4ed5a3ff0a1"
+  }
+}
