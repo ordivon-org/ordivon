@@ -110,6 +110,26 @@ def test_runner_uses_unique_transaction_and_separate_authorizer_task():
     assert "Start-ScheduledTask" in text
 
 
+
+def test_windows_json_receipts_are_utf8_without_bom():
+    for path in (CONTROLLER, AUTHORIZER, RUNNER):
+        text = path.read_text(encoding="utf-8")
+        assert "System.Text.UTF8Encoding($false)" in text
+        assert "[System.IO.File]::Open" in text
+        assert "$stream.Flush($true)" in text
+        atomic_line = next(line for line in text.splitlines() if line.startswith("function Atomic-Json"))
+        assert "Set-Content" not in atomic_line
+
+
+def test_runner_rejects_stale_request_and_rebinds_authorizer_instance():
+    text = RUNNER.read_text(encoding="utf-8")
+    assert "active-request already exists before new R3 transaction" in text
+    assert "Get-ScheduledTask -TaskName $authorizerTask" in text
+    assert "Stop-ScheduledTask -TaskName $authorizerTask" in text
+    assert "stale authorizer instance did not stop" in text
+    assert "$authBefore=(Get-ScheduledTaskInfo -TaskName $authorizerTask).LastRunTime" in text
+    assert "fresh authorizer instance did not start" in text
+
 def test_architecture_doc_forbids_r2_failure_modes():
     text = (ROOT / "docs/D_DRIVE_OFFLINE_MAINTENANCE_R3.md").read_text(encoding="utf-8")
     assert "full Runtime Doctor polling" in text
@@ -126,3 +146,12 @@ def test_windows_json_receipts_are_bomless_durable_atomic_commits():
         assert "Move-Item -Force $tmp $Path" in text
         atomic = text.split("function Atomic-Json", 1)[1].split("}", 1)[0]
         assert "Set-Content" not in atomic
+
+
+def test_windows_controller_only_recovers_after_offline_effect_ownership_begins():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "$offlineEffectStarted=$false" in text
+    assert "$offlineEffectStarted=$true" in text
+    assert "if($offlineEffectStarted)" in text
+    assert "recoveryAttempted=$recoveryAttempted" in text
+    assert text.index("$offlineEffectStarted=$true") < text.index("--shutdown")

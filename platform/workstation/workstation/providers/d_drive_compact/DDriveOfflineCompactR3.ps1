@@ -25,7 +25,7 @@ $pressureTimer = 'ordivon-runtime-storage-pressure.timer'
 $pressureService = 'ordivon-runtime-storage-pressure.service'
 
 function Sha([string]$Path) { return ('sha256:' + (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()) }
-function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $json=$Value|ConvertTo-Json -Depth 12; $encoding=New-Object System.Text.UTF8Encoding($false); $bytes=$encoding.GetBytes($json); $stream=[IO.File]::Open($tmp,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::None); try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}; Move-Item -Force $tmp $Path }
+function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $json=$Value|ConvertTo-Json -Depth 12; $utf8=New-Object System.Text.UTF8Encoding($false); $bytes=$utf8.GetBytes($json); $stream=[System.IO.File]::Open($tmp,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write,[System.IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)} finally {$stream.Dispose()}; Move-Item -Force $tmp $Path }
 function Get-WslRunning { @(& "$env:WINDIR\System32\wsl.exe" --list --running --quiet 2>$null | ForEach-Object { (($_ -replace [char]0,'').Trim()) } | Where-Object { $_ }) }
 function Test-Admin { return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) }
 function Test-VhdExclusiveOpen { try { $s=[IO.File]::Open($vhdPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$s.Dispose();$true } catch {$false} }
@@ -57,7 +57,7 @@ if(-not(Test-Path -LiteralPath $controllerWindows -PathType Leaf)){throw "Contro
 if(-not(Test-Path -LiteralPath $vhdPath -PathType Leaf)){throw "VHD missing: $vhdPath"}
 New-Item -ItemType Directory -Force -Path $txRoot | Out-Null
 $before=Volume-State
-$status='failed';$errorText=$null;$recovery=$null
+$status='failed';$errorText=$null;$recovery=$null;$offlineEffectStarted=$false
 try {
   Remove-Item $ready,$terminal,$handoff,$authorization,$result,$optimizeOut -Force -ErrorAction SilentlyContinue
   $unitArg = ('--unit={0}' -f $unitName)
@@ -108,6 +108,7 @@ try {
 
   # The physical effect is host-level VHD maintenance. Shut down the complete WSL VM
   # rather than assuming a distro-only terminate releases every VHD handle.
+  $offlineEffectStarted=$true
   & "$env:WINDIR\System32\wsl.exe" --shutdown | Out-Null
   if($LASTEXITCODE -ne 0){throw "wsl --shutdown failed rc=$LASTEXITCODE"}
   $stopDeadline=(Get-Date).AddSeconds(90)
@@ -136,8 +137,12 @@ try {
   $latest="$root\d-drive-compact-result-r3-latest.json";Atomic-Json $latest $receipt
 } catch {
   $errorText=$_.Exception.Message
-  try {$recovery=Start-ControlPlane} catch {}
-  $receipt=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-offline-compact-result';status='failed';maintenanceId=$MaintenanceId;phase='windows-controller';error=$errorText;before=$before;recovery=$recovery;failedAt=[DateTimeOffset]::Now.ToString('o')}
+  $recoveryAttempted=$false
+  if($offlineEffectStarted){
+    $recoveryAttempted=$true
+    try {$recovery=Start-ControlPlane} catch {}
+  }
+  $receipt=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-offline-compact-result';status='failed';maintenanceId=$MaintenanceId;phase='windows-controller';error=$errorText;before=$before;offlineEffectStarted=$offlineEffectStarted;recoveryAttempted=$recoveryAttempted;recovery=$recovery;failedAt=[DateTimeOffset]::Now.ToString('o')}
   Atomic-Json $result $receipt
   throw
 }

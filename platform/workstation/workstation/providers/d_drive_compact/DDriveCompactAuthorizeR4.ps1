@@ -1,7 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$RequestPath,[int]$WaitSeconds=1500)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 function Sha([string]$p){'sha256:'+(Get-FileHash -Algorithm SHA256 -LiteralPath $p).Hash.ToLowerInvariant()}
-function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $json=$Value|ConvertTo-Json -Depth 10; $encoding=New-Object System.Text.UTF8Encoding($false); $bytes=$encoding.GetBytes($json); $stream=[IO.File]::Open($tmp,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::None); try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}; Move-Item -Force $tmp $Path }
+function Atomic-Json([string]$Path,[object]$Value) {$tmp=$Path+'.tmp-'+$PID; $json=$Value|ConvertTo-Json -Depth 10; $utf8=New-Object System.Text.UTF8Encoding($false); $bytes=$utf8.GetBytes($json); $stream=[System.IO.File]::Open($tmp,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write,[System.IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)} finally {$stream.Dispose()}; Move-Item -Force $tmp $Path }
 if(-not(Test-Path -LiteralPath $RequestPath -PathType Leaf)){throw "Request missing: $RequestPath"}
 $req=Get-Content -Raw -LiteralPath $RequestPath|ConvertFrom-Json
 if($req.schemaVersion -ne 3 -or $req.kind -ne 'ordivon.d-drive-compact-request'){throw 'Request schema/kind mismatch'}
