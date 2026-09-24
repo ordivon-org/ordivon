@@ -32,7 +32,7 @@ The following Next trees are navigation or knowledge projections rather than exe
 
 - catalogs/authorities/
 - catalogs/knowledge/
-- meta/next/domains/
+- profiles/domains/
 
 Historical docs, evidence, planning, research, experiments, fixtures, and retained artifacts are also excluded from active-source dependency truth.
 

@@ -15,7 +15,7 @@ from scripts.evaluation_boundary_r1 import (
 
 NEXT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = NEXT_ROOT.parents[1]
-BINDING = NEXT_ROOT / "evidence/acceptance/evaluation-boundary-rw6-bindings.json"
+BINDING = REPO_ROOT / "studies/evaluation-boundary/rw6/structure-r2-binding-r1.json"
 
 
 def _binding() -> dict:

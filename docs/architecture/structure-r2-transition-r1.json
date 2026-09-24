@@ -404,16 +404,22 @@
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/next/domains/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
-        "profiles/domains/"
+        "profiles/domains/",
+        "studies/game/autonomous-interest/",
+        "studies/game/mechanism-composition-r1/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "next:verify",
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "historicalSourcePaths": [
+        "meta/next/domains/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Reusable Game routing/crosswalk/composition-profile knowledge moved to profiles/domains/game. Frozen autonomous-interest protocols and their reference executors move together as one study; composition-search/evidence/product-selection material remains study-owned under studies/game."
     },
     {
       "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",

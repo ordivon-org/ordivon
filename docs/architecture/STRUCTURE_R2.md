@@ -186,7 +186,7 @@ S2A relocates only the portable control Plugin package bytes to the repository e
 boundary; Next remains its release/materialization consumer. S2B relocates canonical project
 Skills to root `.agents/skills`; S2C relocates the ChatGPT-only compatibility bridge to
 `extensions/chatgpt-skills-mcp` without changing deployment identity or semantics. Therefore
-S0-S2 are closed. S5 is partially deployed (authority catalog, capability catalog, knowledge catalog, shared research split, and Experimental Episode analytical store relocation); domain/profile and residual Next disposition remain open. S3-S4 and S6-S9 remain open.
+S0-S2 are closed. S5 is partially deployed (authority/capability/knowledge catalogs, Game profile-vs-study split, shared research split, and Experimental Episode profile/data/store separation); residual Next policies/schemas/scripts/tests/evidence/history disposition remains open. S3-S4 and S6-S9 remain open.
 
 For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
 `tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment
