@@ -129,7 +129,7 @@ def owner_cost_corpus() -> dict:
                 "candidateSha": "d" * 40,
                 "providerBaseSha": "e" * 40,
                 "queueClass": "SCOPED",
-                "changedPaths": ["services/runtime/a.rs"],
+                "changedPaths": ["meta/next/example.py"],
                 "changedPathCount": 1,
                 "directOwners": ["runtime"],
                 "verificationOwners": ["runtime"],
