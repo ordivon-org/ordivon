@@ -1,8 +1,8 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW2_COMPLETE_R08_FOUR_FAMILIES_QUALIFIED_R09_NEXT
+Status: RW3_IN_PROGRESS_R09_QUALIFIED_R10_NEXT
 Truth role: planning projection, not Runtime project truth
-Source revision: `897e504916fca4078847005a4b78198042b1c01b`
+Source revision: `fd3f166024587e9c943207fc8987cff436f43098`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
 
@@ -16,6 +16,7 @@ This plan evolves the already-operational Runtime by strangler-style internal ex
 - RW1 is **COMPLETE**: R05 Artifact/Release state ownership and R06 RegistryStorageBoundary are integrated; Registry semantic schema remains v6.
 - R07 `AuthorityContract` is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `163db3230483ec932fa8152fb1c9e6bd756e59d5`. Existing execution families compile internally only after exact replay lookup; the public Tool surface and current authority semantics are unchanged. `runtime:verify` PASS: `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`.
 - RW2 is **COMPLETE**. R08 ordinary execution is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`, reduced immutable-input on `40c414a3901c4383a9d7d122fe7716effbe8506e`, trusted immutable-input on `645d50cd51c8efe772de762610e045ea112fb78c`, and credential-bound trusted on `c52737fd7bc2b6ccf71418719b220070a620da5f` via integration `897e504916fca4078847005a4b78198042b1c01b`. Exact post-integration owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` PASS. All four effect-opaque families now compile through the same internal `AuthorityContract + OperationCircuitCompiler` seam into the existing `SubmitRequest` without changing replay, request identity, Registry v6, provider/materialization ownership, or semantic-completion boundaries. Runtime self-release remains separate. RW3/R09 ExecutionProviderSPI is next.
+- RW3 is **IN PROGRESS**. R09 `ExecutionProviderSPI` is qualified on `fd3f166024587e9c943207fc8987cff436f43098` with full Runtime owner gate `job-01a0d34d-18e1-7140-b577-c34c0c660b4a` PASS. The private static seam freezes common obligations and non-weakenable R1 provider guarantees while preserving distinct Linux/Windows owner/evidence types; it adds no provider marketplace, plugin discovery, cross-node router, public Tool schema, or persisted provider schema. R10 LocalLinuxProvider is next; R11 follows only after Linux proves the seam on real systemd/cgroup acceptance.
 
 ## Global rules
 
@@ -351,6 +352,14 @@ Provider guarantees must include:
 - cross-node router;
 - plugin discovery system.
 
+**Standing — R09 qualified**
+- internal SPI code: `fd3f166024587e9c943207fc8987cff436f43098`;
+- full Runtime owner qualification: `job-01a0d34d-18e1-7140-b577-c34c0c660b4a` PASS, including Core/transactional suites, independent Registry reference-model properties, Windows deployer, MCP/auth, owner-boundary, clippy/check, owner-environment and documentation gates;
+- common obligations are `capabilities / validate / realize / observe / cancel / reconcile`;
+- required guarantees fail closed if any provider weakens exact committed provider identity, single physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence;
+- Linux and Windows intentionally retain different owner/observation/evidence types; R09 moves no physical OS mechanism;
+- no public/persisted schema, dynamic provider registry/marketplace, plugin discovery, cross-node routing, or semantic-effect authority is introduced.
+
 ### R10 — LocalLinuxProvider
 
 Extract:
@@ -662,8 +671,8 @@ The old bootstrap queue through R04 is complete. The current queue is:
 
 1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5`; reopen only for a proven authority/replay regression.
 2. **R08-CLOSED** — ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted execution all compile through one internal OperationCircuitCompiler into the existing `SubmitRequest`; integrated closure is `897e504916fca4078847005a4b78198042b1c01b` and exact post-integration owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` PASS.
-3. **R09-NEXT** — freeze the minimal ExecutionProviderSPI assume/guarantee contract (`capabilities`, `validate`, `realize`, `observe`, `cancel`, `reconcile`) before extracting either OS provider; reject provider marketplace and cross-node routing.
-4. **R10 after R09** — prove the SPI first with LocalLinuxProvider and real systemd/cgroup acceptance on an exact candidate.
+3. **R09-CLOSED-CANDIDATE** — private static ExecutionProviderSPI qualified at `fd3f166024587e9c943207fc8987cff436f43098` with full owner gate `job-01a0d34d-18e1-7140-b577-c34c0c660b4a` PASS; integrate under current-main fencing, then reopen only for a proven SPI-contract regression.
+4. **R10-NEXT** — move LocalLinuxProvider behind the SPI and prove real systemd/cgroup acceptance on the exact candidate without changing Runner wire semantics.
 5. **R11 after R10** — adapt WindowsNativeProvider without pretending SCM/Job Object semantics equal systemd/cgroup semantics.
 6. **R12/R13** may proceed only behind their dependency and ownership fences; keep launch-token timing/late-result reconciliation in the separate supervisor-evidence lane.
 

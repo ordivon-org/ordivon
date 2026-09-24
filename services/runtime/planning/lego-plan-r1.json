@@ -304,11 +304,15 @@
       "kind": "replacement_seam",
       "responsibility": "Define the minimal provider contract for validate, realize, observe, cancel and reconcile without turning Runtime into a provider marketplace.",
       "authority": "Runtime execution-provider boundary",
-      "state": "PROPOSED",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
-        "docs/runtime.md",
-        "docs/status.md"
+        "private static ExecutionProviderSpi contract commit fd3f166024587e9c943207fc8987cff436f43098",
+        "SPI obligations: capabilities, validate, realize, observe, cancel, reconcile",
+        "R1 guarantees fail closed on weakening of committed provider identity, physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence",
+        "Linux and Windows provider probes satisfy the same obligations with distinct owner/observation/evidence types; no false OS-mechanism equivalence",
+        "full Runtime owner qualification PASS job-01a0d34d-18e1-7140-b577-c34c0c660b4a",
+        "no public Tool/Registry schema change and no dynamic provider registry, marketplace, plugin discovery, cross-node router, or semantic effect authority"
       ],
       "dependencies": [
         "R08"
@@ -323,7 +327,7 @@
         "Provider replacement cannot strengthen caller assumptions or weaken process ownership, evidence, cancellation, or reconciliation guarantees.",
         "No dynamic plugin registry is required for R1."
       ],
-      "nextAction": "Freeze assume/guarantee obligations before extracting either provider."
+      "nextAction": "R09 is qualified. Integrate under current-main fencing, then proceed to R10 LocalLinuxProvider extraction and exact-candidate real-system systemd/cgroup acceptance."
     },
     {
       "id": "R10",
@@ -349,7 +353,7 @@
         "systemd/cgroup real-system acceptance passes for the exact candidate commit.",
         "Host Dependency and executable path continuity claims retain runtime_host_namespace_path_witness limitations."
       ],
-      "nextAction": "Extract provider adapter without changing Runner wire contract."
+      "nextAction": "R10 is next after R09 integration: extract the existing Linux physical realization behind the static SPI without changing Runner wire contract, then prove exact-candidate local acceptance."
     },
     {
       "id": "R11",
@@ -831,7 +835,7 @@
     {
       "id": "RW3",
       "objective": "Establish replaceable provider seams and move Linux/Windows OS mechanics behind them.",
-      "status": "BLOCKED_ON_RW2",
+      "status": "IN_PROGRESS",
       "nodeIds": [
         "R09",
         "R10",
@@ -842,11 +846,12 @@
         "Linux and Windows both satisfy it without sharing false OS equivalences.",
         "Cross-node routing/provider marketplace remain outside Runtime."
       ],
-      "evidence": [],
-      "blockers": [
-        "RW2"
+      "evidence": [
+        "R09 ExecutionProviderSPI candidate fd3f166024587e9c943207fc8987cff436f43098",
+        "full Runtime owner qualification PASS job-01a0d34d-18e1-7140-b577-c34c0c660b4a"
       ],
-      "nextAction": "Prove SPI with Linux first, then move Windows; do not implement a third provider without a real workload."
+      "blockers": [],
+      "nextAction": "Integrate qualified R09 under current-main fencing, then extract/prove R10 LocalLinuxProvider before R11 WindowsNativeProvider."
     },
     {
       "id": "RW4",
@@ -930,7 +935,6 @@
   "gaps": [
     "Core state semantics are conceptually separated but still aggregated in large engine.rs/types.rs/registry.rs modules.",
     "Execution authority dimensions exist but are composed partly through feature-specific Tool paths rather than one internal authority contract.",
-    "Linux and Windows share semantics but do not yet sit behind a minimal explicit provider SPI.",
     "Mechanical control primitives recur across release/lifecycle/cache/Workspace operations but are not fully explicit reusable LEGO.",
     "Evidence is strong but not yet represented through one internal claim/scope/witness/limitation model.",
     "MCP and operator surfaces still contain some duplicated composition logic.",
@@ -952,9 +956,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "897e504916fca4078847005a4b78198042b1c01b",
+    "sourceRevision": "fd3f166024587e9c943207fc8987cff436f43098",
     "updatedAt": "2026-09-24",
-    "standing": "RW2_COMPLETE_R09_EXECUTION_PROVIDER_SPI_NEXT",
-    "notes": "R07 and R08 are complete. Ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted execution now compile through one internal AuthorityContract + OperationCircuitCompiler path into the existing SubmitRequest while preserving exact replay, request identity, Registry v6, provider/materialization ownership and semantic-completion boundaries. Runtime self-release remains a separate reconciliable effect. Post-integration exact-commit full Runtime owner qualification is PASS. RW3/R09 is next."
+    "standing": "RW3_R09_QUALIFIED_R10_NEXT",
+    "notes": "RW2 is complete. R09 now freezes one private static ExecutionProviderSPI assume/guarantee seam with common provider obligations and non-weakenable R1 guarantees while preserving distinct Linux/Windows mechanism and evidence shapes. Full Runtime owner qualification passes. No public/persisted schema or dynamic provider marketplace/router was introduced. R10 LocalLinuxProvider is next after serialized R09 integration."
   }
 }
