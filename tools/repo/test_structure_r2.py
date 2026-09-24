@@ -108,3 +108,32 @@ def test_deployed_move_rejects_missing_target_path() -> None:
     mapping["targetPaths"] = ["extensions/missing-control-plugin/"]
     with pytest.raises(module.StructureR2Error, match="deployed move target missing"):
         module.validate_plan(value, repo_root=ROOT)
+
+
+def test_deployed_split_allows_historical_source_after_full_move() -> None:
+    value = load_plan()
+    mapping = next(m for m in value["mappings"] if m["id"] == "research-meta")
+    mapping["standing"] = "DEPLOYED"
+    mapping["sourcePaths"] = []
+    mapping["historicalSourcePaths"] = ["meta/research/"]
+    module.validate_plan(value, repo_root=ROOT)
+
+
+def test_historical_source_must_be_absent() -> None:
+    value = load_plan()
+    mapping = next(m for m in value["mappings"] if m["id"] == "research-meta")
+    mapping["standing"] = "DEPLOYED"
+    mapping["sourcePaths"] = []
+    mapping["historicalSourcePaths"] = ["meta/next/"]
+    with pytest.raises(module.StructureR2Error, match="historical source path still exists"):
+        module.validate_plan(value, repo_root=ROOT)
+
+
+def test_historical_source_requires_deployed_standing() -> None:
+    value = load_plan()
+    mapping = next(m for m in value["mappings"] if m["id"] == "research-meta")
+    mapping["standing"] = "PLANNED"
+    mapping["sourcePaths"] = ["meta/next/"]
+    mapping["historicalSourcePaths"] = ["meta/research/"]
+    with pytest.raises(module.StructureR2Error, match="historicalSourcePaths require DEPLOYED"):
+        module.validate_plan(value, repo_root=ROOT)

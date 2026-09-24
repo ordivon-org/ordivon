@@ -134,10 +134,22 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
             )
 
         source_paths = mapping.get("sourcePaths")
+        historical_source_paths = mapping.get("historicalSourcePaths", [])
         target_paths = mapping.get("targetPaths")
         verify_tasks = mapping.get("verifyTasks")
-        if not isinstance(source_paths, list) or not source_paths:
-            raise StructureR2Error(f"{mapping_id}: sourcePaths must be non-empty")
+        if not isinstance(source_paths, list):
+            raise StructureR2Error(f"{mapping_id}: sourcePaths must be a list")
+        if not isinstance(historical_source_paths, list):
+            raise StructureR2Error(f"{mapping_id}: historicalSourcePaths must be a list")
+        deployed = mapping.get("standing") == "DEPLOYED"
+        if not source_paths and not (deployed and historical_source_paths):
+            raise StructureR2Error(
+                f"{mapping_id}: sourcePaths may be empty only for a deployed mapping with historicalSourcePaths"
+            )
+        if historical_source_paths and not deployed:
+            raise StructureR2Error(
+                f"{mapping_id}: historicalSourcePaths require DEPLOYED standing"
+            )
         if not isinstance(target_paths, list) or not target_paths:
             raise StructureR2Error(f"{mapping_id}: targetPaths must be non-empty")
         if not isinstance(verify_tasks, list) or not verify_tasks:
@@ -154,6 +166,16 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
                     raise StructureR2Error(
                         f"{mapping_id}: current source path does not exist: {source}"
                     )
+
+        for source in historical_source_paths:
+            source = _text(source, field=f"{mapping_id}.historicalSourcePath")
+            source_root = _path_root(source)
+            if source_root in REQUIRED_LEGACY_ROOTS:
+                covered_legacy_roots.add(source_root)
+            if repo_root is not None and (repo_root / source.rstrip("/")).exists():
+                raise StructureR2Error(
+                    f"{mapping_id}: historical source path still exists: {source}"
+                )
 
         for target in target_paths:
             target = _text(target, field=f"{mapping_id}.targetPath")
@@ -172,14 +194,20 @@ def validate_plan(value: dict[str, Any], *, repo_root: Path | None = None) -> No
 
     if repo_root is not None:
         for mapping in mappings:
-            if mapping.get("standing") != "DEPLOYED" or mapping.get("mode") != "move":
+            if mapping.get("standing") != "DEPLOYED":
                 continue
-            for source in mapping.get("sourcePaths", []):
-                if (repo_root / source).exists():
-                    raise StructureR2Error(f"{mapping.get('id')}: deployed move retains source path: {source}")
-            for target in mapping.get("targetPaths", []):
-                if not (repo_root / target).exists():
-                    raise StructureR2Error(f"{mapping.get('id')}: deployed move target missing: {target}")
+            if mapping.get("mode") == "move":
+                for source in mapping.get("sourcePaths", []):
+                    if (repo_root / source).exists():
+                        raise StructureR2Error(
+                            f"{mapping.get('id')}: deployed move retains source path: {source}"
+                        )
+            if mapping.get("mode") in {"move", "split"}:
+                for target in mapping.get("targetPaths", []):
+                    if not (repo_root / target).exists():
+                        raise StructureR2Error(
+                            f"{mapping.get('id')}: deployed {mapping.get('mode')} target missing: {target}"
+                        )
 
     if status == "partially-deployed":
         composition = next((m for m in mappings if m.get("id") == "composition-mechanics"), None)

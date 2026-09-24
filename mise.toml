@@ -65,6 +65,7 @@ python3 tools/repo/check_architecture_docs.py
 uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py
 uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
 mise run experimental-episode-store:verify
+mise run research-study:verify
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
@@ -97,6 +98,31 @@ set -euo pipefail
 cd studies/experimental-episode/postgres-projection-r1
 mise install
 mise run verify
+"""
+
+[tasks."research-study:verify"]
+run = """
+set -euo pipefail
+base=studies/research/scholarly-intelligence-r1/scripts
+uv run --with ruff==0.16.8 ruff check studies/research/scholarly-intelligence-r1/scripts
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_intelligence_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_pressure_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_semantic_content_core_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_annotation_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_gold_gate_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_review_response_core_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r3.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_context24_asset_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_context24_evidence_content_core_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_evidence_schema_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_evidence_schema_r2.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_context24_pressure_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturity_pressure_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_peersum_asset_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r2.py"
 """
 
 [tasks."composition:verify"]

@@ -448,24 +448,26 @@
       "wave": "S5"
     },
     {
-      "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
+      "disposition": "Reusable Scholarly Intelligence/publication/venue contracts are under profiles/research; ARIES/Context24/PeerSum/review-lifecycle evidence, analyses, live Study projections and checkers are under studies/research/scholarly-intelligence-r1. No meta/research runtime/owner remains.",
       "id": "research-meta",
       "mode": "split",
       "owner": "repository",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/research/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
         "profiles/research/",
-        "catalogs/authorities/",
-        "studies/",
-        "tests/"
+        "studies/research/"
       ],
       "verifyTasks": [
+        "research-study:verify",
+        "artifact:verify",
         "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "historicalSourcePaths": [
+        "meta/research/"
+      ]
     }
   ],
   "openSlices": [
