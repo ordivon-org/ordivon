@@ -25,7 +25,7 @@ $pressureTimer = 'ordivon-runtime-storage-pressure.timer'
 $pressureService = 'ordivon-runtime-storage-pressure.service'
 
 function Sha([string]$Path) { return ('sha256:' + (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()) }
-function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $Value|ConvertTo-Json -Depth 12|Set-Content -LiteralPath $tmp -Encoding UTF8; Move-Item -Force $tmp $Path }
+function Atomic-Json([string]$Path,[object]$Value) { $tmp=$Path+'.tmp-'+$PID; $json=$Value|ConvertTo-Json -Depth 12; $encoding=New-Object System.Text.UTF8Encoding($false); $bytes=$encoding.GetBytes($json); $stream=[IO.File]::Open($tmp,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::None); try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}; Move-Item -Force $tmp $Path }
 function Get-WslRunning { @(& "$env:WINDIR\System32\wsl.exe" --list --running --quiet 2>$null | ForEach-Object { (($_ -replace [char]0,'').Trim()) } | Where-Object { $_ }) }
 function Test-Admin { return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) }
 function Test-VhdExclusiveOpen { try { $s=[IO.File]::Open($vhdPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$s.Dispose();$true } catch {$false} }

@@ -116,3 +116,13 @@ def test_architecture_doc_forbids_r2_failure_modes():
     assert "systemd transient service" in text
     assert "monotonic deadline" in text
     assert "temp + fsync + atomic replace" in text
+
+
+def test_windows_json_receipts_are_bomless_durable_atomic_commits():
+    for path in (CONTROLLER, AUTHORIZER, RUNNER):
+        text = path.read_text(encoding="utf-8")
+        assert "System.Text.UTF8Encoding($false)" in text
+        assert "$stream.Flush($true)" in text
+        assert "Move-Item -Force $tmp $Path" in text
+        atomic = text.split("function Atomic-Json", 1)[1].split("}", 1)[0]
+        assert "Set-Content" not in atomic
