@@ -172,6 +172,15 @@ class PlanSemanticGateTests(unittest.TestCase):
             {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:8899"},
             prior_ingress[-1],
         ]
+        native_prior_ingress = [
+            {"hostname": "canary-mcp.ordivon.com", "service": "http://127.0.0.1:18997"},
+            {"hostname": None, "service": "http_status:404"},
+        ]
+        native_planned_ingress = [
+            native_prior_ingress[0],
+            {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:19000"},
+            native_prior_ingress[-1],
+        ]
         return {
             "prior_state": {
                 "values": {
@@ -220,6 +229,7 @@ class PlanSemanticGateTests(unittest.TestCase):
                             "address": "cloudflare_dns_record.gateway_mcp",
                             "values": {
                                 "name": "gateway-mcp.ordivon.com",
+                                "content": "native-tunnel.cfargotunnel.com",
                                 "type": "CNAME",
                                 "proxied": True,
                             },
@@ -230,6 +240,17 @@ class PlanSemanticGateTests(unittest.TestCase):
                                 "name": "Ordivon Gateway Windows Runtime",
                                 "duration": "8760h",
                                 "enabled": True,
+                            },
+                        },
+                        {
+                            "address": "data.cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                            "values": {"config": {"ingress": native_prior_ingress}},
+                        },
+                        {
+                            "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                            "values": {
+                                "tunnel_id": "native-tunnel",
+                                "config": {"ingress": native_planned_ingress},
                             },
                         },
                     ]
@@ -251,6 +272,10 @@ class PlanSemanticGateTests(unittest.TestCase):
                 {
                     "address": "cloudflare_zero_trust_access_service_token.gateway_windows_runtime",
                     "change": {"actions": ["create"]},
+                },
+                {
+                    "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                    "change": {"actions": ["update"]},
                 },
             ],
         }
@@ -297,6 +322,25 @@ class PlanSemanticGateTests(unittest.TestCase):
         semantics = controller._handoff_semantics(plan)
         self.assertFalse(semantics["semantic_gate"])
         self.assertFalse(semantics["checks"]["prior_named_ingress_preserved"])
+
+    def test_semantic_gate_rejects_lost_native_runtime_canary(self) -> None:
+        plan = self._plan()
+        native = plan["planned_values"]["root_module"]["resources"][5]
+        native["values"]["config"]["ingress"] = [
+            {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:19000"},
+            {"hostname": None, "service": "http_status:404"},
+        ]
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["native_runtime_canary_retained"])
+
+    def test_semantic_gate_rejects_gateway_dns_not_on_native_tunnel(self) -> None:
+        plan = self._plan()
+        dns = plan["planned_values"]["root_module"]["resources"][2]
+        dns["values"]["content"] = "production-tunnel.cfargotunnel.com"
+        semantics = controller._handoff_semantics(plan)
+        self.assertFalse(semantics["semantic_gate"])
+        self.assertFalse(semantics["checks"]["gateway_dns_exact"])
 
     def test_semantic_gate_rejects_unexpected_mutation(self) -> None:
         plan = self._plan()

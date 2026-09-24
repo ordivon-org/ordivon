@@ -507,6 +507,8 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         prior = _resources_by_address(prior_root)
 
         tunnel_address = "cloudflare_zero_trust_tunnel_cloudflared_config.production"
+        native_data_address = "data.cloudflare_zero_trust_tunnel_cloudflared_config.native"
+        native_tunnel_address = "cloudflare_zero_trust_tunnel_cloudflared_config.native"
         gateway_address = "cloudflare_zero_trust_access_application.gateway_mcp"
         dns_address = "cloudflare_dns_record.gateway_mcp"
         windows_token_address = (
@@ -518,7 +520,16 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         tunnel_after = _nested_object(planned[tunnel_address]["values"].get("config")).get(
             "ingress", []
         )
-        if not isinstance(tunnel_before, list) or not isinstance(tunnel_after, list):
+        native_before = _nested_object(
+            planned[native_data_address]["values"].get("config")
+        ).get("ingress", [])
+        native_after = _nested_object(
+            planned[native_tunnel_address]["values"].get("config")
+        ).get("ingress", [])
+        if not all(
+            isinstance(value, list)
+            for value in (tunnel_before, tunnel_after, native_before, native_after)
+        ):
             raise KeyError("tunnel ingress is not a list")
 
         def named(rule: Any) -> tuple[str, str] | None:
@@ -538,6 +549,18 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         after_catch = [
             rule for rule in tunnel_after if isinstance(rule, dict) and not rule.get("hostname")
         ]
+        native_before_named = [
+            item for rule in native_before if (item := named(rule)) is not None
+        ]
+        native_after_named = [
+            item for rule in native_after if (item := named(rule)) is not None
+        ]
+        native_before_catch = [
+            rule for rule in native_before if isinstance(rule, dict) and not rule.get("hostname")
+        ]
+        native_after_catch = [
+            rule for rule in native_after if isinstance(rule, dict) and not rule.get("hostname")
+        ]
 
         gateway = planned[gateway_address]["values"]
         oauth = _nested_object(gateway.get("oauth_configuration"))
@@ -545,12 +568,26 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         grant = _nested_object(oauth.get("grant"))
         dns = planned[dns_address]["values"]
         windows_token = planned[windows_token_address]["values"]
+        native_tunnel = planned[native_tunnel_address]["values"]
+        native_tunnel_id = str(native_tunnel.get("tunnel_id", ""))
 
         checks.update(
             {
                 "prior_named_ingress_preserved": all(item in after_named for item in before_named),
+                # Retain the old Linux Gateway origin as a one-DNS-change rollback carrier.
                 "gateway_ingress_exactly_once": after_named.count(
                     ("gateway-mcp.ordivon.com", "http://127.0.0.1:8899")
+                )
+                == 1,
+                "native_prior_named_ingress_preserved": all(
+                    item in native_after_named for item in native_before_named
+                ),
+                "native_runtime_canary_retained": native_after_named.count(
+                    ("canary-mcp.ordivon.com", "http://127.0.0.1:18997")
+                )
+                == 1,
+                "native_gateway_ingress_exactly_once": native_after_named.count(
+                    ("gateway-mcp.ordivon.com", "http://127.0.0.1:19000")
                 )
                 == 1,
                 "single_unchanged_catch_all": len(before_catch) == 1
@@ -558,6 +595,11 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
                 "catch_all_last": bool(tunnel_after)
                 and isinstance(tunnel_after[-1], dict)
                 and not tunnel_after[-1].get("hostname"),
+                "native_single_unchanged_catch_all": len(native_before_catch) == 1
+                and native_before_catch == native_after_catch,
+                "native_catch_all_last": bool(native_after)
+                and isinstance(native_after[-1], dict)
+                and not native_after[-1].get("hostname"),
                 "gateway_self_hosted": gateway.get("type") == "self_hosted",
                 "gateway_domain_exact": gateway.get("domain") == "gateway-mcp.ordivon.com",
                 "managed_oauth_enabled": oauth.get("enabled") is True,
@@ -572,7 +614,9 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
                 "identity_provider_present": len(gateway.get("allowed_idps") or []) >= 1,
                 "gateway_dns_exact": dns.get("name") == "gateway-mcp.ordivon.com"
                 and dns.get("type") == "CNAME"
-                and dns.get("proxied") is True,
+                and dns.get("proxied") is True
+                and bool(native_tunnel_id)
+                and dns.get("content") == f"{native_tunnel_id}.cfargotunnel.com",
                 "windows_service_token_exact": windows_token.get("name")
                 == WINDOWS_SERVICE_TOKEN_NAME
                 and windows_token.get("duration") == "8760h"
@@ -585,6 +629,10 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
                 "planned_named_ingress_count": len(after_named),
                 "prior_catch_all_count": len(before_catch),
                 "planned_catch_all_count": len(after_catch),
+                "native_prior_named_ingress_count": len(native_before_named),
+                "native_planned_named_ingress_count": len(native_after_named),
+                "native_prior_catch_all_count": len(native_before_catch),
+                "native_planned_catch_all_count": len(native_after_catch),
                 "gateway_policy_count": len(gateway.get("policies") or []),
                 "gateway_allowed_idp_count": len(gateway.get("allowed_idps") or []),
             }
@@ -604,6 +652,7 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         "cloudflare_zero_trust_access_application.gateway_mcp",
         "cloudflare_zero_trust_access_service_token.gateway_windows_runtime",
         "cloudflare_zero_trust_tunnel_cloudflared_config.production",
+        "cloudflare_zero_trust_tunnel_cloudflared_config.native",
     }
     unexpected_mutations = sorted(set(mutated) - allowed_mutations)
     checks["no_unexpected_mutations"] = not unexpected_mutations
