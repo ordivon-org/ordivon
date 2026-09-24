@@ -10,11 +10,17 @@ from ordivon_harness.gateway_execution_port import (
 
 
 class FakeGateway:
-    def __init__(self, *, lose_submit: bool = False, resolve_state: str = 'found', working_observations: int = 0):
+    def __init__(
+        self, *, lose_submit: bool = False, resolve_state: str = 'found',
+        working_observations: int = 0, terminal_state: str = 'succeeded',
+        exit_code: int = 0,
+    ):
         self.lose_submit = lose_submit
         self.resolve_state = resolve_state
         self.calls: list[tuple[str, dict]] = []
         self.working_observations = working_observations
+        self.terminal_state = terminal_state
+        self.exit_code = exit_code
 
     def call_tool(self, name, arguments):
         self.calls.append((name, dict(arguments)))
@@ -64,24 +70,30 @@ class FakeGateway:
             return False, {
                 'operation_ref': arguments['operationRef'],
                 'native_id': 'job-1',
-                'state': 'succeeded',
+                'state': self.terminal_state,
                 'terminal': True,
                 'delivery_disposition': 'committed',
-                'execution_disposition': 'succeeded',
-                'exit_code': 0,
+                'execution_disposition': self.terminal_state,
+                'exit_code': self.exit_code,
                 'recovery_required': False,
                 'artifacts_available': True,
-                'artifact_ids': ['attempt-1.stdout', 'attempt-1.result'],
+                'artifact_ids': ['attempt-1.stdout', 'attempt-1.stderr', 'attempt-1.result'],
                 'artifact_projection_complete': True,
             }
         if name == 'artifact.read':
-            assert arguments['artifactId'] == 'attempt-1.stdout'
+            artifact_id = arguments['artifactId']
+            assert artifact_id in {'attempt-1.stdout', 'attempt-1.stderr'}
+            content = (
+                '{\"standing\":\"bound\"}\n'
+                if artifact_id.endswith('.stdout')
+                else 'stderr evidence\n'
+            )
             return False, {
                 'operation_ref': arguments['operationRef'],
-                'artifact_id': 'attempt-1.stdout',
+                'artifact_id': artifact_id,
                 'offset': 0,
-                'content': '{"standing":"bound"}\n',
-                'next_offset': 21,
+                'content': content,
+                'next_offset': len(content.encode()),
                 'eof': True,
             }
         raise AssertionError(name)
@@ -149,3 +161,30 @@ def test_capability_standing_preserves_owner_context_projection():
     assert standing.supports_context('active_user') is True
     assert standing.projection_digest == 'sha256:' + '7' * 64
     assert client.calls == [('capability.describe', {'capability': 'execution.windows'})]
+
+
+def test_resolve_terminal_observes_existing_failed_job_without_submit():
+    client = FakeGateway(terminal_state='failed', exit_code=1)
+    port = GatewayExecutionPort(client)
+    result = port.resolve_terminal(request())
+    assert result is not None
+    assert result.native_id == 'job-1'
+    assert result.state == 'failed'
+    assert result.exit_code == 1
+    assert [name for name, _ in client.calls] == ['execution.resolve', 'execution.get']
+
+
+def test_resolve_terminal_absent_is_none_without_submit():
+    client = FakeGateway(resolve_state='absent')
+    port = GatewayExecutionPort(client)
+    assert port.resolve_terminal(request()) is None
+    assert [name for name, _ in client.calls] == ['execution.resolve']
+
+
+def test_stderr_is_read_by_exact_artifact_identity():
+    client = FakeGateway()
+    port = GatewayExecutionPort(client)
+    result = port.resolve_terminal(request())
+    assert result is not None
+    assert port.read_stderr(result) == 'stderr evidence\n'
+    assert client.calls[-1][0] == 'artifact.read'

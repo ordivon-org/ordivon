@@ -183,6 +183,64 @@ class GatewayExecutionPort:
         native_id = _required_text(_field(resolution, 'native_id', 'nativeId'), 'nativeId')
         return operation_ref, native_id
 
+    def resolve_terminal(
+        self, request: GatewayExecutionRequest
+    ) -> GatewayExecutionResult | None:
+        """Resolve one already-admitted execution without submitting or redispatching it."""
+        resolution = self._call(
+            'execution.resolve',
+            {'capability': request.capability, 'requestId': request.request_id},
+        )
+        standing = _required_text(resolution.get('resolution'), 'execution resolution')
+        if standing == 'absent':
+            return None
+        if standing == 'ambiguous':
+            raise GatewayExecutionAmbiguous(
+                'Gateway execution resolution is ambiguous; no redispatch is authorized'
+            )
+        if standing != 'found':
+            raise GatewayExecutionError(f'unsupported Gateway execution resolution: {standing}')
+        operation_ref = _required_text(
+            _field(resolution, 'operation_ref', 'operationRef'), 'operationRef'
+        )
+        native_id = _required_text(_field(resolution, 'native_id', 'nativeId'), 'nativeId')
+        observed = self._call(
+            'execution.get', {'operationRef': operation_ref, 'eventLimit': 10}
+        )
+        observed_native = _required_text(
+            _field(observed, 'native_id', 'nativeId'), 'observation nativeId'
+        )
+        if observed_native != native_id:
+            raise GatewayExecutionError('Gateway resolution changed native execution identity')
+        terminal = _field(observed, 'terminal', 'terminal')
+        if terminal is not True:
+            if terminal is False:
+                raise GatewayExecutionAmbiguous(
+                    'resolved Gateway execution is not terminal; observation-only retry required'
+                )
+            raise GatewayExecutionError('Gateway observation omitted terminal')
+        artifact_ids = _field(observed, 'artifact_ids', 'artifactIds') or []
+        if not isinstance(artifact_ids, list) or any(
+            not isinstance(item, str) for item in artifact_ids
+        ):
+            raise GatewayExecutionError('Gateway observation artifact ids are invalid')
+        exit_code = _field(observed, 'exit_code', 'exitCode')
+        if exit_code is not None and type(exit_code) is not int:
+            raise GatewayExecutionError('Gateway observation exit code is invalid')
+        recovery = _field(observed, 'recovery_required', 'recoveryRequired')
+        if recovery is None:
+            recovery = False
+        if not isinstance(recovery, bool):
+            raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
+        return GatewayExecutionResult(
+            operation_ref=operation_ref,
+            native_id=native_id,
+            state=_required_text(observed.get('state'), 'execution state'),
+            exit_code=exit_code,
+            artifact_ids=tuple(artifact_ids),
+            recovery_required=recovery,
+        )
+
     def execute(self, request: GatewayExecutionRequest) -> GatewayExecutionResult:
         try:
             receipt = self._call('execution.submit', request.submit_arguments())
@@ -242,13 +300,15 @@ class GatewayExecutionPort:
             f'Gateway execution remained non-terminal after bounded observation; state={state}'
         )
 
-    def read_stdout(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:
-        stdout = [item for item in result.artifact_ids if item.endswith('.stdout')]
-        if len(stdout) != 1:
+    def _read_text_artifact(
+        self, result: GatewayExecutionResult, *, suffix: str, max_bytes: int
+    ) -> str:
+        matches = [item for item in result.artifact_ids if item.endswith(suffix)]
+        if len(matches) != 1:
             raise GatewayExecutionError(
-                f'Gateway execution must expose exactly one stdout artifact; observed={stdout}'
+                f'Gateway execution must expose exactly one {suffix} artifact; observed={matches}'
             )
-        artifact_id = stdout[0]
+        artifact_id = matches[0]
         offset = 0
         chunks: list[str] = []
         while True:
@@ -275,6 +335,12 @@ class GatewayExecutionPort:
             if type(next_offset) is not int or next_offset <= offset:
                 raise GatewayExecutionError('Gateway artifact pagination did not advance')
             offset = next_offset
+
+    def read_stdout(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:
+        return self._read_text_artifact(result, suffix='.stdout', max_bytes=max_bytes)
+
+    def read_stderr(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:
+        return self._read_text_artifact(result, suffix='.stderr', max_bytes=max_bytes)
 
 
 __all__ = [

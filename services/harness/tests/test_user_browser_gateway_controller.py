@@ -16,10 +16,17 @@ from ordivon_harness.user_browser_gateway import (
 
 
 class FakePort:
-    def __init__(self, payload: dict, *, contexts=('limited', 'elevated', 'active_user')):
+    def __init__(
+        self, payload: dict, *, contexts=('limited', 'elevated', 'active_user'),
+        resolved_result=None, resolved_stdout='', resolved_stderr='',
+    ):
         self.payload = payload
         self.contexts = tuple(contexts)
         self.requests = []
+        self.resolved_requests = []
+        self.resolved_result = resolved_result
+        self.resolved_stdout = resolved_stdout
+        self.resolved_stderr = resolved_stderr
 
     def capability_standing(self, capability):
         assert capability == 'execution.windows'
@@ -42,8 +49,18 @@ class FakePort:
             recovery_required=False,
         )
 
-    def read_stdout(self, _result):
+    def resolve_terminal(self, request):
+        self.resolved_requests.append(request)
+        return self.resolved_result
+
+    def read_stdout(self, result):
+        if result is self.resolved_result:
+            return self.resolved_stdout
         return json.dumps(self.payload, sort_keys=True) + '\n'
+
+    def read_stderr(self, result):
+        assert result is self.resolved_result
+        return self.resolved_stderr
 
 
 def config():
@@ -204,3 +221,63 @@ def test_windows_driver_canonicalizes_chrome_omnibox_coordinate_and_waits_for_st
     assert "return 'https://chatgpt.com/c/' + $conversationId" in script
     assert '$deadline=(Get-Date).AddSeconds(90)' in script
     assert '$resource=Get-CanonicalChatResource $url' in script
+
+
+def test_reconcile_classifies_exact_prior_attachment_parameter_binding_failure_as_pre_effect():
+    prior = GatewayExecutionResult(
+        operation_ref='ordivon-exec:v1:runtime.windows:job-old',
+        native_id='job-old', state='failed', exit_code=1,
+        artifact_ids=('attempt-old.stdout', 'attempt-old.stderr'), recovery_required=False,
+    )
+    stderr = (
+        r'C:\ProgramData\Ordivon\chat-ingress\windows_user_browser_chatgpt.ps1 : '
+        + 'AttachmentManifestPath\n'
+        + 'FullyQualifiedErrorId : NamedParameterNotFound,windows_user_browser_chatgpt.ps1\n'
+    )
+    port = FakePort({}, resolved_result=prior, resolved_stdout='', resolved_stderr=stderr)
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.reconcile(
+        effect_id='effect-attachment', request_digest='sha256:' + '1' * 64,
+        prompt_path='/mnt/c/ProgramData/Ordivon/chat-ingress/prompts/p.txt',
+        prompt_digest='sha256:' + '3' * 64,
+        attachment_manifest_path='/mnt/c/ProgramData/Ordivon/chat-ingress/user-browser/attachment-manifests/m.json',
+        attachment_manifest_digest='sha256:' + '4' * 64,
+    )
+    assert result['standing'] == 'pre-effect-failed'
+    assert result['providerEffectAttempted'] is False
+    assert result['providerResource'] is None
+    assert result['evidenceDigest'].startswith('sha256:')
+    assert 'before-driver-entry' in result['detail']
+    assert len(port.resolved_requests) == 1
+    assert port.resolved_requests[0].request_id.startswith('user-browser:materialize:')
+    assert port.requests == []
+
+
+def test_reconcile_does_not_downgrade_unrecognized_failed_execution_to_pre_effect():
+    prior = GatewayExecutionResult(
+        operation_ref='ordivon-exec:v1:runtime.windows:job-old',
+        native_id='job-old', state='failed', exit_code=1,
+        artifact_ids=('attempt-old.stdout', 'attempt-old.stderr'), recovery_required=False,
+    )
+    payload = {
+        'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-attempt',
+        'effectId': 'effect-attachment', 'standing': 'unknown',
+        'providerResource': None, 'evidenceDigest': 'sha256:' + '5' * 64,
+        'detail': 'reconcile-no-binding', 'providerEffectAttempted': True,
+    }
+    port = FakePort(
+        payload, resolved_result=prior, resolved_stdout='',
+        resolved_stderr='some unrelated process failure',
+    )
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.reconcile(
+        effect_id='effect-attachment', request_digest='sha256:' + '1' * 64,
+        prompt_path='/mnt/c/ProgramData/Ordivon/chat-ingress/prompts/p.txt',
+        prompt_digest='sha256:' + '3' * 64,
+        attachment_manifest_path='/mnt/c/ProgramData/Ordivon/chat-ingress/user-browser/attachment-manifests/m.json',
+        attachment_manifest_digest='sha256:' + '4' * 64,
+    )
+    assert result['standing'] == 'unknown'
+    assert len(port.resolved_requests) == 1
+    assert len(port.requests) == 1
+    assert 'reconcile' in port.requests[0].args

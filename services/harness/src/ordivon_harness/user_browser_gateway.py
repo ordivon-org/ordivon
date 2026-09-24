@@ -146,6 +146,40 @@ class UserBrowserGatewayController:
         )
         return False, evidence, detail, standing.contexts
 
+    def _execution_request(
+        self,
+        mode: str,
+        *,
+        effect_id: str,
+        request_digest: str,
+        prompt_path: str,
+        prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
+    ) -> GatewayExecutionRequest:
+        args_list = [
+            '-NoProfile', '-NonInteractive', '-File', self.config.driver_path,
+            '-Mode', mode, '-EffectId', effect_id, '-RequestDigest', request_digest,
+            '-PromptPath', self.config.windows_prompt_path(prompt_path),
+            '-PromptDigest', prompt_digest, '-ProxyUrl', self.config.proxy_url,
+        ]
+        if (attachment_manifest_path is None) != (attachment_manifest_digest is None):
+            raise ValueError('attachment manifest path and digest must be supplied together')
+        if attachment_manifest_path is not None and attachment_manifest_digest is not None:
+            args_list.extend([
+                '-AttachmentManifestPath', self.config.windows_prompt_path(attachment_manifest_path),
+                '-AttachmentManifestDigest', attachment_manifest_digest,
+                '-StageRoot', self.config.windows_stage_root,
+            ])
+        return GatewayExecutionRequest(
+            capability='execution.windows',
+            request_id=self._request_id(mode, effect_id, request_digest, prompt_digest, attachment_manifest_digest),
+            workspace_id=self.config.workspace_id,
+            executable=self.config.powershell_path,
+            args=tuple(args_list), cwd_relative='.', context='active_user',
+            timeout_ms=self.config.timeout_ms,
+        )
+
     def _run(
         self,
         mode: str,
@@ -161,72 +195,74 @@ class UserBrowserGatewayController:
             admitted, evidence, detail, contexts = self._active_user_admission()
             if not admitted:
                 return {
-                    'schemaVersion': 1,
-                    'kind': 'ordivon.windows-user-browser-attempt',
-                    'effectId': effect_id,
-                    'standing': 'pre-effect-failed',
-                    'providerResource': None,
-                    'evidenceDigest': evidence,
-                    'detail': detail,
-                    'providerEffectAttempted': False,
-                    'requiredContext': 'active_user',
+                    'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-attempt',
+                    'effectId': effect_id, 'standing': 'pre-effect-failed',
+                    'providerResource': None, 'evidenceDigest': evidence, 'detail': detail,
+                    'providerEffectAttempted': False, 'requiredContext': 'active_user',
                     'observedContexts': list(contexts),
                 }
-        args_list = [
-            '-NoProfile',
-            '-NonInteractive',
-            '-File',
-            self.config.driver_path,
-            '-Mode',
-            mode,
-            '-EffectId',
-            effect_id,
-            '-RequestDigest',
-            request_digest,
-            '-PromptPath',
-            self.config.windows_prompt_path(prompt_path),
-            '-PromptDigest',
-            prompt_digest,
-            '-ProxyUrl',
-            self.config.proxy_url,
-        ]
-        if (attachment_manifest_path is None) != (attachment_manifest_digest is None):
-            raise ValueError('attachment manifest path and digest must be supplied together')
-        if attachment_manifest_path is not None and attachment_manifest_digest is not None:
-            args_list.extend(
-                [
-                    '-AttachmentManifestPath',
-                    self.config.windows_prompt_path(attachment_manifest_path),
-                    '-AttachmentManifestDigest',
-                    attachment_manifest_digest,
-                    '-StageRoot',
-                    self.config.windows_stage_root,
-                ]
-            )
-        args = tuple(args_list)
-        result = self.port.execute(
-            GatewayExecutionRequest(
-                capability='execution.windows',
-                request_id=self._request_id(
-                    mode,
-                    effect_id,
-                    request_digest,
-                    prompt_digest,
-                    attachment_manifest_digest,
-                ),
-                workspace_id=self.config.workspace_id,
-                executable=self.config.powershell_path,
-                args=args,
-                cwd_relative='.',
-                context='active_user',
-                timeout_ms=self.config.timeout_ms,
-            )
+        request = self._execution_request(
+            mode, effect_id=effect_id, request_digest=request_digest, prompt_path=prompt_path,
+            prompt_digest=prompt_digest, attachment_manifest_path=attachment_manifest_path,
+            attachment_manifest_digest=attachment_manifest_digest,
         )
+        result = self.port.execute(request)
         if result.recovery_required:
             raise RuntimeError('Windows user-browser execution requires Runtime recovery')
         if result.exit_code != 0:
             raise RuntimeError(f'Windows user-browser execution failed with exit code {result.exit_code}')
         return self._parse_payload(self.port.read_stdout(result), effect_id=effect_id)
+
+    @staticmethod
+    def _is_attachment_parameter_binding_failure(*, stdout: str, stderr: str) -> bool:
+        if stdout.strip():
+            return False
+        return (
+            'NamedParameterNotFound,windows_user_browser_chatgpt.ps1' in stderr
+            and 'AttachmentManifestPath' in stderr
+        )
+
+    def _reconcile_prior_materialize_pre_effect_failure(
+        self,
+        *,
+        effect_id: str,
+        request_digest: str,
+        prompt_path: str,
+        prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
+    ) -> dict | None:
+        if attachment_manifest_path is None or attachment_manifest_digest is None:
+            return None
+        request = self._execution_request(
+            'materialize', effect_id=effect_id, request_digest=request_digest,
+            prompt_path=prompt_path, prompt_digest=prompt_digest,
+            attachment_manifest_path=attachment_manifest_path,
+            attachment_manifest_digest=attachment_manifest_digest,
+        )
+        result = self.port.resolve_terminal(request)
+        if result is None or result.recovery_required or result.exit_code in {None, 0}:
+            return None
+        stdout = self.port.read_stdout(result)
+        stderr = self.port.read_stderr(result)
+        if not self._is_attachment_parameter_binding_failure(stdout=stdout, stderr=stderr):
+            return None
+        evidence_value = {
+            'schemaVersion': 1,
+            'kind': 'ordivon.user-browser-owner-native-pre-effect-evidence',
+            'requestId': request.request_id, 'operationRef': result.operation_ref,
+            'nativeId': result.native_id, 'exitCode': result.exit_code,
+            'stdoutDigest': _digest_text(stdout), 'stderrDigest': _digest_text(stderr),
+            'classifier': 'powershell-attachment-parameter-binding-before-driver-entry',
+        }
+        evidence = _digest_text(json.dumps(evidence_value, sort_keys=True, separators=(',', ':')))
+        return {
+            'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-attempt',
+            'effectId': effect_id, 'standing': 'pre-effect-failed',
+            'providerResource': None, 'evidenceDigest': evidence,
+            'detail': 'user-browser:prior-materialize-attachment-parameter-binding-failed-before-driver-entry',
+            'providerEffectAttempted': False,
+        }
 
 
     @staticmethod
@@ -299,6 +335,9 @@ class UserBrowserGatewayController:
         return self._run('materialize', **kwargs)
 
     def reconcile(self, **kwargs) -> dict:
+        recovered = self._reconcile_prior_materialize_pre_effect_failure(**kwargs)
+        if recovered is not None:
+            return recovered
         return self._run('reconcile', **kwargs)
 
 
