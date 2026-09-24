@@ -173,7 +173,9 @@ def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
     ]
 
 
-def test_execution_submit_windows_context_routes_legacy_or_structured_without_interpretation() -> None:
+def test_execution_submit_windows_context_routes_legacy_or_structured_without_interpretation() -> (
+    None
+):
     caller = FakeOwnerCaller()
     caller.responses[("runtime.windows", "workspace.exec")] = {
         "jobId": "job-win-1",
