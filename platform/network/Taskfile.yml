@@ -272,7 +272,7 @@ tasks:
   consumer:finance:ready:
     desc: Wait for bounded public read-only consequence readiness through the admitted Finance authorities
     cmds:
-      - /usr/local/libexec/network-v2/finance-ready public 45
+      - /usr/local/libexec/network-v2/finance-ready public 90
 
   consumer:finance:converge:
     desc: Materialize, enable, restart onto exact installed bytes, and prove the shared Finance topology without external financial writes
