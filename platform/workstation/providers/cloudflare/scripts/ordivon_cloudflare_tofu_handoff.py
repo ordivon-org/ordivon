@@ -507,7 +507,6 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
         prior = _resources_by_address(prior_root)
 
         tunnel_address = "cloudflare_zero_trust_tunnel_cloudflared_config.production"
-        native_data_address = "data.cloudflare_zero_trust_tunnel_cloudflared_config.native"
         native_tunnel_address = "cloudflare_zero_trust_tunnel_cloudflared_config.native"
         gateway_address = "cloudflare_zero_trust_access_application.gateway_mcp"
         dns_address = "cloudflare_dns_record.gateway_mcp"
@@ -521,7 +520,7 @@ def _handoff_semantics(plan: dict[str, Any]) -> dict[str, Any]:
             "ingress", []
         )
         native_before = _nested_object(
-            planned[native_data_address]["values"].get("config")
+            prior[native_tunnel_address]["values"].get("config")
         ).get("ingress", [])
         native_after = _nested_object(
             planned[native_tunnel_address]["values"].get("config")

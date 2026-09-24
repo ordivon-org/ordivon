@@ -350,7 +350,7 @@ resource "cloudflare_dns_record" "handoff" {
 
   zone_id = local.production_zone_id
   name    = each.value.hostname
-  content = "${local.native_tunnel_id}.cfargotunnel.com"
+  content = "${local.production_tunnel_id}.cfargotunnel.com"
   type    = "CNAME"
   ttl     = 1
   proxied = true
@@ -364,10 +364,14 @@ resource "cloudflare_dns_record" "handoff" {
 resource "cloudflare_dns_record" "gateway_mcp" {
   zone_id = local.production_zone_id
   name    = local.gateway.hostname
-  content = "${local.production_tunnel_id}.cfargotunnel.com"
+  content = "${local.native_tunnel_id}.cfargotunnel.com"
   type    = "CNAME"
   ttl     = 1
   proxied = true
 
-  depends_on = [cloudflare_zero_trust_tunnel_cloudflared_config.production]
+  # The native route must exist before the stable hostname can move to the Windows carrier.
+  depends_on = [
+    cloudflare_zero_trust_tunnel_cloudflared_config.production,
+    cloudflare_zero_trust_tunnel_cloudflared_config.native,
+  ]
 }
