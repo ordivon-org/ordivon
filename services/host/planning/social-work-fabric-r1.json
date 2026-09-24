@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-social-work-fabric-plan-r1",
+  "truthRole": "planning-projection-not-authority",
+  "baselineRevision": "b00cb11e4ad0f1a727307d65151ab7a095d7ac39",
+  "principles": [
+    "LEGACY_SHAPES_HAVE_NO_INHERITANCE_RIGHT",
+    "DELETE_CUSTOM_BY_DEFAULT",
+    "WORK_TOPOLOGY_ORTHOGONAL_TO_SOCIAL_TOPOLOGY",
+    "DISCUSSION_NE_WORK_SNAPSHOT_NE_RUNTIME_TRUTH_NE_DOMAIN_TRUTH",
+    "PARTICIPATION_NE_OWNERSHIP_NE_AUTHORITY",
+    "COORDINATION_INTENT_NE_LOCK_NE_ASSIGNMENT_NE_EFFECT_AUTHORITY",
+    "DIRECTED_NE_PRIVATE_WITHOUT_IDENTITY_SECURITY_ENFORCEMENT",
+    "NO_PERMANENT_COMPATIBILITY_LAYER",
+    "NO_DUAL_WRITE_MIGRATION"
+  ],
+  "targetCore": {
+    "workGraph": [
+      "ActorRef",
+      "Work",
+      "WorkSnapshot"
+    ],
+    "socialGraph": [
+      "Space",
+      "Participation",
+      "Topic",
+      "Message",
+      "MessageRelation"
+    ],
+    "attentionFabric": [
+      "Subscription",
+      "AttentionCursor",
+      "Inbox"
+    ],
+    "projection": [
+      "CURRENT",
+      "ATTENTION",
+      "COORDINATION",
+      "AUTHORITY"
+    ],
+    "heldOptional": [
+      "WorkRelation",
+      "CoordinationIntent",
+      "PrivateConfidentialSemantics"
+    ]
+  },
+  "externalSemanticBindings": {
+    "spaceMembershipEvent": "Matrix-like room/membership/event semantics; vocabulary adoption does not require protocol deployment",
+    "topic": "Zulip-like named long-lived asynchronous conversation axis",
+    "workRelations": "GitHub-Issues-like parent/sub-work and dependency semantics",
+    "actorInbox": "ActivityPub-inspired Actor/Inbox/Outbox vocabulary only where useful",
+    "provenance": "W3C PROV",
+    "eventEnvelope": "CloudEvents where an event envelope is needed",
+    "durability": "PostgreSQL"
+  },
+  "swf00CurrentCapabilities": {
+    "hostStorage": [
+      "tasks",
+      "task_events",
+      "board_messages"
+    ],
+    "task": [
+      "stable task identity",
+      "revisioned complete checkpoint",
+      "optimistic expected-revision mutation",
+      "objective/frontier/established/unresolved/rejected/constraints/nextActions",
+      "runtime navigation references"
+    ],
+    "board": [
+      "durable append-only collaboration message",
+      "replay-safe clientMessageId",
+      "topic",
+      "replyToClientMessageId",
+      "explicit taskId routing",
+      "PostgreSQL full-text search",
+      "monotonic sequence cursor"
+    ],
+    "attention": [
+      "Board-sequence-derived delta",
+      "Task re-entry navigation"
+    ],
+    "currentGapsForTargetWorkload": [
+      "no first-class social Space independent of Work",
+      "no first-class named Topic identity/lifecycle",
+      "no stable ActorRef substrate distinct from self-asserted author label",
+      "no structured Participation model",
+      "no Subscription model",
+      "no actor-scoped Inbox/cursor",
+      "no structured CoordinationIntent",
+      "Board global timeline remains the physical message container",
+      "Task remains privileged work shape instead of generic Work + WorkSnapshot"
+    ]
+  },
+  "swf01CapabilityDisposition": [
+    {
+      "legacy": "Task.stable_identity",
+      "disposition": "RECOMPOSE",
+      "target": "Work.workRef"
+    },
+    {
+      "legacy": "Task.revision_expected_revision",
+      "disposition": "RETAIN",
+      "target": "WorkSnapshot optimistic CAS"
+    },
+    {
+      "legacy": "Task.complete_checkpoint",
+      "disposition": "RECOMPOSE",
+      "target": "WorkSnapshot"
+    },
+    {
+      "legacy": "Task.objective_frontier_claims",
+      "disposition": "RETAIN",
+      "target": "WorkSnapshot fields"
+    },
+    {
+      "legacy": "Task.as_privileged_collaboration_container",
+      "disposition": "KILL",
+      "target": null
+    },
+    {
+      "legacy": "Board.durable_message",
+      "disposition": "RETAIN",
+      "target": "Message"
+    },
+    {
+      "legacy": "Board.client_message_id_idempotency",
+      "disposition": "RETAIN",
+      "target": "Message replay identity"
+    },
+    {
+      "legacy": "Board.topic_string",
+      "disposition": "RECOMPOSE",
+      "target": "Topic identity"
+    },
+    {
+      "legacy": "Board.reply_relation",
+      "disposition": "RECOMPOSE",
+      "target": "MessageRelation(reply_to)"
+    },
+    {
+      "legacy": "Board.task_id_route",
+      "disposition": "RECOMPOSE",
+      "target": "Message/Space subject Work references"
+    },
+    {
+      "legacy": "Board.search",
+      "disposition": "RETAIN",
+      "target": "Message search"
+    },
+    {
+      "legacy": "Board.sequence",
+      "disposition": "RECOMPOSE",
+      "target": "Attention/event cursor source"
+    },
+    {
+      "legacy": "Board.as_global_core_object",
+      "disposition": "KILL",
+      "target": "Feed projection only"
+    },
+    {
+      "legacy": "attention.delta_global_board_scan",
+      "disposition": "RECOMPOSE",
+      "target": "actor-scoped Attention delta"
+    }
+  ],
+  "swf03OwnerBoundary": {
+    "hostOwns": [
+      "durable semantic Work continuity",
+      "durable collaboration records",
+      "social participation/subscription records"
+    ],
+    "runtimeOwns": [
+      "Workspace",
+      "Job",
+      "Attempt",
+      "process",
+      "physical execution",
+      "execution admission"
+    ],
+    "identitySecurityOwns": [
+      "authenticated identity",
+      "authorization",
+      "confidentiality",
+      "private membership enforcement"
+    ],
+    "domainOwnersOwn": [
+      "scientific truth",
+      "capital truth",
+      "game truth",
+      "domain acceptance"
+    ],
+    "socialFabricOwns": [
+      "rebuildable CURRENT/ATTENTION/COORDINATION/AUTHORITY projections"
+    ],
+    "gatewayOwns": [
+      "routing/projection membrane"
+    ]
+  },
+  "swf04KillContract": {
+    "forbiddenMigrationStrategies": [
+      "DUAL_WRITE",
+      "PERMANENT_ADAPTER",
+      "COMPATIBILITY_FIRST"
+    ],
+    "forbiddenNewOwners": [
+      "social scheduler",
+      "social priority engine",
+      "social vote engine",
+      "social lock manager",
+      "social lease manager",
+      "custom event bus",
+      "custom graph database",
+      "effect authority"
+    ],
+    "legacyCoreKillCandidates": [
+      "Task privileged core class",
+      "Board first-class core object"
+    ],
+    "cutoverRule": "migrate selected semantic facts once, verify differential, freeze legacy mutation, cut over, remove legacy active APIs/schema",
+    "archiveRule": "historical legacy data may remain immutable archival evidence and must not constrain target active semantics"
+  },
+  "waves": [
+    {
+      "id": "W0",
+      "nodes": [
+        "SWF00",
+        "SWF01",
+        "SWF02",
+        "SWF03",
+        "SWF04"
+      ],
+      "standing": "DONE"
+    },
+    {
+      "id": "W1",
+      "nodes": [
+        "SWF10",
+        "SWF11",
+        "SWF12",
+        "SWF13"
+      ],
+      "standing": "DONE"
+    },
+    {
+      "id": "W2",
+      "nodes": [
+        "SWF20",
+        "SWF21",
+        "SWF22",
+        "SWF23",
+        "SWF24"
+      ],
+      "standing": "DONE"
+    },
+    {
+      "id": "W3",
+      "nodes": [
+        "SWF30",
+        "SWF31",
+        "SWF32",
+        "SWF33",
+        "SWF34",
+        "SWF35",
+        "SWF36"
+      ],
+      "standing": "DONE_WITH_OPTIONAL_HOLDS"
+    },
+    {
+      "id": "W4",
+      "nodes": [
+        "SWF40",
+        "SWF41",
+        "SWF42",
+        "SWF43",
+        "SWF44",
+        "SWF45"
+      ],
+      "standing": "DONE"
+    },
+    {
+      "id": "W5",
+      "nodes": [
+        "SWF50",
+        "SWF51",
+        "SWF52",
+        "SWF53",
+        "SWF54",
+        "SWF55",
+        "SWF56",
+        "SWF57",
+        "SWF58"
+      ],
+      "standing": "DONE"
+    },
+    {
+      "id": "W6",
+      "nodes": [
+        "SWF60",
+        "SWF61"
+      ],
+      "standing": "DIRECTED_COMPOSITION_ALLOWED_PRIVATE_HOLD"
+    },
+    {
+      "id": "W7",
+      "nodes": [
+        "SWF70",
+        "SWF71",
+        "SWF72",
+        "SWF73",
+        "SWF74",
+        "SWF75"
+      ],
+      "standing": "ISOLATED_CUTOVER_VERIFIED_AWAITING_LIVE"
+    },
+    {
+      "id": "W8",
+      "nodes": [
+        "SWF80",
+        "SWF81",
+        "SWF82",
+        "SWF83",
+        "SWF84",
+        "SWF85",
+        "SWF86",
+        "SWF90",
+        "SWF91",
+        "SWF92",
+        "SWF93",
+        "SWF99"
+      ],
+      "standing": "PASS_CURRENT_MAIN_REPLAY"
+    }
+  ],
+  "swf99": {
+    "standing": "PASS_PROMOTE_BOUNDED_CORE",
+    "packageStanding": "PROMOTE_BOUNDED_SOCIAL_WORK_CORE_WITH_RELATION_INTENT_PRIVATE_HELD",
+    "criteria": [
+      "measuredUtility",
+      "falsePositivesAndMisses",
+      "complexity",
+      "ownerDuplicationRisk",
+      "recoveryValue",
+      "agentUxCost"
+    ],
+    "promote": [
+      "ActorRef",
+      "Work",
+      "WorkSnapshot",
+      "Space",
+      "Participation",
+      "Topic",
+      "Message",
+      "MessageRelation",
+      "Subscription",
+      "AttentionCursor",
+      "Inbox",
+      "MessageSearch",
+      "OneShotLegacyExtractor",
+      "SocialFabricProjectionAdapter",
+      "PostgreSQLDurability",
+      "WorkSnapshotCAS",
+      "MessageReplayIdentity"
+    ],
+    "hold": [
+      {
+        "lego": "WorkRelation",
+        "reason": "Correctness/destroyer tests pass, but explicit live-migration dogfood produced zero WorkRelation edges and 100-Agent society intentionally demonstrated cross-Work Space formation without requiring WorkRelation. Held off active northbound surface until a real dependency/hierarchy workload requires it."
+      },
+      {
+        "lego": "CoordinationIntent",
+        "reason": "Correctness tests prove non-lock semantics, but all real-domain dogfood target counts were zero. Held off active northbound surface until measured coordination misses require explicit declarative intent."
+      },
+      {
+        "lego": "PrivateConfidentialSemantics",
+        "reason": "Identity/Security does not yet supply authenticated membership/read-write enforcement. Directed small Spaces do not imply privacy."
+      }
+    ],
+    "kill": [
+      "TaskPrivilegedCore",
+      "BoardFirstClassCore",
+      "PermanentCompatibilityFacade",
+      "DualWriteMigration",
+      "CustomAttentionEventBus",
+      "CustomGraphDatabase",
+      "SocialPriorityRankingVoting",
+      "SocialScheduler",
+      "SocialLockLease",
+      "DedicatedDMGroupThreadOntologies"
+    ],
+    "activeNorthboundRule": "Only PROMOTE items are default active northbound. HOLD implementation may remain internal/evidence-scoped but must not mint active Host authority or default Agent surface.",
+    "qualificationJobs": {
+      "currentMainNonDb": "job-01a0d309-5bfc-7e21-85fa-ff55def422ce",
+      "currentMainPostgres": "job-01a0d30b-48e9-72f0-b02b-2f7459eff4c4",
+      "currentMainRepoGates": "job-01a0d30b-9e92-7e32-9a6e-616279899c10",
+      "historical100AgentAcceptance": "job-01a0d251-44c0-75d2-a18b-d0478032262a",
+      "postPruneFinal": "job-01a0d30f-4690-7ff2-ba82-274917a933ba"
+    },
+    "integrationPolicy": "Use repository-owned tools/repo/migration/integrate-main.sh under its shared main lock; a later disjoint moving main does not authorize stale direct mutation."
+  }
+}

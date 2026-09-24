@@ -13,6 +13,8 @@ from .cursor import decode_cursor, encode_cursor
 from .errors import ConflictError, TaskNotFound
 from .models import Admission, CheckpointInput, MutationResult, TaskState, TaskView
 
+REQUIRED_SCHEMA_VERSION = 8
+
 
 class HostV2:
     def __init__(self, dsn: str) -> None:
@@ -33,10 +35,10 @@ class HostV2:
             raise RuntimeError(
                 "Host v2 schema is not initialized; run alembic upgrade head"
             ) from exc
-        if row is None or int(row["schema_version"]) != 5:
+        if row is None or int(row["schema_version"]) != REQUIRED_SCHEMA_VERSION:
             observed = None if row is None else int(row["schema_version"])
             raise RuntimeError(
-                f"Host v2 schema is not at required version 5 (observed={observed}); "
+                f"Host v2 schema is not at required version {REQUIRED_SCHEMA_VERSION} (observed={observed}); "
                 "run alembic upgrade head"
             )
 
@@ -51,17 +53,36 @@ class HostV2:
             if schema_row is None:
                 raise RuntimeError("Host v2 schema is not initialized")
             schema_version = int(schema_row["schema_version"])
-            state_rows = conn.execute(
-                "SELECT state,count(*) AS value FROM tasks GROUP BY state"
-            ).fetchall()
-            tasks_by_state = {row["state"]: int(row["value"]) for row in state_rows}
-            task_count = sum(tasks_by_state.values())
-            event_count = int(
-                conn.execute("SELECT count(*) AS value FROM task_events").fetchone()["value"]
+
+            actor_count = int(
+                conn.execute("SELECT count(*) AS value FROM actor_refs").fetchone()["value"]
             )
-            board_row = conn.execute(
-                "SELECT count(*) AS messages,COALESCE(max(sequence),0) AS high FROM board_messages"
-            ).fetchone()
+            work_state_rows = conn.execute(
+                "SELECT state,count(*) AS value FROM works GROUP BY state"
+            ).fetchall()
+            works_by_state = {row["state"]: int(row["value"]) for row in work_state_rows}
+            work_count = sum(works_by_state.values())
+            snapshot_count = int(
+                conn.execute("SELECT count(*) AS value FROM work_snapshots").fetchone()["value"]
+            )
+            space_count = int(
+                conn.execute("SELECT count(*) AS value FROM spaces").fetchone()["value"]
+            )
+            topic_count = int(
+                conn.execute("SELECT count(*) AS value FROM topics").fetchone()["value"]
+            )
+            message_count = int(
+                conn.execute("SELECT count(*) AS value FROM messages").fetchone()["value"]
+            )
+            subscription_count = int(
+                conn.execute("SELECT count(*) AS value FROM subscriptions").fetchone()["value"]
+            )
+            change_high = int(
+                conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()[
+                    "value"
+                ]
+            )
+
             doctor = None
             if detail != "summary":
                 checks: list[dict[str, Any]] = []
@@ -71,29 +92,58 @@ class HostV2:
                         {"name": name, "status": "ok" if ok else "error", "detail": detail_value}
                     )
 
-                add_check("postgres.schema", schema_version == 5, str(schema_version))
-                current_checkpoint_bad = int(
+                add_check(
+                    "postgres.schema",
+                    schema_version == REQUIRED_SCHEMA_VERSION,
+                    str(schema_version),
+                )
+                current_snapshot_bad = int(
                     conn.execute(
-                        "SELECT count(*) AS value FROM tasks t LEFT JOIN checkpoints c "
-                        "ON c.task_id=t.task_id AND c.revision=t.revision "
-                        "WHERE c.task_id IS NULL OR c.checkpoint_digest<>t.current_checkpoint_digest"
+                        "SELECT count(*) AS value FROM works w LEFT JOIN work_snapshots s "
+                        "ON s.work_ref=w.work_ref AND s.revision=w.current_revision "
+                        "WHERE s.work_ref IS NULL OR s.snapshot_digest<>w.current_snapshot_digest"
                     ).fetchone()["value"]
                 )
                 add_check(
-                    "task.current_checkpoint",
-                    current_checkpoint_bad == 0,
-                    f"invalid={current_checkpoint_bad}",
+                    "work.current_snapshot",
+                    current_snapshot_bad == 0,
+                    f"invalid={current_snapshot_bad}",
                 )
-                current_event_bad = int(
+                message_topic_bad = int(
                     conn.execute(
-                        "SELECT count(*) AS value FROM tasks t LEFT JOIN task_events e "
-                        "ON e.task_id=t.task_id AND e.revision=t.revision "
-                        "WHERE e.task_id IS NULL OR e.resulting_state<>t.state "
-                        "OR e.checkpoint_digest<>t.current_checkpoint_digest"
+                        "SELECT count(*) AS value FROM messages m JOIN topics t USING(topic_ref) "
+                        "WHERE m.space_ref<>t.space_ref"
                     ).fetchone()["value"]
                 )
                 add_check(
-                    "task.current_event", current_event_bad == 0, f"invalid={current_event_bad}"
+                    "social.message_topic_space",
+                    message_topic_bad == 0,
+                    f"invalid={message_topic_bad}",
+                )
+                reply_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM message_relations r "
+                        "JOIN messages s ON s.message_ref=r.source_message_ref "
+                        "LEFT JOIN messages t ON t.message_ref=r.target_ref "
+                        "WHERE r.relation='reply_to' AND "
+                        "(t.message_ref IS NULL OR s.space_ref<>t.space_ref OR s.topic_ref<>t.topic_ref)"
+                    ).fetchone()["value"]
+                )
+                add_check(
+                    "social.reply_integrity",
+                    reply_bad == 0,
+                    f"invalid={reply_bad}",
+                )
+                cursor_bad = int(
+                    conn.execute(
+                        "SELECT count(*) AS value FROM attention_cursors WHERE cursor>%s",
+                        (change_high,),
+                    ).fetchone()["value"]
+                )
+                add_check(
+                    "attention.cursor_bounds",
+                    cursor_bad == 0,
+                    f"invalid={cursor_bad};high={change_high}",
                 )
                 receipt_bad = int(
                     conn.execute(
@@ -101,45 +151,39 @@ class HostV2:
                     ).fetchone()["value"]
                 )
                 add_check(
-                    "command_receipts.complete", receipt_bad == 0, f"incomplete={receipt_bad}"
+                    "command_receipts.complete",
+                    receipt_bad == 0,
+                    f"incomplete={receipt_bad}",
                 )
-                reply_bad = int(
-                    conn.execute(
-                        "SELECT count(*) AS value FROM board_messages c LEFT JOIN board_messages p "
-                        "ON p.client_message_id=c.reply_to_client_message_id "
-                        "WHERE c.reply_to_client_message_id IS NOT NULL AND p.client_message_id IS NULL"
-                    ).fetchone()["value"]
-                )
-                add_check("board.reply_integrity", reply_bad == 0, f"dangling={reply_bad}")
 
                 if detail == "history":
-                    task_history_bad = int(
+                    history_bad = int(
                         conn.execute(
-                            "SELECT count(*) AS value FROM (SELECT t.task_id,t.revision,"
-                            "count(DISTINCT c.revision) AS checkpoints,count(DISTINCT e.revision) AS events,"
-                            "min(c.revision) AS cmin,max(c.revision) AS cmax,min(e.revision) AS emin,max(e.revision) AS emax "
-                            "FROM tasks t LEFT JOIN checkpoints c USING(task_id) LEFT JOIN task_events e USING(task_id) "
-                            "GROUP BY t.task_id,t.revision) x WHERE checkpoints<>revision OR events<>revision "
-                            "OR cmin<>1 OR cmax<>revision OR emin<>1 OR emax<>revision"
+                            "SELECT count(*) AS value FROM ("
+                            "SELECT w.work_ref,w.current_revision,count(s.revision) AS snapshots,"
+                            "min(s.revision) AS rmin,max(s.revision) AS rmax "
+                            "FROM works w LEFT JOIN work_snapshots s USING(work_ref) "
+                            "GROUP BY w.work_ref,w.current_revision"
+                            ") x WHERE snapshots<>current_revision OR rmin<>1 OR rmax<>current_revision"
                         ).fetchone()["value"]
                     )
                     add_check(
-                        "task.history_contiguous",
-                        task_history_bad == 0,
-                        f"invalidTasks={task_history_bad}",
+                        "work.snapshot_history_contiguous",
+                        history_bad == 0,
+                        f"invalidWorks={history_bad}",
                     )
                     digest_bad = 0
                     for row in conn.execute(
-                        "SELECT checkpoint_digest,payload FROM checkpoints ORDER BY task_id,revision"
+                        "SELECT snapshot_digest,payload FROM work_snapshots ORDER BY work_ref,revision"
                     ).fetchall():
                         payload = row["payload"]
-                        if not isinstance(payload, dict):
-                            digest_bad += 1
-                            continue
-                        if canonical_digest(payload) != row["checkpoint_digest"]:
+                        if (
+                            not isinstance(payload, dict)
+                            or canonical_digest(payload) != row["snapshot_digest"]
+                        ):
                             digest_bad += 1
                     add_check(
-                        "checkpoint.history_digest",
+                        "work.snapshot_history_digest",
                         digest_bad == 0,
                         f"invalid={digest_bad}",
                     )
@@ -149,27 +193,29 @@ class HostV2:
                 }
 
             return {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "kind": "ordivon.host-status",
                 "observedAtMs": observed_at_ms,
                 "detail": detail,
                 "authority": {
                     "journalBackend": "postgresql",
                     "journalSchema": schema_version,
-                    "events": event_count,
-                    "tasks": task_count,
-                    "tasksByState": tasks_by_state,
-                },
-                "board": {
-                    "messages": int(board_row["messages"]),
-                    "lastSequence": int(board_row["high"]),
-                    "truthRole": "durable-collaboration-messages",
+                    "actorRefs": actor_count,
+                    "works": work_count,
+                    "worksByState": works_by_state,
+                    "workSnapshots": snapshot_count,
+                    "spaces": space_count,
+                    "topics": topic_count,
+                    "messages": message_count,
+                    "subscriptions": subscription_count,
+                    "changeHighSequence": change_high,
                 },
                 "doctor": doctor,
                 "truthBoundary": {
                     "host": (
-                        "authoritative only for Host-v2 PostgreSQL continuity and collaboration state; "
-                        "Runtime, Git, deployment, and domain truth are not checked"
+                        "authoritative only for Host Social Work Fabric semantic continuity and "
+                        "collaboration records; Runtime, Git, Identity/Security, effect, and domain "
+                        "truth are not checked"
                     )
                 },
             }

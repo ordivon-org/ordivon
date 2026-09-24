@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-work-fabric-r1-gate99",
+  "truthRole": "candidate-acceptance-evidence-not-production-authority",
+  "baselineRevision": "ece52e0014d5cb3363e2db762e1a96000ab2144e",
+  "standing": "PASS_PROMOTE_BOUNDED_CORE",
+  "packageStanding": "PROMOTE_BOUNDED_SOCIAL_WORK_CORE_WITH_RELATION_INTENT_PRIVATE_HELD",
+  "decisions": {
+    "promote": [
+      "ActorRef",
+      "Work",
+      "WorkSnapshot",
+      "Space",
+      "Participation",
+      "Topic",
+      "Message",
+      "MessageRelation",
+      "Subscription",
+      "AttentionCursor",
+      "Inbox",
+      "MessageSearch",
+      "OneShotLegacyExtractor",
+      "SocialFabricProjectionAdapter",
+      "PostgreSQLDurability",
+      "WorkSnapshotCAS",
+      "MessageReplayIdentity"
+    ],
+    "hold": [
+      {
+        "lego": "WorkRelation",
+        "reason": "Correctness/destroyer tests pass, but explicit live-migration dogfood produced zero WorkRelation edges and 100-Agent society intentionally demonstrated cross-Work Space formation without requiring WorkRelation. Held off active northbound surface until a real dependency/hierarchy workload requires it."
+      },
+      {
+        "lego": "CoordinationIntent",
+        "reason": "Correctness tests prove non-lock semantics, but all real-domain dogfood target counts were zero. Held off active northbound surface until measured coordination misses require explicit declarative intent."
+      },
+      {
+        "lego": "PrivateConfidentialSemantics",
+        "reason": "Identity/Security does not yet supply authenticated membership/read-write enforcement. Directed small Spaces do not imply privacy."
+      }
+    ],
+    "kill": [
+      "TaskPrivilegedCore",
+      "BoardFirstClassCore",
+      "PermanentCompatibilityFacade",
+      "DualWriteMigration",
+      "CustomAttentionEventBus",
+      "CustomGraphDatabase",
+      "SocialPriorityRankingVoting",
+      "SocialScheduler",
+      "SocialLockLease",
+      "DedicatedDMGroupThreadOntologies"
+    ]
+  },
+  "measuredEvidence": {
+    "legacySource": {
+      "tasks": 2154,
+      "checkpoints": 15134,
+      "boardMessages": 17175
+    },
+    "explicitMigrationDogfood": {
+      "works": 2154,
+      "workSnapshots": 15134,
+      "spaces": 3,
+      "topics": 79,
+      "messages": 175,
+      "messageRelations": 12,
+      "workRelations": 0,
+      "participations": 0,
+      "subscriptions": 0,
+      "coordinationIntents": 0
+    },
+    "society": {
+      "actors": 100,
+      "works": 30,
+      "spaces": 15,
+      "topics": 100,
+      "messages": 10000,
+      "standing": "PASS",
+      "longWorkParticipants": 5,
+      "dynamicRegrouping": true,
+      "crossWorkSpaceWithoutInferredWorkRelation": true
+    },
+    "currentMainQualification": {
+      "nonDb": "PASS",
+      "postgresFull": "PASS",
+      "schemaUpgrade": "1->8 PASS",
+      "schemaDowngradeReupgrade": "8->5->8 PASS",
+      "repoCi": "PASS",
+      "nextVerify": "PASS",
+      "postPruneFinalJob": "job-01a0d30f-4690-7ff2-ba82-274917a933ba",
+      "postPruneFinal": "PASS"
+    }
+  },
+  "northboundPruning": {
+    "removedFromDefaultSurface": [
+      "work.relation.add",
+      "work.relation.list",
+      "intent.declare"
+    ],
+    "reason": "HOLD mechanisms lacked real-domain measured utility despite internal correctness tests."
+  },
+  "nonClaims": [
+    "A HOLD item is not production-authorized merely because internal code or schema remains available for future evidence-scoped reconsideration.",
+    "Participation does not imply ownership or authority.",
+    "Directed Spaces do not imply private/confidential communication.",
+    "Social Fabric projections do not own Runtime, Identity/Security, Git/provider, effect, or domain truth."
+  ],
+  "replayBaseRevision": "b00cb11e4ad0f1a727307d65151ab7a095d7ac39",
+  "integrationPolicy": "repository-owned integrate-main lock/fence"
+}

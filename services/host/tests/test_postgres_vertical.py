@@ -202,7 +202,6 @@ def test_client_request_id_conflicting_reuse_fails_closed() -> None:
         )
 
 
-
 def test_task_list_keyset_cursor_is_scope_bound_and_complete() -> None:
     h = host()
     goal_id = f"goal:v2:page:{uuid4().hex}"
@@ -230,7 +229,6 @@ def test_task_list_keyset_cursor_is_scope_bound_and_complete() -> None:
     assert observed == set(created)
     with pytest.raises(ValueError, match="query scope"):
         h.list_task_summaries_page(goal_id=f"{goal_id}:other", limit=2, cursor=cursor)
-
 
 
 def test_task_list_updated_order_is_mechanical_and_cursor_bound() -> None:
@@ -289,7 +287,9 @@ def test_task_summary_page_omits_checkpoint_payload(monkeypatch: pytest.MonkeyPa
     h.adopt(
         task_id=task_id,
         goal_id=goal_id,
-        checkpoint=CheckpointInput(payload={"large": "payload", "runtime": {"workspaceId": "ws:test"}}),
+        checkpoint=CheckpointInput(
+            payload={"large": "payload", "runtime": {"workspaceId": "ws:test"}}
+        ),
         client_request_id=f"a:{task_id}",
     )
     expected_digest = h.resume(task_id, 1).checkpoint_digest
@@ -326,58 +326,77 @@ def test_task_summary_page_omits_checkpoint_payload(monkeypatch: pytest.MonkeyPa
     assert "checkpoint" not in page[0]
 
 
-
 def test_postgres_native_status_summary_integrity_and_history() -> None:
     import psycopg
 
-    h = host()
-    task_id = tid("status-integrity")
-    h.adopt(
-        task_id=task_id,
-        checkpoint=CheckpointInput(payload={"status": "clean"}),
-        client_request_id=f"a:{task_id}",
+    from ordivon_host_v2.social_work import (
+        ActorKind,
+        ActorRefInput,
+        WorkCreateInput,
+        WorkSnapshotInput,
     )
+    from ordivon_host_v2.work_store import WorkStore
+
+    assert DSN is not None
+    h = host()
+    work = WorkStore(DSN)
+    token = uuid4().hex
+    actor_ref = f"actor:agent:status:{token}"
+    work_ref = f"work:status:{token}"
+    work.declare_actor(
+        ActorRefInput(actor_ref=actor_ref, actor_kind=ActorKind.AGENT),
+        client_request_id=f"actor:{actor_ref}",
+    )
+    work.create_work(
+        WorkCreateInput(
+            work_ref=work_ref,
+            kind="integrity-probe",
+            actor_ref=actor_ref,
+            initial_snapshot=WorkSnapshotInput(
+                objective="exercise Host Social Work Fabric Doctor",
+                frontier="clean",
+            ),
+        ),
+        client_request_id=f"create:{work_ref}",
+    )
+
     summary = h.status(detail="summary")
     assert summary["kind"] == "ordivon.host-status"
     assert summary["authority"]["journalBackend"] == "postgresql"
-    assert summary["authority"]["journalSchema"] == 5
-    assert summary["schemaVersion"] == 2
-    assert "interface" not in summary
-    assert "terminalTasks" not in summary["authority"]
-    assert "leases" not in summary["authority"]
-    assert "continuity" not in summary
-    assert "recentActivity" not in summary
-    assert "news" not in summary
+    assert summary["authority"]["journalSchema"] == 8
+    assert summary["schemaVersion"] == 3
+    assert summary["authority"]["works"] >= 1
+    assert summary["authority"]["workSnapshots"] >= 1
+    assert "board" not in summary
+    assert "tasksByState" not in summary["authority"]
     assert summary["doctor"] is None
-    assert "deployment" not in summary
+
     integrity = h.status(detail="integrity")
     assert integrity["doctor"]["healthy"] is True
     history = h.status(detail="history")
     assert history["doctor"]["healthy"] is True
     assert any(
-        item["name"] == "checkpoint.history_digest"
-        for item in history["doctor"]["checks"]
+        item["name"] == "work.snapshot_history_digest" for item in history["doctor"]["checks"]
     )
 
-    assert DSN is not None
     with psycopg.connect(DSN, autocommit=True) as conn:
         original = conn.execute(
-            "SELECT checkpoint_digest FROM checkpoints WHERE task_id=%s AND revision=1",
-            (task_id,),
+            "SELECT snapshot_digest FROM work_snapshots WHERE work_ref=%s AND revision=1",
+            (work_ref,),
         ).fetchone()[0]
         conn.execute(
-            "UPDATE checkpoints SET checkpoint_digest='sha256:tampered' "
-            "WHERE task_id=%s AND revision=1",
-            (task_id,),
+            "UPDATE work_snapshots SET snapshot_digest='sha256:tampered' "
+            "WHERE work_ref=%s AND revision=1",
+            (work_ref,),
         )
     try:
         broken = h.status(detail="integrity")
         assert broken["doctor"]["healthy"] is False
         by_name = {item["name"]: item for item in broken["doctor"]["checks"]}
-        assert by_name["task.current_checkpoint"]["status"] == "error"
+        assert by_name["work.current_snapshot"]["status"] == "error"
     finally:
         with psycopg.connect(DSN, autocommit=True) as conn:
             conn.execute(
-                "UPDATE checkpoints SET checkpoint_digest=%s WHERE task_id=%s AND revision=1",
-                (original, task_id),
+                "UPDATE work_snapshots SET snapshot_digest=%s WHERE work_ref=%s AND revision=1",
+                (original, work_ref),
             )

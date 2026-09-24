@@ -34,9 +34,15 @@ class DoctorWire(TypedDict):
 class HostAuthorityWire(TypedDict):
     journalBackend: Literal["postgresql"]
     journalSchema: int
-    events: int
-    tasks: int
-    tasksByState: dict[str, int]
+    actorRefs: int
+    works: int
+    worksByState: dict[str, int]
+    workSnapshots: int
+    spaces: int
+    topics: int
+    messages: int
+    subscriptions: int
+    changeHighSequence: int
 
 
 class HostStatusResponse(TypedDict):
@@ -45,7 +51,6 @@ class HostStatusResponse(TypedDict):
     observedAtMs: int
     detail: Literal["summary", "integrity", "history"]
     authority: HostAuthorityWire
-    board: dict[str, Any]
     doctor: DoctorWire | None
     truthBoundary: dict[str, str]
 
@@ -132,7 +137,6 @@ class AttentionResponse(TypedDict):
     routedTasks: list[dict[str, Any]]
     unroutedMessages: list[dict[str, Any]]
     truthBoundary: str
-
 
 
 class TaskMutationResponse(TypedDict):
