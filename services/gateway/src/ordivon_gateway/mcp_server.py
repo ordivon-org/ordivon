@@ -60,7 +60,7 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         executable: str,
         args: list[str],
         cwdRelative: str = ".",
-        context: str | None = None,
+        context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeoutMs: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,

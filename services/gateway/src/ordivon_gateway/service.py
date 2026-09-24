@@ -229,21 +229,36 @@ class GatewayService:
                 if isinstance(node, dict) and isinstance(node.get("nodeId"), str)
                 else None
             )
-            context_key = (
-                "windowsAuthorities"
-                if route.execution_target == "windows_native"
-                else "executionProfiles"
-            )
-            contexts = [
-                str(value) for value in target.get(context_key, []) if isinstance(value, str)
-            ]
+            context_mode = route.context_mode
+            if route.execution_target == "windows_native":
+                structured_contexts = target.get("windowsContexts")
+                if isinstance(structured_contexts, list) and any(
+                    isinstance(value, dict) for value in structured_contexts
+                ):
+                    contexts = [
+                        dict(value) for value in structured_contexts if isinstance(value, dict)
+                    ]
+                    context_mode = "provider-defined-json"
+                else:
+                    contexts = [
+                        str(value)
+                        for value in target.get("windowsAuthorities", [])
+                        if isinstance(value, str)
+                    ]
+                    context_mode = "provider-defined-string"
+            else:
+                contexts = [
+                    str(value)
+                    for value in target.get("executionProfiles", [])
+                    if isinstance(value, str)
+                ]
             return CapabilityDescriptor(
                 capability=route.capability,
                 owner_id=route.owner_id,
                 category=route.category,
                 configured=bool(target.get("configured", False)),
                 available=bool(target.get("available", False)),
-                context_mode=route.context_mode,  # type: ignore[arg-type]
+                context_mode=context_mode,  # type: ignore[arg-type]
                 contexts=contexts,
                 owner_node_id=node_id,
                 truth_boundary=route.truth_boundary,
@@ -393,7 +408,7 @@ class GatewayService:
         executable: str,
         args: list[str],
         cwd_relative: str = ".",
-        context: str | None = None,
+        context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
@@ -450,10 +465,20 @@ class GatewayService:
             "executionTarget": route.execution_target,
         }
         if route.owner_id == "runtime.linux":
+            if isinstance(context, dict):
+                raise GatewayError("execution.linux context must be a provider-defined string")
             execution["executionProfile"] = context or route.default_context
         elif route.owner_id == "runtime.windows":
             execution["executionProfile"] = "trusted_local"
-            execution["windowsAuthority"] = context or route.default_context
+            if context is None:
+                execution["windowsAuthority"] = route.default_context
+            elif isinstance(context, str):
+                # Compatibility only: Gateway does not interpret legacy authority values.
+                execution["windowsAuthority"] = context
+            else:
+                # Structured Windows authority is opaque provider-owned data. Gateway only
+                # lowers the generic northbound envelope into Runtime's owner field.
+                execution["windowsContext"] = dict(context)
         else:
             raise GatewayError(f"unsupported execution owner: {route.owner_id}")
         if env is not None:

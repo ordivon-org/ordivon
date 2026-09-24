@@ -140,6 +140,8 @@
       "continuity.checkpoint",
       "continuity.changes",
       "continuity.attention",
+      "continuity.find",
+      "continuity.changes",
       "collaboration.list",
       "collaboration.search",
       "collaboration.post",

@@ -32,7 +32,7 @@ def default_routes() -> dict[str, CapabilityRoute]:
             owner_id="runtime.windows",
             category="execution",
             owner_tool="workspace.exec",
-            context_mode="provider-defined-string",
+            context_mode="provider-defined-json",
             truth_boundary="Windows Runtime owns Workspace/Job/Attempt/process/artifact physical truth.",
             execution_target="windows_native",
             default_context="limited",
