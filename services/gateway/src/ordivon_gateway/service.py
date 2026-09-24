@@ -15,6 +15,7 @@ from .contracts import (
     CollaborationSearch,
     CollaborationSearchHit,
     ContinuityAttention,
+    ContinuityChanges,
     ContinuityEvent,
     ContinuityItem,
     ContinuityMutationReceipt,
@@ -228,21 +229,36 @@ class GatewayService:
                 if isinstance(node, dict) and isinstance(node.get("nodeId"), str)
                 else None
             )
-            context_key = (
-                "windowsAuthorities"
-                if route.execution_target == "windows_native"
-                else "executionProfiles"
-            )
-            contexts = [
-                str(value) for value in target.get(context_key, []) if isinstance(value, str)
-            ]
+            context_mode = route.context_mode
+            if route.execution_target == "windows_native":
+                structured_contexts = target.get("windowsContexts")
+                if isinstance(structured_contexts, list) and any(
+                    isinstance(value, dict) for value in structured_contexts
+                ):
+                    contexts = [
+                        dict(value) for value in structured_contexts if isinstance(value, dict)
+                    ]
+                    context_mode = "provider-defined-json"
+                else:
+                    contexts = [
+                        str(value)
+                        for value in target.get("windowsAuthorities", [])
+                        if isinstance(value, str)
+                    ]
+                    context_mode = "provider-defined-string"
+            else:
+                contexts = [
+                    str(value)
+                    for value in target.get("executionProfiles", [])
+                    if isinstance(value, str)
+                ]
             return CapabilityDescriptor(
                 capability=route.capability,
                 owner_id=route.owner_id,
                 category=route.category,
                 configured=bool(target.get("configured", False)),
                 available=bool(target.get("available", False)),
-                context_mode=route.context_mode,  # type: ignore[arg-type]
+                context_mode=context_mode,  # type: ignore[arg-type]
                 contexts=contexts,
                 owner_node_id=node_id,
                 truth_boundary=route.truth_boundary,
@@ -392,7 +408,7 @@ class GatewayService:
         executable: str,
         args: list[str],
         cwd_relative: str = ".",
-        context: str | None = None,
+        context: str | dict[str, Any] | None = None,
         env: dict[str, str] | None = None,
         timeout_ms: int | None = None,
         authority_references: list[dict[str, Any]] | None = None,
@@ -449,10 +465,20 @@ class GatewayService:
             "executionTarget": route.execution_target,
         }
         if route.owner_id == "runtime.linux":
+            if isinstance(context, dict):
+                raise GatewayError("execution.linux context must be a provider-defined string")
             execution["executionProfile"] = context or route.default_context
         elif route.owner_id == "runtime.windows":
             execution["executionProfile"] = "trusted_local"
-            execution["windowsAuthority"] = context or route.default_context
+            if context is None:
+                execution["windowsAuthority"] = route.default_context
+            elif isinstance(context, str):
+                # Compatibility only: Gateway does not interpret legacy authority values.
+                execution["windowsAuthority"] = context
+            else:
+                # Structured Windows authority is opaque provider-owned data. Gateway only
+                # lowers the generic northbound envelope into Runtime's owner field.
+                execution["windowsContext"] = dict(context)
         else:
             raise GatewayError(f"unsupported execution owner: {route.owner_id}")
         if env is not None:
@@ -521,7 +547,7 @@ class GatewayService:
 
         page = await self._caller.call_tool(
             route.owner_id,
-            "task.list",
+            "job.list",
             {
                 "limit": 2,
                 "clientRequestId": request_id,
@@ -529,10 +555,10 @@ class GatewayService:
         )
         jobs = page.get("jobs")
         if not isinstance(jobs, list) or any(not isinstance(item, dict) for item in jobs):
-            raise GatewayError("Runtime task.list omitted jobs")
+            raise GatewayError("Runtime job.list omitted jobs")
         for job in jobs:
             if job.get("clientRequestId") != request_id:
-                raise GatewayError("Runtime task.list returned another clientRequestId")
+                raise GatewayError("Runtime job.list returned another clientRequestId")
         next_cursor = page.get("nextCursor")
         ambiguous = len(jobs) > 1 or next_cursor is not None
         if ambiguous:
@@ -820,6 +846,8 @@ class GatewayService:
                 if task.get("checkpoint_digest") is not None
                 else None
             ),
+            created_at=_optional_str(task, "created_at"),
+            updated_at=_optional_str(task, "updated_at"),
             checkpoint=checkpoint,
             truth_boundary=(
                 str(result["truthBoundary"]) if result.get("truthBoundary") is not None else None
@@ -830,18 +858,26 @@ class GatewayService:
         self,
         *,
         goal_id: str | None = None,
+        runtime_workspace_id: str | None = None,
         limit: int = 50,
         cursor: str | None = None,
         include_terminal: bool = False,
+        sort_key: str = "created",
     ) -> ContinuityPage:
+        if sort_key not in {"created", "updated"}:
+            raise GatewayError("continuity sort_key must be created or updated")
         arguments: dict[str, Any] = {
             "limit": limit,
             "includeTerminal": include_terminal,
         }
         if goal_id is not None:
             arguments["goalId"] = goal_id
+        if runtime_workspace_id is not None:
+            arguments["runtimeWorkspaceId"] = runtime_workspace_id
         if cursor is not None:
             arguments["cursor"] = cursor
+        if sort_key != "created":
+            arguments["sortKey"] = sort_key
         result = await self._caller.call_tool("host", "task.list", arguments)
         items: list[ContinuityItem] = []
         for task in result.get("tasks", []):
@@ -858,6 +894,8 @@ class GatewayService:
                         if task.get("checkpoint_digest") is not None
                         else None
                     ),
+                    created_at=_optional_str(task, "created_at"),
+                    updated_at=_optional_str(task, "updated_at"),
                 )
             )
         return ContinuityPage(
@@ -866,6 +904,7 @@ class GatewayService:
             next_cursor=(
                 str(result["nextCursor"]) if result.get("nextCursor") is not None else None
             ),
+            sort_key=sort_key,
         )
 
     async def continuity_observe(
@@ -898,6 +937,8 @@ class GatewayService:
             revision=int(task["revision"]),
             state=_required_str(task, "state"),
             checkpoint_digest=_optional_str(task, "checkpoint_digest"),
+            created_at=_optional_str(task, "created_at"),
+            updated_at=_optional_str(task, "updated_at"),
             checkpoint=checkpoint,
             recent_events=events,
             truth_boundary=_optional_str(result, "truthBoundary"),
@@ -957,6 +998,8 @@ class GatewayService:
             revision=int(task["revision"]),
             state=_required_str(task, "state"),
             checkpoint_digest=_optional_str(task, "checkpoint_digest"),
+            created_at=_optional_str(task, "created_at"),
+            updated_at=_optional_str(task, "updated_at"),
             checkpoint=checkpoint,
             admission=_required_str(result, "admission"),
             writer_label=_optional_str(result, "writerLabel"),
@@ -985,6 +1028,18 @@ class GatewayService:
             routed_tasks=[x for x in routed if isinstance(x, dict)],
             unrouted_messages=[x for x in unrouted if isinstance(x, dict)],
             truth_boundary=_optional_str(result, "truthBoundary"),
+        )
+
+    async def continuity_changes(
+        self, *, after_sequence: int, limit: int = 100
+    ) -> ContinuityChanges:
+        legacy = await self.continuity_attention(after_sequence=after_sequence, limit=limit)
+        return ContinuityChanges(
+            board_fence=legacy.board_fence,
+            summary=legacy.summary,
+            routed_tasks=legacy.routed_tasks,
+            unrouted_messages=legacy.unrouted_messages,
+            truth_boundary=legacy.truth_boundary,
         )
 
     async def collaboration_post(
@@ -1018,6 +1073,44 @@ class GatewayService:
             admission=_required_str(result, "admission"),
             message=_collaboration_message(payload),
             truth_boundary=_optional_str(result, "truthBoundary"),
+        )
+
+    async def collaboration_publish(
+        self,
+        *,
+        client_message_id: str,
+        author_label: str,
+        message: str,
+        scope: str,
+        continuity_id: str | None = None,
+        message_kind: str = "note",
+        topic: str | None = None,
+        reply_to_client_message_id: str | None = None,
+    ) -> CollaborationPostReceipt:
+        """Publish collaboration with an explicit global or continuity scope."""
+        if scope == "global":
+            if continuity_id is not None:
+                raise GatewayError("global collaboration scope must not include continuity_id")
+            if reply_to_client_message_id is not None:
+                raise GatewayError(
+                    "global collaboration.publish cannot reply to an existing message because "
+                    "Host reply routing may inherit continuity scope"
+                )
+            task_id = None
+        elif scope == "continuity":
+            if not continuity_id:
+                raise GatewayError("continuity collaboration scope requires continuity_id")
+            task_id = continuity_id
+        else:
+            raise GatewayError("collaboration scope must be global or continuity")
+        return await self.collaboration_post(
+            client_message_id=client_message_id,
+            author_label=author_label,
+            message=message,
+            message_kind=message_kind,
+            topic=topic,
+            reply_to_client_message_id=reply_to_client_message_id,
+            task_id=task_id,
         )
 
     async def collaboration_list(

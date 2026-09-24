@@ -11,15 +11,19 @@ Gateway owns only:
 
 Gateway never owns Runtime Job/Attempt truth, Host continuity truth, Harness run truth, OAuth/credential authority, Plugin/Skill semantics, or domain completion.
 
-B01 is intentionally small. The public schema avoids fast-moving closed enums such as Runtime execution-context values; capability-specific validation/lowering happens server-side.
+B01 is intentionally small. The public schema avoids fast-moving closed enums such as Runtime execution-context values. Provider-owned context data stays opaque at the Gateway boundary; Gateway only lowers the generic envelope into the owner field and leaves semantic validation to the owner.
+
+For `execution.windows`, Gateway 0.4 accepts either the legacy provider-defined string context or a provider-defined JSON object. A string is forwarded as Runtime `windowsAuthority`; an object is forwarded unchanged as Runtime `windowsContext`. Capability projection prefers Runtime `windowsContexts` when the owner advertises them, so identity/privilege composition remains Runtime-owned rather than duplicated in Gateway.
 
 
 ## Host northbound boundary
 
 The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
 
-- continuity get/list/observe and adopt/checkpoint/attention
-- collaboration list/search/post
+- continuity get/list/observe and adopt/checkpoint/attention (compatibility)
+- continuity find/changes (preferred discovery/change vocabulary; mechanical recency only)
+- collaboration list/search/post (compatibility)
+- collaboration publish (preferred write vocabulary; explicit global or continuity scope)
 
 Gateway intentionally does not expose host.status; owner administration and Doctor remain direct-owner recovery/admin concerns.
 

@@ -81,9 +81,9 @@ For Runtime execution, the normal Gateway northbound surface includes submit/get
 
 ### Host normal northbound completion
 
-The Gateway now covers Host's normal Agent-facing continuity/collaboration seam: `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.
+The Gateway now covers Host's normal Agent-facing continuity/collaboration seam. Compatibility actions remain `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`; preferred newer vocabulary adds `continuity.find`, `continuity.changes`, and `collaboration.publish`. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.
 
-Gateway keeps WorkingCheckpoint payloads opaque and delegates their validation to Host. `host.status`/Doctor remains direct-owner admin/recovery only. Connector catalog freshness remains a client/connector responsibility; a stale consumer snapshot does not redefine the live Gateway surface.
+Gateway keeps WorkingCheckpoint payloads opaque and delegates their validation to Host. `host.status`/Doctor remains direct-owner admin/recovery only. Connector catalog freshness remains a client/connector responsibility; a stale consumer snapshot does not redefine the live Gateway surface. Windows execution context is likewise owner-defined: Gateway 0.4 routes either the legacy provider string or an opaque provider JSON object, while Windows Runtime alone validates identity/privilege composition.
 
 ## 4. Method Router ≠ Capability Router
 

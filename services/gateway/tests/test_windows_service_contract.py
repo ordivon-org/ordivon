@@ -13,7 +13,7 @@ def test_windows_service_materializer_keeps_owner_lifecycle_independent() -> Non
     assert "--kill-process-tree" in text
     assert "--stop-timeout" in text
     assert "ownerServiceDependencies = @()" in text
-    assert "[string]$StartMode = 'Manual'" in text
+    assert "[string]$StartMode = 'Automatic'" in text
     assert "$scStartMode" in text
     assert "--dependencies" not in text
     assert "'failure'" in text
