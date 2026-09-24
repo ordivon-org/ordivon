@@ -71,3 +71,22 @@ def test_windows_acl_materializer_protects_directory_root_then_resets_descendant
     assert "Grant-TraverseDirectory" in text
     assert "Join-Path $prefixPath 'releases'" in text
     assert "Join-Path $prefixPath 'toolchain'" in text
+
+
+def test_windows_service_materializer_preserves_public_access_contract() -> None:
+    text = MATERIALIZER.read_text()
+    assert "[string]$PublicOrigin = ''" in text
+    assert "[switch]$TrustCfAccess" in text
+    assert "[string]$CfAccessIssuer = ''" in text
+    assert "[string]$CfAccessAudience = ''" in text
+    assert "ORDIVON_GATEWAY_PUBLIC_ORIGIN" in text
+    assert "ORDIVON_GATEWAY_TRUST_CF_ACCESS" in text
+    assert "ORDIVON_GATEWAY_CF_ACCESS_ISSUER" in text
+    assert "ORDIVON_GATEWAY_CF_ACCESS_AUDIENCE" in text
+    assert (
+        "Cloudflare Access trust requires PublicOrigin, CfAccessIssuer, and CfAccessAudience"
+        in text
+    )
+    assert "CfAccessIssuer/CfAccessAudience require -TrustCfAccess" in text
+    assert "publicOriginConfigured" in text
+    assert "trustCfAccess" in text
