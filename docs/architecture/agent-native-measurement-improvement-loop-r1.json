@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-native-measurement-improvement-loop",
+  "effectiveDate": "2026-09-24",
+  "standing": "CURRENT_MAIN_COMPILED_PROFILE_REUSE_EXISTING_SUBSTRATE",
+  "truthRole": "architecture-profile-not-owner-truth-or-promotion-authority",
+  "sourceTrigger": "Anthropic claude.dev performance sprint and related agent-engineering series",
+  "reusedSubstrate": [
+    "meta/next/docs/IMPROVEMENT_CIRCUIT_PROFILE_R1.md",
+    "packages/composition/docs/VERIFICATION_OBLIGATION_R1.md",
+    "meta/next/docs/CROSS_DOMAIN_VERIFICATION_R3.md",
+    "docs/architecture/EVIDENCE_BOUNDARY_CENSUS_R1.md",
+    "docs/architecture/LEARNING_DATA_OWNERSHIP_CENSUS_R1.md",
+    "meta/next/docs/EXPERIMENTAL_EPISODE_R1.md",
+    "meta/next/docs/DATA_PRODUCT_CONSUMPTION_FEEDBACK_R1.md",
+    "services/runtime/formal/README.md",
+    "capabilities/artifact/docs/ARTIFACT_VERIFICATION_SERVICE_R1.md"
+  ],
+  "nodes": [
+    {
+      "id": "M00",
+      "label": "OutcomeContract",
+      "owner": "caller/domain",
+      "required": true
+    },
+    {
+      "id": "M01",
+      "label": "JourneyScenarioContract",
+      "owner": "domain/product",
+      "required": true
+    },
+    {
+      "id": "M02",
+      "label": "ObservationSource",
+      "owner": "natural observer/provider",
+      "required": true
+    },
+    {
+      "id": "M03",
+      "label": "MeasurementContract",
+      "owner": "task-local evaluator + metric owner",
+      "required": true
+    },
+    {
+      "id": "M04",
+      "label": "ProxyCandidate",
+      "owner": "task-local study",
+      "required": "when surrogate used"
+    },
+    {
+      "id": "M05",
+      "label": "ProxyQualification",
+      "owner": "evaluation boundary / study",
+      "required": "when surrogate used"
+    },
+    {
+      "id": "M06",
+      "label": "DeterministicReplayBenchmark",
+      "owner": "natural benchmark/verifier owner",
+      "required": "benchmark or justified direct measurement"
+    },
+    {
+      "id": "M07",
+      "label": "SearchCell",
+      "owner": "task-local Cognitive Circuit / Harness",
+      "required": true
+    },
+    {
+      "id": "M08",
+      "label": "CandidateMaterialization",
+      "owner": "Runtime/Harness/domain implementation owner",
+      "required": true
+    },
+    {
+      "id": "M09",
+      "label": "VerificationObligations",
+      "owner": "packages/composition + natural verifiers",
+      "required": true
+    },
+    {
+      "id": "M10",
+      "label": "ControlledEffectRelease",
+      "owner": "external effect/promotion authority",
+      "required": true
+    },
+    {
+      "id": "M11",
+      "label": "FieldObservation",
+      "owner": "natural field/provider owner",
+      "required": "for real-world improvement claims"
+    },
+    {
+      "id": "M12",
+      "label": "Adjudication",
+      "owner": "domain/evaluation owner",
+      "required": true
+    },
+    {
+      "id": "M13",
+      "label": "RegressionRatchet",
+      "owner": "natural invariant/CI/release owner",
+      "required": "for durable non-regression"
+    },
+    {
+      "id": "M14",
+      "label": "InstrumentGapDiscovery",
+      "owner": "study + observation owner",
+      "required": false
+    },
+    {
+      "id": "M15",
+      "label": "AnalyticalEpisodeLearningFeedback",
+      "owner": "analytical consumer",
+      "required": false
+    }
+  ],
+  "edges": [
+    [
+      "M00",
+      "M01"
+    ],
+    [
+      "M01",
+      "M02"
+    ],
+    [
+      "M02",
+      "M03"
+    ],
+    [
+      "M03",
+      "M04"
+    ],
+    [
+      "M04",
+      "M05"
+    ],
+    [
+      "M05",
+      "M06"
+    ],
+    [
+      "M03",
+      "M06"
+    ],
+    [
+      "M06",
+      "M07"
+    ],
+    [
+      "M07",
+      "M08"
+    ],
+    [
+      "M08",
+      "M09"
+    ],
+    [
+      "M09",
+      "M10"
+    ],
+    [
+      "M10",
+      "M11"
+    ],
+    [
+      "M11",
+      "M12"
+    ],
+    [
+      "M12",
+      "M13"
+    ],
+    [
+      "M12",
+      "M14"
+    ],
+    [
+      "M14",
+      "M03"
+    ],
+    [
+      "M12",
+      "M15"
+    ],
+    [
+      "M15",
+      "M03"
+    ]
+  ],
+  "separationLaws": [
+    "user outcome != proxy metric",
+    "observation != evidence",
+    "measurement != diagnosis",
+    "lab benchmark != field outcome",
+    "mechanical closure != domain acceptance",
+    "successor closure != promotion authority",
+    "telemetry != task label",
+    "analytical episode != owner truth",
+    "formal model check != implementation refinement proof",
+    "regression ratchet != universal fitness function"
+  ],
+  "antiGrowth": [
+    "no universal optimizer",
+    "no universal fitness score",
+    "no new evidence truth store",
+    "no second experimental database",
+    "no universal verifier/proof language",
+    "no new workflow engine",
+    "no automatic promotion authority",
+    "no catalog/data-lake service without measured demand"
+  ],
+  "surveyBaseMain": "e66aaa1eabcb21b02b58e139b687162dac0e930f",
+  "currentResolutions": [
+    {
+      "nodes": [
+        "M03"
+      ],
+      "standing": "REUSE_EXISTING",
+      "carrier": "packages/composition/docs/META_IMPROVEMENT_MEASUREMENT_R1.md + natural measurement owner",
+      "nonClaim": "no global metric schema"
+    },
+    {
+      "nodes": [
+        "M04",
+        "M05"
+      ],
+      "standing": "REUSE_EXISTING",
+      "carrier": "Evaluation Boundary + negative controls/held-out evidence + study owner",
+      "nonClaim": "proxy is not field truth"
+    },
+    {
+      "nodes": [
+        "M09"
+      ],
+      "standing": "REUSE_EXISTING_WITH_V07_PARTIAL_TRACE_GATE",
+      "carrier": "Verification Obligation + natural verifiers + RuntimeDispatchR1 trace gate",
+      "nonClaim": "not a mechanized Rust-to-TLA+ refinement proof"
+    },
+    {
+      "nodes": [
+        "M13"
+      ],
+      "standing": "OWNER_SCOPED",
+      "carrier": "natural invariant/CI/release owner",
+      "nonClaim": "no universal fitness authority"
+    },
+    {
+      "nodes": [
+        "M15"
+      ],
+      "standing": "REUSE_EXISTING_D16_OPEN_EMPIRICAL",
+      "carrier": "Experimental Episode + OpenLineage/PROV + data-product feedback",
+      "nonClaim": "NO_CHANGE_REQUIRED does not prove adaptive optimization"
+    },
+    {
+      "nodes": [
+        "M14"
+      ],
+      "standing": "EVENT_DRIVEN",
+      "carrier": "study + natural observation owner",
+      "nonClaim": "no instrument without demonstrated blind spot"
+    }
+  ],
+  "remaining": [
+    "one real non-trivial outcome-driven policy/configuration successor (D16)",
+    "new instrumentation only after demonstrated observation or proxy blind spot",
+    "stronger formal refinement only when a concrete theorem-grade claim requires it"
+  ]
+}
