@@ -614,7 +614,7 @@ def main() -> int:
         fail("SD1 standing drifted")
     if (
         by_wave.get("SD2", {}).get("standing")
-        != "IN_PROGRESS_ARIES_RESPONSE_SEMANTIC_DISAPERE_PEERSUM_MATERIALIZED"
+        != "IN_PROGRESS_ARIES_ANNOTATION_SUBSTRATE_READY_GOLD_BLOCKED_DISAPERE_PEERSUM_MATERIALIZED"
     ):
         fail("SD2 standing drifted")
     if by_wave.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
@@ -655,7 +655,7 @@ def main() -> int:
 
     if (
         sd2.get("standing")
-        != "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED"
+        != "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_PLUS_ARIES_ANNOTATION_SUBSTRATE_GOLD_BLOCKED"
     ):
         fail("SD2 readiness standing drifted")
     sd2_by_id = {row["id"]: row for row in sd2.get("datasets", [])}
@@ -669,6 +669,28 @@ def main() -> int:
     for key, standing in expected_sd2.items():
         if sd2_by_id.get(key, {}).get("standing") != standing:
             fail(f"SD2 dataset standing drifted: {key}")
+
+    aries_sd2 = sd2_by_id["aries"]
+    if (
+        aries_sd2.get("annotationSubstrate")
+        != "PASS_ARIES_RESPONSE_REVISION_ANNOTATION_SUBSTRATE_R1"
+    ):
+        fail("ARIES annotation substrate standing missing from SD2 readiness")
+    if (
+        aries_sd2.get("annotationUnits") != 87
+        or aries_sd2.get("annotationCandidatePairs") != 248
+    ):
+        fail("ARIES annotation substrate cardinality drifted in SD2 readiness")
+    if aries_sd2.get("coderEffectStanding") != {
+        "preEffectFailed": 6,
+        "unknown": 2,
+        "bound": 0,
+    }:
+        fail("ARIES coder effect standing drifted in SD2 readiness")
+    if aries_sd2.get("goldStanding") != "BLOCKED_NO_FROZEN_INDEPENDENT_CODER_CUTS":
+        fail("ARIES response-revision gold gate silently opened in SD2 readiness")
+    if aries_sd2.get("modelTrainingStanding") != "BLOCKED_PENDING_GOLD_ADMISSION":
+        fail("ARIES semantic model training gate silently opened in SD2 readiness")
 
     result = {
         "schemaVersion": 1,

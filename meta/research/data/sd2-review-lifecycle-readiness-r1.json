@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "kind": "ordivon.research.review-lifecycle-data-readiness",
   "id": "sd2-review-lifecycle-readiness-r1",
-  "observedAt": "2026-09-23",
+  "observedAt": "2026-09-24",
   "truthRole": "acquisition-readiness-observation-not-reviewer-truth-or-legal-advice",
-  "standing": "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED",
+  "standing": "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_PLUS_ARIES_ANNOTATION_SUBSTRATE_GOLD_BLOCKED",
   "datasets": [
     {
       "id": "aries",
@@ -16,7 +16,18 @@
       "identified": "same-authority concern->source-review->author-response topology plus concern->revision correspondence and text-bearing response/edit candidate substrate",
       "stillNotIdentified": "gold response->revision semantic relation, response adequacy, or causal link",
       "semanticContentCore": "aries-semantic-content-core-r1",
-      "next": "independent/blinded semantic annotation over 248 bounded candidate pairs; model training/ranking remains blocked before validated relation labels"
+      "next": "Resolve the two UNKNOWN materialization effects without blind redispatch; after a provider/materializer condition change, obtain two independent frozen coder cuts under the existing campaign identities, compute agreement, and adjudicate before any model training.",
+      "annotationSubstrate": "PASS_ARIES_RESPONSE_REVISION_ANNOTATION_SUBSTRATE_R1",
+      "annotationUnits": 87,
+      "annotationCandidatePairs": 248,
+      "coderCampaignAttempt": "BLOCKED_NO_FROZEN_CODER_CUTS_PROVIDER_MATERIALIZATION_UNRESOLVED",
+      "coderEffectStanding": {
+        "preEffectFailed": 6,
+        "unknown": 2,
+        "bound": 0
+      },
+      "goldStanding": "BLOCKED_NO_FROZEN_INDEPENDENT_CODER_CUTS",
+      "modelTrainingStanding": "BLOCKED_PENDING_GOLD_ADMISSION"
     },
     {
       "id": "peersum",

@@ -34,6 +34,8 @@ uv run --locked --group authority python ../research/scripts/check_scholarly_liv
 uv run --locked --group authority python ../research/scripts/check_scholarly_pressure_r1.py
 uv run --locked --group authority python ../research/scripts/check_scholarly_data_plane_r1.py
 uv run --locked --group authority python ../research/scripts/check_aries_semantic_content_core_r1.py
+uv run --locked --group authority python ../research/scripts/check_aries_response_revision_annotation_r1.py
+uv run --locked --group authority python ../research/scripts/check_aries_response_revision_gold_gate_r1.py
 uv run --locked --group authority python ../research/scripts/check_aries_review_response_core_r1.py
 uv run --locked --group authority python ../research/scripts/check_review_lifecycle_schema_r3.py
 uv run --locked --group authority python ../research/scripts/check_context24_asset_r1.py

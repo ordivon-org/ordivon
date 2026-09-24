@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/aries-response-revision-annotation-v1.schema.json",
+  "title": "ARIES Response Revision Annotation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "unitId", "coderId", "judgments"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "unitId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "coderId": {"type": "string", "minLength": 1},
+    "judgments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidatePairId", "relationLabel", "evidenceBasis", "confidence", "adequacyStanding", "causalStanding"],
+        "properties": {
+          "candidatePairId": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "relationLabel": {"enum": ["DIRECT_REALIZATION","PARTIAL_REALIZATION","RELATED_NOT_REALIZATION","NO_RELATION","INSUFFICIENT_CONTEXT"]},
+          "evidenceBasis": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"enum": ["EXPLICIT_CHANGE_STATEMENT","PARAPHRASE_OR_SEMANTIC_MATCH","SECTION_OR_LOCATION_REFERENCE","EXPERIMENT_OR_RESULT_MATCH","METHOD_OR_DATA_MATCH","THEORY_OR_PROOF_MATCH","RESOURCE_OR_ARTIFACT_MATCH","STRUCTURAL_OR_ORGANIZATION_MATCH","NEGATIVE_EVIDENCE","OTHER"]}
+          },
+          "confidence": {"enum": ["HIGH", "MEDIUM", "LOW"]},
+          "adequacyStanding": {"const": "NOT_ANNOTATED_R1"},
+          "causalStanding": {"const": "NOT_INFERRED"},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "groupNote": {"type": "string"}
+  }
+}

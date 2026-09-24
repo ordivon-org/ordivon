@@ -1,0 +1,22 @@
+{
+  "counts": {
+    "candidatePairs": 248,
+    "coderPacks": 2,
+    "inconsistentConcernGroups": 0,
+    "missingConcernBindings": 0,
+    "units": 87
+  },
+  "goldAdmission": "BLOCKED_PENDING_TWO_INDEPENDENT_FROZEN_CODER_CUTS_AND_ADJUDICATION",
+  "kind": "ordivon.research.aries-response-revision-annotation-substrate-acceptance",
+  "modelTrainingStanding": "BLOCKED_PENDING_GOLD_ADMISSION",
+  "relationStanding": "ANNOTATION_SUBSTRATE_ONLY_NO_GOLD_YET",
+  "rightsBoundary": {
+    "commercialPaperTextReuse": "NOT_AUTHORIZED_BY_CATALOG",
+    "externalPaperTextRedistribution": "NOT_AUTHORIZED_BY_CATALOG",
+    "internalAnnotationOnly": true
+  },
+  "schemaVersion": 1,
+  "sourceSnapshotIdentity": "sha256:aee4b640155c01f8c0e1f677494356f87944671e4a5c7079de8c86ee11fb0848",
+  "standing": "PASS_ARIES_RESPONSE_REVISION_ANNOTATION_SUBSTRATE_R1",
+  "truthBoundary": "Acceptance proves complete blinded annotation substrate construction only. It does not establish response-to-revision semantic gold, adequacy, or causality."
+}
