@@ -60,9 +60,14 @@ $before=Volume-State
 $status='failed';$errorText=$null;$recovery=$null
 try {
   Remove-Item $ready,$terminal,$handoff,$authorization,$result,$optimizeOut -Force -ErrorAction SilentlyContinue
-  $gateArgs=@('-d',$distro,'-u','root','--','/usr/bin/systemd-run','--unit='+$unitName,'--collect','--property=Type=exec','/usr/bin/python3',$gateLinux,'--maintenance-id',$MaintenanceId,'--unit-name',$unitName,'--transaction-root',('/mnt/d/OrdivonStudio/maintenance/'+$MaintenanceId))
+  $unitArg = ('--unit={0}' -f $unitName)
+  $txLinux = ('/mnt/d/OrdivonStudio/maintenance/{0}' -f $MaintenanceId)
+  $gateArgs=@('-d',$distro,'-u','root','--','/usr/bin/systemd-run',$unitArg,'--collect','--property=Type=exec','--','/usr/bin/python3',$gateLinux,'--maintenance-id',$MaintenanceId,'--unit-name',$unitName,'--transaction-root',$txLinux)
+  $savedErrorActionPreference=$ErrorActionPreference
+  $ErrorActionPreference='Continue'
   $submitOutput=((& "$env:WINDIR\System32\wsl.exe" @gateArgs 2>&1)|Out-String)
   $submitRc=$LASTEXITCODE
+  $ErrorActionPreference=$savedErrorActionPreference
   Atomic-Json "$txRoot\gate-submit.json" ([ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-gate-submit';maintenanceId=$MaintenanceId;unitName=$unitName;rc=$submitRc;output=$submitOutput;observedAt=[DateTimeOffset]::Now.ToString('o')})
   if($submitRc -ne 0){throw "systemd-run gate submission failed rc=$submitRc output=$($submitOutput.Trim())"}
 

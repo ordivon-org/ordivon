@@ -73,6 +73,15 @@ def test_windows_controller_submits_systemd_owner_instead_of_holding_wsl_transpo
     assert "Optimize-VHD -Path $vhdPath -Mode Full" in text
 
 
+def test_windows_controller_builds_systemd_unit_as_one_argument_and_separates_executable():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "$unitArg = ('--unit={0}' -f $unitName)" in text
+    assert "'/usr/bin/systemd-run',$unitArg,'--collect','--property=Type=exec','--','/usr/bin/python3'" in text
+    assert "'--unit='+$unitName" not in text
+    assert "$ErrorActionPreference='Continue'" in text
+    assert "gate-submit.json" in text
+
+
 def test_authorization_binds_exact_maintenance_ready_and_code_digests():
     text = AUTHORIZER.read_text(encoding="utf-8")
     for token in (
