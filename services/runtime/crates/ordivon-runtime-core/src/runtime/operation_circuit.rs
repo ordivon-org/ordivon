@@ -1,7 +1,8 @@
 use super::authority_contract::AuthorityContract;
 use super::{
-    ExecutionProviderSnapshot, HostDependencyBinding, InputBindingRequest, JobRunRequest,
-    RuntimeError, RuntimeExecutionPlan, RuntimeResult, SubmitRequest, RUNTIME_SCHEMA_VERSION,
+    CredentialBindingRequest, ExecutionProviderSnapshot, HostDependencyBinding,
+    InputBindingRequest, JobRunRequest, RuntimeError, RuntimeExecutionPlan, RuntimeResult,
+    SubmitRequest, RUNTIME_SCHEMA_VERSION,
 };
 
 /// Thin internal physical-execution circuit.
@@ -10,8 +11,8 @@ use super::{
 /// instead of creating a second persisted execution schema. The compiler composes one new
 /// ordinary admission only after exact replay and R07 authority compilation have already run.
 /// Reduced and trusted immutable-input admission are the second and third strangler slices;
-/// credential-bound and Runtime-release families remain on their current paths until they
-/// independently prove parity.
+/// credential-bound trusted admission is the fourth. Runtime release remains on its dedicated
+/// reconciliable effect path rather than being folded into this effect-opaque execution circuit.
 #[derive(Debug)]
 pub(crate) struct ExecutionCircuit {
     submit: SubmitRequest,
@@ -136,16 +137,51 @@ impl OperationCircuitCompiler {
             },
         })
     }
+
+    pub(crate) fn credential_bound_trusted(
+        authority: &AuthorityContract,
+        request: &JobRunRequest,
+        credentials: &[CredentialBindingRequest],
+        request_identity_digest: String,
+        provider: ExecutionProviderSnapshot,
+        plan: RuntimeExecutionPlan,
+    ) -> RuntimeResult<ExecutionCircuit> {
+        authority.validate_credential_bound_trusted_realization(request, credentials)?;
+        if plan.principal != request.principal
+            || plan.execution_target != request.execution.execution_target
+            || plan.execution_profile != request.execution.execution_profile
+            || plan.input_set_id.is_some()
+            || !plan.effective_inputs.is_empty()
+            || plan.credential_set_id.is_none()
+        {
+            return Err(RuntimeError::invalid(
+                "resolved execution plan does not match the admitted credential-bound request",
+                "executionCircuit",
+            ));
+        }
+        Ok(ExecutionCircuit {
+            submit: SubmitRequest {
+                schema_version: RUNTIME_SCHEMA_VERSION,
+                client_request_id: request.client_request_id.clone(),
+                request_identity_digest: Some(request_identity_digest),
+                execution_provider: Some(provider),
+                runtime_release_effect: None,
+                host_dependencies: Vec::new(),
+                plan,
+                global_limit: request.global_limit,
+            },
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::runtime::{
-        EffectiveInputBinding, ExecutionBudget, ExecutionProfile, ExecutionProposal,
-        ExecutionProviderContract, ExecutionStepProposal, ExecutionTarget, InputAccessMode,
-        InputBindingRequest, JobRunProposal, RuntimeExecutionStep, UniversalExecutionRequest,
-        UniversalExecutionStep, WindowsAuthority,
+        CredentialBindingRequest, EffectiveInputBinding, ExecutionBudget, ExecutionProfile,
+        ExecutionProposal, ExecutionProviderContract, ExecutionStepProposal, ExecutionTarget,
+        InputAccessMode, InputBindingRequest, JobRunProposal, RuntimeExecutionStep,
+        UniversalExecutionRequest, UniversalExecutionStep, WindowsAuthority,
     };
     use std::collections::BTreeMap;
 
@@ -517,6 +553,108 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(error.field.as_deref(), Some("authorityContract"));
+    }
+
+    fn credential(authority: &str, name: &str) -> CredentialBindingRequest {
+        CredentialBindingRequest {
+            authority: authority.to_string(),
+            credential: name.to_string(),
+        }
+    }
+
+    fn plan_with_credentials() -> RuntimeExecutionPlan {
+        let mut value = plan(ExecutionProfile::TrustedLocal);
+        value.credential_set_id = Some("credential-set-r08".to_string());
+        value
+    }
+
+    #[test]
+    fn credential_bound_compiler_is_exact_submit_request_parity() {
+        let credentials = vec![credential("provider", "api-key")];
+        let proposal = proposal(ExecutionProfile::TrustedLocal);
+        let authority =
+            AuthorityContract::credential_bound_trusted(&proposal, &credentials).unwrap();
+        let request = request(ExecutionProfile::TrustedLocal);
+        let plan = plan_with_credentials();
+        let provider = provider();
+        let identity = "runtime-request-credential-v1:sha256:parity".to_string();
+        let expected = SubmitRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            client_request_id: request.client_request_id.clone(),
+            request_identity_digest: Some(identity.clone()),
+            execution_provider: Some(provider.clone()),
+            runtime_release_effect: None,
+            host_dependencies: Vec::new(),
+            plan: plan.clone(),
+            global_limit: request.global_limit,
+        };
+        let compiled = OperationCircuitCompiler::credential_bound_trusted(
+            &authority,
+            &request,
+            &credentials,
+            identity,
+            provider,
+            plan,
+        )
+        .unwrap()
+        .into_submit_request();
+        assert_eq!(compiled, expected);
+    }
+
+    #[test]
+    fn credential_bound_compiler_rejects_ordinary_family() {
+        let credentials = vec![credential("provider", "api-key")];
+        let proposal = proposal(ExecutionProfile::TrustedLocal);
+        let authority = AuthorityContract::ordinary(&proposal).unwrap();
+        let error = OperationCircuitCompiler::credential_bound_trusted(
+            &authority,
+            &request(ExecutionProfile::TrustedLocal),
+            &credentials,
+            "runtime-request-credential-v1:sha256:wrong-family".to_string(),
+            provider(),
+            plan_with_credentials(),
+        )
+        .unwrap_err();
+        assert_eq!(error.field.as_deref(), Some("authorityContract"));
+    }
+
+    #[test]
+    fn credential_bound_compiler_fails_closed_on_authority_drift() {
+        let credentials = vec![credential("provider-a", "api-key")];
+        let proposal = proposal(ExecutionProfile::TrustedLocal);
+        let authority =
+            AuthorityContract::credential_bound_trusted(&proposal, &credentials).unwrap();
+        let drifted = vec![credential("provider-b", "api-key")];
+        let error = OperationCircuitCompiler::credential_bound_trusted(
+            &authority,
+            &request(ExecutionProfile::TrustedLocal),
+            &drifted,
+            "runtime-request-credential-v1:sha256:authority-drift".to_string(),
+            provider(),
+            plan_with_credentials(),
+        )
+        .unwrap_err();
+        assert_eq!(error.field.as_deref(), Some("authorityContract"));
+    }
+
+    #[test]
+    fn credential_bound_compiler_requires_materialized_plan_identity() {
+        let credentials = vec![credential("provider", "api-key")];
+        let proposal = proposal(ExecutionProfile::TrustedLocal);
+        let authority =
+            AuthorityContract::credential_bound_trusted(&proposal, &credentials).unwrap();
+        let mut missing_set = plan_with_credentials();
+        missing_set.credential_set_id = None;
+        let error = OperationCircuitCompiler::credential_bound_trusted(
+            &authority,
+            &request(ExecutionProfile::TrustedLocal),
+            &credentials,
+            "runtime-request-credential-v1:sha256:no-set".to_string(),
+            provider(),
+            missing_set,
+        )
+        .unwrap_err();
+        assert_eq!(error.field.as_deref(), Some("executionCircuit"));
     }
 
     #[test]

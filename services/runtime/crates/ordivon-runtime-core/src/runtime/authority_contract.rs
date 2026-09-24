@@ -186,6 +186,46 @@ impl AuthorityContract {
         Ok(())
     }
 
+    pub(crate) fn validate_credential_bound_trusted_realization(
+        &self,
+        request: &JobRunRequest,
+        credentials: &[CredentialBindingRequest],
+    ) -> RuntimeResult<()> {
+        if self.family != ExecutionAuthorityFamily::CredentialBoundTrusted {
+            return Err(RuntimeError::invalid(
+                "credential-bound circuit requires credential-bound AuthorityContract",
+                "authorityContract",
+            ));
+        }
+        let execution = &request.execution;
+        let executable_paths = sorted_unique(
+            std::iter::once(execution.executable.as_str())
+                .chain(execution.steps.iter().map(|step| step.executable.as_str())),
+        );
+        let credential_authorities = sorted_unique(
+            credentials
+                .iter()
+                .map(|credential| credential.authority.as_str()),
+        );
+        let declared_host_dependencies = sorted_host_dependencies(&execution.host_dependencies);
+        if self.principal != request.principal
+            || self.execution_target != execution.execution_target
+            || self.execution_profile != execution.execution_profile
+            || self.legacy_windows_authority != execution.windows_authority
+            || self.windows_context.is_some()
+            || self.executable_paths != executable_paths
+            || self.credential_authorities != credential_authorities
+            || !self.input_authorities.is_empty()
+            || self.host_dependencies != declared_host_dependencies
+        {
+            return Err(RuntimeError::invalid(
+                "credential-bound realization drifted from its AuthorityContract",
+                "authorityContract",
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn ordinary(proposal: &JobRunProposal) -> RuntimeResult<Self> {
         Self::compile(ExecutionAuthorityFamily::Ordinary, proposal, &[], &[])
     }
