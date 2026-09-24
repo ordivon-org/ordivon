@@ -1,6 +1,6 @@
 # Ordivon Social Work Fabric R1
 
-Status: destructive recomposition candidate. Legacy Task and Board shapes have no inheritance right.
+Status: bounded Social Work core is live at schema 8; final physical retirement of legacy Task/Board storage is candidate-verified for schema 9. Legacy shapes have no inheritance right.
 
 ## Problem
 
@@ -60,3 +60,13 @@ Current-main replay on `ece52e0014d5cb3363e2db762e1a96000ab2144e` passed focused
 **HOLD**: WorkRelation and CoordinationIntent remain evidence-scoped internal LEGO because real migration/domain dogfood produced zero such records. Their default northbound tools are intentionally not promoted. Private/confidential semantics remain held on Identity/Security enforcement.
 
 **KILL**: privileged Task/Board core shapes, compatibility facade, dual-write migration, custom attention event bus/graph DB, social ranking/voting/scheduler/lock/lease, and dedicated DM/group/thread ontologies.
+
+## Legacy physical retirement
+
+The live schema-8 cutover already removed `task.*` and `board.*` from the active MCP surface, but the legacy Python implementation and four PostgreSQL tables remained as dormant active-schema baggage. R1 therefore treats physical retirement as a separate destructive gate rather than mistaking northbound removal for deletion.
+
+Before deletion, production `tasks`, `checkpoints`, `task_events`, and `board_messages` were captured into a root-only local PostgreSQL custom archive. The archive is 38,343,067 bytes with SHA-256 `4806bc0c4bb75cb41af84c6d4a2b2933c25beafa2585de00d54e2b3efbef727e`; a transactional schema-remap restore reproduced exact row counts `2155 / 15145 / 15145 / 17177`, while source counts stayed unchanged. Archive contents are deliberately not committed to Git.
+
+Migration `0009` deletes only legacy active storage and advances Host to schema 9. A fresh `0001→0009` database passed the full Host suite with zero legacy tables. A second destroyer loaded the real production archive into schema 8, added independent SWF truth, upgraded `0008→0009`, and proved the legacy tables disappeared while the SWF snapshot remained byte-identical. `0009` is intentionally irreversible: historical recovery restores the archive into a separate recovery database instead of recreating active Task/Board storage.
+
+This section records candidate qualification only until the commit is current-main integrated and the production Host is independently observed at schema 9.

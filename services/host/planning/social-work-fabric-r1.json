@@ -310,7 +310,7 @@
         "SWF74",
         "SWF75"
       ],
-      "standing": "ISOLATED_CUTOVER_VERIFIED_AWAITING_LIVE"
+      "standing": "LIVE_SCHEMA8_CUTOVER_DONE_RETIREMENT_CANDIDATE_VERIFIED"
     },
     {
       "id": "W8",
@@ -396,5 +396,33 @@
       "postPruneFinal": "job-01a0d30f-4690-7ff2-ba82-274917a933ba"
     },
     "integrationPolicy": "Use repository-owned tools/repo/migration/integrate-main.sh under its shared main lock; a later disjoint moving main does not authorize stale direct mutation."
+  },
+  "legacyRetirement": {
+    "standing": "CANDIDATE_VERIFIED_AWAITING_LATEST_MAIN_INTEGRATION_AND_LIVE_SCHEMA9",
+    "sourceBoundary": "Task/Board northbound is already removed in live schema8; remaining retirement removes legacy active package code and PostgreSQL storage after immutable archive verification.",
+    "archive": {
+      "truthRole": "local immutable recovery evidence; contents are not committed to Git",
+      "sha256": "sha256:4806bc0c4bb75cb41af84c6d4a2b2933c25beafa2585de00d54e2b3efbef727e",
+      "bytes": 38343067,
+      "counts": {
+        "tasks": 2155,
+        "checkpoints": 15145,
+        "task_events": 15145,
+        "board_messages": 17177
+      },
+      "restoreVerification": "PASS",
+      "productionCountsStableDuringCaptureAndVerification": true
+    },
+    "candidateSchemaVersion": 9,
+    "migrationPolicy": "0009 is intentionally irreversible; recovery restores the schema8 legacy archive into a separate recovery database rather than recreating active Task/Board storage.",
+    "verificationJobs": {
+      "archiveRestore": "job-01a0d35c-546d-7cb3-89df-d1b0d57ef2ca",
+      "freshSchema1To9FullHost": "job-01a0d363-796a-79e3-8c38-3bb8f4460d51",
+      "schema8To9ProductionArchiveDestroyer": "job-01a0d365-a3d1-7d50-997c-176614abbd85"
+    },
+    "nonClaims": [
+      "schema9 is not yet live production truth",
+      "Gateway/consumer connector currentness is owned outside Host retirement"
+    ]
   }
 }

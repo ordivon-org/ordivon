@@ -1,20 +1,11 @@
 from __future__ import annotations
 
-import os
-from uuid import uuid4
-
 import pytest
 
-from ordivon_host_v2 import CheckpointInput, HostV2
-from ordivon_host_v2.board import BoardStore
 from ordivon_host_v2.canonical import canonical_digest
 from ordivon_host_v2.legacy_cutover import (
-    apply_cutover_plan,
     compile_cutover_plan,
-    extract_legacy_snapshot,
 )
-
-DSN = os.environ.get("ORDIVON_HOST_V2_TEST_DSN")
 
 
 def _sealed(body: dict) -> dict:
@@ -257,76 +248,3 @@ def test_cutover_rejects_tampered_snapshot() -> None:
     snapshot["tasks"].append({"task_id": "tamper"})
     with pytest.raises(ValueError, match="digest mismatch"):
         compile_cutover_plan(snapshot)
-
-
-@pytest.mark.skipif(not DSN, reason="ORDIVON_HOST_V2_TEST_DSN not set")
-def test_one_shot_cutover_applies_to_empty_swf_target_and_verifies() -> None:
-    assert DSN is not None
-    import psycopg
-
-    with psycopg.connect(DSN, autocommit=True) as conn:
-        conn.execute(
-            "TRUNCATE attention_cursors,subscriptions,coordination_intents,message_relations,"
-            "messages,topics,participations,space_subjects,spaces,work_relations,work_snapshots,"
-            "works,actor_refs RESTART IDENTITY CASCADE"
-        )
-    host = HostV2(DSN)
-    host.initialize()
-    board = BoardStore(DSN)
-    token = uuid4().hex
-    task_id = f"task:cutover:{token}"
-    host.adopt(
-        task_id=task_id,
-        goal_id=f"goal:cutover:{token}",
-        checkpoint=CheckpointInput(
-            payload={
-                "objective": "migrate me",
-                "frontier": "r1",
-                "established": [],
-                "unresolved": ["next"],
-                "rejected": [],
-                "constraints": [],
-                "nextActions": ["continue"],
-                "runtime": None,
-            },
-            writer_label="legacy-agent-a",
-        ),
-        client_request_id=f"adopt:{task_id}",
-    )
-    host.checkpoint(
-        task_id=task_id,
-        expected_revision=1,
-        checkpoint=CheckpointInput(
-            payload={
-                "objective": "migrate me",
-                "frontier": "r2",
-                "established": ["one"],
-                "unresolved": [],
-                "rejected": [],
-                "constraints": [],
-                "nextActions": [],
-                "runtime": None,
-            },
-            writer_label="legacy-agent-b",
-        ),
-        client_request_id=f"checkpoint:{task_id}",
-    )
-    board.post(
-        client_message_id=f"cutover-msg:{token}",
-        author_label="legacy-agent-a",
-        message="coordination fact",
-        message_kind="note",
-        topic="matching",
-        task_id=task_id,
-    )
-
-    snapshot = extract_legacy_snapshot(DSN)
-    plan = compile_cutover_plan(snapshot, active_task_ids={task_id})
-    receipt = apply_cutover_plan(DSN, snapshot, plan)
-    assert receipt["standing"] == "PASS"
-    assert receipt["targetCounts"]["works"] >= 1
-    assert receipt["targetCounts"]["workSnapshots"] >= 2
-    assert receipt["targetCounts"]["messages"] >= 1
-    assert receipt["targetCounts"]["participations"] == 0
-    assert receipt["targetCounts"]["subscriptions"] == 0
-    assert HostV2(DSN).status(detail="history")["doctor"]["healthy"] is True
