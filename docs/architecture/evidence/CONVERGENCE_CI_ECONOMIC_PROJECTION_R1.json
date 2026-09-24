@@ -10,7 +10,7 @@
   },
   "coverage": {
     "repository": "ordivon-org/ordivon",
-    "runs": 118
+    "runs": 121
   },
   "runs": [
     {
@@ -15960,119 +15960,527 @@
           ]
         }
       ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.ci-run-observation",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "runId": 35992862417,
+      "workflowId": 363427274,
+      "workflowName": "Monorepo Required",
+      "event": "pull_request",
+      "headSha": "28f9ddddec36218e2f0c23fe4603b88dfeafe36d",
+      "headBranch": "agent/convergence-economics-r2-20260924",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-24T11:24:48Z",
+      "startedAt": "2026-09-24T11:24:48Z",
+      "updatedAt": "2026-09-24T11:27:11Z",
+      "wallSeconds": 143.0,
+      "terminationReason": "SUCCESS",
+      "economicOutcome": "USEFUL",
+      "economicReason": "Required PR40 verification ran on the exact published PR head and was followed by successful Merge Queue validation and canonical provider merge 6dc30bb7a13caf270041923bcc7776bd645530d8.",
+      "jobs": [
+        {
+          "jobId": 107610837912,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "success",
+          "createdAt": "2026-09-24T11:24:49Z",
+          "startedAt": "2026-09-24T11:24:52Z",
+          "completedAt": "2026-09-24T11:27:10Z",
+          "runnerWaitSeconds": 3.0,
+          "executionSeconds": 138.0,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:24:53Z",
+              "completedAt": "2026-09-24T11:24:54Z",
+              "durationSeconds": 1.0
+            },
+            {
+              "number": 2,
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:24:54Z",
+              "completedAt": "2026-09-24T11:25:06Z",
+              "durationSeconds": 12.0
+            },
+            {
+              "number": 3,
+              "name": "Checkout exact revision",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:25:06Z",
+              "completedAt": "2026-09-24T11:25:10Z",
+              "durationSeconds": 4.0
+            },
+            {
+              "number": 4,
+              "name": "Install monorepo toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:25:10Z",
+              "completedAt": "2026-09-24T11:25:13Z",
+              "durationSeconds": 3.0
+            },
+            {
+              "number": 5,
+              "name": "Repository mechanics",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:25:13Z",
+              "completedAt": "2026-09-24T11:25:17Z",
+              "durationSeconds": 4.0
+            },
+            {
+              "number": 6,
+              "name": "Select affected owners",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:25:17Z",
+              "completedAt": "2026-09-24T11:25:17Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 7,
+              "name": "Verify affected owners",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:25:17Z",
+              "completedAt": "2026-09-24T11:26:59Z",
+              "durationSeconds": 102.0
+            },
+            {
+              "number": 8,
+              "name": "Runtime supply-chain policy",
+              "status": "completed",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-24T11:26:59Z",
+              "completedAt": "2026-09-24T11:26:59Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 9,
+              "name": "Repository-wide secret scan",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:26:59Z",
+              "completedAt": "2026-09-24T11:27:08Z",
+              "durationSeconds": 9.0
+            },
+            {
+              "number": 18,
+              "name": "Post Checkout exact revision",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:27:08Z",
+              "completedAt": "2026-09-24T11:27:09Z",
+              "durationSeconds": 1.0
+            },
+            {
+              "number": 19,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:27:09Z",
+              "completedAt": "2026-09-24T11:27:09Z",
+              "durationSeconds": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.ci-run-observation",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "runId": 35993317997,
+      "workflowId": 363427274,
+      "workflowName": "Monorepo Required",
+      "event": "merge_group",
+      "headSha": "6dc30bb7a13caf270041923bcc7776bd645530d8",
+      "headBranch": "gh-readonly-queue/main/pr-40-7754d0e7c97ab2be4856736d766d4483eb60f65b",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-24T11:29:31Z",
+      "startedAt": "2026-09-24T11:29:31Z",
+      "updatedAt": "2026-09-24T11:31:44Z",
+      "wallSeconds": 133.0,
+      "terminationReason": "SUCCESS",
+      "economicOutcome": "USEFUL",
+      "economicReason": "Merge Queue root-verification succeeded on PR40 merge-group head 6dc30bb7a13caf270041923bcc7776bd645530d8, which then became canonical provider main.",
+      "jobs": [
+        {
+          "jobId": 107612306375,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "success",
+          "createdAt": "2026-09-24T11:29:31Z",
+          "startedAt": "2026-09-24T11:29:35Z",
+          "completedAt": "2026-09-24T11:31:43Z",
+          "runnerWaitSeconds": 4.0,
+          "executionSeconds": 128.0,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:29:35Z",
+              "completedAt": "2026-09-24T11:29:37Z",
+              "durationSeconds": 2.0
+            },
+            {
+              "number": 2,
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:29:37Z",
+              "completedAt": "2026-09-24T11:29:51Z",
+              "durationSeconds": 14.0
+            },
+            {
+              "number": 3,
+              "name": "Checkout exact revision",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:29:51Z",
+              "completedAt": "2026-09-24T11:29:55Z",
+              "durationSeconds": 4.0
+            },
+            {
+              "number": 4,
+              "name": "Install monorepo toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:29:55Z",
+              "completedAt": "2026-09-24T11:29:58Z",
+              "durationSeconds": 3.0
+            },
+            {
+              "number": 5,
+              "name": "Repository mechanics",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:29:58Z",
+              "completedAt": "2026-09-24T11:30:02Z",
+              "durationSeconds": 4.0
+            },
+            {
+              "number": 6,
+              "name": "Select affected owners",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:30:02Z",
+              "completedAt": "2026-09-24T11:30:02Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 7,
+              "name": "Verify affected owners",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:30:02Z",
+              "completedAt": "2026-09-24T11:31:33Z",
+              "durationSeconds": 91.0
+            },
+            {
+              "number": 8,
+              "name": "Runtime supply-chain policy",
+              "status": "completed",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-24T11:31:33Z",
+              "completedAt": "2026-09-24T11:31:33Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 9,
+              "name": "Repository-wide secret scan",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:31:33Z",
+              "completedAt": "2026-09-24T11:31:41Z",
+              "durationSeconds": 8.0
+            },
+            {
+              "number": 18,
+              "name": "Post Checkout exact revision",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:31:41Z",
+              "completedAt": "2026-09-24T11:31:41Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 19,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:31:41Z",
+              "completedAt": "2026-09-24T11:31:41Z",
+              "durationSeconds": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.ci-run-observation",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "runId": 35993597094,
+      "workflowId": 363427274,
+      "workflowName": "Monorepo Required",
+      "event": "push",
+      "headSha": "6dc30bb7a13caf270041923bcc7776bd645530d8",
+      "headBranch": "main",
+      "runAttempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-24T11:32:19Z",
+      "startedAt": "2026-09-24T11:32:19Z",
+      "updatedAt": "2026-09-24T11:34:40Z",
+      "wallSeconds": 141.0,
+      "terminationReason": "SUCCESS",
+      "economicOutcome": "UNCLASSIFIED",
+      "economicReason": "provider conclusion alone is insufficient for economic classification",
+      "jobs": [
+        {
+          "jobId": 107613197737,
+          "name": "root-verification",
+          "status": "completed",
+          "conclusion": "success",
+          "createdAt": "2026-09-24T11:32:19Z",
+          "startedAt": "2026-09-24T11:32:22Z",
+          "completedAt": "2026-09-24T11:34:39Z",
+          "runnerWaitSeconds": 3.0,
+          "executionSeconds": 137.0,
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:23Z",
+              "completedAt": "2026-09-24T11:32:23Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 2,
+              "name": "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:23Z",
+              "completedAt": "2026-09-24T11:32:35Z",
+              "durationSeconds": 12.0
+            },
+            {
+              "number": 3,
+              "name": "Checkout exact revision",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:35Z",
+              "completedAt": "2026-09-24T11:32:38Z",
+              "durationSeconds": 3.0
+            },
+            {
+              "number": 4,
+              "name": "Install monorepo toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:38Z",
+              "completedAt": "2026-09-24T11:32:41Z",
+              "durationSeconds": 3.0
+            },
+            {
+              "number": 5,
+              "name": "Repository mechanics",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:41Z",
+              "completedAt": "2026-09-24T11:32:45Z",
+              "durationSeconds": 4.0
+            },
+            {
+              "number": 6,
+              "name": "Select affected owners",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:45Z",
+              "completedAt": "2026-09-24T11:32:46Z",
+              "durationSeconds": 1.0
+            },
+            {
+              "number": 7,
+              "name": "Verify affected owners",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:32:46Z",
+              "completedAt": "2026-09-24T11:34:28Z",
+              "durationSeconds": 102.0
+            },
+            {
+              "number": 8,
+              "name": "Runtime supply-chain policy",
+              "status": "completed",
+              "conclusion": "skipped",
+              "startedAt": "2026-09-24T11:34:28Z",
+              "completedAt": "2026-09-24T11:34:28Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 9,
+              "name": "Repository-wide secret scan",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:34:28Z",
+              "completedAt": "2026-09-24T11:34:38Z",
+              "durationSeconds": 10.0
+            },
+            {
+              "number": 18,
+              "name": "Post Checkout exact revision",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:34:38Z",
+              "completedAt": "2026-09-24T11:34:38Z",
+              "durationSeconds": 0.0
+            },
+            {
+              "number": 19,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-09-24T11:34:38Z",
+              "completedAt": "2026-09-24T11:34:38Z",
+              "durationSeconds": 0.0
+            }
+          ]
+        }
+      ]
     }
   ],
   "metrics": {
-    "runs": 118,
+    "runs": 121,
     "eventCounts": {
-      "merge_group": 20,
-      "pull_request": 52,
-      "push": 46
+      "merge_group": 21,
+      "pull_request": 53,
+      "push": 47
     },
     "terminationReasonCounts": {
       "CANCELLED": 3,
       "FAILURE": 51,
-      "SUCCESS": 64
+      "SUCCESS": 67
     },
     "economicOutcomeCounts": {
       "FAILED_PRODUCTIVELY": 5,
       "SUPERSEDED": 2,
-      "UNCLASSIFIED": 89,
-      "USEFUL": 22
+      "UNCLASSIFIED": 90,
+      "USEFUL": 24
     },
-    "unclassifiedTerminalRuns": 89,
+    "unclassifiedTerminalRuns": 90,
     "explicitAvoidableWasteRuns": 0,
     "explicitAvoidableWasteExecutionSeconds": 0,
     "rootVerificationExecutionSeconds": {
-      "count": 118,
-      "mean": 159.076,
-      "median": 47.0,
-      "p95": 651.0,
+      "count": 121,
+      "mean": 158.463,
+      "median": 48.0,
+      "p95": 530.0,
       "max": 713.0
     },
     "rootVerificationRunnerWaitSeconds": {
-      "count": 118,
-      "mean": 4.339,
+      "count": 121,
+      "mean": 4.314,
       "median": 3.0,
-      "p95": 6.0,
+      "p95": 5.0,
       "max": 40.0
     },
     "stepSecondsByName": {
       "Build EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25": {
-        "count": 117,
-        "mean": 13.248,
+        "count": 120,
+        "mean": 13.233,
         "median": 12.0,
-        "p95": 21.0,
+        "p95": 20.0,
         "max": 23.0
       },
       "Checkout exact revision": {
-        "count": 117,
-        "mean": 3.632,
+        "count": 120,
+        "mean": 3.633,
         "median": 4.0,
         "p95": 5.0,
         "max": 7.0
       },
       "Complete job": {
-        "count": 117,
-        "mean": 0.043,
+        "count": 120,
+        "mean": 0.042,
         "median": 0.0,
         "p95": 0.0,
         "max": 1.0
       },
       "Install monorepo toolchain": {
-        "count": 117,
-        "mean": 5.41,
+        "count": 120,
+        "mean": 5.35,
         "median": 4.0,
         "p95": 13.0,
         "max": 18.0
       },
       "Post Checkout exact revision": {
-        "count": 117,
-        "mean": 0.154,
+        "count": 120,
+        "mean": 0.158,
         "median": 0.0,
         "p95": 1.0,
         "max": 1.0
       },
       "Repository mechanics": {
-        "count": 117,
-        "mean": 3.521,
+        "count": 120,
+        "mean": 3.533,
         "median": 4.0,
         "p95": 5.0,
         "max": 10.0
       },
       "Repository-wide secret scan": {
-        "count": 117,
-        "mean": 6.487,
-        "median": 8.0,
+        "count": 120,
+        "mean": 6.55,
+        "median": 8.5,
         "p95": 16.0,
         "max": 24.0
       },
       "Runtime supply-chain policy": {
-        "count": 117,
-        "mean": 4.718,
+        "count": 120,
+        "mean": 4.6,
         "median": 0.0,
         "p95": 21.0,
         "max": 28.0
       },
       "Select affected owners": {
-        "count": 117,
-        "mean": 0.085,
+        "count": 120,
+        "mean": 0.092,
         "median": 0.0,
         "p95": 1.0,
         "max": 1.0
       },
       "Set up job": {
-        "count": 117,
-        "mean": 1.504,
+        "count": 120,
+        "mean": 1.492,
         "median": 1.0,
         "p95": 2.0,
         "max": 4.0
       },
       "Verify affected owners": {
-        "count": 117,
-        "mean": 118.94,
-        "median": 7.0,
-        "p95": 591.0,
+        "count": 120,
+        "mean": 118.425,
+        "median": 8.5,
+        "p95": 499.0,
         "max": 631.0
       }
     }

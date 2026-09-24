@@ -1,0 +1,69 @@
+{
+  "candidateSha": "28f9ddddec36218e2f0c23fe4603b88dfeafe36d",
+  "directOwners": [
+    "next"
+  ],
+  "kind": "ordivon.convergence-local-qualification-receipt",
+  "observedAt": "2026-09-24T11:26:32.873687Z",
+  "owners": [
+    {
+      "jobId": "job-01a0d321-9495-7f91-a624-ab4f552169a3",
+      "owner": "composition",
+      "seconds": 1.674,
+      "standing": "PASS"
+    },
+    {
+      "jobId": "job-01a0d321-d2cb-7f03-b78f-14dee0c1fc06",
+      "owner": "harness",
+      "seconds": 120.173,
+      "standing": "PASS"
+    },
+    {
+      "jobId": "job-01a0d321-ec33-7891-bb9f-bb18c988f640",
+      "owner": "next",
+      "seconds": 14.252,
+      "standing": "PASS"
+    },
+    {
+      "jobId": "job-01a0d322-33a5-77e2-94c2-83d5d655a0fe",
+      "owner": "security",
+      "providerBaseComparisonJobId": "job-01a0d31f-04c5-7541-a293-356cf5b3ef92",
+      "seconds": 9.734,
+      "semanticFallbackJobId": "job-01a0d325-5853-7901-b271-b0862b2a3ca7",
+      "semanticFallbackStanding": "PASS_OPA_34_OF_34",
+      "standing": "INFRA_FAILURE_DOCKER_POLICY_MOUNT"
+    },
+    {
+      "jobId": "job-01a0d322-58b0-71b2-9975-8556729ecdfb",
+      "owner": "skills",
+      "seconds": 4.987,
+      "standing": "PASS"
+    },
+    {
+      "jobId": "job-01a0d323-13b2-79c1-b74c-ebc573e9a321",
+      "owner": "web",
+      "seconds": 2.057,
+      "standing": "PASS"
+    }
+  ],
+  "providerBaseSha": "7754d0e7c97ab2be4856736d766d4483eb60f65b",
+  "queueClass": "SCOPED",
+  "repoCi": {
+    "jobId": "job-01a0d31f-6203-7943-b0c0-86f693f4a92d",
+    "standing": "PASS"
+  },
+  "schemaVersion": 1,
+  "supersededQualification": {
+    "candidateSha": "f09ec397135d59d32a50e6035b56af631607551e",
+    "reason": "repo:ci productively rejected a Next-owned test fixture containing a Runtime source-path literal; final candidate includes owner-local fixture fix"
+  },
+  "truthRole": "local-qualification-evidence-not-provider-merge-authority",
+  "verificationOwners": [
+    "composition",
+    "harness",
+    "next",
+    "security",
+    "skills",
+    "web"
+  ]
+}
