@@ -632,7 +632,7 @@ def require_current_provider_policy_source_current(repo: Path, commit: str) -> d
 def marker(path: Path) -> dict | None:
     try:
         v = json.loads((path / MARKER).read_text())
-    except OSError, json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return None
     return v if isinstance(v, dict) else None
 
