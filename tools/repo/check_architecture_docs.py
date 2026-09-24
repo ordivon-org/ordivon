@@ -11,7 +11,7 @@ DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
-HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-host-northbound-acceptance-20260922.json"
+HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-swf-northbound-acceptance-20260924.json"
 METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
 
@@ -39,44 +39,58 @@ EXPECTED_CAPABILITIES = {
 }
 
 EXPECTED_GATEWAY_TOOLS = {
-    "system.describe",
-    "capability.describe",
-    "execution.submit",
-    "execution.resolve",
-    "execution.get",
-    "execution.cancel",
-    "artifact.read",
-    "continuity.get",
-    "continuity.list",
-    "continuity.find",
-    "continuity.observe",
-    "continuity.adopt",
-    "continuity.checkpoint",
-    "continuity.changes",
-    "continuity.attention",
-    "continuity.find",
-    "continuity.changes",
-    "collaboration.list",
-    "collaboration.search",
-    "collaboration.post",
-    "collaboration.publish",
+    'actor.declare',
+    'artifact.read',
+    'attention.ack',
+    'attention.delta',
+    'attention.get',
+    'capability.describe',
+    'execution.cancel',
+    'execution.get',
+    'execution.resolve',
+    'execution.submit',
+    'host.status',
+    'message.post',
+    'message.relation.add',
+    'message.search',
+    'space.create',
+    'space.get',
+    'space.list',
+    'space.participation.set',
+    'subscription.follow',
+    'subscription.list',
+    'subscription.unfollow',
+    'system.describe',
+    'topic.create',
+    'topic.resume',
+    'work.create',
+    'work.get',
+    'work.list',
+    'work.snapshot.commit',
 }
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
-    "continuity.get",
-    "continuity.list",
-    "continuity.find",
-    "continuity.observe",
-    "continuity.adopt",
-    "continuity.checkpoint",
-    "continuity.changes",
-    "continuity.attention",
-    "continuity.find",
-    "continuity.changes",
-    "collaboration.list",
-    "collaboration.search",
-    "collaboration.post",
-    "collaboration.publish",
+    'actor.declare',
+    'attention.ack',
+    'attention.delta',
+    'attention.get',
+    'host.status',
+    'message.post',
+    'message.relation.add',
+    'message.search',
+    'space.create',
+    'space.get',
+    'space.list',
+    'space.participation.set',
+    'subscription.follow',
+    'subscription.list',
+    'subscription.unfollow',
+    'topic.create',
+    'topic.resume',
+    'work.create',
+    'work.get',
+    'work.list',
+    'work.snapshot.commit',
 }
 
 
@@ -162,12 +176,12 @@ def validate_deployed_graph(value: dict[str, Any]) -> None:
         raise ArchitectureDocsError("persistent trace backend cannot remain not-admitted")
 
     host_northbound = value.get("hostNorthbound")
-    if not isinstance(host_northbound, dict) or host_northbound.get("status") != "deployed":
-        raise ArchitectureDocsError("Host northbound seam must remain deployed")
+    if not isinstance(host_northbound, dict) or host_northbound.get("status") not in {"source-cutover-candidate", "deployed"}:
+        raise ArchitectureDocsError("Host northbound seam must be a verified source cutover candidate or deployed")
     if host_northbound.get("semanticOwner") != "host" or host_northbound.get("gatewayAuthority") != "projection-only":
         raise ArchitectureDocsError("Gateway must not absorb Host semantic authority")
-    if host_northbound.get("checkpointSchemaOwner") != "host":
-        raise ArchitectureDocsError("Host must remain WorkingCheckpoint schema owner")
+    if host_northbound.get("workSnapshotSchemaOwner") != "host":
+        raise ArchitectureDocsError("Host must remain WorkSnapshot schema owner")
     if set(host_northbound.get("normalTools", [])) != EXPECTED_HOST_NORTHBOUND_TOOLS:
         raise ArchitectureDocsError("normal Host northbound Tool set drifted")
     if host_northbound.get("adminOnlyDirect") != ["host.status"]:
@@ -244,8 +258,11 @@ def validate_repository(root: Path = ROOT) -> None:
             f"Gateway public Tool surface drifted: {sorted(observed_tools)}"
         )
     host_acceptance = _load_json(host_northbound_acceptance)
-    if host_acceptance.get("status") != "SERVER_DEPLOYED_LIVE_OWNER_PATH_ACCEPTED_CLIENT_REFRESH_PENDING":
-        raise ArchitectureDocsError("Gateway Host northbound acceptance status drifted")
+    if host_acceptance.get("status") not in {
+        "SOURCE_CUTOVER_CANDIDATE_VERIFIED_LIVE_PENDING",
+        "LIVE_ACCEPTED_CLIENT_REFRESH_PENDING",
+    }:
+        raise ArchitectureDocsError("Gateway SWF northbound acceptance status drifted")
 
     if not method_router.is_file():
         raise ArchitectureDocsError("canonical Method Router Skill is missing")
