@@ -3,8 +3,9 @@
 #[cfg(windows)]
 use ordivon_runtime_core::windows_current_token_is_local_system;
 use ordivon_runtime_core::{
-    inspect_registry, inspect_runtime, inspect_runtime_release_effect, RuntimeDoctorConfig,
-    RuntimeInspectionConfig,
+    inspect_registry, inspect_runtime, inspect_runtime_release_effect, AttemptState,
+    ReservationState, RuntimeDoctorConfig, RuntimeDoctorReport, RuntimeInspectionConfig,
+    RuntimeOperatorRegistryInspection,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -30,6 +31,8 @@ const REQUIRED_ARTIFACTS: [&str; 6] = [
     "ordivon-runtime-inspect.exe",
     "ordivon-runtime-windows-deploy.exe",
 ];
+const BOOTSTRAP_RECOVERY_ATTEMPT_ENV: &str = "ORDIVON_RELEASE_BOOTSTRAP_RECOVERY_ATTEMPT_ID";
+const BOOTSTRAP_LAUNCHER_START_FILE: &str = "windows-launcher-start.json";
 
 #[derive(Debug)]
 struct Args {
@@ -117,6 +120,8 @@ struct PlanReceipt {
     owner_job_id: String,
     active_job_ids: Vec<String>,
     blockers: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bootstrap_recovery: Option<BootstrapRecoveryProof>,
 }
 
 #[derive(Debug, Serialize)]
@@ -147,6 +152,29 @@ struct EffectRequestReceipt<'a> {
 struct EnvSnapshot {
     bytes: Vec<u8>,
     values: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BootstrapRecoveryProof {
+    attempt_id: String,
+    job_id: String,
+    supervisor_launcher_process_id: u32,
+    supervisor_launcher_process_creation_time_file_time: u64,
+    start_evidence_digest: String,
+    runner_result_digest: String,
+    control_result_digest: String,
+    owner_observed_absent: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProcessOwnerProbe {
+    schema_version: u32,
+    process_id: u32,
+    process_alive: bool,
+    #[serde(default)]
+    process_creation_time_file_time: Option<u64>,
 }
 
 #[cfg(windows)]
@@ -932,6 +960,20 @@ fn inspect(args: &Args) -> Result<ordivon_runtime_core::RuntimeOperatorRegistryI
     .map_err(|error| format!("Registry inspection failed: {error}"))
 }
 
+fn inspect_attempt(
+    args: &Args,
+    attempt_id: &str,
+) -> Result<RuntimeOperatorRegistryInspection, String> {
+    inspect_registry(
+        &RuntimeInspectionConfig {
+            db_path: args.database.clone(),
+            busy_timeout_ms: 5_000,
+        },
+        Some(attempt_id),
+    )
+    .map_err(|error| format!("Registry attempt inspection failed: {error}"))
+}
+
 fn release_effect(
     args: &Args,
 ) -> Result<ordivon_runtime_core::RuntimeOperatorReleaseEffectInspection, String> {
@@ -958,10 +1000,13 @@ fn release_effect(
     Ok(effect)
 }
 
-fn blockers(active: &[String], owner: &str) -> Vec<String> {
+fn blockers(active: &[String], owner: &str, bootstrap_job: Option<&str>) -> Vec<String> {
     active
         .iter()
-        .filter(|job_id| job_id.as_str() != owner)
+        .filter(|job_id| {
+            job_id.as_str() != owner
+                && bootstrap_job.is_none_or(|bootstrap| job_id.as_str() != bootstrap)
+        })
         .cloned()
         .collect()
 }
@@ -988,11 +1033,15 @@ fn acquire_admission_fence(args: &Args) -> Result<File, String> {
     Ok(file)
 }
 
-fn wait_for_drain(args: &Args, owner: &str) -> Result<Vec<String>, String> {
+fn wait_for_drain(
+    args: &Args,
+    owner: &str,
+    bootstrap_job: Option<&str>,
+) -> Result<Vec<String>, String> {
     let deadline = Instant::now() + Duration::from_secs(args.drain_seconds);
     loop {
         let registry = inspect(args)?;
-        let pending = blockers(&registry.active_job_ids, owner);
+        let pending = blockers(&registry.active_job_ids, owner, bootstrap_job);
         if pending.is_empty() {
             return Ok(registry.active_job_ids);
         }
@@ -1024,6 +1073,168 @@ fn load_env(path: &Path) -> Result<EnvSnapshot, String> {
     Ok(EnvSnapshot { bytes, values })
 }
 
+fn valid_bootstrap_attempt_id(value: &str) -> bool {
+    value.starts_with("attempt-")
+        && value.len() <= 96
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+}
+
+fn regular_file_digest(path: &Path, label: &str) -> Result<String, String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("cannot stat {label} {}: {error}", path.display()))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(format!("{label} must be a regular non-symlink file"));
+    }
+    sha256_file(path)
+}
+
+fn bootstrap_control_result_is_supported(control: &serde_json::Value) -> bool {
+    control
+        .get("reasonCode")
+        .and_then(serde_json::Value::as_str)
+        == Some("RUNNER_RESULT_QUARANTINED")
+        && control
+            .get("detail")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|detail| detail.contains("LaunchIdentityMismatch"))
+}
+fn bootstrap_recovery_proof(
+    args: &Args,
+    candidate: &CandidateProof,
+    report: &RuntimeDoctorReport,
+) -> Result<Option<BootstrapRecoveryProof>, String> {
+    let env = load_env(&args.env_file)?;
+    let Some(attempt_id) = env.values.get(BOOTSTRAP_RECOVERY_ATTEMPT_ENV) else {
+        if report.integrity_check != "ok"
+            || report.violation_count != 0
+            || report.summary.recovery_required_attempts != 0
+        {
+            return Err("Runtime Doctor preflight is not healthy enough for release".to_string());
+        }
+        return Ok(None);
+    };
+    if !valid_bootstrap_attempt_id(attempt_id) {
+        return Err("bootstrap recovery Attempt ID is invalid".to_string());
+    }
+    if report.integrity_check != "ok"
+        || report.violation_count != 0
+        || report.summary.recovery_required_attempts != 1
+        || report.summary.capacity_holders_truncated
+    {
+        return Err(
+            "bootstrap recovery requires exactly one visible recovery-required Attempt and no Doctor violations"
+                .to_string(),
+        );
+    }
+    let holders = report
+        .summary
+        .capacity_holders
+        .iter()
+        .filter(|holder| holder.attempt_id == *attempt_id)
+        .collect::<Vec<_>>();
+    if holders.len() != 1 {
+        return Err(
+            "bootstrap recovery Attempt is not the unique matching capacity holder".to_string(),
+        );
+    }
+    let holder = holders[0];
+    if holder.attempt_state != AttemptState::Orphaned
+        || holder.reservation_state != ReservationState::HeldOrphaned
+        || !holder.recovery_required
+    {
+        return Err(
+            "bootstrap recovery Attempt must be orphaned, held_orphaned, and recovery-required"
+                .to_string(),
+        );
+    }
+
+    let inspection = inspect_attempt(args, attempt_id)?;
+    if inspection.resolved_attempt_job_id.as_deref() != Some(holder.job_id.as_str()) {
+        return Err(
+            "bootstrap recovery Attempt/Job identity changed during inspection".to_string(),
+        );
+    }
+    let owner = inspection
+        .resolved_attempt_supervisor_owner
+        .ok_or("bootstrap recovery Attempt lacks persisted supervisor owner evidence")?;
+
+    let registry_root = args
+        .database
+        .parent()
+        .ok_or("database has no Registry root")?;
+    let bundle = registry_root.join("attempts").join(attempt_id);
+    let result_path = bundle.join("result.json");
+    let control_path = bundle.join("control-result.json");
+    let start_path = bundle.join(BOOTSTRAP_LAUNCHER_START_FILE);
+    let runner_result_digest = regular_file_digest(&result_path, "bootstrap Runner Result")?;
+    let control_result_digest = regular_file_digest(&control_path, "bootstrap control result")?;
+    let start_digest = regular_file_digest(&start_path, "bootstrap Windows start evidence")?;
+    if start_digest != owner.start_evidence_digest {
+        return Err(
+            "bootstrap Windows start evidence digest does not match persisted owner".to_string(),
+        );
+    }
+    let control_bytes = fs::read(&control_path)
+        .map_err(|error| format!("cannot read bootstrap control result: {error}"))?;
+    let control: serde_json::Value = serde_json::from_slice(&control_bytes)
+        .map_err(|error| format!("cannot decode bootstrap control result: {error}"))?;
+    if !bootstrap_control_result_is_supported(&control) {
+        return Err(
+            "bootstrap recovery is limited to quarantined Windows LaunchIdentityMismatch results"
+                .to_string(),
+        );
+    }
+
+    let launcher = candidate
+        .artifacts
+        .get("ordivon-windows-job-launcher.exe")
+        .ok_or("candidate launcher artifact is unavailable")?;
+    let output = Command::new(launcher)
+        .args([
+            "--describe-process-owner",
+            "--process-id",
+            &owner.launcher_process_id.to_string(),
+        ])
+        .output()
+        .map_err(|error| format!("cannot execute candidate launcher owner probe: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "candidate launcher owner probe failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    let probe: ProcessOwnerProbe = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("cannot decode candidate launcher owner probe: {error}"))?;
+    if probe.schema_version != 1 || probe.process_id != owner.launcher_process_id {
+        return Err("candidate launcher owner probe identity is invalid".to_string());
+    }
+    let owner_observed_absent = if !probe.process_alive {
+        true
+    } else {
+        let observed_creation_time = probe
+            .process_creation_time_file_time
+            .ok_or("candidate launcher owner probe omitted creation time for a live process")?;
+        observed_creation_time != owner.launcher_process_creation_time_file_time
+    };
+    if !owner_observed_absent {
+        return Err("bootstrap recovery supervisor process is still physically alive".to_string());
+    }
+
+    Ok(Some(BootstrapRecoveryProof {
+        attempt_id: attempt_id.clone(),
+        job_id: holder.job_id.clone(),
+        supervisor_launcher_process_id: owner.launcher_process_id,
+        supervisor_launcher_process_creation_time_file_time: owner
+            .launcher_process_creation_time_file_time,
+        start_evidence_digest: owner.start_evidence_digest,
+        runner_result_digest,
+        control_result_digest,
+        owner_observed_absent,
+    }))
+}
+
 fn replace_env_release_paths(
     snapshot: &EnvSnapshot,
     launcher: &Path,
@@ -1044,6 +1255,8 @@ fn replace_env_release_paths(
         } else if line.starts_with("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=") {
             output.push(format!("ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH={broker}"));
             broker_seen = true;
+        } else if line.starts_with(&format!("{BOOTSTRAP_RECOVERY_ATTEMPT_ENV}=")) {
+            continue;
         } else {
             output.push(line.to_string());
         }
@@ -1249,12 +1462,7 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
 
     let proof = load_candidate(args)?;
     let report = doctor(args)?;
-    if report.integrity_check != "ok"
-        || report.violation_count != 0
-        || report.summary.recovery_required_attempts != 0
-    {
-        return Err("Runtime Doctor preflight is not healthy enough for release".to_string());
-    }
+    let bootstrap_recovery = bootstrap_recovery_proof(args, &proof, &report)?;
     if report.migration_version > proof.self_check.max_migration_version {
         return Err(format!(
             "live Registry migration {} exceeds candidate support {}",
@@ -1263,7 +1471,13 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
     }
     let effect = release_effect(args)?;
     let registry = inspect(args)?;
-    let blocked = blockers(&registry.active_job_ids, &effect.job_id);
+    let blocked = blockers(
+        &registry.active_job_ids,
+        &effect.job_id,
+        bootstrap_recovery
+            .as_ref()
+            .map(|proof| proof.job_id.as_str()),
+    );
     let release_dir = args.install_dir.join(&args.commit);
     let plan = PlanReceipt {
         schema_version: RECEIPT_SCHEMA_VERSION,
@@ -1282,6 +1496,7 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
         owner_job_id: effect.job_id,
         active_job_ids: registry.active_job_ids,
         blockers: blocked,
+        bootstrap_recovery,
     };
     Ok((proof, plan))
 }
@@ -1307,16 +1522,23 @@ fn apply(
     write_json_sync(&receipt_dir.join("plan.json"), &plan)?;
 
     let admission = acquire_admission_fence(args)?;
-    let active = wait_for_drain(args, &plan.owner_job_id)?;
+    let active = wait_for_drain(
+        args,
+        &plan.owner_job_id,
+        plan.bootstrap_recovery
+            .as_ref()
+            .map(|proof| proof.job_id.as_str()),
+    )?;
     plan.active_job_ids = active;
     plan.blockers.clear();
     write_json_sync(&receipt_dir.join("plan.json"), &plan)?;
 
     let post_drain_doctor = doctor(args)?;
-    if post_drain_doctor.violation_count != 0
-        || post_drain_doctor.summary.recovery_required_attempts != 0
-        || post_drain_doctor.migration_version > proof.self_check.max_migration_version
-    {
+    let post_drain_bootstrap = bootstrap_recovery_proof(args, &proof, &post_drain_doctor)?;
+    if post_drain_bootstrap != plan.bootstrap_recovery {
+        return Err("bootstrap recovery evidence changed during release drain".to_string());
+    }
+    if post_drain_doctor.migration_version > proof.self_check.max_migration_version {
         return Err("Runtime Doctor changed to an unsafe state during release drain".to_string());
     }
 
@@ -1599,15 +1821,78 @@ mod tests {
     }
 
     #[test]
-    fn blockers_exclude_only_the_release_owner() {
+    fn blockers_exclude_release_owner_and_explicit_bootstrap_job_only() {
         let active = vec![
             "job-a".to_string(),
             "job-release".to_string(),
+            "job-bootstrap".to_string(),
             "job-b".to_string(),
         ];
         assert_eq!(
-            blockers(&active, "job-release"),
+            blockers(&active, "job-release", Some("job-bootstrap")),
             vec!["job-a".to_string(), "job-b".to_string()]
         );
+        assert_eq!(
+            blockers(&active, "job-release", None),
+            vec![
+                "job-a".to_string(),
+                "job-bootstrap".to_string(),
+                "job-b".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn env_rewrite_consumes_one_shot_bootstrap_recovery_authority() {
+        let input = concat!(
+            "ORDIVON_WINDOWS_LAUNCHER_PATH=C:\\old\\launcher.exe\r\n",
+            "ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=C:\\old\\broker.exe\r\n",
+            "ORDIVON_RELEASE_BOOTSTRAP_RECOVERY_ATTEMPT_ID=attempt-123\r\n",
+            "OTHER=value\r\n"
+        );
+        let snapshot = EnvSnapshot {
+            bytes: input.as_bytes().to_vec(),
+            values: BTreeMap::new(),
+        };
+        let output = replace_env_release_paths(
+            &snapshot,
+            Path::new(r"C:\new\launcher.exe"),
+            Path::new(r"C:\new\broker.exe"),
+        )
+        .expect("rewrite");
+        let output = String::from_utf8(output).expect("utf8");
+        assert!(!output.contains(BOOTSTRAP_RECOVERY_ATTEMPT_ENV));
+        assert!(output.contains(r"ORDIVON_WINDOWS_LAUNCHER_PATH=C:\new\launcher.exe"));
+        assert!(output.contains(r"ORDIVON_WINDOWS_PRIVILEGED_BROKER_PATH=C:\new\broker.exe"));
+        assert!(output.contains("OTHER=value"));
+    }
+
+    #[test]
+    fn bootstrap_recovery_uses_parent_observed_launcher_start_evidence() {
+        assert_eq!(BOOTSTRAP_LAUNCHER_START_FILE, "windows-launcher-start.json");
+        assert_ne!(BOOTSTRAP_LAUNCHER_START_FILE, "windows-start.json");
+    }
+
+    #[test]
+    fn bootstrap_recovery_accepts_historical_control_result_shape() {
+        let control = serde_json::json!({
+            "schemaVersion": 1,
+            "status": "orphaned",
+            "reasonCode": "RUNNER_RESULT_QUARANTINED",
+            "detail": "LaunchIdentityMismatch: Windows start identity does not match committed Attempt"
+        });
+        assert!(bootstrap_control_result_is_supported(&control));
+        assert!(!bootstrap_control_result_is_supported(&serde_json::json!({
+            "reason": "RUNNER_RESULT_QUARANTINED",
+            "detail": "LaunchIdentityMismatch"
+        })));
+    }
+    #[test]
+    fn bootstrap_attempt_id_is_path_safe() {
+        assert!(valid_bootstrap_attempt_id(
+            "attempt-01a0c401-14b0-7850-bdea-b3883b58434d"
+        ));
+        assert!(!valid_bootstrap_attempt_id("../attempt-123"));
+        assert!(!valid_bootstrap_attempt_id("attempt-123/child"));
     }
 }
