@@ -16,7 +16,9 @@ from typing import Any
 STATUSES = {"INSUFFICIENT_EVIDENCE", "NOT_PROVEN", "PROVEN", "REGRESSED"}
 
 
-def gate(name: str, status: str, reason: str, evidence: dict[str, Any]) -> dict[str, Any]:
+def gate(
+    name: str, status: str, reason: str, evidence: dict[str, Any]
+) -> dict[str, Any]:
     if status not in STATUSES:
         raise ValueError(status)
     return {
@@ -26,6 +28,28 @@ def gate(name: str, status: str, reason: str, evidence: dict[str, Any]) -> dict[
         "evidence": evidence,
         "allowedExperiments": [],
     }
+
+
+def owner_cost_rows(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for value in payloads:
+        kind = value.get("kind")
+        if kind == "ordivon.convergence-owner-cost-episode-corpus":
+            episodes = value.get("episodes")
+            if not isinstance(episodes, list):
+                raise ValueError("owner-cost corpus episodes must be a list")
+            for row in episodes:
+                if not isinstance(row, dict):
+                    raise ValueError("owner-cost corpus episode must be an object")
+                rows.append(row)
+        elif kind in {
+            "ordivon.convergence-owner-cost-episode",
+            "ordivon.convergence-owner-cost-observation",
+        }:
+            rows.append(value)
+        else:
+            raise ValueError(f"unsupported owner-cost evidence kind: {kind!r}")
+    return rows
 
 
 def assess(
@@ -52,14 +76,22 @@ def assess(
             "QUEUE_CONTENTION",
             "NOT_PROVEN",
             "observed episodes contain no requeue or unsuccessful merge-group signal",
-            {"episodes": queue_count, "requeues": requeues, "unsuccessfulMergeGroupRuns": unsuccessful},
+            {
+                "episodes": queue_count,
+                "requeues": requeues,
+                "unsuccessfulMergeGroupRuns": unsuccessful,
+            },
         )
     else:
         contention = gate(
             "QUEUE_CONTENTION",
             "INSUFFICIENT_EVIDENCE",
             "queue disruption exists but its cause is not established as contention",
-            {"episodes": queue_count, "requeues": requeues, "unsuccessfulMergeGroupRuns": unsuccessful},
+            {
+                "episodes": queue_count,
+                "requeues": requeues,
+                "unsuccessfulMergeGroupRuns": unsuccessful,
+            },
         )
 
     if peak is None:
@@ -110,7 +142,10 @@ def assess(
                     "unclassifiedTerminalRuns": unclassified,
                 },
             )
-            ci_waste["allowedExperiments"] = ["ci-deduplication", "cancellation-optimization"]
+            ci_waste["allowedExperiments"] = [
+                "ci-deduplication",
+                "cancellation-optimization",
+            ]
         elif unclassified > 0:
             ci_waste = gate(
                 "CI_WASTE",
@@ -134,17 +169,45 @@ def assess(
             )
 
     owner_costs = owner_cost_episodes or []
+    owner_candidates = sorted(
+        {
+            str(candidate)
+            for row in owner_costs
+            for candidate in (row.get("candidateSha") or row.get("measuredCandidate"),)
+            if candidate
+        }
+    )
+    successful_owner_costs = [
+        row
+        for row in owner_costs
+        if row.get("result") == "PASS"
+        and isinstance(row.get("totalSeconds"), (int, float))
+    ]
+    owner_evidence = {
+        "ownerCostEpisodes": len(owner_costs),
+        "ownerCostCandidates": len(owner_candidates),
+        "successfulMeasuredOwnerCostEpisodes": len(successful_owner_costs),
+    }
+    long_tail_reason = (
+        "multiple owner-cost candidates are observed, but no validated comparable cross-candidate admission threshold exists"
+        if len(owner_candidates) >= 2
+        else "owner long-tail optimization requires repeated comparable candidates before admission"
+    )
     long_tail = gate(
         "LONG_TAIL_OWNER",
         "INSUFFICIENT_EVIDENCE",
-        "owner long-tail optimization requires repeated comparable episodes before admission",
-        {"ownerCostEpisodes": len(owner_costs)},
+        long_tail_reason,
+        owner_evidence,
     )
     predictor = gate(
         "PREDICTOR_DATA",
         "INSUFFICIENT_EVIDENCE",
         "no validated history-size or calibration threshold has been admitted",
-        {"queueEpisodes": queue_count, "ownerCostEpisodes": len(owner_costs)},
+        {
+            "queueEpisodes": queue_count,
+            "ownerCostEpisodes": len(owner_costs),
+            "ownerCostCandidates": len(owner_candidates),
+        },
     )
 
     gates = [contention, high_depth, ci_waste, long_tail, predictor]
@@ -173,7 +236,8 @@ def main() -> int:
 
     queue = json.loads(args.queue.read_text())
     ci = json.loads(args.ci.read_text()) if args.ci else None
-    owner_cost = [json.loads(path.read_text()) for path in args.owner_cost]
+    owner_cost_payloads = [json.loads(path.read_text()) for path in args.owner_cost]
+    owner_cost = owner_cost_rows(owner_cost_payloads)
     result = assess(queue, ci, owner_cost)
     rendered = json.dumps(result, indent=2) + "\n"
     if args.output:

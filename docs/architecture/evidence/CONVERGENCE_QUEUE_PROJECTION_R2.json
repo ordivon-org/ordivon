@@ -1,0 +1,1074 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.queue-observation-projection",
+  "authority": {
+    "queue": "GitHub Merge Queue",
+    "runs": "GitHub Actions",
+    "projection": "tools/repo/queue_telemetry.py",
+    "durableLocalQueueState": false,
+    "diagnosisAuthority": false,
+    "controlAuthority": false
+  },
+  "coverage": {
+    "repository": "ordivon-org/ordivon",
+    "mergedPullRequestsFetched": 20,
+    "queueAttributedPullRequests": 20,
+    "mergeGroupRunsFetched": 20,
+    "historicalDepthIsLowerBound": true
+  },
+  "episodes": [
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 16,
+      "prHeadSha": "53e26238d7283fb0efc9ccaf3fe6ae56c0400704",
+      "enqueueTimes": [
+        "2026-09-22T11:22:09Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T11:23:57Z"
+      ],
+      "mergedAt": "2026-09-22T11:23:57Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35721081039,
+          "sha": "3425d361f678ae688d5ac81863ea33095b62411b",
+          "createdAt": "2026-09-22T11:22:27Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106723882425,
+            "createdAt": "2026-09-22T11:22:29Z",
+            "startedAt": "2026-09-22T11:22:32Z",
+            "completedAt": "2026-09-22T11:23:24Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 17,
+      "prHeadSha": "da9c1cd146444860b51e5d28d42c7a7871d00401",
+      "enqueueTimes": [
+        "2026-09-22T11:27:15Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T11:28:46Z"
+      ],
+      "mergedAt": "2026-09-22T11:28:46Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35721556672,
+          "sha": "03a6e451b0bb8aa5e346cce52c091758d2b71edb",
+          "createdAt": "2026-09-22T11:27:33Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106725387014,
+            "createdAt": "2026-09-22T11:27:33Z",
+            "startedAt": "2026-09-22T11:27:36Z",
+            "completedAt": "2026-09-22T11:28:14Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 18,
+      "prHeadSha": "8c0cec61eee7a8be21d848f7ad643cf5e16935de",
+      "enqueueTimes": [
+        "2026-09-22T11:27:18Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T11:28:47Z"
+      ],
+      "mergedAt": "2026-09-22T11:28:47Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35721558190,
+          "sha": "6be42de4c698b658fbc10cc34b06b8a122074470",
+          "createdAt": "2026-09-22T11:27:34Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106725391893,
+            "createdAt": "2026-09-22T11:27:34Z",
+            "startedAt": "2026-09-22T11:27:37Z",
+            "completedAt": "2026-09-22T11:28:19Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 19,
+      "prHeadSha": "e203aa2bfe13b20cffd5271a08c89b5460b3b525",
+      "enqueueTimes": [
+        "2026-09-22T11:31:36Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T11:33:51Z"
+      ],
+      "mergedAt": "2026-09-22T11:33:51Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35721964283,
+          "sha": "27c515c21a242681466d0ec64061768e0f4c4a21",
+          "createdAt": "2026-09-22T11:31:54Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106726690375,
+            "createdAt": "2026-09-22T11:31:55Z",
+            "startedAt": "2026-09-22T11:32:34Z",
+            "completedAt": "2026-09-22T11:33:12Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 20,
+      "prHeadSha": "c7f3736c4bed44aa078dc050b62556944b2f454b",
+      "enqueueTimes": [
+        "2026-09-22T12:19:53Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T12:23:05Z"
+      ],
+      "mergedAt": "2026-09-22T12:23:05Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35726560495,
+          "sha": "06b932777ee03b421e45f021f51efebd0053a089",
+          "createdAt": "2026-09-22T12:20:11Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106741532480,
+            "createdAt": "2026-09-22T12:20:12Z",
+            "startedAt": "2026-09-22T12:20:15Z",
+            "completedAt": "2026-09-22T12:22:33Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 21,
+      "prHeadSha": "b2aa6e10e545eb6a75f944490f7e4704950195f6",
+      "enqueueTimes": [
+        "2026-09-22T12:11:51Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T12:15:28Z"
+      ],
+      "mergedAt": "2026-09-22T12:15:28Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35725780805,
+          "sha": "ceba591066c98999e404bdfe5f72a66ef3ed76ea",
+          "createdAt": "2026-09-22T12:12:09Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106738958550,
+            "createdAt": "2026-09-22T12:12:10Z",
+            "startedAt": "2026-09-22T12:12:13Z",
+            "completedAt": "2026-09-22T12:14:55Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 22,
+      "prHeadSha": "de372d7b116cf211d0de697bff4267157a0be865",
+      "enqueueTimes": [
+        "2026-09-22T12:27:47Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T12:29:31Z"
+      ],
+      "mergedAt": "2026-09-22T12:29:31Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35727346512,
+          "sha": "859932ed016eb03796fc969b04171a94eaa52524",
+          "createdAt": "2026-09-22T12:28:05Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106744166767,
+            "createdAt": "2026-09-22T12:28:15Z",
+            "startedAt": "2026-09-22T12:28:20Z",
+            "completedAt": "2026-09-22T12:28:59Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 23,
+      "prHeadSha": "39b9a0cccaa90b8cd6ad34eaace4b279172d8a6d",
+      "enqueueTimes": [
+        "2026-09-22T12:34:55Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T12:36:33Z"
+      ],
+      "mergedAt": "2026-09-22T12:36:34Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35728079494,
+          "sha": "8baa98ec0092da69e06519ee7812dff1b581beca",
+          "createdAt": "2026-09-22T12:35:13Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106746547581,
+            "createdAt": "2026-09-22T12:35:14Z",
+            "startedAt": "2026-09-22T12:35:16Z",
+            "completedAt": "2026-09-22T12:36:02Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 24,
+      "prHeadSha": "31fa2ef16d74713654840c0bc875a606992de50a",
+      "enqueueTimes": [
+        "2026-09-22T16:32:10Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T16:33:53Z"
+      ],
+      "mergedAt": "2026-09-22T16:33:52Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35754786182,
+          "sha": "cb31b32d44e6c182cfe20d15fa6589cef6d42c60",
+          "createdAt": "2026-09-22T16:32:28Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106837698706,
+            "createdAt": "2026-09-22T16:32:32Z",
+            "startedAt": "2026-09-22T16:32:36Z",
+            "completedAt": "2026-09-22T16:33:20Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 25,
+      "prHeadSha": "e715758245b2fad8193cdf49f780ef58a165baea",
+      "enqueueTimes": [
+        "2026-09-22T16:36:57Z"
+      ],
+      "removalTimes": [
+        "2026-09-22T16:38:33Z"
+      ],
+      "mergedAt": "2026-09-22T16:38:33Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35755317375,
+          "sha": "f766c41543f420aa5a738c7a1ffde90ea6f2f2b9",
+          "createdAt": "2026-09-22T16:37:16Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 106839489411,
+            "createdAt": "2026-09-22T16:37:16Z",
+            "startedAt": "2026-09-22T16:37:20Z",
+            "completedAt": "2026-09-22T16:38:00Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 26,
+      "prHeadSha": "64043000857507330e1949d5f0d2a934b8ff6b9f",
+      "enqueueTimes": [
+        "2026-09-23T09:20:20Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T09:32:23Z"
+      ],
+      "mergedAt": "2026-09-23T09:32:24Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35842372127,
+          "sha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+          "createdAt": "2026-09-23T09:20:39Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107120235833,
+            "createdAt": "2026-09-23T09:20:40Z",
+            "startedAt": "2026-09-23T09:20:42Z",
+            "completedAt": "2026-09-23T09:31:51Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 30,
+      "prHeadSha": "9f5f7dbb0fcd6ba56dd4a115655ef0c4469da207",
+      "enqueueTimes": [
+        "2026-09-23T11:24:05Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T11:25:34Z"
+      ],
+      "mergedAt": "2026-09-23T11:25:35Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35854341121,
+          "sha": "f985d603b99408e066332a73713ae78ddce243c1",
+          "createdAt": "2026-09-23T11:24:23Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107159162383,
+            "createdAt": "2026-09-23T11:24:23Z",
+            "startedAt": "2026-09-23T11:24:26Z",
+            "completedAt": "2026-09-23T11:25:02Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 31,
+      "prHeadSha": "25999aa56e4d8b1570b0e345b4503ffa77dee618",
+      "enqueueTimes": [
+        "2026-09-23T11:33:09Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T11:40:58Z"
+      ],
+      "mergedAt": "2026-09-23T11:40:58Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35855224905,
+          "sha": "90eaf395bd67cb3e004078e398b089153053792c",
+          "createdAt": "2026-09-23T11:33:27Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107161983805,
+            "createdAt": "2026-09-23T11:33:27Z",
+            "startedAt": "2026-09-23T11:33:30Z",
+            "completedAt": "2026-09-23T11:40:26Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 32,
+      "prHeadSha": "97c055258e12536a838f364a52e3a5cfc336616a",
+      "enqueueTimes": [
+        "2026-09-23T11:57:52Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T12:01:15Z"
+      ],
+      "mergedAt": "2026-09-23T12:01:16Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35857605249,
+          "sha": "58adb77f870ac08c494b06dc4130a03ff5e4ac64",
+          "createdAt": "2026-09-23T11:58:10Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107169751004,
+            "createdAt": "2026-09-23T11:58:10Z",
+            "startedAt": "2026-09-23T11:58:13Z",
+            "completedAt": "2026-09-23T12:00:43Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 33,
+      "prHeadSha": "2eb0755e933c0f337df8a0c4b7b752d06be900c5",
+      "enqueueTimes": [
+        "2026-09-23T13:17:47Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T13:25:15Z"
+      ],
+      "mergedAt": "2026-09-23T13:25:15Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35866112952,
+          "sha": "fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+          "createdAt": "2026-09-23T13:18:05Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107197994504,
+            "createdAt": "2026-09-23T13:18:06Z",
+            "startedAt": "2026-09-23T13:18:08Z",
+            "completedAt": "2026-09-23T13:24:42Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 34,
+      "prHeadSha": "bc2cc1e6295c861e418fbed774e5dafb2d581cc8",
+      "enqueueTimes": [
+        "2026-09-23T13:49:54Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T13:57:28Z"
+      ],
+      "mergedAt": "2026-09-23T13:57:28Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35869856374,
+          "sha": "6231bda83a066a73d95392c6cfeee1371681a8e1",
+          "createdAt": "2026-09-23T13:50:11Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107210787571,
+            "createdAt": "2026-09-23T13:50:12Z",
+            "startedAt": "2026-09-23T13:50:15Z",
+            "completedAt": "2026-09-23T13:56:56Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 35,
+      "prHeadSha": "bc530fa4e4c22da97c28964a20ed3fe704db11ab",
+      "enqueueTimes": [
+        "2026-09-23T21:00:57Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T21:08:20Z"
+      ],
+      "mergedAt": "2026-09-23T21:08:21Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35919773975,
+          "sha": "a8f9a4bcaea760babc0e8dd79e119728d90bc694",
+          "createdAt": "2026-09-23T21:01:15Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107380462639,
+            "createdAt": "2026-09-23T21:01:16Z",
+            "startedAt": "2026-09-23T21:01:20Z",
+            "completedAt": "2026-09-23T21:07:48Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 36,
+      "prHeadSha": "5e82709beb473c6784b0fd39bb98b84ec0e11b3f",
+      "enqueueTimes": [
+        "2026-09-24T07:17:08Z"
+      ],
+      "removalTimes": [
+        "2026-09-24T07:24:41Z"
+      ],
+      "mergedAt": "2026-09-24T07:24:41Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35968818541,
+          "sha": "2d2f4d35ee27d40e50b4f01218319be01d532335",
+          "createdAt": "2026-09-24T07:17:26Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107533461618,
+            "createdAt": "2026-09-24T07:17:26Z",
+            "startedAt": "2026-09-24T07:17:29Z",
+            "completedAt": "2026-09-24T07:24:10Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 37,
+      "prHeadSha": "5b8c17c16c3374be607e598bb76bcf9851c3b674",
+      "enqueueTimes": [
+        "2026-09-23T21:44:56Z"
+      ],
+      "removalTimes": [
+        "2026-09-23T21:52:20Z"
+      ],
+      "mergedAt": "2026-09-23T21:52:21Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35924362835,
+          "sha": "867b7f6e3a015d43f316b760790da0f5574f97fe",
+          "createdAt": "2026-09-23T21:45:14Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107395765256,
+            "createdAt": "2026-09-23T21:45:15Z",
+            "startedAt": "2026-09-23T21:45:17Z",
+            "completedAt": "2026-09-23T21:51:48Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 39,
+      "prHeadSha": "c1a6a6db2b71daaea6fecdc6f1cfcfa2f2ce0881",
+      "enqueueTimes": [
+        "2026-09-24T07:37:54Z"
+      ],
+      "removalTimes": [
+        "2026-09-24T07:39:21Z"
+      ],
+      "mergedAt": "2026-09-24T07:39:22Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35970684645,
+          "sha": "7754d0e7c97ab2be4856736d766d4483eb60f65b",
+          "createdAt": "2026-09-24T07:38:12Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107539446740,
+            "createdAt": "2026-09-24T07:38:13Z",
+            "startedAt": "2026-09-24T07:38:15Z",
+            "completedAt": "2026-09-24T07:38:49Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
+    }
+  ],
+  "episodeMetrics": [
+    {
+      "pr": 16,
+      "prHeadSha": "53e26238d7283fb0efc9ccaf3fe6ae56c0400704",
+      "enqueueAt": "2026-09-22T11:22:09Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:22:27Z",
+      "mergedAt": "2026-09-22T11:23:57Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 108.0,
+      "endToEndQueueSeconds": 108.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721081039,
+      "mergeGroupSha": "3425d361f678ae688d5ac81863ea33095b62411b",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 52.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 17,
+      "prHeadSha": "da9c1cd146444860b51e5d28d42c7a7871d00401",
+      "enqueueAt": "2026-09-22T11:27:15Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:27:33Z",
+      "mergedAt": "2026-09-22T11:28:46Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 91.0,
+      "endToEndQueueSeconds": 91.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721556672,
+      "mergeGroupSha": "03a6e451b0bb8aa5e346cce52c091758d2b71edb",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 38.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 18,
+      "prHeadSha": "8c0cec61eee7a8be21d848f7ad643cf5e16935de",
+      "enqueueAt": "2026-09-22T11:27:18Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:27:34Z",
+      "mergedAt": "2026-09-22T11:28:47Z",
+      "queueDispatchSeconds": 16.0,
+      "queueResidenceSeconds": 89.0,
+      "endToEndQueueSeconds": 89.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721558190,
+      "mergeGroupSha": "6be42de4c698b658fbc10cc34b06b8a122074470",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 42.0,
+      "postVerificationMergeSeconds": 28.0
+    },
+    {
+      "pr": 19,
+      "prHeadSha": "e203aa2bfe13b20cffd5271a08c89b5460b3b525",
+      "enqueueAt": "2026-09-22T11:31:36Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:31:54Z",
+      "mergedAt": "2026-09-22T11:33:51Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 135.0,
+      "endToEndQueueSeconds": 135.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721964283,
+      "mergeGroupSha": "27c515c21a242681466d0ec64061768e0f4c4a21",
+      "runnerWaitSeconds": 39.0,
+      "verificationSeconds": 38.0,
+      "postVerificationMergeSeconds": 39.0
+    },
+    {
+      "pr": 20,
+      "prHeadSha": "c7f3736c4bed44aa078dc050b62556944b2f454b",
+      "enqueueAt": "2026-09-22T12:19:53Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:20:11Z",
+      "mergedAt": "2026-09-22T12:23:05Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 192.0,
+      "endToEndQueueSeconds": 192.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35726560495,
+      "mergeGroupSha": "06b932777ee03b421e45f021f51efebd0053a089",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 138.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 21,
+      "prHeadSha": "b2aa6e10e545eb6a75f944490f7e4704950195f6",
+      "enqueueAt": "2026-09-22T12:11:51Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:12:09Z",
+      "mergedAt": "2026-09-22T12:15:28Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 217.0,
+      "endToEndQueueSeconds": 217.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35725780805,
+      "mergeGroupSha": "ceba591066c98999e404bdfe5f72a66ef3ed76ea",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 162.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 22,
+      "prHeadSha": "de372d7b116cf211d0de697bff4267157a0be865",
+      "enqueueAt": "2026-09-22T12:27:47Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:28:05Z",
+      "mergedAt": "2026-09-22T12:29:31Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 104.0,
+      "endToEndQueueSeconds": 104.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35727346512,
+      "mergeGroupSha": "859932ed016eb03796fc969b04171a94eaa52524",
+      "runnerWaitSeconds": 5.0,
+      "verificationSeconds": 39.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 23,
+      "prHeadSha": "39b9a0cccaa90b8cd6ad34eaace4b279172d8a6d",
+      "enqueueAt": "2026-09-22T12:34:55Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:35:13Z",
+      "mergedAt": "2026-09-22T12:36:34Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 98.0,
+      "endToEndQueueSeconds": 99.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35728079494,
+      "mergeGroupSha": "8baa98ec0092da69e06519ee7812dff1b581beca",
+      "runnerWaitSeconds": 2.0,
+      "verificationSeconds": 46.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 24,
+      "prHeadSha": "31fa2ef16d74713654840c0bc875a606992de50a",
+      "enqueueAt": "2026-09-22T16:32:10Z",
+      "mergeGroupCreatedAt": "2026-09-22T16:32:28Z",
+      "mergedAt": "2026-09-22T16:33:52Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 103.0,
+      "endToEndQueueSeconds": 102.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35754786182,
+      "mergeGroupSha": "cb31b32d44e6c182cfe20d15fa6589cef6d42c60",
+      "runnerWaitSeconds": 4.0,
+      "verificationSeconds": 44.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 25,
+      "prHeadSha": "e715758245b2fad8193cdf49f780ef58a165baea",
+      "enqueueAt": "2026-09-22T16:36:57Z",
+      "mergeGroupCreatedAt": "2026-09-22T16:37:16Z",
+      "mergedAt": "2026-09-22T16:38:33Z",
+      "queueDispatchSeconds": 19.0,
+      "queueResidenceSeconds": 96.0,
+      "endToEndQueueSeconds": 96.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35755317375,
+      "mergeGroupSha": "f766c41543f420aa5a738c7a1ffde90ea6f2f2b9",
+      "runnerWaitSeconds": 4.0,
+      "verificationSeconds": 40.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 26,
+      "prHeadSha": "64043000857507330e1949d5f0d2a934b8ff6b9f",
+      "enqueueAt": "2026-09-23T09:20:20Z",
+      "mergeGroupCreatedAt": "2026-09-23T09:20:39Z",
+      "mergedAt": "2026-09-23T09:32:24Z",
+      "queueDispatchSeconds": 19.0,
+      "queueResidenceSeconds": 723.0,
+      "endToEndQueueSeconds": 724.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35842372127,
+      "mergeGroupSha": "ad023e8e5c80ce8f44bc8c78f9eab78d65e713bc",
+      "runnerWaitSeconds": 2.0,
+      "verificationSeconds": 669.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 30,
+      "prHeadSha": "9f5f7dbb0fcd6ba56dd4a115655ef0c4469da207",
+      "enqueueAt": "2026-09-23T11:24:05Z",
+      "mergeGroupCreatedAt": "2026-09-23T11:24:23Z",
+      "mergedAt": "2026-09-23T11:25:35Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 89.0,
+      "endToEndQueueSeconds": 90.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35854341121,
+      "mergeGroupSha": "f985d603b99408e066332a73713ae78ddce243c1",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 36.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 31,
+      "prHeadSha": "25999aa56e4d8b1570b0e345b4503ffa77dee618",
+      "enqueueAt": "2026-09-23T11:33:09Z",
+      "mergeGroupCreatedAt": "2026-09-23T11:33:27Z",
+      "mergedAt": "2026-09-23T11:40:58Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 469.0,
+      "endToEndQueueSeconds": 469.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35855224905,
+      "mergeGroupSha": "90eaf395bd67cb3e004078e398b089153053792c",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 416.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 32,
+      "prHeadSha": "97c055258e12536a838f364a52e3a5cfc336616a",
+      "enqueueAt": "2026-09-23T11:57:52Z",
+      "mergeGroupCreatedAt": "2026-09-23T11:58:10Z",
+      "mergedAt": "2026-09-23T12:01:16Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 203.0,
+      "endToEndQueueSeconds": 204.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35857605249,
+      "mergeGroupSha": "58adb77f870ac08c494b06dc4130a03ff5e4ac64",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 150.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 33,
+      "prHeadSha": "2eb0755e933c0f337df8a0c4b7b752d06be900c5",
+      "enqueueAt": "2026-09-23T13:17:47Z",
+      "mergeGroupCreatedAt": "2026-09-23T13:18:05Z",
+      "mergedAt": "2026-09-23T13:25:15Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 448.0,
+      "endToEndQueueSeconds": 448.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35866112952,
+      "mergeGroupSha": "fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b",
+      "runnerWaitSeconds": 2.0,
+      "verificationSeconds": 394.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 34,
+      "prHeadSha": "bc2cc1e6295c861e418fbed774e5dafb2d581cc8",
+      "enqueueAt": "2026-09-23T13:49:54Z",
+      "mergeGroupCreatedAt": "2026-09-23T13:50:11Z",
+      "mergedAt": "2026-09-23T13:57:28Z",
+      "queueDispatchSeconds": 17.0,
+      "queueResidenceSeconds": 454.0,
+      "endToEndQueueSeconds": 454.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35869856374,
+      "mergeGroupSha": "6231bda83a066a73d95392c6cfeee1371681a8e1",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 401.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 35,
+      "prHeadSha": "bc530fa4e4c22da97c28964a20ed3fe704db11ab",
+      "enqueueAt": "2026-09-23T21:00:57Z",
+      "mergeGroupCreatedAt": "2026-09-23T21:01:15Z",
+      "mergedAt": "2026-09-23T21:08:21Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 443.0,
+      "endToEndQueueSeconds": 444.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35919773975,
+      "mergeGroupSha": "a8f9a4bcaea760babc0e8dd79e119728d90bc694",
+      "runnerWaitSeconds": 4.0,
+      "verificationSeconds": 388.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 36,
+      "prHeadSha": "5e82709beb473c6784b0fd39bb98b84ec0e11b3f",
+      "enqueueAt": "2026-09-24T07:17:08Z",
+      "mergeGroupCreatedAt": "2026-09-24T07:17:26Z",
+      "mergedAt": "2026-09-24T07:24:41Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 453.0,
+      "endToEndQueueSeconds": 453.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35968818541,
+      "mergeGroupSha": "2d2f4d35ee27d40e50b4f01218319be01d532335",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 401.0,
+      "postVerificationMergeSeconds": 31.0
+    },
+    {
+      "pr": 37,
+      "prHeadSha": "5b8c17c16c3374be607e598bb76bcf9851c3b674",
+      "enqueueAt": "2026-09-23T21:44:56Z",
+      "mergeGroupCreatedAt": "2026-09-23T21:45:14Z",
+      "mergedAt": "2026-09-23T21:52:21Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 444.0,
+      "endToEndQueueSeconds": 445.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35924362835,
+      "mergeGroupSha": "867b7f6e3a015d43f316b760790da0f5574f97fe",
+      "runnerWaitSeconds": 2.0,
+      "verificationSeconds": 391.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 39,
+      "prHeadSha": "c1a6a6db2b71daaea6fecdc6f1cfcfa2f2ce0881",
+      "enqueueAt": "2026-09-24T07:37:54Z",
+      "mergeGroupCreatedAt": "2026-09-24T07:38:12Z",
+      "mergedAt": "2026-09-24T07:39:22Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 87.0,
+      "endToEndQueueSeconds": 88.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35970684645,
+      "mergeGroupSha": "7754d0e7c97ab2be4856736d766d4483eb60f65b",
+      "runnerWaitSeconds": 2.0,
+      "verificationSeconds": 34.0,
+      "postVerificationMergeSeconds": 33.0
+    }
+  ],
+  "metrics": {
+    "queueDispatchSeconds": {
+      "count": 20,
+      "mean": 17.95,
+      "median": 18.0,
+      "p95": 19.0,
+      "max": 19.0
+    },
+    "queueResidenceSeconds": {
+      "count": 20,
+      "mean": 252.3,
+      "median": 163.5,
+      "p95": 469.0,
+      "max": 723.0
+    },
+    "endToEndQueueSeconds": {
+      "count": 20,
+      "mean": 252.6,
+      "median": 163.5,
+      "p95": 469.0,
+      "max": 724.0
+    },
+    "runnerWaitSeconds": {
+      "count": 20,
+      "mean": 4.8,
+      "median": 3.0,
+      "p95": 5.0,
+      "max": 39.0
+    },
+    "verificationSeconds": {
+      "count": 20,
+      "mean": 195.95,
+      "median": 95.0,
+      "p95": 416.0,
+      "max": 669.0
+    },
+    "postVerificationMergeSeconds": {
+      "count": 20,
+      "mean": 32.6,
+      "median": 33.0,
+      "p95": 33.0,
+      "max": 39.0
+    },
+    "observedPeakQueueDepthLowerBound": 2,
+    "requeues": 0,
+    "unsuccessfulMergeGroupRuns": 0,
+    "unsuccessfulMergeGroupExecutionSeconds": 0.0,
+    "mergeGroupConclusionCounts": {
+      "success": 20
+    }
+  }
+}

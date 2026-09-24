@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from scripts.experimental_episode_convergence_r1 import (
     CI_PROFILE,
+    OWNER_COST_PROFILE,
     QUEUE_PROFILE,
     project_ci_run,
     project_convergence,
+    project_owner_cost_corpus,
+    project_owner_cost_episode,
     project_queue_episode,
 )
 from scripts.experimental_episode_r1 import validate_episode
@@ -114,6 +117,39 @@ def ci_projection() -> dict:
     }
 
 
+def owner_cost_corpus() -> dict:
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.convergence-owner-cost-episode-corpus",
+        "truthRole": "measured-owner-qualification-cost-evidence-not-scheduling-policy",
+        "episodes": [
+            {
+                "schemaVersion": 1,
+                "kind": "ordivon.convergence-owner-cost-episode",
+                "candidateSha": "d" * 40,
+                "providerBaseSha": "e" * 40,
+                "queueClass": "SCOPED",
+                "changedPaths": ["meta/next/example.py"],
+                "changedPathCount": 1,
+                "directOwners": ["runtime"],
+                "verificationOwners": ["runtime"],
+                "ownerFanout": 1,
+                "owner": "runtime",
+                "verifyTask": "runtime:verify",
+                "runnerWaitSeconds": 0.5,
+                "setupSeconds": None,
+                "buildSeconds": None,
+                "testSeconds": None,
+                "totalSeconds": 345.187,
+                "result": "PASS",
+                "evidenceRefs": ["runtime:job-1", "candidate:" + "d" * 40],
+                "observationTimestamp": "2026-09-23T21:26:06.144Z",
+            }
+        ],
+        "summary": {"candidateCount": 1, "episodeCount": 1},
+    }
+
+
 def test_queue_projection_reuses_shared_episode_contract() -> None:
     episode = project_queue_episode(
         queue_projection(), queue_projection()["episodes"][0]
@@ -173,3 +209,44 @@ def test_queue_and_ci_repository_must_match() -> None:
         assert "same repository" in str(exc)
     else:
         raise AssertionError("repository mismatch must fail closed")
+
+
+def test_owner_cost_projection_reuses_shared_episode_contract() -> None:
+    source = owner_cost_corpus()["episodes"][0]
+    episode = project_owner_cost_episode(source)
+    validate_episode(episode)
+    assert episode["profileId"] == OWNER_COST_PROFILE
+    assert episode["anchor"]["objectId"] == "d" * 40
+    dimensions = {row["name"]: row["value"] for row in episode["dimensions"]}
+    assert dimensions["owner_cost.queue_class"] == "SCOPED"
+    assert dimensions["owner_cost.owner_fanout"] == 1
+    measures = {row["name"]: row["value"] for row in episode["measures"]}
+    assert measures["owner_cost.runner_wait_seconds"] == 0.5
+    assert measures["owner_cost.total_seconds"] == 345.187
+    assert "owner_cost.setup_seconds" not in measures
+    assert any("setup phase attribution" in item for item in episode["unresolved"])
+
+
+def test_owner_cost_corpus_is_deterministic_and_collision_free() -> None:
+    first = project_owner_cost_corpus(owner_cost_corpus())
+    second = project_owner_cost_corpus(owner_cost_corpus())
+    assert first == second
+    rows, summary = first
+    assert len(rows) == 1
+    assert summary["profileId"] == OWNER_COST_PROFILE
+    assert summary["episodes"] == 1
+    assert summary["candidates"] == 1
+    assert summary["episodeIdentityCollisions"] == 0
+    assert summary["standing"] == "PASS_OWNER_COST_EPISODE_PROJECTION"
+
+
+def test_owner_cost_episode_identity_tracks_measurement_identity_not_enrichment() -> (
+    None
+):
+    before_source = owner_cost_corpus()["episodes"][0]
+    before = project_owner_cost_episode(before_source)
+    enriched_source = owner_cost_corpus()["episodes"][0]
+    enriched_source["buildSeconds"] = 100.0
+    after = project_owner_cost_episode(enriched_source)
+    assert before["episodeId"] == after["episodeId"]
+    assert before["projectionDigest"] != after["projectionDigest"]
