@@ -26,6 +26,14 @@ param(
     [Parameter()]
     [string]$HostBearerTokenFile = '',
     [Parameter()]
+    [string]$PublicOrigin = '',
+    [Parameter()]
+    [switch]$TrustCfAccess,
+    [Parameter()]
+    [string]$CfAccessIssuer = '',
+    [Parameter()]
+    [string]$CfAccessAudience = '',
+    [Parameter()]
     [ValidateSet('Manual', 'Automatic')]
     [string]$StartMode = 'Automatic',
     [Parameter()]
@@ -124,6 +132,20 @@ if ($HostBearerTokenFile) {
         [System.IO.Path]::GetFullPath($HostBearerTokenFile)
     )
 }
+if ($PublicOrigin) {
+    $envPairs.ORDIVON_GATEWAY_PUBLIC_ORIGIN = $PublicOrigin
+}
+if ($TrustCfAccess) {
+    if (-not $PublicOrigin -or -not $CfAccessIssuer -or -not $CfAccessAudience) {
+        throw "Cloudflare Access trust requires PublicOrigin, CfAccessIssuer, and CfAccessAudience"
+    }
+    $envPairs.ORDIVON_GATEWAY_TRUST_CF_ACCESS = 'true'
+    $envPairs.ORDIVON_GATEWAY_CF_ACCESS_ISSUER = $CfAccessIssuer
+    $envPairs.ORDIVON_GATEWAY_CF_ACCESS_AUDIENCE = $CfAccessAudience
+}
+elseif ($CfAccessIssuer -or $CfAccessAudience) {
+    throw "CfAccessIssuer/CfAccessAudience require -TrustCfAccess"
+}
 
 $shawlArgs = @(
     'add',
@@ -210,6 +232,10 @@ $receipt = [ordered]@{
     linuxBearerConfigured = [bool]$LinuxRuntimeBearerTokenFile
     windowsBearerConfigured = [bool]$WindowsRuntimeBearerTokenFile
     hostBearerConfigured = [bool]$HostBearerTokenFile
+    publicOriginConfigured = [bool]$PublicOrigin
+    trustCfAccess = [bool]$TrustCfAccess
+    cfAccessIssuerConfigured = [bool]$CfAccessIssuer
+    cfAccessAudienceConfigured = [bool]$CfAccessAudience
 }
 $receiptPath = Join-Path $receipts "$ServiceName.materialization.json"
 $receipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $receiptPath -Encoding utf8

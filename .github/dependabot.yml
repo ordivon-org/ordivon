@@ -14,7 +14,7 @@ updates:
       - "/capabilities/media"
       - "/domains/capital"
       - "/meta/next"
-      - "/meta/next/experimental/episode-store-r1"
+      - "/studies/experimental-episode/postgres-projection-r1"
       - "/packages/composition"
       - "/platform/security"
       - "/extensions/chatgpt-skills-mcp"

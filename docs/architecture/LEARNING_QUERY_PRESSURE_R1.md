@@ -9,7 +9,7 @@ After the first real C08 Experimental Episode, should Ordivon build or permanent
 
 ## Existing capability
 
-The repository already owns `meta/next/experimental/episode-store-r1`, a task-local PostgreSQL analytical consumer with Alembic-owned schema and no long-lived service. Historical RW3/RW4 evidence qualified it on 10,007 Episode projections (10,000 Runtime + 7 Harness) and found real descriptive analytical value, while leaving permanent deployment only `ELIGIBLE_BUT_NOT_YET_REALIZED`.
+The repository already owns `studies/experimental-episode/postgres-projection-r1`, a task-local PostgreSQL analytical consumer with Alembic-owned schema and no long-lived service. Historical RW3/RW4 evidence qualified it on 10,007 Episode projections (10,000 Runtime + 7 Harness) and found real descriptive analytical value, while leaving permanent deployment only `ELIGIBLE_BUT_NOT_YET_REALIZED`.
 
 ## Current C08 dogfood
 

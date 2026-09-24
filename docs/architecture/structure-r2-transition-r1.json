@@ -425,7 +425,7 @@
       "wave": "S5"
     },
     {
-      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers.",
+      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers. Experimental Episode PostgreSQL projection is now study-local under studies/experimental-episode/postgres-projection-r1.",
       "id": "next-residual",
       "mode": "split",
       "owner": "next",
@@ -439,7 +439,8 @@
         "profiles/",
         "extensions/",
         "docs/",
-        "tests/"
+        "tests/",
+        "studies/"
       ],
       "verifyTasks": [
         "next:verify"
