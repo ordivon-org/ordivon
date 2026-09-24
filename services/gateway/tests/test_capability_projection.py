@@ -58,6 +58,12 @@ def test_capability_projection_rebuilds_from_runtime_owner_truth() -> None:
                         "available": True,
                         "executionProfiles": ["trusted_local"],
                         "windowsAuthorities": ["limited", "elevated", "active_user"],
+                        "windowsContexts": [
+                            {"identity": "service", "privilege": "limited"},
+                            {"identity": "service", "privilege": "elevated"},
+                            {"identity": "active_user", "privilege": "limited"},
+                            {"identity": "active_user", "privilege": "elevated"},
+                        ],
                         "structuredPlan": True,
                         "immutableInputs": True,
                         "hostDependencyCommitments": False,
@@ -85,7 +91,13 @@ def test_capability_projection_rebuilds_from_runtime_owner_truth() -> None:
 
     windows = by_id["execution.windows"]
     assert windows.available is True
-    assert windows.contexts == ["limited", "elevated", "active_user"]
+    assert windows.context_mode == "provider-defined-json"
+    assert windows.contexts == [
+        {"identity": "service", "privilege": "limited"},
+        {"identity": "service", "privilege": "elevated"},
+        {"identity": "active_user", "privilege": "limited"},
+        {"identity": "active_user", "privilege": "elevated"},
+    ]
     assert windows.owner_node_id == "windows-main-r6-candidate"
 
     continuity = by_id["continuity.external"]

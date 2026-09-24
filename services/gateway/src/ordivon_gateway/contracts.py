@@ -21,8 +21,8 @@ class CapabilityDescriptor(StrictModel):
     category: str
     configured: bool
     available: bool
-    context_mode: Literal["none", "provider-defined-string"]
-    contexts: list[str] = Field(default_factory=list)
+    context_mode: Literal["none", "provider-defined-string", "provider-defined-json"]
+    contexts: list[Any] = Field(default_factory=list)
     owner_node_id: str | None = None
     owner_node_ids: list[str] = Field(default_factory=list)
     observation_error: str | None = None
