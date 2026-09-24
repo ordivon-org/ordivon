@@ -30,7 +30,7 @@ uv run --locked --group quality ruff format --check scripts tests
 uv run --locked --group authority python scripts/check_authority_catalog_r1.py
 uv run --locked --group authority python scripts/check_standard_native_enterprise_r2.py
 uv run --locked --group authority python ../research/scripts/check_scholarly_intelligence_r1.py
-uv run --locked --group authority python ../research/scripts/check_scholarly_live_profiles_r2.py
+uv run --locked --group authority python ../research/scripts/check_scholarly_live_profiles_r3.py
 uv run --locked --group authority python ../research/scripts/check_scholarly_pressure_r1.py
 uv run --locked --group authority python ../research/scripts/check_scholarly_data_plane_r1.py
 uv run --locked --group authority python ../research/scripts/check_aries_review_response_core_r1.py

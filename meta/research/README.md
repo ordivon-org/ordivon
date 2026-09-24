@@ -53,3 +53,7 @@ Action-changing shared rules are admitted only after at least two independent St
 the same irreducible rule after mature external substitution. R2 has admitted only the thin profile protocol after three-Study pressure testing. ClaimPermission, concern/gap routing, experiment-admission contracts, review disagreement and longitudinal decision episodes remain separate candidates and are not executable shared policy.
 
 Context24 ClaimPermission pressure R1 now tests one narrower rule: representation availability may raise an inspection ceiling but cannot grant scientific claim strength. The resulting envelope remains Study-owned and is explicitly ineligible for shared-policy promotion from this single pressure family.
+
+### Live Study profile currentness R3
+
+A live Scholarly Intelligence profile is current when its bound Study revision is an ancestor of the current clean owner-repository HEAD **and every digest-bound semantic reference still matches both the bound revision and the current file bytes**. Repository HEAD equality is intentionally not required because multiple independent Studies may share one monorepo; unrelated Study commits must not invalidate another Study projection. `subjectRef` must be covered by a digest-bound semantic reference. This is a currentness rule for a non-authoritative projection, not scientific-truth or submission authority.
