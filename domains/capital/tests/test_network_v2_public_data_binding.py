@@ -28,6 +28,11 @@ def test_public_data_binding_pins_live_transport_and_protected_endpoints():
     assert treasury["host"] == "home.treasury.gov"
     assert treasury["proxy"] == "http://127.0.0.1:19291"
 
+    fred = cfg["authorities"]["fredPublicCsv"]
+    assert fred["file"] == "/etc/network-v2/finance/fred-public-csv-authority.json"
+    assert fred["host"] == "fred.stlouisfed.org"
+    assert fred["proxy"] == "http://127.0.0.1:19292"
+
 
 def test_binding_checker_fails_closed_on_transport_or_endpoint_drift():
     script = (ROOT / "scripts/check-network-v2-public-data").read_text()

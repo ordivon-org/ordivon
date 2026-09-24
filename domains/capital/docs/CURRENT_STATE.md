@@ -17,9 +17,10 @@ Canonical source owner is `domains/capital`. Active source-owner domains: Market
 | Private account data | `NOT_ADMITTED` / allowed=false |
 | Local accounting mechanics | `PASS_BOUNDED_SQLITE_WAL_ACCOUNTING` |
 | U.S. Treasury nominal/real observation | `ACTIVE_OFFICIAL_PUBLIC_OWNER` / `ACTIVE_OFFICIAL_PUBLIC_OWNER` |
-| Brent/WTI observation | `EXTERNAL_CREDENTIAL_REQUIRED_NOT_INTEGRATED` |
+| Brent/WTI observation | `ACTIVE_EIA_ORIGIN_FRED_PUBLIC_MIRROR` |
 | Fed policy repricing observation | `EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED` |
 | SOXL benchmark identity | `NYSE Semiconductor Index` / `ICESEMIT` / daily target `3.0x` |
+| Research data aggregation | OpenBB `4.7.2` / `ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY` |
 
 ## R2 architecture
 

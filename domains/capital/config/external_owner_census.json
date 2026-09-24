@@ -117,10 +117,10 @@
     },
     {
       "id": "research-data-integration",
-      "ownerClass": "IMPLEMENTATION_CANDIDATE",
-      "owner": "OpenBB Open Data Platform",
-      "currentStanding": "OpenBB 4.7.x supports Python 3.14; Provider/Fetcher/standard-model extensions implement connect-once-consume-everywhere research-data integration",
-      "applicability": "CANDIDATE_RESEARCH_DATA_OWNER_NOT_PRIVATE_ACCOUNT_ORDER_OR_EXECUTION_REALITY; AGPL_BOUNDARY_REQUIRES_SEPARATE_DEPLOYMENT_REVIEW",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "OpenBB Open Data Platform 4.7.2",
+      "currentStanding": "ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY; Python 3.14.7 executable; Federal Reserve provider live-qualified; yfinance SOXL path rate-limited and not admitted",
+      "applicability": "PUBLIC_RESEARCH_DATA_ROUTING_NORMALIZATION_ONLY; SEPARATE_AGPL_EXTERNAL_ENVIRONMENT; NOT_PRIVATE_ACCOUNT_ORDER_EXECUTION_OR_ORIGINAL_SOURCE_TRUTH",
       "source": "https://github.com/OpenBB-finance/OpenBB"
     },
     {

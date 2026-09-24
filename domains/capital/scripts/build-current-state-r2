@@ -18,6 +18,7 @@ AUTHORITIES = [
     "config/capital_lego_registry.json",
     "config/macro_observation_owners.json",
     "config/soxl_instrument_identity.json",
+    "config/research_data_aggregators.json",
     "planning/functional-lego-map-r1.json",
 ]
 
@@ -47,6 +48,7 @@ def build() -> dict[str, Any]:
     registry = load("config/capital_lego_registry.json")
     macro = load("config/macro_observation_owners.json")
     soxl = load("config/soxl_instrument_identity.json")
+    aggregators = load("config/research_data_aggregators.json")
     fmap = load("planning/functional-lego-map-r1.json")
     projection: dict[str, Any] = {
         "schemaVersion": 2,
@@ -96,6 +98,12 @@ def build() -> dict[str, Any]:
             "benchmarkSymbol": soxl["benchmark"]["symbol"],
             "dailyTargetMultiple": soxl["dailyTargetMultiple"],
         },
+        "researchDataAggregation": {
+            "authority": "config/research_data_aggregators.json",
+            "openbbStanding": aggregators["aggregators"]["openbb"]["standing"],
+            "openbbStableVersion": aggregators["aggregators"]["openbb"]["stableVersion"],
+            "deploymentBoundary": aggregators["aggregators"]["openbb"]["deploymentBoundary"],
+        },
         "inventory": {
             "registryEntries": len(registry["entries"]),
             "canonicalEntries": sum(row["sourceClass"] == "CANONICAL" for row in registry["entries"]),
@@ -113,7 +121,7 @@ def build() -> dict[str, Any]:
 
 
 def markdown(doc: dict[str, Any]) -> str:
-    return f'''# Ordivon Capital — Current State\n\nTruth role: **generated rebuildable projection, not authority**. Run `scripts/build-current-state-r2`; machine-readable authorities win on conflict.\n\n## Source and ownership\n\nCanonical source owner is `domains/capital`. Active source-owner domains: Markets, Trading, Portfolio, Risk, Research, Governance, Accounting. Generic task-local composition mechanics are owned by `packages/composition`; Capital retains financial LEGO, authority/effect, reconciliation and accounting semantics.\n\n## Current authority standing\n\n| Boundary | Current standing |\n| --- | --- |\n| Protocol identity | `{doc['protocol']['standing']}` / schema v{doc['protocol']['schemaVersion']} |\n| Execution lane | `{doc['execution']['currentLane']}` |\n| Production external financial write | `{doc['productionAuthorization']['state']}` / allowed={str(doc['productionAuthorization']['externalFinancialWriteAllowed']).lower()} |\n| Portfolio risk budget | `{doc['portfolioRiskBudget']['standing']}` / owner `{doc['portfolioRiskBudget']['owner']}` |\n| Private account data | `{doc['privateReality']['privateAccountDataAdmission']}` / allowed={str(doc['privateReality']['privateAccountDataAllowed']).lower()} |\n| Local accounting mechanics | `{doc['accounting']['standing']}` |\n| U.S. Treasury nominal/real observation | `{doc['macroObservationOwners']['usTreasuryNominalCurve']}` / `{doc['macroObservationOwners']['usTreasuryRealCurve']}` |\n| Brent/WTI observation | `{doc['macroObservationOwners']['brentWti']}` |\n| Fed policy repricing observation | `{doc['macroObservationOwners']['fedPolicyRepricing']}` |\n| SOXL benchmark identity | `{doc['instrumentIdentity']['benchmarkName']}` / `{doc['instrumentIdentity']['benchmarkSymbol']}` / daily target `{doc['instrumentIdentity']['dailyTargetMultiple']}x` |\n\n## R2 architecture\n\n```text\nFinancial Circuit Spec\n        ↓\nCapital financial semantic lowering\n        ↓\nOrdivon Cognitive Circuit + Authority Obligations\n        ↓\nowner-native Capital functions\n        ↓\nprovider/local reality\n        ↓\nCapital reconciliation/accounting\n```\n\nRegistry: {doc['inventory']['registryEntries']} entries, {doc['inventory']['canonicalEntries']} canonical; functional LEGO roles: {doc['inventory']['functionalLegos']}.\n\n## Laws\n\n- Provider reality remains authoritative for external financial facts.\n- Shared Composition grants no financial/provider/execution authority.\n- Capital has no canonical production/live external-write implementation.\n- `UNSET` owner risk budget remains `UNSET`; it is never inferred.\n- Historical evidence and prior R1 projections do not become current merely because Git is recent.\n- Official macro observation owners remain distinct from interpretation and financial decision authority.\n- Derivative observations and factor proxies do not replace SOXL cash-fund or benchmark identity authority.\n'''
+    return f'''# Ordivon Capital — Current State\n\nTruth role: **generated rebuildable projection, not authority**. Run `scripts/build-current-state-r2`; machine-readable authorities win on conflict.\n\n## Source and ownership\n\nCanonical source owner is `domains/capital`. Active source-owner domains: Markets, Trading, Portfolio, Risk, Research, Governance, Accounting. Generic task-local composition mechanics are owned by `packages/composition`; Capital retains financial LEGO, authority/effect, reconciliation and accounting semantics.\n\n## Current authority standing\n\n| Boundary | Current standing |\n| --- | --- |\n| Protocol identity | `{doc['protocol']['standing']}` / schema v{doc['protocol']['schemaVersion']} |\n| Execution lane | `{doc['execution']['currentLane']}` |\n| Production external financial write | `{doc['productionAuthorization']['state']}` / allowed={str(doc['productionAuthorization']['externalFinancialWriteAllowed']).lower()} |\n| Portfolio risk budget | `{doc['portfolioRiskBudget']['standing']}` / owner `{doc['portfolioRiskBudget']['owner']}` |\n| Private account data | `{doc['privateReality']['privateAccountDataAdmission']}` / allowed={str(doc['privateReality']['privateAccountDataAllowed']).lower()} |\n| Local accounting mechanics | `{doc['accounting']['standing']}` |\n| U.S. Treasury nominal/real observation | `{doc['macroObservationOwners']['usTreasuryNominalCurve']}` / `{doc['macroObservationOwners']['usTreasuryRealCurve']}` |\n| Brent/WTI observation | `{doc['macroObservationOwners']['brentWti']}` |\n| Fed policy repricing observation | `{doc['macroObservationOwners']['fedPolicyRepricing']}` |\n| SOXL benchmark identity | `{doc['instrumentIdentity']['benchmarkName']}` / `{doc['instrumentIdentity']['benchmarkSymbol']}` / daily target `{doc['instrumentIdentity']['dailyTargetMultiple']}x` |\n| Research data aggregation | OpenBB `{doc['researchDataAggregation']['openbbStableVersion']}` / `{doc['researchDataAggregation']['openbbStanding']}` |\n\n## R2 architecture\n\n```text\nFinancial Circuit Spec\n        ↓\nCapital financial semantic lowering\n        ↓\nOrdivon Cognitive Circuit + Authority Obligations\n        ↓\nowner-native Capital functions\n        ↓\nprovider/local reality\n        ↓\nCapital reconciliation/accounting\n```\n\nRegistry: {doc['inventory']['registryEntries']} entries, {doc['inventory']['canonicalEntries']} canonical; functional LEGO roles: {doc['inventory']['functionalLegos']}.\n\n## Laws\n\n- Provider reality remains authoritative for external financial facts.\n- Shared Composition grants no financial/provider/execution authority.\n- Capital has no canonical production/live external-write implementation.\n- `UNSET` owner risk budget remains `UNSET`; it is never inferred.\n- Historical evidence and prior R1 projections do not become current merely because Git is recent.\n- Official macro observation owners remain distinct from interpretation and financial decision authority.\n- Derivative observations and factor proxies do not replace SOXL cash-fund or benchmark identity authority.\n'''
 
 
 def main() -> int:

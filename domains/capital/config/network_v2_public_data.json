@@ -63,6 +63,14 @@
       "port": 8443,
       "profile": "finance-okx-ws",
       "proxy": "http://127.0.0.1:19288"
+    },
+    "fredPublicCsv": {
+      "digest": "sha256:da233f8f04c00ccc4878882b60dd8412f9aec915ff262bd9f4bc3bbc61918370",
+      "file": "/etc/network-v2/finance/fred-public-csv-authority.json",
+      "host": "fred.stlouisfed.org",
+      "port": 443,
+      "profile": "finance-fred-public-csv",
+      "proxy": "http://127.0.0.1:19292"
     }
   },
   "directFallback": false,
@@ -75,7 +83,7 @@
   "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",
   "transportConfig": {
     "file": "/etc/network-v2/finance/egress.json",
-    "digest": "sha256:38d54b2bc22933be62f972c4ebd1adfb997ae893f5bbddf81b5e87e640af631a",
+    "digest": "sha256:45b0f2492c1ac535456723acde4854fad327d68417fc6bb4378c103de905345a",
     "implementation": "sing-box",
     "requiredDnsServers": [
       {

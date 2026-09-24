@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+py=/root/external/openbb/4.7.2/.venv/bin/python
+api=/root/external/openbb/4.7.2/.venv/bin/openbb-api
+[[ -x "$py" && -x "$api" ]]
+"$py" - <<'PY'
+import importlib.metadata as m, json
+expected={
+ 'openbb':'4.7.2','openbb-core':'1.6.13','openbb-platform-api':'1.3.6',
+ 'openbb-federal-reserve':'1.6.2','openbb-us-eia':'1.3.1','openbb-fred':'1.6.2','openbb-yfinance':'1.6.3'
+}
+actual={k:m.version(k) for k in expected}
+if actual != expected:
+    raise SystemExit(f'OpenBB external capability version drift: {actual!r}')
+print(json.dumps({'schemaVersion':1,'kind':'ordivon.capital.openbb-capability-check','standing':'PASS_INSTALLED_EXACT','packages':actual,'externalFinancialWriteAllowed':False},sort_keys=True))
+PY

@@ -5,8 +5,8 @@
       "interpreter": "/root/external/binance-sdk-usdm/17.4.0/.venv/bin/python",
       "nonResponsibility": "does not grant account/product eligibility, TradFi agreement acceptance, live execution authority, investment suitability or external-write admission",
       "package": "binance-sdk-derivatives-trading-usds-futures",
-      "provider": "Binance Official USD\u24c8-M Futures Python SDK",
-      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USD\u24c8-M Futures",
+      "provider": "Binance Official USDⓈ-M Futures Python SDK",
+      "responsibility": "official /fapi REST, WebSocket API and WebSocket Streams client mechanics for Binance USDⓈ-M Futures",
       "version": "17.4.0"
     },
     "binanceWallet": {
@@ -73,6 +73,15 @@
       "standing": "WEBSOCKETS_17_1_REQUALIFIED_R17",
       "responsibility": "bounded RFC 6455 client handshake/framing/control-frame/close/message-limit mechanics plus proxy/TLS integration",
       "nonResponsibility": "does not own Network v2 route selection, venue payload semantics, snapshot qualification, stream health policy or financial-effect authority"
+    },
+    "openbbResearchData": {
+      "provider": "OpenBB Open Data Platform",
+      "version": "4.7.2",
+      "interpreter": "/root/external/openbb/4.7.2/.venv/bin/python",
+      "apiExecutable": "/root/external/openbb/4.7.2/.venv/bin/openbb-api",
+      "deploymentBoundary": "separate AGPL external capability; never imported into Capital core runtime dependency graph",
+      "responsibility": "public/research financial and macro data provider routing/normalization; provider identity and provenance remain attached",
+      "nonResponsibility": "does not own original source truth, private account/order/execution truth, benchmark identity, policy, risk budget, recommendation or external-write authority"
     }
   },
   "kind": "ordivon.capital.capability-dependencies",

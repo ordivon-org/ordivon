@@ -10,13 +10,13 @@
   "candidates": [
     {
       "project": "OpenBB",
-      "observedVersion": "4.7.3",
+      "observedVersion": "4.7.2 stable; 4.7.3 observed on upstream develop",
       "role": "broad research-data integration",
-      "languageEvidence": "Python >=3.10,<4; release line explicitly supports Python 3.14",
-      "languageStanding": "PASS_DECLARED",
-      "activeContract": false,
-      "adoptionStanding": "NO_ACTIVE_CONTRACT_NO_ADOPTION",
-      "otherGate": "AGPL-3.0-only deployment boundary requires review"
+      "languageEvidence": "OpenBB 4.7.2 installed and executed under Python 3.14.7",
+      "languageStanding": "PASS_EXECUTABLE",
+      "activeContract": true,
+      "adoptionStanding": "ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY",
+      "otherGate": "AGPL-3.0-only preserved through separate /root/external environment; provider-level qualification remains independent"
     },
     {
       "project": "PyPortfolioOpt",
