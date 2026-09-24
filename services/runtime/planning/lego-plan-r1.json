@@ -270,10 +270,12 @@
       "sharedRefs": [],
       "evidence": [
         "ordinary-family OperationCircuitCompiler pilot commit 397dee5ef0caa296283253c03da5f277f4fa2a8d",
+        "reduced immutable-input OperationCircuitCompiler slice commit 40c414a3901c4383a9d7d122fe7716effbe8506e",
         "operation_circuit.rs reuses existing RuntimeExecutionPlan/ExecutionProviderSnapshot/HostDependencyBinding/SubmitRequest rather than adding a persisted circuit schema",
         "ordinary admission consumes the R07 AuthorityContract only after exact replay; compiler checks authority/request/validated-host-dependency/resolved-plan realization consistency fail closed",
-        "current-main runtime:verify PASS job-01a0cf70-37d7-7a90-8fed-98e4253175c9, including independent slow Registry reference-model property gate",
-        "public MCP Tool schemas, Registry schema v6, request identity, provider authority and domain/Security ownership unchanged"
+        "reduced immutable-input admission preserves existing input materialization/preallocation ownership and verifies exact logical-to-effective read-only input realization before compiling the existing SubmitRequest",
+        "current-main runtime:verify PASS job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc, including the independent slow Registry reference-model property gate",
+        "public MCP Tool schemas, Registry schema v6, request identity, provider authority, materialization authority and domain/Security ownership unchanged"
       ],
       "dependencies": [
         "R03",
@@ -290,7 +292,7 @@
         "Legacy all-explicit request identity remains replay-compatible.",
         "Compiled plans contain only enforceable facts; metadata without enforcement does not enter operation identity."
       ],
-      "nextAction": "Migrate the immutable-input execution family next; prove exact SubmitRequest/identity/error-order parity and preserve materialization ownership before moving trusted-input or credential-bound execution."
+      "nextAction": "Migrate trusted immutable-input execution next; preserve the existing materialization and trusted-local authority boundary, prove exact SubmitRequest/identity/error-order parity, then migrate credential-bound trusted execution."
     },
     {
       "id": "R09",
