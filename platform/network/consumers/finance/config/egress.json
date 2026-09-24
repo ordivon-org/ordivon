@@ -92,6 +92,12 @@
       "tag": "finance-binance-wallet",
       "listen": "127.0.0.1",
       "listen_port": 19290
+    },
+    {
+      "type": "http",
+      "tag": "finance-us-treasury-public",
+      "listen": "127.0.0.1",
+      "listen_port": 19291
     }
   ],
   "outbounds": [
@@ -179,6 +185,15 @@
           "finance-binance-wallet"
         ],
         "domain": "api.binance.com",
+        "port": 443,
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "inbound": [
+          "finance-us-treasury-public"
+        ],
+        "domain": "home.treasury.gov",
         "port": 443,
         "action": "route",
         "outbound": "provider-auto"

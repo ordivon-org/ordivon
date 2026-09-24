@@ -23,6 +23,11 @@ def test_public_data_binding_pins_live_transport_and_protected_endpoints():
     assert endpoints["sensitive"] is True
     assert endpoints["contentDisclosureAllowed"] is False
 
+    treasury = cfg["authorities"]["usTreasuryRest"]
+    assert treasury["file"] == "/etc/network-v2/finance/us-treasury-rest-authority.json"
+    assert treasury["host"] == "home.treasury.gov"
+    assert treasury["proxy"] == "http://127.0.0.1:19291"
+
 
 def test_binding_checker_fails_closed_on_transport_or_endpoint_drift():
     script = (ROOT / "scripts/check-network-v2-public-data").read_text()

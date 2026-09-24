@@ -8,7 +8,7 @@ The provider and consumer transport graph is one mature sing-box process rather 
 
 ```text
 Surfshark WireGuard Endpoint A ─┐
-                               ├─ sing-box provider URLTest ─ dual provider-DNS response race ─ six fenced loopback CONNECT authorities
+                               ├─ sing-box provider URLTest ─ dual provider-DNS response race ─ scoped loopback CONNECT authorities
 Surfshark WireGuard Endpoint B ─┘
 ```
 
@@ -25,6 +25,7 @@ The independent consumer authorities are:
 - OKX public WS: `127.0.0.1:19288` → exactly `ws.okx.com:8443`.
 - Binance USD-M public WS: `127.0.0.1:19289` → exactly `fstream.binance.com:443`.
 - Binance Wallet/API REST: `127.0.0.1:19290` → exactly `api.binance.com:443`.
+- U.S. Treasury public rates REST/XML: `127.0.0.1:19291` → exactly `home.treasury.gov:443`.
 
 `127.0.0.1:19299` is sing-box's local observation API, not a consumer data authority. Every consumer inbound has an exact inbound + domain + port route. The final route rule rejects everything else. There is no native/direct fallback.
 
@@ -40,6 +41,6 @@ Historical R5/R6/R7 namespace/`wg-quick` evidence remains under `history/`; it i
 
 ## Lifecycle and readiness
 
-`network-v2-finance.target` is the persistent composition root and is enabled at materialization so the Finance transport returns after host/WSL boot without an operator-issued start. Process state is not treated as data readiness. `/usr/local/libexec/network-v2/finance-ready` performs a bounded consequence probe through the exact admitted loopback authorities and fails closed; it never falls back to direct Internet access and never loads broker credentials.
+`network-v2-finance.target` is the persistent composition root and is enabled at materialization so the Finance transport returns after host/WSL boot without an operator-issued start. Process state is not treated as data readiness. `/usr/local/libexec/network-v2/finance-ready` performs bounded consequence probes through the exact admitted loopback authorities and fails closed; it never falls back to direct Internet access and never loads broker credentials. `public` proves the credential-free market/macro authorities (OKX REST, Binance USD-M REST, Binance Spot public REST, U.S. Treasury); `all` additionally requires the Binance Wallet/API authority, so a private-account-side venue outage does not block public research-data convergence.
 
-Canonical convergence is `task consumer:finance:converge`: materialize exact provider/consumer bytes, enable the target, restart the composition root onto those exact installed bytes, then prove OKX REST, Binance USD-M REST, Binance Spot public REST, and Binance Wallet/API REST readiness. Venue outage and provider convergence remain distinguishable from a running sing-box process.
+Canonical convergence is `task consumer:finance:converge`: materialize exact provider/consumer bytes, enable the target, restart the composition root onto those exact installed bytes, then prove the credential-free public market/macro authority set. Binance Wallet/API readiness remains an explicit separate/full probe. Venue outage and provider convergence remain distinguishable from a running sing-box process.

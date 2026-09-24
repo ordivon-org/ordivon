@@ -40,6 +40,14 @@
       "profile": "finance-binance-wallet",
       "proxy": "http://127.0.0.1:19290"
     },
+    "usTreasuryRest": {
+      "digest": "sha256:6366280e1706b393bd704d42cd6d07a8ba0dce09bb13e96e6f36279727fe087a",
+      "file": "/etc/network-v2/finance/us-treasury-rest-authority.json",
+      "host": "home.treasury.gov",
+      "port": 443,
+      "profile": "finance-us-treasury-public",
+      "proxy": "http://127.0.0.1:19291"
+    },
     "okxRest": {
       "digest": "sha256:136c36adf385fc6676da03fe30ea91da1d40d44fc33c6a7dd0f4066a8403b554",
       "file": "/etc/network-v2/finance/okx-rest-authority.json",
@@ -67,7 +75,7 @@
   "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",
   "transportConfig": {
     "file": "/etc/network-v2/finance/egress.json",
-    "digest": "sha256:d6cf42b0fdd9f919d6180f41cb721d0e9df4fd85dca27774dd863fa2373e28a4",
+    "digest": "sha256:8cc276bf36e6a94a60187304708b6c40b9969d87e154248471432e01c0d3872c",
     "implementation": "sing-box",
     "requiredDnsServers": [
       {

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research.macro-observation-owner-map",
+  "principle": "external-owner-first; observation is not interpretation, decision, or execution authority",
+  "observations": {
+    "usTreasuryNominalCurve": {
+      "standing": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+      "owner": "U.S. Department of the Treasury",
+      "source": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+      "transportAuthority": "usTreasuryRest",
+      "dataKey": "daily_treasury_yield_curve",
+      "credentialRequired": false,
+      "frequency": "DAILY",
+      "authorityBoundary": "official Treasury daily par yield curve; not intraday cash-Treasury market data"
+    },
+    "usTreasuryRealCurve": {
+      "standing": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+      "owner": "U.S. Department of the Treasury",
+      "source": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+      "transportAuthority": "usTreasuryRest",
+      "dataKey": "daily_treasury_real_yield_curve",
+      "credentialRequired": false,
+      "frequency": "DAILY",
+      "authorityBoundary": "official Treasury daily par real yield curve; not intraday TIPS market data"
+    },
+    "brentWti": {
+      "standing": "EXTERNAL_CREDENTIAL_REQUIRED_NOT_INTEGRATED",
+      "owner": "U.S. Energy Information Administration",
+      "source": "https://www.eia.gov/opendata/documentation.php",
+      "preferredApi": "EIA API v2",
+      "seriesReferences": ["PET.RBRTE.D", "PET.RWTC.D"],
+      "credentialRequired": true,
+      "credentialPolicy": "do not scrape or invent a key; integrate only after an owner-supplied EIA API key is admitted",
+      "authorityBoundary": "official EIA daily petroleum series; not exchange-grade intraday Brent/WTI execution truth"
+    },
+    "fedPolicyRepricing": {
+      "standing": "EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED",
+      "owner": "CME Group FedWatch API",
+      "source": "https://www.cmegroup.com/market-data/market-data-api/fedwatch-api.html",
+      "delivery": "JSON REST API",
+      "underlying": "30-Day Fed Funds futures",
+      "credentialRequired": true,
+      "subscriptionRequired": true,
+      "credentialPolicy": "do not scrape the FedWatch web UI; integrate the official API after subscription credentials exist",
+      "authorityBoundary": "market-implied FOMC target-rate probabilities; not a Federal Reserve forecast or policy commitment"
+    }
+  }
+}

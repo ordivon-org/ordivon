@@ -7,8 +7,8 @@ target=network-v2-finance.target
 egress=network-v2-finance-egress.service
 
 case "$mode" in
-  all|okx|binance-usdm|binance-spot|binance-wallet) ;;
-  *) echo "usage: $0 [all|okx|binance-usdm|binance-spot|binance-wallet] [timeout_seconds]" >&2; exit 2 ;;
+  all|public|okx|binance-usdm|binance-spot|binance-wallet|treasury) ;;
+  *) echo "usage: $0 [all|public|okx|binance-usdm|binance-spot|binance-wallet|treasury] [timeout_seconds]" >&2; exit 2 ;;
 esac
 case "$timeout_seconds" in
   ''|*[!0-9]*) echo "timeout_seconds must be a non-negative integer" >&2; exit 2 ;;
@@ -31,6 +31,11 @@ probe_binance_wallet() {
   curl -4 -fsS --proxy http://127.0.0.1:19290 --connect-timeout 3 --max-time 8 https://api.binance.com/api/v3/time |
     jq -e '(.serverTime|type)=="number"' >/dev/null
 }
+probe_treasury() {
+  local out
+  out=$(curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 3 --max-time 12 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026')
+  printf '%s' "$out" | grep -q '<feed '
+}
 probe_selected() {
   unit_active "$target" && unit_active "$egress" || return 1
   case "$mode" in
@@ -38,7 +43,9 @@ probe_selected() {
     binance-usdm) probe_binance_usdm ;;
     binance-spot) probe_binance_spot ;;
     binance-wallet) probe_binance_wallet ;;
-    all) probe_okx && probe_binance_usdm && probe_binance_spot && probe_binance_wallet ;;
+    treasury) probe_treasury ;;
+    public) probe_okx && probe_binance_usdm && probe_binance_spot && probe_treasury ;;
+    all) probe_okx && probe_binance_usdm && probe_binance_spot && probe_treasury && probe_binance_wallet ;;
   esac
 }
 
