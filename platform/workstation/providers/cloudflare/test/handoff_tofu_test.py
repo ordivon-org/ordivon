@@ -189,7 +189,14 @@ class PlanSemanticGateTests(unittest.TestCase):
                             {
                                 "address": "cloudflare_zero_trust_tunnel_cloudflared_config.production",
                                 "values": {"config": {"ingress": prior_ingress}},
-                            }
+                            },
+                            {
+                                "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
+                                "values": {
+                                    "tunnel_id": "native-tunnel",
+                                    "config": {"ingress": native_prior_ingress},
+                                },
+                            },
                         ]
                     }
                 }
@@ -241,10 +248,6 @@ class PlanSemanticGateTests(unittest.TestCase):
                                 "duration": "8760h",
                                 "enabled": True,
                             },
-                        },
-                        {
-                            "address": "data.cloudflare_zero_trust_tunnel_cloudflared_config.native",
-                            "values": {"config": {"ingress": native_prior_ingress}},
                         },
                         {
                             "address": "cloudflare_zero_trust_tunnel_cloudflared_config.native",
@@ -325,7 +328,7 @@ class PlanSemanticGateTests(unittest.TestCase):
 
     def test_semantic_gate_rejects_lost_native_runtime_canary(self) -> None:
         plan = self._plan()
-        native = plan["planned_values"]["root_module"]["resources"][5]
+        native = plan["planned_values"]["root_module"]["resources"][4]
         native["values"]["config"]["ingress"] = [
             {"hostname": "gateway-mcp.ordivon.com", "service": "http://127.0.0.1:19000"},
             {"hostname": None, "service": "http_status:404"},
