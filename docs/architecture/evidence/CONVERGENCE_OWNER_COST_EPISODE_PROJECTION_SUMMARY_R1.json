@@ -1,0 +1,14 @@
+{
+  "candidateIdSetDigest": "sha256:474ed7cfa694ebe61e6a289c6e11191155abb142c0df029e9045ca4400b6c9bf",
+  "candidates": 2,
+  "claimBoundary": "Owner-cost Episodes are rebuildable analytical projections over measured qualification evidence. They do not grant scheduling, cancellation, batching, or verification-evidence-reuse authority.",
+  "episodeIdSetDigest": "sha256:d936fb91cc5dadc4001d96e055b805c6dc546539b8e719ae5dc0eb548306e55e",
+  "episodeIdentityCollisions": 0,
+  "episodes": 19,
+  "kind": "ordivon.convergence-owner-cost-experimental-episode-projection-summary",
+  "profileId": "convergence-owner-cost-episode-v1",
+  "projectionDigestSetDigest": "sha256:956331bc842bef35a8075f82eb4099f8b1d742b506f4805ab646b484f80cae96",
+  "schemaVersion": 1,
+  "standing": "PASS_OWNER_COST_EPISODE_PROJECTION",
+  "summaryDigest": "sha256:2d03519ac5f372353533931d1992e6039f871e0a9d7793c6899069df2a678d13"
+}

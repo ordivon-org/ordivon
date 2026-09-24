@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/convergence-ci-economic-annotation-v1.schema.json",
+  "title": "Ordivon CI Economic Annotation Corpus v1",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["schemaVersion","kind","runId","headSha","event","attempt","providerConclusion","economicOutcome","reason","evidenceRefs","annotationAuthority","timestamp"],
+    "properties": {
+      "schemaVersion": {"const": 1},
+      "kind": {"const": "ordivon.ci-economic-annotation"},
+      "runId": {"type": "integer", "minimum": 1},
+      "headSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+      "event": {"type": "string", "minLength": 1},
+      "attempt": {"type": "integer", "minimum": 1},
+      "providerConclusion": {"type": ["string","null"]},
+      "economicOutcome": {"enum": ["USEFUL","SAVED_WORK","AVOIDABLE_WASTE","FAILED_PRODUCTIVELY","INFRA_FAILURE","DUPLICATED","SUPERSEDED","NO_EXECUTION","PENDING","UNCLASSIFIED"]},
+      "reason": {"type": "string", "minLength": 1},
+      "evidenceRefs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+      "annotationAuthority": {"type": "string", "minLength": 1},
+      "timestamp": {"type": "string", "format": "date-time"}
+    }
+  }
+}

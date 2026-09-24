@@ -1,0 +1,17 @@
+{
+  "ciEpisodeIdSetDigest": "sha256:4746b401177d82c64c21f18efe53078e08d2d2360afb7441425c172723ec781d",
+  "ciEpisodes": 118,
+  "ciProfileId": "convergence-ci-observation-v1",
+  "ciProjectionDigestSetDigest": "sha256:04a326c1f522fd82c68d14a12f4496a35cdb5cb8055bf5ec8fd3f66a054b1883",
+  "claimBoundary": "This is a rebuildable analytical projection into the existing Experimental Episode contract. GitHub remains Queue/Actions authority and PostgreSQL remains a derived consumer.",
+  "episodeIdentityCollisions": 0,
+  "kind": "ordivon.convergence-experimental-episode-projection-summary",
+  "queueEpisodeIdSetDigest": "sha256:b3802907ae0242ff092bfd222a52655af0f13d3e515e1ae58059bb0a83839c87",
+  "queueEpisodes": 20,
+  "queueProfileId": "convergence-queue-observation-v1",
+  "queueProjectionDigestSetDigest": "sha256:f4867086c916ec46a3183e8be14f0da37631aba38e6dfb59fefbf9d99f23b544",
+  "repository": "ordivon-org/ordivon",
+  "schemaVersion": 1,
+  "standing": "PASS_CONVERGENCE_EPISODE_PROJECTION",
+  "summaryDigest": "sha256:8856299756c8b9c42df139970633a532ecc9feda7c7a69b0d99dcf99b996ce8c"
+}
