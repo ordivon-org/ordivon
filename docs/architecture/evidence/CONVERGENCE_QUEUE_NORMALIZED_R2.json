@@ -643,6 +643,38 @@
           }
         }
       ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 40,
+      "prHeadSha": "28f9ddddec36218e2f0c23fe4603b88dfeafe36d",
+      "enqueueTimes": [
+        "2026-09-24T11:29:11Z"
+      ],
+      "removalTimes": [
+        "2026-09-24T11:32:17Z"
+      ],
+      "mergedAt": "2026-09-24T11:32:17Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35993317997,
+          "sha": "6dc30bb7a13caf270041923bcc7776bd645530d8",
+          "createdAt": "2026-09-24T11:29:31Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107612306375,
+            "createdAt": "2026-09-24T11:29:31Z",
+            "startedAt": "2026-09-24T11:29:35Z",
+            "completedAt": "2026-09-24T11:31:43Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
     }
   ],
   "queueTransitions": [
@@ -883,6 +915,18 @@
     {
       "pr": 39,
       "at": "2026-09-24T07:39:21Z",
+      "delta": -1,
+      "event": "DEQUEUED"
+    },
+    {
+      "pr": 40,
+      "at": "2026-09-24T11:29:11Z",
+      "delta": 1,
+      "event": "ENQUEUED"
+    },
+    {
+      "pr": 40,
+      "at": "2026-09-24T11:32:17Z",
       "delta": -1,
       "event": "DEQUEUED"
     }

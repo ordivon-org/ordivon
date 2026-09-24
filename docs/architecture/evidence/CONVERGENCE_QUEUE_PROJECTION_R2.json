@@ -11,9 +11,9 @@
   },
   "coverage": {
     "repository": "ordivon-org/ordivon",
-    "mergedPullRequestsFetched": 20,
-    "queueAttributedPullRequests": 20,
-    "mergeGroupRunsFetched": 20,
+    "mergedPullRequestsFetched": 21,
+    "queueAttributedPullRequests": 21,
+    "mergeGroupRunsFetched": 21,
     "historicalDepthIsLowerBound": true
   },
   "episodes": [
@@ -656,6 +656,38 @@
           }
         }
       ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.queue-episode",
+      "provider": "github",
+      "repository": "ordivon-org/ordivon",
+      "pr": 40,
+      "prHeadSha": "28f9ddddec36218e2f0c23fe4603b88dfeafe36d",
+      "enqueueTimes": [
+        "2026-09-24T11:29:11Z"
+      ],
+      "removalTimes": [
+        "2026-09-24T11:32:17Z"
+      ],
+      "mergedAt": "2026-09-24T11:32:17Z",
+      "mergeGroupRuns": [
+        {
+          "runId": 35993317997,
+          "sha": "6dc30bb7a13caf270041923bcc7776bd645530d8",
+          "createdAt": "2026-09-24T11:29:31Z",
+          "status": "completed",
+          "conclusion": "success",
+          "requiredVerification": {
+            "jobId": 107612306375,
+            "createdAt": "2026-09-24T11:29:31Z",
+            "startedAt": "2026-09-24T11:29:35Z",
+            "completedAt": "2026-09-24T11:31:43Z",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        }
+      ]
     }
   ],
   "episodeMetrics": [
@@ -1018,49 +1050,67 @@
       "runnerWaitSeconds": 2.0,
       "verificationSeconds": 34.0,
       "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 40,
+      "prHeadSha": "28f9ddddec36218e2f0c23fe4603b88dfeafe36d",
+      "enqueueAt": "2026-09-24T11:29:11Z",
+      "mergeGroupCreatedAt": "2026-09-24T11:29:31Z",
+      "mergedAt": "2026-09-24T11:32:17Z",
+      "queueDispatchSeconds": 20.0,
+      "queueResidenceSeconds": 186.0,
+      "endToEndQueueSeconds": 186.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35993317997,
+      "mergeGroupSha": "6dc30bb7a13caf270041923bcc7776bd645530d8",
+      "runnerWaitSeconds": 4.0,
+      "verificationSeconds": 128.0,
+      "postVerificationMergeSeconds": 34.0
     }
   ],
   "metrics": {
     "queueDispatchSeconds": {
-      "count": 20,
-      "mean": 17.95,
+      "count": 21,
+      "mean": 18.048,
       "median": 18.0,
       "p95": 19.0,
-      "max": 19.0
+      "max": 20.0
     },
     "queueResidenceSeconds": {
-      "count": 20,
-      "mean": 252.3,
-      "median": 163.5,
+      "count": 21,
+      "mean": 249.143,
+      "median": 186.0,
       "p95": 469.0,
       "max": 723.0
     },
     "endToEndQueueSeconds": {
-      "count": 20,
-      "mean": 252.6,
-      "median": 163.5,
+      "count": 21,
+      "mean": 249.429,
+      "median": 186.0,
       "p95": 469.0,
       "max": 724.0
     },
     "runnerWaitSeconds": {
-      "count": 20,
-      "mean": 4.8,
+      "count": 21,
+      "mean": 4.762,
       "median": 3.0,
       "p95": 5.0,
       "max": 39.0
     },
     "verificationSeconds": {
-      "count": 20,
-      "mean": 195.95,
-      "median": 95.0,
+      "count": 21,
+      "mean": 192.714,
+      "median": 128.0,
       "p95": 416.0,
       "max": 669.0
     },
     "postVerificationMergeSeconds": {
-      "count": 20,
-      "mean": 32.6,
+      "count": 21,
+      "mean": 32.667,
       "median": 33.0,
-      "p95": 33.0,
+      "p95": 34.0,
       "max": 39.0
     },
     "observedPeakQueueDepthLowerBound": 2,
@@ -1068,7 +1118,7 @@
     "unsuccessfulMergeGroupRuns": 0,
     "unsuccessfulMergeGroupExecutionSeconds": 0.0,
     "mergeGroupConclusionCounts": {
-      "success": 20
+      "success": 21
     }
   }
 }

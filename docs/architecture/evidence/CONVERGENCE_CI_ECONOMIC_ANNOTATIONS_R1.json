@@ -540,5 +540,41 @@
     "runId": 35970684645,
     "schemaVersion": 1,
     "timestamp": "2026-09-24T07:38:50Z"
+  },
+  "35992862417": {
+    "annotationAuthority": "ordivon-evidence-classification-r1",
+    "attempt": 1,
+    "economicOutcome": "USEFUL",
+    "event": "pull_request",
+    "evidenceRefs": [
+      "github-actions:35992862417",
+      "github-pr:40",
+      "provider-merge:6dc30bb7a13caf270041923bcc7776bd645530d8"
+    ],
+    "headSha": "28f9ddddec36218e2f0c23fe4603b88dfeafe36d",
+    "kind": "ordivon.ci-economic-annotation",
+    "providerConclusion": "success",
+    "reason": "Required PR40 verification ran on the exact published PR head and was followed by successful Merge Queue validation and canonical provider merge 6dc30bb7a13caf270041923bcc7776bd645530d8.",
+    "runId": 35992862417,
+    "schemaVersion": 1,
+    "timestamp": "2026-09-24T11:27:11Z"
+  },
+  "35993317997": {
+    "annotationAuthority": "ordivon-evidence-classification-r1",
+    "attempt": 1,
+    "economicOutcome": "USEFUL",
+    "event": "merge_group",
+    "evidenceRefs": [
+      "github-actions:35993317997",
+      "github-pr:40",
+      "provider-merge:6dc30bb7a13caf270041923bcc7776bd645530d8"
+    ],
+    "headSha": "6dc30bb7a13caf270041923bcc7776bd645530d8",
+    "kind": "ordivon.ci-economic-annotation",
+    "providerConclusion": "success",
+    "reason": "Merge Queue root-verification succeeded on PR40 merge-group head 6dc30bb7a13caf270041923bcc7776bd645530d8, which then became canonical provider main.",
+    "runId": 35993317997,
+    "schemaVersion": 1,
+    "timestamp": "2026-09-24T11:31:44Z"
   }
 }
