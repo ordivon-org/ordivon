@@ -1,8 +1,8 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW2_IN_PROGRESS_R08_REDUCED_IMMUTABLE_QUALIFIED
+Status: RW2_COMPLETE_R08_FOUR_FAMILIES_QUALIFIED_R09_NEXT
 Truth role: planning projection, not Runtime project truth
-Source revision: `40c414a3901c4383a9d7d122fe7716effbe8506e`
+Source revision: `897e504916fca4078847005a4b78198042b1c01b`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
 
@@ -15,7 +15,7 @@ This plan evolves the already-operational Runtime by strangler-style internal ex
 - R04 verification: integrated `e48b2eab` is byte-identical to verified candidate `4131cbe0` across the five R04 responsibility files. Candidate owner gate `job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31` PASS (`exitCode=0`), including the slow reference-model property gate; the equivalent R04 patch on an earlier base also passed focused real-system fast-success and timeout-descendant-pipe acceptance.
 - RW1 is **COMPLETE**: R05 Artifact/Release state ownership and R06 RegistryStorageBoundary are integrated; Registry semantic schema remains v6.
 - R07 `AuthorityContract` is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `163db3230483ec932fa8152fb1c9e6bd756e59d5`. Existing execution families compile internally only after exact replay lookup; the public Tool surface and current authority semantics are unchanged. `runtime:verify` PASS: `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`.
-- RW2 is **IN_PROGRESS**. R08 ordinary execution is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`; reduced immutable-input execution is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `40c414a3901c4383a9d7d122fe7716effbe8506e` by `job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc`. Trusted immutable-input and credential-bound trusted execution remain deliberately unmigrated. Next: migrate trusted immutable-input with the same parity/fail-closed discipline. R13/V05 remains gated on RW2.
+- RW2 is **COMPLETE**. R08 ordinary execution is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`, reduced immutable-input on `40c414a3901c4383a9d7d122fe7716effbe8506e`, trusted immutable-input on `645d50cd51c8efe772de762610e045ea112fb78c`, and credential-bound trusted on `c52737fd7bc2b6ccf71418719b220070a620da5f` via integration `897e504916fca4078847005a4b78198042b1c01b`. Exact post-integration owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` PASS. All four effect-opaque families now compile through the same internal `AuthorityContract + OperationCircuitCompiler` seam into the existing `SubmitRequest` without changing replay, request identity, Registry v6, provider/materialization ownership, or semantic-completion boundaries. Runtime self-release remains separate. RW3/R09 ExecutionProviderSPI is next.
 
 ## Global rules
 
