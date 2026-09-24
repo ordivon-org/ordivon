@@ -32,6 +32,7 @@ CONTEXT24_CONTENT_BASELINE = (
     META / "research/evidence/context24-evidence-content-baseline-r1.json"
 )
 ARIES_RESPONSE_RECEIPT = META / "research/evidence/aries-review-response-core-r1.json"
+ARIES_SEMANTIC_RECEIPT = META / "research/evidence/aries-semantic-content-core-r1.json"
 ARIES_FORK_BASELINE = META / "research/evidence/aries-lifecycle-fork-baseline-r1.json"
 
 
@@ -341,6 +342,7 @@ def main() -> int:
     context24_content_receipt = load(CONTEXT24_CONTENT_RECEIPT)
     context24_content_baseline = load(CONTEXT24_CONTENT_BASELINE)
     aries_response_receipt = load(ARIES_RESPONSE_RECEIPT)
+    aries_semantic_receipt = load(ARIES_SEMANTIC_RECEIPT)
     aries_fork_baseline = load(ARIES_FORK_BASELINE)
 
     if catalog.get("truthRole") != "data-asset-catalog-not-scientific-truth":
@@ -359,6 +361,7 @@ def main() -> int:
         "emse-writing-benchmark-r16",
         "aries-bounded-core-r1",
         "aries-review-response-core-r1",
+        "aries-semantic-content-core-r1",
         "disapere-bounded-core-r1",
         "peersum-hf-bounded-core-r1",
         "context24-identity-core-r1",
@@ -393,6 +396,31 @@ def main() -> int:
         != 87
     ):
         fail("ARIES lifecycle fork count drifted")
+
+    if (
+        aries_semantic_receipt.get("status")
+        != "MATERIALIZED_BOUNDED_SEMANTIC_CONTENT_CORE_PASS"
+    ):
+        fail("ARIES semantic-content admission standing drifted")
+    semantic_parents = {
+        row["id"]: row["snapshotIdentity"]
+        for row in aries_semantic_receipt.get("parentAssets", [])
+    }
+    if semantic_parents != {
+        "aries-bounded-core-r1": aries_receipt["snapshot"]["identity"],
+        "aries-review-response-core-r1": aries_response_receipt["snapshot"]["identity"],
+    }:
+        fail("ARIES semantic-content parent bindings drifted")
+    if (
+        aries_semantic_receipt.get("relationStanding")
+        != "NO_GOLD_RESPONSE_EDIT_RELATION_IN_SOURCE_ASSETS"
+    ):
+        fail("ARIES semantic-content relation was silently promoted")
+    if (
+        aries_semantic_receipt.get("modelTrainingStanding")
+        != "NOT_AUTHORIZED_WITHOUT_SEPARATELY_VALIDATED_RESPONSE_EDIT_RELATION"
+    ):
+        fail("ARIES semantic-content model-training gate weakened")
 
     if (
         aries_baseline.get("sourceSnapshotIdentity")
@@ -557,7 +585,7 @@ def main() -> int:
     aries_candidate = by_candidate["aries"]
     if (
         aries_candidate.get("acquisitionState")
-        != "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE"
+        != "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_AND_SEMANTIC_CONTENT_CORE"
     ):
         fail("ARIES candidate/local asset state mismatch")
     if (
@@ -586,7 +614,7 @@ def main() -> int:
         fail("SD1 standing drifted")
     if (
         by_wave.get("SD2", {}).get("standing")
-        != "IN_PROGRESS_ARIES_RESPONSE_DISAPERE_PEERSUM_MATERIALIZED"
+        != "IN_PROGRESS_ARIES_RESPONSE_SEMANTIC_DISAPERE_PEERSUM_MATERIALIZED"
     ):
         fail("SD2 standing drifted")
     if by_wave.get("SD4", {}).get("standing") != "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST":
@@ -627,12 +655,12 @@ def main() -> int:
 
     if (
         sd2.get("standing")
-        != "IN_PROGRESS_THREE_DATASETS_FOUR_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED"
+        != "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED"
     ):
         fail("SD2 readiness standing drifted")
     sd2_by_id = {row["id"]: row for row in sd2.get("datasets", [])}
     expected_sd2 = {
-        "aries": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE",
+        "aries": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_AND_SEMANTIC_CONTENT_CORE",
         "peersum": "MATERIALIZED_DIGEST_BOUND",
         "nlpeer-v2": "LICENSE_OBSERVED_ACCESS_RESTRICTED_LARGE_NOT_ACQUIRED",
         "peerread-v1": "PARTIAL_COMPONENT_LICENSE_CONSTRAINTS_REQUIRE_SECTION_LEVEL_BINDING",
@@ -645,12 +673,13 @@ def main() -> int:
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
-        "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_CONTENT_ARIES_RESPONSE_DISAPERE_PEERSUM",
+        "standing": "PASS_DATA_PLANE_WITH_ARIES_SEMANTIC_CONTENT_CONTEXT24_CONTENT_ARIES_RESPONSE_DISAPERE_PEERSUM",
         "materializedLocalAssetCount": len(assets),
         "externalCandidateCount": len(candidates),
         "emse": emse,
         "aries": aries,
         "ariesResponse": aries_response_receipt["counts"],
+        "ariesSemanticContent": aries_semantic_receipt["counts"],
         "ariesLifecycleFork": {
             "manualConcerns": 196,
             "withResponseContext": 196,
@@ -675,13 +704,12 @@ def main() -> int:
             for key, value in expected_coverage.items()
         },
         "nextWaves": [
-            "Context24 evidence-sufficiency and ClaimPermission pressure",
             "PeerSum semantic-disagreement annotation",
-            "ARIES response-to-revision identification",
+            "ARIES independent response-to-revision semantic annotation",
         ],
         "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
         "truthBoundary": (
-            "Acceptance proves current local EMSE, Context24 identity/content cores, ARIES core, ARIES review-response core, DISAPERE, and PeerSum physical/schema bindings, "
+            "Acceptance proves current local EMSE, Context24 identity/content cores, ARIES core, ARIES review-response core, ARIES bounded semantic-content candidate substrate, DISAPERE, and PeerSum physical/schema bindings, "
             "including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels "
             "into reviewer/scientific truth, authorize manuscript or submission effects, or "
             "generalize dataset frequencies to scholarly populations."

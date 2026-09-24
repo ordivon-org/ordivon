@@ -4,17 +4,19 @@
   "id": "sd2-review-lifecycle-readiness-r1",
   "observedAt": "2026-09-23",
   "truthRole": "acquisition-readiness-observation-not-reviewer-truth-or-legal-advice",
-  "standing": "IN_PROGRESS_THREE_DATASETS_FOUR_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED",
+  "standing": "IN_PROGRESS_THREE_DATASETS_FIVE_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED",
   "datasets": [
     {
       "id": "aries",
-      "standing": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE",
+      "standing": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_AND_SEMANTIC_CONTENT_CORE",
       "licenseObserved": "ODC-BY-1.0",
       "localAsset": "aries-bounded-core-r1",
-      "scope": "comment-edit identity and alignment; S2ORC text omitted",
+      "scope": "comment-edit identity/alignment + review-response topology + selected 36-document S2ORC semantic-content substrate",
       "responseCore": "aries-review-response-core-r1",
-      "identified": "same-authority concern->source-review->author-response topology plus independent concern->revision correspondence",
-      "stillNotIdentified": "response->revision semantic/causal link or concern-specific response adequacy"
+      "identified": "same-authority concern->source-review->author-response topology plus concern->revision correspondence and text-bearing response/edit candidate substrate",
+      "stillNotIdentified": "gold response->revision semantic relation, response adequacy, or causal link",
+      "semanticContentCore": "aries-semantic-content-core-r1",
+      "next": "independent/blinded semantic annotation over 248 bounded candidate pairs; model training/ranking remains blocked before validated relation labels"
     },
     {
       "id": "peersum",

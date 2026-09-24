@@ -264,6 +264,39 @@
       "licenseStanding": "DATASET_CC-BY-4.0_OBSERVED_UNDERLYING_PAPER_MEDIA_RIGHTS_NOT_INDEPENDENTLY_VERIFIED",
       "inferenceBoundary": "Exact content bytes do not establish evidential sufficiency, scientific truth, causal support, method adequacy, or ClaimPermission.",
       "reuseStanding": "ADMIT_FOR_INTERNAL_RESEARCH_EXTERNAL_REDISTRIBUTION_AND_COMMERCIAL_MEDIA_REUSE_BLOCKED_UNTIL_RIGHTS_BOUND"
+    },
+    {
+      "id": "aries-semantic-content-core-r1",
+      "owner": "shared-research-data-catalog",
+      "catalogRole": "response-revision-semantic-candidate-substrate",
+      "status": "MATERIALIZED_BOUNDED_SEMANTIC_CONTENT",
+      "rawExternalRoot": "/root/projects/ordivon-corpora/scholarly-data/aries/aries-semantic-content-core-r1-20260924",
+      "admissionReceipt": "meta/research/evidence/aries-semantic-content-core-r1.json",
+      "analyticalBaselines": [
+        "meta/research/evidence/aries-response-revision-candidate-space-r1.json"
+      ],
+      "observedScale": {
+        "candidateConcernGroups": 87,
+        "candidateDocuments": 36,
+        "extractedPdfIdentities": 72,
+        "paragraphs": 8518,
+        "positiveEditLinkRows": 182,
+        "requestedPdfIdentities": 72,
+        "responseRevisionCandidateRows": 248,
+        "selectedDocuments": 36,
+        "semanticEdits": 4718,
+        "uniquePositiveEdits": 131,
+        "uniqueResponsesInCandidateSpace": 49
+      },
+      "featureFamilies": [
+        "selected S2ORC source/target paragraph text",
+        "text-bearing ARIES revision edit units",
+        "positive revision edit text for manual concerns",
+        "response×revision candidate search space"
+      ],
+      "licenseStanding": "ODC-BY-1.0_DATASET_OBSERVED_UNDERLYING_PAPER_TEXT_RIGHTS_NOT_INDEPENDENTLY_VERIFIED",
+      "inferenceBoundary": "Semantic content makes candidate inspection possible but does not identify response-to-revision semantic correspondence, adequacy, or causality.",
+      "reuseStanding": "ADMIT_INTERNAL_SEMANTIC_ANNOTATION_NO_EXTERNAL_PAPER_TEXT_REDISTRIBUTION"
     }
   ],
   "externalCandidates": [
@@ -379,14 +412,19 @@
         "reviewReplySourceRecords": 23706,
         "reviewReplySourceAuthorReplies": 32691,
         "relevantOfficialReviews": 6380,
-        "relevantAuthorResponses": 10464
+        "relevantAuthorResponses": 10464,
+        "semanticContentSelectedDocuments": 36,
+        "semanticContentPdfIdentities": 72,
+        "semanticContentParagraphs": 8518,
+        "responseRevisionCandidatePairs": 248
       },
       "useCases": [
         "review-comment to paper-edit linkage",
         "resolution effectiveness",
-        "revision planning evaluation"
+        "revision planning evaluation",
+        "independent response-to-revision semantic annotation"
       ],
-      "acquisitionState": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE",
+      "acquisitionState": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_AND_SEMANTIC_CONTENT_CORE",
       "licenseStanding": "ODC-BY-1.0_OBSERVED_UPSTREAM_SNAPSHOT",
       "priority": "A"
     },

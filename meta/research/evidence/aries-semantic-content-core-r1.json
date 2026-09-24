@@ -1,0 +1,141 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 835455,
+      "path": "derived/parquet/paragraphs.parquet",
+      "sha256": "sha256:34b3631246c1b79f295cf9f5b5f8c43c23434748c14bca25f2f23ea9c6565805"
+    },
+    {
+      "bytes": 73727,
+      "path": "derived/parquet/positive_edit_texts.parquet",
+      "sha256": "sha256:e9e6ecb0e4060faa6f5d4c6dcb0de5e4cbdbe77f5ebfe527496424b318d4711d"
+    },
+    {
+      "bytes": 122521,
+      "path": "derived/parquet/response_revision_candidates.parquet",
+      "sha256": "sha256:28ca363034e7002ae05d87939290d5722d9fab4ec35e2101398a33db9ac8db89"
+    },
+    {
+      "bytes": 1183286,
+      "path": "derived/parquet/semantic_edits.parquet",
+      "sha256": "sha256:3a8741395c3a01dc1153db15c154f9aa20c522e8346a79781a89e420587d39d3"
+    },
+    {
+      "bytes": 9187328,
+      "path": "derived/aries-semantic-content-core-r1.duckdb",
+      "sha256": "sha256:31a39a0417dc856e60e2c925a50feff60ae3ac29c70fccd8bde2e1c930ae63c2"
+    }
+  ],
+  "annotationReadiness": "READY_FOR_INDEPENDENT_SEMANTIC_ANNOTATION",
+  "boundaries": [
+    "Selected S2ORC text makes revision edit content inspectable for the 36 both-branch ARIES documents but does not identify a response-to-edit gold relation.",
+    "The 248 response-revision pairs are Cartesian candidates under a concern, not semantic correspondence, adequacy, or causal labels.",
+    "A 1x1 candidate group is still not gold because response context is review-level and may be reused across multiple concerns.",
+    "Underlying paper-text rights are not independently verified; external text redistribution and commercial paper-text reuse remain blocked by the catalog.",
+    "Model training or ranking evaluation is not authorized without separately validated response-to-edit relation labels."
+  ],
+  "candidateAmbiguity": {
+    "ambiguousConcerns": 53,
+    "candidatePairsPerConcern": {
+      "max": 12,
+      "mean": 2.8505747126436782,
+      "median": 2,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 4.0
+    },
+    "positiveEditCountPerConcern": {
+      "max": 9,
+      "mean": 2.0919540229885056,
+      "median": 1,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 2.0
+    },
+    "responseCountPerConcern": {
+      "max": 3,
+      "mean": 1.367816091954023,
+      "median": 1,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 2.0
+    },
+    "responseReuse": {
+      "maxConcernsPerResponse": 5,
+      "meanConcernsPerResponse": 2.4285714285714284,
+      "responses": 49,
+      "reusedAcrossConcerns": 31
+    },
+    "singleCandidateConcerns": 34,
+    "totalCandidatePairs": 248
+  },
+  "candidateEditKindCounts": {
+    "deletion": 6,
+    "insertion": 155,
+    "replacement_or_move": 87
+  },
+  "counts": {
+    "candidateConcernGroups": 87,
+    "candidateDocuments": 36,
+    "extractedPdfIdentities": 72,
+    "paragraphs": 8518,
+    "positiveEditLinkRows": 182,
+    "requestedPdfIdentities": 72,
+    "responseRevisionCandidateRows": 248,
+    "selectedDocuments": 36,
+    "semanticEdits": 4718,
+    "uniquePositiveEdits": 131,
+    "uniqueResponsesInCandidateSpace": 49
+  },
+  "editKindCounts": {
+    "deletion": 504,
+    "insertion": 943,
+    "replacement_or_move": 3271
+  },
+  "id": "aries-semantic-content-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "modelTrainingStanding": "NOT_AUTHORIZED_WITHOUT_SEPARATELY_VALIDATED_RESPONSE_EDIT_RELATION",
+  "parentAssets": [
+    {
+      "id": "aries-bounded-core-r1",
+      "snapshotIdentity": "sha256:c044a92034f740802d24a2298cc1569e59bda34c5148e34a6556f356d78b1c77"
+    },
+    {
+      "id": "aries-review-response-core-r1",
+      "snapshotIdentity": "sha256:3a251f14e1b4b49763a1791e11b7482f929ee017fd4f7d7fd603fd4fd475802e"
+    }
+  ],
+  "relationCeiling": "Candidate pairs are a Cartesian search space from review-level response context and concern-specific positive revision correspondence. They are not semantic correspondence, adequacy, or causal gold.",
+  "relationStanding": "NO_GOLD_RESPONSE_EDIT_RELATION_IN_SOURCE_ASSETS",
+  "rights": {
+    "commercialPaperTextReuse": "NOT_AUTHORIZED_BY_CATALOG",
+    "datasetLicenseObserved": "ODC-BY-1.0",
+    "externalTextRedistribution": "NOT_AUTHORIZED_BY_CATALOG",
+    "underlyingPaperTextRights": "NOT_INDEPENDENTLY_VERIFIED"
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:fd9a61b798449b3a71861c253d5b44063aae0d79d4eaa7777a31c41f28eda60a",
+    "candidateSpaceBaselineSha256": "sha256:af964580d8679fe4c8ad47d1e9bdc1edb9726c1a066e3657922b46d1543d7989",
+    "extractionManifestSha256": "sha256:821c81b507db674512c232ad5aa5d222ddce3b0fd8cbe3cc755ae788b6441a18",
+    "identity": "sha256:aee4b640155c01f8c0e1f677494356f87944671e4a5c7079de8c86ee11fb0848",
+    "normalizationSummarySha256": "sha256:9800a1a7024e28388ca8c8a22cf2d5fead7afbd52a183fd78ec559ac64073404",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/aries/aries-semantic-content-core-r1-20260924",
+    "schemaCensusSha256": "sha256:21ab2f4a5d7557b47caad73cfd879bc5f308c7ea7a8117a5ec55f1bbb1e2ebec",
+    "selectionManifestSha256": "sha256:b895b610a53c4caf2bb724566607905b21a5b70a7ece8494f15da956ebb67568",
+    "snapshotManifestSha256": "sha256:b0ce584b08c3743269a55f6d8afc9f46d2e4c90a0d707d71b68e1c1c6725b23c"
+  },
+  "source": {
+    "bytes": 93627656,
+    "licenseFileSha256": "sha256:11a6d83734845ad09d809667aa219857a5b985b28c258a2eebf5677668a6bd3b",
+    "licenseObserved": "ODC-BY-1.0",
+    "provider": "AllenAI public S3",
+    "sha256": "sha256:c0b5c50afde1a819788bc679b3751167c65ea3b5bc283c30f2b069d21c7b201c",
+    "uri": "https://ai2-s2-research-public.s3-us-west-2.amazonaws.com/aries/s2orc.tar.gz"
+  },
+  "status": "MATERIALIZED_BOUNDED_SEMANTIC_CONTENT_CORE_PASS",
+  "truthRole": "external-paper-text-and-candidate-space-evidence-not-response-revision-gold"
+}
