@@ -67,7 +67,7 @@
   "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",
   "transportConfig": {
     "file": "/etc/network-v2/finance/egress.json",
-    "digest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+    "digest": "sha256:d6cf42b0fdd9f919d6180f41cb721d0e9df4fd85dca27774dd863fa2373e28a4",
     "implementation": "sing-box",
     "requiredDnsServers": [
       {
