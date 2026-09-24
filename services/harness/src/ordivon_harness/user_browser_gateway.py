@@ -62,10 +62,15 @@ class UserBrowserGatewayController:
         request_digest: str,
         prompt_digest: str,
         attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
     ) -> str:
+        if type(attempt_generation) is not int or attempt_generation < 1:
+            raise ValueError('UserBrowser attempt generation must be a positive integer')
         parts = [mode, effect_id, request_digest, prompt_digest]
         if attachment_manifest_digest is not None:
             parts.append(attachment_manifest_digest)
+        if attempt_generation > 1:
+            parts.append(f'attempt-generation={attempt_generation}')
         suffix = _digest_text('|'.join(parts))[7:39]
         return f'user-browser:{mode}:{suffix}'
 
@@ -156,6 +161,7 @@ class UserBrowserGatewayController:
         prompt_digest: str,
         attachment_manifest_path: str | None = None,
         attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
     ) -> GatewayExecutionRequest:
         args_list = [
             '-NoProfile', '-NonInteractive', '-File', self.config.driver_path,
@@ -173,7 +179,10 @@ class UserBrowserGatewayController:
             ])
         return GatewayExecutionRequest(
             capability='execution.windows',
-            request_id=self._request_id(mode, effect_id, request_digest, prompt_digest, attachment_manifest_digest),
+            request_id=self._request_id(
+                mode, effect_id, request_digest, prompt_digest,
+                attachment_manifest_digest, attempt_generation,
+            ),
             workspace_id=self.config.workspace_id,
             executable=self.config.powershell_path,
             args=tuple(args_list), cwd_relative='.', context='active_user',
@@ -190,6 +199,7 @@ class UserBrowserGatewayController:
         prompt_digest: str,
         attachment_manifest_path: str | None = None,
         attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
     ) -> dict:
         if mode == 'materialize':
             admitted, evidence, detail, contexts = self._active_user_admission()
@@ -205,6 +215,7 @@ class UserBrowserGatewayController:
             mode, effect_id=effect_id, request_digest=request_digest, prompt_path=prompt_path,
             prompt_digest=prompt_digest, attachment_manifest_path=attachment_manifest_path,
             attachment_manifest_digest=attachment_manifest_digest,
+            attempt_generation=attempt_generation,
         )
         result = self.port.execute(request)
         if result.recovery_required:
@@ -231,6 +242,7 @@ class UserBrowserGatewayController:
         prompt_digest: str,
         attachment_manifest_path: str | None = None,
         attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
     ) -> dict | None:
         if attachment_manifest_path is None or attachment_manifest_digest is None:
             return None
@@ -239,6 +251,7 @@ class UserBrowserGatewayController:
             prompt_path=prompt_path, prompt_digest=prompt_digest,
             attachment_manifest_path=attachment_manifest_path,
             attachment_manifest_digest=attachment_manifest_digest,
+            attempt_generation=attempt_generation,
         )
         result = self.port.resolve_terminal(request)
         if result is None or result.recovery_required or result.exit_code in {None, 0}:

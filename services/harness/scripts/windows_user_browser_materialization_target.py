@@ -176,6 +176,7 @@ class WindowsUserBrowserMaterializationTarget:
             'prompt_digest': self.prompt_digest(request),
             'attachment_manifest_path': str(manifest) if manifest is not None else None,
             'attachment_manifest_digest': manifest_digest,
+            'attempt_generation': request.attempt_generation or 1,
         }
 
     def materialize(self, request: CarrierMaterializationRequest) -> TargetMaterializationObservation:

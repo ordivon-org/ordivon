@@ -98,6 +98,7 @@ class CarrierMaterializationRequest:
     preparation_digest: str
     bootstrap_prompt: str
     attachments: tuple[CarrierAttachment, ...] = ()
+    attempt_generation: int = 0
 
     def __post_init__(self) -> None:
         _text(self.request_id, "materialization request identity")
@@ -111,6 +112,8 @@ class CarrierMaterializationRequest:
         names = [item.presentation_name for item in self.attachments]
         if len(paths) != len(set(paths)) or len(names) != len(set(names)):
             raise ValueError("materialization attachment paths and presentation names must be unique")
+        if type(self.attempt_generation) is not int or self.attempt_generation < 0:
+            raise ValueError("materialization attempt generation must be a non-negative integer")
 
     @property
     def attachment_digest(self) -> str | None:

@@ -5,7 +5,15 @@ import json
 from pathlib import Path
 
 from campaign_materialization import CampaignLaunchSpec, RoleCard, compile_request
-from conversation_relay_carrier import CarrierAttachment, CarrierMaterializationRequest
+from conversation_relay_carrier import (
+    CarrierAttachment,
+    CarrierMaterializationRequest,
+    MaterializationStanding,
+)
+from sqlite_conversation_materializer import (
+    SQLiteConversationMaterializer,
+    TargetMaterializationObservation,
+)
 from windows_user_browser_materialization_target import WindowsUserBrowserMaterializationTarget
 
 from ordivon_harness.gateway_execution_port import (
@@ -218,3 +226,76 @@ def test_campaign_registry_round_trips_digest_bound_attachment(tmp_path: Path):
     frozen = json.loads(blob.read_text())
     assert frozen["sharedAttachments"] == [attachment().canonical()]
     assert frozen["campaignId"] == value["campaignId"]
+
+
+def test_attempt_generation_is_physical_metadata_not_effect_identity():
+    first = CarrierMaterializationRequest(
+        request_id="effect-generation-stable",
+        preparation_digest="sha256:" + "1" * 64,
+        bootstrap_prompt="same fixed bootstrap",
+        attempt_generation=1,
+    )
+    second = CarrierMaterializationRequest(
+        request_id=first.request_id,
+        preparation_digest=first.preparation_digest,
+        bootstrap_prompt=first.bootstrap_prompt,
+        attempt_generation=2,
+    )
+    assert first.request_digest == second.request_digest
+
+
+def test_pre_effect_retry_passes_committed_generation_to_target(tmp_path: Path):
+    class PreEffectThenBound:
+        def __init__(self):
+            self.generations = []
+
+        def materialize(self, request):
+            self.generations.append(request.attempt_generation)
+            if request.attempt_generation == 1:
+                return TargetMaterializationObservation(
+                    standing=MaterializationStanding.PRE_EFFECT_FAILED,
+                    evidence_digest="sha256:" + "7" * 64,
+                    detail="proven before provider effect",
+                )
+            return TargetMaterializationObservation(
+                standing=MaterializationStanding.BOUND,
+                provider_conversation_coordinate="https://chatgpt.com/c/retry-bound",
+                evidence_digest="sha256:" + "8" * 64,
+                detail="bound on explicit pre-effect retry",
+            )
+
+        def reconcile(self, request):
+            raise AssertionError("reconcile not expected")
+
+        def resume_after_human(self, request):
+            raise AssertionError("human resume not expected")
+
+    target = PreEffectThenBound()
+    ledger = SQLiteConversationMaterializer(tmp_path / "ledger.sqlite", target)
+    request = CarrierMaterializationRequest(
+        request_id="effect-retry-generation",
+        preparation_digest="sha256:" + "1" * 64,
+        bootstrap_prompt="fixed bootstrap",
+    )
+    first = ledger.materialize(request, now_ms=1)
+    second = ledger.materialize(request, now_ms=2)
+    assert first.standing is MaterializationStanding.PRE_EFFECT_FAILED
+    assert second.standing is MaterializationStanding.BOUND
+    assert target.generations == [1, 2]
+    assert first.request_digest == second.request_digest == request.request_digest
+
+
+def test_windows_physical_attempt_identity_changes_only_after_generation_one():
+    args = (
+        "materialize",
+        "effect-attached",
+        "sha256:" + "1" * 64,
+        "sha256:" + "3" * 64,
+        "sha256:" + "4" * 64,
+    )
+    legacy = UserBrowserGatewayController._request_id(*args)
+    generation_one = UserBrowserGatewayController._request_id(*args, attempt_generation=1)
+    generation_two = UserBrowserGatewayController._request_id(*args, attempt_generation=2)
+    assert generation_one == legacy
+    assert generation_two != generation_one
+    assert generation_two.startswith("user-browser:materialize:")
