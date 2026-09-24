@@ -101,6 +101,14 @@ probe_treasury_rest() {
   rm -f "$out"
 }
 
+probe_fred_rest() {
+  local out
+  out=$(mktemp)
+  curl -4 -fsS --proxy http://127.0.0.1:19292 --connect-timeout 5 --max-time 20 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=2026-09-22&coed=2026-09-22' -o "$out"
+  grep -q '^observation_date,DFF' "$out"
+  rm -f "$out"
+}
+
 probe_ws_http() {
   local port=$1 url=$2 codes=$3 code
   code=$(curl -4 -sS --proxy "http://127.0.0.1:$port" --connect-timeout 3 --max-time 10 -o /dev/null -w '%{http_code}' "$url")
@@ -115,6 +123,7 @@ probe_all() {
     && probe_binance_spot_rest \
     && probe_binance_rest \
     && probe_treasury_rest \
+    && probe_fred_rest \
     && probe_ws_http 19285 https://data-stream.binance.vision/ '200,400,403,404,426' \
     && probe_ws_http 19288 https://ws.okx.com:8443/ws/v5/public '200,400,404,426' \
     && probe_ws_http 19289 https://fstream.binance.com/ '200,400,403,404,426'
@@ -187,7 +196,10 @@ blocked 19290 https://fapi.binance.com/fapi/v1/time
 blocked 19287 https://api.binance.com/api/v3/time
 blocked 19291 https://openapi.okx.com/api/v5/public/time
 blocked 19291 https://fapi.binance.com/fapi/v1/time
+blocked 19292 https://openapi.okx.com/api/v5/public/time
+blocked 19292 https://home.treasury.gov/
 blocked 19283 https://home.treasury.gov/
+blocked 19283 https://fred.stlouisfed.org/
 blocked 19283 https://example.com/
 
 # Mature fault injection: drop only provider B's WireGuard UDP endpoint; A must carry every authority.
@@ -204,7 +216,7 @@ fault_block provider-a
 refresh_groups || true
 wait_all
 
-# Drop both provider endpoints; provider-bound venue authorities must fail closed while the explicitly direct Treasury authority remains available.
+# Drop both provider endpoints; provider-bound venue authorities must fail closed while the explicitly direct Treasury and FRED authorities remain available.
 fault_block provider-a provider-b
 sleep 4
 expect_target_failure 19283 https://openapi.okx.com/api/v5/public/time
@@ -215,6 +227,7 @@ expect_target_failure 19288 https://ws.okx.com:8443/ws/v5/public
 expect_target_failure 19289 https://fstream.binance.com/
 expect_target_failure 19290 https://api.binance.com/api/v3/time
 probe_treasury_rest
+probe_fred_rest
 
 # Restore mature data plane and prove root-process lifecycle recovery.
 fault_reset
@@ -232,6 +245,6 @@ if [ "$CONTROL_PLANE_AFTER" != "$CONTROL_PLANE_BEFORE" ]; then
   exit 1
 fi
 
-echo finance-network-v2-eight-authority-fencing=PASS
+echo finance-network-v2-nine-authority-fencing=PASS
 echo finance-network-v2-singbox-endpoint-failclosed=PASS
 echo finance-network-v2-single-process-lifecycle=PASS

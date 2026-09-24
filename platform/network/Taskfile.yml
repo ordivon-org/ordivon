@@ -17,14 +17,16 @@ tasks:
   consumer:finance:validate:
     desc: Validate the sing-box-native Finance venue policy without changing live authority
     cmds:
-      - jq -e '.inbounds|length==8' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.inbounds|length==9' consumers/finance/config/egress.json >/dev/null
       - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-auto")' consumers/finance/config/egress.json >/dev/null
       - jq -e 'any(.inbounds[]; .tag=="finance-us-treasury-public" and .listen=="127.0.0.1" and .listen_port==19291) and any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .port==443 and .action=="route" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'any(.inbounds[]; .tag=="finance-fred-public-csv" and .listen=="127.0.0.1" and .listen_port==19292) and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .port==443 and .action=="route" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
       - jq -e '.outbounds==[{"type":"urltest","tag":"provider-auto","outbounds":["provider-b","provider-a"],"url":"https://1.1.1.1/cdn-cgi/trace","interval":"3s","tolerance":65535,"idle_timeout":"10m","interrupt_exist_connections":true},{"type":"direct","tag":"public-direct"}]' consumers/finance/config/egress.json >/dev/null
       - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns-1","server":"162.252.172.57","server_port":53,"detour":"provider-auto"},{"type":"udp","tag":"provider-dns-2","server":"149.154.159.92","server_port":53,"detour":"provider-auto"}] and .dns.rules==[{"action":"evaluate","server":"provider-dns-1","tag":"provider-dns-1-eval"},{"match_response":"provider-dns-1-eval","ip_accept_any":true,"action":"respond","race":true},{"action":"evaluate","server":"provider-dns-2","tag":"provider-dns-2-eval","speculative":true},{"match_response":"provider-dns-2-eval","ip_accept_any":true,"action":"respond","race":true}] and .route.rules[0]=={"action":"resolve","strategy":"ipv4_only","timeout":"5s"}' consumers/finance/config/egress.json >/dev/null
       - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
       - test -f consumers/finance/config/binance-wallet-rest-authority.json
       - test -f consumers/finance/config/us-treasury-rest-authority.json
+      - test -f consumers/finance/config/fred-public-csv-authority.json
       - /usr/bin/bash -n consumers/finance/ready.sh
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
 
@@ -223,7 +225,7 @@ tasks:
         done <"$manifest"
 
   consumer:finance:materialize:
-    desc: Materialize one sing-box-native Finance provider graph and eight scoped data authorities without starting or cutting over consumers
+    desc: Materialize one sing-box-native Finance provider graph and nine scoped data authorities without starting or cutting over consumers
     deps: [consumer:finance:validate]
     cmds:
       - install -d -m 0755 /etc/network-v2/finance

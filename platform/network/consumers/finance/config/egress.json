@@ -98,6 +98,12 @@
       "tag": "finance-us-treasury-public",
       "listen": "127.0.0.1",
       "listen_port": 19291
+    },
+    {
+      "type": "http",
+      "tag": "finance-fred-public-csv",
+      "listen": "127.0.0.1",
+      "listen_port": 19292
     }
   ],
   "outbounds": [
@@ -198,6 +204,15 @@
           "finance-us-treasury-public"
         ],
         "domain": "home.treasury.gov",
+        "port": 443,
+        "action": "route",
+        "outbound": "public-direct"
+      },
+      {
+        "inbound": [
+          "finance-fred-public-csv"
+        ],
+        "domain": "fred.stlouisfed.org",
         "port": 443,
         "action": "route",
         "outbound": "public-direct"

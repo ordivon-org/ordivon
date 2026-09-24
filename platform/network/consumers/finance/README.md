@@ -26,6 +26,7 @@ The independent consumer authorities are split by explicit carrier class. Exchan
 - Binance USD-M public WS: `127.0.0.1:19289` → exactly `fstream.binance.com:443`.
 - Binance Wallet/API REST: `127.0.0.1:19290` → exactly `api.binance.com:443`.
 - U.S. Treasury public rates REST/XML: `127.0.0.1:19291` → exactly `home.treasury.gov:443` over explicit `public-direct`.
+- FRED public CSV: `127.0.0.1:19292` → exactly `fred.stlouisfed.org:443` over explicit `public-direct`; Capital preserves upstream series provenance instead of treating FRED as the original producer.
 
 `127.0.0.1:19299` is sing-box's local observation API, not a consumer data authority. Every consumer inbound has an exact inbound + domain + port route. The final route rule rejects everything else. No authority falls back between carriers: venue authorities remain provider-bound, while Treasury is explicitly direct-bound.
 
