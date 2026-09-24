@@ -24,6 +24,7 @@ else:
 
 QUEUE_PROFILE = "convergence-queue-observation-v1"
 CI_PROFILE = "convergence-ci-observation-v1"
+OWNER_COST_PROFILE = "convergence-owner-cost-episode-v1"
 
 
 def _require_projection(value: dict[str, Any], *, kind: str) -> None:
@@ -295,6 +296,160 @@ def project_ci_run(projection: dict[str, Any], run: dict[str, Any]) -> dict[str,
     )
 
 
+def project_owner_cost_episode(row: dict[str, Any]) -> dict[str, Any]:
+    if row.get("kind") != "ordivon.convergence-owner-cost-episode":
+        raise ValueError(
+            f"expected ordivon.convergence-owner-cost-episode, got {row.get('kind')!r}"
+        )
+    candidate_sha = str(row["candidateSha"])
+    provider_base_sha = str(row["providerBaseSha"])
+    owner = str(row["owner"])
+    verify_task = str(row["verifyTask"])
+    observed_at = str(row["observationTimestamp"])
+    changed_paths = list(row.get("changedPaths") or [])
+    direct_owners = list(row.get("directOwners") or [])
+    verification_owners = list(row.get("verificationOwners") or [])
+    evidence_refs = sorted(str(ref) for ref in row.get("evidenceRefs") or [])
+    dimensions = [
+        {"name": "owner_cost.queue_class", "value": row.get("queueClass")},
+        {"name": "owner_cost.owner", "value": owner},
+        {"name": "owner_cost.verify_task", "value": verify_task},
+        {"name": "owner_cost.result", "value": row.get("result")},
+        {"name": "owner_cost.owner_fanout", "value": row.get("ownerFanout")},
+        {
+            "name": "owner_cost.changed_path_count",
+            "value": row.get("changedPathCount"),
+        },
+    ]
+    measures = [
+        _measure(
+            "owner_cost.runner_wait_seconds", row.get("runnerWaitSeconds"), "seconds"
+        ),
+        _measure("owner_cost.setup_seconds", row.get("setupSeconds"), "seconds"),
+        _measure("owner_cost.build_seconds", row.get("buildSeconds"), "seconds"),
+        _measure("owner_cost.test_seconds", row.get("testSeconds"), "seconds"),
+        _measure("owner_cost.total_seconds", row.get("totalSeconds"), "seconds"),
+    ]
+    unresolved: list[str] = []
+    for field, label in (
+        ("runnerWaitSeconds", "runner wait"),
+        ("setupSeconds", "setup"),
+        ("buildSeconds", "build"),
+        ("testSeconds", "test"),
+    ):
+        if row.get(field) is None:
+            unresolved.append(
+                f"{label} phase attribution was not observed for this episode."
+            )
+    unresolved.append(
+        "One owner-cost episode does not establish a causal fanout or long-tail law."
+    )
+
+    return _finalize(
+        {
+            "schemaVersion": 1,
+            "kind": "ordivon.experimental-episode-binding",
+            "profileId": OWNER_COST_PROFILE,
+            "episodeId": (
+                "episode:convergence-owner-cost:"
+                f"{candidate_sha}:{_slug(owner)}:{_slug(verify_task)}:{_slug(observed_at)}"
+            ),
+            "dataClass": "EXPERIENCE",
+            "anchor": {
+                "ownerId": "git",
+                "objectKind": "revision",
+                "objectId": candidate_sha,
+                "sourceRecordDigest": canonical_digest(row),
+            },
+            "ownerRefs": [
+                {
+                    "ownerId": "git",
+                    "objectKind": "revision",
+                    "objectId": provider_base_sha,
+                    "relation": "provider-base-revision",
+                },
+                {
+                    "ownerId": "repo-owner",
+                    "objectKind": "owner",
+                    "objectId": owner,
+                    "relation": "qualified-owner",
+                },
+            ],
+            "evidenceBindings": [
+                {
+                    "kind": "owner-cost-evidence-refs",
+                    "count": len(evidence_refs),
+                    "setDigest": canonical_digest(evidence_refs),
+                },
+                {
+                    "kind": "changed-paths",
+                    "count": len(changed_paths),
+                    "setDigest": canonical_digest(sorted(changed_paths)),
+                },
+                {
+                    "kind": "direct-owners",
+                    "count": len(direct_owners),
+                    "setDigest": canonical_digest(sorted(direct_owners)),
+                },
+                {
+                    "kind": "verification-owners",
+                    "count": len(verification_owners),
+                    "setDigest": canonical_digest(sorted(verification_owners)),
+                },
+            ],
+            "dimensions": dimensions,
+            "measures": [measure for measure in measures if measure is not None],
+            "unresolved": unresolved,
+            "nonClaims": [
+                "Episode is not Runtime, Git, or repository-owner truth.",
+                "Measured qualification cost does not grant scheduling or evidence-reuse authority.",
+                "Fanout and duration association does not establish causal optimization benefit.",
+            ],
+        }
+    )
+
+
+def project_owner_cost_corpus(
+    corpus: dict[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if corpus.get("kind") != "ordivon.convergence-owner-cost-episode-corpus":
+        raise ValueError(
+            "expected ordivon.convergence-owner-cost-episode-corpus, "
+            f"got {corpus.get('kind')!r}"
+        )
+    episodes = [project_owner_cost_episode(row) for row in corpus.get("episodes", [])]
+    episode_ids = [row["episodeId"] for row in episodes]
+    collisions = len(episode_ids) - len(set(episode_ids))
+    candidate_ids = sorted(
+        {str(row["candidateSha"]) for row in corpus.get("episodes", [])}
+    )
+    summary: dict[str, Any] = {
+        "schemaVersion": 1,
+        "kind": "ordivon.convergence-owner-cost-experimental-episode-projection-summary",
+        "profileId": OWNER_COST_PROFILE,
+        "episodes": len(episodes),
+        "candidates": len(candidate_ids),
+        "episodeIdentityCollisions": collisions,
+        "candidateIdSetDigest": canonical_digest(candidate_ids),
+        "episodeIdSetDigest": canonical_digest(sorted(episode_ids)),
+        "projectionDigestSetDigest": canonical_digest(
+            sorted(row["projectionDigest"] for row in episodes)
+        ),
+        "standing": (
+            "PASS_OWNER_COST_EPISODE_PROJECTION"
+            if collisions == 0
+            else "FAIL_OWNER_COST_EPISODE_IDENTITY_COLLISION"
+        ),
+        "claimBoundary": (
+            "Owner-cost Episodes are rebuildable analytical projections over measured "
+            "qualification evidence. They do not grant scheduling, cancellation, batching, "
+            "or verification-evidence-reuse authority."
+        ),
+    }
+    summary["summaryDigest"] = canonical_digest(summary)
+    return episodes, summary
+
+
 def project_convergence(
     queue_projection: dict[str, Any], ci_projection: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
@@ -368,7 +523,22 @@ def main() -> int:
     parser.add_argument("queue_episodes", type=Path)
     parser.add_argument("ci_episodes", type=Path)
     parser.add_argument("summary", type=Path)
+    parser.add_argument("--owner-cost", type=Path)
+    parser.add_argument("--owner-cost-episodes", type=Path)
+    parser.add_argument("--owner-cost-summary", type=Path)
     args = parser.parse_args()
+
+    owner_cost_args = (
+        args.owner_cost,
+        args.owner_cost_episodes,
+        args.owner_cost_summary,
+    )
+    if any(value is not None for value in owner_cost_args) and not all(
+        value is not None for value in owner_cost_args
+    ):
+        parser.error(
+            "--owner-cost, --owner-cost-episodes and --owner-cost-summary must be supplied together"
+        )
 
     queue = json.loads(args.queue.read_text(encoding="utf-8"))
     ci = json.loads(args.ci.read_text(encoding="utf-8"))
@@ -381,6 +551,18 @@ def main() -> int:
     )
     if summary["standing"] != "PASS_CONVERGENCE_EPISODE_PROJECTION":
         raise SystemExit(summary["standing"])
+
+    if args.owner_cost is not None:
+        owner_cost = json.loads(args.owner_cost.read_text(encoding="utf-8"))
+        owner_cost_episodes, owner_cost_summary = project_owner_cost_corpus(owner_cost)
+        _write_jsonl(args.owner_cost_episodes, owner_cost_episodes)
+        args.owner_cost_summary.parent.mkdir(parents=True, exist_ok=True)
+        args.owner_cost_summary.write_text(
+            json.dumps(owner_cost_summary, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        if owner_cost_summary["standing"] != "PASS_OWNER_COST_EPISODE_PROJECTION":
+            raise SystemExit(owner_cost_summary["standing"])
     return 0
 
 
