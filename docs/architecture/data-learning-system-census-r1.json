@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.data-learning-system-census",
+  "effectiveDate": "2026-09-24",
+  "standing": "SELECTED_LIFECYCLE_PROVEN_NONTRIVIAL_ADAPTIVE_FEEDBACK_OPEN",
+  "truthRole": "architecture-census-not-data-owner-or-learning-authority",
+  "sourceMain": "6a60e6738375487ea2aa6bd9a098a020e389f61d",
+  "legos": [
+    {"id":"D00","label":"InformationDecisionRequirement","standing":"PARTIAL"},
+    {"id":"D01","label":"SourceIdentityRevision","standing":"PASS_SELECTED"},
+    {"id":"D02","label":"AcquisitionOwnerEvidence","standing":"PASS_PARTIAL"},
+    {"id":"D03","label":"ContractValidation","standing":"PASS_SELECTED"},
+    {"id":"D04","label":"DomainDataProduct","standing":"PASS_RESEARCH_FINANCE"},
+    {"id":"D05","label":"DiscoveryFederation","standing":"PASS_TWO_DOMAIN_DCAT"},
+    {"id":"D06","label":"Governance","standing":"PASS_FAIL_CLOSED_PARTIAL"},
+    {"id":"D07","label":"Preservation","standing":"PASS_LOCAL_FAILURE_DOMAIN"},
+    {"id":"D08","label":"OperationalLineage","standing":"PASS_SELECTED_OPENLINEAGE"},
+    {"id":"D09","label":"SemanticProvenance","standing":"PASS_SELECTED_PROV_O"},
+    {"id":"D10","label":"AnalyticalEpisode","standing":"PASS_EXPERIMENTAL_EPISODE_R1"},
+    {"id":"D11","label":"Observability","standing":"PASS_BOUNDED_OTEL_PROMETHEUS"},
+    {"id":"D12","label":"EvaluationMeasurement","standing":"PASS_PROFILE"},
+    {"id":"D13","label":"DecisionAction","standing":"PASS_SELECTED"},
+    {"id":"D14","label":"Outcome","standing":"PASS_TECHNICAL_PARTIAL_VALUE"},
+    {"id":"D15","label":"FeedbackDisposition","standing":"PASS_NO_CHANGE"},
+    {"id":"D16","label":"FeedbackDrivenSuccessorRatchet","standing":"OPEN_EMPIRICAL"}
+  ],
+  "reusedStandards": [
+    "ODCS 3.2.0",
+    "ODPS 1.1.0",
+    "W3C DCAT 3",
+    "OpenLineage 2-0-2",
+    "W3C PROV-O",
+    "W3C ODRL 2.2",
+    "OpenTelemetry/OTLP",
+    "Apache Parquet",
+    "DuckDB",
+    "PyArrow"
+  ],
+  "analyticalWaist": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+  "feedbackEvidence": "meta/next/evidence/data-lifecycle/data-products-r1/acceptance.json",
+  "currentFeedback": {
+    "decision": "NO_EXECUTION_OR_DIRECTIONAL_ACTION_ADMITTED",
+    "action": "NO_EXTERNAL_EFFECT",
+    "outcome": "PASS_BOUNDARY_PRESERVED",
+    "changeRequired": false,
+    "standing": "PASS_LEGITIMATE_ABSTENTION_NOT_ADAPTIVE_OPTIMIZATION"
+  },
+  "d16Admission": [
+    "exact outcome evidence creates real change pressure",
+    "exact predecessor policy/configuration",
+    "candidate change traceable to outcome",
+    "frozen Evaluation Boundary and negative controls",
+    "Verification Obligations bound to natural verifiers",
+    "Successor Contract mechanical closure",
+    "external promotion/effect authority",
+    "post-change field observation",
+    "retain/revert/ratchet adjudication",
+    "derived Episode/lineage only after owner-native evidence exists"
+  ],
+  "antiGrowth": [
+    "no second experimental database",
+    "no global metric registry",
+    "no learning controller",
+    "no automatic policy mutation",
+    "no new lineage ontology",
+    "no catalog service without scale/query pressure",
+    "no heavy streaming/table stack without workload pressure"
+  ],
+  "remaining": [
+    "one real nontrivial feedback-driven successor",
+    "broader value outcomes",
+    "source rights/privacy/retention closure",
+    "independent offsite preservation",
+    "broader real-domain adoption",
+    "scoped data observability where consumer pressure exists"
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-formal-implementation-trace",
+  "traceId": "runtime-dispatch-r1-at-most-once-trace-r1",
+  "effectiveDate": "2026-09-24",
+  "truthRole": "traceability-gate-not-mechanized-refinement-proof",
+  "formalSpecification": {
+    "modulePath": "formal/RuntimeDispatchR1.tla",
+    "moduleSha256": "29e54c84ef33441976c7ec2be112e4d2584a5e5611060712b3e73cabc852ac6f",
+    "configPath": "formal/RuntimeDispatchR1.cfg",
+    "configSha256": "0985b94b18573a206b048714dbb812cb1c5d2b6fe9bbb71e6186e8ab8d268bc4",
+    "invariant": "AtMostOnceDispatchPerAttempt",
+    "modelTransition": "Dispatch"
+  },
+  "runtimeInvariantBindings": [
+    {
+      "id": "I05",
+      "name": "JobAttemptSeparation",
+      "requiredProofRefs": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt"
+      ]
+    },
+    {
+      "id": "I11",
+      "name": "AmbiguityNoBlindRedispatch",
+      "requiredProofRefs": [
+        "crates/ordivon-runtime-core/src/runtime/integration_tests.rs::runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch"
+      ]
+    }
+  ],
+  "implementationBindings": [
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/registry/lifecycle.rs",
+      "symbol": "mark_dispatch_issued",
+      "requiredFragments": [
+        "attempt.state != AttemptState::Accepted",
+        "attempt.row_version != expected_row_version",
+        "attempt.bundle_digest.is_none()",
+        "UPDATE attempts SET state='starting',row_version=row_version+1",
+        "state='accepted' AND row_version=?2 AND bundle_digest IS NOT NULL",
+        "if changed != 1",
+        "DISPATCH_ISSUED",
+        "AT_MOST_ONCE_BOUNDARY_COMMITTED"
+      ],
+      "relation": "The durable compare-and-swap transition commits the one-attempt dispatch boundary before physical launch."
+    },
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/engine/execution.rs",
+      "symbol": "ensure_attempt_dispatched",
+      "requiredFragments": [
+        "AttemptState::Accepted => match self.dispatch_attempt(&attempt)",
+        "AttemptState::Starting",
+        "AttemptState::Running",
+        "self.reconcile_attempt(&current.attempt_id)"
+      ],
+      "relation": "Only Accepted reaches dispatch; already-dispatched nonterminal states are reconciled instead of blindly redriven."
+    },
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/engine/execution.rs",
+      "symbol": "dispatch_attempt",
+      "requiredFragments": [
+        "self.registry.mark_dispatch_issued(",
+        "systemd_run(&SystemdRunSpec",
+        "spawn_windows_native(&WindowsNativeRunSpec"
+      ],
+      "relation": "The durable dispatch-intent transition precedes either Linux or Windows physical provider launch."
+    }
+  ],
+  "testBindings": [
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+      "symbol": "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
+      "requiredFragments": [
+        "let observer_a = spawn(runtime_a);",
+        "let observer_b = spawn(runtime_b);",
+        "assert!(matches!("
+      ],
+      "relation": "Concurrent observers cannot turn one Accepted Attempt into duplicate dispatches."
+    },
+    {
+      "path": "crates/ordivon-runtime-core/src/runtime/integration_tests.rs",
+      "symbol": "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch",
+      "requiredFragments": [
+        ".mark_dispatch_issued(",
+        "runtime.reconcile_attempt(&attempt.attempt_id).unwrap();",
+        "assert_eq!(projection.status, \"lost\");"
+      ],
+      "relation": "An ambiguous issued dispatch converges without treating uncertainty as permission to launch again."
+    }
+  ],
+  "supportScope": [
+    "machine-checkable currentness of the named formal model, Runtime invariant references, implementation symbols and integration-test anchors",
+    "bounded correspondence for the at-most-once physical dispatch design seam"
+  ],
+  "nonClaims": [
+    "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
+    "Passing this gate does not prove all Runtime implementations or all environmental behaviors conform to the model.",
+    "The finite TLC model remains abstraction evidence and must be checked separately.",
+    "The integration tests remain empirical implementation evidence and may require an owner-native real-system environment.",
+    "This trace does not establish domain semantic completion or exactly-once external effects."
+  ]
+}
