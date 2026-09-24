@@ -2,27 +2,89 @@
   "schemaVersion": 1,
   "kind": "ordivon.verification-assurance-formal-census",
   "effectiveDate": "2026-09-24",
-  "standing": "CURRENT_TRUTH_REUSE_EXISTING_V07_TRACEABILITY_TARGETED",
+  "standing": "CURRENT_TRUTH_V07_PARTIAL_EXPLICIT_TRACEABILITY_GATE",
   "truthRole": "architecture-census-not-domain-truth-or-promotion-authority",
-  "sourceMain": "6a60e6738375487ea2aa6bd9a098a020e389f61d",
+  "sourceMain": "e0e9874d7a3c7b553a2f4ecb34049946867b513f",
   "legos": [
-    {"id":"V00","label":"ClaimSupportScope","standing":"PASS_DISTRIBUTED","owner":"domain + owner-native epistemology"},
-    {"id":"V01","label":"VerificationObligation","standing":"PASS","owner":"packages/composition"},
-    {"id":"V02","label":"ObligationCompiler","standing":"PASS","owner":"packages/composition"},
-    {"id":"V03","label":"TaskLocalVerifierBinding","standing":"PASS","owner":"packages/composition"},
-    {"id":"V04","label":"NaturalVerifierProviders","standing":"PASS_PARTIAL_PORTFOLIO","owner":"natural verifier owners"},
-    {"id":"V05","label":"PhysicalEvidenceClaim","standing":"PARTIAL_OWNER_SCOPED","owner":"Runtime + natural evidence owners"},
-    {"id":"V06","label":"CurrentnessInvalidation","standing":"PARTIAL","owner":"owner-specific + Interface Contract"},
-    {"id":"V07","label":"ModelImplementationTrace","standing":"PARTIAL_EXPLICIT_TRACEABILITY_GATE_CANDIDATE","owner":"services/runtime"},
-    {"id":"V08","label":"CompletionSemantics","standing":"PASS_SEPARATED_PARTIAL","owner":"Runtime + Composition + domains"},
-    {"id":"V09","label":"AttestationSignerTrust","standing":"PASS_BOUNDED","owner":"Artifact/Security"},
-    {"id":"V10","label":"PromotionEffectAuthority","standing":"PASS_SEPARATED","owner":"natural effect authority"}
+    {
+      "id": "V00",
+      "label": "ClaimSupportScope",
+      "standing": "PASS_DISTRIBUTED",
+      "owner": "domain + owner-native epistemology"
+    },
+    {
+      "id": "V01",
+      "label": "VerificationObligation",
+      "standing": "PASS",
+      "owner": "packages/composition"
+    },
+    {
+      "id": "V02",
+      "label": "ObligationCompiler",
+      "standing": "PASS",
+      "owner": "packages/composition"
+    },
+    {
+      "id": "V03",
+      "label": "TaskLocalVerifierBinding",
+      "standing": "PASS",
+      "owner": "packages/composition"
+    },
+    {
+      "id": "V04",
+      "label": "NaturalVerifierProviders",
+      "standing": "PASS_PARTIAL_PORTFOLIO",
+      "owner": "natural verifier owners"
+    },
+    {
+      "id": "V05",
+      "label": "PhysicalEvidenceClaim",
+      "standing": "PARTIAL_OWNER_SCOPED",
+      "owner": "Runtime + natural evidence owners"
+    },
+    {
+      "id": "V06",
+      "label": "CurrentnessInvalidation",
+      "standing": "PARTIAL",
+      "owner": "owner-specific + Interface Contract"
+    },
+    {
+      "id": "V07",
+      "label": "ModelImplementationTrace",
+      "standing": "PARTIAL_EXPLICIT_TRACEABILITY_GATE",
+      "owner": "services/runtime"
+    },
+    {
+      "id": "V08",
+      "label": "CompletionSemantics",
+      "standing": "PASS_SEPARATED_PARTIAL",
+      "owner": "Runtime + Composition + domains"
+    },
+    {
+      "id": "V09",
+      "label": "AttestationSignerTrust",
+      "standing": "PASS_BOUNDED",
+      "owner": "Artifact/Security"
+    },
+    {
+      "id": "V10",
+      "label": "PromotionEffectAuthority",
+      "standing": "PASS_SEPARATED",
+      "owner": "natural effect authority"
+    }
   ],
   "v07": {
     "formalModule": "services/runtime/formal/RuntimeDispatchR1.tla",
     "formalInvariant": "AtMostOnceDispatchPerAttempt",
-    "runtimeInvariantIds": ["I05","I11"],
-    "implementationSymbols": ["mark_dispatch_issued","ensure_attempt_dispatched","dispatch_attempt"],
+    "runtimeInvariantIds": [
+      "I05",
+      "I11"
+    ],
+    "implementationSymbols": [
+      "mark_dispatch_issued",
+      "ensure_attempt_dispatched",
+      "dispatch_attempt"
+    ],
     "integrationTests": [
       "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
       "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch"
@@ -30,7 +92,8 @@
     "traceManifest": "services/runtime/formal/RuntimeDispatchR1.trace-r1.json",
     "traceVerifier": "services/runtime/scripts/verify_formal_trace.py",
     "claim": "machine-checkable trace/currentness correspondence only",
-    "nonClaim": "not a mechanized Rust-to-TLA+ refinement proof"
+    "nonClaim": "not a mechanized Rust-to-TLA+ refinement proof",
+    "acceptanceReceipt": "services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json"
   },
   "antiGrowth": [
     "no universal verifier",

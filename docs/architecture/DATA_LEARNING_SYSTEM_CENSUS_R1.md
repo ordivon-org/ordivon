@@ -2,6 +2,7 @@
 
 Date: 2026-09-24
 Status: **CURRENT-TRUTH SYNTHESIS / SELECTED LIFECYCLE LOOP PROVEN / NONTRIVIAL ADAPTIVE FEEDBACK OPEN**
+Base canonical cut surveyed by this census: `e0e9874d7a3c7b553a2f4ecb34049946867b513f`.
 
 ## Result
 

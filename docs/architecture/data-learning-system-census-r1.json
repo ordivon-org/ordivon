@@ -4,25 +4,93 @@
   "effectiveDate": "2026-09-24",
   "standing": "SELECTED_LIFECYCLE_PROVEN_NONTRIVIAL_ADAPTIVE_FEEDBACK_OPEN",
   "truthRole": "architecture-census-not-data-owner-or-learning-authority",
-  "sourceMain": "6a60e6738375487ea2aa6bd9a098a020e389f61d",
+  "sourceMain": "e0e9874d7a3c7b553a2f4ecb34049946867b513f",
   "legos": [
-    {"id":"D00","label":"InformationDecisionRequirement","standing":"PARTIAL"},
-    {"id":"D01","label":"SourceIdentityRevision","standing":"PASS_SELECTED"},
-    {"id":"D02","label":"AcquisitionOwnerEvidence","standing":"PASS_PARTIAL"},
-    {"id":"D03","label":"ContractValidation","standing":"PASS_SELECTED"},
-    {"id":"D04","label":"DomainDataProduct","standing":"PASS_RESEARCH_FINANCE"},
-    {"id":"D05","label":"DiscoveryFederation","standing":"PASS_TWO_DOMAIN_DCAT"},
-    {"id":"D06","label":"Governance","standing":"PASS_FAIL_CLOSED_PARTIAL"},
-    {"id":"D07","label":"Preservation","standing":"PASS_LOCAL_FAILURE_DOMAIN"},
-    {"id":"D08","label":"OperationalLineage","standing":"PASS_SELECTED_OPENLINEAGE"},
-    {"id":"D09","label":"SemanticProvenance","standing":"PASS_SELECTED_PROV_O"},
-    {"id":"D10","label":"AnalyticalEpisode","standing":"PASS_EXPERIMENTAL_EPISODE_R1"},
-    {"id":"D11","label":"Observability","standing":"PASS_BOUNDED_OTEL_PROMETHEUS"},
-    {"id":"D12","label":"EvaluationMeasurement","standing":"PASS_PROFILE"},
-    {"id":"D13","label":"DecisionAction","standing":"PASS_SELECTED"},
-    {"id":"D14","label":"Outcome","standing":"PASS_TECHNICAL_PARTIAL_VALUE"},
-    {"id":"D15","label":"FeedbackDisposition","standing":"PASS_NO_CHANGE"},
-    {"id":"D16","label":"FeedbackDrivenSuccessorRatchet","standing":"OPEN_EMPIRICAL"}
+    {
+      "id": "D00",
+      "label": "InformationDecisionRequirement",
+      "standing": "PARTIAL"
+    },
+    {
+      "id": "D01",
+      "label": "SourceIdentityRevision",
+      "standing": "PASS_SELECTED"
+    },
+    {
+      "id": "D02",
+      "label": "AcquisitionOwnerEvidence",
+      "standing": "PASS_PARTIAL"
+    },
+    {
+      "id": "D03",
+      "label": "ContractValidation",
+      "standing": "PASS_SELECTED"
+    },
+    {
+      "id": "D04",
+      "label": "DomainDataProduct",
+      "standing": "PASS_RESEARCH_FINANCE"
+    },
+    {
+      "id": "D05",
+      "label": "DiscoveryFederation",
+      "standing": "PASS_TWO_DOMAIN_DCAT"
+    },
+    {
+      "id": "D06",
+      "label": "Governance",
+      "standing": "PASS_FAIL_CLOSED_PARTIAL"
+    },
+    {
+      "id": "D07",
+      "label": "Preservation",
+      "standing": "PASS_LOCAL_FAILURE_DOMAIN"
+    },
+    {
+      "id": "D08",
+      "label": "OperationalLineage",
+      "standing": "PASS_SELECTED_OPENLINEAGE"
+    },
+    {
+      "id": "D09",
+      "label": "SemanticProvenance",
+      "standing": "PASS_SELECTED_PROV_O"
+    },
+    {
+      "id": "D10",
+      "label": "AnalyticalEpisode",
+      "standing": "PASS_EXPERIMENTAL_EPISODE_R1"
+    },
+    {
+      "id": "D11",
+      "label": "Observability",
+      "standing": "PASS_BOUNDED_OTEL_PROMETHEUS"
+    },
+    {
+      "id": "D12",
+      "label": "EvaluationMeasurement",
+      "standing": "PASS_PROFILE"
+    },
+    {
+      "id": "D13",
+      "label": "DecisionAction",
+      "standing": "PASS_SELECTED"
+    },
+    {
+      "id": "D14",
+      "label": "Outcome",
+      "standing": "PASS_TECHNICAL_PARTIAL_VALUE"
+    },
+    {
+      "id": "D15",
+      "label": "FeedbackDisposition",
+      "standing": "PASS_NO_CHANGE"
+    },
+    {
+      "id": "D16",
+      "label": "FeedbackDrivenSuccessorRatchet",
+      "standing": "OPEN_EMPIRICAL"
+    }
   ],
   "reusedStandards": [
     "ODCS 3.2.0",

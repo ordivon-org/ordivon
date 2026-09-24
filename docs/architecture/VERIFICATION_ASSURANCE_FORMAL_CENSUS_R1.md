@@ -1,7 +1,7 @@
 # Verification / Assurance / Formal Current-Truth Census R1
 
 Date: 2026-09-24
-Status: **CURRENT-TRUTH SYNTHESIS / REUSE EXISTING OWNERS / V07 TRACEABILITY GAP TARGETED**
+Status: **CURRENT-TRUTH SYNTHESIS / V07 PARTIAL EXPLICIT TRACEABILITY GATE ACCEPTED**
 
 ## Result
 
@@ -32,7 +32,7 @@ The primary remaining formal-method gap is not the absence of a proof engine. It
 | V04 Natural verifier providers | owner-native, Artifact, Security, Research, OPA, TLA+/TLC, Pacti shadow | PASS_PARTIAL_PORTFOLIO | each verifier keeps native semantics |
 | V05 Physical evidence claim | Runtime + natural evidence owners | PARTIAL / owner-scoped | evidence is claim-relative; no global evidence DB |
 | V06 Currentness / invalidation | Interface Contract + owner-specific checks | PARTIAL | broader invalidation remains pressure-gated |
-| V07 Formal model ↔ implementation trace | Runtime | OPEN_TO_PARTIAL | TLC model check != Rust refinement proof |
+| V07 Formal model ↔ implementation trace | Runtime | PARTIAL_EXPLICIT_TRACEABILITY_GATE | machine-current trace + TLC + owner-native integration evidence; not Rust refinement proof |
 | V08 Completion semantics | Runtime + Composition + domain owners | PASS_SEPARATED_PARTIAL | physical terminality != gate closure != domain acceptance |
 | V09 Attestation / signer trust | Artifact/Security Sigstore/VSA/in-toto-style carriers | PASS_BOUNDED | authenticity/provenance != semantic truth |
 | V10 Promotion / effect authority | Git/release/provider/domain authority | PASS_SEPARATED | verification never self-grants mutation authority |
@@ -131,6 +131,18 @@ toward:
 `PARTIAL_EXPLICIT_TRACEABILITY_GATE`
 
 while keeping stronger refinement proof explicitly open.
+
+## Current-main acceptance
+
+The R1 traceability gate was requalified after canonical history convergence against base main `e0e9874d7a3c7b553a2f4ecb34049946867b513f`. The exact mechanism candidate `62e69c5f4240ba926361668b8dc3ea72ce608ff9` was bound by Runtime source-state digest `sha256:014ce87d9c603752ca2960bc88c3972fc5e7be485b5e81c089a57fc87403cdb8` and passed:
+
+- `verify_formal_trace.py` plus its focused pytest;
+- pinned TLA+ tools 1.7.4 / TLC 2.19: 25 generated states, 20 distinct, depth 9, no error;
+- `runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt`;
+- `runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch`;
+- selected Composition and Meta verification/data/evaluation/episode owner suites.
+
+The durable evidence binding is `services/runtime/formal/RuntimeDispatchR1.trace-r1.acceptance.json`. This graduates V07 only to explicit traceability/currentness evidence; it does not change the refinement non-claim.
 
 ## Stronger refinement admission rule
 
