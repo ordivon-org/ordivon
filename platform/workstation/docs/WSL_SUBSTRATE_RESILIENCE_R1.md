@@ -11,7 +11,7 @@ This package does not own Linux MM, Hyper-V/VMBus allocation, WSL/HCS lifecycle,
 ## LEGO circuit
 
 1. **WR01 Fresh Session Probe** — Windows `WindowsWslProvider.ps1 -Command admission-probe` starts a bounded fresh `wsl.exe` session and requires exact marker output.
-2. **WR02 Linux Physiology Snapshot** — `wsl_substrate_resilience.py snapshot` captures buddy topology, pagetypeinfo, meminfo, VM compaction/reclaim counters, memory PSI, relevant VM sysctls, and bounded kernel warning evidence.
+2. **WR02 Linux Physiology Snapshot** — `wsl_substrate_resilience.py snapshot` captures buddy topology, pagetypeinfo, meminfo, VM compaction/reclaim counters, memory PSI, relevant VM sysctls, and a five-minute bounded kernel-warning window so stale allocation failures cannot authorize a later recovery.
 3. **WR03 Failure Classifier** — `classify` emits `HEALTHY`, high-confidence `F1_HIGH_ORDER_FRAGMENTATION`, or `UNKNOWN`. The wider F1-F5 vocabulary is declared, but R1 refuses to guess F2-F5 without stronger evidence.
 4. **WR04 Fragmentation Recovery** — `compact` accepts only an exact digest-bound classification file whose class is high-confidence F1 and whose recommended effect is `compact_memory`. It performs one write of `1` to `/proc/sys/vm/compact_memory` and records before/after evidence. It never writes `drop_caches` or persistent sysctls.
 5. **WR05 Lifecycle Recovery Route** — non-F1 failures are not mutated by this provider. `UNKNOWN` routes to additional Windows/WSL forensics; owner-native WSL lifecycle recovery remains a separate Windows authority/effect.

@@ -71,6 +71,12 @@ def test_classifier_fails_closed_when_timeout_has_no_proven_mechanism():
     assert result["recommendedEffect"] == "collect_forensics"
 
 
+def test_kernel_evidence_is_time_bounded_so_stale_f1_does_not_authorize_recovery():
+    text = PROVIDER.read_text(encoding="utf-8")
+    assert 'KERNEL_LOOKBACK = "5 minutes ago"' in text
+    assert '"--since", KERNEL_LOOKBACK' in text
+
+
 def test_compaction_effect_is_narrow_and_drop_caches_is_not_a_provider_effect():
     text = PROVIDER.read_text(encoding="utf-8")
     assert 'Path("/proc/sys/vm/compact_memory")' in text

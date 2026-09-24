@@ -26,6 +26,7 @@ CONTROL_PLANE_UNITS = (
     "ordivon-host-v2.service",
     "ordivon-gateway.service",
 )
+KERNEL_LOOKBACK = "5 minutes ago"
 KNOWN_CLASSES = (
     "HEALTHY",
     "F1_HIGH_ORDER_FRAGMENTATION",
@@ -123,7 +124,7 @@ def parse_psi(text: str) -> dict[str, dict[str, float | int]]:
 
 
 def kernel_evidence() -> dict[str, Any]:
-    command = ["/usr/bin/dmesg", "--ctime", "--level=err,warn"]
+    command = ["/usr/bin/dmesg", "--ctime", "--since", KERNEL_LOOKBACK, "--level=err,warn"]
     try:
         completed = subprocess.run(command, capture_output=True, text=True, timeout=5, check=False)
         text = completed.stdout[-65536:]
@@ -137,6 +138,7 @@ def kernel_evidence() -> dict[str, Any]:
     lowered = text.lower()
     return {
         "command": command,
+        "lookback": KERNEL_LOOKBACK,
         "exitCode": exit_code,
         "stderr": error,
         "excerpt": text,
