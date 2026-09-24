@@ -204,7 +204,7 @@ fault_block provider-a
 refresh_groups || true
 wait_all
 
-# Drop both provider endpoints; all admitted authorities must fail closed.
+# Drop both provider endpoints; provider-bound venue authorities must fail closed while the explicitly direct Treasury authority remains available.
 fault_block provider-a provider-b
 sleep 4
 expect_target_failure 19283 https://openapi.okx.com/api/v5/public/time
@@ -214,7 +214,7 @@ expect_target_failure 19287 https://fapi.binance.com/fapi/v1/time
 expect_target_failure 19288 https://ws.okx.com:8443/ws/v5/public
 expect_target_failure 19289 https://fstream.binance.com/
 expect_target_failure 19290 https://api.binance.com/api/v3/time
-expect_target_failure 19291 https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve
+probe_treasury_rest
 
 # Restore mature data plane and prove root-process lifecycle recovery.
 fault_reset

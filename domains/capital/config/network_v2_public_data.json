@@ -41,7 +41,7 @@
       "proxy": "http://127.0.0.1:19290"
     },
     "usTreasuryRest": {
-      "digest": "sha256:6366280e1706b393bd704d42cd6d07a8ba0dce09bb13e96e6f36279727fe087a",
+      "digest": "sha256:ea4464b29d27446309e5acb898d21efcaf7d73b2eb140579690dba2d40ba4084",
       "file": "/etc/network-v2/finance/us-treasury-rest-authority.json",
       "host": "home.treasury.gov",
       "port": 443,
@@ -75,7 +75,7 @@
   "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",
   "transportConfig": {
     "file": "/etc/network-v2/finance/egress.json",
-    "digest": "sha256:8cc276bf36e6a94a60187304708b6c40b9969d87e154248471432e01c0d3872c",
+    "digest": "sha256:38d54b2bc22933be62f972c4ebd1adfb997ae893f5bbddf81b5e87e640af631a",
     "implementation": "sing-box",
     "requiredDnsServers": [
       {

@@ -113,6 +113,10 @@
       "tolerance": 65535,
       "idle_timeout": "10m",
       "interrupt_exist_connections": true
+    },
+    {
+      "type": "direct",
+      "tag": "public-direct"
     }
   ],
   "route": {
@@ -196,7 +200,7 @@
         "domain": "home.treasury.gov",
         "port": 443,
         "action": "route",
-        "outbound": "provider-auto"
+        "outbound": "public-direct"
       },
       {
         "action": "reject"
