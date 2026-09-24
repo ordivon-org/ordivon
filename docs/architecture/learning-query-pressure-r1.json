@@ -82,7 +82,7 @@
       }
     },
     "longLivedService": false,
-    "path": "meta/next/experimental/episode-store-r1",
+    "path": "studies/experimental-episode/postgres-projection-r1",
     "schemaAuthority": "Alembic 0001",
     "status": "REUSE_EXISTING_TASK_LOCAL_ANALYTICAL_CONSUMER"
   },

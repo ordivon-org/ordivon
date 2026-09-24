@@ -332,7 +332,7 @@
         "convergence-ci-observation-v1"
       ],
       "episodeContract": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
-      "postgresConsumer": "meta/next/experimental/episode-store-r1",
+      "postgresConsumer": "studies/experimental-episode/postgres-projection-r1",
       "acceptanceEvidence": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json",
       "authority": "rebuildable analytical materialization only",
       "schemaChangeRequired": false,

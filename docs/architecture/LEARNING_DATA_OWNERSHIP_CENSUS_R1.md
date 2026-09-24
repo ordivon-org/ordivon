@@ -9,6 +9,6 @@ Three data classes must remain separate: authoritative owner evidence, derived a
 
 ## L02 disposition
 
-`L02_NEW_STORE = CLOSED_REUSE_EXISTING`: `meta/next/experimental/episode-store-r1` already provides the qualified PostgreSQL analytical consumer, so no second/new store is admitted. `L02_DEPLOYMENT = DEFER_ACTIVATION` until a named live consumer demonstrates a query/availability requirement that file/Parquet/DuckDB projections cannot satisfy. PostgreSQL remains an on-demand Workstation-realized read model, not an architecture objective by itself.
+`L02_NEW_STORE = CLOSED_REUSE_EXISTING`: `studies/experimental-episode/postgres-projection-r1` already provides the qualified PostgreSQL analytical consumer, so no second/new store is admitted. `L02_DEPLOYMENT = DEFER_ACTIVATION` until a named live consumer demonstrates a query/availability requirement that file/Parquet/DuckDB projections cannot satisfy. PostgreSQL remains an on-demand Workstation-realized read model, not an architecture objective by itself.
 
 That test is now materialized by `INTEGRATED_C08_CAPITAL_READONLY_DOGFOOD_R1.md`, and `LEARNING_QUERY_PRESSURE_R1.md` measures the first live pressure. The existing Store R1 accepts the C08 Episode unchanged and remains available on demand, but the current live queries are already satisfied by the file projection. The next step is to accumulate additional real owner-native Episodes and re-evaluate activation only when a named consumer requirement is unmet.

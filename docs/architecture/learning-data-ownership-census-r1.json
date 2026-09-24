@@ -66,8 +66,8 @@
   },
   "l02Disposition": {
     "status": "CLOSED_REUSE_EXISTING_CONSUMER",
-    "reason": "The qualified Experimental Episode PostgreSQL consumer already exists at meta/next/experimental/episode-store-r1 and accepts the first real C08 Episode unchanged. No second/new store is admitted; only permanent realization remains demand-gated.",
-    "existingConsumer": "meta/next/experimental/episode-store-r1",
+    "reason": "The qualified Experimental Episode PostgreSQL consumer already exists at studies/experimental-episode/postgres-projection-r1 and accepts the first real C08 Episode unchanged. No second/new store is admitted; only permanent realization remains demand-gated.",
+    "existingConsumer": "studies/experimental-episode/postgres-projection-r1",
     "deploymentStatus": "DEFER_ACTIVATION",
     "deploymentAdmissionGate": [
       "named live consumer",
@@ -99,7 +99,7 @@
   },
   "postgresDecision": {
     "newStore": "CLOSED_REUSE_EXISTING_EPISODE_STORE_R1",
-    "existingConsumer": "meta/next/experimental/episode-store-r1",
+    "existingConsumer": "studies/experimental-episode/postgres-projection-r1",
     "existingHistoricalQualificationEpisodes": 10007,
     "c08EphemeralCompatibility": "PASS_IDEMPOTENT_PROJECTION_INGEST",
     "permanentDeployment": "DEFER_ACTIVATION_UNTIL_NAMED_LIVE_QUERY_OR_AVAILABILITY_REQUIREMENT",
