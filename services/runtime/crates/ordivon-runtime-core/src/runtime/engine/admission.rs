@@ -258,31 +258,30 @@ impl Runtime {
         }
         let provider =
             self.current_execution_provider_snapshot(request.execution.execution_target)?;
-        let submit = if authority_contract.is_immutable_input_reduced() {
-            match OperationCircuitCompiler::immutable_input_reduced(
+        let compiled = if authority_contract.is_immutable_input_reduced() {
+            OperationCircuitCompiler::immutable_input_reduced(
                 authority_contract,
                 request,
                 inputs,
                 request_identity_digest,
                 provider,
                 plan,
-            ) {
-                Ok(circuit) => circuit.into_submit_request(),
-                Err(error) => {
-                    self.discard_prepared_input_set(&prepared.prepared_root)?;
-                    return Err(error);
-                }
-            }
+            )
         } else {
-            SubmitRequest {
-                schema_version: RUNTIME_SCHEMA_VERSION,
-                client_request_id: request.client_request_id.clone(),
-                request_identity_digest: Some(request_identity_digest),
-                execution_provider: Some(provider),
-                runtime_release_effect: None,
-                host_dependencies: Vec::new(),
+            OperationCircuitCompiler::immutable_input_trusted(
+                authority_contract,
+                request,
+                inputs,
+                request_identity_digest,
+                provider,
                 plan,
-                global_limit: request.global_limit,
+            )
+        };
+        let submit = match compiled {
+            Ok(circuit) => circuit.into_submit_request(),
+            Err(error) => {
+                self.discard_prepared_input_set(&prepared.prepared_root)?;
+                return Err(error);
             }
         };
         match self.registry.submit_preallocated(&submit, &admission_ids) {

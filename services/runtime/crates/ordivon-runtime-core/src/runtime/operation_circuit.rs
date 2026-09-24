@@ -9,7 +9,7 @@ use super::{
 /// R08 intentionally reuses the already-enforced `SubmitRequest`/`RuntimeExecutionPlan` truth
 /// instead of creating a second persisted execution schema. The compiler composes one new
 /// ordinary admission only after exact replay and R07 authority compilation have already run.
-/// Reduced immutable-input admission is the second strangler slice; trusted immutable-input,
+/// Reduced and trusted immutable-input admission are the second and third strangler slices;
 /// credential-bound and Runtime-release families remain on their current paths until they
 /// independently prove parity.
 #[derive(Debug)]
@@ -81,6 +81,45 @@ impl OperationCircuitCompiler {
         {
             return Err(RuntimeError::invalid(
                 "resolved execution plan does not match the admitted reduced immutable-input request",
+                "executionCircuit",
+            ));
+        }
+        Ok(ExecutionCircuit {
+            submit: SubmitRequest {
+                schema_version: RUNTIME_SCHEMA_VERSION,
+                client_request_id: request.client_request_id.clone(),
+                request_identity_digest: Some(request_identity_digest),
+                execution_provider: Some(provider),
+                runtime_release_effect: None,
+                host_dependencies: Vec::new(),
+                plan,
+                global_limit: request.global_limit,
+            },
+        })
+    }
+
+    pub(crate) fn immutable_input_trusted(
+        authority: &AuthorityContract,
+        request: &JobRunRequest,
+        inputs: &[InputBindingRequest],
+        request_identity_digest: String,
+        provider: ExecutionProviderSnapshot,
+        plan: RuntimeExecutionPlan,
+    ) -> RuntimeResult<ExecutionCircuit> {
+        authority.validate_immutable_input_trusted_realization(
+            request,
+            inputs,
+            &plan.effective_inputs,
+        )?;
+        if plan.principal != request.principal
+            || plan.execution_target != request.execution.execution_target
+            || plan.execution_profile != request.execution.execution_profile
+            || plan.input_set_id.is_none()
+            || plan.effective_inputs.is_empty()
+            || plan.credential_set_id.is_some()
+        {
+            return Err(RuntimeError::invalid(
+                "resolved execution plan does not match the admitted trusted immutable-input request",
                 "executionCircuit",
             ));
         }
@@ -410,6 +449,76 @@ mod tests {
         .unwrap_err();
         assert_eq!(error.field.as_deref(), Some("authorityContract"));
     }
+    #[test]
+    fn trusted_immutable_input_compiler_is_exact_submit_request_parity() {
+        let inputs = vec![reduced_input()];
+        let proposal = proposal(ExecutionProfile::TrustedLocal);
+        let authority = AuthorityContract::immutable_inputs(&proposal, &inputs).unwrap();
+        let request = request(ExecutionProfile::TrustedLocal);
+        let mut trusted_plan = plan_with_reduced_input();
+        trusted_plan.execution_profile = ExecutionProfile::TrustedLocal;
+        let provider = provider();
+        let identity = "runtime-request-input-v2:sha256:trusted-parity".to_string();
+        let expected = SubmitRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            client_request_id: request.client_request_id.clone(),
+            request_identity_digest: Some(identity.clone()),
+            execution_provider: Some(provider.clone()),
+            runtime_release_effect: None,
+            host_dependencies: Vec::new(),
+            plan: trusted_plan.clone(),
+            global_limit: request.global_limit,
+        };
+        let compiled = OperationCircuitCompiler::immutable_input_trusted(
+            &authority,
+            &request,
+            &inputs,
+            identity,
+            provider,
+            trusted_plan,
+        )
+        .unwrap()
+        .into_submit_request();
+        assert_eq!(compiled, expected);
+    }
+
+    #[test]
+    fn trusted_immutable_input_compiler_rejects_reduced_input_family() {
+        let inputs = vec![reduced_input()];
+        let proposal = proposal(ExecutionProfile::ContainedLocal);
+        let authority = AuthorityContract::immutable_inputs(&proposal, &inputs).unwrap();
+        let error = OperationCircuitCompiler::immutable_input_trusted(
+            &authority,
+            &request(ExecutionProfile::ContainedLocal),
+            &inputs,
+            "runtime-request-input-v2:sha256:reduced-remains-reduced".to_string(),
+            provider(),
+            plan_with_reduced_input(),
+        )
+        .unwrap_err();
+        assert_eq!(error.field.as_deref(), Some("authorityContract"));
+    }
+
+    #[test]
+    fn trusted_immutable_input_compiler_fails_closed_on_materialized_input_drift() {
+        let inputs = vec![reduced_input()];
+        let proposal = proposal(ExecutionProfile::TrustedLocal);
+        let authority = AuthorityContract::immutable_inputs(&proposal, &inputs).unwrap();
+        let mut trusted_plan = plan_with_reduced_input();
+        trusted_plan.execution_profile = ExecutionProfile::TrustedLocal;
+        trusted_plan.effective_inputs[0].digest = format!("sha256:{}", "a".repeat(64));
+        let error = OperationCircuitCompiler::immutable_input_trusted(
+            &authority,
+            &request(ExecutionProfile::TrustedLocal),
+            &inputs,
+            "runtime-request-input-v2:sha256:trusted-drift".to_string(),
+            provider(),
+            trusted_plan,
+        )
+        .unwrap_err();
+        assert_eq!(error.field.as_deref(), Some("authorityContract"));
+    }
+
     #[test]
     fn reduced_immutable_input_compiler_requires_materialized_plan_identity() {
         let inputs = vec![reduced_input()];
