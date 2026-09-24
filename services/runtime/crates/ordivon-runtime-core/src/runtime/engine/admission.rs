@@ -29,11 +29,16 @@ impl Runtime {
             )? {
                 existing.job_id
             } else {
-                let _authority_contract =
+                let authority_contract =
                     super::authority_contract::AuthorityContract::immutable_inputs(proposal, &inputs)?;
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
-                self.admit_new_job_with_inputs(&request, request_identity_digest, &inputs)?
+                self.admit_new_job_with_inputs(
+                    &request,
+                    request_identity_digest,
+                    &inputs,
+                    &authority_contract,
+                )?
             }
         };
         self.observe_admitted_job(
@@ -186,6 +191,7 @@ impl Runtime {
         request: &JobRunRequest,
         request_identity_digest: String,
         inputs: &[InputBindingRequest],
+        authority_contract: &super::authority_contract::AuthorityContract,
     ) -> RuntimeResult<String> {
         match request.execution.execution_target {
             super::ExecutionTarget::LocalLinux => {
@@ -250,17 +256,34 @@ impl Runtime {
                 input_root.clone(),
             );
         }
-        let submit = SubmitRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            client_request_id: request.client_request_id.clone(),
-            request_identity_digest: Some(request_identity_digest),
-            execution_provider: Some(
-                self.current_execution_provider_snapshot(request.execution.execution_target)?,
-            ),
-            runtime_release_effect: None,
-            host_dependencies: Vec::new(),
-            plan,
-            global_limit: request.global_limit,
+        let provider =
+            self.current_execution_provider_snapshot(request.execution.execution_target)?;
+        let submit = if authority_contract.is_immutable_input_reduced() {
+            match OperationCircuitCompiler::immutable_input_reduced(
+                authority_contract,
+                request,
+                inputs,
+                request_identity_digest,
+                provider,
+                plan,
+            ) {
+                Ok(circuit) => circuit.into_submit_request(),
+                Err(error) => {
+                    self.discard_prepared_input_set(&prepared.prepared_root)?;
+                    return Err(error);
+                }
+            }
+        } else {
+            SubmitRequest {
+                schema_version: RUNTIME_SCHEMA_VERSION,
+                client_request_id: request.client_request_id.clone(),
+                request_identity_digest: Some(request_identity_digest),
+                execution_provider: Some(provider),
+                runtime_release_effect: None,
+                host_dependencies: Vec::new(),
+                plan,
+                global_limit: request.global_limit,
+            }
         };
         match self.registry.submit_preallocated(&submit, &admission_ids) {
             Ok(AdmissionOutcome::Created(created)) => {

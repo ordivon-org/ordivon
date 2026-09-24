@@ -1,8 +1,8 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW2_IN_PROGRESS_R08_ORDINARY_PILOT_QUALIFIED
+Status: RW2_IN_PROGRESS_R08_REDUCED_IMMUTABLE_QUALIFIED
 Truth role: planning projection, not Runtime project truth
-Source revision: `397dee5ef0caa296283253c03da5f277f4fa2a8d`
+Source revision: `40c414a3901c4383a9d7d122fe7716effbe8506e`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
 
@@ -15,7 +15,7 @@ This plan evolves the already-operational Runtime by strangler-style internal ex
 - R04 verification: integrated `e48b2eab` is byte-identical to verified candidate `4131cbe0` across the five R04 responsibility files. Candidate owner gate `job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31` PASS (`exitCode=0`), including the slow reference-model property gate; the equivalent R04 patch on an earlier base also passed focused real-system fast-success and timeout-descendant-pipe acceptance.
 - RW1 is **COMPLETE**: R05 Artifact/Release state ownership and R06 RegistryStorageBoundary are integrated; Registry semantic schema remains v6.
 - R07 `AuthorityContract` is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `163db3230483ec932fa8152fb1c9e6bd756e59d5`. Existing execution families compile internally only after exact replay lookup; the public Tool surface and current authority semantics are unchanged. `runtime:verify` PASS: `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`.
-- RW2 is **IN_PROGRESS**. R08 ordinary-family pilot is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `397dee5ef0caa296283253c03da5f277f4fa2a8d` by `job-01a0cf70-37d7-7a90-8fed-98e4253175c9`; input-bound/trusted-input/credential-bound families remain deliberately unmigrated. Next: migrate the input-bound family with the same parity/fail-closed discipline. R13/V05 remains gated on RW2.
+- RW2 is **IN_PROGRESS**. R08 ordinary execution is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`; reduced immutable-input execution is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `40c414a3901c4383a9d7d122fe7716effbe8506e` by `job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc`. Trusted immutable-input and credential-bound trusted execution remain deliberately unmigrated. Next: migrate trusted immutable-input with the same parity/fail-closed discipline. R13/V05 remains gated on RW2.
 
 ## Global rules
 
@@ -310,12 +310,12 @@ ExecutionCircuit =
 - omitted/delegated limits retain their existing identity semantics;
 - no unenforceable metadata enters operation identity.
 
-**Standing — ordinary-family pilot qualified on `397dee5ef0caa296283253c03da5f277f4fa2a8d`**
-- `workspace.exec` ordinary proposal admission now passes its already-compiled R07 `AuthorityContract` into `OperationCircuitCompiler::ordinary`;
-- the compiler emits the existing `SubmitRequest` rather than introducing a second public or persisted execution schema;
-- exact submit-shape parity is unit-tested, and authority-family drift, request/authority drift, and resolved-plan drift fail closed;
-- current-main full Runtime owner gate `job-01a0cf70-37d7-7a90-8fed-98e4253175c9` passed, including the slow independent Registry reference-model property gate;
-- `execBound`, `execBoundTrusted`, and credential-bound trusted execution remain on their existing paths and are **not** claimed complete by this pilot.
+**Standing — ordinary + reduced immutable-input slices qualified**
+- `workspace.exec` ordinary proposal admission passes its already-compiled R07 `AuthorityContract` into `OperationCircuitCompiler::ordinary`; ordinary is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`;
+- reduced `workspace.execBound` admission now preserves the existing materialization/preallocated-admission path, verifies the realized read-only `effectiveInputs` against the reduced immutable-input `AuthorityContract`, and compiles through `OperationCircuitCompiler::immutable_input_reduced`;
+- both slices emit the existing `SubmitRequest` rather than introducing a second public or persisted execution schema; exact submit-shape parity is unit-tested and authority/request/materialization/plan drift fails closed;
+- reduced immutable-input current-main full Runtime owner gate `job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc` passed, including the slow independent Registry reference-model property gate;
+- `execBoundTrusted` and credential-bound trusted execution remain on their existing paths and are **not** claimed complete by these slices.
 
 ---
 
@@ -660,8 +660,9 @@ The old bootstrap queue through R04 is complete. The current queue is:
 
 1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5` and current-main qualified by `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`; do not reopen absent a proven authority/replay regression.
 2. **R08-A/B-CLOSED (ordinary pilot)** — post-R07 seam frozen and ordinary execution migrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`; full current-main owner qualification `job-01a0cf70-37d7-7a90-8fed-98e4253175c9` PASS.
-3. **R08-C** — migrate the immutable-input family next, preserving its materialization ownership and proving exact `SubmitRequest`/identity/error-order parity before touching the trusted-input or credential-bound family.
-4. **R13-A / V05** — retain the evidence-claim matrix as planning input only until all intended R08 execution families carry physical evidence obligations without owning domain truth.
-5. Keep launch-token timing / late-result reconciliation as a separate supervisor-evidence lane; do not fold it into R08.
+3. **R08-C-CLOSED (reduced immutable-input)** — reduced `workspace.execBound` compilation is qualified on `40c414a3901c4383a9d7d122fe7716effbe8506e` by `job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc` while preserving materialization/preallocation ownership and exact `SubmitRequest` parity.
+4. **R08-D** — migrate trusted immutable-input execution next, preserving its trusted-local authority/materialization boundary and proving exact identity/error-order/submit parity before credential-bound trusted execution.
+5. **R13-A / V05** — retain the evidence-claim matrix as planning input only until all intended R08 execution families carry physical evidence obligations without owning domain truth.
+6. Keep launch-token timing / late-result reconciliation as a separate supervisor-evidence lane; do not fold it into R08.
 
 Do not reopen R04 for launch-evidence timing/reconciliation races already reproduced on a clean baseline; those remain with the reconciliation/supervisor evidence owner.
