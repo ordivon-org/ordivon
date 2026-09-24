@@ -310,12 +310,14 @@ ExecutionCircuit =
 - omitted/delegated limits retain their existing identity semantics;
 - no unenforceable metadata enters operation identity.
 
-**Standing — ordinary + reduced immutable-input slices qualified**
-- `workspace.exec` ordinary proposal admission passes its already-compiled R07 `AuthorityContract` into `OperationCircuitCompiler::ordinary`; ordinary is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`;
-- reduced `workspace.execBound` admission now preserves the existing materialization/preallocated-admission path, verifies the realized read-only `effectiveInputs` against the reduced immutable-input `AuthorityContract`, and compiles through `OperationCircuitCompiler::immutable_input_reduced`;
-- both slices emit the existing `SubmitRequest` rather than introducing a second public or persisted execution schema; exact submit-shape parity is unit-tested and authority/request/materialization/plan drift fails closed;
-- reduced immutable-input current-main full Runtime owner gate `job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc` passed, including the slow independent Registry reference-model property gate;
-- `execBoundTrusted` and credential-bound trusted execution remain on their existing paths and are **not** claimed complete by these slices.
+**Standing — R08 complete for all four effect-opaque execution families**
+- `workspace.exec` / `workspace.execPlan` ordinary proposal admission compiles through `OperationCircuitCompiler::ordinary`; ordinary is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`;
+- reduced `workspace.execBound` preserves materialization/preallocated-admission ownership and compiles through `OperationCircuitCompiler::immutable_input_reduced` on `40c414a3901c4383a9d7d122fe7716effbe8506e`;
+- trusted `workspace.execBoundTrusted` preserves the trusted-local input boundary and compiles through `OperationCircuitCompiler::immutable_input_trusted`, integrated at `645d50cd51c8efe772de762610e045ea112fb78c`;
+- `workspace.execCredentialBoundTrusted` preserves operator-owned encrypted credential materialization and Job-owned ciphertext lifecycle, then compiles through `OperationCircuitCompiler::credential_bound_trusted`; the slice is `c52737fd7bc2b6ccf71418719b220070a620da5f` and is integrated by `897e504916fca4078847005a4b78198042b1c01b`;
+- every family emits the existing `SubmitRequest`; authority/request/materialization/plan drift fails closed, exact existing-Job replay remains ahead of current-world reinterpretation, and no public/persisted circuit schema, Registry migration, provider grant, or domain semantic-completion claim was introduced;
+- exact integrated-commit full Runtime owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` passed, including the independent Registry reference-model property, Windows deployer, MCP/auth, owner-boundary and documentation gates;
+- structured Runtime self-release remains a separate reconciliable effect and is intentionally outside the effect-opaque OperationCircuitCompiler family set.
 
 ---
 
@@ -658,11 +660,11 @@ Rollback unit is the smallest completed LEGO extraction commit, not the whole pr
 
 The old bootstrap queue through R04 is complete. The current queue is:
 
-1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5` and current-main qualified by `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`; do not reopen absent a proven authority/replay regression.
-2. **R08-A/B-CLOSED (ordinary pilot)** — post-R07 seam frozen and ordinary execution migrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`; full current-main owner qualification `job-01a0cf70-37d7-7a90-8fed-98e4253175c9` PASS.
-3. **R08-C-CLOSED (reduced immutable-input)** — reduced `workspace.execBound` compilation is qualified on `40c414a3901c4383a9d7d122fe7716effbe8506e` by `job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc` while preserving materialization/preallocation ownership and exact `SubmitRequest` parity.
-4. **R08-D** — migrate trusted immutable-input execution next, preserving its trusted-local authority/materialization boundary and proving exact identity/error-order/submit parity before credential-bound trusted execution.
-5. **R13-A / V05** — retain the evidence-claim matrix as planning input only until all intended R08 execution families carry physical evidence obligations without owning domain truth.
-6. Keep launch-token timing / late-result reconciliation as a separate supervisor-evidence lane; do not fold it into R08.
+1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5`; reopen only for a proven authority/replay regression.
+2. **R08-CLOSED** — ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted execution all compile through one internal OperationCircuitCompiler into the existing `SubmitRequest`; integrated closure is `897e504916fca4078847005a4b78198042b1c01b` and exact post-integration owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` PASS.
+3. **R09-NEXT** — freeze the minimal ExecutionProviderSPI assume/guarantee contract (`capabilities`, `validate`, `realize`, `observe`, `cancel`, `reconcile`) before extracting either OS provider; reject provider marketplace and cross-node routing.
+4. **R10 after R09** — prove the SPI first with LocalLinuxProvider and real systemd/cgroup acceptance on an exact candidate.
+5. **R11 after R10** — adapt WindowsNativeProvider without pretending SCM/Job Object semantics equal systemd/cgroup semantics.
+6. **R12/R13** may proceed only behind their dependency and ownership fences; keep launch-token timing/late-result reconciliation in the separate supervisor-evidence lane.
 
 Do not reopen R04 for launch-evidence timing/reconciliation races already reproduced on a clean baseline; those remain with the reconciliation/supervisor evidence owner.

@@ -266,16 +266,20 @@
       "kind": "transform",
       "responsibility": "Compile a typed request plus state, authority, inputs, budgets, provider commitment and evidence obligations into one immutable Execution Plan/circuit.",
       "authority": "Runtime mechanical execution plan truth",
-      "state": "IN_PROGRESS",
+      "state": "IMPLEMENTED",
       "sharedRefs": [],
       "evidence": [
         "ordinary-family OperationCircuitCompiler pilot commit 397dee5ef0caa296283253c03da5f277f4fa2a8d",
         "reduced immutable-input OperationCircuitCompiler slice commit 40c414a3901c4383a9d7d122fe7716effbe8506e",
-        "operation_circuit.rs reuses existing RuntimeExecutionPlan/ExecutionProviderSnapshot/HostDependencyBinding/SubmitRequest rather than adding a persisted circuit schema",
-        "ordinary admission consumes the R07 AuthorityContract only after exact replay; compiler checks authority/request/validated-host-dependency/resolved-plan realization consistency fail closed",
-        "reduced immutable-input admission preserves existing input materialization/preallocation ownership and verifies exact logical-to-effective read-only input realization before compiling the existing SubmitRequest",
-        "current-main runtime:verify PASS job-01a0d241-06c3-7c30-ac72-ef0ec9eebebc, including the independent slow Registry reference-model property gate",
-        "public MCP Tool schemas, Registry schema v6, request identity, provider authority, materialization authority and domain/Security ownership unchanged"
+        "trusted immutable-input OperationCircuitCompiler slice integrated at 645d50cd51c8efe772de762610e045ea112fb78c",
+        "credential-bound trusted OperationCircuitCompiler slice commit c52737fd7bc2b6ccf71418719b220070a620da5f, integrated by repository-native merge 897e504916fca4078847005a4b78198042b1c01b",
+        "all four current effect-opaque execution families reuse existing RuntimeExecutionPlan/ExecutionProviderSnapshot/SubmitRequest rather than adding a public or persisted circuit schema",
+        "exact existing-Job replay remains before current AuthorityContract compilation, materialization, provider snapshotting, or current policy reinterpretation",
+        "reduced/trusted immutable-input families preserve existing materialization/preallocation ownership and verify logical-to-effective read-only realization before compilation",
+        "credential-bound trusted preserves operator-owned encrypted credential snapshot/materialization and Job-owned ciphertext lifecycle; public requests remain opaque authority/name references with no secret digests or paths",
+        "post-integration exact-commit Runtime owner qualification PASS job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6 on 897e504916fca4078847005a4b78198042b1c01b, including Registry reference-model property, Windows deployer, MCP/auth, owner-boundary and documentation gates",
+        "public MCP Tool schemas, Registry schema v6, request identity, provider authority, materialization authority and domain/Security semantic ownership unchanged",
+        "runtime self-release remains a separate reconciliable effect and is intentionally not compiled as an effect-opaque execution circuit"
       ],
       "dependencies": [
         "R03",
@@ -292,7 +296,7 @@
         "Legacy all-explicit request identity remains replay-compatible.",
         "Compiled plans contain only enforceable facts; metadata without enforcement does not enter operation identity."
       ],
-      "nextAction": "Migrate trusted immutable-input execution next; preserve the existing materialization and trusted-local authority boundary, prove exact SubmitRequest/identity/error-order parity, then migrate credential-bound trusted execution."
+      "nextAction": "R08 is closed. Proceed to R09 ExecutionProviderSPI by freezing minimal assume/guarantee obligations before extracting either Linux or Windows provider mechanics."
     },
     {
       "id": "R09",
@@ -803,7 +807,7 @@
     {
       "id": "RW2",
       "objective": "Compile existing execution variants from orthogonal authority and operation LEGO instead of bespoke feature paths.",
-      "status": "IN_PROGRESS",
+      "status": "COMPLETE",
       "nodeIds": [
         "R07",
         "R08"
@@ -815,12 +819,14 @@
       ],
       "evidence": [
         "R07 AuthorityContract implemented at 163db3230483ec932fa8152fb1c9e6bd756e59d5",
-        "current-main Runtime owner qualification PASS job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896",
-        "R08 ordinary-family pilot implemented at 397dee5ef0caa296283253c03da5f277f4fa2a8d",
-        "R08 ordinary-family current-main Runtime owner qualification PASS job-01a0cf70-37d7-7a90-8fed-98e4253175c9"
+        "R08 ordinary execution integrated at 397dee5ef0caa296283253c03da5f277f4fa2a8d",
+        "R08 reduced immutable-input integrated at 40c414a3901c4383a9d7d122fe7716effbe8506e",
+        "R08 trusted immutable-input integrated at 645d50cd51c8efe772de762610e045ea112fb78c",
+        "R08 credential-bound trusted integrated at 897e504916fca4078847005a4b78198042b1c01b via c52737fd7bc2b6ccf71418719b220070a620da5f",
+        "post-integration Runtime owner qualification PASS job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6; exact replay/public Tool/Registry v6/provider/materialization/semantic-completion boundaries preserved"
       ],
       "blockers": [],
-      "nextAction": "R08 remains in progress: ordinary execution is qualified; migrate immutable-input execution next, then trusted-input and credential-bound families one at a time with parity/fail-closed proof."
+      "nextAction": "RW2 is complete. Begin RW3 with R09 ExecutionProviderSPI; reopen RW2 only for a proven compiler/authority/replay regression."
     },
     {
       "id": "RW3",
@@ -946,9 +952,9 @@
     "external-world semantic verification"
   ],
   "review": {
-    "sourceRevision": "397dee5ef0caa296283253c03da5f277f4fa2a8d",
+    "sourceRevision": "897e504916fca4078847005a4b78198042b1c01b",
     "updatedAt": "2026-09-24",
-    "standing": "RW2_R08_ORDINARY_PILOT_QUALIFIED_INPUT_BOUND_NEXT",
-    "notes": "RW0/RW1 and R07 remain complete. R08 is now real but intentionally partial: ordinary proposal execution compiles through the existing AuthorityContract and a thin OperationCircuitCompiler into the existing SubmitRequest, with current-main full owner qualification PASS. Input-bound, trusted-input and credential-bound execution remain on their current paths and must migrate separately before R08/RW2 can be called complete. Launch-token timing/late-result reconciliation remains a separate supervisor-evidence lane."
+    "standing": "RW2_COMPLETE_R09_EXECUTION_PROVIDER_SPI_NEXT",
+    "notes": "R07 and R08 are complete. Ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted execution now compile through one internal AuthorityContract + OperationCircuitCompiler path into the existing SubmitRequest while preserving exact replay, request identity, Registry v6, provider/materialization ownership and semantic-completion boundaries. Runtime self-release remains a separate reconciliable effect. Post-integration exact-commit full Runtime owner qualification is PASS. RW3/R09 is next."
   }
 }
