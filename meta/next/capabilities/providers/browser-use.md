@@ -38,7 +38,7 @@ Prefer thinner or more deterministic providers first when appropriate:
 
 Browser Use and Playwright can share/control the same Chromium instance through CDP; they are complementary rather than mutually exclusive.
 
-The current local production route is additionally represented by `capabilities/profiles/web-interaction-r1.json`; availability is revalidated by `scripts/web_interaction_route.py` rather than inferred from this provider record. On the current workstation the accepted generic action adapter is the isolated `browser-agent-*` Browserless path, not the ChatGPT Agent Birth carriers.
+The current local production route is additionally represented by `../../../.agents/skills/web-provider-routing/references/web-interaction-r1.json`; availability is revalidated by `../../../.agents/skills/web-provider-routing/scripts/route.py` rather than inferred from this provider record. On the current workstation the accepted generic action adapter is the isolated `browser-agent-*` Browserless path, not the ChatGPT Agent Birth carriers.
 
 ## Core primitives
 

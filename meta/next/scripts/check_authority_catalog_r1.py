@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-import authority_catalog as catalog
-
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parents[1]
+CATALOG_TOOL = REPO_ROOT / "tools" / "catalog" / "authority_catalog.py"
+SPEC = importlib.util.spec_from_file_location("authority_catalog", CATALOG_TOOL)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f"cannot load authority catalog tool: {CATALOG_TOOL}")
+catalog = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = catalog
+SPEC.loader.exec_module(catalog)
 
 RECORD_SCHEMA = ROOT / "schemas/external-authority-record-v1.schema.json"
 OBS_SCHEMA = ROOT / "schemas/external-authority-observation-v1.schema.json"
@@ -120,7 +127,7 @@ def main() -> int:
     refresh = subprocess.check_output(
         [
             sys.executable,
-            str(ROOT / "scripts/authority_catalog.py"),
+            str(CATALOG_TOOL),
             "refresh",
             "iso-31000-2018",
         ],
@@ -141,7 +148,7 @@ def main() -> int:
         ),
         "structuredNonDeferredDogfoodIdsResolved": len(required_ids),
         "deferredTaskLocalIdsNotRequiredToResolve": sorted(deferred_ids),
-        "discoveryIndex": "authorities/generated/authority-index.json",
+        "discoveryIndex": "catalogs/authorities/generated/authority-index.json",
         "validator": run("check-jsonschema", "--version").strip(),
         "boundary": "Acceptance proves catalog registration/discovery/loading mechanics and migration of already-verified authority metadata. It does not prove catalog completeness, task applicability, standards conformance, certification or semantic currentness beyond recorded observations.",
     }

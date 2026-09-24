@@ -75,12 +75,12 @@ Current rule:
 5. do not make release-artifact duplication into a second source of truth;
 6. bundling a Skill does not transfer its semantic ownership to Agent Plugin.
 
-The release path is executable through the stdlib-only `scripts/materialize_agent_plugin.py`. It treats `extensions/ordivon-control-plane/` as the portable package skeleton, rejects symlinks/non-regular package input and overwrites, writes only to a caller-selected release directory, and writes its digest receipt outside the portable package.
+The release path is executable through the stdlib-only `../../tools/extensions/materialize_agent_plugin.py`. It treats `extensions/ordivon-control-plane/` as the portable package skeleton, rejects symlinks/non-regular package input and overwrites, writes only to a caller-selected release directory, and writes its digest receipt outside the portable package.
 
 MCP-only/default release:
 
 ```bash
-python3 scripts/materialize_agent_plugin.py \
+python3 ../../tools/extensions/materialize_agent_plugin.py \
   --output /tmp/ordivon-control-plane-release \
   --receipt /tmp/ordivon-control-plane-release.receipt.json
 ```
@@ -88,7 +88,7 @@ python3 scripts/materialize_agent_plugin.py \
 Explicit release composition with current project Skills:
 
 ```bash
-python3 scripts/materialize_agent_plugin.py \
+python3 ../../tools/extensions/materialize_agent_plugin.py \
   --include-skills \
   --output /tmp/ordivon-control-plane-with-skills-release \
   --receipt /tmp/ordivon-control-plane-with-skills-release.receipt.json

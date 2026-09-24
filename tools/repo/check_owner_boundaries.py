@@ -20,7 +20,7 @@ IGNORED_COMPONENTS = {
     "docs", "evidence", "planning", "research", "experiments", "fixtures", "artifacts",
 }
 IGNORED_PREFIXES = (
-    "meta/next/authorities/",
+    "catalogs/authorities/",
     "meta/next/knowledge/",
     "meta/next/domains/",
 )

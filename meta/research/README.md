@@ -25,7 +25,7 @@ this layer never normalizes them into a universal PASS/FAIL vocabulary.
 
 ## Existing owners reused
 
-- authority identity/currentness: `meta/next/authorities`
+- authority identity/currentness: `catalogs/authorities`
 - task-local applicability: Standard-Native profiles
 - semantic provenance: W3C PROV
 - operational lineage: OpenLineage

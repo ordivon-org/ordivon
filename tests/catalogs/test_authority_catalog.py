@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
 import unittest
 from pathlib import Path
 
-from scripts import authority_catalog as catalog
-
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / "tools" / "catalog" / "authority_catalog.py"
+SPEC = importlib.util.spec_from_file_location("authority_catalog", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+catalog = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = catalog
+SPEC.loader.exec_module(catalog)
 
 
 class AuthorityCatalogTests(unittest.TestCase):

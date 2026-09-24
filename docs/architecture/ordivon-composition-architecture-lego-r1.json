@@ -336,8 +336,8 @@
       "kind": "package-verification",
       "responsibility": "Update materialization/conformance tests so MCP-only, selected-Skill, and all-Skills compatibility releases all preserve the one-Gateway contract.",
       "files": [
-        "meta/next/scripts/materialize_agent_plugin.py",
-        "meta/next/tests/test_agent_plugin_materialization.py",
+        "tools/extensions/materialize_agent_plugin.py",
+        "tests/extensions/test_materialize_agent_plugin.py",
         "extensions/chatgpt-skills-mcp/tests/test_agent_plugins_conformance.py"
       ],
       "dependsOn": [

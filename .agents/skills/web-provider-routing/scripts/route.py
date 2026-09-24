@@ -19,7 +19,8 @@ from typing import Any
 
 PROFILE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "capabilities/profiles/web-interaction-r1.json"
+    / "references"
+    / "web-interaction-r1.json"
 )
 BROWSER_USE_CONFIG = Path("/etc/ordivon/browser-use-browserless.json")
 BROWSER_USE_ACTION = Path(

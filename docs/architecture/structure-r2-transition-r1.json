@@ -335,12 +335,11 @@
         "extensions/ordivon-control-plane/"
       ],
       "verifyTasks": [
-        "control-plugin:verify",
-        "next:verify"
+        "control-plugin:verify"
       ],
       "wave": "S2A",
       "standing": "DEPLOYED",
-      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics."
+      "disposition": "Portable Agent Plugins 1.0 package bytes remain repository-level extension source; materialization/validation tooling is repository-owned and no longer depends on Next."
     },
     {
       "id": "authority-catalog",
@@ -354,9 +353,11 @@
         "catalogs/authorities/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Authority records/observations/generated discovery index moved to catalogs/authorities; query implementation moved to repository tooling and remains non-authoritative."
     },
     {
       "id": "capability-catalog",

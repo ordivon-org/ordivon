@@ -37,19 +37,19 @@
   ],
   "allowedExactPaths": [
     {
-      "path": "meta/next/authorities/records/iso-iec-ieee/iso-iec-ieee-12207-2026.json",
+      "path": "catalogs/authorities/records/iso-iec-ieee/iso-iec-ieee-12207-2026.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/authorities/records/iso-iec/iso-iec-25010-2023.json",
+      "path": "catalogs/authorities/records/iso-iec/iso-iec-25010-2023.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/authorities/records/nist/nist-sp-800-218-ssdf-1.1.json",
+      "path": "catalogs/authorities/records/nist/nist-sp-800-218-ssdf-1.1.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/authorities/records/slsa/slsa-1.2.json",
+      "path": "catalogs/authorities/records/slsa/slsa-1.2.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {

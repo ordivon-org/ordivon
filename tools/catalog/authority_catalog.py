@@ -7,8 +7,9 @@ import json
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-AUTH = ROOT / "authorities"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ROOT = REPO_ROOT
+AUTH = REPO_ROOT / "catalogs" / "authorities"
 RECORDS = AUTH / "records"
 OBS = AUTH / "observations"
 INDEX = AUTH / "generated" / "authority-index.json"

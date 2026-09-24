@@ -11,8 +11,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ROOT = REPO_ROOT
 DEFAULT_PLUGIN = REPO_ROOT / "extensions" / "ordivon-control-plane"
 DEFAULT_SKILLS = REPO_ROOT / ".agents" / "skills"
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"

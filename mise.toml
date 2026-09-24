@@ -63,6 +63,7 @@ python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
 uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py
+uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
@@ -103,14 +104,11 @@ mise run verify
 [tasks."control-plugin:verify"]
 run = """
 set -euo pipefail
-cd meta/next
-mise install
-mise exec -- uv sync --locked
-mise exec -- uv run --locked python -m pytest -q tests/test_agent_plugin_materialization.py
-mise exec -- uv run --locked python - <<'PY'
+uv run --with pytest==9.1.1 python -m pytest -q tests/extensions/test_materialize_agent_plugin.py
+python3 - <<'PY'
 import json
 from pathlib import Path
-root = Path('../..') / 'extensions' / 'ordivon-control-plane'
+root = Path('extensions/ordivon-control-plane')
 names = {p.name for p in root.iterdir()}
 assert names == {'plugin.json', 'mcp.json'}, names
 plugin = json.loads((root / 'plugin.json').read_text())
