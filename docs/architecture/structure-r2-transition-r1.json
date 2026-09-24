@@ -364,32 +364,40 @@
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/next/capabilities/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
         "catalogs/capabilities/"
       ],
       "verifyTasks": [
+        "repo:ci",
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "historicalSourcePaths": [
+        "meta/next/capabilities/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Capability/provider routing knowledge moved to catalogs/capabilities; records remain non-authoritative discovery/routing knowledge and provider currentness remains owner-native."
     },
     {
       "id": "knowledge-catalog",
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/next/knowledge/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
         "catalogs/knowledge/"
       ],
       "verifyTasks": [
+        "repo:ci",
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "historicalSourcePaths": [
+        "meta/next/knowledge/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Reusable non-runtime knowledge graphs/lessons moved to catalogs/knowledge; historical evidence keeps original path references while current Skills/navigation use the catalog path."
     },
     {
       "id": "domain-profiles",

@@ -42,7 +42,7 @@ Ordivon continues to own only state and semantics that are genuinely local to Or
 | Runtime MCP semantics | **KEEP ORDIVON OWNER; PACKAGE STANDARDLY** | MCP + optional Agent Plugins `mcp.json` composition | Runtime remains physical Job/Attempt/Artifact authority. |
 | Host MCP semantics | **KEEP ORDIVON OWNER; PACKAGE STANDARDLY** | MCP + optional Agent Plugins `mcp.json` composition | Host remains continuity/collaboration authority. |
 | Artifact / Research / Game / Market Capital implementations | **KEEP DOMAIN OWNER** | Their native standards/providers | Do not turn domains into plugin ontologies. Package only reusable Skills and MCP connection surfaces when useful. |
-| `capabilities/packages/*.md` | **KEEP AS HUMAN KNOWLEDGE** | N/A | Treat as local routing/knowledge documents, not machine package schemas. |
+| `catalogs/capabilities/packages/*.md` | **KEEP AS HUMAN KNOWLEDGE** | N/A | Treat as local routing/knowledge documents, not machine package schemas. |
 | Private MCP registry | **DO NOT BUILD** | Official MCP Registry / client config | Use upstream registry when public distribution is appropriate; private authenticated endpoints may remain client-configured. |
 
 ## First standards-native package

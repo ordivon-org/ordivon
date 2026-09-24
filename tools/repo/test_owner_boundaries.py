@@ -49,9 +49,9 @@ class OwnerBoundaryTests(unittest.TestCase):
             "catalogs/authorities/records/iso/iso-28500-2017.json"
         ))
 
-    def test_meta_next_domain_knowledge_is_navigation_not_runtime_edges(self) -> None:
+    def test_catalog_knowledge_is_navigation_not_runtime_edges(self) -> None:
         self.assertFalse(MODULE.is_active_path(
-            "meta/next/domains/game/game-autonomous-interest-protocol-r7.json"
+            "catalogs/knowledge/graphs/agent-architecture-lego-catalog-r1.json"
         ))
 
     def test_real_web_source_is_scanned(self) -> None:

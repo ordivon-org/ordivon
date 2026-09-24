@@ -1,7 +1,7 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B + S2A + S2B**
+Status: **PARTIALLY DEPLOYED — S0–S2 + S5 authority/capability/knowledge/research slices**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
@@ -186,7 +186,7 @@ S2A relocates only the portable control Plugin package bytes to the repository e
 boundary; Next remains its release/materialization consumer. S2B relocates canonical project
 Skills to root `.agents/skills`; S2C relocates the ChatGPT-only compatibility bridge to
 `extensions/chatgpt-skills-mcp` without changing deployment identity or semantics. Therefore
-S0-S2 are closed, while S3-S9 remain open.
+S0-S2 are closed. S5 is partially deployed (authority catalog, capability catalog, knowledge catalog, shared research split, and Experimental Episode analytical store relocation); domain/profile and residual Next disposition remain open. S3-S4 and S6-S9 remain open.
 
 For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
 `tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment
