@@ -505,6 +505,28 @@
       "wave": "S5",
       "standing": "DEPLOYED",
       "disposition": "Shared non-authoritative Experimental Episode binding schema is a reusable profile; the concrete ODCS/ODPS corpus product is study-owned under studies/experimental-episode."
+    },
+    {
+      "id": "browser-security-study",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [],
+      "historicalSourcePaths": [
+        "meta/next/experiments/browser-security-r*/",
+        "meta/next/evidence/browser-security/",
+        "meta/next/tests/test_browser_security_*.py"
+      ],
+      "targetPaths": [
+        "studies/security/browser-security/"
+      ],
+      "verifyTasks": [
+        "browser-security-study:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Neutral Browser Security attribution experiments, point-in-time evidence, and focused replay tests are one retained study. Current production witness semantics remain with Security/Harness/provider owners."
     }
   ],
   "openSlices": [

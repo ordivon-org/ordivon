@@ -5,9 +5,9 @@ Standing: **CF07 METADATA CHARACTERIZED / PROVIDER CAUSALITY OPEN**
 
 Primary evidence:
 
-- `evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-metadata-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-analysis-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-outcome-anchor-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-metadata-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-analysis-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r4-cf07-outcome-anchor-20260918.json`
 
 ## One-sentence result
 

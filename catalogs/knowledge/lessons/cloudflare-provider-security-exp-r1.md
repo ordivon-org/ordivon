@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 Standing: **BASELINE COMPLETE / ABLATIONS COMPLETE / ROOT CAUSE OPEN**
-Evidence: `evidence/browser-security/cloudflare-provider-security-exp-r1-20260917.json`
+Evidence: `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r1-20260917.json`
 
 ## Result in one sentence
 

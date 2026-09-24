@@ -5,7 +5,7 @@ Standing: **CF07 PROSPECTIVE TELEMETRY ACTIVE / PROVIDER CAUSALITY OPEN**
 
 Primary evidence:
 
-- `evidence/browser-security/cloudflare-provider-security-exp-r6-cf07-prospective-telemetry-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r6-cf07-prospective-telemetry-20260918.json`
 - `catalogs/knowledge/graphs/browser-security-detector-coverage-r6.json`
 
 ## One-sentence result

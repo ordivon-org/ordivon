@@ -2,7 +2,7 @@
 
 Date: 2026-09-18
 Standing: **R2 COMPLETE / ROOT CAUSE OPEN**
-Evidence: `evidence/browser-security/cloudflare-provider-security-exp-r2-20260918.json`
+Evidence: `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r2-20260918.json`
 
 ## One-sentence result
 

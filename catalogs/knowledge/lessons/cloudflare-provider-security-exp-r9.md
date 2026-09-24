@@ -5,9 +5,9 @@ Standing: **R9 WINDOW-PLACEMENT MECHANISM ATTRIBUTED / PROVIDER CAUSALITY OPEN**
 
 Primary evidence:
 
-- `evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run1-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run2-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r9-repeatability-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run1-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r9-window-placement-run2-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r9-repeatability-20260918.json`
 
 ## One-sentence result
 

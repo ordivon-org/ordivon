@@ -5,10 +5,10 @@ Standing: **R3 NEUTRAL DIFFERENTIAL COMPLETE / ROOT CAUSE OPEN**
 
 Primary evidence:
 
-- `evidence/browser-security/cloudflare-provider-security-exp-r3-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r3-run2-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r3-repeatability-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r3-geometry-ablation-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r3-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r3-run2-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r3-repeatability-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r3-geometry-ablation-20260918.json`
 
 ## One-sentence result
 

@@ -5,9 +5,9 @@ Standing: **R5 THREE-ARM NEUTRAL ATTRIBUTION COMPLETE / ROOT CAUSE OPEN**
 
 Primary evidence:
 
-- evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run1-20260918.json
-- evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run2-20260918.json
-- evidence/browser-security/cloudflare-provider-security-exp-r5-repeatability-20260918.json
+- studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run1-20260918.json
+- studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r5-controlled-run2-20260918.json
+- studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r5-repeatability-20260918.json
 
 ## One-sentence result
 

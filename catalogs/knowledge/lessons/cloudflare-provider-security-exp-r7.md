@@ -5,9 +5,9 @@ Standing: **R7 LAUNCHER DEFAULT ATTRIBUTION COMPLETE / ROOT CAUSE OPEN**
 
 Primary evidence:
 
-- `evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run1-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run2-20260918.json`
-- `evidence/browser-security/cloudflare-provider-security-exp-r7-repeatability-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run1-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r7-controlled-run2-20260918.json`
+- `studies/security/browser-security/evidence/browser-security/cloudflare-provider-security-exp-r7-repeatability-20260918.json`
 
 ## One-sentence result
 

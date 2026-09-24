@@ -66,6 +66,7 @@ uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_arch
 uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
 mise run experimental-episode-store:verify
 mise run research-study:verify
+mise run browser-security-study:verify
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
 actionlint .github/workflows/*.yml
@@ -90,6 +91,19 @@ set -euo pipefail
 cd meta/next
 mise install
 mise run verify
+"""
+
+[tasks."browser-security-study:verify"]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+cd services/harness
+ORDIVON_AGENT_AUTOMATION_SOURCE_ROOT="$PWD" uv run --locked python -m pytest -q \
+  "$repo_root/studies/security/browser-security/tests/test_browser_security_cf07_metadata_r4.py" \
+  "$repo_root/studies/security/browser-security/tests/test_browser_security_r5.py" \
+  "$repo_root/studies/security/browser-security/tests/test_browser_security_r7.py" \
+  "$repo_root/studies/security/browser-security/tests/test_browser_security_r8.py" \
+  "$repo_root/studies/security/browser-security/tests/test_browser_security_r9.py"
 """
 
 [tasks."experimental-episode-store:verify"]
