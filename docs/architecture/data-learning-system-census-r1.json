@@ -104,7 +104,7 @@
     "DuckDB",
     "PyArrow"
   ],
-  "analyticalWaist": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+  "analyticalWaist": "profiles/experimental-episode/experimental-episode-binding-r1.schema.json",
   "feedbackEvidence": "meta/next/evidence/data-lifecycle/data-products-r1/acceptance.json",
   "currentFeedback": {
     "decision": "NO_EXECUTION_OR_DIRECTIONAL_ACTION_ADMITTED",

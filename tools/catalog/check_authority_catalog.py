@@ -8,9 +8,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[1]
-CATALOG_TOOL = REPO_ROOT / "tools" / "catalog" / "authority_catalog.py"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+NEXT_ROOT = REPO_ROOT / "meta" / "next"
+CATALOG_TOOL = Path(__file__).with_name("authority_catalog.py")
 SPEC = importlib.util.spec_from_file_location("authority_catalog", CATALOG_TOOL)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"cannot load authority catalog tool: {CATALOG_TOOL}")
@@ -18,14 +18,14 @@ catalog = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = catalog
 SPEC.loader.exec_module(catalog)
 
-RECORD_SCHEMA = ROOT / "schemas/external-authority-record-v1.schema.json"
-OBS_SCHEMA = ROOT / "schemas/external-authority-observation-v1.schema.json"
-INDEX_SCHEMA = ROOT / "schemas/external-authority-index-v1.schema.json"
+RECORD_SCHEMA = REPO_ROOT / "catalogs/authorities/schemas/external-authority-record-v1.schema.json"
+OBS_SCHEMA = REPO_ROOT / "catalogs/authorities/schemas/external-authority-observation-v1.schema.json"
+INDEX_SCHEMA = REPO_ROOT / "catalogs/authorities/schemas/external-authority-index-v1.schema.json"
 DOGFOOD = (
-    ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
+    NEXT_ROOT / "evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
 )
 ENTERPRISE = (
-    ROOT / "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
+    NEXT_ROOT / "evidence/acceptance/enterprise-operating-model-r1-dogfood-20260914.json"
 )
 
 
@@ -36,7 +36,7 @@ def fail(message: str) -> None:
 def run(*args: str) -> str:
     try:
         return subprocess.check_output(
-            args, cwd=ROOT, text=True, stderr=subprocess.STDOUT
+            args, cwd=REPO_ROOT, text=True, stderr=subprocess.STDOUT
         )
     except subprocess.CalledProcessError as exc:
         detail = (
@@ -131,7 +131,7 @@ def main() -> int:
             "refresh",
             "iso-31000-2018",
         ],
-        cwd=ROOT,
+        cwd=REPO_ROOT,
         text=True,
     )
     refresh_value = json.loads(refresh)

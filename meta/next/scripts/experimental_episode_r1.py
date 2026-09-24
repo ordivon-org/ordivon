@@ -18,7 +18,8 @@ from jsonschema import Draft202012Validator
 from ordivon_composition import canonical_digest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = ROOT / "schemas" / "experimental-episode-binding-r1.schema.json"
+REPO_ROOT = ROOT.parents[1]
+SCHEMA = REPO_ROOT / "profiles" / "experimental-episode" / "experimental-episode-binding-r1.schema.json"
 
 FORBIDDEN_OUTPUT_KEYS = {
     "workspace_snapshot",

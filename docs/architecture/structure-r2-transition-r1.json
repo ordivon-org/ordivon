@@ -476,6 +476,29 @@
       "historicalSourcePaths": [
         "meta/research/"
       ]
+    },
+    {
+      "id": "experimental-episode-profile",
+      "mode": "split",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [],
+      "historicalSourcePaths": [
+        "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+        "meta/next/data-products/experimental-episode-corpus-r1/"
+      ],
+      "targetPaths": [
+        "profiles/experimental-episode/",
+        "studies/experimental-episode/corpus-r1/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "experimental-episode-store:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Shared non-authoritative Experimental Episode binding schema is a reusable profile; the concrete ODCS/ODPS corpus product is study-owned under studies/experimental-episode."
     }
   ],
   "openSlices": [

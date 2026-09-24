@@ -49,7 +49,7 @@
     }
   ],
   "existingCore": {
-    "schema": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+    "schema": "profiles/experimental-episode/experimental-episode-binding-r1.schema.json",
     "adapters": [
       "meta/next/scripts/experimental_episode_r1.py",
       "meta/next/scripts/experimental_episode_harness_r1.py"

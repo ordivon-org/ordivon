@@ -116,7 +116,7 @@
     },
     {
       "property": "governancePolicyRelativePath",
-      "value": "meta/next/data-products/experimental-episode-corpus-r1/governance-policy.odrl.jsonld"
+      "value": "studies/experimental-episode/corpus-r1/governance-policy.odrl.jsonld"
     },
     {
       "property": "sourceRightsStatus",
