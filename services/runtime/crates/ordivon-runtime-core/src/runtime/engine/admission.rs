@@ -104,7 +104,7 @@ impl Runtime {
             )? {
                 existing.job_id
             } else {
-                let _authority_contract =
+                let authority_contract =
                     super::authority_contract::AuthorityContract::credential_bound_trusted(
                         proposal,
                         &credentials,
@@ -115,6 +115,7 @@ impl Runtime {
                     &request,
                     request_identity_digest,
                     &credentials,
+                    &authority_contract,
                 )?
             }
         };
@@ -131,6 +132,7 @@ impl Runtime {
         request: &JobRunRequest,
         request_identity_digest: String,
         credentials: &[CredentialBindingRequest],
+        authority_contract: &super::authority_contract::AuthorityContract,
     ) -> RuntimeResult<String> {
         if request.execution.execution_target != super::ExecutionTarget::LocalLinux
             || request.execution.execution_profile != super::ExecutionProfile::TrustedLocal
@@ -155,18 +157,21 @@ impl Runtime {
             credentials,
         )?;
         plan.credential_set_id = Some(prepared.credential_set_id.clone());
-
-        let submit = SubmitRequest {
-            schema_version: RUNTIME_SCHEMA_VERSION,
-            client_request_id: request.client_request_id.clone(),
-            request_identity_digest: Some(request_identity_digest),
-            execution_provider: Some(
-                self.current_execution_provider_snapshot(request.execution.execution_target)?,
-            ),
-            runtime_release_effect: None,
-            host_dependencies: Vec::new(),
+        let provider =
+            self.current_execution_provider_snapshot(request.execution.execution_target)?;
+        let submit = match OperationCircuitCompiler::credential_bound_trusted(
+            authority_contract,
+            request,
+            credentials,
+            request_identity_digest,
+            provider,
             plan,
-            global_limit: request.global_limit,
+        ) {
+            Ok(circuit) => circuit.into_submit_request(),
+            Err(error) => {
+                self.discard_prepared_credential_set(&prepared.prepared_root)?;
+                return Err(error);
+            }
         };
         match self.registry.submit_preallocated(&submit, &admission_ids) {
             Ok(AdmissionOutcome::Created(created)) => {
