@@ -5,6 +5,8 @@ mod doctor;
 mod engine;
 mod error;
 mod evidence;
+#[allow(dead_code)]
+mod execution_provider;
 mod inspection;
 mod job_attempt_state;
 mod operation_circuit;
