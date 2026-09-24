@@ -206,6 +206,12 @@ def test_windows_driver_marks_attachment_upload_as_effect_boundary():
     assert "attachment-manifest-digest-mismatch" in text
     assert "attachment-digest-mismatch" in text
     assert "$script:providerEffectAttempted=$true" in text
+    assert "TryGetCurrentPattern" in text
+    assert "ExpandCollapsePattern" in text
+    assert "SelectionItemPattern" in text
+    assert "LegacyIAccessiblePattern" in text
+    assert "Invoke-UiElement $control 'attachment entry'" in text
+    assert "Invoke-UiElement $open 'file dialog Open'" in text
     assert "attachment upload was not visibly acknowledged by provider UI" in text
 
 

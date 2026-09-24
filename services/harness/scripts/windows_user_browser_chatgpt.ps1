@@ -85,19 +85,53 @@ function Get-AddressValue($Root) {
 }
 
 
+function Invoke-UiElement($Element,[string]$Purpose) {
+    $pattern=$null
+    if($Element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$pattern)){
+        ([System.Windows.Automation.InvokePattern]$pattern).Invoke()
+        return 'InvokePattern'
+    }
+    $pattern=$null
+    if($Element.TryGetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern,[ref]$pattern)){
+        $expand=[System.Windows.Automation.ExpandCollapsePattern]$pattern
+        if($expand.Current.ExpandCollapseState -ne [System.Windows.Automation.ExpandCollapseState]::Expanded){
+            $expand.Expand()
+        }
+        return 'ExpandCollapsePattern'
+    }
+    $pattern=$null
+    if($Element.TryGetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern,[ref]$pattern)){
+        ([System.Windows.Automation.SelectionItemPattern]$pattern).Select()
+        return 'SelectionItemPattern'
+    }
+    $pattern=$null
+    if($Element.TryGetCurrentPattern([System.Windows.Automation.LegacyIAccessiblePattern]::Pattern,[ref]$pattern)){
+        ([System.Windows.Automation.LegacyIAccessiblePattern]$pattern).DoDefaultAction()
+        return 'LegacyIAccessiblePattern'
+    }
+    $supported=@($Element.GetSupportedPatterns() | ForEach-Object {[string]$_.ProgrammaticName}) -join ','
+    throw ($Purpose+' control exposes no supported activation pattern; supported='+$supported)
+}
+
 function Get-UploadControl($Root) {
     $all=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+    $best=$null
+    $bestScore=-1
     for($i=0;$i -lt [Math]::Min($all.Count,6000);$i++){
         $item=$all.Item($i)
         $name=[string]$item.Current.Name
         $id=[string]$item.Current.AutomationId
         $type=$item.Current.ControlType
-        if(($type -eq [System.Windows.Automation.ControlType]::Button -or $type -eq [System.Windows.Automation.ControlType]::MenuItem) -and
-           ($id -match '(?i)attach|upload|composer-plus' -or $name -match '(?i)attach|add photos.*files|upload.*file')){
-            return $item
-        }
+        if($type -ne [System.Windows.Automation.ControlType]::Button -and $type -ne [System.Windows.Automation.ControlType]::MenuItem){continue}
+        if($id -notmatch '(?i)attach|upload|composer-plus' -and $name -notmatch '(?i)attach|add photos.*files|upload.*file|add.*file'){continue}
+        $score=0
+        if($type -eq [System.Windows.Automation.ControlType]::MenuItem){$score+=50}
+        if($name -match '(?i)add photos.*files|upload.*file|attach.*file|add.*file'){$score+=100}
+        if($id -match '(?i)attach|upload'){$score+=40}
+        if($id -match '(?i)composer-plus'){$score+=10}
+        if($score -gt $bestScore){$best=$item;$bestScore=$score}
     }
-    return $null
+    return $best
 }
 
 function Get-FileDialog() {
@@ -140,20 +174,20 @@ function Set-FileDialogPath($Dialog,[string]$Path) {
     }
     if($null -eq $open){throw 'file dialog Open control unavailable'}
     $script:providerEffectAttempted=$true
-    $open.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    Invoke-UiElement $open 'file dialog Open' | Out-Null
 }
 
 function Upload-ExactAttachment($Browser,$Root,[string]$Path,[string]$PresentationName) {
     $control=Get-UploadControl $Root
     if($null -eq $control){throw 'attachment control unavailable before provider effect'}
-    $control.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+    Invoke-UiElement $control 'attachment entry' | Out-Null
     Start-Sleep -Milliseconds 700
     $dialog=Get-FileDialog
     if($null -eq $dialog){
         $root2=Get-Root $Browser
         $menu=Get-UploadControl $root2
         if($null -ne $menu){
-            try{$menu.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()}catch{}
+            try{Invoke-UiElement $menu 'attachment upload menu' | Out-Null}catch{}
             Start-Sleep -Milliseconds 700
             $dialog=Get-FileDialog
         }
