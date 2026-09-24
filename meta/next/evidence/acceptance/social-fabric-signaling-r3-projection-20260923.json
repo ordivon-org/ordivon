@@ -1,0 +1,133 @@
+{
+  "kind": "ordivon.social-fabric-signaling-r3-projection",
+  "nonClaims": [
+    "legacyVisibilityScope is retained for historical interpretation and is not used to infer semanticScope, propagationMode, or compartmentRefs.",
+    "A compartment is an explicit reference projection, not a mutable registry or transport boundary.",
+    "Propagation mode describes intended social visibility semantics and does not itself deliver a network message.",
+    "Receptors are deterministic interest filters only; no expression language, score, vote, policy, or readiness logic is evaluated.",
+    "anomalyOrigin is preserved only when explicitly supplied with a source reference and is not a threat/security verdict."
+  ],
+  "observedAt": "2026-09-23T04:32:40+08:00",
+  "projectionDigest": "sha256:b0ba3f1a000ff813757bf371fa1317ce27c4a78814cedcddfbec28ea705e8fae",
+  "receptorDeliveries": [
+    {
+      "receptorId": "receptor:r3-storage-pressure",
+      "signalIds": [
+        "modulatory:d-drive-pressure"
+      ],
+      "truthBoundary": "Interest match only; no policy evaluation, assignment, priority, routing authority, scheduling, lease, or EffectAuthority."
+    },
+    {
+      "receptorId": "receptor:r3-wsl-maintenance",
+      "signalIds": [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "truthBoundary": "Interest match only; no policy evaluation, assignment, priority, routing authority, scheduling, lease, or EffectAuthority."
+    }
+  ],
+  "schemaVersion": 1,
+  "signals": [
+    {
+      "anomalyOrigin": null,
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "candidate:vhd-compact:capital",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301"
+      ],
+      "legacyVisibilityScope": "system",
+      "originSourceRef": null,
+      "propagationMode": "local",
+      "semanticScope": "maintenance:wsl-vhd",
+      "source": "urn:ordivon:runtime:windows",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.candidate.v1"
+    },
+    {
+      "anomalyOrigin": null,
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "candidate:vhd-compact:gris",
+      "evidenceRefs": [
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+      ],
+      "legacyVisibilityScope": "system",
+      "originSourceRef": null,
+      "propagationMode": "local",
+      "semanticScope": "maintenance:wsl-vhd",
+      "source": "urn:ordivon:runtime:windows",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.candidate.v1"
+    },
+    {
+      "anomalyOrigin": null,
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "candidate:wslservice-restart",
+      "evidenceRefs": [
+        "observation:WSLService-running-20260923T043132+0800"
+      ],
+      "legacyVisibilityScope": "system",
+      "originSourceRef": null,
+      "propagationMode": "local",
+      "semanticScope": "maintenance:wsl-vhd",
+      "source": "urn:ordivon:runtime:windows",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.candidate.v1"
+    },
+    {
+      "anomalyOrigin": "unknown",
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "damage:diskpart-rpc-unavailable",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+      ],
+      "legacyVisibilityScope": "system",
+      "originSourceRef": "evidence:social-fabric-coordination-r2-vhd-cut",
+      "propagationMode": "environmental",
+      "semanticScope": "maintenance:wsl-vhd",
+      "source": "urn:ordivon:runtime:windows",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.damage.v1"
+    },
+    {
+      "anomalyOrigin": null,
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:drive:D"
+      ],
+      "eventId": "modulatory:d-drive-pressure",
+      "evidenceRefs": [
+        "observation:D-free-17694720"
+      ],
+      "legacyVisibilityScope": "system",
+      "originSourceRef": null,
+      "propagationMode": "broadcast",
+      "semanticScope": "workstation:storage-pressure",
+      "source": "urn:ordivon:workstation:storage",
+      "status": "active",
+      "subject": "resource:windows:drive:D",
+      "type": "io.ordivon.social.modulatory.v1"
+    }
+  ],
+  "sourceCoordinationCutDigest": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73",
+  "sourceSignalingCutDigest": "sha256:c0bd7ec8929ef55c7b00a5677b6a17ddf73b0283246aa4f1663f497561904213",
+  "truthRole": "rebuildable-signaling-specificity-projection"
+}

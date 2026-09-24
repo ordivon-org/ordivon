@@ -1,10 +1,21 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW0_IN_PROGRESS
+Status: RW2_IN_PROGRESS_R08_ORDINARY_PILOT_QUALIFIED
 Truth role: planning projection, not Runtime project truth
-Source revision: `75dc93c56e367535cbff0d50921d188798c9de5e`
+Source revision: `397dee5ef0caa296283253c03da5f277f4fa2a8d`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
+
+## Current progress checkpoint — 2026-09-24
+
+- R00/R01: implemented baseline/invariant and verification partition.
+- R02: first WorkspaceState extraction integrated; residual extraction remains evidence-driven.
+- R03: JobIdentityContract + AttemptLifecycleContract implemented and verified.
+- R04: **implemented** as `ReservationContract` on `e48b2eab5fb743efa3b50cb1eceae4539e1c99a7`. It owns durable capacity-holder/acquire/hold/release and terminal reservation-target laws only; queue/priority/scheduling remain explicitly out of scope.
+- R04 verification: integrated `e48b2eab` is byte-identical to verified candidate `4131cbe0` across the five R04 responsibility files. Candidate owner gate `job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31` PASS (`exitCode=0`), including the slow reference-model property gate; the equivalent R04 patch on an earlier base also passed focused real-system fast-success and timeout-descendant-pipe acceptance.
+- RW1 is **COMPLETE**: R05 Artifact/Release state ownership and R06 RegistryStorageBoundary are integrated; Registry semantic schema remains v6.
+- R07 `AuthorityContract` is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `163db3230483ec932fa8152fb1c9e6bd756e59d5`. Existing execution families compile internally only after exact replay lookup; the public Tool surface and current authority semantics are unchanged. `runtime:verify` PASS: `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`.
+- RW2 is **IN_PROGRESS**. R08 ordinary-family pilot is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `397dee5ef0caa296283253c03da5f277f4fa2a8d` by `job-01a0cf70-37d7-7a90-8fed-98e4253175c9`; input-bound/trusted-input/credential-bound families remain deliberately unmigrated. Next: migrate the input-bound family with the same parity/fail-closed discipline. R13/V05 remains gated on RW2.
 
 ## Global rules
 
@@ -262,6 +273,13 @@ to explicit AuthorityContract variants.
 - do not let Runtime grant provider/domain permission;
 - exact replay precedes current authority reinterpretation.
 
+**Standing — implemented / verified on `163db3230483ec932fa8152fb1c9e6bd756e59d5`**
+- `ordinary`, `immutable-input reduced`, `immutable-input trusted`, and `credential-bound trusted` are explicit internal variants;
+- admission compiles the contract only after exact replay lookup returns no existing Job;
+- widening combinations fail closed, including Windows/input/credential/Host-Dependency incompatibilities;
+- public MCP Tool schemas, Registry schema v6, and provider/domain/Security authority ownership are unchanged;
+- full current-main owner gate `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896` passed `fmt`, owner environment, clippy, transactional Runtime tests, the extended Registry reference model, platform owner-boundary tests, and documentation checks.
+
 ### R08 — OperationCircuitCompiler
 
 **Goal:** make one internal compiler produce the immutable physical plan.
@@ -291,6 +309,13 @@ ExecutionCircuit =
 - old all-explicit request identity stays replay-compatible;
 - omitted/delegated limits retain their existing identity semantics;
 - no unenforceable metadata enters operation identity.
+
+**Standing — ordinary-family pilot qualified on `397dee5ef0caa296283253c03da5f277f4fa2a8d`**
+- `workspace.exec` ordinary proposal admission now passes its already-compiled R07 `AuthorityContract` into `OperationCircuitCompiler::ordinary`;
+- the compiler emits the existing `SubmitRequest` rather than introducing a second public or persisted execution schema;
+- exact submit-shape parity is unit-tested, and authority-family drift, request/authority drift, and resolved-plan drift fail closed;
+- current-main full Runtime owner gate `job-01a0cf70-37d7-7a90-8fed-98e4253175c9` passed, including the slow independent Registry reference-model property gate;
+- `execBound`, `execBoundTrusted`, and credential-bound trusted execution remain on their existing paths and are **not** claimed complete by this pilot.
 
 ---
 
@@ -631,16 +656,12 @@ Rollback unit is the smallest completed LEGO extraction commit, not the whole pr
 
 ## Immediate executable queue
 
-The first actual implementation queue is deliberately small:
+The old bootstrap queue through R04 is complete. The current queue is:
 
-1. **R00-A** — write invariant manifest.
-2. **R00-B** — map every invariant to proving tests/evidence.
-3. **R01-A** — produce test taxonomy without moving files.
-4. **R01-B** — split one low-conflict test category and prove zero behavior change.
-5. **R02-A** — census Workspace responsibilities currently inside `engine.rs/types.rs/registry.rs`.
-6. **R03-A** — census Job/Attempt responsibilities and transaction seams.
-7. **R07-A** — read-only Tool→Authority composition matrix.
-8. **R12-A** — read-only recurring control primitive census.
-9. **R13-A** — read-only evidence claim/scope/witness matrix.
+1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5` and current-main qualified by `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`; do not reopen absent a proven authority/replay regression.
+2. **R08-A/B-CLOSED (ordinary pilot)** — post-R07 seam frozen and ordinary execution migrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`; full current-main owner qualification `job-01a0cf70-37d7-7a90-8fed-98e4253175c9` PASS.
+3. **R08-C** — migrate the immutable-input family next, preserving its materialization ownership and proving exact `SubmitRequest`/identity/error-order parity before touching the trusted-input or credential-bound family.
+4. **R13-A / V05** — retain the evidence-claim matrix as planning input only until all intended R08 execution families carry physical evidence obligations without owning domain truth.
+5. Keep launch-token timing / late-result reconciliation as a separate supervisor-evidence lane; do not fold it into R08.
 
-Only after items 1–4 are green should production Rust module extraction start.
+Do not reopen R04 for launch-evidence timing/reconciliation races already reproduced on a clean baseline; those remain with the reconciliation/supervisor evidence owner.

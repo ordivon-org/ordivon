@@ -72,6 +72,28 @@ def _evidence_refs(data: dict[str, Any], label: str) -> list[str]:
     return _string_list(data.get("evidenceRefs", []), f"{label}.evidenceRefs")
 
 
+def _expiry_attribute(
+    event: dict[str, Any], label: str
+) -> tuple[str | None, str | None]:
+    """Resolve CloudEvents expiry while preserving historical replay compatibility.
+
+    ``expirytime`` is the documented CloudEvents Expiry Time extension. The old
+    ``ordivonexpiresat`` field is accepted only to replay checked-in historical cuts.
+    New producers must emit ``expirytime``; dual encoding fails closed.
+    """
+    standard = event.get("expirytime")
+    legacy = event.get("ordivonexpiresat")
+    if standard is not None and legacy is not None:
+        raise SocialFabricError(
+            f"{label} must not contain both expirytime and legacy ordivonexpiresat"
+        )
+    if standard is not None:
+        return _nonempty(standard, f"{label}.expirytime"), "expirytime"
+    if legacy is not None:
+        return _nonempty(legacy, f"{label}.ordivonexpiresat"), "ordivonexpiresat"
+    return None, None
+
+
 def _validate_event(event: dict[str, Any], label: str) -> None:
     if event.get("specversion") != "1.0":
         raise SocialFabricError(f"{label}.specversion must be CloudEvents 1.0")
@@ -85,11 +107,13 @@ def _validate_event(event: dict[str, Any], label: str) -> None:
     scope = event.get("ordivonscope")
     if scope not in SCOPE_VALUES:
         raise SocialFabricError(f"{label}.ordivonscope unsupported: {scope}")
-    expires = event.get("ordivonexpiresat")
+    expires, expiry_field = _expiry_attribute(event, label)
     if expires is not None:
-        expires_at = _instant(expires, f"{label}.ordivonexpiresat")
+        if expiry_field is None:
+            raise SocialFabricError(f"{label} expiry field resolution failed")
+        expires_at = _instant(expires, f"{label}.{expiry_field}")
         if expires_at <= event_time:
-            raise SocialFabricError(f"{label}.ordivonexpiresat must be after time")
+            raise SocialFabricError(f"{label}.{expiry_field} must be after time")
     for field in ("ordivonsupersedes", "ordivonrefreshes"):
         if field in event:
             _nonempty(event[field], f"{label}.{field}")
@@ -192,12 +216,12 @@ def _lifecycle(cut: dict[str, Any]) -> tuple[dict[str, str], dict[str, dict[str,
     status: dict[str, str] = {}
     for event_id, event in events.items():
         event_time = _instant(event["time"], f"{event_id}.time")
-        expires = event.get("ordivonexpiresat")
+        expires, expiry_field = _expiry_attribute(event, event_id)
         if event_time > observed_at:
             status[event_id] = "future"
         elif (
             expires is not None
-            and _instant(expires, f"{event_id}.ordivonexpiresat") <= observed_at
+            and _instant(expires, f"{event_id}.{expiry_field}") <= observed_at
         ):
             status[event_id] = "expired"
         else:

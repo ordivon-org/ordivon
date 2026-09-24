@@ -1,0 +1,144 @@
+{
+  "anchor": {
+    "objectId": "integrated-c08-capital-readonly-r1",
+    "objectKind": "c08-dogfood",
+    "ownerId": "architecture-convergence",
+    "sourceRecordDigest": "sha256:500d6dcde137b62c3ea33de644cf0aece74769907c45357d2d37f0f8d2fcaf98"
+  },
+  "dataClass": "JUDGE",
+  "dimensions": [
+    {
+      "name": "harness.termination_code",
+      "value": "candidate_completed"
+    },
+    {
+      "name": "harness.domain_acceptance_established",
+      "value": false
+    },
+    {
+      "name": "runtime.resolution",
+      "value": "succeeded"
+    },
+    {
+      "name": "runtime.semantic_completion_evaluated",
+      "value": false
+    },
+    {
+      "name": "runtime.recovery_path",
+      "value": "late_identity_recovered"
+    },
+    {
+      "name": "capital.standing",
+      "value": "PASS"
+    },
+    {
+      "name": "capital.external_financial_writes_attempted",
+      "value": false
+    }
+  ],
+  "episodeId": "episode:integrated-c08:capital-readonly-r1",
+  "evidenceBindings": [
+    {
+      "count": 1,
+      "kind": "harness-generation",
+      "setDigest": "sha256:164567275a5638fdb96244bd1ec16dee131e53f8139153ed48858136ed2cb140"
+    },
+    {
+      "count": 6,
+      "kind": "runtime-verifier",
+      "setDigest": "sha256:dff90bab2a9d8a44a249df40bb8eedcb0b868bc26faa809cdce541c39615b143",
+      "totalBytes": 7344,
+      "truncatedCount": 0
+    },
+    {
+      "count": 1,
+      "kind": "capital-domain-verdict",
+      "setDigest": "sha256:f54d03837d86807b843a256df9da8e637f15ff02a4f01197ff394223d46243bd"
+    }
+  ],
+  "kind": "ordivon.experimental-episode-binding",
+  "measures": [
+    {
+      "name": "harness.model_calls",
+      "unit": "calls",
+      "value": 1
+    },
+    {
+      "name": "runtime.verifier_artifacts",
+      "unit": "artifacts",
+      "value": 6
+    },
+    {
+      "name": "runtime.runner_result_recoveries",
+      "unit": "events",
+      "value": 1
+    },
+    {
+      "name": "runtime.reconciliation_convergences",
+      "unit": "events",
+      "value": 1
+    },
+    {
+      "name": "capital.family_count",
+      "unit": "families",
+      "value": 3
+    }
+  ],
+  "nonClaims": [
+    "Experimental Episode is not Runtime, Harness, Composition, or Capital truth.",
+    "Capital PASS is not normalized into a cross-domain Ordivon status.",
+    "Runtime verifier success is not semantic completion.",
+    "The episode does not authorize external financial effects."
+  ],
+  "ownerRefs": [
+    {
+      "digest": "sha256:2763269ffcc9f250fcbe063e1d4b8dfb84a1b8cebc7ca38188bec856d9ea27d9",
+      "objectId": "circuit:integrated-c08-capital-readonly-r1",
+      "objectKind": "cognitive-circuit",
+      "ownerId": "composition",
+      "relation": "compiled-circuit"
+    },
+    {
+      "digest": "sha256:1b9afdb6c0b4d0d3ddd3993652838011cc6d71e4f666a5eaef8a04bbe6a1dde9",
+      "objectId": "harness-run:integrated-c08-capital-readonly-r1-r3",
+      "objectKind": "run-contract",
+      "ownerId": "harness",
+      "relation": "candidate-run-contract"
+    },
+    {
+      "digest": "sha256:6a5b71d7123cc585001176cf4ca75d67b649f3e907fe2f4a6c7966fd902904ba",
+      "objectId": "harness-run:integrated-c08-capital-readonly-r1-r3",
+      "objectKind": "run-receipt",
+      "ownerId": "harness",
+      "relation": "candidate-run-receipt"
+    },
+    {
+      "objectId": "job-01a0ce08-8fe3-7012-be1e-42994bba5dc7",
+      "objectKind": "job",
+      "ownerId": "runtime",
+      "relation": "physical-verifier-execution"
+    },
+    {
+      "digest": "sha256:a3c3d86e35d87c9230e9ae978b4d9296f70a48e7ac6ecbe279d830cfb7fd1d5c",
+      "objectId": "operation:job-01a0ce08-8fe3-7012-be1e-42994bba5dc7",
+      "objectKind": "operation",
+      "ownerId": "runtime",
+      "relation": "verifier-operation"
+    },
+    {
+      "digest": "sha256:6e11edf067c574dee8088b1097aea70408f94bb3e3bdc0d9dddea98deb1cbe92",
+      "objectId": "capital-circuit-readonly-r1",
+      "objectKind": "domain-verdict",
+      "ownerId": "capital",
+      "relation": "owner-native-domain-verdict"
+    }
+  ],
+  "profileId": "integrated-c08-capital-readonly-r1",
+  "projectionDigest": "sha256:fd9233818dfc1843ccea02f03847916b8444ddbe809026256e62b6bcc53804be",
+  "schemaVersion": 1,
+  "unresolved": [
+    "A03b production-authoritative Agent/Grant/Effect evidence remains open.",
+    "One C08 canary does not establish a universal domain-verdict adapter.",
+    "The Runtime late-identity recovery path remains an operational observation for Runtime ownership."
+  ]
+}

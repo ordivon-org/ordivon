@@ -21,6 +21,7 @@ from ordivon_agent import (
     compile_no_tool_harness_binding,
     compile_no_tool_harness_run_contract,
     create_no_tool_harness_run,
+    project_harness_run_view,
     validate_no_tool_harness_binding,
     validate_no_tool_harness_run_contract,
 )
@@ -226,6 +227,14 @@ def test_no_tool_vertical_executes_through_existing_harness(tmp_path) -> None:
     assert execution.loop_result.stop_code.value == "candidate_completed"
     assert execution.loop_result.conclusion is not None
     assert execution.loop_result.conclusion.summary == "HUX-30 deterministic candidate."
+
+    view = project_harness_run_view(run)
+    assert view["state"] == "run_finished"
+    assert view["nativeStatus"] == "completed"
+    assert view["semanticAcceptance"] == {
+        "establishedByHarness": False,
+        "state": "not-established",
+    }
 
 
 def test_product_lowerer_imports_only_public_harness_surface() -> None:

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.study-owned-claim-permission-pressure-plan",
+  "id": "claim-permission-context24-r1",
+  "truthRole": "architecture-pressure-test-not-scientific-truth-or-shared-policy",
+  "candidateRule": {
+    "id": "representation-does-not-grant-scientific-claim-strength-r1",
+    "statement": "Evidence representation may raise the inspection ceiling, but it cannot authorize scientific support strength, truth, causality, or generalization without Study-owned inference authority."
+  },
+  "sourceBindings": {
+    "identityAsset": "context24-identity-core-r1",
+    "identitySnapshot": "sha256:fe95ee5748e301cd4885deb5184f99605ec1fd5a538208db2a7be4025159822b",
+    "contentAsset": "context24-evidence-content-core-r1",
+    "contentSnapshot": "sha256:ca984af3235e404ebe21bd0c02595db8cfe4201d74d9f0b63211c193bd01da53"
+  },
+  "ownerRequiredBeforeScientificPermission": [
+    "estimand_or_target_quantity",
+    "population_scope",
+    "design_or_evaluation_family",
+    "unit_of_analysis",
+    "dependence_model",
+    "uncertainty",
+    "multiplicity_if_applicable",
+    "sensitivity_or_robustness",
+    "known_failure_modes",
+    "generalization_boundary"
+  ],
+  "counterexamples": [
+    {
+      "id": "CP-CX1-content-byte-laundering",
+      "attack": "Exact upstream figure/table bytes are present, therefore the associated scientific claim is supported.",
+      "requiredDisposition": "REJECT_REPRESENTATION_TO_SUPPORT_AUTHORITY_TRANSFER"
+    },
+    {
+      "id": "CP-CX2-identity-only-erasure",
+      "attack": "A gold evidence identity without locally materialized pixels should be treated as no evidence annotation.",
+      "requiredDisposition": "PRESERVE_EVIDENCE_IDENTITY_WITHOUT_INVENTING_CONTENT"
+    },
+    {
+      "id": "CP-CX3-link-count-strength",
+      "attack": "A claim with more annotated evidence links automatically has stronger or more independent scientific support.",
+      "requiredDisposition": "REJECT_MULTIPLICITY_TO_STRENGTH_OR_INDEPENDENCE"
+    },
+    {
+      "id": "CP-CX4-content-reuse-independence",
+      "attack": "Each claim-evidence link is an independent evidence object.",
+      "requiredDisposition": "REJECT_LINK_COUNT_AS_INDEPENDENT_EVIDENCE_COUNT"
+    },
+    {
+      "id": "CP-CX5-fulltext-method-adequacy",
+      "attack": "Full-text availability authorizes a method-adequacy or claim-validity judgment.",
+      "requiredDisposition": "REJECT_CONTENT_AVAILABILITY_TO_METHOD_AUTHORITY"
+    },
+    {
+      "id": "CP-CX6-withheld-test-gold",
+      "attack": "Challenge-test media can be used to infer or reconstruct withheld gold evidence labels.",
+      "requiredDisposition": "KEEP_WITHHELD_GOLD_UNIDENTIFIED"
+    },
+    {
+      "id": "CP-CX7-rights-science-conflation",
+      "attack": "Dataset-level CC BY 4.0 automatically authorizes external redistribution/commercial reuse of every underlying paper media object, or rights restrictions alter scientific support strength.",
+      "requiredDisposition": "KEEP_RIGHTS_AND_SCIENTIFIC_AUTHORITY_SEPARATE"
+    },
+    {
+      "id": "CP-CX8-native-id-authority",
+      "attack": "The source-native Context24 claim id is a globally unique claim identity and may collapse all rows sharing it.",
+      "requiredDisposition": "KEEP_INSTANCE_IDENTITY_AND_COLLISION_EVIDENCE"
+    }
+  ],
+  "admissionTarget": "STUDY_OWNED_PRESSURE_PROTOTYPE_ONLY",
+  "explicitlyNotAdmitted": [
+    "ClaimPermission as a shared executable policy",
+    "automatic scientific-support grading from representation state",
+    "truth or causality authority",
+    "automatic generalization authority",
+    "acceptance prediction",
+    "external media redistribution or commercial reuse authority"
+  ]
+}

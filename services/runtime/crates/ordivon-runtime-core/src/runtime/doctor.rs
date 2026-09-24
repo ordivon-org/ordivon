@@ -7,9 +7,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use super::evidence::{prepare_runner_terminal_from_bundle, RESULT_FILE};
 use super::job_attempt_state::AttemptLifecycleContract;
 use super::registry::{
-    inspect_runtime_invariants_connection, load_attempt, load_job, load_reservation,
-    CONDITION_RETIREMENT_MIGRATION_VERSION, MAX_MIGRATION_VERSION,
+    inspect_runtime_invariants_connection, CONDITION_RETIREMENT_MIGRATION_VERSION,
+    MAX_MIGRATION_VERSION,
 };
+use super::registry_storage::RegistryStorageBoundary;
 use super::reservation_state::ReservationContract;
 use super::{
     AttemptRecord, AttemptState, AttemptTerminationIntent, JobResolution, RegistryConfig,
@@ -207,9 +208,9 @@ pub fn inspect_runtime(config: &RuntimeDoctorConfig) -> RuntimeResult<RuntimeDoc
 
     let mut cases = Vec::with_capacity(by_attempt.len());
     for (attempt_id, codes) in by_attempt {
-        let attempt = load_attempt(&connection, &attempt_id)?;
-        let job = load_job(&connection, &attempt.job_id)?;
-        let reservation = load_reservation(&connection, &attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&connection, &attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&connection, &attempt_id)?;
         let expected_bundle = config.store_root.join("attempts").join(&attempt.attempt_id);
         let bundle_path_trusted = Path::new(&attempt.bundle_path) == expected_bundle;
         let result_path = expected_bundle.join(RESULT_FILE);

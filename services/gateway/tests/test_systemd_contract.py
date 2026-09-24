@@ -29,6 +29,15 @@ def test_gateway_unit_is_loopback_dynamic_user_and_credential_scoped() -> None:
     assert "AmbientCapabilities=" in text
     assert "ORDIVON_GATEWAY_PUBLIC_ORIGIN" not in text
     assert "WINDOWS_ACCESS_CLIENT_SECRET" not in text
+    assert "Wants=network-online.target ordivon-runtime.service ordivon-host-v2.service" in text
+    assert "After=network-online.target ordivon-runtime.service ordivon-host-v2.service" in text
+    assert "Requires=ordivon-runtime.service" not in text
+    assert "Requires=ordivon-host-v2.service" not in text
+    assert "PartOf=ordivon-runtime.service" not in text
+    assert "PartOf=ordivon-host-v2.service" not in text
+    assert "BindsTo=ordivon-runtime.service" not in text
+    assert "BindsTo=ordivon-host-v2.service" not in text
+    assert "Restart=always" in text
 
 
 def test_release_python_uses_same_managed_pattern_as_host() -> None:

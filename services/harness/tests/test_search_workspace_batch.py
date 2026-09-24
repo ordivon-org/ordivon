@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import json
 import subprocess
 from pathlib import Path
@@ -174,8 +176,8 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 self.assertEqual(runtime.workspace_exec_count, 1)
                 self.assertEqual([row["status"] for row in observation.structured_content["queryResults"]], ["matched", "no_hits"])
                 self.assertEqual([name for name, _ in runtime.calls].count("workspace.exec"), 1)
-                self.assertIn("task.list", [name for name, _ in runtime.calls])
-                self.assertIn("task.observe", [name for name, _ in runtime.calls])
+                self.assertIn("job.list", [name for name, _ in runtime.calls])
+                self.assertIn("job.observe", [name for name, _ in runtime.calls])
                 retained = continuity.load_current_tool_step()
                 self.assertTrue(retained.receipt.reconciled)
                 self.assertEqual(retained.receipt.status.value, "observed")
@@ -217,6 +219,7 @@ class SearchWorkspaceBatchTests(unittest.TestCase):
                 self.assertEqual(observation.structured_content["queries"], ["ToolProgram", "__NO_SUCH_LITERAL__"])
                 self.assertEqual([row["status"] for row in observation.structured_content["queryResults"]], ["matched", "no_hits"])
 
+    @pytest.mark.node_qualification
     def test_batch_physical_wrapper_globally_caps_each_query_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runtime = BatchRuntime()

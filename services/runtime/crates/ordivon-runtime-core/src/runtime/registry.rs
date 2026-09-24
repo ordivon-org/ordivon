@@ -9,9 +9,11 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
 use super::job_attempt_state::{
     AttemptLifecycleContract, JobIdentityContract, OperationIdentityBindings,
 };
+use super::registry_storage::RegistryStorageBoundary;
 #[cfg(feature = "operator-tools")]
 use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::reservation_state::ReservationContract;
@@ -19,8 +21,8 @@ use super::supervisor::{validate_attempt_supervisor_owner, AttemptSupervisorOwne
 #[cfg(any(test, feature = "operator-tools"))]
 use super::RuntimeInvariantViolation;
 use super::{
-    validate_client_request_id, AdmissionOutcome, ArtifactRegistration, AttemptRecord,
-    AttemptState, AttemptTerminationIntent, CreatedAdmission, ExecutionProviderContract,
+    validate_client_request_id, AdmissionOutcome, AttemptRecord, AttemptState,
+    AttemptTerminationIntent, CreatedAdmission, ExecutionProviderContract,
     ExecutionProviderSnapshot, HostDependencyBinding, JobDesiredState, JobProjection,
     JobResolution, ReservationRecord, ReservationState, RunnerIdentity, RuntimeArtifactRecord,
     RuntimeDeliveryDisposition, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
@@ -334,237 +336,6 @@ fn immediate<'a>(connection: &'a mut Connection, context: &str) -> RuntimeResult
         .map_err(|error| safe_same_request_sql_error(error, &format!("cannot begin {context}")))
 }
 
-struct RawJob {
-    job_id: String,
-    principal: String,
-    client_request_id: String,
-    request_digest: String,
-    operation_digest: String,
-    workspace_id: String,
-    workspace_snapshot_json: String,
-    execution_plan_json: String,
-    execution_plan_digest: String,
-    created_at_ms: u64,
-    desired_state: String,
-    resolution: Option<String>,
-    current_attempt_id: Option<String>,
-    row_version: u64,
-}
-
-impl RawJob {
-    fn into_record(self) -> RuntimeResult<RuntimeJobRecord> {
-        Ok(RuntimeJobRecord {
-            job_id: self.job_id,
-            principal: self.principal,
-            client_request_id: self.client_request_id,
-            request_digest: self.request_digest,
-            operation_digest: self.operation_digest,
-            workspace_id: self.workspace_id,
-            workspace_snapshot_json: self.workspace_snapshot_json,
-            execution_plan_json: self.execution_plan_json,
-            execution_plan_digest: self.execution_plan_digest,
-            created_at_ms: self.created_at_ms,
-            desired_state: JobDesiredState::parse(&self.desired_state)?,
-            resolution: self
-                .resolution
-                .as_deref()
-                .map(JobResolution::parse)
-                .transpose()?,
-            current_attempt_id: self.current_attempt_id,
-            row_version: self.row_version,
-        })
-    }
-}
-
-fn raw_job_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawJob> {
-    Ok(RawJob {
-        job_id: row.get(0)?,
-        principal: row.get(1)?,
-        client_request_id: row.get(2)?,
-        request_digest: row.get(3)?,
-        operation_digest: row.get(4)?,
-        workspace_id: row.get(5)?,
-        workspace_snapshot_json: row.get(6)?,
-        execution_plan_json: row.get(7)?,
-        execution_plan_digest: row.get(8)?,
-        created_at_ms: row.get(9)?,
-        desired_state: row.get(10)?,
-        resolution: row.get(11)?,
-        current_attempt_id: row.get(12)?,
-        row_version: row.get(13)?,
-    })
-}
-
-pub(crate) fn load_job(connection: &Connection, job_id: &str) -> RuntimeResult<RuntimeJobRecord> {
-    connection
-        .query_row(
-            "SELECT job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version FROM jobs WHERE job_id=?1",
-            [job_id],
-            raw_job_from_row,
-        )
-        .optional()
-        .map_err(|error| RuntimeError::from_sql(error, "cannot load Job"))?
-        .ok_or_else(|| {
-            RuntimeError::new(RuntimeErrorCode::JobNotFound, "Job not found", Some("jobId"), false)
-        })?
-        .into_record()
-}
-
-struct RawAttempt {
-    attempt_id: String,
-    job_id: String,
-    attempt_number: u32,
-    state: String,
-    termination_intent: String,
-    launch_token_digest: String,
-    bundle_path: String,
-    bundle_digest: Option<String>,
-    boot_id: Option<String>,
-    unit_name: String,
-    invocation_id: Option<String>,
-    control_group: Option<String>,
-    main_pid: Option<u32>,
-    process_start_identity: Option<String>,
-    runner_start_digest: Option<String>,
-    result_digest: Option<String>,
-    exit_code: Option<i32>,
-    infrastructure_error_digest: Option<String>,
-    created_at_ms: u64,
-    started_at_ms: Option<u64>,
-    finished_at_ms: Option<u64>,
-    row_version: u64,
-}
-
-impl RawAttempt {
-    fn into_record(self) -> RuntimeResult<AttemptRecord> {
-        Ok(AttemptRecord {
-            attempt_id: self.attempt_id,
-            job_id: self.job_id,
-            attempt_number: self.attempt_number,
-            state: AttemptState::parse(&self.state)?,
-            termination_intent: AttemptTerminationIntent::parse(&self.termination_intent)?,
-            launch_token_digest: self.launch_token_digest,
-            bundle_path: self.bundle_path,
-            bundle_digest: self.bundle_digest,
-            boot_id: self.boot_id,
-            unit_name: self.unit_name,
-            invocation_id: self.invocation_id,
-            control_group: self.control_group,
-            main_pid: self.main_pid,
-            process_start_identity: self.process_start_identity,
-            runner_start_digest: self.runner_start_digest,
-            result_digest: self.result_digest,
-            exit_code: self.exit_code,
-            infrastructure_error_digest: self.infrastructure_error_digest,
-            created_at_ms: self.created_at_ms,
-            started_at_ms: self.started_at_ms,
-            finished_at_ms: self.finished_at_ms,
-            row_version: self.row_version,
-        })
-    }
-}
-
-fn raw_attempt_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawAttempt> {
-    Ok(RawAttempt {
-        attempt_id: row.get(0)?,
-        job_id: row.get(1)?,
-        attempt_number: row.get(2)?,
-        state: row.get(3)?,
-        termination_intent: row.get(4)?,
-        launch_token_digest: row.get(5)?,
-        bundle_path: row.get(6)?,
-        bundle_digest: row.get(7)?,
-        boot_id: row.get(8)?,
-        unit_name: row.get(9)?,
-        invocation_id: row.get(10)?,
-        control_group: row.get(11)?,
-        main_pid: row.get(12)?,
-        process_start_identity: row.get(13)?,
-        runner_start_digest: row.get(14)?,
-        result_digest: row.get(15)?,
-        exit_code: row.get(16)?,
-        infrastructure_error_digest: row.get(17)?,
-        created_at_ms: row.get(18)?,
-        started_at_ms: row.get(19)?,
-        finished_at_ms: row.get(20)?,
-        row_version: row.get(21)?,
-    })
-}
-
-pub(crate) fn load_attempt(
-    connection: &Connection,
-    attempt_id: &str,
-) -> RuntimeResult<AttemptRecord> {
-    connection
-        .query_row(
-            "SELECT attempt_id,job_id,attempt_number,state,termination_intent,launch_token_digest,bundle_path,bundle_digest,boot_id,unit_name,invocation_id,control_group,main_pid,process_start_identity,runner_start_digest,result_digest,exit_code,infrastructure_error_digest,created_at_ms,started_at_ms,finished_at_ms,row_version FROM attempts WHERE attempt_id=?1",
-            [attempt_id],
-            raw_attempt_from_row,
-        )
-        .optional()
-        .map_err(|error| RuntimeError::from_sql(error, "cannot load Attempt"))?
-        .ok_or_else(|| {
-            RuntimeError::new(
-                RuntimeErrorCode::AttemptNotFound,
-                "Attempt not found",
-                Some("attemptId"),
-                false,
-            )
-        })?
-        .into_record()
-}
-
-struct RawReservation {
-    reservation_id: String,
-    attempt_id: String,
-    global_limit: u32,
-    state: String,
-    acquired_at_ms: u64,
-    released_at_ms: Option<u64>,
-    release_reason: Option<String>,
-}
-
-pub(crate) fn load_reservation(
-    connection: &Connection,
-    attempt_id: &str,
-) -> RuntimeResult<ReservationRecord> {
-    let raw = connection
-        .query_row(
-            "SELECT reservation_id,attempt_id,global_limit,state,acquired_at_ms,released_at_ms,release_reason FROM concurrency_reservations WHERE attempt_id=?1",
-            [attempt_id],
-            |row| {
-                Ok(RawReservation {
-                    reservation_id: row.get(0)?,
-                    attempt_id: row.get(1)?,
-                    global_limit: row.get(2)?,
-                    state: row.get(3)?,
-                    acquired_at_ms: row.get(4)?,
-                    released_at_ms: row.get(5)?,
-                    release_reason: row.get(6)?,
-                })
-            },
-        )
-        .optional()
-        .map_err(|error| RuntimeError::from_sql(error, "cannot load reservation"))?
-        .ok_or_else(|| {
-            RuntimeError::new(
-                RuntimeErrorCode::ReservationStateConflict,
-                "Attempt has no reservation",
-                Some("attemptId"),
-                false,
-            )
-        })?;
-    Ok(ReservationRecord {
-        reservation_id: raw.reservation_id,
-        attempt_id: raw.attempt_id,
-        global_limit: raw.global_limit,
-        state: ReservationState::parse(&raw.state)?,
-        acquired_at_ms: raw.acquired_at_ms,
-        released_at_ms: raw.released_at_ms,
-        release_reason: raw.release_reason,
-    })
-}
-
 #[allow(clippy::too_many_arguments)]
 fn append_event(
     transaction: &Transaction<'_>,
@@ -688,11 +459,11 @@ fn repair_terminal_admin_transaction(
 ) -> RuntimeResult<()> {
     validate_digest(&request.result_digest, "resultDigest")?;
     for artifact in &request.artifacts {
-        validate_artifact_registration(artifact)?;
+        ArtifactStateContract::validate_registration(artifact)?;
     }
-    let attempt = load_attempt(transaction, &request.attempt_id)?;
-    let job = load_job(transaction, &attempt.job_id)?;
-    let reservation = load_reservation(transaction, &attempt.attempt_id)?;
+    let attempt = RegistryStorageBoundary::load_attempt(transaction, &request.attempt_id)?;
+    let job = RegistryStorageBoundary::load_job(transaction, &attempt.job_id)?;
+    let reservation = RegistryStorageBoundary::load_reservation(transaction, &attempt.attempt_id)?;
     let runner_terminal = matches!(
         request.state,
         AttemptState::Succeeded
@@ -840,9 +611,9 @@ fn repair_terminal_reservation_admin_transaction(
     expected_attempt_row_version: u64,
     audit: &AdminRepairAudit,
 ) -> RuntimeResult<()> {
-    let attempt = load_attempt(transaction, attempt_id)?;
-    let job = load_job(transaction, &attempt.job_id)?;
-    let reservation = load_reservation(transaction, attempt_id)?;
+    let attempt = RegistryStorageBoundary::load_attempt(transaction, attempt_id)?;
+    let job = RegistryStorageBoundary::load_job(transaction, &attempt.job_id)?;
+    let reservation = RegistryStorageBoundary::load_reservation(transaction, attempt_id)?;
     if attempt.row_version != expected_attempt_row_version
         || job.row_version != audit.expected_job_row_version
         || job.current_attempt_id != audit.expected_current_attempt_id
@@ -1021,9 +792,11 @@ fn load_job_snapshot(connection: &Connection, job_id: &str) -> RuntimeResult<Job
 }
 
 fn load_job_snapshot_in(connection: &Connection, job_id: &str) -> RuntimeResult<JobSnapshot> {
-    let job = load_job(connection, job_id)?;
+    let job = RegistryStorageBoundary::load_job(connection, job_id)?;
     let attempt = match job.current_attempt_id.as_deref() {
-        Some(attempt_id) => Some(load_attempt(connection, attempt_id)?),
+        Some(attempt_id) => Some(RegistryStorageBoundary::load_attempt(
+            connection, attempt_id,
+        )?),
         None => {
             let attempt_id: Option<String> = connection
                 .query_row(
@@ -1034,7 +807,7 @@ fn load_job_snapshot_in(connection: &Connection, job_id: &str) -> RuntimeResult<
                 .optional()
                 .map_err(|error| RuntimeError::from_sql(error, "cannot find latest Attempt"))?;
             attempt_id
-                .map(|attempt_id| load_attempt(connection, &attempt_id))
+                .map(|attempt_id| RegistryStorageBoundary::load_attempt(connection, &attempt_id))
                 .transpose()?
         }
     };
@@ -1195,153 +968,6 @@ fn validate_host_dependency_bindings(
     Ok(())
 }
 
-fn validate_runtime_release_effect_binding(
-    release: &RuntimeReleaseEffectBinding,
-    request: &SubmitRequest,
-) -> RuntimeResult<()> {
-    if release.contract != RuntimeReleaseContract::RuntimeReleaseV1 {
-        return Err(RuntimeError::invalid(
-            "unsupported Runtime Release contract",
-            "runtimeReleaseEffect.contract",
-        ));
-    }
-    if release.effect_id.len() != 64
-        || !release
-            .effect_id
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release effectId must be 64 lowercase hexadecimal characters",
-            "runtimeReleaseEffect.effectId",
-        ));
-    }
-    if !release
-        .request_digest
-        .starts_with(super::RUNTIME_RELEASE_IDENTITY_PREFIX)
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release request digest has the wrong contract prefix",
-            "runtimeReleaseEffect.requestDigest",
-        ));
-    }
-    JobIdentityContract::validate_request_identity_digest(&release.request_digest)?;
-    if request.request_identity_digest.as_deref() != Some(release.request_digest.as_str()) {
-        return Err(RuntimeError::invalid(
-            "Runtime Release side truth must match the committed request identity",
-            "runtimeReleaseEffect.requestDigest",
-        ));
-    }
-    if release.workspace_id != request.plan.workspace_id {
-        return Err(RuntimeError::invalid(
-            "Runtime Release workspace does not match the execution plan",
-            "runtimeReleaseEffect.workspaceId",
-        ));
-    }
-    if release.commit.len() != 40
-        || !release
-            .commit
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release commit must be exactly 40 lowercase hexadecimal characters",
-            "runtimeReleaseEffect.commit",
-        ));
-    }
-    validate_digest(
-        &release.candidate_manifest_digest,
-        "runtimeReleaseEffect.candidateManifestDigest",
-    )?;
-    if !Path::new(&release.receipt_path).is_absolute()
-        || release.receipt_path.as_bytes().contains(&0)
-    {
-        return Err(RuntimeError::invalid(
-            "Runtime Release receipt path must be absolute and NUL-free",
-            "runtimeReleaseEffect.receiptPath",
-        ));
-    }
-    if request.plan.execution_profile != super::ExecutionProfile::TrustedLocal {
-        return Err(RuntimeError::invalid(
-            "Runtime Release v1 requires trusted_local execution",
-            "runtimeReleaseEffect.contract",
-        ));
-    }
-    match request.plan.execution_target {
-        super::ExecutionTarget::LocalLinux => {
-            if request.plan.windows_authority != super::WindowsAuthority::Limited
-                || request.plan.windows_execution_context.is_some()
-            {
-                return Err(RuntimeError::invalid(
-                    "local Linux Runtime Release cannot carry Windows elevated authority",
-                    "plan.windowsAuthority",
-                ));
-            }
-            if !matches!(
-                request
-                    .execution_provider
-                    .as_ref()
-                    .map(|provider| provider.contract),
-                Some(ExecutionProviderContract::LocalLinuxRunnerV1)
-            ) {
-                return Err(RuntimeError::invalid(
-                    "local Linux Runtime Release requires a committed local Linux Runner",
-                    "executionProvider",
-                ));
-            }
-        }
-        super::ExecutionTarget::WindowsNative => {
-            if request.plan.windows_authority != super::WindowsAuthority::Elevated {
-                return Err(RuntimeError::invalid(
-                    "native Windows Runtime Release requires elevated authority",
-                    "plan.windowsAuthority",
-                ));
-            }
-            if !matches!(
-                request
-                    .execution_provider
-                    .as_ref()
-                    .map(|provider| provider.contract),
-                Some(ExecutionProviderContract::WindowsNativeLauncherV1)
-            ) {
-                return Err(RuntimeError::invalid(
-                    "native Windows Runtime Release requires a committed Windows launcher",
-                    "executionProvider",
-                ));
-            }
-            let context = request
-                .plan
-                .windows_execution_context
-                .as_ref()
-                .ok_or_else(|| {
-                    RuntimeError::invalid(
-                        "native Windows Runtime Release requires frozen elevated execution context",
-                        "plan.windowsExecutionContext",
-                    )
-                })?;
-            if context.token_class != super::WindowsTokenClass::Elevated
-                || context.environment_source != "windows_privileged_broker_profile_allowlist_v1"
-            {
-                return Err(RuntimeError::invalid(
-                    "native Windows Runtime Release requires privileged broker execution context",
-                    "plan.windowsExecutionContext",
-                ));
-            }
-            let broker_digest = context.privileged_broker_digest.as_deref().ok_or_else(|| {
-                RuntimeError::invalid(
-                    "native Windows Runtime Release requires a frozen privileged broker digest",
-                    "plan.windowsExecutionContext.privilegedBrokerDigest",
-                )
-            })?;
-            validate_digest(
-                broker_digest,
-                "plan.windowsExecutionContext.privilegedBrokerDigest",
-            )?;
-        }
-    }
-    Ok(())
-}
-
 fn validate_submit(request: &SubmitRequest) -> RuntimeResult<()> {
     if request.schema_version != RUNTIME_SCHEMA_VERSION
         || request.plan.schema_version != RUNTIME_SCHEMA_VERSION
@@ -1412,7 +1038,7 @@ fn validate_submit(request: &SubmitRequest) -> RuntimeResult<()> {
         }
     }
     if let Some(release) = request.runtime_release_effect.as_ref() {
-        validate_runtime_release_effect_binding(release, request)?;
+        ReleaseStateContract::validate_committed_binding(release, request)?;
     } else if request
         .request_identity_digest
         .as_deref()
@@ -1678,31 +1304,6 @@ fn validate_runner_identity(identity: &RunnerIdentity) -> RuntimeResult<()> {
         ));
     }
     validate_digest(&identity.runner_start_digest, "runnerStartDigest")
-}
-
-fn validate_artifact_registration(artifact: &ArtifactRegistration) -> RuntimeResult<()> {
-    validate_identifier(&artifact.artifact_id, "artifactId")?;
-    validate_identifier(&artifact.kind, "artifact.kind")?;
-    validate_digest(&artifact.digest, "artifact.digest")?;
-    if artifact.relative_path.is_empty()
-        || Path::new(&artifact.relative_path).is_absolute()
-        || artifact
-            .relative_path
-            .split('/')
-            .any(|segment| segment == "..")
-    {
-        return Err(RuntimeError::invalid(
-            "Artifact path must be a bounded relative path",
-            "artifact.relativePath",
-        ));
-    }
-    if artifact.media_type.is_empty() || artifact.media_type.len() > 256 {
-        return Err(RuntimeError::invalid(
-            "Artifact mediaType must be non-empty and bounded",
-            "artifact.mediaType",
-        ));
-    }
-    Ok(())
 }
 
 fn validate_identifier(value: &str, field: &str) -> RuntimeResult<()> {

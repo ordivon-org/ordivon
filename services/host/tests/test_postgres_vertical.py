@@ -233,6 +233,55 @@ def test_task_list_keyset_cursor_is_scope_bound_and_complete() -> None:
 
 
 
+def test_task_list_updated_order_is_mechanical_and_cursor_bound() -> None:
+    h = host()
+    goal_id = f"goal:v2:updated-order:{uuid4().hex}"
+    task_ids = [tid(f"updated-{index}") for index in range(3)]
+    for index, task_id in enumerate(task_ids):
+        h.adopt(
+            task_id=task_id,
+            goal_id=goal_id,
+            checkpoint=CheckpointInput(payload={"n": index}),
+            client_request_id=f"a:{task_id}",
+        )
+
+    h.checkpoint(
+        task_id=task_ids[0],
+        expected_revision=1,
+        checkpoint=CheckpointInput(payload={"n": 99}),
+        client_request_id=f"c:{task_ids[0]}",
+    )
+
+    first, has_more, cursor = h.list_task_summaries_page(
+        goal_id=goal_id,
+        limit=2,
+        sort_key="updated",
+    )
+    assert first[0]["task_id"] == task_ids[0]
+    assert "created_at" in first[0]
+    assert "updated_at" in first[0]
+    assert has_more is True
+    assert isinstance(cursor, str)
+
+    second, has_more_2, cursor_2 = h.list_task_summaries_page(
+        goal_id=goal_id,
+        limit=2,
+        cursor=cursor,
+        sort_key="updated",
+    )
+    assert has_more_2 is False
+    assert cursor_2 is None
+    assert {item["task_id"] for item in (*first, *second)} == set(task_ids)
+
+    with pytest.raises(ValueError, match="query scope"):
+        h.list_task_summaries_page(
+            goal_id=goal_id,
+            limit=2,
+            cursor=cursor,
+            sort_key="created",
+        )
+
+
 def test_task_summary_page_omits_checkpoint_payload(monkeypatch: pytest.MonkeyPatch) -> None:
     h = host()
     task_id = tid("summary-page")
@@ -252,16 +301,28 @@ def test_task_summary_page_omits_checkpoint_payload(monkeypatch: pytest.MonkeyPa
     page, has_more, cursor = h.list_task_summaries_page(goal_id=goal_id, limit=10)
     assert has_more is False
     assert cursor is None
-    assert page == [
-        {
-            "task_id": task_id,
-            "goal_id": goal_id,
-            "revision": 1,
-            "state": "open",
-            "checkpoint_digest": expected_digest,
-            "writer_label": None,
-        }
-    ]
+    assert len(page) == 1
+    item = page[0]
+    assert {
+        key: item[key]
+        for key in (
+            "task_id",
+            "goal_id",
+            "revision",
+            "state",
+            "checkpoint_digest",
+            "writer_label",
+        )
+    } == {
+        "task_id": task_id,
+        "goal_id": goal_id,
+        "revision": 1,
+        "state": "open",
+        "checkpoint_digest": expected_digest,
+        "writer_label": None,
+    }
+    assert isinstance(item["created_at"], str)
+    assert isinstance(item["updated_at"], str)
     assert "checkpoint" not in page[0]
 
 

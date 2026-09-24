@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-commitment-r3-acceptance",
+  "truthRole": "candidate-acceptance-evidence-not-effect-authority",
+  "observedAt": "2026-09-23",
+  "sourceBase": "268681bbe2edde120deb529bcbe2e7696edf082b",
+  "primaryMainObservedBeforeCandidateCommit": "10cdbcdb33e19d9fe7fda7d57f3d33fa3eb8022c",
+  "policy": {
+    "engine": "OPA 1.20.2 / Rego v1",
+    "policyId": "policy:social-fabric:maintenance-shadow:r3",
+    "supportSemantics": "explicit required-role set membership",
+    "numericSupportThreshold": false,
+    "ranking": false,
+    "automaticTieBreak": false
+  },
+  "implementation": {
+    "newPolicyLanguage": false,
+    "newDaemon": false,
+    "newDatabase": false,
+    "newBroker": false,
+    "hostSchemaChanged": false,
+    "runtimeSchemaChanged": false,
+    "effectAuthorityGranted": false,
+    "implemented": [
+      "SF41 OPA-backed policy-defined quorum shadow",
+      "explicit unmet-requirement explanations",
+      "SF42 NOT_APPLICABLE / NOT_READY / READY_SHADOW / AMBIGUOUS_MULTIPLE_READY projection",
+      "sole-satisfied-candidate projection without execution authority",
+      "multiple-satisfied ambiguity without ranking or tie-break"
+    ]
+  },
+  "verification": {
+    "opaNativeTests": "5/5 PASS",
+    "pythonTargetedTests": "9/9 PASS",
+    "ruffLint": "PASS",
+    "ruffFormat": "PASS"
+  },
+  "dogfood": {
+    "singleCandidate": {
+      "state": "READY_SHADOW",
+      "effectAuthorityGranted": false,
+      "projectionDigest": "sha256:50196e06e88d04b8b084f76010d26eae0c7dcb3fb69df52faa8bcf7fdda0e2ff",
+      "projectionFileSha256": "sha256:21bfff16850dffb9e565b93a36a310c8436e9a0feda53a6cd79683ef9d15e2ae",
+      "decisionsFileSha256": "sha256:1797d6ec1c45ab05f2b231d7e2d80fea2cc960ded0525dbb17ac3cd3d04aa14a"
+    },
+    "realVhdCollision": {
+      "state": "NOT_READY",
+      "effectAuthorityGranted": false,
+      "projectionDigest": "sha256:b0e80d23f5fc60565016080fc217ebfe493f907ecd9f406856813db2c22d877e",
+      "projectionFileSha256": "sha256:4dc8762947a78412b0f6d583b74aeab17da99e91ec1f9f6f82249f6e82ee0478"
+    }
+  },
+  "currentStanding": "CANDIDATE_READY_FOR_FULL_AND_LATEST_MAIN_REQUALIFICATION",
+  "nonClaims": [
+    "READY_SHADOW is not an execution authorization.",
+    "Required support roles are not votes and duplicate support cannot increase standing.",
+    "OPA satisfaction does not mint a resource lease.",
+    "AMBIGUOUS_MULTIPLE_READY never selects a winner.",
+    "Natural effect owners retain admission, lease, execution and EffectAuthority.",
+    "Latest-main requalification is required because primary main advanced beyond the R3 source base."
+  ]
+}

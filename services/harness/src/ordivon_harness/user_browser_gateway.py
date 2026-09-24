@@ -57,9 +57,16 @@ class UserBrowserGatewayController:
 
     @staticmethod
     def _request_id(
-        mode: str, effect_id: str, request_digest: str, prompt_digest: str
+        mode: str,
+        effect_id: str,
+        request_digest: str,
+        prompt_digest: str,
+        attachment_manifest_digest: str | None = None,
     ) -> str:
-        suffix = _digest_text('|'.join((mode, effect_id, request_digest, prompt_digest)))[7:39]
+        parts = [mode, effect_id, request_digest, prompt_digest]
+        if attachment_manifest_digest is not None:
+            parts.append(attachment_manifest_digest)
+        suffix = _digest_text('|'.join(parts))[7:39]
         return f'user-browser:{mode}:{suffix}'
 
     @staticmethod
@@ -103,6 +110,42 @@ class UserBrowserGatewayController:
             raise RuntimeError('Pre-effect user-browser receipt cannot report SEND attempted')
         return payload
 
+    def _active_user_admission(self) -> tuple[bool, str, str, tuple[str, ...]]:
+        try:
+            standing = self.port.capability_standing('execution.windows')
+        except Exception:
+            detail = 'execution.windows capability projection unavailable; active_user effect held'
+            evidence = _digest_text(
+                json.dumps(
+                    {
+                        'capability': 'execution.windows',
+                        'requiredContext': 'active_user',
+                        'standing': 'PROJECTION_UNAVAILABLE',
+                    },
+                    sort_keys=True,
+                    separators=(',', ':'),
+                )
+            )
+            return False, evidence, detail, ()
+        if standing.supports_context('active_user'):
+            return True, standing.projection_digest, 'active_user available', standing.contexts
+        detail = 'execution.windows active_user context unavailable; provider effect held pre-effect'
+        evidence = _digest_text(
+            json.dumps(
+                {
+                    'available': standing.available,
+                    'capability': standing.capability,
+                    'configured': standing.configured,
+                    'contexts': list(standing.contexts),
+                    'projectionDigest': standing.projection_digest,
+                    'requiredContext': 'active_user',
+                },
+                sort_keys=True,
+                separators=(',', ':'),
+            )
+        )
+        return False, evidence, detail, standing.contexts
+
     def _run(
         self,
         mode: str,
@@ -111,8 +154,25 @@ class UserBrowserGatewayController:
         request_digest: str,
         prompt_path: str,
         prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
     ) -> dict:
-        args = (
+        if mode == 'materialize':
+            admitted, evidence, detail, contexts = self._active_user_admission()
+            if not admitted:
+                return {
+                    'schemaVersion': 1,
+                    'kind': 'ordivon.windows-user-browser-attempt',
+                    'effectId': effect_id,
+                    'standing': 'pre-effect-failed',
+                    'providerResource': None,
+                    'evidenceDigest': evidence,
+                    'detail': detail,
+                    'providerEffectAttempted': False,
+                    'requiredContext': 'active_user',
+                    'observedContexts': list(contexts),
+                }
+        args_list = [
             '-NoProfile',
             '-NonInteractive',
             '-File',
@@ -129,11 +189,31 @@ class UserBrowserGatewayController:
             prompt_digest,
             '-ProxyUrl',
             self.config.proxy_url,
-        )
+        ]
+        if (attachment_manifest_path is None) != (attachment_manifest_digest is None):
+            raise ValueError('attachment manifest path and digest must be supplied together')
+        if attachment_manifest_path is not None and attachment_manifest_digest is not None:
+            args_list.extend(
+                [
+                    '-AttachmentManifestPath',
+                    self.config.windows_prompt_path(attachment_manifest_path),
+                    '-AttachmentManifestDigest',
+                    attachment_manifest_digest,
+                    '-StageRoot',
+                    self.config.windows_stage_root,
+                ]
+            )
+        args = tuple(args_list)
         result = self.port.execute(
             GatewayExecutionRequest(
                 capability='execution.windows',
-                request_id=self._request_id(mode, effect_id, request_digest, prompt_digest),
+                request_id=self._request_id(
+                    mode,
+                    effect_id,
+                    request_digest,
+                    prompt_digest,
+                    attachment_manifest_digest,
+                ),
                 workspace_id=self.config.workspace_id,
                 executable=self.config.powershell_path,
                 args=args,
@@ -162,7 +242,14 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser classification must be an object')
         if payload.get('schemaVersion') != 1 or payload.get('kind') != 'ordivon.windows-user-browser-classification':
             raise RuntimeError('Windows user-browser classification identity is invalid')
-        if payload.get('standing') not in {'READY','AUTH_REQUIRED','CHALLENGE_GATED','BUSY','UNKNOWN'}:
+        if payload.get('standing') not in {
+            'READY',
+            'AUTH_REQUIRED',
+            'CHALLENGE_GATED',
+            'BUSY',
+            'CONTEXT_UNAVAILABLE',
+            'UNKNOWN',
+        }:
             raise RuntimeError('Windows user-browser classification standing is invalid')
         if payload.get('providerEffectAttempted') is not False:
             raise RuntimeError('Windows user-browser classification must remain pre-effect')
@@ -172,6 +259,18 @@ class UserBrowserGatewayController:
         return payload
 
     def classify(self) -> dict:
+        admitted, evidence, detail, contexts = self._active_user_admission()
+        if not admitted:
+            return {
+                'schemaVersion': 1,
+                'kind': 'ordivon.windows-user-browser-classification',
+                'standing': 'CONTEXT_UNAVAILABLE',
+                'detail': detail,
+                'providerEffectAttempted': False,
+                'requiredContext': 'active_user',
+                'observedContexts': list(contexts),
+                'capabilityEvidenceDigest': evidence,
+            }
         request_id = 'user-browser:classify:' + _digest_text(
             '|'.join((self.config.workspace_id, self.config.driver_path, self.config.proxy_url))
         )[7:39]

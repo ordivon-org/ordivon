@@ -19,7 +19,7 @@
     {
       "id": "SD1",
       "goal": "Small labeled discourse and citation corpora",
-      "standing": "PARTIAL_READY_TRANSPORT_BLOCKED_FOR_CONTEXT24",
+      "standing": "PARTIAL_CONTEXT24_IDENTITY_AND_CONTENT_CORE_MATERIALIZED",
       "candidates": [
         "scicite",
         "scidtb",
@@ -27,12 +27,13 @@
         "context24"
       ],
       "gate": "license verified + immutable snapshot manifest + checksum + schema census",
-      "unlocks": "SI-R3 ClaimPermission research"
+      "unlocks": "Claim-Evidence R2 exact content binding; evidence sufficiency/ClaimPermission remains research work",
+      "next": "Use content-bound subset for ClaimPermission pressure tests while preserving 423 identity-only links and withheld test gold."
     },
     {
       "id": "SD2",
       "goal": "Peer-review lifecycle corpora",
-      "standing": "IN_PROGRESS_ARIES_AND_DISAPERE_MATERIALIZED",
+      "standing": "IN_PROGRESS_ARIES_RESPONSE_DISAPERE_PEERSUM_MATERIALIZED",
       "candidates": [
         "peerread-v1",
         "nlpeer",
@@ -41,7 +42,7 @@
         "aries"
       ],
       "gate": "license/privacy/ethics verified + paper/review/rebuttal/version identity preserved",
-      "unlocks": "review concern, disagreement, rebuttal and revision research"
+      "unlocks": "review concern/response/revision fork, rebuttal discourse, and meta-review topology; direct response->revision and semantic disagreement remain research gaps"
     },
     {
       "id": "SD3",

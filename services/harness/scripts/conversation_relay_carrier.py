@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import PurePosixPath
 from typing import Protocol
 
 
@@ -61,27 +62,75 @@ def _canonical_digest(value: object) -> str:
 
 
 @dataclass(frozen=True, slots=True)
+class CarrierAttachment:
+    staging_relative_path: str
+    digest: str
+    media_type: str
+    presentation_name: str
+
+    def __post_init__(self) -> None:
+        _text(self.staging_relative_path, "attachment staging relative path", max_bytes=1024)
+        path = PurePosixPath(self.staging_relative_path)
+        if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
+            raise ValueError("attachment staging path must be a normal relative POSIX path")
+        if "\\" in self.staging_relative_path:
+            raise ValueError("attachment staging path must use POSIX separators")
+        _digest(self.digest, "attachment digest")
+        _text(self.media_type, "attachment media type", max_bytes=256)
+        if "/" not in self.media_type or any(ch.isspace() for ch in self.media_type):
+            raise ValueError("attachment media type must be one MIME type")
+        _text(self.presentation_name, "attachment presentation name", max_bytes=255)
+        if PurePosixPath(self.presentation_name).name != self.presentation_name:
+            raise ValueError("attachment presentation name must be one basename")
+
+    def canonical(self) -> dict[str, str]:
+        return {
+            "stagingRelativePath": self.staging_relative_path,
+            "digest": self.digest,
+            "mediaType": self.media_type,
+            "presentationName": self.presentation_name,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class CarrierMaterializationRequest:
     request_id: str
     preparation_digest: str
     bootstrap_prompt: str
+    attachments: tuple[CarrierAttachment, ...] = ()
 
     def __post_init__(self) -> None:
         _text(self.request_id, "materialization request identity")
         _digest(self.preparation_digest, "preparation digest")
         _text(self.bootstrap_prompt, "bootstrap prompt", max_bytes=16384)
+        if len(self.attachments) > 1:
+            raise ValueError("materialization supports at most one attachment")
+        if any(not isinstance(item, CarrierAttachment) for item in self.attachments):
+            raise ValueError("materialization attachments must use CarrierAttachment")
+        paths = [item.staging_relative_path for item in self.attachments]
+        names = [item.presentation_name for item in self.attachments]
+        if len(paths) != len(set(paths)) or len(names) != len(set(names)):
+            raise ValueError("materialization attachment paths and presentation names must be unique")
+
+    @property
+    def attachment_digest(self) -> str | None:
+        if not self.attachments:
+            return None
+        return _canonical_digest([item.canonical() for item in self.attachments])
 
     @property
     def request_digest(self) -> str:
-        return _canonical_digest(
-            {
-                "schemaVersion": 2,
-                "kind": "ordivon.conversation-carrier-materialization-request",
-                "requestId": self.request_id,
-                "preparationDigest": self.preparation_digest,
-                "bootstrapPromptDigest": _canonical_digest(self.bootstrap_prompt),
-            }
-        )
+        value = {
+            "schemaVersion": 2,
+            "kind": "ordivon.conversation-carrier-materialization-request",
+            "requestId": self.request_id,
+            "preparationDigest": self.preparation_digest,
+            "bootstrapPromptDigest": _canonical_digest(self.bootstrap_prompt),
+        }
+        if self.attachments:
+            value["schemaVersion"] = 3
+            value["attachments"] = [item.canonical() for item in self.attachments]
+        return _canonical_digest(value)
 
 
 

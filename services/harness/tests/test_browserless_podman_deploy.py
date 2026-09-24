@@ -132,7 +132,7 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
                 for x in c["browserSubstrate"]["endpoints"]
             )
         )
-        b = deploy.render_browser_use_config(binding)
+        b = deploy.render_browser_use_config(binding, browser_use_executable="/bin/true")
         self.assertEqual(
             [x["id"] for x in b["browserSubstrate"]["endpoints"]], ["browser-agent-22"]
         )
@@ -291,7 +291,7 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
         self.assertIn("WARM_CHATGPT_INSTANCES = (11,)", source)
         self.assertIn('ordivon-browserless-idle-reaper.timer', source)
 
-        browser = deploy.render_browser_use_config(self.binding())
+        browser = deploy.render_browser_use_config(self.binding(), browser_use_executable="/bin/true")
         endpoint = browser["browserSubstrate"]["endpoints"][0]
         self.assertEqual(endpoint["id"], "browser-agent-22")
         self.assertEqual(endpoint["activationUnit"], "ordivon-browser-agent.target")

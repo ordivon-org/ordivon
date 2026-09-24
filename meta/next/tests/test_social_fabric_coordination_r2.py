@@ -44,7 +44,7 @@ def _event(
         "data": data or {"evidenceRefs": []},
     }
     if expires is not None:
-        result["ordivonexpiresat"] = expires
+        result["expirytime"] = expires
     return result
 
 
@@ -100,14 +100,31 @@ def test_expiry_removes_candidate_from_active_standing() -> None:
     assert result["lifecycle"][0]["status"] == "expired"
 
 
+def test_legacy_ordivonexpiresat_remains_read_compatible_for_historical_cuts() -> None:
+    cut = _cut()
+    event = cut["events"][0]
+    event["ordivonexpiresat"] = event.pop("expirytime")
+    cut["observedAt"] = "2026-09-23T07:11:00+08:00"
+    result = compile_coordination_projection(cut)
+    assert result["candidateStanding"] == []
+    assert result["lifecycle"][0]["status"] == "expired"
+
+
+def test_dual_standard_and_legacy_expiry_encoding_fails_closed() -> None:
+    cut = _cut()
+    cut["events"][0]["ordivonexpiresat"] = "2026-09-23T07:10:00+08:00"
+    with pytest.raises(SocialFabricError, match="must not contain both expirytime"):
+        compile_coordination_projection(cut)
+
+
 def test_refresh_replaces_old_event_without_immortal_warning() -> None:
     cut = _cut()
     old = cut["events"][0]
-    old["ordivonexpiresat"] = "2026-09-23T07:06:00+08:00"
+    old["expirytime"] = "2026-09-23T07:06:00+08:00"
     refreshed = copy.deepcopy(old)
     refreshed["id"] = "candidate:a:r2"
     refreshed["time"] = "2026-09-23T07:04:00+08:00"
-    refreshed["ordivonexpiresat"] = "2026-09-23T07:14:00+08:00"
+    refreshed["expirytime"] = "2026-09-23T07:14:00+08:00"
     refreshed["ordivonrefreshes"] = "candidate:a"
     cut["events"].append(refreshed)
     result = compile_coordination_projection(cut)

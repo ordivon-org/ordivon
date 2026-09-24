@@ -1,68 +1,135 @@
 # Harness UX Execution Plan R1
 
 Date: 2026-09-23
-Base: `f2ec4ec0c77fcf6b29fedd33c9145cea653cf730`
-Workspace: `ws-harness-ux-f2ec-r2-20260923`
+Canonical integration: `6784677ce09a7495d133be436807af6f690c5867`
+Current worktree: `ws-hux40-canonical-record-r1-20260923`
 
 ## Objective
 
-Reduce ordinary Agent-run assembly friction without moving authority into UX, Composition, Gateway, or an Agent Service replacement.
+Reduce ordinary Agent-run assembly and inspection friction without moving authority into UX,
+Composition, Gateway, or an Agent Service replacement.
 
 ## Current wave standing
 
 | LEGO | Scope | Standing |
 | --- | --- | --- |
-| HUX-00 | source baseline | implemented candidate |
-| HUX-01 | non-authority boundary | implemented for AgentRunBinding; wider product gate remains future |
-| HUX-02 | anti-resurrection boundary | implemented for new binding schema/import seam; repository-wide semantic census remains future |
-| HUX-10 | executable documentation contract | implemented candidate |
-| HUX-11 | Quickstart/CLI parser smoke | implemented candidate |
-| HUX-12 | stable API classification | implemented candidate |
-| HUX-20 | AgentRunBinding contract | implemented candidate |
-| HUX-21 | deterministic binding digest | implemented candidate |
-| HUX-22 | machine-classified binding errors | implemented candidate |
-| HUX-23 | deletion/rebuild proof | implemented candidate |
-| HUX-30 | Circuit to Run lowering boundary | implemented candidate: apps/agent no-Tool consumer seam |
-| HUX-31 | generic provider-binding lowering | deferred by evidence: HarnessRunContract + Harness adapter revalidation already own the stable semantics; do not duplicate without a provider-owner immutable configuration reference |
-| HUX-32..38 | tool/skill/execution/completion lowering + Harness revalidation | next only where a real consumer still performs mechanical owner-reference bookkeeping |
-| HUX-40..65 | presets, app facade, conversation/friendly inspect | later real-consumer driven |
-| HUX-70..79 | loop/store internal refactor | later; behavior must be frozen first |
-| HUX-80..84 | engineering vertical/differential/failure campaign | after first lowering slice |
+| HUX-00 | source baseline | canonical |
+| HUX-01 | non-authority boundary | canonical for AgentRunBinding |
+| HUX-02 | anti-resurrection boundary | canonical for binding/import seam |
+| HUX-10 | executable documentation contract | canonical |
+| HUX-11 | Quickstart/CLI parser smoke | canonical |
+| HUX-12 | stable API classification | canonical |
+| HUX-20 | AgentRunBinding contract | canonical |
+| HUX-21 | deterministic binding digest | canonical |
+| HUX-22 | machine-classified binding errors | canonical |
+| HUX-23 | deletion/rebuild proof | canonical |
+| HUX-30 | Circuit → no-Tool bounded Harness Run | canonical in `apps/agent` |
+| HUX-31 | generic provider binding | **DEFERRED_BY_EVIDENCE** |
+| HUX-32 | generic Tool-surface lowering | **DEFERRED_BY_EVIDENCE** |
+| HUX-33 | generic Skill/Cognition lowering | **DEFERRED_BY_EVIDENCE** |
+| HUX-34 | generic ExecutionBinding lowering | **DEFERRED_BY_EVIDENCE** |
+| HUX-40 | read-only Product Run View | canonical in `apps/agent` |
+| HUX-41..65 | richer product/session UX | real-consumer driven only |
+| HUX-70..79 | loop/store internal refactor | later; behavior remains frozen first |
+| HUX-80..84 | real workload differential/failure campaign | choose only after a concrete app workload requires the relevant lowerers |
 
 ## Frozen laws
 
 1. `AgentRunBinding` is disposable and non-authoritative.
 2. Composition may bind exact owner references but may not import or reinterpret owner internals.
-3. Harness remains the owner of `HarnessRunContract` semantics and independently revalidates every executable composition.
+3. Harness remains the owner of `HarnessRunContract` semantics and independently revalidates executable composition.
 4. Tool visibility, selection, admission, authorization, execution, and completion remain distinct.
 5. A product facade may hide plumbing but may not weaken UNKNOWN/reconciliation/evidence boundaries.
-6. No universal registry, workflow engine, session database, or Agent Service is introduced by this program.
+6. A product Run view is lossy and read-only; Harness exact projections remain proof.
+7. `Harness completed` / `candidate_completed` never implies caller Task or domain semantic completion.
+8. No universal registry, workflow engine, Session database, or Agent Service is introduced by this program.
 
-## Convergence note
+## Canonical HUX-30 standing
 
-This candidate was replayed onto current main after Successor Contract R1 entered the Composition public API. Agent Run Binding must coexist with, not replace or shadow, successor-contract exports and semantics.
+The first lowering seam lives in `apps/agent`, the product/consumer composition surface. It
+depends only on the public `ordivon_composition` and `ordivon_harness.api` contracts.
+Composition and Harness remain mutually independent core owners.
 
-## HUX-30 standing
+HUX-30 intentionally admits only a no-Tool/no-cognition/no-execution Run. Tool-bearing,
+execution-bearing, and cognition-bearing bindings fail closed rather than being inferred.
 
-The first lowering seam lives in `apps/agent`, the product/consumer composition surface. It depends only on the public `ordivon_composition` and `ordivon_harness.api` contracts. Composition and Harness remain mutually independent core owners.
+The qualified HUX-30 candidate was replayed onto the concurrently evolved main, preserving the
+Skills relocation to `extensions/chatgpt-skills-mcp`, and was integrated through the accepted
+serialized `integrate-main.sh` path:
 
-R1 intentionally admits only a no-Tool/no-cognition Run. Tool-bearing, execution-bearing, and cognition-bearing bindings fail closed into later lowerers instead of being silently inferred.
+- previous main: `942bd3c88e754ca4edc190028f2d859c028509bc`
+- canonical HUX commit: `10cdbcdb33e19d9fe7fda7d57f3d33fa3eb8022c`
+- integration mode: `FAST_FORWARD`
+- post-integration primary-main invariant: PASS
 
-## Next executable slice
+## Delete-custom-by-default decisions
 
-Do not implement a generic HUX-31 ProviderBinding object. Current source already binds provider/adapter/model identity in HarnessRunContract and independently validates the realized adapter. Revisit only when a provider owner exposes an immutable configuration reference that cannot be represented by the existing Contract.
+### HUX-31 — generic ProviderBinding
 
-The next evidence-driven candidate is HUX-32 Tool-surface assembly, because Tool bridge/factory catalog and grant digests are source-owned facts that callers currently copy mechanically. Any HUX-32 work must automate that copying without moving Tool selection or authorization into the app.
+Do not implement. `HarnessRunContract` already binds `providerId`, `adapterId`, and
+`requestedModelId`, while `HarnessAgentRun` independently validates the realized adapter.
+Revisit only if a natural provider owner exposes an immutable configuration reference that
+cannot be represented by the existing Contract.
+
+### HUX-32 — generic Tool-surface lowering
+
+Do not implement yet. Production census found no Tool-bearing `apps/agent` consumer. The only
+manual catalog/grant digest duplication outside tests is in Harness-internal acceptance/live
+experiment scripts; `PluginGatewayExecutionBridgeFactory` already computes and validates its
+own natural-owner Tool surface. A test fixture is not sufficient evidence for a product API.
+
+### HUX-33 — generic Skill/Cognition lowering
+
+Do not implement yet. External production census found zero constructors of
+`HarnessCognitionSeed`, `HarnessCognitionSeedSource`, `HarnessWorkingViewSource`, or
+`HarnessCognitionProfile`. Revisit when a real app consumer must translate selected Skill
+material into exact cognition sources.
+
+### HUX-34 — generic ExecutionBinding lowering
+
+Do not implement yet. External production census found no app/domain/capability constructor.
+The only manual constructor is a Harness live A/B script; the Plugin/Gateway factory already
+builds the exact binding inside its natural owner.
+
+## HUX-40 — Product Run View
+
+The next justified UX slice is inspection rather than more assembly ontology. Existing
+`ordivon-harness status/inspect/explain` surfaces intentionally expose exact forensic JSON.
+`apps/agent` now adds a derived read-only view over an already validated in-process Run:
+
+- `created` → `ready`
+- `active` → `running`
+- `paused` → `attention_required`
+- `stopped` → `stopped`
+- `completed` → `run_finished`
+- `failed` → `failed`
+
+The view preserves `nativeStatus`, exact Run/Contract identity, revision, requested model and
+bounded composition-presence flags. It never infers Provider/Runtime liveness and always states
+that Harness did not establish Task/domain semantic acceptance. It deliberately maps paused to
+the generic `attention_required` rather than guessing `needs_input`.
 
 ## Qualification evidence
 
+Canonical HUX-30:
 - Composition AgentRunBinding tests: 9/9 passed.
-- Agent App no-Tool vertical tests: 7/7 passed.
+- Agent App HUX-30 tests: 7/7 passed before HUX-40.
 - Harness HUX regression tests: 10/10 passed.
-- Full Composition owner verify: passed.
-- Full Agent App owner verify: passed.
+- Full Composition owner verify: PASS.
+- Full Agent App owner verify: PASS.
 - Full Harness owner verify: 1065 tests + 121 subtests passed.
-- Repository owner-boundary, structure, composition-architecture and architecture-doc checks: passed.
-- Repository mechanics tests: 62 passed.
-- `repo:integration:test`: passed.
-- Cross-owner package dependencies are explicitly limited to `agent-app -> composition` and `agent-app -> harness`.
+- Repository owner-boundary/structure/composition-architecture/docs checks: PASS.
+- Repository mechanics: 62 tests passed.
+- `repo:integration:test`: PASS.
+- primary-main post integration: PASS.
+
+HUX-40 latest-main qualified candidate:
+- replay base: `e82ac3c19c18eb17e4d3a6df39333e0b1686739a`.
+- Agent App owner verify: 23 tests passed; Ruff and format checks passed.
+- Full Harness owner verify on unchanged Harness source: 1065 tests + 121 subtests passed; dependency/docs/evidence/wheel checks passed.
+- latest-main Harness documentation contract: valid.
+- real Harness vertical maps durable `completed` to product `run_finished`.
+- exact semantic acceptance remains false in the product view.
+- `git diff --check`: PASS.
+- serialized integration: `FAST_FORWARD` from `e82ac3c19c18eb17e4d3a6df39333e0b1686739a` to `6784677ce09a7495d133be436807af6f690c5867`.
+- post-integration primary-main invariant: PASS.

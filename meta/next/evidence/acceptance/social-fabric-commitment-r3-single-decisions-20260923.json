@@ -1,0 +1,36 @@
+{
+  "items": [
+    {
+      "candidateEventId": "candidate:maintenance:single",
+      "policyDecisionDigest": "sha256:39eb0dc2510c27cec7d4c023b2f35f5a70e21749c5d45f401f80adf2a8d4f68b",
+      "policyInputDigest": "sha256:7aabfdb53036218af84b30b9207d782ccb02a9fc684f4bf38a5953962b117cac",
+      "satisfied": true,
+      "subject": "resource:windows:maintenance:example",
+      "supportBindings": [
+        {
+          "countsForRoleRequirement": true,
+          "eventId": "support:maintenance:operations",
+          "evidenceRefs": [
+            "review:operations:example"
+          ],
+          "role": "operations"
+        },
+        {
+          "countsForRoleRequirement": true,
+          "eventId": "support:maintenance:storage",
+          "evidenceRefs": [
+            "review:storage:example"
+          ],
+          "role": "storage"
+        }
+      ],
+      "truthBoundary": "OPA policy satisfaction is a shadow coordination fact only; it does not grant execution, priority, a resource lease, or EffectAuthority.",
+      "unmet": []
+    }
+  ],
+  "kind": "ordivon.social-fabric-commitment-decisions",
+  "observedAt": "2026-09-23T15:30:00+08:00",
+  "policyDigest": "sha256:56fc021780c84b974aa6ed03105504364ca3e165f3884e81d0fae582cc68c421",
+  "policyId": "policy:social-fabric:maintenance-shadow:r3",
+  "schemaVersion": 1
+}

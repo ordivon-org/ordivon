@@ -1,0 +1,104 @@
+{
+  "coherentObservationHorizon": false,
+  "disclosure": "compact",
+  "kind": "ordivon.social-fabric-agent-coordination-view",
+  "nonClaims": [
+    "COORDINATION exposes shadow candidates/conflicts and re-entry coordinates; it is not a scheduler or lock manager.",
+    "A visibility filter changes presentation only and cannot grant or deny access or execution.",
+    "Candidate support is not a vote, score, rank, priority, or winner-selection mechanism."
+  ],
+  "observationStanding": "MIXED_OR_UNDATED_SOURCES",
+  "schemaVersion": 1,
+  "sourceHorizons": [
+    "2026-09-23T02:57:00+08:00",
+    "2026-09-23T04:32:40+08:00",
+    "2026-09-23T15:30:00+08:00",
+    "2026-09-23T20:27:00+08:00"
+  ],
+  "sourceIndex": [
+    {
+      "digest": "sha256:b94e9897835d89fba38f6ea40285e5d299bdfec8a5b595ce11d10254fad14bfb",
+      "input": "commitment",
+      "kind": "ordivon.social-fabric-commitment-projection"
+    },
+    {
+      "digest": "sha256:1c5385eeb606f5c48449605d7be3ece3e44b6920591edb433626528b01b571ea",
+      "input": "coordination",
+      "kind": "ordivon.social-fabric-coordination-projection"
+    },
+    {
+      "digest": "sha256:01cde62020c1a09e3d39533ebc2defe1b6b5c249852be78611fc5b6c8d59e1bc",
+      "input": "current",
+      "kind": "ordivon.social-fabric-current-projection"
+    },
+    {
+      "digest": "sha256:e1a505d9ca58122ea7e3de086b57f94f98e982400244b054cda3e39d57076fae",
+      "input": "epistemic",
+      "kind": "ordivon.social-fabric-epistemic-projection"
+    },
+    {
+      "digest": "sha256:dfba661619934b8dfeedff5e57063e2e066cb65f8982ebdd78c49eda2e1e0d71",
+      "input": "freshness",
+      "kind": "ordivon.social-fabric-freshness-projection"
+    },
+    {
+      "digest": "sha256:6134aee95ea55008a16bfa764b9a73ddad1aa459588d1866fbb010b2d5222806",
+      "input": "hostAttention",
+      "kind": "ordivon.host-current-attention-delta"
+    },
+    {
+      "digest": "sha256:5adc357c7bd66ff8fd39c7704c344e58d8fccf38ae5ddaabfc1f4a503b315bc9",
+      "input": "memory",
+      "kind": "ordivon.social-fabric-transactive-memory-projection"
+    },
+    {
+      "digest": "sha256:680fc2854cd7626fefa4132aedfe6df27d479a16e8168600a106044c9a2c9587",
+      "input": "signaling",
+      "kind": "ordivon.social-fabric-signaling-r3-projection"
+    }
+  ],
+  "sourceSetDigest": "sha256:a98ba23b5c4bad33d264645ef92c9e3993dd999e8a1ea3b49030350761eb9c44",
+  "summary": {
+    "candidateRefs": [
+      "candidate:vhd-compact:capital",
+      "candidate:vhd-compact:gris",
+      "candidate:wslservice-restart"
+    ],
+    "candidateStateCounts": {
+      "inhibited_shadow": 3
+    },
+    "conflictPairs": [
+      [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris"
+      ],
+      [
+        "candidate:vhd-compact:capital",
+        "candidate:wslservice-restart"
+      ],
+      [
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart"
+      ]
+    ],
+    "hostRoutedTaskCount": 2,
+    "visibleReceptorDeliveryCount": 5,
+    "visibleSignalCount": 5
+  },
+  "truthRole": "agent-facing-projection-only-no-owner-authority",
+  "undatedSourceInputs": [
+    "hostAttention"
+  ],
+  "view": "COORDINATION",
+  "viewDigest": "sha256:fec9a9c5bdae386751f584b8a79844a830c6aeedcc7fff1b9daa8b018edb0e7b",
+  "visibility": {
+    "aclEffect": false,
+    "appliesTo": [
+      "signaling.signals",
+      "signaling.receptorDeliveries"
+    ],
+    "authorizationEffect": false,
+    "compartmentPrefixes": [],
+    "presentationFilterOnly": true
+  }
+}

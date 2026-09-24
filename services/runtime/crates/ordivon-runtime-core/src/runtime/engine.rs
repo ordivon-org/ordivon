@@ -10,7 +10,9 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
 use super::evidence::prepare_runner_terminal_from_bundle;
+use super::operation_circuit::OperationCircuitCompiler;
 use super::platform::*;
 use super::registry::JobSnapshot;
 use super::supervisor::{
@@ -37,7 +39,7 @@ use super::{
     RuntimeReleaseProjection, RuntimeReleaseRequest, RuntimeResult, RuntimeWorkspaceGetRequest,
     RuntimeWorkspaceIssue, RuntimeWorkspaceIssueStage, RuntimeWorkspaceListRequest,
     RuntimeWorkspaceListResult, RuntimeWorkspaceSummary, SubmitRequest, TerminalCommit,
-    MAX_ARTIFACT_READ_BYTES, MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
+    MAX_TASK_TAIL_BYTES, MAX_TASK_WAIT_MS, RUNTIME_SCHEMA_VERSION,
 };
 use crate::universal::{
     canonical_directory, create_git_workspace, list_open_workspace_record_inventory,
@@ -772,51 +774,6 @@ fn protect_posix_path(_path: &Path, mode: u32, operation: &str) -> RuntimeResult
         format!("{operation}: platform permission realization is unavailable for mode {mode:#o}"),
         None,
         false,
-    ))
-}
-
-#[cfg(unix)]
-fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
-    OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
-        .open(path)
-}
-
-#[cfg(windows)]
-fn open_regular_file_nofollow(path: &Path) -> std::io::Result<File> {
-    use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
-
-    // CreateFileW FILE_FLAG_OPEN_REPARSE_POINT: open the named reparse point itself
-    // instead of traversing it. Validate the opened handle before consuming bytes so
-    // a rename/symlink race cannot silently redirect Runtime Release receipt truth.
-    const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
-    const FILE_ATTRIBUTE_DIRECTORY: u32 = 0x0000_0010;
-    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
-
-    let file = OpenOptions::new()
-        .read(true)
-        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
-        .open(path)?;
-    let metadata = file.metadata()?;
-    let attributes = metadata.file_attributes();
-    if !metadata.is_file()
-        || attributes & FILE_ATTRIBUTE_DIRECTORY != 0
-        || attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-    {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "secure receipt open requires a regular non-reparse file",
-        ));
-    }
-    Ok(file)
-}
-
-#[cfg(not(any(unix, windows)))]
-fn open_regular_file_nofollow(_path: &Path) -> std::io::Result<File> {
-    Err(std::io::Error::new(
-        std::io::ErrorKind::Unsupported,
-        "secure no-follow regular-file open is not implemented for this platform",
     ))
 }
 

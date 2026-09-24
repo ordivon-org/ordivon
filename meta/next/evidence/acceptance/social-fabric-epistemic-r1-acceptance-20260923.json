@@ -1,0 +1,74 @@
+{
+  "baselineRevision": "e56ff76eda18db2921688e5d3e6a46bb5eb50c0e",
+  "boundary": "PASS proves projection contracts and fail-closed epistemic/feasibility boundaries on bounded owner evidence. It does not establish the truth of any causal mechanism, global feasibility, optimality, execution authorization or effect completion.",
+  "epistemicDogfood": {
+    "browserLocalMechanism": "MECHANISM_EVIDENCE_SUPPORTED",
+    "browserOwnerNativeStanding": "PROFILE_WINDOW_PLACEMENT_ATTRIBUTED_PROVIDER_RELEVANCE_OPEN",
+    "residualOpenClaims": [
+      "provider-specific relevance",
+      "historical origin of stored production window placement",
+      "protected-provider challenge causality"
+    ],
+    "vhdHypothesis": "MECHANISM_HYPOTHESIS",
+    "vhdSequence": "SEQUENCE_OBSERVED"
+  },
+  "feasibilityDogfood": {
+    "numericRankingFieldsForbidden": [
+      "score",
+      "rank",
+      "weight",
+      "voteCount",
+      "priority",
+      "chemicalPotential",
+      "socialPressure"
+    ],
+    "singleCandidate": "FEASIBLE_SHADOW",
+    "vhdCandidateCount": 3,
+    "vhdStanding": "INFEASIBLE_SHADOW"
+  },
+  "focused": {
+    "epistemicStandings": [
+      "MECHANISM_EVIDENCE_SUPPORTED",
+      "MECHANISM_HYPOTHESIS",
+      "SEQUENCE_OBSERVED"
+    ],
+    "ruff": "PASS",
+    "singleFeasibleCount": 1,
+    "tests": "12/12 PASS",
+    "vhdFeasibleCount": 0,
+    "winnerSelectedSingle": false,
+    "winnerSelectedVhd": false
+  },
+  "gates": {
+    "architectureDocDrift": "PASS",
+    "compositionArchitecture": "PASS",
+    "dependencyAudit": "NO_KNOWN_VULNERABILITIES",
+    "githubGovernance": "PASS",
+    "integrateMainSmoke": "PASS",
+    "metaNextTests": 240,
+    "metaNextVerify": "PASS",
+    "ownerBoundary": "PASS",
+    "repoCi": "PASS",
+    "repoTests": 33,
+    "structureR2": "PASS"
+  },
+  "implemented": [
+    "EPI40 Sequence/Mechanism Standing Bridge",
+    "EPI41 Constraint Feasibility Boundary"
+  ],
+  "kind": "ordivon.social-fabric-epistemic-r1-acceptance",
+  "nonClaims": [
+    "No causal inference owner transfer.",
+    "No evidence-sufficiency judgment by Social Fabric.",
+    "No score/rank/vote/priority.",
+    "No winner selection.",
+    "No enforcement, lease or EffectAuthority."
+  ],
+  "runtimeJobs": [
+    "job-01a0ce55-7908-7393-947b-1bf618e0b75c",
+    "job-01a0ce55-b53f-7e81-a131-8a493d25f41b"
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_EPISTEMIC_AND_CONSTRAINT_BOUNDARY_CANDIDATE",
+  "truthRole": "candidate-acceptance-not-causal-or-decision-authority"
+}

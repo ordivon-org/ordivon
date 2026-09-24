@@ -51,3 +51,5 @@ Neither layer is current scientific or submission authority.
 
 Action-changing shared rules are admitted only after at least two independent Studies demonstrate
 the same irreducible rule after mature external substitution. R2 has admitted only the thin profile protocol after three-Study pressure testing. ClaimPermission, concern/gap routing, experiment-admission contracts, review disagreement and longitudinal decision episodes remain separate candidates and are not executable shared policy.
+
+Context24 ClaimPermission pressure R1 now tests one narrower rule: representation availability may raise an inspection ceiling but cannot grant scientific claim strength. The resulting envelope remains Study-owned and is explicitly ineligible for shared-policy promotion from this single pressure family.

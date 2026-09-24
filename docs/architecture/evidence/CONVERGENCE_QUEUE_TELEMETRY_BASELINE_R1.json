@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "queue": "GitHub Merge Queue",
+    "runs": "GitHub Actions",
+    "projection": "tools/repo/queue_telemetry.py",
+    "durableLocalQueueState": false
+  },
+  "coverage": {
+    "repository": "ordivon-org/ordivon",
+    "mergedPullRequestsFetched": 8,
+    "queueAttributedPullRequests": 8,
+    "mergeGroupRunsFetched": 8,
+    "historicalDepthIsLowerBound": true
+  },
+  "metrics": {
+    "queueDispatchSeconds": {
+      "count": 8,
+      "mean": 17.75,
+      "median": 18.0,
+      "p95": 18.0,
+      "max": 18.0
+    },
+    "queueResidenceSeconds": {
+      "count": 8,
+      "mean": 129.25,
+      "median": 106.0,
+      "p95": 217.0,
+      "max": 217.0
+    },
+    "endToEndQueueSeconds": {
+      "count": 8,
+      "mean": 129.375,
+      "median": 106.0,
+      "p95": 217.0,
+      "max": 217.0
+    },
+    "runnerWaitSeconds": {
+      "count": 8,
+      "mean": 7.625,
+      "median": 3.0,
+      "p95": 39.0,
+      "max": 39.0
+    },
+    "verificationSeconds": {
+      "count": 8,
+      "mean": 69.375,
+      "median": 44.0,
+      "p95": 162.0,
+      "max": 162.0
+    },
+    "postVerificationMergeSeconds": {
+      "count": 8,
+      "mean": 32.625,
+      "median": 32.0,
+      "p95": 39.0,
+      "max": 39.0
+    },
+    "observedPeakQueueDepthLowerBound": 2,
+    "requeues": 0,
+    "unsuccessfulMergeGroupRuns": 0,
+    "observedWastedVerificationSeconds": 0.0
+  },
+  "pressureGate": {
+    "adaptiveSpeculation": "INSUFFICIENT_EVIDENCE",
+    "batchingBisection": "INSUFFICIENT_EVIDENCE",
+    "costPrediction": "INSUFFICIENT_HISTORY",
+    "reason": "Telemetry is observational. A scheduler change requires repeated contention or material CI waste plus enough history to validate it."
+  },
+  "observations": [
+    {
+      "pr": 16,
+      "enqueueAt": "2026-09-22T11:22:09Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:22:27Z",
+      "mergedAt": "2026-09-22T11:23:57Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 108.0,
+      "endToEndQueueSeconds": 108.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721081039,
+      "mergeGroupSha": "3425d361f678ae688d5ac81863ea33095b62411b",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 52.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 17,
+      "enqueueAt": "2026-09-22T11:27:15Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:27:33Z",
+      "mergedAt": "2026-09-22T11:28:46Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 91.0,
+      "endToEndQueueSeconds": 91.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721556672,
+      "mergeGroupSha": "03a6e451b0bb8aa5e346cce52c091758d2b71edb",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 38.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 18,
+      "enqueueAt": "2026-09-22T11:27:18Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:27:34Z",
+      "mergedAt": "2026-09-22T11:28:47Z",
+      "queueDispatchSeconds": 16.0,
+      "queueResidenceSeconds": 89.0,
+      "endToEndQueueSeconds": 89.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721558190,
+      "mergeGroupSha": "6be42de4c698b658fbc10cc34b06b8a122074470",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 42.0,
+      "postVerificationMergeSeconds": 28.0
+    },
+    {
+      "pr": 19,
+      "enqueueAt": "2026-09-22T11:31:36Z",
+      "mergeGroupCreatedAt": "2026-09-22T11:31:54Z",
+      "mergedAt": "2026-09-22T11:33:51Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 135.0,
+      "endToEndQueueSeconds": 135.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35721964283,
+      "mergeGroupSha": "27c515c21a242681466d0ec64061768e0f4c4a21",
+      "runnerWaitSeconds": 39.0,
+      "verificationSeconds": 38.0,
+      "postVerificationMergeSeconds": 39.0
+    },
+    {
+      "pr": 20,
+      "enqueueAt": "2026-09-22T12:19:53Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:20:11Z",
+      "mergedAt": "2026-09-22T12:23:05Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 192.0,
+      "endToEndQueueSeconds": 192.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35726560495,
+      "mergeGroupSha": "06b932777ee03b421e45f021f51efebd0053a089",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 138.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 21,
+      "enqueueAt": "2026-09-22T12:11:51Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:12:09Z",
+      "mergedAt": "2026-09-22T12:15:28Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 217.0,
+      "endToEndQueueSeconds": 217.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35725780805,
+      "mergeGroupSha": "ceba591066c98999e404bdfe5f72a66ef3ed76ea",
+      "runnerWaitSeconds": 3.0,
+      "verificationSeconds": 162.0,
+      "postVerificationMergeSeconds": 33.0
+    },
+    {
+      "pr": 22,
+      "enqueueAt": "2026-09-22T12:27:47Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:28:05Z",
+      "mergedAt": "2026-09-22T12:29:31Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 104.0,
+      "endToEndQueueSeconds": 104.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35727346512,
+      "mergeGroupSha": "859932ed016eb03796fc969b04171a94eaa52524",
+      "runnerWaitSeconds": 5.0,
+      "verificationSeconds": 39.0,
+      "postVerificationMergeSeconds": 32.0
+    },
+    {
+      "pr": 23,
+      "enqueueAt": "2026-09-22T12:34:55Z",
+      "mergeGroupCreatedAt": "2026-09-22T12:35:13Z",
+      "mergedAt": "2026-09-22T12:36:34Z",
+      "queueDispatchSeconds": 18.0,
+      "queueResidenceSeconds": 98.0,
+      "endToEndQueueSeconds": 99.0,
+      "mergeGroupRuns": 1,
+      "requeues": 0,
+      "mergeGroupConclusion": "success",
+      "mergeGroupRunId": 35728079494,
+      "mergeGroupSha": "8baa98ec0092da69e06519ee7812dff1b581beca",
+      "runnerWaitSeconds": 2.0,
+      "verificationSeconds": 46.0,
+      "postVerificationMergeSeconds": 32.0
+    }
+  ]
+}

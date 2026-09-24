@@ -1,0 +1,101 @@
+{
+  "candidateDecisions": [
+    {
+      "candidateEventId": "candidate:vhd-compact:capital",
+      "policyDecisionDigest": "sha256:b46ed47d6130cbc2efcc30bf7428588f0e2111e076c48c88de2b3fbd207f0376",
+      "policyInputDigest": "sha256:05d9f899a2e427a02a14a6fcb7f094341ebfe9deca5e5639022503a709a345d2",
+      "satisfied": false,
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "supportBindings": [],
+      "truthBoundary": "OPA policy satisfaction is a shadow coordination fact only; it does not grant execution, priority, a resource lease, or EffectAuthority.",
+      "unmet": [
+        {
+          "code": "CANDIDATE_NOT_ELIGIBLE_SHADOW",
+          "value": "inhibited_shadow"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "operations"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "storage"
+        }
+      ]
+    },
+    {
+      "candidateEventId": "candidate:vhd-compact:gris",
+      "policyDecisionDigest": "sha256:b46ed47d6130cbc2efcc30bf7428588f0e2111e076c48c88de2b3fbd207f0376",
+      "policyInputDigest": "sha256:01d62936c44929b8992f830222d5de2d965869dc75354e1d8da80ebde2e7a844",
+      "satisfied": false,
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "supportBindings": [],
+      "truthBoundary": "OPA policy satisfaction is a shadow coordination fact only; it does not grant execution, priority, a resource lease, or EffectAuthority.",
+      "unmet": [
+        {
+          "code": "CANDIDATE_NOT_ELIGIBLE_SHADOW",
+          "value": "inhibited_shadow"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "operations"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "storage"
+        }
+      ]
+    },
+    {
+      "candidateEventId": "candidate:wslservice-restart",
+      "policyDecisionDigest": "sha256:29abce9609ababbc8fbc139297e814d17ec32ae91f8b3adddc9307255823dd20",
+      "policyInputDigest": "sha256:c965ae3a9dd36230b91962e248fcd830931b351bdc4937e28646f85e46ebf51c",
+      "satisfied": false,
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "supportBindings": [],
+      "truthBoundary": "OPA policy satisfaction is a shadow coordination fact only; it does not grant execution, priority, a resource lease, or EffectAuthority.",
+      "unmet": [
+        {
+          "code": "CANDIDATE_NOT_ELIGIBLE_SHADOW",
+          "value": "inhibited_shadow"
+        },
+        {
+          "code": "MISSING_CANDIDATE_EVIDENCE_PREFIX",
+          "value": "job:"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "operations"
+        },
+        {
+          "code": "MISSING_SUPPORT_ROLE",
+          "value": "storage"
+        }
+      ]
+    }
+  ],
+  "commitmentProjection": {
+    "effectAuthorityGranted": false,
+    "externalEffectPerformed": false,
+    "policySatisfiedCandidateIds": [],
+    "requiresOwnerBinding": true,
+    "state": "NOT_READY",
+    "truthBoundary": "SF42 is an explainable shadow commitment projection. Natural effect owners must separately establish any enforceable lease, admission, or external effect."
+  },
+  "coordinationProjectionDigest": "sha256:a17c7862762290709ad4a95247c8183826a64699ee2b0b400d629f2c6cb94a3a",
+  "kind": "ordivon.social-fabric-commitment-projection",
+  "nonClaims": [
+    "OPA policy satisfaction is not execution authorization.",
+    "Required support roles are set membership requirements, not votes.",
+    "Duplicate supporters or support counts do not increase standing.",
+    "Multiple satisfied candidates are reported as ambiguous and are never tie-broken.",
+    "READY_SHADOW does not mint a resource lease or EffectAuthority."
+  ],
+  "observedAt": "2026-09-23T04:32:40+08:00",
+  "policyDigest": "sha256:56fc021780c84b974aa6ed03105504364ca3e165f3884e81d0fae582cc68c421",
+  "policyId": "policy:social-fabric:maintenance-shadow:r3",
+  "projectionDigest": "sha256:b0e80d23f5fc60565016080fc217ebfe493f907ecd9f406856813db2c22d877e",
+  "schemaVersion": 1,
+  "sourceCutDigest": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73",
+  "truthRole": "rebuildable-shadow-commitment-projection"
+}

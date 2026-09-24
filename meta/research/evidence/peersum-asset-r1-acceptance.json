@@ -1,0 +1,22 @@
+{
+  "artifactRequalification": "PASS_ARTIFACT_BYTES_INDEPENDENTLY_REQUALIFIED",
+  "currentCarrierSplits": {
+    "test": 1505,
+    "train": 11992,
+    "val": 1496
+  },
+  "historicalDocumentationSplits": {
+    "test": 1499,
+    "train": 11995,
+    "val": 1499
+  },
+  "kind": "ordivon.research.peersum-asset-acceptance",
+  "messages": 178272,
+  "originalMaterializationJob": "ORPHANED_RECONCILIATION_REQUIRED",
+  "papers": 14993,
+  "rawCarrierSha256": "sha256:ddd4766837f7d92913d1fa59cf2aabac18bf0313643f35e1c993d09c0ff938ab",
+  "schemaVersion": 1,
+  "snapshotIdentity": "sha256:d25dde82d50cc811aa9a8a16858c18e5913d6916fe4c41b10c1da3ed927e151b",
+  "standing": "PASS_DIGEST_BOUND_PEERSUM_ASSET",
+  "truthBoundary": "Acceptance proves exact PeerSum artifact/schema/reply-graph bindings. It does not promote numeric rating spread to semantic disagreement, meta-review to truth, or acceptance metadata to a venue-independent quality target."
+}

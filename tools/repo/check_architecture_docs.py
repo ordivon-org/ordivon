@@ -48,25 +48,31 @@ EXPECTED_GATEWAY_TOOLS = {
     "artifact.read",
     "continuity.get",
     "continuity.list",
+    "continuity.find",
     "continuity.observe",
     "continuity.adopt",
     "continuity.checkpoint",
+    "continuity.changes",
     "continuity.attention",
     "collaboration.list",
     "collaboration.search",
     "collaboration.post",
+    "collaboration.publish",
 }
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
     "continuity.get",
     "continuity.list",
+    "continuity.find",
     "continuity.observe",
     "continuity.adopt",
     "continuity.checkpoint",
+    "continuity.changes",
     "continuity.attention",
     "collaboration.list",
     "collaboration.search",
     "collaboration.post",
+    "collaboration.publish",
 }
 
 

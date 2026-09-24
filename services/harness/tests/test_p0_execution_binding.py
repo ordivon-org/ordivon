@@ -163,6 +163,33 @@ class HarnessExecutionBindingTests(unittest.TestCase):
             ),
         )
 
+    def test_observe_job_lowers_to_runtime_job_observe(self) -> None:
+        call = AgentToolCall(
+            tool_call_id="tool-call:p0-execution-binding-observe",
+            name="observe_job",
+            arguments={
+                "jobId": "job:p0-execution-binding-001",
+                "waitMs": 123,
+                "stdoutTailBytes": 2048,
+                "stderrTailBytes": 1024,
+            },
+        )
+        operation, request, client_request_id = lower_runtime_tool(
+            call,
+            step_id="turn-1-tool-observe",
+            execution_binding=binding(),
+            tool_grant=None,
+            known_job_ids=frozenset({"job:p0-execution-binding-001"}),
+            known_artifacts=frozenset(),
+        )
+        self.assertEqual(operation, "job.observe")
+        self.assertIsNone(client_request_id)
+        self.assertEqual(request["schemaVersion"], 1)
+        self.assertEqual(request["jobId"], "job:p0-execution-binding-001")
+        self.assertEqual(request["waitMs"], 123)
+        self.assertEqual(request["stdoutTailBytes"], 2048)
+        self.assertEqual(request["stderrTailBytes"], 1024)
+
     def test_references_must_be_unique_and_sorted(self) -> None:
         value = binding().to_dict()
         value["runtimeReferences"] = list(reversed(value["runtimeReferences"]))

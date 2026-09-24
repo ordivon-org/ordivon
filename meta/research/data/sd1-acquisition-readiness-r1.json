@@ -4,18 +4,21 @@
   "id": "sd1-acquisition-readiness-r1",
   "observedAt": "2026-09-23",
   "truthRole": "acquisition-readiness-observation-not-license-legal-advice",
-  "standing": "PARTIAL_READY",
+  "standing": "PARTIAL_READY_CONTEXT24_IDENTITY_AND_CONTENT_CORE_MATERIALIZED",
   "candidates": [
     {
       "id": "context24",
-      "standing": "READY_LICENSE_VERIFIED_TRANSPORT_BLOCKED_HF_DIRECT",
+      "standing": "MATERIALIZED_IDENTITY_PLUS_PARTIAL_CONTENT_CORE",
       "release": "joelchan/contextualizing-scientific-claims",
       "releaseUrl": "https://huggingface.co/datasets/joelchan/contextualizing-scientific-claims",
       "licenseObserved": "CC-BY-4.0",
       "paperUrl": "https://aclanthology.org/2024.sdp-1.3/",
-      "reportedClaims": 585,
-      "next": "retry through a healthy approved transport path; do not substitute search snippets for dataset bytes",
-      "transportObserved": "Linux Runtime direct HF and localhost Network-v2 proxy both timed out; Windows Runtime direct HF timed out on 2026-09-23."
+      "localAsset": "context24-identity-core-r1",
+      "scope": "Task1 identity core + 256/679 public-train gold evidence links exact-content-bound + 423 identity-only + focal fulltexts for all current claim citekeys; test gold withheld; silver corpus omitted",
+      "transportStanding": "RECOVERED_VIA_DIGEST_AND_COMMIT_BOUND_RESOLVER",
+      "contentAsset": "context24-evidence-content-core-r1",
+      "rightsBoundary": "Dataset card CC BY 4.0 observed; underlying source-paper media rights not independently verified; external redistribution/commercial media reuse fail-closed.",
+      "next": "research evidence-sufficiency and ClaimPermission without promoting content availability into support authority"
     },
     {
       "id": "scicite",
@@ -67,11 +70,13 @@
       "coresc-azii-chemistry"
     ],
     "bulkDownloadAuthorized": false,
-    "mayMaterializeWhenTransportAvailable": [
-      "context24"
-    ],
+    "mayMaterializeWhenTransportAvailable": [],
     "materializedOutsideSD1DueAvailableTransport": [
       "aries-bounded-core-r1"
+    ],
+    "materialized": [
+      "context24-identity-core-r1",
+      "context24-evidence-content-core-r1"
     ]
   },
   "nonClaims": [

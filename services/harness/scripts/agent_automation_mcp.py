@@ -27,16 +27,16 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from agent_automation_registry import AgentAutomationRegistryError, CampaignRegistry  # noqa: E402
-from standard_identifiers import UUID7_PATTERN  # noqa: E402
 from agent_automation_browserless import (  # noqa: E402
-    BrowserlessAutomationConfig,
     BrowserlessAutomationAmbiguous,
+    BrowserlessAutomationConfig,
     BrowserlessAutomationConflict,
     BrowserlessAutomationHold,
     BrowserlessAutomationService,
     _read_json,
 )
+from agent_automation_registry import AgentAutomationRegistryError, CampaignRegistry  # noqa: E402
+from standard_identifiers import UUID7_PATTERN  # noqa: E402
 
 DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 8896
@@ -51,11 +51,20 @@ class RoleCardInput(BaseModel):
     roleCard: str = Field(min_length=1, max_length=16384)
 
 
+class AttachmentInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    stagingRelativePath: str = Field(min_length=1, max_length=1024)
+    digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    mediaType: str = Field(min_length=3, max_length=256)
+    presentationName: str = Field(min_length=1, max_length=255)
+
+
 class CampaignSpecInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     campaignId: str = Field(min_length=1, max_length=512)
     sharedPrompt: str = Field(min_length=1, max_length=32768)
     roster: list[RoleCardInput] = Field(min_length=1, max_length=256)
+    sharedAttachments: list[AttachmentInput] = Field(default_factory=list, max_length=1)
 
 
 class ConversationMarkerProofInput(BaseModel):

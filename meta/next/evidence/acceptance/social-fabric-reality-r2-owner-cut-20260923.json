@@ -1,0 +1,189 @@
+{
+  "authorityEntries": [
+    {
+      "aliases": [
+        "A2A",
+        "A2A Protocol",
+        "Agent2Agent",
+        "Agent2Agent 1.0.0"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-23",
+      "domains": [
+        "agents",
+        "engineering",
+        "integration"
+      ],
+      "id": "a2a-protocol-1.0.0",
+      "identityMode": "versioned",
+      "issuer": "A2A Project",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:aad89b58394a4aacdf88b2c79b7fa8746ca01548f1ccd69a8f96fe8d1dfcdc75",
+      "recordDigest": "sha256:367161e688c0404bfa2ba8de358a6266a0c731026836b3a94e2926c5f293a7f6",
+      "title": "Agent2Agent (A2A) Protocol Specification 1.0.0",
+      "topics": [
+        "agent-interoperability",
+        "agent-to-agent",
+        "protocols",
+        "tasks"
+      ],
+      "versionLabel": "1.0.0"
+    },
+    {
+      "aliases": [
+        "CloudEvents documented extensions",
+        "CloudEvents extension attributes"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-23",
+      "domains": [
+        "data",
+        "engineering",
+        "integration",
+        "operations"
+      ],
+      "id": "cloudevents-documented-extensions",
+      "identityMode": "rolling-source",
+      "issuer": "CNCF CloudEvents",
+      "lifecycleStatus": "rolling",
+      "observationDigest": "sha256:aaad7c7df18a57cd94430ba839b6334b5ca31a48912324ab17ddd095b1090f96",
+      "recordDigest": "sha256:9ebe46aca58bff1fea18199cd254faff054a66b8a7bf0384bd98a5e175328056",
+      "title": "CloudEvents Documented Extension Attributes",
+      "topics": [
+        "event-envelope",
+        "events",
+        "extensions",
+        "interoperability"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "OpenLineage",
+        "OpenLineage spec"
+      ],
+      "authorityKind": "open-specification",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "analytics",
+        "data",
+        "operations"
+      ],
+      "id": "openlineage-spec",
+      "identityMode": "rolling-source",
+      "issuer": "OpenLineage",
+      "lifecycleStatus": "current",
+      "observationDigest": "sha256:3fa16b9c449140187641d0bd5f3c45857f28dd057ad9f210ba113ff89144b28c",
+      "recordDigest": "sha256:9161e04be03a88412c9177dda89c69157117150fe448a0dd5dc946f7275c6c4a",
+      "title": "OpenLineage specification",
+      "topics": [
+        "data-lineage",
+        "datasets",
+        "jobs",
+        "metadata",
+        "provenance"
+      ],
+      "versionLabel": null
+    },
+    {
+      "aliases": [
+        "PROV Ontology",
+        "PROV-O",
+        "W3C PROV"
+      ],
+      "authorityKind": "web-standard",
+      "currentnessChecked": "2026-09-14",
+      "domains": [
+        "artifact",
+        "data",
+        "research"
+      ],
+      "id": "w3c-prov-o-2013",
+      "identityMode": "versioned",
+      "issuer": "W3C",
+      "lifecycleStatus": "published",
+      "observationDigest": "sha256:f2f73f4aa1eb87b1188e37f27c3721ecc2787566e8192c97df34cf29d3d8d2c7",
+      "recordDigest": "sha256:36d8f241653f05cfb1a1c01fb09065e9272ecf03316c8d041fd25597cbe093a9",
+      "title": "PROV-O: The PROV Ontology — W3C Recommendation 30 April 2013",
+      "topics": [
+        "data-lineage",
+        "interchange",
+        "ontology",
+        "provenance"
+      ],
+      "versionLabel": "2013-04-30"
+    }
+  ],
+  "currentnessFacts": [
+    {
+      "owner": "research-owner:network",
+      "sourceRef": "services/runtime/research/programme/evidence/C4-CROSS-OWNER-STANDING-CURRENTNESS.json",
+      "standing": "HISTORICAL_NOT_CURRENT",
+      "subjectRef": "authority:network-research-owner",
+      "versionRef": "sha256:bfadaaaad3b01f9c4388e4e4a75e77c782c2c3111849e5c4598052ec740ee79f"
+    },
+    {
+      "owner": "research-owner:network",
+      "sourceRef": "services/runtime/research/programme/evidence/C4-CROSS-OWNER-STANDING-CURRENTNESS.json",
+      "standing": "CURRENT_DECLARED",
+      "subjectRef": "authority:network-research-owner",
+      "versionRef": "sha256:dbdbb759b2b86b898a343cbb81646b283c589676989e919537f1a6cbc2b1df91"
+    }
+  ],
+  "gatewayCapabilities": {
+    "capabilities": [
+      {
+        "available": true,
+        "capability": "artifact.runtime",
+        "configured": true,
+        "owner_id": "runtime.dynamic",
+        "truth_boundary": "Artifact bytes and physical production evidence remain Runtime-owned."
+      },
+      {
+        "available": true,
+        "capability": "continuity.external",
+        "configured": true,
+        "owner_id": "host",
+        "truth_boundary": "Host owns external semantic continuity and collaboration state only."
+      },
+      {
+        "available": true,
+        "capability": "execution.linux",
+        "configured": true,
+        "owner_id": "runtime.linux",
+        "truth_boundary": "Runtime owns Workspace/Job/Attempt/process/artifact physical truth."
+      },
+      {
+        "available": true,
+        "capability": "execution.windows",
+        "configured": true,
+        "owner_id": "runtime.windows",
+        "truth_boundary": "Windows Runtime owns Workspace/Job/Attempt/process/artifact physical truth."
+      }
+    ],
+    "kind": "ordivon.gateway-capability-projection",
+    "projection_digest": "sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a",
+    "schema_version": 1,
+    "truth_role": "rebuildable-non-authoritative-projection"
+  },
+  "hostTasks": {
+    "kind": "ordivon.host-task-list",
+    "schemaVersion": 4,
+    "tasks": [
+      {
+        "checkpoint_digest": "sha256:530408bd698fb40097a2bbaca3cb67657e4d9a5408771f64e464f0260e0905cb",
+        "goal_id": "goal:ordivon-social-fabric-crossdisciplinary-recompile",
+        "revision": 2,
+        "state": "open",
+        "task_id": "task:social-fabric-crossdisciplinary-r2-20260923",
+        "writer_label": "chatgpt-gpt5.6-sol/social-crossdisciplinary-r2-wave1"
+      }
+    ],
+    "truthBoundary": "compact continuity inventory only; not work priority, owner standing, or domain truth"
+  },
+  "kind": "ordivon.social-fabric-reality-owner-cut",
+  "observedAt": "2026-09-23T20:27:00+08:00",
+  "schemaVersion": 1,
+  "supersessionFacts": [],
+  "verificationBindings": []
+}

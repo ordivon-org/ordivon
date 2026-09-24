@@ -4,21 +4,25 @@
   "id": "sd2-review-lifecycle-readiness-r1",
   "observedAt": "2026-09-23",
   "truthRole": "acquisition-readiness-observation-not-reviewer-truth-or-legal-advice",
-  "standing": "IN_PROGRESS_TWO_COMPLEMENTARY_ASSETS_MATERIALIZED",
+  "standing": "IN_PROGRESS_THREE_DATASETS_FOUR_REVIEW_LIFECYCLE_ASSETS_MATERIALIZED",
   "datasets": [
     {
       "id": "aries",
-      "standing": "MATERIALIZED_BOUNDED_CORE",
+      "standing": "MATERIALIZED_BOUNDED_CORE_PLUS_RESPONSE_CORE",
       "licenseObserved": "ODC-BY-1.0",
       "localAsset": "aries-bounded-core-r1",
-      "scope": "comment-edit identity and alignment; S2ORC text omitted"
+      "scope": "comment-edit identity and alignment; S2ORC text omitted",
+      "responseCore": "aries-review-response-core-r1",
+      "identified": "same-authority concern->source-review->author-response topology plus independent concern->revision correspondence",
+      "stillNotIdentified": "response->revision semantic/causal link or concern-specific response adequacy"
     },
     {
       "id": "peersum",
-      "standing": "READY_LICENSE_OBSERVED_NOT_ACQUIRED",
-      "licenseObserved": "Apache-2.0 on Hugging Face dataset card",
-      "reportedSamples": 14993,
-      "next": "bounded snapshot if meta-review/disagreement research becomes active"
+      "standing": "MATERIALIZED_DIGEST_BOUND",
+      "licenseObserved": "Apache-2.0 on bound Hugging Face dataset card",
+      "localAsset": "peersum-hf-bounded-core-r1",
+      "scope": "review/discussion topology plus meta-review synthesis; acceptance retained only as native metadata",
+      "splitStanding": "CURRENT_CARRIER_DIFFERS_FROM_HISTORICAL_DOCUMENTATION"
     },
     {
       "id": "nlpeer-v2",

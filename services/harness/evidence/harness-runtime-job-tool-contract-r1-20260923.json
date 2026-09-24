@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-runtime-job-tool-contract-r1",
+  "date": "2026-09-23",
+  "implementationRevision": "045cf62eed2e1039ab39d71bdc179349d1e974b9",
+  "baseRevision": "591672cd8637ba4fdc68bc3f31ce5a90918cdb71",
+  "python": {
+    "version": "3.14.7",
+    "channel": "stable-ga"
+  },
+  "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
+  "contract": {
+    "runtimeJobDiscoveryTool": "job.list",
+    "runtimeJobObservationTool": "job.observe",
+    "retiredCompatibilityNames": [
+      "task.list",
+      "task.observe"
+    ],
+    "runtimeOwnsTaskSemanticCompletion": false,
+    "officialMcpTasksRemainSeparateProtocolSurface": true,
+    "cooperativeGatewayCancellationPreserved": true
+  },
+  "checks": {
+    "focusedRuntimeJobContractRegression": {
+      "status": "PASS",
+      "cases": 38,
+      "subtests": 11
+    },
+    "gatewayCancellationAndBridgeRegression": {
+      "status": "PASS",
+      "cases": 16,
+      "subtests": 4
+    },
+    "ruff": {
+      "status": "PASS"
+    },
+    "currentMainFullHarnessGate": {
+      "status": "PASS",
+      "cases": 1066,
+      "subtests": 121,
+      "ruff": "PASS",
+      "documentationContract": "PASS",
+      "evidenceContract": "PASS",
+      "runtimeJobId": "job-01a0cd99-e196-7283-a0eb-a22404ab7c81"
+    },
+    "agentOwnerGate": {
+      "status": "PASS",
+      "ruff": "PASS",
+      "format": "PASS",
+      "pytest": "PASS",
+      "runtimeJobId": "job-01a0cd99-b37b-7d73-806c-81e9279df9a4"
+    }
+  },
+  "authorityBoundary": {
+    "proves": [
+      "Harness Runtime lowering names match the current Runtime MCP Job Tool contract",
+      "response-loss reattachment uses job.list without introducing Runtime Task ownership",
+      "targeted reconciliation uses job.observe and preserves its effectful reconciliation semantics",
+      "H2b cooperative cancellation behavior remains regression-tested after the contract rename"
+    ],
+    "doesNotProve": [
+      "Runtime owns Host/semantic Task state",
+      "job.observe is a pure read",
+      "standard MCP Tasks wire interoperability",
+      "semantic completion follows from Runtime process success"
+    ]
+  },
+  "standing": "VERIFIED_CURRENT_RUNTIME_JOB_TOOL_CONTRACT_R1"
+}

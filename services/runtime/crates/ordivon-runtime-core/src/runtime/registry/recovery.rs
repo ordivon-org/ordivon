@@ -20,7 +20,7 @@ impl Registry {
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare reconciliation scan"))?;
         if let Some(limit) = limit {
             let rows = statement
-                .query_map([limit], raw_attempt_from_row)
+                .query_map([limit], RegistryStorageBoundary::decode_attempt_row)
                 .map_err(|error| {
                     RuntimeError::from_sql(error, "cannot scan nonterminal Attempts")
                 })?;
@@ -31,7 +31,7 @@ impl Registry {
             .collect()
         } else {
             let rows = statement
-                .query_map([], raw_attempt_from_row)
+                .query_map([], RegistryStorageBoundary::decode_attempt_row)
                 .map_err(|error| {
                     RuntimeError::from_sql(error, "cannot scan nonterminal Attempts")
                 })?;
@@ -57,7 +57,7 @@ impl Registry {
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare maintenance reconciliation scan"))?;
         let rows = statement
-            .query_map([limit], raw_attempt_from_row)
+            .query_map([limit], RegistryStorageBoundary::decode_attempt_row)
             .map_err(|error| RuntimeError::from_sql(error, "cannot scan maintenance Attempts"))?;
         rows.map(|row| {
             row.map_err(|error| {
@@ -76,7 +76,7 @@ impl Registry {
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot prepare orphan reconciliation scan"))?;
         let rows = statement
-            .query_map([], raw_attempt_from_row)
+            .query_map([], RegistryStorageBoundary::decode_attempt_row)
             .map_err(|error| RuntimeError::from_sql(error, "cannot scan held orphaned Attempts"))?;
         rows.map(|row| {
             row.map_err(|error| {
@@ -106,13 +106,13 @@ impl Registry {
         }
         validate_digest(&request.result_digest, "resultDigest")?;
         for artifact in &request.artifacts {
-            validate_artifact_registration(artifact)?;
+            ArtifactStateContract::validate_registration(artifact)?;
         }
         let mut connection = self.open_connection()?;
         let transaction = immediate(&mut connection, "orphan recovery transaction")?;
-        let attempt = load_attempt(&transaction, &request.attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
-        let reservation = load_reservation(&transaction, &attempt.attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, &request.attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&transaction, &attempt.attempt_id)?;
         if attempt.state != AttemptState::Orphaned
             || job.resolution != Some(JobResolution::Orphaned)
             || reservation.state != ReservationState::HeldOrphaned
@@ -262,18 +262,18 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<bool> {
         let mut connection = self.open_connection()?;
-        let attempt = load_attempt(&connection, attempt_id)?;
-        let job = load_job(&connection, &attempt.job_id)?;
-        let reservation = load_reservation(&connection, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&connection, attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&connection, attempt_id)?;
         let target = terminal_reservation_target(&attempt, &job)?;
         if reservation.state == target {
             return Ok(false);
         }
 
         let transaction = immediate(&mut connection, "terminal reservation convergence")?;
-        let attempt = load_attempt(&transaction, attempt_id)?;
-        let job = load_job(&transaction, &attempt.job_id)?;
-        let reservation = load_reservation(&transaction, attempt_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
+        let reservation = RegistryStorageBoundary::load_reservation(&transaction, attempt_id)?;
         let target = terminal_reservation_target(&attempt, &job)?;
         if reservation.state == target {
             transaction.commit().map_err(|error| {

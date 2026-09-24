@@ -12,16 +12,20 @@ import argparse
 import hashlib
 import json
 import sqlite3
-
 from dataclasses import dataclass
 from pathlib import Path
 
 try:
     from chatgpt_provider_resource import normalize_provider_resource
-    from conversation_relay_carrier import CarrierMaterializationRequest, MaterializationStanding
+    from conversation_relay_carrier import (
+        CarrierAttachment,
+        CarrierMaterializationRequest,
+        MaterializationStanding,
+    )
 except ModuleNotFoundError:
     from scripts.chatgpt_provider_resource import normalize_provider_resource
     from scripts.conversation_relay_carrier import (
+        CarrierAttachment,
         CarrierMaterializationRequest,
         MaterializationStanding,
     )
@@ -63,6 +67,7 @@ class CampaignLaunchSpec:
     campaign_id: str
     shared_prompt: str
     roster: tuple[RoleCard, ...]
+    shared_attachments: tuple[CarrierAttachment, ...] = ()
 
     def __post_init__(self) -> None:
         _text(self.campaign_id, "campaignId", max_bytes=512)
@@ -76,6 +81,10 @@ class CampaignLaunchSpec:
         ids = [role.agent_id for role in self.roster]
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate agentId in roster")
+        if len(self.shared_attachments) > 1:
+            raise ValueError("sharedAttachments supports at most one entry")
+        if any(not isinstance(item, CarrierAttachment) for item in self.shared_attachments):
+            raise ValueError("sharedAttachments entries must be CarrierAttachment")
 
     @property
     def is_current(self) -> bool:
@@ -86,12 +95,13 @@ class CampaignLaunchSpec:
         raise ValueError("current CampaignSpec identity is its registry content descriptor digest")
 
     @classmethod
-    def from_dict(cls, value: dict) -> "CampaignLaunchSpec":
+    def from_dict(cls, value: dict) -> CampaignLaunchSpec:
         if not isinstance(value, dict):
             raise ValueError("campaign launch spec must be an object")
-        allowed = {"campaignId", "sharedPrompt", "roster"}
+        required = {"campaignId", "sharedPrompt", "roster"}
+        allowed = required | {"sharedAttachments"}
         extra = set(value) - allowed
-        missing = allowed - set(value)
+        missing = required - set(value)
         if extra:
             raise ValueError(f"unsupported CampaignSpec fields: {sorted(extra)}")
         if missing:
@@ -106,10 +116,29 @@ class CampaignLaunchSpec:
             if set(row) != {"agentId", "roleCard"}:
                 raise ValueError("roster entries require exactly agentId/roleCard")
             roster.append(RoleCard(agent_id=row["agentId"], role_card=row["roleCard"]))
+        attachments_raw = value.get("sharedAttachments", [])
+        if not isinstance(attachments_raw, list):
+            raise ValueError("sharedAttachments must be a list")
+        attachments: list[CarrierAttachment] = []
+        attachment_fields = {"stagingRelativePath", "digest", "mediaType", "presentationName"}
+        for row in attachments_raw:
+            if not isinstance(row, dict) or set(row) != attachment_fields:
+                raise ValueError(
+                    "sharedAttachments entries require exactly stagingRelativePath/digest/mediaType/presentationName"
+                )
+            attachments.append(
+                CarrierAttachment(
+                    staging_relative_path=row["stagingRelativePath"],
+                    digest=row["digest"],
+                    media_type=row["mediaType"],
+                    presentation_name=row["presentationName"],
+                )
+            )
         return cls(
             campaign_id=value["campaignId"],
             shared_prompt=value["sharedPrompt"],
             roster=tuple(roster),
+            shared_attachments=tuple(attachments),
         )
 
 
@@ -121,38 +150,47 @@ def compile_request(spec: CampaignLaunchSpec, role: RoleCard) -> CarrierMaterial
     task_prompt = _task_prompt(spec.shared_prompt, role)
     task_prompt_digest = bytes_digest(task_prompt)
     role_digest = bytes_digest(role.role_card)
-    effect_id = canonical_digest(
-        {
-            "campaignId": spec.campaign_id,
-            "agentId": role.agent_id,
-            "taskPromptDigest": task_prompt_digest,
-        }
+    effect_identity = {
+        "campaignId": spec.campaign_id,
+        "agentId": role.agent_id,
+        "taskPromptDigest": task_prompt_digest,
+    }
+    attachment_set_digest = (
+        canonical_digest([item.canonical() for item in spec.shared_attachments])
+        if spec.shared_attachments
+        else None
     )
+    if attachment_set_digest is not None:
+        effect_identity["attachmentSetDigest"] = attachment_set_digest
+    effect_id = canonical_digest(effect_identity)
     header = "\n".join(
         (
             f"CAMPAIGN_ID={spec.campaign_id}",
             f"AGENT_ID={role.agent_id}",
             f"TASK_PROMPT_DIGEST={task_prompt_digest}",
             f"EFFECT_ID={effect_id}",
+            *((f"ATTACHMENT_SET_DIGEST={attachment_set_digest}",) if attachment_set_digest else ()),
             "",
         )
     )
     bootstrap_prompt = header + task_prompt
     bootstrap_prompt_digest = bytes_digest(bootstrap_prompt)
-    preparation_digest = canonical_digest(
-        {
-            "effectId": effect_id,
-            "roleDigest": role_digest,
-            "taskPromptDigest": task_prompt_digest,
-            "bootstrapPromptDigest": bootstrap_prompt_digest,
-        }
-    )
+    preparation = {
+        "effectId": effect_id,
+        "roleDigest": role_digest,
+        "taskPromptDigest": task_prompt_digest,
+        "bootstrapPromptDigest": bootstrap_prompt_digest,
+    }
+    if attachment_set_digest is not None:
+        preparation["attachmentSetDigest"] = attachment_set_digest
+    preparation_digest = canonical_digest(preparation)
     if len(bootstrap_prompt.encode("utf-8")) > 16384:
         raise ValueError(f"compiled bootstrap prompt for {role.agent_id} exceeds carrier limit")
     return CarrierMaterializationRequest(
         request_id=effect_id,
         preparation_digest=preparation_digest,
         bootstrap_prompt=bootstrap_prompt,
+        attachments=spec.shared_attachments,
     )
 
 

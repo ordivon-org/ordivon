@@ -139,7 +139,7 @@
       "label": "ExecutionReconciliation",
       "kind": "runtime_truth_reconciliation",
       "disposition": "KEEP",
-      "responsibility": "Converge missing/stale runner state through Runtime task.observe rather than DB edits or process killing.",
+      "responsibility": "Converge missing/stale runner state through Runtime job.observe rather than DB edits or process killing.",
       "authority": "Runtime Job/Attempt truth"
     },
     {

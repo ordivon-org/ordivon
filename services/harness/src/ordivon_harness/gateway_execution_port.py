@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 
 from anc_canonical import JsonValue, validate_json_value
 
@@ -90,6 +90,18 @@ class GatewayExecutionResult:
     recovery_required: bool
 
 
+@dataclass(frozen=True, slots=True)
+class GatewayCapabilityStanding:
+    capability: str
+    configured: bool
+    available: bool
+    contexts: tuple[str, ...]
+    projection_digest: str
+
+    def supports_context(self, context: str) -> bool:
+        return self.configured and self.available and context in self.contexts
+
+
 class GatewayExecutionPort:
     def __init__(
         self,
@@ -112,6 +124,41 @@ class GatewayExecutionPort:
             raise GatewayExecutionError(f'Gateway MCP {name} returned an error result')
         validate_json_value(payload)
         return payload
+
+    def capability_standing(self, capability: str) -> GatewayCapabilityStanding:
+        if not capability.startswith('execution.'):
+            raise ValueError('Gateway capability standing is limited to execution.*')
+        payload = self._call('capability.describe', {'capability': capability})
+        projection_digest = _required_text(
+            _field(payload, 'projection_digest', 'projectionDigest'), 'capability projection digest'
+        )
+        values = payload.get('capabilities')
+        if not isinstance(values, list):
+            raise GatewayExecutionError('Gateway capability projection omitted capabilities')
+        matches = [
+            item
+            for item in values
+            if isinstance(item, dict) and item.get('capability') == capability
+        ]
+        if len(matches) != 1:
+            raise GatewayExecutionError(
+                'Gateway capability projection did not return exactly one capability'
+            )
+        item = matches[0]
+        configured = item.get('configured')
+        available = item.get('available')
+        contexts = item.get('contexts')
+        if not isinstance(configured, bool) or not isinstance(available, bool):
+            raise GatewayExecutionError('Gateway capability projection omitted availability')
+        if not isinstance(contexts, list) or any(not isinstance(value, str) for value in contexts):
+            raise GatewayExecutionError('Gateway capability projection has invalid contexts')
+        return GatewayCapabilityStanding(
+            capability=capability,
+            configured=configured,
+            available=available,
+            contexts=tuple(contexts),
+            projection_digest=projection_digest,
+        )
 
     def _resolve_after_submit_loss(
         self, request: GatewayExecutionRequest, error: Exception
@@ -231,6 +278,7 @@ class GatewayExecutionPort:
 
 
 __all__ = [
+    'GatewayCapabilityStanding',
     'GatewayExecutionAmbiguous',
     'GatewayExecutionError',
     'GatewayExecutionPort',

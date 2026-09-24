@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 3,
+  "kind": "ordivon.host-current-attention-delta",
+  "truthRole": "derived-non-authoritative-coordination-navigation",
+  "boardFence": {
+    "requestedAfterSequence": 17810,
+    "lastSequence": 17813,
+    "nextAfterSequence": 17813,
+    "hasMore": false,
+    "completeThroughNextAfterSequence": true
+  },
+  "summary": {
+    "newMessageCount": 3,
+    "routedTaskCount": 2,
+    "routedMessageCount": 3,
+    "unroutedMessageCount": 0
+  },
+  "routedTasks": [
+    {
+      "taskId": "task:social-fabric-crossdisciplinary-r2-20260923",
+      "goalId": "goal:ordivon-social-fabric-crossdisciplinary-recompile",
+      "taskState": "open",
+      "taskRevision": 5,
+      "checkpointDigest": "sha256:a042aea0dd8a6e4a478d3d442b2767a4249acca3b534998a72af19b2784c1fd9",
+      "runtimeNavigationHint": {
+        "workspaceId": "ws-social-fabric-wave4-post-main-r1-20260923",
+        "relevantJobIds": [
+          "job-01a0ce55-7908-7393-947b-1bf618e0b75c",
+          "job-01a0ce55-b53f-7e81-a131-8a493d25f41b",
+          "job-01a0ce56-bffd-7342-98b2-613adf338561",
+          "job-01a0ce57-14b0-7180-8cb7-913099ef14b1",
+          "job-01a0ce57-c3c2-7553-80e1-1fa08350a5d8",
+          "job-01a0ce58-3659-7d30-82aa-68e8772e7a98"
+        ],
+        "observedHeadRevision": "7b9dc84f3df12802fe1bd210367e4b8c25b52836"
+      },
+      "newBoardMessageCount": 2,
+      "newestBoardSequence": 17813,
+      "messages": [
+        {"sequence":17812,"clientMessageId":"social-fabric-archlinux-vhd-maintenance-intent-r1-20260923","messageKind":"warning","topic":"maintenance/archlinux-vhd","replyToClientMessageId":null,"taskId":"task:social-fabric-crossdisciplinary-r2-20260923","recordedAtMs":1790175030496,"messageDigest":"sha256:ee585a83972717e5877c694ea259184241e9f88e4230f664087f261c02293a1f"},
+        {"sequence":17813,"clientMessageId":"social-storage00-hold-no-active-user-r1-20260923","messageKind":"warning","topic":"maintenance/archlinux-vhd","replyToClientMessageId":null,"taskId":"task:social-fabric-crossdisciplinary-r2-20260923","recordedAtMs":1790177023285,"messageDigest":"sha256:f76d611c5e6663d0da6d1fd0a9b9a756fcc1be7f7ec540617f78ed595954cd66"}
+      ],
+      "reentry": {"requiredBeforeActing":true,"operation":"task.resume","taskId":"task:social-fabric-crossdisciplinary-r2-20260923","expectedRevision":5,"reason":"Board collaboration does not update Task truth; resume the exact Host revision before acting"}
+    },
+    {
+      "taskId": "task:host-northbound-ux-convergence-r1-20260923",
+      "goalId": "goal:ordivon-host-ux-convergence",
+      "taskState": "open",
+      "taskRevision": 5,
+      "checkpointDigest": "sha256:03f5bd9f11a2e96905646bca16a817fb99b3cbc20074259390fcdd1db29d4d28",
+      "runtimeNavigationHint": {"workspaceId":"ws-host-hux-post-main-r1-20260923","relevantJobIds":["job-01a0ce68-3531-7ad1-896c-e714dc4c7cc5","job-01a0ce69-df13-76e3-ba65-1bc4a6125ec9","job-01a0ce71-7a47-7e73-a8d6-ea97759a18cf","job-01a0ce73-4ce9-7383-a314-69d2b412810c","job-01a0ce73-dd13-7d33-8b11-791603b2ec1a","job-01a0ce79-f1a5-75f1-a2c4-0a7b18fe9aaf"],"observedHeadRevision":"4a9dc4bfba89b15ab3d8e03b14cf4f44038e85d3"},
+      "newBoardMessageCount": 1,
+      "newestBoardSequence": 17811,
+      "messages": [{"sequence":17811,"clientMessageId":"host-hux-live-closeout-20260923-r1","messageKind":"note","topic":"host-ux-convergence","replyToClientMessageId":null,"taskId":"task:host-northbound-ux-convergence-r1-20260923","recordedAtMs":1790169453618,"messageDigest":"sha256:bdf5757111565bc64e07c5bd6c44077bfd1221444414e6910dd1547257ed458c"}],
+      "reentry": {"requiredBeforeActing":true,"operation":"task.resume","taskId":"task:host-northbound-ux-convergence-r1-20260923","expectedRevision":5,"reason":"Board collaboration does not update Task truth; resume the exact Host revision before acting"}
+    }
+  ],
+  "unroutedMessages": [],
+  "truthBoundary": "Board-derived navigation only; not priority, assignment, ownership, delivery, consumption, or domain truth. Exact task.resume re-entry is required before action."
+}

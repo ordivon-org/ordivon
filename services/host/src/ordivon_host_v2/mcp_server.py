@@ -120,6 +120,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
         limit: int = 50,
         cursor: str | None = None,
         includeTerminal: bool = False,
+        sortKey: Literal["created", "updated"] = "created",
     ) -> TaskListResponse:
         """List compact Host task inventory; use task.resume for exact checkpoint content."""
         tasks, has_more, next_cursor = service.list_task_summaries_page(
@@ -128,6 +129,7 @@ def build_server(dsn: str | None = None) -> MCPServer:
             goal_id=goalId,
             runtime_workspace_id=runtimeWorkspaceId,
             cursor=cursor,
+            sort_key=sortKey,
         )
         return {
             "schemaVersion": 4,

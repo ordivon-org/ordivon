@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/review-lifecycle-observation-v2.schema.json",
+  "title": "Ordivon Review Lifecycle Observation v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "observationId", "kind", "source", "rights", "authority", "payload"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "observationId": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["concern", "response", "revision", "discussion_message", "synthesis", "correspondence"]},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetId", "snapshotIdentity", "recordKey", "annotationOrigin"],
+      "properties": {
+        "assetId": {"type": "string", "minLength": 1},
+        "snapshotIdentity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "recordKey": {"type": "string", "minLength": 1},
+        "annotationOrigin": {"enum": ["manual", "synthetic", "expert_annotation", "derived_identity", "upstream"]}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["licenseId", "commercialUseStanding", "redistributionStanding"],
+      "properties": {
+        "licenseId": {"type": "string", "minLength": 1},
+        "commercialUseStanding": {"enum": ["not_blocked_by_catalog", "blocked_by_source_license"]},
+        "redistributionStanding": {"const": "source_terms_apply"}
+      }
+    },
+    "authority": {"const": "evidence_only"},
+    "payload": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "concern"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["contentDigest", "nativeLabels"], "properties": {"contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "response"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["contentDigest", "contextKind", "nativeLabels"], "properties": {"contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "contextKind": {"type": "string", "minLength": 1}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "revision"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["revisionId", "representationStanding", "nativeLabels"], "properties": {"revisionId": {"type": ["string", "integer"]}, "representationStanding": {"enum": ["identity_only", "content_bound"]}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "discussion_message"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["contentDigest", "role", "nativeLabels"], "properties": {"contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "role": {"type": "string", "minLength": 1}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "synthesis"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["contentDigest", "synthesisType", "nativeLabels"], "properties": {"contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "synthesisType": {"enum": ["meta_review"]}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "correspondence"}}},
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fromObservationId", "toObservationId", "relationType", "relationCeiling", "nativeLabels"],
+            "properties": {
+              "fromObservationId": {"type": "string", "minLength": 1},
+              "toObservationId": {"type": "string", "minLength": 1},
+              "relationType": {"enum": ["responds_to_explicit_local", "corresponds_to_revision", "replies_to", "member_of_synthesis_source_set"]},
+              "relationCeiling": {"enum": ["annotated_correspondence_not_causality", "explicit_context_not_response_adequacy", "conversation_topology_not_agreement_or_causality", "source_set_membership_not_content_support_or_truth"]},
+              "nativeLabels": {"type": "object"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

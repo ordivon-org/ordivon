@@ -8,7 +8,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use super::engine::{
     append_terminal_evidence_for_commit, launch_identity_mismatch_cancel_target_absent,
 };
-use super::registry::{load_attempt, load_job, load_reservation, MAX_MIGRATION_VERSION};
+use super::registry::MAX_MIGRATION_VERSION;
+use super::registry_storage::RegistryStorageBoundary;
 use super::{
     inspect_runtime, ArtifactRegistration, AttemptState, Registry, RegistryConfig,
     ReservationState, RuntimeDoctorCase, RuntimeDoctorConfig, RuntimeDoctorProposal,
@@ -597,9 +598,10 @@ fn verify_snapshot_stale_cancel_target(
         .map_err(|error| {
             RuntimeError::from_sql(error, "cannot set backup stale-cancel busy timeout")
         })?;
-    let job = load_job(&connection, &live_job.job_id)?;
-    let attempt = load_attempt(&connection, &live_attempt.attempt_id)?;
-    let reservation = load_reservation(&connection, &live_attempt.attempt_id)?;
+    let job = RegistryStorageBoundary::load_job(&connection, &live_job.job_id)?;
+    let attempt = RegistryStorageBoundary::load_attempt(&connection, &live_attempt.attempt_id)?;
+    let reservation =
+        RegistryStorageBoundary::load_reservation(&connection, &live_attempt.attempt_id)?;
     let recovery = connection
         .query_row(
             "SELECT COALESCE(recovery_required,0),recovery_reason_code,recovery_evidence_digest,recovery_observed_at_ms FROM attempts WHERE attempt_id=?1",
@@ -798,9 +800,10 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
         .busy_timeout(Duration::from_secs(5))
         .map_err(|error| RuntimeError::from_sql(error, "cannot set backup plan busy timeout"))?;
     for case in cases {
-        let job = load_job(&connection, &case.job.job_id)?;
-        let attempt = load_attempt(&connection, &case.attempt.attempt_id)?;
-        let reservation = load_reservation(&connection, &case.attempt.attempt_id)?;
+        let job = RegistryStorageBoundary::load_job(&connection, &case.job.job_id)?;
+        let attempt = RegistryStorageBoundary::load_attempt(&connection, &case.attempt.attempt_id)?;
+        let reservation =
+            RegistryStorageBoundary::load_reservation(&connection, &case.attempt.attempt_id)?;
         let matches = job.job_id == case.job.job_id
             && job.workspace_id == case.job.workspace_id
             && job.resolution == case.job.resolution

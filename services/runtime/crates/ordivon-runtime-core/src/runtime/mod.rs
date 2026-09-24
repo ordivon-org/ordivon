@@ -1,3 +1,5 @@
+mod artifact_release_state;
+mod authority_contract;
 #[cfg(feature = "operator-tools")]
 mod doctor;
 mod engine;
@@ -5,8 +7,10 @@ mod error;
 mod evidence;
 mod inspection;
 mod job_attempt_state;
+mod operation_circuit;
 mod platform;
 mod registry;
+mod registry_storage;
 #[cfg(feature = "operator-tools")]
 mod repair;
 mod reservation_state;

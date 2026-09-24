@@ -40,6 +40,7 @@ SYSTEMD = Path("/etc/systemd/system")
 CONFIG = Path("/etc/ordivon/agent-automation-browserless.json")
 OPERATOR_CLI = Path("/root/tools/bin/agent-automation")
 MARKER = ".ordivon-agent-automation-release.json"
+PROVIDER_POLICY_REL = Path("scripts/provider_boundary_diagnosis.py")
 ADMISSION_ROOT = Path("/root/.local/state/ordivon-workstation/agent-automation/state")
 ADMISSION_LOCK = ADMISSION_ROOT / "release-admission.lock"
 ADMISSION_CLOSED = ADMISSION_ROOT / "release-admission.closed.json"
@@ -532,6 +533,102 @@ def sha(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def provider_policy_projection_from_bytes(raw: bytes, *, source_label: str) -> dict:
+    namespace = {"__name__": "_ordivon_provider_policy_probe", "__file__": source_label}
+    try:
+        exec(compile(raw, source_label, "exec"), namespace)
+        policy_fn = namespace.get("provider_boundary_policy")
+        if not callable(policy_fn):
+            raise ReleaseError("provider policy source lacks provider_boundary_policy()")
+        value = policy_fn()
+    except ReleaseError:
+        raise
+    except Exception as error:
+        raise ReleaseError(f"provider policy source is not evaluable: {source_label}") from error
+    if not isinstance(value, dict):
+        raise ReleaseError("provider policy projection must be an object")
+    version = value.get("policyVersion")
+    if not isinstance(version, str) or not version:
+        raise ReleaseError("provider policy projection lacks policyVersion")
+    semantic = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+    return {"policyVersion": version, "semanticDigest": sha(semantic)}
+
+
+def exact_source_provider_policy(repo: Path, commit: str) -> dict:
+    git_root = git_top_level(repo)
+    subtree = release_source_subtree(git_root, commit)
+    source_path = (
+        (subtree / PROVIDER_POLICY_REL).as_posix()
+        if subtree is not None
+        else PROVIDER_POLICY_REL.as_posix()
+    )
+    proc = subprocess.run(
+        ["/usr/bin/git", "-C", str(git_root), "show", f"{commit}:{source_path}"],
+        capture_output=True,
+        check=False,
+        timeout=20,
+    )
+    if proc.returncode != 0:
+        raise ReleaseError("exact Git source lacks provider-boundary policy")
+    return provider_policy_projection_from_bytes(
+        proc.stdout, source_label=f"git:{commit}:{source_path}"
+    )
+
+
+def release_provider_policy(release: Path) -> dict:
+    path = Path(release) / PROVIDER_POLICY_REL
+    try:
+        raw = path.read_bytes()
+    except OSError as error:
+        raise ReleaseError(f"release lacks provider-boundary policy: {path}") from error
+    return provider_policy_projection_from_bytes(raw, source_label=str(path))
+
+
+def provider_policy_currentness(
+    repo: Path, commit: str, candidate_release: Path, *, active_release: Path | None = None
+) -> dict:
+    source = exact_source_provider_policy(repo, commit)
+    candidate = release_provider_policy(candidate_release)
+    active = None
+    if active_release is not None:
+        try:
+            active = release_provider_policy(Path(active_release))
+        except ReleaseError:
+            active = None
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.agent-automation-provider-policy-currentness",
+        "candidateCommit": commit,
+        "source": source,
+        "candidateRelease": candidate,
+        "candidateMatchesSource": candidate == source,
+        "activeRelease": active,
+        "activeMatchesSource": active == source if active is not None else False,
+    }
+
+
+def require_candidate_provider_policy_source_current(
+    repo: Path, commit: str, candidate_release: Path
+) -> dict:
+    value = provider_policy_currentness(repo, commit, candidate_release)
+    if not value["candidateMatchesSource"]:
+        raise ReleaseError("candidate provider policy differs semantically from exact Git source")
+    return value
+
+
+def require_current_provider_policy_source_current(repo: Path, commit: str) -> dict:
+    try:
+        current = CURRENT.resolve(strict=True)
+    except OSError as error:
+        raise ReleaseError("current Agent Automation release is unavailable for provider-policy gate") from error
+    value = provider_policy_currentness(repo, commit, current, active_release=current)
+    if not value["candidateMatchesSource"] or not value["activeMatchesSource"]:
+        raise ReleaseError("current provider policy differs semantically from exact Git source")
+    return value
+
+
 def marker(path: Path) -> dict | None:
     try:
         v = json.loads((path / MARKER).read_text())
@@ -757,6 +854,15 @@ def plan(repo: Path, revision: str) -> dict:
     commit = exact_commit(repo, revision)
     release = RELEASE_ROOT / commit
     materialized = marker(release) is not None
+    policy_currentness = None
+    if materialized:
+        try:
+            active_release = CURRENT.resolve(strict=True)
+        except OSError:
+            active_release = None
+        policy_currentness = provider_policy_currentness(
+            repo, commit, release, active_release=active_release
+        )
     return {
         "schemaVersion": 1,
         "kind": "ordivon.agent-automation-release-plan",
@@ -765,6 +871,7 @@ def plan(repo: Path, revision: str) -> dict:
         "candidateRuntimeImports": candidate_runtime_import_status(release)
         if materialized
         else {"ready": False, "detail": "candidate release is not materialized"},
+        "providerPolicyCurrentness": policy_currentness,
         "currentRelease": current_release(),
         "runningWorkflowCount": len(running_workflows()),
         "mcpAdmissionActive": active(MCP_UNIT),
@@ -1056,6 +1163,9 @@ def activate(repo: Path, revision: str) -> dict:
     commit = exact_commit(repo, revision)
     rel = materialize(repo, commit)
     release = Path(rel["path"])
+    provider_policy_precheck = require_candidate_provider_policy_source_current(
+        repo, commit, release
+    )
     require_operator_carrier_available()
     require_mcp_runtime_importable(release)
     require_worker_runtime_importable(release)
@@ -1100,6 +1210,7 @@ def activate(repo: Path, revision: str) -> dict:
             state_migration = prepare_materialization_state_migration()
             atomic_link(release, CURRENT)
             switched = True
+            provider_policy_postswitch = require_current_provider_policy_source_current(repo, commit)
             worker_source = release / "systemd" / WORKER_UNIT
             if not worker_source.is_file():
                 raise ReleaseError("candidate lacks production worker unit")
@@ -1139,6 +1250,8 @@ def activate(repo: Path, revision: str) -> dict:
                 "runningWorkflowCount": 0,
                 "mcp": receipt,
                 "browserSecurityQualification": browser_security_qualification,
+                "providerPolicyPrecheck": provider_policy_precheck,
+                "providerPolicyCurrentness": provider_policy_postswitch,
                 "materializationLedgerMigration": ledger_migration,
                 "materializationStateMigration": state_migration,
                 "cliAdmissionClosed": False,
