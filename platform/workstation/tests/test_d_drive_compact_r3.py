@@ -80,6 +80,9 @@ def test_windows_controller_builds_systemd_unit_as_one_argument_and_separates_ex
     assert "'--unit='+$unitName" not in text
     assert "$ErrorActionPreference='Continue'" in text
     assert "gate-submit.json" in text
+    assert 'Gate unit left active state before READY' not in text
+    assert 'Gate unit is not active while READY is consumed' not in text
+    assert 'Gate unit lost before offline handoff' not in text
 
 
 def test_authorization_binds_exact_maintenance_ready_and_code_digests():
@@ -93,7 +96,10 @@ def test_authorization_binds_exact_maintenance_ready_and_code_digests():
         "compactAuthorized",
     ):
         assert token in text
-    assert "systemctl is-active" in text
+    assert "systemctl is-active" not in text
+    assert "READY_HELD" in text
+    assert "gateStateSha256" in text
+    assert "readyHoldSeconds" in text
 
 
 def test_runner_uses_unique_transaction_and_separate_authorizer_task():

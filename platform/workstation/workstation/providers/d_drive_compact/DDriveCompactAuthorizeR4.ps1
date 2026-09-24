@@ -20,7 +20,13 @@ $r=Get-Content -Raw -LiteralPath $ready|ConvertFrom-Json
 if($r.schemaVersion -ne 3 -or $r.kind -ne 'ordivon.d-drive-compact-gate-ready' -or $r.status -ne 'ready' -or $r.maintenanceId -ne $req.maintenanceId -or $r.admissionLockHeld -ne $true){throw 'R3 READY identity/state mismatch'}
 if($r.gateSha256 -ne $req.gateSha256 -or $r.runtimeHealth -ne 'healthy' -or $r.runtimeActiveJobs -ne 0 -or $r.runtimeActiveReservations -ne 0 -or $r.runtimeHeldReservations -ne 0 -or $r.runtimeRecoveryRequired -ne 0 -or $r.integrityCheck -ne 'ok' -or $r.violationCount -ne 0 -or $r.recoveryRequiredAttempts -ne 0 -or @($r.capacityHolders).Count -ne 0){throw 'R3 READY predicates do not authorize compact'}
 $unit=[string]$r.unitName
-$state=(((& "$env:WINDIR\System32\wsl.exe" -d 'archlinux' -u root -- /usr/bin/systemctl is-active ($unit+'.service') 2>$null)|Out-String).Trim())
-if($state -ne 'active'){throw "R3 gate unit is not active: $state"}
-$obj=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-authorization';maintenanceId=[string]$req.maintenanceId;restartAuthorized=$true;compactAuthorized=$true;readySha256=(Sha $ready);gateSha256=[string]$req.gateSha256;controllerSha256=[string]$req.controllerSha256;runtimeActiveJobs=0;runtimeActiveReservations=0;runtimeHeldReservations=0;runtimeHealth='healthy';recoveryRequiredAttempts=0;distro='archlinux';vhdPath='D:\WSL\archlinux\ext4.vhdx';gateUnit=$unit;issuedAtUtc=[DateTimeOffset]::UtcNow.ToString('o');expiresAtUtc=[DateTimeOffset]::UtcNow.AddMinutes(3).ToString('o');authorizationBasis='explicit current capacity-incident maintenance instruction bound to exact R3 READY receipt and live gate unit'}
+$statePath=Join-Path ([string]$req.transactionDir) 'gate-state.json'
+if(-not(Test-Path -LiteralPath $statePath -PathType Leaf)){throw 'R3 gate state receipt missing'}
+$gs=Get-Content -Raw -LiteralPath $statePath|ConvertFrom-Json
+if($gs.schemaVersion -ne 3 -or $gs.kind -ne 'ordivon.d-drive-compact-gate-state' -or $gs.maintenanceId -ne $req.maintenanceId -or $gs.unitName -ne $unit -or $gs.phase -ne 'READY_HELD'){throw 'R3 gate state is not READY_HELD for this maintenance identity'}
+$readyAt=[DateTimeOffset]::Parse([string]$r.readyAtUtc)
+$readyHold=[double]$r.readyHoldSeconds
+if([DateTimeOffset]::UtcNow -ge $readyAt.AddSeconds($readyHold)){throw 'R3 READY hold window expired'}
+if(Test-Path -LiteralPath $terminal){throw 'R3 gate terminal receipt appeared before authorization commit'}
+$obj=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-authorization';maintenanceId=[string]$req.maintenanceId;restartAuthorized=$true;compactAuthorized=$true;readySha256=(Sha $ready);gateSha256=[string]$req.gateSha256;controllerSha256=[string]$req.controllerSha256;runtimeActiveJobs=0;runtimeActiveReservations=0;runtimeHeldReservations=0;runtimeHealth='healthy';recoveryRequiredAttempts=0;distro='archlinux';vhdPath='D:\WSL\archlinux\ext4.vhdx';gateUnit=$unit;gateStateSha256=(Sha $statePath);issuedAtUtc=[DateTimeOffset]::UtcNow.ToString('o');expiresAtUtc=[DateTimeOffset]::UtcNow.AddMinutes(3).ToString('o');authorizationBasis='explicit current capacity-incident maintenance instruction bound to exact R3 READY receipt, READY_HELD gate-state receipt, and subsequent handoff-observed live acknowledgement'}
 Atomic-Json $auth $obj

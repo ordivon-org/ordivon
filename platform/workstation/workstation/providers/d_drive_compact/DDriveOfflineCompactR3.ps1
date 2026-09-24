@@ -75,8 +75,6 @@ try {
   do {
     if(Test-Path -LiteralPath $terminal){$t=Get-Content -Raw -LiteralPath $terminal|ConvertFrom-Json;throw "Gate rejected phase=$($t.phase) reasonCode=$($t.reasonCode): $($t.detail)"}
     if(Test-Path -LiteralPath $ready){break}
-    $state=Wsl-Systemctl-State "$unitName.service"
-    if($state -notin @('active','activating')){throw "Gate unit left active state before READY: $state"}
     Start-Sleep -Milliseconds 250
   } while((Get-Date)-lt $gateDeadline)
   if(-not(Test-Path -LiteralPath $ready)){throw 'Gate wait deadline exceeded without READY/terminal receipt'}
@@ -89,7 +87,6 @@ try {
     $observed = if($null -ne $property){[string]$property.Value}else{'missing'}
     if($observed -ne 'active'){throw "READY control-plane state rejected: $u=$observed"}
   }
-  if((Wsl-Systemctl-State "$unitName.service") -ne 'active'){throw 'Gate unit is not active while READY is consumed'}
 
   $authDeadline=(Get-Date).AddSeconds($AuthorizationWaitSeconds)
   do {
@@ -103,8 +100,6 @@ try {
   if($a.readySha256 -ne (Sha $ready)){throw 'Authorization is not bound to exact READY receipt'}
   if($a.gateSha256 -ne (Sha $gateWindows) -or $a.controllerSha256 -ne (Sha $controllerWindows)){throw 'Authorization code binding mismatch'}
   if([DateTimeOffset]::UtcNow -ge [DateTimeOffset]::Parse([string]$a.expiresAtUtc)){throw 'Authorization expired'}
-  if((Wsl-Systemctl-State "$unitName.service") -ne 'active'){throw 'Gate unit lost before offline handoff'}
-
   $handoffObj=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-handoff';maintenanceId=$MaintenanceId;status='offline_authorized';readySha256=(Sha $ready);authorizationSha256=(Sha $authorization);observedAtUtc=[DateTimeOffset]::UtcNow.ToString('o')}
   Atomic-Json $handoff $handoffObj
   $handoffObserved="$txRoot\handoff-observed.json";$handoffDeadline=(Get-Date).AddSeconds(15)
