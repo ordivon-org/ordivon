@@ -169,7 +169,7 @@ def _request(proxy: str, data_key: str, year: int) -> str:
     proc = subprocess.run(
         [
             "/usr/bin/curl", "-4", "-fsS", "--proxy", proxy,
-            "--connect-timeout", "5", "--max-time", "30",
+            "--connect-timeout", "5", "--max-time", "60",
             f"{BASE_URL}?{query}",
         ],
         text=True,

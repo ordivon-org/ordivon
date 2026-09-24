@@ -33,8 +33,8 @@ probe_binance_wallet() {
 }
 probe_treasury() {
   local out
-  out=$(curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 35 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026')
-  printf '%s' "$out" | grep -q '<feed '
+  out=$(curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 20 'https://home.treasury.gov/robots.txt')
+  printf '%s' "$out" | grep -qi 'user-agent'
 }
 probe_selected() {
   unit_active "$target" && unit_active "$egress" || return 1

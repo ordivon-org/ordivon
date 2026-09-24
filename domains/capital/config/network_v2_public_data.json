@@ -41,7 +41,7 @@
       "proxy": "http://127.0.0.1:19290"
     },
     "usTreasuryRest": {
-      "digest": "sha256:ea4464b29d27446309e5acb898d21efcaf7d73b2eb140579690dba2d40ba4084",
+      "digest": "sha256:82ecc49f7e1597ba106c1f6f0a17807f6ae452b29673143bf557c839494da180",
       "file": "/etc/network-v2/finance/us-treasury-rest-authority.json",
       "host": "home.treasury.gov",
       "port": 443,

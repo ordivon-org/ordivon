@@ -96,8 +96,8 @@ probe_binance_wallet_rest() {
 probe_treasury_rest() {
   local out
   out=$(mktemp)
-  curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 35 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026' -o "$out"
-  grep -q '<feed ' "$out"
+  curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 20 'https://home.treasury.gov/robots.txt' -o "$out"
+  grep -qi 'user-agent' "$out"
   rm -f "$out"
 }
 

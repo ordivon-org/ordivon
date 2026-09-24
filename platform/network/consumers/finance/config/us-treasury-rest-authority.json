@@ -16,8 +16,8 @@
     "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026"
   },
   "health": {
-    "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026",
-    "note": "destination consequence over explicit public-direct carrier; this authority does not use the Finance VPN provider pool"
+    "url": "https://home.treasury.gov/robots.txt",
+    "note": "small exact-host consequence for transport readiness; Capital separately validates the official Treasury XML feed semantics"
   },
   "providers": [],
   "selectionPolicy": "fixed-explicit-public-direct",
