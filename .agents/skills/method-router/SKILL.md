@@ -30,6 +30,8 @@ Do not activate every method merely because it exists. Do not turn the method ca
 
 ## Typical routes
 
+A request to **create or adopt a new forward Research Study/paper project** is a lifecycle/admission handoff rather than a reasoning-method choice: use `research-study-birth` first, then return to method routing only if the admitted Study still has a method-selection uncertainty.
+
 - unclear system boundary / system-of-systems / interface inventory -> systems-engineering
 - decomposition quality / coupling / cycles / clusters -> design-structure-matrix
 - interfaces compose? / replacement / assumptions and guarantees -> compositional-contracts
