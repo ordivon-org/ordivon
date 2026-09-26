@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/target-bound-observation-r2.json",
+  "title": "AI Red-Team TargetBoundObservation R2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "realizedTargetDigest",
+    "attackSpecDigest",
+    "providerArtifactDigest",
+    "judgeSpecDigest",
+    "observationDigest"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-target-bound-observation"},
+    "realizedTargetDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "attackSpecDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "providerArtifactDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "judgeSpecDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "observationDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

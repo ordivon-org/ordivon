@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/realized-target-binding-r2.json",
+  "title": "AI Red-Team RealizedTargetBinding R2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "requestedBindingDigest",
+    "effectiveModelId",
+    "providerModelRevision",
+    "modelArtifactDigest",
+    "providerSystemFingerprint",
+    "realizationEvidenceDigest",
+    "identityStrength",
+    "claimScope"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-realized-target-binding"},
+    "requestedBindingDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "effectiveModelId": {"type": "string", "minLength": 1},
+    "providerModelRevision": {"type": ["string", "null"]},
+    "modelArtifactDigest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "providerSystemFingerprint": {"type": ["string", "null"]},
+    "realizationEvidenceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "identityStrength": {"enum": ["content_digest", "provider_revision", "provider_observation", "request_only"]},
+    "claimScope": {"type": "string", "minLength": 1}
+  }
+}
