@@ -233,7 +233,7 @@ class UserBrowserGatewayController:
             and 'AttachmentManifestPath' in stderr
         )
 
-    def _reconcile_prior_materialize_pre_effect_failure(
+    def _reconcile_prior_materialize_result(
         self,
         *,
         effect_id: str,
@@ -244,8 +244,14 @@ class UserBrowserGatewayController:
         attachment_manifest_digest: str | None = None,
         attempt_generation: int = 1,
     ) -> dict | None:
-        if attachment_manifest_path is None or attachment_manifest_digest is None:
-            return None
+        """Recover an exact prior materialize result without redispatching provider work.
+
+        The materialize Gateway request identity is deterministic over the effect/request/prompt,
+        attachment manifest and effect generation. Resolving that exact request is therefore the
+        authoritative response-loss recovery path. A successful owner Job already contains the
+        driver receipt we need; replaying `-Mode reconcile` cannot recover a provider coordinate
+        and must not replace owner-native terminal evidence.
+        """
         request = self._execution_request(
             'materialize', effect_id=effect_id, request_digest=request_digest,
             prompt_path=prompt_path, prompt_digest=prompt_digest,
@@ -254,9 +260,13 @@ class UserBrowserGatewayController:
             attempt_generation=attempt_generation,
         )
         result = self.port.resolve_terminal(request)
-        if result is None or result.recovery_required or result.exit_code in {None, 0}:
+        if result is None or result.recovery_required or result.exit_code is None:
             return None
         stdout = self.port.read_stdout(result)
+        if result.exit_code == 0:
+            return self._parse_payload(stdout, effect_id=effect_id)
+        if attachment_manifest_path is None or attachment_manifest_digest is None:
+            return None
         stderr = self.port.read_stderr(result)
         if not self._is_attachment_parameter_binding_failure(stdout=stdout, stderr=stderr):
             return None
@@ -480,7 +490,7 @@ class UserBrowserGatewayController:
         return self._run('materialize', **kwargs)
 
     def reconcile(self, **kwargs) -> dict:
-        recovered = self._reconcile_prior_materialize_pre_effect_failure(**kwargs)
+        recovered = self._reconcile_prior_materialize_result(**kwargs)
         if recovered is not None:
             return recovered
         return self._run('reconcile', **kwargs)

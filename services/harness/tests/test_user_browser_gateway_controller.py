@@ -281,3 +281,72 @@ def test_reconcile_does_not_downgrade_unrecognized_failed_execution_to_pre_effec
     assert len(port.resolved_requests) == 1
     assert len(port.requests) == 1
     assert 'reconcile' in port.requests[0].args
+
+
+def test_reconcile_recovers_successful_prior_materialize_pre_effect_receipt_without_execute():
+    prior = GatewayExecutionResult(
+        operation_ref='ordivon-exec:v1:runtime.windows:job-prior',
+        native_id='job-prior', state='succeeded', exit_code=0,
+        artifact_ids=('attempt-prior.stdout',), recovery_required=False,
+    )
+    receipt = {
+        'schemaVersion': 1,
+        'kind': 'ordivon.windows-user-browser-attempt',
+        'effectId': 'effect-prior',
+        'standing': 'pre-effect-failed',
+        'providerResource': None,
+        'evidenceDigest': 'sha256:' + '6' * 64,
+        'detail': 'user-browser:composer-unavailable',
+        'providerEffectAttempted': False,
+    }
+    port = FakePort(
+        {}, resolved_result=prior, resolved_stdout=json.dumps(receipt) + '\n'
+    )
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.reconcile(
+        effect_id='effect-prior', request_digest='sha256:' + '1' * 64,
+        prompt_path='/mnt/c/ProgramData/Ordivon/chat-ingress/prompts/p.txt',
+        prompt_digest='sha256:' + '3' * 64,
+        attachment_manifest_path='/mnt/c/ProgramData/Ordivon/chat-ingress/user-browser/attachment-manifests/m.json',
+        attachment_manifest_digest='sha256:' + '4' * 64,
+        attempt_generation=4,
+    )
+    assert result == receipt
+    assert len(port.resolved_requests) == 1
+    assert port.resolved_requests[0].request_id.startswith('user-browser:materialize:')
+    assert 'reconcile' not in port.resolved_requests[0].args
+    assert port.requests == []
+
+
+def test_reconcile_recovers_successful_prior_materialize_bound_receipt_without_execute():
+    prior = GatewayExecutionResult(
+        operation_ref='ordivon-exec:v1:runtime.windows:job-bound',
+        native_id='job-bound', state='succeeded', exit_code=0,
+        artifact_ids=('attempt-bound.stdout',), recovery_required=False,
+    )
+    receipt = {
+        'schemaVersion': 1,
+        'kind': 'ordivon.windows-user-browser-attempt',
+        'effectId': 'effect-bound',
+        'standing': 'bound',
+        'providerResource': 'https://chatgpt.com/c/exact-bound-conversation',
+        'evidenceDigest': 'sha256:' + '7' * 64,
+        'detail': 'provider-bound',
+        'providerEffectAttempted': True,
+    }
+    port = FakePort(
+        {}, resolved_result=prior, resolved_stdout=json.dumps(receipt) + '\n'
+    )
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.reconcile(
+        effect_id='effect-bound', request_digest='sha256:' + '1' * 64,
+        prompt_path='/mnt/c/ProgramData/Ordivon/chat-ingress/prompts/p.txt',
+        prompt_digest='sha256:' + '3' * 64,
+        attachment_manifest_path='/mnt/c/ProgramData/Ordivon/chat-ingress/user-browser/attachment-manifests/m.json',
+        attachment_manifest_digest='sha256:' + '4' * 64,
+        attempt_generation=4,
+    )
+    assert result == receipt
+    assert result['providerResource'] == 'https://chatgpt.com/c/exact-bound-conversation'
+    assert len(port.resolved_requests) == 1
+    assert port.requests == []
