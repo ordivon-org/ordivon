@@ -120,7 +120,7 @@ set -euo pipefail
 base=studies/research/scholarly-intelligence-r1/scripts
 uv run --with ruff==0.16.8 ruff check studies/research/scholarly-intelligence-r1/scripts
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_intelligence_r1.py"
-uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py" --portable
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_pressure_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_semantic_content_core_r1.py"
