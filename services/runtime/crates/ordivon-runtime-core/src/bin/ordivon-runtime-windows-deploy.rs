@@ -48,7 +48,6 @@ struct Args {
     receipt_root: PathBuf,
     service: String,
     broker_service: String,
-    workspace_id: String,
     expected_tool_count: u32,
     require_ref: String,
     effect_id: String,
@@ -120,6 +119,7 @@ struct PlanReceipt {
     owner_job_id: String,
     active_job_ids: Vec<String>,
     blockers: Vec<String>,
+    workspace_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     bootstrap_recovery: Option<BootstrapRecoveryProof>,
 }
@@ -463,7 +463,7 @@ mod scm {
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-windows-deploy <plan|apply> --source-repo PATH --commit SHA40 --confirm-commit SHA40 --candidate-dir PATH --candidate-manifest PATH --install-dir PATH --database PATH --env-file PATH --receipt-root PATH --service NAME --broker-service NAME --workspace-id ID --expected-tool-count N --require-ref REF --effect-id HEX64 --effect-request-digest sha256:HEX64 --candidate-manifest-digest sha256:HEX64 --drain-seconds N".to_string()
+    "usage: ordivon-runtime-windows-deploy <plan|apply> --source-repo PATH --commit SHA40 --confirm-commit SHA40 --candidate-dir PATH --candidate-manifest PATH --install-dir PATH --database PATH --env-file PATH --receipt-root PATH --service NAME --broker-service NAME --expected-tool-count N --require-ref REF --effect-id HEX64 --effect-request-digest sha256:HEX64 --candidate-manifest-digest sha256:HEX64 --drain-seconds N".to_string()
 }
 
 fn require_value<I: Iterator<Item = String>>(args: &mut I, flag: &str) -> Result<String, String> {
@@ -506,7 +506,6 @@ fn parse_args() -> Result<Args, String> {
         receipt_root: PathBuf::from(take("--receipt-root", &values)?),
         service: take("--service", &values)?,
         broker_service: take("--broker-service", &values)?,
-        workspace_id: take("--workspace-id", &values)?,
         expected_tool_count: take("--expected-tool-count", &values)?
             .parse()
             .map_err(|_| "--expected-tool-count must be an integer".to_string())?,
@@ -530,7 +529,6 @@ fn parse_args() -> Result<Args, String> {
         "--receipt-root",
         "--service",
         "--broker-service",
-        "--workspace-id",
         "--expected-tool-count",
         "--require-ref",
         "--effect-id",
@@ -609,15 +607,6 @@ fn validate_args(args: &Args) -> Result<(), String> {
     }
     if !is_safe_service_name(&args.service) || !is_safe_service_name(&args.broker_service) {
         return Err("service names are invalid".to_string());
-    }
-    if args.workspace_id.is_empty()
-        || args.workspace_id.len() > 128
-        || !args
-            .workspace_id
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b':'))
-    {
-        return Err("workspace-id is invalid".to_string());
     }
     if args.require_ref.trim().is_empty() || args.require_ref.len() > 256 {
         return Err("require-ref is invalid".to_string());
@@ -989,7 +978,6 @@ fn release_effect(
     let expected_receipt = args.receipt_root.join(format!("effect-{}", args.effect_id));
     if effect.effect_id != args.effect_id
         || effect.request_digest != args.effect_request_digest
-        || effect.workspace_id != args.workspace_id
         || effect.commit != args.commit
         || effect.candidate_manifest_digest != args.candidate_manifest_digest
         || effect.expected_tool_count != args.expected_tool_count
@@ -1517,9 +1505,10 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
             .compiled_base_tool_catalog_digest
             .clone(),
         release_dir: release_dir.to_string_lossy().into_owned(),
-        owner_job_id: effect.job_id,
+        owner_job_id: effect.job_id.clone(),
         active_job_ids: registry.active_job_ids,
         blockers: blocked,
+        workspace_id: effect.workspace_id.clone(),
         bootstrap_recovery,
     };
     Ok((proof, plan))
@@ -1539,7 +1528,7 @@ fn apply(
         commit: &args.commit,
         candidate_manifest_digest: &args.candidate_manifest_digest,
         expected_tool_count: args.expected_tool_count,
-        workspace_id: &args.workspace_id,
+        workspace_id: &plan.workspace_id,
         platform: "windows_native",
     };
     write_json_sync(&receipt_dir.join("effect-request.json"), &effect_request)?;
@@ -1764,6 +1753,11 @@ mod tests {
         assert_eq!(values.len(), REQUIRED_ARTIFACTS.len());
         assert!(values.contains("ordivon-runtime.exe"));
         assert!(values.contains("ordivon-runtime-windows-deploy.exe"));
+    }
+
+    #[test]
+    fn deployer_cli_keeps_workspace_identity_in_durable_effect_only() {
+        assert!(!usage().contains("--workspace-id"));
     }
 
     #[test]
