@@ -62,6 +62,46 @@ impl Runtime {
         default_runtime_ms: u64,
         workspace_headroom: Option<WorkspaceHeadroomConfig>,
     ) -> RuntimeResult<Self> {
+        Self::new_with_startup_recovery_policy(
+            config,
+            input_authorities,
+            credential_authorities,
+            default_runtime_ms,
+            workspace_headroom,
+            true,
+        )
+    }
+
+    /// Service construction boundary that keeps MCP readiness independent of historical recovery.
+    ///
+    /// The daemon binds first and immediately runs bounded maintenance reconciliation. Admission
+    /// paths still reconcile recoverable orphans before capacity decisions, so deferring this
+    /// constructor-only sweep does not permit ambiguous work to be redispatched.
+    pub fn new_service_with_authorities_default_runtime_and_workspace_headroom(
+        config: RuntimeConfig,
+        input_authorities: Vec<InputAuthority>,
+        credential_authorities: Vec<CredentialAuthority>,
+        default_runtime_ms: u64,
+        workspace_headroom: Option<WorkspaceHeadroomConfig>,
+    ) -> RuntimeResult<Self> {
+        Self::new_with_startup_recovery_policy(
+            config,
+            input_authorities,
+            credential_authorities,
+            default_runtime_ms,
+            workspace_headroom,
+            false,
+        )
+    }
+
+    fn new_with_startup_recovery_policy(
+        config: RuntimeConfig,
+        input_authorities: Vec<InputAuthority>,
+        credential_authorities: Vec<CredentialAuthority>,
+        default_runtime_ms: u64,
+        workspace_headroom: Option<WorkspaceHeadroomConfig>,
+        reconcile_recoverable_orphans_on_construction: bool,
+    ) -> RuntimeResult<Self> {
         super::validate_logical_id(&config.node_id, "nodeId")?;
         config.executor.validate().map_err(map_universal_error)?;
         if default_runtime_ms == 0 || default_runtime_ms > config.executor.max_runtime_ms {
@@ -222,7 +262,9 @@ impl Runtime {
             lifecycle_lock: Arc::new(Mutex::new(())),
             control_terminal_lock: Arc::new(Mutex::new(())),
         };
-        runtime.reconcile_recoverable_orphans()?;
+        if reconcile_recoverable_orphans_on_construction {
+            runtime.reconcile_recoverable_orphans()?;
+        }
         Ok(runtime)
     }
 

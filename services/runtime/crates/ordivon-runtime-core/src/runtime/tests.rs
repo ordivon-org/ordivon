@@ -5716,6 +5716,90 @@ fn runtime_startup_reclaims_absent_orphan_and_reopens_workspace_slot() {
 }
 
 #[test]
+fn runtime_service_construction_defers_orphan_recovery_to_bounded_maintenance() {
+    let sandbox = Sandbox::new("runtime-service-orphan-startup", 5000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:runtime-service-orphan-startup", 1))
+            .unwrap(),
+    );
+    fs::create_dir_all(&created.attempt.bundle_path).unwrap();
+    fs::write(
+        Path::new(&created.attempt.bundle_path).join("stdout.log"),
+        b"partial\n",
+    )
+    .unwrap();
+    fs::write(
+        Path::new(&created.attempt.bundle_path).join("stderr.log"),
+        b"",
+    )
+    .unwrap();
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: created.attempt.attempt_id.clone(),
+            expected_row_version: created.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"runtime-service-orphan-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
+            finished_at_ms: 20,
+            artifacts: Vec::new(),
+            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
+        })
+        .unwrap();
+    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 1);
+
+    let config = runtime_config(&sandbox);
+    let default_runtime_ms = config.executor.max_runtime_ms;
+    let runtime = Runtime::new_service_with_authorities_default_runtime_and_workspace_headroom(
+        config,
+        Vec::new(),
+        Vec::new(),
+        default_runtime_ms,
+        None,
+    )
+    .unwrap();
+    assert_eq!(
+        runtime
+            .registry()
+            .get_attempt(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        AttemptState::Orphaned
+    );
+    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 1);
+    assert_eq!(
+        runtime
+            .registry()
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::HeldOrphaned
+    );
+
+    let report = runtime.reconcile_maintenance_batch(1).unwrap();
+    assert_eq!(report.inspected, 1);
+    assert_eq!(
+        runtime
+            .registry()
+            .get_attempt(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        AttemptState::Lost
+    );
+    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
+    assert_eq!(
+        runtime
+            .registry()
+            .get_reservation(&created.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::Released
+    );
+}
+#[test]
 fn job_cancel_reclaims_absent_orphan_as_cancelled() {
     let sandbox = Sandbox::new("runtime-orphan-cancel", 5000);
     let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
