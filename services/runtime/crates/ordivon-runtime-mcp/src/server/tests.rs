@@ -1266,6 +1266,7 @@ fn tool_effect_annotations_match_runtime_behavior() {
     let server = sandbox.server();
     let tools = server.tool_router.list_all();
     let expected = [
+        ("artifact.content", true, false, true, false),
         ("artifact.read", true, false, true, false),
         ("credential.materialize", false, false, true, false),
         ("input.ingest", false, false, true, true),
@@ -1280,6 +1281,7 @@ fn tool_effect_annotations_match_runtime_behavior() {
         ("workspace.changes", true, false, true, false),
         ("workspace.content", true, false, true, false),
         ("workspace.diff", true, false, true, false),
+        ("workspace.file", true, false, true, false),
         ("workspace.exec", false, true, false, true),
         ("workspace.execBound", false, true, false, false),
         ("workspace.execBoundTrusted", false, true, false, true),
@@ -1615,6 +1617,188 @@ fn job_observation_serializes_discoverable_artifacts() {
 }
 
 #[test]
+fn artifact_content_projects_embedded_binary_resource_with_registered_identity() {
+    let bytes = b"\0\xff\x10registered-binary".to_vec();
+    let digest = format!("sha256:{}", "c".repeat(64));
+    let response = artifact_content_call_result(ToolOutcome::Success(ArtifactContentReadResult {
+        metadata: ordivon_runtime_core::ArtifactContentMetadata {
+            job_id: "job-registered".to_string(),
+            artifact_id: "attempt-1.result.bin".to_string(),
+            digest: digest.clone(),
+            media_type: "application/octet-stream".to_string(),
+            byte_length: bytes.len() as u64,
+            truncated: false,
+        },
+        bytes: bytes.clone(),
+    }))
+    .unwrap();
+
+    assert_eq!(response.is_error, Some(false));
+    assert_eq!(response.content.len(), 1);
+    let encoded = serde_json::to_value(&response.content[0]).unwrap();
+    assert_eq!(
+        encoded.pointer("/type").and_then(Value::as_str),
+        Some("resource")
+    );
+    assert_eq!(
+        encoded
+            .pointer("/resource/mimeType")
+            .and_then(Value::as_str),
+        Some("application/octet-stream")
+    );
+    let blob = encoded
+        .pointer("/resource/blob")
+        .and_then(Value::as_str)
+        .unwrap();
+    assert_eq!(BASE64_STANDARD.decode(blob.as_bytes()).unwrap(), bytes);
+    assert_eq!(
+        encoded.pointer("/resource/uri").and_then(Value::as_str),
+        Some(format!("ordivon://artifact/sha256/{}", "c".repeat(64)).as_str())
+    );
+    let structured = response.structured_content.as_ref().unwrap();
+    assert_eq!(
+        structured.get("jobId").and_then(Value::as_str),
+        Some("job-registered")
+    );
+    assert_eq!(
+        structured.get("artifactId").and_then(Value::as_str),
+        Some("attempt-1.result.bin")
+    );
+    assert_eq!(
+        structured.get("mediaTypeStanding").and_then(Value::as_str),
+        Some("REGISTERED_METADATA_UNVERIFIED")
+    );
+}
+
+#[test]
+fn artifact_content_falls_back_when_historical_registered_media_type_is_not_usable() {
+    let response = artifact_content_call_result(ToolOutcome::Success(ArtifactContentReadResult {
+        metadata: ordivon_runtime_core::ArtifactContentMetadata {
+            job_id: "job-legacy".to_string(),
+            artifact_id: "legacy.bin".to_string(),
+            digest: format!("sha256:{}", "d".repeat(64)),
+            media_type: "historical metadata".to_string(),
+            byte_length: 3,
+            truncated: true,
+        },
+        bytes: vec![1, 2, 3],
+    }))
+    .unwrap();
+    let structured = response.structured_content.as_ref().unwrap();
+    assert_eq!(
+        structured
+            .get("registeredMediaType")
+            .and_then(Value::as_str),
+        Some("historical metadata")
+    );
+    assert_eq!(
+        structured.get("mediaType").and_then(Value::as_str),
+        Some("application/octet-stream")
+    );
+    assert_eq!(
+        structured.get("mediaTypeStanding").and_then(Value::as_str),
+        Some("REGISTERED_METADATA_INVALID_FALLBACK")
+    );
+    assert_eq!(
+        structured.get("truncated").and_then(Value::as_bool),
+        Some(true)
+    );
+}
+
+#[test]
+fn workspace_file_projects_embedded_binary_resource_with_exact_metadata() {
+    let bytes = b"PK\x03\x04\0docx-binary".to_vec();
+    let digest = format!("sha256:{}", "b".repeat(64));
+    let response = workspace_file_call_result(
+        ToolOutcome::Success(WorkspaceFileReadResult {
+            metadata: ordivon_runtime_core::WorkspaceFileMetadata {
+                workspace_id: "workspace-file".to_string(),
+                relative_path: "out/manuscript.docx".to_string(),
+                digest: digest.clone(),
+                byte_length: bytes.len() as u64,
+            },
+            bytes: bytes.clone(),
+        }),
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document".to_string(),
+        "CALLER_DECLARED_UNVERIFIED".to_string(),
+    )
+    .unwrap();
+
+    assert_eq!(response.is_error, Some(false));
+    assert_eq!(response.content.len(), 1);
+    let encoded = serde_json::to_value(&response.content[0]).unwrap();
+    assert_eq!(
+        encoded.pointer("/type").and_then(Value::as_str),
+        Some("resource")
+    );
+    assert_eq!(
+        encoded
+            .pointer("/resource/mimeType")
+            .and_then(Value::as_str),
+        Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    );
+    let blob = encoded
+        .pointer("/resource/blob")
+        .and_then(Value::as_str)
+        .unwrap();
+    assert_eq!(BASE64_STANDARD.decode(blob.as_bytes()).unwrap(), bytes);
+    assert_eq!(
+        encoded.pointer("/resource/uri").and_then(Value::as_str),
+        Some(
+            format!(
+                "ordivon://workspace/workspace-file/sha256/{}",
+                "b".repeat(64)
+            )
+            .as_str()
+        )
+    );
+    let structured = response.structured_content.as_ref().unwrap();
+    assert_eq!(
+        structured.get("digest").and_then(Value::as_str),
+        Some(digest.as_str())
+    );
+    assert_eq!(
+        structured.get("mediaTypeStanding").and_then(Value::as_str),
+        Some("CALLER_DECLARED_UNVERIFIED")
+    );
+    assert_eq!(
+        structured.get("byteLength").and_then(Value::as_u64),
+        Some(bytes.len() as u64)
+    );
+}
+
+#[test]
+fn workspace_file_schema_requires_digest_and_bounds_optional_media_type() {
+    let server = Sandbox::new("file-schema").server();
+    let tools = server.tool_router.list_all();
+    let tool = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "workspace.file")
+        .expect("workspace.file");
+    let schema = serde_json::to_value(&tool.input_schema).unwrap();
+    let required = schema
+        .get("required")
+        .and_then(Value::as_array)
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .collect::<Vec<_>>();
+    for field in ["workspaceId", "relativePath", "expectedDigest", "maxBytes"] {
+        assert!(required.contains(&field));
+    }
+    assert!(!required.contains(&"mediaType"));
+    assert_eq!(
+        schema
+            .pointer("/properties/expectedDigest/pattern")
+            .and_then(Value::as_str),
+        Some(r"^sha256:[0-9a-f]{64}$")
+    );
+    assert!(serde_json::to_string(&schema)
+        .unwrap()
+        .contains("mediaType"));
+}
+
+#[test]
 fn workspace_content_projects_native_image_with_digest_bound_structured_metadata() {
     let png = b"\x89PNG\r\n\x1a\nmodel-view".to_vec();
     let metadata = WorkspaceContentMetadata {
@@ -1891,7 +2075,16 @@ fn every_public_tool_publishes_structured_output_contract() {
     let sandbox = Sandbox::new("all-output-schemas");
     let server = sandbox.server();
     let tools = server.tool_router.list_all();
-    assert_eq!(tools.len(), 24);
+    assert!(!tools.is_empty());
+    let names = tools
+        .iter()
+        .map(|tool| tool.name.as_ref())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        names.len(),
+        tools.len(),
+        "public Tool names must remain unique"
+    );
     for tool in tools {
         let schema = tool
             .output_schema

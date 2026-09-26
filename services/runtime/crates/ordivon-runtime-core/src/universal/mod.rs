@@ -28,8 +28,9 @@ pub use types::{
     WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
     WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
-    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult,
-    WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
+    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceFileMetadata, WorkspaceFileReadResult,
+    WorkspaceFileRequest, WorkspaceMutateRequest, WorkspaceMutateResult, WorkspaceMutation,
+    WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
     WorkspaceReadSliceRequest, WorkspaceRenamedPath, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
 };
 pub(crate) use types::{
@@ -39,7 +40,7 @@ pub(crate) use types::{
 pub(crate) use workspace::{
     create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,
 };
-pub use workspace::{read_workspace_content, workspace_changes_page};
+pub use workspace::{read_workspace_content, read_workspace_file, workspace_changes_page};
 pub(crate) use workspace::{remove_git_workspace, write_workspace_text};
 #[cfg(any(feature = "transactional-runtime", test))]
 pub use workspace::{workspace_head_revision, workspace_source_state_digest};

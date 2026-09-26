@@ -512,6 +512,61 @@ impl RuntimeServer {
     }
 
     #[tool(
+        name = "workspace.file",
+        description = "Project one exact digest-bound regular Workspace file as a bounded MCP embedded binary resource. Runtime reuses the Workspace descriptor-bound path authority, verifies the current bytes against expectedDigest, and returns the whole file only when it fits maxBytes. Optional mediaType is caller-declared projection metadata; when omitted Runtime uses application/octet-stream. It is never semantic format validation. This creates no Runtime Artifact, external upload, delivery receipt, or consumer-acceptance standing.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceFileProjectionMetadata>>(),
+        annotations(
+            title = "Read verified workspace file",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn workspace_file(
+        &self,
+        Parameters(request): Parameters<WorkspaceFileToolRequest>,
+    ) -> Result<CallToolResult, McpError> {
+        let (media_type, media_type_standing) = match request.media_type.as_deref() {
+            Some(value)
+                if !value.is_empty()
+                    && value.len() <= 256
+                    && value.bytes().all(|byte| byte.is_ascii_graphic()) =>
+            {
+                (value.to_string(), "CALLER_DECLARED_UNVERIFIED".to_string())
+            }
+            Some(_) => {
+                return workspace_file_call_result(
+                    ToolOutcome::Error(ToolError::invalid(
+                        "mediaType must contain 1..=256 visible ASCII characters",
+                        "mediaType",
+                    )),
+                    "application/octet-stream".to_string(),
+                    "DEFAULT_BINARY".to_string(),
+                );
+            }
+            None => (
+                "application/octet-stream".to_string(),
+                "DEFAULT_BINARY".to_string(),
+            ),
+        };
+        let core_request = WorkspaceFileRequest {
+            schema_version: request.schema_version,
+            workspace_id: request.workspace_id,
+            relative_path: request.relative_path,
+            expected_digest: request.expected_digest,
+            max_bytes: request.max_bytes,
+        };
+        let config = self.state.executor.clone();
+        let outcome = self
+            .run_core("workspace.file", move || {
+                read_workspace_file(&config, &core_request).map_err(ToolError::from)
+            })
+            .await;
+        workspace_file_call_result(outcome, media_type, media_type_standing)
+    }
+
+    #[tool(
         name = "workspace.content",
         description = "Project one exact digest-bound Workspace image as native MCP image content. Runtime verifies the current file bytes against expectedDigest and validates PNG/JPEG signatures before transport; a changed file fails closed instead of silently changing the Agent's perceptual input.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<WorkspaceContentMetadata>>(),
@@ -776,7 +831,7 @@ impl RuntimeServer {
 
     #[tool(
         name = "job.get",
-        description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for retained stdout/stderr/results and job.observe only when targeted reconciliation or waiting is intended.",
+        description = "Read one exact durable Job as a projection-only Runtime inspection. This never reconciles, dispatches, cancels, or otherwise advances the Job. The Job projection includes the exact sourceRevision and admission-frozen workspaceSourceDigest from its committed execution plan, so later Workspace movement cannot be mistaken for the source state this Job actually bound. It also returns bounded Attempt history, mechanical convergence, Artifact/episode summaries, and a bounded event timeline with event detail omitted; use artifact.read for bounded retained UTF-8 ranges, artifact.content for complete bounded registered Artifact bytes, and job.observe only when targeted reconciliation or waiting is intended.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<RuntimeJobInspection>>(),
         annotations(
             title = "Get transactional job",
@@ -875,8 +930,35 @@ impl RuntimeServer {
     }
 
     #[tool(
+        name = "artifact.content",
+        description = "Project one complete verified Runtime Job Artifact as a bounded MCP embedded binary resource by exact jobId and artifactId. Runtime revalidates the registered Artifact path, digest and byte length before projection and fails closed if the whole retained object exceeds maxBytes. Registered mediaType is preserved as metadata and used only as an unverified projection hint when syntactically usable. This is Artifact-byte observation, not domain semantic completion, external delivery, or consumer acceptance.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<ArtifactContentProjectionMetadata>>(),
+        annotations(
+            title = "Read verified job artifact content",
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn artifact_content(
+        &self,
+        Parameters(request): Parameters<ArtifactContentRequest>,
+    ) -> Result<CallToolResult, McpError> {
+        let runtime = self.state.runtime.clone();
+        let outcome = self
+            .run_core("artifact.content", move || {
+                runtime
+                    .read_artifact_content(&request)
+                    .map_err(ToolError::from)
+            })
+            .await;
+        artifact_content_call_result(outcome)
+    }
+
+    #[tool(
         name = "artifact.read",
-        description = "Read a bounded verified range from one Job Artifact by Job and Artifact identity.",
+        description = "Read a bounded verified UTF-8 range from one Job Artifact by Job and Artifact identity. This compatibility surface is continuation-aware text projection; use artifact.content when the complete retained Artifact must be projected as binary bytes.",
         output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<ArtifactReadResult>>(),
         annotations(
             title = "Read transactional job artifact",

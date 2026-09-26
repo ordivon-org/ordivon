@@ -8,11 +8,12 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use ordivon_runtime_core::{
-    materialize_windows_credential_binding, read_workspace_content, read_workspace_slice_compact,
-    read_workspace_text_compact, workspace_changes_page, workspace_diff_compact,
-    ArtifactReadRequest, ArtifactReadResult, CompactWorkspaceDiffResult,
-    CompactWorkspaceOpenResult, CredentialAuthority, CredentialBindingRequest, ExecutionBudget,
-    ExecutionProfile, ExecutionProposal, ExecutionStepProposal, ExecutionTarget, ForeignReference,
+    materialize_windows_credential_binding, read_workspace_content, read_workspace_file,
+    read_workspace_slice_compact, read_workspace_text_compact, workspace_changes_page,
+    workspace_diff_compact, ArtifactContentReadResult, ArtifactContentRequest, ArtifactReadRequest,
+    ArtifactReadResult, CompactWorkspaceDiffResult, CompactWorkspaceOpenResult,
+    CredentialAuthority, CredentialBindingRequest, ExecutionBudget, ExecutionProfile,
+    ExecutionProposal, ExecutionStepProposal, ExecutionTarget, ForeignReference,
     GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority, InputBindingRequest,
     JobCancelRequest, JobObservation, JobObserveRequest, JobRunProposal, Runtime,
     RuntimeCapabilities, RuntimeCapacity, RuntimeConfig, RuntimeError,
@@ -24,8 +25,8 @@ use ordivon_runtime_core::{
     WindowsPrivilegedBrokerConfig, WorkspaceChangeCursor,
     WorkspaceChangePageRequest as ExecWorkspaceChangePageRequest, WorkspaceChangePageResult,
     WorkspaceCloseRequest, WorkspaceCloseResult, WorkspaceContentMetadata, WorkspaceContentRequest,
-    WorkspaceDiffRequest as ExecWorkspaceDiffRequest, WorkspaceHeadroomConfig,
-    WorkspaceMutateRequest, WorkspaceMutateResult,
+    WorkspaceDiffRequest as ExecWorkspaceDiffRequest, WorkspaceFileReadResult,
+    WorkspaceFileRequest, WorkspaceHeadroomConfig, WorkspaceMutateRequest, WorkspaceMutateResult,
     WorkspaceReadRequest as ExecWorkspaceReadRequest, WorkspaceReadSliceRequest,
     CLIENT_REQUEST_ID_MAX_LENGTH, CLIENT_REQUEST_ID_MIN_LENGTH, CLIENT_REQUEST_ID_PATTERN,
     DEFAULT_INSPECTION_EVENT_LIMIT, ENVIRONMENT_VARIABLE_NAME_PATTERN, MAX_INSPECTION_EVENT_LIMIT,
