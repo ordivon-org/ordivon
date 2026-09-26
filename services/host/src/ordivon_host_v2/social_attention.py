@@ -28,19 +28,10 @@ class AttentionStore:
         target_ref: str,
         client_request_id: str,
     ) -> dict[str, Any]:
-        request = {
-            "operation": "subscription.follow",
-            "actorRef": actor_ref,
-            "targetKind": target_kind,
-            "targetRef": target_ref,
-        }
-        request_digest = canonical_digest(request)
+        # Desired-state command: natural-key membership is the replay contract. A later
+        # unfollow must not make a same-payload follow replay an obsolete historical receipt.
+        _ = client_request_id
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._claim_receipt(
-                conn, client_request_id, "subscription.follow", request_digest
-            )
-            if replay is not None:
-                return replay
             self._require_actor(conn, actor_ref)
             self._require_target(conn, target_kind, target_ref)
             row = conn.execute(
@@ -69,9 +60,6 @@ class AttentionStore:
                 "changeSequence": int(row["change_sequence"]),
                 "truthBoundary": "attention routing preference only; not assignment, priority, ownership, or authorization",
             }
-            self._record_receipt(
-                conn, client_request_id, "subscription.follow", request_digest, result
-            )
             return result
 
     def unfollow(
@@ -82,19 +70,9 @@ class AttentionStore:
         target_ref: str,
         client_request_id: str,
     ) -> dict[str, Any]:
-        request = {
-            "operation": "subscription.unfollow",
-            "actorRef": actor_ref,
-            "targetKind": target_kind,
-            "targetRef": target_ref,
-        }
-        request_digest = canonical_digest(request)
+        # Desired-state command; deleting an absent natural key is already replay-safe.
+        _ = client_request_id
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._claim_receipt(
-                conn, client_request_id, "subscription.unfollow", request_digest
-            )
-            if replay is not None:
-                return replay
             self._require_actor(conn, actor_ref)
             deleted = conn.execute(
                 "DELETE FROM subscriptions WHERE actor_ref=%s AND target_kind=%s AND target_ref=%s "
@@ -110,9 +88,6 @@ class AttentionStore:
                 "targetRef": target_ref,
                 "truthBoundary": "attention routing preference only",
             }
-            self._record_receipt(
-                conn, client_request_id, "subscription.unfollow", request_digest, result
-            )
             return result
 
     def list_subscriptions(
