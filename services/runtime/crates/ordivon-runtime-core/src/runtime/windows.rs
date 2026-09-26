@@ -95,12 +95,12 @@ pub fn materialize_windows_credential_binding(
     #[cfg(not(windows))]
     {
         let _ = (broker, request_id, binding);
-        return Err(RuntimeError::new(
+        Err(RuntimeError::new(
             RuntimeErrorCode::ToolUnavailable,
             "Windows credential materialization is available only on a native Windows Runtime",
             Some("credentialMaterialization"),
             false,
-        ));
+        ))
     }
     #[cfg(windows)]
     {
