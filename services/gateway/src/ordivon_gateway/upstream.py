@@ -14,7 +14,18 @@ from mcp.shared._otel import inject_trace_context
 
 
 class OwnerCallError(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        owner_id: str | None = None,
+        tool_name: str | None = None,
+        error: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.owner_id = owner_id
+        self.tool_name = tool_name
+        self.error = dict(error) if error is not None else None
 
 
 @dataclass(frozen=True)
@@ -262,12 +273,16 @@ class McpOwnerCaller:
                 )
 
         if result.is_error:
-            detail = None
+            structured_error: dict[str, Any] | None = None
             if isinstance(result.structured_content, dict):
-                detail = result.structured_content.get("error")
+                candidate = result.structured_content.get("error")
+                if isinstance(candidate, dict):
+                    structured_error = dict(candidate)
             raise OwnerCallError(
-                f"owner tool returned error: {owner_id}/{tool_name}"
-                + (f": {detail}" if detail is not None else "")
+                f"owner tool returned error: {owner_id}/{tool_name}",
+                owner_id=owner_id,
+                tool_name=tool_name,
+                error=structured_error,
             )
         if isinstance(result.structured_content, dict):
             return dict(result.structured_content)

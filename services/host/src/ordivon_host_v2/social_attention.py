@@ -231,11 +231,16 @@ class AttentionStore:
             previous = 0 if current is None else int(current["cursor"])
             if cursor < previous:
                 raise ConflictError("attention cursor cannot move backwards")
-            conn.execute(
+            updated = conn.execute(
                 "INSERT INTO attention_cursors(actor_ref,cursor) VALUES (%s,%s) "
-                "ON CONFLICT (actor_ref) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp()",
+                "ON CONFLICT (actor_ref) DO UPDATE "
+                "SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
+                "WHERE attention_cursors.cursor <= EXCLUDED.cursor "
+                "RETURNING cursor",
                 (actor_ref, cursor),
-            )
+            ).fetchone()
+            if updated is None:
+                raise ConflictError("attention cursor cannot move backwards")
             result = {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-attention-ack",

@@ -32,10 +32,21 @@ beyond the operator-admitted enrollment ceiling.
 
 ## Recovery
 
-Correctness depends on durable queue + attempt identity + lease expiry + stale-attempt
-rejection. A worker process may disappear. A later claim expires the abandoned attempt,
-returns the operation to queued state, and creates a new attempt. WSS may later wake a
-worker but cannot own lifecycle truth.
+Correctness depends on durable queue + attempt identity + lease fencing + explicit
+reconciliation of unknown execution. Worker heartbeat renews only still-valid active
+attempt leases; it never resurrects an expired lease.
+
+An expired **claimed but not started** attempt may be marked `expired_unstarted`, returned
+to the queued state, and claimed again. An expired **started** attempt is different: it may
+already have produced external side effects, so Gateway marks the attempt and operation
+`reconcile_required`, retains the active-attempt fence, and does not issue a replacement
+attempt. A late terminal report from that same fenced attempt may resolve the uncertainty.
+Rejecting stale terminal results is not treated as protection against duplicate external
+side effects.
+
+WSS may later wake a worker but cannot own lifecycle truth. Before this transport is enabled
+in production, the durable execution-state owner and provider-specific reconciliation path
+must be explicitly qualified.
 
 ## Browser boundary
 

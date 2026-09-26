@@ -599,7 +599,13 @@ class GatewayService:
                 native_id=native_id,
                 state=operation.state,
                 terminal=operation.terminal,
-                delivery_disposition="committed" if operation.terminal else "in_progress",
+                delivery_disposition=(
+                    "committed"
+                    if operation.terminal
+                    else "unknown"
+                    if operation.state == "reconcile_required"
+                    else "in_progress"
+                ),
                 execution_disposition=(
                     "succeeded"
                     if operation.terminal and operation.exit_code == 0
@@ -608,7 +614,7 @@ class GatewayService:
                     else None
                 ),
                 exit_code=operation.exit_code,
-                recovery_required=False,
+                recovery_required=operation.state == "reconcile_required",
                 artifacts_available=bool(operation.artifact_ids),
                 artifact_count=len(operation.artifact_ids),
                 artifact_ids=operation.artifact_ids,

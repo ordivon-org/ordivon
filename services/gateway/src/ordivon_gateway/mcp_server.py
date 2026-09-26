@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp_types import CallToolResult, TextContent
 from starlette.responses import JSONResponse
 
 from .access_auth import (
@@ -26,8 +27,37 @@ from .contracts import (
 )
 from .external_worker import ExternalPullWorkerTransport
 from .service import GatewayService
-from .upstream import McpOwnerCaller
+from .upstream import McpOwnerCaller, OwnerCallError
 from .worker_http import attach_worker_routes
+
+
+def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
+    error = (
+        dict(exc.error)
+        if exc.error is not None
+        else {
+            "code": "OWNER_CALL_FAILED",
+            "message": str(exc),
+            "origin": "gateway_adapter",
+        }
+    )
+    structured: dict[str, Any] = {"error": error}
+    if exc.owner_id is not None:
+        structured["gatewayOwnerId"] = exc.owner_id
+    if exc.tool_name is not None:
+        structured["gatewayOwnerTool"] = exc.tool_name
+    return CallToolResult(
+        content=[TextContent(type="text", text=str(exc))],
+        structuredContent=structured,
+        isError=True,
+    )
+
+
+async def _owner_boundary(call) -> Any:
+    try:
+        return await call
+    except OwnerCallError as exc:
+        return _owner_error_result(exc)
 
 
 def build_server(service: GatewayService | None = None) -> MCPServer:
@@ -56,32 +86,38 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         timeoutMs: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
-        return await gateway.execution_submit(
-            capability=capability,
-            request_id=requestId,
-            workspace_id=workspaceId,
-            executable=executable,
-            args=args,
-            cwd_relative=cwdRelative,
-            context=context,
-            env=env,
-            timeout_ms=timeoutMs,
-            authority_references=authorityReferences,
+        return await _owner_boundary(
+            gateway.execution_submit(
+                capability=capability,
+                request_id=requestId,
+                workspace_id=workspaceId,
+                executable=executable,
+                args=args,
+                cwd_relative=cwdRelative,
+                context=context,
+                env=env,
+                timeout_ms=timeoutMs,
+                authority_references=authorityReferences,
+            )
         )
 
     @server.tool(name="execution.resolve")
     async def execution_resolve(capability: str, requestId: str) -> ExecutionResolution:
-        return await gateway.execution_resolve(capability=capability, request_id=requestId)
+        return await _owner_boundary(
+            gateway.execution_resolve(capability=capability, request_id=requestId)
+        )
 
     @server.tool(name="execution.get")
     async def execution_get(
         operationRef: str, eventLimit: int = 10, waitMs: int = 0
     ) -> ExecutionObservation:
-        return await gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
+        return await _owner_boundary(
+            gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
+        )
 
     @server.tool(name="execution.cancel")
     async def execution_cancel(operationRef: str) -> ExecutionReceipt:
-        return await gateway.execution_cancel(operationRef)
+        return await _owner_boundary(gateway.execution_cancel(operationRef))
 
     @server.tool(name="artifact.read")
     async def artifact_read(
@@ -90,12 +126,12 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         offset: int = 0,
         maxBytes: int = 1_048_576,
     ) -> ArtifactChunk:
-        return await gateway.artifact_read(
-            operationRef, artifactId, offset=offset, max_bytes=maxBytes
+        return await _owner_boundary(
+            gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    async def _host(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        return await gateway.social_work_call(tool_name, arguments)
+    async def _host(tool_name: str, arguments: dict[str, Any]) -> Any:
+        return await _owner_boundary(gateway.social_work_call(tool_name, arguments))
 
     @server.tool(name="host.status")
     async def host_status(

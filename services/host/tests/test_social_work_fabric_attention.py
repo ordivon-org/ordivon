@@ -35,6 +35,8 @@ def test_attention_cursor_is_monotonic_and_horizon_bounded() -> None:
     source = ATTENTION.read_text()
     assert "attention cursor cannot move backwards" in source
     assert "cannot acknowledge beyond current change horizon" in source
+    assert "WHERE attention_cursors.cursor <= EXCLUDED.cursor" in source
+    assert "RETURNING cursor" in source
     assert '"snapshotHighSequence"' in source
 
 

@@ -9,6 +9,7 @@ from mcp.types import Tool
 
 from ordivon_gateway.mcp_server import build_server
 from ordivon_gateway.service import GatewayError, GatewayService
+from ordivon_gateway.upstream import OwnerCallError
 
 
 class FakeOwnerCaller:
@@ -521,3 +522,64 @@ def test_continuity_capability_probes_host_status_not_legacy_task_surface() -> N
     projection = asyncio.run(GatewayService(caller).capability_describe("continuity.external"))
     assert projection.capabilities[0].available is True
     assert caller.calls[-1] == ("host", "host.status", {"detail": "summary"})
+
+
+class StructuredFailureCaller:
+    def is_configured(self, owner_id: str) -> bool:
+        return True
+
+    async def call_tool(
+        self, owner_id: str, tool_name: str, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise OwnerCallError(
+            f"owner tool returned error: {owner_id}/{tool_name}",
+            owner_id=owner_id,
+            tool_name=tool_name,
+            error={
+                "code": "REGISTRY_COMMIT_UNKNOWN",
+                "origin": "runtime_core",
+                "retryClass": "reconcile_first",
+                "commitState": "unknown",
+                "retryable": True,
+                "traceId": "runtime-trace-1",
+                "operationId": "job-uncertain-1",
+            },
+        )
+
+
+def test_gateway_mcp_preserves_runtime_recovery_error_as_structured_tool_error() -> None:
+    async def scenario() -> None:
+        async with Client(
+            build_server(GatewayService(StructuredFailureCaller())),
+            raise_exceptions=False,
+        ) as client:
+            tools = await client.list_tools()
+            submit = {tool.name: tool for tool in tools.tools}["execution.submit"]
+            assert submit.output_schema is not None
+            assert "operation_ref" in str(submit.output_schema)
+
+            result = await client.call_tool(
+                "execution.submit",
+                {
+                    "capability": "execution.linux",
+                    "requestId": "req-uncertain",
+                    "workspaceId": "ws-uncertain",
+                    "executable": "/usr/bin/true",
+                    "args": [],
+                },
+            )
+            assert result.is_error is True
+            assert result.structured_content is not None
+            assert result.structured_content["error"] == {
+                "code": "REGISTRY_COMMIT_UNKNOWN",
+                "origin": "runtime_core",
+                "retryClass": "reconcile_first",
+                "commitState": "unknown",
+                "retryable": True,
+                "traceId": "runtime-trace-1",
+                "operationId": "job-uncertain-1",
+            }
+            assert result.structured_content["gatewayOwnerId"] == "runtime.linux"
+            assert result.structured_content["gatewayOwnerTool"] == "workspace.exec"
+
+    asyncio.run(scenario())

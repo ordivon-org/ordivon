@@ -466,3 +466,57 @@ def test_attention_change_clock_serializes_commit_order_and_rollback_has_no_hole
         assert seq_b == seq_a
     finally:
         conn_a.close()
+
+
+def test_attention_first_ack_concurrency_cannot_regress_cursor() -> None:
+    import threading
+
+    import psycopg
+
+    assert DSN is not None
+    actor_ref = f"actor:agent:attention-cursor-race:{uuid4().hex}"
+    barrier = threading.Barrier(2)
+    low, high = 41, 73
+
+    with psycopg.connect(DSN) as setup:
+        setup.execute(
+            "INSERT INTO actor_refs(actor_ref,actor_kind) VALUES (%s,'agent')",
+            (actor_ref,),
+        )
+        setup.commit()
+
+    def ack(cursor: int) -> int | None:
+        with psycopg.connect(DSN) as conn:
+            current = conn.execute(
+                "SELECT cursor FROM attention_cursors WHERE actor_ref=%s FOR UPDATE",
+                (actor_ref,),
+            ).fetchone()
+            assert current is None
+            barrier.wait(timeout=5)
+            row = conn.execute(
+                "INSERT INTO attention_cursors(actor_ref,cursor) VALUES (%s,%s) "
+                "ON CONFLICT (actor_ref) DO UPDATE "
+                "SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
+                "WHERE attention_cursors.cursor <= EXCLUDED.cursor "
+                "RETURNING cursor",
+                (actor_ref, cursor),
+            ).fetchone()
+            conn.commit()
+            return None if row is None else int(row[0])
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            outcomes = list(pool.map(ack, (low, high)))
+        with psycopg.connect(DSN) as verify:
+            final = verify.execute(
+                "SELECT cursor FROM attention_cursors WHERE actor_ref=%s",
+                (actor_ref,),
+            ).fetchone()
+            assert final is not None
+            assert int(final[0]) == high
+        assert high in outcomes
+    finally:
+        with psycopg.connect(DSN) as cleanup:
+            cleanup.execute("DELETE FROM attention_cursors WHERE actor_ref=%s", (actor_ref,))
+            cleanup.execute("DELETE FROM actor_refs WHERE actor_ref=%s", (actor_ref,))
+            cleanup.commit()
