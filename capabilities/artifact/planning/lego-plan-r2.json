@@ -410,8 +410,10 @@
     {
       "id": "D01",
       "label": "DualEvaluationBackbones",
-      "observation": "Production Office/Web verification and standards-first family verification use different evaluation models.",
-      "priority": "P0"
+      "observation": "Production Office/Web and standards-first family verification still use distinct execution/result backbones, but S1E proves both can project into common evaluation/observation/standing semantics without route changes.",
+      "priority": "P0",
+      "state": "COMPATIBILITY_MODEL_PROVEN_DUAL_BACKBONE_STILL_PRESENT",
+      "resolutionBoundary": "Do not mark resolved until production routing/lifecycle convergence is separately justified; compatibility equivalence is not physical backbone unification."
     },
     {
       "id": "D02",
@@ -515,7 +517,7 @@
     {
       "id": "R2-S1E",
       "objective": "Pressure-test a production-v1 Office/Web compatibility adapter into the common EvaluationRequest/EvidenceObservation/StandingDecision model without changing production routing or promoting profile-v2.",
-      "status": "NEXT",
+      "status": "IMPLEMENTED_VERIFIED_PENDING_INTEGRATION",
       "nodeIds": [
         "K01",
         "K02",
@@ -525,7 +527,9 @@
         "P02",
         "C01"
       ],
-      "evidenceBoundary": "Success requires lossless round-trip of current production-v1 subject/profile/gate semantics and fail-closed standing equivalence. No production route switch, profile-v1 retirement, or profile-v2 promotion is implied."
+      "evidenceBoundary": "Production-v1 and canonical-v2 profile/gate semantics are exact-byte bound and compatibility-equivalent for current Presentation/Document/Web profiles. Native verify-stage results round-trip exactly and standing fails closed. Production routing remains v1; no profile retirement/promotion is implied.",
+      "result": "PRODUCTION_V1_COMPATIBILITY_MODEL_PROVEN_ROUTE_UNCHANGED",
+      "evidence": "planning/production-v1-evaluation-compatibility-r1.json"
     },
     {
       "id": "R2-S2",
@@ -603,6 +607,12 @@
       "implementationCommit": "914eac05777ba3c6478790c104caf475480eee1e",
       "mergeCommit": "51079336766d920c7893bae91b617412c54f4ae4",
       "mergedTreeRequalificationJobId": "job-01a0dea4-f95c-7ce3-8fcf-f2b3fb5bfd4e"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S1E/D01",
+      "standing": "PRODUCTION_V1_COMPATIBILITY_VERIFIED_PENDING_INTEGRATION",
+      "evidence": "planning/production-v1-evaluation-compatibility-r1.json"
     }
   ]
 }
