@@ -45,7 +45,7 @@
     },
     "sharedAttachments": {
       "type": "array",
-      "maxItems": 1,
+      "maxItems": 4,
       "items": {
         "type": "object",
         "additionalProperties": false,

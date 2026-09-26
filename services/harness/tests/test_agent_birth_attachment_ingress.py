@@ -380,3 +380,25 @@ def test_gateway_output_and_release_receipts_are_read_only_and_identity_bound():
         json.dumps(release), effect_id="effect-1", target_resource="https://chatgpt.com/c/abcdefghi"
     )
     assert parsed_release["standing"] == "RELEASED"
+
+
+def test_campaign_registry_schema_accepts_two_exact_attachments(tmp_path: Path):
+    from agent_automation_registry import CampaignRegistry
+
+    first = attachment()
+    second = CarrierAttachment(
+        staging_relative_path="attachments/paper3-r10.zip",
+        digest="sha256:" + "b" * 64,
+        media_type="application/zip",
+        presentation_name="PAPER3_C21_REVIEWER_ARTIFACT_R10.zip",
+    )
+    value = {
+        "campaignId": "paper3-two-attachment-schema-contract",
+        "sharedPrompt": "Inspect only the exact attached carriers.",
+        "roster": [{"agentId": "blind", "roleCard": "Blind cold reviewer"}],
+        "sharedAttachments": [first.canonical(), second.canonical()],
+    }
+    registry = CampaignRegistry(tmp_path)
+    registered = registry.register(value)
+    frozen = json.loads(registry.resolve(registered["campaignRef"]).read_text())
+    assert frozen["sharedAttachments"] == [first.canonical(), second.canonical()]
