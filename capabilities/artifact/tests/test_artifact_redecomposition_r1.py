@@ -52,7 +52,11 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
     def test_transport_and_consumer_acceptance_are_outside_kernel(self) -> None:
         nodes = {node["id"]: node for node in self.plan["nodes"]}
         self.assertEqual(nodes["X01"]["kind"], "externalize")
-        self.assertEqual(nodes["X01"]["state"], "DO_NOT_PROMOTE")
+        self.assertEqual(
+            nodes["X01"]["state"],
+            "PHYSICALLY_RETIRED_EXTERNAL_OWNER_REQUIRED_IF_REINTRODUCED",
+        )
+        self.assertIn("transport-boundary-retirement-r1.json", " ".join(nodes["X01"]["currentEvidence"]))
         self.assertEqual(nodes["X03"]["state"], "OUTSIDE_ARTIFACT")
 
     def test_next_slice_is_evaluation_model_pressure_test(self) -> None:
@@ -63,6 +67,10 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("K05", slices["R2-S1C"]["nodeIds"])
         self.assertEqual(slices["R2-S1D"]["status"], "NEXT")
         self.assertIn("P02", slices["R2-S1D"]["nodeIds"])
+        self.assertEqual(
+            slices["R2-S5"]["status"],
+            "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
+        )
 
     def test_current_empirical_topology_is_recorded(self) -> None:
         topology = self.plan["observedTopology"]

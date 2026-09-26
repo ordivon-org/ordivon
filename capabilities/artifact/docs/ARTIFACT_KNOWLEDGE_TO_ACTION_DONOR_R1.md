@@ -61,7 +61,7 @@ Keep as replaceable execution/provider integration or historical implementation,
 - legacy Artifact delivery orchestration;
 - Temporal Artifact execution wiring;
 - OCI package/release adapter;
-- R2 mailbox transport implementation;
+- R2 mailbox transport implementation (historical donor reference; live Artifact-owned implementation physically retired 2026-09-26);
 - toolchain doctor/environment probing.
 
 ## Per-profile donor model
@@ -181,6 +181,8 @@ legacy subsystem identity
 This is the desired migration direction:
 
 > Preserve proven knowledge; discard accidental infrastructure ownership.
+
+The 2026-09-26 transport-boundary retirement applies that rule to R2 mailbox: current Artifact source no longer carries the provider implementation/config/schema/test, while the frozen donor manifest deliberately preserves the historical implementation digest and path as provenance.
 
 ## What this does not prove
 

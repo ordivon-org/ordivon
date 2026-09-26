@@ -233,10 +233,11 @@
       "kind": "externalize",
       "responsibility": "Move bytes or issue bounded transport capabilities.",
       "currentEvidence": [
-        "scripts/artifact_r2_mailbox.py",
-        "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md"
+        "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md",
+        "planning/transport-boundary-retirement-r1.json"
       ],
-      "state": "DO_NOT_PROMOTE"
+      "state": "PHYSICALLY_RETIRED_EXTERNAL_OWNER_REQUIRED_IF_REINTRODUCED",
+      "resolution": "The Cloudflare R2 mailbox implementation, operator config, route schema and self-test were removed from the Artifact owner. Generic transport/provider effect authority must live outside Artifact if future pressure reintroduces it."
     },
     {
       "id": "X02",
@@ -432,8 +433,10 @@
     {
       "id": "D05",
       "label": "TransportBoundaryDrift",
-      "observation": "R2 mailbox implementation remains in the Artifact repository despite donor classification DO_NOT_PROMOTE.",
-      "priority": "P1"
+      "observation": "Historical R1 observation: the R2 mailbox implementation remained in Artifact despite donor classification DO_NOT_PROMOTE.",
+      "priority": "P1",
+      "state": "RESOLVED",
+      "resolution": "Physical mailbox/provider transport code was retired from the Artifact owner on 2026-09-26; frozen donor/provenance evidence is retained."
     },
     {
       "id": "D06",
@@ -529,11 +532,13 @@
     {
       "id": "R2-S5",
       "objective": "Classify mailbox, doctor, environment and transport/publication tooling into retain, quarantine or externalize.",
-      "status": "PLANNED",
+      "status": "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
       "nodeIds": [
         "X01",
         "X02"
-      ]
+      ],
+      "result": "X01 mailbox/provider transport physically retired; X02 toolchain/environment classification and other publication/transport tooling remain separate work.",
+      "evidenceBoundary": "Do not infer R2-S5 complete from mailbox retirement alone; toolchain/environment and publication/provider adapters retain independent ownership review."
     }
   ],
   "questions": [
@@ -548,5 +553,13 @@
     "updatedAt": "2026-09-20",
     "standing": "COMPATIBILITY_DEMOLITION_A17",
     "notes": "Delivery Python/CLI facade and CLI fallback provider are retired. Agent build intent now projects to ArtifactOperation; Temporal defaults exclusively to DirectPythonOperationProvider. Profile-v1 dual-contract debt remains explicit and separate."
-  }
+  },
+  "executionUpdates": [
+    {
+      "date": "2026-09-26",
+      "scope": "R2-S5/X01/D05",
+      "standing": "MAILBOX_TRANSPORT_PHYSICALLY_RETIRED",
+      "evidence": "planning/transport-boundary-retirement-r1.json"
+    }
+  ]
 }
