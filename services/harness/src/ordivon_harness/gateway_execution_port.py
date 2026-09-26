@@ -150,13 +150,37 @@ class GatewayExecutionPort:
         contexts = item.get('contexts')
         if not isinstance(configured, bool) or not isinstance(available, bool):
             raise GatewayExecutionError('Gateway capability projection omitted availability')
-        if not isinstance(contexts, list) or any(not isinstance(value, str) for value in contexts):
+        if not isinstance(contexts, list):
             raise GatewayExecutionError('Gateway capability projection has invalid contexts')
+        normalized_contexts: list[str] = []
+        for value in contexts:
+            if isinstance(value, str):
+                candidates = (value,)
+            elif isinstance(value, dict):
+                identity = value.get('identity')
+                privilege = value.get('privilege')
+                if not isinstance(identity, str) or not identity or identity != identity.strip():
+                    raise GatewayExecutionError(
+                        'Gateway structured capability context has invalid identity'
+                    )
+                if not isinstance(privilege, str) or not privilege or privilege != privilege.strip():
+                    raise GatewayExecutionError(
+                        'Gateway structured capability context has invalid privilege'
+                    )
+                candidates = (
+                    *((identity,) if identity != 'service' else ()),
+                    privilege,
+                )
+            else:
+                raise GatewayExecutionError('Gateway capability projection has invalid contexts')
+            for candidate in candidates:
+                if candidate not in normalized_contexts:
+                    normalized_contexts.append(candidate)
         return GatewayCapabilityStanding(
             capability=capability,
             configured=configured,
             available=available,
-            contexts=tuple(contexts),
+            contexts=tuple(normalized_contexts),
             projection_digest=projection_digest,
         )
 

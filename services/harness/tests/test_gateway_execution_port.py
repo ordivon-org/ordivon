@@ -188,3 +188,62 @@ def test_stderr_is_read_by_exact_artifact_identity():
     assert result is not None
     assert port.read_stderr(result) == 'stderr evidence\n'
     assert client.calls[-1][0] == 'artifact.read'
+
+
+def test_capability_standing_normalizes_structured_windows_context_projection():
+    class StructuredContextGateway(FakeGateway):
+        def call_tool(self, name, arguments):
+            if name == 'capability.describe':
+                self.calls.append((name, dict(arguments)))
+                return False, {
+                    'projection_digest': 'sha256:' + '8' * 64,
+                    'capabilities': [
+                        {
+                            'capability': arguments['capability'],
+                            'configured': True,
+                            'available': True,
+                            'context_mode': 'provider-defined-json',
+                            'contexts': [
+                                {'identity': 'service', 'privilege': 'limited'},
+                                {'identity': 'service', 'privilege': 'elevated'},
+                                {'identity': 'active_user', 'privilege': 'limited'},
+                                {'identity': 'active_user', 'privilege': 'elevated'},
+                            ],
+                        }
+                    ],
+                }
+            return super().call_tool(name, arguments)
+
+    client = StructuredContextGateway()
+    standing = GatewayExecutionPort(client).capability_standing('execution.windows')
+    assert standing.configured is True
+    assert standing.available is True
+    assert standing.contexts == ('limited', 'elevated', 'active_user')
+    assert standing.supports_context('active_user') is True
+    assert standing.projection_digest == 'sha256:' + '8' * 64
+
+
+def test_capability_standing_rejects_malformed_structured_context():
+    class MalformedStructuredContextGateway(FakeGateway):
+        def call_tool(self, name, arguments):
+            if name == 'capability.describe':
+                self.calls.append((name, dict(arguments)))
+                return False, {
+                    'projection_digest': 'sha256:' + '9' * 64,
+                    'capabilities': [
+                        {
+                            'capability': arguments['capability'],
+                            'configured': True,
+                            'available': True,
+                            'contexts': [{'identity': 'active_user'}],
+                        }
+                    ],
+                }
+            return super().call_tool(name, arguments)
+
+    with pytest.raises(
+        Exception, match='structured capability context has invalid privilege'
+    ):
+        GatewayExecutionPort(MalformedStructuredContextGateway()).capability_standing(
+            'execution.windows'
+        )
