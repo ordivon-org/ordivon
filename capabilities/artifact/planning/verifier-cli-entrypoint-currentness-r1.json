@@ -47,5 +47,12 @@
     "Profile-v2 was promoted.",
     "The bootstrap makes Artifact an installed Python distribution."
   ],
-  "standing": "VERIFIED_PENDING_INTEGRATION"
+  "standing": "INTEGRATED_VERIFIED",
+  "integration": {
+    "implementationCommit": "914eac05777ba3c6478790c104caf475480eee1e",
+    "mergeCommit": "51079336766d920c7893bae91b617412c54f4ae4",
+    "mergedArtifactTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0dea4-f95c-7ce3-8fcf-f2b3fb5bfd4e",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
 }
