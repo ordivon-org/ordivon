@@ -65,8 +65,11 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertEqual(slices["R2-S1B"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertEqual(slices["R2-S1C"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertIn("K05", slices["R2-S1C"]["nodeIds"])
-        self.assertEqual(slices["R2-S1D"]["status"], "NEXT")
+        self.assertEqual(slices["R2-S1D"]["status"], "IMPLEMENTED_VERIFIED_INTEGRATED")
         self.assertIn("P02", slices["R2-S1D"]["nodeIds"])
+        self.assertEqual(slices["R2-S1E"]["status"], "NEXT")
+        self.assertIn("C01", slices["R2-S1E"]["nodeIds"])
+        self.assertIn("K05", slices["R2-S1E"]["nodeIds"])
         self.assertEqual(
             slices["R2-S5"]["status"],
             "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
@@ -75,7 +78,7 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
     def test_current_empirical_topology_is_recorded(self) -> None:
         topology = self.plan["observedTopology"]
         self.assertEqual(topology["projectPythonPackageCycles"], 0)
-        self.assertEqual(topology["capabilityVerifyBindings"], 19)
+        self.assertEqual(topology["capabilityVerifyBindings"], 20)
         self.assertEqual(topology["deliveryFacadeLines"], 0)
         self.assertEqual(topology["deliveryCliProviderLines"], 0)
         self.assertEqual(topology["directPythonProviderProjectFanout"], 17)

@@ -296,7 +296,7 @@ Existing donor evidence already said this belonged to delivery infrastructure ra
 
 ### D6 — Family verifiers are plugins in practice but not yet packaged as plugins
 
-19 bindings already resolve profile/operation to module/callable with standing fences.
+Twenty current bound verifier profiles resolve to explicit verifier implementations with standing fences; S1D also established exact claim-key projection for every bound profile.
 
 This is already the core shape of a plugin protocol.
 
@@ -391,6 +391,10 @@ Do not begin by splitting files.
 ### R2-S1 — Evaluation Model Pressure Test
 
 Build an in-memory/provisional EvaluationRequest / EvidenceObservation / StandingDecision model and map four real existing profiles into it without changing production routing.
+
+### R2-S1E — Production-v1 Evaluation Compatibility Pressure Test
+
+Pressure-test the production Office/Web profile-v1 verification lineage through a compatibility adapter into the common EvaluationRequest / EvidenceObservation / StandingDecision model. Preserve current production routing and exact gate semantics; fail closed on any semantic or standing mismatch. This slice does not retire profile-v1 or promote profile-v2.
 
 ### R2-S2 — Trust Separation Audit
 

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.artifact-verifier-cli-entrypoint-currentness-evidence",
+  "truthRole": "source-entrypoint-verification-evidence-not-plugin-protocol-completion",
+  "date": "2026-09-27",
+  "baseRevision": "976491e94bc8af7987dc191e889f6a92fc91ae0e",
+  "scope": [
+    "D06",
+    "A03"
+  ],
+  "observation": "After canonical S1D integration, every verifier script importing artifact_verification.claim_results failed when executed by absolute path from an unrelated cwd because the Artifact package root was not on sys.path.",
+  "affectedEntrypoints": 16,
+  "fix": "Each affected direct script entrypoint bootstraps Path(__file__).resolve().parents[1] onto sys.path before importing artifact_verification.claim_results. This changes importability only and does not change verifier routing or claim semantics.",
+  "verification": [
+    {
+      "class": "pre-fix-census",
+      "standing": "FAIL_16_OF_16",
+      "jobId": "job-01a0de84-870e-7541-9620-7d9c62c5b280"
+    },
+    {
+      "class": "post-fix-direct-cli",
+      "standing": "PASS_16_OF_16",
+      "jobId": "job-01a0de8f-6d37-7271-be05-2e24854f3b6d"
+    },
+    {
+      "class": "dynamic-anti-regression-focused",
+      "standing": "PASS",
+      "jobId": "job-01a0de91-ccc5-7bd1-811f-be463bde3a9b",
+      "detail": "11 focused tests passed including dynamic unrelated-cwd CLI entrypoint coverage, native claim coverage and claim-result helper contracts."
+    },
+    {
+      "class": "first-owner-gate",
+      "standing": "FAIL_STALE_PLANNING_TESTS_ONLY",
+      "jobId": "job-01a0de95-1641-70b3-97a2-1c1a865ae246",
+      "detail": "394 passed; 2 failures were stale redecomposition expectations (19 bindings and S1D NEXT) after canonical S1D closeout, not verifier/CLI failures."
+    },
+    {
+      "class": "current-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0dea1-76ef-74b1-812b-3ca09e8ecfc5",
+      "detail": "mise run verify: 396 passed, 3 skipped, 39 deselected, 101 subtests passed; Ruff/lock/sync gates passed."
+    }
+  ],
+  "nonClaims": [
+    "D06 verifier plugin protocol is fully formalized.",
+    "Production routing changed.",
+    "Profile-v2 was promoted.",
+    "The bootstrap makes Artifact an installed Python distribution."
+  ],
+  "standing": "VERIFIED_PENDING_INTEGRATION"
+}

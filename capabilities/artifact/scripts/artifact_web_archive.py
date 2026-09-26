@@ -11,6 +11,10 @@ from pathlib import Path
 
 import jsonschema
 
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
 from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT=Path(__file__).resolve().parents[1]

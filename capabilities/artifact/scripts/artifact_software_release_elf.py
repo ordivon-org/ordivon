@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bounded Linux ELF release verifier: exact bytes, ELF facts, and network-isolated runtime readback."""
 from __future__ import annotations
+import sys
 
 import argparse
 import hashlib
@@ -13,6 +14,10 @@ from pathlib import Path
 from typing import Any
 
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
 
 from artifact_verification.claim_results import emits_explicit_claim_results
 

@@ -442,9 +442,9 @@
     {
       "id": "D06",
       "label": "ImplicitVerifierPluginProtocol",
-      "observation": "Twenty current bound verifier profiles now share a mechanical explicit-claim projection helper while family semantics remain verifier-owned. Formal plugin packaging/interface remains separate work.",
+      "observation": "Twenty current bound verifier profiles share an explicit claim projection helper and their direct CLI entrypoints now bootstrap the Artifact package root independently of caller cwd. Formal verifier plugin packaging/interface and lifecycle remain separate work.",
       "priority": "P1",
-      "state": "PARTIALLY_FACTORIZED_NOT_RESOLVED"
+      "state": "PARTIALLY_FACTORIZED_CLI_ENTRYPOINT_STABLE_NOT_RESOLVED"
     },
     {
       "id": "D07",
@@ -513,6 +513,21 @@
       "integrationCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f"
     },
     {
+      "id": "R2-S1E",
+      "objective": "Pressure-test a production-v1 Office/Web compatibility adapter into the common EvaluationRequest/EvidenceObservation/StandingDecision model without changing production routing or promoting profile-v2.",
+      "status": "NEXT",
+      "nodeIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "P02",
+        "C01"
+      ],
+      "evidenceBoundary": "Success requires lossless round-trip of current production-v1 subject/profile/gate semantics and fail-closed standing equivalence. No production route switch, profile-v1 retirement, or profile-v2 promotion is implied."
+    },
+    {
       "id": "R2-S2",
       "objective": "Separate Trust statement, policy, Sigstore effect and aggregation responsibilities at the design/test boundary.",
       "status": "PLANNED",
@@ -578,6 +593,13 @@
       "evidence": "planning/native-claim-results-coverage-r1.json",
       "integrationCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f",
       "mergedTreeRequalificationJobId": "job-01a0de3d-fbdd-7292-b41b-170580eb31f0"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "D06 verifier CLI entrypoint packaging seam",
+      "standing": "CLI_ENTRYPOINT_BOOTSTRAP_VERIFIED_PENDING_INTEGRATION",
+      "evidence": "planning/verifier-cli-entrypoint-currentness-r1.json",
+      "ownerGateJobId": "job-01a0dea1-76ef-74b1-812b-3ca09e8ecfc5"
     }
   ]
 }
