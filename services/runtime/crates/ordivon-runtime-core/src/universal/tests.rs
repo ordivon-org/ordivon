@@ -329,6 +329,115 @@ fn workspace_read_allows_relative_parent_symlink_that_stays_beneath_root() {
 }
 
 #[test]
+fn workspace_file_reads_exact_binary_bytes_with_nul() {
+    let sandbox = Sandbox::new("workspace-file-binary");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-file-binary";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    fs::create_dir_all(workspace.join("out")).unwrap();
+    let bytes = b"PK\x03\x04\0binary\xffpayload";
+    fs::write(workspace.join("out/result.docx"), bytes).unwrap();
+    let expected_digest = sha256_bytes(bytes);
+
+    let read = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/result.docx".to_string(),
+            expected_digest: expected_digest.clone(),
+            max_bytes: 1024,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(read.bytes, bytes);
+    assert_eq!(read.metadata.digest, expected_digest);
+    assert_eq!(read.metadata.byte_length, bytes.len() as u64);
+    assert_eq!(read.metadata.relative_path, "out/result.docx");
+}
+
+#[test]
+fn workspace_file_fails_closed_on_digest_drift_symlink_and_size_limit() {
+    let sandbox = Sandbox::new("workspace-file-boundaries");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-file-boundaries";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    fs::create_dir_all(workspace.join("out")).unwrap();
+    let original = vec![0x5a; 2048];
+    let path = workspace.join("out/blob.bin");
+    fs::write(&path, &original).unwrap();
+    let expected_digest = sha256_bytes(&original);
+
+    let size_error = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/blob.bin".to_string(),
+            expected_digest: expected_digest.clone(),
+            max_bytes: 1024,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(size_error.code, UniversalExecErrorCode::OutputLimitExceeded);
+
+    let replacement = vec![0x59; 2048];
+    fs::write(&path, &replacement).unwrap();
+    let drift = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/blob.bin".to_string(),
+            expected_digest,
+            max_bytes: 4096,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(drift.code, UniversalExecErrorCode::RevisionMismatch);
+    assert_eq!(drift.field.as_deref(), Some("expectedDigest"));
+
+    symlink("blob.bin", workspace.join("out/link.bin")).unwrap();
+    let link_error = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/link.bin".to_string(),
+            expected_digest: sha256_bytes(&replacement),
+            max_bytes: 4096,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(link_error.code, UniversalExecErrorCode::WorkspacePathDenied);
+}
+
+#[test]
 fn workspace_content_rejects_final_symlink_and_preserves_bounded_read() {
     let sandbox = Sandbox::new("workspace-content-fd-boundaries");
     let source = sandbox.root.join("source");

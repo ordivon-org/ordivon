@@ -4,12 +4,13 @@ use crate::universal::{
     create_git_workspace, remove_git_workspace, write_workspace_text, WorkspaceWriteRequest,
 };
 use crate::{
-    ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal, ExecutionStepProposal,
-    ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority,
-    InputBindingRequest, JobCancelRequest, JobObservation, JobObserveRequest, JobObserveWaitUntil,
-    JobRunProposal, RegistryConfig, Runtime, RuntimeConfig, RuntimeJobListRequest, RuntimeResult,
-    UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation,
-    WorkspaceMutationMode, RUNTIME_SCHEMA_VERSION, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    ArtifactContentRequest, ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal,
+    ExecutionStepProposal, ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding,
+    InputAuthority, InputBindingRequest, JobCancelRequest, JobObservation, JobObserveRequest,
+    JobObserveWaitUntil, JobRunProposal, RegistryConfig, Runtime, RuntimeConfig,
+    RuntimeJobListRequest, RuntimeResult, UniversalExecutorConfig, WorkspaceCloseRequest,
+    WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode, RUNTIME_SCHEMA_VERSION,
+    UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -301,6 +302,38 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         .unwrap();
     assert!(read.content.contains("RUNTIME_OK"));
     assert!(read.eof);
+
+    let binary_projection = runtime
+        .read_artifact_content(&ArtifactContentRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: stdout.artifact_id.clone(),
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    assert_eq!(binary_projection.metadata.digest, stdout.digest);
+    assert_eq!(
+        binary_projection.metadata.media_type,
+        "text/plain; charset=utf-8"
+    );
+    assert_eq!(
+        binary_projection.metadata.byte_length,
+        binary_projection.bytes.len() as u64
+    );
+    assert!(binary_projection
+        .bytes
+        .windows(b"RUNTIME_OK".len())
+        .any(|window| window == b"RUNTIME_OK"));
+
+    let too_small = runtime
+        .read_artifact_content(&ArtifactContentRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: stdout.artifact_id.clone(),
+            max_bytes: 1,
+        })
+        .unwrap_err();
+    assert_eq!(too_small.field.as_deref(), Some("maxBytes"));
 
     let custom_target = root.join("caller-custom-cargo-target");
     let mut custom_request = request.clone();

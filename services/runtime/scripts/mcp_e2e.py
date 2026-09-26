@@ -29,7 +29,9 @@ MODERN_PROTOCOL_VERSION = "2026-07-28"
 LEGACY_PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18")
 SCHEMA_VERSION = 1
 EXPECTED_TOOLS = {
+    "artifact.content",
     "artifact.read",
+    "credential.materialize",
     "input.ingest",
     "release.apply",
     "release.get",
@@ -42,6 +44,7 @@ EXPECTED_TOOLS = {
     "workspace.close",
     "workspace.content",
     "workspace.diff",
+    "workspace.file",
     "workspace.exec",
     "workspace.execBound",
     "workspace.execBoundTrusted",
@@ -57,6 +60,7 @@ TERMINAL = {"succeeded", "failed", "timed_out", "cancelled", "lost", "orphaned"}
 PNG_FIXTURE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
+BINARY_FIXTURE = b"PK\x03\x04\x00ordivon-binary\xff\x10payload"
 
 
 def digest_bytes(value: bytes) -> str:
@@ -484,6 +488,7 @@ def create_source_repo(root: Path) -> tuple[Path, str]:
     (source / "README.md").write_text("hello\n", encoding="utf-8")
     (source / "append.txt").write_text("first\n", encoding="utf-8")
     (source / "pixel.png").write_bytes(PNG_FIXTURE)
+    (source / "binary-fixture.bin").write_bytes(BINARY_FIXTURE)
     command("git", "add", ".", cwd=source)
     command("git", "commit", "-q", "-m", "acceptance source", cwd=source)
     return source, command("git", "rev-parse", "HEAD", cwd=source)
@@ -1024,6 +1029,69 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             },
         )
         check("workspace-read-full", full.get("content") == "hello\n", full)
+
+        file_result = client.tool_result(
+            "workspace.file",
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "workspaceId": workspace_id,
+                "relativePath": "binary-fixture.bin",
+                "expectedDigest": digest_bytes(BINARY_FIXTURE),
+                "maxBytes": 4096,
+                "mediaType": "application/octet-stream",
+            },
+        )
+        file_structured = file_result.get("structuredContent")
+        file_blocks = file_result.get("content")
+        file_block = (
+            file_blocks[0]
+            if isinstance(file_blocks, list) and len(file_blocks) == 1 and isinstance(file_blocks[0], dict)
+            else {}
+        )
+        file_resource = file_block.get("resource")
+        file_blob = file_resource.get("blob") if isinstance(file_resource, dict) else None
+        decoded_file = base64.b64decode(file_blob, validate=True) if isinstance(file_blob, str) else b""
+        check(
+            "workspace-file-binary-resource",
+            file_result.get("isError") is False
+            and isinstance(file_structured, dict)
+            and file_structured.get("workspaceId") == workspace_id
+            and file_structured.get("relativePath") == "binary-fixture.bin"
+            and file_structured.get("digest") == digest_bytes(BINARY_FIXTURE)
+            and file_structured.get("byteLength") == len(BINARY_FIXTURE)
+            and file_structured.get("mediaType") == "application/octet-stream"
+            and file_structured.get("mediaTypeStanding") == "CALLER_DECLARED_UNVERIFIED"
+            and file_block.get("type") == "resource"
+            and isinstance(file_resource, dict)
+            and file_resource.get("mimeType") == "application/octet-stream"
+            and decoded_file == BINARY_FIXTURE,
+            {
+                "structuredContent": file_structured,
+                "blockType": file_block.get("type"),
+                "resourceMimeType": file_resource.get("mimeType") if isinstance(file_resource, dict) else None,
+                "decodedDigest": digest_bytes(decoded_file),
+            },
+        )
+        stale_file = client.tool_result(
+            "workspace.file",
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "workspaceId": workspace_id,
+                "relativePath": "binary-fixture.bin",
+                "expectedDigest": "sha256:" + "0" * 64,
+                "maxBytes": 4096,
+            },
+        )
+        stale_file_structured = stale_file.get("structuredContent")
+        stale_file_error = stale_file_structured.get("error") if isinstance(stale_file_structured, dict) else None
+        check(
+            "workspace-file-digest-binding",
+            stale_file.get("isError") is True
+            and isinstance(stale_file_error, dict)
+            and stale_file_error.get("code") == "REVISION_MISMATCH"
+            and stale_file_error.get("field") == "expectedDigest",
+            stale_file,
+        )
 
         content_request = {
             "schemaVersion": SCHEMA_VERSION,
@@ -1900,6 +1968,46 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         )
         check("artifact-content", artifact.get("content") == expected_stdout, artifact)
         check("artifact-digest", artifact.get("digest") == digest_bytes(artifact["content"].encode("utf-8")), artifact)
+
+        artifact_binary = client.tool_result(
+            "artifact.content",
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "jobId": job_id,
+                "artifactId": artifact_id,
+                "maxBytes": 65_536,
+            },
+        )
+        artifact_binary_structured = artifact_binary.get("structuredContent")
+        artifact_binary_blocks = artifact_binary.get("content")
+        artifact_binary_block = (
+            artifact_binary_blocks[0]
+            if isinstance(artifact_binary_blocks, list) and len(artifact_binary_blocks) == 1 and isinstance(artifact_binary_blocks[0], dict)
+            else {}
+        )
+        artifact_binary_resource = artifact_binary_block.get("resource")
+        artifact_blob = artifact_binary_resource.get("blob") if isinstance(artifact_binary_resource, dict) else None
+        decoded_artifact = base64.b64decode(artifact_blob, validate=True) if isinstance(artifact_blob, str) else b""
+        check(
+            "artifact-binary-resource",
+            artifact_binary.get("isError") is False
+            and isinstance(artifact_binary_structured, dict)
+            and artifact_binary_structured.get("jobId") == job_id
+            and artifact_binary_structured.get("artifactId") == artifact_id
+            and artifact_binary_structured.get("digest") == digest_bytes(expected_stdout.encode("utf-8"))
+            and artifact_binary_structured.get("byteLength") == len(expected_stdout.encode("utf-8"))
+            and artifact_binary_structured.get("registeredMediaType") == "text/plain; charset=utf-8"
+            and artifact_binary_structured.get("truncated") is False
+            and artifact_binary_block.get("type") == "resource"
+            and isinstance(artifact_binary_resource, dict)
+            and decoded_artifact == expected_stdout.encode("utf-8"),
+            {
+                "structuredContent": artifact_binary_structured,
+                "blockType": artifact_binary_block.get("type"),
+                "resourceMimeType": artifact_binary_resource.get("mimeType") if isinstance(artifact_binary_resource, dict) else None,
+                "decodedDigest": digest_bytes(decoded_artifact),
+            },
+        )
 
         cancel_gate = root / f"cancel-gate-{uuid.uuid4()}"
         cancel_program = (
