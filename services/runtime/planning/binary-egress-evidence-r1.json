@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-binary-egress-verification-evidence",
+  "truthRole": "verification-evidence-not-runtime-truth",
+  "workspaceId": "ordivon-binary-egress-r1-20260926-r2",
+  "baseRevision": "0a990936d9b3b0ebc99d8a75f90e98aac094cd5b",
+  "canonicalMainObserved": "8ff28ef04d97775f9888d0693df7e6cc7bed3c13",
+  "scope": [
+    "BE01",
+    "BE02",
+    "BE03",
+    "BE04",
+    "BE05"
+  ],
+  "verifiedContracts": [
+    "workspace.file returns exact digest-bound bounded Workspace bytes as MCP embedded binary resource",
+    "workspace.file rejects digest drift and preserves descriptor-bound path authority",
+    "artifact.content returns complete bounded registered Job Artifact bytes after Registry/path/digest/length revalidation",
+    "artifact.read remains UTF-8 ranged compatibility surface",
+    "media type metadata is explicitly unverified and does not create semantic standing",
+    "neither projection performs external delivery or creates Artifact/domain completion standing",
+    "public MCP catalog contains 26 unique Tools with generated documentation and semantic annotation/output contracts"
+  ],
+  "evidence": [
+    {
+      "class": "portable-owner-tests",
+      "standing": "PASS",
+      "detail": "Core portable suite 320 passed / 0 failed / 36 ignored; MCP 70 passed; remote auth 10 passed; Python owner tests 166 passed on the implementation tree before final E2E-script additions."
+    },
+    {
+      "class": "focused-core",
+      "standing": "PASS",
+      "detail": "workspace_file exact-binary/digest/symlink/size tests passed."
+    },
+    {
+      "class": "focused-mcp",
+      "standing": "PASS",
+      "detail": "workspace.file and artifact.content EmbeddedResource/base64/metadata tests passed."
+    },
+    {
+      "class": "real-mcp-e2e",
+      "standing": "PASS",
+      "jobId": "job-01a0de01-48a3-7983-ba11-f240021f5779",
+      "detail": "Complete real MCP journey passed with new checks workspace-file-binary-resource, workspace-file-digest-binding, and artifact-binary-resource, then continued through cancellation/restart/credential/policy/closure checks."
+    },
+    {
+      "class": "full-local-acceptance-attempt-1",
+      "standing": "FAIL_UNRELATED_EXISTING_SEAM",
+      "jobId": "job-01a0ddfb-0ec6-74c1-8097-61de0054ce3c",
+      "detail": "systemd supervisor 2/2 and Runtime root integration 36/36 passed; subsequent MCP E2E transiently failed on existing LAUNCH_IDENTITY_MISMATCH InvocationID/runner-start lineage. Immediate standalone full MCP E2E rerun passed."
+    },
+    {
+      "class": "full-local-acceptance-attempt-2",
+      "standing": "FAIL_UNRELATED_TIMING_SEAM",
+      "jobId": "job-01a0de02-285d-73f2-9fbc-0ade495d4891",
+      "detail": "systemd supervisor 2/2 passed; root integration 35/36 with runtime_core_restart_recovers_running_attempt_and_terminal_result timing assertion failure before MCP E2E. The exact failing root/systemd test then passed three consecutive isolated runs."
+    },
+    {
+      "class": "isolated-recovery-recheck",
+      "standing": "PASS_3_OF_3",
+      "jobId": "job-01a0de07-6b32-7963-af2d-fe7a103ae70f",
+      "detail": "Exact recovery acceptance test passed three serial isolated root/systemd executions without code changes."
+    },
+    {
+      "class": "final-exact-tree-owner-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0de09-4b73-7ed2-89b5-adcb9e0b6f5e",
+      "detail": "Final exact tree passed scripts/owner-environment test: portable Rust workspace tests, MCP 70/70, remote-auth 10/10, Python owner tests 166/166, documentation contract, local-acceptance contract presence."
+    }
+  ],
+  "acceptanceInterpretation": {
+    "binaryEgress": "VERIFIED_TARGETED_AND_REAL_MCP_E2E",
+    "wholeRuntimeAcceptance": "FLAKY_EXISTING_EXECUTION_RECOVERY_SEAMS_REMAIN",
+    "rule": "Do not weaken fail-closed launch identity or alter unrelated recovery semantics merely to obtain a green aggregate gate."
+  },
+  "remaining": [
+    {
+      "id": "BE06",
+      "standing": "DEFERRED",
+      "reason": "No demonstrated consumer pressure for large-object ResourceLink/chunk semantics."
+    },
+    {
+      "id": "BE07",
+      "standing": "SEPARATE_OWNER_CLEANUP",
+      "reason": "Legacy Artifact transport/mailbox externalization is a distinct ownership cleanup, not required to make exact binary projection correct."
+    }
+  ],
+  "integrationStanding": "READY_TO_COMMIT_AFTER_FINAL_DIFF_CHECK"
+}

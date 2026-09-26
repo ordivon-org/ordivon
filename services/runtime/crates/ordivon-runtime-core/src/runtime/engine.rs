@@ -27,9 +27,10 @@ use super::workspace_state::{
 };
 use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    validate_logical_id, AdmissionOutcome, ArtifactDescriptor, ArtifactReadRequest,
-    ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
-    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
+    validate_logical_id, AdmissionOutcome, ArtifactContentMetadata, ArtifactContentReadResult,
+    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
+    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent,
+    CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig,

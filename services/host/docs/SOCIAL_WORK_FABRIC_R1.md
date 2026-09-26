@@ -83,4 +83,21 @@ The remaining ChatGPT-facing issue is outside Host authority: the public Gateway
 
 After production schema-9 retirement, the migrated SWF continuity object `work:legacy-task:99cbc0f006f2ed7ba9d7a42d041ffcb9` was read through `work.get` at revision 4/open and closed through the production `actor.declare` + `work.snapshot.commit` surface at revision 5/completed. The resulting snapshot digest is `sha256:a62e1739ffd2834e2558d3bf9bc26f9b5dd0d7ecf39feaf29ea3cf6dc04d7836`. This proves the replacement continuity model can close the work that created it without any Task compatibility path.
 
-The self-hosting acceptance also exposed one bounded UX seam: the MCP input model uses `next_actions` and `reference_refs`, whereas the canonical persisted/output payload uses `nextActions` and `referenceRefs`. A first camelCase request was rejected during argument validation and performed no Work mutation; the contract-correct retry succeeded. This is an interface naming inconsistency, not a continuity correctness failure.
+The self-hosting acceptance originally exposed one bounded UX seam: the MCP input model used `next_actions` and `reference_refs`, whereas the canonical persisted/output payload used `nextActions` and `referenceRefs`. A first camelCase request was rejected during argument validation and performed no Work mutation; the contract-correct retry succeeded. This was an interface naming inconsistency, not a continuity correctness failure. The seam is now closed: release `a811835f13a4e54c3d4c57123877edeb353dc982` exposes canonical northbound `nextActions` and `referenceRefs` while retaining internal Python name population.
+
+
+## Production five-Agent dogfood and Agent UX acceptance — 2026-09-26
+
+Production dogfood created five stable Agent ActorRefs, one Work-bound Space, one independently resumable Topic, five continuing subscriptions, seven Messages, and structured `reply_to`, `mentions`, `acknowledges`, and `about` relations. Actor-scoped Attention re-entry returned only relevant post-subscription events rather than requiring a global Board scan.
+
+The acceptance established the intended two-cursor procedure: Attention uses the global Social Work change sequence to discover changed owner records, while `topic.resume` uses Topic Message sequence to recover one conversation. With Attention cursor `19675` and Topic cursor `5`, one new message was discovered at change sequence `19676` and resumed exactly as Topic message sequence `6`.
+
+A falsifier also proved subscription and mention are orthogonal. After the observer unfollowed the Topic, an ordinary Topic message produced zero observer Attention events; adding one explicit `mentions` relation then surfaced the referenced message plus the mention relation without creating a subscription.
+
+Dogfood exposed one correctness defect in reversible SET semantics: historical command receipts could poison `follow -> unfollow -> same follow`, returning an old `existing` result while the subscription row was absent; equivalent risk existed for `joined -> left -> joined`. `subscription.follow`, `subscription.unfollow`, and `space.participation.set` now use natural-key/current-state desired-state idempotency. A fresh PostgreSQL database migrated `0001→0009`; the focused regression and complete Host PostgreSQL suite passed with zero skips; Ruff, `git diff --check`, and repository CI passed. The repair was integrated and production release `a811835f13a4e54c3d4c57123877edeb353dc982` passed live refollow and participation-cycle retests.
+
+The canonical Agent usage procedure is now documented at `.agents/skills/social-work-collaboration/SKILL.md`. The Skill preserves the owner boundaries above and does not promote WorkRelation, CoordinationIntent, or private/confidential semantics.
+
+Fresh currentness census also supersedes the earlier public-ingress note. Gateway `0.4.0` is reachable from the current ChatGPT connector, but the connector catalog still advertises retired names. Live calls through advertised `continuity.list` and direct-Host `task.list` entries return `Unknown tool`, while release-native Host `tools/list` exposes 21 Social Work tools and zero Task/Board tools. This is a consumer catalog freshness seam, not a reason to restore compatibility APIs.
+
+Machine-readable acceptance: `../../../docs/architecture/social-work-production-agent-ux-acceptance-20260926.json`.

@@ -134,10 +134,10 @@ A normal client journey is:
 
 ```text
 workspace.open
-→ workspace.read / workspace.patch / workspace.content
+→ workspace.read / workspace.patch / workspace.file / workspace.content
 → workspace.exec / workspace.execPlan / workspace.execBound / workspace.execBoundTrusted
 → job.observe
-→ artifact.read
+→ artifact.read / artifact.content
 → workspace.diff
 → workspace.get
 → workspace.close
@@ -146,6 +146,8 @@ workspace.open
 After response loss, reuse the exact `clientRequestId` or reconnect through `workspace.list`, `workspace.get`, `job.list`, and `job.observe`. Do not create a new operation merely because delivery is uncertain.
 
 `workspace.content` is the binary observation companion to `workspace.read`: it projects one exact digest-bound Workspace PNG/JPEG as native MCP image content. The caller supplies the expected SHA-256 digest, so a mutable Workspace cannot silently substitute different pixels after the observation identity has been chosen. It creates no Artifact or review ledger.
+
+`workspace.file` is the generic bounded binary sibling: it projects one complete digest-bound regular Workspace file through MCP `EmbeddedResource` blob content when the bytes fit `maxBytes`. Optional `mediaType` is projection metadata only, never semantic format validation. `artifact.content` provides the corresponding whole-byte projection for already-registered Job Artifacts while preserving Registry `jobId`/`artifactId`, digest, byte length, media metadata, and truncation standing. Neither Tool performs an external upload or creates delivery standing.
 
 ## Responsibility boundary
 
