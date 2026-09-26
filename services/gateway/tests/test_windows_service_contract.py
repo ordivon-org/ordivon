@@ -101,3 +101,13 @@ def test_windows_service_materializer_preserves_public_access_contract() -> None
     assert "CfAccessIssuer/CfAccessAudience require -TrustCfAccess" in text
     assert "publicOriginConfigured" in text
     assert "trustCfAccess" in text
+
+
+def test_windows_service_materializer_fences_mcp_surface_changes() -> None:
+    text = MATERIALIZER.read_text(encoding="utf-8")
+    assert "mcp-surface.json" in text
+    assert "ordivon.mcp-tool-surface" in text
+    assert "Gateway MCP tool surface changed without advancing surfaceEpoch" in text
+    assert "Gateway MCP tool surface changed without advancing packageVersion" in text
+    assert "Gateway MCP surfaceEpoch changed while tool surface is unchanged" in text
+    assert "$existingCim.PathName" in text
