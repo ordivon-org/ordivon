@@ -69,7 +69,7 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("P02", slices["R2-S1D"]["nodeIds"])
         self.assertEqual(
             slices["R2-S1E"]["status"],
-            "IMPLEMENTED_VERIFIED_PENDING_INTEGRATION",
+            "IMPLEMENTED_VERIFIED_INTEGRATED",
         )
         self.assertEqual(
             slices["R2-S1E"]["result"],

@@ -125,5 +125,12 @@
     "Unsigned local VSA evidence is trusted.",
     "Consumer-domain or human acceptance is Artifact kernel standing."
   ],
-  "standing": "VERIFIED_PENDING_INTEGRATION"
+  "standing": "INTEGRATED_VERIFIED",
+  "integration": {
+    "candidateCommit": "b10946d1d964afb702c513b01b9a4661d7ca13ce",
+    "mergeCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f",
+    "mergedArtifactTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0dedd-a354-7500-ac43-64f3730806da",
+    "mergedTreeRequalificationStanding": "PASS_36_OF_36_FOCUSED_CONTRACTS"
+  }
 }
