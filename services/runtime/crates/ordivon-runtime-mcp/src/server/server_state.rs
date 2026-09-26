@@ -7,6 +7,7 @@ pub struct ServerConfig {
     pub execution: ExecutionContext,
     pub release: Option<RuntimeReleaseExecutionConfig>,
     pub input_ingress: Option<InputIngressExecutionConfig>,
+    pub credential_materialization: Option<CredentialMaterializationExecutionConfig>,
     pub trace_path: Option<PathBuf>,
 }
 
@@ -23,6 +24,8 @@ struct ServerState {
     execution: ExecutionContext,
     release: Option<RuntimeReleaseExecutionConfig>,
     input_ingress: Option<InputIngressExecutionConfig>,
+    credential_materialization: Option<CredentialMaterializationExecutionConfig>,
+    credential_materialization_broker: Option<WindowsPrivilegedBrokerConfig>,
     trace_path: Option<PathBuf>,
 }
 
@@ -38,6 +41,48 @@ impl RuntimeServer {
     ) -> Result<Self, ToolError> {
         let executor = config.runtime.executor.clone();
         executor.ensure_store().map_err(ToolError::from)?;
+        let credential_materialization_broker = config
+            .runtime
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.privileged_broker.clone());
+        if let Some(materialization) = config.credential_materialization.as_ref() {
+            if credential_materialization_broker.is_none() {
+                return Err(ToolError::invalid(
+                    "credential materialization requires the native Windows privileged broker",
+                    "credentialMaterialization",
+                ));
+            }
+            if materialization.bindings.is_empty() {
+                return Err(ToolError::invalid(
+                    "credential materialization requires at least one binding",
+                    "credentialMaterialization.bindings",
+                ));
+            }
+            for (binding, principals) in &materialization.bindings {
+                let valid_binding = !binding.is_empty()
+                    && binding.len() <= 128
+                    && binding.bytes().all(|byte| {
+                        byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-')
+                    });
+                if !valid_binding || principals.is_empty() {
+                    return Err(ToolError::invalid(
+                        "credential materialization bindings require a safe name and non-empty principal allowlist",
+                        "credentialMaterialization.bindings",
+                    ));
+                }
+                if principals.iter().any(|principal| {
+                    principal.trim().is_empty()
+                        || principal.len() > 256
+                        || principal.chars().any(char::is_whitespace)
+                }) {
+                    return Err(ToolError::invalid(
+                        "credential materialization principal allowlist contains an invalid principal",
+                        "credentialMaterialization.bindings",
+                    ));
+                }
+            }
+        }
         let runtime = Runtime::new_with_authorities_default_runtime_and_workspace_headroom(
             config.runtime, config.input_authorities, config.credential_authorities,
             default_runtime_ms, config.workspace_headroom,
@@ -105,6 +150,8 @@ impl RuntimeServer {
             execution: config.execution,
             release: config.release,
             input_ingress: config.input_ingress,
+            credential_materialization: config.credential_materialization,
+            credential_materialization_broker,
             trace_path: config.trace_path,
         });
         Ok(Self {
@@ -115,6 +162,77 @@ impl RuntimeServer {
 
     pub fn runtime_handle(&self) -> Runtime {
         self.state.runtime.clone()
+    }
+
+    fn credential_materialization_binding_names(&self) -> Vec<String> {
+        self.state
+            .credential_materialization
+            .as_ref()
+            .map(|config| config.bindings.keys().cloned().collect())
+            .unwrap_or_default()
+    }
+
+    fn perform_credential_materialization(
+        &self,
+        principal: &str,
+        request: CredentialMaterializationToolRequest,
+    ) -> Result<CredentialMaterializationToolResult, ToolError> {
+        if request.schema_version != RUNTIME_SCHEMA_VERSION {
+            return Err(ToolError::invalid("schemaVersion must be 1", "schemaVersion"));
+        }
+        let materialization = self
+            .state
+            .credential_materialization
+            .as_ref()
+            .ok_or_else(|| {
+                ToolError::invalid(
+                    "credential materialization is not configured on this Runtime",
+                    "binding",
+                )
+            })?;
+        let allowed_principals = materialization.bindings.get(&request.binding).ok_or_else(|| {
+            ToolError::invalid("credential materialization binding is not configured", "binding")
+        })?;
+        if !allowed_principals.iter().any(|allowed| allowed == principal) {
+            return Err(ToolError::invalid(
+                "authenticated principal is not allowed to materialize this credential binding",
+                "binding",
+            ));
+        }
+        let broker = self
+            .state
+            .credential_materialization_broker
+            .as_ref()
+            .ok_or_else(|| {
+                ToolError::invalid(
+                    "credential materialization broker is unavailable",
+                    "binding",
+                )
+            })?;
+        let correlation = format!(
+            "cred:{}",
+            format!("{:x}", Sha256::digest(request.client_request_id.as_bytes()))
+        );
+        let observed = materialize_windows_credential_binding(
+            broker,
+            &correlation,
+            &request.binding,
+        )
+        .map_err(ToolError::from)?;
+        Ok(CredentialMaterializationToolResult {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            kind: "ordivon.runtime-credential-materialization".to_string(),
+            binding: observed.binding,
+            disposition: observed.disposition,
+            endpoint_count: observed.endpoint_count,
+            bytes: observed.bytes,
+            secret_values_returned: false,
+            secret_digests_returned: false,
+            non_claims: vec![
+                "materialization does not prove the consumer reloaded the credential".to_string(),
+                "materialization does not prove provider authentication succeeded".to_string(),
+            ],
+        })
     }
 
     fn decorate_tool_for_host_extensions(&self, mut tool: Tool) -> Tool {

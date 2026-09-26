@@ -11,6 +11,7 @@ fn tool_catalog_uses_transactional_job_contract() {
         names,
         [
             "artifact.read",
+            "credential.materialize",
             "input.ingest",
             "job.cancel",
             "job.get",
@@ -54,6 +55,27 @@ fn tool_catalog_uses_transactional_job_contract() {
             Some(&serde_json::json!(1)),
             "{} schemaVersion maximum drifted",
             tool.name
+        );
+    }
+
+    let credential_materialize = tools
+        .iter()
+        .find(|tool| tool.name.as_ref() == "credential.materialize")
+        .unwrap();
+    let credential_schema = serde_json::to_value(&credential_materialize.input_schema).unwrap();
+    let credential_properties = credential_schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .unwrap();
+    assert_eq!(
+        credential_properties.keys().cloned().collect::<Vec<_>>(),
+        vec!["binding", "clientRequestId", "schemaVersion"]
+    );
+    let credential_schema_text = serde_json::to_string(&credential_schema).unwrap();
+    for forbidden in ["sourcePath", "destinationPath", "secret", "digest", "token"] {
+        assert!(
+            !credential_schema_text.contains(forbidden),
+            "credential.materialize schema must not expose {forbidden}"
         );
     }
 
@@ -324,7 +346,7 @@ fn compiled_tool_catalog_identity_is_deterministic_and_host_extension_free() {
     let first = RuntimeServer::compiled_tool_catalog_identity();
     let second = RuntimeServer::compiled_tool_catalog_identity();
     assert_eq!(first, second);
-    assert_eq!(first.0, 23);
+    assert_eq!(first.0, 24);
     assert!(first.1.starts_with("sha256:"));
     assert_eq!(first.1.len(), 71);
 

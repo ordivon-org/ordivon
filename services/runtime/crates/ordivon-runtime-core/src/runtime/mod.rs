@@ -116,7 +116,10 @@ pub(crate) use types::{ArtifactRegistration, TerminalCommit};
 
 #[cfg(any(test, feature = "operator-tools"))]
 pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
-pub use windows::WindowsExecutionConfig;
+pub use windows::{
+    materialize_windows_credential_binding, WindowsCredentialMaterializationObservation,
+    WindowsExecutionConfig,
+};
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 
 #[cfg(test)]

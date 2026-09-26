@@ -119,6 +119,7 @@ pub struct RuntimeDescribeResult {
     pub allowed_executable_roots: Vec<String>,
     pub input_authorities: Vec<String>,
     pub credential_authorities: Vec<String>,
+    pub credential_materialization_bindings: Vec<String>,
     pub input_ingress_authorities: Vec<String>,
     pub targets: Vec<RuntimeExecutionTargetCapability>,
     pub structured_release_configured: bool,
@@ -130,6 +131,7 @@ impl RuntimeDescribeResult {
         global_execution_limit: u32,
         structured_release_configured: bool,
         input_ingress_authorities: Vec<String>,
+        credential_materialization_bindings: Vec<String>,
     ) -> Self {
         Self {
             schema_version: capabilities.schema_version,
@@ -141,11 +143,43 @@ impl RuntimeDescribeResult {
             allowed_executable_roots: capabilities.allowed_executable_roots,
             input_authorities: capabilities.input_authorities,
             credential_authorities: capabilities.credential_authorities,
+            credential_materialization_bindings,
             input_ingress_authorities,
             targets: capabilities.targets,
             structured_release_configured,
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CredentialMaterializationToolRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = CLIENT_REQUEST_ID_MIN_LENGTH, max = CLIENT_REQUEST_ID_MAX_LENGTH), extend("pattern" = CLIENT_REQUEST_ID_PATTERN))]
+    pub client_request_id: String,
+    #[schemars(length(min = 1, max = 128), regex(pattern = "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"))]
+    pub binding: String,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CredentialMaterializationToolResult {
+    pub schema_version: u32,
+    pub kind: String,
+    pub binding: String,
+    pub disposition: String,
+    pub endpoint_count: u32,
+    pub bytes: u64,
+    pub secret_values_returned: bool,
+    pub secret_digests_returned: bool,
+    pub non_claims: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct CredentialMaterializationExecutionConfig {
+    pub bindings: BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema)]
