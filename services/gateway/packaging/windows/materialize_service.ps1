@@ -229,9 +229,18 @@ $receipt = [ordered]@{
     linuxRuntimeUrl = $LinuxRuntimeUrl
     windowsRuntimeUrl = $WindowsRuntimeUrl
     hostUrl = $HostUrl
-    linuxBearerConfigured = [bool]$LinuxRuntimeBearerTokenFile
-    windowsBearerConfigured = [bool]$WindowsRuntimeBearerTokenFile
-    hostBearerConfigured = [bool]$HostBearerTokenFile
+    linuxBearerPathConfigured = [bool]$LinuxRuntimeBearerTokenFile
+    windowsBearerPathConfigured = [bool]$WindowsRuntimeBearerTokenFile
+    hostBearerPathConfigured = [bool]$HostBearerTokenFile
+    linuxBearerFilePresentAtMaterialization = [bool](
+        $LinuxRuntimeBearerTokenFile -and (Test-Path -LiteralPath $LinuxRuntimeBearerTokenFile)
+    )
+    windowsBearerFilePresentAtMaterialization = [bool](
+        $WindowsRuntimeBearerTokenFile -and (Test-Path -LiteralPath $WindowsRuntimeBearerTokenFile)
+    )
+    hostBearerFilePresentAtMaterialization = [bool](
+        $HostBearerTokenFile -and (Test-Path -LiteralPath $HostBearerTokenFile)
+    )
     publicOriginConfigured = [bool]$PublicOrigin
     trustCfAccess = [bool]$TrustCfAccess
     cfAccessIssuerConfigured = [bool]$CfAccessIssuer

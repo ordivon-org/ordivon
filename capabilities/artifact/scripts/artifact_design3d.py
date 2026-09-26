@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 """Standards-first bounded GLB 2.0 verifier for explicit Design/3D profiles."""
 from __future__ import annotations
-import argparse,hashlib,json,os,re,subprocess,tempfile
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
+
 import jsonschema
+
+from artifact_verification.claim_results import emits_profile_explicit_claim_results
+
 ROOT=Path(__file__).resolve().parents[1]
 VALIDATOR=Path(os.environ.get('ARTIFACT_GLTF_VALIDATOR','/opt/ordivon/external/gltf-validator/2.0.0-dev.3.10/gltf-validator'))
 ASSIMP=Path(os.environ.get('ARTIFACT_ASSIMP','/usr/bin/assimp'))
@@ -20,6 +31,32 @@ PROFILE_SPECS={
  'design-3d-glb-skinned-animation-r1':{
   'schema':'artifact-delivery/shadow-contracts/design-3d-glb-skinned-animation-contract-v1.schema.json','godot':True,
   'boundary':'PASS is bounded to an untextured GLB 2.0 skinned-animation scene under one exact object contract. It establishes Khronos zero-warning conformance plus exact Assimp, Blender and Godot import facts for topology, material count, animation identities/count and skeleton size. It does not establish animation meaning, deformation/artistic quality, Game behavior, cross-renderer visual equivalence, or rights.'},
+}
+
+CLAIM_POINTERS_BY_PROFILE={
+ 'design-3d-glb-static-mesh-r1':{
+  'assimpScene':'/assimpScene',
+  'blenderImport':'/blenderImport',
+  'boundedProfileFacts':'/boundedProfileFacts',
+  'contractSchema':'/contractSchema',
+  'khronosConformance':'/khronosConformance',
+ },
+ 'design-3d-glb-material-scene-r1':{
+  'assimpScene':'/assimpScene',
+  'blenderImport':'/blenderImport',
+  'boundedProfileFacts':'/boundedProfileFacts',
+  'contractSchema':'/contractSchema',
+  'godotImport':'/godotImport',
+  'khronosConformance':'/khronosConformance',
+ },
+ 'design-3d-glb-skinned-animation-r1':{
+  'assimpScene':'/assimpScene',
+  'blenderImport':'/blenderImport',
+  'boundedProfileFacts':'/boundedProfileFacts',
+  'contractSchema':'/contractSchema',
+  'godotImport':'/godotImport',
+  'khronosConformance':'/khronosConformance',
+ },
 }
 
 def run(a:list[str],timeout=180): return subprocess.run(a,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout)
@@ -66,13 +103,14 @@ def eq(prefix:str,got:Any,want:Any,failures:list[str],tol:float|None=None)->None
   if any(abs(float(a)-float(b))>tol for a,b in zip(got,want)):failures.append(f'{prefix} differs from contract')
  elif got!=want:failures.append(f'{prefix} differs from contract')
 
+@emits_profile_explicit_claim_results(CLAIM_POINTERS_BY_PROFILE)
 def verify_glb(path:Path,contract_path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
  fallback_pid='UNKNOWN'
  if not path.is_file():return {'schemaVersion':1,'kind':'artifact-design3d-verification','profileId':fallback_pid,'status':'FAIL','failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text());fallback_pid=c.get('profileId','UNKNOWN') if isinstance(c,dict) else 'UNKNOWN'
- except Exception as e:return {'schemaVersion':1,'kind':'artifact-design3d-verification','profileId':fallback_pid,'status':'FAIL','failures':[f'contract unreadable: {e}']}
- failures,spec=validate_contract(c);pid=fallback_pid;ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-design3d-evidence-'));ev.mkdir(parents=True,exist_ok=True)
- res={'schemaVersion':1,'kind':'artifact-design3d-verification','profileId':pid,'status':'FAIL','artifact':{'path':str(path.resolve()),'size':path.stat().st_size,'sha256':sha(path)},'contract':{'sha256':sha(contract_path),'canonicalDigest':canonical(c)},'failures':failures,'tools':{}}
+ except Exception as e:return {'schemaVersion':1,'kind':'artifact-design3d-verification','profileId':fallback_pid,'status':'FAIL','contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+ failures,spec=validate_contract(c);contract_failures=list(failures);pid=fallback_pid;ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-design3d-evidence-'));ev.mkdir(parents=True,exist_ok=True)
+ res={'schemaVersion':1,'kind':'artifact-design3d-verification','profileId':pid,'status':'FAIL','artifact':{'path':str(path.resolve()),'size':path.stat().st_size,'sha256':sha(path)},'contract':{'sha256':sha(contract_path),'canonicalDigest':canonical(c)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'failures':failures,'tools':{}}
  if failures or spec is None:(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  required=[('validator',VALIDATOR),('assimp',ASSIMP),('blender',BLENDER)]+([('godot',GODOT)] if spec['godot'] else [])
  for n,p in required:

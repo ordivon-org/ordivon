@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 """Bounded Aseprite source-to-horizontal-sheet derivative verifier."""
 from __future__ import annotations
-import argparse,hashlib,importlib.util,json,os,shutil,subprocess,tempfile
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
+
 import jsonschema
+
+from artifact_verification.claim_results import emits_explicit_claim_results
+
 ROOT=Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA=ROOT/'artifact-delivery/shadow-contracts/design-2d-aseprite-sheet-contract-v1.schema.json'
 ASEPRITE=Path(os.environ.get('ARTIFACT_ASEPRITE','/opt/ordivon/external/aseprite/1.3.17.2/aseprite'))
@@ -22,11 +34,20 @@ def run_export(source:Path,root:Path,want:dict[str,Any]):
 def load_still():
  spec=importlib.util.spec_from_file_location('artifact_aseprite_still_delegate',STILL);assert spec and spec.loader;mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod);return mod.verify_png_srgb
 
+CLAIM_POINTERS={
+ 'contractSchema':'/contractSchema',
+ 'derivativeIdentity':'/derivativeIdentity',
+ 'derivedStillImageProfile':'/derivedStillImageProfile',
+ 'nativeDeterministicExport':'/nativeDeterministicExport',
+ 'nativeMetadataFacts':'/nativeMetadataFacts',
+}
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_aseprite(path:Path,contract_path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
  if not path.is_file():return {'schemaVersion':1,'kind':'artifact-aseprite-verification','profileId':'design-2d-aseprite-horizontal-sheet-r1','status':'FAIL','failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text())
- except Exception as e:return {'schemaVersion':1,'kind':'artifact-aseprite-verification','profileId':'design-2d-aseprite-horizontal-sheet-r1','status':'FAIL','artifact':fact(path),'failures':[f'contract unreadable: {e}']}
- ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-aseprite-evidence-'));ev.mkdir(parents=True,exist_ok=True);failures=validate_contract(c);want=c.get('export',{});res={'schemaVersion':1,'kind':'artifact-aseprite-verification','profileId':'design-2d-aseprite-horizontal-sheet-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical(c)},'tools':{},'failures':failures}
+ except Exception as e:return {'schemaVersion':1,'kind':'artifact-aseprite-verification','profileId':'design-2d-aseprite-horizontal-sheet-r1','status':'FAIL','artifact':fact(path),'contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+ ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-aseprite-evidence-'));ev.mkdir(parents=True,exist_ok=True);contract_failures=validate_contract(c);failures=list(contract_failures);want=c.get('export',{});res={'schemaVersion':1,'kind':'artifact-aseprite-verification','profileId':'design-2d-aseprite-horizontal-sheet-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical(c)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'tools':{},'failures':failures}
  if not ASEPRITE.is_file() or not os.access(ASEPRITE,os.X_OK):failures.append('required Workstation-managed Aseprite capability unavailable')
  else:res['tools']['aseprite']={'path':str(ASEPRITE.resolve()),'sha256':sha_file(ASEPRITE)}
  if not STILL.is_file():failures.append('required still-image PNG verifier unavailable')

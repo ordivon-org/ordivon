@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.artifact-native-claim-results-coverage-evidence",
+  "truthRole": "verification-evidence-not-artifact-standing",
+  "date": "2026-09-26",
+  "baseRevision": "c63f1dda7fbecafc44054cac61ef06e323d41ac3",
+  "scope": [
+    "R2-S1D",
+    "D07",
+    "K04"
+  ],
+  "currentDenominator": {
+    "boundProfiles": 20,
+    "validatorMappings": 20,
+    "nativeExactRequiredClaimCoverage": 20,
+    "remainingRequiredClaimKeyGaps": 0,
+    "derivation": "Current artifact-delivery/shadow-bindings + current profile requiredEvidence + donor validator mapping; no hard-coded denominator."
+  },
+  "historicalPlanningCorrection": {
+    "previousBoundProfiles": 19,
+    "previousIncompleteProfiles": 17,
+    "previousLiteralGapCount": 29,
+    "currentObservation": "Fresh census found 20 bound profiles and 18 initially incomplete native claim surfaces before this slice; static pre-change literal gap census found 30 gaps."
+  },
+  "mechanicalProjectionContract": {
+    "module": "artifact_verification/claim_results.py",
+    "rules": [
+      "Verifier explicitly declares claim to native JSON Pointer mapping.",
+      "Projection helper does not read the profile.",
+      "Projection helper never uses overall verifier PASS/FAIL as a claim result.",
+      "Projection helper performs no alias search or semantic guessing.",
+      "Missing or non-PASS/FAIL mapped native observation remains NOT_EVALUATED.",
+      "Shared multi-profile verifier selects only an exact explicit returned profileId mapping."
+    ]
+  },
+  "verification": [
+    {
+      "class": "dynamic-denominator-and-helper",
+      "standing": "PASS",
+      "jobId": "job-01a0de30-da75-7f50-9315-b50f6902c1e8",
+      "detail": "Dynamic current-binding denominator, exact required claim key equality, pointer law, and helper fail-closed tests passed."
+    },
+    {
+      "class": "all-modified-targeted-suite",
+      "standing": "PASS",
+      "jobId": "job-01a0de31-3070-7b81-bcb0-89a6913dd092",
+      "detail": "All modified family verifiers plus shared claim helper/invariant passed together; two environment-dependent tests skipped."
+    },
+    {
+      "class": "frozen-consumer-provenance-currentness",
+      "standing": "PASS",
+      "jobId": "job-01a0de3a-1960-7201-9ce6-5ecc3fb64e3c",
+      "detail": "Frozen consumer receipts now prove historical exact authority bytes through full Git snapshot lineage instead of incorrectly requiring current verifier bytes to equal historical SHA-256."
+    },
+    {
+      "class": "artifact-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0de3a-5c85-7192-82b3-cdc36b42cfd0",
+      "detail": "mise run verify: 395 passed, 3 skipped, 39 deselected, 101 subtests passed; Ruff/lock/sync gates passed."
+    }
+  ],
+  "transientProviderEvidence": [
+    {
+      "provider": "GDAL GeoPackage conformance",
+      "candidateObservation": "Focused candidate run observed three failures.",
+      "baselineJobId": "job-01a0de26-d067-7060-aaa4-f254f8785f02",
+      "baselineStanding": "SAME_FAILURES_ON_UNMODIFIED_BASE",
+      "resolution": "Not attributed to S1D; later full owner gate passed without weakening conformance."
+    },
+    {
+      "provider": "Blender headless GLB probe",
+      "candidateObservation": "Focused candidate run observed one valid-triangle probe failure.",
+      "baselineJobId": "job-01a0de28-ff1a-7461-b166-eb52e77cbf07",
+      "baselineStanding": "SAME_FAILURE_ON_UNMODIFIED_BASE",
+      "resolution": "Not attributed to S1D; later full owner gate passed without weakening Blender acceptance."
+    }
+  ],
+  "frozenEvidenceCurrentness": {
+    "proof": "artifact-delivery/consumer-acceptance/frozen-authority-snapshots-r1.json",
+    "law": "Historical consumer evidence is checked against historical Git snapshot authority bytes and migration lineage, not current verifier source bytes.",
+    "nonClaim": "Historical consumer acceptance is not automatically renewed for current verifier source."
+  },
+  "nonClaims": [
+    "D01 dual Evaluation backbone is not resolved by claim addressability alone.",
+    "D06 verifier plugin protocol is not fully formalized by sharing a projection helper.",
+    "Profile-v1 is not retired and profile-v2 is not promoted by this slice.",
+    "External provider availability is not guaranteed by source-level claim coverage."
+  ],
+  "standing": "VERIFIED_PENDING_INTEGRATION"
+}
