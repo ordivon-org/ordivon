@@ -1438,7 +1438,7 @@ fn new_service_paths(
         quote_windows_argument(&runtime.to_string_lossy()),
         quote_windows_argument(&args.env_file.to_string_lossy())
     );
-    let broker_image = format!(
+    let mut broker_image = format!(
         "{} --service --service-name {} --pipe-name {} --launcher-path {} --launcher-sha256 {} --allowed-client-sid {} --allowed-bundle-root {}",
         quote_windows_argument(&broker.to_string_lossy()),
         args.broker_service,
@@ -1448,6 +1448,30 @@ fn new_service_paths(
         runtime_sid,
         quote_windows_argument(&registry_root.join("attempts").to_string_lossy())
     );
+    if let Some(materialization_config) = env
+        .values
+        .get("ORDIVON_WINDOWS_CREDENTIAL_MATERIALIZATION_CONFIG")
+    {
+        let materialization_config = PathBuf::from(materialization_config);
+        if !materialization_config.is_absolute() {
+            return Err(
+                "ORDIVON_WINDOWS_CREDENTIAL_MATERIALIZATION_CONFIG must be absolute".to_string(),
+            );
+        }
+        let metadata = fs::symlink_metadata(&materialization_config).map_err(|error| {
+            format!("cannot stat Windows credential materialization config: {error}")
+        })?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(
+                "Windows credential materialization config must be a regular non-symlink file"
+                    .to_string(),
+            );
+        }
+        broker_image.push_str(" --materialization-config ");
+        broker_image.push_str(&quote_windows_argument(
+            &materialization_config.to_string_lossy(),
+        ));
+    }
     let env_bytes = replace_env_release_paths(env, &launcher, &broker)?;
     Ok((runtime_image, broker_image, env_bytes))
 }

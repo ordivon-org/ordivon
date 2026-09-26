@@ -20,8 +20,9 @@ use ordivon_runtime_core::{
     WindowsExecutionConfig, WindowsPrivilegedBrokerConfig, WorkspaceHeadroomConfig,
 };
 use ordivon_runtime_mcp::server::{
-    AuthenticatedPrincipalBinding, ExecutionContext, InputIngressExecutionConfig,
-    RuntimeReleaseExecutionConfig, RuntimeReleaseExecutionPlatform, RuntimeServer, ServerConfig,
+    AuthenticatedPrincipalBinding, CredentialMaterializationExecutionConfig, ExecutionContext,
+    InputIngressExecutionConfig, RuntimeReleaseExecutionConfig, RuntimeReleaseExecutionPlatform,
+    RuntimeServer, ServerConfig,
 };
 use ordivon_runtime_mcp::{append_rotating_jsonl, DEFAULT_TRACE_ROTATION_BYTES};
 use rmcp::transport::streamable_http_server::{
@@ -66,6 +67,13 @@ struct InputAuthorityConfig {
 struct CredentialAuthorityConfig {
     name: String,
     root: PathBuf,
+    allowed_principals: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CredentialMaterializationBindingConfig {
+    name: String,
     allowed_principals: Vec<String>,
 }
 
@@ -745,6 +753,35 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             allowed_principals: authority.allowed_principals,
         })
         .collect::<Vec<_>>();
+    let credential_materialization = optional_env(
+        "ORDIVON_CREDENTIAL_MATERIALIZATION_BINDINGS_JSON",
+    )?
+    .map(|value| {
+        serde_json::from_str::<Vec<CredentialMaterializationBindingConfig>>(&value).map_err(
+            |error| {
+                format!(
+                    "ORDIVON_CREDENTIAL_MATERIALIZATION_BINDINGS_JSON must be a JSON array of named bindings with allowedPrincipals: {error}"
+                )
+            },
+        )
+    })
+    .transpose()?
+    .map(|bindings| -> Result<CredentialMaterializationExecutionConfig, String> {
+        let mut mapped = BTreeMap::new();
+        for binding in bindings {
+            if mapped
+                .insert(binding.name.clone(), binding.allowed_principals)
+                .is_some()
+            {
+                return Err(format!(
+                    "ORDIVON_CREDENTIAL_MATERIALIZATION_BINDINGS_JSON contains duplicate binding {}",
+                    binding.name
+                ));
+            }
+        }
+        Ok(CredentialMaterializationExecutionConfig { bindings: mapped })
+    })
+    .transpose()?;
     let input_ingress = optional_env("ORDIVON_INPUT_INGRESS_JSON")?
         .map(|value| {
             serde_json::from_str::<InputIngressConfig>(&value)
@@ -1006,6 +1043,7 @@ fn load_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
             },
             release,
             input_ingress,
+            credential_materialization,
             trace_path,
         },
         principal_mode,

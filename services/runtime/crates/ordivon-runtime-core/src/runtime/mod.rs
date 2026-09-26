@@ -1,11 +1,15 @@
 mod artifact_release_state;
+mod authority_contract;
 #[cfg(feature = "operator-tools")]
 mod doctor;
 mod engine;
 mod error;
 mod evidence;
+#[allow(dead_code)]
+mod execution_provider;
 mod inspection;
 mod job_attempt_state;
+mod operation_circuit;
 mod platform;
 mod registry;
 mod registry_storage;
@@ -112,7 +116,10 @@ pub(crate) use types::{ArtifactRegistration, TerminalCommit};
 
 #[cfg(any(test, feature = "operator-tools"))]
 pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
-pub use windows::WindowsExecutionConfig;
+pub use windows::{
+    materialize_windows_credential_binding, WindowsCredentialMaterializationObservation,
+    WindowsExecutionConfig,
+};
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 
 #[cfg(test)]

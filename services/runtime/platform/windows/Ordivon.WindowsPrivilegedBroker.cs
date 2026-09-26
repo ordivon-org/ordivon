@@ -48,6 +48,7 @@ internal static class OrdivonWindowsPrivilegedBroker
         public string LauncherSha256;
         public string AllowedClientSid;
         public string AllowedBundleRoot;
+        public string MaterializationConfig;
     }
 
     private sealed class BrokerService : ServiceBase
@@ -151,6 +152,7 @@ internal static class OrdivonWindowsPrivilegedBroker
             else if (current == "--launcher-sha256") options.LauncherSha256 = value;
             else if (current == "--allowed-client-sid") options.AllowedClientSid = value;
             else if (current == "--allowed-bundle-root") options.AllowedBundleRoot = value;
+            else if (current == "--materialization-config") options.MaterializationConfig = value;
             else throw new InvalidOperationException("unknown option: " + current);
         }
 
@@ -202,6 +204,12 @@ internal static class OrdivonWindowsPrivilegedBroker
             throw new InvalidOperationException("launcher SHA-256 does not match configured digest");
         options.AllowedBundleRoot = Path.GetFullPath(NormalizeBrokerPath(options.AllowedBundleRoot));
         if (!Directory.Exists(options.AllowedBundleRoot)) throw new InvalidOperationException("allowed bundle root does not exist");
+        if (!String.IsNullOrWhiteSpace(options.MaterializationConfig))
+        {
+            options.MaterializationConfig = Path.GetFullPath(NormalizeBrokerPath(options.MaterializationConfig));
+            if (!File.Exists(options.MaterializationConfig))
+                throw new InvalidOperationException("materialization config does not exist");
+        }
         new SecurityIdentifier(options.AllowedClientSid);
     }
 
@@ -354,6 +362,20 @@ internal static class OrdivonWindowsPrivilegedBroker
             result["processCreationTimeFileTime"] = creation;
             return serializer.Serialize(result);
         }
+        if (operation == "materialize")
+        {
+            string binding = GetString(request, "binding");
+            if (!IsSafeName(binding, 128)) throw new InvalidOperationException("binding is invalid");
+            MaterializationResult materialized = MaterializeConfiguredBinding(options, binding);
+            Dictionary<string, object> result = BaseSuccess(requestId, "materialize");
+            result["binding"] = binding;
+            result["disposition"] = materialized.Disposition;
+            result["endpointCount"] = materialized.EndpointCount;
+            result["bytes"] = materialized.Bytes;
+            result["secretValuesReturned"] = false;
+            result["secretDigestsReturned"] = false;
+            return serializer.Serialize(result);
+        }
         throw new InvalidOperationException("unsupported broker operation");
     }
 
@@ -364,6 +386,257 @@ internal static class OrdivonWindowsPrivilegedBroker
         string observed = Sha256File(options.LauncherPath);
         if (!String.Equals(observed, options.LauncherSha256, StringComparison.Ordinal))
             throw new InvalidOperationException("pinned launcher digest changed");
+    }
+
+    private static MaterializationBinding LoadMaterializationBinding(Options options, string binding)
+    {
+        if (String.IsNullOrWhiteSpace(options.MaterializationConfig))
+            throw new InvalidOperationException("credential materialization is not configured");
+        FileInfo configInfo = new FileInfo(options.MaterializationConfig);
+        if (!configInfo.Exists || (configInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidOperationException("materialization config must be a regular non-reparse file");
+        if (configInfo.Length <= 0 || configInfo.Length > 65536)
+            throw new InvalidOperationException("materialization config size is invalid");
+        ValidateOperatorOnlyFileAcl(options.MaterializationConfig, "materialization config");
+
+        JavaScriptSerializer serializer = new JavaScriptSerializer();
+        serializer.MaxJsonLength = 65536;
+        IDictionary<string, object> root = serializer.DeserializeObject(
+            File.ReadAllText(options.MaterializationConfig, Encoding.UTF8)) as IDictionary<string, object>;
+        if (root == null || GetInt(root, "schemaVersion") != 1)
+            throw new InvalidOperationException("materialization config must be schemaVersion 1");
+        object bindingsRaw;
+        if (!root.TryGetValue("bindings", out bindingsRaw))
+            throw new InvalidOperationException("materialization config requires bindings");
+        IDictionary<string, object> bindings = bindingsRaw as IDictionary<string, object>;
+        if (bindings == null) throw new InvalidOperationException("materialization config bindings must be an object");
+        object rowRaw;
+        if (!bindings.TryGetValue(binding, out rowRaw))
+            throw new InvalidOperationException("materialization binding is not configured");
+        IDictionary<string, object> row = rowRaw as IDictionary<string, object>;
+        if (row == null) throw new InvalidOperationException("materialization binding must be an object");
+        if (!String.Equals(GetString(row, "kind"), "shared-bearer", StringComparison.Ordinal))
+            throw new InvalidOperationException("materialization binding kind is unsupported");
+        string authorityPath = Path.GetFullPath(NormalizeBrokerPath(GetString(row, "authorityPath")));
+        int tokenBytes = GetInt(row, "tokenBytes");
+        if (tokenBytes < 32 || tokenBytes > 96)
+            throw new InvalidOperationException("materialization tokenBytes must be between 32 and 96");
+        object endpointsRaw;
+        if (!row.TryGetValue("endpoints", out endpointsRaw))
+            throw new InvalidOperationException("materialization binding requires endpoints");
+        IEnumerable endpointValues = endpointsRaw as IEnumerable;
+        if (endpointValues == null || endpointsRaw is string)
+            throw new InvalidOperationException("materialization endpoints must be an array");
+        List<MaterializationEndpoint> endpoints = new List<MaterializationEndpoint>();
+        HashSet<string> paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (object endpointRaw in endpointValues)
+        {
+            IDictionary<string, object> endpoint = endpointRaw as IDictionary<string, object>;
+            if (endpoint == null) throw new InvalidOperationException("materialization endpoint must be an object");
+            string path = Path.GetFullPath(NormalizeBrokerPath(GetString(endpoint, "path")));
+            string serviceName = GetString(endpoint, "serviceName");
+            if (!IsSafeName(serviceName, 128)) throw new InvalidOperationException("materialization endpoint serviceName is invalid");
+            if (!paths.Add(path)) throw new InvalidOperationException("materialization endpoint paths must be unique");
+            endpoints.Add(new MaterializationEndpoint { Path = path, ServiceName = serviceName });
+        }
+        if (endpoints.Count < 2 || endpoints.Count > 8)
+            throw new InvalidOperationException("materialization binding must have between 2 and 8 endpoints");
+        return new MaterializationBinding {
+            AuthorityPath = authorityPath,
+            TokenBytes = tokenBytes,
+            Endpoints = endpoints,
+        };
+    }
+
+    private static void ValidateOperatorOnlyFileAcl(string path, string label)
+    {
+        FileSecurity security = new FileInfo(path).GetAccessControl(AccessControlSections.Access);
+        if (!security.AreAccessRulesProtected)
+            throw new InvalidOperationException(label + " DACL must be protected");
+        SecurityIdentifier system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+        SecurityIdentifier administrators = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+        AuthorizationRuleCollection rules = security.GetAccessRules(true, false, typeof(SecurityIdentifier));
+        if (rules.Count == 0) throw new InvalidOperationException(label + " has no explicit DACL entries");
+        bool sawSystem = false;
+        bool sawAdministrators = false;
+        foreach (FileSystemAccessRule rule in rules)
+        {
+            SecurityIdentifier sid = rule.IdentityReference as SecurityIdentifier;
+            if (sid == null || rule.AccessControlType != AccessControlType.Allow)
+                throw new InvalidOperationException(label + " contains a non-allow or non-SID DACL entry");
+            bool isSystem = sid.Equals(system);
+            bool isAdministrators = sid.Equals(administrators);
+            if (!isSystem && !isAdministrators)
+                throw new InvalidOperationException(label + " grants access to an unexpected principal");
+            if ((rule.FileSystemRights & FileSystemRights.FullControl) != FileSystemRights.FullControl)
+                throw new InvalidOperationException(label + " operator principals require FullControl");
+            sawSystem |= isSystem;
+            sawAdministrators |= isAdministrators;
+        }
+        if (!sawSystem || !sawAdministrators)
+            throw new InvalidOperationException(label + " omits SYSTEM or Builtin Administrators");
+    }
+
+    private static FileSecurity BuildPrivateFileSecurity(string serviceName)
+    {
+        SecurityIdentifier system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+        SecurityIdentifier administrators = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+        FileSecurity security = new FileSecurity();
+        security.SetAccessRuleProtection(true, false);
+        security.SetOwner(administrators);
+        security.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, AccessControlType.Allow));
+        security.AddAccessRule(new FileSystemAccessRule(administrators, FileSystemRights.FullControl, AccessControlType.Allow));
+        if (!String.IsNullOrWhiteSpace(serviceName))
+        {
+            SecurityIdentifier serviceSid = (SecurityIdentifier)new NTAccount("NT SERVICE\\" + serviceName)
+                .Translate(typeof(SecurityIdentifier));
+            security.AddAccessRule(new FileSystemAccessRule(serviceSid, FileSystemRights.Read, AccessControlType.Allow));
+        }
+        return security;
+    }
+
+    private static byte[] ReadBearerFile(string path, string label)
+    {
+        FileInfo info = new FileInfo(path);
+        if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidOperationException(label + " must be a regular non-reparse file");
+        if (info.Length <= 0 || info.Length > 16384)
+            throw new InvalidOperationException(label + " size is invalid");
+        byte[] value = File.ReadAllBytes(path);
+        string text = Encoding.UTF8.GetString(value);
+        if (String.IsNullOrEmpty(text))
+            throw new InvalidOperationException(label + " is empty");
+        for (int i = 0; i < text.Length; ++i)
+            if (Char.IsWhiteSpace(text[i]))
+                throw new InvalidOperationException(label + " must contain one non-whitespace bearer value");
+        return value;
+    }
+
+    private static bool EqualBytes(byte[] left, byte[] right)
+    {
+        if (left == null || right == null || left.Length != right.Length) return false;
+        int difference = 0;
+        for (int i = 0; i < left.Length; ++i) difference |= left[i] ^ right[i];
+        return difference == 0;
+    }
+
+    private static void WritePrivateFileAtomic(string path, byte[] value, string serviceName)
+    {
+        string parent = Path.GetDirectoryName(path);
+        if (String.IsNullOrWhiteSpace(parent) || !Directory.Exists(parent))
+            throw new InvalidOperationException("materialization destination parent does not exist");
+        DirectoryInfo parentInfo = new DirectoryInfo(parent);
+        if ((parentInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidOperationException("materialization destination parent must not be a reparse point");
+        string temporary = Path.Combine(parent, ".ordivon-materialize-" + Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            using (FileStream stream = new FileStream(
+                temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            {
+                stream.Write(value, 0, value.Length);
+                stream.Flush(true);
+            }
+            new FileInfo(temporary).SetAccessControl(BuildPrivateFileSecurity(serviceName));
+            File.Move(temporary, path);
+        }
+        finally
+        {
+            try { if (File.Exists(temporary)) File.Delete(temporary); }
+            catch { }
+        }
+    }
+
+    private static byte[] EnsureAuthorityBearer(MaterializationBinding binding, out bool created)
+    {
+        created = false;
+        if (File.Exists(binding.AuthorityPath))
+        {
+            ValidateOperatorOnlyFileAcl(binding.AuthorityPath, "materialization authority file");
+            return ReadBearerFile(binding.AuthorityPath, "materialization authority file");
+        }
+        byte[] random = new byte[binding.TokenBytes];
+        using (RandomNumberGenerator generator = RandomNumberGenerator.Create())
+            generator.GetBytes(random);
+        byte[] bearer = Encoding.UTF8.GetBytes(Convert.ToBase64String(random));
+        Array.Clear(random, 0, random.Length);
+        try
+        {
+            WritePrivateFileAtomic(binding.AuthorityPath, bearer, null);
+            ValidateOperatorOnlyFileAcl(binding.AuthorityPath, "materialization authority file");
+            created = true;
+            return bearer;
+        }
+        catch
+        {
+            Array.Clear(bearer, 0, bearer.Length);
+            throw;
+        }
+    }
+
+    private static MaterializationResult MaterializeConfiguredBinding(Options options, string bindingName)
+    {
+        MaterializationBinding binding = LoadMaterializationBinding(options, bindingName);
+        bool authorityCreated;
+        byte[] authority = EnsureAuthorityBearer(binding, out authorityCreated);
+        int createdEndpoints = 0;
+        try
+        {
+            foreach (MaterializationEndpoint endpoint in binding.Endpoints)
+            {
+                using (ServiceController service = new ServiceController(endpoint.ServiceName))
+                {
+                    string observed = service.ServiceName;
+                    if (!String.Equals(observed, endpoint.ServiceName, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("materialization endpoint service identity mismatch");
+                }
+                if (File.Exists(endpoint.Path))
+                {
+                    byte[] existing = ReadBearerFile(endpoint.Path, "materialized endpoint");
+                    try
+                    {
+                        if (!EqualBytes(authority, existing))
+                            throw new InvalidOperationException("materialized endpoint conflicts with authority bearer");
+                    }
+                    finally
+                    {
+                        Array.Clear(existing, 0, existing.Length);
+                    }
+                    continue;
+                }
+                WritePrivateFileAtomic(endpoint.Path, authority, endpoint.ServiceName);
+                ++createdEndpoints;
+            }
+            return new MaterializationResult {
+                Disposition = authorityCreated || createdEndpoints > 0 ? "materialized" : "existing",
+                EndpointCount = binding.Endpoints.Count,
+                Bytes = authority.Length,
+            };
+        }
+        finally
+        {
+            Array.Clear(authority, 0, authority.Length);
+        }
+    }
+
+    private sealed class MaterializationEndpoint
+    {
+        public string Path;
+        public string ServiceName;
+    }
+
+    private sealed class MaterializationBinding
+    {
+        public string AuthorityPath;
+        public int TokenBytes;
+        public List<MaterializationEndpoint> Endpoints;
+    }
+
+    private sealed class MaterializationResult
+    {
+        public string Disposition;
+        public int EndpointCount;
+        public int Bytes;
     }
 
     private sealed class ProcessResult
