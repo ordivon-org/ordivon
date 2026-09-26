@@ -1,0 +1,53 @@
+{
+  "entries": {
+    "game-godot-production-smoke-linux-elf-r1.json": {
+      "rewrittenBaseRevision": "780019dc73273fd031b8f8a22b86a5b26deadd5e",
+      "snapshotCommit": "93f9dec671c4aad2c9538f7cc0d90946c41b651c",
+      "standaloneBaseRevision": "ec1603a21103f9adc6eb08533e3eff189301cafe"
+    },
+    "game-station-zero-aseprite-horizontal-sheet-r1.json": {
+      "rewrittenBaseRevision": "ada5f445bdd2b6b166ff471bf82fa2d74ea77d36",
+      "snapshotCommit": "b808804a666c4703d7ef775ebd08c4b58f61969b",
+      "standaloneBaseRevision": "c25af2f4c39ffac4ac1ef86115319529f2357f65"
+    },
+    "game-station-zero-ogg-vorbis-r1.json": {
+      "rewrittenBaseRevision": "4f0052e78518fef5ccf61b27db8b5cbd5cf36ecc",
+      "snapshotCommit": "719a82477312a10cb7b30b6a6dd59d9c29fd2b3a",
+      "standaloneBaseRevision": "31da3986a914f727ca34f5f0d7562349b52221e9"
+    },
+    "game-station-zero-svg-static-r1.json": {
+      "rewrittenBaseRevision": "3cacbfbe68c1c0fde7cc0d8e7935c9f0c25bc746",
+      "snapshotCommit": "719a82477312a10cb7b30b6a6dd59d9c29fd2b3a",
+      "standaloneBaseRevision": "5f476c63ed7ea9c899c01e0cd5a0396f3820dd1f"
+    },
+    "game-station-zero-tiled-tmj-r1.json": {
+      "rewrittenBaseRevision": "7cf5f8d4b0d7e06916a348040ced24f7266039fc",
+      "snapshotCommit": "5675849b42b1f84314b7e8fa61ceca6b6444af75",
+      "standaloneBaseRevision": "f696ad3ada655d1bd3bd2fc66fda8ceea945e34f"
+    },
+    "game-veilwild-glb-material-scene-r1.json": {
+      "rewrittenBaseRevision": "7a0fb6fb0ab68a6149056d1e89ab1a08f33e235e",
+      "snapshotCommit": "6ec83814d10a62cfe255ecd1650304b6286654aa",
+      "standaloneBaseRevision": "7fa412b83792153c27074cf42a3c9f4d6aa5f113"
+    },
+    "game-veilwild-glb-skinned-animation-r1.json": {
+      "rewrittenBaseRevision": "7a0fb6fb0ab68a6149056d1e89ab1a08f33e235e",
+      "snapshotCommit": "6ec83814d10a62cfe255ecd1650304b6286654aa",
+      "standaloneBaseRevision": "7fa412b83792153c27074cf42a3c9f4d6aa5f113"
+    }
+  },
+  "kind": "ordivon.artifact-frozen-consumer-authority-snapshot-proof",
+  "nonClaims": [
+    "historical consumer acceptance remains current for later verifier source",
+    "current verifier bytes equal historical verifier bytes",
+    "consumer acceptance is automatically renewed by source evolution"
+  ],
+  "schemaVersion": 1,
+  "truthRole": "historical-evidence-currentness-proof-not-current-verifier-standing",
+  "verificationLaw": [
+    "receipt bytes at snapshotCommit equal the frozen receipt bytes in the current tree",
+    "standaloneBaseRevision maps exactly to rewrittenBaseRevision through docs/migration/receipts/artifact.commit-map",
+    "rewrittenBaseRevision is an ancestor of snapshotCommit",
+    "every artifactOwnedAuthorities relativePath at snapshotCommit hashes to the SHA-256 recorded by the frozen receipt"
+  ]
+}

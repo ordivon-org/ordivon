@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 """Standards-first shadow verifier for a bounded OCI software-release artifact."""
 from __future__ import annotations
-import argparse, hashlib, json, os, shutil, subprocess, tempfile, uuid
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
+
 import jsonschema
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT=Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA=ROOT/'artifact-delivery/shadow-contracts/software-release-oci-contract-v1.schema.json'
@@ -53,14 +64,27 @@ def scan_count_policy(report:dict[str,Any], key:str, maximum:int, label:str)->tu
     return count,failures
 
 
+CLAIM_POINTERS={
+ 'contractSchema':'/contractSchema',
+ 'ociIdentity':'/ociIdentity',
+ 'platformConfig':'/platformConfig',
+ 'rootfsReadback':'/rootfsReadback',
+ 'runtimeReadback':'/runtimeReadback',
+ 'sbom':'/sbom',
+ 'secretScan':'/secretScan',
+ 'vulnerabilityScan':'/vulnerabilityScan',
+}
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_oci(layout:Path, contract_path:Path, evidence_dir:Path|None=None)->dict[str,Any]:
     failures=[]
     if not layout.is_dir(): return {'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','failures':['input is not an OCI layout directory']}
     try: contract=json.loads(contract_path.read_text())
-    except Exception as e: return {'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','failures':[f'contract unreadable: {e}']}
-    failures.extend(validate_contract(contract))
+    except Exception as e: return {'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+    contract_failures=validate_contract(contract)
+    failures.extend(contract_failures)
     evidence_dir=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-software-release-evidence-')); evidence_dir.mkdir(parents=True,exist_ok=True)
-    result={'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','layout':str(layout.resolve()),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical_digest(contract)},'failures':failures,'tools':{}}
+    result={'schemaVersion':1,'kind':'artifact-software-release-verification','profileId':'software-release-oci-image-r1','status':'FAIL','layout':str(layout.resolve()),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical_digest(contract)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'failures':failures,'tools':{}}
     if failures:
         (evidence_dir/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n'); return result
     for n,p in [('skopeo',SKOPEO),('podman',PODMAN),('syft',SYFT),('trivy',TRIVY)]:
