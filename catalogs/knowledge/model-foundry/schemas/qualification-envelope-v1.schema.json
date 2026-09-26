@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/catalogs/model-foundry/qualification-envelope-v1.schema.json",
+  "title": "Ordivon Model Foundry Qualification Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "qualificationId", "operatorRef", "implementationRef", "subjectDigest", "measurementBoundary", "metrics", "evidenceRefs", "standing"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "qualificationId": {"type": "string", "minLength": 1},
+    "operatorRef": {"type": "string"},
+    "implementationRef": {"type": "string"},
+    "subjectDigest": {"type": "string"},
+    "representationContractRef": {"type": ["string", "null"]},
+    "taskDistribution": {"type": "object"},
+    "resourceRegime": {"type": "object"},
+    "measurementBoundary": {"type": "object"},
+    "metrics": {"type": "object"},
+    "riskCoverage": {"type": "array", "items": {"type": "object"}},
+    "scalingSlices": {"type": "array", "items": {"type": "object"}},
+    "oodSlices": {"type": "array", "items": {"type": "object"}},
+    "driftSlices": {"type": "array", "items": {"type": "object"}},
+    "failureTaxonomy": {"type": "array", "items": {"type": "object"}},
+    "evidenceRefs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "observedAt": {"type": ["string", "null"]},
+    "validUntil": {"type": ["string", "null"]},
+    "standing": {"enum": ["SUPPORTED_IN_SCOPE", "CONTRADICTED_IN_SCOPE", "UNDERDETERMINED", "EXPERIMENTAL"]}
+  }
+}

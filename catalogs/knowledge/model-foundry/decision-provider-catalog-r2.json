@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 2,
+  "truthRole": "discovery_and_evidence_mapping_only",
+  "providers": [
+    {
+      "providerId": "typesafe.jev",
+      "operator": "DECIDE",
+      "architectureStanding": "PROPRIETARY_UNDISCLOSED",
+      "deploymentClass": "REMOTE_API",
+      "evidenceClass": "VENDOR_PRIMARY_NEW",
+      "source": "https://typesafe.ai/blog/introducing-system-one-models-and-jev",
+      "notes": ["Typed probabilistic decisions are public; internal topology and parameter count are not assumed."]
+    },
+    {
+      "providerId": "laya.english",
+      "operator": "DECIDE",
+      "architectureStanding": "BIDIRECTIONAL_SETWISE_ENCODER",
+      "deploymentClass": "LOCAL_CPU_OR_GPU",
+      "evidenceClass": "OPEN_WEIGHTS_NEW",
+      "source": "https://github.com/NandhaKishorM/laya",
+      "notes": ["Candidate/token budget and language/script regime belong in qualification."]
+    },
+    {
+      "providerId": "anyjev",
+      "operator": "DECIDE",
+      "architectureStanding": "CAUSAL_LOGIT_OR_HIDDEN_STATE_READOUT",
+      "deploymentClass": "EXISTING_LLM_RUNTIME",
+      "evidenceClass": "OPEN_RESEARCH_NEW",
+      "source": "https://github.com/nokia-applied-research/AnyJev",
+      "notes": ["Raw logits, debiasing and calibration are distinct stages."]
+    },
+    {
+      "providerId": "clm.8b",
+      "operator": "DECIDE",
+      "architectureStanding": "CONTRASTIVE_DUAL_ENCODER",
+      "deploymentClass": "LOCAL_GPU",
+      "evidenceClass": "OPEN_RESEARCH_NEW",
+      "source": "https://github.com/Contrastive-LM/CLM",
+      "notes": ["Independent state/action encoders permit candidate caching; score calibration remains separate."]
+    },
+    {
+      "providerId": "gliner2.5.decide",
+      "operator": "DECIDE",
+      "architectureStanding": "SCHEMA_CONDITIONED_ENCODER",
+      "deploymentClass": "LOCAL_CPU_OR_GPU",
+      "evidenceClass": "VENDOR_OPEN_WEIGHTS_NEW",
+      "source": "https://huggingface.co/fastino/GLiNER2.5-Decide",
+      "notes": ["Vendor benchmark results require independent/local qualification before promotion."]
+    },
+    {
+      "providerId": "sglang.score",
+      "operator": "DECIDE",
+      "architectureStanding": "SERVING_PRIMITIVE_OVER_MODEL",
+      "deploymentClass": "LOCAL_GPU_RUNTIME",
+      "evidenceClass": "SYSTEMS_PRIMARY_CURRENT",
+      "source": "https://www.lmsys.org/blog/2026-09-25-sglang-decision-models",
+      "notes": ["Serving strategy is not a semantic quality guarantee."]
+    },
+    {
+      "providerId": "deterministic.rule",
+      "operator": "DECIDE",
+      "architectureStanding": "RULE_ENGINE",
+      "deploymentClass": "DETERMINISTIC",
+      "evidenceClass": "BASELINE",
+      "source": null,
+      "notes": ["Model use is not mandatory for a bounded decision contract."]
+    }
+  ]
+}
