@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/attack-spec-r1.json",
+  "title": "AttackSpec R1",
+  "description": "Study-local serialization of foundry.core.AttackSpec. ThreatModel remains a separate referenced object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["attack_id", "family", "budget", "seed", "candidates"],
+  "properties": {
+    "attack_id": {"type": "string", "minLength": 1},
+    "family": {
+      "type": "string",
+      "enum": [
+        "semantic_reframing",
+        "context_learning",
+        "trajectory_shaping",
+        "token_space_search",
+        "attacker_model_search",
+        "sampling_search",
+        "indirect_injection",
+        "multimodal_boundary",
+        "internal_manipulation",
+        "monitor_evasion",
+        "memory_poisoning",
+        "tool_poisoning",
+        "authority_confusion"
+      ]
+    },
+    "budget": {"type": "integer", "minimum": 1},
+    "seed": {"type": "integer"},
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidate_id", "family", "channel", "operation", "repetitions", "attempt_index"],
+        "properties": {
+          "candidate_id": {"type": "string", "minLength": 1},
+          "family": {"type": "string", "minLength": 1},
+          "channel": {"type": "string", "minLength": 1},
+          "operation": {"type": "string", "minLength": 1},
+          "repetitions": {"type": "integer", "minimum": 1},
+          "attempt_index": {"type": "integer", "minimum": 0}
+        }
+      }
+    }
+  }
+}

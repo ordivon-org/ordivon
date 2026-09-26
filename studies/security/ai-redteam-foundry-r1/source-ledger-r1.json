@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.ai-redteam.source-ledger",
+  "accessedAt": "2026-09-26",
+  "sources": [
+    {
+      "id": "nist-ai-100-2e2025",
+      "tier": "A",
+      "owner": "NIST",
+      "title": "Adversarial Machine Learning: A Taxonomy and Terminology of Attacks and Mitigations",
+      "url": "https://doi.org/10.6028/NIST.AI.100-2e2025",
+      "role": "taxonomy-authority",
+      "claimsUsed": [
+        "AML taxonomy should bind attacker goals, capabilities, knowledge, lifecycle stage, and mitigations.",
+        "GenAI security includes evasion, poisoning, privacy, and misuse attack classes."
+      ]
+    },
+    {
+      "id": "owasp-llm01-2025",
+      "tier": "A",
+      "owner": "OWASP GenAI Security Project",
+      "title": "LLM01:2025 Prompt Injection",
+      "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+      "role": "application-risk-taxonomy",
+      "claimsUsed": [
+        "Prompt injection can alter model behavior through direct or indirect inputs.",
+        "RAG and fine-tuning do not by themselves eliminate prompt-injection risk."
+      ]
+    },
+    {
+      "id": "owasp-agentic-top10-2026",
+      "tier": "A",
+      "owner": "OWASP GenAI Security Project",
+      "title": "OWASP Top 10 for Agentic Applications for 2026",
+      "url": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/",
+      "role": "agentic-risk-taxonomy",
+      "claimsUsed": [
+        "Agent goal hijack, tool misuse, identity/privilege abuse, supply-chain compromise, and memory/context poisoning are distinct agentic risk surfaces."
+      ]
+    },
+    {
+      "id": "openai-ih-challenge-2026",
+      "tier": "A",
+      "owner": "OpenAI",
+      "title": "Improving instruction hierarchy in frontier LLMs",
+      "url": "https://openai.com/index/instruction-hierarchy-challenge/",
+      "role": "alignment-training-evidence",
+      "claimsUsed": [
+        "Instruction-hierarchy training targets reliable prioritization of trusted instructions over lower-trust user/tool content.",
+        "Prompt-injection robustness is evaluated as a model-training property rather than only a string filter."
+      ]
+    },
+    {
+      "id": "openai-gpt-red-2026",
+      "tier": "A",
+      "owner": "OpenAI",
+      "title": "GPT-Red: Unlocking Self-Improvement for Robustness",
+      "url": "https://openai.com/index/unlocking-self-improvement-gpt-red/",
+      "role": "automated-attacker-evidence",
+      "claimsUsed": [
+        "Automated red-team models can be trained to discover prompt-injection vulnerabilities at scale.",
+        "Attack generation can be fed back into adversarial training while remaining one layer among human red teaming and monitoring."
+      ]
+    },
+    {
+      "id": "anthropic-sleight-2026",
+      "tier": "A",
+      "owner": "Anthropic",
+      "title": "SLEIGHT-Bench: Finding Blind Spots in AI Monitors",
+      "url": "https://alignment.anthropic.com/2026/sleight-bench/",
+      "role": "monitor-red-team-evidence",
+      "claimsUsed": [
+        "Monitors have systematic capability blind spots that can become evasion surfaces.",
+        "Monitoring should remain one layer of defense in depth rather than a trusted oracle."
+      ]
+    },
+    {
+      "id": "anthropic-strengthening-red-teams-2025",
+      "tier": "A",
+      "owner": "Anthropic",
+      "title": "Strengthening Red Teams: A Modular Scaffold for Control Evaluations",
+      "url": "https://alignment.anthropic.com/2025/strengthening-red-teams/",
+      "role": "attacker-scaffold-evidence",
+      "claimsUsed": [
+        "Strong attack policies can be decomposed into monitor modeling, attack selection, planning, execution, and subtlety.",
+        "Red-team strength is itself an experimental variable and weak attackers can overstate defender safety."
+      ]
+    },
+    {
+      "id": "microsoft-pyrit-current",
+      "tier": "A",
+      "owner": "Microsoft AI Red Team",
+      "title": "PyRIT framework documentation",
+      "url": "https://github.com/microsoft/PyRIT/blob/main/doc/code/framework.md",
+      "role": "external-redteam-provider",
+      "claimsUsed": [
+        "PyRIT decomposes red teaming into scenarios, attack techniques, executors/attacks, converters, targets, scorers, and shared state."
+      ]
+    },
+    {
+      "id": "nvidia-garak-current",
+      "tier": "A",
+      "owner": "NVIDIA",
+      "title": "garak LLM vulnerability scanner",
+      "url": "https://github.com/NVIDIA/garak",
+      "role": "external-scanner-provider",
+      "claimsUsed": [
+        "garak separates generators, probes, attempts, detectors, evaluators, buffs, and harnesses.",
+        "garak includes static, dynamic, and adaptive probing."
+      ]
+    },
+    {
+      "id": "harmbench-2024",
+      "tier": "B",
+      "owner": "CAIS et al.",
+      "title": "HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal",
+      "url": "https://arxiv.org/abs/2402.04249",
+      "role": "benchmark",
+      "claimsUsed": [
+        "Attack and defense comparison requires a standardized generation-completion-evaluation pipeline.",
+        "Automated red teaming and robust refusal should be co-evaluated across methods and targets."
+      ]
+    },
+    {
+      "id": "jailbreakbench-2024",
+      "tier": "B",
+      "owner": "Chao et al.",
+      "title": "JailbreakBench: An Open Robustness Benchmark for Jailbreaking Large Language Models",
+      "url": "https://arxiv.org/abs/2404.01318",
+      "role": "benchmark",
+      "claimsUsed": [
+        "Threat model, system prompt, chat template, scoring function, attack artifact, and cost accounting must be fixed for reproducible comparison."
+      ]
+    },
+    {
+      "id": "strongreject-2024",
+      "tier": "B",
+      "owner": "Souly et al.",
+      "title": "A StrongREJECT for Empty Jailbreaks",
+      "url": "https://arxiv.org/abs/2402.10260",
+      "role": "judge-benchmark",
+      "claimsUsed": [
+        "Refusal bypass alone can overstate jailbreak effectiveness.",
+        "Evaluation should measure whether the response actually provides useful target information, and some jailbreaks degrade model capability."
+      ]
+    },
+    {
+      "id": "easyjailbreak-2024",
+      "tier": "B",
+      "owner": "Zhou et al.",
+      "title": "EasyJailbreak: A Unified Framework for Jailbreaking Large Language Models",
+      "url": "https://arxiv.org/abs/2403.12171",
+      "role": "attack-search-framework",
+      "claimsUsed": [
+        "Jailbreak search can be decomposed into selector, mutator, constraint, and evaluator components."
+      ]
+    },
+    {
+      "id": "agentdojo-2024",
+      "tier": "B",
+      "owner": "Debenedetti et al.",
+      "title": "AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents",
+      "url": "https://arxiv.org/abs/2406.13352",
+      "role": "agent-security-benchmark",
+      "claimsUsed": [
+        "Agent prompt-injection security should be evaluated in a stateful tool environment with both legitimate user tasks and attacker goals.",
+        "World-state scoring provides stronger evidence than transcript-only judging for many agentic effects."
+      ]
+    },
+    {
+      "id": "camel-2025",
+      "tier": "B",
+      "owner": "Debenedetti et al.",
+      "title": "Defeating Prompt Injections by Design",
+      "url": "https://arxiv.org/abs/2503.18813",
+      "role": "architecture-defense",
+      "claimsUsed": [
+        "Separating trusted control flow from untrusted data flow can secure some agent tasks even when the underlying model remains susceptible.",
+        "Capability-style information-flow controls can prevent unauthorized exfiltration paths."
+      ]
+    },
+    {
+      "id": "attacker-moves-second-2025",
+      "tier": "B",
+      "owner": "Nasr et al.",
+      "title": "The Attacker Moves Second",
+      "url": "https://arxiv.org/abs/2510.09023",
+      "role": "adaptive-evaluation",
+      "claimsUsed": [
+        "Static or weak attacks can drastically overestimate robustness.",
+        "Defenses should be evaluated against attackers explicitly adapted to the defense design."
+      ]
+    },
+    {
+      "id": "owasp-agent-memory-2026",
+      "tier": "A",
+      "owner": "OWASP GenAI Security Project",
+      "title": "Memory Is a Feature. It Is Also an Attack Surface",
+      "url": "https://genai.owasp.org/2026/05/13/memory-is-a-feature-it-is-also-an-attack-surface/",
+      "role": "agent-memory-threat-model",
+      "claimsUsed": [
+        "Persistent memory and reused context create a cross-session attack surface distinct from one-turn prompt injection.",
+        "Untrusted content that reaches privileged memory, hooks, or configuration can influence later reasoning after context reset."
+      ]
+    },
+    {
+      "id": "owasp-mcp-tool-poisoning-2026",
+      "tier": "A",
+      "owner": "OWASP Foundation",
+      "title": "MCP Tool Poisoning",
+      "url": "https://community.owasp.org/attacks/MCP_Tool_Poisoning",
+      "role": "tool-trust-threat-model",
+      "claimsUsed": [
+        "Tool poisoning exploits a trust gap between connect-time review and runtime tool content.",
+        "Tool responses should not obtain privileged control authority merely because the tool was previously approved."
+      ]
+    },
+    {
+      "id": "aisi-inspect-current",
+      "tier": "A",
+      "owner": "UK AI Security Institute / Meridian Labs",
+      "title": "Inspect AI evaluation framework",
+      "url": "https://inspect.aisi.org.uk/",
+      "role": "evaluation-substrate",
+      "claimsUsed": [
+        "Inspect provides composable datasets, agents, tools, scorers, multi-agent primitives, external-agent bridges, and sandboxed evaluation execution.",
+        "Inspect eval logs bind eval/run/task/model identity, source revision/packages, samples, events, scores, usage, and errors, providing a mature evidence substrate instead of a custom Ordivon eval harness."
+      ]
+    },
+    {
+      "id": "aisi-controlarena-current",
+      "tier": "A",
+      "owner": "UK AI Security Institute",
+      "title": "ControlArena",
+      "url": "https://www.aisi.gov.uk/blog/introducing-controlarena-a-library-for-running-ai-control-experiments",
+      "role": "ai-control-provider",
+      "claimsUsed": [
+        "AI control experiments explicitly assume an untrusted policy can behave maliciously and evaluate protocols/monitors around it.",
+        "ControlArena runs on Inspect and supports analysis of task-level and macro-level control protocols."
+      ]
+    },
+    {
+      "id": "inspect-agentthreatbench-2026",
+      "tier": "A",
+      "owner": "UK AISI Inspect Evals community",
+      "title": "AgentThreatBench",
+      "url": "https://inspect.aisi.org.uk/evals/",
+      "role": "agentic-security-eval",
+      "claimsUsed": [
+        "Inspect Evals includes AgentThreatBench tasks for memory poisoning, autonomy hijacking, and data exfiltration.",
+        "The benchmark explicitly records utility and security as separate evaluation dimensions rather than collapsing them into one safety score."
+      ]
+    },
+    {
+      "id": "aisi-b3-2025",
+      "tier": "A",
+      "owner": "UK AI Security Institute et al.",
+      "title": "Breaking Agent Backbones: Evaluating the Security of Backbone LLMs in AI Agents",
+      "url": "https://www.aisi.gov.uk/research/breaking-agent-backbones-evaluating-the-security-of-backbone-llms-in-ai-agents",
+      "role": "agent-backbone-security",
+      "claimsUsed": [
+        "Threat snapshots isolate specific agent execution states where backbone-model vulnerabilities can propagate into agent-level security failures.",
+        "The b3 benchmark separates model/backbone security from complete-agent evaluation and was built from a large crowdsourced attack corpus."
+      ]
+    },
+    {
+      "id": "agentharm-2024",
+      "tier": "B",
+      "owner": "Andriushchenko et al.",
+      "title": "AgentHarm: A Benchmark for Measuring Harmfulness of LLM Agents",
+      "url": "https://arxiv.org/abs/2410.09024",
+      "role": "agent-capability-after-jailbreak-eval",
+      "claimsUsed": [
+        "Agent jailbreak evaluation must measure whether an attacked agent retains enough capability to complete a multi-step target task, not merely whether it stops refusing."
+      ]
+    },
+    {
+      "id": "shade-arena-2025",
+      "tier": "B",
+      "owner": "Kutasov et al.",
+      "title": "SHADE-Arena: Evaluating Sabotage and Monitoring in LLM Agents",
+      "url": "https://arxiv.org/abs/2506.15740",
+      "role": "control-monitor-eval",
+      "claimsUsed": [
+        "Control evaluation should jointly measure main-task completion, hidden side-objective success, and monitor evasion.",
+        "Monitor quality and the information available to monitors materially affect observed control robustness."
+      ]
+    },
+    {
+      "id": "aisi-bpj-2026",
+      "tier": "A",
+      "owner": "UK AI Security Institute et al.",
+      "title": "Boundary Point Jailbreaking of Black-Box LLMs",
+      "url": "https://www.aisi.gov.uk/research/boundary-point-jailbreaking-of-black-box-llms",
+      "role": "black-box-adaptive-attack",
+      "claimsUsed": [
+        "Automated black-box attackers can optimize using only a one-bit blocked/not-blocked signal without gradients or classifier scores.",
+        "Strong single-interaction defenses can still leave batch-level attack-search signatures, motivating traffic/batch-level monitoring as a distinct defensive owner."
+      ]
+    },
+    {
+      "id": "aisi-multi-agent-control-2026",
+      "tier": "A",
+      "owner": "UK AI Security Institute",
+      "title": "Multi-Agent AI Control: Distributed Attacks Hamper Per-Instance Monitors",
+      "url": "https://www.aisi.gov.uk/research/multi-agent-ai-control-distributed-attacks-hamper-per-instance-monitors",
+      "role": "multi-agent-control-evidence",
+      "claimsUsed": [
+        "Distributed attacks across multiple agents can fragment suspicious behavior so that per-agent monitors become less effective.",
+        "Security evaluation therefore needs task/campaign-level aggregation rather than assuming one-agent-one-monitor isolation."
+      ]
+    }
+  ],
+  "currentnessNotes": [
+    "NIST AI 100-2e2025 is Final (March 2025) but NIST currently carries an errata/planning note; consumers must follow the current NIST publication page.",
+    "Inspect AI log storage/serialization evolves; adapters should prefer the documented Log File API and bind exact package/log versions rather than assuming raw JSON stability.",
+    "OWASP Agentic Top 10 is the 2026 edition, published 2025-12-09; memory/context poisoning and tool/runtime trust are treated as distinct agentic surfaces.",
+    "Provider/framework documentation and research pages were rechecked on 2026-09-26; live compatibility still requires package-version-specific admission tests."
+  ]
+}
