@@ -21,12 +21,16 @@ import urllib.parse
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+import sys
+
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
+_RELEASE_SRC = str(SOURCE_ROOT / "src")
+if _RELEASE_SRC not in sys.path:
+    sys.path.insert(0, _RELEASE_SRC)
 
 from ordivon_harness.gateway_execution_port import GatewayExecutionPort
 from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
 from ordivon_harness.user_browser_gateway import UserBrowserGatewayConfig, UserBrowserGatewayController
-
-SOURCE_ROOT = Path(__file__).resolve().parents[1]
 
 try:
     from browserless_substrate import BrowserlessPool
