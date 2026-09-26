@@ -86,5 +86,12 @@
     "Profile-v1 is not retired and profile-v2 is not promoted by this slice.",
     "External provider availability is not guaranteed by source-level claim coverage."
   ],
-  "standing": "VERIFIED_PENDING_INTEGRATION"
+  "standing": "INTEGRATED_VERIFIED",
+  "integration": {
+    "candidateCommit": "f63c1600793e199caa2e6c879ad78582aef88a5e",
+    "mergeCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f",
+    "mergedTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0de3d-fbdd-7292-b41b-170580eb31f0",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
 }
