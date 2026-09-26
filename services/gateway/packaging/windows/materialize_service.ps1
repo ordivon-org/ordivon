@@ -35,7 +35,7 @@ param(
     [string]$CfAccessAudience = '',
     [Parameter()]
     [ValidateSet('Manual', 'Automatic')]
-    [string]$StartMode = 'Automatic',
+    [string]$StartMode = 'Manual',
     [Parameter()]
     [switch]$ReplaceExisting
 )
@@ -229,6 +229,10 @@ $receipt = [ordered]@{
     linuxRuntimeUrl = $LinuxRuntimeUrl
     windowsRuntimeUrl = $WindowsRuntimeUrl
     hostUrl = $HostUrl
+    linuxBearerTokenFile = $(if ($LinuxRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($LinuxRuntimeBearerTokenFile) } else { $null })
+    windowsBearerTokenFile = $(if ($WindowsRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($WindowsRuntimeBearerTokenFile) } else { $null })
+    hostBearerTokenFile = $(if ($HostBearerTokenFile) { [System.IO.Path]::GetFullPath($HostBearerTokenFile) } else { $null })
+    activationRequired = $true
     linuxBearerPathConfigured = [bool]$LinuxRuntimeBearerTokenFile
     windowsBearerPathConfigured = [bool]$WindowsRuntimeBearerTokenFile
     hostBearerPathConfigured = [bool]$HostBearerTokenFile
