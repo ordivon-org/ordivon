@@ -15,23 +15,17 @@ HOME_DIR=/var/lib/claude-private/home
 WORKSPACE=/workspace
 
 hostname claude-workspace
-
 mount --bind "$PROFILE/nsswitch.conf" /etc/nsswitch.conf
 mount --bind "$PROFILE/resolv.conf" /etc/resolv.conf
 mount --bind "$PROFILE/hosts" /etc/hosts
 mount --bind "$PROFILE/hostname" /etc/hostname
 mount --bind "$PROFILE/machine-id" /etc/machine-id
 
-# Keep absolute time correct while removing local-zone geography from libc/ICU users.
 export TZ=UTC LANG=C.UTF-8 LC_ALL=C.UTF-8
-
-# Present only the caller-selected project at a neutral path before host homes are hidden.
 mount --bind "$orig_pwd" "$WORKSPACE"
 mount -t tmpfs -o mode=0755,nosuid,nodev,noexec tmpfs /root
 mount -t tmpfs -o mode=0755,nosuid,nodev,noexec tmpfs /home
 mount -t tmpfs -o mode=0755,nosuid,nodev,noexec tmpfs /mnt
-
-# Block common host IPC paths that could reveal host resolver/network/session metadata.
 if [[ -d /run/systemd/resolve ]]; then
   mount -t tmpfs -o mode=0755,nosuid,nodev,noexec tmpfs /run/systemd/resolve
 fi
@@ -59,7 +53,11 @@ export DISABLE_FEEDBACK_COMMAND=1
 export CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY=1
 export ENABLE_CLAUDEAI_MCP_SERVERS=false
 export CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1
-export BROWSER=echo
+if [[ ${CLAUDE_PRIVATE_BROWSER_MODE:-} == oauth ]]; then
+  export BROWSER=/usr/local/libexec/claude-private/oauth-browser-open
+else
+  export BROWSER=echo
+fi
 
 cd "$WORKSPACE"
 exec "$CLAUDE_BIN" --settings "$PROFILE/settings.json" "$@"

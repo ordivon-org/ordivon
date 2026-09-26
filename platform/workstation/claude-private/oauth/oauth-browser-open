@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+url=${1:?OAuth browser opener requires one URL}
+encoded=$(/usr/bin/python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$url")
+for _ in $(seq 1 50); do
+  if /usr/bin/curl -fsS -X PUT "http://127.0.0.1:19990/json/new?$encoded" >/dev/null 2>&1; then
+    echo 'Claude OAuth URL opened in the private browser.' >&2
+    echo 'Operator UI: http://127.0.0.1:16090/vnc.html?host=127.0.0.1&port=16090&path=websockify&autoconnect=1&resize=scale' >&2
+    exit 0
+  fi
+  sleep 0.2
+done
+echo 'private OAuth browser CDP endpoint did not become ready' >&2
+exit 82
