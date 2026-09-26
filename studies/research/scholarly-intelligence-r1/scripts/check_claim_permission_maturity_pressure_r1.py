@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import subprocess
@@ -225,7 +226,76 @@ def derive() -> dict[str, Any]:
     }
 
 
+def validate_portable() -> dict[str, Any]:
+    plan = load(PLAN)
+    recorded = load(RECEIPT)
+    profile = load(PAPER2_PROFILE)
+    cases = {row["study"]: row for row in plan["cases"]}
+
+    if recorded.get("kind") != "ordivon.research.claim-permission-maturity-pressure-evidence":
+        fail("portable maturity receipt kind drifted")
+    if recorded.get("standing") != "PASS_CLAIM_PERMISSION_MATURITY_GATE_PRESSURE_R1":
+        fail("portable maturity receipt standing drifted")
+    if recorded.get("truthRole") != "cross-study-maturity-pressure-not-shared-scientific-policy":
+        fail("portable maturity receipt truth role drifted")
+    if recorded.get("candidateRule") != plan.get("candidateRule"):
+        fail("portable maturity candidate rule differs from pressure plan")
+    if recorded.get("nonClaims") != plan.get("nonClaims"):
+        fail("portable maturity non-claims differ from pressure plan")
+
+    p1_revision = cases["paper1-study"]["sourceRevision"]
+    p2_revision = cases["paper2-independent-study"]["sourceRevision"]
+    if recorded.get("cases", {}).get("paper1", {}).get("sourceRevision") != p1_revision:
+        fail("portable Paper1 revision differs between plan and receipt")
+    if recorded.get("cases", {}).get("paper2", {}).get("sourceRevision") != p2_revision:
+        fail("portable Paper2 revision differs between plan and receipt")
+    authority = profile.get("studyAuthority", {})
+    if authority.get("owner") != "paper2-independent-study":
+        fail("portable Paper2 profile owner drifted")
+    if authority.get("sourceRevision") != p2_revision:
+        fail("portable Paper2 profile revision differs from pressure plan")
+
+    expected_bindings = {
+        name: {"path": rel, "digest": digest}
+        for name, (rel, digest) in PAPER2_FILES.items()
+    }
+    if recorded.get("paper2Bindings") != expected_bindings:
+        fail("portable Paper2 binding catalog drifted")
+    pressure = recorded.get("pressureResult", {})
+    if pressure.get("sharedExecutableClaimPermission") != "NOT_ADMITTED":
+        fail("portable receipt silently admitted shared ClaimPermission")
+    if pressure.get("crossStudyPromotionEligible") is not False:
+        fail("portable receipt silently admitted cross-study promotion")
+
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.research.claim-permission-maturity-pressure-portable-acceptance",
+        "standing": "PASS_PORTABLE_MATURITY_PRESSURE_RECEIPT_R1",
+        "receiptStanding": recorded["standing"],
+        "paper1BoundRevision": p1_revision,
+        "paper2BoundRevision": p2_revision,
+        "paper2BindingCount": len(expected_bindings),
+        "truthBoundary": (
+            "Portable acceptance proves committed plan/receipt/profile closure and declared digest bindings only. "
+            "It does not prove current Paper1 or Paper2 repository bytes, cleanliness, HEAD identity, or scientific currentness; run without --portable for live authority verification."
+        ),
+    }
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--portable",
+        action="store_true",
+        help="validate committed pressure evidence without claiming external Study repository currentness",
+    )
+    args = parser.parse_args()
+
+    if args.portable:
+        result = validate_portable()
+        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+        return 0
+
     derived = derive()
     encoded = json.dumps(derived, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
     if RECEIPT.exists():
