@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam.authorization-composition-evidence",
+  "findingId": "RT-AUTHZ-001",
+  "observedDate": "2026-09-27",
+  "classification": "KNOWN_OPEN_CONSEQUENCE",
+  "parentGap": "AF-S2",
+  "gateway": {
+    "liveVersion": "0.5.0",
+    "sourceRevisionObserved": "e130f68addd3143697c0e2a1cb2bc6070d69980e",
+    "cloudflarePrincipal": "verified-and-derived-in-access_auth",
+    "principalUse": "audit projection only on current execution owner path",
+    "executionOwnerCallsCarryEndUserPrincipal": false,
+    "runtimeCapabilitiesAtObservation": {
+      "execution.linux": "configured-but-unavailable",
+      "execution.windows": "configured-but-unavailable"
+    }
+  },
+  "runtimeCapability": {
+    "effectivePrincipalSupportedForExecutionAdmission": true,
+    "principalScopedIdempotency": true,
+    "credentialAuthorityPrincipalAllowlist": true,
+    "factorizedPrincipalModeImplemented": true
+  },
+  "liveWindowsRuntime": {
+    "nodeId": "windows-main-r6-candidate",
+    "endpoint": "127.0.0.1:18997",
+    "principalMode": "static",
+    "principal": "principal:windows-main",
+    "configured": true,
+    "available": true
+  },
+  "deployedRuntimeLifecycleHandlers": {
+    "workspace.execUsesEffectivePrincipal": true,
+    "workspace.execBoundUsesEffectivePrincipal": true,
+    "workspace.execCredentialBoundTrustedUsesEffectivePrincipal": true,
+    "job.getUsesEffectivePrincipal": false,
+    "job.observeUsesEffectivePrincipal": false,
+    "job.cancelUsesEffectivePrincipal": false,
+    "job.listUsesEffectivePrincipal": false,
+    "artifact.readUsesEffectivePrincipal": false
+  },
+  "consequence": [
+    "When Gateway-to-Runtime owner bearer routing is restored under the observed static Runtime configuration, distinct authenticated Gateway users collapse to one Runtime service principal.",
+    "Runtime principal-scoped admission/idempotency/credential mechanisms therefore cannot express end-user isolation through this Gateway composition.",
+    "Job lifecycle and Artifact access through owner object identifiers are not scoped by an EffectivePrincipal in the deployed MCP handlers.",
+    "Gateway audit can retain the end-user principal while Runtime Job truth records a service principal, creating a cross-layer attribution split."
+  ],
+  "acceptance": [
+    "Preserve a factorized authenticated subject across Gateway-to-Runtime, or enforce Security authorization at Gateway with explicit subject/action/resource decisions before owner calls.",
+    "Add object-level authorization to Job/Artifact lifecycle actions.",
+    "Keep Gateway service identity distinct from delegated end-user identity.",
+    "Add two-principal negative tests proving principal A cannot resolve/get/observe/cancel/read principal B's operation or artifacts."
+  ],
+  "externalReferences": [
+    "https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/"
+  ],
+  "nonClaims": [
+    "AF-S2 was already documented OPEN before this campaign and is not double-counted as a new gap.",
+    "Gateway Runtime carriers were unavailable during the observation, so no cross-user live cancel/read exploit was executed.",
+    "ActorRef/Social Work identity semantics are outside this evidence object."
+  ]
+}
