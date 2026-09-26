@@ -65,3 +65,10 @@ def test_no_current_consumer_materializes_duplicate_provider_identity():
     for directory in (FINANCE / "config", SUPPLY / "config"):
         for path in directory.glob("*.json"):
             assert "provider-auto" not in path.read_text()
+
+def test_provider_switch_uses_wg_quick_compatible_temp_profile_and_restores_target():
+    switch = (BROWSERLESS / "provider-switch.sh").read_text()
+    assert 'TARGET=network-v2-browserless.target' in switch
+    assert 'mktemp --suffix=.conf "$STATE_DIR/nv2blwg.XXXXXX"' in switch
+    assert switch.count('systemctl start "$TARGET"') >= 2
+    assert 'wg-quick strip "$tmp_profile"' in switch

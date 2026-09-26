@@ -5,6 +5,7 @@ NS=nv2-browserless-prod
 WG=network-v2-browserless-wireguard.service
 DNS=network-v2-browserless-dns.service
 CARRIER=network-v2-browserless-provider-carrier.service
+TARGET=network-v2-browserless.target
 PROFILE=/etc/network-v2/browserless/nv2blwg.conf
 ENV_FILE=/etc/network-v2/browserless/provider.env
 MANIFEST=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
@@ -60,6 +61,7 @@ rollback() {
   systemctl start "$WG" >/dev/null 2>&1 || true
   systemctl start "$DNS" >/dev/null 2>&1 || true
   systemctl start "$CARRIER" >/dev/null 2>&1 || true
+  systemctl start "$TARGET" >/dev/null 2>&1 || true
   "$PRODUCTION_PATH" >/dev/null 2>&1 || true
   rm -f "$STATE"
   set -e
@@ -69,7 +71,7 @@ trap rollback ERR INT TERM
 # Stop the old session while its old profile/environment are still intact so its route and interface cleanly release.
 systemctl stop "$CARRIER" "$DNS" "$WG"
 
-tmp_profile=$(mktemp "$STATE_DIR/profile.XXXXXX")
+tmp_profile=$(mktemp --suffix=.conf "$STATE_DIR/nv2blwg.XXXXXX")
 tmp_env=$(mktemp "$STATE_DIR/env.XXXXXX")
 trap 'rm -f "$tmp_profile" "$tmp_env"' EXIT
 EP="$endpoint:51820" yq -p=ini -o=ini \
@@ -99,6 +101,7 @@ install -m 0600 "$tmp_env" "$ENV_FILE"
 systemctl start "$WG"
 systemctl start "$DNS"
 systemctl start "$CARRIER"
+systemctl start "$TARGET"
 "$PRODUCTION_PATH"
 "$READY"
 actual=$(ip netns exec "$NS" wg show nv2blwg endpoints | awk 'NR==1{print $2}')
