@@ -200,7 +200,9 @@ artifact_delivery.py, Toolchain Doctor, and Agent Surface belong here.
 
 Move exact bytes or grant bounded transport capabilities.
 
-Artifact repository currently contains scripts/artifact_r2_mailbox.py, but the existing donor document explicitly classifies the R2 mailbox transport implementation as DO_NOT_PROMOTE.
+Historical R1 observation: the Artifact repository contained `scripts/artifact_r2_mailbox.py`, while the donor document already classified the R2 mailbox transport implementation as `DO_NOT_PROMOTE`.
+
+2026-09-26 execution update: that live mailbox/provider implementation, its Artifact-owned operator config, route schema, and self-test were physically retired. Frozen donor/provenance evidence remains. Any future generic external transport must acquire a separate provider/distribution owner rather than re-enter Artifact Kernel.
 
 This is not a kernel component.
 
@@ -286,13 +288,11 @@ Do not promote OCI-specific layout semantics into Artifact Kernel.
 
 ### D5 — Transport implementation is present despite explicit non-ownership
 
-scripts/artifact_r2_mailbox.py owns Cloudflare R2 credentials, SigV4 presigning, provider inventory, and transfer-effect reconciliation.
+Historical implementation `scripts/artifact_r2_mailbox.py` owned Cloudflare R2 credentials, SigV4 presigning, provider inventory, and transfer-effect reconciliation.
 
-Existing donor evidence already says this belongs to delivery infrastructure rather than Artifact classification/validation knowledge.
+Existing donor evidence already said this belonged to delivery infrastructure rather than Artifact classification/validation knowledge.
 
-Target direction:
-
-Quarantine/externalize rather than further integrate it into Artifact Core.
+2026-09-26 resolution: the implementation and its live Artifact-owned config/schema/test closure were physically retired instead of quarantined. D05 is therefore resolved for the current tree. A future transport capability requires an external natural owner and fresh consumer pressure.
 
 ### D6 — Family verifiers are plugins in practice but not yet packaged as plugins
 
@@ -376,13 +376,9 @@ A compatibility adapter may be required.
 
 ### Q6 — What should happen to R2 mailbox?
 
-Choices to test:
+Resolved for the current tree on 2026-09-26: physically retire the unconsumed Artifact-owned R2 mailbox implementation while retaining frozen historical evidence. No replacement provider is invented. If future consumer pressure requires generic external transport, it must be admitted under a separate provider/distribution owner with explicit destination, effect, receipt, and reconciliation authority.
 
-- external delivery-infrastructure plugin;
-- separate repository;
-- retained quarantined compatibility tool.
-
-It should not be treated as Artifact Kernel.
+It must not be treated as Artifact Kernel.
 
 ### Q7 — What is the lifecycle of compatibility surfaces?
 
@@ -411,6 +407,8 @@ Decompose OCI packaging into package-plan/admission/staging/layout/release-decis
 ### R2-S5 — Externalization Audit
 
 Classify R2 mailbox, toolchain doctor, environment setup, and publication/transport code into retain/quarantine/externalize.
+
+2026-09-26 standing: the X01 R2 mailbox sub-slice is complete by physical retirement. This does **not** close R2-S5 as a whole; X02 toolchain/environment and other publication/provider adapters remain independent classification work.
 
 ## 10. Non-goals
 
