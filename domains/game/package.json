@@ -57,7 +57,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "26.6.1",
+    "@types/node": "26.6.2",
     "fast-check": "4.10.1",
     "typescript": "7.0.2",
     "playwright": "1.63.0"
