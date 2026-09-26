@@ -63,7 +63,7 @@ python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_docs.py
 uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_docs.py
-uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
+uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/catalogs/test_model_foundry_r2.py tests/catalogs/test_model_foundry_substitution_canary.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
 mise run experimental-episode-store:verify
 mise run research-study:verify
 mise run browser-security-study:verify
