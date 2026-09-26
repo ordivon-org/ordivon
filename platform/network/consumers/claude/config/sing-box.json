@@ -1,0 +1,32 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {"level": "warn", "timestamp": true},
+  "dns": {
+    "servers": [{"type": "udp", "tag": "namespace-dns", "server": "127.0.0.1", "server_port": 53}],
+    "final": "namespace-dns",
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [{"type": "http", "tag": "claude-egress", "listen": "127.0.0.1", "listen_port": 19480}],
+  "outbounds": [{"type": "direct", "tag": "browserless-vpn"}],
+  "route": {
+    "default_domain_resolver": {"server": "namespace-dns", "strategy": "ipv4_only"},
+    "rules": [
+      {
+        "inbound": ["claude-egress"],
+        "network": ["tcp"],
+        "domain": [
+          "api.anthropic.com",
+          "claude.ai",
+          "claude.com",
+          "platform.claude.com",
+          "downloads.claude.ai",
+          "code.claude.com"
+        ],
+        "port": [443],
+        "action": "route",
+        "outbound": "browserless-vpn"
+      },
+      {"action": "reject"}
+    ]
+  }
+}

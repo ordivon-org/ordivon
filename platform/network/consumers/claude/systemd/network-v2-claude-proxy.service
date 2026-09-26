@@ -1,0 +1,19 @@
+[Unit]
+Description=Network v2 Claude Code scoped HTTPS proxy inside Browserless VPN authority
+BindsTo=network-v2-browserless.target
+After=network-v2-browserless.target network-v2-browserless-dns.service
+PartOf=network-v2-claude.target
+
+[Service]
+Type=simple
+NetworkNamespacePath=/run/netns/nv2-browserless-prod
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/claude/sing-box.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/claude/sing-box.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK
+# namespace-local listener: 127.0.0.1:19480; no AF_INET6 socket authority

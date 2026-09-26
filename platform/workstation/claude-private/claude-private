@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CLIENT_TARGET=network-v2-claude-client.target
+ENTER=/usr/local/libexec/claude-private/claude-private-enter
+AUTH_WORKSPACE=/var/lib/claude-private/auth-workspace
+
+if [[ ${EUID} -ne 0 ]]; then
+  echo 'claude-private canary currently requires root on this WSL node' >&2
+  exit 80
+fi
+
+if ! systemctl is-active --quiet "$CLIENT_TARGET"; then
+  systemctl start "$CLIENT_TARGET"
+fi
+
+# Account-control commands do not receive project context. Claude Code currently probes
+# several project metadata filenames during `auth status`; isolate those probes here.
+if [[ ${1:-} == auth ]]; then
+  mkdir -p "$AUTH_WORKSPACE"
+  chmod 0700 "$AUTH_WORKSPACE"
+  source_pwd=$AUTH_WORKSPACE
+else
+  source_pwd=$PWD
+fi
+
+exec /usr/bin/ip netns exec nv2-claude-client \
+  /usr/bin/unshare --mount --uts --fork --propagation private \
+  "$ENTER" "$source_pwd" "$@"

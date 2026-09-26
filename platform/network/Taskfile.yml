@@ -478,6 +478,76 @@ tasks:
     cmds:
       - systemctl stop network-v2-chat-ingress.target
 
+  consumer:claude:validate:
+    desc: Validate the Claude Code Anthropic-only HTTPS authority plus isolated client namespace
+    cmds:
+      - /usr/bin/sing-box check -c consumers/claude/config/sing-box.json
+      - /usr/bin/systemd-analyze verify consumers/claude/systemd/network-v2-claude-proxy.service consumers/claude/systemd/network-v2-claude-relay.service consumers/claude/systemd/network-v2-claude.target consumers/claude/systemd/network-v2-claude-client-netns.service consumers/claude/systemd/network-v2-claude-client-bridge.service consumers/claude/systemd/network-v2-claude-client.target
+      - /usr/bin/bash -n consumers/claude/ready.sh
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.claude-egress" and .listen=={"host":"127.0.0.1","port":19481,"protocol":"http"} and .networkAuthority.namespace=="nv2-browserless-prod" and .networkAuthority.serviceUnit=="network-v2-browserless.target" and .directFallback==false' consumers/claude/config/authority.json >/dev/null
+      - |
+        set -eu
+        declared=$(jq -cS '.allowedHttpsDomains|sort' consumers/claude/config/authority.json)
+        enforced=$(jq -cS '.route.rules[] | select(.action=="route") | .domain|sort' consumers/claude/config/sing-box.json)
+        test "$declared" = "$enforced"
+        jq -e '.route.rules[-1].action=="reject" and (.route.rules[] | select(.action=="route") | .port)==[443] and (.route.rules[] | select(.action=="route") | .network)==["tcp"]' consumers/claude/config/sing-box.json >/dev/null
+
+  consumer:claude:materialize:
+    desc: Materialize the Claude scoped egress and no-direct-route client namespace without restarting the shared Browserless VPN carrier
+    deps: [consumer:claude:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/claude
+      - install -m 0644 consumers/claude/config/authority.json /etc/network-v2/claude/authority.json
+      - install -m 0644 consumers/claude/config/sing-box.json /etc/network-v2/claude/sing-box.json
+      - install -m 0644 consumers/claude/systemd/network-v2-claude-proxy.service /etc/systemd/system/network-v2-claude-proxy.service
+      - install -m 0644 consumers/claude/systemd/network-v2-claude-relay.service /etc/systemd/system/network-v2-claude-relay.service
+      - install -m 0644 consumers/claude/systemd/network-v2-claude.target /etc/systemd/system/network-v2-claude.target
+      - install -m 0644 consumers/claude/systemd/network-v2-claude-client-netns.service /etc/systemd/system/network-v2-claude-client-netns.service
+      - install -m 0644 consumers/claude/systemd/network-v2-claude-client-bridge.service /etc/systemd/system/network-v2-claude-client-bridge.service
+      - install -m 0644 consumers/claude/systemd/network-v2-claude-client.target /etc/systemd/system/network-v2-claude-client.target
+      - install -m 0755 consumers/claude/ready.sh /usr/local/libexec/network-v2/claude-ready
+      - systemctl daemon-reload
+      - systemctl enable network-v2-claude.target network-v2-claude-client.target
+
+  consumer:claude:start:
+    desc: Start the isolated Claude client path without changing host default routing
+    deps: [consumer:claude:materialize]
+    cmds:
+      - systemctl start network-v2-claude-client.target
+
+  consumer:claude:ready:
+    desc: Prove no direct client route, admitted Anthropic HTTPS, unknown-domain rejection and no IPv6 escape
+    cmds:
+      - /usr/local/libexec/network-v2/claude-ready
+
+  consumer:claude:converge:
+    desc: Materialize, restart only Claude-owned network units and prove fail-closed readiness
+    cmds:
+      - task: consumer:claude:materialize
+      - systemctl restart network-v2-claude.target
+      - systemctl restart network-v2-claude-client.target
+      - task: consumer:claude:ready
+
+  consumer:claude:verify:
+    desc: Verify exact deployed Claude authority/client bytes and live consequence readiness
+    cmds:
+      - cmp -s consumers/claude/config/authority.json /etc/network-v2/claude/authority.json
+      - cmp -s consumers/claude/config/sing-box.json /etc/network-v2/claude/sing-box.json
+      - cmp -s consumers/claude/systemd/network-v2-claude-proxy.service /etc/systemd/system/network-v2-claude-proxy.service
+      - cmp -s consumers/claude/systemd/network-v2-claude-relay.service /etc/systemd/system/network-v2-claude-relay.service
+      - cmp -s consumers/claude/systemd/network-v2-claude.target /etc/systemd/system/network-v2-claude.target
+      - cmp -s consumers/claude/systemd/network-v2-claude-client-netns.service /etc/systemd/system/network-v2-claude-client-netns.service
+      - cmp -s consumers/claude/systemd/network-v2-claude-client-bridge.service /etc/systemd/system/network-v2-claude-client-bridge.service
+      - cmp -s consumers/claude/systemd/network-v2-claude-client.target /etc/systemd/system/network-v2-claude-client.target
+      - systemctl is-enabled --quiet network-v2-claude.target
+      - systemctl is-enabled --quiet network-v2-claude-client.target
+      - /usr/local/libexec/network-v2/claude-ready
+
+  consumer:claude:stop:
+    desc: Stop only Claude-owned network units; the shared Browserless VPN carrier remains untouched
+    cmds:
+      - systemctl stop network-v2-claude-client.target network-v2-claude.target
+
 vars:
   SYSTEMD_UNITS:
     sh: printf '%s ' systemd/network-v2-*.service
