@@ -93,8 +93,9 @@
       "id": "BE07",
       "label": "ArtifactTransportExternalization",
       "priority": "P1",
-      "state": "SEPARATE_OWNER_CLEANUP",
-      "contract": "Keep capabilities/artifact transport/mailbox code quarantined or externalized; binary client projection is Runtime observation, not Artifact delivery standing."
+      "state": "CLOSED_BY_ARTIFACT_OWNER_RETIREMENT",
+      "contract": "Keep capabilities/artifact transport/mailbox code quarantined or externalized; binary client projection is Runtime observation, not Artifact delivery standing.",
+      "resolution": "Artifact-owned Cloudflare R2 mailbox transport/config/schema/test closure was physically retired and integrated at eb00df2a7680a402d6d0e8bff821e68965a135d8; future external delivery requires a separate natural provider/distribution owner."
     }
   ],
   "acceptance": [
@@ -120,6 +121,7 @@
     "ownerGate": "PASS on final exact tree: scripts/owner-environment test, job-01a0de09-4b73-7ed2-89b5-adcb9e0b6f5e",
     "realMcpE2E": "PASS including workspace-file-binary-resource, workspace-file-digest-binding, artifact-binary-resource; job-01a0de01-48a3-7983-ba11-f240021f5779",
     "fullLocalAcceptance": "NOT_STABLY_GREEN due two unrelated existing execution/recovery timing seams; do not reinterpret as binary-projection failure",
-    "integrationStatus": "READY_TO_COMMIT_AFTER_FINAL_DIFF_CHECK"
+    "integrationStatus": "BE01_BE05_INTEGRATED_BE07_CLOSED_BE06_DEFERRED",
+    "be07ResolutionCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8"
   }
 }
