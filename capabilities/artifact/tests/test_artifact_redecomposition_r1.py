@@ -59,7 +59,7 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("transport-boundary-retirement-r1.json", " ".join(nodes["X01"]["currentEvidence"]))
         self.assertEqual(nodes["X03"]["state"], "OUTSIDE_ARTIFACT")
 
-    def test_next_slice_is_evaluation_model_pressure_test(self) -> None:
+    def test_evaluation_model_pressure_sequence_preserves_open_backbone_boundary(self) -> None:
         slices = {item["id"]: item for item in self.plan["slices"]}
         self.assertEqual(slices["R2-S1"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertEqual(slices["R2-S1B"]["status"], "PRESSURE_TEST_COMPLETE")
@@ -67,9 +67,22 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("K05", slices["R2-S1C"]["nodeIds"])
         self.assertEqual(slices["R2-S1D"]["status"], "IMPLEMENTED_VERIFIED_INTEGRATED")
         self.assertIn("P02", slices["R2-S1D"]["nodeIds"])
-        self.assertEqual(slices["R2-S1E"]["status"], "NEXT")
+        self.assertEqual(
+            slices["R2-S1E"]["status"],
+            "IMPLEMENTED_VERIFIED_PENDING_INTEGRATION",
+        )
+        self.assertEqual(
+            slices["R2-S1E"]["result"],
+            "PRODUCTION_V1_COMPATIBILITY_MODEL_PROVEN_ROUTE_UNCHANGED",
+        )
         self.assertIn("C01", slices["R2-S1E"]["nodeIds"])
         self.assertIn("K05", slices["R2-S1E"]["nodeIds"])
+        divergences = {item["id"]: item for item in self.plan["divergences"]}
+        self.assertEqual(
+            divergences["D01"]["state"],
+            "COMPATIBILITY_MODEL_PROVEN_DUAL_BACKBONE_STILL_PRESENT",
+        )
+        self.assertIn("not physical backbone unification", divergences["D01"]["resolutionBoundary"])
         self.assertEqual(
             slices["R2-S5"]["status"],
             "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",

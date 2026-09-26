@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.artifact-production-v1-evaluation-compatibility-evidence",
+  "truthRole": "verification-evidence-not-production-route-or-profile-promotion",
+  "date": "2026-09-27",
+  "baseRevision": "2bc46824d986c842375759ff39c731ee79195c5b",
+  "scope": [
+    "R2-S1E",
+    "D01",
+    "K01",
+    "K02",
+    "K04",
+    "K05",
+    "C01"
+  ],
+  "objective": "Pressure-test production-v1 Office/Web verification through a lossless common EvaluationRequest/EvidenceObservation/StandingDecision compatibility model without changing production routing or profile authority.",
+  "profiles": [
+    {
+      "profileId": "pdu-sdu-presentation-r1",
+      "productionV1": "artifact-delivery/examples/pdu-sdu-presentation-r1.json",
+      "canonicalV2Shadow": "artifact-delivery/shadow-v2/examples/pdu-sdu-presentation-r1-v2.json",
+      "requiredEvidence": [
+        "companionPdf",
+        "deliveryReadback",
+        "dependency",
+        "profileSchema",
+        "semantic",
+        "structural",
+        "target",
+        "visual"
+      ]
+    },
+    {
+      "profileId": "document-r1",
+      "productionV1": "artifact-delivery/examples/document-r1.json",
+      "canonicalV2Shadow": "artifact-delivery/shadow-v2/examples/document-r1-v2.json",
+      "requiredEvidence": [
+        "accessibility",
+        "companionPdf",
+        "deliveryReadback",
+        "dependency",
+        "profileSchema",
+        "releaseProvenance",
+        "semantic",
+        "structural",
+        "target",
+        "visual"
+      ]
+    },
+    {
+      "profileId": "web-r1",
+      "productionV1": "artifact-delivery/examples/web-r1.json",
+      "canonicalV2Shadow": "artifact-delivery/shadow-v2/examples/web-r1-v2.json",
+      "requiredEvidence": [
+        "accessibility",
+        "conformance",
+        "deliveryReadback",
+        "profileSchema",
+        "releaseProvenance",
+        "semantic",
+        "structural",
+        "target",
+        "visual"
+      ]
+    }
+  ],
+  "semanticEquivalence": {
+    "standing": "PASS",
+    "rules": [
+      "production-v1 and canonical-v2 profile ids match",
+      "gate key sets exactly equal requiredEvidence key sets",
+      "gate boolean requiredness exactly equals requiredEvidence.required",
+      "authorityMode and locale match canonical construction semantics",
+      "primary/companion output role-format-purpose-required-editable semantics match",
+      "target and secondary renderer name/platform/required semantics match targetAuthorities",
+      "delivery target semantics match",
+      "presentation-specific font/render/semantic/unsupported-target policy matches",
+      "both exact profile files remain separately SHA-256 bound; compatibility never upgrades shadow v2 to production authority"
+    ]
+  },
+  "contracts": {
+    "standingOwner": "artifact_core/standing.py",
+    "compatibilityOwner": "artifact_verification/compatibility.py",
+    "productionExecutionOwner": "artifact_verification/stage.py",
+    "routingChanged": false,
+    "standingLaw": "Native aggregate PASS never upgrades NOT_EVALUATED required claims; native FAIL remains fail-closed; trust/release remain independent axes.",
+    "roundTripLaw": "The complete native verify-stage result is canonical-digest bound and reconstructs exactly from the compatibility projection."
+  },
+  "verification": [
+    {
+      "class": "focused-compatibility-and-existing-pressure-contracts",
+      "standing": "PASS",
+      "jobId": "job-01a0ded5-7446-75b3-9500-372ad2656c93",
+      "detail": "30 tests passed: S1E compatibility contract plus existing evidence-observation, standing-decision and claim-results pressure suites."
+    },
+    {
+      "class": "artifact-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0ded5-b627-7710-b82e-7fd86177182f",
+      "detail": "mise run verify: 405 passed, 3 skipped, 40 deselected, 107 subtests passed; Ruff/lock/sync gates passed."
+    },
+    {
+      "class": "final-exact-tree-owner-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0ded9-4630-7842-a6eb-81c722823f16",
+      "detail": "Final exact tree after planning/evidence/currentness updates: mise run verify 405 passed, 3 skipped, 40 deselected, 107 subtests; Ruff/lock/sync gates passed."
+    }
+  ],
+  "provenProperties": [
+    "Production-v1 Presentation, Document and Web gate semantics can be mapped exactly to current canonical-v2 requiredEvidence without alias inference.",
+    "Production-v1 subject identity and both profile byte identities can be bound into one EvaluationRequest while production routing remains unchanged.",
+    "Legacy verify-stage gate receipts can be projected into explicit exact-key claimResults and EvidenceObservations without replacing native receipts.",
+    "Legacy stage PASS with pending required gates yields PENDING/PARTIAL common standing rather than PASS laundering.",
+    "A complete required claim set yields PASS/COMPLETE even when an optional profile claim remains NOT_EVALUATED.",
+    "Native FAIL or a required explicit claim FAIL remains FAIL.",
+    "Projection or subject identity tampering fails closed.",
+    "Native verify-stage result round-trips exactly under a canonical digest fence."
+  ],
+  "nonClaims": [
+    "D01 dual production/family execution backbones are physically unified.",
+    "Production verification routing changed.",
+    "Profile-v1 is retired.",
+    "Profile-v2 is promoted to production authority.",
+    "D06 verifier plugin packaging/interface/lifecycle is complete.",
+    "Unsigned local VSA evidence is trusted.",
+    "Consumer-domain or human acceptance is Artifact kernel standing."
+  ],
+  "standing": "VERIFIED_PENDING_INTEGRATION"
+}
