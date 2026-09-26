@@ -517,7 +517,7 @@
     {
       "id": "R2-S1E",
       "objective": "Pressure-test a production-v1 Office/Web compatibility adapter into the common EvaluationRequest/EvidenceObservation/StandingDecision model without changing production routing or promoting profile-v2.",
-      "status": "IMPLEMENTED_VERIFIED_PENDING_INTEGRATION",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
       "nodeIds": [
         "K01",
         "K02",
@@ -529,7 +529,8 @@
       ],
       "evidenceBoundary": "Production-v1 and canonical-v2 profile/gate semantics are exact-byte bound and compatibility-equivalent for current Presentation/Document/Web profiles. Native verify-stage results round-trip exactly and standing fails closed. Production routing remains v1; no profile retirement/promotion is implied.",
       "result": "PRODUCTION_V1_COMPATIBILITY_MODEL_PROVEN_ROUTE_UNCHANGED",
-      "evidence": "planning/production-v1-evaluation-compatibility-r1.json"
+      "evidence": "planning/production-v1-evaluation-compatibility-r1.json",
+      "integrationCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f"
     },
     {
       "id": "R2-S2",
@@ -611,8 +612,10 @@
     {
       "date": "2026-09-27",
       "scope": "R2-S1E/D01",
-      "standing": "PRODUCTION_V1_COMPATIBILITY_VERIFIED_PENDING_INTEGRATION",
-      "evidence": "planning/production-v1-evaluation-compatibility-r1.json"
+      "standing": "PRODUCTION_V1_COMPATIBILITY_INTEGRATED_VERIFIED",
+      "evidence": "planning/production-v1-evaluation-compatibility-r1.json",
+      "integrationCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f",
+      "mergedTreeRequalificationJobId": "job-01a0dedd-a354-7500-ac43-64f3730806da"
     }
   ]
 }
