@@ -44,7 +44,7 @@ class ActorRefInput(BaseModel):
 
 
 class WorkSnapshotInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     objective: str = Field(min_length=1, max_length=4096)
     frontier: str = Field(min_length=1, max_length=4096)
@@ -52,8 +52,8 @@ class WorkSnapshotInput(BaseModel):
     unresolved: list[str] = Field(default_factory=list, max_length=128)
     rejected: list[str] = Field(default_factory=list, max_length=128)
     constraints: list[str] = Field(default_factory=list, max_length=128)
-    next_actions: list[str] = Field(default_factory=list, max_length=128)
-    reference_refs: list[str] = Field(default_factory=list, max_length=256)
+    next_actions: list[str] = Field(default_factory=list, max_length=128, alias="nextActions")
+    reference_refs: list[str] = Field(default_factory=list, max_length=256, alias="referenceRefs")
 
     @field_validator(
         "established",

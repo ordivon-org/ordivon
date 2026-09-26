@@ -49,6 +49,12 @@ def test_host_server_identity_and_exact_social_work_surface() -> None:
             attention = by_name["attention.delta"].input_schema
             assert set(attention["required"]) == {"actorRef", "afterSequence"}
             assert "actorRef" in attention["properties"]
+            for work_tool in ("work.create", "work.snapshot.commit"):
+                snapshot = by_name[work_tool].input_schema["$defs"]["WorkSnapshotInput"]
+                assert "nextActions" in snapshot["properties"]
+                assert "referenceRefs" in snapshot["properties"]
+                assert "next_actions" not in snapshot["properties"]
+                assert "reference_refs" not in snapshot["properties"]
             for tool in listed.tools:
                 assert tool.output_schema is not None
                 assert tool.output_schema.get("additionalProperties") is not True
