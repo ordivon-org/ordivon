@@ -1,0 +1,125 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "provider-dns-1",
+        "server": "162.252.172.57",
+        "server_port": 53,
+        "detour": "provider-auto"
+      },
+      {
+        "type": "udp",
+        "tag": "provider-dns-2",
+        "server": "149.154.159.92",
+        "server_port": 53,
+        "detour": "provider-auto"
+      }
+    ],
+    "rules": [
+      {
+        "action": "evaluate",
+        "server": "provider-dns-1",
+        "tag": "provider-dns-1-eval"
+      },
+      {
+        "match_response": "provider-dns-1-eval",
+        "ip_accept_any": true,
+        "action": "respond",
+        "race": true
+      },
+      {
+        "action": "evaluate",
+        "server": "provider-dns-2",
+        "tag": "provider-dns-2-eval",
+        "speculative": true
+      },
+      {
+        "match_response": "provider-dns-2-eval",
+        "ip_accept_any": true,
+        "action": "respond",
+        "race": true
+      }
+    ],
+    "final": "provider-dns-1",
+    "strategy": "ipv4_only",
+    "timeout": "5s"
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "supply-chain-oci",
+      "listen": "127.0.0.1",
+      "listen_port": 19581
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "urltest",
+      "tag": "provider-auto",
+      "outbounds": [
+        "provider-b",
+        "provider-a"
+      ],
+      "url": "https://1.1.1.1/cdn-cgi/trace",
+      "interval": "3s",
+      "tolerance": 65535,
+      "idle_timeout": "10m",
+      "interrupt_exist_connections": true
+    }
+  ],
+  "route": {
+    "default_domain_resolver": {
+      "server": "provider-dns-1",
+      "strategy": "ipv4_only"
+    },
+    "rules": [
+      {
+        "action": "resolve",
+        "strategy": "ipv4_only",
+        "timeout": "5s"
+      },
+      {
+        "inbound": [
+          "supply-chain-oci"
+        ],
+        "domain": [
+          "registry-1.docker.io",
+          "registry.docker.io",
+          "auth.docker.io",
+          "production.cloudflare.docker.com",
+          "docker.elastic.co",
+          "gcr.io"
+        ],
+        "domain_suffix": [
+          "r2.cloudflarestorage.com",
+          "gcr.io",
+          "pkg.dev"
+        ],
+        "port": 443,
+        "network": [
+          "tcp"
+        ],
+        "action": "route",
+        "outbound": "provider-auto"
+      },
+      {
+        "action": "reject"
+      }
+    ],
+    "final": "provider-auto"
+  },
+  "services": [
+    {
+      "type": "api",
+      "tag": "local-api",
+      "listen": "127.0.0.1",
+      "listen_port": 19589
+    }
+  ]
+}

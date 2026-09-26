@@ -30,9 +30,20 @@ tasks:
       - /usr/bin/bash -n consumers/finance/ready.sh
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
 
+  consumer:supply-chain:validate:
+    desc: Validate the scoped OCI/container supply-chain authority without changing live Docker or provider state
+    deps: [provider:surfshark:validate]
+    cmds:
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .providerAuthority.kind=="surfshark" and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
+      - jq -e '.inbounds==[{"type":"http","tag":"supply-chain-oci","listen":"127.0.0.1","listen_port":19581}] and .route.rules[-1].action=="reject"' consumers/supply-chain/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/supply-chain/systemd/network-v2-supply-chain-egress.service consumers/supply-chain/systemd/network-v2-supply-chain.target
+      - /usr/bin/bash -n consumers/supply-chain/ready.sh consumers/supply-chain/acceptance/docker-rebind-smoke.sh
+      - grep -F '127.0.0.1:19581' consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf >/dev/null
+      - '! grep -R -F "10.254.177.2:19381" consumers/supply-chain'
+
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, consumer:finance:validate]
+    deps: [core:validate, provider:surfshark:validate, consumer:finance:validate, consumer:supply-chain:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -293,6 +304,94 @@ tasks:
     desc: Stop only the shared Network v2 Finance topology
     cmds:
       - systemctl stop network-v2-finance.target
+
+  consumer:supply-chain:materialize:
+    desc: Materialize dual-provider OCI egress and Docker proxy binding bytes without restarting Docker
+    deps: [provider:surfshark:verify-local, consumer:supply-chain:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/supply-chain /etc/systemd/system/docker.service.d /usr/local/libexec/network-v2
+      - install -m 0644 consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
+      - install -m 0644 consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
+      - |
+        set -eu
+        src=/etc/network-v2/providers
+        catalog={{.GLUETUN_SERVERS_INSTALL}}
+        test -f "$catalog"
+        test "$(sha256sum "$catalog" | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
+        test -f "$src/kr-seo.conf"; test -f "$src/th-bkk.conf"
+        a_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="kr-seo.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
+        b_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="th-bkk.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
+        test -n "$a_ep"; test "$a_ep" != null
+        test -n "$b_ep"; test "$b_ep" != null
+        a_json=$(mktemp); b_json=$(mktemp); ep_tmp=$(mktemp)
+        trap 'rm -f "$a_json" "$b_json" "$ep_tmp"' EXIT
+        yq -p=ini -o=json "$src/kr-seo.conf" >"$a_json"
+        yq -p=ini -o=json "$src/th-bkk.conf" >"$b_json"
+        jq -n --slurpfile a "$a_json" --slurpfile b "$b_json" --arg a_ep "$a_ep" --arg b_ep "$b_ep" '
+          def endpoint($tag;$cfg;$ip): {
+            type:"wireguard", tag:$tag, system:false, mtu:1408,
+            address:[$cfg.Interface.Address], private_key:$cfg.Interface.PrivateKey,
+            peers:[{address:$ip, port:51820, public_key:$cfg.Peer.PublicKey,
+                    allowed_ips:["0.0.0.0/0"], persistent_keepalive_interval:5}]
+          };
+          {endpoints:[endpoint("provider-a";$a[0];$a_ep), endpoint("provider-b";$b[0];$b_ep)]}
+        ' >"$ep_tmp"
+        chmod 0640 "$ep_tmp"
+        chown root:sing-box "$ep_tmp"
+        sing-box check -c "$ep_tmp" -c consumers/supply-chain/config/egress.json
+        install -o root -g sing-box -m 0640 "$ep_tmp" /etc/network-v2/supply-chain/provider-endpoints.json
+      - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
+      - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
+      - install -m 0755 consumers/supply-chain/ready.sh /usr/local/libexec/network-v2/supply-chain-ready
+      - install -m 0644 consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
+      - rm -f /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
+      - systemctl daemon-reload
+      - systemctl enable network-v2-supply-chain.target
+
+  consumer:supply-chain:start:
+    desc: Start only the scoped Supply-Chain proxy; Docker remains untouched
+    deps: [consumer:supply-chain:materialize]
+    cmds:
+      - systemctl start network-v2-supply-chain.target
+
+  consumer:supply-chain:ready:
+    desc: Prove admitted OCI registry families and unknown-domain rejection without changing Docker
+    cmds:
+      - /usr/local/libexec/network-v2/supply-chain-ready
+
+  consumer:supply-chain:converge:
+    desc: Converge exact Supply-Chain proxy bytes without restarting Docker
+    cmds:
+      - task: consumer:supply-chain:materialize
+      - systemctl restart network-v2-supply-chain.target
+      - task: consumer:supply-chain:ready
+
+  consumer:supply-chain:docker-rebind:
+    desc: Rebind Docker from the retired Public-Web proxy, prove container recovery, and replay the pinned OPA pull
+    cmds:
+      - task: consumer:supply-chain:converge
+      - ./consumers/supply-chain/acceptance/docker-rebind-smoke.sh
+
+  consumer:supply-chain:verify:
+    desc: Verify deployed bytes, retired proxy absence, live scoped consequence, Docker binding, and pinned OPA availability
+    cmds:
+      - cmp -s consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
+      - cmp -s consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
+      - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
+      - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
+      - cmp -s consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
+      - test ! -e /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
+      - systemctl is-enabled --quiet network-v2-supply-chain.target
+      - /usr/local/libexec/network-v2/supply-chain-ready
+      - |
+        docker info 2>/dev/null | grep -F 'HTTP Proxy: http://127.0.0.1:19581' >/dev/null
+        docker info 2>/dev/null | grep -F 'HTTPS Proxy: http://127.0.0.1:19581' >/dev/null
+      - docker image inspect 'openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f' >/dev/null
+
+  consumer:supply-chain:stop:
+    desc: Stop the Supply-Chain proxy only; callers must not stop it while Docker remains proxy-bound
+    cmds:
+      - systemctl stop network-v2-supply-chain.target
 
   accept:cold-start:
     desc: Stop and cold-start the whole generic R0 target while proving control-plane independence and dual-stack readiness
