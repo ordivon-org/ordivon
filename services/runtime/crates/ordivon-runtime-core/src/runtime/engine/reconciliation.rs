@@ -1293,7 +1293,13 @@ impl Runtime {
         {
             return self.reconcile_provider_owned_attempt(attempt, &plan, &owner);
         }
-        let (expected, observation) = observe_linux_process_owner(attempt)?;
+        let linux_observation = LocalLinuxProvider::new(
+            self.node_identity.platform,
+            &self.executor,
+        )
+        .observe_bound_attempt(attempt)?;
+        let expected = linux_observation.expected;
+        let observation = linux_observation.observed;
         let intent = match attempt.termination_intent {
             super::AttemptTerminationIntent::Natural => TerminationIntent::Natural,
             super::AttemptTerminationIntent::StopRequested => TerminationIntent::StopRequested,

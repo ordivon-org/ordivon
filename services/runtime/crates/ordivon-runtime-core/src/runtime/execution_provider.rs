@@ -6,7 +6,8 @@
 //! by Runtime and committed provider identity remains persisted in `ExecutionProviderSnapshot`.
 
 use super::engine::map_universal_error;
-use super::platform::{systemd_run, validate_runner, SystemdRunSpec};
+use super::platform::{observe_linux_process_owner, systemd_run, validate_runner, SystemdRunSpec};
+use super::supervisor::{SupervisorIdentity, SupervisorObservation};
 use super::{
     AttemptRecord, ExecutionProfile, ExecutionProviderContract, ExecutionProviderSnapshot,
     ExecutionTarget, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
@@ -73,6 +74,14 @@ pub(crate) struct LocalLinuxRealizationInputs<'a> {
     pub(crate) credential_names: &'a [String],
 }
 
+/// Physical Linux supervisor observation bound to the persisted Attempt owner identity.
+/// Runtime retains recovery classification and terminal-state authority; the provider only reads
+/// the current OS facts needed for that classification.
+pub(crate) struct LocalLinuxBoundObservation {
+    pub(crate) expected: SupervisorIdentity,
+    pub(crate) observed: SupervisorObservation,
+}
+
 impl<'a> LocalLinuxProvider<'a> {
     pub(crate) fn new(
         node_platform: RuntimeNodePlatform,
@@ -84,11 +93,7 @@ impl<'a> LocalLinuxProvider<'a> {
         }
     }
 
-    pub(crate) fn configured(&self) -> bool {
-        self.node_platform == RuntimeNodePlatform::Linux && self.executor.runner_path.is_some()
-    }
-
-    pub(crate) fn snapshot(&self) -> RuntimeResult<ExecutionProviderSnapshot> {
+    fn ensure_linux_node(&self) -> RuntimeResult<()> {
         if self.node_platform != RuntimeNodePlatform::Linux {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::ToolUnavailable,
@@ -97,6 +102,15 @@ impl<'a> LocalLinuxProvider<'a> {
                 false,
             ));
         }
+        Ok(())
+    }
+
+    pub(crate) fn configured(&self) -> bool {
+        self.node_platform == RuntimeNodePlatform::Linux && self.executor.runner_path.is_some()
+    }
+
+    pub(crate) fn snapshot(&self) -> RuntimeResult<ExecutionProviderSnapshot> {
+        self.ensure_linux_node()?;
         let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
             RuntimeError::new(
                 RuntimeErrorCode::ToolUnavailable,
@@ -188,6 +202,20 @@ impl<'a> LocalLinuxProvider<'a> {
             execution_profile: plan.execution_profile,
             environment: &plan.env,
         })
+    }
+
+    /// Read physical supervisor state for one persisted Linux Attempt.
+    ///
+    /// Observation deliberately does not require the currently configured Runner to exist or
+    /// match the historical provider snapshot. Crash/restart recovery must remain able to inspect
+    /// an already-owned Attempt after provider configuration drift.
+    pub(crate) fn observe_bound_attempt(
+        &self,
+        attempt: &AttemptRecord,
+    ) -> RuntimeResult<LocalLinuxBoundObservation> {
+        self.ensure_linux_node()?;
+        let (expected, observed) = observe_linux_process_owner(attempt)?;
+        Ok(LocalLinuxBoundObservation { expected, observed })
     }
 }
 
@@ -465,6 +493,14 @@ mod local_linux_adapter_tests {
         assert!(!provider.configured());
         let error = provider.snapshot().unwrap_err();
         assert_eq!(error.code, RuntimeErrorCode::ToolUnavailable);
+    }
+
+    #[test]
+    fn historical_linux_observation_admission_does_not_require_current_runner_configuration() {
+        let executor = executor(None);
+        let provider = LocalLinuxProvider::new(RuntimeNodePlatform::Linux, &executor);
+        assert!(!provider.configured());
+        provider.ensure_linux_node().unwrap();
     }
 
     #[test]
