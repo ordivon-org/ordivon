@@ -64,7 +64,7 @@ class CampaignSpecInput(BaseModel):
     campaignId: str = Field(min_length=1, max_length=512)
     sharedPrompt: str = Field(min_length=1, max_length=32768)
     roster: list[RoleCardInput] = Field(min_length=1, max_length=256)
-    sharedAttachments: list[AttachmentInput] = Field(default_factory=list, max_length=1)
+    sharedAttachments: list[AttachmentInput] = Field(default_factory=list, max_length=4)
 
 
 class ConversationMarkerProofInput(BaseModel):
@@ -459,6 +459,36 @@ def build_server(settings: McpSettings) -> MCPServer:
             turn_request_id=turnRequestId,
             campaign_ref=campaignRef,
         )
+
+    @server.tool(
+        name="conversation.output",
+        title="Observe completed assistant output",
+        description="Read one completed marked assistant response from the exact provider-bound conversation for a campaign role. This is read-only and never fills the composer, clicks SEND, or creates a continuation turn.",
+        annotations=ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
+        ),
+    )
+    async def conversation_output(campaignRef: str, agentId: str) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(current_service().conversation_output, path, agentId)
+
+    @server.tool(
+        name="conversation.release",
+        title="Release completed user-browser carrier",
+        description="Release the exact Windows user-browser carrier only after the bound conversation shows the completed output marker. This performs no provider SEND and does not modify conversation content.",
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=True
+        ),
+    )
+    async def conversation_release(campaignRef: str, agentId: str) -> CallToolResult:
+        try:
+            path = current_registry().resolve(campaignRef)
+        except Exception as error:
+            return _tool_error(str(error))
+        return await _invoke(current_service().conversation_release, path, agentId)
 
     @server.tool(
         name="provider.preflight",

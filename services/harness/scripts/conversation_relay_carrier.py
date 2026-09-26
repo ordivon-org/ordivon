@@ -24,6 +24,9 @@ class CarrierConflict(RuntimeError):
     pass
 
 
+CURRENT_ATTACHMENT_LIMIT = 4
+
+
 class MaterializationStanding(str, Enum):
     PREPARED = "prepared"
     SUBMIT_OBSERVED = "submit-observed"
@@ -104,8 +107,8 @@ class CarrierMaterializationRequest:
         _text(self.request_id, "materialization request identity")
         _digest(self.preparation_digest, "preparation digest")
         _text(self.bootstrap_prompt, "bootstrap prompt", max_bytes=16384)
-        if len(self.attachments) > 1:
-            raise ValueError("materialization supports at most one attachment")
+        if len(self.attachments) > CURRENT_ATTACHMENT_LIMIT:
+            raise ValueError(f"materialization supports at most {CURRENT_ATTACHMENT_LIMIT} attachments")
         if any(not isinstance(item, CarrierAttachment) for item in self.attachments):
             raise ValueError("materialization attachments must use CarrierAttachment")
         paths = [item.staging_relative_path for item in self.attachments]

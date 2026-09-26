@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)][ValidateSet('classify','materialize','reconcile')][string]$Mode,
+    [Parameter(Mandatory=$true)][ValidateSet('classify','materialize','reconcile','observe','release')][string]$Mode,
     [string]$EffectId,
     [string]$RequestDigest,
     [string]$PromptPath,
@@ -8,6 +8,9 @@ param(
     [string]$AttachmentManifestPath,
     [string]$AttachmentManifestDigest,
     [string]$StageRoot,
+    [string]$TargetResource,
+    [string]$OutputBeginMarker='ORDIVON_AGENT_OUTPUT_BEGIN',
+    [string]$OutputEndMarker='ORDIVON_AGENT_OUTPUT_END',
     [Parameter(Mandatory=$true)][string]$ProxyUrl,
     [string]$ChromePath='C:\Program Files\Google\Chrome\Application\chrome.exe'
 )
@@ -52,6 +55,45 @@ function Emit-Classification([string]$Standing,[string]$Detail) {
         standing=$Standing
         detail=$Detail
         providerEffectAttempted=$false
+    } | ConvertTo-Json -Compress
+}
+
+function Emit-OutputObservation([string]$Standing,[string]$ProviderResource,[string]$Detail,[string]$AssistantOutput) {
+    $output=$null
+    $outputDigest=$null
+    if(-not [string]::IsNullOrEmpty($AssistantOutput)){$output=$AssistantOutput;$outputDigest=Get-Sha256Text $AssistantOutput}
+    $evidence=Get-Sha256Text ($EffectId+'|'+$RequestDigest+'|'+$PromptDigest+'|'+$TargetResource+'|'+$Standing+'|'+$outputDigest)
+    [ordered]@{
+        schemaVersion=1
+        kind='ordivon.windows-user-browser-output-observation'
+        effectId=$EffectId
+        targetResource=$TargetResource
+        observedResource=$ProviderResource
+        standing=$Standing
+        detail=$Detail
+        expectedPromptDigest=$PromptDigest
+        assistantOutput=$output
+        assistantOutputDigest=$outputDigest
+        evidenceDigest=$evidence
+        providerEffectAttempted=$false
+        composerFilled=$false
+        sendAttempted=$false
+    } | ConvertTo-Json -Compress -Depth 8
+}
+
+function Emit-ReleaseReceipt([string]$Standing,[string]$ProviderResource,[string]$Detail) {
+    $evidence=Get-Sha256Text ($EffectId+'|'+$TargetResource+'|'+$Standing+'|'+$ProviderResource)
+    [ordered]@{
+        schemaVersion=1
+        kind='ordivon.windows-user-browser-release'
+        effectId=$EffectId
+        targetResource=$TargetResource
+        observedResource=$ProviderResource
+        standing=$Standing
+        detail=$Detail
+        evidenceDigest=$evidence
+        providerEffectAttempted=$false
+        sendAttempted=$false
     } | ConvertTo-Json -Compress
 }
 
@@ -216,6 +258,83 @@ function Get-CanonicalChatResource([string]$Address) {
     return $null
 }
 
+if($Mode -eq 'observe' -or $Mode -eq 'release'){
+    if([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($TargetResource)){
+        throw 'EffectId and TargetResource are required for observe/release'
+    }
+    if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
+        if($Mode -eq 'observe'){Emit-OutputObservation 'CARRIER_UNAVAILABLE' $null 'normal Chrome executable unavailable' $null}
+        else{Emit-ReleaseReceipt 'CARRIER_UNAVAILABLE' $null 'normal Chrome executable unavailable'}
+        exit 0
+    }
+    $windows=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
+    if($windows.Count -eq 0){
+        if($Mode -eq 'release'){Emit-ReleaseReceipt 'ALREADY_RELEASED' $null 'no normal Chrome main window remains'}
+        else{Emit-OutputObservation 'CARRIER_UNAVAILABLE' $null 'no normal Chrome main window is available' $null}
+        exit 0
+    }
+    if($windows.Count -ne 1){
+        if($Mode -eq 'release'){Emit-ReleaseReceipt 'AMBIGUOUS_CARRIER' $null 'multiple normal Chrome main windows are present'}
+        else{Emit-OutputObservation 'AMBIGUOUS_CARRIER' $null 'multiple normal Chrome main windows are present' $null}
+        exit 0
+    }
+    $browser=$windows[0]
+    $root=Get-Root $browser
+    $observedResource=Get-CanonicalChatResource (Get-AddressValue $root)
+    if($observedResource -ne $TargetResource){
+        if($Mode -eq 'release'){Emit-ReleaseReceipt 'TARGET_RESOURCE_MISMATCH' $observedResource 'normal Chrome is not bound to the expected provider resource'}
+        else{Emit-OutputObservation 'TARGET_RESOURCE_MISMATCH' $observedResource 'normal Chrome is not bound to the expected provider resource' $null}
+        exit 0
+    }
+    if($Mode -eq 'observe'){
+        if([string]::IsNullOrWhiteSpace($PromptDigest)){throw 'PromptDigest is required for observe'}
+        $deadline=(Get-Date).AddSeconds(180)
+        $names=''
+        while((Get-Date) -lt $deadline){
+            $root=Get-Root $browser
+            $names=Read-AllNames $root
+            if($names.Contains('EFFECT_ID='+$EffectId) -and $names.Contains($OutputBeginMarker) -and $names.Contains($OutputEndMarker)){break}
+            Start-Sleep -Milliseconds 750
+        }
+        if(-not $names.Contains('EFFECT_ID='+$EffectId)){
+            Emit-OutputObservation 'EXPECTED_USER_TURN_NOT_VISIBLE' $observedResource 'exact effect marker is not visible in the target conversation' $null
+            exit 0
+        }
+        $begin=$names.LastIndexOf($OutputBeginMarker,[StringComparison]::Ordinal)
+        $end=$names.IndexOf($OutputEndMarker,$begin+[Math]::Max(1,$OutputBeginMarker.Length),[StringComparison]::Ordinal)
+        if($begin -lt 0 -or $end -lt 0){
+            Emit-OutputObservation 'ASSISTANT_OUTPUT_NOT_COMPLETE' $observedResource 'output markers are not both visible before observation deadline' $null
+            exit 0
+        }
+        $start=$begin+$OutputBeginMarker.Length
+        $assistant=$names.Substring($start,$end-$start).Trim()
+        if([string]::IsNullOrWhiteSpace($assistant)){
+            Emit-OutputObservation 'ASSISTANT_OUTPUT_EMPTY' $observedResource 'output markers are visible but payload is empty' $null
+            exit 0
+        }
+        Emit-OutputObservation 'CAPTURED' $observedResource 'exact marked assistant output captured read-only' $assistant
+        exit 0
+    }
+    $names=Read-AllNames $root
+    if(-not $names.Contains($OutputEndMarker)){
+        Emit-ReleaseReceipt 'OUTPUT_NOT_COMPLETE' $observedResource 'refusing carrier release before marked assistant output is complete'
+        exit 0
+    }
+    $ownedStart=$browser.StartTime.AddSeconds(-3)
+    $owned=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.StartTime -ge $ownedStart})
+    foreach($proc in $owned){try{Stop-Process -Id $proc.Id -Force -ErrorAction Stop}catch{}}
+    $deadline=(Get-Date).AddSeconds(8)
+    while((Get-Date) -lt $deadline){
+        $remaining=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
+        if($remaining.Count -eq 0){break}
+        Start-Sleep -Milliseconds 250
+    }
+    $remaining=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
+    if($remaining.Count -eq 0){Emit-ReleaseReceipt 'RELEASED' $observedResource 'exact target conversation carrier released after completed output capture'}
+    else{Emit-ReleaseReceipt 'RELEASE_INCOMPLETE' $observedResource 'normal Chrome main window remains after targeted carrier release'}
+    exit 0
+}
+
 if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
     if($Mode -eq 'classify'){
         Emit-Classification 'UNKNOWN' 'normal Chrome executable unavailable'
@@ -296,28 +415,32 @@ if($AttachmentManifestPath -or $AttachmentManifestDigest -or $StageRoot){
     try{$manifest=Get-Content -LiteralPath $AttachmentManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json}catch{
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-manifest-invalid' $false 'attachment-manifest-invalid'; exit 0
     }
-    if($manifest.schemaVersion -ne 1 -or $manifest.kind -ne 'ordivon.user-browser-attachment-manifest' -or @($manifest.attachments).Count -ne 1){
+    $manifestAttachments=@($manifest.attachments)
+    if($manifest.schemaVersion -ne 1 -or $manifest.kind -ne 'ordivon.user-browser-attachment-manifest' -or $manifestAttachments.Count -lt 1 -or $manifestAttachments.Count -gt 4){
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-manifest-unsupported' $false 'attachment-manifest-unsupported'
         exit 0
     }
-    $attachment=@($manifest.attachments)[0]
-    $relative=[string]$attachment.stagingRelativePath
-    if([string]::IsNullOrWhiteSpace($relative) -or [IO.Path]::IsPathRooted($relative) -or $relative -match '(^|/)\.\.(/|$)' -or $relative.Contains('\')){
-        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-relative-path-invalid' $false 'attachment-relative-path-invalid'
-        exit 0
-    }
+    $attachments=New-Object System.Collections.Generic.List[object]
     $rootFull=[IO.Path]::GetFullPath($StageRoot).TrimEnd('\')
-    $attachmentPath=[IO.Path]::GetFullPath((Join-Path $rootFull ($relative -replace '/','\')))
-    if(-not $attachmentPath.StartsWith($rootFull+'\',[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $attachmentPath -PathType Leaf)){
-        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-path-unavailable' $false 'attachment-path-unavailable'
-        exit 0
+    foreach($attachment in $manifestAttachments){
+        $relative=[string]$attachment.stagingRelativePath
+        if([string]::IsNullOrWhiteSpace($relative) -or [IO.Path]::IsPathRooted($relative) -or $relative -match '(^|/)\.\.(/|$)' -or $relative.Contains('\')){
+            Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-relative-path-invalid' $false 'attachment-relative-path-invalid'
+            exit 0
+        }
+        $attachmentPath=[IO.Path]::GetFullPath((Join-Path $rootFull ($relative -replace '/','\')))
+        if(-not $attachmentPath.StartsWith($rootFull+'\',[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $attachmentPath -PathType Leaf)){
+            Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-path-unavailable' $false 'attachment-path-unavailable'
+            exit 0
+        }
+        $observedAttachment='sha256:' + (Get-FileHash -LiteralPath $attachmentPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if($observedAttachment -ne [string]$attachment.digest){
+            Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-digest-mismatch' $false 'attachment-digest-mismatch'
+            exit 0
+        }
+        $attachment | Add-Member -NotePropertyName resolvedPath -NotePropertyValue $attachmentPath -Force
+        $attachments.Add($attachment)
     }
-    $observedAttachment='sha256:' + (Get-FileHash -LiteralPath $attachmentPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    if($observedAttachment -ne [string]$attachment.digest){
-        Emit-Receipt 'pre-effect-failed' $null 'user-browser:attachment-digest-mismatch' $false 'attachment-digest-mismatch'
-        exit 0
-    }
-    $attachment | Add-Member -NotePropertyName resolvedPath -NotePropertyValue $attachmentPath -Force
 }
 if($Mode -eq 'reconcile'){
     Emit-Receipt 'unknown' $null 'user-browser:reconcile-has-no-exact-provider-binding-evidence; resend-forbidden' $true 'reconcile-no-binding'
@@ -391,11 +514,13 @@ try {
         }
         exit 0
     }
-    if($null -ne $attachment){
-        Upload-ExactAttachment $browser $root ([string]$attachment.resolvedPath) ([string]$attachment.presentationName)
-        $root=Get-Root $browser
-        $composer=Get-EditById $root 'prompt-textarea'
-        if($null -eq $composer){throw 'composer unavailable after attachment upload'}
+    if($null -ne $attachments){
+        foreach($attachment in $attachments){
+            Upload-ExactAttachment $browser $root ([string]$attachment.resolvedPath) ([string]$attachment.presentationName)
+            $root=Get-Root $browser
+            $composer=Get-EditById $root 'prompt-textarea'
+            if($null -eq $composer){throw 'composer unavailable after attachment upload'}
+        }
     }
     $prompt=[IO.File]::ReadAllText($PromptPath,[Text.Encoding]::UTF8)
     $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($prompt)

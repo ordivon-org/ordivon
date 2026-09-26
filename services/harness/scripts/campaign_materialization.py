@@ -50,6 +50,7 @@ def bytes_digest(value: str) -> str:
 
 
 CURRENT_ROSTER_LIMIT = 256
+CURRENT_ATTACHMENT_LIMIT = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,8 +82,8 @@ class CampaignLaunchSpec:
         ids = [role.agent_id for role in self.roster]
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate agentId in roster")
-        if len(self.shared_attachments) > 1:
-            raise ValueError("sharedAttachments supports at most one entry")
+        if len(self.shared_attachments) > CURRENT_ATTACHMENT_LIMIT:
+            raise ValueError(f"sharedAttachments supports at most {CURRENT_ATTACHMENT_LIMIT} entries")
         if any(not isinstance(item, CarrierAttachment) for item in self.shared_attachments):
             raise ValueError("sharedAttachments entries must be CarrierAttachment")
 

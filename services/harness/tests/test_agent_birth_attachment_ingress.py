@@ -305,3 +305,78 @@ def test_windows_physical_attempt_identity_changes_only_after_generation_one():
     assert generation_one == legacy
     assert generation_two != generation_one
     assert generation_two.startswith("user-browser:materialize:")
+
+
+def test_campaign_and_carrier_accept_two_digest_bound_attachments():
+    first = attachment()
+    second = CarrierAttachment(
+        staging_relative_path="attachments/paper3-r10.zip",
+        digest="sha256:" + "b" * 64,
+        media_type="application/zip",
+        presentation_name="PAPER3_C21_REVIEWER_ARTIFACT_R10.zip",
+    )
+    role = RoleCard(agent_id="blind", role_card="Blind cold reviewer")
+    spec = CampaignLaunchSpec(
+        campaign_id="paper3-two-files",
+        shared_prompt="Review only the exact attached carriers.",
+        roster=(role,),
+        shared_attachments=(first, second),
+    )
+    request = compile_request(spec, role)
+    assert request.attachments == (first, second)
+    assert request.attachment_digest is not None
+    assert request.request_digest.startswith("sha256:")
+
+
+def test_windows_driver_supports_bounded_multi_attachment_and_output_release_modes():
+    text = (
+        Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1"
+    ).read_text()
+    assert "'observe','release'" in text
+    assert "$manifestAttachments.Count -gt 4" in text
+    assert "foreach($attachment in $manifestAttachments)" in text
+    assert "foreach($attachment in $attachments)" in text
+    assert "ordivon.windows-user-browser-output-observation" in text
+    assert "ORDIVON_AGENT_OUTPUT_BEGIN" in text
+    assert "ORDIVON_AGENT_OUTPUT_END" in text
+    assert "ordivon.windows-user-browser-release" in text
+    assert "OUTPUT_NOT_COMPLETE" in text
+
+
+def test_gateway_output_and_release_receipts_are_read_only_and_identity_bound():
+    output = {
+        "schemaVersion": 1,
+        "kind": "ordivon.windows-user-browser-output-observation",
+        "effectId": "effect-1",
+        "targetResource": "https://chatgpt.com/c/abcdefghi",
+        "observedResource": "https://chatgpt.com/c/abcdefghi",
+        "standing": "CAPTURED",
+        "detail": "captured",
+        "expectedPromptDigest": "sha256:" + "1" * 64,
+        "assistantOutput": '{"verdict":"PASS"}',
+        "assistantOutputDigest": "sha256:" + "2" * 64,
+        "evidenceDigest": "sha256:" + "3" * 64,
+        "providerEffectAttempted": False,
+        "composerFilled": False,
+        "sendAttempted": False,
+    }
+    parsed = UserBrowserGatewayController._parse_output_observation(
+        json.dumps(output), effect_id="effect-1", target_resource="https://chatgpt.com/c/abcdefghi"
+    )
+    assert parsed["standing"] == "CAPTURED"
+    release = {
+        "schemaVersion": 1,
+        "kind": "ordivon.windows-user-browser-release",
+        "effectId": "effect-1",
+        "targetResource": "https://chatgpt.com/c/abcdefghi",
+        "observedResource": "https://chatgpt.com/c/abcdefghi",
+        "standing": "RELEASED",
+        "detail": "released",
+        "evidenceDigest": "sha256:" + "4" * 64,
+        "providerEffectAttempted": False,
+        "sendAttempted": False,
+    }
+    parsed_release = UserBrowserGatewayController._parse_release_receipt(
+        json.dumps(release), effect_id="effect-1", target_resource="https://chatgpt.com/c/abcdefghi"
+    )
+    assert parsed_release["standing"] == "RELEASED"

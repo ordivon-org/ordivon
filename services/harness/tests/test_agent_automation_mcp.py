@@ -77,6 +77,8 @@ class McpCatalogTests(unittest.TestCase):
                 "conversation.affinity",
                 "conversation.continue",
                 "conversation.wake",
+                "conversation.output",
+                "conversation.release",
                 "provider.preflight",
             }
             self.assertEqual(set(tools), expected)

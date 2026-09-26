@@ -344,6 +344,138 @@ class UserBrowserGatewayController:
             raise RuntimeError(f'Windows user-browser classification failed with exit code {result.exit_code}')
         return self._parse_classification(self.port.read_stdout(result))
 
+    @staticmethod
+    def _parse_output_observation(raw: str, *, effect_id: str, target_resource: str) -> dict:
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError('Windows user-browser output observation returned no JSON receipt')
+        try:
+            payload = json.loads(lines[-1])
+        except json.JSONDecodeError as error:
+            raise RuntimeError('Windows user-browser output observation returned invalid JSON') from error
+        if not isinstance(payload, dict) or payload.get('schemaVersion') != 1:
+            raise RuntimeError('Windows user-browser output observation schema is invalid')
+        if payload.get('kind') != 'ordivon.windows-user-browser-output-observation':
+            raise RuntimeError('Windows user-browser output observation kind is invalid')
+        if payload.get('effectId') != effect_id or payload.get('targetResource') != target_resource:
+            raise RuntimeError('Windows user-browser output observation identity mismatch')
+        if payload.get('providerEffectAttempted') is not False or payload.get('sendAttempted') is not False:
+            raise RuntimeError('Windows user-browser output observation violated read-only contract')
+        standing = payload.get('standing')
+        if standing not in {
+            'CAPTURED','CARRIER_UNAVAILABLE','AMBIGUOUS_CARRIER','TARGET_RESOURCE_MISMATCH',
+            'EXPECTED_USER_TURN_NOT_VISIBLE','ASSISTANT_OUTPUT_NOT_COMPLETE','ASSISTANT_OUTPUT_EMPTY',
+            'CONTEXT_UNAVAILABLE'
+        }:
+            raise RuntimeError('Windows user-browser output observation standing is invalid')
+        output = payload.get('assistantOutput')
+        output_digest = payload.get('assistantOutputDigest')
+        if standing == 'CAPTURED':
+            if not isinstance(output, str) or not output.strip():
+                raise RuntimeError('CAPTURED output observation lacks assistant output')
+            if not isinstance(output_digest, str) or not output_digest.startswith('sha256:'):
+                raise RuntimeError('CAPTURED output observation lacks output digest')
+        elif output is not None or output_digest is not None:
+            raise RuntimeError('non-CAPTURED output observation must not expose assistant output')
+        return payload
+
+    @staticmethod
+    def _parse_release_receipt(raw: str, *, effect_id: str, target_resource: str) -> dict:
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError('Windows user-browser release returned no JSON receipt')
+        try:
+            payload = json.loads(lines[-1])
+        except json.JSONDecodeError as error:
+            raise RuntimeError('Windows user-browser release returned invalid JSON') from error
+        if not isinstance(payload, dict) or payload.get('schemaVersion') != 1:
+            raise RuntimeError('Windows user-browser release schema is invalid')
+        if payload.get('kind') != 'ordivon.windows-user-browser-release':
+            raise RuntimeError('Windows user-browser release kind is invalid')
+        if payload.get('effectId') != effect_id or payload.get('targetResource') != target_resource:
+            raise RuntimeError('Windows user-browser release identity mismatch')
+        if payload.get('providerEffectAttempted') is not False or payload.get('sendAttempted') is not False:
+            raise RuntimeError('Windows user-browser release violated no-provider-effect contract')
+        if payload.get('standing') not in {
+            'RELEASED','ALREADY_RELEASED','CARRIER_UNAVAILABLE','AMBIGUOUS_CARRIER',
+            'TARGET_RESOURCE_MISMATCH','OUTPUT_NOT_COMPLETE','RELEASE_INCOMPLETE','CONTEXT_UNAVAILABLE'
+        }:
+            raise RuntimeError('Windows user-browser release standing is invalid')
+        return payload
+
+    def _observation_request(
+        self, mode: str, *, effect_id: str, request_digest: str, prompt_digest: str,
+        target_resource: str,
+    ) -> GatewayExecutionRequest:
+        if mode not in {'observe','release'}:
+            raise ValueError('observation request mode must be observe or release')
+        request_id = 'user-browser:' + mode + ':' + _digest_text(
+            '|'.join((effect_id, request_digest, prompt_digest, target_resource))
+        )[7:39]
+        return GatewayExecutionRequest(
+            capability='execution.windows', request_id=request_id,
+            workspace_id=self.config.workspace_id, executable=self.config.powershell_path,
+            args=(
+                '-NoProfile','-NonInteractive','-File',self.config.driver_path,
+                '-Mode',mode,'-EffectId',effect_id,'-RequestDigest',request_digest,
+                '-PromptDigest',prompt_digest,'-TargetResource',target_resource,
+                '-ProxyUrl',self.config.proxy_url,
+            ),
+            cwd_relative='.', context='active_user', timeout_ms=max(self.config.timeout_ms, 210_000),
+        )
+
+    def observe_output(
+        self, *, effect_id: str, request_digest: str, prompt_digest: str, target_resource: str
+    ) -> dict:
+        admitted, evidence, detail, contexts = self._active_user_admission()
+        if not admitted:
+            return {
+                'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-output-observation',
+                'effectId': effect_id, 'targetResource': target_resource, 'observedResource': None,
+                'standing': 'CONTEXT_UNAVAILABLE', 'detail': detail,
+                'expectedPromptDigest': prompt_digest, 'assistantOutput': None,
+                'assistantOutputDigest': None, 'evidenceDigest': evidence,
+                'providerEffectAttempted': False, 'composerFilled': False, 'sendAttempted': False,
+                'observedContexts': list(contexts),
+            }
+        request = self._observation_request(
+            'observe', effect_id=effect_id, request_digest=request_digest,
+            prompt_digest=prompt_digest, target_resource=target_resource,
+        )
+        result = self.port.execute(request)
+        if result.recovery_required:
+            raise RuntimeError('Windows user-browser output observation requires Runtime recovery')
+        if result.exit_code != 0:
+            raise RuntimeError(f'Windows user-browser output observation failed with exit code {result.exit_code}')
+        return self._parse_output_observation(
+            self.port.read_stdout(result), effect_id=effect_id, target_resource=target_resource
+        )
+
+    def release(
+        self, *, effect_id: str, request_digest: str, prompt_digest: str, target_resource: str
+    ) -> dict:
+        admitted, evidence, detail, contexts = self._active_user_admission()
+        if not admitted:
+            return {
+                'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-release',
+                'effectId': effect_id, 'targetResource': target_resource, 'observedResource': None,
+                'standing': 'CONTEXT_UNAVAILABLE', 'detail': detail, 'evidenceDigest': evidence,
+                'providerEffectAttempted': False, 'sendAttempted': False,
+                'observedContexts': list(contexts),
+            }
+        request = self._observation_request(
+            'release', effect_id=effect_id, request_digest=request_digest,
+            prompt_digest=prompt_digest, target_resource=target_resource,
+        )
+        result = self.port.execute(request)
+        if result.recovery_required:
+            raise RuntimeError('Windows user-browser release requires Runtime recovery')
+        if result.exit_code != 0:
+            raise RuntimeError(f'Windows user-browser release failed with exit code {result.exit_code}')
+        return self._parse_release_receipt(
+            self.port.read_stdout(result), effect_id=effect_id, target_resource=target_resource
+        )
+
     def materialize(self, **kwargs) -> dict:
         return self._run('materialize', **kwargs)
 
