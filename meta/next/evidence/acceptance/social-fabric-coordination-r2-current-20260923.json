@@ -1,0 +1,240 @@
+{
+  "attention": [
+    {
+      "code": "SUBJECT_MODE_CONFLICT",
+      "detail": "Active candidates candidate:vhd-compact:gris and candidate:wslservice-restart target the same subject; at least one requests exclusive coordination.",
+      "evidenceRefs": [
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314",
+        "observation:WSLService-running-20260923T043132+0800"
+      ],
+      "findingId": "finding:sha256:93f6bfb370d21d8e6b83c731832f7ccaebc88100f730b71953b492c2e5d5a8b4",
+      "severity": "warning",
+      "subjectRefs": [
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthBoundary": "Shadow coordination finding only; it does not select a winner, mint a lease, grant execution, or alter natural-owner authority."
+    },
+    {
+      "code": "SUBJECT_MODE_CONFLICT",
+      "detail": "Active candidates candidate:vhd-compact:capital and candidate:vhd-compact:gris target the same subject; at least one requests exclusive coordination.",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+      ],
+      "findingId": "finding:sha256:97084acbfe5553b89a1467776347d2b29bece4b95ea1450b47f6b52d3f77a477",
+      "severity": "warning",
+      "subjectRefs": [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthBoundary": "Shadow coordination finding only; it does not select a winner, mint a lease, grant execution, or alter natural-owner authority."
+    },
+    {
+      "code": "SUBJECT_MODE_CONFLICT",
+      "detail": "Active candidates candidate:vhd-compact:capital and candidate:wslservice-restart target the same subject; at least one requests exclusive coordination.",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "observation:WSLService-running-20260923T043132+0800"
+      ],
+      "findingId": "finding:sha256:cc26fc84ba89a72a0d1ea6749c32f809d9b560a0f326b179c03ef37fe3bc3168",
+      "severity": "warning",
+      "subjectRefs": [
+        "candidate:vhd-compact:capital",
+        "candidate:wslservice-restart",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthBoundary": "Shadow coordination finding only; it does not select a winner, mint a lease, grant execution, or alter natural-owner authority."
+    }
+  ],
+  "candidateStanding": [
+    {
+      "candidateEventId": "candidate:vhd-compact:capital",
+      "conflictsWith": [
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart"
+      ],
+      "effectOwner": "runtime.windows",
+      "holderRef": "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+      "inhibitionEventIds": [],
+      "mode": "exclusive",
+      "operation": "compact-vhd",
+      "state": "inhibited_shadow",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "supportEventIds": [],
+      "truthBoundary": "Shadow standing only; support is not a vote count and this state cannot authorize, schedule, or execute the operation."
+    },
+    {
+      "candidateEventId": "candidate:vhd-compact:gris",
+      "conflictsWith": [
+        "candidate:vhd-compact:capital",
+        "candidate:wslservice-restart"
+      ],
+      "effectOwner": "runtime.windows",
+      "holderRef": "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314",
+      "inhibitionEventIds": [],
+      "mode": "exclusive",
+      "operation": "compact-vhd",
+      "state": "inhibited_shadow",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "supportEventIds": [],
+      "truthBoundary": "Shadow standing only; support is not a vote count and this state cannot authorize, schedule, or execute the operation."
+    },
+    {
+      "candidateEventId": "candidate:wslservice-restart",
+      "conflictsWith": [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris"
+      ],
+      "effectOwner": "windows-service-control",
+      "holderRef": "service:WSLService",
+      "inhibitionEventIds": [],
+      "mode": "shared",
+      "operation": "attach-or-start-wsl",
+      "state": "inhibited_shadow",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "supportEventIds": [],
+      "truthBoundary": "Shadow standing only; support is not a vote count and this state cannot authorize, schedule, or execute the operation."
+    }
+  ],
+  "commitmentProjection": {
+    "reason": "R2 stops at deterministic Candidate/Support/Inhibition shadow semantics; policy quorum and owner-native enforcement are separate gates.",
+    "state": "NOT_EVALUATED"
+  },
+  "commonOperatingPicture": {
+    "activeCandidateCount": 3,
+    "activeDamageSignalCount": 1,
+    "activeModulatorySignalCount": 1,
+    "activeSignalCount": 5,
+    "conflictFindingCount": 3,
+    "inhibitedCandidateCount": 3,
+    "receptorDeliveryCount": 5
+  },
+  "damageSignals": [
+    "damage:diskpart-rpc-unavailable"
+  ],
+  "findings": [
+    {
+      "code": "SUBJECT_MODE_CONFLICT",
+      "detail": "Active candidates candidate:vhd-compact:gris and candidate:wslservice-restart target the same subject; at least one requests exclusive coordination.",
+      "evidenceRefs": [
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314",
+        "observation:WSLService-running-20260923T043132+0800"
+      ],
+      "findingId": "finding:sha256:93f6bfb370d21d8e6b83c731832f7ccaebc88100f730b71953b492c2e5d5a8b4",
+      "severity": "warning",
+      "subjectRefs": [
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthBoundary": "Shadow coordination finding only; it does not select a winner, mint a lease, grant execution, or alter natural-owner authority."
+    },
+    {
+      "code": "SUBJECT_MODE_CONFLICT",
+      "detail": "Active candidates candidate:vhd-compact:capital and candidate:vhd-compact:gris target the same subject; at least one requests exclusive coordination.",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+      ],
+      "findingId": "finding:sha256:97084acbfe5553b89a1467776347d2b29bece4b95ea1450b47f6b52d3f77a477",
+      "severity": "warning",
+      "subjectRefs": [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthBoundary": "Shadow coordination finding only; it does not select a winner, mint a lease, grant execution, or alter natural-owner authority."
+    },
+    {
+      "code": "SUBJECT_MODE_CONFLICT",
+      "detail": "Active candidates candidate:vhd-compact:capital and candidate:wslservice-restart target the same subject; at least one requests exclusive coordination.",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "observation:WSLService-running-20260923T043132+0800"
+      ],
+      "findingId": "finding:sha256:cc26fc84ba89a72a0d1ea6749c32f809d9b560a0f326b179c03ef37fe3bc3168",
+      "severity": "warning",
+      "subjectRefs": [
+        "candidate:vhd-compact:capital",
+        "candidate:wslservice-restart",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "truthBoundary": "Shadow coordination finding only; it does not select a winner, mint a lease, grant execution, or alter natural-owner authority."
+    }
+  ],
+  "kind": "ordivon.social-fabric-coordination-projection",
+  "lifecycle": [
+    {
+      "eventId": "candidate:vhd-compact:capital",
+      "scope": "system",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.candidate.v1"
+    },
+    {
+      "eventId": "candidate:vhd-compact:gris",
+      "scope": "system",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.candidate.v1"
+    },
+    {
+      "eventId": "candidate:wslservice-restart",
+      "scope": "system",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.candidate.v1"
+    },
+    {
+      "eventId": "damage:diskpart-rpc-unavailable",
+      "scope": "system",
+      "status": "active",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "type": "io.ordivon.social.damage.v1"
+    },
+    {
+      "eventId": "modulatory:d-drive-pressure",
+      "scope": "system",
+      "status": "active",
+      "subject": "resource:windows:drive:D",
+      "type": "io.ordivon.social.modulatory.v1"
+    }
+  ],
+  "modulatorySignals": [
+    "modulatory:d-drive-pressure"
+  ],
+  "nonClaims": [
+    "No candidate is selected as a winner.",
+    "Support count is not a score, rank, quorum, priority, or vote.",
+    "Lifecycle expiry is not an owner-native lease unless the natural owner explicitly binds one.",
+    "A receptor delivery does not grant authority.",
+    "An inhibition is a shadow coordination result and does not itself block an external effect."
+  ],
+  "observedAt": "2026-09-23T04:32:40+08:00",
+  "projectionDigest": "sha256:a17c7862762290709ad4a95247c8183826a64699ee2b0b400d629f2c6cb94a3a",
+  "receptorDeliveries": [
+    {
+      "receptorId": "receptor:storage-pressure",
+      "signalIds": [
+        "modulatory:d-drive-pressure"
+      ],
+      "truthBoundary": "Delivery is an interest match, not authority or acceptance."
+    },
+    {
+      "receptorId": "receptor:wsl-maintenance-guard",
+      "signalIds": [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "truthBoundary": "Delivery is an interest match, not authority or acceptance."
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceCutDigest": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73",
+  "truthRole": "rebuildable-shadow-coordination-projection"
+}

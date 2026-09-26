@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from ordivon_capital.governance.read_circuit import (
+    build_circuit_receipt,
+    compile_readonly_circuit,
+    run_readonly_circuit,
+)
+
+
+def build_acceptance() -> dict:
+    portfolio = {
+        "equityUsd": "100",
+        "availableEquityUsd": "40",
+        "initialMarginUsd": "30",
+        "maintenanceMarginUsd": "5",
+        "positions": [
+            {"instrumentId": "SNDK", "signedNotionalUsd": "300", "factorLoadings": {"memory": "1", "semiconductor": "0.7"}}
+        ],
+    }
+    cases = [
+        ("PUBLIC_MARKET_OBSERVATION_R1", {"market": {"kind": "dogfood-market", "instrumentId": "BTC-USDT"}, "oiSamples": [{"instrumentId": "BTC-USDT", "observedAtMs": 1000, "openInterestUsd": "100"}, {"instrumentId": "BTC-USDT", "observedAtMs": 2000, "openInterestUsd": "110"}]}),
+        ("PORTFOLIO_RISK_R1", {"portfolio": portfolio, "returns": [0.01] * 19 + [-0.20]}),
+        ("COUNTERFACTUAL_ANALYSIS_R1", {"portfolio": portfolio, "scenario": {"scenarioId": "derisk-25", "action": "DE_RISK", "instrumentId": "SNDK", "reductionFraction": "0.25"}}),
+    ]
+    rows = []
+    for family, inputs in cases:
+        circuit = compile_readonly_circuit(goal={"kind": family, "dogfood": True}, context={"evidenceCut": "R2_SHARED_COMPOSITION_DOGFOOD"})
+        result = run_readonly_circuit(circuit=circuit, inputs=inputs)
+        receipt = build_circuit_receipt(circuit=circuit, result=result)
+        rows.append({"family": family, "circuitDigest": circuit["circuitDigest"], "resultStanding": result["standing"], "receiptDigest": receipt["receiptDigest"], "receiptStanding": receipt["standing"], "unresolvedEvidenceObligationCount": len(receipt["unresolvedEvidenceObligations"]), "externalFinancialWritesAttempted": receipt["externalFinancialWritesAttempted"], "semanticCompletionEvaluated": receipt["semanticCompletionEvaluated"]})
+    doc = {
+        "schemaVersion": 2,
+        "kind": "ordivon.capital.readonly-circuit-acceptance",
+        "standing": "PASS_R2_SHARED_COMPOSITION",
+        "families": rows,
+        "assertions": {
+            "familyCount": len(rows),
+            "allMechanicallyCompleted": all(r["resultStanding"] == "MECHANICALLY_COMPLETED" for r in rows),
+            "allReceiptsMechanicalOnly": all(r["receiptStanding"] == "MECHANICAL_COMPLETION_ONLY" for r in rows),
+            "externalFinancialWritesAttempted": any(r["externalFinancialWritesAttempted"] for r in rows),
+            "semanticCompletionEvaluated": any(r["semanticCompletionEvaluated"] for r in rows),
+            "riskBudgetInferred": False,
+            "scenarioRankingProduced": False,
+            "genericCompositionOwner": "ordivon-composition",
+        },
+    }
+    if doc["assertions"]["familyCount"] != 3:
+        raise SystemExit("expected three dogfood circuit families")
+    if doc["assertions"]["externalFinancialWritesAttempted"]:
+        raise SystemExit("read-only dogfood attempted external financial write")
+    if doc["assertions"]["semanticCompletionEvaluated"]:
+        raise SystemExit("read-only dogfood claimed semantic completion")
+    return doc
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    text = json.dumps(build_acceptance(), indent=2, sort_keys=True) + "\n"
+    if args.output:
+        Path(args.output).write_text(text)
+    else:
+        print(text, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-spec",
+  "circuitId": "PORTFOLIO_RISK_ANALYSIS_R2",
+  "goalClass": "PORTFOLIO_RISK",
+  "requestedUse": "exposure/risk measurement",
+  "terminalClaim": "READ_ONLY_PORTFOLIO_RISK_REPORT",
+  "stages": [
+    {
+      "id": "portfolio-risk",
+      "legoId": "capital.risk.portfolio-risk",
+      "dependsOn": [],
+      "inputs": [
+        "portfolio-input"
+      ],
+      "outputs": [
+        "risk-report"
+      ],
+      "operation": "portfolio_risk"
+    }
+  ],
+  "authorityBindings": []
+}

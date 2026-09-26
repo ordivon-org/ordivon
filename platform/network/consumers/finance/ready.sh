@@ -7,8 +7,8 @@ target=network-v2-finance.target
 egress=network-v2-finance-egress.service
 
 case "$mode" in
-  all|okx|binance-usdm|binance-spot|binance-wallet) ;;
-  *) echo "usage: $0 [all|okx|binance-usdm|binance-spot|binance-wallet] [timeout_seconds]" >&2; exit 2 ;;
+  all|public|okx|binance-usdm|binance-spot|binance-wallet|treasury|fred) ;;
+  *) echo "usage: $0 [all|public|okx|binance-usdm|binance-spot|binance-wallet|treasury|fred] [timeout_seconds]" >&2; exit 2 ;;
 esac
 case "$timeout_seconds" in
   ''|*[!0-9]*) echo "timeout_seconds must be a non-negative integer" >&2; exit 2 ;;
@@ -31,6 +31,16 @@ probe_binance_wallet() {
   curl -4 -fsS --proxy http://127.0.0.1:19290 --connect-timeout 3 --max-time 8 https://api.binance.com/api/v3/time |
     jq -e '(.serverTime|type)=="number"' >/dev/null
 }
+probe_treasury() {
+  local out
+  out=$(curl -4 -fsS --proxy http://127.0.0.1:19291 --connect-timeout 5 --max-time 20 'https://home.treasury.gov/robots.txt')
+  printf '%s' "$out" | grep -qi 'user-agent'
+}
+probe_fred() {
+  local out
+  out=$(curl -4 -fsS --proxy http://127.0.0.1:19292 --connect-timeout 5 --max-time 20 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=2026-09-22&coed=2026-09-22')
+  printf '%s' "$out" | grep -q '^observation_date,DFF'
+}
 probe_selected() {
   unit_active "$target" && unit_active "$egress" || return 1
   case "$mode" in
@@ -38,7 +48,10 @@ probe_selected() {
     binance-usdm) probe_binance_usdm ;;
     binance-spot) probe_binance_spot ;;
     binance-wallet) probe_binance_wallet ;;
-    all) probe_okx && probe_binance_usdm && probe_binance_spot && probe_binance_wallet ;;
+    treasury) probe_treasury ;;
+    fred) probe_fred ;;
+    public) probe_okx && probe_binance_usdm && probe_binance_spot && probe_treasury && probe_fred ;;
+    all) probe_okx && probe_binance_usdm && probe_binance_spot && probe_treasury && probe_fred && probe_binance_wallet ;;
   esac
 }
 

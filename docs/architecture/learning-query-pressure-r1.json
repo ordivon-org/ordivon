@@ -1,0 +1,116 @@
+{
+  "c08Compatibility": {
+    "ephemeralPostgres": {
+      "cleanup": {
+        "ephemeralPortClosed": true,
+        "leftoverDirectories": 0
+      },
+      "firstIngest": {
+        "episodeCount": 1,
+        "insertedProjectionCountThisRun": 1,
+        "replayExistingIngest": false,
+        "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+      },
+      "ingestId": "ingest:sha256:31db979057120dee0b4220a01b43fe061b9ad81a126af2e60a6a57103f24cf5f",
+      "isolation": "temporary cluster under /tmp owned by non-privileged postgres OS user; no live Ordivon database reused",
+      "migration": "Alembic 0001 PASS",
+      "queryElapsedUs": {
+        "evidence_kinds": 821.456,
+        "native_verdict": 958.914,
+        "owner_capital": 1913.189,
+        "profile_class": 566.421,
+        "runtime_job_join_ref": 628.779,
+        "runtime_recovery": 452.813
+      },
+      "replay": {
+        "episodeCount": 1,
+        "insertedProjectionCountThisRun": 0,
+        "replayExistingIngest": true,
+        "standing": "PASS_IDEMPOTENT_PROJECTION_INGEST"
+      },
+      "serverVersion": "18.6",
+      "tableCounts": {
+        "episode_dimensions": 7,
+        "episode_evidence_bindings": 3,
+        "episode_measures": 5,
+        "episode_owner_refs": 6,
+        "episode_projections": 1,
+        "projection_ingests": 1
+      }
+    },
+    "episode": "meta/next/evidence/acceptance/integrated-c08-capital-readonly-episode-r1.json",
+    "episodeProjectionDigest": "sha256:fd9233818dfc1843ccea02f03847916b8444ddbe809026256e62b6bcc53804be",
+    "loadContract": "PASS_WITHOUT_SCHEMA_OR_CODE_CHANGE",
+    "profileId": "integrated-c08-capital-readonly-r1",
+    "storePackageVerify": "7 tests PASS; ruff check/format PASS"
+  },
+  "currentFileProjectionPressure": {
+    "allIterationsEquivalent": true,
+    "episodeFileBytes": 4433,
+    "iterations": 2000,
+    "maxUs": 53.934,
+    "meanUs": 13.712,
+    "medianUs": 12.985,
+    "p95Us": 17.824,
+    "queryBundle": "parse one C08 Episode and answer owner/native-verdict/runtime-recovery/evidence-kind/runtime-job/profile-class questions",
+    "standing": "CURRENT_LIVE_CONSUMER_REQUIREMENT_SATISFIED_BY_FILE_PROJECTION"
+  },
+  "date": "2026-09-23",
+  "decision": {
+    "defaultAnalyticalPath": "FILE_OR_PARQUET_DUCKDB_AS_APPROPRIATE",
+    "newPostgresStoreCode": "REJECT_DUPLICATE_REUSE_EPISODE_STORE_R1",
+    "onDemandPostgresPath": "REUSE_EXISTING_EPISODE_STORE_R1_WITH_WORKSTATION_OWNED_REALIZATION",
+    "permanentPostgresDeployment": "DEFER_ACTIVATION_UNTIL_NAMED_LIVE_QUERY_OR_AVAILABILITY_REQUIREMENT",
+    "reason": "Existing Store R1 is already qualified at 10,007 historical Episodes and accepts the first real C08 Episode unchanged, while the current live C08 query set is trivially satisfied by the file projection. A new store would duplicate an existing consumer; a permanent deployment has no current unmet live requirement."
+  },
+  "existingPostgresConsumer": {
+    "historicalQualification": {
+      "harnessEpisodes": 7,
+      "permanentPostgresDeployment": "ELIGIBLE_BUT_NOT_YET_REALIZED",
+      "populationEpisodes": 10007,
+      "projectionIdentityCount": 10007,
+      "runtimeEpisodes": 10000,
+      "rw3Standing": "RW3_ACCEPTED_ANALYTICAL_STORE_PROVEN_NOT_DEPLOYED",
+      "rw4Standing": "RW4_ACCEPTED_WITH_EXPLICIT_NON_IDENTIFICATION",
+      "tableCounts": {
+        "episode_dimensions": 50027,
+        "episode_evidence_bindings": 20014,
+        "episode_measures": 30036,
+        "episode_owner_refs": 70063,
+        "episode_projections": 10007,
+        "projection_ingests": 2
+      }
+    },
+    "longLivedService": false,
+    "path": "studies/experimental-episode/postgres-projection-r1",
+    "schemaAuthority": "Alembic 0001",
+    "status": "REUSE_EXISTING_TASK_LOCAL_ANALYTICAL_CONSUMER"
+  },
+  "kind": "ordivon.architecture.learning-query-pressure-r1",
+  "nonClaims": [
+    "Historical RW4 analytical value does not require a permanent PostgreSQL deployment today.",
+    "Single-file microbenchmarks are not a general database performance comparison.",
+    "PostgreSQL query latency is not the reason for deferral; absence of an unmet live consumer requirement is.",
+    "The analytical store remains a rebuildable projection and never becomes Runtime, Harness, domain, or study truth.",
+    "This decision does not prohibit on-demand or future Workstation-owned PostgreSQL realization when the existing admission gate is satisfied."
+  ],
+  "receiptDigest": "sha256:bd8c1daf5a06e78d220b23d35be642f3c1084b3cdbb2d620c24cdd684a166150",
+  "runtimeEvidence": [
+    {
+      "jobId": "job-01a0ce19-b6c3-7611-9633-fb4058c02935",
+      "role": "store-package-and-c08-load-contract-qualification"
+    },
+    {
+      "jobId": "job-01a0ce1d-3965-72f1-8dcc-14c52798e18f",
+      "role": "ephemeral-postgres-migrate-ingest-replay-query"
+    },
+    {
+      "jobId": "job-01a0ce1e-3b83-77e1-b6d8-5b32a551f1d2",
+      "role": "cleanup-proof-file-query-pressure-and-rw4-readback"
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceRevision": "a25638ecadd807d68035b09eb079c6f1800b07cd",
+  "subject": "L02 Experimental Episode analytical storage decision after first real C08 Episode",
+  "truthRole": "bounded-architecture-decision-evidence-not-owner-truth"
+}

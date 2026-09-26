@@ -156,16 +156,16 @@ Reusable modules:
 
 Schemas:
 
-- `meta/research/publication/finding-r1.schema.json`
-- `meta/research/publication/observer-report-r1.schema.json`
-- `meta/research/publication/perceptual-conformance-r1.schema.json`
-- `meta/research/publication/carrier-attestation-r1.schema.json`
+- `profiles/research/publication/finding-r1.schema.json`
+- `profiles/research/publication/observer-report-r1.schema.json`
+- `profiles/research/publication/perceptual-conformance-r1.schema.json`
+- `profiles/research/publication/carrier-attestation-r1.schema.json`
 
 Profiles/planning:
 
-- `meta/research/publication/perceptual-conformance-profile-r1.json`
-- `meta/research/publication-closure-profile-r2.json`
-- `meta/research/planning/publication-perceptual-conformance-lego-r1.json`
+- `profiles/research/publication/perceptual-conformance-profile-r1.json`
+- `profiles/research/publication/publication-closure-profile-r2.json`
+- `studies/research/scholarly-intelligence-r1/planning/publication-perceptual-conformance-lego-r1.json`
 
 ## Legacy migration
 

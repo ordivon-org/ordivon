@@ -1,0 +1,126 @@
+{
+  "baselineRevision": "a5bb9b13ba196c55c2462674aeacbf8fd340006c",
+  "boundary": "PASS proves the Wave 5 agent-facing composition and advisory preflight contracts on bounded owner projections. It does not prove live-global completeness, same-cut coherence, execution authorization, domain completion, or the value of future Petri/cascade formalism.",
+  "dogfood": {
+    "attention": {
+      "coordinationFindingCount": 3,
+      "grouping": "source-preserving-unranked",
+      "hostTaskRefs": [
+        "task:host-northbound-ux-convergence-r1-20260923@5",
+        "task:social-fabric-crossdisciplinary-r2-20260923@5"
+      ],
+      "reconciliationFindingCount": 3
+    },
+    "authority": {
+      "authorizationDecisionIncluded": false,
+      "bindingCount": 9,
+      "candidateEffectOwnerRefs": [
+        "runtime.windows",
+        "windows-service-control"
+      ]
+    },
+    "coordination": {
+      "candidateStateCounts": {
+        "inhibited_shadow": 3
+      },
+      "conflictPairCount": 3,
+      "visibleSignalCount": 5
+    },
+    "current": {
+      "commitmentState": "READY_SHADOW",
+      "freshnessStandingCounts": {
+        "CURRENT_DECLARED": 1,
+        "POINT_IN_TIME_OBSERVED": 4
+      },
+      "operatingPictureGitMainRevision": "60322a3af8aff6fd31f79f93f812617bb78a5802"
+    },
+    "preflightCheapRead": {
+      "recommendedViews": [],
+      "standing": "SOCIAL_READ_OPTIONAL"
+    },
+    "preflightVhd": {
+      "effectAuthorizationIncluded": false,
+      "executionAdmissionIncluded": false,
+      "recommendedViews": [
+        "CURRENT",
+        "ATTENTION",
+        "COORDINATION",
+        "AUTHORITY"
+      ],
+      "standing": "SOCIAL_READ_RECOMMENDED"
+    }
+  },
+  "focused": {
+    "coherentObservationHorizon": false,
+    "observationStanding": "MIXED_OR_UNDATED_SOURCES",
+    "ruff": "PASS",
+    "sourceHorizons": [
+      "2026-09-23T02:57:00+08:00",
+      "2026-09-23T04:32:40+08:00",
+      "2026-09-23T15:30:00+08:00",
+      "2026-09-23T20:27:00+08:00"
+    ],
+    "sourceSetDigest": "sha256:a98ba23b5c4bad33d264645ef92c9e3993dd999e8a1ea3b49030350761eb9c44",
+    "tests": "14/14 PASS",
+    "undatedSourceInputs": [
+      "hostAttention"
+    ]
+  },
+  "gates": {
+    "architectureDocDrift": "PASS",
+    "compositionArchitecture": "PASS",
+    "dependencyAudit": "NO_KNOWN_VULNERABILITIES",
+    "githubGovernance": "PASS",
+    "integrateMainSmoke": "PASS",
+    "metaNextVerify": "PASS",
+    "ownerBoundary": "PASS",
+    "repoCi": "PASS",
+    "repoTests": 41,
+    "structureR2": "PASS"
+  },
+  "implemented": [
+    "UX50 CURRENT",
+    "UX51 ATTENTION",
+    "UX52 COORDINATION",
+    "UX53 AUTHORITY",
+    "UX54 Progressive Disclosure",
+    "UX55 Selective Social Preflight",
+    "UX56 Component/Compartment Visibility"
+  ],
+  "kind": "ordivon.social-fabric-agent-ux-r1-acceptance",
+  "nonClaims": [
+    "Mixed source horizons are not a same-cut current snapshot.",
+    "ATTENTION is unranked and source-preserving.",
+    "Visibility is presentation-only, not ACL.",
+    "AUTHORITY is navigation, not authorization.",
+    "Social Preflight is advisory view selection and neither admits nor denies execution.",
+    "No score, rank, priority, winner, lease, scheduler, or EffectAuthority is created."
+  ],
+  "runtimeJobs": [
+    "job-01a0cee9-85c4-71b3-8a80-127a76a5ab49",
+    "job-01a0ceeb-0d7d-7df3-81b0-755d2fbb22dc",
+    "job-01a0ceeb-4fb4-7950-b64c-adf1a6decc56"
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_AGENT_UX_WAVE5_CANDIDATE",
+  "storage00": {
+    "admissionLockHeld": true,
+    "boardSequences": [
+      17812,
+      17813
+    ],
+    "capacityHolders": [],
+    "currentWindowsContexts": [
+      "limited",
+      "elevated"
+    ],
+    "dFreeBytesObserved": 41888817152,
+    "freshTrim": "3.5 GiB",
+    "r2GateReady": true,
+    "standing": "HOLD_ON_NO_ACTIVE_USER",
+    "vhdCompactPerformed": false,
+    "workspaceMinimumFreeBytes": 51539607552,
+    "wslShutdownPerformed": false
+  },
+  "truthRole": "candidate-acceptance-not-owner-or-effect-authority"
+}

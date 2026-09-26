@@ -13,7 +13,8 @@
     "S1A",
     "S1B",
     "S2A",
-    "S2B"
+    "S2B",
+    "S2C"
   ],
   "forbiddenSemanticRoots": [
     "services/",
@@ -183,7 +184,9 @@
       "verifyTasks": [
         "skills:verify"
       ],
-      "wave": "S2C"
+      "wave": "S2C",
+      "standing": "DEPLOYED",
+      "disposition": "ChatGPT-only Skills MCP compatibility owner relocated to extensions/chatgpt-skills-mcp; protocol, release identity, deployment path, read-only semantics and advisory authority unchanged."
     },
     {
       "id": "artifact",
@@ -332,12 +335,11 @@
         "extensions/ordivon-control-plane/"
       ],
       "verifyTasks": [
-        "control-plugin:verify",
-        "next:verify"
+        "control-plugin:verify"
       ],
       "wave": "S2A",
       "standing": "DEPLOYED",
-      "disposition": "Portable Agent Plugins 1.0 package bytes are repository-level extension source; Next remains the release/materialization consumer and owns no Plugin semantics."
+      "disposition": "Portable Agent Plugins 1.0 package bytes remain repository-level extension source; materialization/validation tooling is repository-owned and no longer depends on Next."
     },
     {
       "id": "authority-catalog",
@@ -351,57 +353,73 @@
         "catalogs/authorities/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Authority records/observations/generated discovery index moved to catalogs/authorities; query implementation moved to repository tooling and remains non-authoritative."
     },
     {
       "id": "capability-catalog",
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/next/capabilities/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
         "catalogs/capabilities/"
       ],
       "verifyTasks": [
+        "repo:ci",
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "historicalSourcePaths": [
+        "meta/next/capabilities/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Capability/provider routing knowledge moved to catalogs/capabilities; records remain non-authoritative discovery/routing knowledge and provider currentness remains owner-native."
     },
     {
       "id": "knowledge-catalog",
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/next/knowledge/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
         "catalogs/knowledge/"
       ],
       "verifyTasks": [
+        "repo:ci",
         "next:verify"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "historicalSourcePaths": [
+        "meta/next/knowledge/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Reusable non-runtime knowledge graphs/lessons moved to catalogs/knowledge; historical evidence keeps original path references while current Skills/navigation use the catalog path."
     },
     {
       "id": "domain-profiles",
       "mode": "move",
       "owner": "next",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/next/domains/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
-        "profiles/domains/"
+        "profiles/domains/",
+        "studies/game/autonomous-interest/",
+        "studies/game/mechanism-composition-r1/"
       ],
       "verifyTasks": [
-        "next:verify"
+        "next:verify",
+        "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "historicalSourcePaths": [
+        "meta/next/domains/"
+      ],
+      "standing": "DEPLOYED",
+      "disposition": "Reusable Game routing/crosswalk/composition-profile knowledge moved to profiles/domains/game. Frozen autonomous-interest protocols and their reference executors move together as one study; composition-search/evidence/product-selection material remains study-owned under studies/game."
     },
     {
       "disposition": "Move maintained task-local composition policy artifacts only; historical policy evidence stays with its provenance owner.",
@@ -421,7 +439,7 @@
       "wave": "S5"
     },
     {
-      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers.",
+      "disposition": "No wholesale move; planning/evidence/experiments/migrations/docs are individually retained, relocated, test-fixtured, or retired according to live consumers. Experimental Episode PostgreSQL projection is now study-local under studies/experimental-episode/postgres-projection-r1.",
       "id": "next-residual",
       "mode": "split",
       "owner": "next",
@@ -435,7 +453,8 @@
         "profiles/",
         "extensions/",
         "docs/",
-        "tests/"
+        "tests/",
+        "studies/"
       ],
       "verifyTasks": [
         "next:verify"
@@ -443,28 +462,74 @@
       "wave": "S5"
     },
     {
-      "disposition": "Publication profiles go to profiles; venue authority metadata to catalogs; study evidence to its Study; dogfood-only evidence may become a bounded test fixture.",
+      "disposition": "Reusable Scholarly Intelligence/publication/venue contracts are under profiles/research; ARIES/Context24/PeerSum/review-lifecycle evidence, analyses, live Study projections and checkers are under studies/research/scholarly-intelligence-r1. No meta/research runtime/owner remains.",
       "id": "research-meta",
       "mode": "split",
       "owner": "repository",
       "semanticTypeClaim": "none",
-      "sourcePaths": [
-        "meta/research/"
-      ],
+      "sourcePaths": [],
       "targetPaths": [
         "profiles/research/",
-        "catalogs/authorities/",
-        "studies/",
-        "tests/"
+        "studies/research/"
       ],
       "verifyTasks": [
+        "research-study:verify",
+        "artifact:verify",
         "repo:ci"
       ],
-      "wave": "S5"
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "historicalSourcePaths": [
+        "meta/research/"
+      ]
+    },
+    {
+      "id": "experimental-episode-profile",
+      "mode": "split",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [],
+      "historicalSourcePaths": [
+        "meta/next/schemas/experimental-episode-binding-r1.schema.json",
+        "meta/next/data-products/experimental-episode-corpus-r1/"
+      ],
+      "targetPaths": [
+        "profiles/experimental-episode/",
+        "studies/experimental-episode/corpus-r1/"
+      ],
+      "verifyTasks": [
+        "next:verify",
+        "experimental-episode-store:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Shared non-authoritative Experimental Episode binding schema is a reusable profile; the concrete ODCS/ODPS corpus product is study-owned under studies/experimental-episode."
+    },
+    {
+      "id": "browser-security-study",
+      "mode": "move",
+      "owner": "repository",
+      "semanticTypeClaim": "none",
+      "sourcePaths": [],
+      "historicalSourcePaths": [
+        "meta/next/experiments/browser-security-r*/",
+        "meta/next/evidence/browser-security/",
+        "meta/next/tests/test_browser_security_*.py"
+      ],
+      "targetPaths": [
+        "studies/security/browser-security/"
+      ],
+      "verifyTasks": [
+        "browser-security-study:verify",
+        "repo:ci"
+      ],
+      "wave": "S5",
+      "standing": "DEPLOYED",
+      "disposition": "Neutral Browser Security attribution experiments, point-in-time evidence, and focused replay tests are one retained study. Current production witness semantics remain with Security/Harness/provider owners."
     }
   ],
   "openSlices": [
-    "S2C",
     "S3",
     "S4",
     "S5",

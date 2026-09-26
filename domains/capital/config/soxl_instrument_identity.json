@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.markets.instrument-identity-reference",
+  "instrument": "SOXL",
+  "issuer": "Direxion",
+  "fundName": "Direxion Daily Semiconductor Bull 3X ETF",
+  "dailyTargetMultiple": "3.0",
+  "dailyTargetDirection": "LONG",
+  "benchmark": {
+    "name": "NYSE Semiconductor Index",
+    "symbol": "ICESEMIT",
+    "indexProvider": "ICE / NYSE",
+    "issuerSource": "https://www.direxion.com/product/daily-semiconductor-bull-bear-3x-etfs"
+  },
+  "cashListing": {
+    "primaryListingExchange": "NYSE Arca",
+    "ticker": "SOXL"
+  },
+  "derivativeObservations": [
+    {"provider": "OKX", "instrumentId": "SOXL-USDT-SWAP", "role": "DERIVATIVE_OBSERVATION_NOT_CASH_OR_BENCHMARK_TRUTH"},
+    {"provider": "BINANCE", "instrumentId": "SOXLUSDT", "role": "DERIVATIVE_OBSERVATION_NOT_CASH_OR_BENCHMARK_TRUTH"}
+  ],
+  "researchProxies": [
+    {"instrumentId": "SMH-USDT-SWAP", "role": "SEMICONDUCTOR_FACTOR_PROXY_NOT_BENCHMARK_TRUTH"},
+    {"instrumentId": "NVDA-USDT-SWAP", "role": "CONSTITUENT_FACTOR_PROXY_NOT_BENCHMARK_TRUTH"},
+    {"instrumentId": "QQQ-USDT-SWAP", "role": "TECH_GROWTH_FACTOR_PROXY_NOT_BENCHMARK_TRUTH"}
+  ],
+  "claimBoundary": "SOXL targets +300% of its benchmark for a single day before fees and expenses; no claim of 3x cumulative multi-day benchmark return; derivative provider prices do not replace cash ETF or ICESEMIT authority"
+}

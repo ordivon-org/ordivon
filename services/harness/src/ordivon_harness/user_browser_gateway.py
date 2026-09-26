@@ -57,9 +57,21 @@ class UserBrowserGatewayController:
 
     @staticmethod
     def _request_id(
-        mode: str, effect_id: str, request_digest: str, prompt_digest: str
+        mode: str,
+        effect_id: str,
+        request_digest: str,
+        prompt_digest: str,
+        attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
     ) -> str:
-        suffix = _digest_text('|'.join((mode, effect_id, request_digest, prompt_digest)))[7:39]
+        if type(attempt_generation) is not int or attempt_generation < 1:
+            raise ValueError('UserBrowser attempt generation must be a positive integer')
+        parts = [mode, effect_id, request_digest, prompt_digest]
+        if attachment_manifest_digest is not None:
+            parts.append(attachment_manifest_digest)
+        if attempt_generation > 1:
+            parts.append(f'attempt-generation={attempt_generation}')
+        suffix = _digest_text('|'.join(parts))[7:39]
         return f'user-browser:{mode}:{suffix}'
 
     @staticmethod
@@ -103,6 +115,80 @@ class UserBrowserGatewayController:
             raise RuntimeError('Pre-effect user-browser receipt cannot report SEND attempted')
         return payload
 
+    def _active_user_admission(self) -> tuple[bool, str, str, tuple[str, ...]]:
+        try:
+            standing = self.port.capability_standing('execution.windows')
+        except Exception:
+            detail = 'execution.windows capability projection unavailable; active_user effect held'
+            evidence = _digest_text(
+                json.dumps(
+                    {
+                        'capability': 'execution.windows',
+                        'requiredContext': 'active_user',
+                        'standing': 'PROJECTION_UNAVAILABLE',
+                    },
+                    sort_keys=True,
+                    separators=(',', ':'),
+                )
+            )
+            return False, evidence, detail, ()
+        if standing.supports_context('active_user'):
+            return True, standing.projection_digest, 'active_user available', standing.contexts
+        detail = 'execution.windows active_user context unavailable; provider effect held pre-effect'
+        evidence = _digest_text(
+            json.dumps(
+                {
+                    'available': standing.available,
+                    'capability': standing.capability,
+                    'configured': standing.configured,
+                    'contexts': list(standing.contexts),
+                    'projectionDigest': standing.projection_digest,
+                    'requiredContext': 'active_user',
+                },
+                sort_keys=True,
+                separators=(',', ':'),
+            )
+        )
+        return False, evidence, detail, standing.contexts
+
+    def _execution_request(
+        self,
+        mode: str,
+        *,
+        effect_id: str,
+        request_digest: str,
+        prompt_path: str,
+        prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
+    ) -> GatewayExecutionRequest:
+        args_list = [
+            '-NoProfile', '-NonInteractive', '-File', self.config.driver_path,
+            '-Mode', mode, '-EffectId', effect_id, '-RequestDigest', request_digest,
+            '-PromptPath', self.config.windows_prompt_path(prompt_path),
+            '-PromptDigest', prompt_digest, '-ProxyUrl', self.config.proxy_url,
+        ]
+        if (attachment_manifest_path is None) != (attachment_manifest_digest is None):
+            raise ValueError('attachment manifest path and digest must be supplied together')
+        if attachment_manifest_path is not None and attachment_manifest_digest is not None:
+            args_list.extend([
+                '-AttachmentManifestPath', self.config.windows_prompt_path(attachment_manifest_path),
+                '-AttachmentManifestDigest', attachment_manifest_digest,
+                '-StageRoot', self.config.windows_stage_root,
+            ])
+        return GatewayExecutionRequest(
+            capability='execution.windows',
+            request_id=self._request_id(
+                mode, effect_id, request_digest, prompt_digest,
+                attachment_manifest_digest, attempt_generation,
+            ),
+            workspace_id=self.config.workspace_id,
+            executable=self.config.powershell_path,
+            args=tuple(args_list), cwd_relative='.', context='active_user',
+            timeout_ms=self.config.timeout_ms,
+        )
+
     def _run(
         self,
         mode: str,
@@ -111,42 +197,85 @@ class UserBrowserGatewayController:
         request_digest: str,
         prompt_path: str,
         prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
     ) -> dict:
-        args = (
-            '-NoProfile',
-            '-NonInteractive',
-            '-File',
-            self.config.driver_path,
-            '-Mode',
-            mode,
-            '-EffectId',
-            effect_id,
-            '-RequestDigest',
-            request_digest,
-            '-PromptPath',
-            self.config.windows_prompt_path(prompt_path),
-            '-PromptDigest',
-            prompt_digest,
-            '-ProxyUrl',
-            self.config.proxy_url,
+        if mode == 'materialize':
+            admitted, evidence, detail, contexts = self._active_user_admission()
+            if not admitted:
+                return {
+                    'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-attempt',
+                    'effectId': effect_id, 'standing': 'pre-effect-failed',
+                    'providerResource': None, 'evidenceDigest': evidence, 'detail': detail,
+                    'providerEffectAttempted': False, 'requiredContext': 'active_user',
+                    'observedContexts': list(contexts),
+                }
+        request = self._execution_request(
+            mode, effect_id=effect_id, request_digest=request_digest, prompt_path=prompt_path,
+            prompt_digest=prompt_digest, attachment_manifest_path=attachment_manifest_path,
+            attachment_manifest_digest=attachment_manifest_digest,
+            attempt_generation=attempt_generation,
         )
-        result = self.port.execute(
-            GatewayExecutionRequest(
-                capability='execution.windows',
-                request_id=self._request_id(mode, effect_id, request_digest, prompt_digest),
-                workspace_id=self.config.workspace_id,
-                executable=self.config.powershell_path,
-                args=args,
-                cwd_relative='.',
-                context='active_user',
-                timeout_ms=self.config.timeout_ms,
-            )
-        )
+        result = self.port.execute(request)
         if result.recovery_required:
             raise RuntimeError('Windows user-browser execution requires Runtime recovery')
         if result.exit_code != 0:
             raise RuntimeError(f'Windows user-browser execution failed with exit code {result.exit_code}')
         return self._parse_payload(self.port.read_stdout(result), effect_id=effect_id)
+
+    @staticmethod
+    def _is_attachment_parameter_binding_failure(*, stdout: str, stderr: str) -> bool:
+        if stdout.strip():
+            return False
+        return (
+            'NamedParameterNotFound,windows_user_browser_chatgpt.ps1' in stderr
+            and 'AttachmentManifestPath' in stderr
+        )
+
+    def _reconcile_prior_materialize_pre_effect_failure(
+        self,
+        *,
+        effect_id: str,
+        request_digest: str,
+        prompt_path: str,
+        prompt_digest: str,
+        attachment_manifest_path: str | None = None,
+        attachment_manifest_digest: str | None = None,
+        attempt_generation: int = 1,
+    ) -> dict | None:
+        if attachment_manifest_path is None or attachment_manifest_digest is None:
+            return None
+        request = self._execution_request(
+            'materialize', effect_id=effect_id, request_digest=request_digest,
+            prompt_path=prompt_path, prompt_digest=prompt_digest,
+            attachment_manifest_path=attachment_manifest_path,
+            attachment_manifest_digest=attachment_manifest_digest,
+            attempt_generation=attempt_generation,
+        )
+        result = self.port.resolve_terminal(request)
+        if result is None or result.recovery_required or result.exit_code in {None, 0}:
+            return None
+        stdout = self.port.read_stdout(result)
+        stderr = self.port.read_stderr(result)
+        if not self._is_attachment_parameter_binding_failure(stdout=stdout, stderr=stderr):
+            return None
+        evidence_value = {
+            'schemaVersion': 1,
+            'kind': 'ordivon.user-browser-owner-native-pre-effect-evidence',
+            'requestId': request.request_id, 'operationRef': result.operation_ref,
+            'nativeId': result.native_id, 'exitCode': result.exit_code,
+            'stdoutDigest': _digest_text(stdout), 'stderrDigest': _digest_text(stderr),
+            'classifier': 'powershell-attachment-parameter-binding-before-driver-entry',
+        }
+        evidence = _digest_text(json.dumps(evidence_value, sort_keys=True, separators=(',', ':')))
+        return {
+            'schemaVersion': 1, 'kind': 'ordivon.windows-user-browser-attempt',
+            'effectId': effect_id, 'standing': 'pre-effect-failed',
+            'providerResource': None, 'evidenceDigest': evidence,
+            'detail': 'user-browser:prior-materialize-attachment-parameter-binding-failed-before-driver-entry',
+            'providerEffectAttempted': False,
+        }
 
 
     @staticmethod
@@ -162,7 +291,14 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser classification must be an object')
         if payload.get('schemaVersion') != 1 or payload.get('kind') != 'ordivon.windows-user-browser-classification':
             raise RuntimeError('Windows user-browser classification identity is invalid')
-        if payload.get('standing') not in {'READY','AUTH_REQUIRED','CHALLENGE_GATED','BUSY','UNKNOWN'}:
+        if payload.get('standing') not in {
+            'READY',
+            'AUTH_REQUIRED',
+            'CHALLENGE_GATED',
+            'BUSY',
+            'CONTEXT_UNAVAILABLE',
+            'UNKNOWN',
+        }:
             raise RuntimeError('Windows user-browser classification standing is invalid')
         if payload.get('providerEffectAttempted') is not False:
             raise RuntimeError('Windows user-browser classification must remain pre-effect')
@@ -172,6 +308,18 @@ class UserBrowserGatewayController:
         return payload
 
     def classify(self) -> dict:
+        admitted, evidence, detail, contexts = self._active_user_admission()
+        if not admitted:
+            return {
+                'schemaVersion': 1,
+                'kind': 'ordivon.windows-user-browser-classification',
+                'standing': 'CONTEXT_UNAVAILABLE',
+                'detail': detail,
+                'providerEffectAttempted': False,
+                'requiredContext': 'active_user',
+                'observedContexts': list(contexts),
+                'capabilityEvidenceDigest': evidence,
+            }
         request_id = 'user-browser:classify:' + _digest_text(
             '|'.join((self.config.workspace_id, self.config.driver_path, self.config.proxy_url))
         )[7:39]
@@ -200,6 +348,9 @@ class UserBrowserGatewayController:
         return self._run('materialize', **kwargs)
 
     def reconcile(self, **kwargs) -> dict:
+        recovered = self._reconcile_prior_materialize_pre_effect_failure(**kwargs)
+        if recovered is not None:
+            return recovered
         return self._run('reconcile', **kwargs)
 
 

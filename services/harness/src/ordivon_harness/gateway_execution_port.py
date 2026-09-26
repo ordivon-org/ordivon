@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 
 from anc_canonical import JsonValue, validate_json_value
 
@@ -90,6 +90,18 @@ class GatewayExecutionResult:
     recovery_required: bool
 
 
+@dataclass(frozen=True, slots=True)
+class GatewayCapabilityStanding:
+    capability: str
+    configured: bool
+    available: bool
+    contexts: tuple[str, ...]
+    projection_digest: str
+
+    def supports_context(self, context: str) -> bool:
+        return self.configured and self.available and context in self.contexts
+
+
 class GatewayExecutionPort:
     def __init__(
         self,
@@ -113,6 +125,41 @@ class GatewayExecutionPort:
         validate_json_value(payload)
         return payload
 
+    def capability_standing(self, capability: str) -> GatewayCapabilityStanding:
+        if not capability.startswith('execution.'):
+            raise ValueError('Gateway capability standing is limited to execution.*')
+        payload = self._call('capability.describe', {'capability': capability})
+        projection_digest = _required_text(
+            _field(payload, 'projection_digest', 'projectionDigest'), 'capability projection digest'
+        )
+        values = payload.get('capabilities')
+        if not isinstance(values, list):
+            raise GatewayExecutionError('Gateway capability projection omitted capabilities')
+        matches = [
+            item
+            for item in values
+            if isinstance(item, dict) and item.get('capability') == capability
+        ]
+        if len(matches) != 1:
+            raise GatewayExecutionError(
+                'Gateway capability projection did not return exactly one capability'
+            )
+        item = matches[0]
+        configured = item.get('configured')
+        available = item.get('available')
+        contexts = item.get('contexts')
+        if not isinstance(configured, bool) or not isinstance(available, bool):
+            raise GatewayExecutionError('Gateway capability projection omitted availability')
+        if not isinstance(contexts, list) or any(not isinstance(value, str) for value in contexts):
+            raise GatewayExecutionError('Gateway capability projection has invalid contexts')
+        return GatewayCapabilityStanding(
+            capability=capability,
+            configured=configured,
+            available=available,
+            contexts=tuple(contexts),
+            projection_digest=projection_digest,
+        )
+
     def _resolve_after_submit_loss(
         self, request: GatewayExecutionRequest, error: Exception
     ) -> tuple[str, str]:
@@ -135,6 +182,64 @@ class GatewayExecutionPort:
         )
         native_id = _required_text(_field(resolution, 'native_id', 'nativeId'), 'nativeId')
         return operation_ref, native_id
+
+    def resolve_terminal(
+        self, request: GatewayExecutionRequest
+    ) -> GatewayExecutionResult | None:
+        """Resolve one already-admitted execution without submitting or redispatching it."""
+        resolution = self._call(
+            'execution.resolve',
+            {'capability': request.capability, 'requestId': request.request_id},
+        )
+        standing = _required_text(resolution.get('resolution'), 'execution resolution')
+        if standing == 'absent':
+            return None
+        if standing == 'ambiguous':
+            raise GatewayExecutionAmbiguous(
+                'Gateway execution resolution is ambiguous; no redispatch is authorized'
+            )
+        if standing != 'found':
+            raise GatewayExecutionError(f'unsupported Gateway execution resolution: {standing}')
+        operation_ref = _required_text(
+            _field(resolution, 'operation_ref', 'operationRef'), 'operationRef'
+        )
+        native_id = _required_text(_field(resolution, 'native_id', 'nativeId'), 'nativeId')
+        observed = self._call(
+            'execution.get', {'operationRef': operation_ref, 'eventLimit': 10}
+        )
+        observed_native = _required_text(
+            _field(observed, 'native_id', 'nativeId'), 'observation nativeId'
+        )
+        if observed_native != native_id:
+            raise GatewayExecutionError('Gateway resolution changed native execution identity')
+        terminal = _field(observed, 'terminal', 'terminal')
+        if terminal is not True:
+            if terminal is False:
+                raise GatewayExecutionAmbiguous(
+                    'resolved Gateway execution is not terminal; observation-only retry required'
+                )
+            raise GatewayExecutionError('Gateway observation omitted terminal')
+        artifact_ids = _field(observed, 'artifact_ids', 'artifactIds') or []
+        if not isinstance(artifact_ids, list) or any(
+            not isinstance(item, str) for item in artifact_ids
+        ):
+            raise GatewayExecutionError('Gateway observation artifact ids are invalid')
+        exit_code = _field(observed, 'exit_code', 'exitCode')
+        if exit_code is not None and type(exit_code) is not int:
+            raise GatewayExecutionError('Gateway observation exit code is invalid')
+        recovery = _field(observed, 'recovery_required', 'recoveryRequired')
+        if recovery is None:
+            recovery = False
+        if not isinstance(recovery, bool):
+            raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
+        return GatewayExecutionResult(
+            operation_ref=operation_ref,
+            native_id=native_id,
+            state=_required_text(observed.get('state'), 'execution state'),
+            exit_code=exit_code,
+            artifact_ids=tuple(artifact_ids),
+            recovery_required=recovery,
+        )
 
     def execute(self, request: GatewayExecutionRequest) -> GatewayExecutionResult:
         try:
@@ -195,13 +300,15 @@ class GatewayExecutionPort:
             f'Gateway execution remained non-terminal after bounded observation; state={state}'
         )
 
-    def read_stdout(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:
-        stdout = [item for item in result.artifact_ids if item.endswith('.stdout')]
-        if len(stdout) != 1:
+    def _read_text_artifact(
+        self, result: GatewayExecutionResult, *, suffix: str, max_bytes: int
+    ) -> str:
+        matches = [item for item in result.artifact_ids if item.endswith(suffix)]
+        if len(matches) != 1:
             raise GatewayExecutionError(
-                f'Gateway execution must expose exactly one stdout artifact; observed={stdout}'
+                f'Gateway execution must expose exactly one {suffix} artifact; observed={matches}'
             )
-        artifact_id = stdout[0]
+        artifact_id = matches[0]
         offset = 0
         chunks: list[str] = []
         while True:
@@ -229,8 +336,15 @@ class GatewayExecutionPort:
                 raise GatewayExecutionError('Gateway artifact pagination did not advance')
             offset = next_offset
 
+    def read_stdout(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:
+        return self._read_text_artifact(result, suffix='.stdout', max_bytes=max_bytes)
+
+    def read_stderr(self, result: GatewayExecutionResult, *, max_bytes: int = 1_048_576) -> str:
+        return self._read_text_artifact(result, suffix='.stderr', max_bytes=max_bytes)
+
 
 __all__ = [
+    'GatewayCapabilityStanding',
     'GatewayExecutionAmbiguous',
     'GatewayExecutionError',
     'GatewayExecutionPort',

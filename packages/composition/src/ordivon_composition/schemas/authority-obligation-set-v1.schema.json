@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:authority-obligation-set:v1",
+  "title": "Task-local Authority Obligation Set v1",
+  "description": "Deterministic non-authoritative projection of explicit caller-authored authority requirements onto exact Cognitive Circuit stages and capability bindings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "truthRole", "circuitRef", "obligations", "requiredObligationIds", "mechanicalBindingEstablished", "effectCoverageEstablished", "authorityGranted", "executionAuthorityGranted", "nonClaims", "obligationSetDigest"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.authority-obligation-set" },
+    "truthRole": { "const": "task-local-non-authoritative-authority-obligation-projection" },
+    "circuitRef": { "$ref": "#/$defs/boundRef" },
+    "obligations": { "type": "array", "items": { "$ref": "#/$defs/obligation" } },
+    "requiredObligationIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+    "mechanicalBindingEstablished": { "const": true },
+    "effectCoverageEstablished": { "const": false },
+    "authorityGranted": { "const": false },
+    "executionAuthorityGranted": { "const": false },
+    "nonClaims": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "obligationSetDigest": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "identifier": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sourceRequirementDigest", "circuitRef", "stageId", "capabilityBindingId", "capability", "capabilityOwnerId", "authorityOwnerId", "authorityContractRef", "required", "authorityGranted", "nonClaims", "obligationDigest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "sourceRequirementDigest": { "$ref": "#/$defs/sha256" },
+        "circuitRef": { "$ref": "#/$defs/boundRef" },
+        "stageId": { "$ref": "#/$defs/identifier" },
+        "capabilityBindingId": { "$ref": "#/$defs/identifier" },
+        "capability": { "$ref": "#/$defs/identifier" },
+        "capabilityOwnerId": { "$ref": "#/$defs/identifier" },
+        "authorityOwnerId": { "$ref": "#/$defs/identifier" },
+        "authorityContractRef": { "$ref": "#/$defs/boundRef" },
+        "required": { "type": "boolean" },
+        "authorityGranted": { "const": false },
+        "nonClaims": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "obligationDigest": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

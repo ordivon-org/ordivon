@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.aries-response-revision-coder-campaign-retirement",
+  "id": "aries-response-revision-coder-r1-retirement-r1",
+  "observedAt": "2026-09-24",
+  "standing": "RETIRED_AS_GOLD_INPUT_ALL_EFFECTS_UNKNOWN_NO_RESEND",
+  "truthRole": "provider-effect-closure-evidence-not-semantic-annotation",
+  "campaigns": [
+    "campaign:aries-response-revision-coder-a-r1-20260924",
+    "campaign:aries-response-revision-coder-b-r1-20260924"
+  ],
+  "counts": {
+    "effects": 8,
+    "unknown": 8,
+    "observationCompleted": 8,
+    "safeToResend": 0,
+    "providerResourcesBound": 0,
+    "frozenCoderCuts": 0,
+    "semanticJudgments": 0
+  },
+  "archiveMutation": {
+    "beforeDigest": "sha256:eaf5d61fd6b2e4b94a40ae2c99aa2bbf732994e170eb7d72b39a3945261347ac",
+    "afterDigest": "sha256:84dbe06b9769da182f068534016f64f6f78047760c18eb2d462dedfc5dbb06cf",
+    "beforeEntries": 35,
+    "afterEntries": 43,
+    "addedEntries": 8,
+    "archiveHealthyAfter": true,
+    "staleArchiveEntriesAfter": 0,
+    "activeArchivedUnresolvedAfter": 43,
+    "actionableUnresolvedAfter": 3
+  },
+  "effects": [
+    {"agentId":"ARIES_A_01","effectId":"sha256:91bbfd6db2a769288c7fcb09d40f86644d9e1fd8393c3ffde6bfd9b0b961148e","effectGeneration":3,"standing":"unknown","observationWorkflowId":"01a0d359-4194-7612-adb8-98cd7e61542c","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_A_02","effectId":"sha256:cb2d01753fffb9e3939997d1b7e13020411abaaa16b008df5091489ed8debe8a","effectGeneration":4,"standing":"unknown","observationWorkflowId":"01a0d359-441b-71a8-8c0a-19683fcdac68","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_A_03","effectId":"sha256:7b3f34e56976da24b507bbf420692ea483678f2af4066da7ebc7c083f67ecd23","effectGeneration":2,"standing":"unknown","observationWorkflowId":"01a0d34b-5437-7491-afb1-6e8f721181af","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_A_04","effectId":"sha256:679330bdba5bbfaad77f893d985658c5c031ab6b2ddfd9401473b0f377e35b58","effectGeneration":4,"standing":"unknown","observationWorkflowId":"01a0d359-465b-75db-8568-783336c0ed5b","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_B_01","effectId":"sha256:c8da67d6a3ae7b7e80696607500eee9cc026e9eff82cea8f6c33f9df072436af","effectGeneration":3,"standing":"unknown","observationWorkflowId":"01a0d359-486a-70bb-84b3-be71fbedbf49","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_B_02","effectId":"sha256:8c4ead60be0c3e576c9d447df7ccdd6cbb43b3abce0e1d18f062c8bfb9c52e36","effectGeneration":3,"standing":"unknown","observationWorkflowId":"01a0d359-4a61-76b1-858b-a8bdf8937436","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_B_03","effectId":"sha256:87e553ce6e2c63647c95cd1b3cb06ff0e877f8cf4b5c72ffb93ef2f28e070a46","effectGeneration":1,"standing":"unknown","observationWorkflowId":"01a0d34b-55f5-742c-97fd-5d758260f1cf","observationCompleted":true,"safeToResend":false},
+    {"agentId":"ARIES_B_04","effectId":"sha256:9701121bc06b217068db8ed7a230c73b4f4bebef33181905ecbe9e2a131e7c55","effectGeneration":3,"standing":"unknown","observationWorkflowId":"01a0d359-4c59-717f-8daa-7a5b1e07a3c5","observationCompleted":true,"safeToResend":false}
+  ],
+  "supersession": {
+    "goldInputStanding": "R1_OUTPUTS_NOT_ADMITTED",
+    "replacementGeneration": "aries-response-revision-r2",
+    "reason": "All R1 effects are durably UNKNOWN after completed observation; blind resend is forbidden. A clean generation is required for any future coder materialization."
+  },
+  "goldAdmission": "BLOCKED_NO_FROZEN_INDEPENDENT_CODER_CUTS",
+  "modelTrainingStanding": "BLOCKED_PENDING_GOLD_ADMISSION",
+  "truthBoundary": "Retirement does not assert that provider-side effects did or did not occur. It only preserves UNKNOWN standing, forbids resend, archives completed investigation, and excludes R1 from gold input authority."
+}

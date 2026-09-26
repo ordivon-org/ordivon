@@ -1,0 +1,155 @@
+{
+  "counts": {
+    "authorMessages": 95943,
+    "messages": 178272,
+    "nonemptyMetaReviews": 14993,
+    "officialReviewMessages": 79354,
+    "papers": 14993,
+    "publicMessages": 2975
+  },
+  "discussionStructure": {
+    "metaReviewWordsWhitespace": {
+      "max": 1606,
+      "mean": 133.557660241446,
+      "median": 105,
+      "min": 4,
+      "n": 14993,
+      "q1": 65,
+      "q3": 164
+    },
+    "officialReviewsPerPaper": {
+      "max": 7,
+      "mean": 3.5838057760288136,
+      "median": 4,
+      "min": 2,
+      "n": 14993,
+      "q1": 3,
+      "q3": 4
+    },
+    "ratingSpreadGroups": [
+      {
+        "meanAuthorMessages": 5.353580562659847,
+        "meanMessages": 10.232097186700766,
+        "papers": 1564,
+        "roughMetaWords": 109.92519181585678,
+        "spread": 0
+      },
+      {
+        "meanAuthorMessages": 6.519329164297896,
+        "meanMessages": 12.174815235929506,
+        "papers": 3518,
+        "roughMetaWords": 124.88175099488346,
+        "spread": 1
+      },
+      {
+        "meanAuthorMessages": 6.100413853191026,
+        "meanMessages": 11.567196689174471,
+        "papers": 4591,
+        "roughMetaWords": 125.85275539098235,
+        "spread": 2
+      },
+      {
+        "meanAuthorMessages": 6.875,
+        "meanMessages": 12.451034063260341,
+        "papers": 3288,
+        "roughMetaWords": 151.26490267639903,
+        "spread": 3
+      },
+      {
+        "meanAuthorMessages": 7.169194865810969,
+        "meanMessages": 13.121353558926488,
+        "papers": 857,
+        "roughMetaWords": 152.77946324387398,
+        "spread": 4
+      },
+      {
+        "meanAuthorMessages": 6.718840579710145,
+        "meanMessages": 12.035748792270532,
+        "papers": 1035,
+        "roughMetaWords": 162.48888888888888,
+        "spread": 5
+      },
+      {
+        "meanAuthorMessages": 7.340909090909091,
+        "meanMessages": 13.431818181818182,
+        "papers": 44,
+        "roughMetaWords": 166.52272727272728,
+        "spread": 6
+      },
+      {
+        "meanAuthorMessages": 6.294736842105263,
+        "meanMessages": 11.505263157894737,
+        "papers": 95,
+        "roughMetaWords": 180.5157894736842,
+        "spread": 7
+      },
+      {
+        "meanAuthorMessages": 4.0,
+        "meanMessages": 8.0,
+        "papers": 1,
+        "roughMetaWords": 340.0,
+        "spread": 8
+      }
+    ],
+    "reviewsPerPaper": {
+      "max": 66,
+      "mean": 11.890348829453744,
+      "median": 11,
+      "min": 2,
+      "n": 14993,
+      "q1": 8,
+      "q3": 15
+    }
+  },
+  "historicalDocumentationSplitCounts": {
+    "test": 1499,
+    "train": 11995,
+    "val": 1499
+  },
+  "id": "peersum-meta-review-structure-baseline-r1",
+  "interpretationCeiling": [
+    "Official-rating spread is a coarse structural disagreement proxy and is not equivalent to semantic contradiction among reviews.",
+    "Meta-review is treated as a synthesis artifact supplied by PeerSum, not as reviewer/scientific truth or a correct decision.",
+    "paper_acceptance_native is retained only as source metadata and is not used here as a venue-independent quality target.",
+    "Current exact carrier split counts differ from historical paper/README counts; analyses bind current bytes rather than silently rewriting them.",
+    "Corpus frequencies are PeerSum-specific descriptive statistics, not peer-review population prevalence."
+  ],
+  "kind": "ordivon.research.peersum-meta-review-structure-baseline",
+  "observedAt": "2026-09-23",
+  "population": "current exact PeerSum HF carrier only",
+  "ratingSpreadProxy": {
+    "definition": "max minus min numeric rating among official_reviewer messages within a paper; structural proxy, not semantic conflict annotation",
+    "fractions": {
+      "spread_ge_3": 0.35483225505235777,
+      "spread_ge_4": 0.13552991395984793,
+      "spread_ge_5": 0.07836990595611286
+    },
+    "histogram": {
+      "0": 1564,
+      "1": 3518,
+      "2": 4591,
+      "3": 3288,
+      "4": 857,
+      "5": 1035,
+      "6": 44,
+      "7": 95,
+      "8": 1
+    },
+    "mean": 2.141265924097912,
+    "median": 2,
+    "thresholdCounts": {
+      "spread_ge_3": 5320,
+      "spread_ge_4": 2032,
+      "spread_ge_5": 1175
+    }
+  },
+  "schemaVersion": 1,
+  "sourceAsset": "peersum-hf-bounded-core-r1",
+  "sourceSnapshotIdentity": "sha256:d25dde82d50cc811aa9a8a16858c18e5913d6916fe4c41b10c1da3ed927e151b",
+  "splitCountStanding": "CURRENT_CARRIER_DIFFERS_FROM_HISTORICAL_DOCUMENTATION",
+  "splitCountsCurrentCarrier": {
+    "test": 1505,
+    "train": 11992,
+    "val": 1496
+  }
+}

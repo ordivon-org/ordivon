@@ -105,7 +105,7 @@ def test_heavy_observability_default_posture_stays_cold() -> None:
 
 def test_gateway_normal_host_surface_cannot_drop_actions() -> None:
     value = graph()
-    value["hostNorthbound"]["normalTools"].remove("continuity.checkpoint")
+    value["hostNorthbound"]["normalTools"].remove("work.snapshot.commit")
     with pytest.raises(module.ArchitectureDocsError, match="normal Host northbound Tool set"):
         module.validate_deployed_graph(value)
 

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research.macro-observation-owner-map",
+  "principle": "external-owner-first; observation is not interpretation, decision, or execution authority",
+  "observations": {
+    "usTreasuryNominalCurve": {
+      "standing": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+      "owner": "U.S. Department of the Treasury",
+      "source": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+      "transportAuthority": "usTreasuryRest",
+      "dataKey": "daily_treasury_yield_curve",
+      "credentialRequired": false,
+      "frequency": "DAILY",
+      "authorityBoundary": "official Treasury daily par yield curve; not intraday cash-Treasury market data"
+    },
+    "usTreasuryRealCurve": {
+      "standing": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+      "owner": "U.S. Department of the Treasury",
+      "source": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+      "transportAuthority": "usTreasuryRest",
+      "dataKey": "daily_treasury_real_yield_curve",
+      "credentialRequired": false,
+      "frequency": "DAILY",
+      "authorityBoundary": "official Treasury daily par real yield curve; not intraday TIPS market data"
+    },
+    "brentWti": {
+      "standing": "ACTIVE_EIA_ORIGIN_FRED_PUBLIC_MIRROR",
+      "originOwner": "U.S. Energy Information Administration",
+      "originSource": "https://www.eia.gov/opendata/documentation.php",
+      "preferredDirectApi": "EIA API v2",
+      "directEiaSeriesReferences": [
+        "PET.RBRTE.D",
+        "PET.RWTC.D"
+      ],
+      "directEiaCredentialRequired": true,
+      "activeAggregator": "Federal Reserve Bank of St. Louis FRED",
+      "activeSource": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILBRENTEU,DCOILWTICO",
+      "activeSeriesReferences": [
+        "DCOILBRENTEU",
+        "DCOILWTICO"
+      ],
+      "transportAuthority": "fredPublicCsv",
+      "credentialRequired": false,
+      "frequency": "DAILY",
+      "provenanceRule": "FRED series metadata identifies U.S. EIA as source; retain both aggregator and origin-owner identities",
+      "authorityBoundary": "secondary official aggregation of EIA-origin daily spot series; not direct EIA API truth, exchange futures settlement, or intraday executable price"
+    },
+    "fedPolicyRepricing": {
+      "standing": "EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED",
+      "owner": "CME Group FedWatch API",
+      "source": "https://www.cmegroup.com/market-data/market-data-api/fedwatch-api.html",
+      "delivery": "JSON REST API",
+      "underlying": "30-Day Fed Funds futures",
+      "credentialRequired": true,
+      "subscriptionRequired": true,
+      "credentialPolicy": "do not scrape the FedWatch web UI; integrate the official API after subscription credentials exist",
+      "authorityBoundary": "market-implied FOMC target-rate probabilities; not a Federal Reserve forecast or policy commitment",
+      "derivedChallenger": {
+        "project": "cme-fedwatch",
+        "source": "https://github.com/tjdwls101010/CME-FedWatch",
+        "standing": "UNQUALIFIED_NEW_DERIVED_CHALLENGER",
+        "credentialRequired": false,
+        "rule": "differential qualification only; official CME FedWatch API remains owner until challenger passes the admitted contract"
+      }
+    }
+  }
+}

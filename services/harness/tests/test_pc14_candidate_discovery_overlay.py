@@ -539,8 +539,8 @@ class CandidateDiscoveryOverlayTests(unittest.TestCase):
                 )
                 self.assertTrue(continuity.doctor()["healthy"])
                 if mode == "loss":
-                    self.assertIn("task.list", [name for name, _ in runtime.calls])
-                    self.assertIn("task.observe", [name for name, _ in runtime.calls])
+                    self.assertIn("job.list", [name for name, _ in runtime.calls])
+                    self.assertIn("job.observe", [name for name, _ in runtime.calls])
 
     def test_raw_discovery_is_materialized_by_domain_before_agent_selection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.deployed-architecture",
-  "observedDate": "2026-09-22",
+  "observedDate": "2026-09-23",
   "status": "CURRENT_DEPLOYED_BASELINE",
   "defaultNorthbound": {
     "component": "gateway",
@@ -127,28 +127,44 @@
     "defaultPosture": "cold-inactive"
   },
   "hostNorthbound": {
-    "status": "deployed",
+    "status": "source-cutover-candidate",
     "semanticOwner": "host",
     "gatewayAuthority": "projection-only",
-    "checkpointSchemaOwner": "host",
+    "workSnapshotSchemaOwner": "host",
     "normalTools": [
-      "continuity.get",
-      "continuity.list",
-      "continuity.observe",
-      "continuity.adopt",
-      "continuity.checkpoint",
-      "continuity.attention",
-      "continuity.find",
-      "continuity.changes",
-      "collaboration.list",
-      "collaboration.search",
-      "collaboration.post",
-      "collaboration.publish"
+      "actor.declare",
+      "attention.ack",
+      "attention.delta",
+      "attention.get",
+      "host.status",
+      "message.post",
+      "message.relation.add",
+      "message.search",
+      "space.create",
+      "space.get",
+      "space.list",
+      "space.participation.set",
+      "subscription.follow",
+      "subscription.list",
+      "subscription.unfollow",
+      "topic.create",
+      "topic.resume",
+      "work.create",
+      "work.get",
+      "work.list",
+      "work.snapshot.commit"
     ],
     "adminOnlyDirect": [
       "host.status"
     ],
     "connectorCatalogOwner": "mcp-client-connector",
-    "currentConsumerStanding": "server-current-client-refresh-pending"
+    "currentConsumerStanding": "server-source-cutover-client-refresh-pending",
+    "uxProjectionStanding": "Work/Social/Attention owner tools projected directly through Gateway; no Task/Board compatibility surface",
+    "serverStanding": "SOURCE_CUTOVER_CANDIDATE_VERIFIED_LIVE_GATEWAY_PENDING",
+    "deploymentEvidence": {
+      "hostRelease": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+      "hostDoctor": "healthy-schema-9",
+      "gatewayCandidateQualification": "gateway-swf-northbound-acceptance-20260924.json"
+    }
   }
 }

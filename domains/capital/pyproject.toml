@@ -5,6 +5,7 @@ description = "Standards-first Ordivon Capital composition across Markets, Tradi
 requires-python = "==3.14.7"
 dependencies = [
     "websockets==17.1",
+    "ordivon-composition",
 ]
 
 [dependency-groups]
@@ -19,6 +20,9 @@ test = [
     "pytest==9.1.1",
     "ruff==0.16.8",
 ]
+
+[tool.uv.sources]
+ordivon-composition = { path = "../../packages/composition" }
 
 [tool.uv]
 package = false

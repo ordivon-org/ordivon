@@ -70,10 +70,9 @@ def test_capability_projection_rebuilds_from_runtime_owner_truth() -> None:
                     }
                 ],
             },
-            ("host", "task.list"): {
-                "tasks": [],
-                "hasMore": False,
-                "nextCursor": None,
+            ("host", "host.status"): {
+                "schemaVersion": 3,
+                "kind": "ordivon.host-status",
             },
         },
         {"runtime.linux", "runtime.windows", "host"},

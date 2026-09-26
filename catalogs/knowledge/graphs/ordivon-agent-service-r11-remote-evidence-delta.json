@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r11-remote-evidence-delta",
+  "baseGraph": "catalogs/knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "80234d0aadf151225aaa1854920a43c8a4008788",
+  "refinedBaseNodes": [
+    {
+      "nodeId": "N11",
+      "label": "AssignmentPlanner",
+      "refinement": "Local Assignment planning now acquires the Task's unique LOCAL_ASSIGNMENT execution claim atomically with Assignment creation."
+    },
+    {
+      "nodeId": "N13",
+      "label": "SemanticVerifier",
+      "refinement": "Remote digest-verified artifact evidence is normalized into the existing EvidenceBundle and evaluated by the existing EvidenceSemanticVerifier rather than a remote-specific semantic rule set."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N58",
+      "label": "TaskExecutionClaimStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.remote_evidence.TaskExecutionClaimStore",
+      "reason": "One Task must have exactly one execution owner so local Runtime work and remote delegated delivery cannot both execute the same semantic Task."
+    },
+    {
+      "nodeId": "N59",
+      "label": "ClaimAwareAssignmentPlanner",
+      "kind": "DECISION_ROUTER",
+      "symbol": "agent_service.remote_evidence.ClaimAwareAssignmentPlanner",
+      "reason": "Local Assignment creation and LOCAL_ASSIGNMENT ownership must be one transaction."
+    },
+    {
+      "nodeId": "N60",
+      "label": "ClaimAwareDeliveryCoordinator",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.remote_evidence.ClaimAwareDeliveryCoordinator",
+      "reason": "A remote Binding must own execution before the external send effect; response loss keeps fail-closed ownership and exact retry identity."
+    },
+    {
+      "nodeId": "N61",
+      "label": "RemoteArtifactReader",
+      "kind": "ADAPTER_GATEWAY",
+      "symbol": "agent_service.remote_evidence.RemoteArtifactReader",
+      "reason": "Remote artifact transport/provider access is replaceable and returns explicit artifact identity, kind, digest and content."
+    },
+    {
+      "nodeId": "N62",
+      "label": "RemoteArtifactEvidenceResolver",
+      "kind": "EVIDENCE_RESOLVER",
+      "symbol": "agent_service.remote_evidence.RemoteArtifactEvidenceResolver",
+      "reason": "Remote bytes must pass identity/kind/digest checks before they become normalized EvidenceBundle facts."
+    },
+    {
+      "nodeId": "N63",
+      "label": "RemoteTaskVerificationStore",
+      "kind": "EVIDENCE_RECEIPT_STORE",
+      "symbol": "agent_service.remote_evidence.RemoteTaskVerificationStore",
+      "reason": "Remote semantic/mechanical verification requires a durable exact receipt distinct from Runtime Assignment verification."
+    },
+    {
+      "nodeId": "N64",
+      "label": "RemoteTaskCompletionReconciler",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.remote_evidence.RemoteTaskCompletionReconciler",
+      "reason": "Remote provider terminal state becomes local Task truth only through local mechanical/evidence/semantic verification."
+    }
+  ],
+  "flow": [
+    "Task",
+    "N58 TaskExecutionClaimStore",
+    "LOCAL path -> N59 ClaimAwareAssignmentPlanner -> existing Runtime/evidence pipeline",
+    "REMOTE path -> R9 TransportBinding -> N60 ClaimAwareDeliveryCoordinator",
+    "R10 RemoteDeliveryObservationStore",
+    "N61 RemoteArtifactReader",
+    "N62 RemoteArtifactEvidenceResolver",
+    "existing N13 EvidenceSemanticVerifier",
+    "N63 RemoteTaskVerificationStore",
+    "N64 RemoteTaskCompletionReconciler",
+    "Task terminal verdict",
+    "R7 GoalReconciler"
+  ],
+  "authorityLaws": [
+    "Each Task has at most one durable execution claim.",
+    "LOCAL_ASSIGNMENT and REMOTE_BINDING claims are mutually exclusive.",
+    "DelegationEnvelope and multiple TransportBindings are intent/route candidates; they do not own execution until one remote Binding is delivered.",
+    "The first remote Binding to execute claims the Task and all alternate/fallback Bindings fail closed until an explicit future claim-transfer protocol exists.",
+    "Remote execution claim is committed before the external send effect, so response loss cannot reopen the Task for local or fallback double execution.",
+    "Exact retry after remote response loss reuses the same Binding/delivery_request_id while retaining the same execution claim.",
+    "Goal dependency readiness is enforced before a remote Binding can claim a Goal-managed Task.",
+    "Remote delivery moves the local Task to RUNNING but does not complete it.",
+    "Remote provider terminal/success remains observation evidence; the Task remains RUNNING until RemoteTaskCompletionReconciler verifies it.",
+    "Remote successful execution requires digest-verified artifact evidence before semantic acceptance is evaluated.",
+    "Remote artifact identity mismatch, digest mismatch, missing/ambiguous artifact kind, or missing reader fails closed without creating a Task verdict.",
+    "Remote provider mechanical failure may produce a local FAILED verdict only through a durable remote verification record, not directly from RemoteDeliveryObserver.",
+    "Remote semantic verification reuses the existing EvidenceSemanticVerifier to avoid a second acceptance authority.",
+    "Remote verification receipts persist provenance/digest metadata and do not persist raw remote artifact content.",
+    "R10 DeliveryReceipts created before execution claims existed can be adopted by R11 without re-sending the remote effect; adoption creates the REMOTE_BINDING claim and converges Task state to RUNNING.",
+    "Execution-claim release/transfer is intentionally not implemented in R11; safe failover remains a future explicit protocol."
+  ],
+  "compatibilityDebt": [
+    "The frozen acceptance kind runtime_artifact_text_contains is reused for remote artifact semantic verification in R11. The resolver is remote-specific, but renaming the acceptance kind to a transport-neutral name is deferred to a dedicated schema migration."
+  ]
+}

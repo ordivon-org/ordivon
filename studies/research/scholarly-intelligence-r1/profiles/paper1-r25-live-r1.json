@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-intelligence-profile",
+  "truthRole": "non-authoritative-study-projection",
+  "profileId": "paper1-r25-live-r1",
+  "studyAuthority": {
+    "owner": "paper1-study",
+    "sourceRepo": "/root/projects/ordivon-research-v2",
+    "sourceRevision": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+    "subjectRef": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd"
+  },
+  "standardNativeBinding": null,
+  "semanticRefs": {
+    "requirements": [],
+    "claims": [
+      {
+        "owner": "paper1-study",
+        "id": "R3-C001",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C002",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C003",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C004",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C005",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C006",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C007",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C008",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "R3-C009",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      }
+    ],
+    "evidence": [
+      {
+        "owner": "paper1-study",
+        "id": "P1-EV-CLAIMSET-R25",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/SCIENCE_CLAIMSET_RECHECK_R1.json",
+        "digest": "sha256:0239234018e21334c0e6c3629a4dce56e227b46e47d05624a250437ecab0fdc1"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "P1-EV-TECHQUAL-R25",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_TECHNICAL_QUALIFICATION_R1.json",
+        "digest": "sha256:010231d1024413d74ae15a61a0c65ed70ca13d251b208bf4c27334382769cb6d"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "P1-EV-SEMANTIC-R25",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_SEMANTIC_CHANGE_CLASSIFICATION_R1.json",
+        "digest": "sha256:2efb275249c2755d3b79e99a7bf9e47c1ca7e8780cb9266329a23c2d2fa3d4ce"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "P1-EV-MANUSCRIPT-R25",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/redesign_r1/artifact_candidate_r1/EMSE_PUBLICATION_SOURCE_R3_REDESSIGN_R1.qmd",
+        "digest": "sha256:94be2dca4a305429d087444905499b03d5bc1b4f189ba412366b5f592af60385"
+      },
+      {
+        "owner": "paper1-study",
+        "id": "P1-EV-CLAIMPERMISSION-R25",
+        "location": "papers/first_paper_r2_finite_family/publication_r3_descoped/reviewer_risk_r25/PAPER1_R25_CLAIM_PERMISSION_R1.json",
+        "digest": "sha256:d012d8765f39585aca781abbe892c21cf6c1d9838de977cbb85daa5738fef82f"
+      }
+    ],
+    "concerns": [],
+    "resolutions": []
+  },
+  "stateAxes": {
+    "requirements": {
+      "owner": "paper1-study",
+      "state": "CURRENT_STANDARD_NATIVE_REBIND_NOT_PROJECTED",
+      "evidenceRefs": []
+    },
+    "evidence": {
+      "owner": "paper1-study",
+      "state": "SCIENCE_FROZEN_REVIEWER_RISK_HARDENED",
+      "evidenceRefs": [
+        "P1-EV-CLAIMSET-R25",
+        "P1-EV-TECHQUAL-R25"
+      ]
+    },
+    "inference": {
+      "owner": "paper1-study",
+      "state": "FREEZE_SCIENCE_STUDY_OWNED_CLAIM_PERMISSION_BOUND",
+      "evidenceRefs": [
+        "P1-EV-CLAIMSET-R25",
+        "P1-EV-SEMANTIC-R25",
+        "P1-EV-CLAIMPERMISSION-R25"
+      ]
+    },
+    "claims": {
+      "owner": "paper1-study",
+      "state": "FROZEN_9_STUDY_OWNED_CLAIM_PERMISSION_BOUND",
+      "evidenceRefs": [
+        "P1-EV-CLAIMSET-R25",
+        "P1-EV-CLAIMPERMISSION-R25"
+      ]
+    },
+    "argument": {
+      "owner": "paper1-study",
+      "state": "R25_REVIEWER_RISK_CLOSED",
+      "evidenceRefs": [
+        "P1-EV-TECHQUAL-R25",
+        "P1-EV-SEMANTIC-R25"
+      ]
+    },
+    "venue": {
+      "owner": "paper1-study",
+      "state": "EMSE_TARGET_CURRENT_POLICY_NOT_REBOUND_BY_SI_R2",
+      "evidenceRefs": []
+    },
+    "review": {
+      "owner": "paper1-study",
+      "state": "TECHNICAL_QUALIFICATION_AND_CLAIM_PERMISSION_PASS_HUMAN_GATES_UNGRANTED",
+      "evidenceRefs": [
+        "P1-EV-TECHQUAL-R25",
+        "P1-EV-CLAIMPERMISSION-R25"
+      ]
+    },
+    "publication": {
+      "owner": "paper1-study",
+      "state": "R25_EXACT_BYTES_REQUALIFIED",
+      "evidenceRefs": [
+        "P1-EV-SEMANTIC-R25",
+        "P1-EV-MANUSCRIPT-R25"
+      ]
+    },
+    "learning": {
+      "owner": "research-shared-profile",
+      "state": "LIVE_PROJECTION_REBOUND_R3",
+      "evidenceRefs": []
+    }
+  },
+  "nonClaims": [
+    "This projection does not establish EMSE acceptance or current venue-policy conformance.",
+    "This projection does not grant human exact-byte, artifact-release, preprint, or external-submission authority.",
+    "The shared profile does not reinterpret Paper1 scientific claim meaning or sufficiency.",
+    "The null Standard-Native binding means current authority rebinding is not projected, not that no standards apply.",
+    "The shared profile projects Paper1 ClaimPermission only as an opaque Study-owned evidence ref; it does not admit a shared executable ClaimPermission policy.",
+    "A later repository HEAD does not supersede this profile while every bound Study ref remains byte-identical; any bound-byte drift fails currentness validation."
+  ],
+  "notes": [
+    "Current Study authority is /root/projects/ordivon-research-v2 at 9d80f5b5b73796ddf013088c2a0de20f85556876.",
+    "Paper1 Study-owned ClaimPermission R1 is projected opaquely; science remains FREEZE_SCIENCE and cross-Study promotion remains ineligible."
+  ]
+}

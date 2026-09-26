@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.generated-current-state",
+  "truthRole": "REBUILDABLE_PROJECTION_NOT_AUTHORITY",
+  "sourceOwner": "domains/capital",
+  "domainOwners": [
+    "markets",
+    "trading",
+    "portfolio",
+    "risk",
+    "research",
+    "governance",
+    "accounting"
+  ],
+  "authorityDigests": {
+    "config/protocol_identity_migration_v2.json": "sha256:35e033ac8057c65cab32b8cf4cc9f0f251769ecce56fe2719c3de8b731a6971a",
+    "config/execution_policy.json": "sha256:c0fa32dbc48fb8240a90ebf1410d80b3238ededac17184af8832d9994f80d981",
+    "contracts/production-authorization.json": "sha256:e9a72b7a605f5b0fb2a87ed021211bb8992ecf8f6636551cefd8ce471b7efeba",
+    "config/portfolio_risk_budget.json": "sha256:56c835107bfb68f10d8c021f07b8de90c1aed8152c5462256d25e062be5c7dd4",
+    "config/private_reality_policy.json": "sha256:bd55480440dd3ebd7a8bba887d6c51155afba83a5c2d53da9bb28b83e1a6e865",
+    "config/accounting_substrate.json": "sha256:2a153fa5a8e42c4430e7467241bfd63d71c16143d8e069b02e25835e5a1f6d0c",
+    "config/capital_lego_registry.json": "sha256:e1f4906ca86269a41aa54ff86e1194bf187e2a4a58af2a59992f1753309311a7",
+    "config/macro_observation_owners.json": "sha256:3780239554e8fa5dceb25906b7717a04cf0c90b96a58c7e29b2c0ce095e55559",
+    "config/soxl_instrument_identity.json": "sha256:e4a94620cb878c3fb4ae8830412b90398647f6a5def79ff8265ec00b3978c0fc",
+    "config/research_data_aggregators.json": "sha256:1d998d71f49b36be4a07cc97cc0065303f5d9068612f4a709fb55ba08716dc15",
+    "planning/functional-lego-map-r1.json": "sha256:6f95e656055e38fd01da4324edd811ed4bded50bc96ea9d10531978d356e4972"
+  },
+  "protocol": {
+    "schemaVersion": 2,
+    "standing": "ACTIVE_V2_NO_RUNTIME_V1_SHIM",
+    "authority": "config/protocol_identity_migration_v2.json"
+  },
+  "execution": {
+    "currentLane": "NON_LIVE",
+    "authority": "config/execution_policy.json"
+  },
+  "productionAuthorization": {
+    "state": "BLOCK_NOT_GRANTED",
+    "externalFinancialWriteAllowed": false,
+    "authority": "contracts/production-authorization.json"
+  },
+  "portfolioRiskBudget": {
+    "standing": "UNSET",
+    "owner": "OWNER_PRINCIPAL",
+    "authority": "config/portfolio_risk_budget.json"
+  },
+  "privateReality": {
+    "standing": "OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT",
+    "privateAccountDataAdmission": "NOT_ADMITTED",
+    "privateAccountDataAllowed": false,
+    "authority": "config/private_reality_policy.json"
+  },
+  "accounting": {
+    "standing": "PASS_BOUNDED_SQLITE_WAL_ACCOUNTING",
+    "authority": "config/accounting_substrate.json"
+  },
+  "macroObservationOwners": {
+    "authority": "config/macro_observation_owners.json",
+    "usTreasuryNominalCurve": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+    "usTreasuryRealCurve": "ACTIVE_OFFICIAL_PUBLIC_OWNER",
+    "brentWti": "ACTIVE_EIA_ORIGIN_FRED_PUBLIC_MIRROR",
+    "fedPolicyRepricing": "EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED"
+  },
+  "instrumentIdentity": {
+    "authority": "config/soxl_instrument_identity.json",
+    "instrument": "SOXL",
+    "issuer": "Direxion",
+    "benchmarkName": "NYSE Semiconductor Index",
+    "benchmarkSymbol": "ICESEMIT",
+    "dailyTargetMultiple": "3.0"
+  },
+  "researchDataAggregation": {
+    "authority": "config/research_data_aggregators.json",
+    "openbbStanding": "ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY",
+    "openbbStableVersion": "4.7.2",
+    "deploymentBoundary": "SEPARATE_EXTERNAL_ENVIRONMENT_NOT_CAPITAL_CORE_DEPENDENCY"
+  },
+  "inventory": {
+    "registryEntries": 39,
+    "canonicalEntries": 34,
+    "functionalLegos": 12
+  },
+  "architectureLaws": [
+    "provider/account/broker/custody reality outranks workflow success, tests and local accounting state",
+    "generic composition mechanics are owned by the Composition owner; Capital retains financial semantics",
+    "mechanical composition closure is not financial/domain acceptance",
+    "read-only reality does not mint write authority"
+  ],
+  "projectionDigest": "sha256:ea34e9ae075b3e721d4322cbbbdb4451bb5d453fa63411ec344ed84223199b3d"
+}

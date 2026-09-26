@@ -219,6 +219,8 @@ repository-convergence-projection-not-merge-or-domain-authority
 
 The convergence projection intentionally treats those declared seams as an **undirected interaction graph** for verification planning. This can over-test but must not silently under-test based on an inferred direction.
 
+Capital R2 adds a genuine public-package dependency on the Composition owner. Therefore Composition-connected changes may expand verification to Capital; this is intentional dependency truth rather than an optimization hint, and must not be removed merely to reduce CI fanout.
+
 Examples on the current graph:
 
 ```text

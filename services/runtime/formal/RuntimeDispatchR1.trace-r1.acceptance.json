@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-formal-trace-acceptance",
+  "effectiveDate": "2026-09-24",
+  "standing": "PASS_BOUNDED_TRACEABILITY_CURRENTNESS",
+  "truthRole": "formal-trace-acceptance-not-mechanized-refinement-proof",
+  "baseMain": "e0e9874d7a3c7b553a2f4ecb34049946867b513f",
+  "mechanismCandidateCommit": "62e69c5f4240ba926361668b8dc3ea72ce608ff9",
+  "qualifiedWorkspaceSourceDigest": "sha256:014ce87d9c603752ca2960bc88c3972fc5e7be485b5e81c089a57fc87403cdb8",
+  "traceVerification": {
+    "jobId": "job-01a0d0ed-2361-7cf2-a3d4-8da484852876",
+    "terminalEvidenceDigest": "sha256:83a34c8be8eeae7b84e12e8cae6fbb020475510b0faf9766224127303e031c60",
+    "result": "PASS",
+    "focusedPytestPassed": 2
+  },
+  "formalModelCheck": {
+    "jobId": "job-01a0d0ee-17d1-7362-bab0-6f4e299e6d86",
+    "terminalEvidenceDigest": "sha256:3351079ca29a34ba73b46aaa2dc382000146e3f6c9dad7fc8938242d48991d5e",
+    "toolchain": "TLA+ tools 1.7.4 / TLC 2.19",
+    "generatedStates": 25,
+    "distinctStates": 20,
+    "depth": 9,
+    "errors": 0
+  },
+  "runtimeIntegration": {
+    "jobId": "job-01a0d0ee-4a3b-7823-9dab-37a29995db7f",
+    "terminalEvidenceDigest": "sha256:b2444e2e5639ce32235cd8b7ef63d31dc4ea6731f366a8f4e23c622aa15fb14b",
+    "result": "PASS",
+    "tests": [
+      "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
+      "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch"
+    ]
+  },
+  "ownerSuites": {
+    "jobId": "job-01a0d0ef-0baf-7cd2-ba53-b7b4d3cac4ec",
+    "terminalEvidenceDigest": "sha256:20158414ee41823c65765df22e4645d48bd0c754ec70137932de2c3fa4f409f5",
+    "result": "PASS",
+    "scope": "selected Composition cognitive-circuit/interface/successor/verification tests plus Meta cross-domain verification, data lifecycle/product governance/federation/feedback, Evaluation Boundary, and Experimental Episode tests"
+  },
+  "supportScope": [
+    "currentness and explicit correspondence of RuntimeDispatchR1 formal artifacts, Runtime invariant bindings, selected implementation symbols, and selected integration tests",
+    "bounded at-most-once dispatch and ambiguity-reconciliation seam evidence on the qualified source state"
+  ],
+  "nonClaims": [
+    "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",
+    "TLC finite-model success is abstraction evidence, not a proof that every implementation/environment behavior conforms.",
+    "Runtime process/test success does not establish domain semantic completion.",
+    "This receipt does not grant Git, release, deployment, or other effect authority."
+  ]
+}

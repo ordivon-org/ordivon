@@ -117,10 +117,10 @@
     },
     {
       "id": "research-data-integration",
-      "ownerClass": "IMPLEMENTATION_CANDIDATE",
-      "owner": "OpenBB Open Data Platform",
-      "currentStanding": "OpenBB 4.7.x supports Python 3.14; Provider/Fetcher/standard-model extensions implement connect-once-consume-everywhere research-data integration",
-      "applicability": "CANDIDATE_RESEARCH_DATA_OWNER_NOT_PRIVATE_ACCOUNT_ORDER_OR_EXECUTION_REALITY; AGPL_BOUNDARY_REQUIRES_SEPARATE_DEPLOYMENT_REVIEW",
+      "ownerClass": "IMPLEMENTATION_OWNER",
+      "owner": "OpenBB Open Data Platform 4.7.2",
+      "currentStanding": "ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY; Python 3.14.7 executable; Federal Reserve provider live-qualified; yfinance SOXL path rate-limited and not admitted",
+      "applicability": "PUBLIC_RESEARCH_DATA_ROUTING_NORMALIZATION_ONLY; SEPARATE_AGPL_EXTERNAL_ENVIRONMENT; NOT_PRIVATE_ACCOUNT_ORDER_EXECUTION_OR_ORIGINAL_SOURCE_TRUTH",
       "source": "https://github.com/OpenBB-finance/OpenBB"
     },
     {
@@ -508,6 +508,48 @@
       "localResponsibility": "evaluate the frozen bounded execution/live-test/risk-budget/counterfactual policy rules directly in canonical Python; fail closed; do not grow a generic policy framework"
     },
     {
+      "id": "governance-financial-circuit-lowering",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/circuit_lowering.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Ordivon Composition public package for generic Cognitive Circuit, authority-obligation, verification-obligation and interface mechanics"
+      ],
+      "localStanding": "THIN_FINANCIAL_SEMANTIC_LOWERING_ONLY",
+      "localResponsibility": "retain Capital-specific registry standing, financial authority/effect taxonomy, prohibited-use and effect-ordering rules, then lower exact bindings into public ordivon-composition contracts; do not own generic DAG validation, gate mechanics, authority granting, workflow, execution or domain acceptance"
+    },
+    {
+      "id": "governance-readonly-circuit-composition",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/read_circuit.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Contract-based compositional verification as method authority; owner-native Capital domain primitives remain implementation owners"
+      ],
+      "localStanding": "BOUNDED_READONLY_CIRCUIT_COMPOSITION",
+      "localResponsibility": "compile, mechanically run, and receipt three bounded effect-free R1 circuits over existing owner-native Capital primitives; no generic workflow runtime, financial recommendation, authority grant, provider effect, or semantic completion truth"
+    },
+    {
+      "id": "governance-nonlive-circuit-composition",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/nonlive_effect_circuit.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "Contract-based composition method authority; Trading reconciliation and Accounting SQLite remain owner-native mechanics"
+      ],
+      "localStanding": "BOUNDED_NONLIVE_EFFECT_CIRCUIT_COMPOSITION",
+      "localResponsibility": "bind current non-live admission, reservation, simulated provider episode, authoritative reconciliation semantics and durable accounting resolution into one bounded qualification circuit; no workflow engine, live provider write, production authority or semantic-completion claim"
+    },
+    {
       "id": "trading-execution-reconciliation",
       "sourcePatterns": [
         "src/ordivon_capital/trading/execution_reconciliation.py",
@@ -537,6 +579,20 @@
         "FIX lifecycle semantics"
       ],
       "downstreamSubstrate": "SQLite accounting substrate after reconciliation disposition"
+    },
+    {
+      "id": "trading-simulated-effect-provider",
+      "sourcePatterns": [
+        "src/ordivon_capital/trading/simulated_effect.py"
+      ],
+      "ownerClasses": [
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "No current external implementation owner; provider-neutral bounded simulator retained only for admitted non-live qualification"
+      ],
+      "localStanding": "BOUNDED_SIMULATED_PROVIDER_ADAPTER",
+      "localResponsibility": "materialize deterministic simulated exchange episodes for the admitted non-live effect class only; never contact a live venue, hold credentials, or establish venue/accounting truth"
     },
     {
       "id": "markets-provider-observation",

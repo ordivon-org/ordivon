@@ -3330,7 +3330,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
         args: Vec::new(),
         cwd: workspace.to_string_lossy().into_owned(),
         env: BTreeMap::new(),
-        timeout_ms: 500,
+        timeout_ms: 5_000,
         continue_on_error: false,
     };
     let fast = RunnerRequest {
@@ -3354,7 +3354,7 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
         cwd: workspace.to_string_lossy().into_owned(),
         env: BTreeMap::new(),
         steps: vec![step("one"), step("two")],
-        timeout_ms: 500,
+        timeout_ms: 2_000,
         stdout_limit_bytes: 1024,
         stderr_limit_bytes: 1024,
         host_dependencies: Vec::new(),

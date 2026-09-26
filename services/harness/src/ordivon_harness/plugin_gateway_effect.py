@@ -158,9 +158,9 @@ class GatewayMcpRuntimeAdapter:
     def call_tool(self, name: str, arguments: dict[str, JsonValue]) -> dict[str, JsonValue]:
         if name == "workspace.exec":
             return self._submit(arguments)
-        if name == "task.list":
+        if name == "job.list":
             return self._resolve(arguments)
-        if name == "task.observe":
+        if name == "job.observe":
             return self._observe(arguments)
         raise HarnessRuntimeClientError(f"Gateway adapter does not expose Runtime operation {name}")
 

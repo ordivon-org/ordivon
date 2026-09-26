@@ -1,9 +1,18 @@
 {
-  "schemaVersion": 1,
+  "asOf": "2026-09-23",
+  "doNotOwn": [
+    "Runtime/Harness/Host/domain truth",
+    "universal Task or Agent database",
+    "global capability registry",
+    "experiment scheduler",
+    "universal evaluator",
+    "universal fitness score",
+    "raw telemetry backend",
+    "artifact/blob storage",
+    "RSI controller",
+    "promotion authority"
+  ],
   "kind": "ordivon.experimental-learning-lego-plan",
-  "asOf": "2026-09-22",
-  "sourceRevision": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
-  "thesis": "Reuse existing owner-native evidence, data-lifecycle standards and PostgreSQL substrate. Add only a non-authoritative Experimental Episode join/projection layer, prove it against historical Runtime and Harness evidence, then admit PostgreSQL and cross-owner analytics.",
   "laws": [
     "Owner-native evidence remains authoritative; Episode is a derived analytical projection.",
     "No heuristic identity joins: cross-owner relations require exact IDs, digests, receipts or declared bindings.",
@@ -12,204 +21,75 @@
     "A generic abstraction requires pressure from at least two materially different natural owners.",
     "PostgreSQL is admitted only after file-level Episode determinism/differential equivalence is proven."
   ],
-  "retainedExternalOwners": {
-    "relationalPersistence": "PostgreSQL 18.6",
-    "migrations": "Alembic",
-    "operationalLineage": "OpenLineage",
-    "semanticProvenance": "W3C PROV-O",
-    "dataContracts": "Bitol ODCS 3.2.0",
-    "dataProducts": "Bitol ODPS 1.1.0",
-    "catalog": "W3C DCAT 3",
-    "analyticalInterchange": "Apache Parquet/Arrow",
-    "observability": "OpenTelemetry/Prometheus",
-    "preservation": "OAIS/E-ARK/PREMIS/Archivematica"
-  },
-  "waves": [
-    {
-      "id": "RW0",
-      "goal": "Freeze authority, identity and sensitive-data projection boundaries",
-      "nodes": [
-        "EL00",
-        "EL01",
-        "EL02",
-        "EL03"
-      ],
-      "standing": "PASS"
-    },
-    {
-      "id": "RW1",
-      "goal": "Define deterministic Experimental Episode binding",
-      "nodes": [
-        "EL10",
-        "EL11",
-        "EL12",
-        "EL13"
-      ],
-      "dependsOn": [
-        "RW0"
-      ],
-      "standing": "PASS"
-    },
-    {
-      "id": "RW2",
-      "goal": "Prove Episode against historical R5 mechanical execution corpus and Harness cognitive evidence",
-      "nodes": [
-        "EL20",
-        "EL21",
-        "EL22",
-        "EL23",
-        "EL24"
-      ],
-      "dependsOn": [
-        "RW1"
-      ],
-      "standing": "PASS_REPLAY_REQUALIFIED"
-    },
-    {
-      "id": "RW3",
-      "goal": "Admit or reject PostgreSQL experimental projection based on proven Episode pressure",
-      "nodes": [
-        "EL30",
-        "EL31",
-        "EL32",
-        "EL33",
-        "EL34",
-        "EL35"
-      ],
-      "dependsOn": [
-        "RW2"
-      ],
-      "standing": "PASS_CLEANROOM_NOT_DEPLOYED"
-    },
-    {
-      "id": "RW4",
-      "goal": "Create derived cross-owner failure/capability/cost/generalization/intervention analysis",
-      "nodes": [
-        "EL40",
-        "EL41",
-        "EL42",
-        "EL43",
-        "EL44",
-        "EL45"
-      ],
-      "dependsOn": [
-        "RW3"
-      ],
-      "standing": "PASS_R1_WITH_EXPLICIT_NON_IDENTIFICATION"
-    },
-    {
-      "id": "RW5",
-      "goal": "Bind the proven analytical projection to existing ODCS/Artifact/OpenLineage/PROV/OTel owners",
-      "nodes": [
-        "EL50",
-        "EL51",
-        "EL52",
-        "EL53",
-        "EL54"
-      ],
-      "dependsOn": [
-        "RW4"
-      ],
-      "standing": "PASS_STANDARD_NATIVE_DATA_LIFECYCLE"
-    },
-    {
-      "id": "RW6",
-      "goal": "Extract only the already-dogfooded evaluation/holdout boundary from Media and Game",
-      "nodes": [
-        "EL60",
-        "EL61",
-        "EL62",
-        "EL63"
-      ],
-      "dependsOn": [
-        "RW4"
-      ],
-      "standing": "READY"
-    },
-    {
-      "id": "RW7",
-      "goal": "Bind candidate transitions to independently evaluated successors without recursive authority",
-      "nodes": [
-        "EL70",
-        "EL71",
-        "EL72",
-        "EL73",
-        "EL74"
-      ],
-      "dependsOn": [
-        "RW6"
-      ]
-    }
-  ],
   "nodes": [
     {
       "id": "EL00",
       "name": "ExperimentalOwnerBoundary",
-      "owner": "meta/next task-local planning",
       "output": "owner/non-authority map",
+      "owner": "meta/next task-local planning",
       "standing": "PASS"
     },
     {
       "id": "EL01",
       "name": "ExistingIdentityMap",
-      "owner": "meta/next task-local planning",
       "output": "machine-readable owner identity sources",
+      "owner": "meta/next task-local planning",
       "standing": "PASS"
     },
     {
       "id": "EL02",
       "name": "ProjectionAdmissionPolicy",
-      "owner": "meta/next task-local planning",
       "output": "allow/deny projection policy",
+      "owner": "meta/next task-local planning",
       "standing": "PASS"
     },
     {
       "id": "EL03",
       "name": "SensitiveDataFence",
-      "owner": "meta/next task-local planning",
       "output": "fail-closed sensitive-field policy",
+      "owner": "meta/next task-local planning",
       "standing": "PASS"
     },
     {
       "id": "EL10",
       "name": "ExperimentalEpisodeBindingR1",
-      "owner": "meta/next candidate",
       "output": "JSON Schema + deterministic projection",
+      "owner": "meta/next candidate",
       "standing": "PASS_CANDIDATE"
     },
     {
       "id": "EL11",
       "name": "EpisodeIdentityLaw",
-      "owner": "meta/next candidate",
       "output": "stable episode identity distinct from projection digest",
+      "owner": "meta/next candidate",
       "standing": "PASS"
     },
     {
       "id": "EL12",
       "name": "OwnerReference",
-      "owner": "meta/next candidate",
       "output": "exact cross-owner reference carrier",
+      "owner": "meta/next candidate",
       "standing": "PASS"
     },
     {
       "id": "EL13",
       "name": "ProjectionLeakageDestroyers",
-      "owner": "meta/next candidate",
       "output": "tests proving raw sensitive owner payloads do not escape",
+      "owner": "meta/next candidate",
       "standing": "PASS"
     },
     {
       "id": "EL20",
       "name": "R5CMechanicalAdapter",
-      "owner": "meta/next task-local adapter",
       "output": "historical Runtime execution -> Episode",
+      "owner": "meta/next task-local adapter",
       "standing": "PASS_R5C_10000"
     },
     {
       "id": "EL21",
       "name": "R5CDifferentialValidator",
-      "owner": "meta/next task-local verifier",
       "output": "10k count/state/event/artifact equivalence",
+      "owner": "meta/next task-local verifier",
       "standing": "PASS_DIFFERENTIAL"
     },
     {
@@ -336,67 +216,199 @@
       "id": "EL60",
       "name": "EvaluationBoundaryProfile",
       "owner": "task-local study profile",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_EVALUATION_BOUNDARY_PROFILE_R1"
     },
     {
       "id": "EL61",
       "name": "HoldoutCommitmentBinding",
       "owner": "task-local study profile",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_EXACT_HOLDOUT_COMMITMENT_AND_SEALED_PROTOCOL"
     },
     {
       "id": "EL62",
       "name": "FreezeBeforeEvaluateGate",
       "owner": "task-local study profile",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_FREEZE_BEFORE_EVALUATE_BOUNDARY"
     },
     {
       "id": "EL63",
       "name": "MediaGameJudgeDogfood",
       "owner": "Media+Game",
-      "standing": "READY_AFTER_RW4"
+      "standing": "PASS_TWO_OWNER_DOGFOOD_MEDIA_EXECUTED_GAME_FROZEN_PROTOCOL"
     },
     {
       "id": "EL70",
       "name": "SuccessorContractCandidate",
       "owner": "task-local composition candidate",
-      "standing": "BLOCKED_UNTIL_RW6"
+      "standing": "PASS_SUCCESSOR_CONTRACT_R1_IN_MAIN"
     },
     {
       "id": "EL71",
       "name": "RecursiveAuthoritySeparation",
       "owner": "task-local composition candidate",
-      "standing": "BLOCKED_UNTIL_RW6"
+      "standing": "PASS_RECURSIVE_AUTHORITY_SEPARATION"
     },
     {
       "id": "EL72",
       "name": "HarnessP3HistoricalSuccessorDogfood",
       "owner": "Harness evidence consumer",
-      "standing": "BLOCKED_UNTIL_RW6"
+      "standing": "PASS_HARNESS_P2_P3_HISTORICAL_SUCCESSOR"
     },
     {
       "id": "EL73",
       "name": "ProspectiveSuccessorDogfood",
       "owner": "selected domain",
-      "standing": "BLOCKED_UNTIL_EL72"
+      "standing": "PASS_PROSPECTIVE_SUCCESSOR_AND_EXTERNAL_PROMOTION_OBSERVED"
     },
     {
       "id": "EL74",
       "name": "CompositionExtractionDecision",
       "owner": "architecture",
-      "standing": "BLOCKED_UNTIL_EL73"
+      "standing": "PASS_EXTRACT_THIN_PROFILE_NO_NEW_RUNTIME_OBJECT"
     }
   ],
-  "doNotOwn": [
-    "Runtime/Harness/Host/domain truth",
-    "universal Task or Agent database",
-    "global capability registry",
-    "experiment scheduler",
-    "universal evaluator",
-    "universal fitness score",
-    "raw telemetry backend",
-    "artifact/blob storage",
-    "RSI controller",
-    "promotion authority"
-  ]
+  "retainedExternalOwners": {
+    "analyticalInterchange": "Apache Parquet/Arrow",
+    "catalog": "W3C DCAT 3",
+    "dataContracts": "Bitol ODCS 3.2.0",
+    "dataProducts": "Bitol ODPS 1.1.0",
+    "migrations": "Alembic",
+    "observability": "OpenTelemetry/Prometheus",
+    "operationalLineage": "OpenLineage",
+    "preservation": "OAIS/E-ARK/PREMIS/Archivematica",
+    "relationalPersistence": "PostgreSQL 18.6",
+    "semanticProvenance": "W3C PROV-O"
+  },
+  "schemaVersion": 1,
+  "sourceRevision": "aec6cd0f061703ae367584aa93040b2609c32444",
+  "thesis": "Reuse existing owner-native evidence, data-lifecycle standards and PostgreSQL substrate. Add only a non-authoritative Experimental Episode join/projection layer, prove it against historical Runtime and Harness evidence, then admit PostgreSQL and cross-owner analytics.",
+  "waves": [
+    {
+      "goal": "Freeze authority, identity and sensitive-data projection boundaries",
+      "id": "RW0",
+      "nodes": [
+        "EL00",
+        "EL01",
+        "EL02",
+        "EL03"
+      ],
+      "standing": "PASS"
+    },
+    {
+      "dependsOn": [
+        "RW0"
+      ],
+      "goal": "Define deterministic Experimental Episode binding",
+      "id": "RW1",
+      "nodes": [
+        "EL10",
+        "EL11",
+        "EL12",
+        "EL13"
+      ],
+      "standing": "PASS"
+    },
+    {
+      "dependsOn": [
+        "RW1"
+      ],
+      "goal": "Prove Episode against historical R5 mechanical execution corpus and Harness cognitive evidence",
+      "id": "RW2",
+      "nodes": [
+        "EL20",
+        "EL21",
+        "EL22",
+        "EL23",
+        "EL24"
+      ],
+      "standing": "PASS_REPLAY_REQUALIFIED"
+    },
+    {
+      "dependsOn": [
+        "RW2"
+      ],
+      "goal": "Admit or reject PostgreSQL experimental projection based on proven Episode pressure",
+      "id": "RW3",
+      "nodes": [
+        "EL30",
+        "EL31",
+        "EL32",
+        "EL33",
+        "EL34",
+        "EL35"
+      ],
+      "standing": "PASS_CLEANROOM_NOT_DEPLOYED"
+    },
+    {
+      "dependsOn": [
+        "RW3"
+      ],
+      "goal": "Create derived cross-owner failure/capability/cost/generalization/intervention analysis",
+      "id": "RW4",
+      "nodes": [
+        "EL40",
+        "EL41",
+        "EL42",
+        "EL43",
+        "EL44",
+        "EL45"
+      ],
+      "standing": "PASS_R1_WITH_EXPLICIT_NON_IDENTIFICATION"
+    },
+    {
+      "dependsOn": [
+        "RW4"
+      ],
+      "goal": "Bind the proven analytical projection to existing ODCS/Artifact/OpenLineage/PROV/OTel owners",
+      "id": "RW5",
+      "nodes": [
+        "EL50",
+        "EL51",
+        "EL52",
+        "EL53",
+        "EL54"
+      ],
+      "standing": "PASS_STANDARD_NATIVE_DATA_LIFECYCLE"
+    },
+    {
+      "dependsOn": [
+        "RW4"
+      ],
+      "goal": "Extract only the already-dogfooded evaluation/holdout boundary from Media and Game",
+      "id": "RW6",
+      "nodes": [
+        "EL60",
+        "EL61",
+        "EL62",
+        "EL63"
+      ],
+      "standing": "PASS_MECHANICAL_BOUNDARY_EMPIRICAL_OPEN"
+    },
+    {
+      "dependsOn": [
+        "RW6"
+      ],
+      "goal": "Bind candidate transitions to independently evaluated successors without recursive authority",
+      "id": "RW7",
+      "nodes": [
+        "EL70",
+        "EL71",
+        "EL72",
+        "EL73",
+        "EL74"
+      ],
+      "standing": "PASS_PROSPECTIVE_SUCCESSOR_PROFILE_EXTRACTED"
+    }
+  ],
+  "compositionExtractionDecision": {
+    "standing": "PASS_EXTRACT_THIN_PROFILE_NO_NEW_RUNTIME_OBJECT",
+    "profileRef": "meta/next/docs/IMPROVEMENT_CIRCUIT_PROFILE_R1.md",
+    "evidenceRefs": [
+      "meta/next/evidence/acceptance/rsi-successor-contract-r1-20260922.json",
+      "meta/next/evidence/acceptance/experimental-rw7-successor-acceptance-20260923.json",
+      "meta/next/evidence/acceptance/improvement-circuit-profile-r1-acceptance-20260923.json"
+    ],
+    "decision": "Represent governed improvement as a task-local composition profile over existing Cognitive Circuit / Evaluation Boundary / Verification Obligation / Successor Contract objects. The observed RW6 Git promotion remains an external post-closure authority event. Do not add a new controller, service, scheduler, database, evaluator, fitness score, or promotion authority.",
+    "profileAcceptanceRef": "meta/next/evidence/acceptance/improvement-circuit-profile-r1-acceptance-20260923.json"
+  }
 }

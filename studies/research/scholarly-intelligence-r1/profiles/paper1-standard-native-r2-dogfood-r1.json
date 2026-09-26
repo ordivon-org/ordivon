@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-intelligence-profile",
+  "truthRole": "non-authoritative-study-projection",
+  "profileId": "paper1-standard-native-r2-dogfood-r1",
+  "studyAuthority": {
+    "owner": "paper1-research-v2-historical-dogfood",
+    "sourceRepo": "/root/projects/ordivon-research-v2",
+    "sourceRevision": "7df70cf49bb905decb7096adb1ee2f105e64ce3f",
+    "subjectRef": "publication/first_paper_r8s2_frozen/manuscript.qmd"
+  },
+  "standardNativeBinding": {
+    "sourcePath": "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json",
+    "sourceDigest": "sha256:3ce88cf3a7869656a20218a8361de81578f18212ddfccad30d6084d9dce43f65",
+    "caseId": "research"
+  },
+  "semanticRefs": {
+    "requirements": [
+      {
+        "owner": "paper1-standard-native-profile",
+        "id": "P1-GEN-001",
+        "location": "requirements/paper1_standard_native_r2.sdoc",
+        "digest": "sha256:50a97e06dd194e9a0c67c39b23f56a5d079b71e6c8bfb2afccddda507e468abf"
+      }
+    ],
+    "claims": [],
+    "evidence": [],
+    "concerns": [],
+    "resolutions": []
+  },
+  "stateAxes": {
+    "requirements": {
+      "owner": "paper1-standard-native-profile",
+      "state": "R2_DOGFOOD_REQUIREMENTS_BOUND",
+      "evidenceRefs": ["P1-GEN-001"]
+    },
+    "evidence": {
+      "owner": "paper1-study-authority",
+      "state": "NOT_PROJECTED_BY_R1",
+      "evidenceRefs": []
+    },
+    "inference": {
+      "owner": "paper1-study-authority",
+      "state": "NOT_PROJECTED_BY_R1",
+      "evidenceRefs": []
+    },
+    "claims": {
+      "owner": "paper1-study-authority",
+      "state": "NOT_PROJECTED_BY_R1",
+      "evidenceRefs": []
+    },
+    "argument": {
+      "owner": "paper1-study-authority",
+      "state": "NOT_PROJECTED_BY_R1",
+      "evidenceRefs": []
+    },
+    "venue": {
+      "owner": "paper1-standard-native-profile",
+      "state": "EMSE_SUBMISSION_AUTHORITY_BOUND_IN_HISTORICAL_DOGFOOD",
+      "evidenceRefs": []
+    },
+    "review": {
+      "owner": "paper1-study-authority",
+      "state": "NOT_PROJECTED_BY_R1",
+      "evidenceRefs": []
+    },
+    "publication": {
+      "owner": "paper1-study-authority",
+      "state": "FROZEN_PUBLICATION_DOGFOOD_NOT_CURRENT_SCIENTIFIC_AUTHORITY",
+      "evidenceRefs": []
+    },
+    "learning": {
+      "owner": "research-shared-profile",
+      "state": "R1_PROJECTION_DOGFOOD_ONLY",
+      "evidenceRefs": []
+    }
+  },
+  "nonClaims": [
+    "This projection is not current Paper1 scientific authority.",
+    "This projection does not establish manuscript submission readiness or venue acceptance.",
+    "Empty claim/evidence/concern/resolution reference lists mean not projected, not absent.",
+    "The shared Research profile does not reinterpret the Study's domain verdict vocabulary."
+  ],
+  "notes": [
+    "R1 deliberately projects one stable requirement reference and leaves Study scientific objects opaque.",
+    "Live Paper1/Paper2/Paper3 projections are an SI-R2 task after owner-specific census."
+  ]
+}

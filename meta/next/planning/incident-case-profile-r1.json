@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.incident-case-profile",
+  "effectiveDate": "2026-09-23",
+  "standing": "EXTRACTED_PROFILE_NO_INCIDENT_SERVICE",
+  "truthRole": "architecture-profile-not-incident-registry-or-authority",
+  "dimensions": [
+    "detectionEvidence",
+    "affectedOwnerRefs",
+    "affectedSubjectRefs",
+    "impact",
+    "containmentEvidence",
+    "consequenceStanding",
+    "hypotheses",
+    "explicitUnknowns",
+    "recoveryEvidence",
+    "regressionObligations",
+    "ownerClosure"
+  ],
+  "separationLaws": [
+    "damage signal != incident admission",
+    "incident case != owner truth registry",
+    "detection != containment authority",
+    "execution receipt != consequence truth",
+    "recovery action != verified recovery",
+    "hypothesis != root cause",
+    "ambiguous external effect => reconcile, not blind retry",
+    "closure != evidence deletion",
+    "regression obligation != regression execution",
+    "incident composition cannot widen its own authority"
+  ],
+  "optionalInputs": [
+    {
+      "kind": "CloudEvents damage signal",
+      "owner": "Social Fabric projection",
+      "authority": "none"
+    },
+    {
+      "kind": "owner-native execution/recovery evidence",
+      "owner": "Runtime/Workstation/domain owner",
+      "authority": "owner-specific"
+    },
+    {
+      "kind": "consequence evidence",
+      "owner": "Security/domain observer",
+      "authority": "owner-specific"
+    },
+    {
+      "kind": "investigation analysis",
+      "owner": "Harness/human/domain analysis",
+      "authority": "analysis only"
+    }
+  ],
+  "evidenceCases": [
+    {
+      "id": "vhd-damage-coordination",
+      "ownerClass": "social+runtime.windows",
+      "ref": "meta/next/evidence/acceptance/social-fabric-coordination-r2-vhd-cut-20260923.json"
+    },
+    {
+      "id": "windows-native-recovery",
+      "ownerClass": "runtime",
+      "ref": "services/runtime/evidence/windows-native-rw5-recovery-20260810.json"
+    },
+    {
+      "id": "browserless-engineering-incident",
+      "ownerClass": "harness-analysis",
+      "ref": "services/harness/tests/fixtures/engineering_incident_browserless_20260909.json"
+    },
+    {
+      "id": "security-consequence-differential",
+      "ownerClass": "security",
+      "ref": "platform/security/docs/CONSEQUENCE-VERIFICATION-DIFFERENTIAL.md"
+    }
+  ],
+  "growthRule": "Add a bounded Incident Contract/schema only after two natural owners expose the same missing machine-enforced relation that exact references plus existing owner contracts cannot represent.",
+  "doNotOwn": [
+    "global incident registry",
+    "universal severity/risk score",
+    "on-call scheduling",
+    "automatic containment",
+    "root-cause oracle",
+    "automatic repair",
+    "automatic closure",
+    "Runtime recovery",
+    "Security consequence truth",
+    "Workstation desired state",
+    "Harness cognition",
+    "domain semantic completion",
+    "EffectAuthority"
+  ]
+}

@@ -7,6 +7,7 @@ BROKER_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "wind
 TYPES_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "types.rs"
 EXECUTION_RS = ROOT / "crates" / "ordivon-runtime-core" / "src" / "runtime" / "engine" / "execution.rs"
 MCP_MAIN = ROOT / "crates" / "ordivon-runtime-mcp" / "src" / "main.rs"
+WINDOWS_DEPLOY = ROOT / "crates" / "ordivon-runtime-core" / "src" / "bin" / "ordivon-runtime-windows-deploy.rs"
 
 
 def test_broker_uses_explicit_named_pipe_acl_and_local_system_service_identity():
@@ -152,3 +153,39 @@ def test_broker_client_writes_protocol_json_as_utf8_bytes_not_console_codepage()
     assert "Console.OpenStandardOutput()" in text
     assert "stdout.Write(responseBytes, 0, responseBytes.Length)" in text
     assert "Console.Out.Write(response)" not in text
+
+
+def test_broker_materialization_is_binding_only_and_never_accepts_secret_paths_from_request():
+    text = BROKER.read_text(encoding="utf-8")
+    assert '--materialization-config' in text
+    assert 'operation == "materialize"' in text
+    assert 'GetString(request, "binding")' in text
+    assert 'GetString(request, "sourcePath")' not in text
+    assert 'GetString(request, "destinationPath")' not in text
+    assert 'GetString(request, "secret")' not in text
+    assert '"shared-bearer"' in text
+    assert 'RandomNumberGenerator.Create()' in text
+    assert 'ValidateOperatorOnlyFileAcl(options.MaterializationConfig' in text
+    assert 'new NTAccount("NT SERVICE\\\\" + serviceName)' in text
+    assert 'FileSystemRights.Read' in text
+    assert 'secretValuesReturned' in text
+    assert 'secretDigestsReturned' in text
+    assert 'Array.Clear(authority, 0, authority.Length)' in text
+
+
+def test_broker_materialization_uses_durable_authority_file_for_partial_recovery():
+    text = BROKER.read_text(encoding="utf-8")
+    assert 'EnsureAuthorityBearer' in text
+    assert 'binding.AuthorityPath' in text
+    assert 'if (File.Exists(endpoint.Path))' in text
+    assert 'EqualBytes(authority, existing)' in text
+    assert 'materialized endpoint conflicts with authority bearer' in text
+    assert 'WritePrivateFileAtomic(endpoint.Path, authority, endpoint.ServiceName)' in text
+
+
+def test_structured_release_enables_materialization_config_only_from_explicit_operator_env():
+    text = WINDOWS_DEPLOY.read_text(encoding="utf-8")
+    assert 'ORDIVON_WINDOWS_CREDENTIAL_MATERIALIZATION_CONFIG' in text
+    assert 'broker_image.push_str(" --materialization-config ")' in text
+    assert 'materialization_config.is_absolute()' in text
+    assert 'metadata.file_type().is_symlink() || !metadata.is_file()' in text

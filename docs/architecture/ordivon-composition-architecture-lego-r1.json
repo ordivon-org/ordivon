@@ -336,9 +336,9 @@
       "kind": "package-verification",
       "responsibility": "Update materialization/conformance tests so MCP-only, selected-Skill, and all-Skills compatibility releases all preserve the one-Gateway contract.",
       "files": [
-        "meta/next/scripts/materialize_agent_plugin.py",
-        "meta/next/tests/test_agent_plugin_materialization.py",
-        "platform/skills/tests/test_agent_plugins_conformance.py"
+        "tools/extensions/materialize_agent_plugin.py",
+        "tests/extensions/test_materialize_agent_plugin.py",
+        "extensions/chatgpt-skills-mcp/tests/test_agent_plugins_conformance.py"
       ],
       "dependsOn": [
         "P01"
@@ -399,8 +399,8 @@
       "kind": "scope-contract",
       "responsibility": "Freeze the correct Skill visibility contract: global discovery excludes project Skills; scoped discovery for ordivon-next includes method-router and exact project Skills.",
       "files": [
-        "platform/skills/tests/test_skills_mcp_r3.py",
-        "platform/skills/tests/test_skill_catalog_r2.py"
+        "extensions/chatgpt-skills-mcp/tests/test_skills_mcp_r3.py",
+        "extensions/chatgpt-skills-mcp/tests/test_skill_catalog_r2.py"
       ],
       "dependsOn": [
         "C00"
@@ -420,7 +420,7 @@
       "kind": "consumer-matrix",
       "responsibility": "Prove three independent Skill consumption modes and record which consumers still require the remote bridge.",
       "files": [
-        "platform/skills/docs/skills-standards-alignment.md",
+        "extensions/chatgpt-skills-mcp/docs/skills-standards-alignment.md",
         "meta/next/docs/AGENT_PLUGINS_ADOPTION_R1.md",
         "acceptance evidence"
       ],
@@ -444,7 +444,7 @@
       "kind": "deprecation",
       "responsibility": "Define per-consumer removal gates for the Skills MCP compatibility bridge instead of expanding it into a permanent registry.",
       "files": [
-        "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+        "extensions/chatgpt-skills-mcp/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
       ],
       "dependsOn": [
         "S02"

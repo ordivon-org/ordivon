@@ -49,7 +49,17 @@ def test_windows_release_verifier_expected_tool_catalog_is_sorted() -> None:
     )
     expected = ast.literal_eval(assignment.value)
     assert expected == sorted(expected)
-    assert {"continuity.find", "continuity.changes", "collaboration.publish"} <= set(expected)
+    assert {
+        "work.get",
+        "work.snapshot.commit",
+        "space.create",
+        "message.post",
+        "attention.delta",
+    } <= set(expected)
+    assert not any(
+        name.startswith("continuity.") or name.startswith("collaboration.") for name in expected
+    )
+    assert len(expected) == 28
 
 
 def test_windows_release_installer_emits_mechanical_receipt_without_current_pointer() -> None:

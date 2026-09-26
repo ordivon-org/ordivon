@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.r2-execution-plan",
+  "standing": "ACTIVE_MIGRATION",
+  "baseRevision": "9cab0e9c968dacdb2e7a22462a6a5d98193b0940",
+  "waves": [
+    {
+      "id": "W0",
+      "name": "TruthFreeze",
+      "tasks": [
+        "R20-baseline",
+        "R21-authority-freeze"
+      ]
+    },
+    {
+      "id": "W1",
+      "name": "SharedCompositionQualification",
+      "tasks": [
+        "R22-public-package-binding",
+        "R23-differential-corpus",
+        "R24-substitution-verdict"
+      ]
+    },
+    {
+      "id": "W2",
+      "name": "FinancialCircuitIR",
+      "tasks": [
+        "R25-circuit-spec-contract",
+        "R26-four-canonical-specs",
+        "R27-financial-lowering"
+      ]
+    },
+    {
+      "id": "W3",
+      "name": "ReadCircuitMigration",
+      "tasks": [
+        "R28-read-compiler-cutover",
+        "R29-read-differential",
+        "R30-read-dogfood"
+      ]
+    },
+    {
+      "id": "W4",
+      "name": "EffectCircuitMigration",
+      "tasks": [
+        "R31-effect-compiler-cutover",
+        "R32-effect-destroyer",
+        "R33-effect-dogfood"
+      ]
+    },
+    {
+      "id": "W5",
+      "name": "CurrentnessAutomation",
+      "tasks": [
+        "R34-current-state-generator",
+        "R35-generated-docs",
+        "R36-drift-gate"
+      ]
+    },
+    {
+      "id": "W6",
+      "name": "DeleteGenericGlue",
+      "tasks": [
+        "R37-delete-local-composition",
+        "R38-registry-owner-rebind",
+        "R39-negative-loc-check"
+      ]
+    },
+    {
+      "id": "W7",
+      "name": "R2Acceptance",
+      "tasks": [
+        "R40-semantic-acceptance",
+        "R41-architecture-infoflow",
+        "R42-full-regression",
+        "R43-integration"
+      ]
+    }
+  ],
+  "frozenNonGoals": [
+    "production financial write",
+    "private-account admission",
+    "autonomous investment decision engine",
+    "new OMS/backtester/ledger/workflow engine",
+    "risk-appetite inference"
+  ]
+}

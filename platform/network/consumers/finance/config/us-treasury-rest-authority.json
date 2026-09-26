@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.scoped-egress-authority",
+  "profile": "finance-us-treasury-public",
+  "listenHost": "127.0.0.1",
+  "listenPort": 19291,
+  "proxy": "http://127.0.0.1:19291",
+  "transport": "loopback-http-connect-explicit-public-direct-ipv4",
+  "tlsOwnership": "caller-end-to-end",
+  "allowedTcpPorts": [
+    443
+  ],
+  "destination": {
+    "host": "home.treasury.gov",
+    "port": 443,
+    "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=2026"
+  },
+  "health": {
+    "url": "https://home.treasury.gov/robots.txt",
+    "note": "small exact-host consequence for transport readiness; Capital separately validates the official Treasury XML feed semantics"
+  },
+  "providers": [],
+  "selectionPolicy": "fixed-explicit-public-direct",
+  "healthAuthority": "consumer-consequence-readiness",
+  "staleBehavior": "fail-closed-on-destination-or-dns-unreachable",
+  "directFallback": false,
+  "serviceUnit": "network-v2-finance-egress.service",
+  "targetUnit": "network-v2-finance.target",
+  "groupTag": "public-direct"
+}

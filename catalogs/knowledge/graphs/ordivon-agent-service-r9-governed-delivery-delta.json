@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r9-governed-delivery-delta",
+  "baseGraph": "catalogs/knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "709faa6b1127de4d5f96ba3969c112db74112b55",
+  "refinedBaseNodes": [
+    {
+      "nodeId": "N12",
+      "label": "ServiceRouter",
+      "refinement": "Split into DelegationRoutePlanner plus durable TransportBindingStore; routing consumes an already-allowed PolicyDecision and never performs policy evaluation itself."
+    },
+    {
+      "nodeId": "N17",
+      "label": "PolicyAdapter",
+      "refinement": "Implemented as an external policy evaluation seam feeding durable PolicyDecision records. The adapter is not the decision store and transport security scopes are not application policy permissions."
+    }
+  ],
+  "deferredBaseNodes": [
+    {
+      "nodeId": "N20",
+      "label": "A2AAdapter",
+      "status": "DEFERRED_CONCRETE_PROVIDER",
+      "clarification": "R9 implements DeliveryAdapter seam and correlation semantics but does not claim a live remote A2A provider implementation."
+    },
+    {
+      "nodeId": "N21",
+      "label": "MCPAdapter",
+      "status": "DEFERRED_CONCRETE_PROVIDER",
+      "clarification": "R9 implements DeliveryAdapter seam and route binding semantics but does not claim a live delegated MCP provider implementation."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N44",
+      "label": "AgentInterfaceAdvertisementStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.delivery.AgentInterfaceAdvertisementStore",
+      "reason": "Revision-scoped endpoints/transports/security requirements are discovery and routing metadata distinct from capabilities and credentials."
+    },
+    {
+      "nodeId": "N45",
+      "label": "PolicyDecisionStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.delivery.PolicyDecisionStore",
+      "reason": "A policy observation must become a durable exact decision before routing so replay does not silently re-evaluate changed policy."
+    },
+    {
+      "nodeId": "N46",
+      "label": "PolicyEvaluationCoordinator",
+      "kind": "DECISION_ROUTER",
+      "symbol": "agent_service.delivery.PolicyEvaluationCoordinator",
+      "reason": "Policy adapter invocation and exact request replay are a lifecycle separate from route planning."
+    },
+    {
+      "nodeId": "N47",
+      "label": "DelegationRoutePlanner",
+      "kind": "DECISION_ROUTER",
+      "symbol": "agent_service.delivery.DelegationRoutePlanner",
+      "reason": "Routing selects only interfaces advertised by the target revision and only after an allowed decision bound to the same DelegationEnvelope."
+    },
+    {
+      "nodeId": "N48",
+      "label": "TransportBindingStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.delivery.TransportBindingStore",
+      "reason": "Immutable route candidates must survive restart and support multiple primary/fallback bindings for one semantic delegation."
+    },
+    {
+      "nodeId": "N49",
+      "label": "DeliveryReceiptStore",
+      "kind": "DELIVERY_RECEIPT_STORE",
+      "symbol": "agent_service.delivery.DeliveryReceiptStore",
+      "reason": "Provider admission/status and remote task/context correlation are delivery facts distinct from local Task, Session and route binding truth."
+    },
+    {
+      "nodeId": "N50",
+      "label": "DeliveryCoordinator",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.delivery.DeliveryCoordinator",
+      "reason": "One deterministic delivery request identity bridges an immutable TransportBinding to a replaceable transport adapter and replay-safe local receipt."
+    }
+  ],
+  "flow": [
+    "N42 DelegationEnvelopeStore",
+    "N46 PolicyEvaluationCoordinator",
+    "N17 PolicyAdapter seam",
+    "N45 PolicyDecisionStore",
+    "N47 DelegationRoutePlanner",
+    "N44 AgentInterfaceAdvertisementStore",
+    "N48 TransportBindingStore",
+    "N50 DeliveryCoordinator",
+    "future N20 A2AAdapter or N21 MCPAdapter concrete provider",
+    "N49 DeliveryReceiptStore"
+  ],
+  "authorityLaws": [
+    "Capability advertisement does not bypass policy evaluation.",
+    "Interface security requirements describe authentication/authorization requirements; they contain no credentials or bearer tokens.",
+    "Application policy granted_permissions are not OAuth transport scopes.",
+    "A denied PolicyDecision cannot produce a TransportBinding.",
+    "PolicyDecision is bound to exactly one DelegationEnvelope and cannot authorize another envelope.",
+    "Exact policy request replay returns the historical decision before consulting current policy state.",
+    "One AgentRevision may advertise multiple endpoints for the same transport.",
+    "One DelegationEnvelope may have multiple immutable TransportBindings for primary/fallback routing.",
+    "TransportBinding contains local route truth and deterministic delivery request identity, never remote task/context correlation.",
+    "Remote A2A taskId/contextId are provider correlation values only and never replace local Task.id or Session.id.",
+    "DeliveryReceipt is the only R9 store for remote task/context correlation.",
+    "One DeliveryReceipt is durable per TransportBinding; exact delivery replay returns the committed local receipt without re-sending.",
+    "If provider commit succeeds but the response is lost before local receipt persistence, retry reuses the exact deterministic delivery_request_id; provider-level exact replay remains an adapter/provider contract, not a universal side-effect idempotency claim."
+  ],
+  "standardsBasis": [
+    {
+      "standard": "A2A Protocol 1.0.0",
+      "use": "Agent interfaces/security requirements are discovery metadata; remote Task IDs are service-assigned and context IDs are opaque remote correlation."
+    },
+    {
+      "standard": "Model Context Protocol 2026-07-28",
+      "use": "Transport authorization/security metadata remains distinct from semantic Session and application policy decisions."
+    }
+  ]
+}

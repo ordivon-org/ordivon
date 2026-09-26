@@ -1,6 +1,6 @@
 # Gateway Capability AuthZ Contract R1
 
-Date: 2026-09-23
+Date: 2026-09-23  
 Status: **A01 CONTRACT IMPLEMENTED / A02 ARTIFACT.RUNTIME POLICY QUALIFIED / A03 GATEWAY ENFORCEMENT OPEN**
 
 ## Boundaries

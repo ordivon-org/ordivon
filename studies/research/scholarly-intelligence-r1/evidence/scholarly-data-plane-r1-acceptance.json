@@ -1,0 +1,133 @@
+{
+  "aries": {
+    "alignmentRows": 25462,
+    "editUnits": 213955,
+    "manualTestComments": 196,
+    "negativeAlignments": 24738,
+    "orphanAlignmentComments": 0,
+    "orphanAlignmentEdits": 0,
+    "paperEditDocuments": 1720,
+    "positiveAlignments": 724,
+    "reviewComments": 4088
+  },
+  "ariesLifecycleFork": {
+    "manualConcerns": 196,
+    "withBothBranches": 87,
+    "withPositiveRevision": 87,
+    "withResponseContext": 196
+  },
+  "ariesManualBaseline": {
+    "commentsWithPositiveEditAlignment": 87,
+    "commentsWithoutPositiveEditAlignment": 109,
+    "distinctDocumentsInManualTest": 42,
+    "manualTestComments": 196,
+    "negativeEditLinks": 24738,
+    "positiveEditLinks": 182
+  },
+  "ariesResponse": {
+    "chainedAuthorResponses": 1976,
+    "concernResponseContextLinks": 270,
+    "directAuthorResponses": 8488,
+    "manualConcernExactReviewJoins": 196,
+    "manualConcernForumMismatches": 0,
+    "manualConcernRows": 196,
+    "manualConcernsWithAnyResponse": 196,
+    "manualConcernsWithBothBranches": 87,
+    "manualConcernsWithPositiveRevision": 87,
+    "orphanReplyParents": 0,
+    "relevantAuthorResponses": 10464,
+    "relevantForums": 1720,
+    "relevantOfficialReviews": 6380,
+    "sourceAuthorReplies": 32691,
+    "sourceReviewRecords": 23706
+  },
+  "context24": {
+    "task1CrossSplitExactClaimOverlap": 0,
+    "task1CrossSplitPaperOverlap": 6,
+    "task1GoldEvidenceLinks": 679,
+    "task1TestPapers": 46,
+    "task1TestRows": 111,
+    "task1TotalRows": 585,
+    "task1TrainPapers": 229,
+    "task1TrainRows": 474,
+    "task1TrainingExactUniqueRows": 463,
+    "task1TrainingNativeIdCollisionGroups": 19,
+    "task1UniqueNativeIds": 566,
+    "task2ExactClaimsAlsoInTask1": 145,
+    "task2GoldMethodContextSnippets": 210,
+    "task2NativeIdsNotInTask1": 5,
+    "task2TestRows": 109,
+    "task2TotalRows": 151,
+    "task2TrainRows": 42,
+    "task2UniqueNativeIds": 151
+  },
+  "context24HistoricalDirectTransport": "BLOCKED_TRANSPORT_NOT_DATA_OR_LICENSE",
+  "disapere": {
+    "explicitLocalAlignedRebuttalSentences": 9416,
+    "explicitLocalAlignmentLinks": 21675,
+    "orphanLocalAlignmentLinks": 0,
+    "rebuttalSentences": 11103,
+    "reviewRebuttalPairs": 506,
+    "reviewSentences": 9946
+  },
+  "disapereCoverageBaseline": {
+    "allReviewSentences": {
+      "targeted": 4096,
+      "total": 9946
+    },
+    "clarityReviewSentences": {
+      "targeted": 600,
+      "total": 1102
+    },
+    "negativePolarityReviewSentences": {
+      "targeted": 2004,
+      "total": 2927
+    },
+    "replicabilityReviewSentences": {
+      "targeted": 214,
+      "total": 284
+    },
+    "requestReviewSentences": {
+      "targeted": 1441,
+      "total": 1971
+    },
+    "soundnessCorrectnessReviewSentences": {
+      "targeted": 626,
+      "total": 953
+    }
+  },
+  "emse": {
+    "accessibleRandomBaselineFulltexts": 109,
+    "externalPdfBytes": 575426096,
+    "externalPdfFiles": 211,
+    "focusedTopicOversampleAssignment": 100,
+    "publisherFinalFulltexts": 133,
+    "publisherOriginalPaperFrame": 675,
+    "stratifiedBaselineAssignment": 250,
+    "uniqueAcquisitionTargets": 350,
+    "validatedFulltexts": 149
+  },
+  "externalCandidateCount": 14,
+  "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
+  "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
+  "materializedLocalAssetCount": 6,
+  "nextWaves": [
+    "Context24 evidence-content resolver",
+    "PeerSum semantic-disagreement annotation",
+    "ARIES response-to-revision identification"
+  ],
+  "peersum": {
+    "authorMessages": 95943,
+    "messages": 178272,
+    "nonemptyMetaReviews": 14993,
+    "officialReviewMessages": 79354,
+    "orphanReplyTargets": 0,
+    "papers": 14993,
+    "publicMessages": 2975,
+    "replyCycles": 0,
+    "replyEdges": 178272
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_DATA_PLANE_WITH_CONTEXT24_ARIES_RESPONSE_DISAPERE_PEERSUM",
+  "truthBoundary": "Acceptance proves current local EMSE, Context24, ARIES core, ARIES review-response core, DISAPERE, and PeerSum physical/schema bindings, including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels into reviewer/scientific truth, authorize manuscript or submission effects, or generalize dataset frequencies to scholarly populations."
+}

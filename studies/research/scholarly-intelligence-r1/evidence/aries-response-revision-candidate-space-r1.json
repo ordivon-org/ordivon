@@ -1,0 +1,82 @@
+{
+  "annotationReadiness": "READY_FOR_INDEPENDENT_SEMANTIC_ANNOTATION",
+  "candidateAmbiguity": {
+    "ambiguousConcerns": 53,
+    "candidatePairsPerConcern": {
+      "max": 12,
+      "mean": 2.8505747126436782,
+      "median": 2,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 4.0
+    },
+    "positiveEditCountPerConcern": {
+      "max": 9,
+      "mean": 2.0919540229885056,
+      "median": 1,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 2.0
+    },
+    "responseCountPerConcern": {
+      "max": 3,
+      "mean": 1.367816091954023,
+      "median": 1,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 2.0
+    },
+    "responseReuse": {
+      "maxConcernsPerResponse": 5,
+      "meanConcernsPerResponse": 2.4285714285714284,
+      "responses": 49,
+      "reusedAcrossConcerns": 31
+    },
+    "singleCandidateConcerns": 34,
+    "totalCandidatePairs": 248
+  },
+  "candidateEditKindCounts": {
+    "deletion": 6,
+    "insertion": 155,
+    "replacement_or_move": 87
+  },
+  "counts": {
+    "candidateConcernGroups": 87,
+    "candidateDocuments": 36,
+    "extractedPdfIdentities": 72,
+    "paragraphs": 8518,
+    "positiveEditLinkRows": 182,
+    "requestedPdfIdentities": 72,
+    "responseRevisionCandidateRows": 248,
+    "selectedDocuments": 36,
+    "semanticEdits": 4718,
+    "uniquePositiveEdits": 131,
+    "uniqueResponsesInCandidateSpace": 49
+  },
+  "editKindCounts": {
+    "deletion": 504,
+    "insertion": 943,
+    "replacement_or_move": 3271
+  },
+  "id": "aries-response-revision-candidate-space-r1",
+  "interpretationCeiling": [
+    "Candidate pairs are a Cartesian search space from review-level response context and concern-specific positive revision correspondence. They are not semantic correspondence, adequacy, or causal gold.",
+    "A 1x1 candidate group is not gold because response context is review-level and frequently reused across multiple concerns.",
+    "The semantic-content core enables independent annotation or model-assisted candidate ranking but cannot evaluate such methods without a separately validated response-to-edit relation."
+  ],
+  "kind": "ordivon.research.aries-response-revision-candidate-space-baseline",
+  "modelTrainingStanding": "NOT_AUTHORIZED_WITHOUT_SEPARATELY_VALIDATED_RESPONSE_EDIT_RELATION",
+  "relationStanding": "NO_GOLD_RESPONSE_EDIT_RELATION_IN_SOURCE_ASSETS",
+  "rightsBoundary": {
+    "commercialPaperTextReuse": "NOT_AUTHORIZED_BY_CATALOG",
+    "datasetLicenseObserved": "ODC-BY-1.0",
+    "externalTextRedistribution": "NOT_AUTHORIZED_BY_CATALOG",
+    "underlyingPaperTextRights": "NOT_INDEPENDENTLY_VERIFIED"
+  },
+  "schemaVersion": 1,
+  "sourceAsset": "aries-semantic-content-core-r1",
+  "sourceSnapshotIdentity": "sha256:aee4b640155c01f8c0e1f677494356f87944671e4a5c7079de8c86ee11fb0848"
+}

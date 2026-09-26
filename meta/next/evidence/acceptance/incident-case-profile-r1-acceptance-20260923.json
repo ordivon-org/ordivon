@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.incident-case-profile-r1-acceptance",
+  "effectiveDate": "2026-09-23",
+  "standing": "PASS_PROFILE_EXTRACTION_NO_INCIDENT_SERVICE",
+  "truthRole": "architecture-acceptance-not-incident-or-domain-truth",
+  "profileRef": "meta/next/planning/incident-case-profile-r1.json",
+  "documentationRef": "meta/next/docs/INCIDENT_CASE_PROFILE_R1.md",
+  "dogfoodRef": "meta/next/evidence/analysis/incident-case-profile-r1-dogfood-20260923.json",
+  "pressure": {
+    "materiallyDifferentOwnerClasses": 4,
+    "socialDamageSignal": true,
+    "runtimeRecovery": true,
+    "harnessInvestigation": true,
+    "securityConsequenceVerification": true
+  },
+  "acceptedLaws": [
+    "damage signal != incident admission",
+    "detection != containment authority",
+    "execution receipt != consequence truth",
+    "recovery action != verified recovery",
+    "hypothesis != root cause",
+    "ambiguous external effect => reconcile, not blind retry"
+  ],
+  "decision": "Extract only a cross-owner Incident Case composition profile. Keep mutable truth, containment, recovery, consequence verification and closure with natural owners.",
+  "rejectedGrowth": [
+    "incident service",
+    "incident database",
+    "global incident state machine",
+    "automatic containment controller",
+    "universal severity score",
+    "root-cause oracle",
+    "automatic repair",
+    "automatic closure"
+  ],
+  "nextPressure": [
+    "If two natural owners later require the same machine-enforced case relation, propose a bounded contract rather than a service.",
+    "A future prospective incident may bind Verification Obligations to regression checks without moving verifier ownership.",
+    "Social Fabric SF33 remains detection/attention input only."
+  ]
+}

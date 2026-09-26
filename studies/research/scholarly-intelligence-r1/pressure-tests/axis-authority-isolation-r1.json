@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.cross-study-pressure-test-plan",
+  "id": "axis-authority-isolation-r1",
+  "truthRole": "architecture-pressure-test-not-study-truth",
+  "candidateRule": {
+    "id": "axis-local-closure-does-not-transfer-authority-r1",
+    "statement": "Closure or PASS on one scholarly axis does not authorize, imply, or overwrite closure on another axis; route next work through the unresolved owner-native axis."
+  },
+  "studies": [
+    {
+      "profileId": "paper1-r25-live-r1",
+      "studyLabel": "Paper1",
+      "assertions": [
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "science.scienceFreezeReopened", "op": "eq", "expected": false},
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "science.modelFitsExecutedForR25", "op": "eq", "expected": 0},
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "science.scoresGeneratedForR25", "op": "eq", "expected": 0},
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "science.newOutcomeBearingEvidence", "op": "eq", "expected": false},
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "wordNative.visualStanding", "op": "eq", "expected": "PASS_EXACT_DELTA_BOUND_VISUAL_ACCEPTANCE"},
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "authorization.externalSubmissionAuthorized", "op": "eq", "expected": false},
+        {"evidenceRef": "P1-EV-TECHQUAL-R25", "path": "artifactReleaseResidual.scienceImpact", "op": "eq", "expected": "NONE"}
+      ],
+      "actionBoundary": "Reviewer-risk and exact-byte qualification changed publication/review state without reopening science or authorizing submission.",
+      "nextActionClass": "HUMAN_OR_RELEASE_GATE_NOT_EXPERIMENT"
+    },
+    {
+      "profileId": "paper2-live-r1",
+      "studyLabel": "Paper2",
+      "assertions": [
+        {"evidenceRef": "P2-EV-FULLTEXT-ACQUISITION", "path": "all_retrieval_routes_mechanically_closed", "op": "eq", "expected": true},
+        {"evidenceRef": "P2-EV-FULLTEXT-ACQUISITION", "path": "scientific_boundary", "op": "contains", "expected": "Acquisition closure is not eligibility closure"},
+        {"evidenceRef": "P2-EV-FULLTEXT-READINESS", "path": "scientific_boundary", "op": "contains", "expected": "makes no full-text eligibility decisions"},
+        {"evidenceRef": "P2-EV-FULLTEXT-READINESS", "path": "readiness_state_counts.LOCAL_PDF_READY", "op": "eq", "expected": 793},
+        {"evidenceRef": "P2-EV-FULLTEXT-READINESS", "path": "readiness_state_counts.RETRIEVAL_BOUNDARY_REVIEW_REQUIRED", "op": "eq", "expected": 603},
+        {"evidenceRef": "P2-EV-FIRSTPASS-FREEZE", "path": "disagreement_count", "op": "gt", "expected": 0},
+        {"evidenceRef": "P2-EV-FIRSTPASS-FREEZE", "path": "interpretation", "op": "contains", "expected": "Disagreements are unadjudicated"}
+      ],
+      "actionBoundary": "Acquisition closure routes to blinded eligibility/adjudication work; it cannot be promoted to scientific inclusion, synthesis, or publication closure.",
+      "nextActionClass": "SCREEN_OR_ADJUDICATE_NOT_PUBLISH"
+    },
+    {
+      "profileId": "paper3-c21-r10-live-r1",
+      "studyLabel": "Paper3",
+      "assertions": [
+        {"evidenceRef": "P3-EV-R10-CLOSURE", "path": "scienceStanding", "op": "eq", "expected": "CLOSED_FROZEN_NO_RESULT_CHANGE"},
+        {"evidenceRef": "P3-EV-R10-CLOSURE", "path": "perceptualConformance.standing", "op": "eq", "expected": "PENDING_INDEPENDENT_OBSERVER_EXECUTION"},
+        {"evidenceRef": "P3-EV-R10-CLOSURE", "path": "automatedSubmissionBlockerCount", "op": "eq", "expected": 1},
+        {"evidenceRef": "P3-EV-R10-CLOSURE", "path": "remainingSystemGates", "op": "contains_item", "expected": "PERCEPTUAL_CONFORMANCE_R1_INDEPENDENT_OBSERVER_EXECUTION_AND_CONSENSUS"},
+        {"evidenceRef": "P3-EV-R10-CLOSURE", "path": "remainingHumanAuthorityGates", "op": "contains_item", "expected": "HUMAN_SUBMISSION_METADATA_AND_FINAL_ATTESTATIONS"},
+        {"evidenceRef": "P3-EV-R10-HUMAN-HANDOFF", "path": "systemOwnedPreSubmissionGate.authorActionRequired", "op": "eq", "expected": false},
+        {"evidenceRef": "P3-EV-R10-HUMAN-HANDOFF", "path": "humanAuthorityOnly.notRequired", "op": "contains_item", "expected": "ROUTINE_PDF_PERCEPTUAL_QA"}
+      ],
+      "actionBoundary": "Science and packaging closure route to a system-owned perceptual gate before separate human submission authority; neither reopens science.",
+      "nextActionClass": "SYSTEM_PERCEPTUAL_GATE_THEN_HUMAN_SUBMISSION_AUTHORITY"
+    }
+  ],
+  "externalSubstitutionAssessment": {
+    "status": "PASS_FOR_THIN_PROFILE_ONLY",
+    "ownersExamined": [
+      "ACM SIGSOFT Empirical Standards / Study-native method rules",
+      "W3C PROV",
+      "OpenLineage",
+      "RO-Crate",
+      "Nanopublications/CiTO"
+    ],
+    "finding": "External owners retain method, provenance, lineage, packaging, and claim/citation semantics. None is promoted into a universal cross-Study next-action authority; the shared profile therefore keeps only owner/revision/ref/state-axis projection."
+  },
+  "counterexamples": [
+    {
+      "id": "CX1-statistical-semantics",
+      "attack": "Five coordination roles cannot encode estimands, dependence, uncertainty, robustness, or claim ceilings without semantic loss.",
+      "requiredDisposition": "KEEP_PAYLOAD_STUDY_OWNED"
+    },
+    {
+      "id": "CX2-screening-protocol",
+      "attack": "Paper2 eligibility and adjudication semantics would be corrupted if generic shared roles redefined protocol decisions.",
+      "requiredDisposition": "KEEP_PROTOCOL_STUDY_OWNED"
+    },
+    {
+      "id": "CX3-claim-relation-standards",
+      "attack": "CiTO/Nanopublication-style mature relation semantics make a new global Ordivon scientific-edge ontology duplicative.",
+      "requiredDisposition": "DO_NOT_ADD_GLOBAL_SCIENTIFIC_EDGE_ONTOLOGY"
+    },
+    {
+      "id": "CX4-review-cycle",
+      "attack": "Review-rebuttal-revision is cyclic, so forcing the scholarly graph into the execution DAG loses state semantics.",
+      "requiredDisposition": "KEEP_KNOWLEDGE_GRAPH_AND_EXECUTION_DAG_SEPARATE"
+    }
+  ],
+  "admissionTarget": "THIN_PROFILE_PROTOCOL_ONLY",
+  "explicitlyNotAdmitted": [
+    "universal scientific ontology",
+    "ClaimPermission as a shared executable policy",
+    "Concern-to-gap routing as a shared executable policy",
+    "experiment-admission policy",
+    "reviewer acceptance prediction",
+    "shared scientific database"
+  ]
+}

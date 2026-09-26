@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.reservation-composition-contract",
+  "standing": "ACTIVE_R1",
+  "owner": "accounting",
+  "resolutionMap": {
+    "POSITIVE_EXECUTION": "POST_PENDING_TRANSFER",
+    "RECONCILED_ZERO_FILL_TERMINAL": "VOID_PENDING_TRANSFER",
+    "PROVEN_NO_EFFECT": "VOID_PENDING_TRANSFER",
+    "UNKNOWN": "NO_MUTATION",
+    "AMBIGUOUS": "NO_MUTATION",
+    "PARTIAL_OPEN": "NO_MUTATION",
+    "CONTRADICTORY": "NO_MUTATION"
+  },
+  "laws": [
+    "reservation is durable local accounting state, not venue truth",
+    "UNKNOWN never mutates the pending reservation",
+    "terminal accounting history cannot be reopened by stale or contradictory provider observations",
+    "replay uses stable reservation and resolution identities"
+  ]
+}

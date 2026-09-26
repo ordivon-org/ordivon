@@ -8,7 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 INSTALL = ROOT / "packaging" / "install_release.sh"
 
 
-def _run(*args: str, cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _run(
+    *args: str, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
         cwd=cwd,

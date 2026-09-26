@@ -1,0 +1,244 @@
+{
+  "coordinationCut": {
+    "events": [
+      {
+        "data": {
+          "effectOwner": "runtime.windows",
+          "evidenceRefs": [
+            "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301"
+          ],
+          "holderRef": "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+          "mode": "exclusive",
+          "operation": "compact-vhd"
+        },
+        "datacontenttype": "application/json",
+        "id": "candidate:vhd-compact:capital",
+        "ordivonexpiresat": "2026-09-23T04:40:00+08:00",
+        "ordivonscope": "system",
+        "source": "urn:ordivon:runtime:windows",
+        "specversion": "1.0",
+        "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+        "time": "2026-09-23T04:27:47+08:00",
+        "type": "io.ordivon.social.candidate.v1"
+      },
+      {
+        "data": {
+          "effectOwner": "runtime.windows",
+          "evidenceRefs": [
+            "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+          ],
+          "holderRef": "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314",
+          "mode": "exclusive",
+          "operation": "compact-vhd"
+        },
+        "datacontenttype": "application/json",
+        "id": "candidate:vhd-compact:gris",
+        "ordivonexpiresat": "2026-09-23T04:40:00+08:00",
+        "ordivonscope": "system",
+        "source": "urn:ordivon:runtime:windows",
+        "specversion": "1.0",
+        "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+        "time": "2026-09-23T04:29:20+08:00",
+        "type": "io.ordivon.social.candidate.v1"
+      },
+      {
+        "data": {
+          "effectOwner": "windows-service-control",
+          "evidenceRefs": [
+            "observation:WSLService-running-20260923T043132+0800"
+          ],
+          "holderRef": "service:WSLService",
+          "mode": "shared",
+          "operation": "attach-or-start-wsl"
+        },
+        "datacontenttype": "application/json",
+        "id": "candidate:wslservice-restart",
+        "ordivonexpiresat": "2026-09-23T04:35:00+08:00",
+        "ordivonscope": "system",
+        "source": "urn:ordivon:runtime:windows",
+        "specversion": "1.0",
+        "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+        "time": "2026-09-23T04:31:32+08:00",
+        "type": "io.ordivon.social.candidate.v1"
+      },
+      {
+        "data": {
+          "evidenceRefs": [
+            "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+            "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+          ],
+          "reasonCode": "DISKPART_RPC_UNAVAILABLE_DURING_COMPACTION"
+        },
+        "datacontenttype": "application/json",
+        "id": "damage:diskpart-rpc-unavailable",
+        "ordivonexpiresat": "2026-09-23T05:00:00+08:00",
+        "ordivonscope": "system",
+        "source": "urn:ordivon:runtime:windows",
+        "specversion": "1.0",
+        "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+        "time": "2026-09-23T04:32:20+08:00",
+        "type": "io.ordivon.social.damage.v1"
+      },
+      {
+        "data": {
+          "dimension": "free-space-pressure",
+          "evidenceRefs": [
+            "observation:D-free-17694720"
+          ],
+          "valueBytes": 17694720
+        },
+        "datacontenttype": "application/json",
+        "id": "modulatory:d-drive-pressure",
+        "ordivonexpiresat": "2026-09-23T05:00:00+08:00",
+        "ordivonscope": "system",
+        "source": "urn:ordivon:workstation:storage",
+        "specversion": "1.0",
+        "subject": "resource:windows:drive:D",
+        "time": "2026-09-23T04:29:10+08:00",
+        "type": "io.ordivon.social.modulatory.v1"
+      }
+    ],
+    "kind": "ordivon.social-fabric-coordination-cut",
+    "nonClaims": [
+      "This cut reconstructs a past failure window; it is not a live owner lease.",
+      "Job/service references are evidence references, not execution grants.",
+      "The projection must not choose a winning maintenance action."
+    ],
+    "observedAt": "2026-09-23T04:32:40+08:00",
+    "receptors": [
+      {
+        "acceptedTypes": [
+          "io.ordivon.social.candidate.v1",
+          "io.ordivon.social.damage.v1"
+        ],
+        "maxAgeSeconds": 900,
+        "receptorId": "receptor:wsl-maintenance-guard",
+        "requireEvidence": true,
+        "scopes": [
+          "system"
+        ],
+        "sources": [],
+        "subjectPrefixes": [
+          "resource:windows:wsl:archlinux:"
+        ]
+      },
+      {
+        "acceptedTypes": [
+          "io.ordivon.social.modulatory.v1"
+        ],
+        "maxAgeSeconds": 900,
+        "receptorId": "receptor:storage-pressure",
+        "requireEvidence": true,
+        "scopes": [
+          "system"
+        ],
+        "sources": [],
+        "subjectPrefixes": [
+          "resource:windows:drive:"
+        ]
+      }
+    ],
+    "schemaVersion": 1
+  },
+  "kind": "ordivon.social-fabric-signaling-r3-cut",
+  "nonClaims": [
+    "Semantic bindings are a successor projection over a historical cut; they do not rewrite R2 evidence.",
+    "Propagation mode is social visibility semantics, not transport execution."
+  ],
+  "receptors": [
+    {
+      "acceptedTypes": [
+        "io.ordivon.social.candidate.v1",
+        "io.ordivon.social.damage.v1"
+      ],
+      "compartmentPrefixes": [
+        "resource:windows:wsl:archlinux:"
+      ],
+      "maxAgeSeconds": 900,
+      "propagationModes": [
+        "local",
+        "environmental"
+      ],
+      "receptorId": "receptor:r3-wsl-maintenance",
+      "requireEvidence": true,
+      "semanticScopePrefixes": [
+        "maintenance:"
+      ],
+      "sources": [],
+      "subjectPrefixes": [
+        "resource:windows:wsl:archlinux:"
+      ]
+    },
+    {
+      "acceptedTypes": [
+        "io.ordivon.social.modulatory.v1"
+      ],
+      "compartmentPrefixes": [
+        "resource:windows:drive:"
+      ],
+      "maxAgeSeconds": 900,
+      "propagationModes": [
+        "broadcast"
+      ],
+      "receptorId": "receptor:r3-storage-pressure",
+      "requireEvidence": true,
+      "semanticScopePrefixes": [
+        "workstation:storage-pressure"
+      ],
+      "sources": [],
+      "subjectPrefixes": [
+        "resource:windows:drive:"
+      ]
+    }
+  ],
+  "schemaVersion": 1,
+  "signalSemantics": [
+    {
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "candidate:vhd-compact:capital",
+      "propagationMode": "local",
+      "semanticScope": "maintenance:wsl-vhd"
+    },
+    {
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "candidate:vhd-compact:gris",
+      "propagationMode": "local",
+      "semanticScope": "maintenance:wsl-vhd"
+    },
+    {
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "candidate:wslservice-restart",
+      "propagationMode": "local",
+      "semanticScope": "maintenance:wsl-vhd"
+    },
+    {
+      "anomalyOrigin": "unknown",
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:wsl:archlinux:ext4-vhdx"
+      ],
+      "eventId": "damage:diskpart-rpc-unavailable",
+      "originSourceRef": "evidence:social-fabric-coordination-r2-vhd-cut",
+      "propagationMode": "environmental",
+      "semanticScope": "maintenance:wsl-vhd"
+    },
+    {
+      "compartmentRefs": [
+        "domain:workstation",
+        "resource:windows:drive:D"
+      ],
+      "eventId": "modulatory:d-drive-pressure",
+      "propagationMode": "broadcast",
+      "semanticScope": "workstation:storage-pressure"
+    }
+  ]
+}

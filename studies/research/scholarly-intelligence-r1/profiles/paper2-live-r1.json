@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.scholarly-intelligence-profile",
+  "truthRole": "non-authoritative-study-projection",
+  "profileId": "paper2-live-r1",
+  "studyAuthority": {
+    "owner": "paper2-independent-study",
+    "sourceRepo": "/root/projects/ordivon-paper2",
+    "sourceRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+    "subjectRef": "screening/fulltext/FULLTEXT_ACQUISITION_CLOSURE_R1.json"
+  },
+  "standardNativeBinding": null,
+  "semanticRefs": {
+    "requirements": [],
+    "claims": [],
+    "evidence": [
+      {"owner":"paper2-study","id":"P2-EV-FIRSTPASS-FREEZE","location":"screening/adjudication/FIRST_PASS_FREEZE_R1.json","digest":"sha256:2296cd47b8799be0ade0af40a9b9a30d90fe079fd83214395e1fd194aa4e38b0"},
+      {"owner":"paper2-study","id":"P2-EV-FULLTEXT-ACQUISITION","location":"screening/fulltext/FULLTEXT_ACQUISITION_CLOSURE_R1.json","digest":"sha256:3c10eebf513e726df5aebef7e9dc508ce2b36e267c106d47b9ddb1996967363a"},
+      {"owner":"paper2-study","id":"P2-EV-FULLTEXT-READINESS","location":"screening/fulltext/FULLTEXT_ELIGIBILITY_READINESS_R1.json","digest":"sha256:c705e7a7ff43401fb588bae2d9198203c35f5e180b7f67d9a11aecd55cefb709"},
+      {"owner":"paper2-study","id":"P2-EV-TITLE-ABSTRACT","location":"screening/waves/FINAL_TITLE_ABSTRACT_SCREENING_R1.json","digest":"sha256:7d5ff21661fc0e1725bb9f75d36ae47330b0c8397c8bb7d735ff5a14e3c4015d"}
+    ],
+    "concerns": [],
+    "resolutions": []
+  },
+  "stateAxes": {
+    "requirements": {"owner":"paper2-study","state":"STUDY_PROTOCOL_AND_ELIGIBILITY_RULES_NOT_PROJECTED_BY_SI_R2","evidenceRefs":[]},
+    "evidence": {"owner":"paper2-study","state":"FULLTEXT_ACQUISITION_MECHANICALLY_CLOSED_WITH_ACCESS_BOUNDARY","evidenceRefs":["P2-EV-FULLTEXT-ACQUISITION","P2-EV-FULLTEXT-READINESS"]},
+    "inference": {"owner":"paper2-study","state":"ACTIVE_ELIGIBILITY_AND_SYNTHESIS_NOT_CLOSED","evidenceRefs":["P2-EV-FULLTEXT-READINESS"]},
+    "claims": {"owner":"paper2-study","state":"PUBLICATION_CLAIMSET_NOT_PROJECTED","evidenceRefs":[]},
+    "argument": {"owner":"paper2-study","state":"PUBLICATION_ARGUMENT_NOT_PROJECTED","evidenceRefs":[]},
+    "venue": {"owner":"paper2-study","state":"TARGET_VENUE_NOT_PROJECTED","evidenceRefs":[]},
+    "review": {"owner":"paper2-study","state":"SCREENING_AND_ADJUDICATION_ACTIVE","evidenceRefs":["P2-EV-FIRSTPASS-FREEZE","P2-EV-TITLE-ABSTRACT"]},
+    "publication": {"owner":"paper2-study","state":"NOT_IN_PUBLICATION_QUALIFICATION_PHASE","evidenceRefs":[]},
+    "learning": {"owner":"research-shared-profile","state":"LIVE_PROJECTION_INITIALIZED","evidenceRefs":[]}
+  },
+  "nonClaims": [
+    "Mechanical full-text acquisition closure does not establish full-text eligibility closure.",
+    "LOCAL_PDF_READY does not mean a record is included in the final study.",
+    "The first-pass agreement rate is not independent-human inter-rater reliability.",
+    "This projection does not establish a publication claimset, venue fit, or submission readiness."
+  ],
+  "notes": [
+    "The acquisition closure records 1396 escalated records: 793 LOCAL_PDF_READY and 603 RETRIEVAL_BOUNDARY_REVIEW_REQUIRED.",
+    "The first-pass freeze explicitly separates screening mechanics from scientific eligibility."
+  ]
+}

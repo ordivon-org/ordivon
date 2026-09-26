@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-spec",
+  "circuitId": "COUNTERFACTUAL_ANALYSIS_R2",
+  "goalClass": "COUNTERFACTUAL_ANALYSIS",
+  "requestedUse": "what-if portfolio projection",
+  "terminalClaim": "COUNTERFACTUAL_EVIDENCE_COMPLETENESS",
+  "stages": [
+    {
+      "id": "exposure-ledger",
+      "legoId": "capital.risk.portfolio-risk",
+      "dependsOn": [],
+      "inputs": [
+        "portfolio-input"
+      ],
+      "outputs": [
+        "exposure-ledger"
+      ],
+      "operation": "exposure_ledger"
+    },
+    {
+      "id": "counterfactual-gate",
+      "legoId": "capital.portfolio.counterfactuals",
+      "dependsOn": [
+        "exposure-ledger"
+      ],
+      "inputs": [
+        "exposure-ledger",
+        "scenario-input"
+      ],
+      "outputs": [
+        "counterfactual-gate"
+      ],
+      "operation": "counterfactual_gate"
+    }
+  ],
+  "authorityBindings": []
+}

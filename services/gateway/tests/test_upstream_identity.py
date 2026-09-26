@@ -150,15 +150,15 @@ def test_conforming_owner_uses_first_class_mcp_client(monkeypatch: pytest.Monkey
             )
         }
     )
-    result = asyncio.run(caller.call_tool("host", "task.list", {"limit": 1}))
+    result = asyncio.run(caller.call_tool("host", "host.status", {"detail": "summary"}))
 
     assert result == {"task": {"task_id": "task:1"}}
     assert observed["url"] == "https://host.example/mcp"
     assert observed["transport"] is fake_transport
     assert observed["client_kwargs"] == {"mode": "auto", "raise_exceptions": False}
     assert observed["call"] == (
-        "task.list",
-        {"limit": 1},
+        "host.status",
+        {"detail": "summary"},
         {
             "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
             "tracestate": "vendor=value",

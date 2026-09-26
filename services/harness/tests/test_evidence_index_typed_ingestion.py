@@ -259,6 +259,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertEqual(
             invalidating,
             [
+                "src/ordivon_harness/ordivon/runtime_lowering.py",
                 "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
                 "@runtime-dependency-closure",
             ],
@@ -412,23 +413,39 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         )
         self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2_invalidating)
 
-        current = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
+        h2b = entries["harness.composition.agent-plugin-h2b-cooperative-cancellation"]
+        self.assertEqual(h2b["status"], "historical")
+        h2b_current, h2b_invalidating = check_evidence._verified_revision_is_current(
+            str(h2b["implementationRevision"]),
+            tuple(h2b["implementationPaths"]),
+            runtime_dependency_closure_digest=str(h2b["runtimeDependencyClosureDigest"]),
+        )
+        self.assertFalse(h2b_current)
+        self.assertIn(
+            "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
+            h2b_invalidating,
+        )
+        self.assertIn("src/ordivon_harness/plugin_gateway_effect.py", h2b_invalidating)
+
+        current = entries["harness.runtime.runtime-job-tool-contract-r1"]
         self.assertEqual(current["status"], "verified")
         self.assertEqual(
             current["implementationRevision"],
-            "5c70231dcf118a338bc851c2a47eeee4e93b9f0e",
+            "045cf62eed2e1039ab39d71bdc179349d1e974b9",
         )
         receipt = json.loads(
-            (
-                ROOT
-                / "evidence"
-                / "harness-agent-plugin-h2b-cooperative-cancellation-20260922.json"
-            ).read_text(encoding="utf-8")
+            (ROOT / "evidence" / "harness-runtime-job-tool-contract-r1-20260923.json").read_text(
+                encoding="utf-8"
+            )
         )
-        self.assertEqual(receipt["composition"]["controlTool"], "execution.cancel")
-        self.assertFalse(receipt["composition"]["cancelAcknowledgementIsTerminalProof"])
-        self.assertEqual(receipt["composition"]["nonTerminalReceiptStatus"], "cancel-requested")
-        self.assertEqual(receipt["composition"]["runStopCodeUntilTerminalProof"], "cancel_unknown")
+        self.assertEqual(receipt["contract"]["runtimeJobDiscoveryTool"], "job.list")
+        self.assertEqual(receipt["contract"]["runtimeJobObservationTool"], "job.observe")
+        self.assertEqual(
+            receipt["contract"]["retiredCompatibilityNames"],
+            ["task.list", "task.observe"],
+        )
+        self.assertTrue(receipt["contract"]["cooperativeGatewayCancellationPreserved"])
+        self.assertFalse(receipt["contract"]["runtimeOwnsTaskSemanticCompletion"])
         self.assertEqual(
             receipt["runtimeDependencyClosureDigest"],
             "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5",
@@ -436,6 +453,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         self.assertEqual(
             current["implementationPaths"],
             [
+                "src/ordivon_harness/ordivon/runtime_lowering.py",
                 "src/ordivon_harness/ordivon/sqlite_runtime_bridge.py",
                 "src/ordivon_harness/plugin_gateway_effect.py",
             ],
@@ -447,9 +465,7 @@ class EvidenceIndexTypedIngestionTests(unittest.TestCase):
         current_ok, current_invalidating = check_evidence._verified_revision_is_current(
             str(current["implementationRevision"]),
             tuple(current["implementationPaths"]),
-            runtime_dependency_closure_digest=str(
-                current["runtimeDependencyClosureDigest"]
-            ),
+            runtime_dependency_closure_digest=str(current["runtimeDependencyClosureDigest"]),
         )
         self.assertTrue(current_ok, current_invalidating)
         self.assertEqual(current_invalidating, [])

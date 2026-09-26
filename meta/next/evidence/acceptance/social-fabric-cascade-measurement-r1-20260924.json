@@ -1,0 +1,51 @@
+{
+  "cases": [
+    {
+      "generationEvidenceRefs": [],
+      "nonClaims": [
+        "Repeated probes were externally initiated diagnostic work; no evidence shows a probe generated a new probe task."
+      ],
+      "observedCaseId": "CAS-WSL-VSOCK-REPEATED-PROBES",
+      "repeatedObservation": true,
+      "selfAmplifyingWorkGeneration": false,
+      "sourceRefs": [
+        "host:task:task:wsl-maintenance-preflight-r1-20260918@7"
+      ],
+      "trigger": "UtilAcceptVsock accept4 failed 110"
+    },
+    {
+      "generationEvidenceRefs": [],
+      "nonClaims": [
+        "Two attempts are retries, and the owner checkpoint explicitly stops further blind retry."
+      ],
+      "observedCaseId": "CAS-CAPITAL-A02-RETRY",
+      "repeatedObservation": true,
+      "selfAmplifyingWorkGeneration": false,
+      "sourceRefs": [
+        "host:task:task:market-capital-r2-trading-substrate-readmission-20260915@5"
+      ],
+      "trigger": "human-handoff-unavailable"
+    },
+    {
+      "generationEvidenceRefs": [],
+      "nonClaims": [
+        "Repeated currentness census does not prove the census itself creates the divergence or new census work."
+      ],
+      "observedCaseId": "CAS-CANONICAL-CENSUS",
+      "repeatedObservation": true,
+      "selfAmplifyingWorkGeneration": false,
+      "sourceRefs": [
+        "host:task:task:canonical-convergence-ci-economics-20260924-r1@1"
+      ],
+      "trigger": "provider/local canonical divergence"
+    }
+  ],
+  "kind": "ordivon.social-fabric-cascade-measurement",
+  "nonClaims": [
+    "Repeated observation is not equated with autocatalysis.",
+    "A detector is not justified without explicit work-generation edges."
+  ],
+  "observedAt": "2026-09-24T00:11:00+08:00",
+  "schemaVersion": 1,
+  "truthRole": "measurement-over-owner-native-references-not-authority"
+}

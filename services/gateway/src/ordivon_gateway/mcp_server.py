@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 import uvicorn
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp_types import CallToolResult, TextContent
 from starlette.responses import JSONResponse
 
 from .access_auth import (
@@ -19,15 +20,6 @@ from .audit import GatewayAuditMiddleware
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
-    CollaborationPage,
-    CollaborationPostReceipt,
-    CollaborationSearch,
-    ContinuityAttention,
-    ContinuityChanges,
-    ContinuityMutationReceipt,
-    ContinuityObservation,
-    ContinuityObserved,
-    ContinuityPage,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
@@ -35,8 +27,37 @@ from .contracts import (
 )
 from .external_worker import ExternalPullWorkerTransport
 from .service import GatewayService
-from .upstream import McpOwnerCaller
+from .upstream import McpOwnerCaller, OwnerCallError
 from .worker_http import attach_worker_routes
+
+
+def _owner_error_result(exc: OwnerCallError) -> CallToolResult:
+    error = (
+        dict(exc.error)
+        if exc.error is not None
+        else {
+            "code": "OWNER_CALL_FAILED",
+            "message": str(exc),
+            "origin": "gateway_adapter",
+        }
+    )
+    structured: dict[str, Any] = {"error": error}
+    if exc.owner_id is not None:
+        structured["gatewayOwnerId"] = exc.owner_id
+    if exc.tool_name is not None:
+        structured["gatewayOwnerTool"] = exc.tool_name
+    return CallToolResult(
+        content=[TextContent(type="text", text=str(exc))],
+        structuredContent=structured,
+        isError=True,
+    )
+
+
+async def _owner_boundary(call) -> Any:
+    try:
+        return await call
+    except OwnerCallError as exc:
+        return _owner_error_result(exc)
 
 
 def build_server(service: GatewayService | None = None) -> MCPServer:
@@ -65,32 +86,38 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         timeoutMs: int | None = None,
         authorityReferences: list[dict[str, Any]] | None = None,
     ) -> ExecutionReceipt:
-        return await gateway.execution_submit(
-            capability=capability,
-            request_id=requestId,
-            workspace_id=workspaceId,
-            executable=executable,
-            args=args,
-            cwd_relative=cwdRelative,
-            context=context,
-            env=env,
-            timeout_ms=timeoutMs,
-            authority_references=authorityReferences,
+        return await _owner_boundary(
+            gateway.execution_submit(
+                capability=capability,
+                request_id=requestId,
+                workspace_id=workspaceId,
+                executable=executable,
+                args=args,
+                cwd_relative=cwdRelative,
+                context=context,
+                env=env,
+                timeout_ms=timeoutMs,
+                authority_references=authorityReferences,
+            )
         )
 
     @server.tool(name="execution.resolve")
     async def execution_resolve(capability: str, requestId: str) -> ExecutionResolution:
-        return await gateway.execution_resolve(capability=capability, request_id=requestId)
+        return await _owner_boundary(
+            gateway.execution_resolve(capability=capability, request_id=requestId)
+        )
 
     @server.tool(name="execution.get")
     async def execution_get(
         operationRef: str, eventLimit: int = 10, waitMs: int = 0
     ) -> ExecutionObservation:
-        return await gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
+        return await _owner_boundary(
+            gateway.execution_get(operationRef, event_limit=eventLimit, wait_ms=waitMs)
+        )
 
     @server.tool(name="execution.cancel")
     async def execution_cancel(operationRef: str) -> ExecutionReceipt:
-        return await gateway.execution_cancel(operationRef)
+        return await _owner_boundary(gateway.execution_cancel(operationRef))
 
     @server.tool(name="artifact.read")
     async def artifact_read(
@@ -99,156 +126,248 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
         offset: int = 0,
         maxBytes: int = 1_048_576,
     ) -> ArtifactChunk:
-        return await gateway.artifact_read(
-            operationRef, artifactId, offset=offset, max_bytes=maxBytes
+        return await _owner_boundary(
+            gateway.artifact_read(operationRef, artifactId, offset=offset, max_bytes=maxBytes)
         )
 
-    @server.tool(name="continuity.get")
-    async def continuity_get(taskId: str) -> ContinuityObservation:
-        return await gateway.continuity_get(taskId)
+    async def _host(tool_name: str, arguments: dict[str, Any]) -> Any:
+        return await _owner_boundary(gateway.social_work_call(tool_name, arguments))
 
-    @server.tool(name="continuity.list")
-    async def continuity_list(
-        goalId: str | None = None,
-        runtimeWorkspaceId: str | None = None,
+    @server.tool(name="host.status")
+    async def host_status(
+        detail: Literal["summary", "integrity", "history"] = "summary",
+    ) -> dict[str, Any]:
+        return await _host("host.status", {"detail": detail})
+
+    @server.tool(name="actor.declare")
+    async def actor_declare(
+        actorRef: str,
+        actorKind: Literal["unknown", "human", "agent", "service", "organization"],
+    ) -> dict[str, Any]:
+        return await _host("actor.declare", {"actorRef": actorRef, "actorKind": actorKind})
+
+    @server.tool(name="work.create")
+    async def work_create(
+        workRef: str, workKind: str, actorRef: str, initialSnapshot: dict[str, Any]
+    ) -> dict[str, Any]:
+        return await _host(
+            "work.create",
+            {
+                "workRef": workRef,
+                "workKind": workKind,
+                "actorRef": actorRef,
+                "initialSnapshot": initialSnapshot,
+            },
+        )
+
+    @server.tool(name="work.get")
+    async def work_get(workRef: str, revision: int | None = None) -> dict[str, Any]:
+        return await _host("work.get", {"workRef": workRef, "revision": revision})
+
+    @server.tool(name="work.list")
+    async def work_list(
+        state: Literal["open", "completed", "abandoned"] | None = None,
         limit: int = 50,
-        cursor: str | None = None,
-        includeTerminal: bool = False,
-    ) -> ContinuityPage:
-        return await gateway.continuity_list(
-            goal_id=goalId,
-            runtime_workspace_id=runtimeWorkspaceId,
-            limit=limit,
-            cursor=cursor,
-            include_terminal=includeTerminal,
-            sort_key="created",
+        beforeUpdatedAt: str | None = None,
+        beforeWorkRef: str | None = None,
+    ) -> dict[str, Any]:
+        return await _host(
+            "work.list",
+            {
+                "state": state,
+                "limit": limit,
+                "beforeUpdatedAt": beforeUpdatedAt,
+                "beforeWorkRef": beforeWorkRef,
+            },
         )
 
-    @server.tool(name="continuity.find")
-    async def continuity_find(
-        goalId: str | None = None,
-        runtimeWorkspaceId: str | None = None,
-        limit: int = 20,
-        cursor: str | None = None,
-        includeTerminal: bool = False,
-        sortKey: Literal["updated", "created"] = "updated",
-    ) -> ContinuityPage:
-        """Discover continuity coordinates using mechanical filters and recency ordering."""
-        return await gateway.continuity_list(
-            goal_id=goalId,
-            runtime_workspace_id=runtimeWorkspaceId,
-            limit=limit,
-            cursor=cursor,
-            include_terminal=includeTerminal,
-            sort_key=sortKey,
-        )
-
-    @server.tool(name="continuity.observe")
-    async def continuity_observe(
-        taskId: str, expectedRevision: int | None = None, eventLimit: int = 5
-    ) -> ContinuityObserved:
-        return await gateway.continuity_observe(
-            taskId, expected_revision=expectedRevision, event_limit=eventLimit
-        )
-
-    @server.tool(name="continuity.adopt")
-    async def continuity_adopt(
-        taskId: str, goalId: str, checkpoint: dict[str, Any], writerLabel: str | None = None
-    ) -> ContinuityMutationReceipt:
-        return await gateway.continuity_adopt(
-            task_id=taskId, goal_id=goalId, checkpoint=checkpoint, writer_label=writerLabel
-        )
-
-    @server.tool(name="continuity.checkpoint")
-    async def continuity_checkpoint(
-        taskId: str,
+    @server.tool(name="work.snapshot.commit")
+    async def work_snapshot_commit(
+        workRef: str,
         expectedRevision: int,
-        checkpoint: dict[str, Any],
-        disposition: Literal["continue", "complete", "abandon"] = "continue",
-        writerLabel: str | None = None,
-    ) -> ContinuityMutationReceipt:
-        return await gateway.continuity_checkpoint(
-            task_id=taskId,
-            expected_revision=expectedRevision,
-            checkpoint=checkpoint,
-            disposition=disposition,
-            writer_label=writerLabel,
+        snapshot: dict[str, Any],
+        actorRef: str,
+        continuityDisposition: Literal["continue", "complete", "abandon"] = "continue",
+    ) -> dict[str, Any]:
+        return await _host(
+            "work.snapshot.commit",
+            {
+                "workRef": workRef,
+                "expectedRevision": expectedRevision,
+                "snapshot": snapshot,
+                "actorRef": actorRef,
+                "continuityDisposition": continuityDisposition,
+            },
         )
 
-    @server.tool(name="continuity.changes")
-    async def continuity_changes(afterSequence: int, limit: int = 100) -> ContinuityChanges:
-        """Return collaboration changes since a Board sequence without implying priority."""
-        return await gateway.continuity_changes(after_sequence=afterSequence, limit=limit)
-
-    @server.tool(name="continuity.attention")
-    async def continuity_attention(afterSequence: int, limit: int = 100) -> ContinuityAttention:
-        """Compatibility alias for continuity.changes."""
-        return await gateway.continuity_attention(after_sequence=afterSequence, limit=limit)
-
-    @server.tool(name="collaboration.post")
-    async def collaboration_post(
-        clientMessageId: str,
-        authorLabel: str,
-        message: str,
-        messageKind: Literal["note", "question", "proposal", "warning", "reply"] = "note",
-        topic: str | None = None,
-        replyToClientMessageId: str | None = None,
-        taskId: str | None = None,
-    ) -> CollaborationPostReceipt:
-        return await gateway.collaboration_post(
-            client_message_id=clientMessageId,
-            author_label=authorLabel,
-            message=message,
-            message_kind=messageKind,
-            topic=topic,
-            reply_to_client_message_id=replyToClientMessageId,
-            task_id=taskId,
+    @server.tool(name="space.create")
+    async def space_create(
+        spaceRef: str, purpose: str, actorRef: str, subjectRefs: list[str] | None = None
+    ) -> dict[str, Any]:
+        return await _host(
+            "space.create",
+            {
+                "spaceRef": spaceRef,
+                "purpose": purpose,
+                "actorRef": actorRef,
+                "subjectRefs": subjectRefs,
+            },
         )
 
-    @server.tool(name="collaboration.publish")
-    async def collaboration_publish(
-        clientMessageId: str,
-        authorLabel: str,
-        message: str,
-        scope: Literal["global", "continuity"],
-        continuityId: str | None = None,
-        messageKind: Literal["note", "question", "proposal", "warning", "reply"] = "note",
-        topic: str | None = None,
-        replyToClientMessageId: str | None = None,
-    ) -> CollaborationPostReceipt:
-        """Preferred publication surface: unrouted global scope must be explicit."""
-        return await gateway.collaboration_publish(
-            client_message_id=clientMessageId,
-            author_label=authorLabel,
-            message=message,
-            scope=scope,
-            continuity_id=continuityId,
-            message_kind=messageKind,
-            topic=topic,
-            reply_to_client_message_id=replyToClientMessageId,
-        )
+    @server.tool(name="space.get")
+    async def space_get(spaceRef: str) -> dict[str, Any]:
+        return await _host("space.get", {"spaceRef": spaceRef})
 
-    @server.tool(name="collaboration.list")
-    async def collaboration_list(
-        afterSequence: int | None = None,
+    @server.tool(name="space.list")
+    async def space_list(
+        actorRef: str | None = None,
+        subjectRef: str | None = None,
         limit: int = 50,
-        topic: str | None = None,
-        clientMessageId: str | None = None,
-        replyToClientMessageId: str | None = None,
-        replyToAuthorLabel: str | None = None,
-    ) -> CollaborationPage:
-        return await gateway.collaboration_list(
-            after_sequence=afterSequence,
-            limit=limit,
-            topic=topic,
-            client_message_id=clientMessageId,
-            reply_to_client_message_id=replyToClientMessageId,
-            reply_to_author_label=replyToAuthorLabel,
+        beforeCreatedAt: str | None = None,
+        beforeSpaceRef: str | None = None,
+    ) -> dict[str, Any]:
+        return await _host(
+            "space.list",
+            {
+                "actorRef": actorRef,
+                "subjectRef": subjectRef,
+                "limit": limit,
+                "beforeCreatedAt": beforeCreatedAt,
+                "beforeSpaceRef": beforeSpaceRef,
+            },
         )
 
-    @server.tool(name="collaboration.search")
-    async def collaboration_search(query: str, limit: int = 20) -> CollaborationSearch:
-        return await gateway.collaboration_search(query, limit=limit)
+    @server.tool(name="space.participation.set")
+    async def space_participation_set(
+        spaceRef: str, actorRef: str, standing: Literal["joined", "left", "observer"]
+    ) -> dict[str, Any]:
+        return await _host(
+            "space.participation.set",
+            {"spaceRef": spaceRef, "actorRef": actorRef, "standing": standing},
+        )
+
+    @server.tool(name="topic.create")
+    async def topic_create(
+        topicRef: str, spaceRef: str, title: str, actorRef: str
+    ) -> dict[str, Any]:
+        return await _host(
+            "topic.create",
+            {"topicRef": topicRef, "spaceRef": spaceRef, "title": title, "actorRef": actorRef},
+        )
+
+    @server.tool(name="topic.resume")
+    async def topic_resume(
+        topicRef: str, afterSequence: int = 0, limit: int = 50
+    ) -> dict[str, Any]:
+        return await _host(
+            "topic.resume", {"topicRef": topicRef, "afterSequence": afterSequence, "limit": limit}
+        )
+
+    @server.tool(name="message.post")
+    async def message_post(
+        messageRef: str,
+        spaceRef: str,
+        topicRef: str,
+        authorActorRef: str,
+        body: str,
+        recordedAtMs: int,
+        messageKind: Literal[
+            "note", "question", "proposal", "warning", "finding", "handoff"
+        ] = "note",
+    ) -> dict[str, Any]:
+        return await _host(
+            "message.post",
+            {
+                "messageRef": messageRef,
+                "spaceRef": spaceRef,
+                "topicRef": topicRef,
+                "authorActorRef": authorActorRef,
+                "body": body,
+                "recordedAtMs": recordedAtMs,
+                "messageKind": messageKind,
+            },
+        )
+
+    @server.tool(name="message.search")
+    async def message_search(
+        query: str,
+        spaceRef: str | None = None,
+        topicRef: str | None = None,
+        beforeSequence: int | None = None,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        return await _host(
+            "message.search",
+            {
+                "query": query,
+                "spaceRef": spaceRef,
+                "topicRef": topicRef,
+                "beforeSequence": beforeSequence,
+                "limit": limit,
+            },
+        )
+
+    @server.tool(name="message.relation.add")
+    async def message_relation_add(
+        sourceMessageRef: str,
+        relation: Literal[
+            "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
+        ],
+        targetRef: str,
+        actorRef: str,
+    ) -> dict[str, Any]:
+        return await _host(
+            "message.relation.add",
+            {
+                "sourceMessageRef": sourceMessageRef,
+                "relation": relation,
+                "targetRef": targetRef,
+                "actorRef": actorRef,
+            },
+        )
+
+    @server.tool(name="subscription.follow")
+    async def subscription_follow(
+        actorRef: str, targetKind: Literal["work", "space", "topic"], targetRef: str
+    ) -> dict[str, Any]:
+        return await _host(
+            "subscription.follow",
+            {"actorRef": actorRef, "targetKind": targetKind, "targetRef": targetRef},
+        )
+
+    @server.tool(name="subscription.list")
+    async def subscription_list(
+        actorRef: str, targetKind: Literal["work", "space", "topic"] | None = None, limit: int = 200
+    ) -> dict[str, Any]:
+        return await _host(
+            "subscription.list", {"actorRef": actorRef, "targetKind": targetKind, "limit": limit}
+        )
+
+    @server.tool(name="subscription.unfollow")
+    async def subscription_unfollow(
+        actorRef: str, targetKind: Literal["work", "space", "topic"], targetRef: str
+    ) -> dict[str, Any]:
+        return await _host(
+            "subscription.unfollow",
+            {"actorRef": actorRef, "targetKind": targetKind, "targetRef": targetRef},
+        )
+
+    @server.tool(name="attention.get")
+    async def attention_get(actorRef: str, limit: int = 100) -> dict[str, Any]:
+        return await _host("attention.get", {"actorRef": actorRef, "limit": limit})
+
+    @server.tool(name="attention.delta")
+    async def attention_delta(
+        actorRef: str, afterSequence: int, limit: int = 100
+    ) -> dict[str, Any]:
+        return await _host(
+            "attention.delta",
+            {"actorRef": actorRef, "afterSequence": afterSequence, "limit": limit},
+        )
+
+    @server.tool(name="attention.ack")
+    async def attention_ack(actorRef: str, cursor: int) -> dict[str, Any]:
+        return await _host("attention.ack", {"actorRef": actorRef, "cursor": cursor})
 
     return server
 

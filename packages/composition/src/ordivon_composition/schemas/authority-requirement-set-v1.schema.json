@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:authority-requirement-set:v1",
+  "title": "Task-local Authority Requirement Set v1",
+  "description": "Caller-authored exact authority requirements bound to one Cognitive Circuit. This is not a policy, grant, decision, credential, effect classifier, or proof of complete effect coverage.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "circuitRef", "requirements", "nonClaims"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "ordivon.authority-requirement-set" },
+    "circuitRef": { "$ref": "#/$defs/boundRef" },
+    "requirements": { "type": "array", "items": { "$ref": "#/$defs/requirement" } },
+    "nonClaims": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "identifier": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+    "boundRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "digest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "stageId", "capabilityBindingId", "authorityOwnerId", "authorityContractRef", "required", "nonClaims"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "stageId": { "$ref": "#/$defs/identifier" },
+        "capabilityBindingId": { "$ref": "#/$defs/identifier" },
+        "authorityOwnerId": { "$ref": "#/$defs/identifier" },
+        "authorityContractRef": { "$ref": "#/$defs/boundRef" },
+        "required": { "type": "boolean" },
+        "nonClaims": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

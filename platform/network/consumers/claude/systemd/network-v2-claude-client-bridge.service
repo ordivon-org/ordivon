@@ -1,0 +1,18 @@
+[Unit]
+Description=Network v2 bridge from isolated Claude client namespace to scoped Claude proxy
+BindsTo=network-v2-claude-client-netns.service network-v2-claude.target
+After=network-v2-claude-client-netns.service network-v2-claude-proxy.service
+Requires=network-v2-claude-client-netns.service network-v2-claude-proxy.service
+PartOf=network-v2-claude-client.target
+
+[Service]
+Type=simple
+NetworkNamespacePath=/run/netns/nv2-browserless-prod
+ExecStartPre=/usr/bin/bash -c 'for i in $(seq 1 40); do /usr/bin/ss -ltn | /usr/bin/grep -q "127.0.0.1:19480" && /usr/bin/ip addr show nv2clvpn | /usr/bin/grep -q "10.252.247.1/30" && exit 0; /usr/bin/sleep 0.25; done; exit 1'
+ExecStart=/usr/bin/systemd-socket-activate -l 10.252.247.1:19482 --now /usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:19480
+Restart=on-failure
+RestartSec=1s
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK

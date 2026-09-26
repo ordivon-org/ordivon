@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-coordination-cut",
+  "observedAt": "2026-09-23T15:30:00+08:00",
+  "events": [
+    {
+      "specversion": "1.0",
+      "id": "candidate:maintenance:single",
+      "source": "urn:ordivon:runtime:windows",
+      "type": "io.ordivon.social.candidate.v1",
+      "subject": "resource:windows:maintenance:example",
+      "time": "2026-09-23T15:20:00+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T16:00:00+08:00",
+      "data": {
+        "holderRef": "job:example-maintenance",
+        "effectOwner": "runtime.windows",
+        "operation": "maintenance-example",
+        "mode": "exclusive",
+        "evidenceRefs": ["job:example-maintenance"]
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "support:maintenance:operations",
+      "source": "urn:ordivon:review:operations",
+      "type": "io.ordivon.social.support.v1",
+      "subject": "resource:windows:maintenance:example",
+      "time": "2026-09-23T15:22:00+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T16:00:00+08:00",
+      "data": {
+        "candidateEventId": "candidate:maintenance:single",
+        "supporterRef": "reviewer:operations",
+        "role": "operations",
+        "evidenceRefs": ["review:operations:example"]
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "support:maintenance:storage",
+      "source": "urn:ordivon:review:storage",
+      "type": "io.ordivon.social.support.v1",
+      "subject": "resource:windows:maintenance:example",
+      "time": "2026-09-23T15:23:00+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T16:00:00+08:00",
+      "data": {
+        "candidateEventId": "candidate:maintenance:single",
+        "supporterRef": "reviewer:storage",
+        "role": "storage",
+        "evidenceRefs": ["review:storage:example"]
+      }
+    }
+  ],
+  "receptors": [],
+  "nonClaims": [
+    "This is a synthetic satisfied-policy dogfood cut.",
+    "READY_SHADOW is not execution authorization."
+  ]
+}

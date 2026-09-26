@@ -98,11 +98,14 @@ def _write_atomic_private(path: Path, raw: bytes) -> None:
 
 
 def current_spec_dict(spec: CampaignLaunchSpec) -> dict[str, Any]:
-    return {
+    value: dict[str, Any] = {
         "campaignId": spec.campaign_id,
         "sharedPrompt": spec.shared_prompt,
         "roster": [{"agentId": role.agent_id, "roleCard": role.role_card} for role in spec.roster],
     }
+    if spec.shared_attachments:
+        value["sharedAttachments"] = [item.canonical() for item in spec.shared_attachments]
+    return value
 
 
 class CampaignRegistry:

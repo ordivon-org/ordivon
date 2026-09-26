@@ -40,7 +40,7 @@ verify_task = "gateway:verify"
 
 [[owners]]
 name = "skills"
-root = "platform/skills/"
+root = "extensions/chatgpt-skills-mcp/"
 verify_task = "skills:verify"
 
 [[owners]]
@@ -88,6 +88,11 @@ verify_task = "game:verify"
 name = "capital"
 root = "domains/capital/"
 verify_task = "capital:verify"
+
+[[owners]]
+name = "agent-app"
+root = "apps/agent/"
+verify_task = "agent-app:verify"
 
 [[owners]]
 name = "web"

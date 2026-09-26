@@ -81,10 +81,10 @@ contract_ref = "capabilities/media/docs/creative-capability-core.md"
 [[seams]]
 from_owner = "skills"
 to_owner = "next"
-source_glob = "platform/skills/tests/test_skill_catalog_r2.py"
+source_glob = "extensions/chatgpt-skills-mcp/tests/test_skill_catalog_r2.py"
 allowed_fragment = "meta/next"
 kind = "TEST_ONLY_SOURCE_BINDING"
-contract_ref = "platform/skills/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
+contract_ref = "extensions/chatgpt-skills-mcp/docs/SKILL_MCP_STANDARDS_ALIGNMENT.md"
 
 [[seams]]
 from_owner = "workstation"
@@ -130,6 +130,30 @@ contract_ref = "services/harness/docs/AGENT_AUTOMATION_OWNER_MIGRATION_R7.md"
 from_owner = "next"
 to_owner = "composition"
 source_glob = "meta/next/pyproject.toml"
+allowed_fragment = "../../packages/composition"
+kind = "PUBLIC_PACKAGE_DEPENDENCY"
+contract_ref = "packages/composition/README.md"
+
+[[seams]]
+from_owner = "agent-app"
+to_owner = "composition"
+source_glob = "apps/agent/pyproject.toml"
+allowed_fragment = "../../packages/composition"
+kind = "PUBLIC_PACKAGE_DEPENDENCY"
+contract_ref = "packages/composition/docs/AGENT_RUN_BINDING_R1.md"
+
+[[seams]]
+from_owner = "agent-app"
+to_owner = "harness"
+source_glob = "apps/agent/pyproject.toml"
+allowed_fragment = "../../services/harness"
+kind = "PUBLIC_PACKAGE_DEPENDENCY"
+contract_ref = "services/harness/docs/API_SURFACES_R1.md"
+
+[[seams]]
+from_owner = "capital"
+to_owner = "composition"
+source_glob = "domains/capital/pyproject.toml"
 allowed_fragment = "../../packages/composition"
 kind = "PUBLIC_PACKAGE_DEPENDENCY"
 contract_ref = "packages/composition/README.md"

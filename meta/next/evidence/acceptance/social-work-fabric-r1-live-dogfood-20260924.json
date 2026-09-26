@@ -1,0 +1,229 @@
+{
+  "acceptanceDigest": "sha256:ae07fe93d97f3789a9b38a72c8a0bdcdd96afdfcf1ee83f68c4050e4e0ef4a7c",
+  "explicitDogfoodManifest": {
+    "planDigest": "sha256:07c036119dad7e10df86a96ab9263bc56bdb70f8aeb6b6f7f9d7302fda2ab8e4",
+    "selection": {
+      "activeTaskLinkedBoardMessagesImported": 175,
+      "boardMessagesArchiveOnly": 17000,
+      "explicitActiveTaskSelectionCount": 6,
+      "legacyBoardMessageCount": 17175,
+      "legacyCheckpointCount": 15134,
+      "legacyTaskCount": 2154,
+      "syntheticRouteAnchorsImported": 0
+    },
+    "targetCounts": {
+      "actors": 2377,
+      "coordinationIntents": 0,
+      "messageRelations": 12,
+      "messages": 175,
+      "participations": 0,
+      "spaces": 3,
+      "subscriptions": 0,
+      "topics": 79,
+      "workRelations": 0,
+      "workSnapshots": 15134,
+      "works": 2154
+    },
+    "taskIds": [
+      "task:canonical-convergence-ci-economics-20260924-r1",
+      "task:market-capital-r2-trading-substrate-readmission-20260915",
+      "task:paper2-coding-agent-reproducibility-20260914",
+      "task:paper2-named-incompleteness-independent-review-20260924",
+      "task:social-work-fabric-r1-20260924",
+      "task:wsl-vsock-fragmentation-resilience-20260924-r1"
+    ]
+  },
+  "finalHostSuite": {
+    "alembicEnd": "0008",
+    "alembicStart": "0001",
+    "elapsedSeconds": 6.9,
+    "freshDatabase": true,
+    "maxRssKiB": 111144,
+    "pytest": "PASS",
+    "ruff": "PASS",
+    "runtimeJobId": "job-01a0d261-5e6b-75e0-9649-71e19c9657a3",
+    "schemaVersion": 8
+  },
+  "isolatedTargetVerification": {
+    "errors": [],
+    "kind": "ordivon.host-social-work-fabric-cutover-verification-r1",
+    "nonClaims": [
+      "Legacy author labels become ActorKind=unknown and do not establish authenticated identity.",
+      "Message authorship does not infer Participation, Subscription, ownership, assignment, or authority.",
+      "Legacy Task/Goal structure does not infer WorkRelation edges.",
+      "No Board message enters the Social Graph from Task state alone; an explicit open-Task cutover manifest is required.",
+      "Unselected Board history remains represented only by the immutable legacy snapshot."
+    ],
+    "planDigest": "sha256:07c036119dad7e10df86a96ab9263bc56bdb70f8aeb6b6f7f9d7302fda2ab8e4",
+    "schemaVersion": 1,
+    "selection": {
+      "activeTaskLinkedBoardMessagesImported": 175,
+      "boardMessagesArchiveOnly": 17000,
+      "explicitActiveTaskSelectionCount": 6,
+      "legacyBoardMessageCount": 17175,
+      "legacyCheckpointCount": 15134,
+      "legacyTaskCount": 2154,
+      "syntheticRouteAnchorsImported": 0
+    },
+    "sourceSnapshotDigest": "sha256:17f6d51f13adbbbe676505ef606d82fa0d1d6bba2f290f119c9779c557870c58",
+    "standing": "PASS",
+    "targetCounts": {
+      "actors": 2377,
+      "coordinationIntents": 0,
+      "messageRelations": 12,
+      "messages": 175,
+      "participations": 0,
+      "spaces": 3,
+      "subscriptions": 0,
+      "topics": 79,
+      "workSnapshots": 15134,
+      "works": 2154
+    }
+  },
+  "kind": "ordivon.social-work-fabric-r1-live-dogfood-acceptance",
+  "nonClaims": [
+    "Explicit dogfood manifest is a bounded acceptance choice, not automatic active-work inference.",
+    "Legacy author labels remain ActorKind=unknown and are not authenticated identity.",
+    "No Participation, Subscription, WorkRelation, CoordinationIntent, priority, lock, lease, assignment, or authority is inferred by cutover.",
+    "AUTHORITY dogfood binding names Host only as continuity owner of the migrated Work object; Runtime/domain/effect authority is not inferred.",
+    "Capital projection includes no authorization decision and cannot alter ExternalFinancialWriteAdmission or ProductionAuthorization.",
+    "All live Host reads were repeatable-read/read-only; migration apply and Social projection ran only on isolated PostgreSQL targets."
+  ],
+  "projectionDogfood": {
+    "canonical": {
+      "attentionEventCount": 0,
+      "authorityBindingCount": 1,
+      "authorityInferredFromIntentActors": false,
+      "authorityInferredFromParticipants": false,
+      "authorizationDecisionIncluded": false,
+      "legacyTaskId": "task:canonical-convergence-ci-economics-20260924-r1",
+      "participantCount": 0,
+      "rankingApplied": false,
+      "spaceCount": 0,
+      "topicCount": 0,
+      "viewDigests": {
+        "ATTENTION": "sha256:640dc899392591ee57f33bc039b4fb38311ec0311bcc654c748b1f2a69692994",
+        "AUTHORITY": "sha256:6ffc12a475683d4d8c8518ff4171e79707ed966337165a9845a20a547ea2aa30",
+        "COORDINATION": "sha256:da31a8c7d0e6b1f931642b028d8abf03f010c56c360694168200ad140e7cbb28",
+        "CURRENT": "sha256:8f55539d849fcc211532151ea82e453826ca250f0428988b413fe88e8e836dc6"
+      },
+      "workRef": "work:legacy-task:a19a806071567dffd38f3605d6cd7d6f",
+      "workRelationCount": 0,
+      "workRevision": 3,
+      "workState": "open"
+    },
+    "capital": {
+      "attentionEventCount": 0,
+      "authorityBindingCount": 1,
+      "authorityInferredFromIntentActors": false,
+      "authorityInferredFromParticipants": false,
+      "authorizationDecisionIncluded": false,
+      "legacyTaskId": "task:market-capital-r2-trading-substrate-readmission-20260915",
+      "participantCount": 0,
+      "rankingApplied": false,
+      "spaceCount": 1,
+      "topicCount": 6,
+      "viewDigests": {
+        "ATTENTION": "sha256:1ab7d66350b4cc09ff6125d5c87ae92a2b7b4722e9d9d552c77609b297b8de79",
+        "AUTHORITY": "sha256:26c7090545bc0666560097b14a624dbba4ca2086ab36537c7cc5b2d6383aa112",
+        "COORDINATION": "sha256:4f59bbcd3b033e1a12177c613557d4b5e391f1dccb8fd7e4751b9a23c18e8d90",
+        "CURRENT": "sha256:ad6c5c5b5be0bafda8eeb7959b5607d5c2baba452956906997d224c8db4afdd4"
+      },
+      "workRef": "work:legacy-task:2787c46d8ff4ff6082cf7908f57d76d0",
+      "workRelationCount": 0,
+      "workRevision": 5,
+      "workState": "open"
+    },
+    "paper2": {
+      "attentionEventCount": 0,
+      "authorityBindingCount": 1,
+      "authorityInferredFromIntentActors": false,
+      "authorityInferredFromParticipants": false,
+      "authorizationDecisionIncluded": false,
+      "legacyTaskId": "task:paper2-coding-agent-reproducibility-20260914",
+      "participantCount": 0,
+      "rankingApplied": false,
+      "spaceCount": 1,
+      "topicCount": 72,
+      "viewDigests": {
+        "ATTENTION": "sha256:8d0d0325333f6fd0dd22ecf9fd7616a9a62587d62a69ebd9a6402643a3d36157",
+        "AUTHORITY": "sha256:4cc8568068b19628ae987f6b5e3889d1c8ddbb4ef7f1c8d20aa8f4e02f9a9af9",
+        "COORDINATION": "sha256:919a254d6230f793563dcff79b8b1f4bc5556d7f86838885af7aeb0d22b89f4d",
+        "CURRENT": "sha256:a3aa4de7a69f6fa7900c67eb3c2e38e365d61803e744083041db8d8c33573e4e"
+      },
+      "workRef": "work:legacy-task:30ca1e2125428025b806b3fbff2fb285",
+      "workRelationCount": 0,
+      "workRevision": 87,
+      "workState": "open"
+    },
+    "wsl_vsock": {
+      "attentionEventCount": 0,
+      "authorityBindingCount": 1,
+      "authorityInferredFromIntentActors": false,
+      "authorityInferredFromParticipants": false,
+      "authorizationDecisionIncluded": false,
+      "legacyTaskId": "task:wsl-vsock-fragmentation-resilience-20260924-r1",
+      "participantCount": 0,
+      "rankingApplied": false,
+      "spaceCount": 0,
+      "topicCount": 0,
+      "viewDigests": {
+        "ATTENTION": "sha256:5e789dea553adf9e87832c375634dc9f4ab78f9923f8472646fef558ed214f28",
+        "AUTHORITY": "sha256:62f0ee5c5e9fd3a1104fc8daf14b40e49cc4c944eeed469e75bb90fa79a1780c",
+        "COORDINATION": "sha256:20d0bbf4e84bd9fbf9c3793bc0ce6dd098de6ee7c19e6cc9f1b9437117a10442",
+        "CURRENT": "sha256:8292e26c997ad7c57cfbe84d967894bb476643f158007a67655e149da05a96b4"
+      },
+      "workRef": "work:legacy-task:8d82d828c06fdbb84f6b7144da8b9f15",
+      "workRelationCount": 0,
+      "workRevision": 1,
+      "workState": "open"
+    }
+  },
+  "safeDefault": {
+    "planDigest": "sha256:0ccaf987ea829dcf973ecba1d2ccbc28d357738fc95ddf9e6185eb33eb0b3e07",
+    "selection": {
+      "activeTaskLinkedBoardMessagesImported": 0,
+      "boardMessagesArchiveOnly": 17175,
+      "explicitActiveTaskSelectionCount": 0,
+      "legacyBoardMessageCount": 17175,
+      "legacyCheckpointCount": 15134,
+      "legacyTaskCount": 2154,
+      "syntheticRouteAnchorsImported": 0
+    },
+    "targetCounts": {
+      "actors": 2338,
+      "coordinationIntents": 0,
+      "messageRelations": 0,
+      "messages": 0,
+      "participations": 0,
+      "spaces": 0,
+      "subscriptions": 0,
+      "topics": 0,
+      "workRelations": 0,
+      "workSnapshots": 15134,
+      "works": 2154
+    }
+  },
+  "schemaVersion": 1,
+  "societyAcceptance": {
+    "actors": 100,
+    "elapsedSeconds": 3.26,
+    "globalMessageEventsPresentedToWatchedActor": 100,
+    "maxRssKiB": 70840,
+    "messages": 10000,
+    "runtimeJobId": "job-01a0d251-44c0-75d2-a18b-d0478032262a",
+    "spaces": 15,
+    "standing": "PASS",
+    "topics": 100,
+    "watchedTopicMessageEvents": 100,
+    "works": 30
+  },
+  "source": {
+    "hostSchemaVersion": 5,
+    "legacyBoardMessageCount": 17175,
+    "legacyCheckpointCount": 15134,
+    "legacyTaskCount": 2154,
+    "liveSourceMutationPerformed": false,
+    "snapshotDigest": "sha256:17f6d51f13adbbbe676505ef606d82fa0d1d6bba2f290f119c9779c557870c58"
+  }
+}

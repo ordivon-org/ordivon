@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.claim-evidence-map",
+  "id": "claim-evidence-map-r1",
+  "truthRole": "claim-grounding-interface-not-scientific-truth",
+  "sourceAsset": "context24-identity-core-r1",
+  "sharedKinds": ["claim", "evidence_identity", "method_context", "correspondence"],
+  "adapters": [
+    {"sourceTable": "claims", "toKind": "claim", "identityField": "claim_instance_id", "nativeIdStanding": "non_unique_source_metadata"},
+    {"sourceTable": "task1_evidence_links", "toKind": "evidence_identity", "representationStanding": "identity_only"},
+    {"sourceTable": "task1_evidence_links", "toKind": "correspondence", "relationType": "annotated_supporting_evidence_identity", "relationCeiling": "annotation_not_scientific_truth_or_causality"},
+    {"sourceTable": "task2_method_contexts", "toKind": "method_context", "representationStanding": "content_bound"},
+    {"sourceTable": "task2_method_contexts", "toKind": "correspondence", "relationType": "annotated_method_context", "relationCeiling": "method_context_annotation_not_claim_validity"}
+  ],
+  "goldPolicy": {
+    "train": "use_public_gold",
+    "challengeTest": "withheld_do_not_infer_or_fabricate"
+  },
+  "contentExpansion": {
+    "figureTablePixels": "NOT_BOUND_R1",
+    "captions": "NOT_BOUND_R1",
+    "fullText": "NOT_BOUND_R1",
+    "silverCorpus": "NOT_BOUND_R1"
+  },
+  "nonClaims": [
+    "An annotated evidence identity is not scientific-truth authority.",
+    "An annotated evidence relation is not causal proof.",
+    "A method-context snippet is not proof of method adequacy or claim validity.",
+    "A native Context24 claim id is not assumed unique.",
+    "Withheld challenge-test gold is not inferred."
+  ],
+  "physicalPolicy": "VIRTUAL_ADAPTER_ONLY_RAW_BYTES_REMAIN_IN_CONTEXT24_ASSET"
+}

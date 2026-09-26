@@ -1,0 +1,101 @@
+{
+  "donors": [
+    {
+      "donorId": "media-r6-creative-alpha",
+      "ownerId": "media",
+      "sources": [
+        {
+          "mediaType": "text/markdown",
+          "repoRelativePath": "capabilities/media/research/expression/experiments/r6-creative-alpha.md",
+          "requiredTextFragments": [
+            "This froze the treatment/control identity before content holdout reveal.",
+            "The visible experiment received only its SHA-256 commitment.",
+            "was not read until after the visible contrast was frozen."
+          ],
+          "role": "protocol-narrative",
+          "sha256": "sha256:6ffd71415cefab8350a5634de4e7bc452d46bab0a2f18b6eca89dad21e06298c"
+        },
+        {
+          "jsonAssertions": [
+            {
+              "operator": "sha256",
+              "pointer": "/r6d/holdoutCommitment"
+            },
+            {
+              "operator": "sha256",
+              "pointer": "/r6d/holdoutProtocolDigest"
+            },
+            {
+              "operator": "sha256",
+              "pointer": "/r6d/holdoutSeedArtifactDigest"
+            },
+            {
+              "expected": true,
+              "operator": "equals",
+              "pointer": "/r6d/oos/holdoutIndependentSupport"
+            },
+            {
+              "expected": "tested-pristine",
+              "operator": "equals",
+              "pointer": "/r6d/oos/oosScope/artifactContent"
+            }
+          ],
+          "mediaType": "application/json",
+          "repoRelativePath": "capabilities/media/research/expression/evidence/r6-creative-alpha-20260811.json",
+          "role": "machine-evidence",
+          "sha256": "sha256:0e2a0ab86b08fc8e818742b16ca12d82e1ba0d2f267ed1df4ba3762c69e4fc2f"
+        }
+      ],
+      "standing": "EXECUTED"
+    },
+    {
+      "donorId": "game-autonomous-interest-r2",
+      "ownerId": "game",
+      "sources": [
+        {
+          "jsonAssertions": [
+            {
+              "expected": true,
+              "operator": "equals",
+              "pointer": "/state/protocolFrozen"
+            },
+            {
+              "expected": false,
+              "operator": "equals",
+              "pointer": "/state/candidateGenerationStarted"
+            },
+            {
+              "expected": 0,
+              "operator": "equals",
+              "pointer": "/state/candidateSemanticSlotsConsumed"
+            },
+            {
+              "expected": true,
+              "operator": "equals",
+              "pointer": "/humanHoldout/sealedUntilExactBuildFreeze"
+            },
+            {
+              "expected": false,
+              "operator": "equals",
+              "pointer": "/humanHoldout/thresholdMutableAfterUnblinding"
+            }
+          ],
+          "mediaType": "application/json",
+          "repoRelativePath": "meta/next/domains/game/game-autonomous-interest-protocol-r2.json",
+          "role": "machine-protocol",
+          "sha256": "sha256:4d181254ec03f7560a9ba2f17306cfc4a8500a742aaac06cb78a1d931e5fbc1f"
+        }
+      ],
+      "standing": "FROZEN_PROTOCOL_ONLY"
+    }
+  ],
+  "kind": "ordivon.evaluation-boundary-binding-r1",
+  "nonClaims": [
+    "The profile does not define a universal evaluator, score, reward, or promotion authority.",
+    "Game contributes a frozen protocol boundary only; its Human holdout has not been executed.",
+    "Media execution evidence does not transfer creative-domain conclusions to Game.",
+    "Mechanical closure means the shared boundary is evidenced, not that any domain hypothesis is true."
+  ],
+  "schemaVersion": 1,
+  "truthRole": "task-local-acceptance-binding-not-owner-truth"
+}

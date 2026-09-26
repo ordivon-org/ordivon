@@ -40,8 +40,8 @@ creating a Queue-specific database:
 - adapter: `meta/next/scripts/experimental_episode_convergence_r1.py`;
 - queue profile: `convergence-queue-observation-v1`;
 - CI profile: `convergence-ci-observation-v1`;
-- shared contract: `meta/next/schemas/experimental-episode-binding-r1.schema.json`;
-- PostgreSQL consumer: `meta/next/experimental/episode-store-r1`.
+- shared contract: `profiles/experimental-episode/experimental-episode-binding-r1.schema.json`;
+- PostgreSQL consumer: `studies/experimental-episode/postgres-projection-r1`.
 
 The adapter emits stable Episode identities plus exact projection digests and binds only
 bounded owner references, evidence-set digests, scalar dimensions and numeric measures.

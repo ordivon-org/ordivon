@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.claim-permission-maturity-pressure-plan",
+  "id": "claim-permission-maturity-gate-r1",
+  "truthRole": "cross-study-maturity-pressure-not-shared-scientific-policy",
+  "candidateRule": "A Study may compile an owner-native scientific ClaimPermission only after it owns exact claims whose current scientific meaning and ceiling can be bound to frozen evidence and inference authority. Pre-outcome protocols, statistical plans, screening rules, or future claim ceilings do not themselves constitute ClaimPermission.",
+  "cases": [
+    {
+      "study": "paper1-study",
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "sourceRevision": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "expectedDisposition": "MATURE_OWNER_NATIVE_CLAIM_PERMISSION_EXISTS"
+    },
+    {
+      "study": "paper2-independent-study",
+      "sourceRepo": "/root/projects/ordivon-paper2",
+      "sourceRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "expectedDisposition": "NOT_MATURE_FOR_SCIENTIFIC_CLAIM_PERMISSION"
+    }
+  ],
+  "nonClaims": [
+    "Paper2 immaturity for ClaimPermission is not scientific weakness and does not invalidate its prospectively frozen protocol.",
+    "A frozen future claim ceiling is not a permission to assert an outcome-bearing claim before outcome, eligibility, and synthesis authority closes.",
+    "This two-Study pressure does not admit a shared executable ClaimPermission compiler or universal maturity ontology."
+  ]
+}

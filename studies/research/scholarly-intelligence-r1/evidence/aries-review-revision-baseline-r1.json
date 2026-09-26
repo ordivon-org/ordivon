@@ -1,0 +1,121 @@
+{
+  "counts": {
+    "commentsWithPositiveEditAlignment": 87,
+    "commentsWithoutPositiveEditAlignment": 109,
+    "distinctDocumentsInManualTest": 42,
+    "manualTestComments": 196,
+    "negativeEditLinks": 24738,
+    "positiveEditLinks": 182
+  },
+  "distributions": {
+    "all1720DocumentEditUnits": {
+      "max": 1976,
+      "mean": 124.39244186046511,
+      "median": 95.0,
+      "min": 28,
+      "n": 1720,
+      "q1": 71.0,
+      "q3": 141.0
+    },
+    "candidateLinksPerComment": {
+      "max": 424,
+      "mean": 127.14285714285714,
+      "median": 92.5,
+      "min": 35,
+      "n": 196,
+      "q1": 69.0,
+      "q3": 165.0
+    },
+    "commentContextWordsWhitespaceTokenizer": {
+      "max": 40,
+      "mean": 1.9642857142857142,
+      "median": 0.0,
+      "min": 0,
+      "n": 196,
+      "q1": 0.0,
+      "q3": 0.0
+    },
+    "commentWordsWhitespaceTokenizer": {
+      "max": 82,
+      "mean": 28.75,
+      "median": 25.0,
+      "min": 7,
+      "n": 196,
+      "q1": 18.0,
+      "q3": 37.0
+    },
+    "documentEditUnitsForManualTestComments": {
+      "max": 424,
+      "mean": 127.14285714285714,
+      "median": 92.5,
+      "min": 35,
+      "n": 196,
+      "q1": 69.0,
+      "q3": 165.0
+    },
+    "negativeLinksPerComment": {
+      "max": 424,
+      "mean": 126.21428571428571,
+      "median": 90.0,
+      "min": 34,
+      "n": 196,
+      "q1": 69.0,
+      "q3": 165.0
+    },
+    "positiveLinksPerComment": {
+      "max": 9,
+      "mean": 0.9285714285714286,
+      "median": 0.0,
+      "min": 0,
+      "n": 196,
+      "q1": 0.0,
+      "q3": 1.0
+    },
+    "positiveLinksPerPositiveComment": {
+      "max": 9,
+      "mean": 2.0919540229885056,
+      "median": 1.0,
+      "min": 1,
+      "n": 87,
+      "q1": 1.0,
+      "q3": 2.0
+    }
+  },
+  "id": "aries-review-revision-baseline-r1",
+  "interpretationCeiling": [
+    "The 44% positive-alignment fraction is a property of the ARIES manually labeled test slice, not an estimate of how often peer-review comments cause revisions in a scholarly population.",
+    "A positive alignment is an annotated correspondence between a comment and one or more edit identities; it does not establish causality or adequacy of the revision.",
+    "Negative edit links are candidate negatives supplied by ARIES and are not evidence that an edit is scientifically wrong or irrelevant outside this matching task.",
+    "The bounded core omits S2ORC paragraph text, so this baseline analyzes identity/multiplicity and review-comment text, not semantic quality of edit contents."
+  ],
+  "kind": "ordivon.research.aries-review-revision-baseline",
+  "observedAt": "2026-09-23",
+  "population": "ARIES manually annotated test slice only",
+  "positiveLinkMultiplicityHistogram": {
+    "0": 109,
+    "1": 50,
+    "2": 18,
+    "3": 4,
+    "4": 2,
+    "5": 7,
+    "6": 4,
+    "8": 1,
+    "9": 1
+  },
+  "provenance": {
+    "devAnnotation": "synthetic",
+    "devRowsExcludedFromPrimaryRates": 542,
+    "paperEditsRawSha256": "sha256:2ac050dc84ec984db5e9ed166f5411d54e213bfc16a4f596766041f1910e5d3c",
+    "reviewCommentRawSha256": "sha256:0f32ce3b66b12385dd2f9d1bb791a8800e80060b1a58c0deddd87bcded3b2b58",
+    "testAnnotation": "manual",
+    "testLabelsRawSha256": "sha256:e5c827f2572ecbc26e00583ca2ff557b083b8b71a577f4d308aaf00a24c62306"
+  },
+  "rates": {
+    "commentsWithPositiveEditAlignment": 0.44387755102040816,
+    "commentsWithoutPositiveEditAlignment": 0.5561224489795918,
+    "meanPositiveLinksConditionalOnAnyPositive": 2.0919540229885056
+  },
+  "schemaVersion": 1,
+  "sourceAsset": "aries-bounded-core-r1",
+  "sourceSnapshotIdentity": "sha256:c044a92034f740802d24a2298cc1569e59bda34c5148e34a6556f356d78b1c77"
+}

@@ -1,0 +1,88 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 45826,
+      "path": "derived/parquet/claims.parquet",
+      "sha256": "sha256:aa8ec9e6173c02ffe768087bf1ef506db6f1a2d4a913fc67aedf52536d9e45c9"
+    },
+    {
+      "bytes": 13283,
+      "path": "derived/parquet/task1_evidence_links.parquet",
+      "sha256": "sha256:ad509157bfda4d303d07e6b1c4fa32d864dc160bb130b5f64bc67988dcb90208"
+    },
+    {
+      "bytes": 43454,
+      "path": "derived/parquet/task2_method_contexts.parquet",
+      "sha256": "sha256:dae7806b46934f816c2ad9177d9db225fc285d9ce4790a0856cb83e21de58fa7"
+    },
+    {
+      "bytes": 1847296,
+      "path": "derived/context24-identity-core-r1.duckdb",
+      "sha256": "sha256:7df9f04d9aa7250c2440c456a08a6f5a5445d41d6ba0328450ec7e678dba8aaf"
+    }
+  ],
+  "boundaries": [
+    "claim_instance_id=task:split:source_row_index is the physical identity; native id is source metadata and may collide.",
+    "Task 1 test findings and Task 2 test context are withheld challenge gold and are not fabricated.",
+    "Evidence labels are identity-only in R1 because figure/table pixels and captions are not bound.",
+    "Method-context snippets are annotated context, not method adequacy or claim-validity judgments.",
+    "Claim-evidence annotation is not scientific-truth authority or publication/submission authority."
+  ],
+  "counts": {
+    "task1CrossSplitExactClaimOverlap": 0,
+    "task1CrossSplitPaperOverlap": 6,
+    "task1GoldEvidenceLinks": 679,
+    "task1TestPapers": 46,
+    "task1TestRows": 111,
+    "task1TotalRows": 585,
+    "task1TrainPapers": 229,
+    "task1TrainRows": 474,
+    "task1TrainingExactUniqueRows": 463,
+    "task1TrainingNativeIdCollisionGroups": 19,
+    "task1UniqueNativeIds": 566,
+    "task2ExactClaimsAlsoInTask1": 145,
+    "task2GoldMethodContextSnippets": 210,
+    "task2NativeIdsNotInTask1": 5,
+    "task2TestRows": 109,
+    "task2TotalRows": 151,
+    "task2TrainRows": 42,
+    "task2UniqueNativeIds": 151
+  },
+  "evidenceKinds": {
+    "figure": 554,
+    "table": 125
+  },
+  "id": "context24-identity-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "nativeIdCollisionClasses": {
+    "exact_duplicate_rows": 11,
+    "same_claim_different_finding_set": 5,
+    "same_claim_same_finding_set_different_order_or_serialization": 2,
+    "same_native_id_different_claim_text": 1
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:03240ab1b7c9f07f61324d3fe8b480e3dcd9819d3b5d555f2a05ad5266aeac7c",
+    "baselineSha256": "sha256:d113c58964f6359f1d82c9850338ea1e20bcd6d6d78637ac7cee5e931ceade09",
+    "identity": "sha256:fe95ee5748e301cd4885deb5184f99605ec1fd5a538208db2a7be4025159822b",
+    "manifestSha256": "sha256:27b77c8155a0acfc37c41e2b6db60e109df5de824ad90aaddb6e5b864dd1d27b",
+    "normalizationSummarySha256": "sha256:65dd511545a54e3a634527c92e0fdce177b2b743ff997a2600793f9835f0c978",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/context24/context24-identity-core-r1-20260923",
+    "schemaCensusSha256": "sha256:5b672ef962f5872e1cedb6c645d23fd02f85956e168fb04c4bfb6004904539a7"
+  },
+  "source": {
+    "licenseObserved": "CC-BY-4.0",
+    "paper": "https://aclanthology.org/2024.sdp-1.3/",
+    "provider": "Hugging Face Contextualizing Scientific Claims",
+    "readmeSha256": "sha256:e4b883f8281cb4092104feba857e589ace4c9724e3df48df7b020ea2b4106d95",
+    "repo": "https://huggingface.co/datasets/joelchan/contextualizing-scientific-claims",
+    "repoCommit": "457d3b5cb4bb8ade34e37458f4900c6eae0959bb"
+  },
+  "status": "MATERIALIZED_IDENTITY_CORE_ANALYTICAL_VIEWS_PASS",
+  "transport": {
+    "byteAuthority": "repo-commit-plus-git-blob-oid-plus-local-sha256",
+    "resolver": "https://hf-mirror.com",
+    "role": "transport-only-not-authority"
+  },
+  "truthRole": "external-claim-grounding-annotation-evidence-not-scientific-truth"
+}

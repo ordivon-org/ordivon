@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-service-architecture-delta",
+  "graphId": "ordivon-agent-service-r7-goal-board-delta",
+  "baseGraph": "catalogs/knowledge/graphs/ordivon-agent-service-r2.json",
+  "baseImplementationCommit": "9ad9fea48591c0c323aa234ca0365355e09e61b6",
+  "implementedBaseNodes": [
+    {
+      "nodeId": "N04",
+      "label": "GoalStore",
+      "symbol": "agent_service.goals.GoalStore"
+    },
+    {
+      "nodeId": "N23",
+      "label": "BoardProjector",
+      "symbol": "agent_service.goals.GoalBoardProjector",
+      "refinement": "Append-only projection sink over Agent Service Goal semantic events; never a Goal/Task authority."
+    }
+  ],
+  "discoveredNodes": [
+    {
+      "nodeId": "N31",
+      "label": "GoalGraphMutationGuard",
+      "kind": "POLICY_GUARD",
+      "symbol": "agent_service.goals.GoalGraphMutationGuard",
+      "reason": "Goal membership/dependency structure freezes once the Goal leaves PENDING or any linked Task leaves PENDING."
+    },
+    {
+      "nodeId": "N32",
+      "label": "GoalTaskLinkStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.goals.GoalTaskLinkStore",
+      "reason": "Goal membership/order is distinct from Task dependency edges and Task lifecycle state."
+    },
+    {
+      "nodeId": "N33",
+      "label": "TaskDependencyStore",
+      "kind": "STATE_AUTHORITY",
+      "symbol": "agent_service.goals.TaskDependencyStore",
+      "reason": "Same-Goal DAG edges have independent cycle/cross-goal invariants."
+    },
+    {
+      "nodeId": "N34",
+      "label": "TaskReadinessProjector",
+      "kind": "DERIVED_PROJECTION",
+      "symbol": "agent_service.goals.TaskReadinessProjector",
+      "reason": "READY/BLOCKED is derived from Task state plus dependency truth and is deliberately not persisted."
+    },
+    {
+      "nodeId": "N35",
+      "label": "GoalReconciler",
+      "kind": "RECONCILER",
+      "symbol": "agent_service.goals.GoalReconciler",
+      "reason": "Goal state converges from linked Task semantic truth; Goal does not duplicate Task outcome evidence."
+    },
+    {
+      "nodeId": "N36",
+      "label": "BoardProjectionReceiptStore",
+      "kind": "DELIVERY_RECEIPT_STORE",
+      "symbol": "agent_service.goals.BoardProjectionReceiptStore",
+      "reason": "Projection delivery needs durable local acknowledgement without turning Board into semantic truth."
+    },
+    {
+      "nodeId": "N37",
+      "label": "DependencyAwareAssignmentPlanner",
+      "kind": "DECISION_ROUTER",
+      "symbol": "agent_service.goals.GoalAssignmentPlanner",
+      "reason": "Dependency readiness gates the existing R5 AssignmentPlanner rather than creating a parallel assignment authority."
+    },
+    {
+      "nodeId": "N38",
+      "label": "HostBoardMcpAdapter",
+      "kind": "ADAPTER_GATEWAY",
+      "symbol": "agent_service.host_board.HostBoardMcpAdapter",
+      "reason": "Host Board is a collaboration projection provider reachable through its existing loopback streamable-HTTP MCP surface."
+    }
+  ],
+  "compatibilityFacades": [
+    {
+      "label": "GoalTaskGraph",
+      "symbol": "agent_service.goals.GoalTaskGraph",
+      "semanticAuthority": false,
+      "delegatesTo": ["N31", "N32", "N33", "N34"]
+    }
+  ],
+  "flow": [
+    "N04 GoalStore",
+    "N32 GoalTaskLinkStore",
+    "N33 TaskDependencyStore",
+    "N31 GoalGraphMutationGuard",
+    "N34 TaskReadinessProjector",
+    "N37 DependencyAwareAssignmentPlanner",
+    "existing R5/R6 Task execution and verification",
+    "N35 GoalReconciler",
+    "N23 BoardProjector",
+    "N38 HostBoardMcpAdapter",
+    "Host v2 Board collaboration record",
+    "N36 BoardProjectionReceiptStore"
+  ],
+  "authorityLaws": [
+    "Goal identity and Goal semantic state belong to Agent Service, not Host Board.",
+    "Task readiness is derived; no durable READY/BLOCKED Task state is introduced.",
+    "Dependency edges are same-Goal only and cycles fail closed.",
+    "Goal graph structure freezes once semantic execution begins.",
+    "Goal convergence consumes Task state; it does not infer success from Runtime or Board state.",
+    "Board projection failure never rolls back or redefines Goal truth.",
+    "Each Goal semantic event has a deterministic Board clientMessageId for exact replay.",
+    "Board catch-up projects every unprojected Goal event in event order.",
+    "Host Board collaboration records remain explicitly non-domain-truth."
+  ],
+  "hostProvider": {
+    "hostRevision": "b5cf31f9a1d177576886fe545e870e685a80fc2e",
+    "transport": "streamable-http",
+    "loopbackEndpoint": "http://127.0.0.1:8898/mcp",
+    "protocol": "2025-11-25",
+    "tool": "board.post",
+    "taskToolsUsedByAdapter": false,
+    "newsToolsUsedByAdapter": false
+  }
+}

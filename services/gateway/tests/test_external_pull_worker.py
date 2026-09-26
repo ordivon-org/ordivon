@@ -332,3 +332,94 @@ def test_transport_migrates_pre_ceiling_worker_schema(tmp_path) -> None:
         capabilities=["muse.shell.echo"],
     )
     assert transport.capability_projection() == {"muse.shell.echo": ["worker-after-migration"]}
+
+
+def test_heartbeat_renews_live_started_attempt_lease(tmp_path) -> None:
+    clock = Clock()
+    transport = ExternalPullWorkerTransport(
+        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
+    )
+    _, public_key = keypair()
+    transport.enroll(
+        worker_id="worker-1",
+        provider_id="muse",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["muse.shell.echo"],
+    )
+    transport.submit(
+        capability="muse.shell.echo",
+        request_id="req-heartbeat-renew",
+        parcel={"fixed_action": "echo"},
+    )
+    claim = transport.claim("worker-1", generation=1)
+    assert claim is not None
+    transport.started(
+        worker_id="worker-1",
+        generation=1,
+        operation_id=claim["operation_id"],
+        attempt_id=claim["attempt_id"],
+        lease_id=claim["lease_id"],
+    )
+
+    clock.now += 900
+    transport.heartbeat("worker-1", generation=1)
+    clock.now += 200
+    assert transport.claim("worker-1", generation=1) is None
+    assert transport.get(claim["operation_id"]).state == "started"
+
+
+def test_expired_started_attempt_requires_reconciliation_and_is_not_duplicated(tmp_path) -> None:
+    clock = Clock()
+    transport = ExternalPullWorkerTransport(
+        tmp_path / "workers.sqlite3", clock_ms=clock, lease_ms=1_000
+    )
+    _, public_key = keypair()
+    transport.enroll(
+        worker_id="worker-1",
+        provider_id="muse",
+        generation=1,
+        public_key_b64=public_key,
+        capabilities=["muse.shell.echo"],
+    )
+    operation = transport.submit(
+        capability="muse.shell.echo",
+        request_id="req-started-expire",
+        parcel={"fixed_action": "echo"},
+    )
+    claim = transport.claim("worker-1", generation=1)
+    assert claim is not None
+    transport.started(
+        worker_id="worker-1",
+        generation=1,
+        operation_id=claim["operation_id"],
+        attempt_id=claim["attempt_id"],
+        lease_id=claim["lease_id"],
+    )
+
+    clock.now += 1_001
+    assert transport.claim("worker-1", generation=1) is None
+    unknown = transport.get(operation.operation_id)
+    assert unknown.state == "reconcile_required"
+    assert unknown.terminal is False
+
+    service = GatewayService(NoOwnerCaller(), external_workers=transport)
+    observed = asyncio.run(service.execution_get(f"ordivon-exec:v1:external.pull:{operation.operation_id}"))
+    assert observed.state == "reconcile_required"
+    assert observed.recovery_required is True
+    assert observed.delivery_disposition == "unknown"
+
+    # A late terminal report from the same fenced attempt is safe to accept because
+    # no replacement attempt was ever issued.
+    completed = transport.complete(
+        worker_id="worker-1",
+        generation=1,
+        operation_id=claim["operation_id"],
+        attempt_id=claim["attempt_id"],
+        lease_id=claim["lease_id"],
+        exit_code=0,
+        result={"text": "late but same attempt"},
+        artifacts=[],
+    )
+    assert completed.state == "completed"
+    assert completed.terminal is True

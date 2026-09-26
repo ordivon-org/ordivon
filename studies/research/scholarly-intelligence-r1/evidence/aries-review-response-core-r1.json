@@ -1,0 +1,93 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 10139687,
+      "path": "derived/parquet/author_responses.parquet",
+      "sha256": "sha256:c3e0e9f888d96fff643c55ddd758d7a1c0f274b0e43d09c12160b3e3a6268290"
+    },
+    {
+      "bytes": 3501,
+      "path": "derived/parquet/concern_response_context_links.parquet",
+      "sha256": "sha256:be826f87f4416760ffa3fdd25fde20fa8701d628606d369ce872de35b79ae676"
+    },
+    {
+      "bytes": 3582,
+      "path": "derived/parquet/lifecycle_forks.parquet",
+      "sha256": "sha256:3899da685d975daae6d84c880e953cfc5cee658a9ee8cfe85a9838c7ccf54228"
+    },
+    {
+      "bytes": 2615,
+      "path": "derived/parquet/manual_concern_review_links.parquet",
+      "sha256": "sha256:43bc73283e9f5a0440457fb4c0fa616829d087edba5f416df910541d39236072"
+    },
+    {
+      "bytes": 3655589,
+      "path": "derived/parquet/official_reviews.parquet",
+      "sha256": "sha256:fb813603033088a3910a06deda61707be75290f92557546c1ea9e57f6d793159"
+    },
+    {
+      "bytes": 261596,
+      "path": "derived/parquet/reply_edges.parquet",
+      "sha256": "sha256:09ee1792e2970fbd31f9331ced1c0ccfc1345b3504eb826afa999f0afb522d9b"
+    },
+    {
+      "bytes": 58208256,
+      "path": "derived/aries-review-response-core-r1.duckdb",
+      "sha256": "sha256:7228873dd69f0e7abc86f1c786990baa332609b721851d7e1875fe86de5ab0fa"
+    }
+  ],
+  "boundaries": [
+    "The 196 manual concerns have exact source-review identity; this does not imply sentence-span alignment inside the review.",
+    "Author responses are attached to exact review threads; a response-thread membership edge does not prove that the response addresses a specific extracted concern.",
+    "Concern-to-revision correspondence remains a separate ARIES annotation. No Response->Revision semantic or causal edge is asserted.",
+    "The lifecycle fork is identity/topology evidence, not proof of response adequacy, reviewer correctness, revision quality, or scientific truth."
+  ],
+  "counts": {
+    "chainedAuthorResponses": 1976,
+    "concernResponseContextLinks": 270,
+    "directAuthorResponses": 8488,
+    "manualConcernExactReviewJoins": 196,
+    "manualConcernForumMismatches": 0,
+    "manualConcernRows": 196,
+    "manualConcernsWithAnyResponse": 196,
+    "manualConcernsWithBothBranches": 87,
+    "manualConcernsWithPositiveRevision": 87,
+    "orphanReplyParents": 0,
+    "relevantAuthorResponses": 10464,
+    "relevantForums": 1720,
+    "relevantOfficialReviews": 6380,
+    "sourceAuthorReplies": 32691,
+    "sourceReviewRecords": 23706
+  },
+  "id": "aries-review-response-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "parentAsset": {
+    "id": "aries-bounded-core-r1",
+    "reviewCommentsSha256": "sha256:0f32ce3b66b12385dd2f9d1bb791a8800e80060b1a58c0deddd87bcded3b2b58",
+    "snapshotIdentity": "sha256:c044a92034f740802d24a2298cc1569e59bda34c5148e34a6556f356d78b1c77",
+    "testLabelsSha256": "sha256:e5c827f2572ecbc26e00583ca2ff557b083b8b71a577f4d308aaf00a24c62306"
+  },
+  "privacy": {
+    "reviewerProfilingAuthorized": false,
+    "writersReadersInNormalizedTables": "OMITTED"
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:c9c86d4b5130327f8b661b97f815206682c0c1eb3f06043a726e5dbeb9b12204",
+    "baselineSha256": "sha256:a05bfa2bd7749f14306de93e49d081de77f26fa914b62b1fc4eb117336742cee",
+    "identity": "sha256:3a251f14e1b4b49763a1791e11b7482f929ee017fd4f7d7fd603fd4fd475802e",
+    "manifestSha256": "sha256:22d57777f040038cb3c1d4aa4b17e23f6fe365bcd429b6ee9baa18a1b4e34aaf",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/aries/aries-review-response-core-r1-20260923",
+    "schemaCensusSha256": "sha256:a2b65b3c734186b2caf48da322dffcc45d15e88e28f654c1106fd42ea06f7180"
+  },
+  "source": {
+    "bytes": 198981013,
+    "licenseFileSha256": "sha256:11a6d83734845ad09d809667aa219857a5b985b28c258a2eebf5677668a6bd3b",
+    "licenseObserved": "ODC-BY-1.0",
+    "provider": "AllenAI public S3",
+    "sha256": "sha256:1083f1eac0830f82516f4aba712ce58f7d449d80a570d4c560e499da49a3d03c",
+    "uri": "s3://ai2-s2-research-public/aries/review_replies.jsonl"
+  },
+  "status": "MATERIALIZED_REVIEW_RESPONSE_CORE_ANALYTICAL_VIEWS_PASS",
+  "truthRole": "external-review-response-thread-physical-and-identity-evidence-not-concern-resolution-or-revision-causality"
+}

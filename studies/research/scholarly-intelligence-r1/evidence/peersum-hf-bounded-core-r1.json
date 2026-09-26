@@ -1,0 +1,99 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 127142916,
+      "path": "derived/parquet/messages.parquet",
+      "sha256": "sha256:03462281354045f55e47fd2c1dda7ba122347f6d629c32adc5bb7ba466cb1690"
+    },
+    {
+      "bytes": 9904355,
+      "path": "derived/parquet/papers.parquet",
+      "sha256": "sha256:9ce3adee194cd0b8e13e2bb343de3a5fb4bea8a472dd8c75f339aa554e72f662"
+    },
+    {
+      "bytes": 2946983,
+      "path": "derived/parquet/reply_edges.parquet",
+      "sha256": "sha256:469c24a5fe09cc7b17bdc102cf03a0b2188a200a5260a08aaf8b595a44c973ae"
+    },
+    {
+      "bytes": 599797760,
+      "path": "derived/peersum-hf-bounded-r1.duckdb",
+      "sha256": "sha256:1c977b0004a81922bb9704fcc5613ad365214656f724a8681fc18dc5c5940c57"
+    }
+  ],
+  "boundaries": [
+    "Official-review rating spread is a structural disagreement proxy, not semantic contradiction truth.",
+    "Meta-review is a supplied synthesis artifact, not reviewer/scientific truth or proof of a correct decision.",
+    "paper_acceptance_native is source metadata only and is not normalized into a venue-independent quality label.",
+    "Current exact carrier split counts override historical documentation for any byte-bound analysis.",
+    "Corpus frequencies are PeerSum-specific and not peer-review population prevalence."
+  ],
+  "counts": {
+    "authorMessages": 95943,
+    "messages": 178272,
+    "nonemptyMetaReviews": 14993,
+    "officialReviewMessages": 79354,
+    "orphanReplyTargets": 0,
+    "papers": 14993,
+    "publicMessages": 2975,
+    "replyCycles": 0,
+    "replyEdges": 178272
+  },
+  "id": "peersum-hf-bounded-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "materializationEvidence": {
+    "artifactRequalification": "PASS_ARTIFACT_BYTES_INDEPENDENTLY_REQUALIFIED",
+    "originalJobId": "job-01a0ce03-b4af-7993-bfc3-034ae568e15f",
+    "originalRuntimeStanding": "ORPHANED_RECONCILIATION_REQUIRED",
+    "requalificationReceipt": "/root/projects/ordivon-corpora/scholarly-data/peersum/peersum-hf-bounded-r1-20260923/REQUALIFICATION_R1.json"
+  },
+  "privacy": {
+    "reviewerIdentityProfileCreated": false,
+    "reviewerProfilingAuthorized": false,
+    "writerRoleRetained": true
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:e967903201a25a73ca89e5d39109c16e3092503a066f600f9a3e48adaa72aced",
+    "baselineSha256": "sha256:578591dc3f84001d15bc2bea16360a1bf15798c27810b85c8d4f418d9b3ae188",
+    "identity": "sha256:d25dde82d50cc811aa9a8a16858c18e5913d6916fe4c41b10c1da3ed927e151b",
+    "manifestSha256": "sha256:1aa21dd6113f0e54cf78d2da1a0bca31195936c560e2e82ecf51c3a9e2ccd8dc",
+    "normalizationSummarySha256": "sha256:cb2095a1420251dc03e39ca48d86798d02f4ea25c7627fde30aabc1709fb6242",
+    "requalificationSha256": "sha256:484450f94e451a9bbd3104417d7cbccaea06c56ce3c99c70bf9f45d1277e8836",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/peersum/peersum-hf-bounded-r1-20260923",
+    "schemaCensusSha256": "sha256:17caf0a60587d018bbd3c1697195949cd22aec6276c9aa60a3186c1a4383efa2"
+  },
+  "source": {
+    "licenseObserved": "Apache-2.0",
+    "paper": "https://aclanthology.org/2023.findings-emnlp.472/",
+    "provider": "Hugging Face PeerSum",
+    "rawCarrierBytes": 476238545,
+    "rawCarrierSha256": "sha256:ddd4766837f7d92913d1fa59cf2aabac18bf0313643f35e1c993d09c0ff938ab",
+    "readmeSha256": "sha256:1abbe0fdb9d647a9a63def5a6dc898b50f80b8322f1ef3af58df619f1caebfe4",
+    "repo": "https://huggingface.co/datasets/oaimli/PeerSum",
+    "repoCommit": "08f657c7b1818fc58f42ed42125287953b439645",
+    "xetHash": "94ced7f6f5e2e9446bc6f73ac08d1910ca74354b94be363679540d361db84ca6"
+  },
+  "splits": {
+    "currentExactCarrier": {
+      "test": 1505,
+      "train": 11992,
+      "val": 1496
+    },
+    "historicalDocumentation": {
+      "test": 1499,
+      "train": 11995,
+      "val": 1499
+    },
+    "standing": "CURRENT_CARRIER_DIFFERS_FROM_HISTORICAL_DOCUMENTATION"
+  },
+  "status": "MATERIALIZED_DIGEST_BOUND_ANALYTICAL_VIEWS_PASS",
+  "transport": {
+    "byteAuthority": "official-Hugging-Face-SHA256",
+    "digestVerification": "MATCH",
+    "finalCasHost": "cas-bridge.xethub.hf.co",
+    "resolver": "https://hf-mirror.com",
+    "role": "transport-only-not-authority"
+  },
+  "truthRole": "external-review-discussion-and-meta-review-physical-and-schema-evidence-not-reviewer-scientific-or-decision-truth"
+}
