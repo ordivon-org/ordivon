@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.ai-redteam.lego-plan",
+  "planId": "ai-redteam-sandbox-to-adaptive-regression-r4-r10",
+  "principles": [
+    "CURRENT_PHYSICAL_TRUTH",
+    "DELETE_CUSTOM_BY_DEFAULT",
+    "SandboxLabel != IsolationContract",
+    "Observation != Evidence != Authority != VerifiedConsequence",
+    "ModelCompromise != EffectCompromise",
+    "AttackerMovesSecond"
+  ],
+  "modules": [
+    {
+      "id": "R4",
+      "name": "Adversarial Experiment Environment Contract",
+      "owner": "AI Red-Team Foundry",
+      "externalOwners": ["Ordivon Runtime", "libvirt/QEMU/KVM", "Security v2"],
+      "status": "CONTRACT_VERIFIED",
+      "deliverables": ["IsolationVector", "ExperimentEnvironmentSpec", "SandboxRealizationReceipt", "admission/falsification tests", "current provider preflight/requalification"],
+      "verification": {
+        "unitTests": "23/23 PASS",
+        "fixture": "PASS",
+        "compileall": "PASS",
+        "jsonParse": "PASS",
+        "providerLifecycle": "LIBVIRT_LIFECYCLE_REQUALIFIED_ON_DEMAND_BASELINE_RESTORED"
+      },
+      "exitGate": "PASS: hostile_code cannot be admitted on a shared-kernel or uncontrolled-effect profile",
+      "nonClaim": "No concrete hostile-code ExperimentEnvironmentSpec has yet been physically realized."
+    },
+    {
+      "id": "R5",
+      "name": "Synthetic World",
+      "owner": "AI Red-Team Foundry",
+      "status": "READY",
+      "dependsOn": ["R4"],
+      "deliverables": ["synthetic services", "synthetic identities/secrets", "deterministic world-state digest", "reset contract"]
+    },
+    {
+      "id": "R6",
+      "name": "Effect Proxy",
+      "owner": "AI Red-Team Foundry + Security admission",
+      "status": "PLANNED",
+      "dependsOn": ["R4", "R5"],
+      "deliverables": ["attempted-effect envelope", "simulation/allowlist decision", "no direct external-effect path", "effect receipt"]
+    },
+    {
+      "id": "R7",
+      "name": "External Observer",
+      "owner": "independent observation provider",
+      "status": "PLANNED",
+      "dependsOn": ["R4", "R5", "R6"],
+      "deliverables": ["network/file/world observers", "observer identity", "authoritative observation digest", "anti-self-verification tests"]
+    },
+    {
+      "id": "R8",
+      "name": "Attack Search Adapter",
+      "owner": "AI Red-Team Foundry",
+      "status": "PLANNED",
+      "dependsOn": ["R4", "R7"],
+      "deliverables": ["external-engine ABI", "budget/seed/adaptivity binding", "candidate/result normalization", "provider-native artifact refs"]
+    },
+    {
+      "id": "R9",
+      "name": "Vulnerability Family Ledger",
+      "owner": "AI Red-Team Foundry",
+      "status": "PLANNED",
+      "dependsOn": ["R8"],
+      "deliverables": ["finding clustering", "root-cause hypothesis", "family identity", "discovery frontier"]
+    },
+    {
+      "id": "R10",
+      "name": "Adaptive Regression Loop",
+      "owner": "AI Red-Team Foundry",
+      "status": "PLANNED",
+      "dependsOn": ["R9"],
+      "deliverables": ["original replay", "family mutation", "defense-aware re-attack", "utility regression", "RegressionReceipt"]
+    }
+  ]
+}

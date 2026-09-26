@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/sandbox-admission-r4.json",
+  "title": "Sandbox Admission R4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["environmentDigest", "admitted", "reasons", "requiredDimensions"],
+  "properties": {
+    "environmentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "admitted": {"type": "boolean"},
+    "reasons": {"type": "array", "items": {"type": "string"}},
+    "requiredDimensions": {"type": "array", "items": {"type": "string"}}
+  }
+}
