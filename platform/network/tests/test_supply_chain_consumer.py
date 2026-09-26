@@ -12,25 +12,29 @@ def test_supply_chain_authority_matches_enforced_destination_policy():
     egress = json.loads((CONSUMER / "config" / "egress.json").read_text())
     assert authority["listen"] == {"host": "127.0.0.1", "port": 19581, "protocol": "http"}
     assert authority["directFallback"] is False
+    assert authority["networkAuthority"]["carrierService"] == "network-v2-browserless-provider-carrier.service"
+    assert authority["networkAuthority"]["providerSite"] == "th-bkk"
     route = next(r for r in egress["route"]["rules"] if r.get("inbound") == ["supply-chain-oci"])
     assert sorted(route["domain"]) == sorted(authority["allowedHttpsDomains"])
     assert sorted(route["domain_suffix"]) == sorted(authority["allowedHttpsDomainSuffixes"])
     assert route["port"] == 443
     assert route["network"] == ["tcp"]
-    assert route["outbound"] == "provider-auto"
+    assert route["outbound"] == "provider-carrier"
     assert egress["route"]["rules"][-1] == {"action": "reject"}
 
 
-def test_supply_chain_reuses_dual_provider_and_dns_race_without_direct_outbound():
+def test_supply_chain_reuses_one_shared_carrier_without_vpn_identity():
     egress = json.loads((CONSUMER / "config" / "egress.json").read_text())
     assert egress["outbounds"] == [{
-        "type": "urltest", "tag": "provider-auto", "outbounds": ["provider-b", "provider-a"],
-        "url": "https://1.1.1.1/cdn-cgi/trace", "interval": "3s", "tolerance": 65535,
-        "idle_timeout": "10m", "interrupt_exist_connections": True,
+        "type": "http", "tag": "provider-carrier", "server": "10.252.246.2", "server_port": 19680,
     }]
-    assert [x["server"] for x in egress["dns"]["servers"]] == ["162.252.172.57", "149.154.159.92"]
-    assert any(x.get("race") is True for x in egress["dns"]["rules"])
-    assert not any(x.get("type") == "direct" for x in egress["outbounds"])
+    assert "dns" not in egress
+    assert "services" not in egress
+    unit = (CONSUMER / "systemd" / "network-v2-supply-chain-egress.service").read_text()
+    assert "Requires=network-v2-browserless-provider-carrier.service" in unit
+    assert "provider-endpoints.json" not in unit
+    taskfile = (ROOT / "Taskfile.yml").read_text()
+    assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile
 
 
 def test_docker_binding_retires_old_public_web_proxy_and_restart_is_guarded():

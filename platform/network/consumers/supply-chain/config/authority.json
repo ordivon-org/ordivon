@@ -6,11 +6,6 @@
     "port": 19581,
     "protocol": "http"
   },
-  "providerAuthority": {
-    "kind": "surfshark",
-    "profileOwner": "/etc/network-v2/providers",
-    "composition": "dual-wireguard-urltest"
-  },
   "allowedHttpsDomains": [
     "registry-1.docker.io",
     "registry.docker.io",
@@ -24,5 +19,12 @@
     "gcr.io",
     "pkg.dev"
   ],
-  "directFallback": false
+  "directFallback": false,
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "namespace": "nv2-browserless-prod",
+    "carrierService": "network-v2-browserless-provider-carrier.service",
+    "providerSite": "th-bkk"
+  }
 }

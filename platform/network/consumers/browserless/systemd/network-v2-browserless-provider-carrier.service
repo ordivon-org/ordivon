@@ -1,0 +1,20 @@
+[Unit]
+Description=Network v2 shared provider carrier inside Browserless WireGuard authority
+Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service
+After=network-v2-browserless-dns.service network-v2-browserless-forward.service
+PartOf=network-v2-browserless.target
+
+[Service]
+Type=simple
+User=sing-box
+Group=sing-box
+NetworkNamespacePath=/run/netns/nv2-browserless-prod
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/browserless/provider-carrier.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/browserless/provider-carrier.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK

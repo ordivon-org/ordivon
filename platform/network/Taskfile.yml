@@ -14,36 +14,44 @@ tasks:
     cmds:
       - sing-box check -c providers/surfshark/config/carrier.json
 
-  consumer:finance:validate:
-    desc: Validate the sing-box-native Finance venue policy without changing live authority
+  consumer:browserless:provider-carrier:validate:
+    desc: Validate the one-identity shared provider carrier without changing live state
     cmds:
+      - /usr/bin/sing-box check -c consumers/browserless/config/provider-carrier.json
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-netns.service consumers/browserless/systemd/network-v2-browserless-forward.service consumers/browserless/systemd/network-v2-browserless-wireguard.service consumers/browserless/systemd/network-v2-browserless-dns.service consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/browserless/systemd/network-v2-browserless.target
+      - /usr/bin/bash -n consumers/browserless/provider-carrier-ready.sh consumers/browserless/provider-switch.sh consumers/browserless/production-cutover.sh
+      - grep -F 'PROVIDER_SITE=${PROVIDER_SITE:-th-bkk}' consumers/browserless/production-cutover.sh >/dev/null
+
+  consumer:finance:validate:
+    desc: Validate nine scoped Finance authorities over the shared provider carrier plus explicit direct macro lanes
+    cmds:
+      - /usr/bin/sing-box check -c consumers/finance/config/egress.json
       - jq -e '.inbounds|length==9' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-auto")' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.inbounds[]; .tag=="finance-us-treasury-public" and .listen=="127.0.0.1" and .listen_port==19291) and any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .port==443 and .action=="route" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
-      - jq -e 'any(.inbounds[]; .tag=="finance-fred-public-csv" and .listen=="127.0.0.1" and .listen_port==19292) and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .port==443 and .action=="route" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
-      - jq -e '.outbounds==[{"type":"urltest","tag":"provider-auto","outbounds":["provider-b","provider-a"],"url":"https://1.1.1.1/cdn-cgi/trace","interval":"3s","tolerance":65535,"idle_timeout":"10m","interrupt_exist_connections":true},{"type":"direct","tag":"public-direct"}]' consumers/finance/config/egress.json >/dev/null
-      - jq -e '.dns.servers==[{"type":"udp","tag":"provider-dns-1","server":"162.252.172.57","server_port":53,"detour":"provider-auto"},{"type":"udp","tag":"provider-dns-2","server":"149.154.159.92","server_port":53,"detour":"provider-auto"}] and .dns.rules==[{"action":"evaluate","server":"provider-dns-1","tag":"provider-dns-1-eval"},{"match_response":"provider-dns-1-eval","ip_accept_any":true,"action":"respond","race":true},{"action":"evaluate","server":"provider-dns-2","tag":"provider-dns-2-eval","speculative":true},{"match_response":"provider-dns-2-eval","ip_accept_any":true,"action":"respond","race":true}] and .route.rules[0]=={"action":"resolve","strategy":"ipv4_only","timeout":"5s"}' consumers/finance/config/egress.json >/dev/null
-      - /usr/bin/systemd-analyze verify consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
-      - test -f consumers/finance/config/binance-wallet-rest-authority.json
-      - test -f consumers/finance/config/us-treasury-rest-authority.json
-      - test -f consumers/finance/config/fred-public-csv-authority.json
-      - /usr/bin/bash -n consumers/finance/ready.sh
+      - jq -e 'any(.inbounds[]; .tag=="finance-binance-wallet" and .listen=="127.0.0.1" and .listen_port==19290) and any(.route.rules[]; (.inbound? // [])==["finance-binance-wallet"] and .domain=="api.binance.com" and .port==443 and .action=="route" and .outbound=="provider-carrier")' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'any(.route.rules[]; (.inbound? // [])==["finance-us-treasury-public"] and .domain=="home.treasury.gov" and .outbound=="public-direct") and any(.route.rules[]; (.inbound? // [])==["finance-fred-public-csv"] and .domain=="fred.stlouisfed.org" and .outbound=="public-direct")' consumers/finance/config/egress.json >/dev/null
+      - jq -e '.outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680},{"type":"direct","tag":"public-direct"}] and (has("dns")|not) and (has("services")|not)' consumers/finance/config/egress.json >/dev/null
+      - jq -e 'all(.route.rules[]; ((.outbound? // "") != "provider-auto"))' consumers/finance/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/finance/systemd/network-v2-finance-egress.service consumers/finance/systemd/network-v2-finance.target
+      - /usr/bin/bash -n consumers/finance/ready.sh consumers/finance/acceptance/production-smoke.sh
       - jq -e '.kind=="ordivon.network-v2.scoped-egress-authority" and .directFallback==false and (.proxy|startswith("http://127.0.0.1:"))' consumers/finance/config/*-authority.json >/dev/null
+      - '! grep -R -F "provider-auto" consumers/finance/config'
 
   consumer:supply-chain:validate:
-    desc: Validate the scoped OCI/container supply-chain authority without changing live Docker or provider state
-    deps: [provider:surfshark:validate]
+    desc: Validate the scoped OCI authority over the shared provider carrier without changing Docker
+    deps: [consumer:browserless:provider-carrier:validate]
     cmds:
-      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .providerAuthority.kind=="surfshark" and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
-      - jq -e '.inbounds==[{"type":"http","tag":"supply-chain-oci","listen":"127.0.0.1","listen_port":19581}] and .route.rules[-1].action=="reject"' consumers/supply-chain/config/egress.json >/dev/null
-      - /usr/bin/systemd-analyze verify consumers/supply-chain/systemd/network-v2-supply-chain-egress.service consumers/supply-chain/systemd/network-v2-supply-chain.target
+      - /usr/bin/sing-box check -c consumers/supply-chain/config/egress.json
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.supply-chain-egress" and .listen=={"host":"127.0.0.1","port":19581,"protocol":"http"} and .networkAuthority.carrierService=="network-v2-browserless-provider-carrier.service" and .networkAuthority.providerSite=="th-bkk" and .directFallback==false' consumers/supply-chain/config/authority.json >/dev/null
+      - jq -e '.inbounds==[{"type":"http","tag":"supply-chain-oci","listen":"127.0.0.1","listen_port":19581}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject" and (has("dns")|not) and (has("services")|not)' consumers/supply-chain/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/supply-chain/systemd/network-v2-supply-chain-egress.service consumers/supply-chain/systemd/network-v2-supply-chain.target
       - /usr/bin/bash -n consumers/supply-chain/ready.sh consumers/supply-chain/acceptance/docker-rebind-smoke.sh
       - grep -F '127.0.0.1:19581' consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf >/dev/null
       - '! grep -R -F "10.254.177.2:19381" consumers/supply-chain'
+      - '! grep -R -F "provider-auto" consumers/supply-chain/config'
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, consumer:finance:validate, consumer:supply-chain:validate]
+    deps: [core:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -235,50 +243,63 @@ tasks:
           test "$(yq -p=ini -o=json -r '.Interface.DNS // ""' "$profile")" = ''
         done <"$manifest"
 
-  consumer:finance:materialize:
-    desc: Materialize one sing-box-native Finance provider graph and nine scoped data authorities without starting or cutting over consumers
-    deps: [consumer:finance:validate]
+  consumer:browserless:provider-carrier:materialize:
+    desc: Materialize the internal shared carrier bytes without changing the current WireGuard endpoint
+    deps: [consumer:browserless:provider-carrier:validate]
     cmds:
-      - install -d -m 0755 /etc/network-v2/finance
+      - install -d -m 0755 /etc/network-v2/browserless /usr/local/libexec/network-v2
+      - install -m 0644 consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+      - install -m 0644 consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
+      - install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+      - install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+      - systemctl daemon-reload
+      - systemctl enable network-v2-browserless.target
+
+  consumer:browserless:provider-carrier:ready:
+    desc: Prove the selected one-identity provider carrier across OpenAI, OKX, OCI and Anthropic consequences
+    cmds:
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+  consumer:browserless:provider-carrier:converge:
+    desc: Materialize and restart only the internal carrier over the already-selected Browserless WireGuard session
+    cmds:
+      - task: consumer:browserless:provider-carrier:materialize
+      - systemctl restart network-v2-browserless-provider-carrier.service
+      - task: consumer:browserless:provider-carrier:ready
+
+  consumer:browserless:provider-carrier:select:
+    desc: Switch the sole shared WireGuard identity to one catalog provider without recreating the Browserless namespace
+    deps: [consumer:browserless:provider-carrier:materialize, provider:surfshark:verify-local]
+    cmds:
+      - /usr/local/libexec/network-v2/browserless-provider-switch th-bkk
+
+  consumer:browserless:provider-carrier:verify:
+    desc: Verify exact shared-carrier deployed bytes and live cross-consumer consequence readiness
+    cmds:
+      - cmp -s consumers/browserless/config/provider-carrier.json /etc/network-v2/browserless/provider-carrier.json
+      - cmp -s consumers/browserless/systemd/network-v2-browserless-provider-carrier.service /etc/systemd/system/network-v2-browserless-provider-carrier.service
+      - cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
+      - cmp -s consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+      - cmp -s consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+      - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
+
+  consumer:finance:materialize:
+    desc: Materialize nine Finance authorities over the shared provider carrier without creating another WireGuard session
+    deps: [consumer:browserless:provider-carrier:materialize, consumer:finance:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/finance /usr/local/libexec/network-v2
       - install -m 0644 consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
       - install -m 0644 consumers/finance/config/*-authority.json /etc/network-v2/finance/
-      - |
-        set -eu
-        src=/etc/network-v2/providers
-        catalog={{.GLUETUN_SERVERS_INSTALL}}
-        test -f "$catalog"
-        test "$(sha256sum "$catalog" | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
-        test -f "$src/kr-seo.conf"; test -f "$src/th-bkk.conf"
-        a_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="kr-seo.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
-        b_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="th-bkk.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
-        test -n "$a_ep"; test "$a_ep" != null
-        test -n "$b_ep"; test "$b_ep" != null
-        a_json=$(mktemp); b_json=$(mktemp); ep_tmp=$(mktemp)
-        trap 'rm -f "$a_json" "$b_json" "$ep_tmp"' EXIT
-        yq -p=ini -o=json "$src/kr-seo.conf" >"$a_json"
-        yq -p=ini -o=json "$src/th-bkk.conf" >"$b_json"
-        jq -n --slurpfile a "$a_json" --slurpfile b "$b_json" --arg a_ep "$a_ep" --arg b_ep "$b_ep" '
-          def endpoint($tag;$cfg;$ip): {
-            type:"wireguard", tag:$tag, system:false, mtu:1408,
-            address:[$cfg.Interface.Address], private_key:$cfg.Interface.PrivateKey,
-            peers:[{address:$ip, port:51820, public_key:$cfg.Peer.PublicKey,
-                    allowed_ips:["0.0.0.0/0"], persistent_keepalive_interval:5}]
-          };
-          {endpoints:[endpoint("provider-a";$a[0];$a_ep), endpoint("provider-b";$b[0];$b_ep)]}
-        ' >"$ep_tmp"
-        chmod 0640 "$ep_tmp"
-        chown root:sing-box "$ep_tmp"
-        sing-box check -c "$ep_tmp" -c consumers/finance/config/egress.json
-        install -o root -g sing-box -m 0640 "$ep_tmp" /etc/network-v2/finance/provider-endpoints.json
+      - rm -f /etc/network-v2/finance/provider-endpoints.json
       - for: { var: FINANCE_SYSTEMD_UNITS }
         cmd: install -m 0644 {{.ITEM}} /etc/systemd/system/{{base .ITEM}}
-      - install -d -m 0755 /usr/local/libexec/network-v2
       - install -m 0755 consumers/finance/ready.sh /usr/local/libexec/network-v2/finance-ready
       - systemctl daemon-reload
       - systemctl enable network-v2-finance.target
 
   consumer:finance:start:
-    desc: Start the materialized shared Finance topology; caller owns serialized production cutover
+    desc: Start the materialized Finance authorities over the one shared provider carrier
     cmds:
       - systemctl start network-v2-finance.target
 
@@ -288,58 +309,32 @@ tasks:
       - /usr/local/libexec/network-v2/finance-ready public 90
 
   consumer:finance:converge:
-    desc: Materialize, enable, restart onto exact installed bytes, and prove the shared Finance topology without external financial writes
+    desc: Materialize, restart and prove Finance consequences without external financial writes or provider identity mutation
     cmds:
       - task: consumer:finance:materialize
       - systemctl restart network-v2-finance.target
       - task: consumer:finance:ready
 
   consumer:finance:verify:
-    desc: Destructively prove the scoped authorities, fencing, provider A/B survival, DNS-server survival, all-down fail-closed, recovery and root-process restart
+    desc: Prove exact authority fencing, shared-carrier fail-closed behavior, direct macro independence and recovery
     cmds:
+      - cmp -s consumers/finance/config/egress.json /etc/network-v2/finance/egress.json
+      - test ! -e /etc/network-v2/finance/provider-endpoints.json
       - ./consumers/finance/acceptance/production-smoke.sh
-      - ./consumers/finance/acceptance/dns-race-smoke.sh
 
   consumer:finance:stop:
-    desc: Stop only the shared Network v2 Finance topology
+    desc: Stop only Finance northbound authorities; do not stop the shared provider carrier
     cmds:
       - systemctl stop network-v2-finance.target
 
   consumer:supply-chain:materialize:
-    desc: Materialize dual-provider OCI egress and Docker proxy binding bytes without restarting Docker
-    deps: [provider:surfshark:verify-local, consumer:supply-chain:validate]
+    desc: Materialize OCI authority and Docker proxy binding over the shared provider carrier without restarting Docker
+    deps: [consumer:browserless:provider-carrier:materialize, consumer:supply-chain:validate]
     cmds:
       - install -d -m 0755 /etc/network-v2/supply-chain /etc/systemd/system/docker.service.d /usr/local/libexec/network-v2
       - install -m 0644 consumers/supply-chain/config/authority.json /etc/network-v2/supply-chain/authority.json
       - install -m 0644 consumers/supply-chain/config/egress.json /etc/network-v2/supply-chain/egress.json
-      - |
-        set -eu
-        src=/etc/network-v2/providers
-        catalog={{.GLUETUN_SERVERS_INSTALL}}
-        test -f "$catalog"
-        test "$(sha256sum "$catalog" | awk '{print $1}')" = "{{.GLUETUN_SERVERS_SHA256}}"
-        test -f "$src/kr-seo.conf"; test -f "$src/th-bkk.conf"
-        a_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="kr-seo.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
-        b_ep=$(jq -r '.servers[] | select(.vpn=="wireguard" and .hostname=="th-bkk.prod.surfshark.com") | .ips[0]' "$catalog" | head -n1)
-        test -n "$a_ep"; test "$a_ep" != null
-        test -n "$b_ep"; test "$b_ep" != null
-        a_json=$(mktemp); b_json=$(mktemp); ep_tmp=$(mktemp)
-        trap 'rm -f "$a_json" "$b_json" "$ep_tmp"' EXIT
-        yq -p=ini -o=json "$src/kr-seo.conf" >"$a_json"
-        yq -p=ini -o=json "$src/th-bkk.conf" >"$b_json"
-        jq -n --slurpfile a "$a_json" --slurpfile b "$b_json" --arg a_ep "$a_ep" --arg b_ep "$b_ep" '
-          def endpoint($tag;$cfg;$ip): {
-            type:"wireguard", tag:$tag, system:false, mtu:1408,
-            address:[$cfg.Interface.Address], private_key:$cfg.Interface.PrivateKey,
-            peers:[{address:$ip, port:51820, public_key:$cfg.Peer.PublicKey,
-                    allowed_ips:["0.0.0.0/0"], persistent_keepalive_interval:5}]
-          };
-          {endpoints:[endpoint("provider-a";$a[0];$a_ep), endpoint("provider-b";$b[0];$b_ep)]}
-        ' >"$ep_tmp"
-        chmod 0640 "$ep_tmp"
-        chown root:sing-box "$ep_tmp"
-        sing-box check -c "$ep_tmp" -c consumers/supply-chain/config/egress.json
-        install -o root -g sing-box -m 0640 "$ep_tmp" /etc/network-v2/supply-chain/provider-endpoints.json
+      - rm -f /etc/network-v2/supply-chain/provider-endpoints.json
       - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain-egress.service /etc/systemd/system/network-v2-supply-chain-egress.service
       - install -m 0644 consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
       - install -m 0755 consumers/supply-chain/ready.sh /usr/local/libexec/network-v2/supply-chain-ready
@@ -381,6 +376,7 @@ tasks:
       - cmp -s consumers/supply-chain/systemd/network-v2-supply-chain.target /etc/systemd/system/network-v2-supply-chain.target
       - cmp -s consumers/supply-chain/systemd/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf /etc/systemd/system/docker.service.d/ordivon-network-v2-supply-chain-proxy.conf
       - test ! -e /etc/systemd/system/docker.service.d/ordivon-preservation-vpn-proxy.conf
+      - test ! -e /etc/network-v2/supply-chain/provider-endpoints.json
       - systemctl is-enabled --quiet network-v2-supply-chain.target
       - /usr/local/libexec/network-v2/supply-chain-ready
       - |
@@ -527,7 +523,7 @@ tasks:
 
   consumer:browserless:validate:
     desc: Validate the serialized Browserless migration gate without changing production
-    deps: [provider:surfshark:validate]
+    deps: [provider:surfshark:validate, consumer:browserless:provider-carrier:validate]
     cmds:
       - /usr/bin/bash -n consumers/browserless/acceptance/serial-browserless.sh
       - test -x consumers/browserless/acceptance/serial-browserless.sh

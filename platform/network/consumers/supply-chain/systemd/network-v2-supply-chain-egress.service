@@ -1,15 +1,15 @@
 [Unit]
 Description=Network v2 Supply-Chain OCI egress proxy
-Wants=network-online.target
-After=network-online.target
+Requires=network-v2-browserless-provider-carrier.service
+After=network-v2-browserless-provider-carrier.service
 PartOf=network-v2-supply-chain.target
 
 [Service]
 Type=simple
 User=sing-box
 Group=sing-box
-ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/supply-chain/provider-endpoints.json -c /etc/network-v2/supply-chain/egress.json
-ExecStart=/usr/bin/sing-box run -c /etc/network-v2/supply-chain/provider-endpoints.json -c /etc/network-v2/supply-chain/egress.json
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/supply-chain/egress.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/supply-chain/egress.json
 Restart=on-failure
 RestartSec=2s
 NoNewPrivileges=true
