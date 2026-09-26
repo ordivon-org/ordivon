@@ -558,8 +558,10 @@
     {
       "date": "2026-09-26",
       "scope": "R2-S5/X01/D05",
-      "standing": "MAILBOX_TRANSPORT_PHYSICALLY_RETIRED",
-      "evidence": "planning/transport-boundary-retirement-r1.json"
+      "standing": "MAILBOX_TRANSPORT_PHYSICALLY_RETIRED_AND_INTEGRATED",
+      "evidence": "planning/transport-boundary-retirement-r1.json",
+      "integrationCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8",
+      "mergedTreeRequalificationJobId": "job-01a0de16-3bbf-7e01-bfca-67a318d935a5"
     }
   ]
 }

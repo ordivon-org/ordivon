@@ -81,9 +81,18 @@
     },
     {
       "id": "BE07",
-      "standing": "SEPARATE_OWNER_CLEANUP",
-      "reason": "Legacy Artifact transport/mailbox externalization is a distinct ownership cleanup, not required to make exact binary projection correct."
+      "standing": "CLOSED_INTEGRATED",
+      "reason": "Artifact owner physically retired the unconsumed generic R2 mailbox transport closure; integration commit eb00df2a7680a402d6d0e8bff821e68965a135d8."
     }
   ],
-  "integrationStanding": "READY_TO_COMMIT_AFTER_FINAL_DIFF_CHECK"
+  "integrationStanding": "READY_TO_COMMIT_AFTER_FINAL_DIFF_CHECK",
+  "followupClosures": [
+    {
+      "id": "BE07",
+      "standing": "CLOSED_INTEGRATED",
+      "integrationCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8",
+      "artifactEvidence": "capabilities/artifact/planning/transport-boundary-retirement-r1.json",
+      "mergedTreeRequalificationJobId": "job-01a0de16-3bbf-7e01-bfca-67a318d935a5"
+    }
+  ]
 }
