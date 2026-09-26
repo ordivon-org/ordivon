@@ -3,9 +3,21 @@ set -euo pipefail
 target=network-v2-supply-chain.target
 svc=network-v2-supply-chain-egress.service
 proxy=http://127.0.0.1:19581
-systemctl is-active --quiet "$target"
-systemctl is-active --quiet "$svc"
-ss -ltn '( sport = :19581 )' | grep -q '127.0.0.1:19581'
+wait_local_ready() {
+  local i
+  for i in $(seq 1 120); do
+    if systemctl is-active --quiet "$target" \
+      && systemctl is-active --quiet "$svc" \
+      && ss -ltn '( sport = :19581 )' | grep -q '127.0.0.1:19581'; then
+      return 0
+    fi
+    sleep 0.25
+  done
+  echo 'ERROR: Supply-Chain local authority did not converge within 30s' >&2
+  systemctl show "$target" "$svc" -p Id -p ActiveState -p SubState -p Result --no-pager >&2 || true
+  return 42
+}
+wait_local_ready
 probe() {
   local url=$1 code=000
   for _ in 1 2 3; do

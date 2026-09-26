@@ -62,3 +62,11 @@ def test_supply_chain_has_standard_network_v2_lifecycle_tasks():
         "consumer:supply-chain:stop:",
     ):
         assert task in taskfile
+
+def test_supply_chain_readiness_has_bounded_local_convergence_gate():
+    ready = (CONSUMER / "ready.sh").read_text()
+    assert "wait_local_ready()" in ready
+    assert "seq 1 120" in ready
+    assert "sleep 0.25" in ready
+    assert "did not converge within 30s" in ready
+    assert "return 42" in ready
