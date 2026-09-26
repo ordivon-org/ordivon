@@ -253,6 +253,7 @@ tasks:
       - install -m 0644 consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - install -m 0755 consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
       - install -m 0755 consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+      - install -m 0755 consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
       - systemctl daemon-reload
       - systemctl enable network-v2-browserless.target
 
@@ -282,6 +283,7 @@ tasks:
       - cmp -s consumers/browserless/systemd/network-v2-browserless.target /etc/systemd/system/network-v2-browserless.target
       - cmp -s consumers/browserless/provider-carrier-ready.sh /usr/local/libexec/network-v2/browserless-provider-carrier-ready
       - cmp -s consumers/browserless/provider-switch.sh /usr/local/libexec/network-v2/browserless-provider-switch
+      - cmp -s consumers/browserless/acceptance/production-path.sh /usr/local/libexec/network-v2/browserless-production-path
       - /usr/local/libexec/network-v2/browserless-provider-carrier-ready
 
   consumer:finance:materialize:

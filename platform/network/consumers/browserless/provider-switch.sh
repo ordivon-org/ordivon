@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SITE=${1:-th-bkk}
-ROOT=$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)
 NS=nv2-browserless-prod
 WG=network-v2-browserless-wireguard.service
 DNS=network-v2-browserless-dns.service
@@ -11,8 +10,8 @@ ENV_FILE=/etc/network-v2/browserless/provider.env
 MANIFEST=/etc/network-v2/providers/catalog-profiles/MANIFEST.tsv
 STATE_DIR=/var/lib/network-v2/browserless-provider-switch
 STATE=$STATE_DIR/current-state.json
-READY=${NETWORK_V2_PROVIDER_READY:-$ROOT/consumers/browserless/provider-carrier-ready.sh}
-PRODUCTION_PATH=${NETWORK_V2_BROWSERLESS_PRODUCTION_PATH:-$ROOT/consumers/browserless/acceptance/production-path.sh}
+READY=${NETWORK_V2_PROVIDER_READY:-/usr/local/libexec/network-v2/browserless-provider-carrier-ready}
+PRODUCTION_PATH=${NETWORK_V2_BROWSERLESS_PRODUCTION_PATH:-/usr/local/libexec/network-v2/browserless-production-path}
 TEMPORAL=${TEMPORAL:-/opt/ordivon/external/temporal-cli/1.8.3/temporal}
 mkdir -p "$STATE_DIR"
 
