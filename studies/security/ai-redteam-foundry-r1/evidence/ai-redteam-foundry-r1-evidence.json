@@ -1,5 +1,5 @@
 {
-  "bundleDigest": "sha256:d385b61b526c13c996972b3e217f5429b22b46f7e8e80db10cb6b610ff675b26",
+  "bundleDigest": "sha256:5ca40eef72f228fd07c626b7c0c4069e4612e566cbc15e32236834ecf932b089",
   "experiments": {
     "abstractSearchFixture": {
       "discoveryFrontier": {
@@ -765,7 +765,7 @@
     "The bundle proves deterministic study outputs for this exact source/tree state; it does not prove universal model robustness."
   ],
   "schema": "ordivon.ai-redteam.evidence-bundle.r1",
-  "sourceRevision": "7161e14a4b62229e9315a971eaf451008e6bac69",
+  "sourceRevision": "ea170a494d30ea8cedce07604e21bb142d3d5167",
   "standing": "EXPERIMENTAL_STUDY_EVIDENCE_NOT_PRODUCTION_SECURITY_STANDING",
   "studyTreeDigest": "sha256:530dfe7d907bb6ef05209f59fcce5fd8a6cb2d7ba8e0597509562294ce36516e",
   "studyTreeManifest": [
