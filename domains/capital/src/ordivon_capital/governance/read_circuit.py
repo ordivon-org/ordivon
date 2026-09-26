@@ -12,6 +12,7 @@ from ordivon_capital.markets.market_sensors import (
     open_interest_change,
     repeated_microstructure,
 )
+from ordivon_capital.portfolio.decision_record import build_decision_record
 from ordivon_capital.portfolio.decision_router import route_investment_decision
 from ordivon_capital.portfolio.portfolio_counterfactuals import (
     build_action_counterfactual,
@@ -20,6 +21,7 @@ from ordivon_capital.portfolio.portfolio_counterfactuals import (
 from ordivon_capital.research.investment_model_atlas import (
     validate_investment_model_atlas_document,
 )
+from ordivon_capital.research.state_projection import project_decision_state
 from ordivon_capital.risk.portfolio_risk import (
     build_exposure_ledger,
     build_portfolio_risk_report,
@@ -231,22 +233,44 @@ def _run_investment_decision(inputs: Mapping[str, Any]) -> dict[str, Any]:
     decision = inputs.get("decisionContext")
     if not isinstance(decision, Mapping):
         raise ReadCircuitError("decisionContext input must be an object")
-    required = {"decisionId", "asOf", "objective", "horizon", "stateTags"}
+    required = {"decisionId", "asOf", "objective", "horizon"}
     if set(decision) != required:
         raise ReadCircuitError("decisionContext keys mismatch")
+    claims = inputs.get("decisionEvidence", [])
+    if not isinstance(claims, list):
+        raise ReadCircuitError("decisionEvidence must be an array")
 
     root = Path(__file__).resolve().parents[3]
-    atlas = json.loads((root / "config/investment_model_atlas.json").read_text())
+    atlas_path = root / "config/investment_model_atlas.json"
+    risk_path = root / "config/portfolio_risk_budget.json"
+    state_path = root / "config/decision_state_claim_registry.json"
+    atlas = json.loads(atlas_path.read_text())
     validate_investment_model_atlas_document(atlas)
-    risk_budget = json.loads((root / "config/portfolio_risk_budget.json").read_text())
+    risk_budget = json.loads(risk_path.read_text())
     validate_registered_risk_budget_document(risk_budget)
+    state_registry = json.loads(state_path.read_text())
+    state = project_decision_state(as_of=decision["asOf"], claims=claims, registry=state_registry)
     risk_status = "SET" if risk_budget["standing"] == "ACTIVE" else "UNSET"
 
     context = dict(decision)
+    context["stateTags"] = state["stateTags"]
     context["riskBudgetStatus"] = risk_status
     route = route_investment_decision(context, atlas)
+    authority_refs = {
+        "investmentModelAtlas": "sha256:" + hashlib.sha256(atlas_path.read_bytes()).hexdigest(),
+        "portfolioRiskBudget": "sha256:" + hashlib.sha256(risk_path.read_bytes()).hexdigest(),
+        "decisionStateClaimRegistry": "sha256:" + hashlib.sha256(state_path.read_bytes()).hexdigest(),
+    }
+    record = build_decision_record(
+        context={key: decision[key] for key in ("decisionId", "asOf", "objective", "horizon")},
+        state_projection=state,
+        decision_route=route,
+        authority_refs=authority_refs,
+    )
     return {
+        "decisionState": state,
         "decisionRoute": route,
+        "decisionRecord": record,
         "riskBudgetAuthority": {
             "standing": risk_budget["standing"],
             "owner": risk_budget["owner"],

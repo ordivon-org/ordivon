@@ -1476,6 +1476,164 @@
         "rate forecast",
         "trade approval"
       ]
+    },
+    {
+      "legoId": "capital.research.decision-state-projection",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/state_projection.py",
+        "symbol": "project_decision_state"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "config/decision_state_claim_registry.json",
+        "schema/decision-state-claim-v1.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.decision-state-projection"
+      ],
+      "evidenceObligations": [
+        "claim producer identity",
+        "evidence digest",
+        "claim validity window"
+      ],
+      "permittedUses": [
+        "project routing state from explicit evidence claims"
+      ],
+      "prohibitedUses": [
+        "raw observation regime inference",
+        "investment recommendation",
+        "execution authority"
+      ]
+    },
+    {
+      "legoId": "capital.portfolio.investment-decision-record",
+      "ownerDomain": "portfolio",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Decide",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/portfolio/decision_record.py",
+        "symbol": "build_decision_record"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "schema/investment-decision-context-v2.schema.json",
+        "schema/decision-state-projection-v1.schema.json",
+        "schema/investment-decision-route-v1.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.investment-decision-record"
+      ],
+      "evidenceObligations": [
+        "frozen decision context",
+        "state projection identity",
+        "decision route identity",
+        "authority digests"
+      ],
+      "permittedUses": [
+        "freeze decision-support evidence"
+      ],
+      "prohibitedUses": [
+        "claim investment truth",
+        "grant execution authority"
+      ]
+    },
+    {
+      "legoId": "capital.research.decision-outcome-attribution",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Measure",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/decision_attribution.py",
+        "symbol": "attribute_decision_outcome"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [
+        "schema/investment-decision-record-v1.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.investment-decision-outcome-attribution"
+      ],
+      "evidenceObligations": [
+        "frozen decision record",
+        "strictly post-decision outcome observation"
+      ],
+      "permittedUses": [
+        "ex-post decision outcome measurement",
+        "benchmark-relative measurement"
+      ],
+      "prohibitedUses": [
+        "causal attribution",
+        "skill inference",
+        "single-outcome model validation"
+      ]
+    },
+    {
+      "legoId": "capital.portfolio.investment-decision-record-persistence",
+      "ownerDomain": "portfolio",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/portfolio/decision_record.py",
+        "symbol": "persist_decision_record"
+      },
+      "authorityRequirement": "LOCAL_STATE",
+      "effectClass": "LOCAL_STATE",
+      "sideEffects": [
+        "LOCAL_FILE_WRITE"
+      ],
+      "replayClass": "LOCAL_IDEMPOTENT",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "MEDIUM",
+      "inputContracts": [
+        "schema/investment-decision-record-v1.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.investment-decision-record-persistence"
+      ],
+      "evidenceObligations": [
+        "record digest",
+        "readback equality"
+      ],
+      "permittedUses": [
+        "content-addressed local decision-record persistence"
+      ],
+      "prohibitedUses": [
+        "external financial write",
+        "mutable decision history"
+      ]
     }
   ]
 }

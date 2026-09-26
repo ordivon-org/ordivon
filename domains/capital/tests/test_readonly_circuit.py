@@ -112,9 +112,32 @@ def test_investment_decision_support_uses_owner_risk_budget_and_stays_effect_fre
                 "asOf": "2026-09-27T01:30:00+08:00",
                 "objective": "bounded research decision support",
                 "horizon": "months",
-                "stateTags": ["VALUATION_SIGNAL_AVAILABLE", "MACRO_STATE_AVAILABLE"],
-            }
-        },
+            },
+            "decisionEvidence": [
+                {
+                    "claimId": "claim:valuation:r1",
+                    "claimKey": "valuation-signal-available",
+                    "producerId": "valuation-model:test:r1",
+                    "producerClass": "REGISTERED_MODEL_OUTPUT",
+                    "evidenceKind": "VALUATION_MODEL_OUTPUT",
+                    "evidenceDigest": "sha256:" + "1" * 64,
+                    "observedAt": "2026-09-27T01:00:00+08:00",
+                    "validUntil": "2026-09-27T02:00:00+08:00",
+                    "standing": "ACTIVE",
+                },
+                {
+                    "claimId": "claim:macro:r1",
+                    "claimKey": "macro-state-available",
+                    "producerId": "macro-model:test:r1",
+                    "producerClass": "REGISTERED_MODEL_OUTPUT",
+                    "evidenceKind": "MACRO_STATE_MODEL_OUTPUT",
+                    "evidenceDigest": "sha256:" + "2" * 64,
+                    "observedAt": "2026-09-27T01:00:00+08:00",
+                    "validUntil": "2026-09-27T02:00:00+08:00",
+                    "standing": "ACTIVE",
+                },
+            ],
+        }
     )
     out = result["output"]
     route = out["decisionRoute"]
@@ -124,6 +147,8 @@ def test_investment_decision_support_uses_owner_risk_budget_and_stays_effect_fre
     assert route["externalFinancialEffectAllowed"] is False
     assert "SIZE" not in route["eligibleActions"]
     assert out["modelAtlas"]["registeredModels"] >= 1
+    assert out["decisionState"]["stateTags"] == ["MACRO_STATE_AVAILABLE", "VALUATION_SIGNAL_AVAILABLE"]
+    assert out["decisionRecord"]["recordDigest"].startswith("sha256:")
     assert result["externalFinancialWritesAttempted"] is False
 
 

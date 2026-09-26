@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.decision-state-claim-v1",
+  "title": "Ordivon Capital Decision State Claim v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claimId","claimKey","producerId","producerClass","evidenceKind","evidenceDigest","observedAt","validUntil","standing"],
+  "properties": {
+    "claimId": {"type":"string","minLength":1},
+    "claimKey": {"type":"string","minLength":1},
+    "producerId": {"type":"string","minLength":1},
+    "producerClass": {"type":"string","minLength":1},
+    "evidenceKind": {"type":"string","minLength":1},
+    "evidenceDigest": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "observedAt": {"type":"string","format":"date-time"},
+    "validUntil": {"type":"string","format":"date-time"},
+    "standing": {"const":"ACTIVE"}
+  }
+}

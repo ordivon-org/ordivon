@@ -227,6 +227,18 @@
       "Observe",
       "Normalize",
       "Measure"
+    ],
+    "src/ordivon_capital/research/state_projection.py": [
+      "Validate",
+      "Measure"
+    ],
+    "src/ordivon_capital/research/decision_attribution.py": [
+      "Measure",
+      "Validate"
+    ],
+    "src/ordivon_capital/portfolio/decision_record.py": [
+      "Decide",
+      "Validate"
     ]
   },
   "crossCuttingEvidenceRole": "Evidence binding/materialization is cross-cutting and is not promoted into a thirteenth finance-domain ontology term."

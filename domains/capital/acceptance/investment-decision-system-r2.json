@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.investment-decision-system-acceptance",
+  "standing": "PASS_R2",
+  "acceptedAt": "2026-09-27",
+  "truthRole": "IMPLEMENTATION_AND_VERIFICATION_RECEIPT_NOT_INVESTMENT_TRUTH",
+  "system": {
+    "modelAtlas": "config/investment_model_atlas.json",
+    "stateClaimRegistry": "config/decision_state_claim_registry.json",
+    "stateProjector": "src/ordivon_capital/research/state_projection.py::project_decision_state",
+    "decisionRouter": "src/ordivon_capital/portfolio/decision_router.py::route_investment_decision",
+    "decisionRecord": "src/ordivon_capital/portfolio/decision_record.py::build_decision_record",
+    "outcomeAttribution": "src/ordivon_capital/research/decision_attribution.py::attribute_decision_outcome",
+    "readOnlyCircuit": "INVESTMENT_DECISION_SUPPORT_R1",
+    "registeredExternalModels": 13,
+    "registeredStateClaims": 13,
+    "callerAuthoredStateTagsAdmittedByReadCircuit": false
+  },
+  "authorityBoundary": {
+    "portfolioRiskBudget": "UNSET",
+    "executionLane": "NON_LIVE",
+    "productionExternalFinancialWrite": "BLOCK_NOT_GRANTED",
+    "externalFinancialEffectAllowed": false,
+    "riskAppetiteInferred": false,
+    "recommendationTruthClaimed": false,
+    "causalAttributionClaimed": false,
+    "skillClaimed": false
+  },
+  "verification": {
+    "fullVerifyJobId": "job-01a0df57-94a9-7fa0-abcb-20784ff9bf47",
+    "ruff": "PASS",
+    "pytestPassed": 401,
+    "providerBoundDeselected": 11,
+    "failed": 0,
+    "targetedDecisionTests": "20/20 PASS"
+  },
+  "canary": {
+    "jobId": "job-01a0df43-e386-7a32-95fd-d21934abd6ff",
+    "projectedStateTags": ["MACRO_STATE_AVAILABLE", "VALUATION_SIGNAL_AVAILABLE"],
+    "decisionStanding": "RESEARCH_ONLY_RISK_BUDGET_UNSET",
+    "decisionRecordDigest": "sha256:afbb395318488f040469967be159b8d531e9dcfbd2a114f1225d02a6fb6c65b1",
+    "measuredExcessReturn": "0.03",
+    "causalAttributionClaimed": false,
+    "skillClaimed": false,
+    "externalFinancialWritesAttempted": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.investment-decision-context-v2",
+  "title": "Ordivon Capital Investment Decision Context v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decisionId", "asOf", "objective", "horizon"],
+  "properties": {
+    "decisionId": {"type": "string", "minLength": 1},
+    "asOf": {"type": "string", "format": "date-time"},
+    "objective": {"type": "string", "minLength": 1},
+    "horizon": {"type": "string", "minLength": 1}
+  }
+}

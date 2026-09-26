@@ -19,12 +19,13 @@
     "config/portfolio_risk_budget.json": "sha256:56c835107bfb68f10d8c021f07b8de90c1aed8152c5462256d25e062be5c7dd4",
     "config/private_reality_policy.json": "sha256:bd55480440dd3ebd7a8bba887d6c51155afba83a5c2d53da9bb28b83e1a6e865",
     "config/accounting_substrate.json": "sha256:2a153fa5a8e42c4430e7467241bfd63d71c16143d8e069b02e25835e5a1f6d0c",
-    "config/capital_lego_registry.json": "sha256:712d1d3cea1c550d011d3e581d8b9b2cda47dfb0c0934986bd748d942240f149",
+    "config/capital_lego_registry.json": "sha256:46047a2b2cd6334a9b7ac5fe4ee283ccdcdecafdd788110c114763e83f4c44d5",
     "config/investment_model_atlas.json": "sha256:2b4059364e6dd32f157a0b7746ac4ea8515297ddbeacecdd300a4aeefa5d6e7f",
+    "config/decision_state_claim_registry.json": "sha256:d2f3b32926adfc60c42023b78d604c0697fbb13af7265f2cd05ba8cbb3111127",
     "config/macro_observation_owners.json": "sha256:3780239554e8fa5dceb25906b7717a04cf0c90b96a58c7e29b2c0ce095e55559",
     "config/soxl_instrument_identity.json": "sha256:e4a94620cb878c3fb4ae8830412b90398647f6a5def79ff8265ec00b3978c0fc",
     "config/research_data_aggregators.json": "sha256:1d998d71f49b36be4a07cc97cc0065303f5d9068612f4a709fb55ba08716dc15",
-    "planning/functional-lego-map-r1.json": "sha256:06f84e362d04bb09606bc61b2e4c6eaf4335b8ec508350a3fe62410408fb8346"
+    "planning/functional-lego-map-r1.json": "sha256:5b22764badf900b8f3ad222fc3e03c62b61d935a7da66b493af466e417aea0f8"
   },
   "protocol": {
     "schemaVersion": 2,
@@ -83,11 +84,15 @@
     "coreModels": 3,
     "conditionalModels": 10,
     "router": "src/ordivon_capital/portfolio/decision_router.py::route_investment_decision",
+    "stateProjector": "src/ordivon_capital/research/state_projection.py::project_decision_state",
+    "decisionRecord": "src/ordivon_capital/portfolio/decision_record.py::build_decision_record",
+    "registeredStateClaims": 13,
+    "manualStateTagsAdmittedByReadCircuit": false,
     "externalFinancialEffectAllowed": false
   },
   "inventory": {
-    "registryEntries": 43,
-    "canonicalEntries": 38,
+    "registryEntries": 47,
+    "canonicalEntries": 42,
     "functionalLegos": 12
   },
   "architectureLaws": [
@@ -95,7 +100,9 @@
     "generic composition mechanics are owned by the Composition owner; Capital retains financial semantics",
     "mechanical composition closure is not financial/domain acceptance",
     "read-only reality does not mint write authority",
-    "investment model routing is decision support and does not mint owner risk appetite, recommendation truth, or execution authority"
+    "investment model routing is decision support and does not mint owner risk appetite, recommendation truth, or execution authority",
+    "decision state is projected from explicit time-bounded evidence claims; read circuits do not accept caller-authored state tags",
+    "frozen decision records preserve context and authority digests without claiming causal attribution or skill"
   ],
-  "projectionDigest": "sha256:925254371b96d2b623fc60aa97c3bdb3cd1142305b72f10a3899aef0fe481ecd"
+  "projectionDigest": "sha256:0bc932066d4cc3e1265977271c1816d3af03948e4ac38bb0c7ba232d14e0140a"
 }
