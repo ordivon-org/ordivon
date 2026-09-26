@@ -1,5 +1,6 @@
 mod artifact_release_state;
 mod authority_contract;
+mod control_primitives;
 #[cfg(feature = "operator-tools")]
 mod doctor;
 mod engine;

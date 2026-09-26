@@ -507,33 +507,11 @@ impl Registry {
     }
 
     fn acquire_admission_fence(&self) -> RuntimeResult<File> {
-        let path = self.config.admission_fence_path();
-        let mut options = OpenOptions::new();
-        options.read(true).write(true).create(true).truncate(false);
-        #[cfg(unix)]
-        options.mode(0o600);
-        let file = options
-            .open(&path)
-            .map_err(|error| {
-                RuntimeError::new(
-                    RuntimeErrorCode::RegistryUnavailable,
-                    format!("cannot open admission fence {}: {error}", path.display()),
-                    None,
-                    true,
-                )
-            })?;
-        match file.try_lock_shared() {
-            Ok(()) => Ok(file),
-            Err(std::fs::TryLockError::WouldBlock) => {
-                Err(RuntimeError::deployment_in_progress())
-            }
-            Err(std::fs::TryLockError::Error(error)) => Err(RuntimeError::new(
-                RuntimeErrorCode::RegistryUnavailable,
-                format!("cannot acquire admission fence {}: {error}", path.display()),
-                None,
-                true,
-            )),
-        }
+        acquire_shared_file_fence(
+            &self.config.admission_fence_path(),
+            "admission fence",
+            RuntimeError::deployment_in_progress(),
+        )
     }
 
 }
