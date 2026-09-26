@@ -843,8 +843,11 @@ impl Runtime {
         {
             return Ok(false);
         }
+        // Preserve the Runner-derived execution outcome reason. Recovery lineage is already
+        // represented by the new terminal evidence superseding the prior orphan evidence; using
+        // a recovery-process label here would erase PROCESS_EXIT_ZERO, HOST_DEPENDENCY_RUNTIME_DRIFT,
+        // DEADLINE_EXCEEDED, and other outcome semantics that downstream evidence depends on.
         let mut terminal = self.prepare_runner_terminal(&current)?;
-        terminal.reason_code = "LATE_IDENTITY_BOUND_RUNNER_RESULT".to_string();
         self.append_terminal_evidence(&current, &mut terminal)?;
         self.registry.recover_orphaned_terminal(&terminal)?;
         self.release_attempt_supervisor(&current)?;

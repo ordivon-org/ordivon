@@ -572,6 +572,54 @@ def wait_release_terminal(
     raise TimeoutError(f"Runtime Release effect did not become terminal: {last}")
 
 
+def reconciliation_required(observation: dict[str, Any]) -> bool:
+    """Return true only when Runtime explicitly asks this exact Job to be reconciled."""
+    return (
+        observation.get("deliveryDisposition") == "reconciliation_required"
+        and observation.get("recoveryRequired") is True
+    )
+
+
+def settle_reconciliation_required(
+    client: McpClient, initial: dict[str, Any], timeout: float = 10.0
+) -> tuple[dict[str, Any], bool]:
+    """Targeted same-Job/same-Attempt reconciliation with no redispatch."""
+    if not reconciliation_required(initial):
+        return initial, False
+    job_id = initial.get("jobId")
+    attempt_id = initial.get("attemptId")
+    if not isinstance(job_id, str) or not isinstance(attempt_id, str):
+        raise AssertionError(f"reconciliation-required projection omitted exact identity: {initial}")
+    deadline = time.monotonic() + timeout
+    last = initial
+    while reconciliation_required(last) and time.monotonic() < deadline:
+        poll_after_ms = last.get("pollAfterMs")
+        if isinstance(poll_after_ms, int) and poll_after_ms > 0:
+            time.sleep(min(poll_after_ms / 1000.0, max(0.0, deadline - time.monotonic())))
+        last = client.tool(
+            "job.observe",
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "jobId": job_id,
+                "waitMs": 500,
+                "waitUntil": "change_or_terminal",
+                "stdoutTailBytes": 8192,
+                "stderrTailBytes": 8192,
+            },
+        )
+        if last.get("jobId") != job_id or last.get("attemptId") != attempt_id:
+            raise AssertionError(
+                "targeted reconciliation changed Job/Attempt identity: "
+                f"{job_id}/{attempt_id} -> {last.get('jobId')}/{last.get('attemptId')}"
+            )
+    if reconciliation_required(last):
+        raise TimeoutError(
+            "reconciliation-required Job did not converge on the same Job/Attempt: "
+            f"{last}"
+        )
+    return last, True
+
+
 def wait_terminal(client: McpClient, job_id: str, timeout: float = 30.0) -> dict[str, Any]:
     deadline = time.monotonic() + timeout
     last: dict[str, Any] | None = None
@@ -586,55 +634,57 @@ def wait_terminal(client: McpClient, job_id: str, timeout: float = 30.0) -> dict
                 "stderrTailBytes": 8192,
             },
         )
-        if last.get("status") in TERMINAL:
+        if reconciliation_required(last):
+            remaining = max(0.1, deadline - time.monotonic())
+            last, _ = settle_reconciliation_required(client, last, timeout=remaining)
+        if last.get("status") in TERMINAL and not reconciliation_required(last):
             return last
     raise TimeoutError(f"Job did not become terminal: {last}")
 
 
-def reconcile_launch_identity_pending(
-    client: McpClient, initial: dict[str, Any], timeout: float = 10.0
-) -> tuple[dict[str, Any], bool]:
-    """Reconcile one exact recoverable Linux launch-identity gap without redispatch."""
-    if not (
-        initial.get("status") == "orphaned"
-        and initial.get("executionReasonCode") == "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"
-        and initial.get("recoveryRequired") is True
-    ):
-        return initial, False
-    job_id = initial.get("jobId")
-    attempt_id = initial.get("attemptId")
+def terminal_evidence_for_observation(
+    client: McpClient, observation: dict[str, Any]
+) -> dict[str, Any]:
+    """Select retained terminal evidence that matches the observation's current standing."""
+    job_id = observation.get("jobId")
+    attempt_id = observation.get("attemptId")
+    execution_disposition = observation.get("executionDisposition")
+    delivery_disposition = observation.get("deliveryDisposition")
+    reason_code = observation.get("executionReasonCode")
     if not isinstance(job_id, str) or not isinstance(attempt_id, str):
-        raise AssertionError(f"recoverable launch gap omitted exact identity: {initial}")
-    deadline = time.monotonic() + timeout
-    last = initial
-    while time.monotonic() < deadline:
-        last = client.tool(
-            "job.observe",
+        raise AssertionError(f"terminal observation omitted exact identity: {observation}")
+    descriptors = [
+        artifact
+        for artifact in observation.get("artifacts", [])
+        if artifact.get("kind") == "terminal_evidence"
+    ]
+    observed: list[dict[str, Any]] = []
+    for descriptor in descriptors:
+        artifact_id = descriptor.get("artifactId")
+        if not isinstance(artifact_id, str):
+            continue
+        artifact = client.tool(
+            "artifact.read",
             {
                 "schemaVersion": SCHEMA_VERSION,
                 "jobId": job_id,
-                "waitMs": 500,
-                "waitUntil": "change_or_terminal",
-                "stdoutTailBytes": 8192,
-                "stderrTailBytes": 8192,
+                "artifactId": artifact_id,
+                "offset": 0,
+                "maxBytes": 65_536,
             },
         )
-        if last.get("jobId") != job_id or last.get("attemptId") != attempt_id:
-            raise AssertionError(
-                "launch-identity reconciliation changed Job/Attempt identity: "
-                f"{job_id}/{attempt_id} -> {last.get('jobId')}/{last.get('attemptId')}"
-            )
-        if last.get("status") == "succeeded":
-            return last, True
-        if not (
-            last.get("status") == "orphaned"
-            and last.get("executionReasonCode") == "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"
-            and last.get("recoveryRequired") is True
+        evidence = json.loads(artifact.get("content", "{}"))
+        observed.append(evidence)
+        if (
+            evidence.get("attemptId") == attempt_id
+            and evidence.get("executionDisposition") == execution_disposition
+            and evidence.get("deliveryDisposition") == delivery_disposition
+            and evidence.get("reasonCode") == reason_code
         ):
-            return last, True
-    raise TimeoutError(
-        "recoverable launch-identity gap did not reconcile on the same Job/Attempt: "
-        f"{last}"
+            return evidence
+    raise AssertionError(
+        "no retained terminal evidence matches current observation standing: "
+        f"observation={observation} evidence={observed}"
     )
 
 
@@ -1360,6 +1410,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 4096,
             },
         )
+        proposal_submitted, _ = settle_reconciliation_required(client, proposal_submitted)
         proposal_job_id = str(proposal_submitted["jobId"])
         proposal_attempt_id = str(proposal_submitted["attemptId"])
         attempt_ids.append(proposal_attempt_id)
@@ -1402,6 +1453,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 8192,
             },
         )
+        submitted, _ = settle_reconciliation_required(client, submitted)
         check("workspace-exec", submitted.get("status") == "succeeded", submitted)
         job_id = str(submitted["jobId"])
         attempt_id = str(submitted["attemptId"])
@@ -1431,13 +1483,13 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 4096,
             },
         )
-        host_dependency_first, launch_identity_reconciled = reconcile_launch_identity_pending(
+        host_dependency_first, host_dependency_reconciled = settle_reconciliation_required(
             client, host_dependency_initial
         )
         host_dependency_first_job = str(host_dependency_first["jobId"])
-        if launch_identity_reconciled:
+        if host_dependency_reconciled:
             check(
-                "host-dependency-launch-identity-reconciled-same-attempt",
+                "host-dependency-reconciliation-same-attempt",
                 host_dependency_first.get("jobId") == host_dependency_initial.get("jobId")
                 and host_dependency_first.get("attemptId")
                 == host_dependency_initial.get("attemptId"),
@@ -1454,22 +1506,9 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             {"schemaVersion": SCHEMA_VERSION, "jobId": host_dependency_first_job, "eventLimit": 10},
         )
         host_dependency_v1_operation = host_dependency_first_inspection.get("job", {}).get("operationDigest")
-        host_dependency_terminal_descriptor = next(
-            artifact
-            for artifact in host_dependency_first.get("artifacts", [])
-            if artifact.get("kind") == "terminal_evidence"
+        host_dependency_evidence = terminal_evidence_for_observation(
+            client, host_dependency_first
         )
-        host_dependency_terminal = client.tool(
-            "artifact.read",
-            {
-                "schemaVersion": SCHEMA_VERSION,
-                "jobId": host_dependency_first_job,
-                "artifactId": host_dependency_terminal_descriptor["artifactId"],
-                "offset": 0,
-                "maxBytes": 65_536,
-            },
-        )
-        host_dependency_evidence = json.loads(host_dependency_terminal.get("content", "{}"))
         check(
             "host-dependency-terminal-evidence",
             host_dependency_evidence.get("hostDependencies")
@@ -1480,6 +1519,16 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             == "runtime_host_namespace_path_witness",
             host_dependency_evidence,
         )
+        if host_dependency_reconciled:
+            check(
+                "host-dependency-recovery-lineage-separate-from-outcome",
+                isinstance(host_dependency_evidence.get("supersedesArtifactId"), str)
+                and host_dependency_evidence.get("reasonCode")
+                == host_dependency_first.get("executionReasonCode")
+                and host_dependency_evidence.get("reasonCode")
+                != "LATE_IDENTITY_BOUND_RUNNER_RESULT",
+                host_dependency_evidence,
+            )
 
         host_dependency.write_bytes(b"HOST_DEP_V2\n")
         host_dependency_v2_digest = digest_bytes(host_dependency.read_bytes())
@@ -1535,6 +1584,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 4096,
             },
         )
+        host_dependency_v2, _ = settle_reconciliation_required(client, host_dependency_v2)
         host_dependency_v2_job = str(host_dependency_v2["jobId"])
         host_dependency_v2_inspection = client.tool(
             "job.get",
@@ -1591,6 +1641,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             "stderrTailBytes": 8192,
         }
         bound = client.tool("workspace.execBound", bound_request)
+        bound, _ = settle_reconciliation_required(client, bound)
         bound_job_id = str(bound["jobId"])
         bound_attempt_id = str(bound["attemptId"])
         attempt_ids.append(bound_attempt_id)
@@ -1615,21 +1666,8 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             },
         )
         check("exec-bound-workspace-scratch", bound_scratch.get("content") == "scratch-ok\n", bound_scratch)
-        terminal_descriptor = next(
-            artifact for artifact in bound.get("artifacts", []) if artifact.get("kind") == "terminal_evidence"
-        )
-        bound_terminal = client.tool(
-            "artifact.read",
-            {
-                "schemaVersion": SCHEMA_VERSION,
-                "jobId": bound_job_id,
-                "artifactId": terminal_descriptor["artifactId"],
-                "offset": 0,
-                "maxBytes": 65_536,
-            },
-        )
-        bound_terminal_text = bound_terminal.get("content", "")
-        bound_evidence = json.loads(bound_terminal_text)
+        bound_evidence = terminal_evidence_for_observation(client, bound)
+        bound_terminal_text = json.dumps(bound_evidence, sort_keys=True)
         effective_inputs = bound_evidence.get("effectiveInputs", [])
         check(
             "exec-bound-terminal-input-closure",
@@ -1694,6 +1732,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         credential_first = client.tool(
             "workspace.execCredentialBoundTrusted", credential_request
         )
+        credential_first, _ = settle_reconciliation_required(client, credential_first)
         credential_job_id = str(credential_first["jobId"])
         credential_attempt_id = str(credential_first["attemptId"])
         attempt_ids.append(credential_attempt_id)
@@ -1748,6 +1787,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         credential_replay = client.tool(
             "workspace.execCredentialBoundTrusted", credential_request
         )
+        credential_replay, _ = settle_reconciliation_required(client, credential_replay)
         if credential_replay.get("status") not in TERMINAL:
             credential_replay = wait_terminal(client, credential_job_id)
         credential_replay_text = credential_replay.get("stdoutTail", "").strip()
@@ -1768,6 +1808,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         credential_second = client.tool(
             "workspace.execCredentialBoundTrusted", credential_v2_request
         )
+        credential_second, _ = settle_reconciliation_required(client, credential_second)
         credential_second_job_id = str(credential_second["jobId"])
         if credential_second.get("status") not in TERMINAL:
             credential_second = wait_terminal(client, credential_second_job_id)
@@ -1824,6 +1865,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 8192,
             },
         )
+        exec_plan, _ = settle_reconciliation_required(client, exec_plan)
         attempt_ids.append(str(exec_plan["attemptId"]))
         check(
             "workspace-exec-plan-fail-fast",
@@ -1888,6 +1930,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 16_384,
             },
         )
+        host_probe, _ = settle_reconciliation_required(client, host_probe)
         probe_thread.join(timeout=5)
         check("trusted-host-job", host_probe.get("status") == "succeeded", host_probe)
         probe = json.loads(host_probe.get("stdoutTail", "").strip())
@@ -2107,6 +2150,8 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                     "stderrTailBytes": 4096,
                 },
             )
+            if reconciliation_required(cancel_ready):
+                cancel_ready, _ = settle_reconciliation_required(client, cancel_ready)
             if cancel_ready.get("status") in TERMINAL:
                 raise AssertionError(
                     f"cancel target became terminal before cancellation phase: {cancel_ready}"
@@ -2130,6 +2175,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         active_code = active_structured.get("code") or active_structured.get("error", {}).get("code")
         check("workspace-close-active-code", active_code == "WORKSPACE_BUSY", active_close)
         cancelled = client.tool("job.cancel", {"schemaVersion": SCHEMA_VERSION, "jobId": cancel_job_id})
+        cancelled, _ = settle_reconciliation_required(client, cancelled)
         if cancelled.get("status") not in TERMINAL:
             cancelled = wait_terminal(client, cancel_job_id)
         check("task-cancel", cancelled.get("status") == "cancelled", cancelled)
@@ -2174,6 +2220,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 8192,
             },
         )
+        after_restart, _ = settle_reconciliation_required(client, after_restart)
         check("restart-observe", after_restart.get("status") == "succeeded", after_restart)
 
         bound_restart_replay = client.tool("workspace.execBound", bound_request)
@@ -2188,6 +2235,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
         credential_restart_replay = client.tool(
             "workspace.execCredentialBoundTrusted", credential_request
         )
+        credential_restart_replay, _ = settle_reconciliation_required(client, credential_restart_replay)
         if credential_restart_replay.get("status") not in TERMINAL:
             credential_restart_replay = wait_terminal(client, credential_job_id)
         credential_restart_text = credential_restart_replay.get("stdoutTail", "").strip()
@@ -2244,6 +2292,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 4096,
             },
         )
+        current_policy_proposal, _ = settle_reconciliation_required(client, current_policy_proposal)
         attempt_ids.append(str(current_policy_proposal["attemptId"]))
         check(
             "proposal-new-admission-uses-current-policy",
