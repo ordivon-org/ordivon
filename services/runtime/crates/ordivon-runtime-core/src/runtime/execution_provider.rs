@@ -6,13 +6,15 @@
 //! by Runtime and committed provider identity remains persisted in `ExecutionProviderSnapshot`.
 
 use super::engine::map_universal_error;
-use super::platform::validate_runner;
+use super::platform::{systemd_run, validate_runner, SystemdRunSpec};
 use super::{
     AttemptRecord, ExecutionProfile, ExecutionProviderContract, ExecutionProviderSnapshot,
     ExecutionTarget, RuntimeError, RuntimeErrorCode, RuntimeExecutionPlan,
     RuntimeExecutionTargetCapability, RuntimeNodePlatform, RuntimeResult,
 };
 use crate::universal::{sha256_file, UniversalExecutorConfig};
+use std::path::Path;
+use std::process::Output;
 
 /// Guarantees every R1 execution provider must preserve. A later provider replacement may add
 /// stronger internal mechanisms, but it may not weaken any of these obligations.
@@ -62,6 +64,13 @@ pub(crate) fn validate_provider_guarantees(
 pub(crate) struct LocalLinuxProvider<'a> {
     node_platform: RuntimeNodePlatform,
     executor: &'a UniversalExecutorConfig,
+}
+
+pub(crate) struct LocalLinuxRealizationInputs<'a> {
+    pub(crate) bundle_path: &'a Path,
+    pub(crate) input_set_path: Option<&'a Path>,
+    pub(crate) credential_source_root: Option<&'a Path>,
+    pub(crate) credential_names: &'a [String],
 }
 
 impl<'a> LocalLinuxProvider<'a> {
@@ -147,6 +156,38 @@ impl<'a> LocalLinuxProvider<'a> {
         validate_provider_guarantees(ExecutionProviderGuarantees::REQUIRED_R1)?;
         let _ = self.snapshot()?;
         Ok(())
+    }
+
+    pub(crate) fn realize_prepared(
+        &self,
+        plan: &RuntimeExecutionPlan,
+        attempt: &AttemptRecord,
+        inputs: LocalLinuxRealizationInputs<'_>,
+    ) -> RuntimeResult<Output> {
+        self.validate_plan(plan)?;
+        let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::ToolUnavailable,
+                "local_linux runner is not configured on this Runtime node",
+                Some("runnerPath"),
+                false,
+            )
+        })?;
+        let runner = validate_runner(runner_path)?;
+        systemd_run(&SystemdRunSpec {
+            unit_name: &attempt.unit_name,
+            runner: &runner,
+            bundle_path: inputs.bundle_path,
+            workspace_path: Path::new(&plan.workspace_path),
+            workspace_git_common_dir: plan.workspace_git_common_dir.as_deref().map(Path::new),
+            input_set_path: inputs.input_set_path,
+            credential_source_root: inputs.credential_source_root,
+            credential_names: inputs.credential_names,
+            runtime_ceiling_ms: plan.timeout_ms.saturating_add(5_000),
+            budget: &plan.budget,
+            execution_profile: plan.execution_profile,
+            environment: &plan.env,
+        })
     }
 }
 
