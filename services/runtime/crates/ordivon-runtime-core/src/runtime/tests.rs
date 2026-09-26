@@ -4925,9 +4925,10 @@ fn runtime_repair_explicitly_finalizes_launch_identity_quarantine_as_lost() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::from([
-                quarantined.attempt.attempt_id.clone(),
-            ]),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::from([quarantined
+                .attempt
+                .attempt_id
+                .clone()]),
         },
     )
     .unwrap();
@@ -4974,7 +4975,11 @@ fn runtime_repair_rejects_stale_quarantine_recovery_evidence() {
     let quarantined = created(
         sandbox
             .registry
-            .submit(&request(&sandbox, "request:repair-quarantine-stale-evidence", 1))
+            .submit(&request(
+                &sandbox,
+                "request:repair-quarantine-stale-evidence",
+                1,
+            ))
             .unwrap(),
     );
     write_completed_runner_result(&quarantined.attempt, 80);
@@ -5021,9 +5026,10 @@ fn runtime_repair_rejects_stale_quarantine_recovery_evidence() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::from([
-                quarantined.attempt.attempt_id.clone(),
-            ]),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::from([quarantined
+                .attempt
+                .attempt_id
+                .clone()]),
         },
     )
     .unwrap_err();

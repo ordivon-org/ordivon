@@ -50,10 +50,8 @@ fn run() -> Result<(), String> {
                 finalize_lost_attempt_ids.insert(require_value(&mut args, "--finalize-lost")?);
             }
             "--finalize-quarantined-lost" => {
-                finalize_quarantined_lost_attempt_ids.insert(require_value(
-                    &mut args,
-                    "--finalize-quarantined-lost",
-                )?);
+                finalize_quarantined_lost_attempt_ids
+                    .insert(require_value(&mut args, "--finalize-quarantined-lost")?);
             }
             "--attempt-id" => attempt_id = Some(require_value(&mut args, "--attempt-id")?),
             "--busy-timeout-ms" => {
