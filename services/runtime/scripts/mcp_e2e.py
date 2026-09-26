@@ -591,6 +591,53 @@ def wait_terminal(client: McpClient, job_id: str, timeout: float = 30.0) -> dict
     raise TimeoutError(f"Job did not become terminal: {last}")
 
 
+def reconcile_launch_identity_pending(
+    client: McpClient, initial: dict[str, Any], timeout: float = 10.0
+) -> tuple[dict[str, Any], bool]:
+    """Reconcile one exact recoverable Linux launch-identity gap without redispatch."""
+    if not (
+        initial.get("status") == "orphaned"
+        and initial.get("executionReasonCode") == "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"
+        and initial.get("recoveryRequired") is True
+    ):
+        return initial, False
+    job_id = initial.get("jobId")
+    attempt_id = initial.get("attemptId")
+    if not isinstance(job_id, str) or not isinstance(attempt_id, str):
+        raise AssertionError(f"recoverable launch gap omitted exact identity: {initial}")
+    deadline = time.monotonic() + timeout
+    last = initial
+    while time.monotonic() < deadline:
+        last = client.tool(
+            "job.observe",
+            {
+                "schemaVersion": SCHEMA_VERSION,
+                "jobId": job_id,
+                "waitMs": 500,
+                "waitUntil": "change_or_terminal",
+                "stdoutTailBytes": 8192,
+                "stderrTailBytes": 8192,
+            },
+        )
+        if last.get("jobId") != job_id or last.get("attemptId") != attempt_id:
+            raise AssertionError(
+                "launch-identity reconciliation changed Job/Attempt identity: "
+                f"{job_id}/{attempt_id} -> {last.get('jobId')}/{last.get('attemptId')}"
+            )
+        if last.get("status") == "succeeded":
+            return last, True
+        if not (
+            last.get("status") == "orphaned"
+            and last.get("executionReasonCode") == "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"
+            and last.get("recoveryRequired") is True
+        ):
+            return last, True
+    raise TimeoutError(
+        "recoverable launch-identity gap did not reconcile on the same Job/Attempt: "
+        f"{last}"
+    )
+
+
 def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
     if os.geteuid() != 0:
         raise ValueError("MCP E2E requires root for systemd-run")
@@ -1373,7 +1420,7 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
             "env": {},
             "hostDependencies": [{"path": str(host_dependency), "expectedDigest": host_dependency_v1_digest}],
         }
-        host_dependency_first = client.tool(
+        host_dependency_initial = client.tool(
             "workspace.exec",
             {
                 "schemaVersion": SCHEMA_VERSION,
@@ -1384,7 +1431,18 @@ def run_journey(repo: Path, keep: bool, output: Path | None) -> dict[str, Any]:
                 "stderrTailBytes": 4096,
             },
         )
+        host_dependency_first, launch_identity_reconciled = reconcile_launch_identity_pending(
+            client, host_dependency_initial
+        )
         host_dependency_first_job = str(host_dependency_first["jobId"])
+        if launch_identity_reconciled:
+            check(
+                "host-dependency-launch-identity-reconciled-same-attempt",
+                host_dependency_first.get("jobId") == host_dependency_initial.get("jobId")
+                and host_dependency_first.get("attemptId")
+                == host_dependency_initial.get("attemptId"),
+                {"initial": host_dependency_initial, "reconciled": host_dependency_first},
+            )
         check(
             "host-dependency-v1-exec",
             host_dependency_first.get("status") == "succeeded"
