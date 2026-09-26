@@ -597,9 +597,12 @@
     {
       "date": "2026-09-27",
       "scope": "D06 verifier CLI entrypoint packaging seam",
-      "standing": "CLI_ENTRYPOINT_BOOTSTRAP_VERIFIED_PENDING_INTEGRATION",
+      "standing": "CLI_ENTRYPOINT_BOOTSTRAP_INTEGRATED_VERIFIED",
       "evidence": "planning/verifier-cli-entrypoint-currentness-r1.json",
-      "ownerGateJobId": "job-01a0dea1-76ef-74b1-812b-3ca09e8ecfc5"
+      "ownerGateJobId": "job-01a0dea1-76ef-74b1-812b-3ca09e8ecfc5",
+      "implementationCommit": "914eac05777ba3c6478790c104caf475480eee1e",
+      "mergeCommit": "51079336766d920c7893bae91b617412c54f4ae4",
+      "mergedTreeRequalificationJobId": "job-01a0dea4-f95c-7ce3-8fcf-f2b3fb5bfd4e"
     }
   ]
 }
