@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam-evidence",
+  "findingId": "RT-ASSURANCE-001",
+  "observedAtDate": "2026-09-27",
+  "currentMain": "2bc46824d986c842375759ff39c731ee79195c5b",
+  "attackSourceRevision": "7661bdf90ce0878c39b8cdebf565ff2b01a686df",
+  "claim": "Runtime conformance logic treats an owner-local nested GitHub workflow file as evidence that CodeQL is active, although the authoritative monorepo GitHub Actions discovery boundary is the repository-root .github/workflows directory.",
+  "repositoryObservations": {
+    "rootWorkflowFiles": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/runtime-release.yml"
+    ],
+    "runtimeNestedCodeql": "services/runtime/.github/workflows/codeql.yml",
+    "rootRequiredWorkflowContainsCodeql": false,
+    "runtimeVerifyContainsCodeql": false,
+    "runtimeSecurityClaimsCodeqlEnforcement": true,
+    "runtimeConformancePredicates": [
+      "RT-Q-003",
+      "RT-SSDF-PO-002",
+      "RT-SSDF-PW-001"
+    ]
+  },
+  "dynamicFalsifier": {
+    "jobId": "job-01a0debf-6dab-74e0-87ca-3747df0aca99",
+    "command": "python3 services/runtime/scripts/check_runtime_standard_native_r3.py",
+    "result": "succeeded after late identity-bound runner-result recovery",
+    "emitted": {
+      "RT-Q-003": "PASS",
+      "RT-SSDF-PO-002": "OPEN",
+      "RT-SSDF-PW-001": "PASS"
+    }
+  },
+  "nonClaims": [
+    "This evidence does not prove that GitHub CodeQL default setup or another provider-native CodeQL configuration is absent.",
+    "This evidence does prove that nested workflow-file existence is not sufficient provider-execution evidence in the monorepo."
+  ],
+  "acceptance": [
+    "Bind CodeQL assurance to an active root workflow or provider-native CodeQL configuration/readback.",
+    "Do not mark CodeQL-backed conformance PASS from nested workflow-file existence alone.",
+    "Classify owner-local workflow templates explicitly as portable/non-live when retained."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam-negative-control",
+  "observedAtDate": "2026-09-27",
+  "sourceRevision": "7661bdf90ce0878c39b8cdebf565ff2b01a686df",
+  "jobs": [
+    {
+      "jobId": "job-01a0debb-fef6-7d93-ae02-e7f7749f3734",
+      "initialDisposition": "orphaned",
+      "initialReason": "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE",
+      "recoveryEvent": "RUNNER_RESULT_RECOVERED",
+      "correctionEvent": "JOB_RESOLUTION_CORRECTED",
+      "finalDisposition": "succeeded",
+      "finalReason": "LATE_IDENTITY_BOUND_RUNNER_RESULT",
+      "exitCode": 0,
+      "mechanicallyConverged": true
+    },
+    {
+      "jobId": "job-01a0debf-6dab-74e0-87ca-3747df0aca99",
+      "initialDisposition": "orphaned",
+      "initialReason": "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE",
+      "finalDisposition": "succeeded",
+      "finalReason": "LATE_IDENTITY_BOUND_RUNNER_RESULT",
+      "exitCode": 0
+    }
+  ],
+  "standing": "NEGATIVE_CONTROL_HELD",
+  "interpretation": "Transient loss of launch-token evidence did not cause speculative redispatch or preserve a false orphan outcome once the identity-bound runner result arrived. No replay/recovery finding is registered from these observations."
+}
