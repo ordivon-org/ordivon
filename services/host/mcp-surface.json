@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.mcp-tool-surface",
+  "service": "ordivon-host-v2",
+  "packageVersion": "0.4.0",
+  "surfaceEpoch": 2,
+  "tools": [
+    "actor.declare",
+    "attention.ack",
+    "attention.delta",
+    "attention.get",
+    "host.status",
+    "message.post",
+    "message.relation.add",
+    "message.search",
+    "space.create",
+    "space.get",
+    "space.list",
+    "space.participation.set",
+    "subscription.follow",
+    "subscription.list",
+    "subscription.unfollow",
+    "topic.create",
+    "topic.resume",
+    "work.create",
+    "work.get",
+    "work.list",
+    "work.snapshot.commit"
+  ]
+}

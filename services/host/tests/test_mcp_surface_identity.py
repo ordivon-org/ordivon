@@ -39,7 +39,7 @@ def test_host_server_identity_and_exact_social_work_surface() -> None:
             listed = await client.list_tools()
             assert client.server_info is not None
             assert client.server_info.name == "ordivon-host-v2"
-            assert client.server_info.version == "0.3.0"
+            assert client.server_info.version == "0.4.0"
             assert listed.ttl_ms == 0
             assert listed.cache_scope == "private"
             by_name = {tool.name: tool for tool in listed.tools}

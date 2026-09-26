@@ -60,6 +60,11 @@ def test_install_release_extracts_host_subtree_from_monorepo(tmp_path: Path) -> 
         '[project]\nname = "ordivon-host-v2"\nversion = "0.1.0"\n',
         encoding="utf-8",
     )
+    (host / "mcp-surface.json").write_text(
+        '{"schemaVersion":1,"kind":"ordivon.mcp-tool-surface","service":"ordivon-host-v2",'
+        '"packageVersion":"0.1.0","surfaceEpoch":1,"tools":["host.status"]}\n',
+        encoding="utf-8",
+    )
     (package / "__init__.py").write_text('VALUE = "monorepo-host"\n', encoding="utf-8")
     (repo / "README.md").write_text("monorepo root sentinel\n", encoding="utf-8")
 

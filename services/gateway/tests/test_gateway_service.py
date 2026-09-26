@@ -79,7 +79,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
             by_name = {tool.name: tool for tool in tools.tools}
             assert client.server_info is not None
             assert client.server_info.name == "ordivon-gateway"
-            assert client.server_info.version == "0.4.0"
+            assert client.server_info.version == "0.5.0"
             assert set(by_name) == {
                 "system.describe",
                 "capability.describe",
@@ -126,7 +126,7 @@ def test_windows_context_is_dynamic_data_not_gateway_schema_enum() -> None:
 
 def test_system_description_uses_package_release_identity() -> None:
     service = GatewayService(FakeOwnerCaller())
-    assert service.system_describe().gateway_version == "0.4.0"
+    assert service.system_describe().gateway_version == "0.5.0"
 
 
 def test_execution_submit_lowers_linux_without_leaking_owner_schema() -> None:
