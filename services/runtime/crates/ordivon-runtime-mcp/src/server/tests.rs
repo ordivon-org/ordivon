@@ -68,6 +68,7 @@ impl Sandbox {
                 },
                 release: None,
                 input_ingress: None,
+                credential_materialization: None,
                 trace_path: None,
             },
             default_runtime_ms,
@@ -118,6 +119,7 @@ impl Sandbox {
                 download_hosts: vec!["example.invalid".to_string()],
                 max_bytes: 8 * 1024 * 1024,
             }),
+            credential_materialization: None,
             trace_path: None,
         })
         .unwrap()
@@ -973,6 +975,7 @@ print(json.dumps({{
                 download_hosts: vec!["example.invalid".to_string()],
                 max_bytes: 8 * 1024 * 1024,
             }),
+            credential_materialization: None,
             trace_path: None,
         })
         .unwrap();
@@ -1187,6 +1190,7 @@ fn private_ip_download_host_is_rejected_at_configuration_boundary() {
             download_hosts: vec!["127.0.0.1".to_string()],
             max_bytes: 8 * 1024 * 1024,
         }),
+        credential_materialization: None,
         trace_path: None,
     });
     assert!(server.is_err(), "private/loopback IP download hosts must fail closed even if operator config accidentally lists them");
@@ -1235,6 +1239,7 @@ fn runtime_describe_projects_only_ingress_authority_names_not_transport_secrets(
             .unwrap()
             .authorities
             .clone(),
+        Vec::new(),
     );
     let value = serde_json::to_value(result).unwrap();
     assert_eq!(
@@ -1262,6 +1267,7 @@ fn tool_effect_annotations_match_runtime_behavior() {
     let tools = server.tool_router.list_all();
     let expected = [
         ("artifact.read", true, false, true, false),
+        ("credential.materialize", false, false, true, false),
         ("input.ingest", false, false, true, true),
         ("release.apply", false, true, true, true),
         ("release.get", true, false, true, false),
@@ -1885,7 +1891,7 @@ fn every_public_tool_publishes_structured_output_contract() {
     let sandbox = Sandbox::new("all-output-schemas");
     let server = sandbox.server();
     let tools = server.tool_router.list_all();
-    assert_eq!(tools.len(), 23);
+    assert_eq!(tools.len(), 24);
     for tool in tools {
         let schema = tool
             .output_schema
@@ -2136,6 +2142,7 @@ fn runtime_describe_projects_agent_affordances_without_selecting_a_target() {
         capabilities,
         server.state.execution.global_limit,
         server.state.release.is_some(),
+        Vec::new(),
         Vec::new(),
     );
     assert_eq!(result.schema_version, 1);

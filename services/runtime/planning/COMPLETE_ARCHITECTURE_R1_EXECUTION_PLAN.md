@@ -1,10 +1,22 @@
 # Runtime Complete Architecture R1 — Executable LEGO Plan
 
-Status: RW0_IN_PROGRESS
+Status: RW3_IN_PROGRESS_R09_QUALIFIED_R10_NEXT
 Truth role: planning projection, not Runtime project truth
-Source revision: `75dc93c56e367535cbff0d50921d188798c9de5e`
+Source revision: `fd3f166024587e9c943207fc8987cff436f43098`
 
 This plan evolves the already-operational Runtime by strangler-style internal extraction. It does **not** recreate the retired Execution Fabric R1, does not rewrite Runtime, and does not widen Runtime authority.
+
+## Current progress checkpoint — 2026-09-24
+
+- R00/R01: implemented baseline/invariant and verification partition.
+- R02: first WorkspaceState extraction integrated; residual extraction remains evidence-driven.
+- R03: JobIdentityContract + AttemptLifecycleContract implemented and verified.
+- R04: **implemented** as `ReservationContract` on `e48b2eab5fb743efa3b50cb1eceae4539e1c99a7`. It owns durable capacity-holder/acquire/hold/release and terminal reservation-target laws only; queue/priority/scheduling remain explicitly out of scope.
+- R04 verification: integrated `e48b2eab` is byte-identical to verified candidate `4131cbe0` across the five R04 responsibility files. Candidate owner gate `job-01a0cd18-695a-7dc3-b07a-a712d3bd2a31` PASS (`exitCode=0`), including the slow reference-model property gate; the equivalent R04 patch on an earlier base also passed focused real-system fast-success and timeout-descendant-pipe acceptance.
+- RW1 is **COMPLETE**: R05 Artifact/Release state ownership and R06 RegistryStorageBoundary are integrated; Registry semantic schema remains v6.
+- R07 `AuthorityContract` is **IMPLEMENTED AND CURRENT-MAIN QUALIFIED** on `163db3230483ec932fa8152fb1c9e6bd756e59d5`. Existing execution families compile internally only after exact replay lookup; the public Tool surface and current authority semantics are unchanged. `runtime:verify` PASS: `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896`.
+- RW2 is **COMPLETE**. R08 ordinary execution is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`, reduced immutable-input on `40c414a3901c4383a9d7d122fe7716effbe8506e`, trusted immutable-input on `645d50cd51c8efe772de762610e045ea112fb78c`, and credential-bound trusted on `c52737fd7bc2b6ccf71418719b220070a620da5f` via integration `897e504916fca4078847005a4b78198042b1c01b`. Exact post-integration owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` PASS. All four effect-opaque families now compile through the same internal `AuthorityContract + OperationCircuitCompiler` seam into the existing `SubmitRequest` without changing replay, request identity, Registry v6, provider/materialization ownership, or semantic-completion boundaries. Runtime self-release remains separate. RW3/R09 ExecutionProviderSPI is next.
+- RW3 is **IN PROGRESS**. R09 `ExecutionProviderSPI` is qualified on `fd3f166024587e9c943207fc8987cff436f43098` with full Runtime owner gate `job-01a0d34d-18e1-7140-b577-c34c0c660b4a` PASS. The private static seam freezes common obligations and non-weakenable R1 provider guarantees while preserving distinct Linux/Windows owner/evidence types; it adds no provider marketplace, plugin discovery, cross-node router, public Tool schema, or persisted provider schema. R10 LocalLinuxProvider is next; R11 follows only after Linux proves the seam on real systemd/cgroup acceptance.
 
 ## Global rules
 
@@ -262,6 +274,13 @@ to explicit AuthorityContract variants.
 - do not let Runtime grant provider/domain permission;
 - exact replay precedes current authority reinterpretation.
 
+**Standing — implemented / verified on `163db3230483ec932fa8152fb1c9e6bd756e59d5`**
+- `ordinary`, `immutable-input reduced`, `immutable-input trusted`, and `credential-bound trusted` are explicit internal variants;
+- admission compiles the contract only after exact replay lookup returns no existing Job;
+- widening combinations fail closed, including Windows/input/credential/Host-Dependency incompatibilities;
+- public MCP Tool schemas, Registry schema v6, and provider/domain/Security authority ownership are unchanged;
+- full current-main owner gate `job-01a0cf0f-a02a-76b3-8cc0-59f2e5abd896` passed `fmt`, owner environment, clippy, transactional Runtime tests, the extended Registry reference model, platform owner-boundary tests, and documentation checks.
+
 ### R08 — OperationCircuitCompiler
 
 **Goal:** make one internal compiler produce the immutable physical plan.
@@ -291,6 +310,15 @@ ExecutionCircuit =
 - old all-explicit request identity stays replay-compatible;
 - omitted/delegated limits retain their existing identity semantics;
 - no unenforceable metadata enters operation identity.
+
+**Standing — R08 complete for all four effect-opaque execution families**
+- `workspace.exec` / `workspace.execPlan` ordinary proposal admission compiles through `OperationCircuitCompiler::ordinary`; ordinary is integrated on `397dee5ef0caa296283253c03da5f277f4fa2a8d`;
+- reduced `workspace.execBound` preserves materialization/preallocated-admission ownership and compiles through `OperationCircuitCompiler::immutable_input_reduced` on `40c414a3901c4383a9d7d122fe7716effbe8506e`;
+- trusted `workspace.execBoundTrusted` preserves the trusted-local input boundary and compiles through `OperationCircuitCompiler::immutable_input_trusted`, integrated at `645d50cd51c8efe772de762610e045ea112fb78c`;
+- `workspace.execCredentialBoundTrusted` preserves operator-owned encrypted credential materialization and Job-owned ciphertext lifecycle, then compiles through `OperationCircuitCompiler::credential_bound_trusted`; the slice is `c52737fd7bc2b6ccf71418719b220070a620da5f` and is integrated by `897e504916fca4078847005a4b78198042b1c01b`;
+- every family emits the existing `SubmitRequest`; authority/request/materialization/plan drift fails closed, exact existing-Job replay remains ahead of current-world reinterpretation, and no public/persisted circuit schema, Registry migration, provider grant, or domain semantic-completion claim was introduced;
+- exact integrated-commit full Runtime owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` passed, including the independent Registry reference-model property, Windows deployer, MCP/auth, owner-boundary and documentation gates;
+- structured Runtime self-release remains a separate reconciliable effect and is intentionally outside the effect-opaque OperationCircuitCompiler family set.
 
 ---
 
@@ -323,6 +351,14 @@ Provider guarantees must include:
 - dynamic provider marketplace;
 - cross-node router;
 - plugin discovery system.
+
+**Standing — R09 qualified**
+- internal SPI code: `fd3f166024587e9c943207fc8987cff436f43098`;
+- full Runtime owner qualification: `job-01a0d34d-18e1-7140-b577-c34c0c660b4a` PASS, including Core/transactional suites, independent Registry reference-model properties, Windows deployer, MCP/auth, owner-boundary, clippy/check, owner-environment and documentation gates;
+- common obligations are `capabilities / validate / realize / observe / cancel / reconcile`;
+- required guarantees fail closed if any provider weakens exact committed provider identity, single physical Attempt ownership, terminal observation, process-tree cancellation, crash/restart reconciliation, or scoped evidence;
+- Linux and Windows intentionally retain different owner/observation/evidence types; R09 moves no physical OS mechanism;
+- no public/persisted schema, dynamic provider registry/marketplace, plugin discovery, cross-node routing, or semantic-effect authority is introduced.
 
 ### R10 — LocalLinuxProvider
 
@@ -631,16 +667,13 @@ Rollback unit is the smallest completed LEGO extraction commit, not the whole pr
 
 ## Immediate executable queue
 
-The first actual implementation queue is deliberately small:
+The old bootstrap queue through R04 is complete. The current queue is:
 
-1. **R00-A** — write invariant manifest.
-2. **R00-B** — map every invariant to proving tests/evidence.
-3. **R01-A** — produce test taxonomy without moving files.
-4. **R01-B** — split one low-conflict test category and prove zero behavior change.
-5. **R02-A** — census Workspace responsibilities currently inside `engine.rs/types.rs/registry.rs`.
-6. **R03-A** — census Job/Attempt responsibilities and transaction seams.
-7. **R07-A** — read-only Tool→Authority composition matrix.
-8. **R12-A** — read-only recurring control primitive census.
-9. **R13-A** — read-only evidence claim/scope/witness matrix.
+1. **R07-CLOSED** — `AuthorityContract` implemented on `163db3230483ec932fa8152fb1c9e6bd756e59d5`; reopen only for a proven authority/replay regression.
+2. **R08-CLOSED** — ordinary, reduced immutable-input, trusted immutable-input and credential-bound trusted execution all compile through one internal OperationCircuitCompiler into the existing `SubmitRequest`; integrated closure is `897e504916fca4078847005a4b78198042b1c01b` and exact post-integration owner qualification `job-01a0d323-f7ca-7351-8f5c-1d01b4877ca6` PASS.
+3. **R09-CLOSED-CANDIDATE** — private static ExecutionProviderSPI qualified at `fd3f166024587e9c943207fc8987cff436f43098` with full owner gate `job-01a0d34d-18e1-7140-b577-c34c0c660b4a` PASS; integrate under current-main fencing, then reopen only for a proven SPI-contract regression.
+4. **R10-NEXT** — move LocalLinuxProvider behind the SPI and prove real systemd/cgroup acceptance on the exact candidate without changing Runner wire semantics.
+5. **R11 after R10** — adapt WindowsNativeProvider without pretending SCM/Job Object semantics equal systemd/cgroup semantics.
+6. **R12/R13** may proceed only behind their dependency and ownership fences; keep launch-token timing/late-result reconciliation in the separate supervisor-evidence lane.
 
-Only after items 1–4 are green should production Rust module extraction start.
+Do not reopen R04 for launch-evidence timing/reconciliation races already reproduced on a clean baseline; those remain with the reconciliation/supervisor evidence owner.

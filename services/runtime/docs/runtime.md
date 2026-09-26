@@ -13,7 +13,7 @@ audience:
   - builder
   - operator
   - agent
-updated: 2026-08-09
+updated: 2026-09-24
 summary: Canonical Runtime architecture for Workspace-bound admission, Jobs, Attempts, execution evidence, reconciliation, and recovery.
 evidence_status: verified
 readiness: READY
@@ -160,6 +160,10 @@ Encrypted credential bytes are execution capabilities rather than historical evi
 
 ## Execution authority profiles
 
+R08 is complete for the four current effect-opaque execution families. Ordinary execution, reduced immutable-input execution, trusted immutable-input execution, and credential-bound trusted execution all compile through the internal `AuthorityContract + OperationCircuitCompiler` seam into the existing `SubmitRequest`; no second public or persisted circuit schema exists. Ordinary admission compiles only after exact replay, authority compilation, proposal/policy/Host-Dependency validation, physical plan resolution, and provider snapshotting. Immutable-input families preserve the existing materializer and preallocated-admission ownership and verify that realized read-only inputs exactly satisfy their authority contract before compilation. Credential-bound trusted admission likewise preserves the existing operator-owned encrypted-credential snapshot/materialization and Job-owned ciphertext lifecycle, validates the realized credential-authority request against its authority contract, and requires the already-materialized `credentialSetId` before compilation. Public requests still contain only opaque credential authority/name references. Exact replay remains before current authority or policy reinterpretation. Public Tool schemas, request identity, Registry schema v6, provider authority, materialization authority, and semantic-completion ownership are unchanged. Runtime self-release remains a separate reconciliable effect rather than being forced through this effect-opaque compiler.
+
+On a new admission, only after exact existing-Job replay has failed to resolve historical truth, Runtime compiles the existing public execution family into an internal `AuthorityContract`: ordinary execution, immutable-input reduced authority, immutable-input trusted authority, or credential-bound trusted authority. The contract binds the authenticated principal, target/profile, effective Windows context when applicable, executable identity paths, named input/credential authorities, and declared Host Dependency commitments, and rejects widening combinations fail-closed. This is Runtime admission truth only: it is not a caller-facing universal Authority object, a Security Grant, provider IAM, or a domain verdict, and R07 changes no public MCP Tool schema.
+
 `workspace.exec` and `workspace.execPlan` accept `executionProfile` with two values. `workspace.execBound` does not expose this choice: the target determines the reduced-authority input boundary. `local_linux` uses `contained_local`; configured `windows_native` uses `trusted_local` with `windowsAuthority=limited`. `workspace.execBoundTrusted` is a separate local-Linux-only operation identity that structurally selects `trusted_local` while retaining the same exact named-authority input materialization and read-only `/run/ordivon/inputs` presentation. It deliberately preserves ambient trusted-local host/network authority and therefore must not be described as containment, controlled egress, a secret broker, or proof of external provider permission. Elevated Windows input-bound admission remains rejected.
 
 - `trusted_local` is the canonical owner-trusted profile. It grants the installed service user's local authority without adding a central approval layer.
@@ -178,6 +182,8 @@ Runtime does not hard-code a 24-hour/64-MiB product law. The packaged operator p
 Budgets constrain physical consumption; they are not a scheduler, priority system, sandbox, or approval policy. The trusted-local authority model remains unchanged.
 
 ## Execution provider commitment
+
+R09 freezes a private static execution-provider SPI at `fd3f166024587e9c943207fc8987cff436f43098` before either OS implementation is extracted. The seam defines common Runtime obligations—`capabilities`, `validate`, `realize`, `observe`, `cancel`, and `reconcile`—and requires exact committed provider identity, one physical Attempt owner, terminal observation, process-tree cancellation, crash/restart reconciliation, and scoped evidence. The SPI deliberately uses provider-specific owner/observation/evidence types: sharing obligations must not pretend Linux systemd/cgroup and Windows SCM/Job Object mechanisms are identical. It is not a dynamic provider registry, marketplace, plugin-discovery system, or cross-node router, changes no public MCP Tool or Registry schema, and does not mint domain/provider/Security authority. Full Runtime owner qualification is `job-01a0d34d-18e1-7140-b577-c34c0c660b4a`. R10/R11 move the existing Linux and Windows physical mechanisms behind this seam separately.
 
 First admission commits the Runtime-owned machinery that will cross the physical dispatch boundary. `local_linux` binds the validated Runtime Runner contract plus its executable SHA-256. `windows_native` binds the native Windows launcher contract plus its executable SHA-256. The persisted provider snapshot retains the historical `wslDistribution` field for old evidence, but new native snapshots write it as null. The snapshot is stored in an additive Job-owned Registry table and its digest is bound into the Job operation identity.
 

@@ -78,6 +78,42 @@ pub struct WindowsExecutionConfig {
     pub privileged_broker: Option<WindowsPrivilegedBrokerConfig>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowsCredentialMaterializationObservation {
+    pub binding: String,
+    pub disposition: String,
+    pub endpoint_count: u32,
+    pub bytes: u64,
+}
+
+pub fn materialize_windows_credential_binding(
+    broker: &WindowsPrivilegedBrokerConfig,
+    request_id: &str,
+    binding: &str,
+) -> RuntimeResult<WindowsCredentialMaterializationObservation> {
+    #[cfg(not(windows))]
+    {
+        let _ = (broker, request_id, binding);
+        Err(RuntimeError::new(
+            RuntimeErrorCode::ToolUnavailable,
+            "Windows credential materialization is available only on a native Windows Runtime",
+            Some("credentialMaterialization"),
+            false,
+        ))
+    }
+    #[cfg(windows)]
+    {
+        let observed = windows_broker::materialize(broker, request_id, binding)?;
+        Ok(WindowsCredentialMaterializationObservation {
+            binding: observed.binding,
+            disposition: observed.disposition,
+            endpoint_count: observed.endpoint_count,
+            bytes: observed.bytes,
+        })
+    }
+}
+
 impl WindowsExecutionConfig {
     pub(crate) fn validate(&self) -> RuntimeResult<()> {
         if !self.launcher_path.is_absolute() {

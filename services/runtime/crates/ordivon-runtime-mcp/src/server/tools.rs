@@ -33,13 +33,39 @@ impl RuntimeServer {
             .as_ref()
             .map(|config| config.authorities.clone())
             .unwrap_or_default();
+        let credential_materialization_bindings = self.credential_materialization_binding_names();
         self.run_core("runtime.describe", move || {
             Ok(RuntimeDescribeResult::from_capabilities(
                 runtime.capabilities(),
                 global_execution_limit,
                 structured_release_configured,
                 input_ingress_authorities,
+                credential_materialization_bindings,
             ))
+        })
+        .await
+    }
+
+    #[tool(
+        name = "credential.materialize",
+        description = "Ensure one operator-configured credential binding through the native Windows privileged broker. The caller supplies only a logical binding and clientRequestId; host paths, credential bytes, and credential digests are never request fields or result fields. Runtime enforces the authenticated-principal allowlist before invoking the broker. Exact re-invocation converges on the same broker-owned authority bearer and missing endpoint copies; conflicting endpoint bytes fail closed. The receipt proves byte materialization only and does not prove consumer reload or provider authentication.",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<ToolOutcome<CredentialMaterializationToolResult>>(),
+        annotations(
+            title = "Materialize credential binding",
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn credential_materialize(
+        &self,
+        principal: EffectivePrincipal,
+        Parameters(request): Parameters<CredentialMaterializationToolRequest>,
+    ) -> ToolOutcome<CredentialMaterializationToolResult> {
+        let server = self.clone();
+        self.run_core("credential.materialize", move || {
+            server.perform_credential_materialization(&principal.0, request)
         })
         .await
     }
