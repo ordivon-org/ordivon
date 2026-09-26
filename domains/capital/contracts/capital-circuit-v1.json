@@ -44,6 +44,14 @@
         "riskBudget",
         "evidence"
       ]
+    },
+    "INVESTMENT_DECISION_SUPPORT_R1": {
+      "requestedUse": "bounded investment decision support",
+      "terminalClaim": "READ_ONLY_INVESTMENT_DECISION_ROUTE",
+      "requiredInputs": [
+        "decisionContext"
+      ],
+      "optionalInputs": []
     }
   }
 }

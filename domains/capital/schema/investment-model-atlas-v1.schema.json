@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.investment-model-atlas-v1",
+  "title": "Ordivon Capital Investment Model Atlas v1",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "truthRole", "principles", "models"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.investment-model-atlas"},
+    "truthRole": {"const": "EXTERNAL_MODEL_LIBRARY_NOT_INVESTMENT_TRUTH"},
+    "principles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "modelKey", "family", "role", "standing", "activation", "horizons",
+          "decisionQuestions", "mechanism", "assumptions", "strongestWhen",
+          "weakensWhen", "invalidators", "requiredTagsAll", "requiredTagsAny",
+          "blockedTagsAny", "evidenceRefs", "allowedActions", "prohibitedActions"
+        ],
+        "properties": {
+          "modelKey": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*$"},
+          "family": {"type": "string", "minLength": 1},
+          "role": {"type": "string", "minLength": 1},
+          "standing": {
+            "enum": ["CORE", "MATURE_CONDITIONAL", "CONTESTED_CONDITIONAL", "STATE_MODEL"]
+          },
+          "activation": {"enum": ["ALWAYS", "CONDITIONAL"]},
+          "horizons": {"$ref": "#/$defs/stringArray"},
+          "decisionQuestions": {"$ref": "#/$defs/nonEmptyStringArray"},
+          "mechanism": {"type": "string", "minLength": 1},
+          "assumptions": {"$ref": "#/$defs/stringArray"},
+          "strongestWhen": {"$ref": "#/$defs/stringArray"},
+          "weakensWhen": {"$ref": "#/$defs/stringArray"},
+          "invalidators": {"$ref": "#/$defs/stringArray"},
+          "requiredTagsAll": {"$ref": "#/$defs/stringArray"},
+          "requiredTagsAny": {"$ref": "#/$defs/stringArray"},
+          "blockedTagsAny": {"$ref": "#/$defs/stringArray"},
+          "evidenceRefs": {"$ref": "#/$defs/nonEmptyStringArray"},
+          "allowedActions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": ["INFORM", "BASELINE", "TILT", "SIZE", "RISK_REVIEW", "EXECUTION_PLAN", "ATTRIBUTION"]
+            }
+          },
+          "prohibitedActions": {"$ref": "#/$defs/stringArray"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "nonEmptyStringArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

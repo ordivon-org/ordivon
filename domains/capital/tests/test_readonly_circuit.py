@@ -102,6 +102,31 @@ def test_public_market_observation_circuit_is_supplied_data_only():
     assert result["externalFinancialWritesAttempted"] is False
 
 
+def test_investment_decision_support_uses_owner_risk_budget_and_stays_effect_free():
+    circuit = compile_readonly_circuit(goal={"kind": "INVESTMENT_DECISION_SUPPORT_R1"})
+    result = run_readonly_circuit(
+        circuit=circuit,
+        inputs={
+            "decisionContext": {
+                "decisionId": "decision:test:readonly:r1",
+                "asOf": "2026-09-27T01:30:00+08:00",
+                "objective": "bounded research decision support",
+                "horizon": "months",
+                "stateTags": ["VALUATION_SIGNAL_AVAILABLE", "MACRO_STATE_AVAILABLE"],
+            }
+        },
+    )
+    out = result["output"]
+    route = out["decisionRoute"]
+    assert out["riskBudgetAuthority"]["standing"] == "UNSET"
+    assert route["riskBudgetStatus"] == "UNSET"
+    assert route["decisionStanding"] == "RESEARCH_ONLY_RISK_BUDGET_UNSET"
+    assert route["externalFinancialEffectAllowed"] is False
+    assert "SIZE" not in route["eligibleActions"]
+    assert out["modelAtlas"]["registeredModels"] >= 1
+    assert result["externalFinancialWritesAttempted"] is False
+
+
 def test_receipt_is_identity_bound_and_non_semantic():
     circuit = compile_readonly_circuit(goal={"kind": "PORTFOLIO_RISK_R1"})
     result = run_readonly_circuit(circuit=circuit, inputs={"portfolio": _portfolio()})

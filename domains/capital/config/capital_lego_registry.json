@@ -1319,6 +1319,163 @@
         "external financial write",
         "semantic completion claim"
       ]
+    },
+    {
+      "legoId": "capital.research.investment-model-atlas",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/investment_model_atlas.py",
+        "symbol": "validate_investment_model_atlas_document"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "config/investment_model_atlas.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.investment-model-atlas"
+      ],
+      "evidenceObligations": [
+        "stable external evidence identities",
+        "explicit model standing and applicability conditions"
+      ],
+      "permittedUses": [
+        "validate and index external investment decision models"
+      ],
+      "prohibitedUses": [
+        "approve investments",
+        "grant execution authority"
+      ]
+    },
+    {
+      "legoId": "capital.portfolio.investment-decision-router",
+      "ownerDomain": "portfolio",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Decide",
+        "Validate"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/portfolio/decision_router.py",
+        "symbol": "route_investment_decision"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "CRITICAL",
+      "inputContracts": [
+        "config/investment_model_atlas.json",
+        "config/portfolio_risk_budget.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.investment-decision-route"
+      ],
+      "evidenceObligations": [
+        "explicit decision context",
+        "model atlas identity",
+        "explicit risk-budget standing"
+      ],
+      "permittedUses": [
+        "bounded investment decision support",
+        "route mature models by state/horizon/constraints"
+      ],
+      "prohibitedUses": [
+        "infer owner risk appetite",
+        "automatic order generation",
+        "external financial write",
+        "promote contested model to default authority"
+      ]
+    },
+    {
+      "legoId": "capital.markets.fred-energy",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe",
+        "Normalize",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/fred_energy.py",
+        "symbol": "capture"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [
+        "ordivon.capital.markets.fred-eia-origin-energy-daily-capture"
+      ],
+      "evidenceObligations": [
+        "FRED public response",
+        "EIA-origin series identity",
+        "capture timestamps"
+      ],
+      "permittedUses": [
+        "public Brent/WTI daily observation"
+      ],
+      "prohibitedUses": [
+        "direct EIA authority claim",
+        "intraday executable price claim",
+        "trade approval"
+      ]
+    },
+    {
+      "legoId": "capital.markets.us-treasury-rates",
+      "ownerDomain": "markets",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Observe",
+        "Normalize",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/markets/us_treasury_rates.py",
+        "symbol": "capture"
+      },
+      "authorityRequirement": "PUBLIC_READ",
+      "effectClass": "NONE",
+      "sideEffects": [
+        "NETWORK_READ"
+      ],
+      "replayClass": "OBSERVATION",
+      "currentnessRequirement": "FRESH_PROVIDER",
+      "riskTier": "MEDIUM",
+      "inputContracts": [],
+      "outputContracts": [
+        "ordivon.capital.markets.us-treasury-daily-rates-capture"
+      ],
+      "evidenceObligations": [
+        "U.S. Treasury official response",
+        "curve observation date",
+        "capture timestamps"
+      ],
+      "permittedUses": [
+        "public U.S. Treasury nominal/real curve observation"
+      ],
+      "prohibitedUses": [
+        "rate forecast",
+        "trade approval"
+      ]
     }
   ]
 }

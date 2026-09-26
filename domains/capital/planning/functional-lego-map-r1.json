@@ -57,8 +57,8 @@
         "portfolio",
         "research"
       ],
-      "responsibility": "Represent a frozen caller/agent decision boundary; there is no general autonomous decision engine in current Capital.",
-      "standing": "BOUNDARY_NO_GENERAL_IMPLEMENTATION_OWNER"
+      "responsibility": "Route externally grounded investment models into bounded decision support without inferring owner risk appetite or granting execution authority.",
+      "standing": "BOUNDED_DECISION_SUPPORT_IMPLEMENTED_NO_AUTONOMOUS_EFFECT"
     },
     "Authorize": {
       "primaryDomains": [
@@ -146,6 +146,10 @@
       "Counterfactual",
       "Validate"
     ],
+    "src/ordivon_capital/portfolio/decision_router.py": [
+      "Decide",
+      "Validate"
+    ],
     "src/ordivon_capital/research/model_monitoring.py": [
       "Validate",
       "Measure"
@@ -164,6 +168,9 @@
       "Validate"
     ],
     "src/ordivon_capital/research/quantitative_inventory_validation.py": [
+      "Validate"
+    ],
+    "src/ordivon_capital/research/investment_model_atlas.py": [
       "Validate"
     ],
     "src/ordivon_capital/research/standards_inventory.py": [
@@ -210,6 +217,16 @@
     ],
     "src/ordivon_capital/governance/circuit_lowering.py": [
       "Validate"
+    ],
+    "src/ordivon_capital/markets/fred_energy.py": [
+      "Observe",
+      "Normalize",
+      "Measure"
+    ],
+    "src/ordivon_capital/markets/us_treasury_rates.py": [
+      "Observe",
+      "Normalize",
+      "Measure"
     ]
   },
   "crossCuttingEvidenceRole": "Evidence binding/materialization is cross-cutting and is not promoted into a thirteenth finance-domain ontology term."

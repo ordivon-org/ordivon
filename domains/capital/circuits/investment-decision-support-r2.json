@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-spec",
+  "circuitId": "INVESTMENT_DECISION_SUPPORT_R2",
+  "goalClass": "INVESTMENT_DECISION_SUPPORT",
+  "requestedUse": "bounded investment decision support",
+  "terminalClaim": "READ_ONLY_INVESTMENT_DECISION_ROUTE",
+  "stages": [
+    {
+      "id": "investment-model-atlas",
+      "legoId": "capital.research.investment-model-atlas",
+      "dependsOn": [],
+      "inputs": [
+        "decision-context",
+        "model-atlas"
+      ],
+      "outputs": [
+        "validated-model-atlas"
+      ],
+      "operation": "validate_investment_model_atlas"
+    },
+    {
+      "id": "investment-decision-route",
+      "legoId": "capital.portfolio.investment-decision-router",
+      "dependsOn": [
+        "investment-model-atlas"
+      ],
+      "inputs": [
+        "decision-context",
+        "validated-model-atlas",
+        "portfolio-risk-budget-standing"
+      ],
+      "outputs": [
+        "investment-decision-route"
+      ],
+      "operation": "route_investment_decision"
+    }
+  ],
+  "authorityBindings": []
+}

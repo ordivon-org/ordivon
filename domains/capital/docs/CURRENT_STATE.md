@@ -21,6 +21,7 @@ Canonical source owner is `domains/capital`. Active source-owner domains: Market
 | Fed policy repricing observation | `EXTERNAL_SUBSCRIPTION_REQUIRED_NOT_INTEGRATED` |
 | SOXL benchmark identity | `NYSE Semiconductor Index` / `ICESEMIT` / daily target `3.0x` |
 | Research data aggregation | OpenBB `4.7.2` / `ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY` |
+| Investment decision system | `13` registered external models / effects allowed=false |
 
 ## R2 architecture
 
@@ -38,7 +39,7 @@ provider/local reality
 Capital reconciliation/accounting
 ```
 
-Registry: 39 entries, 34 canonical; functional LEGO roles: 12.
+Registry: 43 entries, 38 canonical; functional LEGO roles: 12.
 
 ## Laws
 

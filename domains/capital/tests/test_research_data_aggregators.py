@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 
 def test_openbb_is_external_bounded_capability_not_truth_owner():

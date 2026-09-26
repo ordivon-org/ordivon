@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from ordivon_capital.markets.fred_energy import compose_capture, parse_csv
 
 CSV = """observation_date,DCOILBRENTEU,DCOILWTICO

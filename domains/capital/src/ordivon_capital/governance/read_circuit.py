@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from ordivon_capital.governance.circuit_lowering import load_and_lower
@@ -11,15 +12,22 @@ from ordivon_capital.markets.market_sensors import (
     open_interest_change,
     repeated_microstructure,
 )
+from ordivon_capital.portfolio.decision_router import route_investment_decision
 from ordivon_capital.portfolio.portfolio_counterfactuals import (
     build_action_counterfactual,
     evaluate_constraint_gate,
+)
+from ordivon_capital.research.investment_model_atlas import (
+    validate_investment_model_atlas_document,
 )
 from ordivon_capital.risk.portfolio_risk import (
     build_exposure_ledger,
     build_portfolio_risk_report,
     evaluate_risk_budget,
     historical_expected_shortfall,
+)
+from ordivon_capital.risk.risk_budget_validation import (
+    validate_registered_risk_budget_document,
 )
 
 
@@ -31,6 +39,7 @@ _FAMILIES: dict[str, str] = {
     "PUBLIC_MARKET_OBSERVATION_R1": "circuits/public-market-observation-r2.json",
     "PORTFOLIO_RISK_R1": "circuits/portfolio-risk-analysis-r2.json",
     "COUNTERFACTUAL_ANALYSIS_R1": "circuits/counterfactual-analysis-r2.json",
+    "INVESTMENT_DECISION_SUPPORT_R1": "circuits/investment-decision-support-r2.json",
 }
 
 
@@ -218,10 +227,44 @@ def _run_counterfactual(inputs: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _run_investment_decision(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    decision = inputs.get("decisionContext")
+    if not isinstance(decision, Mapping):
+        raise ReadCircuitError("decisionContext input must be an object")
+    required = {"decisionId", "asOf", "objective", "horizon", "stateTags"}
+    if set(decision) != required:
+        raise ReadCircuitError("decisionContext keys mismatch")
+
+    root = Path(__file__).resolve().parents[3]
+    atlas = json.loads((root / "config/investment_model_atlas.json").read_text())
+    validate_investment_model_atlas_document(atlas)
+    risk_budget = json.loads((root / "config/portfolio_risk_budget.json").read_text())
+    validate_registered_risk_budget_document(risk_budget)
+    risk_status = "SET" if risk_budget["standing"] == "ACTIVE" else "UNSET"
+
+    context = dict(decision)
+    context["riskBudgetStatus"] = risk_status
+    route = route_investment_decision(context, atlas)
+    return {
+        "decisionRoute": route,
+        "riskBudgetAuthority": {
+            "standing": risk_budget["standing"],
+            "owner": risk_budget["owner"],
+            "source": "config/portfolio_risk_budget.json",
+        },
+        "modelAtlas": {
+            "truthRole": atlas["truthRole"],
+            "registeredModels": len(atlas["models"]),
+            "source": "config/investment_model_atlas.json",
+        },
+    }
+
+
 _RUNNERS = {
     "PUBLIC_MARKET_OBSERVATION_R1": _run_market,
     "PORTFOLIO_RISK_R1": _run_risk,
     "COUNTERFACTUAL_ANALYSIS_R1": _run_counterfactual,
+    "INVESTMENT_DECISION_SUPPORT_R1": _run_investment_decision,
 }
 
 

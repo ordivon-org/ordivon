@@ -20,7 +20,13 @@ def test_functional_lego_map_is_complete_over_current_source_modules():
         assert roles
         assert set(roles) <= EXPECTED
 
-def test_decide_and_effect_do_not_invent_general_current_owners():
+def test_decide_is_bounded_support_and_effect_stays_nonlive():
     doc = json.loads((ROOT / "planning/functional-lego-map-r1.json").read_text())
-    assert doc["functionalLegos"]["Decide"]["standing"] == "BOUNDARY_NO_GENERAL_IMPLEMENTATION_OWNER"
-    assert doc["functionalLegos"]["Effect"]["standing"] == "NONLIVE_ONLY_NO_CANONICAL_PRODUCTION_IMPLEMENTATION"
+    assert (
+        doc["functionalLegos"]["Decide"]["standing"]
+        == "BOUNDED_DECISION_SUPPORT_IMPLEMENTED_NO_AUTONOMOUS_EFFECT"
+    )
+    assert (
+        doc["functionalLegos"]["Effect"]["standing"]
+        == "NONLIVE_ONLY_NO_CANONICAL_PRODUCTION_IMPLEMENTATION"
+    )

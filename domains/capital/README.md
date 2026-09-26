@@ -14,7 +14,7 @@ Capital has seven source-owner domains:
 - Governance — financial policy/admission and financial semantic lowering;
 - Accounting — durable local reservation/post/void/idempotency mechanics.
 
-The twelve functional LEGO roles are Observe, Normalize, Validate, Measure, Model, Counterfactual, Decide, Authorize, Reserve, Effect, Reconcile and Account. `Decide` remains a boundary rather than a general autonomous investment-decision engine.
+The twelve functional LEGO roles are Observe, Normalize, Validate, Measure, Model, Counterfactual, Decide, Authorize, Reserve, Effect, Reconcile and Account. `Decide` now has a bounded external-model routing implementation for decision support; it remains non-autonomous and cannot infer owner risk appetite, generate orders, or grant execution authority.
 
 ## R2 composition boundary
 
@@ -63,6 +63,7 @@ Current declarative R2 circuit specifications are under `circuits/`:
 - `public-market-observation-r2.json`
 - `portfolio-risk-analysis-r2.json`
 - `counterfactual-analysis-r2.json`
+- `investment-decision-support-r2.json`
 - `nonlive-effect-qualification-r2.json`
 
 They are financial specifications, not workflow/scheduler state.

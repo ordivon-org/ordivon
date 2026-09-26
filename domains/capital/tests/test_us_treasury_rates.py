@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from ordivon_capital.markets.us_treasury_rates import compose_capture, parse_feed, NOMINAL_FIELDS, REAL_FIELDS
+from ordivon_capital.markets.us_treasury_rates import (
+    NOMINAL_FIELDS,
+    REAL_FIELDS,
+    compose_capture,
+    parse_feed,
+)
 
 NOMINAL = '''<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata"><updated>2026-09-24T02:02:11Z</updated><entry><content type="application/xml"><m:properties><d:NEW_DATE>2026-09-22T00:00:00</d:NEW_DATE><d:BC_2YEAR>4.71</d:BC_2YEAR><d:BC_5YEAR>4.83</d:BC_5YEAR><d:BC_10YEAR>4.96</d:BC_10YEAR><d:BC_20YEAR>5.33</d:BC_20YEAR><d:BC_30YEAR>5.29</d:BC_30YEAR></m:properties></content></entry><entry><content type="application/xml"><m:properties><d:NEW_DATE>2026-09-23T00:00:00</d:NEW_DATE><d:BC_2YEAR>4.85</d:BC_2YEAR><d:BC_5YEAR>4.99</d:BC_5YEAR><d:BC_10YEAR>5.11</d:BC_10YEAR><d:BC_20YEAR>5.45</d:BC_20YEAR><d:BC_30YEAR>5.40</d:BC_30YEAR></m:properties></content></entry></feed>'''
 REAL = '''<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata"><updated>2026-09-24T02:02:11Z</updated><entry><content type="application/xml"><m:properties><d:NEW_DATE>2026-09-22T00:00:00</d:NEW_DATE><d:TC_5YEAR>2.51</d:TC_5YEAR><d:TC_7YEAR>2.56</d:TC_7YEAR><d:TC_10YEAR>2.63</d:TC_10YEAR><d:TC_20YEAR>2.88</d:TC_20YEAR><d:TC_30YEAR>3.04</d:TC_30YEAR></m:properties></content></entry><entry><content type="application/xml"><m:properties><d:NEW_DATE>2026-09-23T00:00:00</d:NEW_DATE><d:TC_5YEAR>2.65</d:TC_5YEAR><d:TC_7YEAR>2.70</d:TC_7YEAR><d:TC_10YEAR>2.76</d:TC_10YEAR><d:TC_20YEAR>2.99</d:TC_20YEAR><d:TC_30YEAR>3.14</d:TC_30YEAR></m:properties></content></entry></feed>'''
