@@ -47,6 +47,17 @@ def test_windows_service_materializer_never_reads_secret_values() -> None:
     assert "Get-Content -LiteralPath $HostBearerTokenFile" not in text
 
 
+def test_windows_service_receipt_separates_path_configuration_from_physical_presence() -> None:
+    text = MATERIALIZER.read_text(encoding="utf-8")
+    for prefix in ("linux", "windows", "host"):
+        assert f"{prefix}BearerPathConfigured" in text
+        assert f"{prefix}BearerFilePresentAtMaterialization" in text
+        assert f"{prefix}BearerConfigured =" not in text
+    assert "Test-Path -LiteralPath $LinuxRuntimeBearerTokenFile" in text
+    assert "Test-Path -LiteralPath $WindowsRuntimeBearerTokenFile" in text
+    assert "Test-Path -LiteralPath $HostBearerTokenFile" in text
+
+
 def test_windows_acl_materializer_uses_service_sid_and_protected_dacls() -> None:
     text = ACL.read_text(encoding="utf-8")
     assert "NT SERVICE\\$ServiceName" in text
