@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/effect-attempt-r6.json",
+  "title": "Effect Attempt R6",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "effectId", "actorId", "environmentDigest", "worldSpecDigest", "scope", "serviceId", "operation", "target", "contentDigest"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-effect-attempt"},
+    "effectId": {"type": "string", "minLength": 1},
+    "actorId": {"type": "string", "minLength": 1},
+    "environmentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "worldSpecDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "scope": {"enum": ["synthetic_world", "external_world"]},
+    "serviceId": {"type": "string", "minLength": 1},
+    "operation": {"enum": ["read", "write", "send", "request", "query"]},
+    "target": {"type": "string", "minLength": 1},
+    "contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
