@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import subprocess
@@ -134,9 +135,94 @@ def counterexample_pressure(schema: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def portable_pressure(plan: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    rows = []
+    owners: set[str] = set()
+    repos: set[str] = set()
+    for case in plan["studies"]:
+        profile_path = PROFILES / f"{case['profileId']}.json"
+        profile = load(profile_path)
+        authority = profile["studyAuthority"]
+        owners.add(authority["owner"])
+        repos.add(authority["sourceRepo"])
+        revision = authority.get("sourceRevision")
+        if not isinstance(revision, str) or len(revision) != 40:
+            fail(f"{case['profileId']}: portable sourceRevision must be exact 40-hex")
+        try:
+            int(revision, 16)
+        except ValueError as exc:
+            raise SystemExit(f"{case['profileId']}: sourceRevision is not hexadecimal") from exc
+        refs = semantic_ref_index(profile)
+        declared = []
+        for assertion in case["assertions"]:
+            ref_id = assertion["evidenceRef"]
+            ref = refs.get(ref_id)
+            if ref is None:
+                fail(f"{case['profileId']}: pressure evidence ref not projected: {ref_id}")
+            location = ref.get("location")
+            digest = ref.get("digest")
+            if not location:
+                fail(f"{case['profileId']}: pressure evidence ref lacks location: {ref_id}")
+            if not isinstance(digest, str) or not digest.startswith("sha256:") or len(digest) != 71:
+                fail(f"{case['profileId']}: pressure evidence ref lacks exact sha256: {ref_id}")
+            if assertion["op"] not in {"eq", "contains", "contains_item", "gt"}:
+                fail(f"{case['profileId']}: unsupported portable assertion op: {assertion['op']}")
+            if not assertion.get("path"):
+                fail(f"{case['profileId']}: pressure assertion path missing")
+            declared.append(ref_id)
+        rows.append(
+            {
+                "profileId": case["profileId"],
+                "studyLabel": case["studyLabel"],
+                "studyOwner": authority["owner"],
+                "sourceRepo": authority["sourceRepo"],
+                "boundRevision": revision,
+                "assertionCount": len(case["assertions"]),
+                "projectedEvidenceRefCount": len(set(declared)),
+                "standing": "PASS_PORTABLE_PRESSURE_BINDINGS_R1",
+            }
+        )
+
+    cx = counterexample_pressure(schema)
+    if cx["standing"] != "PASS_COUNTEREXAMPLE_PRESSURE_FOR_PROFILE_ONLY":
+        fail("counterexample pressure failed")
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.research.cross-study-pressure-portable-acceptance",
+        "planId": plan["id"],
+        "candidateRule": plan["candidateRule"],
+        "standing": "PASS_PORTABLE_CROSS_STUDY_PRESSURE_BINDINGS_R1",
+        "independentStudyOwnerCount": len(owners),
+        "distinctSourceRepoCount": len(repos),
+        "studies": rows,
+        "counterexamplePressure": cx,
+        "admission": {
+            "target": plan["admissionTarget"],
+            "verdict": "NOT_EVALUATED_PORTABLE",
+            "explicitlyNotAdmitted": plan["explicitlyNotAdmitted"],
+        },
+        "truthBoundary": (
+            "Portable pressure verification proves committed plan/profile/reference closure and declared digest shape only. "
+            "It does not read external Study bytes, evaluate pressure assertions, establish currentness, or admit the thin profile protocol; run without --portable for live evidence."
+        ),
+    }
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--portable",
+        action="store_true",
+        help="validate cross-study pressure bindings without reading external Study repositories",
+    )
+    args = parser.parse_args()
     plan = load(PLAN)
     schema = load(SCHEMA)
+    if args.portable:
+        result = portable_pressure(plan, schema)
+        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
+        return 0
+
     cache: dict[tuple[str, str, str], dict[str, Any]] = {}
     rows = []
     owners: set[str] = set()
