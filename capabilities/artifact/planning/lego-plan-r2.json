@@ -500,7 +500,7 @@
     {
       "id": "R2-S1D",
       "objective": "Extend exact-key explicit native claimResults to the remaining 17 bound family verifiers without changing verifier semantics or routing.",
-      "status": "IMPLEMENTED_VERIFIED_PENDING_INTEGRATION",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
       "nodeIds": [
         "K02",
         "K04",
@@ -509,7 +509,8 @@
       ],
       "evidenceBoundary": "Exact current requiredEvidence key coverage is complete. This does not retire profile-v1, promote profile-v2, unify the dual Evaluation backbones, or formalize verifier plugin packaging.",
       "result": "ALL_20_CURRENT_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS",
-      "evidence": "planning/native-claim-results-coverage-r1.json"
+      "evidence": "planning/native-claim-results-coverage-r1.json",
+      "integrationCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f"
     },
     {
       "id": "R2-S2",
@@ -572,9 +573,11 @@
     {
       "date": "2026-09-26",
       "scope": "R2-S1D/D07/K04",
-      "standing": "ALL_20_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS_VERIFIED_PENDING_INTEGRATION",
+      "standing": "ALL_20_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS_INTEGRATED",
       "baseRevision": "c63f1dda7fbecafc44054cac61ef06e323d41ac3",
-      "evidence": "planning/native-claim-results-coverage-r1.json"
+      "evidence": "planning/native-claim-results-coverage-r1.json",
+      "integrationCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f",
+      "mergedTreeRequalificationJobId": "job-01a0de3d-fbdd-7292-b41b-170580eb31f0"
     }
   ]
 }
