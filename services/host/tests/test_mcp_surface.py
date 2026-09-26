@@ -22,8 +22,8 @@ def snapshot(frontier: str) -> dict[str, object]:
         "unresolved": [],
         "rejected": [],
         "constraints": ["owner boundaries preserved"],
-        "next_actions": [],
-        "reference_refs": [],
+        "nextActions": [],
+        "referenceRefs": [],
     }
 
 
