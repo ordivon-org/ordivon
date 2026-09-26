@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam.synthetic-release-tag-probe",
+  "findingId": "RT-SUPPLY-001",
+  "truthRole": "non-provider-mutating-falsification-evidence",
+  "providerMain": "80c17a3635219fa00c91ee9ea00700918bd14df4",
+  "probeWorkspace": "ws-monorepo-redteam-supply-probe-r1-20260927",
+  "syntheticUnreviewedCommit": "f233a71d60947769795047ff46de3a0429ecc2e7",
+  "syntheticChange": "harmless services/runtime/REDTEAM_UNREVIEWED_TAG_PROBE.txt",
+  "hypotheticalTag": "runtime-v0.1.0",
+  "observations": {
+    "existingWorkflowTagNameCheck": true,
+    "existingWorkflowOwnerAncestorCheck": true,
+    "existingWorkflowOwnerTreeCheck": true,
+    "existingWorkflowBindWouldPass": true,
+    "candidateIsReachableFromProtectedProviderMain": false,
+    "protectedProviderMainIsAncestorOfCandidate": true
+  },
+  "providerEffectsPerformed": false,
+  "realTagCreated": false,
+  "releaseWorkflowTriggered": false
+}
