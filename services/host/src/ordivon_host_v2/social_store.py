@@ -92,32 +92,26 @@ class SocialStore:
         standing: ParticipationStanding,
         client_request_id: str,
     ) -> dict[str, Any]:
-        request = {
-            "operation": "space.participation.set",
-            "spaceRef": space_ref,
-            "actorRef": actor_ref,
-            "standing": standing.value,
-        }
-        request_digest = canonical_digest(request)
+        # Desired-state command: the (space, actor) natural key plus standing owns
+        # idempotency. Historical request receipts must not block joined→left→joined.
+        _ = client_request_id
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
-            replay = self._claim_receipt(
-                conn, client_request_id, "space.participation.set", request_digest
-            )
-            if replay is not None:
-                return replay
             self._require_space(conn, space_ref)
             self._require_actor(conn, actor_ref)
-            conn.execute(
+            row = conn.execute(
                 "INSERT INTO participations(space_ref,actor_ref,standing) VALUES (%s,%s,%s) "
                 "ON CONFLICT (space_ref,actor_ref) DO UPDATE SET standing=EXCLUDED.standing,"
-                "updated_at=clock_timestamp(),change_sequence=swf_next_change_sequence()",
+                "updated_at=clock_timestamp(),change_sequence=swf_next_change_sequence() "
+                "WHERE participations.standing IS DISTINCT FROM EXCLUDED.standing "
+                "RETURNING space_ref,actor_ref,standing,updated_at",
                 (space_ref, actor_ref, standing.value),
-            )
-            row = conn.execute(
-                "SELECT space_ref,actor_ref,standing,updated_at FROM participations "
-                "WHERE space_ref=%s AND actor_ref=%s",
-                (space_ref, actor_ref),
             ).fetchone()
+            if row is None:
+                row = conn.execute(
+                    "SELECT space_ref,actor_ref,standing,updated_at FROM participations "
+                    "WHERE space_ref=%s AND actor_ref=%s",
+                    (space_ref, actor_ref),
+                ).fetchone()
             if row is None:
                 raise RuntimeError("participation update disappeared")
             result = {
@@ -129,9 +123,6 @@ class SocialStore:
                 "updatedAt": row["updated_at"].isoformat(),
                 "truthBoundary": "social participation only; not ownership, authentication, authorization, assignment, or EffectAuthority",
             }
-            self._record_receipt(
-                conn, client_request_id, "space.participation.set", request_digest, result
-            )
             return result
 
     def create_topic(self, value: TopicInput, *, client_request_id: str) -> dict[str, Any]:

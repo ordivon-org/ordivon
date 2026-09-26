@@ -520,3 +520,103 @@ def test_attention_first_ack_concurrency_cannot_regress_cursor() -> None:
             cleanup.execute("DELETE FROM attention_cursors WHERE actor_ref=%s", (actor_ref,))
             cleanup.execute("DELETE FROM actor_refs WHERE actor_ref=%s", (actor_ref,))
             cleanup.commit()
+
+
+def test_desired_state_membership_can_be_reasserted_after_inverse_transition() -> None:
+    """Same logical SET payload must work again after an intervening inverse state change."""
+    import psycopg
+
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor_ref, _ = refs("desired-state-cycle")
+    declare_actor(work, actor_ref)
+    token = uuid4().hex
+    space_ref = f"space:desired-state-cycle:{token}"
+    topic_ref = f"topic:desired-state-cycle:{token}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="desired-state cycle", actor_ref=actor_ref),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="cycle", actor_ref=actor_ref),
+        client_request_id=f"topic:{topic_ref}",
+    )
+
+    same_join_request = f"join:{space_ref}:{actor_ref}"
+    social.set_participation(
+        space_ref=space_ref,
+        actor_ref=actor_ref,
+        standing=ParticipationStanding.JOINED,
+        client_request_id=same_join_request,
+    )
+    with psycopg.connect(DSN) as conn:
+        first_participation_sequence = int(
+            conn.execute(
+                "SELECT change_sequence FROM participations WHERE space_ref=%s AND actor_ref=%s",
+                (space_ref, actor_ref),
+            ).fetchone()[0]
+        )
+    social.set_participation(
+        space_ref=space_ref,
+        actor_ref=actor_ref,
+        standing=ParticipationStanding.JOINED,
+        client_request_id=same_join_request,
+    )
+    with psycopg.connect(DSN) as conn:
+        assert int(
+            conn.execute(
+                "SELECT change_sequence FROM participations WHERE space_ref=%s AND actor_ref=%s",
+                (space_ref, actor_ref),
+            ).fetchone()[0]
+        ) == first_participation_sequence
+    social.set_participation(
+        space_ref=space_ref,
+        actor_ref=actor_ref,
+        standing=ParticipationStanding.LEFT,
+        client_request_id=f"leave:{space_ref}:{actor_ref}",
+    )
+    social.set_participation(
+        space_ref=space_ref,
+        actor_ref=actor_ref,
+        standing=ParticipationStanding.JOINED,
+        client_request_id=same_join_request,
+    )
+    participation = next(
+        row for row in social.get_space(space_ref)["participants"] if row["actorRef"] == actor_ref
+    )
+    assert participation["standing"] == "joined"
+
+    same_follow_request = f"follow:{topic_ref}:{actor_ref}"
+    first_follow = attention.follow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=same_follow_request,
+    )
+    replay_follow = attention.follow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=same_follow_request,
+    )
+    assert first_follow["admission"] == "committed"
+    assert replay_follow["admission"] == "existing"
+    assert replay_follow["changeSequence"] == first_follow["changeSequence"]
+    attention.unfollow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=f"unfollow:{topic_ref}:{actor_ref}",
+    )
+    refollow = attention.follow(
+        actor_ref=actor_ref,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=same_follow_request,
+    )
+    assert refollow["admission"] == "committed"
+    assert refollow["changeSequence"] > first_follow["changeSequence"]
+    listed = attention.list_subscriptions(actor_ref, target_kind="topic")
+    assert [row["targetRef"] for row in listed["subscriptions"]] == [topic_ref]
