@@ -28,7 +28,7 @@
   },
   "observedTopology": {
     "projectPythonPackageCycles": 0,
-    "capabilityVerifyBindings": 19,
+    "capabilityVerifyBindings": 20,
     "shadowProfiles": 20,
     "productionV1ExampleProfiles": 13,
     "deliveryFacadeLines": 0,
@@ -39,9 +39,9 @@
     "productionPythonDeliveryFacadeImports": 0,
     "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102,
     "deliveryCliProviderLines": 0,
-    "completeNativeClaimResultProfiles": 2,
-    "boundVerifyProfiles": 19,
-    "remainingLiteralClaimAddressabilityGaps": 29
+    "completeNativeClaimResultProfiles": 20,
+    "boundVerifyProfiles": 20,
+    "remainingLiteralClaimAddressabilityGaps": 0
   },
   "nodes": [
     {
@@ -98,11 +98,12 @@
         "artifact_evidence/snapshot.py",
         "artifact_verification/evidence.py"
       ],
-      "state": "PARTIALLY_IMPLICIT",
+      "state": "EXPLICIT_BOUND_NATIVE_CLAIM_RESULTS",
       "mustNotOwn": [
         "cryptographic trust requirement",
         "consumer-domain acceptance"
-      ]
+      ],
+      "resolution": "All 20 current bound verification profiles expose exact required-evidence claim keys through verifier-owned native claimResults; generic projection does not infer aliases or promote overall verifier status."
     },
     {
       "id": "K05",
@@ -441,14 +442,17 @@
     {
       "id": "D06",
       "label": "ImplicitVerifierPluginProtocol",
-      "observation": "Nineteen capability bindings already route to family verifier module/callable entrypoints, but plugin packaging/interface is not formalized.",
-      "priority": "P1"
+      "observation": "Twenty current bound verifier profiles now share a mechanical explicit-claim projection helper while family semantics remain verifier-owned. Formal plugin packaging/interface remains separate work.",
+      "priority": "P1",
+      "state": "PARTIALLY_FACTORIZED_NOT_RESOLVED"
     },
     {
       "id": "D07",
       "label": "ClaimAddressabilityGap",
-      "observation": "Two of nineteen bound verify profiles (WAVE and PNG) now emit complete exact-key native claimResults. Seventeen profiles remain incomplete; a static same-name census finds 29 required claim keys without even literal native addressability. Generic standing must continue to refuse inference.",
-      "priority": "P0"
+      "observation": "Historical planning counted 19 bound profiles with 17 incomplete native claimResults and 29 literal gaps. Fresh 2026-09-26 census found 20 current bound profiles; all 20 now expose exact required claim keys and the dynamic denominator invariant prevents silent future drift.",
+      "priority": "P0",
+      "state": "RESOLVED",
+      "resolution": "R2-S1D implemented explicit verifier-owned claim mappings for every current bound profile. Required claim-key coverage is derived dynamically from current shadow bindings and profile requiredEvidence, not from a magic profile count."
     }
   ],
   "slices": [
@@ -496,14 +500,16 @@
     {
       "id": "R2-S1D",
       "objective": "Extend exact-key explicit native claimResults to the remaining 17 bound family verifiers without changing verifier semantics or routing.",
-      "status": "NEXT",
+      "status": "IMPLEMENTED_VERIFIED_PENDING_INTEGRATION",
       "nodeIds": [
         "K02",
         "K04",
         "K05",
         "P02"
       ],
-      "evidenceBoundary": "No profile-v1 retirement or profile-v2 promotion until bound verifier claim coverage is explicit and complete."
+      "evidenceBoundary": "Exact current requiredEvidence key coverage is complete. This does not retire profile-v1, promote profile-v2, unify the dual Evaluation backbones, or formalize verifier plugin packaging.",
+      "result": "ALL_20_CURRENT_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS",
+      "evidence": "planning/native-claim-results-coverage-r1.json"
     },
     {
       "id": "R2-S2",
@@ -562,6 +568,13 @@
       "evidence": "planning/transport-boundary-retirement-r1.json",
       "integrationCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8",
       "mergedTreeRequalificationJobId": "job-01a0de16-3bbf-7e01-bfca-67a318d935a5"
+    },
+    {
+      "date": "2026-09-26",
+      "scope": "R2-S1D/D07/K04",
+      "standing": "ALL_20_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS_VERIFIED_PENDING_INTEGRATION",
+      "baseRevision": "c63f1dda7fbecafc44054cac61ef06e323d41ac3",
+      "evidence": "planning/native-claim-results-coverage-r1.json"
     }
   ]
 }

@@ -6,13 +6,15 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 import jsonschema
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/audio-flac-contract-v1.schema.json"
@@ -63,19 +65,32 @@ def metaflac_value(path: Path, option: str) -> tuple[int, str, str]:
     return p.returncode, out.strip(), err
 
 
+CLAIM_POINTERS = {
+    "contractSchema": "/contractSchema",
+    "decoderMatrix": "/decoderMatrix",
+    "independentTechnicalView": "/independentTechnicalView",
+    "metadataBlockPolicy": "/metadataBlockPolicy",
+    "pcmIdentity": "/pcmIdentity",
+    "referenceIntegrity": "/referenceIntegrity",
+    "streamInfo": "/streamInfo",
+}
+
+
 def validate_contract(contract: dict[str, Any]) -> list[str]:
     schema = json.loads(CONTRACT_SCHEMA.read_text())
     return [f"audio contract schema invalid: {e.message}" for e in sorted(jsonschema.Draft202012Validator(schema).iter_errors(contract), key=lambda e: list(e.path))]
 
 
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_flac(path: Path, contract_path: Path, evidence_dir: Path | None = None) -> dict[str, Any]:
     if not path.is_file():
         return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "failures": ["input is not a regular file"]}
     try:
         contract = json.loads(contract_path.read_text())
     except Exception as error:
-        return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "artifact": artifact_fact(path), "failures": [f"contract unreadable: {error}"]}
-    failures = validate_contract(contract)
+        return {"schemaVersion": 1, "kind": "artifact-audio-verification", "profileId": "audio-flac-pcm16-r1", "status": "FAIL", "artifact": artifact_fact(path), "contractSchema": {"status": "FAIL", "failures": [f"contract unreadable: {error}"]}, "failures": [f"contract unreadable: {error}"]}
+    contract_failures = validate_contract(contract)
+    failures = list(contract_failures)
     evidence_dir = evidence_dir or Path(tempfile.mkdtemp(prefix="artifact-audio-evidence-"))
     evidence_dir.mkdir(parents=True, exist_ok=True)
     result: dict[str, Any] = {
@@ -85,6 +100,7 @@ def verify_flac(path: Path, contract_path: Path, evidence_dir: Path | None = Non
         "status": "FAIL",
         "artifact": artifact_fact(path),
         "contract": {"path": str(contract_path.resolve()), "sha256": sha256_file(contract_path), "canonicalDigest": canonical_digest(contract)},
+        "contractSchema": {"status": "PASS" if not contract_failures else "FAIL", "failures": contract_failures},
         "tools": {},
         "failures": failures,
     }
