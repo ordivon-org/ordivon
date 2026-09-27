@@ -79,20 +79,20 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("K05", slices["R2-S1E"]["nodeIds"])
         self.assertEqual(
             slices["R2-S1F"]["status"],
-            "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+            "IMPLEMENTED_VERIFIED_INTEGRATED",
         )
         self.assertEqual(
             slices["R2-S1F"]["result"],
-            "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED_CANDIDATE",
+            "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED",
         )
         self.assertIn("A03", slices["R2-S1F"]["nodeIds"])
         self.assertIn("C01", slices["R2-S1F"]["nodeIds"])
         divergences = {item["id"]: item for item in self.plan["divergences"]}
         self.assertEqual(
             divergences["D01"]["state"],
-            "CANDIDATE_RESOLVED_CANONICAL_OPERATION_LIFECYCLE_CONVERGED_AWAITING_INTEGRATION",
+            "RESOLVED",
         )
-        self.assertIn("Final RESOLVED requires merged-tree requalification", divergences["D01"]["resolution"])
+        self.assertIn("merged-tree requalified", divergences["D01"]["resolution"])
         self.assertEqual(
             slices["R2-S5"]["status"],
             "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
