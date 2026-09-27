@@ -1,3 +1,15 @@
+pub(super) fn observation_result_satisfies_terminal_wait(
+    result_available: bool,
+    recovery_required: bool,
+    status: &str,
+    execution_reason_code: Option<&str>,
+) -> bool {
+    result_available
+        && !(recovery_required
+            && status == "orphaned"
+            && execution_reason_code == Some("LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"))
+}
+
 impl Runtime {
     pub fn observe_job(&self, request: &JobObserveRequest) -> RuntimeResult<JobObservation> {
         validate_observe_request(request)?;
@@ -15,8 +27,12 @@ impl Runtime {
             if initial_signature.is_none() {
                 initial_signature = Some(signature);
             }
-            if snapshot.projection.result_available
-                || request.wait_ms == 0
+            if observation_result_satisfies_terminal_wait(
+                snapshot.projection.result_available,
+                snapshot.projection.recovery_required,
+                &snapshot.projection.status,
+                snapshot.projection.execution_reason_code.as_deref(),
+            ) || request.wait_ms == 0
                 || Instant::now() >= deadline
                 || (request.wait_until == JobObserveWaitUntil::ChangeOrTerminal && changed)
             {

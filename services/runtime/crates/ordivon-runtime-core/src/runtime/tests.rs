@@ -1,6 +1,7 @@
 use super::engine::{
     cancel_after_launch_identity_mismatch_is_safe, native_windows_owner_matches_launcher_identity,
-    native_windows_pre_target_evidence_gap, transient_main_pid_observation_loss,
+    native_windows_pre_target_evidence_gap, observation_result_satisfies_terminal_wait,
+    transient_main_pid_observation_loss,
 };
 use super::engine::{canonical_credential_binding_requests, verify_credential_snapshot};
 #[cfg(feature = "operator-tools")]
@@ -125,6 +126,31 @@ fn transient_main_pid_observation_loss_is_narrowly_classified() {
         );
         assert!(!transient_main_pid_observation_loss(&error));
     }
+}
+
+#[test]
+fn repairable_launch_identity_gap_does_not_satisfy_terminal_wait() {
+    assert!(!observation_result_satisfies_terminal_wait(
+        true,
+        true,
+        "orphaned",
+        Some("LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"),
+    ));
+    assert!(observation_result_satisfies_terminal_wait(
+        true,
+        true,
+        "orphaned",
+        Some("LAUNCH_IDENTITY_MISMATCH"),
+    ));
+    assert!(observation_result_satisfies_terminal_wait(
+        true,
+        false,
+        "succeeded",
+        Some("PROCESS_EXIT_ZERO"),
+    ));
+    assert!(!observation_result_satisfies_terminal_wait(
+        false, false, "working", None,
+    ));
 }
 
 #[test]
