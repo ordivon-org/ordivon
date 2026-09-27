@@ -4645,6 +4645,7 @@ fn runtime_repair_recovers_runner_truth_and_explicitly_finalizes_lost() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::from([manual.attempt.attempt_id.clone()]),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap();
@@ -4890,6 +4891,186 @@ fn runtime_repair_batch_rolls_back_when_any_invariant_remains() {
 
 #[cfg(feature = "operator-tools")]
 #[test]
+fn runtime_repair_explicitly_finalizes_launch_identity_quarantine_as_lost() {
+    let sandbox = Sandbox::new("repair-quarantined-lost", 5000);
+    let quarantined = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:repair-quarantined-lost", 1))
+            .unwrap(),
+    );
+    write_completed_runner_result(&quarantined.attempt, 80);
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: quarantined.attempt.attempt_id.clone(),
+            expected_row_version: quarantined.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"quarantined-control"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"launch-identity-mismatch")),
+            finished_at_ms: 80,
+            artifacts: Vec::new(),
+            reason_code: "RUNNER_RESULT_QUARANTINED".to_string(),
+        })
+        .unwrap();
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    connection
+        .execute(
+            "UPDATE attempts SET recovery_required=1,recovery_reason_code='LAUNCH_IDENTITY_MISMATCH',recovery_evidence_digest=?1,recovery_observed_at_ms=90 WHERE attempt_id=?2",
+            rusqlite::params![digest(b"quarantine-evidence"), quarantined.attempt.attempt_id],
+        )
+        .unwrap();
+    drop(connection);
+
+    let before = inspect_runtime(&doctor_config(&sandbox)).unwrap();
+    assert_eq!(before.violation_count, 0);
+    assert_eq!(before.cases.len(), 1);
+    assert!(before.cases[0].attempt.recovery_required);
+    assert_eq!(
+        before.cases[0].attempt.recovery_reason_code.as_deref(),
+        Some("LAUNCH_IDENTITY_MISMATCH")
+    );
+    assert_eq!(
+        before.cases[0].attempt.recovery_evidence_digest.as_deref(),
+        Some(digest(b"quarantine-evidence").as_str())
+    );
+    assert_eq!(before.cases[0].attempt.recovery_observed_at_ms, Some(90));
+    assert!(matches!(
+        before.cases[0].proposal,
+        RuntimeDoctorProposal::ManualReview { .. }
+    ));
+
+    let snapshot = write_test_snapshot(&sandbox, "quarantined-lost");
+    let report = apply_runtime_repair(
+        &RuntimeRepairConfig {
+            doctor: doctor_config(&sandbox),
+        },
+        &RuntimeRepairRequest {
+            expected_fingerprint: before.fingerprint,
+            snapshot_path: snapshot,
+            principal: "runtime-admin:test".to_string(),
+            finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::from([quarantined
+                .attempt
+                .attempt_id
+                .clone()]),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(report.actions.len(), 1);
+    assert!(matches!(
+        report.actions[0].kind,
+        RuntimeRepairActionKind::FinalizeQuarantinedLost
+    ));
+    let attempt = sandbox
+        .registry
+        .get_attempt(&quarantined.attempt.attempt_id)
+        .unwrap();
+    assert_eq!(attempt.state, AttemptState::Lost);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_job(&quarantined.job.job_id)
+            .unwrap()
+            .resolution,
+        Some(JobResolution::Lost)
+    );
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&quarantined.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::Released
+    );
+    assert!(Path::new(&quarantined.attempt.bundle_path)
+        .join("result.json")
+        .is_file());
+    assert!(Path::new(&quarantined.attempt.bundle_path)
+        .join("admin-repair.json")
+        .is_file());
+    assert_eq!(report.after.summary.recovery_required_attempts, 0);
+}
+
+#[cfg(feature = "operator-tools")]
+#[test]
+fn runtime_repair_rejects_stale_quarantine_recovery_evidence() {
+    let sandbox = Sandbox::new("repair-quarantine-stale-evidence", 5000);
+    let quarantined = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:repair-quarantine-stale-evidence",
+                1,
+            ))
+            .unwrap(),
+    );
+    write_completed_runner_result(&quarantined.attempt, 80);
+    sandbox
+        .registry
+        .commit_terminal(&TerminalCommit {
+            attempt_id: quarantined.attempt.attempt_id.clone(),
+            expected_row_version: quarantined.attempt.row_version,
+            state: AttemptState::Orphaned,
+            result_digest: digest(b"quarantined-control-stale"),
+            exit_code: None,
+            infrastructure_error_digest: Some(digest(b"launch-identity-mismatch-stale")),
+            finished_at_ms: 80,
+            artifacts: Vec::new(),
+            reason_code: "RUNNER_RESULT_QUARANTINED".to_string(),
+        })
+        .unwrap();
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    connection
+        .execute(
+            "UPDATE attempts SET recovery_required=1,recovery_reason_code='LAUNCH_IDENTITY_MISMATCH',recovery_evidence_digest=?1,recovery_observed_at_ms=90 WHERE attempt_id=?2",
+            rusqlite::params![digest(b"quarantine-evidence-before"), quarantined.attempt.attempt_id],
+        )
+        .unwrap();
+    drop(connection);
+    let before = inspect_runtime(&doctor_config(&sandbox)).unwrap();
+    let snapshot = write_test_snapshot(&sandbox, "quarantine-stale-evidence");
+
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    connection
+        .execute(
+            "UPDATE attempts SET recovery_evidence_digest=?1,recovery_observed_at_ms=91 WHERE attempt_id=?2",
+            rusqlite::params![digest(b"quarantine-evidence-after"), quarantined.attempt.attempt_id],
+        )
+        .unwrap();
+    drop(connection);
+
+    let error = apply_runtime_repair(
+        &RuntimeRepairConfig {
+            doctor: doctor_config(&sandbox),
+        },
+        &RuntimeRepairRequest {
+            expected_fingerprint: before.fingerprint,
+            snapshot_path: snapshot,
+            principal: "runtime-admin:test".to_string(),
+            finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::from([quarantined
+                .attempt
+                .attempt_id
+                .clone()]),
+        },
+    )
+    .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::ReconciliationRequired);
+    assert_eq!(
+        sandbox
+            .registry
+            .get_reservation(&quarantined.attempt.attempt_id)
+            .unwrap()
+            .state,
+        ReservationState::HeldOrphaned
+    );
+}
+#[cfg(feature = "operator-tools")]
+#[test]
 fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absence_proof() {
     let sandbox = Sandbox::new("repair-stale-cancel", 5000);
     let stale_created = created(
@@ -5005,6 +5186,7 @@ fn runtime_repair_requires_every_manual_case_to_be_explicit() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5057,6 +5239,7 @@ fn runtime_repair_rejects_stale_fingerprint_before_writes() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5101,6 +5284,7 @@ fn runtime_repair_rejects_unscoped_invariants_before_writes() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5149,6 +5333,7 @@ fn runtime_repair_rejects_snapshot_that_does_not_match_doctor_state() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::from([created.attempt.attempt_id.clone()]),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5209,6 +5394,7 @@ fn runtime_repair_does_not_apply_schema_migrations() {
             snapshot_path: root.join("unused-snapshot"),
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5256,6 +5442,7 @@ fn runtime_repair_rejects_incomplete_control_snapshot() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5278,6 +5465,7 @@ fn runtime_repair_rejects_corrupt_snapshot() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
+            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
