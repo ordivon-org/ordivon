@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/whole-system-review-record-v1.json",
+  "title": "Ordivon Whole-System ReviewRecord v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "truthRole", "reviewId", "generatedAt", "period", "sourceBoundary", "systemSurface", "capabilities", "findings", "riskThemes", "milestones", "decisions", "recurringFindingDispositions", "unknowns", "evidence"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.whole-system-review-record"},
+    "truthRole": {"const": "evidence-bounded-review-not-owner-truth"},
+    "reviewId": {"type": "string", "minLength": 1},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "period": {
+      "type": "object", "additionalProperties": false,
+      "required": ["start", "end", "timezone"],
+      "properties": {
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"},
+        "timezone": {"type": "string", "minLength": 1}
+      }
+    },
+    "sourceBoundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["repo", "currentRevision", "baselineRevision", "censusConfidence", "limitations"],
+      "properties": {
+        "repo": {"type": "string", "minLength": 1},
+        "currentRevision": {"type": "string", "minLength": 7},
+        "baselineRevision": {"type": ["string", "null"]},
+        "dirty": {"type": ["boolean", "null"]},
+        "censusConfidence": {"enum": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"]},
+        "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "systemSurface": {
+      "type": "array", "items": {"$ref": "#/$defs/surface"}, "uniqueItems": true
+    },
+    "capabilities": {
+      "type": "array", "items": {"$ref": "#/$defs/capability"}
+    },
+    "findings": {
+      "type": "array", "items": {"$ref": "#/$defs/finding"}
+    },
+    "riskThemes": {
+      "type": "array", "items": {"$ref": "#/$defs/riskTheme"}, "maxItems": 10
+    },
+    "milestones": {
+      "type": "array", "items": {"$ref": "#/$defs/milestone"}, "maxItems": 3
+    },
+    "decisions": {
+      "type": "array", "items": {"$ref": "#/$defs/decision"}
+    },
+    "recurringFindingDispositions": {
+      "type": "array", "items": {"$ref": "#/$defs/disposition"}
+    },
+    "unknowns": {
+      "type": "array", "items": {"$ref": "#/$defs/unknown"}
+    },
+    "evidence": {
+      "type": "array", "items": {"$ref": "#/$defs/evidence"}
+    }
+  },
+  "$defs": {
+    "evidenceRefs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "surface": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "owner", "authority", "standing", "depthReason", "evidenceRefs"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"type": "string", "minLength": 1},
+        "owner": {"type": "string", "minLength": 1},
+        "authority": {"type": "string", "minLength": 1},
+        "standing": {"enum": ["UNCHANGED", "CHANGED", "HIGH_CHURN", "EVIDENCE_STALE", "PRESSURED", "FRACTURED", "UNAVAILABLE"]},
+        "depthReason": {"type": ["string", "null"]},
+        "evidenceRefs": {"$ref": "#/$defs/evidenceRefs"}
+      }
+    },
+    "capability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["capability", "state", "owner", "futureReachabilityImpact", "reason", "evidenceRefs"],
+      "properties": {
+        "capability": {"type": "string", "minLength": 1},
+        "state": {"enum": ["REALIZED", "LATENT", "BLOCKED", "DEGRADED", "RETIRED"]},
+        "owner": {"type": "string", "minLength": 1},
+        "futureReachabilityImpact": {"enum": ["EXPANDS", "PRESERVES", "CONSTRAINS", "UNKNOWN"]},
+        "reason": {"type": "string", "minLength": 1},
+        "evidenceRefs": {"$ref": "#/$defs/evidenceRefs"}
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["findingId", "class", "title", "statement", "affectedLegos", "materiality", "falsifier", "evidenceRefs"],
+      "properties": {
+        "findingId": {"type": "string", "minLength": 1},
+        "class": {"enum": ["RISK", "NON_RISK", "SENSITIVITY", "TRADEOFF", "INTENT_REALITY", "CONTINUITY", "DELIVERY", "SUBSTITUTION", "CENSUS_CONFIDENCE"]},
+        "title": {"type": "string", "minLength": 1},
+        "statement": {"type": "string", "minLength": 1},
+        "affectedLegos": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+        "materiality": {"enum": ["HIGH", "MEDIUM", "LOW"]},
+        "falsifier": {"type": "string", "minLength": 1},
+        "evidenceRefs": {"$ref": "#/$defs/evidenceRefs"}
+      }
+    },
+    "riskTheme": {
+      "type": "object", "additionalProperties": false,
+      "required": ["themeId", "title", "rootCause", "findingRefs", "systemImpact"],
+      "properties": {
+        "themeId": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "rootCause": {"type": "string", "minLength": 1},
+        "findingRefs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+        "systemImpact": {"type": "string", "minLength": 1}
+      }
+    },
+    "milestone": {
+      "type": "object", "additionalProperties": false,
+      "required": ["milestoneId", "objective", "dependencies", "entranceCriteria", "successCriteria"],
+      "properties": {
+        "milestoneId": {"type": "string", "minLength": 1},
+        "objective": {"type": "string", "minLength": 1},
+        "dependencies": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+        "entranceCriteria": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1},
+        "successCriteria": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1}
+      }
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decisionId", "question", "options", "reversibility", "missingEvidence"],
+      "properties": {
+        "decisionId": {"type": "string", "minLength": 1},
+        "question": {"type": "string", "minLength": 1},
+        "options": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["label", "consequence"], "properties": {"label": {"type": "string", "minLength": 1}, "consequence": {"type": "string", "minLength": 1}}}, "minItems": 2},
+        "reversibility": {"enum": ["EASY", "MODERATE", "HARD", "UNKNOWN"]},
+        "missingEvidence": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "disposition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["findingRef", "disposition", "nextControl"],
+      "properties": {
+        "findingRef": {"type": "string", "minLength": 1},
+        "disposition": {"enum": ["ARCHITECTURE_DECISION", "FITNESS_FUNCTION", "OPERATIONAL_CONTROL", "REDESIGN"]},
+        "nextControl": {"type": "string", "minLength": 1}
+      }
+    },
+    "unknown": {
+      "type": "object", "additionalProperties": false,
+      "required": ["unknownId", "question", "resolutionEvidence"],
+      "properties": {
+        "unknownId": {"type": "string", "minLength": 1},
+        "question": {"type": "string", "minLength": 1},
+        "resolutionEvidence": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceId", "type", "locator", "claimScope", "freshness"],
+      "properties": {
+        "evidenceId": {"type": "string", "minLength": 1},
+        "type": {"enum": ["LIVE_OWNER_RECEIPT", "EXECUTED_VERIFICATION", "CURRENT_CODE_CONTRACT", "INTENT_DOC", "HISTORICAL_CONTEXT", "EXTERNAL_PRIMARY", "EXTERNAL_SECONDARY"]},
+        "locator": {"type": "string", "minLength": 1},
+        "claimScope": {"type": "string", "minLength": 1},
+        "observedAt": {"type": ["string", "null"], "format": "date-time"},
+        "sourceRevision": {"type": ["string", "null"]},
+        "freshness": {"enum": ["CURRENT", "STALE", "UNKNOWN"]}
+      }
+    }
+  }
+}

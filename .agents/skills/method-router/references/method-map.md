@@ -4,6 +4,7 @@ This reference distinguishes existing canonical Ordivon method Skills. It is a r
 
 | Dominant question | Primary Skill | Use when | Nearby method not to confuse |
 | --- | --- | --- | --- |
+| What materially changed across the whole current Ordivon system, its capability frontier, systemic risks, and future reachability? | ordivon-whole-system-review | periodic/deep whole-system review or architecture re-anchoring must synthesize current Git/live-owner truth across multiple natural owners | systems-engineering frames a system boundary; it does not provide longitudinal whole-Ordivon review continuity |
 | What is the system and where are its boundaries/interfaces? | systems-engineering | scope, context, lifecycle and whole-system properties are unclear | DSM starts after there are meaningful elements/interactions |
 | Is the decomposition structurally plausible? | design-structure-matrix | dependencies, cycles, hubs or clusters may reveal misplaced boundaries | compositional-contracts asks whether explicit interfaces compose |
 | Will independently specified parts compose or substitute safely? | compositional-contracts | assumptions, guarantees and replacement obligations matter | DSM is descriptive structure; contracts are compatibility obligations |

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.whole-system-review-record",
+  "truthRole": "evidence-bounded-review-not-owner-truth",
+  "reviewId": "review:invalid:no-proof",
+  "generatedAt": "2026-09-28T09:00:00+08:00",
+  "period": {"start": "2026-09-21T09:00:00+08:00", "end": "2026-09-28T09:00:00+08:00", "timezone": "Asia/Singapore"},
+  "sourceBoundary": {"repo": "/root/projects/ordivon", "currentRevision": "4c26b661", "baselineRevision": null, "dirty": null, "censusConfidence": "HIGH", "limitations": []},
+  "systemSurface": [],
+  "capabilities": [{"capability": "imagined capability", "state": "REALIZED", "owner": "unknown", "futureReachabilityImpact": "UNKNOWN", "reason": "Only code exists.", "evidenceRefs": ["ev-code"]}],
+  "findings": [],
+  "riskThemes": [],
+  "milestones": [],
+  "decisions": [],
+  "recurringFindingDispositions": [],
+  "unknowns": [],
+  "evidence": [{"evidenceId": "ev-code", "type": "CURRENT_CODE_CONTRACT", "locator": "git:example", "claimScope": "Code exists.", "observedAt": null, "sourceRevision": "4c26b661", "freshness": "CURRENT"}]
+}
