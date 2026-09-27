@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Thin Agent-facing semantic surface over canonical Artifact contracts and bounded execution entrypoints.
 
-The surface exposes bounded Artifact intent as canonical ArtifactOperation data or exact
-verification-service process plans. It does not execute effects, invent a universal
-document model, or duplicate family verifier semantics. Runtime remains physical
-execution authority.
+The surface exposes bounded Artifact build/verify intent as canonical ArtifactOperation
+data and keeps only non-operation diagnostics as explicit process plans. It does not
+execute effects, invent a universal document model, or duplicate family verifier
+semantics. Runtime remains physical execution authority.
 """
 from __future__ import annotations
 
@@ -26,7 +26,6 @@ from artifact_operations import operation_envelope, operation_file_fact
 
 ART = ROOT / "artifact-delivery"
 TAXONOMY = ART / "taxonomy-v1.json"
-VERIFY = ROOT / "scripts/artifact_verify.py"
 DOCTOR = ROOT / "scripts/artifact_delivery_toolchain_doctor.py"
 ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python"))
 BINDING_REGISTRY = CapabilityBindingRegistry(ART)
@@ -177,20 +176,89 @@ def verify_proposal(request: str) -> dict[str, Any]:
         path = (ROOT / path).resolve()
     blockers: list[str] = []
     profile_id = None
+    operation = None
+    value: dict[str, Any] | None = None
     if not path.is_file():
         blockers.append("REQUEST_ABSENT")
     else:
         try:
-            value = _load_json(path)
-            profile_id = value.get("profile", {}).get("id") if isinstance(value, dict) else None
+            loaded = _load_json(path)
+            value = loaded if isinstance(loaded, dict) else None
+            profile_id = value.get("profile", {}).get("id") if value is not None else None
         except Exception:
             blockers.append("REQUEST_JSON_UNREADABLE")
-    routed = set(_service_profiles())
-    if profile_id is not None and profile_id not in routed:
-        blockers.append("PROFILE_NOT_SERVICE_ROUTED")
-    base = _plan(VERIFY, [str(path)], postcondition="require artifact-verification-result status PASS and consume exact evidenceDirectory/service-result.json")
-    blockers.extend(base["blockers"])
-    ready = not blockers
+    profile_record = None
+    binding = None
+    if profile_id is not None:
+        try:
+            profile_record = PROFILE_REGISTRY.resolve(profile_id)
+        except (KeyError, RuntimeError):
+            blockers.append("PROFILE_NOT_REGISTERED")
+        else:
+            if profile_record.source_kind == "native-v2-shadow":
+                try:
+                    binding = BINDING_REGISTRY.resolve(profile_id, "verify")
+                except (KeyError, RuntimeError):
+                    blockers.append("PROFILE_NOT_SERVICE_ROUTED")
+
+    inputs: dict[str, Any] = {}
+    if value is not None and not blockers:
+        for request_key, operation_key in (("profile", "profile"), ("subject", "artifact")):
+            ref = value.get(request_key)
+            if not isinstance(ref, dict) or not isinstance(ref.get("path"), str) or not isinstance(ref.get("sha256"), str):
+                blockers.append(f"{request_key.upper()}_REF_INVALID")
+                continue
+            target = Path(ref["path"]).expanduser()
+            if not target.is_absolute():
+                target = (ROOT / target).resolve()
+            if not target.is_file():
+                blockers.append(f"{request_key.upper()}_ABSENT")
+                continue
+            fact = operation_file_fact(target)
+            if fact["sha256"] != ref["sha256"]:
+                blockers.append(f"{request_key.upper()}_DIGEST_MISMATCH")
+                continue
+            inputs[operation_key] = fact
+        if "profile" in inputs and profile_record is not None:
+            actual_profile = Path(inputs["profile"]["path"]).resolve()
+            expected_profile = (
+                profile_record.source_path.resolve()
+                if profile_record.source_kind == "production-v1-adapted"
+                else profile_record.canonical_path.resolve()
+            )
+            if actual_profile != expected_profile:
+                blockers.append("PROFILE_PATH_NOT_AUTHORITY")
+        ref = value.get("objectContract")
+        if ref is not None:
+            if not isinstance(ref, dict) or not isinstance(ref.get("path"), str) or not isinstance(ref.get("sha256"), str):
+                blockers.append("OBJECTCONTRACT_REF_INVALID")
+            else:
+                target = Path(ref["path"]).expanduser()
+                if not target.is_absolute():
+                    target = (ROOT / target).resolve()
+                if not target.is_file():
+                    blockers.append("OBJECTCONTRACT_ABSENT")
+                else:
+                    fact = operation_file_fact(target)
+                    if fact["sha256"] != ref["sha256"]:
+                        blockers.append("OBJECTCONTRACT_DIGEST_MISMATCH")
+                    else:
+                        inputs["objectContract"] = fact
+        if profile_record is not None:
+            if profile_record.source_kind == "production-v1-adapted" and "objectContract" in inputs:
+                blockers.append("PRODUCTION_V1_OBJECTCONTRACT_UNSUPPORTED")
+            if binding is not None and binding.object_contract_required and "objectContract" not in inputs:
+                blockers.append("OBJECTCONTRACT_REQUIRED")
+
+    if value is not None and not blockers:
+        request_fact = operation_file_fact(path)
+        operation = operation_envelope(
+            f"agent/verify/{request_fact['sha256'][:16]}",
+            "verify",
+            inputs,
+            {"evaluationRequestId": value.get("requestId") or path.name},
+        )
+    ready = not blockers and operation is not None
     return {
         "schemaVersion": 1,
         "kind": "ordivon.artifact-operation-proposal",
@@ -198,8 +266,9 @@ def verify_proposal(request: str) -> dict[str, Any]:
         "profileId": profile_id,
         "ready": ready,
         "blockers": blockers,
-        "plan": base["plan"] if ready else None,
-        "boundary": "This compiles an existing verification request into the supported Artifact service entrypoint. Runtime executes it; the family verifier, not this surface, owns PASS semantics."
+        "artifactOperation": operation if ready else None,
+        "executionOwner": "artifact_operations.ArtifactOperationExecutor",
+        "boundary": "Verification intent enters the canonical ArtifactOperation lifecycle. DirectPython selects the admitted production-v1 or registered verifier-plugin provider; this Agent surface does not choose family semantics, upgrade profile authority, or claim consumer acceptance."
     }
 
 
@@ -269,7 +338,7 @@ def tool_definitions() -> list[dict[str, Any]]:
     return [
         {"name": "artifact_family_status", "description": "Read Artifact families, current profiles and which profiles are actually routed through the verification service.", "inputSchema": {"type": "object", "properties": {"familyId": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_profile_coverage", "description": "Project current Artifact profiles into a conservative eight-gate contract matrix without claiming occurrence-level PASS.", "inputSchema": {"type": "object", "properties": {"profileId": {"type": "string"}, "familyId": {"type": "string"}}, "additionalProperties": False}},
-        {"name": "artifact_verify_propose", "description": "Compile one exact Artifact verification request into the supported Runtime-ready verifier plan without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
+        {"name": "artifact_verify_propose", "description": "Compile one exact Artifact verification request into the canonical ArtifactOperation contract without selecting a verifier implementation or executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
         {"name": "artifact_build_propose", "description": "Compile one exact Artifact build request into the canonical ArtifactOperation contract without executing it.", "inputSchema": {"type": "object", "properties": {"request": {"type": "string", "minLength": 1}}, "required": ["request"], "additionalProperties": False}},
         {"name": "artifact_toolchain_doctor_propose", "description": "Compile the cross-format Artifact toolchain doctor into a Runtime-ready read/verification plan.", "inputSchema": {"type": "object", "properties": {"output": {"type": "string"}}, "additionalProperties": False}},
         {"name": "artifact_cad_admission_status", "description": "Read the explicit boundary between current GLB design-3D support and ungraduated CAD/BIM/manufacturing support.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
@@ -310,7 +379,7 @@ def surface_projection() -> dict[str, Any]:
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,
         "mcpRequired": False,
-        "boundary": "Artifact owns format/profile verification and build/delivery semantics. Build intent is expressed as ArtifactOperation; verification-service and doctor actions retain explicit process plans where they remain distinct execution surfaces. Runtime remains process authority and mature format/target tools remain format truth authorities."
+        "boundary": "Artifact owns format/profile verification and build/delivery semantics. Build and verify intent are expressed as ArtifactOperation; toolchain doctor remains an explicit diagnostic process plan. Runtime remains process authority and mature format/target tools remain format truth authorities."
     }
 
 

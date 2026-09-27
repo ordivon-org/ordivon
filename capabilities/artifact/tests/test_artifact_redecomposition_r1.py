@@ -59,7 +59,7 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("transport-boundary-retirement-r1.json", " ".join(nodes["X01"]["currentEvidence"]))
         self.assertEqual(nodes["X03"]["state"], "OUTSIDE_ARTIFACT")
 
-    def test_evaluation_model_pressure_sequence_preserves_open_backbone_boundary(self) -> None:
+    def test_evaluation_model_pressure_sequence_tracks_candidate_backbone_convergence(self) -> None:
         slices = {item["id"]: item for item in self.plan["slices"]}
         self.assertEqual(slices["R2-S1"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertEqual(slices["R2-S1B"]["status"], "PRESSURE_TEST_COMPLETE")
@@ -77,12 +77,22 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         )
         self.assertIn("C01", slices["R2-S1E"]["nodeIds"])
         self.assertIn("K05", slices["R2-S1E"]["nodeIds"])
+        self.assertEqual(
+            slices["R2-S1F"]["status"],
+            "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+        )
+        self.assertEqual(
+            slices["R2-S1F"]["result"],
+            "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED_CANDIDATE",
+        )
+        self.assertIn("A03", slices["R2-S1F"]["nodeIds"])
+        self.assertIn("C01", slices["R2-S1F"]["nodeIds"])
         divergences = {item["id"]: item for item in self.plan["divergences"]}
         self.assertEqual(
             divergences["D01"]["state"],
-            "COMPATIBILITY_MODEL_PROVEN_DUAL_BACKBONE_STILL_PRESENT",
+            "CANDIDATE_RESOLVED_CANONICAL_OPERATION_LIFECYCLE_CONVERGED_AWAITING_INTEGRATION",
         )
-        self.assertIn("not physical backbone unification", divergences["D01"]["resolutionBoundary"])
+        self.assertIn("Final RESOLVED requires merged-tree requalification", divergences["D01"]["resolution"])
         self.assertEqual(
             slices["R2-S5"]["status"],
             "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",

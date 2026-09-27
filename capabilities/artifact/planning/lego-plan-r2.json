@@ -96,14 +96,16 @@
       "currentEvidence": [
         "artifact_evidence/delivery.py",
         "artifact_evidence/snapshot.py",
-        "artifact_verification/evidence.py"
+        "artifact_verification/evidence.py",
+        "artifact_verification/evaluation.py",
+        "artifact_verification/plugins.py"
       ],
-      "state": "EXPLICIT_BOUND_NATIVE_CLAIM_RESULTS",
+      "state": "COMMON_BOUND_EVIDENCE_OBSERVATION_WAIST_CANDIDATE",
       "mustNotOwn": [
         "cryptographic trust requirement",
         "consumer-domain acceptance"
       ],
-      "resolution": "All 20 current bound verification profiles expose exact required-evidence claim keys through verifier-owned native claimResults; generic projection does not infer aliases or promote overall verifier status."
+      "resolution": "All current bound family verifiers retain verifier-owned exact claimResults; the candidate common EvaluationProjection additionally binds each observation to exact subject identity and capability identity without inferring aliases or aggregate PASS."
     },
     {
       "id": "K05",
@@ -113,13 +115,16 @@
       "currentEvidence": [
         "artifact_verification/stage.py",
         "scripts/artifact_verify.py",
-        "artifact_trust/vsa.py"
+        "artifact_trust/vsa.py",
+        "artifact_core/standing.py",
+        "artifact_verification/evaluation.py"
       ],
-      "state": "SEMANTICALLY_SPLIT",
+      "state": "COMMON_PROFILE_POLICY_STANDING_WAIST_CANDIDATE",
       "mustNotOwn": [
         "transport success",
         "human preference"
-      ]
+      ],
+      "resolution": "Both production-v1 compatibility results and registered-v2 family results derive standing through artifact_core.standing under one candidate EvaluationProjection contract; provider-native results remain preserved."
     },
     {
       "id": "P01",
@@ -142,12 +147,15 @@
       "responsibility": "Produce bounded evidence observations for one profile/capability over exact subject bytes.",
       "currentEvidence": [
         "artifact-delivery/capability-bindings-v1.json",
-        "scripts/artifact_verify.py"
+        "scripts/artifact_verify.py",
+        "artifact_verification/plugins.py",
+        "artifact_operations/providers/verification.py"
       ],
       "observedImplementations": 17,
       "mustNotOwn": [
         "universal artifact ontology"
-      ]
+      ],
+      "state": "FORMAL_REGISTERED_BINDING_PLUGIN_INTERFACE_CANDIDATE"
     },
     {
       "id": "P03",
@@ -410,10 +418,11 @@
     {
       "id": "D01",
       "label": "DualEvaluationBackbones",
-      "observation": "Production Office/Web and standards-first family verification still use distinct execution/result backbones, but S1E proves both can project into common evaluation/observation/standing semantics without route changes.",
+      "observation": "Canonical Agent verification intent now enters ArtifactOperation and DirectPython VerifyOperationHandler for both current production-v1 Office/Web and registered standards-first family verification. Provider implementations remain different, but both emit the same exact EvaluationProjection semantic waist; the historical artifact_verify.py route is retained only as a compatibility facade.",
       "priority": "P0",
-      "state": "COMPATIBILITY_MODEL_PROVEN_DUAL_BACKBONE_STILL_PRESENT",
-      "resolutionBoundary": "Do not mark resolved until production routing/lifecycle convergence is separately justified; compatibility equivalence is not physical backbone unification."
+      "state": "CANDIDATE_RESOLVED_CANONICAL_OPERATION_LIFECYCLE_CONVERGED_AWAITING_INTEGRATION",
+      "resolutionBoundary": "Do not mark resolved until production routing/lifecycle convergence is separately justified; compatibility equivalence is not physical backbone unification.",
+      "resolution": "R2-S1F converges the canonical lifecycle without forcing one verifier algorithm: production-v1 retains execute_verify_stage; registered-v2 resolves CapabilityBinding -> VerifierPlugin; both project exact observations/claims/standing through one EvaluationProjection. Final RESOLVED requires merged-tree requalification."
     },
     {
       "id": "D02",
@@ -444,9 +453,9 @@
     {
       "id": "D06",
       "label": "ImplicitVerifierPluginProtocol",
-      "observation": "Twenty current bound verifier profiles share an explicit claim projection helper and their direct CLI entrypoints now bootstrap the Artifact package root independently of caller cwd. Formal verifier plugin packaging/interface and lifecycle remain separate work.",
+      "observation": "Twenty current bound family profiles retain explicit native claimResults and stable direct CLI entrypoints. A formal binding-owned VerifierPlugin resolver/interface now exists and is used by the canonical verify operation and compatibility service. Production-v1 remains a compatibility/provider adapter rather than a fabricated capability binding; broader plugin packaging/lifecycle retirement remains open.",
       "priority": "P1",
-      "state": "PARTIALLY_FACTORIZED_CLI_ENTRYPOINT_STABLE_NOT_RESOLVED"
+      "state": "FORMAL_REGISTERED_PLUGIN_INTERFACE_IMPLEMENTED_COMPATIBILITY_LIFECYCLE_REMAINS"
     },
     {
       "id": "D07",
@@ -533,6 +542,25 @@
       "integrationCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f"
     },
     {
+      "id": "R2-S1F",
+      "objective": "Converge canonical Agent verification intent and current production-v1/registered-v2 execution families through ArtifactOperation plus one EvaluationProjection semantic waist without changing production-v1 profile authority or family verifier semantics.",
+      "status": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+      "nodeIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "P02",
+        "A01",
+        "A03",
+        "C01"
+      ],
+      "result": "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED_CANDIDATE",
+      "evidence": "planning/evaluation-backbone-convergence-r1.json",
+      "evidenceBoundary": "Candidate closes canonical dual-backbone selection at Agent/ArtifactOperation lifecycle while preserving distinct provider implementations. It does not retire profile-v1, promote profile-v2, merge family semantics, or claim trust/release/consumer acceptance."
+    },
+    {
       "id": "R2-S2",
       "objective": "Separate Trust statement, policy, Sigstore effect and aggregation responsibilities at the design/test boundary.",
       "status": "PLANNED",
@@ -616,6 +644,15 @@
       "evidence": "planning/production-v1-evaluation-compatibility-r1.json",
       "integrationCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f",
       "mergedTreeRequalificationJobId": "job-01a0dedd-a354-7500-ac43-64f3730806da"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S1F/D01",
+      "standing": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+      "evidence": "planning/evaluation-backbone-convergence-r1.json",
+      "ownerGateJobId": "job-01a0e15d-3945-7661-8fac-22e98fede529",
+      "realRegisteredV2JobId": "job-01a0e15c-3c5c-7a43-bb8a-a69ea5ec3d50",
+      "realProductionV1JobId": "job-01a0e15c-8af5-7200-9a86-dc250c686b72"
     }
   ]
 }

@@ -26,6 +26,11 @@ if str(ROOT) not in sys.path:
 from artifact_core.bindings import CapabilityBindingRegistry
 from artifact_core.contracts import sha256_file
 from artifact_core.profiles import ProfileRegistry
+from artifact_verification.evaluation import (
+    build_registered_v2_evaluation_request,
+    project_registered_v2_result,
+)
+from artifact_verification.plugins import resolve_verifier_plugin
 
 ART = ROOT / "artifact-delivery"
 REQUEST_SCHEMA = ART / "verification/request-v1.schema.json"
@@ -144,12 +149,28 @@ def verify_request(request_path: Path) -> dict[str, Any]:
     evidence_dir.mkdir(parents=True, exist_ok=True)
     verifier_relative = binding.entrypoint.module
     verifier_name = binding.entrypoint.callable
-    verifier, verifier_sha = load_function(verifier_relative, verifier_name)
-    if binding.object_contract_required:
-        assert contract_path is not None
-        delegated = verifier(subject_path, contract_path, evidence_dir)
-    else:
-        delegated = verifier(subject_path, evidence_dir)
+    plugin = resolve_verifier_plugin(binding, artifact_root=ROOT)
+    delegated = plugin.verify(
+        subject_path,
+        evidence_dir,
+        object_contract=contract_path,
+    )
+    evaluation_request = build_registered_v2_evaluation_request(
+        profile_record,
+        binding,
+        subject_path,
+        object_contract_path=contract_path,
+        request_id=str(request_id),
+    )
+    evaluation_projection = project_registered_v2_result(
+        evaluation_request, delegated
+    )
+    (evidence_dir / "evaluation-projection.json").write_text(
+        json.dumps(
+            evaluation_projection, indent=2, sort_keys=True, ensure_ascii=False
+        ) + "\n",
+        encoding="utf-8",
+    )
 
     delegated_status = delegated.get("status")
     result = {
@@ -162,9 +183,10 @@ def verify_request(request_path: Path) -> dict[str, Any]:
         "subject": {"path": str(subject_path), "sha256": subject_sha, "size": subject_path.stat().st_size},
         "objectContract": contract_fact,
         "capabilityBinding": {"path": str(binding.standing_path), "sha256": binding.standing_sha256, "standing": binding.standing},
-        "verifier": {"path": verifier_relative, "sha256": verifier_sha, "function": verifier_name, "capabilityId": binding.capability_id},
+        "verifier": {"path": verifier_relative, "sha256": plugin.implementation_sha256, "function": verifier_name, "capabilityId": binding.capability_id},
         "consumer": request.get("consumer"),
         "verification": delegated,
+        "evaluationProjection": evaluation_projection,
         "failures": list(delegated.get("failures") or []),
         "boundary": "PASS means the exact requested bytes passed the selected Artifact profile through its existing live-proven family verifier. It does not promote a shadow profile to production, prove caller-domain suitability, define transport/workflow semantics, or upgrade the verifier's declared nonClaims."
     }
