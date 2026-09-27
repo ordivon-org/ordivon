@@ -247,7 +247,7 @@ Profile-v1 is not retired and profile-v2 is not promoted by this convergence.
 
 Historical post-D01 census: `direct_python.py` was 575 source lines, the provider class was 480 lines with 17 methods and fan-out to 17 project modules.
 
-2026-09-27 R2-S3 candidate: operation-kind routing is now registry-backed. `prepare`, `build`, `verify`, `verify-trust`, and `package` each have an explicit handler owner; `DirectPythonOperationProvider` remains the composition root but no longer contains an operation-kind branch forest. Candidate census is 335 source lines, 248 provider-class lines, 17 methods, fan-out 14, and zero operation-kind branches. Trust and OCI package internals are deliberately unchanged; D03 and D04 remain separate audits.
+2026-09-27 R2-S3 standing: integrated and merged-tree requalified. Operation-kind routing is registry-backed. `prepare`, `build`, `verify`, `verify-trust`, and `package` each have an explicit handler owner; `DirectPythonOperationProvider` remains the composition root but no longer contains an operation-kind branch forest. Candidate census is 335 source lines, 248 provider-class lines, 17 methods, fan-out 14, and zero operation-kind branches. Trust and OCI package internals are deliberately unchanged; D03 and D04 remain separate audits.
 
 Target direction:
 
@@ -403,7 +403,7 @@ Map every artifact_trust/vsa.py function to statement, policy, sigstore-effect, 
 
 Map DirectPythonOperationProvider.prepare_operation() and produce() branches into independent operation handlers and measure whether the provider can become a registry-backed composition root.
 
-2026-09-27 candidate standing: implemented and owner-verified, awaiting integration. Five explicit handlers now own prepare/build/verify/verify-trust/package routing behind one DirectPython composition root. This slice does not claim trust-internal or OCI-package-internal decomposition.
+2026-09-27 standing: implemented, integrated and merged-tree requalified. Five explicit handlers now own prepare/build/verify/verify-trust/package routing behind one DirectPython composition root. This slice does not claim trust-internal or OCI-package-internal decomposition.
 
 ### R2-S4 — Package Plugin Audit
 

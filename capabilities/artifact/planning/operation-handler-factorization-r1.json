@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.artifact-operation-handler-factorization-evidence",
-  "truthRole": "candidate-implementation-and-verification-evidence-not-yet-integration-proof",
+  "truthRole": "integrated-verification-evidence-with-merged-tree-requalification",
   "date": "2026-09-27",
   "baseRevision": "d9961354c15d56dacdb22e6f64a616b5517ccbd0",
   "scope": [
@@ -74,6 +74,18 @@
       "standing": "PASS",
       "jobId": "job-01a0e27c-5432-74f1-bcea-60236aebc63c",
       "detail": "direct_python.py 335 lines, class 248 lines, fan-out 14, operation-kind branch count 0."
+    },
+    {
+      "class": "final-exact-candidate-owner-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e284-20e7-7280-9183-a3059f13469f",
+      "detail": "Final candidate including evidence/planning currentness passed full Artifact owner gate: 420 passed, 3 skipped, 40 deselected, 107 subtests."
+    },
+    {
+      "class": "merged-tree-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0",
+      "detail": "Canonical merge tree passed full Artifact owner gate: 420 passed, 3 skipped, 40 deselected, 107 subtests."
     }
   ],
   "provenProperties": [
@@ -89,5 +101,12 @@
     "DirectPython build helpers are fully decomposed into plugins.",
     "Temporal or Runtime execution authority moved into Artifact."
   ],
-  "standing": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION"
+  "standing": "INTEGRATED_VERIFIED",
+  "integration": {
+    "candidateCommit": "244c2bfbcc0320c6258cf4ab531461420fa3a3d3",
+    "mergeCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d",
+    "mergedArtifactTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
 }
