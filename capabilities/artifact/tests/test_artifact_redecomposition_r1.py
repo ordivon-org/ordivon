@@ -94,6 +94,20 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         )
         self.assertIn("merged-tree requalified", divergences["D01"]["resolution"])
         self.assertEqual(
+            slices["R2-S3"]["status"],
+            "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+        )
+        self.assertEqual(
+            slices["R2-S3"]["result"],
+            "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED_CANDIDATE",
+        )
+        self.assertEqual(
+            divergences["D02"]["state"],
+            "CANDIDATE_RESOLVED_HANDLER_REGISTRY_AWAITING_INTEGRATION",
+        )
+        self.assertEqual(self.plan["observedTopology"]["directPythonOperationKindBranchCount"], 0)
+        self.assertEqual(self.plan["observedTopology"]["directPythonOperationHandlerCount"], 5)
+        self.assertEqual(
             slices["R2-S5"]["status"],
             "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
         )
@@ -104,7 +118,11 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertEqual(topology["capabilityVerifyBindings"], 20)
         self.assertEqual(topology["deliveryFacadeLines"], 0)
         self.assertEqual(topology["deliveryCliProviderLines"], 0)
-        self.assertEqual(topology["directPythonProviderProjectFanout"], 17)
+        self.assertEqual(topology["directPythonProviderProjectFanout"], 14)
+        self.assertEqual(topology["directPythonProviderLines"], 335)
+        self.assertEqual(topology["directPythonProviderClassLines"], 248)
+        self.assertEqual(topology["directPythonOperationKindBranchCount"], 0)
+        self.assertEqual(topology["directPythonOperationHandlerCount"], 5)
 
 
 if __name__ == "__main__":

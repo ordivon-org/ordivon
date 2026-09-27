@@ -32,18 +32,20 @@
     "shadowProfiles": 20,
     "productionV1ExampleProfiles": 13,
     "deliveryFacadeLines": 0,
-    "directPythonProviderLines": 575,
+    "directPythonProviderLines": 335,
     "trustVsaLines": 808,
     "ociPackageStageLines": 362,
-    "directPythonProviderProjectFanout": 17,
+    "directPythonProviderProjectFanout": 14,
     "productionPythonDeliveryFacadeImports": 0,
     "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102,
     "deliveryCliProviderLines": 0,
     "completeNativeClaimResultProfiles": 20,
     "boundVerifyProfiles": 20,
     "remainingLiteralClaimAddressabilityGaps": 0,
-    "directPythonProviderClassLines": 480,
-    "directPythonProviderMethods": 17
+    "directPythonProviderClassLines": 248,
+    "directPythonProviderMethods": 17,
+    "directPythonOperationKindBranchCount": 0,
+    "directPythonOperationHandlerCount": 5
   },
   "nodes": [
     {
@@ -430,9 +432,10 @@
     {
       "id": "D02",
       "label": "CompositionRootConcentration",
-      "observation": "Fresh post-D01 census: direct_python.py is 575 source lines; DirectPythonOperationProvider class body is 480 lines with 17 methods and fan-out to 17 project modules. Verification routing has been extracted into VerifyOperationHandler, but build/trust/package composition remains concentrated.",
+      "observation": "DirectPythonOperationProvider now delegates prepare/build/verify/verify-trust/package through five explicit OperationHandler owners. Fresh candidate census: direct_python.py 335 lines, class body 248 lines, 17 methods, fan-out 14 project modules, and zero operation-kind branches.",
       "priority": "P1",
-      "state": "OPEN_POST_D01_RECENSUS"
+      "state": "CANDIDATE_RESOLVED_HANDLER_REGISTRY_AWAITING_INTEGRATION",
+      "resolution": "R2-S3 factors operation-kind ownership into prepare/build/verify/trust/package handlers while retaining DirectPythonOperationProvider as the composition root. D03 trust internals and D04 package internals remain independently open. Final RESOLVED requires integration and merged-tree requalification."
     },
     {
       "id": "D03",
@@ -577,10 +580,13 @@
     {
       "id": "R2-S3",
       "objective": "Map DirectPython operation-kind branches into independent handlers while preserving one composition root.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
       "nodeIds": [
         "A01"
-      ]
+      ],
+      "result": "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED_CANDIDATE",
+      "evidence": "planning/operation-handler-factorization-r1.json",
+      "evidenceBoundary": "Operation routing ownership is factored without changing trust or OCI package internals; D03 and D04 remain separate work."
     },
     {
       "id": "R2-S4",
@@ -668,6 +674,12 @@
       "cleanupCommit": "bc837101fe9f0110433c16912c46a5ce5fb768c9",
       "mergeCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
       "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S3/D02",
+      "standing": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+      "evidence": "planning/operation-handler-factorization-r1.json"
     }
   ]
 }
