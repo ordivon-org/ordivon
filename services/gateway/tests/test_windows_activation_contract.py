@@ -37,6 +37,18 @@ def test_activation_starts_only_after_credential_preflight() -> None:
     assert "ordivon.gateway-windows-service-activation" in text
 
 
+def test_activation_rejects_runtime_routes_without_auth_paths() -> None:
+    text = ACTIVATOR.read_text(encoding="utf-8")
+    assert "'linuxRuntimeUrl', 'windowsRuntimeUrl'" in text
+    assert "Linux Runtime activation requires a bearer token path" in text
+    assert "Windows Runtime activation requires a bearer token path" in text
+    linux_guard = text.index("Linux Runtime activation requires a bearer token path")
+    windows_guard = text.index("Windows Runtime activation requires a bearer token path")
+    start_at = text.rindex("Start-Service -Name $ServiceName")
+    assert linux_guard < start_at
+    assert windows_guard < start_at
+
+
 def test_activation_does_not_read_or_emit_secret_values() -> None:
     text = ACTIVATOR.read_text(encoding="utf-8")
     assert "Get-Content -LiteralPath $fullPath" not in text

@@ -93,13 +93,19 @@ $serviceReceipt = Get-Content -LiteralPath $serviceReceiptPath -Raw | ConvertFro
 if ($serviceReceipt.kind -ne 'ordivon.gateway-windows-service-materialization' -or $serviceReceipt.serviceName -ne $ServiceName) {
     throw "Gateway service materialization receipt identity mismatch"
 }
-foreach ($field in @('linuxBearerTokenFile', 'windowsBearerTokenFile', 'hostBearerTokenFile', 'activationRequired')) {
+foreach ($field in @('linuxRuntimeUrl', 'windowsRuntimeUrl', 'linuxBearerTokenFile', 'windowsBearerTokenFile', 'hostBearerTokenFile', 'activationRequired')) {
     if ($serviceReceipt.PSObject.Properties.Name -notcontains $field) {
         throw "Gateway service materialization receipt predates activation contract: $field"
     }
 }
 if (-not [bool]$serviceReceipt.activationRequired) {
     throw "Gateway service materialization receipt does not require activation"
+}
+if (-not [string]::IsNullOrWhiteSpace([string]$serviceReceipt.linuxRuntimeUrl) -and [string]::IsNullOrWhiteSpace([string]$serviceReceipt.linuxBearerTokenFile)) {
+    throw "Linux Runtime activation requires a bearer token path"
+}
+if (-not [string]::IsNullOrWhiteSpace([string]$serviceReceipt.windowsRuntimeUrl) -and [string]::IsNullOrWhiteSpace([string]$serviceReceipt.windowsBearerTokenFile)) {
+    throw "Windows Runtime activation requires a bearer token path"
 }
 
 $service = Get-Service -Name $ServiceName -ErrorAction Stop
