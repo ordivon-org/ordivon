@@ -82,6 +82,13 @@ if ([System.IO.Path]::GetFullPath([string]$releaseReceipt.gatewayExecutable) -ne
     throw "Gateway release receipt executable mismatch"
 }
 
+if (-not [string]::IsNullOrWhiteSpace($LinuxRuntimeUrl) -and [string]::IsNullOrWhiteSpace($LinuxRuntimeBearerTokenFile)) {
+    throw "Linux Runtime URL requires LinuxRuntimeBearerTokenFile"
+}
+if (-not [string]::IsNullOrWhiteSpace($WindowsRuntimeUrl) -and [string]::IsNullOrWhiteSpace($WindowsRuntimeBearerTokenFile)) {
+    throw "Windows Runtime URL requires WindowsRuntimeBearerTokenFile"
+}
+
 $candidateSurfacePath = Join-Path $release 'mcp-surface.json'
 if (-not (Test-Path -LiteralPath $candidateSurfacePath -PathType Leaf)) {
     throw "Gateway release is missing mcp-surface.json"
