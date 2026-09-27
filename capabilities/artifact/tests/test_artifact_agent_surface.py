@@ -18,6 +18,10 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         self.assertFalse(surface["mcpRequired"])
         names = {x["name"] for x in surface["tools"]}
         self.assertEqual(names, {"artifact_family_status", "artifact_profile_coverage", "artifact_verify_propose", "artifact_build_propose", "artifact_toolchain_doctor_propose", "artifact_cad_admission_status"})
+        self.assertIn("Build and verify intent are expressed as ArtifactOperation", surface["boundary"])
+        self.assertIn("toolchain doctor remains an explicit diagnostic process plan", surface["boundary"])
+        source = (ROOT / "scripts/artifact_agent_surface.py").read_text(encoding="utf-8")
+        self.assertNotIn("VERIFY =", source)
 
     def test_electronic_design_profile_is_family_visible_and_service_routed(self):
         status = M.family_status("electronic-design")

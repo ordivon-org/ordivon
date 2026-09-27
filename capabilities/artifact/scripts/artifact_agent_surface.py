@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Thin Agent-facing semantic surface over canonical Artifact contracts and bounded execution entrypoints.
 
-The surface exposes bounded Artifact intent as canonical ArtifactOperation data or exact
-verification-service process plans. It does not execute effects, invent a universal
-document model, or duplicate family verifier semantics. Runtime remains physical
-execution authority.
+The surface exposes bounded Artifact build/verify intent as canonical ArtifactOperation
+data and keeps only non-operation diagnostics as explicit process plans. It does not
+execute effects, invent a universal document model, or duplicate family verifier
+semantics. Runtime remains physical execution authority.
 """
 from __future__ import annotations
 
@@ -26,7 +26,6 @@ from artifact_operations import operation_envelope, operation_file_fact
 
 ART = ROOT / "artifact-delivery"
 TAXONOMY = ART / "taxonomy-v1.json"
-VERIFY = ROOT / "scripts/artifact_verify.py"
 DOCTOR = ROOT / "scripts/artifact_delivery_toolchain_doctor.py"
 ARTIFACT_PYTHON = Path(os.environ.get("ARTIFACT_PYTHON", "/root/.local/share/ordivon-workstation/artifact-python-v1/current/bin/python"))
 BINDING_REGISTRY = CapabilityBindingRegistry(ART)
@@ -380,7 +379,7 @@ def surface_projection() -> dict[str, Any]:
         "runtimeOwnsPhysicalExecution": True,
         "harnessMayAdmitSubsetOnly": True,
         "mcpRequired": False,
-        "boundary": "Artifact owns format/profile verification and build/delivery semantics. Build intent is expressed as ArtifactOperation; verification-service and doctor actions retain explicit process plans where they remain distinct execution surfaces. Runtime remains process authority and mature format/target tools remain format truth authorities."
+        "boundary": "Artifact owns format/profile verification and build/delivery semantics. Build and verify intent are expressed as ArtifactOperation; toolchain doctor remains an explicit diagnostic process plan. Runtime remains process authority and mature format/target tools remain format truth authorities."
     }
 
 
