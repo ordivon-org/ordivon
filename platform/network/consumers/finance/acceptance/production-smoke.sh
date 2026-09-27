@@ -3,9 +3,14 @@ set -euo pipefail
 TARGET=network-v2-finance.target
 EGRESS=network-v2-finance-egress.service
 CARRIER=network-v2-browserless-provider-carrier.service
+BROWSERLESS_TARGET=network-v2-browserless.target
+SUPPLY_TARGET=network-v2-supply-chain.target
+SUPPLY_EGRESS=network-v2-supply-chain-egress.service
 CONTROL_UNITS=(ordivon-runtime.service ordivon-cloudflare-production-a.service ordivon-cloudflare-production-b.service ordivon-cloudflare-canary.service ordivon-cloudflare-direct-route.service)
 control_state_snapshot(){ local u; for u in "${CONTROL_UNITS[@]}"; do printf '%s=%s\n' "$u" "$(systemctl is-active "$u" 2>/dev/null || true)"; done; }
 CONTROL_PLANE_BEFORE=$(control_state_snapshot)
+BROWSERLESS_WAS_ACTIVE=$(systemctl is-active "$BROWSERLESS_TARGET" 2>/dev/null || true)
+SUPPLY_WAS_ACTIVE=$(systemctl is-active "$SUPPLY_TARGET" 2>/dev/null || true)
 wait_state(){ local u=$1 expected=$2 s; for _ in $(seq 1 80); do s=$(systemctl is-active "$u" 2>/dev/null || true); [ "$s" = "$expected" ] && return 0; sleep .25; done; echo "$u expected=$expected got=$s" >&2; return 1; }
 probe_okx(){ curl -4 -fsS --proxy http://127.0.0.1:19283 --connect-timeout 3 --max-time 12 https://openapi.okx.com/api/v5/public/time | jq -e '.code=="0" and (.data|length>=1)' >/dev/null; }
 probe_binance_spot(){ curl -4 -fsS --proxy http://127.0.0.1:19284 --connect-timeout 3 --max-time 12 https://data-api.binance.vision/api/v3/time | jq -e '(.serverTime|type)=="number"' >/dev/null; }
@@ -18,7 +23,15 @@ probe_provider_all(){ probe_okx && probe_binance_spot && probe_binance_usdm && p
 probe_all(){ probe_provider_all && probe_treasury && probe_fred; }
 wait_all(){ for _ in $(seq 1 30); do probe_all >/dev/null 2>&1 && return 0; sleep 1; done; return 1; }
 blocked(){ local p=$1 u=$2 rc; set +e; curl -4 -sS --proxy "http://127.0.0.1:$p" --connect-timeout 2 --max-time 5 "$u" >/dev/null 2>&1; rc=$?; set -e; test "$rc" -ne 0; }
-cleanup(){ systemctl start "$CARRIER" >/dev/null 2>&1 || true; systemctl restart "$EGRESS" >/dev/null 2>&1 || true; }
+cleanup(){
+  if [ "$BROWSERLESS_WAS_ACTIVE" = active ]; then
+    systemctl start "$BROWSERLESS_TARGET" >/dev/null 2>&1 || true
+  else
+    systemctl start "$CARRIER" >/dev/null 2>&1 || true
+  fi
+  systemctl start "$TARGET" >/dev/null 2>&1 || true
+  if [ "$SUPPLY_WAS_ACTIVE" = active ]; then systemctl start "$SUPPLY_TARGET" >/dev/null 2>&1 || true; fi
+}
 trap cleanup EXIT
 wait_state "$TARGET" active; wait_state "$EGRESS" active; wait_state "$CARRIER" active
 # There must be no Finance-owned WireGuard material/session in the current design.
@@ -39,17 +52,29 @@ blocked 19283 https://example.com/
 # Shared carrier loss must fail provider-bound venue lanes closed while explicit direct macro lanes survive.
 systemctl stop "$CARRIER"
 wait_state "$CARRIER" inactive
+# Physical-carrier loss must not remove semantic authorities. Provider lanes fail inside the proxy; direct lanes remain usable.
+wait_state "$TARGET" active
+wait_state "$EGRESS" active
+if [ "$SUPPLY_WAS_ACTIVE" = active ]; then
+  wait_state "$SUPPLY_TARGET" active
+  wait_state "$SUPPLY_EGRESS" active
+fi
 blocked 19283 https://openapi.okx.com/api/v5/public/time
 blocked 19284 https://data-api.binance.vision/api/v3/time
 blocked 19287 https://fapi.binance.com/fapi/v1/time
 blocked 19290 https://api.binance.com/api/v3/time
 probe_treasury
 probe_fred
-systemctl start "$CARRIER"
+if [ "$BROWSERLESS_WAS_ACTIVE" = active ]; then
+  systemctl start "$BROWSERLESS_TARGET"
+else
+  systemctl start "$CARRIER"
+fi
 wait_state "$CARRIER" active
-wait_all
-systemctl restart "$EGRESS"
 wait_state "$EGRESS" active
+if [ "$SUPPLY_WAS_ACTIVE" = active ]; then
+  wait_state "$SUPPLY_EGRESS" active
+fi
 wait_all
 test "$(systemctl is-active ordivon-runtime.service)" = active
 CONTROL_PLANE_AFTER=$(control_state_snapshot)

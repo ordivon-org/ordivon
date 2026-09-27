@@ -31,7 +31,8 @@ def test_supply_chain_reuses_one_shared_carrier_without_vpn_identity():
     assert "dns" not in egress
     assert "services" not in egress
     unit = (CONSUMER / "systemd" / "network-v2-supply-chain-egress.service").read_text()
-    assert "Requires=network-v2-browserless-provider-carrier.service" in unit
+    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+    assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
     assert "provider-endpoints.json" not in unit
     taskfile = (ROOT / "Taskfile.yml").read_text()
     assert "rm -f /etc/network-v2/supply-chain/provider-endpoints.json" in taskfile

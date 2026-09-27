@@ -53,7 +53,16 @@ def test_finance_provider_lanes_share_carrier_and_macro_lanes_remain_direct():
     assert routes[("finance-fred-public-csv",)]["outbound"] == "public-direct"
     unit = (FINANCE / "systemd" / "network-v2-finance-egress.service").read_text()
     assert "provider-endpoints.json" not in unit
-    assert "Requires=network-v2-browserless-provider-carrier.service" in unit
+    assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+    assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
+
+
+def test_semantic_consumers_survive_physical_carrier_loss():
+    for directory, name in ((FINANCE, "finance"), (SUPPLY, "supply-chain")):
+        unit = (directory / "systemd" / f"network-v2-{name}-egress.service").read_text()
+        assert "Wants=network-v2-browserless-provider-carrier.service" in unit
+        assert "Requires=network-v2-browserless-provider-carrier.service" not in unit
+        assert "After=network-v2-browserless-provider-carrier.service" in unit
 
 
 def test_no_current_consumer_materializes_duplicate_provider_identity():

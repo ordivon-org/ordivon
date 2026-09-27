@@ -1,6 +1,6 @@
 [Unit]
 Description=Network v2 Supply-Chain OCI egress proxy
-Requires=network-v2-browserless-provider-carrier.service
+Wants=network-v2-browserless-provider-carrier.service
 After=network-v2-browserless-provider-carrier.service
 PartOf=network-v2-supply-chain.target
 
