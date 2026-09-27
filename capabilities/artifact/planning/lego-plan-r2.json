@@ -434,8 +434,9 @@
       "label": "CompositionRootConcentration",
       "observation": "DirectPythonOperationProvider now delegates prepare/build/verify/verify-trust/package through five explicit OperationHandler owners. Fresh candidate census: direct_python.py 335 lines, class body 248 lines, 17 methods, fan-out 14 project modules, and zero operation-kind branches.",
       "priority": "P1",
-      "state": "CANDIDATE_RESOLVED_HANDLER_REGISTRY_AWAITING_INTEGRATION",
-      "resolution": "R2-S3 factors operation-kind ownership into prepare/build/verify/trust/package handlers while retaining DirectPythonOperationProvider as the composition root. D03 trust internals and D04 package internals remain independently open. Final RESOLVED requires integration and merged-tree requalification."
+      "state": "RESOLVED",
+      "resolution": "R2-S3 is integrated and merged-tree requalified. DirectPythonOperationProvider is now a registry-backed composition root over five explicit operation handlers with zero operation-kind branches. Trust and OCI package internals remain separately owned by D03/D04.",
+      "resolutionCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d"
     },
     {
       "id": "D03",
@@ -580,13 +581,15 @@
     {
       "id": "R2-S3",
       "objective": "Map DirectPython operation-kind branches into independent handlers while preserving one composition root.",
-      "status": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
       "nodeIds": [
         "A01"
       ],
-      "result": "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED_CANDIDATE",
+      "result": "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED",
       "evidence": "planning/operation-handler-factorization-r1.json",
-      "evidenceBoundary": "Operation routing ownership is factored without changing trust or OCI package internals; D03 and D04 remain separate work."
+      "evidenceBoundary": "Operation routing ownership is integrated and merged-tree requalified without changing trust or OCI package internals; D03 and D04 remain separate work.",
+      "integrationCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d",
+      "mergedTreeRequalificationJobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0"
     },
     {
       "id": "R2-S4",
@@ -678,8 +681,11 @@
     {
       "date": "2026-09-27",
       "scope": "R2-S3/D02",
-      "standing": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
-      "evidence": "planning/operation-handler-factorization-r1.json"
+      "standing": "INTEGRATED_VERIFIED_D02_RESOLVED",
+      "evidence": "planning/operation-handler-factorization-r1.json",
+      "candidateCommit": "244c2bfbcc0320c6258cf4ab531461420fa3a3d3",
+      "mergeCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d",
+      "mergedTreeRequalificationJobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0"
     }
   ]
 }

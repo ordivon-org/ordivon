@@ -95,15 +95,15 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
         self.assertIn("merged-tree requalified", divergences["D01"]["resolution"])
         self.assertEqual(
             slices["R2-S3"]["status"],
-            "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+            "IMPLEMENTED_VERIFIED_INTEGRATED",
         )
         self.assertEqual(
             slices["R2-S3"]["result"],
-            "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED_CANDIDATE",
+            "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED",
         )
         self.assertEqual(
             divergences["D02"]["state"],
-            "CANDIDATE_RESOLVED_HANDLER_REGISTRY_AWAITING_INTEGRATION",
+            "RESOLVED",
         )
         self.assertEqual(self.plan["observedTopology"]["directPythonOperationKindBranchCount"], 0)
         self.assertEqual(self.plan["observedTopology"]["directPythonOperationHandlerCount"], 5)
