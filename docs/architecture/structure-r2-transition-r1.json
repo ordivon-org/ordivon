@@ -529,17 +529,15 @@
       "disposition": "Neutral Browser Security attribution experiments, point-in-time evidence, and focused replay tests are one retained study. Current production witness semantics remain with Security/Harness/provider owners."
     }
   ],
-  "openSlices": [
-    "S3",
-    "S4",
-    "S5",
-    "S6",
-    "S7",
-    "S8",
-    "S9"
+  "openSlices": [],
+  "remainingPathMovesCancelled": ["S3", "S4", "S6", "S7", "S9"],
+  "retainedConvergenceWork": [
+    "S5-targeted-meta-next-residual-disposition",
+    "S8-evidence-driven-contract-fitness"
   ],
   "schemaVersion": 1,
-  "status": "partially-deployed",
+  "status": "superseded",
+  "supersededBy": "docs/architecture/ARCHITECTURE_REANCHOR_R1.md",
   "targetRoots": [
     ".agents/",
     "apps/",

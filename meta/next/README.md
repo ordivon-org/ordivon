@@ -1,8 +1,22 @@
-# Ordivon Next
+# Ordivon Next — historical residual
 
-Ordivon Next is a greenfield rebuild focused on one outcome: turning mature human knowledge and existing capabilities into verified real-world results.
+Status: **LEGACY ACTIVE-OWNER RESIDUAL / RETIREMENT GATE OPEN**
 
-## One-sentence definition
+This directory is no longer the architecture owner or future container for Ordivon. Its earlier greenfield programme produced reusable composition, authority, capability, Study and migration results that have since moved to natural owners such as `packages/composition`, `catalogs/`, `profiles/`, `studies/`, `.agents/skills/` and domain/service owners.
+
+The directory remains temporarily executable only because repository mechanics still map `meta/next/` to `next:verify`, and a small number of current Studies still read exact historical `docs/`, `planning/` or `evidence/` bytes. That temporary CI ownership must not be interpreted as semantic authority.
+
+Retirement gate:
+
+1. rebind every current Study dependency on `meta/next` to an explicit historical read-only reference or its natural current owner;
+2. establish a bounded archive/mutation fence for the retained historical corpus;
+3. remove Next-only executable validation surfaces that have no current consumer;
+4. remove the `next` repository-owner row and `next:verify` routing;
+5. prove root CI and affected current Studies without recreating a replacement Next subsystem.
+
+Do not add new current architecture, capability, domain, workflow, provider or policy ownership under this directory. Current architecture law is `../../docs/architecture/ARCHITECTURE_REANCHOR_R1.md`.
+
+## Historical one-sentence definition
 
 **Ordivon turns real problems into verified outcomes by selecting and composing mature knowledge, methods, agents and tools instead of rebuilding them.**
 

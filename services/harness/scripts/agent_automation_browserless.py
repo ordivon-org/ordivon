@@ -28,9 +28,13 @@ _RELEASE_SRC = str(SOURCE_ROOT / "src")
 if _RELEASE_SRC not in sys.path:
     sys.path.insert(0, _RELEASE_SRC)
 
-from ordivon_harness.gateway_execution_port import GatewayExecutionPort
-from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient
-from ordivon_harness.user_browser_gateway import UserBrowserGatewayConfig, UserBrowserGatewayController
+# These imports intentionally follow release-source path materialization above.
+from ordivon_harness.gateway_execution_port import GatewayExecutionPort  # noqa: E402
+from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient  # noqa: E402
+from ordivon_harness.user_browser_gateway import (  # noqa: E402
+    UserBrowserGatewayConfig,
+    UserBrowserGatewayController,
+)
 
 try:
     from browserless_substrate import BrowserlessPool

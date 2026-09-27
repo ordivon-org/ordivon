@@ -209,7 +209,7 @@ def gateway_tools(source: str) -> set[str]:
 
 def validate_current_document(text: str) -> None:
     required = [
-        "Status: **CURRENT CANONICAL / DEPLOYED BASELINE**",
+        "Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**",
         "Method Router ≠ Capability Router",
         "Harness is not currently a routed Gateway owner",
         "historical Ordivon Agent Service is **RETIRED**",

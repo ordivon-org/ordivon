@@ -160,6 +160,26 @@ Use `expectedRevision` CAS. On conflict, re-read the current Work and reconcile;
 
 Messages may support a snapshot, but the Message stream is not the snapshot itself.
 
+### Cross-owner re-entry references
+
+When one durable Work actually launches a Harness Run, use the existing owner fields instead of inventing a Session/Recovery object:
+
+```text
+Host WorkRef
+   ↕
+HarnessRunContract.callerRunRef
+   ↕
+WorkSnapshot.referenceRefs -> harness:run:<id>
+   ↕
+Tool requestId / Runtime Job / provider effect refs
+```
+
+For a Work-backed Harness Run, prefer the exact WorkRef (optionally revision-qualified by the caller) as `callerRunRef`. Once the Run identity is admitted, record the Harness Run reference in the next semantic WorkSnapshot. As physical Tool effects become relevant to future re-entry, retain only their owner-native Runtime Job/provider effect references in `referenceRefs`; do not copy Runtime state into Host.
+
+After response loss, an Agent should therefore recover Work first, follow exact `referenceRefs` to the owning Harness/Runtime/provider surfaces, reconcile uncertain effects at those owners, and only then resume cognition or commit a new WorkSnapshot. The reference chain is navigation, not authority transfer.
+
+This is a composition convention over existing owner contracts, not a new global schema. Promote it into a shared machine contract only after multiple independent consumers demonstrate irreducible repeated binding logic.
+
 ## 9. Current HOLD and authority boundaries
 
 Do not promote these merely for convenience:

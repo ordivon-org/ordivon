@@ -1,9 +1,9 @@
 # Ordivon Current Architecture
 
-Date: 2026-09-22
-Status: **CURRENT CANONICAL / DEPLOYED BASELINE**
+Date: 2026-09-28
+Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**
 
-This document is the canonical description of Ordivon's **currently deployed architecture**. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but they do not override this file when they describe an earlier deployment state.
+This document is a **rebuildable projection** of Ordivon's currently deployed architecture. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but none of these documents override current physical/source/owner truth.
 
 Machine-readable companion: `docs/architecture/deployed-architecture-r1.json`.
 
@@ -81,9 +81,9 @@ For Runtime execution, the normal Gateway northbound surface includes submit/get
 
 ### Host normal northbound completion
 
-Host has destructively retired the privileged Task/Board core and now owns Social Work Fabric schema 9. Live Gateway 0.4.0 projects Host's bounded `actor.declare`, `work.*`, `space.*`, `topic.*`, `message.*`, `subscription.*`, `attention.*`, and `host.status` surfaces directly, while Host remains the semantic owner. There is no `continuity.*` or `collaboration.*` compatibility facade, no dual-write path, and no Gateway-owned work state. GATE99-held `work.relation.*`, `intent.*`, and private/confidential semantics are not exposed by the default Gateway surface. The portable default Plugin requires only Gateway for normal work; direct Host remains operator/admin/recovery-only.
+Host has destructively retired the privileged Task/Board core and now owns Social Work Fabric schema 9. Live Gateway 0.5.0 projects Host's bounded `actor.declare`, `work.*`, `space.*`, `topic.*`, `message.*`, `subscription.*`, `attention.*`, and `host.status` surfaces directly, while Host remains the semantic owner. There is no `continuity.*` or `collaboration.*` compatibility facade, no dual-write path, and no Gateway-owned work state. GATE99-held `work.relation.*`, `intent.*`, and private/confidential semantics are not exposed by the default Gateway surface. The portable default Plugin requires only Gateway for normal work; direct Host remains operator/admin/recovery-only.
 
-`WorkSnapshot` validation and CAS remain Host-owned. `host.status` is also projected through Gateway for bounded health/currentness while direct Host access remains operator/admin/recovery-only. Gateway 0.4.0 is now live on the canonical Gateway service and the current ChatGPT connector can reach `system.describe`, so the earlier Cloudflare→Runtime HTTP 421 ingress seam is no longer current. The remaining northbound problem is connector/client catalog freshness: the current connector still advertises retired `continuity.*`/`collaboration.*` and direct-Host `task.*`/`board.*` entries even though live schema-9 owner surfaces have removed them; calling stale entries returns `Unknown tool`. That seam belongs to the consumer/connector catalog owner and must not be repaired by weakening Host/Gateway boundaries or resurrecting compatibility aliases.
+`WorkSnapshot` validation and CAS remain Host-owned. `host.status` is also projected through Gateway for bounded health/currentness while direct Host access remains operator/admin/recovery-only. Gateway 0.5.0 is live on the canonical Gateway service. Fresh connector introspection on 2026-09-28 exposes the schema-9 `work.*`/Social/Attention surface and no retired `continuity.*` or `task.*` entries, so the earlier connector-catalog refresh seam is no longer current. Consumer catalog freshness remains an owner boundary: a future stale client must be refreshed rather than repaired by weakening Host/Gateway boundaries or resurrecting compatibility aliases.
 
 ## 4. Method Router ≠ Capability Router
 
@@ -259,14 +259,19 @@ Not currently admitted/deployed as architecture truth:
 
 ## 11. Source-of-truth order
 
-For present-tense architecture claims, use this order:
+This document is a rebuildable human projection, not an authority above the system it describes. For present-tense architecture claims, use:
 
-1. this document + `deployed-architecture-r1.json`;
-2. current owner source/configuration and machine checks;
-3. current acceptance evidence;
-4. historical execution plans/migration records/research notes only for provenance.
+```text
+CURRENT PHYSICAL TRUTH
+  > CANONICAL SOURCE / CONFIGURATION
+  > LIVE OWNER STATE / PROVIDER READ-BACK
+  > DURABLE REGISTRY / RECEIPT
+  > TEST / VERIFICATION EVIDENCE
+  > CURRENT DOCUMENTATION
+  > PLANNING / HISTORICAL ARTIFACT
+```
 
-If a historical document conflicts with the deployed graph, deployed reality wins and the historical document must remain marked historical rather than silently rewritten.
+Always select the natural owner for the exact claim. A provider effect is established by provider authority, not by Git; a source contract is established by canonical source, not by an old deployment receipt. If this document conflicts with current physical/source/owner truth, this document is stale and must be repaired rather than used to override reality.
 
 ## 12. Non-regression
 

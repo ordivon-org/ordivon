@@ -6,6 +6,7 @@ import unittest
 
 import ordivon_harness.ordivon as ordivon_package
 import ordivon_harness.ordivon.continuity_records as continuity_records
+import ordivon_harness.protocol as protocol
 
 from ordivon_harness.ordivon.continuity_records import (
     HarnessDispatchFenceV2,
@@ -19,7 +20,6 @@ from ordivon_harness.ordivon.run_store_port import (
 )
 from ordivon_harness.protocol import (
     HarnessDispatchFence,
-    HarnessProviderCallRecord,
     HarnessProviderCallSource,
     HarnessProviderCallStatus,
 )
@@ -37,39 +37,6 @@ def binding() -> HarnessRunStoreBinding:
         assignment_id="assignment:p0-v2-001",
         assignment_generation=1,
         assignment_digest=DIGEST_A,
-    )
-
-
-def provider_v1() -> HarnessProviderCallRecord:
-    return HarnessProviderCallRecord(
-        record_id="harness-provider-call-record:p0-v1-001",
-        provider_call_id="provider-call:p0-v1-001",
-        task_id="task:p0-v1-001",
-        harness_run_id="harness-run:p0-v1-001",
-        assignment_id="assignment:p0-v1-001",
-        assignment_generation=1,
-        assignment_digest=DIGEST_A,
-        source_kind=HarnessProviderCallSource.ASSIGNMENT,
-        source_digest=DIGEST_B,
-        source_object_digest=DIGEST_C,
-        state_object_digest=DIGEST_D,
-        turn_id="turn:p0-v1-001",
-        turn_sequence=1,
-        request_digest=DIGEST_A,
-        provider_request_digest=DIGEST_B,
-        adapter_id="adapter:test",
-        requested_model_id="model:test",
-        holder_id="worker:test",
-        claim_generation=1,
-        status=HarnessProviderCallStatus.CLAIMED,
-        result_digest=None,
-        result_object_digest=None,
-        failure_digest=None,
-        failure_object_digest=None,
-        previous_record_digest=None,
-        issued_at_ms=1_000,
-        expires_at_ms=2_000,
-        recorded_at_ms=1_000,
     )
 
 
@@ -111,6 +78,7 @@ class ContinuityRecordTests(unittest.TestCase):
         self.assertEqual(value.to_dict()["kind"], "ordivon.harness-run-store-binding")
 
     def test_compatibility_facades_are_retired_from_current_surfaces(self) -> None:
+        self.assertFalse(hasattr(protocol, "HarnessProviderCallRecord"))
         self.assertFalse(hasattr(continuity_records, "HarnessProviderCallRecordV2"))
         self.assertEqual(ordivon_package.__all__, [])
         self.assertFalse(hasattr(ordivon_package, "HarnessProviderCallRecordV2"))
@@ -183,16 +151,7 @@ class ContinuityRecordTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "both result references"):
             HarnessProviderCallRecordV3.from_dict(strict_v3)
 
-    def test_provider_v1_codec_remains_exact(self) -> None:
-        value = provider_v1()
-        encoded = value.to_dict()
-        self.assertEqual(encoded["schemaVersion"], 1)
-        self.assertEqual(encoded["taskId"], "task:p0-v1-001")
-        self.assertEqual(HarnessProviderCallRecord.from_dict(encoded), value)
-        self.assertEqual(HarnessProviderCallRecord.from_dict(encoded).digest, value.digest)
-
     def test_retained_provider_generations_satisfy_execution_view(self) -> None:
-        self.assertIsInstance(provider_v1(), HarnessProviderCallRecordView)
         self.assertIsInstance(provider_v3(), HarnessProviderCallRecordView)
 
     def test_fence_v2_round_trip_uses_run_revision(self) -> None:

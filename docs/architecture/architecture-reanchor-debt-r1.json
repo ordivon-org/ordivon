@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.architecture-debt-register",
+  "anchorRevision": "39b0ed06f39f06327c5836fc0c24f5b5438e8bb2",
+  "observedDate": "2026-09-28",
+  "truthRole": "architecture-work-register-not-owner-truth",
+  "items": [
+    {
+      "id": "ARD-001",
+      "problem": "meta/next remains an active repository owner/project after its authorities, capabilities, domains, Skills and most reusable contracts moved to natural owners.",
+      "owner": "repository-mechanics",
+      "authority": "canonical Git source plus owner manifest/CI",
+      "impact": ["complexity", "ci-cost", "historical-ontology-resurrection-risk"],
+      "evidence": [
+        "tools/repo/owners.toml still maps meta/next/ to next:verify",
+        "meta/next/mise.toml and pyproject.toml still materialize an executable validation project",
+        "active external source references are concentrated in a few Study reads of meta/next docs/planning/evidence; scripts/tests/policies/schemas/experiments are otherwise referenced primarily by historical evidence"
+      ],
+      "desiredContract": "meta/next is read-only historical/provenance material; current Studies bind exact retained bytes or relocate their live dependency to the natural Study/profile owner; no next:verify owner exists.",
+      "currentGap": "No repository-path archive fence exists yet, and several current Study checks still read exact meta/next evidence/docs.",
+      "recommendedLEGO": "Retire Next executable surfaces and owner row only after current Study dependencies are explicitly rebound and a historical-tree mutation boundary is admitted.",
+      "verification": [
+        "owner selector returns no active Next owner",
+        "root CI contains no next:verify task",
+        "current Study checks pass from natural-owner references",
+        "historical evidence remains readable and Git history/recovery coordinates remain preserved"
+      ],
+      "priority": "HIGH"
+    },
+    {
+      "id": "ARD-002",
+      "problem": "Legacy HarnessDispatchFence v1 still embeds Host Task/Assignment authority vocabulary.",
+      "owner": "harness",
+      "authority": "Harness Run Store persistence/recovery",
+      "impact": ["ontology-debt", "host-harness-coupling"],
+      "evidence": [
+        "current writers use HarnessDispatchFenceV2 with harness runRevision/bindingDigest",
+        "sqlite_run_store.py still retains two v1 from_dict reader paths"
+      ],
+      "desiredContract": "Only caller-neutral Harness dispatch fences remain in active source.",
+      "currentGap": "Persisted-store census has not yet established that no recoverable v1 fence requires the historical decoder.",
+      "recommendedLEGO": "Census authoritative Harness stores for v1 fence objects; migrate/archive exact recovery evidence if required; then remove the v1 decoder and tests.",
+      "verification": ["zero active/recoverable v1 fence objects or an explicit archive migration receipt", "Harness full verification passes", "repo-wide active source contains no Host Task authority namespace in dispatch fencing"],
+      "priority": "MEDIUM"
+    },
+    {
+      "id": "ARD-003",
+      "problem": "Gateway execution capability projection reports Linux/Windows execution unavailable while both Runtime owners report available.",
+      "owner": "gateway-routing-projection",
+      "authority": "Runtime owner describe/readback for liveness; Gateway only for projection correctness",
+      "impact": ["external-capability-realization", "agent-ux", "false-unavailability"],
+      "evidence": [
+        "2026-09-28 Gateway capability.describe execution.linux/windows: configured=true available=false with owner observation TaskGroup error",
+        "direct Linux runtime.describe: local_linux available=true",
+        "direct Windows runtime.describe: windows_native available=true"
+      ],
+      "desiredContract": "Gateway availability projection matches the owner observation without absorbing owner truth, and projection failures are distinguishable from owner unavailability.",
+      "currentGap": "Owner-observation carrier/projection path currently collapses a projection exception into unavailable=false semantics visible to consumers.",
+      "recommendedLEGO": "Diagnose the Gateway owner-observation TaskGroup/carrier seam and preserve explicit projection-error vs owner-unavailable states.",
+      "verification": ["direct Runtime owner availability remains true", "Gateway execution.linux/windows projection returns available=true when owner observation succeeds", "forced projection failure does not claim Runtime owner down"],
+      "priority": "HIGH"
+    },
+    {
+      "id": "ARD-004",
+      "problem": "Authenticated end-user identity may not yet be enforced across Gateway to Runtime Job/Artifact lifecycle operations.",
+      "owner": "security-authorization-seam",
+      "authority": "identity provider + authorization PDP/PEP + Runtime object authority",
+      "impact": ["authority-clarity", "multi-user-safety"],
+      "evidence": ["Earlier R3 red-team evidence identified Gateway audit principal vs Runtime service-principal collapse; current 39b0ed06 requires fresh requalification before the finding is treated as current."],
+      "desiredContract": "Subject/action/resource authorization is explicit for Runtime Job/Artifact lifecycle without inventing a parallel Ordivon IAM system.",
+      "currentGap": "Fresh current-main two-principal negative acceptance not yet performed in this re-anchor round.",
+      "recommendedLEGO": "Requalify existing factorized-principal/AuthZEN-or-provider-IAM seam, then close only the demonstrated enforcement gap.",
+      "verification": ["two-principal negative read/cancel/artifact tests", "service identity remains distinct from delegated subject identity", "audit correlation does not substitute for authorization"],
+      "priority": "HIGH"
+    },
+    {
+      "id": "ARD-005",
+      "problem": "Chat/session response loss still lacks one automatic cross-owner re-entry projection from Work to Harness Run to physical/provider effects.",
+      "owner": "caller-composition",
+      "authority": "Host/Harness/Runtime/provider each retain their local truth",
+      "impact": ["system-continuity", "agent-ux", "duplicate-investigation-cost"],
+      "evidence": [
+        "Host WorkSnapshot already stores referenceRefs",
+        "HarnessRunContract already stores callerRunRef",
+        "Harness/Runtime already provide deterministic response-loss reconciliation",
+        "Social Work already provides Attention/Topic re-entry"
+      ],
+      "desiredContract": "A reconnecting Agent recovers Work, follows exact owner references, reconciles uncertain effects, and resumes cognition without recensusing the whole system.",
+      "currentGap": "The binding is currently a documented composition convention, not an automatically emitted projection with multiple independent consumers.",
+      "recommendedLEGO": "Dogfood WorkRef <-> callerRunRef plus WorkSnapshot Harness/Runtime/provider referenceRefs in at least two independent workloads; promote only repeated irreducible binding mechanics.",
+      "verification": ["response loss does not lose Work/Harness/effect identity", "fresh Agent resumes from bounded refs", "no RecoveryManager/global Session/Checkpoint service introduced"],
+      "priority": "HIGH"
+    },
+    {
+      "id": "ARD-006",
+      "problem": "Architecture documentation can still become stale because deployed projections are manually refreshed.",
+      "owner": "repository-mechanics",
+      "authority": "current physical/source/owner truth",
+      "impact": ["cognitive-simplicity", "currentness"],
+      "evidence": ["CURRENT_ARCHITECTURE previously claimed Gateway 0.4.0 and stale connector catalog after live Gateway had reached 0.5.0 and exposed schema-9 tools."],
+      "desiredContract": "Docs are explicitly non-authoritative projections and fitness checks prevent them from outranking source/evidence.",
+      "currentGap": "Version/currentness fields are not all generated from live/provider owner evidence.",
+      "recommendedLEGO": "Keep documentation non-authoritative; automate only cheap source-derived fields and use whole-system review for live currentness rather than creating an architecture registry service.",
+      "verification": ["architecture constitution checker passes", "current deployed projection identifies itself as non-authoritative", "no documentation-first truth ordering"],
+      "priority": "MEDIUM"
+    }
+  ]
+}

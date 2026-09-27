@@ -1,11 +1,21 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **PARTIALLY DEPLOYED — S0–S2 + S5 authority/capability/knowledge/research slices**
+Status: **SUPERSEDED FOR FUTURE PATH RELOCATION — retained as historical convergence evidence**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
-## Decision
+## Architecture Re-Anchor disposition — 2026-09-28
+
+Structure R2 successfully drove high-value semantic extraction: Composition, canonical Skills, the portable control Plugin, catalogs, profiles and selected studies moved to clearer natural boundaries. Architecture Re-Anchor R1 supersedes Structure R2 as a future path-relocation programme.
+
+Remaining path-only moves **S3, S4, S6, S7 and S9 are cancelled**. Current `services/`, `platform/`, `capabilities/` and `domains/` roots may remain because owner/authority/contract boundaries are already enforced independently of those names. Moving them into `packages/` without a demonstrated reduction in coupling, failure domain, recovery cost or repeated irreducible duplication would create churn without architectural benefit.
+
+S5 survives only as targeted `meta/next` residual disposition. S8 survives only as evidence-driven dependency/fitness guards. Any future source relocation requires a fresh concrete consumer/owner argument and is not continuation of this plan.
+
+Current architecture law is `ARCHITECTURE_REANCHOR_R1.md`.
+
+## Historical Decision
 
 Repository placement is an engineering-navigation mechanism, not the Ordivon ontology.
 The current `services/`, `platform/`, `capabilities/`, `domains/`, and `meta/` roots encode
