@@ -112,3 +112,13 @@ R1 now has bounded owner-native pilots without adding permanent dependencies:
 All four providers were invoked through isolated `uv --with` environments. No provider was added to the repository dependency graph. Exact Runtime Job/Artifact bindings are in `evidence/external-provider-pilots-r1.json`.
 
 The study reuses `meta/next/docs/VERIFIED_REINTEGRATION_EXTERNAL_METHODS_R4.md`, `meta/next/docs/EXPERIMENTAL_EPISODE_R1.md`, and existing `packages/composition` contracts instead of creating a provider registry, experiment scheduler, or second Composition waist.
+
+## Successor bounded pilots: R2/R3 (2026-09-27)
+
+The R1 contracts have now been exercised across a first heterogeneous composition loop and an external formal-equivalence provider without changing the authority boundary.
+
+- **R2 synthetic heterogeneous loop:** five typed affordances (`echo`, `encode`, `publish`, `resolve`, `render`) are enumerated into legal paths. The bounded search found 30 persistent typed roundtrips. The selected `Payload -> Target -> Handle -> Target -> Payload` circuit reproduced payload recovery after local forget and in a fresh session, and R5 emitted one distinguishing witness against each admitted baseline. Evidence: `evidence/capability-science-r2-synthetic-loop.json`.
+- **R3 external equivalence provider:** mCRL2 202607.0 is used from an unpacked official release artifact, without system installation or permanent repository dependency. Strong bisimulation accepted an equivalent pair, rejected a non-equivalent pair, and produced a counterexample trace. Evidence: `evidence/mcrl2-equivalence-provider-pilot-r3.json` and `evidence/capability-science-r3-formal-lift.json`.
+- **R3 computational lift pilot:** one explicit synthetic toggle system has a constructive `L0_STATELESS_RELATION -> L1_FINITE_STATE_TRANSDUCER` certificate. The witness uses the same explicit `read` input after two replayable histories to obtain different outputs, and a complete two-state transducer is supplied as the upper model. The certificate validates against the existing `computational-lift-certificate-v1` schema.
+
+These are bounded research standings only. They do not establish arbitrary Internet-service capability discovery, universal contextual equivalence, any L2+ computational lift, permission, execution authority, or domain acceptance.

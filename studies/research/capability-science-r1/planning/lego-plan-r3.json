@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-science-successor-plan-r3",
+  "studyRef": "study:capability-science-r1",
+  "sourceRevision": "87a9558f6348dea8fc8dd764ae97f91107315295",
+  "status": "C01_C05_FIRST_BOUNDED_LOOP_ACCEPTED",
+  "legos": [
+    {
+      "id": "C01",
+      "name": "Canonicalize R1",
+      "standing": "COMPLETE_CANONICAL_MAIN"
+    },
+    {
+      "id": "C02",
+      "name": "Synthetic Digital World",
+      "standing": "ACCEPTED_BOUNDED_HETEROGENEOUS_WORLD"
+    },
+    {
+      "id": "C03",
+      "name": "Close Discovery Loop",
+      "standing": "ACCEPTED_TYPED_SEARCH_TO_R5_NOVELTY_WITNESS"
+    },
+    {
+      "id": "C04",
+      "name": "External Equivalence Backend",
+      "standing": "PASS_MCRL2_202607_0_STRONG_BISIM_PROVIDER_PILOT"
+    },
+    {
+      "id": "C05",
+      "name": "Computational Lift Backend",
+      "standing": "CERTIFIED_L0_TO_L1_SYNTHETIC_PILOT"
+    }
+  ],
+  "established": [
+    "R2 enumerated 30 bounded persistent typed roundtrips across five heterogeneous affordances.",
+    "The Payload->Target->Handle->Target->Payload circuit reproduced fresh-session recovery and received two R5 distinguishing witnesses.",
+    "mCRL2 202607.0 strong bisimulation was invoked from an ephemeral unpacked official release and produced both true/false verdicts plus a counterexample.",
+    "The L0->L1 toggle certificate binds a same-input history-dependence witness and a complete two-state transducer and passes the existing JSON Schema."
+  ],
+  "unresolved": [
+    "No real HTTP/MCP/browser provider has yet been placed behind the active semantic-identification adapter.",
+    "The R2 typed path search is exhaustive only for the tiny finite synthetic action vocabulary and depth bound.",
+    "The R5 mCRL2 adapter has not yet translated discovered capability circuits automatically into provider-native LTS models.",
+    "No L1->L2 register/data lift, L2->L3 stack/procedural lift, or stronger computational lift is established.",
+    "R2/R3 evidence remains research standing and does not create permission or execution authority."
+  ],
+  "nextActions": [
+    "Add one owned/local HTTP or MCP black-box adapter while preserving synthetic-network isolation.",
+    "Translate a discovered finite capability circuit into mCRL2 LTS automatically and compare it against baseline representatives.",
+    "Add counterexample-driven predicate/vocabulary pressure instead of a one-shot SyGuS pilot.",
+    "Pursue an L1->L2 register/data-automaton lift only with a constructive data-equality witness and explicit model assumptions.",
+    "Keep external providers ephemeral until repeated workloads justify dependency admission."
+  ],
+  "constraints": [
+    "DELETE-CUSTOM-BY-DEFAULT",
+    "Capability discovery is not authority grant.",
+    "Effect, authority, and information flow remain separate.",
+    "UNKNOWN remains first-class outside the supported proof/model boundary.",
+    "Security experiments remain local/synthetic/owned or explicitly authorized."
+  ]
+}
