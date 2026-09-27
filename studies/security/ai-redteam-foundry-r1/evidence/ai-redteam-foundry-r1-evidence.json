@@ -1,5 +1,5 @@
 {
-  "bundleDigest": "sha256:5ca40eef72f228fd07c626b7c0c4069e4612e566cbc15e32236834ecf932b089",
+  "bundleDigest": "sha256:c6303f3f88bd600a6b0f6f929fb57e13e09f09cfe1792c9a56cd8d39f6c8c12c",
   "experiments": {
     "abstractSearchFixture": {
       "discoveryFrontier": {
@@ -765,9 +765,9 @@
     "The bundle proves deterministic study outputs for this exact source/tree state; it does not prove universal model robustness."
   ],
   "schema": "ordivon.ai-redteam.evidence-bundle.r1",
-  "sourceRevision": "ea170a494d30ea8cedce07604e21bb142d3d5167",
+  "sourceRevision": "16c909bb1ca82570a37c720e3cd6177c6fb117d2",
   "standing": "EXPERIMENTAL_STUDY_EVIDENCE_NOT_PRODUCTION_SECURITY_STANDING",
-  "studyTreeDigest": "sha256:530dfe7d907bb6ef05209f59fcce5fd8a6cb2d7ba8e0597509562294ce36516e",
+  "studyTreeDigest": "sha256:9c9f02cb745ce1ad70e5df1c17dca8bd41ddbb7118c938bd745c35c4d4ed7428",
   "studyTreeManifest": [
     {
       "byteLength": 6776,
@@ -780,9 +780,9 @@
       "sha256": "sha256:bddd1b7f378753952072870cfdd03db3cb99eb2efbc60a120ffa1d84ef6aa937"
     },
     {
-      "byteLength": 6348,
+      "byteLength": 6834,
       "path": "README.md",
-      "sha256": "sha256:c99180b90a5a3b1d4cab18f4e90cb57e0004f9b57a1ad243801a419d33769e12"
+      "sha256": "sha256:cea0e59a1219f50a9745c5ca255620bed3369f4e0ada8e7c9bf8513f05d1a521"
     },
     {
       "byteLength": 3594,
@@ -900,9 +900,9 @@
       "sha256": "sha256:0ff28761cfc9a58a190d720fe63e91203fa39f7f69e217b9bb570ffe95864881"
     },
     {
-      "byteLength": 2351,
+      "byteLength": 2735,
       "path": "tests/test_evidence_bundle.py",
-      "sha256": "sha256:bc67a5dc7c1ca8bd459373f763b3ae7297c23f81b77f4bfc46dcc0e03b9d109d"
+      "sha256": "sha256:13525dec8ec4019f48b87339a651235b851caa0b1a25b0b8242664108b8a48b2"
     },
     {
       "byteLength": 9165,
