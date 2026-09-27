@@ -1,0 +1,44 @@
+{
+  "$schema": "https://sing-box.sagernet.org/schema.json",
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "x-reality-api",
+      "listen": "127.0.0.1",
+      "listen_port": 19681
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "http",
+      "tag": "provider-carrier",
+      "server": "10.252.246.2",
+      "server_port": 19680
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "inbound": [
+          "x-reality-api"
+        ],
+        "domain": [
+          "api.x.com"
+        ],
+        "port": 443,
+        "network": [
+          "tcp"
+        ],
+        "action": "route",
+        "outbound": "provider-carrier"
+      },
+      {
+        "action": "reject"
+      }
+    ]
+  }
+}

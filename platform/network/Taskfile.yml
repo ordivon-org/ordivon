@@ -51,7 +51,7 @@ tasks:
 
   all:validate:
     desc: Validate core plus optional provider and consumer profiles without changing live state
-    deps: [core:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate]
+    deps: [core:validate, provider:surfshark:validate, consumer:browserless:provider-carrier:validate, consumer:finance:validate, consumer:supply-chain:validate, consumer:x-reality:validate]
 
   core:install:
     desc: Materialize the exact validated R0 source generation into the live host under one systemd composition root
@@ -644,6 +644,64 @@ tasks:
     desc: Stop only Claude-owned network units; the shared Browserless VPN carrier remains untouched
     cmds:
       - systemctl stop network-v2-claude-client.target network-v2-claude.target
+
+  consumer:x-reality:validate:
+    desc: Validate exact X API transport authority without reading or materializing authentication credentials
+    deps: [consumer:browserless:provider-carrier:validate]
+    cmds:
+      - /usr/bin/sing-box check -c consumers/x-reality/config/egress.json
+      - jq -e '.schemaVersion==1 and .kind=="ordivon.network-v2.x-reality-egress" and .listen=={"host":"127.0.0.1","port":19681,"protocol":"http"} and .allowedHttpsDomains==["api.x.com"] and .directFallback==false and .authenticationAuthority.separate==true and .authenticationAuthority.transportConsumerOwnsCredential==false and .authenticationAuthority.userContextProven==false' consumers/x-reality/config/authority.json >/dev/null
+      - jq -e '.inbounds==[{"type":"http","tag":"x-reality-api","listen":"127.0.0.1","listen_port":19681}] and .outbounds==[{"type":"http","tag":"provider-carrier","server":"10.252.246.2","server_port":19680}] and .route.rules[-1].action=="reject"' consumers/x-reality/config/egress.json >/dev/null
+      - /usr/bin/systemd-analyze verify consumers/browserless/systemd/network-v2-browserless-provider-carrier.service consumers/x-reality/systemd/network-v2-x-reality-egress.service consumers/x-reality/systemd/network-v2-x-reality.target
+      - /usr/bin/bash -n consumers/x-reality/ready.sh consumers/x-reality/acceptance/fault-smoke.sh
+
+  consumer:x-reality:materialize:
+    desc: Materialize bounded X API transport without credential effects
+    deps: [consumer:x-reality:validate]
+    cmds:
+      - install -d -m 0755 /etc/network-v2/x-reality /usr/local/libexec/network-v2
+      - install -m 0644 consumers/x-reality/config/authority.json /etc/network-v2/x-reality/authority.json
+      - install -m 0644 consumers/x-reality/config/egress.json /etc/network-v2/x-reality/egress.json
+      - install -m 0644 consumers/x-reality/systemd/network-v2-x-reality-egress.service /etc/systemd/system/network-v2-x-reality-egress.service
+      - install -m 0644 consumers/x-reality/systemd/network-v2-x-reality.target /etc/systemd/system/network-v2-x-reality.target
+      - install -m 0755 consumers/x-reality/ready.sh /usr/local/libexec/network-v2/x-reality-ready
+      - install -m 0755 consumers/x-reality/acceptance/fault-smoke.sh /usr/local/libexec/network-v2/x-reality-fault-smoke
+      - systemctl daemon-reload
+      - systemctl enable network-v2-x-reality.target
+
+  consumer:x-reality:start:
+    desc: Start only the bounded X transport authority
+    deps: [consumer:x-reality:materialize]
+    cmds:
+      - systemctl start network-v2-x-reality.target
+
+  consumer:x-reality:ready:
+    desc: Prove X destination transport by expected unauthenticated HTTP 401 and unknown-domain rejection
+    cmds:
+      - /usr/local/libexec/network-v2/x-reality-ready
+
+  consumer:x-reality:converge:
+    desc: Materialize, restart and prove X transport without authentication effects
+    cmds:
+      - task: consumer:x-reality:materialize
+      - systemctl restart network-v2-x-reality.target
+      - task: consumer:x-reality:ready
+
+  consumer:x-reality:verify:
+    desc: Verify deployed X authority bytes, live transport consequence and carrier fail-closed semantics
+    cmds:
+      - cmp -s consumers/x-reality/config/authority.json /etc/network-v2/x-reality/authority.json
+      - cmp -s consumers/x-reality/config/egress.json /etc/network-v2/x-reality/egress.json
+      - cmp -s consumers/x-reality/systemd/network-v2-x-reality-egress.service /etc/systemd/system/network-v2-x-reality-egress.service
+      - cmp -s consumers/x-reality/systemd/network-v2-x-reality.target /etc/systemd/system/network-v2-x-reality.target
+      - /usr/local/libexec/network-v2/x-reality-ready
+      - /usr/local/libexec/network-v2/x-reality-fault-smoke
+
+  consumer:x-reality:stop:
+    desc: Stop only X semantic transport; leave the shared physical carrier untouched
+    cmds:
+      - systemctl stop network-v2-x-reality.target
+
 
 vars:
   SYSTEMD_UNITS:
