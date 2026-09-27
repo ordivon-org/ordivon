@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/sandbox-realization-receipt-r4.json",
+  "title": "Sandbox Realization Receipt R4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "requestedEnvironmentDigest", "realizedProviderId", "realizedProviderRevision", "realizedBaseImageDigest", "realizedIsolationDigest", "realizationEvidenceDigest", "disposableInstanceId"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-sandbox-realization-receipt"},
+    "requestedEnvironmentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "realizedProviderId": {"type": "string", "minLength": 1},
+    "realizedProviderRevision": {"type": "string", "minLength": 1},
+    "realizedBaseImageDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "realizedIsolationDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "realizationEvidenceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "disposableInstanceId": {"type": "string", "minLength": 1}
+  }
+}

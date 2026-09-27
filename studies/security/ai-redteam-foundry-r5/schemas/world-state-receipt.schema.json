@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/world-state-receipt-r5.json",
+  "title": "World State Receipt R5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["worldSpecDigest", "stateDigest", "traceDigest", "eventCount", "outboundCount"],
+  "properties": {
+    "worldSpecDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "stateDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "traceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "eventCount": {"type": "integer", "minimum": 0},
+    "outboundCount": {"type": "integer", "minimum": 0}
+  }
+}

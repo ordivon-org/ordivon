@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "searchRunDigest", "points", "discoveredFamilyIds", "unassignedResultCount"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-discovery-frontier"},
+    "searchRunDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "points": {"type": "array"},
+    "discoveredFamilyIds": {"type": "array", "items": {"type": "string"}},
+    "unassignedResultCount": {"type": "integer", "minimum": 0}
+  }
+}
