@@ -58,6 +58,17 @@ def test_windows_service_receipt_separates_path_configuration_from_physical_pres
     assert "Test-Path -LiteralPath $HostBearerTokenFile" in text
 
 
+def test_windows_service_materializer_requires_auth_paths_for_runtime_upstreams() -> None:
+    text = MATERIALIZER.read_text(encoding="utf-8")
+    assert "Linux Runtime URL requires LinuxRuntimeBearerTokenFile" in text
+    assert "Windows Runtime URL requires WindowsRuntimeBearerTokenFile" in text
+    linux_guard = text.index("Linux Runtime URL requires LinuxRuntimeBearerTokenFile")
+    windows_guard = text.index("Windows Runtime URL requires WindowsRuntimeBearerTokenFile")
+    destructive = text.index("$existing = Get-Service")
+    assert linux_guard < destructive
+    assert windows_guard < destructive
+
+
 def test_windows_acl_materializer_uses_service_sid_and_protected_dacls() -> None:
     text = ACL.read_text(encoding="utf-8")
     assert "NT SERVICE\\$ServiceName" in text
