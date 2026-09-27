@@ -465,11 +465,13 @@ fn inspect_summary(
     })
 }
 
+type AttemptRecoveryState = (bool, Option<String>, Option<String>, Option<u64>);
+
 fn attempt_recovery_state(
     connection: &Connection,
     migration_version: i64,
     attempt_id: &str,
-) -> RuntimeResult<(bool, Option<String>, Option<String>, Option<u64>)> {
+) -> RuntimeResult<AttemptRecoveryState> {
     if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {
         return connection
             .query_row(
