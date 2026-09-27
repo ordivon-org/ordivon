@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-science-bounded-novelty-fixture-r1",
+  "observationPolicy": {
+    "policyId": "observation-policy:synthetic-memory-r1",
+    "contexts": ["direct_use", "recover_after_local_forget", "recover_in_fresh_session"]
+  },
+  "library": [
+    {
+      "capabilityId": "cap:stateless-echo",
+      "evidenceRefs": ["evidence:echo-r1"],
+      "observations": {
+        "direct_use": {"returnsPayload": true, "returnsHandle": false},
+        "recover_after_local_forget": {"payloadRecovered": false},
+        "recover_in_fresh_session": {"payloadRecovered": false}
+      }
+    },
+    {
+      "capabilityId": "cap:opaque-handle-only",
+      "evidenceRefs": ["evidence:handle-r1"],
+      "observations": {
+        "direct_use": {"returnsPayload": false, "returnsHandle": true},
+        "recover_after_local_forget": {"payloadRecovered": false},
+        "recover_in_fresh_session": {"payloadRecovered": false}
+      }
+    }
+  ],
+  "candidate": {
+    "capabilityId": "cap:durable-round-trip-memory",
+    "evidenceRefs": ["evidence:synthetic-memory-composition-r1"],
+    "observations": {
+      "direct_use": {"returnsPayload": false, "returnsHandle": true},
+      "recover_after_local_forget": {"payloadRecovered": true},
+      "recover_in_fresh_session": {"payloadRecovered": true}
+    }
+  },
+  "expectedVerdict": "CERTIFIED_NOVEL_WITHIN_BOUNDED_POLICY"
+}

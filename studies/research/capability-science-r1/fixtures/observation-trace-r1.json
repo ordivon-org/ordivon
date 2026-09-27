@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-science-observation-v1",
+  "observationId": "observation:synthetic-memory-fresh-session-r1",
+  "subjectRef": "cap:durable-round-trip-memory",
+  "contextId": "recover_in_fresh_session",
+  "intervention": {"action": "recover", "parameters": {"handle": "fixture-handle-1"}},
+  "observable": {"payloadRecovered": true},
+  "repeatability": {"runs": 3, "successfulReproductions": 3},
+  "standing": "REPEATED_OBSERVATION",
+  "evidenceRefs": ["evidence:synthetic-memory-composition-r1"],
+  "nonClaims": ["This observation is a synthetic bounded fixture and grants no authority."]
+}

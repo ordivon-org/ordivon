@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-science-observation-v1",
+  "observationId": "observation:synthetic-memory-store-intervention-r1",
+  "subjectRef": "cap:durable-round-trip-memory",
+  "contextId": "store_then_recover_in_fresh_session",
+  "intervention": {
+    "action": "store_then_recover",
+    "parameters": {
+      "payloadRef": "fixture:payload-alpha"
+    }
+  },
+  "observable": {
+    "externalStateCreated": true,
+    "payloadRecoveredAfterFreshSession": true
+  },
+  "repeatability": {
+    "runs": 3,
+    "successfulReproductions": 3
+  },
+  "standing": "INTERVENTION_SUPPORTED_EFFECT",
+  "evidenceRefs": [
+    "evidence:synthetic-memory-intervention-r1"
+  ],
+  "nonClaims": [
+    "This is a deterministic synthetic intervention fixture; it does not replace an external causal-discovery or causal-inference engine.",
+    "The fixture grants no authority or execution permission."
+  ]
+}

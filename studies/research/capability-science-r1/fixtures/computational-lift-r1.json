@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-science-computational-lift-fixtures-r1",
+  "certificates": [
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.computational-lift-certificate-v1",
+      "certificateId": "lift:synthetic-register-over-fsm-r1",
+      "subjectRef": "fixture:register-memory-system",
+      "lowerModelClass": "L1_FINITE_STATE_TRANSDUCER",
+      "higherModelClass": "L2_REGISTER_DATA_AUTOMATON",
+      "standing": "CERTIFIED_LIFT",
+      "basis": "SIMULATION_RELATION",
+      "witnessRefs": [
+        "evidence:synthetic-register-symbolic-simulation-r1"
+      ],
+      "assumptions": [
+        "the symbolic data domain is treated as unbounded by the trusted fixture model"
+      ],
+      "bounds": {
+        "fixtureModel": "symbolic"
+      },
+      "universalDecisionProcedureClaimed": false,
+      "nonClaims": [
+        "This is a synthetic model certificate, not black-box proof over an arbitrary real system."
+      ],
+      "completenessEvidenceRefs": []
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.computational-lift-certificate-v1",
+      "certificateId": "lift:no-stack-within-finite-fixture-r1",
+      "subjectRef": "fixture:finite-toggle-system",
+      "lowerModelClass": "L1_FINITE_STATE_TRANSDUCER",
+      "higherModelClass": "L3_VISIBLY_PUSHDOWN_PROCEDURAL",
+      "standing": "CERTIFIED_NO_LIFT_WITHIN_MODEL_CLASS",
+      "basis": "MODEL_CHECK",
+      "witnessRefs": [
+        "evidence:finite-toggle-exhaustive-model-r1"
+      ],
+      "assumptions": [
+        "the complete fixture transition graph is trusted and finite"
+      ],
+      "bounds": {
+        "states": 2
+      },
+      "universalDecisionProcedureClaimed": false,
+      "nonClaims": [
+        "No claim is made about a different implementation or environment."
+      ],
+      "completenessEvidenceRefs": [
+        "evidence:finite-toggle-exhaustive-model-completeness-r1"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.computational-lift-certificate-v1",
+      "certificateId": "lift:unknown-general-computation-r1",
+      "subjectRef": "fixture:opaque-composed-system",
+      "lowerModelClass": "L4_PETRI_VAS_COUNTERLIKE",
+      "higherModelClass": "L6_GENERAL_INTERACTIVE_COMPUTATION",
+      "standing": "UNKNOWN",
+      "basis": "NONE",
+      "witnessRefs": [],
+      "assumptions": [],
+      "bounds": {},
+      "universalDecisionProcedureClaimed": false,
+      "nonClaims": [
+        "Absence of a certificate is not evidence of absence of general computation."
+      ],
+      "completenessEvidenceRefs": []
+    }
+  ]
+}
