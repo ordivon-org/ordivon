@@ -35,7 +35,7 @@ param(
     [string]$CfAccessAudience = '',
     [Parameter()]
     [ValidateSet('Manual', 'Automatic')]
-    [string]$StartMode = 'Automatic',
+    [string]$StartMode = 'Manual',
     [Parameter()]
     [switch]$ReplaceExisting
 )
@@ -80,6 +80,65 @@ if ([System.IO.Path]::GetFullPath([string]$releaseReceipt.releasePath) -ne $rele
 }
 if ([System.IO.Path]::GetFullPath([string]$releaseReceipt.gatewayExecutable) -ne $gatewayExe) {
     throw "Gateway release receipt executable mismatch"
+}
+
+if (-not [string]::IsNullOrWhiteSpace($LinuxRuntimeUrl) -and [string]::IsNullOrWhiteSpace($LinuxRuntimeBearerTokenFile)) {
+    throw "Linux Runtime URL requires LinuxRuntimeBearerTokenFile"
+}
+if (-not [string]::IsNullOrWhiteSpace($WindowsRuntimeUrl) -and [string]::IsNullOrWhiteSpace($WindowsRuntimeBearerTokenFile)) {
+    throw "Windows Runtime URL requires WindowsRuntimeBearerTokenFile"
+}
+
+$candidateSurfacePath = Join-Path $release 'mcp-surface.json'
+if (-not (Test-Path -LiteralPath $candidateSurfacePath -PathType Leaf)) {
+    throw "Gateway release is missing mcp-surface.json"
+}
+$candidateSurface = Get-Content -LiteralPath $candidateSurfacePath -Raw | ConvertFrom-Json
+if ($candidateSurface.kind -ne 'ordivon.mcp-tool-surface' -or $candidateSurface.service -ne 'ordivon-gateway') {
+    throw "Gateway MCP surface manifest identity mismatch"
+}
+if ([string]$candidateSurface.packageVersion -ne [string]$releaseReceipt.packageVersion) {
+    throw "Gateway MCP surface package version mismatch"
+}
+if ([int]$candidateSurface.surfaceEpoch -lt 1) {
+    throw "Gateway MCP surface epoch must be positive"
+}
+$candidateTools = @($candidateSurface.tools | ForEach-Object { [string]$_ })
+if ($candidateTools.Count -eq 0 -or ($candidateTools | Sort-Object -Unique).Count -ne $candidateTools.Count) {
+    throw "Gateway MCP surface tools must be non-empty and unique"
+}
+
+$existingCim = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
+if ($existingCim -and $existingCim.PathName) {
+    $releasePattern = [regex]::Escape((Join-Path $prefixPath 'releases')) + '[\\/]([0-9a-f]{40})'
+    $match = [regex]::Match([string]$existingCim.PathName, $releasePattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+        $currentCommit = $match.Groups[1].Value.ToLowerInvariant()
+        $currentSurfacePath = Join-Path (Join-Path (Join-Path $prefixPath 'releases') $currentCommit) 'mcp-surface.json'
+        if (Test-Path -LiteralPath $currentSurfacePath -PathType Leaf) {
+            $currentSurface = Get-Content -LiteralPath $currentSurfacePath -Raw | ConvertFrom-Json
+            if ($currentSurface.kind -ne 'ordivon.mcp-tool-surface' -or $currentSurface.service -ne 'ordivon-gateway') {
+                throw "current Gateway MCP surface manifest identity mismatch"
+            }
+            $currentTools = @($currentSurface.tools | ForEach-Object { [string]$_ })
+            $candidateToolJson = ($candidateTools | ConvertTo-Json -Compress)
+            $currentToolJson = ($currentTools | ConvertTo-Json -Compress)
+            $toolsChanged = $candidateToolJson -ne $currentToolJson
+            $candidateEpoch = [int]$candidateSurface.surfaceEpoch
+            $currentEpoch = [int]$currentSurface.surfaceEpoch
+            if ($toolsChanged) {
+                if ($candidateEpoch -le $currentEpoch) {
+                    throw "Gateway MCP tool surface changed without advancing surfaceEpoch"
+                }
+                if ([version]$candidateSurface.packageVersion -le [version]$currentSurface.packageVersion) {
+                    throw "Gateway MCP tool surface changed without advancing packageVersion"
+                }
+            }
+            elseif ($candidateEpoch -ne $currentEpoch) {
+                throw "Gateway MCP surfaceEpoch changed while tool surface is unchanged"
+            }
+        }
+    }
 }
 
 $existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -229,9 +288,22 @@ $receipt = [ordered]@{
     linuxRuntimeUrl = $LinuxRuntimeUrl
     windowsRuntimeUrl = $WindowsRuntimeUrl
     hostUrl = $HostUrl
-    linuxBearerConfigured = [bool]$LinuxRuntimeBearerTokenFile
-    windowsBearerConfigured = [bool]$WindowsRuntimeBearerTokenFile
-    hostBearerConfigured = [bool]$HostBearerTokenFile
+    linuxBearerTokenFile = $(if ($LinuxRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($LinuxRuntimeBearerTokenFile) } else { $null })
+    windowsBearerTokenFile = $(if ($WindowsRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($WindowsRuntimeBearerTokenFile) } else { $null })
+    hostBearerTokenFile = $(if ($HostBearerTokenFile) { [System.IO.Path]::GetFullPath($HostBearerTokenFile) } else { $null })
+    activationRequired = $true
+    linuxBearerPathConfigured = [bool]$LinuxRuntimeBearerTokenFile
+    windowsBearerPathConfigured = [bool]$WindowsRuntimeBearerTokenFile
+    hostBearerPathConfigured = [bool]$HostBearerTokenFile
+    linuxBearerFilePresentAtMaterialization = [bool](
+        $LinuxRuntimeBearerTokenFile -and (Test-Path -LiteralPath $LinuxRuntimeBearerTokenFile)
+    )
+    windowsBearerFilePresentAtMaterialization = [bool](
+        $WindowsRuntimeBearerTokenFile -and (Test-Path -LiteralPath $WindowsRuntimeBearerTokenFile)
+    )
+    hostBearerFilePresentAtMaterialization = [bool](
+        $HostBearerTokenFile -and (Test-Path -LiteralPath $HostBearerTokenFile)
+    )
     publicOriginConfigured = [bool]$PublicOrigin
     trustCfAccess = [bool]$TrustCfAccess
     cfAccessIssuerConfigured = [bool]$CfAccessIssuer
