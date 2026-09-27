@@ -32,7 +32,7 @@
     "shadowProfiles": 20,
     "productionV1ExampleProfiles": 13,
     "deliveryFacadeLines": 0,
-    "directPythonProviderLines": 608,
+    "directPythonProviderLines": 575,
     "trustVsaLines": 808,
     "ociPackageStageLines": 362,
     "directPythonProviderProjectFanout": 17,
@@ -41,7 +41,9 @@
     "deliveryCliProviderLines": 0,
     "completeNativeClaimResultProfiles": 20,
     "boundVerifyProfiles": 20,
-    "remainingLiteralClaimAddressabilityGaps": 0
+    "remainingLiteralClaimAddressabilityGaps": 0,
+    "directPythonProviderClassLines": 480,
+    "directPythonProviderMethods": 17
   },
   "nodes": [
     {
@@ -418,17 +420,19 @@
     {
       "id": "D01",
       "label": "DualEvaluationBackbones",
-      "observation": "Canonical Agent verification intent now enters ArtifactOperation and DirectPython VerifyOperationHandler for both current production-v1 Office/Web and registered standards-first family verification. Provider implementations remain different, but both emit the same exact EvaluationProjection semantic waist; the historical artifact_verify.py route is retained only as a compatibility facade.",
+      "observation": "Canonical Agent verification intent enters ArtifactOperation and DirectPython VerifyOperationHandler for both current production-v1 Office/Web and registered standards-first family verification. Provider implementations remain distinct, while both emit one exact EvaluationProjection semantic waist; scripts/artifact_verify.py remains a compatibility facade rather than a second canonical lifecycle.",
       "priority": "P0",
-      "state": "CANDIDATE_RESOLVED_CANONICAL_OPERATION_LIFECYCLE_CONVERGED_AWAITING_INTEGRATION",
+      "state": "RESOLVED",
       "resolutionBoundary": "Do not mark resolved until production routing/lifecycle convergence is separately justified; compatibility equivalence is not physical backbone unification.",
-      "resolution": "R2-S1F converges the canonical lifecycle without forcing one verifier algorithm: production-v1 retains execute_verify_stage; registered-v2 resolves CapabilityBinding -> VerifierPlugin; both project exact observations/claims/standing through one EvaluationProjection. Final RESOLVED requires merged-tree requalification."
+      "resolution": "R2-S1F is integrated and merged-tree requalified: production-v1 retains execute_verify_stage; registered-v2 resolves CapabilityBinding -> VerifierPlugin; both project exact observations/claims/standing through one EvaluationProjection and Agent intent no longer selects a verification backbone.",
+      "resolutionCommit": "87a9558f6348dea8fc8dd764ae97f91107315295"
     },
     {
       "id": "D02",
       "label": "CompositionRootConcentration",
-      "observation": "DirectPythonOperationProvider has 17 project-module dependencies and a 513-line class.",
-      "priority": "P1"
+      "observation": "Fresh post-D01 census: direct_python.py is 575 source lines; DirectPythonOperationProvider class body is 480 lines with 17 methods and fan-out to 17 project modules. Verification routing has been extracted into VerifyOperationHandler, but build/trust/package composition remains concentrated.",
+      "priority": "P1",
+      "state": "OPEN_POST_D01_RECENSUS"
     },
     {
       "id": "D03",
@@ -544,7 +548,7 @@
     {
       "id": "R2-S1F",
       "objective": "Converge canonical Agent verification intent and current production-v1/registered-v2 execution families through ArtifactOperation plus one EvaluationProjection semantic waist without changing production-v1 profile authority or family verifier semantics.",
-      "status": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
       "nodeIds": [
         "K01",
         "K02",
@@ -556,9 +560,11 @@
         "A03",
         "C01"
       ],
-      "result": "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED_CANDIDATE",
+      "result": "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED",
       "evidence": "planning/evaluation-backbone-convergence-r1.json",
-      "evidenceBoundary": "Candidate closes canonical dual-backbone selection at Agent/ArtifactOperation lifecycle while preserving distinct provider implementations. It does not retire profile-v1, promote profile-v2, merge family semantics, or claim trust/release/consumer acceptance."
+      "evidenceBoundary": "Canonical lifecycle convergence is integrated and merged-tree requalified while preserving distinct provider implementations. This does not retire profile-v1, promote profile-v2, merge family semantics, or claim trust/release/consumer acceptance.",
+      "integrationCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
+      "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28"
     },
     {
       "id": "R2-S2",
@@ -653,6 +659,15 @@
       "ownerGateJobId": "job-01a0e15d-3945-7661-8fac-22e98fede529",
       "realRegisteredV2JobId": "job-01a0e15c-3c5c-7a43-bb8a-a69ea5ec3d50",
       "realProductionV1JobId": "job-01a0e15c-8af5-7200-9a86-dc250c686b72"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S1F/D01",
+      "standing": "INTEGRATED_VERIFIED_D01_RESOLVED",
+      "implementationCommit": "c49b33fca35a5eacb1e885ca514123a6f12e65b0",
+      "cleanupCommit": "bc837101fe9f0110433c16912c46a5ce5fb768c9",
+      "mergeCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
+      "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28"
     }
   ]
 }

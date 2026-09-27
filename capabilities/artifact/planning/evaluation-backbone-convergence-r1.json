@@ -37,8 +37,8 @@
     "A03",
     "C01"
   ],
-  "standing": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
-  "truthRole": "candidate-implementation-and-verification-evidence-not-yet-integration-proof",
+  "standing": "INTEGRATED_VERIFIED",
+  "truthRole": "integrated-verification-evidence-with-merged-tree-requalification",
   "verification": [
     {
       "class": "focused-contract-operation-suite",
@@ -63,6 +63,26 @@
       "detail": "mise run verify: 415 passed, 3 skipped, 40 deselected, 107 subtests passed; Ruff/lock/sync passed.",
       "jobId": "job-01a0e15d-3945-7661-8fac-22e98fede529",
       "standing": "PASS"
+    },
+    {
+      "class": "final-exact-candidate-owner-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e263-820e-7182-b7f4-284a09c069db",
+      "detail": "Final clean candidate after Agent-surface currentness cleanup passed the complete Artifact owner gate before integration."
+    },
+    {
+      "class": "merged-tree-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28",
+      "detail": "Exact canonical merge tree passed the complete Artifact owner gate after integration; execution exited zero with Ruff/lock/sync and owner tests green."
     }
-  ]
+  ],
+  "integration": {
+    "implementationCommit": "c49b33fca35a5eacb1e885ca514123a6f12e65b0",
+    "agentSurfaceCleanupCommit": "bc837101fe9f0110433c16912c46a5ce5fb768c9",
+    "mergeCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
+    "mergedArtifactTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
 }

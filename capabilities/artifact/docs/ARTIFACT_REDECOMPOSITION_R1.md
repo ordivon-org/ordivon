@@ -237,24 +237,24 @@ No arrow above implies that a downstream step upgrades an upstream claim unless 
 
 ### D1 — Two evaluation models
 
-Office/Web production verification is still centered on artifact_verification.stage.execute_verify_stage, while standards-first families use profile-v2/capability-binding dynamic verifier routing.
+Historical R1 observation: Office/Web production verification was centered on `artifact_verification.stage.execute_verify_stage`, while standards-first families selected profile-v2/capability-binding verifier routing through a separate canonical entry surface.
 
-This is the most important semantic duplication.
+2026-09-27 resolution: both now enter the canonical `ArtifactOperation → DirectPythonOperationProvider → VerifyOperationHandler` lifecycle. Production-v1 retains its existing verifier implementation and authority; registered-v2 resolves `CapabilityBinding → VerifierPlugin`. Both preserve their native results and project into one `EvaluationRequest → EvidenceObservation[] → ClaimResults → StandingDecision` semantic waist. The compatibility `scripts/artifact_verify.py` facade no longer constitutes a second canonical lifecycle.
 
-Target direction:
-
-Both should eventually enter a common EvaluationRequest → EvidenceSet → Standing abstraction, while retaining different verifier plugins.
-
-Do not force the production-v1 lineage into v2 until equivalence is proven.
+Profile-v1 is not retired and profile-v2 is not promoted by this convergence.
 
 ### D2 — DirectPython provider is a composition root at risk of becoming a second monolith
 
 Observed:
 
-- 608 source lines;
-- class body 513 lines;
-- fan-out to 17 project modules;
-- produce() alone is 168 lines with operation-kind branching.
+Post-D01 fresh census:
+
+- `direct_python.py`: 575 source lines;
+- `DirectPythonOperationProvider` class body: 480 lines;
+- 17 methods;
+- fan-out to 17 project modules.
+
+Verification routing has already moved into `VerifyOperationHandler`, so the next audit must remeasure the remaining build/trust/package composition rather than replay the pre-D01 split plan.
 
 Target direction:
 
@@ -400,7 +400,7 @@ Pressure-test the production Office/Web profile-v1 verification lineage through 
 
 ### R2-S1F — Canonical Verify Lifecycle / Evaluation Waist Convergence
 
-2026-09-27 candidate standing: implemented and owner-verified, awaiting integration. Agent verification intent now compiles to the canonical `ArtifactOperation` contract instead of selecting the standards-first verifier CLI. `DirectPythonOperationProvider` delegates verification to a replaceable `VerifyOperationHandler`: registered production-v1 Office/Web bytes retain the existing `execute_verify_stage` implementation, while native-v2 family profiles resolve an explicit `CapabilityBinding` into a formal `VerifierPlugin`. Both routes preserve native results and project into one `artifact-evaluation-projection` carrying exact subject/capability-bound evidence observations, exact claim results and profile/policy-owned `StandingDecision`. The existing `scripts/artifact_verify.py` service remains a compatibility facade and emits the same registered-v2 projection semantics. This does not retire profile-v1, promote profile-v2, merge family verification algorithms, or combine trust/release/consumer acceptance with verification.
+2026-09-27 standing: implemented, integrated and merged-tree requalified. Agent verification intent now compiles to the canonical `ArtifactOperation` contract instead of selecting the standards-first verifier CLI. `DirectPythonOperationProvider` delegates verification to a replaceable `VerifyOperationHandler`: registered production-v1 Office/Web bytes retain the existing `execute_verify_stage` implementation, while native-v2 family profiles resolve an explicit `CapabilityBinding` into a formal `VerifierPlugin`. Both routes preserve native results and project into one `artifact-evaluation-projection` carrying exact subject/capability-bound evidence observations, exact claim results and profile/policy-owned `StandingDecision`. The existing `scripts/artifact_verify.py` service remains a compatibility facade and emits the same registered-v2 projection semantics. This does not retire profile-v1, promote profile-v2, merge family verification algorithms, or combine trust/release/consumer acceptance with verification.
 
 ### R2-S2 — Trust Separation Audit
 
