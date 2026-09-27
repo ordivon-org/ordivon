@@ -398,6 +398,10 @@ Pressure-test the production Office/Web profile-v1 verification lineage through 
 
 2026-09-27 execution standing: implemented, owner-verified, integrated and requalified. Current Presentation, Document and Web profile-v1 gate/output/target semantics are exact compatibility matches for their canonical v2 shadow semantics. A pure compatibility adapter binds both profile byte identities plus subject identity, projects legacy gate receipts into explicit claim-local observations, and delegates bounded standing to the Artifact kernel. Native verify-stage results round-trip under a canonical digest fence. Production `execute_verify_stage` routing is unchanged; profile-v1 is not retired, profile-v2 is not promoted, and D01 remains open as a physical dual-backbone divergence.
 
+### R2-S1F — Canonical Verify Lifecycle / Evaluation Waist Convergence
+
+2026-09-27 candidate standing: implemented and owner-verified, awaiting integration. Agent verification intent now compiles to the canonical `ArtifactOperation` contract instead of selecting the standards-first verifier CLI. `DirectPythonOperationProvider` delegates verification to a replaceable `VerifyOperationHandler`: registered production-v1 Office/Web bytes retain the existing `execute_verify_stage` implementation, while native-v2 family profiles resolve an explicit `CapabilityBinding` into a formal `VerifierPlugin`. Both routes preserve native results and project into one `artifact-evaluation-projection` carrying exact subject/capability-bound evidence observations, exact claim results and profile/policy-owned `StandingDecision`. The existing `scripts/artifact_verify.py` service remains a compatibility facade and emits the same registered-v2 projection semantics. This does not retire profile-v1, promote profile-v2, merge family verification algorithms, or combine trust/release/consumer acceptance with verification.
+
 ### R2-S2 — Trust Separation Audit
 
 Map every artifact_trust/vsa.py function to statement, policy, sigstore-effect, or aggregation; prove whether those groups can be separated without circular dependencies.

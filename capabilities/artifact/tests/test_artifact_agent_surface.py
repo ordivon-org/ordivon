@@ -1,3 +1,4 @@
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -47,15 +48,94 @@ class ArtifactAgentSurfaceTests(unittest.TestCase):
         self.assertEqual(row["gates"]["deliveryReadback"]["status"], "NOT_EXPLICITLY_MODELED")
         self.assertEqual(row["gates"]["roundTripEdit"]["status"], "EDITABLE_OUTPUT_DECLARED_BUT_ROUNDTRIP_GATE_UNMODELED")
 
-    def test_verify_proposal_compiles_existing_service_not_family_logic(self):
+    def test_verify_proposal_compiles_canonical_artifact_operation_not_verifier_cli(self):
         with tempfile.TemporaryDirectory() as d:
-            p = Path(d) / "request.json"
-            p.write_text(json.dumps({"profile": {"id": "eda-kicad-pcb-gerber-r1"}}))
+            root = Path(d)
+            subject = root / "subject.png"; subject.write_bytes(b"not-executed")
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/still-image-png-srgb-r1-v2.json"
+            p = root / "request.json"
+            p.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "artifact-verification-request",
+                "requestId": "agent-surface/png",
+                "profile": {
+                    "id": "still-image-png-srgb-r1",
+                    "path": str(profile),
+                    "sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
+                },
+                "subject": {
+                    "path": str(subject),
+                    "sha256": hashlib.sha256(subject.read_bytes()).hexdigest(),
+                },
+                "evidenceDirectory": str(root / "evidence"),
+            }))
             result = M.verify_proposal(str(p))
-            if not M.ARTIFACT_PYTHON.is_file(): self.skipTest("managed Artifact Python unavailable")
             self.assertTrue(result["ready"], result)
-            self.assertEqual(result["plan"]["executable"], str(M.ARTIFACT_PYTHON))
-            self.assertEqual(result["plan"]["args"][0], "scripts/artifact_verify.py")
+            operation = result["artifactOperation"]
+            self.assertEqual(operation["kind"], "ordivon.artifact-operation")
+            self.assertEqual(operation["operationKind"], "verify")
+            self.assertEqual(operation["inputs"]["profile"]["sha256"], hashlib.sha256(profile.read_bytes()).hexdigest())
+            self.assertEqual(operation["inputs"]["artifact"]["sha256"], hashlib.sha256(subject.read_bytes()).hexdigest())
+            self.assertEqual(result["executionOwner"], "artifact_operations.ArtifactOperationExecutor")
+            source = (ROOT / "scripts/artifact_agent_surface.py").read_text(encoding="utf-8")
+            verify_source = source[source.index("def verify_proposal"):source.index("def build_proposal")]
+            self.assertNotIn("_plan(VERIFY", verify_source)
+            self.assertIn("operation_envelope", verify_source)
+
+    def test_verify_proposal_accepts_registered_production_v1_source_authority(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.pptx"; subject.write_bytes(b"not-executed")
+            profile = ROOT / "artifact-delivery/examples/pdu-sdu-presentation-r1.json"
+            request = root / "request.json"
+            request.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "artifact-verification-request",
+                "requestId": "agent-surface/production-v1",
+                "profile": {
+                    "id": "pdu-sdu-presentation-r1",
+                    "path": str(profile),
+                    "sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
+                },
+                "subject": {
+                    "path": str(subject),
+                    "sha256": hashlib.sha256(subject.read_bytes()).hexdigest(),
+                },
+                "evidenceDirectory": str(root / "evidence"),
+            }))
+            result = M.verify_proposal(str(request))
+            self.assertTrue(result["ready"], result)
+            self.assertEqual(result["artifactOperation"]["operationKind"], "verify")
+            self.assertEqual(
+                Path(result["artifactOperation"]["inputs"]["profile"]["path"]).resolve(),
+                profile.resolve(),
+            )
+
+    def test_verify_proposal_fails_closed_when_registered_v2_requires_object_contract(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            subject = root / "subject.wav"; subject.write_bytes(b"not-executed")
+            profile = ROOT / "artifact-delivery/shadow-v2/examples/audio-wave-pcm16-r1-v2.json"
+            request = root / "request.json"
+            request.write_text(json.dumps({
+                "schemaVersion": 1,
+                "kind": "artifact-verification-request",
+                "requestId": "agent-surface/wave-missing-contract",
+                "profile": {
+                    "id": "audio-wave-pcm16-r1",
+                    "path": str(profile),
+                    "sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
+                },
+                "subject": {
+                    "path": str(subject),
+                    "sha256": hashlib.sha256(subject.read_bytes()).hexdigest(),
+                },
+                "evidenceDirectory": str(root / "evidence"),
+            }))
+            result = M.verify_proposal(str(request))
+            self.assertFalse(result["ready"])
+            self.assertIn("OBJECTCONTRACT_REQUIRED", result["blockers"])
+            self.assertIsNone(result["artifactOperation"])
 
     def test_build_proposal_uses_artifact_operation_not_delivery_cli(self):
         request = ROOT / "artifact-delivery/examples/presentation-native-smoke-request-r1.json"

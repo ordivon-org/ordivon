@@ -40,6 +40,7 @@ from artifact_verifiers.web import verify_html_conformance, verify_web_local
 from scripts.artifact_oci_package import execute_oci_package_stage
 
 from .common import PreparedOperation
+from .verification import VerifyOperationHandler
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = ROOT / "artifact-delivery"
@@ -105,6 +106,10 @@ class DirectPythonOperationProvider:
         self.pandoc = document_toolchain.selected_external_file(
             "ARTIFACT_PANDOC",
             document_toolchain.GLOBAL_PANDOC,
+        )
+        self.verify_handler = VerifyOperationHandler(
+            ARTIFACT_ROOT,
+            production_verify=self.execute_verify_stage,
         )
 
     def _admit_presentation_source(
@@ -366,15 +371,7 @@ class DirectPythonOperationProvider:
             )
 
         if kind == "verify":
-            profile_path = expected_file(dict(inputs["profile"]), "profile")
-            artifact_path = expected_file(dict(inputs["artifact"]), "artifact")
-            return PreparedOperation(
-                {
-                    "profile": operation_file_fact(profile_path),
-                    "artifact": operation_file_fact(artifact_path),
-                },
-                {"profilePath": profile_path, "artifactPath": artifact_path},
-            )
+            return self.verify_handler.prepare(operation)
 
         if kind == "verify-trust":
             profile_path = expected_file(dict(inputs["profile"]), "profile")
@@ -490,35 +487,7 @@ class DirectPythonOperationProvider:
             }
 
         if operation_kind == "verify":
-            evidence = output_directory / "evidence"
-            result = self.execute_verify_stage(
-                context["profilePath"],
-                context["artifactPath"],
-                evidence,
-            )
-            report = output_directory / "verify-stage.json"
-            _write_json(report, result)
-            if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"verify stage did not PASS: {result.get('failures')}"
-                )
-            roles = {"verifyReport": "verify-stage.json"}
-            gates: list[str] = []
-            for path in sorted(evidence.glob("*.json")):
-                relative = f"evidence/{path.name}"
-                if path.name.endswith(".vsa.json"):
-                    gate = path.name[:-9]
-                    roles[f"gateVsa:{gate}"] = relative
-                    gates.append(gate)
-                elif path.name.endswith(".raw.json"):
-                    gate = path.name[:-9]
-                    roles[f"rawEvidence:{gate}"] = relative
-            return roles, {
-                "profileVerificationComplete": bool(
-                    result.get("profileVerificationComplete")
-                ),
-                "gateVsas": gates,
-            }
+            return self.verify_handler.produce(context, output_directory)
 
         if operation_kind == "verify-trust":
             normalized = context["gateVsas"]
