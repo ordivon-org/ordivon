@@ -12,7 +12,7 @@ External owners retain preservation semantics:
 - systemd owns timer/process scheduling; Docker Compose owns local container composition.
 
 Ordivon owns only the bounded local profile: exact provider/version/carrier selection,
-the R7/R10 local composition, immutable evidence, and independent verification.
+the R7/R10 historical composition, the current R11 local operational overlay, immutable evidence, and independent verification.
 
 The current Archivematica Docker composition is a validated local preservation profile.
 It is not claimed to be an officially supported Archivematica production deployment,
@@ -21,3 +21,7 @@ failure domain.
 
 Creative Library is intentionally excluded. It is a presentation/read-model concern
 with current Media consumers, not preservation-format authority.
+
+## Current R11 host-port profile
+
+The current local Docker Compose overlay is `config/archivematica-preservation-r11.compose.yml`. R11 preserves the accepted R10 restart/volume/image constraints and moves published host ports from 620xx to 420xx because Windows/WSL host networking dynamically excluded the former 620xx range during the 2026-09-27 recovery. Provider container ports and inter-container service names are unchanged. R10 remains frozen historical closeout evidence.
