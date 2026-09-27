@@ -72,8 +72,12 @@
     {
       "id": "AF10",
       "owner": "security",
-      "status": "BLOCKED_EXTERNAL_TRANSPORT",
-      "responsibility": "Re-run pinned OPA OCI policy test when Docker registry path is healthy."
+      "status": "PASS",
+      "responsibility": "Pinned OPA OCI policy replay completed through the current Network v2 Supply-Chain Docker transport.",
+      "evidence": [
+        "meta/next/evidence/acceptance/admission-fabric-r2-20260927.json",
+        "job-01a0e27a-03ac-7812-bc18-1a875ee52ee1"
+      ]
     }
   ],
   "nextSlice": {
