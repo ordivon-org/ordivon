@@ -5721,7 +5721,11 @@ fn runtime_service_construction_defers_orphan_recovery_to_bounded_maintenance() 
     let created = created(
         sandbox
             .registry
-            .submit(&request(&sandbox, "request:runtime-service-orphan-startup", 1))
+            .submit(&request(
+                &sandbox,
+                "request:runtime-service-orphan-startup",
+                1,
+            ))
             .unwrap(),
     );
     fs::create_dir_all(&created.attempt.bundle_path).unwrap();
