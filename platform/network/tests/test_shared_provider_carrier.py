@@ -86,3 +86,10 @@ def test_provider_switch_uses_wg_quick_compatible_temp_profile_and_restores_targ
     assert 'before_inode=$(stat -Lc' in switch
     assert 'test "$before_inode" = "$after_inode"' in switch
     assert 'standing:"RECOVERED_SESSION"' in switch
+
+def test_production_path_uses_application_consequence_not_30s_handshake_age():
+    script = (BROWSERLESS / "acceptance" / "production-path.sh").read_text()
+    assert 'test "$handshake_age" -le 30' not in script
+    assert 'test "${hs:-0}" -gt 0' in script
+    assert 'openai_http' in script and 'chatgpt_http' in script
+    assert 'Current liveness is proven' in script
