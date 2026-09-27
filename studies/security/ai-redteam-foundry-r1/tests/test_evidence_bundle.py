@@ -49,9 +49,19 @@ class EvidenceBundleTests(unittest.TestCase):
         self.assertEqual(self.bundle["studyTreeManifest"], manifest)
         self.assertEqual(self.bundle["studyTreeDigest"], digest_bytes(canonical_bytes(manifest)))
 
-    def test_bundle_binds_workspace_head_revision(self) -> None:
+    def test_bundle_source_revision_remains_reachable_from_current_head(self) -> None:
         head = subprocess.check_output(["/usr/bin/git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True).strip()
-        self.assertEqual(self.bundle["sourceRevision"], head)
+        source_revision = self.bundle["sourceRevision"]
+        result = subprocess.run(
+            ["/usr/bin/git", "merge-base", "--is-ancestor", source_revision, head],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        self.assertEqual(
+            result.returncode,
+            0,
+            "evidence-producing sourceRevision must remain reachable from the current integrated history",
+        )
 
     def test_bundle_does_not_claim_production_security_standing(self) -> None:
         self.assertEqual(

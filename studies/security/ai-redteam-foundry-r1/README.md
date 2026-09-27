@@ -123,6 +123,12 @@ A finding is only a research finding if it binds at least:
 
 `Observation != Evidence != RootCause != Production Authority`.
 
+The committed R1 evidence bundle binds the exact revision that produced that evidence. After later stacked
+studies or integration merges, `sourceRevision` is therefore expected to remain a reachable ancestor of the
+current integrated HEAD, not to equal HEAD forever. The independent study-tree manifest check still requires
+the evidence-covered R1 bytes to match exactly; if those bytes change, the bundle must be regenerated rather
+than silently reinterpreted under a newer revision.
+
 ## Verification
 
 Run the owner-local verification:
