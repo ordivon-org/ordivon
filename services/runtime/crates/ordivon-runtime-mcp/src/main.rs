@@ -320,11 +320,11 @@ pub(crate) async fn run_runtime_server(
     let runtime_server =
         RuntimeServer::new_with_default_runtime_ms(app.server.clone(), app.default_runtime_ms)
             .map_err(|error| std::io::Error::other(error.message))?;
-    // Runtime construction already performs recovery that must precede serving, including
-    // recoverable-orphan/input ownership convergence. Do not follow it with an unbounded
-    // full reconciliation before binding the socket: Registry history must not determine MCP
-    // availability. The maintenance loop below fires immediately and then processes the
-    // prioritized recovery/nonterminal queue in bounded batches.
+    // Service construction validates current configuration and Registry ownership without
+    // synchronously draining historical recoverable orphans. Bind the socket first so Registry
+    // history cannot determine MCP availability; the maintenance loop below fires immediately
+    // and processes the prioritized recovery/nonterminal queue in bounded batches. Admission
+    // paths independently reconcile recoverable orphans before capacity/dispatch decisions.
     let background_runtime = runtime_server.runtime_handle();
     let listener = tokio::net::TcpListener::bind(app.bind).await?;
     let address = listener.local_addr()?;
