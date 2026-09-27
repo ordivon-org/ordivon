@@ -24,11 +24,8 @@ probe_all(){ probe_provider_all && probe_treasury && probe_fred; }
 wait_all(){ for _ in $(seq 1 30); do probe_all >/dev/null 2>&1 && return 0; sleep 1; done; return 1; }
 blocked(){ local p=$1 u=$2 rc; set +e; curl -4 -sS --proxy "http://127.0.0.1:$p" --connect-timeout 2 --max-time 5 "$u" >/dev/null 2>&1; rc=$?; set -e; test "$rc" -ne 0; }
 cleanup(){
-  if [ "$BROWSERLESS_WAS_ACTIVE" = active ]; then
-    systemctl start "$BROWSERLESS_TARGET" >/dev/null 2>&1 || true
-  else
-    systemctl start "$CARRIER" >/dev/null 2>&1 || true
-  fi
+  systemctl start "$CARRIER" >/dev/null 2>&1 || true
+  if [ "$BROWSERLESS_WAS_ACTIVE" = active ]; then systemctl start "$BROWSERLESS_TARGET" >/dev/null 2>&1 || true; fi
   systemctl start "$TARGET" >/dev/null 2>&1 || true
   if [ "$SUPPLY_WAS_ACTIVE" = active ]; then systemctl start "$SUPPLY_TARGET" >/dev/null 2>&1 || true; fi
 }
@@ -65,11 +62,8 @@ blocked 19287 https://fapi.binance.com/fapi/v1/time
 blocked 19290 https://api.binance.com/api/v3/time
 probe_treasury
 probe_fred
-if [ "$BROWSERLESS_WAS_ACTIVE" = active ]; then
-  systemctl start "$BROWSERLESS_TARGET"
-else
-  systemctl start "$CARRIER"
-fi
+systemctl start "$CARRIER"
+if [ "$BROWSERLESS_WAS_ACTIVE" = active ]; then systemctl start "$BROWSERLESS_TARGET"; fi
 wait_state "$CARRIER" active
 wait_state "$EGRESS" active
 if [ "$SUPPLY_WAS_ACTIVE" = active ]; then

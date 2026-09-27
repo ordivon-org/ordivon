@@ -25,7 +25,8 @@ def test_browserless_owns_one_internal_provider_carrier():
     assert "Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service" in unit
     assert "provider-endpoints.json" not in unit
     target = (BROWSERLESS / "systemd" / "network-v2-browserless.target").read_text()
-    assert "network-v2-browserless-provider-carrier.service" in target
+    assert "Wants=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service" in target
+    assert "Requires=network-v2-browserless-dns.service" not in target
 
 
 def test_production_provider_defaults_to_cross_consumer_qualified_site():
@@ -81,3 +82,7 @@ def test_provider_switch_uses_wg_quick_compatible_temp_profile_and_restores_targ
     assert 'mktemp --suffix=.conf "$STATE_DIR/nv2blwg.XXXXXX"' in switch
     assert switch.count('systemctl start "$TARGET"') >= 2
     assert 'wg-quick strip "$tmp_profile"' in switch
+    assert 'systemctl restart "$WG"' in switch
+    assert 'before_inode=$(stat -Lc' in switch
+    assert 'test "$before_inode" = "$after_inode"' in switch
+    assert 'standing:"RECOVERED_SESSION"' in switch

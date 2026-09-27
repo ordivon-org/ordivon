@@ -1,6 +1,6 @@
 [Unit]
 Description=Network v2 Browserless production data plane
-Requires=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service
+Wants=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service
 After=network-v2-browserless-dns.service network-v2-browserless-forward.service network-v2-browserless-provider-carrier.service
 
 [Install]

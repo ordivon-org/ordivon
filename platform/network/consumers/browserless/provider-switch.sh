@@ -38,10 +38,36 @@ fi
 old_site=$(awk -F= '$1=="PROVIDER_SITE"{print $2}' "$ENV_FILE" 2>/dev/null || true)
 old_endpoint=$(awk -F= '$1=="ENDPOINT"{print $2}' "$ENV_FILE")
 if [ "$old_site" = "$SITE" ] && [ "$old_endpoint" = "$endpoint" ]; then
-  systemctl start "$WG" "$DNS" "$CARRIER"
+  systemctl start "$WG" "$DNS" "$CARRIER" "$TARGET"
+  if "$PRODUCTION_PATH" && "$READY"; then
+    printf '{"schemaVersion":1,"kind":"ordivon.network-v2.provider-switch","standing":"ALREADY_SELECTED","providerSite":"%s","endpoint":"%s"}\n' "$SITE" "$endpoint"
+    exit 0
+  fi
+
+  # The provider selection is still correct but the WireGuard session is stale.
+  # Recycle only the session stack; the semantic target must not tear down the long-lived netns.
+  before_inode=$(stat -Lc '%i' "/run/netns/$NS")
+  recover_same_site() {
+    set +e
+    systemctl start "$WG" >/dev/null 2>&1 || true
+    systemctl start "$DNS" >/dev/null 2>&1 || true
+    systemctl start "$CARRIER" >/dev/null 2>&1 || true
+    systemctl start "$TARGET" >/dev/null 2>&1 || true
+    set -e
+  }
+  trap recover_same_site ERR INT TERM
+  systemctl restart "$WG"
+  systemctl start "$DNS" "$CARRIER" "$TARGET"
+  after_inode=$(stat -Lc '%i' "/run/netns/$NS")
+  test "$before_inode" = "$after_inode"
   "$PRODUCTION_PATH"
   "$READY"
-  printf '{"schemaVersion":1,"kind":"ordivon.network-v2.provider-switch","standing":"ALREADY_SELECTED","providerSite":"%s","endpoint":"%s"}\n' "$SITE" "$endpoint"
+  completed=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  jq -n --arg completedAt "$completed" --arg providerSite "$SITE" --arg endpoint "$endpoint" --arg namespaceInode "$after_inode" \
+    '{schemaVersion:1,kind:"ordivon.network-v2.provider-switch",standing:"RECOVERED_SESSION",completedAt:$completedAt,providerSite:$providerSite,endpoint:$endpoint,namespacePreserved:true,namespaceInode:$namespaceInode}' \
+    >"$STATE_DIR/provider-switch.json"
+  trap - ERR INT TERM
+  printf '{"schemaVersion":1,"kind":"ordivon.network-v2.provider-switch","standing":"RECOVERED_SESSION","providerSite":"%s","endpoint":"%s","namespacePreserved":true}\n' "$SITE" "$endpoint"
   exit 0
 fi
 
