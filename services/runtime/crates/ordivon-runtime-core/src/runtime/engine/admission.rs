@@ -147,7 +147,6 @@ impl Runtime {
             self.executor.max_runtime_ms,
             self.executor.max_output_bytes,
         )?;
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let mut plan = self.resolve_plan(request)?;
         let admission_ids = self.registry.preallocate_admission_ids();
@@ -231,7 +230,6 @@ impl Runtime {
             self.executor.max_runtime_ms,
             self.executor.max_output_bytes,
         )?;
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let mut plan = self.resolve_plan(request)?;
         let admission_ids = self.registry.preallocate_admission_ids();
@@ -399,7 +397,6 @@ impl Runtime {
         request_identity_digest: String,
         authority_contract: Option<&super::authority_contract::AuthorityContract>,
     ) -> RuntimeResult<String> {
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let host_dependencies = self.validate_host_dependencies(request)?;
         let plan = self.resolve_plan(request)?;

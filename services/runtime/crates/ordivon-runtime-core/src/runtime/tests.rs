@@ -8381,3 +8381,15 @@ fn resolved_job_reclaims_owned_encrypted_credentials_without_ttl() {
         AdmissionOutcome::Created(_) => panic!("resolved exact replay must not create a new Job"),
     }
 }
+
+#[test]
+fn admission_hot_path_delegates_global_orphan_recovery_to_bounded_maintenance() {
+    let source = include_str!("engine/admission.rs");
+    assert!(!source.contains("self.reconcile_recoverable_orphans()?;"));
+    assert_eq!(
+        source
+            .matches("self.reconcile_workspace(&request.execution.workspace_id)?;")
+            .count(),
+        3
+    );
+}
