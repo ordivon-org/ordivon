@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,27 +38,13 @@ def test_windows_release_installer_uses_pinned_managed_python_and_lock() -> None
     assert r".venv\Scripts\ordivon-gateway.exe" in text
 
 
-def test_windows_release_verifier_expected_tool_catalog_is_sorted() -> None:
-    tree = ast.parse(VERIFY_RELEASE.read_text(encoding="utf-8"))
-    assignment = next(
-        node
-        for node in tree.body
-        if isinstance(node, ast.Assign)
-        and any(isinstance(target, ast.Name) and target.id == "EXPECTED" for target in node.targets)
-    )
-    expected = ast.literal_eval(assignment.value)
-    assert expected == sorted(expected)
-    assert {
-        "work.get",
-        "work.snapshot.commit",
-        "space.create",
-        "message.post",
-        "attention.delta",
-    } <= set(expected)
-    assert not any(
-        name.startswith("continuity.") or name.startswith("collaboration.") for name in expected
-    )
-    assert len(expected) == 28
+def test_windows_release_verifier_uses_canonical_mcp_surface() -> None:
+    text = VERIFY_RELEASE.read_text(encoding="utf-8")
+    assert 'SURFACE_PATH = Path(__file__).resolve().parents[2] / "mcp-surface.json"' in text
+    assert 'EXPECTED_VERSION = SURFACE["packageVersion"]' in text
+    assert 'EXPECTED = list(SURFACE["tools"])' in text
+    assert '"surfaceEpoch": SURFACE["surfaceEpoch"]' in text
+    assert '"0.5.0"' not in text
 
 
 def test_windows_release_installer_emits_mechanical_receipt_without_current_pointer() -> None:

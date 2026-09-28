@@ -3,41 +3,16 @@ from __future__ import annotations
 import asyncio
 import json
 from importlib.metadata import version
+from pathlib import Path
 
 from mcp import Client
 
 from ordivon_gateway.mcp_server import build_server
 
-EXPECTED = [
-    "actor.declare",
-    "artifact.read",
-    "attention.ack",
-    "attention.delta",
-    "attention.get",
-    "capability.describe",
-    "execution.cancel",
-    "execution.get",
-    "execution.resolve",
-    "execution.submit",
-    "host.status",
-    "message.post",
-    "message.relation.add",
-    "message.search",
-    "space.create",
-    "space.get",
-    "space.list",
-    "space.participation.set",
-    "subscription.follow",
-    "subscription.list",
-    "subscription.unfollow",
-    "system.describe",
-    "topic.create",
-    "topic.resume",
-    "work.create",
-    "work.get",
-    "work.list",
-    "work.snapshot.commit",
-]
+SURFACE_PATH = Path(__file__).resolve().parents[2] / "mcp-surface.json"
+SURFACE = json.loads(SURFACE_PATH.read_text(encoding="utf-8"))
+EXPECTED_VERSION = SURFACE["packageVersion"]
+EXPECTED = list(SURFACE["tools"])
 
 
 async def main() -> None:
@@ -49,13 +24,14 @@ async def main() -> None:
             "serverVersion": client.server_info.version if client.server_info else None,
             "toolCount": len(names),
             "tools": names,
+            "surfaceEpoch": SURFACE["surfaceEpoch"],
             "matchesExpected": names == EXPECTED,
         }
         print(json.dumps(result, sort_keys=True))
-        if result["packageVersion"] != "0.5.0":
-            raise SystemExit("unexpected package version")
-        if result["serverVersion"] != "0.5.0":
-            raise SystemExit("unexpected server version")
+        if result["packageVersion"] != EXPECTED_VERSION:
+            raise SystemExit("package version differs from mcp-surface.json")
+        if result["serverVersion"] != EXPECTED_VERSION:
+            raise SystemExit("server version differs from mcp-surface.json")
         if not result["matchesExpected"]:
             raise SystemExit("Gateway MCP surface drift")
 
