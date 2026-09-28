@@ -1,0 +1,231 @@
+{
+  "analysisClass": "pilot-descriptive-blocked-factorial-exact-rational-recovery",
+  "analysisDigest": "sha256:f0e523501fa0d81e2e454e6369eda2bbe091e7779df8dc708fc6bbcf61a54dbf",
+  "cells": {
+    "deepseek-flash|anchored-line-v1": {
+      "candidateCompletionRate": {
+        "denominator": 3,
+        "numerator": 2
+      },
+      "exceptions": 0,
+      "hiddenPassRate": {
+        "denominator": 1,
+        "numerator": 1
+      },
+      "meanElapsedMs": {
+        "denominator": 3,
+        "numerator": 22369
+      },
+      "meanToolCalls": {
+        "denominator": 3,
+        "numerator": 20
+      },
+      "meanTotalTokens": {
+        "denominator": 3,
+        "numerator": 56951
+      },
+      "runs": 3
+    },
+    "deepseek-flash|exact-replacement-v1": {
+      "candidateCompletionRate": {
+        "denominator": 1,
+        "numerator": 1
+      },
+      "exceptions": 0,
+      "hiddenPassRate": {
+        "denominator": 1,
+        "numerator": 1
+      },
+      "meanElapsedMs": {
+        "denominator": 3,
+        "numerator": 20774
+      },
+      "meanToolCalls": {
+        "denominator": 3,
+        "numerator": 16
+      },
+      "meanTotalTokens": {
+        "denominator": 3,
+        "numerator": 39725
+      },
+      "runs": 3
+    },
+    "deepseek-v4-flash|anchored-line-v1": {
+      "candidateCompletionRate": {
+        "denominator": 3,
+        "numerator": 2
+      },
+      "exceptions": 0,
+      "hiddenPassRate": {
+        "denominator": 1,
+        "numerator": 1
+      },
+      "meanElapsedMs": {
+        "denominator": 3,
+        "numerator": 20831
+      },
+      "meanToolCalls": {
+        "denominator": 1,
+        "numerator": 6
+      },
+      "meanTotalTokens": {
+        "denominator": 3,
+        "numerator": 44863
+      },
+      "runs": 3
+    },
+    "deepseek-v4-flash|exact-replacement-v1": {
+      "candidateCompletionRate": {
+        "denominator": 1,
+        "numerator": 1
+      },
+      "exceptions": 0,
+      "hiddenPassRate": {
+        "denominator": 1,
+        "numerator": 1
+      },
+      "meanElapsedMs": {
+        "denominator": 1,
+        "numerator": 7612
+      },
+      "meanToolCalls": {
+        "denominator": 3,
+        "numerator": 17
+      },
+      "meanTotalTokens": {
+        "denominator": 1,
+        "numerator": 14619
+      },
+      "runs": 3
+    }
+  },
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "kind": "ordivon.experimental-factorial-pilot-analysis",
+  "nonClaims": [
+    "No p-value, ranking, or broad capability claim is admitted from this 12-run pilot.",
+    "Provider-owned stochasticity and temporal drift remain nuisance variation despite randomized order.",
+    "Recovery changes only analysis representation after all live trials completed; it does not alter preregistration, trial records, Episodes, or EvaluationRecords."
+  ],
+  "numericRepresentation": "exact-rational-numerator-denominator",
+  "primaryEffects": {
+    "codecHiddenPassDifferenceExactMinusAnchored": {
+      "denominator": 1,
+      "numerator": 0
+    },
+    "modelByCodecHiddenPassInteraction": {
+      "denominator": 1,
+      "numerator": 0
+    },
+    "modelHiddenPassDifference": {
+      "denominator": 1,
+      "numerator": 0
+    }
+  },
+  "recovery": {
+    "providerDispatchPermitted": false,
+    "reasonCode": "POST_LIVE_CANONICAL_FLOAT_SERIALIZATION_FAILURE",
+    "sourceEvidencePolicy": "frozen-completed-trials-only"
+  },
+  "schemaVersion": 1,
+  "taskBlocks": [
+    {
+      "rows": [
+        {
+          "candidateCompleted": false,
+          "codec": "anchored-line-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "exact-replacement-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "anchored-line-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-v4-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "exact-replacement-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-v4-flash",
+          "status": "completed"
+        }
+      ],
+      "taskId": "HARNESS-REPO-REPAIR-001"
+    },
+    {
+      "rows": [
+        {
+          "candidateCompleted": true,
+          "codec": "anchored-line-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "exact-replacement-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "anchored-line-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-v4-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "exact-replacement-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-v4-flash",
+          "status": "completed"
+        }
+      ],
+      "taskId": "HARNESS-EDIT-ADDRESSING-002"
+    },
+    {
+      "rows": [
+        {
+          "candidateCompleted": true,
+          "codec": "anchored-line-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "exact-replacement-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": false,
+          "codec": "anchored-line-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-v4-flash",
+          "status": "completed"
+        },
+        {
+          "candidateCompleted": true,
+          "codec": "exact-replacement-v1",
+          "hiddenPassed": true,
+          "model": "deepseek-v4-flash",
+          "status": "completed"
+        }
+      ],
+      "taskId": "HARNESS-EDIT-MULTIREGION-003"
+    }
+  ]
+}

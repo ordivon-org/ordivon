@@ -1,0 +1,257 @@
+{
+  "contaminated": {
+    "assessment": {
+      "assessmentDigest": "sha256:35bbbd6d1993ac5625bce69733b31a00393482a87ce851f28d44273bd74a210f",
+      "forkId": "fork:pilot-r1:contaminated-codec-change",
+      "kind": "ordivon.experimental-fork-assessment",
+      "manifestDigest": "sha256:018839e49fd554543fab5714e123e3354b5b66513a40785b5150aa1d098d1bab",
+      "nonClaims": [
+        "Contamination standing identifies an undeclared observable factor change; it makes no claim about latent Provider randomness."
+      ],
+      "observedChangedBindings": [
+        {
+          "afterDigest": "sha256:b2076277168e5abbbc5103d3dcda7c6caafb5c38f31beb1d9a8e6ea79a4830c8",
+          "beforeDigest": "sha256:bea5e703064fd310c3cdc96aa87a25e5b1ca723efb1adf17e19c293b2ccd3cdd",
+          "name": "harness-codec"
+        }
+      ],
+      "observedFrozenBindings": [
+        {
+          "binding": {
+            "digest": "sha256:74374fea48ed66005b5ce997584d125bc01e333948adefae4c2ce1e3c8bee3c9",
+            "objectId": "deepseek-flash",
+            "objectKind": "model",
+            "ownerId": "provider:deepseek"
+          },
+          "name": "model"
+        },
+        {
+          "binding": {
+            "digest": "sha256:0f6fa3dd7a83ec1c9782de672b9c157e3a8a3a3fc6700fea46f50e99371b5676",
+            "objectId": "HARNESS-REPO-REPAIR-001",
+            "objectKind": "task",
+            "ownerId": "study"
+          },
+          "name": "task"
+        },
+        {
+          "binding": {
+            "digest": "sha256:ef559b18ba63c610f833b80904d2f6dd82f2404462335f7b807793b33106b66f",
+            "objectId": "5b8456dd25290b0557572cf774442597f4c59748",
+            "objectKind": "revision",
+            "ownerId": "git"
+          },
+          "name": "git-revision"
+        }
+      ],
+      "schemaVersion": 1,
+      "standing": "CONTAMINATED",
+      "undeclaredDifferences": [
+        {
+          "afterDigest": "sha256:1ccd737ea2f5c6b222cce7cd3c0eccbcaf932357844dbf61823ac8ae555443ee",
+          "beforeDigest": "sha256:74374fea48ed66005b5ce997584d125bc01e333948adefae4c2ce1e3c8bee3c9",
+          "name": "model"
+        }
+      ]
+    },
+    "childTrialId": "trial:008",
+    "manifest": {
+      "changedBindings": [
+        {
+          "after": {
+            "digest": "sha256:b2076277168e5abbbc5103d3dcda7c6caafb5c38f31beb1d9a8e6ea79a4830c8",
+            "objectId": "anchored-line-v1",
+            "objectKind": "codec",
+            "ownerId": "harness"
+          },
+          "before": {
+            "digest": "sha256:bea5e703064fd310c3cdc96aa87a25e5b1ca723efb1adf17e19c293b2ccd3cdd",
+            "objectId": "exact-replacement-v1",
+            "objectKind": "codec",
+            "ownerId": "harness"
+          },
+          "name": "harness-codec"
+        }
+      ],
+      "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+      "externalWorldMode": "live",
+      "forkId": "fork:pilot-r1:contaminated-codec-change",
+      "forkMode": "policy",
+      "frozenBindings": [
+        {
+          "binding": {
+            "digest": "sha256:74374fea48ed66005b5ce997584d125bc01e333948adefae4c2ce1e3c8bee3c9",
+            "objectId": "deepseek-flash",
+            "objectKind": "model",
+            "ownerId": "provider:deepseek"
+          },
+          "name": "model"
+        },
+        {
+          "binding": {
+            "digest": "sha256:0f6fa3dd7a83ec1c9782de672b9c157e3a8a3a3fc6700fea46f50e99371b5676",
+            "objectId": "HARNESS-REPO-REPAIR-001",
+            "objectKind": "task",
+            "ownerId": "study"
+          },
+          "name": "task"
+        },
+        {
+          "binding": {
+            "digest": "sha256:ef559b18ba63c610f833b80904d2f6dd82f2404462335f7b807793b33106b66f",
+            "objectId": "5b8456dd25290b0557572cf774442597f4c59748",
+            "objectKind": "revision",
+            "ownerId": "git"
+          },
+          "name": "git-revision"
+        }
+      ],
+      "interventionRefs": [
+        {
+          "contractDigest": "sha256:02863b2f5737f633f5c3e6206ac545d5d11d3351fa2f993047352105a82ba9fd",
+          "contractId": "intervention:harness-codec-r1"
+        }
+      ],
+      "kind": "ordivon.experimental-fork-manifest",
+      "manifestDigest": "sha256:018839e49fd554543fab5714e123e3354b5b66513a40785b5150aa1d098d1bab",
+      "nonClaims": [
+        "Live Provider reruns are comparative observations, not strict same-randomness counterfactuals.",
+        "PASS_DECLARED_DIFFERENCE below means declared observable bindings matched, not that all latent variables were identical.",
+        "The paired observed child intentionally changes model as well as codec to pressure contamination detection."
+      ],
+      "parentEpisode": {
+        "episodeId": "episode:trial:009",
+        "projectionDigest": "sha256:edd910c35a2b1e4fc4e75cf767ed9247d878444fc0ebaa9da8b637cc6b9a71a2"
+      },
+      "randomness": {
+        "strategy": "provider-owned"
+      },
+      "schemaVersion": 1
+    },
+    "parentTrialId": "trial:009"
+  },
+  "declared": {
+    "assessment": {
+      "assessmentDigest": "sha256:6e1b8f1b74ac35dcd1cab3198258009a57f53e1ce8e4d8e9afbd9fc32941d343",
+      "forkId": "fork:pilot-r1:declared-codec-change",
+      "kind": "ordivon.experimental-fork-assessment",
+      "manifestDigest": "sha256:8084d09616efc682464c7508a19266839347c0c6fe435234ea0e43474d2bdebc",
+      "nonClaims": [
+        "Assessment covers declared observable bindings only; provider-owned randomness remains uncontrolled."
+      ],
+      "observedChangedBindings": [
+        {
+          "afterDigest": "sha256:b2076277168e5abbbc5103d3dcda7c6caafb5c38f31beb1d9a8e6ea79a4830c8",
+          "beforeDigest": "sha256:bea5e703064fd310c3cdc96aa87a25e5b1ca723efb1adf17e19c293b2ccd3cdd",
+          "name": "harness-codec"
+        }
+      ],
+      "observedFrozenBindings": [
+        {
+          "binding": {
+            "digest": "sha256:74374fea48ed66005b5ce997584d125bc01e333948adefae4c2ce1e3c8bee3c9",
+            "objectId": "deepseek-flash",
+            "objectKind": "model",
+            "ownerId": "provider:deepseek"
+          },
+          "name": "model"
+        },
+        {
+          "binding": {
+            "digest": "sha256:0f6fa3dd7a83ec1c9782de672b9c157e3a8a3a3fc6700fea46f50e99371b5676",
+            "objectId": "HARNESS-REPO-REPAIR-001",
+            "objectKind": "task",
+            "ownerId": "study"
+          },
+          "name": "task"
+        },
+        {
+          "binding": {
+            "digest": "sha256:ef559b18ba63c610f833b80904d2f6dd82f2404462335f7b807793b33106b66f",
+            "objectId": "5b8456dd25290b0557572cf774442597f4c59748",
+            "objectKind": "revision",
+            "ownerId": "git"
+          },
+          "name": "git-revision"
+        }
+      ],
+      "schemaVersion": 1,
+      "standing": "PASS_DECLARED_DIFFERENCE",
+      "undeclaredDifferences": []
+    },
+    "childTrialId": "trial:004",
+    "manifest": {
+      "changedBindings": [
+        {
+          "after": {
+            "digest": "sha256:b2076277168e5abbbc5103d3dcda7c6caafb5c38f31beb1d9a8e6ea79a4830c8",
+            "objectId": "anchored-line-v1",
+            "objectKind": "codec",
+            "ownerId": "harness"
+          },
+          "before": {
+            "digest": "sha256:bea5e703064fd310c3cdc96aa87a25e5b1ca723efb1adf17e19c293b2ccd3cdd",
+            "objectId": "exact-replacement-v1",
+            "objectKind": "codec",
+            "ownerId": "harness"
+          },
+          "name": "harness-codec"
+        }
+      ],
+      "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+      "externalWorldMode": "live",
+      "forkId": "fork:pilot-r1:declared-codec-change",
+      "forkMode": "policy",
+      "frozenBindings": [
+        {
+          "binding": {
+            "digest": "sha256:74374fea48ed66005b5ce997584d125bc01e333948adefae4c2ce1e3c8bee3c9",
+            "objectId": "deepseek-flash",
+            "objectKind": "model",
+            "ownerId": "provider:deepseek"
+          },
+          "name": "model"
+        },
+        {
+          "binding": {
+            "digest": "sha256:0f6fa3dd7a83ec1c9782de672b9c157e3a8a3a3fc6700fea46f50e99371b5676",
+            "objectId": "HARNESS-REPO-REPAIR-001",
+            "objectKind": "task",
+            "ownerId": "study"
+          },
+          "name": "task"
+        },
+        {
+          "binding": {
+            "digest": "sha256:ef559b18ba63c610f833b80904d2f6dd82f2404462335f7b807793b33106b66f",
+            "objectId": "5b8456dd25290b0557572cf774442597f4c59748",
+            "objectKind": "revision",
+            "ownerId": "git"
+          },
+          "name": "git-revision"
+        }
+      ],
+      "interventionRefs": [
+        {
+          "contractDigest": "sha256:02863b2f5737f633f5c3e6206ac545d5d11d3351fa2f993047352105a82ba9fd",
+          "contractId": "intervention:harness-codec-r1"
+        }
+      ],
+      "kind": "ordivon.experimental-fork-manifest",
+      "manifestDigest": "sha256:8084d09616efc682464c7508a19266839347c0c6fe435234ea0e43474d2bdebc",
+      "nonClaims": [
+        "Live Provider reruns are comparative observations, not strict same-randomness counterfactuals.",
+        "PASS_DECLARED_DIFFERENCE below means declared observable bindings matched, not that all latent variables were identical."
+      ],
+      "parentEpisode": {
+        "episodeId": "episode:trial:009",
+        "projectionDigest": "sha256:edd910c35a2b1e4fc4e75cf767ed9247d878444fc0ebaa9da8b637cc6b9a71a2"
+      },
+      "randomness": {
+        "strategy": "provider-owned"
+      },
+      "schemaVersion": 1
+    },
+    "parentTrialId": "trial:009"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "acceptanceDigest": "sha256:9debe69f3c8c5b312e654164f7f1785c93f3b5a9c6c504efdbdfba9bd101c91f",
+  "analysisDigest": "sha256:f0e523501fa0d81e2e454e6369eda2bbe091e7779df8dc708fc6bbcf61a54dbf",
+  "contaminatedForkStanding": "CONTAMINATED",
+  "declaredForkStanding": "PASS_DECLARED_DIFFERENCE",
+  "episodeCount": 12,
+  "evaluationCount": 72,
+  "exceptionTrials": 0,
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "gitRevision": "5b8456dd25290b0557572cf774442597f4c59748",
+  "kind": "ordivon.experimental-factorial-pilot-acceptance",
+  "nonClaims": [
+    "PASS_PILOT_MECHANICS is protocol/execution acceptance, not a model or Harness winner declaration.",
+    "Any observed treatment differences remain pilot-scale descriptive evidence.",
+    "Recovery consumed only frozen completed trial evidence and performed no Provider dispatch."
+  ],
+  "observedTrials": 12,
+  "plannedTrials": 12,
+  "preregistrationDigest": "sha256:701cf9fd965cf6faaf7d970407a6bcfe7da0e898a924ceb2c3a7b9338a922770",
+  "providerDispatchesDuringRecovery": 0,
+  "recoveryReasonCode": "POST_LIVE_CANONICAL_FLOAT_SERIALIZATION_FAILURE",
+  "resultSetDigest": "sha256:89deab4b3c9c726287d1f8438d9c1022381d112bb15c8b9408a5c6a36ce90ea2",
+  "schemaVersion": 1,
+  "standing": "PASS_PILOT_MECHANICS"
+}

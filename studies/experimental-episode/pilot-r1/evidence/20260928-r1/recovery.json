@@ -1,0 +1,36 @@
+{
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "frozenRunnerBinding": {
+    "digest": "sha256:3bf01daca9d99765c994449b530e17036d8627538d30f265b898641f033fe99c",
+    "objectId": "services/harness/../../studies/experimental-episode/pilot-r1/run_factorial_pilot_r1.py",
+    "objectKind": "file",
+    "ownerId": "study"
+  },
+  "inputs": {
+    "episodesFileDigest": "sha256:ffcd75ed01e185b789672e188ccf9846ef698209cdd6926b19f0f6b197729f55",
+    "evaluationsFileDigest": "sha256:a388e72cb62525f624070b4849283c22248396d74986ef0bc628a24b7636988a",
+    "journalFileDigest": "sha256:dad8694fc605382f00cf116596a462d79516e7757c38b185b56e161fd7a402c8",
+    "preregistrationDigest": "sha256:701cf9fd965cf6faaf7d970407a6bcfe7da0e898a924ceb2c3a7b9338a922770",
+    "resultSetDigest": "sha256:89deab4b3c9c726287d1f8438d9c1022381d112bb15c8b9408a5c6a36ce90ea2"
+  },
+  "kind": "ordivon.experimental-factorial-finalization-recovery",
+  "nonClaims": [
+    "Recovery receipt does not replace the frozen preregistration or natural-owner live evidence.",
+    "Recovery makes no general model or Harness superiority claim."
+  ],
+  "outputs": {
+    "acceptanceDigest": "sha256:9debe69f3c8c5b312e654164f7f1785c93f3b5a9c6c504efdbdfba9bd101c91f",
+    "analysisDigest": "sha256:f0e523501fa0d81e2e454e6369eda2bbe091e7779df8dc708fc6bbcf61a54dbf",
+    "forkSetDigest": "sha256:5d1a0785dd16d0b9599e1331608311598f14cc3de951bc6d538451fab6ca3c0e"
+  },
+  "providerDispatches": 0,
+  "reasonCode": "POST_LIVE_CANONICAL_FLOAT_SERIALIZATION_FAILURE",
+  "receiptDigest": "sha256:caf42221187ddaa6bd05723ab5afa3206a1ed93d2e78a157569edf70559ccac5",
+  "recoveryToolBinding": {
+    "digest": "sha256:ee9ed225412424c2710e51ecac12e9d5ffd650bb1695e5f71259e35269ddd187",
+    "objectId": "studies/experimental-episode/pilot-r1/recover_finalize_r1.py"
+  },
+  "recoveryToolRevision": "5cdf366a96e8735d9e353682f4bec07514acc063",
+  "schemaVersion": 1,
+  "standing": "PASS_RECOVERED_FINALIZATION"
+}
