@@ -45,20 +45,30 @@
     },
     {
       "id": "ARD-003",
-      "problem": "Gateway execution capability projection reports Linux/Windows execution unavailable while both Runtime owners report available.",
+      "problem": "Public Windows Gateway R2 has Runtime owner URLs but no Runtime owner credentials; old projection logic treated URL presence as configured and collapsed the resulting transport/auth failure into a TaskGroup ExceptionGroup.",
       "owner": "gateway-routing-projection",
       "authority": "Runtime owner describe/readback for liveness; Gateway only for projection correctness",
       "impact": ["external-capability-realization", "agent-ux", "false-unavailability"],
       "evidence": [
-        "2026-09-28 Gateway capability.describe execution.linux/windows: configured=true available=false with owner observation TaskGroup error",
-        "direct Linux runtime.describe: local_linux available=true",
-        "direct Windows runtime.describe: windows_native available=true"
+        "2026-09-28 direct Linux runtime.describe: local_linux available=true",
+        "2026-09-28 direct Windows runtime.describe: windows_native available=true",
+        "Windows OrdivonGatewayCandidateR2 materialization receipt e130f68a…: linuxBearerPathConfigured=false and windowsBearerPathConfigured=false",
+        "Windows R2 service PathName carries both Runtime URLs but no Runtime bearer credential environment paths",
+        "Existing red-team GATEWAY_RUNTIME_CREDENTIAL_LIVENESS_R1 already observed an empty R2 credential directory; the historical GW09 plan marked credential materialization HUMAN_REQUIRED/platform-safety-blocked",
+        "Linux Gateway and in-process Gateway probes with valid owner credentials observe both Runtime owners available=true, excluding Runtime/MCP protocol failure as the root cause"
       ],
-      "desiredContract": "Gateway availability projection matches the owner observation without absorbing owner truth, and projection failures are distinguishable from owner unavailability.",
-      "currentGap": "Owner-observation carrier/projection path currently collapses a projection exception into unavailable=false semantics visible to consumers.",
-      "recommendedLEGO": "Diagnose the Gateway owner-observation TaskGroup/carrier seam and preserve explicit projection-error vs owner-unavailable states.",
-      "verification": ["direct Runtime owner availability remains true", "Gateway execution.linux/windows projection returns available=true when owner observation succeeds", "forced projection failure does not claim Runtime owner down"],
-      "priority": "HIGH"
+      "desiredContract": "Runtime owner configured=true means endpoint plus required machine identity are both admitted. Missing owner auth is projected as configured=false with a stable pre-HTTP diagnostic; owner transport/protocol failures expose bounded leaf causes and never imply Runtime owner outage.",
+      "currentGap": "Source projection semantics are repaired and owner-tested in the ARD-003 candidate. Live Windows R2 still lacks node-local Runtime credentials, and credential materialization is outside current Agent authority; public Runtime execution therefore remains truthfully degraded until that explicit authority action occurs.",
+      "recommendedLEGO": "Integrate/deploy the source semantic fix; preserve the credential safety boundary. When an authorized node-local credential authority/human materializes the existing Runtime bearer sources through materialize_credentials.ps1, rematerialize/activate Windows R2 and requalify both Runtime capabilities. Do not bypass secret handling controls.",
+      "verification": [
+        "Gateway source tests prove URL-only Runtime endpoints are configured=false and no HTTP call occurs",
+        "nested TaskGroup transport failures are reduced to bounded leaf diagnostics",
+        "direct Runtime owner availability remains independently true",
+        "after authorized credential materialization, public capability.describe returns configured=true available=true for each successfully observed Runtime owner",
+        "forced missing-auth and transport-failure cases never claim Runtime owner down"
+      ],
+      "priority": "HIGH",
+      "standing": "SOURCE_FIX_VERIFIED_LIVE_CREDENTIAL_AUTHORITY_BLOCKED"
     },
     {
       "id": "ARD-004",

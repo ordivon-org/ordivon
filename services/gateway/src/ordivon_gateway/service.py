@@ -65,6 +65,14 @@ def _configured(caller: OwnerToolCaller, owner_id: str) -> bool:
     return True
 
 
+def _configuration_error(caller: OwnerToolCaller, owner_id: str) -> str | None:
+    probe = getattr(caller, "configuration_error", None)
+    if callable(probe):
+        value = probe(owner_id)
+        return str(value) if value else None
+    return None
+
+
 def _execution_ref(owner_id: str, native_id: str) -> str:
     return f"ordivon-exec:v1:{owner_id}:{native_id}"
 
@@ -183,6 +191,7 @@ class GatewayService:
                     configured=False,
                     available=False,
                     context_mode=route.context_mode,  # type: ignore[arg-type]
+                    observation_error=_configuration_error(self._caller, route.owner_id),
                     truth_boundary=route.truth_boundary,
                 )
 
@@ -301,6 +310,9 @@ class GatewayService:
                 errors: list[str] = []
                 for owner_id in ("runtime.linux", "runtime.windows"):
                     if not _configured(self._caller, owner_id):
+                        configuration_error = _configuration_error(self._caller, owner_id)
+                        if configuration_error is not None:
+                            errors.append(f"{owner_id}: {configuration_error}")
                         continue
                     any_configured = True
                     result, error = await runtime_description(owner_id)

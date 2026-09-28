@@ -404,7 +404,9 @@ def test_expired_started_attempt_requires_reconciliation_and_is_not_duplicated(t
     assert unknown.terminal is False
 
     service = GatewayService(NoOwnerCaller(), external_workers=transport)
-    observed = asyncio.run(service.execution_get(f"ordivon-exec:v1:external.pull:{operation.operation_id}"))
+    observed = asyncio.run(
+        service.execution_get(f"ordivon-exec:v1:external.pull:{operation.operation_id}")
+    )
     assert observed.state == "reconcile_required"
     assert observed.recovery_required is True
     assert observed.delivery_disposition == "unknown"

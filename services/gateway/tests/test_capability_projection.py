@@ -11,13 +11,18 @@ class ProjectionCaller:
         self,
         responses: dict[tuple[str, str], dict[str, Any]],
         configured: set[str],
+        configuration_errors: dict[str, str] | None = None,
     ) -> None:
         self.responses = responses
         self.configured = configured
+        self.configuration_errors = configuration_errors or {}
         self.calls: list[tuple[str, str, dict[str, Any]]] = []
 
     def is_configured(self, owner_id: str) -> bool:
         return owner_id in self.configured
+
+    def configuration_error(self, owner_id: str) -> str | None:
+        return self.configuration_errors.get(owner_id)
 
     async def call_tool(
         self, owner_id: str, tool_name: str, arguments: dict[str, Any]
@@ -141,6 +146,23 @@ def test_unconfigured_owner_is_visible_without_probe() -> None:
     assert item.configured is False
     assert item.available is False
     assert item.contexts == []
+    assert caller.calls == []
+
+
+def test_missing_runtime_identity_is_projected_as_not_configured_not_owner_down() -> None:
+    caller = ProjectionCaller(
+        {},
+        set(),
+        {"runtime.windows": "owner authentication is not configured"},
+    )
+    service = GatewayService(caller)
+
+    projection = asyncio.run(service.capability_describe("execution.windows"))
+    item = projection.capabilities[0]
+
+    assert item.configured is False
+    assert item.available is False
+    assert item.observation_error == "owner authentication is not configured"
     assert caller.calls == []
 
 

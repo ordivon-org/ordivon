@@ -75,9 +75,11 @@ The deployed route table currently exposes exactly these stable capability famil
 | `continuity.external` | Host | Host continuity |
 | `artifact.runtime` | Runtime selected by operation reference | Runtime Artifact read |
 
-Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth.
+Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth. A routed owner is `configured` only when both its endpoint and the machine identity required by that owner are configured. An endpoint URL alone is not capability realization.
 
-For Runtime execution, the normal Gateway northbound surface includes submit/get/cancel plus read-only `execution.resolve` for response-loss reconciliation by the already frozen request identity. `execution.resolve` discovers an existing Runtime Job; it does not redispatch an effect or move execution truth into Gateway.
+As of the 2026-09-28 live requalification, the canonical public Windows Gateway R2 carrier is healthy for Host/Social northbound but its materialization receipt has no Linux- or Windows-Runtime owner credential paths. Direct Linux and Windows Runtime owners both report `available=true`; public Gateway Runtime execution is therefore **degraded by missing Gateway→Runtime owner authentication**, not by Runtime owner outage. Current source fails closed before owner HTTP in that state and projects Runtime execution as `configured=false` with `OWNER_AUTH_NOT_CONFIGURED`; credential materialization remains a separate node-local authority action and must not be bypassed.
+
+For Runtime execution, once owner authentication is admitted, the normal Gateway northbound surface includes submit/get/cancel plus read-only `execution.resolve` for response-loss reconciliation by the already frozen request identity. `execution.resolve` discovers an existing Runtime Job; it does not redispatch an effect or move execution truth into Gateway.
 
 ### Host normal northbound completion
 
@@ -165,12 +167,9 @@ Runtime Job identity
 
 Cloudflare Access/OAuth owns public authentication. Gateway derives a stable pseudonymous principal only after JWT verification.
 
-Gateway → owner calls use separate machine credentials:
+Gateway → Runtime owner calls require a separate machine identity appropriate to the deployed carrier; endpoint presence never substitutes for it. Linux systemd Gateway uses a systemd-projected Runtime bearer and its Windows-owner path uses a Cloudflare Access service identity. The canonical public Windows Gateway R2 carrier is currently missing its node-local Runtime bearer projections, so those execution routes are not configured even though both Runtime owners themselves are healthy.
 
-- Linux Runtime: systemd-projected bearer credential;
-- Windows Runtime: systemd-projected Cloudflare Access service identity.
-
-The public principal is not replayed as downstream authorization.
+The public principal is not replayed as downstream authorization. Node-local credential bytes remain outside source and require their explicit credential authority/materialization path.
 
 ## 7. Trace and audit boundary
 

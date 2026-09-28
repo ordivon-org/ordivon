@@ -166,5 +166,17 @@
       "hostDoctor": "healthy-schema-9",
       "gatewayCandidateQualification": "gateway-swf-northbound-acceptance-20260924.json"
     }
+  },
+  "runtimeNorthbound": {
+    "status": "public-carrier-degraded-owner-auth-not-configured",
+    "observedDate": "2026-09-28",
+    "publicCarrier": "windows-gateway-r2",
+    "publicCarrierSourceCommit": "e130f68addd3143697c0e2a1cb2bc6070d69980e",
+    "linuxRuntimeOwnerAvailable": true,
+    "windowsRuntimeOwnerAvailable": true,
+    "linuxOwnerCredentialConfigured": false,
+    "windowsOwnerCredentialConfigured": false,
+    "truthBoundary": "Runtime owners remain authoritative for their own availability; this is only the public Gateway owner-authentication realization projection.",
+    "requiredRecovery": "materialize owner credentials only through the explicit node-local credential authority, then rematerialize/activate the Gateway service and requalify capability.describe"
   }
 }

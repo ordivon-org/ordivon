@@ -11,6 +11,7 @@ from ordivon_gateway.upstream import (
     McpOwnerCaller,
     OwnerCallError,
     OwnerEndpoint,
+    _exception_summary,
     _headers_for_endpoint,
     _read_private_secret_file,
 )
@@ -189,3 +190,31 @@ def test_group_read_outside_systemd_credential_directory_is_rejected(
 
     with pytest.raises(OwnerCallError, match="group/world accessible"):
         _read_private_secret_file(str(credential), "owner bearer token")
+
+
+def test_runtime_endpoint_requires_explicit_owner_identity_before_configured() -> None:
+    caller = McpOwnerCaller({"runtime.windows": OwnerEndpoint("http://127.0.0.1:18997/mcp")})
+
+    assert caller.is_configured("runtime.windows") is False
+    assert caller.configuration_error("runtime.windows") == "owner authentication is not configured"
+    with pytest.raises(OwnerCallError) as captured:
+        asyncio.run(caller.call_tool("runtime.windows", "runtime.describe", {"schemaVersion": 1}))
+    assert captured.value.error == {
+        "code": "OWNER_AUTH_NOT_CONFIGURED",
+        "message": "owner authentication is not configured",
+        "origin": "gateway_adapter",
+    }
+
+
+def test_host_endpoint_may_remain_unauthenticated_loopback_contract() -> None:
+    caller = McpOwnerCaller({"host": OwnerEndpoint("http://127.0.0.1:8898/mcp")})
+    assert caller.is_configured("host") is True
+    assert caller.configuration_error("host") is None
+
+
+def test_exception_summary_exposes_nested_task_group_leaf() -> None:
+    error = ExceptionGroup(
+        "unhandled errors in a TaskGroup",
+        [RuntimeError("HTTP 401 owner authentication required")],
+    )
+    assert _exception_summary(error) == "RuntimeError: HTTP 401 owner authentication required"
