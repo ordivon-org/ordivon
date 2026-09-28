@@ -45,6 +45,7 @@ EXPECTED_GATEWAY_TOOLS = {
     'attention.delta',
     'attention.get',
     'capability.describe',
+    'capability.search',
     'execution.cancel',
     'execution.get',
     'execution.resolve',

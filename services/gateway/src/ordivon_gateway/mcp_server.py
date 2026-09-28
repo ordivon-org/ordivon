@@ -20,6 +20,7 @@ from .audit import GatewayAuditMiddleware
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
+    CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
@@ -72,6 +73,22 @@ def build_server(service: GatewayService | None = None) -> MCPServer:
     @server.tool(name="capability.describe")
     async def capability_describe(capability: str | None = None) -> CapabilityProjection:
         return await gateway.capability_describe(capability)
+
+    @server.tool(name="capability.search")
+    async def capability_search(
+        query: str,
+        category: str | None = None,
+        ownerId: str | None = None,
+        limit: int = 10,
+        includeUnavailable: bool = True,
+    ) -> CapabilitySearchProjection:
+        return await gateway.capability_search(
+            query=query,
+            category=category,
+            owner_id=ownerId,
+            limit=limit,
+            include_unavailable=includeUnavailable,
+        )
 
     @server.tool(name="execution.submit")
     async def execution_submit(

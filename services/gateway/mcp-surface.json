@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "kind": "ordivon.mcp-tool-surface",
   "service": "ordivon-gateway",
-  "packageVersion": "0.5.0",
-  "surfaceEpoch": 2,
+  "packageVersion": "0.6.0",
+  "surfaceEpoch": 3,
   "tools": [
     "actor.declare",
     "artifact.read",
@@ -11,6 +11,7 @@
     "attention.delta",
     "attention.get",
     "capability.describe",
+    "capability.search",
     "execution.cancel",
     "execution.get",
     "execution.resolve",

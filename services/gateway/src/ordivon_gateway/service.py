@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from importlib.metadata import version as package_version
 from typing import Any
 
@@ -9,6 +10,8 @@ from .contracts import (
     ArtifactChunk,
     CapabilityDescriptor,
     CapabilityProjection,
+    CapabilitySearchMatch,
+    CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
@@ -387,8 +390,28 @@ class GatewayService:
                         "External worker transport owns queue/lease/attempt delivery mechanics only; "
                         "workers do not acquire Task ownership or domain authority."
                     ),
+                    description=(
+                        "Execute through a live operator-admitted provider-neutral external pull worker."
+                    ),
+                    tags=["execution", "external", "pull", "worker"],
                 )
             )
+
+        enriched: list[CapabilityDescriptor] = []
+        for value in values:
+            route = self._routes.get(value.capability)
+            if route is None:
+                enriched.append(value)
+                continue
+            enriched.append(
+                value.model_copy(
+                    update={
+                        "description": route.description,
+                        "tags": list(route.tags),
+                    }
+                )
+            )
+        values = enriched
 
         payload = [value.model_dump(mode="json") for value in values]
         digest = (
@@ -405,6 +428,86 @@ class GatewayService:
         return CapabilityProjection(
             projection_digest=digest,
             capabilities=values,
+        )
+
+    async def capability_search(
+        self,
+        *,
+        query: str,
+        category: str | None = None,
+        owner_id: str | None = None,
+        limit: int = 10,
+        include_unavailable: bool = True,
+    ) -> CapabilitySearchProjection:
+        if not isinstance(query, str) or query != query.strip() or not query:
+            raise GatewayError("query must be non-empty trimmed text")
+        if len(query) > 512:
+            raise GatewayError("query exceeds 512 characters")
+        if category is not None and (
+            not isinstance(category, str) or category != category.strip() or not category
+        ):
+            raise GatewayError("category must be non-empty trimmed text when provided")
+        if owner_id is not None and (
+            not isinstance(owner_id, str) or owner_id != owner_id.strip() or not owner_id
+        ):
+            raise GatewayError("ownerId must be non-empty trimmed text when provided")
+        if type(limit) is not int or not 1 <= limit <= 50:
+            raise GatewayError("limit must be an integer between 1 and 50")
+        if type(include_unavailable) is not bool:
+            raise GatewayError("includeUnavailable must be boolean")
+
+        projection = await self.capability_describe()
+        normalized = query.casefold()
+        query_tokens = set(re.findall(r"[a-z0-9]+", normalized))
+        priority = {"exact": 0, "prefix": 1, "token": 2, "substring": 3}
+        ranked: list[tuple[int, str, CapabilitySearchMatch]] = []
+
+        for item in projection.capabilities:
+            if category is not None and item.category != category:
+                continue
+            if owner_id is not None and item.owner_id != owner_id:
+                continue
+            # An observation error is UNKNOWN owner observation, not proof of owner unavailability.
+            if not include_unavailable and not item.available and item.observation_error is None:
+                continue
+
+            capability_name = item.capability.casefold()
+            corpus_values = [
+                item.capability,
+                item.category,
+                item.owner_id,
+                item.description,
+                *item.tags,
+            ]
+            corpus = " ".join(value.casefold() for value in corpus_values if value)
+            corpus_tokens = set(re.findall(r"[a-z0-9]+", corpus))
+
+            match_kind: str | None = None
+            if normalized == capability_name:
+                match_kind = "exact"
+            elif capability_name.startswith(normalized):
+                match_kind = "prefix"
+            elif query_tokens and query_tokens.issubset(corpus_tokens):
+                match_kind = "token"
+            elif normalized in corpus:
+                match_kind = "substring"
+            if match_kind is None:
+                continue
+
+            match = CapabilitySearchMatch(
+                match_kind=match_kind,  # type: ignore[arg-type]
+                capability=item,
+            )
+            ranked.append((priority[match_kind], item.capability, match))
+
+        ranked.sort(key=lambda row: (row[0], row[1]))
+        total_matches = len(ranked)
+        matches = [row[2] for row in ranked[:limit]]
+        return CapabilitySearchProjection(
+            query=query,
+            projection_digest=projection.projection_digest,
+            total_matches=total_matches,
+            matches=matches,
         )
 
     async def execution_submit(

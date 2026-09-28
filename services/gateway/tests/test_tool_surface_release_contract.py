@@ -24,7 +24,7 @@ def test_release_manifest_matches_exact_mcp_surface_and_package_identity() -> No
             assert version("ordivon-gateway") == manifest["packageVersion"]
             assert client.server_info is not None
             assert client.server_info.version == manifest["packageVersion"]
-            assert manifest["surfaceEpoch"] == 2
+            assert manifest["surfaceEpoch"] == 3
 
     asyncio.run(scenario())
 

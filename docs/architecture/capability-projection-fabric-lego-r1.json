@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-projection-fabric-lego-plan",
+  "date": "2026-09-28",
+  "baseline": {
+    "repository": "/root/projects/ordivon",
+    "revision": "e9c9d54212161e0fda78a6ef5c994e01924d38b8",
+    "gatewayVersion": "0.5.0",
+    "hostSchema": 9
+  },
+  "objective": "Scale capability discovery and projection without creating a universal Registry/Profile/Bundle owner or Mega Gateway.",
+  "laws": [
+    "gateway-remains-non-authoritative",
+    "definition-observation-authorization-visibility-callability-effect-are-distinct",
+    "source-provider-definitions-remain-natural-owner-truth",
+    "catalog-projections-are-rebuildable",
+    "caller-or-run-scoped-views-not-global-profile-owner",
+    "credentials-never-enter-capability-catalog",
+    "unknown-effects-are-reconciled-not-blindly-replayed",
+    "direct-third-party-mcp-remains-direct-when-gateway-adds-no-irreducible-value",
+    "semantic-search-is-external-first-when-scale-justifies-it",
+    "two-real-consumers-before-new-shared-provider-abstraction"
+  ],
+  "nodes": [
+    {
+      "id": "CPF-00",
+      "wave": "W0",
+      "owner": "architecture",
+      "kind": "census",
+      "responsibility": "Fresh source/live-owner census and duplicate-abstraction check against Re-Anchor, Admission Fabric, Harness capability composition, Gateway routes, and external.pull.",
+      "dependsOn": [],
+      "standing": "complete",
+      "acceptance": [
+        "current main revision bound",
+        "live Gateway/Runtime/Host read-back captured",
+        "universal Registry/Profile conflict identified",
+        "existing Harness three-stage capability law reused"
+      ]
+    },
+    {
+      "id": "CPF-01",
+      "wave": "W0",
+      "owner": "architecture",
+      "kind": "spec",
+      "responsibility": "Freeze Capability Projection Fabric contract and executable LEGO plan.",
+      "dependsOn": [
+        "CPF-00"
+      ],
+      "standing": "source-qualified",
+      "acceptance": [
+        "no universal Registry/Profile/Bundle owner",
+        "discovery and authorization separated",
+        "effect recovery law preserved",
+        "external mature patterns referenced without transferring their authority model wholesale"
+      ]
+    },
+    {
+      "id": "CPF-02",
+      "wave": "W0",
+      "owner": "repo-mechanics",
+      "kind": "architecture-guard",
+      "responsibility": "Ensure the implementation does not add a Gateway capability database, credential vault, workflow engine, or universal Profile store.",
+      "dependsOn": [
+        "CPF-01"
+      ],
+      "standing": "source-qualified"
+    },
+    {
+      "id": "CPF-10",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "definition-projection",
+      "responsibility": "Extend source-owned static CapabilityRoute declarations with bounded discovery descriptions and stable tags.",
+      "dependsOn": [
+        "CPF-01"
+      ],
+      "standing": "source-qualified"
+    },
+    {
+      "id": "CPF-11",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "discovery",
+      "responsibility": "Implement pure deterministic lexical search over the rebuildable CapabilityProjection with no persistent index and no authorization claim.",
+      "dependsOn": [
+        "CPF-10"
+      ],
+      "standing": "source-qualified"
+    },
+    {
+      "id": "CPF-12",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "public-abi",
+      "responsibility": "Expose capability.search, update exact MCP surface/version epoch, and verify release-contract identity.",
+      "dependsOn": [
+        "CPF-11"
+      ],
+      "standing": "source-qualified"
+    },
+    {
+      "id": "CPF-13",
+      "wave": "W1",
+      "owner": "gateway",
+      "kind": "negative-control",
+      "responsibility": "Prove discovery performs no execution dispatch, owner mutation, credential access, or authorization promotion.",
+      "dependsOn": [
+        "CPF-12"
+      ],
+      "standing": "source-qualified"
+    },
+    {
+      "id": "CPF-14",
+      "wave": "W1A",
+      "owner": "gateway",
+      "kind": "observation-fidelity",
+      "responsibility": "Close ARD-003 owner-observation ExceptionGroup seam and distinguish observation_error from owner unavailable truth.",
+      "dependsOn": [
+        "CPF-12"
+      ],
+      "standing": "open-existing-debt"
+    },
+    {
+      "id": "CPF-15",
+      "wave": "W1A",
+      "owner": "gateway+runtime",
+      "kind": "live-requalification",
+      "responsibility": "Requalify direct Linux/Windows Runtime availability against Gateway projection after CPF-14.",
+      "dependsOn": [
+        "CPF-14"
+      ],
+      "standing": "planned"
+    },
+    {
+      "id": "CPF-20",
+      "wave": "W2",
+      "owner": "consumer-or-harness",
+      "kind": "scoped-view",
+      "responsibility": "Admit an exact caller/Run-scoped CapabilityView lowering only when a real consumer requires it; Gateway stores no universal profile.",
+      "dependsOn": [
+        "CPF-13"
+      ],
+      "standing": "consumer-gated"
+    },
+    {
+      "id": "CPF-21",
+      "wave": "W2",
+      "owner": "security+gateway",
+      "kind": "authorization",
+      "responsibility": "Enforce existing gateway-capability-authz-v1 on one narrow qualified path before generalization.",
+      "dependsOn": [
+        "CPF-13"
+      ],
+      "standing": "open-existing-debt"
+    },
+    {
+      "id": "CPF-22",
+      "wave": "W2",
+      "owner": "harness",
+      "kind": "run-projection",
+      "responsibility": "Prove a selected candidate set can lower into Harness-owned exact Tool catalog/grant digests without Gateway owning Run visibility.",
+      "dependsOn": [
+        "CPF-20",
+        "CPF-21"
+      ],
+      "standing": "consumer-gated"
+    },
+    {
+      "id": "CPF-30",
+      "wave": "W3",
+      "owner": "external-provider-adapter",
+      "kind": "provider-canary",
+      "responsibility": "Read-only discovery canary for one real external provider, preferring n8n or one direct remote MCP.",
+      "dependsOn": [
+        "CPF-15",
+        "CPF-21"
+      ],
+      "standing": "planned"
+    },
+    {
+      "id": "CPF-31",
+      "wave": "W3",
+      "owner": "external-provider-adapter",
+      "kind": "provider-canary",
+      "responsibility": "Second independently owned external provider discovery canary.",
+      "dependsOn": [
+        "CPF-30"
+      ],
+      "standing": "planned"
+    },
+    {
+      "id": "CPF-32",
+      "wave": "W3",
+      "owner": "architecture",
+      "kind": "abstraction-admission",
+      "responsibility": "Only after two real canaries, decide whether shared Provider Discovery code is justified versus direct external mature providers.",
+      "dependsOn": [
+        "CPF-31"
+      ],
+      "standing": "gated"
+    },
+    {
+      "id": "CPF-33",
+      "wave": "W3",
+      "owner": "provider+security+harness",
+      "kind": "effect-recovery",
+      "responsibility": "Qualify opaque credential reference plus provider-specific response-loss reconciliation for one effectful provider action.",
+      "dependsOn": [
+        "CPF-32"
+      ],
+      "standing": "gated"
+    },
+    {
+      "id": "CPF-40",
+      "wave": "W4",
+      "owner": "measurement",
+      "kind": "context-pressure",
+      "responsibility": "Measure real tool-schema/context pressure across provider catalogs.",
+      "dependsOn": [
+        "CPF-31"
+      ],
+      "standing": "gated"
+    },
+    {
+      "id": "CPF-41",
+      "wave": "W4",
+      "owner": "measurement",
+      "kind": "retrieval-comparison",
+      "responsibility": "Compare static projection, lexical meta-search, provider-native semantic search, and mature external semantic retrieval before custom search infrastructure.",
+      "dependsOn": [
+        "CPF-40"
+      ],
+      "standing": "gated"
+    },
+    {
+      "id": "CPF-42",
+      "wave": "W4",
+      "owner": "gateway+consumer",
+      "kind": "dynamic-surface",
+      "responsibility": "Admit dynamic MCP tool-surface projection only with real client interoperability and measured benefit.",
+      "dependsOn": [
+        "CPF-41"
+      ],
+      "standing": "gated"
+    },
+    {
+      "id": "CPF-50",
+      "wave": "W5",
+      "owner": "gateway",
+      "kind": "transport-census",
+      "responsibility": "Census two real external.pull consumers before promoting or relocating the transport.",
+      "dependsOn": [
+        "CPF-31"
+      ],
+      "standing": "gated"
+    },
+    {
+      "id": "CPF-51",
+      "wave": "W5",
+      "owner": "architecture",
+      "kind": "transport-disposition",
+      "responsibility": "Retain external.pull as narrow Gateway transport or extract behind a provider-neutral port based on real consumers and failure-domain evidence.",
+      "dependsOn": [
+        "CPF-50"
+      ],
+      "standing": "gated"
+    }
+  ],
+  "firstImplementationSet": [
+    "CPF-10",
+    "CPF-11",
+    "CPF-12",
+    "CPF-13"
+  ],
+  "parallelAfterWave1": [
+    "CPF-14",
+    "CPF-21"
+  ],
+  "doNotBuild": [
+    "universal-capability-registry-service",
+    "gateway-capability-database",
+    "global-profile-bundle-owner",
+    "gateway-credential-vault",
+    "gateway-workflow-engine",
+    "gateway-scheduler",
+    "custom-vector-search-before-measurement",
+    "generic-action-execute-that-erases-effect-semantics",
+    "blind-retry-after-ambiguous-effect"
+  ],
+  "qualification": {
+    "standing": "WAVE1_SOURCE_QUALIFIED_LIVE_RELEASE_PENDING",
+    "gatewayFocusedVerifyJob": "job-01a0e64f-fb2a-7c23-a31d-d9d018d8e770",
+    "gatewayOwnerVerifyJob": "job-01a0e650-907a-7312-96ed-09d851b95223",
+    "architectureGuardJob": "job-01a0e653-8226-7b61-b509-0c8e1097b830",
+    "repositoryCiJob": "job-01a0e653-d3cf-7ce0-858a-65adca212eb6",
+    "liveReleasePromoted": false,
+    "truthBoundary": "Source qualification proves candidate source/tests only; live Gateway remains separately owner-observed until release acceptance."
+  }
+}

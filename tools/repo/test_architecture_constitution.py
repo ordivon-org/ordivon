@@ -48,3 +48,10 @@ def test_documentation_cannot_outrank_evidence() -> None:
     order.insert(2, "current-documentation")
     with pytest.raises(module.ArchitectureConstitutionError, match="documentation must not outrank"):
         module.validate_constitution(value)
+
+
+def test_capability_projection_fabric_remains_projection_not_universal_registry() -> None:
+    module.validate_repository(ROOT)
+    plan = json.loads(module.CAPABILITY_FABRIC_PLAN.read_text(encoding="utf-8"))
+    assert "universal-capability-registry-service" in plan["doNotBuild"]
+    assert set(plan["firstImplementationSet"]) == {"CPF-10", "CPF-11", "CPF-12", "CPF-13"}

@@ -12,6 +12,19 @@ CURRENT = ROOT / "docs" / "architecture" / "CURRENT_ARCHITECTURE.md"
 STRUCTURE = ROOT / "docs" / "architecture" / "STRUCTURE_R2.md"
 STRUCTURE_PLAN = ROOT / "docs" / "architecture" / "structure-r2-transition-r1.json"
 README = ROOT / "README.md"
+CAPABILITY_FABRIC_SPEC = ROOT / "docs" / "architecture" / "CAPABILITY_PROJECTION_FABRIC_R1.md"
+CAPABILITY_FABRIC_PLAN = ROOT / "docs" / "architecture" / "capability-projection-fabric-lego-r1.json"
+
+EXPECTED_CAPABILITY_FABRIC_DO_NOT_BUILD = {
+    "universal-capability-registry-service",
+    "gateway-capability-database",
+    "global-profile-bundle-owner",
+    "gateway-credential-vault",
+    "gateway-workflow-engine",
+    "gateway-scheduler",
+    "blind-retry-after-ambiguous-effect",
+}
+EXPECTED_CAPABILITY_FABRIC_FIRST_WAVE = {"CPF-10", "CPF-11", "CPF-12", "CPF-13"}
 
 EXPECTED_KERNEL = {
     "cognitive-circuit",
@@ -115,6 +128,24 @@ def validate_repository(root: Path = ROOT) -> None:
     readme = (root / README.relative_to(ROOT)).read_text(encoding="utf-8")
     if "docs/architecture/ARCHITECTURE_REANCHOR_R1.md" not in readme:
         raise ArchitectureConstitutionError("root README must route architecture readers through re-anchor constitution")
+
+    capability_spec = (root / CAPABILITY_FABRIC_SPEC.relative_to(ROOT)).read_text(encoding="utf-8")
+    for phrase in (
+        "without creating a universal capability registry",
+        "Gateway remains a thin, rebuildable, non-authoritative northbound adapter.",
+        "Discovery and authorization are separate.",
+        "`timeout -> retry` is not an accepted generic policy.",
+    ):
+        if phrase not in capability_spec:
+            raise ArchitectureConstitutionError(f"Capability Projection Fabric violates/misses constitutional boundary: {phrase}")
+
+    capability_plan = _load(root / CAPABILITY_FABRIC_PLAN.relative_to(ROOT))
+    if capability_plan.get("kind") != "ordivon.capability-projection-fabric-lego-plan":
+        raise ArchitectureConstitutionError("Capability Projection Fabric plan identity drifted")
+    if set(capability_plan.get("firstImplementationSet", [])) != EXPECTED_CAPABILITY_FABRIC_FIRST_WAVE:
+        raise ArchitectureConstitutionError("Capability Projection Fabric first wave drifted")
+    if not EXPECTED_CAPABILITY_FABRIC_DO_NOT_BUILD.issubset(set(capability_plan.get("doNotBuild", []))):
+        raise ArchitectureConstitutionError("Capability Projection Fabric lost anti-Mega-Gateway constraints")
 
 
 def main() -> int:
