@@ -179,7 +179,7 @@ def gateway_tools(source: str) -> set[str]:
 
 def validate_source_tool_surface(
     observed_tools: set[str], manifest: dict[str, Any], *, service: str
-) -> None:
+) -> set[str]:
     if manifest.get("schemaVersion") != 1:
         raise ArchitectureDocsError(f"{service} source Tool manifest schemaVersion must be 1")
     if manifest.get("kind") != "ordivon.mcp-tool-surface":
@@ -191,10 +191,40 @@ def validate_source_tool_surface(
         raise ArchitectureDocsError(f"{service} source Tool manifest tools must be strings")
     if len(tools) != len(set(tools)):
         raise ArchitectureDocsError(f"{service} source Tool manifest contains duplicate tools")
-    if observed_tools != set(tools):
+    declared_tools = set(tools)
+    if observed_tools != declared_tools:
         raise ArchitectureDocsError(
             f"{service} source Tool surface differs from source manifest: {sorted(observed_tools)}"
         )
+    return declared_tools
+
+
+def validate_deployed_source_tool_relation(
+    graph: dict[str, Any], source_tools: set[str]
+) -> None:
+    host_northbound = graph.get("hostNorthbound")
+    default_northbound = graph.get("defaultNorthbound")
+    if not isinstance(host_northbound, dict) or not isinstance(default_northbound, dict):
+        raise ArchitectureDocsError("deployed/source Tool relation requires northbound projections")
+    deployed_tools = host_northbound.get("normalTools")
+    if not isinstance(deployed_tools, list) or not all(
+        isinstance(item, str) and item for item in deployed_tools
+    ):
+        raise ArchitectureDocsError("deployed Host normalTools must be strings")
+    deployed_set = set(deployed_tools)
+    missing_from_source = deployed_set - source_tools
+    if missing_from_source:
+        raise ArchitectureDocsError(
+            "deployed Host northbound claims tools absent from current Gateway source: "
+            f"{sorted(missing_from_source)}"
+        )
+    declared_count = default_northbound.get("declaredToolCount")
+    if not isinstance(declared_count, int):
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount must be an integer")
+    if declared_count < len(deployed_set):
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount undercounts deployed Host tools")
+    if declared_count > len(source_tools):
+        raise ArchitectureDocsError("deployed Gateway declaredToolCount exceeds current source surface")
 
 
 def validate_current_document(text: str) -> None:
@@ -243,11 +273,12 @@ def validate_repository(root: Path = ROOT) -> None:
         )
 
     observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
-    validate_source_tool_surface(
+    source_tools = validate_source_tool_surface(
         observed_tools,
         _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
         service="ordivon-gateway",
     )
+    validate_deployed_source_tool_relation(graph, source_tools)
     host_acceptance = _load_json(host_northbound_acceptance)
     if host_acceptance.get("status") not in {
         "SOURCE_CUTOVER_CANDIDATE_VERIFIED_LIVE_PENDING",
