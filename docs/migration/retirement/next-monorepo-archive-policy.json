@@ -196,6 +196,10 @@
       "reason": "Explicitly reviewed historical navigation/provenance reference to the archived Next corpus."
     },
     {
+      "path": "tools/repo/path_classes.toml",
+      "reason": "R2 repository mechanics classifies the retired Next tree as ARCHIVED so historical deletion tombstones remain fail-closed and explainable during convergence."
+    },
+    {
       "path": "tools/repo/test_affected_owners.py",
       "reason": "Repository retirement regression exercises or asserts the archived tree boundary only."
     },
