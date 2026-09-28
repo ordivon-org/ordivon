@@ -210,8 +210,8 @@ impl RuntimeServer {
                 )
             })?;
         let correlation = format!(
-            "cred:{}",
-            format!("{:x}", Sha256::digest(request.client_request_id.as_bytes()))
+            "cred:{:x}",
+            Sha256::digest(request.client_request_id.as_bytes())
         );
         let observed = materialize_windows_credential_binding(
             broker,
