@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:experimental-fork-manifest:r1",
+  "title": "Ordivon Experimental Fork Manifest R1",
+  "description": "Study-owned declaration of one branch from an exact parent episode. It records intended frozen and changed bindings but performs no replay or effect itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "forkId", "experimentId", "parentEpisode", "forkMode", "externalWorldMode", "frozenBindings", "changedBindings", "interventionRefs", "randomness", "nonClaims", "manifestDigest"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.experimental-fork-manifest"},
+    "forkId": {"type": "string", "minLength": 1, "maxLength": 512},
+    "experimentId": {"type": "string", "minLength": 1, "maxLength": 512},
+    "parentEpisode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["episodeId", "projectionDigest"],
+      "properties": {
+        "episodeId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "projectionDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "forkMode": {"enum": ["continuation", "policy", "environment", "population"]},
+    "externalWorldMode": {"enum": ["closed", "snapshot", "live"]},
+    "frozenBindings": {"type": "array", "items": {"$ref": "#/$defs/namedBinding"}},
+    "changedBindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "before", "after"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 512},
+          "before": {"$ref": "#/$defs/bindingRef"},
+          "after": {"$ref": "#/$defs/bindingRef"}
+        }
+      }
+    },
+    "interventionRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["contractId", "contractDigest"],
+        "properties": {
+          "contractId": {"type": "string", "minLength": 1, "maxLength": 512},
+          "contractDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "randomness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy"],
+      "properties": {
+        "strategy": {"enum": ["same", "derived", "new-explicit"]},
+        "seedRef": {"type": "string", "minLength": 1, "maxLength": 512}
+      }
+    },
+    "nonClaims": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "manifestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "bindingRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownerId", "objectKind", "objectId", "digest"],
+      "properties": {
+        "ownerId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "objectKind": {"type": "string", "minLength": 1, "maxLength": 512},
+        "objectId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "namedBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "binding"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 512},
+        "binding": {"$ref": "#/$defs/bindingRef"}
+      }
+    }
+  }
+}
