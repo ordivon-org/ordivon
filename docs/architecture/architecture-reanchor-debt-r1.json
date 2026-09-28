@@ -29,19 +29,29 @@
     },
     {
       "id": "ARD-002",
-      "problem": "Legacy HarnessDispatchFence v1 still embeds Host Task/Assignment authority vocabulary.",
+      "problem": "Legacy HarnessDispatchFence v1 encoded Host Task/Assignment authority vocabulary inside Harness; the compatibility ontology is now retired.",
       "owner": "harness",
       "authority": "Harness Run Store persistence/recovery",
-      "impact": ["ontology-debt", "host-harness-coupling"],
-      "evidence": [
-        "current writers use HarnessDispatchFenceV2 with harness runRevision/bindingDigest",
-        "sqlite_run_store.py still retains two v1 from_dict reader paths"
+      "impact": [
+        "ontology-debt",
+        "host-harness-coupling"
       ],
-      "desiredContract": "Only caller-neutral Harness dispatch fences remain in active source.",
-      "currentGap": "Persisted-store census has not yet established that no recoverable v1 fence requires the historical decoder.",
-      "recommendedLEGO": "Census authoritative Harness stores for v1 fence objects; migrate/archive exact recovery evidence if required; then remove the v1 decoder and tests.",
-      "verification": ["zero active/recoverable v1 fence objects or an explicit archive migration receipt", "Harness full verification passes", "repo-wide active source contains no Host Task authority namespace in dispatch fencing"],
-      "priority": "MEDIUM"
+      "evidence": [
+        "services/harness/evidence/harness-dispatch-fence-v1-retirement-20260928.json: three retained Harness stores, 436 Runs, 2,981 Events, zero dispatch-fence object refs and zero schema-v1 objects",
+        "estate-wide tracked current-source census found no independent v1 consumer; current production writer is HarnessDispatchFenceV2",
+        "Harness full verification after deletion: 1088 tests + 97 subtests PASS; dependency/documentation/evidence contracts and wheel smoke PASS"
+      ],
+      "desiredContract": "Only caller-neutral HarnessDispatchFenceV2 remains in active source and current Tool-effect fencing.",
+      "currentGap": "CLOSED: no retained persisted v1 recovery obligation exists; v1 class, SQLite decoder branches and self-preserving codec test are removed.",
+      "recommendedLEGO": "No further compatibility layer. Preserve historical Git/evidence only; anti-resurrection test keeps the v1 symbol absent.",
+      "verification": [
+        "zero schema-v1 Dispatch Fence objects across retained Harness stores",
+        "protocol.HarnessDispatchFence absent",
+        "SQLite Run Store decodes Dispatch Fence only through V2",
+        "full Harness owner verification green"
+      ],
+      "priority": "CLOSED",
+      "standing": "CLOSED_V1_RETIRED_ZERO_PERSISTED_RECOVERY_OBLIGATION"
     },
     {
       "id": "ARD-003",

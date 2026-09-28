@@ -749,6 +749,13 @@
         "src/ordivon_harness/plugin_gateway_effect.py"
       ],
       "runtimeDependencyClosureDigest": "sha256:c24519d0fdfbbaf56233fb25568428ff6fbdf3dac962ea62e2b95590e1a2d7d5"
+    },
+    {
+      "claimId": "harness.dispatch-fence.v1-retirement-20260928",
+      "file": "harness-dispatch-fence-v1-retirement-20260928.json",
+      "status": "historical",
+      "implementationRevision": "a3210b45d80e63da57d21d8b39c85cfbb67e4327",
+      "scope": "Pre-deletion read-only census proving zero persisted schema-v1 Dispatch Fence recovery obligation across all retained Harness SQLite stores and zero independent current-source consumer."
     }
   ]
 }
