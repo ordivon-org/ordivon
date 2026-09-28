@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import json
+from functools import wraps
 from typing import Literal
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
+from pydantic import ValidationError
 
 from .canonical import canonical_digest
+from .errors import ConflictError
 from .social_attention import AttentionStore
 from .social_contracts import (
     ActorRefResponse,
@@ -38,7 +43,7 @@ from .social_graph import (
     SpaceInput,
     TopicInput,
 )
-from .social_store import SocialStore
+from .social_store import MessageNotFound, SocialStore, SpaceNotFound, TopicNotFound
 from .social_work import (
     ActorKind,
     ActorRefInput,
@@ -46,11 +51,99 @@ from .social_work import (
     WorkSnapshotInput,
     WorkState,
 )
-from .work_store import WorkStore
+from .work_store import ActorRefNotFound, WorkNotFound, WorkStore
 
 
 def _request_id(prefix: str, payload: object) -> str:
     return f"{prefix}:{canonical_digest(payload).removeprefix('sha256:')}"
+
+
+def _domain_error_payload(exc: Exception) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-domain-error",
+        "retryable": False,
+    }
+    if isinstance(exc, WorkNotFound):
+        payload.update(
+            code="NOT_FOUND",
+            resourceKind="work",
+            resourceRef=str(exc),
+            suggestedAction="discover-before-create",
+        )
+    elif isinstance(exc, ActorRefNotFound):
+        payload.update(
+            code="NOT_FOUND",
+            resourceKind="actor",
+            resourceRef=str(exc),
+            suggestedAction="inspect-owner-inventory",
+        )
+    elif isinstance(exc, SpaceNotFound):
+        payload.update(
+            code="NOT_FOUND",
+            resourceKind="space",
+            resourceRef=str(exc),
+            suggestedAction="inspect-owner-inventory",
+        )
+    elif isinstance(exc, TopicNotFound):
+        payload.update(
+            code="NOT_FOUND",
+            resourceKind="topic",
+            resourceRef=str(exc),
+            suggestedAction="inspect-owner-inventory",
+        )
+    elif isinstance(exc, MessageNotFound):
+        payload.update(
+            code="NOT_FOUND",
+            resourceKind="message",
+            resourceRef=str(exc),
+            suggestedAction="inspect-owner-inventory",
+        )
+    elif isinstance(exc, ConflictError):
+        payload.update(
+            code="CONFLICT",
+            detail=str(exc),
+            suggestedAction="reread-current-state-and-reconcile",
+        )
+    elif isinstance(exc, ValidationError):
+        payload.update(
+            code="INVALID_ARGUMENT",
+            issues=exc.errors(include_url=False, include_input=False),
+            suggestedAction="correct-request",
+        )
+    elif isinstance(exc, ValueError):
+        payload.update(
+            code="INVALID_ARGUMENT",
+            detail=str(exc),
+            suggestedAction="correct-request",
+        )
+    else:  # pragma: no cover - caller catches only the explicit domain set below.
+        raise TypeError(f"unsupported domain error type: {type(exc).__name__}")
+    return payload
+
+
+def _project_domain_errors(func):
+    """Map expected Host-domain rejection to MCP ToolError without hiding crashes."""
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (
+            WorkNotFound,
+            ActorRefNotFound,
+            SpaceNotFound,
+            TopicNotFound,
+            MessageNotFound,
+            ConflictError,
+            ValidationError,
+            ValueError,
+        ) as exc:
+            raise ToolError(
+                json.dumps(_domain_error_payload(exc), sort_keys=True, separators=(",", ":"))
+            ) from None
+
+    return wrapped
 
 
 def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
@@ -65,6 +158,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
     attention = AttentionStore(dsn)
 
     @mcp.tool(name="actor.declare")
+    @_project_domain_errors
     def actor_declare(
         actorRef: str,
         actorKind: Literal["unknown", "human", "agent", "service", "organization"],
@@ -77,6 +171,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="work.create")
+    @_project_domain_errors
     def work_create(
         workRef: str,
         workKind: str,
@@ -93,10 +188,12 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         return work.create_work(value, client_request_id=_request_id("work-create", request))
 
     @mcp.tool(name="work.get")
+    @_project_domain_errors
     def work_get(workRef: str, revision: int | None = None) -> WorkResponse:
         return work.get_work(workRef, revision)
 
     @mcp.tool(name="work.list")
+    @_project_domain_errors
     def work_list(
         state: Literal["open", "completed", "abandoned"] | None = None,
         limit: int = 50,
@@ -113,6 +210,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="work.snapshot.commit")
+    @_project_domain_errors
     def work_snapshot_commit(
         workRef: str,
         expectedRevision: int,
@@ -142,6 +240,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.create")
+    @_project_domain_errors
     def space_create(
         spaceRef: str,
         purpose: str,
@@ -160,6 +259,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.get")
+    @_project_domain_errors
     def space_get(
         spaceRef: str,
         participantLimit: int = 200,
@@ -174,6 +274,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.list")
+    @_project_domain_errors
     def space_list(
         actorRef: str | None = None,
         subjectRef: str | None = None,
@@ -192,6 +293,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.subject.list")
+    @_project_domain_errors
     def space_subject_list(
         spaceRef: str,
         afterSubjectRef: str | None = None,
@@ -203,6 +305,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.participation.list")
+    @_project_domain_errors
     def space_participation_list(
         spaceRef: str,
         afterActorRef: str | None = None,
@@ -214,6 +317,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.participation.set")
+    @_project_domain_errors
     def space_participation_set(
         spaceRef: str,
         actorRef: str,
@@ -228,6 +332,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="topic.create")
+    @_project_domain_errors
     def topic_create(topicRef: str, spaceRef: str, title: str, actorRef: str) -> TopicResponse:
         value = TopicInput(
             topic_ref=topicRef,
@@ -241,6 +346,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="topic.list")
+    @_project_domain_errors
     def topic_list(
         spaceRef: str,
         afterTopicRef: str | None = None,
@@ -252,10 +358,12 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="topic.cursor.get")
+    @_project_domain_errors
     def topic_cursor_get(actorRef: str, topicRef: str) -> TopicCursorResponse:
         return social.get_topic_cursor(actor_ref=actorRef, topic_ref=topicRef)
 
     @mcp.tool(name="topic.cursor.ack")
+    @_project_domain_errors
     def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> TopicCursorResponse:
         request = {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
         return social.ack_topic_cursor(
@@ -266,6 +374,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="topic.resume")
+    @_project_domain_errors
     def topic_resume(
         topicRef: str,
         afterSequence: int = 0,
@@ -277,6 +386,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="message.post")
+    @_project_domain_errors
     def message_post(
         messageRef: str,
         spaceRef: str,
@@ -311,6 +421,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         return social.post_message(value)
 
     @mcp.tool(name="message.search")
+    @_project_domain_errors
     def message_search(
         query: str,
         spaceRef: str | None = None,
@@ -329,6 +440,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="message.relation.add")
+    @_project_domain_errors
     def message_relation_add(
         sourceMessageRef: str,
         relation: Literal[
@@ -349,6 +461,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="message.relation.list")
+    @_project_domain_errors
     def message_relation_list(
         messageRef: str,
         direction: Literal["outgoing", "incoming", "both"] = "both",
@@ -369,6 +482,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="subscription.follow")
+    @_project_domain_errors
     def subscription_follow(
         actorRef: str,
         targetKind: Literal["work", "space", "topic"],
@@ -383,6 +497,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="subscription.list")
+    @_project_domain_errors
     def subscription_list(
         actorRef: str,
         targetKind: Literal["work", "space", "topic"] | None = None,
@@ -401,6 +516,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="subscription.unfollow")
+    @_project_domain_errors
     def subscription_unfollow(
         actorRef: str,
         targetKind: Literal["work", "space", "topic"],
@@ -415,12 +531,14 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="attention.get")
+    @_project_domain_errors
     def attention_get(
         actorRef: str, limit: int = 100, maxBytes: int = 262_144
     ) -> AttentionDeltaResponse:
         return attention.get(actorRef, limit=limit, max_bytes=maxBytes)
 
     @mcp.tool(name="attention.delta")
+    @_project_domain_errors
     def attention_delta(
         actorRef: str, afterSequence: int, limit: int = 100, maxBytes: int = 262_144
     ) -> AttentionDeltaResponse:
@@ -429,6 +547,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="attention.reentry")
+    @_project_domain_errors
     def attention_reentry(
         actorRef: str,
         afterSequence: int | None = None,
@@ -440,6 +559,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="attention.ack")
+    @_project_domain_errors
     def attention_ack(actorRef: str, cursor: int) -> AttentionAckResponse:
         request = {"actorRef": actorRef, "cursor": cursor}
         return attention.ack(
