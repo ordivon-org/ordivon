@@ -59,6 +59,10 @@
     {
       "path": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine.rs",
       "reason": "The retired locator appears only in two test-only systemd command fixtures as an arbitrary workspace path; no production Runtime path resolution consumes it."
+    },
+    {
+      "path": "studies/research/scholarly-intelligence-r1/evidence/standard-native-enterprise-r2-dogfood-20260914.json",
+      "reason": "Exact Study-owned frozen copy preserves the dated 2026-09-14 Runtime source provenance; no current Runtime path resolution consumes it."
     }
   ]
 }

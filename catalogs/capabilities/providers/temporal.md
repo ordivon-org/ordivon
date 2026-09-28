@@ -16,11 +16,9 @@ Role: durable execution platform for long-lived deterministic workflows whose st
 
 ## Current local observation
 
-No active `temporal` CLI or Temporal container image was observed on this workstation during this study.
+A pre-monorepo Workstation-v2 carrier contained Temporal deployment/configuration material, but that source locator is retired and is historical evidence only. Current Temporal deployment and liveness must be read from the live Workstation/Temporal owner rather than inferred from that carrier.
 
-`/root/projects/ordivon-workstation-v2/temporal/` contains Temporal-oriented deployment/configuration material, so Temporal is already represented in historical Operations knowledge, but it is not a currently proven local runtime dependency.
-
-Do not install/start a Temporal cluster merely because the architecture passes study. Activate it when a real durable workflow requires crash-proof state, timers/retries, message passing or distributed Worker routing.
+Temporal is an external durable-workflow provider, not an Ordivon kernel subsystem. Its use remains demand-driven: bind it where real workflows require crash-proof state, timers/retries, message passing or distributed Worker routing, and verify current provider state independently.
 
 ## Core architecture
 

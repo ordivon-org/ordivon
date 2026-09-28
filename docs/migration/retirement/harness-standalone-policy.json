@@ -11,22 +11,32 @@
   "allowedReferenceClasses": [
     {
       "id": "documentation",
-      "globs": ["**/*.md"],
+      "globs": [
+        "**/*.md"
+      ],
       "reason": "Historical architecture, migration, research, and lesson documents may name the former standalone Harness carrier."
     },
     {
       "id": "historical-artifacts",
-      "globs": ["**/artifacts/**", "**/evidence/**"],
+      "globs": [
+        "**/artifacts/**",
+        "**/evidence/**"
+      ],
       "reason": "Committed evidence and projections may preserve the exact source locator observed when produced."
     },
     {
       "id": "frozen-production-carriers",
-      "globs": ["**/productions/*/source/**", "**/productions/*/render/**"],
+      "globs": [
+        "**/productions/*/source/**",
+        "**/productions/*/render/**"
+      ],
       "reason": "Creation-time source snapshots and rendered/query carriers preserve historical repository topology."
     },
     {
       "id": "knowledge-snapshots",
-      "globs": ["meta/next/knowledge/**"],
+      "globs": [
+        "meta/next/knowledge/**"
+      ],
       "reason": "Knowledge graphs and lessons record historical Harness observations; they are not executable source locators."
     },
     {
@@ -40,6 +50,22 @@
     }
   ],
   "allowedExactPaths": [
+    {
+      "path": "catalogs/knowledge/graphs/ordivon-agent-birth-r1.json",
+      "reason": "Dated knowledge-graph evidence preserves the historical standalone Harness source coordinate observed when the graph was produced."
+    },
+    {
+      "path": "catalogs/knowledge/graphs/ordivon-agent-service-control-stability-r1.json",
+      "reason": "Dated knowledge-graph evidence preserves the historical standalone Harness source coordinate observed when the graph was produced."
+    },
+    {
+      "path": "catalogs/knowledge/graphs/ordivon-agent-service-r14-interface-credential-effect-delta.json",
+      "reason": "Dated knowledge-graph evidence preserves the historical standalone Harness source coordinate observed when the graph was produced."
+    },
+    {
+      "path": "extensions/chatgpt-skills-mcp/tests/test_owner_boundary.py",
+      "reason": "Negative Skills owner-boundary regression asserts that the live unit no longer contains the retired Harness source locator."
+    },
     {
       "path": "platform/skills/tests/test_owner_boundary.py",
       "reason": "Negative fence proving the Skills systemd unit no longer uses the former standalone Harness source."
