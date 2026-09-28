@@ -116,7 +116,6 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
     })
 }
 
-
 fn validate_resource_receipt(
     current: &AttemptRecord,
 ) -> RuntimeResult<Option<ArtifactRegistration>> {

@@ -8448,7 +8448,6 @@ fn admission_hot_path_delegates_global_orphan_recovery_to_bounded_maintenance() 
     );
 }
 
-
 #[test]
 fn valid_resource_receipt_registers_as_attempt_artifact() {
     let sandbox = Sandbox::new("resource-receipt-artifact", 5_000);
@@ -8486,15 +8485,22 @@ fn valid_resource_receipt_registers_as_attempt_artifact() {
         .expect("valid resource receipt must be registered as a terminal Artifact");
     assert_eq!(receipt.relative_path, RESOURCE_RECEIPT_FILE);
     assert_eq!(receipt.media_type, "application/json");
-    assert_eq!(receipt.artifact_id, format!("{}.resource-receipt", starting.attempt_id));
+    assert_eq!(
+        receipt.artifact_id,
+        format!("{}.resource-receipt", starting.attempt_id)
+    );
     assert!(!receipt.truncated);
     assert!(receipt.byte_length > 0);
 
     sandbox.registry.commit_terminal(&terminal).unwrap();
-    let registered = sandbox.registry.list_artifacts(&created.job.job_id).unwrap();
-    assert!(registered.iter().any(|artifact| artifact.kind == "resource_receipt"));
+    let registered = sandbox
+        .registry
+        .list_artifacts(&created.job.job_id)
+        .unwrap();
+    assert!(registered
+        .iter()
+        .any(|artifact| artifact.kind == "resource_receipt"));
 }
-
 
 #[test]
 fn resource_receipt_identity_mismatch_fails_closed() {
@@ -8502,7 +8508,11 @@ fn resource_receipt_identity_mismatch_fails_closed() {
     let created = created(
         sandbox
             .registry
-            .submit(&request(&sandbox, "request:resource-receipt-identity-mismatch", 4))
+            .submit(&request(
+                &sandbox,
+                "request:resource-receipt-identity-mismatch",
+                4,
+            ))
             .unwrap(),
     );
     let bundle_ready = sandbox
@@ -8597,6 +8607,9 @@ fn historical_bundle_without_resource_receipt_remains_compatible() {
     write_completed_runner_result(&starting, 42);
 
     let terminal = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap();
-    assert!(terminal.artifacts.iter().all(|artifact| artifact.kind != "resource_receipt"));
+    assert!(terminal
+        .artifacts
+        .iter()
+        .all(|artifact| artifact.kind != "resource_receipt"));
     sandbox.registry.commit_terminal(&terminal).unwrap();
 }

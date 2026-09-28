@@ -77,7 +77,10 @@ fn parse_error(message: impl Into<String>) -> UniversalExecError {
     )
 }
 
-fn parse_space_counters(text: &str, context: &str) -> Result<BTreeMap<String, u64>, UniversalExecError> {
+fn parse_space_counters(
+    text: &str,
+    context: &str,
+) -> Result<BTreeMap<String, u64>, UniversalExecError> {
     let mut counters = BTreeMap::new();
     for line in text.lines().filter(|line| !line.trim().is_empty()) {
         let mut parts = line.split_whitespace();
@@ -88,13 +91,19 @@ fn parse_space_counters(text: &str, context: &str) -> Result<BTreeMap<String, u6
             .next()
             .ok_or_else(|| parse_error(format!("{context} counter {key} omitted its value")))?;
         if parts.next().is_some() {
-            return Err(parse_error(format!("{context} counter {key} has extra fields")));
+            return Err(parse_error(format!(
+                "{context} counter {key} has extra fields"
+            )));
         }
-        let value = raw
-            .parse::<u64>()
-            .map_err(|_| parse_error(format!("{context} counter {key} is not an unsigned integer")))?;
+        let value = raw.parse::<u64>().map_err(|_| {
+            parse_error(format!(
+                "{context} counter {key} is not an unsigned integer"
+            ))
+        })?;
         if counters.insert(key.to_string(), value).is_some() {
-            return Err(parse_error(format!("{context} counter {key} is duplicated")));
+            return Err(parse_error(format!(
+                "{context} counter {key} is duplicated"
+            )));
         }
     }
     Ok(counters)
@@ -163,24 +172,48 @@ pub(crate) fn parse_cgroup_io_stat(text: &str) -> Result<CgroupIoUsage, Universa
                 parse_error(format!("io.stat counter {key} is not an unsigned integer"))
             })?;
             if counters.insert(key.to_string(), value).is_some() {
-                return Err(parse_error(format!("io.stat counter {key} is duplicated for {device}")));
+                return Err(parse_error(format!(
+                    "io.stat counter {key} is duplicated for {device}"
+                )));
             }
         }
 
-        add_counter(&mut total.read_bytes, required_counter(&counters, "rbytes", "io.stat")?, "rbytes")?;
-        add_counter(&mut total.write_bytes, required_counter(&counters, "wbytes", "io.stat")?, "wbytes")?;
-        add_counter(&mut total.read_ops, required_counter(&counters, "rios", "io.stat")?, "rios")?;
-        add_counter(&mut total.write_ops, required_counter(&counters, "wios", "io.stat")?, "wios")?;
-        add_counter(&mut total.discard_bytes, counters.get("dbytes").copied().unwrap_or(0), "dbytes")?;
-        add_counter(&mut total.discard_ops, counters.get("dios").copied().unwrap_or(0), "dios")?;
+        add_counter(
+            &mut total.read_bytes,
+            required_counter(&counters, "rbytes", "io.stat")?,
+            "rbytes",
+        )?;
+        add_counter(
+            &mut total.write_bytes,
+            required_counter(&counters, "wbytes", "io.stat")?,
+            "wbytes",
+        )?;
+        add_counter(
+            &mut total.read_ops,
+            required_counter(&counters, "rios", "io.stat")?,
+            "rios",
+        )?;
+        add_counter(
+            &mut total.write_ops,
+            required_counter(&counters, "wios", "io.stat")?,
+            "wios",
+        )?;
+        add_counter(
+            &mut total.discard_bytes,
+            counters.get("dbytes").copied().unwrap_or(0),
+            "dbytes",
+        )?;
+        add_counter(
+            &mut total.discard_ops,
+            counters.get("dios").copied().unwrap_or(0),
+            "dios",
+        )?;
     }
     Ok(total)
 }
 
 fn read_required_text(path: &Path, context: &str) -> Result<String, UniversalExecError> {
-    fs::read_to_string(path).map_err(|error| {
-        parse_error(format!("cannot read {context}: {error}"))
-    })
+    fs::read_to_string(path).map_err(|error| parse_error(format!("cannot read {context}: {error}")))
 }
 
 fn read_required_u64(path: &Path, context: &str) -> Result<u64, UniversalExecError> {
@@ -206,13 +239,12 @@ fn read_memory_events(cgroup_root: &Path) -> Result<CgroupMemoryEvents, Universa
     let local = cgroup_root.join("memory.events.local");
     match fs::read_to_string(&local) {
         Ok(value) => parse_cgroup_memory_events(&value),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            parse_cgroup_memory_events(&read_required_text(
-                &cgroup_root.join("memory.events"),
-                "memory.events",
-            )?)
-        }
-        Err(error) => Err(parse_error(format!("cannot read memory.events.local: {error}"))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => parse_cgroup_memory_events(
+            &read_required_text(&cgroup_root.join("memory.events"), "memory.events")?,
+        ),
+        Err(error) => Err(parse_error(format!(
+            "cannot read memory.events.local: {error}"
+        ))),
     }
 }
 
