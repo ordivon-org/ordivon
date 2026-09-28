@@ -3480,15 +3480,18 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
     let sleep_executable = real_executable("/usr/bin/sleep");
     let mut slow = fast;
     slow.task_id = "task-shared-overall-slow".to_string();
-    slow.timeout_ms = 250;
+    // Keep enough scheduling margin for the first fast step even under a loaded
+    // verification host, while still proving that the shared overall deadline
+    // (rather than the much larger per-step timeout) terminates step two.
+    slow.timeout_ms = 2_000;
     slow.steps[1] = RunnerExecutionStep {
         id: "two".to_string(),
         executable: sleep_executable.to_string_lossy().into_owned(),
         executable_digest: sha256_file(&sleep_executable).unwrap(),
-        args: vec!["1".to_string()],
+        args: vec!["5".to_string()],
         cwd: workspace.to_string_lossy().into_owned(),
         env: BTreeMap::new(),
-        timeout_ms: 1_000,
+        timeout_ms: 5_000,
         continue_on_error: false,
     };
     write_json_atomic(&slow_dir.join("request.json"), &slow).unwrap();
