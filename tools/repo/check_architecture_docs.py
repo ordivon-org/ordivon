@@ -11,6 +11,7 @@ DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
+GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"
 HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-swf-northbound-acceptance-20260924.json"
 METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
@@ -36,38 +37,6 @@ EXPECTED_CAPABILITIES = {
     "continuity.external",
     "execution.linux",
     "execution.windows",
-}
-
-EXPECTED_GATEWAY_TOOLS = {
-    'actor.declare',
-    'artifact.read',
-    'attention.ack',
-    'attention.delta',
-    'attention.get',
-    'capability.describe',
-    'capability.search',
-    'execution.cancel',
-    'execution.get',
-    'execution.resolve',
-    'execution.submit',
-    'host.status',
-    'message.post',
-    'message.relation.add',
-    'message.search',
-    'space.create',
-    'space.get',
-    'space.list',
-    'space.participation.set',
-    'subscription.follow',
-    'subscription.list',
-    'subscription.unfollow',
-    'system.describe',
-    'topic.create',
-    'topic.resume',
-    'work.create',
-    'work.get',
-    'work.list',
-    'work.snapshot.commit',
 }
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
@@ -208,6 +177,26 @@ def gateway_tools(source: str) -> set[str]:
     return set(re.findall(r'@server\.tool\(name="([^"]+)"\)', source))
 
 
+def validate_source_tool_surface(
+    observed_tools: set[str], manifest: dict[str, Any], *, service: str
+) -> None:
+    if manifest.get("schemaVersion") != 1:
+        raise ArchitectureDocsError(f"{service} source Tool manifest schemaVersion must be 1")
+    if manifest.get("kind") != "ordivon.mcp-tool-surface":
+        raise ArchitectureDocsError(f"{service} source Tool manifest kind drifted")
+    if manifest.get("service") != service:
+        raise ArchitectureDocsError(f"{service} source Tool manifest service identity drifted")
+    tools = manifest.get("tools")
+    if not isinstance(tools, list) or not all(isinstance(item, str) and item for item in tools):
+        raise ArchitectureDocsError(f"{service} source Tool manifest tools must be strings")
+    if len(tools) != len(set(tools)):
+        raise ArchitectureDocsError(f"{service} source Tool manifest contains duplicate tools")
+    if observed_tools != set(tools):
+        raise ArchitectureDocsError(
+            f"{service} source Tool surface differs from source manifest: {sorted(observed_tools)}"
+        )
+
+
 def validate_current_document(text: str) -> None:
     required = [
         "Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**",
@@ -254,10 +243,11 @@ def validate_repository(root: Path = ROOT) -> None:
         )
 
     observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
-    if observed_tools != EXPECTED_GATEWAY_TOOLS:
-        raise ArchitectureDocsError(
-            f"Gateway public Tool surface drifted: {sorted(observed_tools)}"
-        )
+    validate_source_tool_surface(
+        observed_tools,
+        _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
+        service="ordivon-gateway",
+    )
     host_acceptance = _load_json(host_northbound_acceptance)
     if host_acceptance.get("status") not in {
         "SOURCE_CUTOVER_CANDIDATE_VERIFIED_LIVE_PENDING",
