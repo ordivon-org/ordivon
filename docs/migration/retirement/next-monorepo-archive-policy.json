@@ -197,11 +197,11 @@
     },
     {
       "path": "tools/repo/test_affected_owners.py",
-      "reason": "Negative repository-mechanics regression asserts the archived tree has no active owner."
+      "reason": "Repository retirement regression exercises or asserts the archived tree boundary only."
     },
     {
       "path": "tools/repo/test_convergence_plan.py",
-      "reason": "Negative repository-mechanics regression asserts the archived tree has no active owner."
+      "reason": "Repository retirement regression exercises or asserts the archived tree boundary only."
     }
   ]
 }
