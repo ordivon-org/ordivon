@@ -177,7 +177,7 @@ def metric_spec(
     return seal(value, "specDigest")
 
 
-def build_preregistration() -> dict[str, Any]:
+def build_preregistration(*, source_revision: str | None = None) -> dict[str, Any]:
     root = repo_root()
     live_script = harness_root() / "scripts" / "run_adaptive_edit_r2_live_ab.py"
     deepseek_file = harness_root() / "src" / "ordivon_harness" / "ordivon" / "deepseek.py"
@@ -185,7 +185,18 @@ def build_preregistration() -> dict[str, Any]:
     action_file = harness_root() / "src" / "ordivon_harness" / "ordivon" / "adaptive_edit_bridge.py"
     schedule = build_schedule()
     schedule_digest = canonical_digest(schedule)
-    git_revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+    current_revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=root, text=True
+    ).strip()
+    git_revision = current_revision if source_revision is None else source_revision
+    if source_revision is not None:
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", source_revision, current_revision],
+            cwd=root,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
     # TASK_SPECS are the current natural mapping; bind their exact task/verifier files below.
     live = load_live_runner()
@@ -216,6 +227,7 @@ def build_preregistration() -> dict[str, Any]:
             }
         )
 
+    pilot_runner_ref = file_binding(Path(__file__), owner="study")
     runner_ref = file_binding(live_script, owner="harness")
     adapter_ref = binding(
         "harness",
@@ -404,6 +416,7 @@ def build_preregistration() -> dict[str, Any]:
         "kind": "ordivon.experimental-factorial-preregistration",
         "experimentId": EXPERIMENT_ID,
         "gitRevision": git_revision,
+        "pilotRunnerBinding": pilot_runner_ref,
         "design": design,
         "modelIntervention": model_intervention,
         "codecIntervention": codec_intervention,
@@ -451,6 +464,33 @@ def write_preregistration(output_dir: Path, prereg: dict[str, Any]) -> None:
     metrics_dir = output_dir / "metrics"
     for item in prereg["metricSpecs"]:
         json_write(metrics_dir / f"{item['metricId'].split(':', 1)[1]}.json", item)
+
+
+def resolve_preregistration(output_dir: Path) -> dict[str, Any]:
+    path = output_dir / "preregistration.json"
+    if not path.is_file():
+        prereg = build_preregistration()
+        write_preregistration(output_dir, prereg)
+        return prereg
+
+    current = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(current, dict):
+        raise RuntimeError("stored preregistration must be an object")
+    recorded_digest = current.get("preregistrationDigest")
+    expected_digest = canonical_digest(
+        {key: value for key, value in current.items() if key != "preregistrationDigest"}
+    )
+    if recorded_digest != expected_digest:
+        raise RuntimeError("stored preregistration digest is invalid")
+    source_revision = current.get("gitRevision")
+    if not isinstance(source_revision, str) or not source_revision:
+        raise RuntimeError("stored preregistration lacks source Git revision")
+    expected = build_preregistration(source_revision=source_revision)
+    if current != expected:
+        raise RuntimeError(
+            "stored preregistration no longer matches its bound code/task/provider contracts"
+        )
+    return current
 
 
 def read_journal(path: Path) -> tuple[set[str], set[str]]:
@@ -979,8 +1019,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     output_dir = args.output_dir.resolve()
-    prereg = build_preregistration()
-    write_preregistration(output_dir, prereg)
+    prereg = resolve_preregistration(output_dir)
     print(f"PREREGISTRATION_DIGEST={prereg['preregistrationDigest']}", flush=True)
     if args.preregister_only:
         return 0

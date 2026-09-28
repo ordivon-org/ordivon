@@ -53,6 +53,14 @@ def test_preregistration_contracts_validate_without_provider_calls() -> None:
 def test_preregistration_is_byte_semantically_stable_before_live_execution() -> None:
     module = load_runner()
     first = module.build_preregistration()
-    second = module.build_preregistration()
+    second = module.build_preregistration(source_revision=first["gitRevision"])
     assert first == second
     assert first["preregistrationDigest"] == second["preregistrationDigest"]
+
+
+def test_frozen_preregistration_reopens_without_rebinding_head(tmp_path) -> None:
+    module = load_runner()
+    first = module.resolve_preregistration(tmp_path)
+    second = module.resolve_preregistration(tmp_path)
+    assert first == second
+    assert first["pilotRunnerBinding"]["digest"] == module.file_digest(module.Path(module.__file__))
