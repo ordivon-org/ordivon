@@ -60,10 +60,6 @@
       "reason": "Architecture/history document names archived Next material as historical context only."
     },
     {
-      "path": "docs/architecture/architecture-reanchor-debt-r1.json",
-      "reason": "Architecture/history document names archived Next material as historical context only."
-    },
-    {
       "path": "docs/architecture/convergence-queue-lego-r1.json",
       "reason": "Architecture/history document names archived Next material as historical context only."
     },
@@ -73,27 +69,31 @@
     },
     {
       "path": "docs/architecture/evidence/CANONICAL_PUBLICATION_INTENT_CLUSTERS_R2.json",
-      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
     },
     {
       "path": "docs/architecture/evidence/CANONICAL_PUBLICATION_RAW_INTENT_CENSUS_R2.json",
-      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
     },
     {
       "path": "docs/architecture/evidence/CONVERGENCE_CI_PR_RUN_INDEX_R1.json",
-      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
     },
     {
       "path": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json",
-      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
     },
     {
       "path": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R2.json",
-      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
+    },
+    {
+      "path": "docs/architecture/evidence/architecture-reanchor-ard001-next-owner-retirement-20260928.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
     },
     {
       "path": "docs/architecture/evidence/network-stoppage-recovery-census-r2-20260927.json",
-      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation or retirement acceptance."
     },
     {
       "path": "docs/architecture/learning-data-ownership-census-r1.json",
