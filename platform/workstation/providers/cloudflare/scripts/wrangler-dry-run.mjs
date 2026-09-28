@@ -10,9 +10,15 @@ const executable = join(
   process.platform === "win32" ? "wrangler.cmd" : "wrangler"
 );
 const successMarker = "--dry-run: exiting now.";
+const deadlineMs = 60_000;
+const completionGraceMs = 500;
+const terminationGraceMs = 2_000;
 let sawSuccess = false;
 let settled = false;
+let deadlineExpired = false;
 let completionTimer;
+let killTimer;
+let hardExitTimer;
 
 const child = spawn(
   executable,
@@ -34,15 +40,33 @@ function terminate(signal) {
   }
 }
 
+function clearTimers() {
+  clearTimeout(deadline);
+  clearTimeout(completionTimer);
+  clearTimeout(killTimer);
+  clearTimeout(hardExitTimer);
+}
+
+function scheduleHardExit(code) {
+  hardExitTimer = setTimeout(() => {
+    // A detached Wrangler descendant can keep inherited pipe handles alive after the
+    // direct child has completed. At this point terminal authority is already known.
+    process.exit(code);
+  }, terminationGraceMs);
+}
+
 function observeOutput(stream, destination) {
   let retained = "";
   stream.on("data", (chunk) => {
     destination.write(chunk);
     retained = (retained + chunk.toString("utf8")).slice(-4096);
-    if (!sawSuccess && retained.includes(successMarker)) {
+    if (!deadlineExpired && !sawSuccess && retained.includes(successMarker)) {
       sawSuccess = true;
-      completionTimer = setTimeout(() => terminate("SIGTERM"), 500);
-      completionTimer.unref();
+      clearTimeout(deadline);
+      completionTimer = setTimeout(() => {
+        terminate("SIGTERM");
+        scheduleHardExit(0);
+      }, completionGraceMs);
     }
   });
 }
@@ -51,28 +75,32 @@ observeOutput(child.stdout, process.stdout);
 observeOutput(child.stderr, process.stderr);
 
 const deadline = setTimeout(() => {
-  if (settled) return;
+  if (settled || sawSuccess) return;
+  deadlineExpired = true;
   console.error("Wrangler dry-run did not reach its success marker within 60 seconds.");
   terminate("SIGTERM");
-  setTimeout(() => terminate("SIGKILL"), 2000).unref();
-}, 60_000);
-deadline.unref();
+  killTimer = setTimeout(() => terminate("SIGKILL"), terminationGraceMs);
+  hardExitTimer = setTimeout(() => process.exit(1), terminationGraceMs + 500);
+}, deadlineMs);
 
 child.on("error", (error) => {
+  if (settled) return;
   settled = true;
-  clearTimeout(deadline);
-  clearTimeout(completionTimer);
+  clearTimers();
   console.error(`Unable to start Wrangler: ${error.message}`);
-  process.exitCode = 1;
+  process.exit(1);
 });
 
 child.on("exit", (code, signal) => {
   if (settled) return;
   settled = true;
-  clearTimeout(deadline);
-  clearTimeout(completionTimer);
-  if (code === 0 || (sawSuccess && signal !== null)) {
+  clearTimers();
+  if (!deadlineExpired && (code === 0 || (sawSuccess && signal !== null))) {
     process.exitCode = 0;
+    return;
+  }
+  if (deadlineExpired) {
+    process.exitCode = 1;
     return;
   }
   console.error(
