@@ -48,7 +48,6 @@ struct Args {
     receipt_root: PathBuf,
     service: String,
     broker_service: String,
-    workspace_id: String,
     expected_tool_count: u32,
     require_ref: String,
     effect_id: String,
@@ -120,6 +119,7 @@ struct PlanReceipt {
     owner_job_id: String,
     active_job_ids: Vec<String>,
     blockers: Vec<String>,
+    workspace_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     bootstrap_recovery: Option<BootstrapRecoveryProof>,
 }
@@ -194,7 +194,8 @@ mod scm {
         QueryServiceConfigW, QueryServiceStatusEx, StartServiceW, QUERY_SERVICE_CONFIGW, SC_HANDLE,
         SC_MANAGER_CONNECT, SC_STATUS_PROCESS_INFO, SERVICE_CHANGE_CONFIG, SERVICE_CONTROL_STOP,
         SERVICE_NO_CHANGE, SERVICE_QUERY_CONFIG, SERVICE_QUERY_STATUS, SERVICE_RUNNING,
-        SERVICE_START, SERVICE_STATUS, SERVICE_STATUS_PROCESS, SERVICE_STOP, SERVICE_STOPPED,
+        SERVICE_START, SERVICE_START_PENDING, SERVICE_STATUS, SERVICE_STATUS_PROCESS, SERVICE_STOP,
+        SERVICE_STOPPED, SERVICE_STOP_PENDING,
     };
 
     pub struct Handle(SC_HANDLE);
@@ -354,14 +355,84 @@ mod scm {
         Ok(())
     }
 
+    pub(super) fn progress_window(status: &SERVICE_STATUS_PROCESS, fallback: Duration) -> Duration {
+        if status.dwWaitHint == 0 {
+            fallback
+        } else {
+            Duration::from_millis(u64::from(status.dwWaitHint))
+        }
+    }
+
+    pub(super) fn poll_interval(status: &SERVICE_STATUS_PROCESS, fallback: Duration) -> Duration {
+        let basis_ms = if status.dwWaitHint == 0 {
+            u64::try_from(fallback.as_millis()).unwrap_or(u64::MAX)
+        } else {
+            u64::from(status.dwWaitHint)
+        };
+        Duration::from_millis((basis_ms / 10).clamp(1_000, 10_000))
+    }
+
+    fn wait_for_status<F>(
+        name: &str,
+        fallback: Duration,
+        goal: &str,
+        reached: F,
+    ) -> Result<SERVICE_STATUS_PROCESS, String>
+    where
+        F: Fn(&SERVICE_STATUS_PROCESS) -> bool,
+    {
+        let mut status = query_status(name)?;
+        if reached(&status) {
+            return Ok(status);
+        }
+        let mut checkpoint = status.dwCheckPoint;
+        let mut state = status.dwCurrentState;
+        let mut deadline = Instant::now() + progress_window(&status, fallback);
+        loop {
+            let now = Instant::now();
+            if now >= deadline {
+                return Err(format!(
+                    "service {name} did not {goal}; state={} pid={} checkpoint={} waitHintMs={}",
+                    status.dwCurrentState,
+                    status.dwProcessId,
+                    status.dwCheckPoint,
+                    status.dwWaitHint
+                ));
+            }
+            let remaining = deadline.duration_since(now);
+            thread::sleep(poll_interval(&status, fallback).min(remaining));
+            let next = query_status(name)?;
+            if reached(&next) {
+                return Ok(next);
+            }
+            if next.dwCurrentState != state || next.dwCheckPoint > checkpoint {
+                state = next.dwCurrentState;
+                checkpoint = next.dwCheckPoint;
+                deadline = Instant::now() + progress_window(&next, fallback);
+            }
+            status = next;
+        }
+    }
+
     pub fn stop(name: &str, wait: Duration) -> Result<(), String> {
         let handle = service(name, SERVICE_STOP | SERVICE_QUERY_STATUS)?;
-        let mut status = SERVICE_STATUS::default();
-        let current = query_status(name)?;
-        if current.dwCurrentState == SERVICE_STOPPED {
+        let mut status = query_status(name)?;
+        if status.dwCurrentState == SERVICE_STOPPED {
             return Ok(());
         }
-        let ok = unsafe { ControlService(handle.0, SERVICE_CONTROL_STOP, &mut status) };
+        if status.dwCurrentState == SERVICE_START_PENDING {
+            status = wait_for_status(name, wait, "leave SERVICE_START_PENDING", |status| {
+                status.dwCurrentState != SERVICE_START_PENDING
+            })?;
+            if status.dwCurrentState == SERVICE_STOPPED {
+                return Ok(());
+            }
+        }
+        if status.dwCurrentState == SERVICE_STOP_PENDING {
+            return wait_for_state(name, SERVICE_STOPPED, wait);
+        }
+        let mut control_status = SERVICE_STATUS::default();
+        let ok = unsafe { ControlService(handle.0, SERVICE_CONTROL_STOP, &mut control_status) };
         if ok == 0 {
             let error = unsafe { GetLastError() };
             if error != ERROR_SERVICE_NOT_ACTIVE {
@@ -375,8 +446,17 @@ mod scm {
 
     pub fn start(name: &str, wait: Duration) -> Result<(), String> {
         let handle = service(name, SERVICE_START | SERVICE_QUERY_STATUS)?;
-        if query_status(name)?.dwCurrentState == SERVICE_RUNNING {
+        let mut status = query_status(name)?;
+        if status.dwCurrentState == SERVICE_RUNNING {
             return Ok(());
+        }
+        if status.dwCurrentState == SERVICE_STOP_PENDING {
+            status = wait_for_status(name, wait, "leave SERVICE_STOP_PENDING", |status| {
+                status.dwCurrentState != SERVICE_STOP_PENDING
+            })?;
+            if status.dwCurrentState == SERVICE_RUNNING {
+                return Ok(());
+            }
         }
         let ok = unsafe { StartServiceW(handle.0, 0, null()) };
         if ok == 0 {
@@ -389,20 +469,10 @@ mod scm {
     }
 
     pub fn wait_for_state(name: &str, expected: u32, wait: Duration) -> Result<(), String> {
-        let deadline = Instant::now() + wait;
-        loop {
-            let status = query_status(name)?;
-            if status.dwCurrentState == expected {
-                return Ok(());
-            }
-            if Instant::now() >= deadline {
-                return Err(format!(
-                    "service {name} did not reach state {expected}; last state={} pid={}",
-                    status.dwCurrentState, status.dwProcessId
-                ));
-            }
-            thread::sleep(Duration::from_millis(200));
-        }
+        wait_for_status(name, wait, &format!("reach state {expected}"), |status| {
+            status.dwCurrentState == expected
+        })
+        .map(|_| ())
     }
 
     pub fn account_sid_string(account_name: &str) -> Result<String, String> {
@@ -463,7 +533,7 @@ mod scm {
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-windows-deploy <plan|apply> --source-repo PATH --commit SHA40 --confirm-commit SHA40 --candidate-dir PATH --candidate-manifest PATH --install-dir PATH --database PATH --env-file PATH --receipt-root PATH --service NAME --broker-service NAME --workspace-id ID --expected-tool-count N --require-ref REF --effect-id HEX64 --effect-request-digest sha256:HEX64 --candidate-manifest-digest sha256:HEX64 --drain-seconds N".to_string()
+    "usage: ordivon-runtime-windows-deploy <plan|apply> --source-repo PATH --commit SHA40 --confirm-commit SHA40 --candidate-dir PATH --candidate-manifest PATH --install-dir PATH --database PATH --env-file PATH --receipt-root PATH --service NAME --broker-service NAME --expected-tool-count N --require-ref REF --effect-id HEX64 --effect-request-digest sha256:HEX64 --candidate-manifest-digest sha256:HEX64 --drain-seconds N".to_string()
 }
 
 fn require_value<I: Iterator<Item = String>>(args: &mut I, flag: &str) -> Result<String, String> {
@@ -506,7 +576,6 @@ fn parse_args() -> Result<Args, String> {
         receipt_root: PathBuf::from(take("--receipt-root", &values)?),
         service: take("--service", &values)?,
         broker_service: take("--broker-service", &values)?,
-        workspace_id: take("--workspace-id", &values)?,
         expected_tool_count: take("--expected-tool-count", &values)?
             .parse()
             .map_err(|_| "--expected-tool-count must be an integer".to_string())?,
@@ -530,7 +599,6 @@ fn parse_args() -> Result<Args, String> {
         "--receipt-root",
         "--service",
         "--broker-service",
-        "--workspace-id",
         "--expected-tool-count",
         "--require-ref",
         "--effect-id",
@@ -609,15 +677,6 @@ fn validate_args(args: &Args) -> Result<(), String> {
     }
     if !is_safe_service_name(&args.service) || !is_safe_service_name(&args.broker_service) {
         return Err("service names are invalid".to_string());
-    }
-    if args.workspace_id.is_empty()
-        || args.workspace_id.len() > 128
-        || !args
-            .workspace_id
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b':'))
-    {
-        return Err("workspace-id is invalid".to_string());
     }
     if args.require_ref.trim().is_empty() || args.require_ref.len() > 256 {
         return Err("require-ref is invalid".to_string());
@@ -989,7 +1048,6 @@ fn release_effect(
     let expected_receipt = args.receipt_root.join(format!("effect-{}", args.effect_id));
     if effect.effect_id != args.effect_id
         || effect.request_digest != args.effect_request_digest
-        || effect.workspace_id != args.workspace_id
         || effect.commit != args.commit
         || effect.candidate_manifest_digest != args.candidate_manifest_digest
         || effect.expected_tool_count != args.expected_tool_count
@@ -1517,9 +1575,10 @@ fn preflight(args: &Args) -> Result<(CandidateProof, PlanReceipt), String> {
             .compiled_base_tool_catalog_digest
             .clone(),
         release_dir: release_dir.to_string_lossy().into_owned(),
-        owner_job_id: effect.job_id,
+        owner_job_id: effect.job_id.clone(),
         active_job_ids: registry.active_job_ids,
         blockers: blocked,
+        workspace_id: effect.workspace_id.clone(),
         bootstrap_recovery,
     };
     Ok((proof, plan))
@@ -1539,7 +1598,7 @@ fn apply(
         commit: &args.commit,
         candidate_manifest_digest: &args.candidate_manifest_digest,
         expected_tool_count: args.expected_tool_count,
-        workspace_id: &args.workspace_id,
+        workspace_id: &plan.workspace_id,
         platform: "windows_native",
     };
     write_json_sync(&receipt_dir.join("effect-request.json"), &effect_request)?;
@@ -1633,13 +1692,36 @@ fn apply(
             .unwrap_or(false);
         if rollback_safe {
             let rollback = (|| -> Result<(), String> {
-                let _ = scm::stop(&args.service, Duration::from_secs(20));
-                let _ = scm::stop(&args.broker_service, Duration::from_secs(20));
+                // A rollback receipt may claim restored_previous only after the candidate
+                // processes are actually stopped. Never restore only SCM configuration while
+                // a candidate generation is still the live service process.
+                scm::stop(&args.service, Duration::from_secs(20))?;
+                scm::stop(&args.broker_service, Duration::from_secs(20))?;
                 write_existing_file_preserving_acl(&args.env_file, &env_snapshot.bytes)?;
                 scm::set_binary_path(&args.service, &runtime_snapshot.binary_path)?;
                 scm::set_binary_path(&args.broker_service, &broker_snapshot.binary_path)?;
                 scm::start(&args.broker_service, Duration::from_secs(20))?;
                 scm::start(&args.service, Duration::from_secs(20))?;
+
+                let restored_env = fs::read(&args.env_file)
+                    .map_err(|error| format!("cannot verify restored Runtime env: {error}"))?;
+                if restored_env != env_snapshot.bytes {
+                    return Err("rollback Runtime env does not match captured preimage".to_string());
+                }
+                let restored_runtime = scm::snapshot(&args.service)?;
+                if restored_runtime.binary_path != runtime_snapshot.binary_path {
+                    return Err(
+                        "rollback Runtime SCM binary path does not match captured preimage"
+                            .to_string(),
+                    );
+                }
+                let restored_broker = scm::snapshot(&args.broker_service)?;
+                if restored_broker.binary_path != broker_snapshot.binary_path {
+                    return Err(
+                        "rollback broker SCM binary path does not match captured preimage"
+                            .to_string(),
+                    );
+                }
                 Ok(())
             })();
             match rollback {
@@ -1767,6 +1849,11 @@ mod tests {
     }
 
     #[test]
+    fn deployer_cli_keeps_workspace_identity_in_durable_effect_only() {
+        assert!(!usage().contains("--workspace-id"));
+    }
+
+    #[test]
     fn effect_and_commit_identity_validation_is_strict() {
         assert!(is_lower_hex(&"a".repeat(40), 40));
         assert!(!is_lower_hex(&"A".repeat(40), 40));
@@ -1829,6 +1916,45 @@ mod tests {
         assert_ne!(owner_commit, main_commit);
 
         fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn scm_progress_window_uses_wait_hint_or_explicit_fallback() {
+        let mut status = windows_sys::Win32::System::Services::SERVICE_STATUS_PROCESS::default();
+        let fallback = Duration::from_secs(20);
+        assert_eq!(scm::progress_window(&status, fallback), fallback);
+
+        status.dwWaitHint = 15_000;
+        assert_eq!(
+            scm::progress_window(&status, fallback),
+            Duration::from_secs(15)
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn scm_poll_interval_tracks_wait_hint_with_safe_clamps() {
+        let fallback = Duration::from_secs(20);
+        let mut status = windows_sys::Win32::System::Services::SERVICE_STATUS_PROCESS::default();
+
+        status.dwWaitHint = 5_000;
+        assert_eq!(
+            scm::poll_interval(&status, fallback),
+            Duration::from_secs(1)
+        );
+
+        status.dwWaitHint = 50_000;
+        assert_eq!(
+            scm::poll_interval(&status, fallback),
+            Duration::from_secs(5)
+        );
+
+        status.dwWaitHint = 200_000;
+        assert_eq!(
+            scm::poll_interval(&status, fallback),
+            Duration::from_secs(10)
+        );
     }
 
     #[test]

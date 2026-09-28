@@ -30,6 +30,7 @@ pub struct RuntimeRepairRequest {
     pub snapshot_path: PathBuf,
     pub principal: String,
     pub finalize_lost_attempt_ids: BTreeSet<String>,
+    pub finalize_quarantined_lost_attempt_ids: BTreeSet<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -97,6 +98,7 @@ pub enum RuntimeRepairActionKind {
     RecoverRunnerResult,
     ReleaseTerminalReservation,
     FinalizeLost,
+    FinalizeQuarantinedLost,
 }
 
 #[derive(Clone, Debug)]
@@ -377,32 +379,64 @@ pub fn apply_runtime_repair(
     let snapshot_digest = verify_snapshot(&request.snapshot_path)?;
     verify_snapshot_cases(&request.snapshot_path, &before.cases)?;
 
-    let manual_attempts: BTreeSet<String> = before
+    let quarantined_manual_attempts: BTreeSet<String> = before
         .cases
         .iter()
-        .filter(|case| matches!(case.proposal, RuntimeDoctorProposal::ManualReview { .. }))
+        .filter(|case| is_quarantined_launch_identity_case(case))
+        .map(|case| case.attempt.attempt_id.clone())
+        .collect();
+    let ordinary_manual_attempts: BTreeSet<String> = before
+        .cases
+        .iter()
+        .filter(|case| {
+            matches!(case.proposal, RuntimeDoctorProposal::ManualReview { .. })
+                && !is_quarantined_launch_identity_case(case)
+        })
         .map(|case| case.attempt.attempt_id.clone())
         .collect();
     for attempt_id in &request.finalize_lost_attempt_ids {
-        if !manual_attempts.contains(attempt_id) {
+        if !ordinary_manual_attempts.contains(attempt_id) {
             return Err(RuntimeError::invalid(
-                format!("{attempt_id} is not a current manual-review Attempt"),
+                format!("{attempt_id} is not a current ordinary manual-review Attempt"),
                 "finalizeLostAttemptIds",
             ));
         }
     }
-    let unselected: Vec<String> = manual_attempts
+    for attempt_id in &request.finalize_quarantined_lost_attempt_ids {
+        if !quarantined_manual_attempts.contains(attempt_id) {
+            return Err(RuntimeError::invalid(
+                format!("{attempt_id} is not a current launch-identity quarantine Attempt"),
+                "finalizeQuarantinedLostAttemptIds",
+            ));
+        }
+    }
+    let unselected_ordinary: Vec<String> = ordinary_manual_attempts
         .difference(&request.finalize_lost_attempt_ids)
         .cloned()
         .collect();
-    if !unselected.is_empty() {
+    if !unselected_ordinary.is_empty() {
         return Err(RuntimeError::new(
             RuntimeErrorCode::ReconciliationRequired,
             format!(
-                "manual-review Attempts require explicit --finalize-lost selection: {}",
-                unselected.join(",")
+                "ordinary manual-review Attempts require explicit --finalize-lost selection: {}",
+                unselected_ordinary.join(",")
             ),
             Some("finalizeLostAttemptIds"),
+            false,
+        ));
+    }
+    let unselected_quarantined: Vec<String> = quarantined_manual_attempts
+        .difference(&request.finalize_quarantined_lost_attempt_ids)
+        .cloned()
+        .collect();
+    if !unselected_quarantined.is_empty() {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ReconciliationRequired,
+            format!(
+                "launch-identity quarantine Attempts require explicit --finalize-quarantined-lost selection: {}",
+                unselected_quarantined.join(",")
+            ),
+            Some("finalizeQuarantinedLostAttemptIds"),
             false,
         ));
     }
@@ -422,7 +456,12 @@ pub fn apply_runtime_repair(
             snapshot_path: request.snapshot_path.to_string_lossy().into_owned(),
             snapshot_digest: snapshot_digest.clone(),
             principal: request.principal.clone(),
-            action: action_name(case, &request.finalize_lost_attempt_ids)?.to_string(),
+            action: action_name(
+                case,
+                &request.finalize_lost_attempt_ids,
+                &request.finalize_quarantined_lost_attempt_ids,
+            )?
+            .to_string(),
             observed_at_ms: applied_at_ms,
             expected_job_row_version: case.job.row_version,
             expected_current_attempt_id: case.job.current_attempt_id.clone(),
@@ -461,14 +500,24 @@ pub fn apply_runtime_repair(
                 ));
             }
             RuntimeDoctorProposal::ManualReview { .. } => {
-                let mut terminal =
-                    prepare_final_lost_terminal(&config.doctor.store_root, case, &audit)?;
+                let quarantined = request
+                    .finalize_quarantined_lost_attempt_ids
+                    .contains(&case.attempt.attempt_id);
+                let mut terminal = if quarantined {
+                    prepare_quarantined_lost_terminal(&config.doctor.store_root, case, &audit)?
+                } else {
+                    prepare_final_lost_terminal(&config.doctor.store_root, case, &audit)?
+                };
                 let attempt = registry.get_attempt(&case.attempt.attempt_id)?;
                 append_terminal_evidence_for_commit(&registry, &attempt, &mut terminal)?;
                 operations.push(AdminRepairOperation::Terminal { terminal, audit });
                 actions.push(action(
                     case,
-                    RuntimeRepairActionKind::FinalizeLost,
+                    if quarantined {
+                        RuntimeRepairActionKind::FinalizeQuarantinedLost
+                    } else {
+                        RuntimeRepairActionKind::FinalizeLost
+                    },
                     AttemptState::Lost,
                 ));
             }
@@ -502,6 +551,15 @@ pub fn apply_runtime_repair(
 }
 
 fn validate_request(request: &RuntimeRepairRequest) -> RuntimeResult<()> {
+    if !request
+        .finalize_lost_attempt_ids
+        .is_disjoint(&request.finalize_quarantined_lost_attempt_ids)
+    {
+        return Err(RuntimeError::invalid(
+            "an Attempt cannot be selected for both finalize-lost and finalize-quarantined-lost",
+            "finalizeQuarantinedLostAttemptIds",
+        ));
+    }
     validate_repair_identity(
         &request.expected_fingerprint,
         &request.snapshot_path,
@@ -804,6 +862,20 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
         let attempt = RegistryStorageBoundary::load_attempt(&connection, &case.attempt.attempt_id)?;
         let reservation =
             RegistryStorageBoundary::load_reservation(&connection, &case.attempt.attempt_id)?;
+        let recovery = connection
+            .query_row(
+                "SELECT COALESCE(recovery_required,0),recovery_reason_code,recovery_evidence_digest,recovery_observed_at_ms FROM attempts WHERE attempt_id=?1",
+                [&case.attempt.attempt_id],
+                |row| {
+                    Ok(RecoveryState {
+                        required: row.get::<_, i64>(0)? != 0,
+                        reason_code: row.get(1)?,
+                        evidence_digest: row.get(2)?,
+                        observed_at_ms: row.get(3)?,
+                    })
+                },
+            )
+            .map_err(|error| RuntimeError::from_sql(error, "cannot read backup Attempt recovery state"))?;
         let matches = job.job_id == case.job.job_id
             && job.workspace_id == case.job.workspace_id
             && job.resolution == case.job.resolution
@@ -816,6 +888,10 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
             && attempt.exit_code == case.attempt.exit_code
             && attempt.finished_at_ms == case.attempt.finished_at_ms
             && attempt.row_version == case.attempt.row_version
+            && recovery.required == case.attempt.recovery_required
+            && recovery.reason_code == case.attempt.recovery_reason_code
+            && recovery.evidence_digest == case.attempt.recovery_evidence_digest
+            && recovery.observed_at_ms == case.attempt.recovery_observed_at_ms
             && reservation.reservation_id == case.reservation.reservation_id
             && reservation.state == case.reservation.state
             && reservation.released_at_ms == case.reservation.released_at_ms
@@ -838,10 +914,17 @@ fn verify_snapshot_cases(snapshot_path: &Path, cases: &[RuntimeDoctorCase]) -> R
 fn action_name<'a>(
     case: &'a RuntimeDoctorCase,
     finalize_lost: &BTreeSet<String>,
+    finalize_quarantined_lost: &BTreeSet<String>,
 ) -> RuntimeResult<&'a str> {
     match case.proposal {
         RuntimeDoctorProposal::RecoverRunnerResult { .. } => Ok("recover_runner_result"),
         RuntimeDoctorProposal::ReleaseTerminalReservation => Ok("release_terminal_reservation"),
+        RuntimeDoctorProposal::ManualReview { .. }
+            if finalize_quarantined_lost.contains(&case.attempt.attempt_id)
+                && is_quarantined_launch_identity_case(case) =>
+        {
+            Ok("finalize_quarantined_lost")
+        }
         RuntimeDoctorProposal::ManualReview { .. }
             if finalize_lost.contains(&case.attempt.attempt_id) =>
         {
@@ -855,6 +938,15 @@ fn action_name<'a>(
         )),
         RuntimeDoctorProposal::NoRepairNeeded => Ok("no_repair"),
     }
+}
+
+fn is_quarantined_launch_identity_case(case: &RuntimeDoctorCase) -> bool {
+    matches!(case.proposal, RuntimeDoctorProposal::ManualReview { .. })
+        && case.attempt.state == AttemptState::Orphaned
+        && case.attempt.recovery_required
+        && case.attempt.recovery_reason_code.as_deref() == Some("LAUNCH_IDENTITY_MISMATCH")
+        && case.reservation.state == ReservationState::HeldOrphaned
+        && case.runner_result_present
 }
 
 fn write_admin_receipt(
@@ -889,6 +981,47 @@ fn write_admin_receipt(
         media_type: "application/json".to_string(),
         byte_length: metadata.len(),
         truncated: false,
+    })
+}
+
+fn prepare_quarantined_lost_terminal(
+    store_root: &Path,
+    case: &RuntimeDoctorCase,
+    audit: &AdminRepairAudit,
+) -> RuntimeResult<TerminalCommit> {
+    if !is_quarantined_launch_identity_case(case)
+        || case.job.resolution != Some(super::JobResolution::Orphaned)
+        || audit.action != "finalize_quarantined_lost"
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OrphanRemediationDenied,
+            "finalize-quarantined-lost requires an Orphaned LAUNCH_IDENTITY_MISMATCH Attempt with a held reservation and quarantined Runner result",
+            Some("attemptId"),
+            false,
+        ));
+    }
+    let result_path = store_root
+        .join("attempts")
+        .join(&case.attempt.attempt_id)
+        .join("result.json");
+    let quarantined_result_digest = sha256_file(&result_path).map_err(map_universal_error)?;
+    let receipt = write_admin_receipt(store_root, case, audit)?;
+    Ok(TerminalCommit {
+        attempt_id: case.attempt.attempt_id.clone(),
+        expected_row_version: case.attempt.row_version,
+        state: AttemptState::Lost,
+        result_digest: receipt.digest.clone(),
+        exit_code: None,
+        infrastructure_error_digest: Some(sha256_bytes(
+            format!(
+                "admin confirmed lost: quarantined Runner result {} rejected because launch identity is untrusted",
+                quarantined_result_digest
+            )
+            .as_bytes(),
+        )),
+        finished_at_ms: audit.observed_at_ms,
+        artifacts: vec![receipt],
+        reason_code: "ADMIN_CONFIRMED_LOST_QUARANTINED_LAUNCH_IDENTITY_RESULT".to_string(),
     })
 }
 

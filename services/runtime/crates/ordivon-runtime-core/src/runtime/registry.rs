@@ -465,6 +465,13 @@ fn repair_terminal_admin_transaction(
     let attempt = RegistryStorageBoundary::load_attempt(transaction, &request.attempt_id)?;
     let job = RegistryStorageBoundary::load_job(transaction, &attempt.job_id)?;
     let reservation = RegistryStorageBoundary::load_reservation(transaction, &attempt.attempt_id)?;
+    let (recovery_required, recovery_reason_code): (bool, Option<String>) = transaction
+        .query_row(
+            "SELECT COALESCE(recovery_required,0),recovery_reason_code FROM attempts WHERE attempt_id=?1",
+            [&attempt.attempt_id],
+            |row| Ok((row.get::<_, i64>(0)? != 0, row.get(1)?)),
+        )
+        .map_err(|error| RuntimeError::from_sql(error, "cannot inspect administrative repair recovery state"))?;
     let runner_terminal = matches!(
         request.state,
         AttemptState::Succeeded
@@ -472,9 +479,17 @@ fn repair_terminal_admin_transaction(
             | AttemptState::TimedOut
             | AttemptState::Cancelled
     );
+    let quarantined_lost = attempt.state == AttemptState::Orphaned
+        && request.state == AttemptState::Lost
+        && audit.action == "finalize_quarantined_lost"
+        && request.reason_code == "ADMIN_CONFIRMED_LOST_QUARANTINED_LAUNCH_IDENTITY_RESULT"
+        && reservation.state == ReservationState::HeldOrphaned
+        && recovery_required
+        && recovery_reason_code.as_deref() == Some("LAUNCH_IDENTITY_MISMATCH");
     let allowed = (matches!(attempt.state, AttemptState::Lost | AttemptState::Orphaned)
         && runner_terminal)
-        || (attempt.state == AttemptState::Lost && request.state == AttemptState::Lost);
+        || (attempt.state == AttemptState::Lost && request.state == AttemptState::Lost)
+        || quarantined_lost;
     if !allowed {
         return Err(RuntimeError::new(
             RuntimeErrorCode::OrphanRemediationDenied,
