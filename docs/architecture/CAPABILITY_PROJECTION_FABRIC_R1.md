@@ -471,3 +471,13 @@ Credential authority remains intentionally separate. Because approved node-local
 A controlled SCM restart reconverged the same `d91` release to `Running/Auto` and loopback health `ok`. Evidence: `docs/architecture/evidence/GATEWAY_06_LIVE_PUBLIC_CARRIER_ACCEPTANCE_R1.json`.
 
 The currently established ChatGPT connector session still enumerated 28 tools after the live release even though Gateway's epoch-3 manifest contains 29. `system.describe` through that same connector already read back Gateway `0.6.0`, so this is classified as **consumer catalog currentness**: the connector must refresh/reconnect and rediscover `tools/list` before this session can invoke `capability.search`. It is not repaired by weakening Gateway boundaries or resurrecting compatibility aliases.
+
+## 26. CPF-21 Harness evidence-carrier census
+
+Harness is a real authenticated Gateway consumer and already owns exact Run identity, Tool catalog/grant digests, execution binding references, and stable effect request identity. It is therefore a plausible **carrier** for a future Security-issued admission artifact. It is **not** the Security admission issuer.
+
+`HarnessRunContract` and `PluginGatewayExecutionGrant` do not contain the full `agent-admission-v1` authority chain: authenticated principal/agent credential, grant active/expiry/audience/risk/effect budget, effect resource/risk/type, and approval evidence are outside Harness ToolGrant ownership. Promoting a Harness ToolGrant digest into `agentAdmission` would transfer authority between owners without evidence.
+
+No production Security-owned admission issuer/artifact path was found in this census. R1 therefore does not add a speculative MCP argument, `_meta`, or custom header. The permitted future path is: Security owns issuance/normalization; Harness may carry the Security-issued artifact over its already-authenticated local-service connection; Gateway PEP verifies trusted ingress plus Security evidence and delegates semantics to `gateway-capability-authz-v1`.
+
+Evidence: `docs/architecture/evidence/CAPABILITY_AUTHZ_HARNESS_EVIDENCE_CARRIER_CENSUS_R1.json`. CPF-21 remains blocked on the **issuer/artifact provenance** seam, not on Gateway middleware placement or Harness transport identity.

@@ -151,8 +151,9 @@
       "dependsOn": [
         "CPF-13"
       ],
-      "standing": "blocked-trusted-agent-admission-evidence-transport-open",
-      "blocker": "Security gateway-capability-authz-v1 is qualified for artifact.runtime and Gateway has a trusted ingress Principal, but no production transport currently carries trusted normalized Agent/Grant/Effect admission evidence to the Gateway PEP. Caller-authored MCP arguments or _meta are not accepted substitutes."
+      "standing": "blocked-security-issued-admission-artifact-absent-harness-carrier-only",
+      "blocker": "Harness is a real authenticated Gateway consumer and owns exact Run/ToolGrant evidence, but it is not the Security principal/agent/grant/approval issuer. No production Security-issued agentAdmission artifact/carrier was found; do not launder ToolGrant authority into Security admission.",
+      "evidenceRef": "docs/architecture/evidence/CAPABILITY_AUTHZ_HARNESS_EVIDENCE_CARRIER_CENSUS_R1.json"
     },
     {
       "id": "CPF-22",
