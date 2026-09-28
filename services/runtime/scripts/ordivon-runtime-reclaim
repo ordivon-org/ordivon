@@ -7,6 +7,8 @@ import math
 import argparse
 import fcntl
 import hashlib
+import http.client
+import urllib.error
 import json
 import os
 import shutil
@@ -694,20 +696,53 @@ def close_workspace(
     if not isinstance(source_state_digest, str) or not source_state_digest.startswith("sha256:"):
         raise RuntimeError("workspace.get omitted sourceStateDigest")
 
-    structured = client.call_tool(
-        "workspace.close",
-        {
-            "schemaVersion": SCHEMA_VERSION,
-            "workspaceId": workspace_id,
-            "force": False,
-            "expectedSourceStateDigest": source_state_digest,
-        },
-    )
-    if structured.get("removed") is not True:
+    close_arguments = {
+        "schemaVersion": SCHEMA_VERSION,
+        "workspaceId": workspace_id,
+        "force": False,
+        "expectedSourceStateDigest": source_state_digest,
+    }
+
+    delivery_reconciled = False
+    try:
+        structured = client.call_tool("workspace.close", close_arguments)
+    except (TimeoutError, ConnectionError, urllib.error.URLError, http.client.HTTPException) as delivery_error:
+        # workspace.close persists an exact sourceStateDigest in its closed tombstone and
+        # explicitly permits exact replay.  A transport timeout is therefore UNKNOWN
+        # delivery, not failure evidence: reconnect and replay the same compare-and-close
+        # before classifying the reclaim action.
+        try:
+            reconcile_client = connect_compatible(
+                f"http://{bind}/mcp",
+                token,
+                client_name="ordivon-runtime-reclaim-reconcile",
+                timeout=10.0,
+            )
+            structured = reconcile_client.call_tool("workspace.close", close_arguments)
+            delivery_reconciled = True
+        except Exception as reconcile_error:
+            raise RuntimeError(
+                f"workspace.close delivery remained uncertain for {workspace_id} after exact replay: {reconcile_error}"
+            ) from delivery_error
+
+    disposition = structured.get("closureDisposition")
+    if disposition == "removed":
+        if structured.get("removed") is not True:
+            raise RuntimeError(
+                f"workspace.close reported removed disposition without removal for {workspace_id}: {structured}"
+            )
+    elif disposition == "already_closed":
+        if structured.get("sourceStateDigest") != source_state_digest:
+            raise RuntimeError(
+                f"workspace.close replay returned a mismatched closed tombstone for {workspace_id}: {structured}"
+            )
+    else:
         raise RuntimeError(
-            f"workspace.close did not remove {workspace_id}: {structured}"
+            f"workspace.close did not prove closure for {workspace_id}: {structured}"
         )
-    return structured
+    result = dict(structured)
+    result["deliveryReconciled"] = delivery_reconciled
+    return result
 
 
 @contextmanager
@@ -729,6 +764,26 @@ def write_json_atomic(path: Path, value: object) -> None:
         os.replace(temporary, path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def closed_workspace_tombstone(runtime_store_root: Path, workspace_id: str) -> dict[str, object] | None:
+    record = runtime_store_root / "workspace-records" / f"{workspace_id}.json"
+    try:
+        metadata = record.lstat()
+    except FileNotFoundError:
+        return None
+    if record.is_symlink() or not record.is_file():
+        return None
+    try:
+        value = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict) or value.get("state") != "closed":
+        return None
+    digest = value.get("sourceStateDigest")
+    if digest is not None and (not isinstance(digest, str) or not digest.startswith("sha256:")):
+        return None
+    return value
 
 
 def reclaim_receipt(root: Path) -> Path:
@@ -832,7 +887,7 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                     expected_head_revision = item.get("workspaceHeadRevision")
                     if not isinstance(expected_head_revision, str):
                         raise RuntimeError("reclaim plan omitted workspaceHeadRevision")
-                    close_workspace(
+                    close_result = close_workspace(
                         args.env_file,
                         workspace_id,
                         expected_head_revision=expected_head_revision,
@@ -842,11 +897,27 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                             "workspaceId": workspace_id,
                             "classification": classification,
                             "action": "workspace_closed",
+                            "closureDisposition": close_result.get("closureDisposition"),
+                            "deliveryReconciled": bool(close_result.get("deliveryReconciled", False)),
                         }
                     )
                 else:
                     raise RuntimeError(f"unsupported reclaim classification: {classification}")
             except Exception as error:
+                if classification == "closable":
+                    tombstone = closed_workspace_tombstone(args.runtime_store_root, workspace_id)
+                    if tombstone is not None:
+                        actions.append(
+                            {
+                                "workspaceId": workspace_id,
+                                "classification": classification,
+                                "action": "workspace_already_closed",
+                                "closureDisposition": "already_closed",
+                                "deliveryReconciled": True,
+                                "sourceStateDigest": tombstone.get("sourceStateDigest"),
+                            }
+                        )
+                        continue
                 failures.append(
                     {
                         "workspaceId": workspace_id,
