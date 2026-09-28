@@ -1,7 +1,7 @@
 ---
 name: social-work-collaboration
 description: "Use Ordivon Social Work Fabric for durable multi-Agent or human/Agent collaboration: stable ActorRefs, revisioned Work continuity, temporary Spaces, resumable Topics, structured Messages, subscriptions, and bounded Attention re-entry. Use when several actors must coordinate without turning discussion into Work state or recreating Task/Board."
-compatibility: Requires a current Social Work Fabric schema-9 Host surface exposing actor/work/space/topic/message/subscription/attention tools. Connector catalogs may be stale; live owner tools/list and release identity remain authoritative.
+compatibility: Requires a current Social Work Fabric schema-10 Host surface exposing actor/work/space/topic/message/subscription/attention tools. Connector catalogs may be stale; live owner tools/list and release identity remain authoritative.
 metadata:
   source-authority: ordivon-host-social-work-fabric
   owner: host-semantic-continuity
@@ -81,40 +81,42 @@ Use MessageRelation instead of encoding topology only in prose:
 
 A mention is not an assignment. An acknowledgement is not a vote or acceptance.
 
-## 5. Re-entry uses two different cursors
+## 5. Re-entry uses two different durable cursor domains
 
 This is the most important operational rule.
 
 ### Attention cursor
 
-`attention.delta(actorRef, afterSequence=...)` uses the **global Social Work change sequence**. It answers:
+`attention.delta(actorRef, afterSequence=...)` uses the **global Social Work change sequence**. `attention.reentry(...)` is the preferred UX projection over the same owner rows and cursor domain. It answers:
 
-> Which subscribed or directed-to-me owner records changed since I was last online?
+> Which subscribed or directed-to-me owner records changed since I was last online, why did they reach me, and where should I resume?
 
-Persist/advance this cursor only after the actor has safely recovered the referenced owner state.
+Every raw Attention event exposes `reasons[]` plus a deterministic `navigationKind/navigationRef`. Reasons explain routing causality only; they are never importance, priority, assignment, acceptance, or authorization.
+
+On a completed scan page, including an empty relevant page, `nextAfterSequence` advances to `snapshotHighSequence`. On a non-final page it advances only to the last returned relevant change. This lets an actor safely cross unrelated global changes once instead of rescanning them forever.
+
+Advance the durable Attention cursor only after the actor has safely recovered the referenced owner state.
 
 ### Topic cursor
 
-`topic.resume(topicRef, afterSequence=...)` uses the **Topic Message sequence**. It answers:
-
-> Which messages in this exact Topic have I not consumed yet?
+`topic.resume(topicRef, afterSequence=...)` uses the **Message sequence** for that Topic. Host durably stores the actor's cursor through `topic.cursor.get` / `topic.cursor.ack`; do not keep a second ad-hoc local cursor as the canonical recovery state.
 
 The two sequence domains are intentionally different and MUST NOT be substituted for each other.
 
 Recommended re-entry:
 
 ```text
-attention.delta(after = actor_attention_cursor)
-  -> group events by Work / Space / Topic
-  -> for each changed Topic:
-       topic.resume(after = actor_topic_cursor[topic])
-       consume messages
-       persist actor_topic_cursor[topic] = nextAfterSequence
+attention.reentry(actorRef)
+  -> for each Topic item:
+       topic.resume(after = item.resumeAfterSequence)
+       consume/verify messages and any needed message.relation.list edges
+       topic.cursor.ack(cursor = topic.nextAfterSequence)
   -> refresh Work with work.get when Work state matters
+  -> reconcile exact Harness/Runtime/provider references at their natural owners
   -> attention.ack(cursor = attention.nextAfterSequence)
 ```
 
-`attention.ack` is navigation acknowledgement only. It does not mean the actor semantically accepted every message.
+`topic.cursor.ack` and `attention.ack` are navigation acknowledgements only. Neither means the actor semantically accepted a message or foreign fact.
 
 ## 6. Subscription and mention are orthogonal
 
@@ -194,7 +196,7 @@ Host owns semantic continuity/collaboration records only. Runtime owns physical 
 
 ## 10. Stale connector catalogs
 
-A schema-9 Host must not expose active `task.*` or `board.*` tools.
+A schema-10 Host must not expose active `task.*` or `board.*` tools.
 
 If a consumer still shows those retired names while live Host introspection shows `actor.*`, `work.*`, `space.*`, `topic.*`, `message.*`, `subscription.*`, and `attention.*`, classify the problem as **consumer/connector catalog currentness**.
 
@@ -219,8 +221,8 @@ For a five-Agent bounded collaboration, the default shape is usually enough:
 Participation per actor
 Subscription per actor/topic only where continuing attention is desired
 Messages + sparse relations
-Attention cursor per actor
-Topic cursor per actor/topic
+Attention cursor per actor (Host durable)
+Topic cursor per actor/topic (Host durable)
 ```
 
 Do not add a Board, global inbox, scheduler, priority score, lock manager, or dedicated DM/group/thread storage ontology unless independent measured pressure proves the existing primitives insufficient.
@@ -241,5 +243,6 @@ If those conditions hold, stop adding collaboration abstractions and return to t
 
 ## References
 
-- Host model and current HOLD/KILL decisions: `../../../services/host/docs/SOCIAL_WORK_FABRIC_R1.md`
+- Host R2 implementation contract: `../../../services/host/docs/SOCIAL_WORK_FABRIC_R2_SPEC.md`
+- Host R1 historical cutover evidence: `../../../services/host/docs/SOCIAL_WORK_FABRIC_R1.md`
 - Current owner and Gateway boundaries: `../../../docs/architecture/CURRENT_ARCHITECTURE.md`

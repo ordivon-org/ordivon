@@ -10,14 +10,20 @@ from .social_contracts import (
     ActorRefResponse,
     AttentionAckResponse,
     AttentionDeltaResponse,
+    AttentionReentryResponse,
     MessageRelationResponse,
+    MessageRelationsResponse,
     MessageResponse,
     MessageSearchResponse,
+    ParticipationListResponse,
     ParticipationResponse,
     SpaceListResponse,
     SpaceResponse,
+    SpaceSubjectsResponse,
     SubscriptionListResponse,
     SubscriptionResponse,
+    TopicCursorResponse,
+    TopicListResponse,
     TopicResponse,
     TopicResumeResponse,
     WorkListResponse,
@@ -96,12 +102,14 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         limit: int = 50,
         beforeUpdatedAt: str | None = None,
         beforeWorkRef: str | None = None,
+        maxBytes: int = 262_144,
     ) -> WorkListResponse:
         return work.list_works(
             state=state,
             limit=limit,
             before_updated_at=beforeUpdatedAt,
             before_work_ref=beforeWorkRef,
+            max_bytes=maxBytes,
         )
 
     @mcp.tool(name="work.snapshot.commit")
@@ -152,8 +160,18 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="space.get")
-    def space_get(spaceRef: str) -> SpaceResponse:
-        return social.get_space(spaceRef)
+    def space_get(
+        spaceRef: str,
+        participantLimit: int = 200,
+        topicLimit: int = 200,
+        maxBytes: int = 2_097_152,
+    ) -> SpaceResponse:
+        return social.get_space(
+            spaceRef,
+            participant_limit=participantLimit,
+            topic_limit=topicLimit,
+            max_bytes=maxBytes,
+        )
 
     @mcp.tool(name="space.list")
     def space_list(
@@ -162,6 +180,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         limit: int = 50,
         beforeCreatedAt: str | None = None,
         beforeSpaceRef: str | None = None,
+        maxBytes: int = 262_144,
     ) -> SpaceListResponse:
         return social.list_spaces(
             actor_ref=actorRef,
@@ -169,6 +188,29 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
             limit=limit,
             before_created_at=beforeCreatedAt,
             before_space_ref=beforeSpaceRef,
+            max_bytes=maxBytes,
+        )
+
+    @mcp.tool(name="space.subject.list")
+    def space_subject_list(
+        spaceRef: str,
+        afterSubjectRef: str | None = None,
+        limit: int = 100,
+        maxBytes: int = 262_144,
+    ) -> SpaceSubjectsResponse:
+        return social.list_space_subjects(
+            spaceRef, after_subject_ref=afterSubjectRef, limit=limit, max_bytes=maxBytes
+        )
+
+    @mcp.tool(name="space.participation.list")
+    def space_participation_list(
+        spaceRef: str,
+        afterActorRef: str | None = None,
+        limit: int = 100,
+        maxBytes: int = 262_144,
+    ) -> ParticipationListResponse:
+        return social.list_participations(
+            spaceRef, after_actor_ref=afterActorRef, limit=limit, max_bytes=maxBytes
         )
 
     @mcp.tool(name="space.participation.set")
@@ -198,9 +240,41 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
             client_request_id=_request_id("topic-create", value.model_dump(mode="json")),
         )
 
+    @mcp.tool(name="topic.list")
+    def topic_list(
+        spaceRef: str,
+        afterTopicRef: str | None = None,
+        limit: int = 100,
+        maxBytes: int = 262_144,
+    ) -> TopicListResponse:
+        return social.list_topics(
+            spaceRef, after_topic_ref=afterTopicRef, limit=limit, max_bytes=maxBytes
+        )
+
+    @mcp.tool(name="topic.cursor.get")
+    def topic_cursor_get(actorRef: str, topicRef: str) -> TopicCursorResponse:
+        return social.get_topic_cursor(actor_ref=actorRef, topic_ref=topicRef)
+
+    @mcp.tool(name="topic.cursor.ack")
+    def topic_cursor_ack(actorRef: str, topicRef: str, cursor: int) -> TopicCursorResponse:
+        request = {"actorRef": actorRef, "topicRef": topicRef, "cursor": cursor}
+        return social.ack_topic_cursor(
+            actor_ref=actorRef,
+            topic_ref=topicRef,
+            cursor=cursor,
+            client_request_id=_request_id("topic-cursor-ack", request),
+        )
+
     @mcp.tool(name="topic.resume")
-    def topic_resume(topicRef: str, afterSequence: int = 0, limit: int = 50) -> TopicResumeResponse:
-        return social.resume_topic(topicRef, after_sequence=afterSequence, limit=limit)
+    def topic_resume(
+        topicRef: str,
+        afterSequence: int = 0,
+        limit: int = 50,
+        maxBytes: int = 524_288,
+    ) -> TopicResumeResponse:
+        return social.resume_topic(
+            topicRef, after_sequence=afterSequence, limit=limit, max_bytes=maxBytes
+        )
 
     @mcp.tool(name="message.post")
     def message_post(
@@ -243,6 +317,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         topicRef: str | None = None,
         beforeSequence: int | None = None,
         limit: int = 50,
+        maxBytes: int = 524_288,
     ) -> MessageSearchResponse:
         return social.search_messages(
             query,
@@ -250,6 +325,7 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
             topic_ref=topicRef,
             before_sequence=beforeSequence,
             limit=limit,
+            max_bytes=maxBytes,
         )
 
     @mcp.tool(name="message.relation.add")
@@ -272,6 +348,26 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
             client_request_id=_request_id("message-relation-add", value.model_dump(mode="json")),
         )
 
+    @mcp.tool(name="message.relation.list")
+    def message_relation_list(
+        messageRef: str,
+        direction: Literal["outgoing", "incoming", "both"] = "both",
+        relation: Literal[
+            "reply_to", "mentions", "references", "acknowledges", "supersedes", "about"
+        ] | None = None,
+        afterChangeSequence: int = 0,
+        limit: int = 100,
+        maxBytes: int = 262_144,
+    ) -> MessageRelationsResponse:
+        return social.list_message_relations(
+            messageRef,
+            direction=direction,
+            relation=None if relation is None else MessageRelationKind(relation),
+            after_change_sequence=afterChangeSequence,
+            limit=limit,
+            max_bytes=maxBytes,
+        )
+
     @mcp.tool(name="subscription.follow")
     def subscription_follow(
         actorRef: str,
@@ -290,9 +386,19 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
     def subscription_list(
         actorRef: str,
         targetKind: Literal["work", "space", "topic"] | None = None,
+        afterTargetKind: str | None = None,
+        afterTargetRef: str | None = None,
         limit: int = 200,
+        maxBytes: int = 262_144,
     ) -> SubscriptionListResponse:
-        return attention.list_subscriptions(actorRef, target_kind=targetKind, limit=limit)
+        return attention.list_subscriptions(
+            actorRef,
+            target_kind=targetKind,
+            after_target_kind=afterTargetKind,
+            after_target_ref=afterTargetRef,
+            limit=limit,
+            max_bytes=maxBytes,
+        )
 
     @mcp.tool(name="subscription.unfollow")
     def subscription_unfollow(
@@ -309,14 +415,29 @@ def register_social_work_tools(mcp: MCPServer, dsn: str) -> None:
         )
 
     @mcp.tool(name="attention.get")
-    def attention_get(actorRef: str, limit: int = 100) -> AttentionDeltaResponse:
-        return attention.get(actorRef, limit=limit)
+    def attention_get(
+        actorRef: str, limit: int = 100, maxBytes: int = 262_144
+    ) -> AttentionDeltaResponse:
+        return attention.get(actorRef, limit=limit, max_bytes=maxBytes)
 
     @mcp.tool(name="attention.delta")
     def attention_delta(
-        actorRef: str, afterSequence: int, limit: int = 100
+        actorRef: str, afterSequence: int, limit: int = 100, maxBytes: int = 262_144
     ) -> AttentionDeltaResponse:
-        return attention.delta(actorRef, after_sequence=afterSequence, limit=limit)
+        return attention.delta(
+            actorRef, after_sequence=afterSequence, limit=limit, max_bytes=maxBytes
+        )
+
+    @mcp.tool(name="attention.reentry")
+    def attention_reentry(
+        actorRef: str,
+        afterSequence: int | None = None,
+        limit: int = 100,
+        maxBytes: int = 262_144,
+    ) -> AttentionReentryResponse:
+        return attention.reentry(
+            actorRef, after_sequence=afterSequence, limit=limit, max_bytes=maxBytes
+        )
 
     @mcp.tool(name="attention.ack")
     def attention_ack(actorRef: str, cursor: int) -> AttentionAckResponse:

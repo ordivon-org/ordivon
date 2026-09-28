@@ -8,6 +8,7 @@ from psycopg.types.json import Jsonb
 
 from .canonical import canonical_digest
 from .errors import ConflictError
+from .social_bounds import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .social_work import (
     ActorRefInput,
     WorkCreateInput,
@@ -217,6 +218,7 @@ class WorkStore:
         limit: int = 50,
         before_updated_at: str | None = None,
         before_work_ref: str | None = None,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
@@ -224,6 +226,7 @@ class WorkStore:
             raise ValueError("unknown Work state")
         if (before_updated_at is None) != (before_work_ref is None):
             raise ValueError("before_updated_at and before_work_ref must be supplied together")
+        validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             rows = conn.execute(
@@ -231,37 +234,48 @@ class WorkStore:
                 "FROM works WHERE (%s::text IS NULL OR state=%s) "
                 "AND (%s::timestamptz IS NULL OR (updated_at,work_ref) < (%s::timestamptz,%s)) "
                 "ORDER BY updated_at DESC,work_ref DESC LIMIT %s",
-                (
-                    state,
-                    state,
-                    before_updated_at,
-                    before_updated_at,
-                    before_work_ref,
-                    limit + 1,
-                ),
+                (state, state, before_updated_at, before_updated_at, before_work_ref, limit + 1),
             ).fetchall()
-            has_more = len(rows) > limit
-            page = rows[:limit]
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "workRef": row["work_ref"],
+                    "workKind": row["kind"],
+                    "state": row["state"],
+                    "revision": int(row["current_revision"]),
+                    "snapshotDigest": row["current_snapshot_digest"],
+                    "updatedAt": row["updated_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                cursor = None if not page else {
+                    "beforeUpdatedAt": page[-1]["updatedAt"],
+                    "beforeWorkRef": page[-1]["workRef"],
+                }
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-work-list",
+                    "works": page,
+                    "hasMore": True,
+                    "nextCursor": cursor,
+                    "rankingApplied": False,
+                    "truthBoundary": "compact point-in-time Work inventory; not priority, assignment, Runtime activity, or domain currentness",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
             cursor = None
             if has_more and page:
                 cursor = {
-                    "beforeUpdatedAt": page[-1]["updated_at"].isoformat(),
-                    "beforeWorkRef": page[-1]["work_ref"],
+                    "beforeUpdatedAt": page[-1]["updatedAt"],
+                    "beforeWorkRef": page[-1]["workRef"],
                 }
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-work-list",
-                "works": [
-                    {
-                        "workRef": row["work_ref"],
-                        "workKind": row["kind"],
-                        "state": row["state"],
-                        "revision": int(row["current_revision"]),
-                        "snapshotDigest": row["current_snapshot_digest"],
-                        "updatedAt": row["updated_at"].isoformat(),
-                    }
-                    for row in page
-                ],
+                "works": page,
                 "hasMore": has_more,
                 "nextCursor": cursor,
                 "rankingApplied": False,

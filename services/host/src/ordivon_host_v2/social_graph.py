@@ -62,6 +62,8 @@ class SpaceInput(BaseModel):
         for value in values:
             if not value or value != value.strip():
                 raise ValueError("subject refs must be non-empty trimmed text")
+            if len(value) > 2048:
+                raise ValueError("subject refs must be at most 2048 characters")
         return values
 
 

@@ -6,8 +6,17 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .canonical import canonical_digest
+from .canonical import canonical_bytes, canonical_digest
 from .errors import ConflictError
+from .social_bounds import (
+    DEFAULT_COLLECTION_MAX_BYTES,
+    DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
+    DEFAULT_SPACE_MAX_BYTES,
+    MIN_MESSAGE_COLLECTION_MAX_BYTES,
+    MIN_SPACE_MAX_BYTES,
+    bounded_prefix,
+    validate_max_bytes,
+)
 from .social_graph import (
     CoordinationIntentInput,
     IntentStanding,
@@ -298,6 +307,85 @@ class SocialStore:
             )
             return result
 
+    def list_message_relations(
+        self,
+        message_ref: str,
+        *,
+        direction: str = "both",
+        relation: MessageRelationKind | None = None,
+        after_change_sequence: int = 0,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if direction not in {"outgoing", "incoming", "both"}:
+            raise ValueError("direction must be outgoing, incoming, or both")
+        if after_change_sequence < 0:
+            raise ValueError("after_change_sequence must be non-negative")
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            self._require_message(conn, message_ref)
+            rows = conn.execute(
+                "SELECT change_sequence,source_message_ref,relation,target_ref,created_by_actor_ref,created_at "
+                "FROM message_relations WHERE change_sequence>%s "
+                "AND (%s::text IS NULL OR relation=%s) "
+                "AND ((%s IN ('outgoing','both') AND source_message_ref=%s) "
+                "OR (%s IN ('incoming','both') AND target_ref=%s)) "
+                "ORDER BY change_sequence,source_message_ref,relation,target_ref LIMIT %s",
+                (
+                    after_change_sequence,
+                    None if relation is None else relation.value,
+                    None if relation is None else relation.value,
+                    direction,
+                    message_ref,
+                    direction,
+                    message_ref,
+                    limit + 1,
+                ),
+            ).fetchall()
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "changeSequence": int(row["change_sequence"]),
+                    "sourceMessageRef": row["source_message_ref"],
+                    "relation": row["relation"],
+                    "targetRef": row["target_ref"],
+                    "createdByActorRef": row["created_by_actor_ref"],
+                    "createdAt": row["created_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-message-relation-list",
+                    "messageRef": message_ref,
+                    "direction": direction,
+                    "relations": page,
+                    "hasMore": True,
+                    "nextAfterChangeSequence": after_change_sequence if not page else page[-1]["changeSequence"],
+                    "rankingApplied": False,
+                    "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
+            next_sequence = after_change_sequence if not page else int(page[-1]["changeSequence"])
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-message-relation-list",
+                "messageRef": message_ref,
+                "direction": direction,
+                "relations": page,
+                "hasMore": has_more,
+                "nextAfterChangeSequence": next_sequence,
+                "rankingApplied": False,
+                "truthBoundary": "explicit collaboration relations only; opaque targets are references, not existence or authority proof",
+            }
+
     def declare_intent(
         self, value: CoordinationIntentInput, *, client_request_id: str
     ) -> dict[str, Any]:
@@ -396,10 +484,270 @@ class SocialStore:
             self._record_receipt(conn, client_request_id, "intent.declare", request_digest, result)
             return result
 
-    def get_space(self, space_ref: str) -> dict[str, Any]:
+    def get_space(
+        self,
+        space_ref: str,
+        *,
+        participant_limit: int = 200,
+        topic_limit: int = 200,
+        max_bytes: int = DEFAULT_SPACE_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if not 1 <= participant_limit <= 200 or not 1 <= topic_limit <= 200:
+            raise ValueError("embedded participant/topic limits must be in [1,200]")
+        validate_max_bytes(max_bytes, minimum=MIN_SPACE_MAX_BYTES)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-            return self._get_space_in_tx(conn, space_ref)
+            return self._get_space_in_tx(
+                conn,
+                space_ref,
+                participant_limit=participant_limit,
+                topic_limit=topic_limit,
+                max_bytes=max_bytes,
+            )
+
+    def list_space_subjects(
+        self,
+        space_ref: str,
+        *,
+        after_subject_ref: str | None = None,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            self._require_space(conn, space_ref)
+            rows = conn.execute(
+                "SELECT subject_ref FROM space_subjects WHERE space_ref=%s "
+                "AND (%s::text IS NULL OR subject_ref>%s) ORDER BY subject_ref LIMIT %s",
+                (space_ref, after_subject_ref, after_subject_ref, limit + 1),
+            ).fetchall()
+            sql_more = len(rows) > limit
+            candidates = [str(row["subject_ref"]) for row in rows[:limit]]
+
+            def envelope(page: list[str]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-space-subject-list",
+                    "spaceRef": space_ref,
+                    "subjectRefs": page,
+                    "hasMore": True,
+                    "nextAfterSubjectRef": None if not page else page[-1],
+                    "rankingApplied": False,
+                    "truthBoundary": "social subject navigation only; references do not transfer foreign authority",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-space-subject-list",
+                "spaceRef": space_ref,
+                "subjectRefs": page,
+                "hasMore": has_more,
+                "nextAfterSubjectRef": page[-1] if has_more and page else None,
+                "rankingApplied": False,
+                "truthBoundary": "social subject navigation only; references do not transfer foreign authority",
+            }
+
+    def list_participations(
+        self,
+        space_ref: str,
+        *,
+        after_actor_ref: str | None = None,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            self._require_space(conn, space_ref)
+            rows = conn.execute(
+                "SELECT actor_ref,standing,updated_at FROM participations WHERE space_ref=%s "
+                "AND (%s::text IS NULL OR actor_ref>%s) ORDER BY actor_ref LIMIT %s",
+                (space_ref, after_actor_ref, after_actor_ref, limit + 1),
+            ).fetchall()
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "actorRef": row["actor_ref"],
+                    "standing": row["standing"],
+                    "updatedAt": row["updated_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-participation-list",
+                    "spaceRef": space_ref,
+                    "participants": page,
+                    "hasMore": True,
+                    "nextAfterActorRef": None if not page else page[-1]["actorRef"],
+                    "rankingApplied": False,
+                    "truthBoundary": "social participation only; not IAM, ownership, assignment, or authorization",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-participation-list",
+                "spaceRef": space_ref,
+                "participants": page,
+                "hasMore": has_more,
+                "nextAfterActorRef": page[-1]["actorRef"] if has_more and page else None,
+                "rankingApplied": False,
+                "truthBoundary": "social participation only; not IAM, ownership, assignment, or authorization",
+            }
+
+    def list_topics(
+        self,
+        space_ref: str,
+        *,
+        after_topic_ref: str | None = None,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            self._require_space(conn, space_ref)
+            rows = conn.execute(
+                "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
+                "WHERE space_ref=%s AND (%s::text IS NULL OR topic_ref>%s) "
+                "ORDER BY topic_ref LIMIT %s",
+                (space_ref, after_topic_ref, after_topic_ref, limit + 1),
+            ).fetchall()
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "topicRef": row["topic_ref"],
+                    "title": row["title"],
+                    "state": row["state"],
+                    "createdByActorRef": row["created_by_actor_ref"],
+                    "createdAt": row["created_at"].isoformat(),
+                    "updatedAt": row["updated_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-topic-list",
+                    "spaceRef": space_ref,
+                    "topics": page,
+                    "hasMore": True,
+                    "nextAfterTopicRef": None if not page else page[-1]["topicRef"],
+                    "rankingApplied": False,
+                    "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-topic-list",
+                "spaceRef": space_ref,
+                "topics": page,
+                "hasMore": has_more,
+                "nextAfterTopicRef": page[-1]["topicRef"] if has_more and page else None,
+                "rankingApplied": False,
+                "truthBoundary": "conversation-axis inventory only; not Work lifecycle or priority",
+            }
+
+    def get_topic_cursor(self, *, actor_ref: str, topic_ref: str) -> dict[str, Any]:
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            self._require_actor(conn, actor_ref)
+            self._require_topic(conn, topic_ref)
+            row = conn.execute(
+                "SELECT cursor FROM topic_consumption_cursors WHERE actor_ref=%s AND topic_ref=%s",
+                (actor_ref, topic_ref),
+            ).fetchone()
+            high = int(
+                conn.execute(
+                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
+                    (topic_ref,),
+                ).fetchone()["high"]
+            )
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-topic-cursor",
+                "actorRef": actor_ref,
+                "topicRef": topic_ref,
+                "cursor": 0 if row is None else int(row["cursor"]),
+                "topicHighSequence": high,
+                "truthBoundary": "topic navigation cursor only; not evidence of semantic acceptance",
+            }
+
+    def ack_topic_cursor(
+        self,
+        *,
+        actor_ref: str,
+        topic_ref: str,
+        cursor: int,
+        client_request_id: str,
+    ) -> dict[str, Any]:
+        if cursor < 0:
+            raise ValueError("cursor must be non-negative")
+        request = {
+            "operation": "topic.cursor.ack",
+            "actorRef": actor_ref,
+            "topicRef": topic_ref,
+            "cursor": cursor,
+        }
+        request_digest = canonical_digest(request)
+        with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+            replay = self._claim_receipt(conn, client_request_id, "topic.cursor.ack", request_digest)
+            if replay is not None:
+                return replay
+            self._require_actor(conn, actor_ref)
+            self._require_topic(conn, topic_ref)
+            high = int(
+                conn.execute(
+                    "SELECT COALESCE(MAX(sequence),0) AS high FROM messages WHERE topic_ref=%s",
+                    (topic_ref,),
+                ).fetchone()["high"]
+            )
+            if cursor > high:
+                raise ConflictError("topic cursor cannot acknowledge beyond current topic horizon")
+            current = conn.execute(
+                "SELECT cursor FROM topic_consumption_cursors "
+                "WHERE actor_ref=%s AND topic_ref=%s FOR UPDATE",
+                (actor_ref, topic_ref),
+            ).fetchone()
+            previous = 0 if current is None else int(current["cursor"])
+            if cursor < previous:
+                raise ConflictError("topic cursor cannot move backwards")
+            updated = conn.execute(
+                "INSERT INTO topic_consumption_cursors(actor_ref,topic_ref,cursor) VALUES (%s,%s,%s) "
+                "ON CONFLICT (actor_ref,topic_ref) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=clock_timestamp() "
+                "WHERE topic_consumption_cursors.cursor<=EXCLUDED.cursor RETURNING cursor",
+                (actor_ref, topic_ref, cursor),
+            ).fetchone()
+            if updated is None:
+                raise ConflictError("topic cursor cannot move backwards")
+            result = {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-topic-cursor-ack",
+                "actorRef": actor_ref,
+                "topicRef": topic_ref,
+                "previousCursor": previous,
+                "cursor": cursor,
+                "topicHighSequence": high,
+                "truthBoundary": "topic navigation acknowledgement only; not semantic acceptance",
+            }
+            self._record_receipt(conn, client_request_id, "topic.cursor.ack", request_digest, result)
+            return result
 
     def list_spaces(
         self,
@@ -409,11 +757,13 @@ class SocialStore:
         limit: int = 50,
         before_created_at: str | None = None,
         before_space_ref: str | None = None,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if not 1 <= limit <= 200:
             raise ValueError("limit must be in [1,200]")
         if (before_created_at is None) != (before_space_ref is None):
             raise ValueError("before_created_at and before_space_ref must be supplied together")
+        validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if actor_ref is not None:
@@ -427,38 +777,47 @@ class SocialStore:
                 "AND (%s::text IS NULL OR EXISTS (SELECT 1 FROM space_subjects ss WHERE ss.space_ref=s.space_ref AND ss.subject_ref=%s)) "
                 "AND (%s::timestamptz IS NULL OR (s.created_at,s.space_ref) < (%s::timestamptz,%s)) "
                 "ORDER BY s.created_at DESC,s.space_ref DESC LIMIT %s",
-                (
-                    actor_ref,
-                    actor_ref,
-                    subject_ref,
-                    subject_ref,
-                    before_created_at,
-                    before_created_at,
-                    before_space_ref,
-                    limit + 1,
-                ),
+                (actor_ref, actor_ref, subject_ref, subject_ref, before_created_at, before_created_at, before_space_ref, limit + 1),
             ).fetchall()
-            has_more = len(rows) > limit
-            page = rows[:limit]
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "spaceRef": row["space_ref"],
+                    "purpose": row["purpose"],
+                    "openTopicCount": int(row["open_topics"]),
+                    "activeParticipantCount": int(row["active_participants"]),
+                    "createdAt": row["created_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                cursor = None if not page else {
+                    "beforeCreatedAt": page[-1]["createdAt"],
+                    "beforeSpaceRef": page[-1]["spaceRef"],
+                }
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-space-list",
+                    "spaces": page,
+                    "hasMore": True,
+                    "nextCursor": cursor,
+                    "rankingApplied": False,
+                    "truthBoundary": "compact social-space locator only; participation is not ownership, authority, or assignment",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
             cursor = None
             if has_more and page:
                 cursor = {
-                    "beforeCreatedAt": page[-1]["created_at"].isoformat(),
-                    "beforeSpaceRef": page[-1]["space_ref"],
+                    "beforeCreatedAt": page[-1]["createdAt"],
+                    "beforeSpaceRef": page[-1]["spaceRef"],
                 }
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-space-list",
-                "spaces": [
-                    {
-                        "spaceRef": row["space_ref"],
-                        "purpose": row["purpose"],
-                        "openTopicCount": int(row["open_topics"]),
-                        "activeParticipantCount": int(row["active_participants"]),
-                        "createdAt": row["created_at"].isoformat(),
-                    }
-                    for row in page
-                ],
+                "spaces": page,
                 "hasMore": has_more,
                 "nextCursor": cursor,
                 "rankingApplied": False,
@@ -473,6 +832,7 @@ class SocialStore:
         topic_ref: str | None = None,
         before_sequence: int | None = None,
         limit: int = 50,
+        max_bytes: int = DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if not query.strip():
             raise ValueError("query must be non-empty")
@@ -480,6 +840,7 @@ class SocialStore:
             raise ValueError("limit must be in [1,200]")
         if before_sequence is not None and before_sequence < 1:
             raise ValueError("before_sequence must be positive")
+        validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             if space_ref is not None:
@@ -493,54 +854,70 @@ class SocialStore:
                 "FROM messages WHERE to_tsvector('simple',body) @@ websearch_to_tsquery('simple',%s) "
                 "AND (%s::text IS NULL OR space_ref=%s) AND (%s::text IS NULL OR topic_ref=%s) "
                 "AND (%s::bigint IS NULL OR sequence<%s) ORDER BY sequence DESC LIMIT %s",
-                (
-                    query,
-                    space_ref,
-                    space_ref,
-                    topic_ref,
-                    topic_ref,
-                    before_sequence,
-                    before_sequence,
-                    limit + 1,
-                ),
+                (query, space_ref, space_ref, topic_ref, topic_ref, before_sequence, before_sequence, limit + 1),
             ).fetchall()
-            has_more = len(rows) > limit
-            page = rows[:limit]
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "sequence": int(row["sequence"]),
+                    "messageRef": row["message_ref"],
+                    "spaceRef": row["space_ref"],
+                    "topicRef": row["topic_ref"],
+                    "authorActorRef": row["author_actor_ref"],
+                    "messageKind": row["message_kind"],
+                    "body": row["body"],
+                    "messageDigest": row["message_digest"],
+                    "recordedAtMs": int(row["recorded_at_ms"]),
+                    "createdAt": row["created_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-message-search",
+                    "query": query,
+                    "messages": page,
+                    "hasMore": True,
+                    "nextBeforeSequence": None if not page else int(page[-1]["sequence"]),
+                    "rankingApplied": False,
+                    "ordering": "sequence_desc",
+                    "truthBoundary": "PostgreSQL full-text locator ordered by message sequence, not relevance/priority; message claims require owner-native verification",
+                }
+
+            page, byte_more = bounded_prefix(
+                candidates,
+                max_bytes=max_bytes,
+                envelope=envelope,
+                minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
+            )
+            has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-message-search",
                 "query": query,
-                "messages": [
-                    {
-                        "sequence": int(row["sequence"]),
-                        "messageRef": row["message_ref"],
-                        "spaceRef": row["space_ref"],
-                        "topicRef": row["topic_ref"],
-                        "authorActorRef": row["author_actor_ref"],
-                        "messageKind": row["message_kind"],
-                        "body": row["body"],
-                        "messageDigest": row["message_digest"],
-                        "recordedAtMs": int(row["recorded_at_ms"]),
-                        "createdAt": row["created_at"].isoformat(),
-                    }
-                    for row in page
-                ],
+                "messages": page,
                 "hasMore": has_more,
-                "nextBeforeSequence": None
-                if not has_more or not page
-                else int(page[-1]["sequence"]),
+                "nextBeforeSequence": int(page[-1]["sequence"]) if has_more and page else None,
                 "rankingApplied": False,
                 "ordering": "sequence_desc",
                 "truthBoundary": "PostgreSQL full-text locator ordered by message sequence, not relevance/priority; message claims require owner-native verification",
             }
 
     def resume_topic(
-        self, topic_ref: str, *, after_sequence: int = 0, limit: int = 50
+        self,
+        topic_ref: str,
+        *,
+        after_sequence: int = 0,
+        limit: int = 50,
+        max_bytes: int = DEFAULT_MESSAGE_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
         if after_sequence < 0:
             raise ValueError("after_sequence must be non-negative")
+        validate_max_bytes(max_bytes, minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             topic = self._require_topic(conn, topic_ref)
@@ -550,91 +927,140 @@ class SocialStore:
                 "ORDER BY sequence LIMIT %s",
                 (topic_ref, after_sequence, limit + 1),
             ).fetchall()
-            has_more = len(rows) > limit
-            page = rows[:limit]
-            next_sequence = after_sequence if not page else int(page[-1]["sequence"])
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "sequence": int(row["sequence"]),
+                    "messageRef": row["message_ref"],
+                    "authorActorRef": row["author_actor_ref"],
+                    "messageKind": row["message_kind"],
+                    "body": row["body"],
+                    "messageDigest": row["message_digest"],
+                    "recordedAtMs": int(row["recorded_at_ms"]),
+                    "createdAt": row["created_at"].isoformat(),
+                }
+                for row in rows[:limit]
+            ]
+            topic_wire = {
+                "topicRef": topic["topic_ref"],
+                "spaceRef": topic["space_ref"],
+                "title": topic["title"],
+                "state": topic["state"],
+            }
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-topic-resume",
+                    "topic": topic_wire,
+                    "messages": page,
+                    "hasMore": True,
+                    "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
+                    "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
+                }
+
+            page, byte_more = bounded_prefix(
+                candidates,
+                max_bytes=max_bytes,
+                envelope=envelope,
+                minimum=MIN_MESSAGE_COLLECTION_MAX_BYTES,
+            )
+            has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-topic-resume",
-                "topic": {
-                    "topicRef": topic["topic_ref"],
-                    "spaceRef": topic["space_ref"],
-                    "title": topic["title"],
-                    "state": topic["state"],
-                },
-                "messages": [
-                    {
-                        "sequence": int(row["sequence"]),
-                        "messageRef": row["message_ref"],
-                        "authorActorRef": row["author_actor_ref"],
-                        "messageKind": row["message_kind"],
-                        "body": row["body"],
-                        "messageDigest": row["message_digest"],
-                        "recordedAtMs": int(row["recorded_at_ms"]),
-                        "createdAt": row["created_at"].isoformat(),
-                    }
-                    for row in page
-                ],
+                "topic": topic_wire,
+                "messages": page,
                 "hasMore": has_more,
-                "nextAfterSequence": next_sequence,
+                "nextAfterSequence": after_sequence if not page else int(page[-1]["sequence"]),
                 "truthBoundary": "bounded topic conversation only; message claims require owner-native verification",
             }
 
     def _get_space_in_tx(
-        self, conn: psycopg.Connection[dict[str, Any]], space_ref: str
+        self,
+        conn: psycopg.Connection[dict[str, Any]],
+        space_ref: str,
+        *,
+        participant_limit: int = 200,
+        topic_limit: int = 200,
+        max_bytes: int = DEFAULT_SPACE_MAX_BYTES,
     ) -> dict[str, Any]:
+        validate_max_bytes(max_bytes, minimum=MIN_SPACE_MAX_BYTES)
         space = conn.execute(
             "SELECT space_ref,purpose,created_by_actor_ref,created_at FROM spaces WHERE space_ref=%s",
             (space_ref,),
         ).fetchone()
         if space is None:
             raise SpaceNotFound(space_ref)
-        subjects = [
-            row["subject_ref"]
-            for row in conn.execute(
-                "SELECT subject_ref FROM space_subjects WHERE space_ref=%s ORDER BY subject_ref",
-                (space_ref,),
-            ).fetchall()
-        ]
-        participants = conn.execute(
-            "SELECT actor_ref,standing,updated_at FROM participations WHERE space_ref=%s "
-            "ORDER BY actor_ref",
+        subject_count = int(conn.execute("SELECT count(*) AS n FROM space_subjects WHERE space_ref=%s", (space_ref,)).fetchone()["n"])
+        participant_count = int(conn.execute("SELECT count(*) AS n FROM participations WHERE space_ref=%s", (space_ref,)).fetchone()["n"])
+        topic_count = int(conn.execute("SELECT count(*) AS n FROM topics WHERE space_ref=%s", (space_ref,)).fetchone()["n"])
+        subject_rows = conn.execute(
+            "SELECT subject_ref FROM space_subjects WHERE space_ref=%s ORDER BY subject_ref LIMIT 129",
             (space_ref,),
         ).fetchall()
-        topics = conn.execute(
+        participant_rows = conn.execute(
+            "SELECT actor_ref,standing,updated_at FROM participations WHERE space_ref=%s ORDER BY actor_ref LIMIT %s",
+            (space_ref, participant_limit + 1),
+        ).fetchall()
+        topic_rows = conn.execute(
             "SELECT topic_ref,title,state,created_by_actor_ref,created_at,updated_at FROM topics "
-            "WHERE space_ref=%s ORDER BY topic_ref",
-            (space_ref,),
+            "WHERE space_ref=%s ORDER BY topic_ref LIMIT %s",
+            (space_ref, topic_limit + 1),
         ).fetchall()
-        return {
-            "schemaVersion": 1,
-            "kind": "ordivon.host-space",
-            "spaceRef": space["space_ref"],
-            "purpose": space["purpose"],
-            "createdByActorRef": space["created_by_actor_ref"],
-            "createdAt": space["created_at"].isoformat(),
-            "subjectRefs": subjects,
-            "participants": [
-                {
-                    "actorRef": row["actor_ref"],
-                    "standing": row["standing"],
-                    "updatedAt": row["updated_at"].isoformat(),
-                }
-                for row in participants
-            ],
-            "topics": [
-                {
-                    "topicRef": row["topic_ref"],
-                    "title": row["title"],
-                    "state": row["state"],
-                    "createdByActorRef": row["created_by_actor_ref"],
-                    "createdAt": row["created_at"].isoformat(),
-                    "updatedAt": row["updated_at"].isoformat(),
-                }
-                for row in topics
-            ],
-            "truthBoundary": "social organization record only; participation does not imply identity, authority, ownership, or assignment",
-        }
+        subjects = [row["subject_ref"] for row in subject_rows[:128]]
+        participants = [
+            {
+                "actorRef": row["actor_ref"],
+                "standing": row["standing"],
+                "updatedAt": row["updated_at"].isoformat(),
+            }
+            for row in participant_rows[:participant_limit]
+        ]
+        topics = [
+            {
+                "topicRef": row["topic_ref"],
+                "title": row["title"],
+                "state": row["state"],
+                "createdByActorRef": row["created_by_actor_ref"],
+                "createdAt": row["created_at"].isoformat(),
+                "updatedAt": row["updated_at"].isoformat(),
+            }
+            for row in topic_rows[:topic_limit]
+        ]
+
+        def build() -> dict[str, Any]:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-space",
+                "spaceRef": space["space_ref"],
+                "purpose": space["purpose"],
+                "createdByActorRef": space["created_by_actor_ref"],
+                "createdAt": space["created_at"].isoformat(),
+                "subjectRefs": subjects,
+                "subjectCount": subject_count,
+                "subjectHasMore": len(subjects) < subject_count,
+                "participants": participants,
+                "participantCount": participant_count,
+                "participantHasMore": len(participants) < participant_count,
+                "topics": topics,
+                "topicCount": topic_count,
+                "topicHasMore": len(topics) < topic_count,
+                "truthBoundary": "social organization record only; participation does not imply identity, authority, ownership, or assignment",
+            }
+
+        result = build()
+        while len(canonical_bytes(result)) > max_bytes:
+            if topics:
+                topics.pop()
+            elif participants:
+                participants.pop()
+            elif subjects:
+                subjects.pop()
+            else:
+                raise ValueError("max_bytes cannot fit the Space response envelope")
+            result = build()
+        return result
 
     @staticmethod
     def _require_actor(conn: psycopg.Connection[dict[str, Any]], actor_ref: str) -> None:

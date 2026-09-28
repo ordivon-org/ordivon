@@ -61,8 +61,25 @@ class SpaceResponse(TypedDict):
     createdByActorRef: str
     createdAt: str
     subjectRefs: list[str]
+    subjectCount: int
+    subjectHasMore: bool
     participants: list[dict[str, Any]]
+    participantCount: int
+    participantHasMore: bool
     topics: list[dict[str, Any]]
+    topicCount: int
+    topicHasMore: bool
+    truthBoundary: str
+
+
+class SpaceSubjectsResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-space-subject-list"]
+    spaceRef: str
+    subjectRefs: list[str]
+    hasMore: bool
+    nextAfterSubjectRef: str | None
+    rankingApplied: Literal[False]
     truthBoundary: str
 
 
@@ -73,6 +90,17 @@ class ParticipationResponse(TypedDict):
     actorRef: str
     standing: Literal["joined", "left", "observer"]
     updatedAt: str
+    truthBoundary: str
+
+
+class ParticipationListResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-participation-list"]
+    spaceRef: str
+    participants: list[dict[str, Any]]
+    hasMore: bool
+    nextAfterActorRef: str | None
+    rankingApplied: Literal[False]
     truthBoundary: str
 
 
@@ -90,6 +118,17 @@ class TopicResponse(TypedDict):
     truthBoundary: str
 
 
+class TopicListResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-topic-list"]
+    spaceRef: str
+    topics: list[dict[str, Any]]
+    hasMore: bool
+    nextAfterTopicRef: str | None
+    rankingApplied: Literal[False]
+    truthBoundary: str
+
+
 class TopicResumeResponse(TypedDict):
     schemaVersion: int
     kind: Literal["ordivon.host-topic-resume"]
@@ -97,6 +136,17 @@ class TopicResumeResponse(TypedDict):
     messages: list[dict[str, Any]]
     hasMore: bool
     nextAfterSequence: int
+    truthBoundary: str
+
+
+class TopicCursorResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-topic-cursor", "ordivon.host-topic-cursor-ack"]
+    actorRef: str
+    topicRef: str
+    cursor: int
+    topicHighSequence: int
+    previousCursor: NotRequired[int]
     truthBoundary: str
 
 
@@ -126,6 +176,18 @@ class MessageRelationResponse(TypedDict):
     targetRef: str
     createdByActorRef: str
     createdAt: str
+    truthBoundary: str
+
+
+class MessageRelationsResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-message-relation-list"]
+    messageRef: str
+    direction: Literal["outgoing", "incoming", "both"]
+    relations: list[dict[str, Any]]
+    hasMore: bool
+    nextAfterChangeSequence: int
+    rankingApplied: Literal[False]
     truthBoundary: str
 
 
@@ -163,6 +225,9 @@ class AttentionEventWire(TypedDict):
     eventKind: str
     sourceRef: str
     contextRef: str
+    reasons: list[str]
+    navigationKind: Literal["work", "space", "topic", "subject"]
+    navigationRef: str
 
 
 class AttentionDeltaResponse(TypedDict):
@@ -184,6 +249,20 @@ class AttentionAckResponse(TypedDict):
     actorRef: str
     previousCursor: int
     cursor: int
+    truthBoundary: str
+
+
+class AttentionReentryResponse(TypedDict):
+    schemaVersion: int
+    kind: Literal["ordivon.host-attention-reentry-r1"]
+    actorRef: str
+    afterSequence: int
+    snapshotHighSequence: int
+    items: list[dict[str, Any]]
+    rawEventCount: int
+    hasMore: bool
+    nextAfterSequence: int
+    rankingApplied: Literal[False]
     truthBoundary: str
 
 
@@ -226,5 +305,7 @@ class SubscriptionListResponse(TypedDict):
     subscriptions: list[dict[str, Any]]
     hasMore: bool
     truncated: bool
+    nextAfterTargetKind: str | None
+    nextAfterTargetRef: str | None
     rankingApplied: Literal[False]
     truthBoundary: str

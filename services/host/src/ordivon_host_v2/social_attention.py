@@ -6,8 +6,9 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from .canonical import canonical_digest
+from .canonical import canonical_bytes, canonical_digest
 from .errors import ConflictError
+from .social_bounds import DEFAULT_COLLECTION_MAX_BYTES, bounded_prefix, validate_max_bytes
 from .social_store import SpaceNotFound, TopicNotFound
 from .work_store import ActorRefNotFound, WorkNotFound
 
@@ -91,41 +92,85 @@ class AttentionStore:
             return result
 
     def list_subscriptions(
-        self, actor_ref: str, *, target_kind: TargetKind | None = None, limit: int = 200
+        self,
+        actor_ref: str,
+        *,
+        target_kind: TargetKind | None = None,
+        after_target_kind: str | None = None,
+        after_target_ref: str | None = None,
+        limit: int = 200,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
     ) -> dict[str, Any]:
         if not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
+        if (after_target_kind is None) != (after_target_ref is None):
+            raise ValueError("after_target_kind and after_target_ref must be supplied together")
+        validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             rows = conn.execute(
                 "SELECT target_kind,target_ref,created_at,change_sequence FROM subscriptions "
                 "WHERE actor_ref=%s AND (%s::text IS NULL OR target_kind=%s) "
+                "AND (%s::text IS NULL OR (target_kind,target_ref)>(%s,%s)) "
                 "ORDER BY target_kind,target_ref LIMIT %s",
-                (actor_ref, target_kind, target_kind, limit + 1),
+                (
+                    actor_ref,
+                    target_kind,
+                    target_kind,
+                    after_target_kind,
+                    after_target_kind,
+                    after_target_ref,
+                    limit + 1,
+                ),
             ).fetchall()
-            has_more = len(rows) > limit
-            page = rows[:limit]
+            sql_more = len(rows) > limit
+            candidates = [
+                {
+                    "targetKind": row["target_kind"],
+                    "targetRef": row["target_ref"],
+                    "createdAt": row["created_at"].isoformat(),
+                    "changeSequence": int(row["change_sequence"]),
+                }
+                for row in rows[:limit]
+            ]
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-subscription-list",
+                    "actorRef": actor_ref,
+                    "subscriptions": page,
+                    "hasMore": True,
+                    "truncated": True,
+                    "nextAfterTargetKind": None if not page else page[-1]["targetKind"],
+                    "nextAfterTargetRef": None if not page else page[-1]["targetRef"],
+                    "rankingApplied": False,
+                    "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-subscription-list",
                 "actorRef": actor_ref,
-                "subscriptions": [
-                    {
-                        "targetKind": row["target_kind"],
-                        "targetRef": row["target_ref"],
-                        "createdAt": row["created_at"].isoformat(),
-                        "changeSequence": int(row["change_sequence"]),
-                    }
-                    for row in page
-                ],
+                "subscriptions": page,
                 "hasMore": has_more,
                 "truncated": has_more,
+                "nextAfterTargetKind": page[-1]["targetKind"] if has_more and page else None,
+                "nextAfterTargetRef": page[-1]["targetRef"] if has_more and page else None,
                 "rankingApplied": False,
                 "truthBoundary": "actor attention-routing preferences only; not assignment, priority, ownership, or authorization",
             }
 
-    def get(self, actor_ref: str, *, limit: int = 100) -> dict[str, Any]:
+    def get(
+        self,
+        actor_ref: str,
+        *,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
@@ -133,21 +178,42 @@ class AttentionStore:
                 "SELECT cursor FROM attention_cursors WHERE actor_ref=%s", (actor_ref,)
             ).fetchone()
             cursor = 0 if row is None else int(row["cursor"])
-        return self.delta(actor_ref, after_sequence=cursor, limit=limit)
+        return self.delta(actor_ref, after_sequence=cursor, limit=limit, max_bytes=max_bytes)
 
-    def delta(self, actor_ref: str, *, after_sequence: int, limit: int = 100) -> dict[str, Any]:
+    def delta(
+        self,
+        actor_ref: str,
+        *,
+        after_sequence: int,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
         if after_sequence < 0:
             raise ValueError("after_sequence must be non-negative")
         if not 1 <= limit <= 500:
             raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
         with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
             conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             self._require_actor(conn, actor_ref)
             high = int(
-                conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()[
-                    "value"
-                ]
+                conn.execute("SELECT value FROM swf_change_clock WHERE singleton").fetchone()["value"]
             )
+            if after_sequence > high:
+                raise ConflictError("after_sequence cannot exceed current change horizon")
+            if after_sequence == high:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-attention-delta-r1",
+                    "actorRef": actor_ref,
+                    "afterSequence": after_sequence,
+                    "snapshotHighSequence": high,
+                    "events": [],
+                    "hasMore": False,
+                    "nextAfterSequence": high,
+                    "rankingApplied": False,
+                    "truthBoundary": "rebuildable actor-scoped navigation over owner rows; not inbox truth, priority, assignment, or authority",
+                }
             rows = conn.execute(
                 self._delta_sql(),
                 {
@@ -157,29 +223,152 @@ class AttentionStore:
                     "limit": limit + 1,
                 },
             ).fetchall()
-            has_more = len(rows) > limit
-            page = rows[:limit]
-            next_sequence = after_sequence if not page else int(page[-1]["change_sequence"])
+            sql_more = len(rows) > limit
+            reason_columns = (
+                ("followed_work", "followed_work"),
+                ("followed_space", "followed_space"),
+                ("followed_topic", "followed_topic"),
+                ("mentioned", "mentioned"),
+                ("replied_to_me", "replied_to_me"),
+                ("own_participation", "own_participation"),
+                ("own_coordination_intent", "own_coordination_intent"),
+            )
+            candidates = []
+            for row in rows[:limit]:
+                reasons = sorted(
+                    reason for column, reason in reason_columns if bool(row[column])
+                )
+                candidates.append(
+                    {
+                        "changeSequence": int(row["change_sequence"]),
+                        "eventKind": row["event_kind"],
+                        "sourceRef": row["source_ref"],
+                        "contextRef": row["context_ref"],
+                        "reasons": reasons,
+                        "navigationKind": row["navigation_kind"],
+                        "navigationRef": row["navigation_ref"],
+                    }
+                )
+
+            def envelope(page: list[dict[str, Any]]) -> dict[str, Any]:
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.host-attention-delta-r1",
+                    "actorRef": actor_ref,
+                    "afterSequence": after_sequence,
+                    "snapshotHighSequence": high,
+                    "events": page,
+                    "hasMore": True,
+                    "nextAfterSequence": after_sequence if not page else page[-1]["changeSequence"],
+                    "rankingApplied": False,
+                    "truthBoundary": "rebuildable actor-scoped navigation over owner rows; not inbox truth, priority, assignment, or authority",
+                }
+
+            page, byte_more = bounded_prefix(candidates, max_bytes=max_bytes, envelope=envelope)
+            has_more = sql_more or byte_more
+            next_sequence = int(page[-1]["changeSequence"]) if has_more and page else high
             return {
                 "schemaVersion": 1,
                 "kind": "ordivon.host-attention-delta-r1",
                 "actorRef": actor_ref,
                 "afterSequence": after_sequence,
                 "snapshotHighSequence": high,
-                "events": [
-                    {
-                        "changeSequence": int(row["change_sequence"]),
-                        "eventKind": row["event_kind"],
-                        "sourceRef": row["source_ref"],
-                        "contextRef": row["context_ref"],
-                    }
-                    for row in page
-                ],
+                "events": page,
                 "hasMore": has_more,
                 "nextAfterSequence": next_sequence,
                 "rankingApplied": False,
                 "truthBoundary": "rebuildable actor-scoped navigation over owner rows; not inbox truth, priority, assignment, or authority",
             }
+
+    def reentry(
+        self,
+        actor_ref: str,
+        *,
+        after_sequence: int | None = None,
+        limit: int = 100,
+        max_bytes: int = DEFAULT_COLLECTION_MAX_BYTES,
+    ) -> dict[str, Any]:
+        if not 1 <= limit <= 500:
+            raise ValueError("limit must be in [1,500]")
+        validate_max_bytes(max_bytes)
+        if after_sequence is None:
+            with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+                conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+                self._require_actor(conn, actor_ref)
+                row = conn.execute(
+                    "SELECT cursor FROM attention_cursors WHERE actor_ref=%s", (actor_ref,)
+                ).fetchone()
+                after_sequence = 0 if row is None else int(row["cursor"])
+        if after_sequence < 0:
+            raise ValueError("after_sequence must be non-negative")
+
+        effective_limit = limit
+        while True:
+            delta = self.delta(
+                actor_ref,
+                after_sequence=after_sequence,
+                limit=effective_limit,
+                max_bytes=max_bytes,
+            )
+            groups: dict[tuple[str, str], dict[str, Any]] = {}
+            for event in delta["events"]:
+                key = (event["navigationKind"], event["navigationRef"])
+                item = groups.get(key)
+                if item is None:
+                    item = {
+                        "navigationKind": key[0],
+                        "navigationRef": key[1],
+                        "latestChangeSequence": int(event["changeSequence"]),
+                        "eventKinds": [],
+                        "reasons": [],
+                        "eventCount": 0,
+                    }
+                    groups[key] = item
+                item["latestChangeSequence"] = max(
+                    int(item["latestChangeSequence"]), int(event["changeSequence"])
+                )
+                item["eventKinds"] = sorted(set(item["eventKinds"]) | {event["eventKind"]})
+                item["reasons"] = sorted(set(item["reasons"]) | set(event["reasons"]))
+                item["eventCount"] = int(item["eventCount"]) + 1
+
+            items = list(groups.values())
+            topic_refs = [
+                str(item["navigationRef"])
+                for item in items
+                if item["navigationKind"] == "topic"
+            ]
+            cursors: dict[str, int] = {}
+            if topic_refs:
+                with psycopg.connect(self.dsn, row_factory=dict_row) as conn, conn.transaction():
+                    conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+                    rows = conn.execute(
+                        "SELECT topic_ref,cursor FROM topic_consumption_cursors "
+                        "WHERE actor_ref=%s AND topic_ref=ANY(%s)",
+                        (actor_ref, topic_refs),
+                    ).fetchall()
+                    cursors = {row["topic_ref"]: int(row["cursor"]) for row in rows}
+            for item in items:
+                if item["navigationKind"] == "topic":
+                    item["resumeAfterSequence"] = cursors.get(str(item["navigationRef"]), 0)
+
+            result = {
+                "schemaVersion": 1,
+                "kind": "ordivon.host-attention-reentry-r1",
+                "actorRef": actor_ref,
+                "afterSequence": after_sequence,
+                "snapshotHighSequence": delta["snapshotHighSequence"],
+                "items": items,
+                "rawEventCount": len(delta["events"]),
+                "hasMore": delta["hasMore"],
+                "nextAfterSequence": delta["nextAfterSequence"],
+                "rankingApplied": False,
+                "truthBoundary": "rebuildable re-entry navigation only; no score, priority, assignment, scheduling, or foreign truth ownership",
+            }
+            if len(canonical_bytes(result)) <= max_bytes:
+                return result
+            if effective_limit == 1:
+                raise ValueError("max_bytes cannot fit one re-entry navigation item")
+            effective_limit = max(1, effective_limit // 2)
 
     def ack(self, actor_ref: str, *, cursor: int, client_request_id: str) -> dict[str, Any]:
         if cursor < 0:
@@ -229,12 +418,16 @@ class AttentionStore:
 
     @staticmethod
     def _delta_sql() -> str:
-        # Every branch reads the source-of-record row directly. There is intentionally no
-        # copied attention_events table or custom event bus.
+        # Every branch reads source-of-record rows directly. Boolean reason columns are
+        # compiled into reasons[] by Python; no copied attention event store exists.
         return """
         WITH relevant AS (
             SELECT ws.change_sequence, 'work_snapshot'::text AS event_kind,
-                   ws.work_ref::text AS source_ref, ws.revision::text AS context_ref
+                   ws.work_ref::text AS source_ref, ws.revision::text AS context_ref,
+                   true AS followed_work, false AS followed_space, false AS followed_topic,
+                   false AS mentioned, false AS replied_to_me, false AS own_participation,
+                   false AS own_coordination_intent, 'work'::text AS navigation_kind,
+                   ws.work_ref::text AS navigation_ref
             FROM work_snapshots ws
             WHERE ws.change_sequence > %(after_sequence)s AND ws.change_sequence <= %(high)s
               AND EXISTS (
@@ -245,7 +438,13 @@ class AttentionStore:
             UNION ALL
             SELECT wr.change_sequence, 'work_relation',
                    wr.source_work_ref || ':' || wr.relation || ':' || wr.target_work_ref,
-                   wr.relation
+                   wr.relation,
+                   true, false, false, false, false, false, false, 'work',
+                   CASE WHEN EXISTS (
+                     SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                       AND s.target_kind='work' AND s.target_ref=wr.source_work_ref
+                       AND wr.change_sequence>s.change_sequence
+                   ) THEN wr.source_work_ref ELSE wr.target_work_ref END
             FROM work_relations wr
             WHERE wr.change_sequence > %(after_sequence)s AND wr.change_sequence <= %(high)s
               AND EXISTS (
@@ -255,7 +454,15 @@ class AttentionStore:
                   AND wr.change_sequence > s.change_sequence
               )
             UNION ALL
-            SELECT t.change_sequence, 'topic_change', t.topic_ref, t.space_ref
+            SELECT t.change_sequence, 'topic_change', t.topic_ref, t.space_ref,
+                   false,
+                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                     AND s.target_kind='space' AND s.target_ref=t.space_ref
+                     AND t.change_sequence>s.change_sequence),
+                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                     AND s.target_kind='topic' AND s.target_ref=t.topic_ref
+                     AND t.change_sequence>s.change_sequence),
+                   false, false, false, false, 'topic', t.topic_ref
             FROM topics t
             WHERE t.change_sequence > %(after_sequence)s AND t.change_sequence <= %(high)s
               AND EXISTS (
@@ -266,33 +473,58 @@ class AttentionStore:
                   AND t.change_sequence > s.change_sequence
               )
             UNION ALL
-            SELECT m.change_sequence, 'message', m.message_ref, m.topic_ref
-            FROM messages m
-            WHERE m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
-              AND (
-                EXISTS (
-                  SELECT 1 FROM subscriptions s
-                  WHERE s.actor_ref=%(actor_ref)s
-                    AND ((s.target_kind='topic' AND s.target_ref=m.topic_ref)
-                      OR (s.target_kind='space' AND s.target_ref=m.space_ref))
-                    AND m.change_sequence > s.change_sequence
-                )
-                OR EXISTS (
-                  SELECT 1 FROM message_relations mr
-                  WHERE mr.source_message_ref=m.message_ref
-                    AND mr.relation='mentions' AND mr.target_ref=%(actor_ref)s
-                )
-                OR EXISTS (
-                  SELECT 1 FROM message_relations reply
-                  JOIN messages parent ON parent.message_ref=reply.target_ref
-                  WHERE reply.source_message_ref=m.message_ref AND reply.relation='reply_to'
-                    AND parent.author_actor_ref=%(actor_ref)s
-                )
-              )
+            SELECT mc.change_sequence, 'message', mc.message_ref, mc.topic_ref,
+                   false, bool_or(mc.followed_space), bool_or(mc.followed_topic),
+                   bool_or(mc.mentioned), bool_or(mc.replied_to_me),
+                   false, false, 'topic', mc.topic_ref
+            FROM (
+                SELECT m.change_sequence,m.message_ref,m.topic_ref,
+                       false AS followed_space,true AS followed_topic,
+                       false AS mentioned,false AS replied_to_me
+                FROM subscriptions s
+                JOIN messages m ON m.topic_ref=s.target_ref
+                WHERE s.actor_ref=%(actor_ref)s AND s.target_kind='topic'
+                  AND m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
+                  AND m.change_sequence > s.change_sequence
+                UNION ALL
+                SELECT m.change_sequence,m.message_ref,m.topic_ref,
+                       true,false,false,false
+                FROM subscriptions s
+                JOIN messages m ON m.space_ref=s.target_ref
+                WHERE s.actor_ref=%(actor_ref)s AND s.target_kind='space'
+                  AND m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
+                  AND m.change_sequence > s.change_sequence
+                UNION ALL
+                SELECT m.change_sequence,m.message_ref,m.topic_ref,
+                       false,false,true,false
+                FROM message_relations mr
+                JOIN messages m ON m.message_ref=mr.source_message_ref
+                WHERE mr.relation='mentions' AND mr.target_ref=%(actor_ref)s
+                  AND m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
+                UNION ALL
+                SELECT m.change_sequence,m.message_ref,m.topic_ref,
+                       false,false,false,true
+                FROM messages parent
+                JOIN message_relations reply
+                  ON reply.target_ref=parent.message_ref AND reply.relation='reply_to'
+                JOIN messages m ON m.message_ref=reply.source_message_ref
+                WHERE parent.author_actor_ref=%(actor_ref)s
+                  AND m.change_sequence > %(after_sequence)s AND m.change_sequence <= %(high)s
+            ) mc
+            GROUP BY mc.change_sequence,mc.message_ref,mc.topic_ref
             UNION ALL
             SELECT mr.change_sequence, 'message_relation',
-                   mr.source_message_ref || ':' || mr.relation || ':' || mr.target_ref,
-                   mr.relation
+                   mr.source_message_ref || ':' || mr.relation || ':' || mr.target_ref, mr.relation,
+                   false,
+                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                     AND s.target_kind='space' AND s.target_ref=source_message.space_ref
+                     AND mr.change_sequence>s.change_sequence),
+                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                     AND s.target_kind='topic' AND s.target_ref=source_message.topic_ref
+                     AND mr.change_sequence>s.change_sequence),
+                   (mr.relation='mentions' AND mr.target_ref=%(actor_ref)s),
+                   (mr.relation='reply_to' AND target_message.author_actor_ref=%(actor_ref)s),
+                   false, false, 'topic', source_message.topic_ref
             FROM message_relations mr
             JOIN messages source_message ON source_message.message_ref=mr.source_message_ref
             LEFT JOIN messages target_message ON target_message.message_ref=mr.target_ref
@@ -300,22 +532,29 @@ class AttentionStore:
               AND (
                 (mr.relation='mentions' AND mr.target_ref=%(actor_ref)s)
                 OR (mr.relation='reply_to' AND target_message.author_actor_ref=%(actor_ref)s)
-                OR EXISTS (
-                  SELECT 1 FROM subscriptions s
-                  WHERE s.actor_ref=%(actor_ref)s
-                    AND ((s.target_kind='topic' AND s.target_ref=source_message.topic_ref)
-                      OR (s.target_kind='space' AND s.target_ref=source_message.space_ref))
-                    AND mr.change_sequence > s.change_sequence
-                )
+                OR EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                  AND ((s.target_kind='topic' AND s.target_ref=source_message.topic_ref)
+                    OR (s.target_kind='space' AND s.target_ref=source_message.space_ref))
+                  AND mr.change_sequence>s.change_sequence)
               )
             UNION ALL
-            SELECT p.change_sequence, 'participation_change',
-                   p.space_ref || ':' || p.actor_ref, p.standing
+            SELECT p.change_sequence, 'participation_change', p.space_ref || ':' || p.actor_ref,
+                   p.standing, false, false, false, false, false, true, false, 'space', p.space_ref
             FROM participations p
             WHERE p.change_sequence > %(after_sequence)s AND p.change_sequence <= %(high)s
               AND p.actor_ref=%(actor_ref)s
             UNION ALL
-            SELECT ci.change_sequence, 'coordination_intent', ci.intent_ref, ci.subject_ref
+            SELECT ci.change_sequence, 'coordination_intent', ci.intent_ref, ci.subject_ref,
+                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                     AND s.target_kind='work' AND s.target_ref=ci.work_ref
+                     AND ci.change_sequence>s.change_sequence),
+                   EXISTS (SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
+                     AND s.target_kind='space' AND s.target_ref=ci.space_ref
+                     AND ci.change_sequence>s.change_sequence),
+                   false, false, false, false, (ci.actor_ref=%(actor_ref)s),
+                   CASE WHEN ci.work_ref IS NOT NULL THEN 'work'
+                        WHEN ci.space_ref IS NOT NULL THEN 'space' ELSE 'subject' END,
+                   COALESCE(ci.work_ref,ci.space_ref,ci.subject_ref)
             FROM coordination_intents ci
             WHERE ci.change_sequence > %(after_sequence)s AND ci.change_sequence <= %(high)s
               AND (
@@ -323,16 +562,16 @@ class AttentionStore:
                 OR (ci.work_ref IS NOT NULL AND EXISTS (
                   SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
                     AND s.target_kind='work' AND s.target_ref=ci.work_ref
-                    AND ci.change_sequence > s.change_sequence
-                ))
+                    AND ci.change_sequence>s.change_sequence))
                 OR (ci.space_ref IS NOT NULL AND EXISTS (
                   SELECT 1 FROM subscriptions s WHERE s.actor_ref=%(actor_ref)s
                     AND s.target_kind='space' AND s.target_ref=ci.space_ref
-                    AND ci.change_sequence > s.change_sequence
-                ))
+                    AND ci.change_sequence>s.change_sequence))
               )
         )
-        SELECT change_sequence,event_kind,source_ref,context_ref
+        SELECT change_sequence,event_kind,source_ref,context_ref,followed_work,followed_space,
+               followed_topic,mentioned,replied_to_me,own_participation,own_coordination_intent,
+               navigation_kind,navigation_ref
         FROM relevant
         ORDER BY change_sequence,event_kind,source_ref
         LIMIT %(limit)s

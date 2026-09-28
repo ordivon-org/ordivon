@@ -620,3 +620,294 @@ def test_desired_state_membership_can_be_reasserted_after_inverse_transition() -
     assert refollow["changeSequence"] > first_follow["changeSequence"]
     listed = attention.list_subscriptions(actor_ref, target_kind="topic")
     assert [row["targetRef"] for row in listed["subscriptions"]] == [topic_ref]
+
+
+def test_r2_attention_empty_interval_advances_to_snapshot_horizon() -> None:
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor_a, _ = refs("r2-horizon-a")
+    actor_b, _ = refs("r2-horizon-b")
+    declare_actor(work, actor_a)
+    declare_actor(work, actor_b)
+    baseline = attention.delta(actor_a, after_sequence=0, limit=500)["snapshotHighSequence"]
+
+    space_ref = f"space:r2-unrelated:{uuid4().hex}"
+    topic_ref = f"topic:r2-unrelated:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="unrelated", actor_ref=actor_b),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="unrelated", actor_ref=actor_b),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    message_ref = f"message:{uuid4().hex}"
+    social.post_message(
+        MessageInput(
+            message_ref=message_ref,
+            client_request_id=f"post:{message_ref}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor_b,
+            body="not for actor a",
+            recorded_at_ms=1,
+        )
+    )
+
+    delta = attention.delta(actor_a, after_sequence=baseline, limit=100)
+    assert delta["events"] == []
+    assert delta["hasMore"] is False
+    assert delta["snapshotHighSequence"] > baseline
+    assert delta["nextAfterSequence"] == delta["snapshotHighSequence"]
+
+
+def test_r2_attention_nonfinal_page_never_jumps_over_relevant_event() -> None:
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor, _ = refs("r2-page")
+    declare_actor(work, actor)
+    space_ref = f"space:r2-page:{uuid4().hex}"
+    topic_ref = f"topic:r2-page:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="paging", actor_ref=actor),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="paging", actor_ref=actor),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    attention.follow(
+        actor_ref=actor,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=f"follow:{actor}:{topic_ref}",
+    )
+    baseline = attention.delta(actor, after_sequence=0, limit=500)["snapshotHighSequence"]
+    for index in range(2):
+        message_ref = f"message:{uuid4().hex}"
+        social.post_message(
+            MessageInput(
+                message_ref=message_ref,
+                client_request_id=f"post:{message_ref}",
+                space_ref=space_ref,
+                topic_ref=topic_ref,
+                author_actor_ref=actor,
+                body=f"page {index}",
+                recorded_at_ms=index + 1,
+            )
+        )
+
+    first = attention.delta(actor, after_sequence=baseline, limit=1)
+    assert first["hasMore"] is True
+    assert len(first["events"]) == 1
+    assert first["nextAfterSequence"] == first["events"][0]["changeSequence"]
+    assert first["nextAfterSequence"] < first["snapshotHighSequence"]
+
+    second = attention.delta(actor, after_sequence=first["nextAfterSequence"], limit=1)
+    assert len(second["events"]) == 1
+    assert second["events"][0]["changeSequence"] > first["nextAfterSequence"]
+    assert second["hasMore"] is False
+    assert second["nextAfterSequence"] == second["snapshotHighSequence"]
+
+
+def test_r2_topic_cursor_relation_readback_reasons_and_reentry() -> None:
+    assert DSN is not None
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    attention = AttentionStore(DSN)
+    actor_a, _ = refs("r2-reentry-a")
+    actor_b, _ = refs("r2-reentry-b")
+    declare_actor(work, actor_a)
+    declare_actor(work, actor_b)
+    space_ref = f"space:r2-reentry:{uuid4().hex}"
+    topic_ref = f"topic:r2-reentry:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="reentry", actor_ref=actor_a),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="reentry", actor_ref=actor_a),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    attention.follow(
+        actor_ref=actor_a,
+        target_kind="topic",
+        target_ref=topic_ref,
+        client_request_id=f"follow:{actor_a}:{topic_ref}",
+    )
+    parent_ref = f"message:{uuid4().hex}"
+    parent = social.post_message(
+        MessageInput(
+            message_ref=parent_ref,
+            client_request_id=f"post:{parent_ref}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor_a,
+            body="parent",
+            recorded_at_ms=1,
+        )
+    )
+    cursor0 = social.get_topic_cursor(actor_ref=actor_a, topic_ref=topic_ref)
+    assert cursor0["cursor"] == 0
+    ack_parent = social.ack_topic_cursor(
+        actor_ref=actor_a,
+        topic_ref=topic_ref,
+        cursor=parent["sequence"],
+        client_request_id=f"topic-ack:{actor_a}:{parent['sequence']}",
+    )
+    assert ack_parent["cursor"] == parent["sequence"]
+    baseline = attention.delta(actor_a, after_sequence=0, limit=500)["snapshotHighSequence"]
+
+    reply_ref = f"message:{uuid4().hex}"
+    reply = social.post_message(
+        MessageInput(
+            message_ref=reply_ref,
+            client_request_id=f"post:{reply_ref}",
+            space_ref=space_ref,
+            topic_ref=topic_ref,
+            author_actor_ref=actor_b,
+            message_kind=MessageKind.FINDING,
+            body="reply with mention",
+            recorded_at_ms=2,
+        )
+    )
+    social.add_message_relation(
+        MessageRelationInput(
+            source_message_ref=reply_ref,
+            relation=MessageRelationKind.REPLY_TO,
+            target_ref=parent_ref,
+            actor_ref=actor_b,
+        ),
+        client_request_id=f"reply:{reply_ref}",
+    )
+    social.add_message_relation(
+        MessageRelationInput(
+            source_message_ref=reply_ref,
+            relation=MessageRelationKind.MENTIONS,
+            target_ref=actor_a,
+            actor_ref=actor_b,
+        ),
+        client_request_id=f"mention:{reply_ref}",
+    )
+
+    outgoing = social.list_message_relations(reply_ref, direction="outgoing")
+    assert {row["relation"] for row in outgoing["relations"]} == {"reply_to", "mentions"}
+    incoming = social.list_message_relations(parent_ref, direction="incoming")
+    assert any(
+        row["sourceMessageRef"] == reply_ref and row["relation"] == "reply_to"
+        for row in incoming["relations"]
+    )
+
+    delta = attention.delta(actor_a, after_sequence=baseline, limit=100)
+    message_events = [row for row in delta["events"] if row["eventKind"] == "message"]
+    assert message_events
+    reasons = set(message_events[0]["reasons"])
+    assert {"followed_topic", "mentioned", "replied_to_me"} <= reasons
+    assert message_events[0]["navigationKind"] == "topic"
+    assert message_events[0]["navigationRef"] == topic_ref
+
+    reentry = attention.reentry(actor_a, after_sequence=baseline, limit=100)
+    item = next(row for row in reentry["items"] if row["navigationRef"] == topic_ref)
+    assert reentry["rankingApplied"] is False
+    assert item["resumeAfterSequence"] == parent["sequence"]
+    assert {"followed_topic", "mentioned", "replied_to_me"} <= set(item["reasons"])
+
+    resumed = social.resume_topic(topic_ref, after_sequence=item["resumeAfterSequence"])
+    assert [row["messageRef"] for row in resumed["messages"]] == [reply_ref]
+    social.ack_topic_cursor(
+        actor_ref=actor_a,
+        topic_ref=topic_ref,
+        cursor=reply["sequence"],
+        client_request_id=f"topic-ack:{actor_a}:{reply['sequence']}",
+    )
+    assert (
+        SocialStore(DSN).get_topic_cursor(actor_ref=actor_a, topic_ref=topic_ref)["cursor"]
+        == reply["sequence"]
+    )
+    with pytest.raises(ConflictError, match="backwards"):
+        social.ack_topic_cursor(
+            actor_ref=actor_a,
+            topic_ref=topic_ref,
+            cursor=parent["sequence"],
+            client_request_id=f"topic-back:{uuid4().hex}",
+        )
+    with pytest.raises(ConflictError, match="beyond"):
+        social.ack_topic_cursor(
+            actor_ref=actor_a,
+            topic_ref=topic_ref,
+            cursor=reply["sequence"] + 1,
+            client_request_id=f"topic-beyond:{uuid4().hex}",
+        )
+
+
+def test_r2_message_page_respects_canonical_byte_budget() -> None:
+    assert DSN is not None
+    from ordivon_host_v2.canonical import canonical_bytes
+
+    work = WorkStore(DSN)
+    social = SocialStore(DSN)
+    actor, _ = refs("r2-bytes")
+    declare_actor(work, actor)
+    space_ref = f"space:r2-bytes:{uuid4().hex}"
+    topic_ref = f"topic:r2-bytes:{uuid4().hex}"
+    social.create_space(
+        SpaceInput(space_ref=space_ref, purpose="bytes", actor_ref=actor),
+        client_request_id=f"space:{space_ref}",
+    )
+    social.create_topic(
+        TopicInput(topic_ref=topic_ref, space_ref=space_ref, title="bytes", actor_ref=actor),
+        client_request_id=f"topic:{topic_ref}",
+    )
+    for index in range(2):
+        message_ref = f"message:{uuid4().hex}"
+        social.post_message(
+            MessageInput(
+                message_ref=message_ref,
+                client_request_id=f"post:{message_ref}",
+                space_ref=space_ref,
+                topic_ref=topic_ref,
+                author_actor_ref=actor,
+                body=("x" * 65_500) + str(index),
+                recorded_at_ms=index + 1,
+            )
+        )
+    page = social.resume_topic(topic_ref, limit=2, max_bytes=131_072)
+    assert len(page["messages"]) == 1
+    assert page["hasMore"] is True
+    assert len(canonical_bytes(page)) <= 131_072
+
+
+def test_r2_schema_indexes_and_cursor_table_exist() -> None:
+    assert DSN is not None
+    import psycopg
+
+    expected_indexes = {
+        "work_snapshot_target_change_idx",
+        "work_relation_source_change_idx",
+        "work_relation_target_change_idx",
+        "participation_actor_change_idx",
+        "topic_space_change_idx",
+        "message_topic_change_idx",
+        "message_space_change_idx",
+        "message_author_ref_idx",
+        "message_relation_target_change_idx",
+    }
+    with psycopg.connect(DSN) as conn:
+        indexes = {
+            row[0]
+            for row in conn.execute(
+                "SELECT indexname FROM pg_indexes WHERE schemaname=current_schema()"
+            ).fetchall()
+        }
+        assert expected_indexes <= indexes
+        assert conn.execute(
+            "SELECT to_regclass('topic_consumption_cursors') IS NOT NULL"
+        ).fetchone()[0]
+        assert (
+            conn.execute("SELECT schema_version FROM host_v2_schema WHERE singleton").fetchone()[0]
+            == 10
+        )

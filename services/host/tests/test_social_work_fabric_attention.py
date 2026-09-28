@@ -68,4 +68,5 @@ def test_attention_change_clock_is_transactional_not_postgres_sequence() -> None
 
 def test_subscription_horizon_does_not_replay_pre_follow_history() -> None:
     sql = ATTENTION.read_text().split("    def _delta_sql", 1)[1]
-    assert sql.count("change_sequence > s.change_sequence") >= 6
+    compact = "".join(sql.split())
+    assert compact.count("change_sequence>s.change_sequence") >= 6

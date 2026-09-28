@@ -27,7 +27,7 @@ def test_active_service_has_no_legacy_storage_references() -> None:
     text = (SRC / "service.py").read_text()
     for fragment in ("board_messages", "task_events", "FROM tasks", "FROM checkpoints"):
         assert fragment not in text
-    assert "REQUIRED_SCHEMA_VERSION = 9" in text
+    assert "REQUIRED_SCHEMA_VERSION = 10" in text
 
 
 def test_historical_cutover_reader_is_not_active_host_authority() -> None:
