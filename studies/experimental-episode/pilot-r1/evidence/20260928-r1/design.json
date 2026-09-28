@@ -1,0 +1,121 @@
+{
+  "contractDigest": "sha256:998a9e233db6a7860334280fa8fa362b64d494533496b558d4de4ce2725a8dc7",
+  "dataClassPolicy": [
+    "EXPERIENCE",
+    "DERIVED"
+  ],
+  "environmentBinding": {
+    "digest": "sha256:79c5e98624c91585ae2ce659de916a2cfaa95994f4c8f758ec21022076d5bf5b",
+    "objectId": "5b8456dd25290b0557572cf774442597f4c59748",
+    "objectKind": "revision",
+    "ownerId": "git"
+  },
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "factors": [
+    {
+      "factorId": "factor:model",
+      "factorRole": "treatment",
+      "value": "assigned-by-model-intervention"
+    },
+    {
+      "factorId": "factor:harness-codec",
+      "factorRole": "treatment",
+      "value": "assigned-by-codec-intervention"
+    },
+    {
+      "factorId": "factor:task",
+      "factorRole": "blocking",
+      "value": "three-frozen-deterministic-task-families"
+    },
+    {
+      "factorId": "factor:run-order",
+      "factorRole": "nuisance",
+      "value": "seeded-shuffle:20260928"
+    }
+  ],
+  "kind": "ordivon.experimental-design-contract",
+  "metricSpecs": [
+    {
+      "metricId": "metric:hidden-pass",
+      "specDigest": "sha256:62a91de058ab03aff472bd5711033e17261b705866112e3906923e2becd39dab",
+      "specRef": "metrics/hidden-pass.json"
+    },
+    {
+      "metricId": "metric:candidate-completed",
+      "specDigest": "sha256:0489d02725069ce0ed6af2634ad0d3f287e78257d15d1b204e475f3dcdb2cc4f",
+      "specRef": "metrics/candidate-completed.json"
+    },
+    {
+      "metricId": "metric:total-tokens",
+      "specDigest": "sha256:4f84a0b5aa9cbba2897ff606d7831105c9993ffc2a2836c76eb8f006813b8ff3",
+      "specRef": "metrics/total-tokens.json"
+    },
+    {
+      "metricId": "metric:tool-calls",
+      "specDigest": "sha256:42a1bc07a999e38a6c490fe6c288e12adbdb8ae3ce528442f0d676264e754bfd",
+      "specRef": "metrics/tool-calls.json"
+    },
+    {
+      "metricId": "metric:elapsed-ms",
+      "specDigest": "sha256:ce3c2f51f738314d20c98bdfa00f51b151056dc55e74d0673c5b1607a957ab74",
+      "specRef": "metrics/elapsed-ms.json"
+    },
+    {
+      "metricId": "metric:rejected-observations",
+      "specDigest": "sha256:2930c9f1906422503d33b9e4b3fc1792c5a0f388fdd330f17b4c9f623dd06bb3",
+      "specRef": "metrics/rejected-observations.json"
+    }
+  ],
+  "nonClaims": [
+    "Experimental assignment seed does not control DeepSeek generation randomness.",
+    "The in-memory Runtime-shaped edit fixture is not durable Runtime owner truth.",
+    "This pilot does not establish general model or Harness superiority."
+  ],
+  "protocolId": "protocol:experimental-fabric-r1",
+  "randomness": {
+    "assignmentSeedPolicy": "fixed",
+    "executionRandomnessPolicy": "provider-owned",
+    "seedManifestDigest": "sha256:6edba31b2cd58cb8a12b1a41301c1fa2235daecafb0a87ef9b1a58cadbcd78fa",
+    "seedPolicy": "provider-owned"
+  },
+  "schemaVersion": 1,
+  "seats": [
+    {
+      "actionContract": {
+        "digest": "sha256:51732c74d57538ea4c14af88b74239d086b85f746fb096c0ac68e76c204b1e23",
+        "objectId": "services/harness/src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
+        "objectKind": "file",
+        "ownerId": "harness"
+      },
+      "adapterBinding": {
+        "digest": "sha256:2d91df7f31ee631a4701b90166ff92f03ca7b43dc408bb200bcf5c27136c5431",
+        "objectId": "deepseek.chat-completions.non-thinking.v1",
+        "objectKind": "provider-adapter",
+        "ownerId": "harness"
+      },
+      "authorityContract": {
+        "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+        "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+        "objectKind": "file",
+        "ownerId": "harness"
+      },
+      "observationContract": {
+        "digest": "sha256:5bf67760113a601fff613455afbc6b8b481470e9ec6cf100dc7f5058bf2061c9",
+        "objectId": "services/harness/src/ordivon_harness/agent_tool_observation.py",
+        "objectKind": "file",
+        "ownerId": "harness"
+      },
+      "occupantKind": "agent",
+      "occupantRef": "provider:deepseek:model-assigned-by-intervention",
+      "parityGroup": "parity:adaptive-edit-agent",
+      "resourceContract": {
+        "digest": "sha256:683df9f8e942466695cf8cebf951db300f24833e496c78c5b71d0535ff5d03b8",
+        "objectId": "budget:experimental-fabric-pilot-r1",
+        "objectKind": "run-budget",
+        "ownerId": "study"
+      },
+      "role": "repository-edit-agent",
+      "seatId": "seat:adaptive-edit-agent"
+    }
+  ]
+}

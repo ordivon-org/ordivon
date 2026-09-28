@@ -1,0 +1,680 @@
+{
+  "analysisPlan": {
+    "continuous": [
+      "metric:total-tokens",
+      "metric:tool-calls",
+      "metric:elapsed-ms"
+    ],
+    "interaction": "difference-in-differences of cell means/rates",
+    "primary": "descriptive balanced 2x2 Model×Harness cell rates, blocked by task family",
+    "reason": "three task blocks and one live run per cell are pilot-scale",
+    "significanceClaim": false
+  },
+  "codecIntervention": {
+    "assignmentEvidenceRef": {
+      "digest": "sha256:6edba31b2cd58cb8a12b1a41301c1fa2235daecafb0a87ef9b1a58cadbcd78fa",
+      "objectId": "allocation:experimental-fabric-pilot-r1",
+      "objectKind": "allocation-manifest",
+      "ownerId": "study"
+    },
+    "assignmentPolicy": "blocked",
+    "assignments": [
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "exact-replacement-v1",
+        "unitRef": "trial:001"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "anchored-line-v1",
+        "unitRef": "trial:002"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "anchored-line-v1",
+        "unitRef": "trial:003"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "anchored-line-v1",
+        "unitRef": "trial:004"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "exact-replacement-v1",
+        "unitRef": "trial:005"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "anchored-line-v1",
+        "unitRef": "trial:006"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "anchored-line-v1",
+        "unitRef": "trial:007"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "anchored-line-v1",
+        "unitRef": "trial:008"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "exact-replacement-v1",
+        "unitRef": "trial:009"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "exact-replacement-v1",
+        "unitRef": "trial:010"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "exact-replacement-v1",
+        "unitRef": "trial:011"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "exact-replacement-v1",
+        "unitRef": "trial:012"
+      }
+    ],
+    "contractDigest": "sha256:02863b2f5737f633f5c3e6206ac545d5d11d3351fa2f993047352105a82ba9fd",
+    "contractId": "intervention:harness-codec-r1",
+    "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+    "frozenBaseDigest": "sha256:998a9e233db6a7860334280fa8fa362b64d494533496b558d4de4ce2725a8dc7",
+    "kind": "ordivon.experimental-intervention-contract",
+    "nonClaims": [
+      "Codec assignment does not expand Tool or Runtime authority."
+    ],
+    "schemaVersion": 1,
+    "treatmentFactor": {
+      "factorId": "factor:harness-codec",
+      "levels": [
+        {
+          "levelId": "exact-replacement-v1",
+          "value": "exact-replacement-v1"
+        },
+        {
+          "levelId": "anchored-line-v1",
+          "value": "anchored-line-v1"
+        }
+      ]
+    },
+    "unitOfAssignment": "run"
+  },
+  "design": {
+    "contractDigest": "sha256:998a9e233db6a7860334280fa8fa362b64d494533496b558d4de4ce2725a8dc7",
+    "dataClassPolicy": [
+      "EXPERIENCE",
+      "DERIVED"
+    ],
+    "environmentBinding": {
+      "digest": "sha256:79c5e98624c91585ae2ce659de916a2cfaa95994f4c8f758ec21022076d5bf5b",
+      "objectId": "5b8456dd25290b0557572cf774442597f4c59748",
+      "objectKind": "revision",
+      "ownerId": "git"
+    },
+    "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+    "factors": [
+      {
+        "factorId": "factor:model",
+        "factorRole": "treatment",
+        "value": "assigned-by-model-intervention"
+      },
+      {
+        "factorId": "factor:harness-codec",
+        "factorRole": "treatment",
+        "value": "assigned-by-codec-intervention"
+      },
+      {
+        "factorId": "factor:task",
+        "factorRole": "blocking",
+        "value": "three-frozen-deterministic-task-families"
+      },
+      {
+        "factorId": "factor:run-order",
+        "factorRole": "nuisance",
+        "value": "seeded-shuffle:20260928"
+      }
+    ],
+    "kind": "ordivon.experimental-design-contract",
+    "metricSpecs": [
+      {
+        "metricId": "metric:hidden-pass",
+        "specDigest": "sha256:62a91de058ab03aff472bd5711033e17261b705866112e3906923e2becd39dab",
+        "specRef": "metrics/hidden-pass.json"
+      },
+      {
+        "metricId": "metric:candidate-completed",
+        "specDigest": "sha256:0489d02725069ce0ed6af2634ad0d3f287e78257d15d1b204e475f3dcdb2cc4f",
+        "specRef": "metrics/candidate-completed.json"
+      },
+      {
+        "metricId": "metric:total-tokens",
+        "specDigest": "sha256:4f84a0b5aa9cbba2897ff606d7831105c9993ffc2a2836c76eb8f006813b8ff3",
+        "specRef": "metrics/total-tokens.json"
+      },
+      {
+        "metricId": "metric:tool-calls",
+        "specDigest": "sha256:42a1bc07a999e38a6c490fe6c288e12adbdb8ae3ce528442f0d676264e754bfd",
+        "specRef": "metrics/tool-calls.json"
+      },
+      {
+        "metricId": "metric:elapsed-ms",
+        "specDigest": "sha256:ce3c2f51f738314d20c98bdfa00f51b151056dc55e74d0673c5b1607a957ab74",
+        "specRef": "metrics/elapsed-ms.json"
+      },
+      {
+        "metricId": "metric:rejected-observations",
+        "specDigest": "sha256:2930c9f1906422503d33b9e4b3fc1792c5a0f388fdd330f17b4c9f623dd06bb3",
+        "specRef": "metrics/rejected-observations.json"
+      }
+    ],
+    "nonClaims": [
+      "Experimental assignment seed does not control DeepSeek generation randomness.",
+      "The in-memory Runtime-shaped edit fixture is not durable Runtime owner truth.",
+      "This pilot does not establish general model or Harness superiority."
+    ],
+    "protocolId": "protocol:experimental-fabric-r1",
+    "randomness": {
+      "assignmentSeedPolicy": "fixed",
+      "executionRandomnessPolicy": "provider-owned",
+      "seedManifestDigest": "sha256:6edba31b2cd58cb8a12b1a41301c1fa2235daecafb0a87ef9b1a58cadbcd78fa",
+      "seedPolicy": "provider-owned"
+    },
+    "schemaVersion": 1,
+    "seats": [
+      {
+        "actionContract": {
+          "digest": "sha256:51732c74d57538ea4c14af88b74239d086b85f746fb096c0ac68e76c204b1e23",
+          "objectId": "services/harness/src/ordivon_harness/ordivon/adaptive_edit_bridge.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        },
+        "adapterBinding": {
+          "digest": "sha256:2d91df7f31ee631a4701b90166ff92f03ca7b43dc408bb200bcf5c27136c5431",
+          "objectId": "deepseek.chat-completions.non-thinking.v1",
+          "objectKind": "provider-adapter",
+          "ownerId": "harness"
+        },
+        "authorityContract": {
+          "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+          "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        },
+        "observationContract": {
+          "digest": "sha256:5bf67760113a601fff613455afbc6b8b481470e9ec6cf100dc7f5058bf2061c9",
+          "objectId": "services/harness/src/ordivon_harness/agent_tool_observation.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        },
+        "occupantKind": "agent",
+        "occupantRef": "provider:deepseek:model-assigned-by-intervention",
+        "parityGroup": "parity:adaptive-edit-agent",
+        "resourceContract": {
+          "digest": "sha256:683df9f8e942466695cf8cebf951db300f24833e496c78c5b71d0535ff5d03b8",
+          "objectId": "budget:experimental-fabric-pilot-r1",
+          "objectKind": "run-budget",
+          "ownerId": "study"
+        },
+        "role": "repository-edit-agent",
+        "seatId": "seat:adaptive-edit-agent"
+      }
+    ]
+  },
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "gitRevision": "5b8456dd25290b0557572cf774442597f4c59748",
+  "kind": "ordivon.experimental-factorial-preregistration",
+  "metricSpecs": [
+    {
+      "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+      "computationMode": "deterministic",
+      "construct": "Whether the task-specific hidden verifier accepts the final edited source.",
+      "evidenceMinimum": "deterministic-observation",
+      "kind": "ordivon.experimental-metric-spec",
+      "knownLimitations": [
+        "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority."
+      ],
+      "metricClass": "outcome",
+      "metricId": "metric:hidden-pass",
+      "missingDataPolicy": "exclude-with-reason",
+      "nonClaims": [
+        "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+        "This small pilot does not license a general model ranking."
+      ],
+      "ownerInputs": [
+        {
+          "digest": "sha256:35968c8d52b351ba2919f5618f2b12ed2bca22342ac8d79f5276041408501f57",
+          "objectId": "services/harness/evals/harness-repository-repair-001/task.json",
+          "objectKind": "file",
+          "ownerId": "git"
+        },
+        {
+          "digest": "sha256:65599a7f620009d016844e23b8a7b3fadb1b6a66f7c4cc6250409b21373b8007",
+          "objectId": "services/harness/evals/harness-repository-repair-001/verifier/test_outcome.py",
+          "objectKind": "file",
+          "ownerId": "git"
+        },
+        {
+          "digest": "sha256:254c5209069f253e6015ab377a732215d845abd061e9a8566ad9f06436b7573f",
+          "objectId": "services/harness/evals/harness-edit-addressing-002/task.json",
+          "objectKind": "file",
+          "ownerId": "git"
+        },
+        {
+          "digest": "sha256:231bb0106851b4b7bc2e846b47bd8090c16b2a9113de79a6a495949288e46e62",
+          "objectId": "services/harness/evals/harness-edit-addressing-002/verifier/test_outcome.py",
+          "objectKind": "file",
+          "ownerId": "git"
+        },
+        {
+          "digest": "sha256:03c7ac9b497e1311eb4f1b403ede752e2d1962ef87b45b4a07c67bfddb422c19",
+          "objectId": "services/harness/evals/harness-edit-multiregion-003/task.json",
+          "objectKind": "file",
+          "ownerId": "git"
+        },
+        {
+          "digest": "sha256:cac878856baefb498b004d8179faf9912388e9819f7a3fd2df678f8c5bc95510",
+          "objectId": "services/harness/evals/harness-edit-multiregion-003/verifier/test_outcome.py",
+          "objectKind": "file",
+          "ownerId": "git"
+        }
+      ],
+      "replicationUnit": "live-harness-run",
+      "schemaVersion": 1,
+      "specDigest": "sha256:62a91de058ab03aff472bd5711033e17261b705866112e3906923e2becd39dab",
+      "unitOfAnalysis": "live-harness-run",
+      "valueShape": "binary"
+    },
+    {
+      "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+      "computationMode": "deterministic",
+      "construct": "Whether the Harness run reached candidate_completed under its completion contract.",
+      "evidenceMinimum": "deterministic-observation",
+      "kind": "ordivon.experimental-metric-spec",
+      "knownLimitations": [
+        "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority."
+      ],
+      "metricClass": "outcome",
+      "metricId": "metric:candidate-completed",
+      "missingDataPolicy": "exclude-with-reason",
+      "nonClaims": [
+        "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+        "This small pilot does not license a general model ranking."
+      ],
+      "ownerInputs": [
+        {
+          "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+          "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        }
+      ],
+      "replicationUnit": "live-harness-run",
+      "schemaVersion": 1,
+      "specDigest": "sha256:0489d02725069ce0ed6af2634ad0d3f287e78257d15d1b204e475f3dcdb2cc4f",
+      "unitOfAnalysis": "live-harness-run",
+      "valueShape": "binary"
+    },
+    {
+      "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+      "computationMode": "deterministic",
+      "construct": "Total Provider token usage reported by the Harness run.",
+      "evidenceMinimum": "deterministic-observation",
+      "kind": "ordivon.experimental-metric-spec",
+      "knownLimitations": [
+        "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority.",
+        "Reported unit: tokens."
+      ],
+      "metricClass": "process",
+      "metricId": "metric:total-tokens",
+      "missingDataPolicy": "exclude-with-reason",
+      "nonClaims": [
+        "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+        "This small pilot does not license a general model ranking."
+      ],
+      "ownerInputs": [
+        {
+          "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+          "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        },
+        {
+          "digest": "sha256:2d91df7f31ee631a4701b90166ff92f03ca7b43dc408bb200bcf5c27136c5431",
+          "objectId": "deepseek.chat-completions.non-thinking.v1",
+          "objectKind": "provider-adapter",
+          "ownerId": "harness"
+        }
+      ],
+      "replicationUnit": "live-harness-run",
+      "schemaVersion": 1,
+      "specDigest": "sha256:4f84a0b5aa9cbba2897ff606d7831105c9993ffc2a2836c76eb8f006813b8ff3",
+      "unitOfAnalysis": "live-harness-run",
+      "valueShape": "scalar"
+    },
+    {
+      "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+      "computationMode": "deterministic",
+      "construct": "Number of Harness Tool calls used to complete or stop the run.",
+      "evidenceMinimum": "deterministic-observation",
+      "kind": "ordivon.experimental-metric-spec",
+      "knownLimitations": [
+        "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority.",
+        "Reported unit: calls."
+      ],
+      "metricClass": "behavior",
+      "metricId": "metric:tool-calls",
+      "missingDataPolicy": "exclude-with-reason",
+      "nonClaims": [
+        "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+        "This small pilot does not license a general model ranking."
+      ],
+      "ownerInputs": [
+        {
+          "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+          "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        }
+      ],
+      "replicationUnit": "live-harness-run",
+      "schemaVersion": 1,
+      "specDigest": "sha256:42a1bc07a999e38a6c490fe6c288e12adbdb8ae3ce528442f0d676264e754bfd",
+      "unitOfAnalysis": "live-harness-run",
+      "valueShape": "scalar"
+    },
+    {
+      "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+      "computationMode": "deterministic",
+      "construct": "Wall-clock elapsed time observed by the live runner.",
+      "evidenceMinimum": "deterministic-observation",
+      "kind": "ordivon.experimental-metric-spec",
+      "knownLimitations": [
+        "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority.",
+        "Reported unit: milliseconds."
+      ],
+      "metricClass": "process",
+      "metricId": "metric:elapsed-ms",
+      "missingDataPolicy": "exclude-with-reason",
+      "nonClaims": [
+        "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+        "This small pilot does not license a general model ranking."
+      ],
+      "ownerInputs": [
+        {
+          "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+          "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        }
+      ],
+      "replicationUnit": "live-harness-run",
+      "schemaVersion": 1,
+      "specDigest": "sha256:ce3c2f51f738314d20c98bdfa00f51b151056dc55e74d0673c5b1607a957ab74",
+      "unitOfAnalysis": "live-harness-run",
+      "valueShape": "scalar"
+    },
+    {
+      "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+      "computationMode": "deterministic",
+      "construct": "Number of Tool observations rejected by the Harness during the run.",
+      "evidenceMinimum": "deterministic-observation",
+      "kind": "ordivon.experimental-metric-spec",
+      "knownLimitations": [
+        "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority.",
+        "Reported unit: observations."
+      ],
+      "metricClass": "robustness",
+      "metricId": "metric:rejected-observations",
+      "missingDataPolicy": "exclude-with-reason",
+      "nonClaims": [
+        "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+        "This small pilot does not license a general model ranking."
+      ],
+      "ownerInputs": [
+        {
+          "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+          "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+          "objectKind": "file",
+          "ownerId": "harness"
+        }
+      ],
+      "replicationUnit": "live-harness-run",
+      "schemaVersion": 1,
+      "specDigest": "sha256:2930c9f1906422503d33b9e4b3fc1792c5a0f388fdd330f17b4c9f623dd06bb3",
+      "unitOfAnalysis": "live-harness-run",
+      "valueShape": "scalar"
+    }
+  ],
+  "modelIntervention": {
+    "assignmentEvidenceRef": {
+      "digest": "sha256:6edba31b2cd58cb8a12b1a41301c1fa2235daecafb0a87ef9b1a58cadbcd78fa",
+      "objectId": "allocation:experimental-fabric-pilot-r1",
+      "objectKind": "allocation-manifest",
+      "ownerId": "study"
+    },
+    "assignmentPolicy": "blocked",
+    "assignments": [
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "deepseek-v4-flash",
+        "unitRef": "trial:001"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "deepseek-flash",
+        "unitRef": "trial:002"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "deepseek-flash",
+        "unitRef": "trial:003"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "deepseek-flash",
+        "unitRef": "trial:004"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "deepseek-v4-flash",
+        "unitRef": "trial:005"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "deepseek-v4-flash",
+        "unitRef": "trial:006"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "deepseek-v4-flash",
+        "unitRef": "trial:007"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "deepseek-v4-flash",
+        "unitRef": "trial:008"
+      },
+      {
+        "blockRef": "HARNESS-REPO-REPAIR-001",
+        "levelId": "deepseek-flash",
+        "unitRef": "trial:009"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+        "levelId": "deepseek-flash",
+        "unitRef": "trial:010"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "deepseek-flash",
+        "unitRef": "trial:011"
+      },
+      {
+        "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+        "levelId": "deepseek-v4-flash",
+        "unitRef": "trial:012"
+      }
+    ],
+    "contractDigest": "sha256:75e4546fd8fd172b16c55d55318a15eb625a3a2b531dcfad192e0582cff06d53",
+    "contractId": "intervention:model-selection-r1",
+    "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+    "frozenBaseDigest": "sha256:998a9e233db6a7860334280fa8fa362b64d494533496b558d4de4ce2725a8dc7",
+    "kind": "ordivon.experimental-intervention-contract",
+    "nonClaims": [
+      "Model assignment does not grant Provider effect authority."
+    ],
+    "schemaVersion": 1,
+    "treatmentFactor": {
+      "factorId": "factor:model",
+      "levels": [
+        {
+          "levelId": "deepseek-flash",
+          "value": "deepseek-flash"
+        },
+        {
+          "levelId": "deepseek-v4-flash",
+          "value": "deepseek-v4-flash"
+        }
+      ]
+    },
+    "unitOfAssignment": "run"
+  },
+  "nonClaims": [
+    "Provider-owned generation randomness is not controlled by the allocation seed.",
+    "The pilot is not a model leaderboard or production default-selection authority."
+  ],
+  "pilotRunnerBinding": {
+    "digest": "sha256:3bf01daca9d99765c994449b530e17036d8627538d30f265b898641f033fe99c",
+    "objectId": "services/harness/../../studies/experimental-episode/pilot-r1/run_factorial_pilot_r1.py",
+    "objectKind": "file",
+    "ownerId": "study"
+  },
+  "preregistrationDigest": "sha256:701cf9fd965cf6faaf7d970407a6bcfe7da0e898a924ceb2c3a7b9338a922770",
+  "primaryMetricId": "metric:hidden-pass",
+  "schedule": {
+    "blockingFactor": "taskId",
+    "design": "balanced-2x2-randomized-complete-block-pilot",
+    "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+    "kind": "ordivon.experimental-factorial-allocation",
+    "schemaVersion": 1,
+    "seed": 20260928,
+    "trials": [
+      {
+        "codec": "exact-replacement-v1",
+        "model": "deepseek-v4-flash",
+        "ordinal": 1,
+        "taskId": "HARNESS-EDIT-ADDRESSING-002",
+        "trialId": "trial:001"
+      },
+      {
+        "codec": "anchored-line-v1",
+        "model": "deepseek-flash",
+        "ordinal": 2,
+        "taskId": "HARNESS-EDIT-ADDRESSING-002",
+        "trialId": "trial:002"
+      },
+      {
+        "codec": "anchored-line-v1",
+        "model": "deepseek-flash",
+        "ordinal": 3,
+        "taskId": "HARNESS-EDIT-MULTIREGION-003",
+        "trialId": "trial:003"
+      },
+      {
+        "codec": "anchored-line-v1",
+        "model": "deepseek-flash",
+        "ordinal": 4,
+        "taskId": "HARNESS-REPO-REPAIR-001",
+        "trialId": "trial:004"
+      },
+      {
+        "codec": "exact-replacement-v1",
+        "model": "deepseek-v4-flash",
+        "ordinal": 5,
+        "taskId": "HARNESS-REPO-REPAIR-001",
+        "trialId": "trial:005"
+      },
+      {
+        "codec": "anchored-line-v1",
+        "model": "deepseek-v4-flash",
+        "ordinal": 6,
+        "taskId": "HARNESS-EDIT-ADDRESSING-002",
+        "trialId": "trial:006"
+      },
+      {
+        "codec": "anchored-line-v1",
+        "model": "deepseek-v4-flash",
+        "ordinal": 7,
+        "taskId": "HARNESS-EDIT-MULTIREGION-003",
+        "trialId": "trial:007"
+      },
+      {
+        "codec": "anchored-line-v1",
+        "model": "deepseek-v4-flash",
+        "ordinal": 8,
+        "taskId": "HARNESS-REPO-REPAIR-001",
+        "trialId": "trial:008"
+      },
+      {
+        "codec": "exact-replacement-v1",
+        "model": "deepseek-flash",
+        "ordinal": 9,
+        "taskId": "HARNESS-REPO-REPAIR-001",
+        "trialId": "trial:009"
+      },
+      {
+        "codec": "exact-replacement-v1",
+        "model": "deepseek-flash",
+        "ordinal": 10,
+        "taskId": "HARNESS-EDIT-ADDRESSING-002",
+        "trialId": "trial:010"
+      },
+      {
+        "codec": "exact-replacement-v1",
+        "model": "deepseek-flash",
+        "ordinal": 11,
+        "taskId": "HARNESS-EDIT-MULTIREGION-003",
+        "trialId": "trial:011"
+      },
+      {
+        "codec": "exact-replacement-v1",
+        "model": "deepseek-v4-flash",
+        "ordinal": 12,
+        "taskId": "HARNESS-EDIT-MULTIREGION-003",
+        "trialId": "trial:012"
+      }
+    ]
+  },
+  "schemaVersion": 1,
+  "stopRules": [
+    "Run each of the 12 preregistered trials at most once.",
+    "Do not retry a completed or exception trial based on its outcome.",
+    "If the process stops after trial_started but before trial_completed, fail closed and reconcile before any replay.",
+    "Do not expand the campaign based on observed treatment performance in this pilot."
+  ],
+  "taskBindings": [
+    {
+      "fixtureDigest": "sha256:95d4907dfe35e3ce5346611cb5301bc3a1e5cad6f91069f5362d585163d5fe54",
+      "hiddenVerifierDigest": "sha256:65599a7f620009d016844e23b8a7b3fadb1b6a66f7c4cc6250409b21373b8007",
+      "taskDigest": "sha256:35968c8d52b351ba2919f5618f2b12ed2bca22342ac8d79f5276041408501f57",
+      "taskId": "HARNESS-REPO-REPAIR-001"
+    },
+    {
+      "fixtureDigest": "sha256:3128b0211734114eb5d90a664ec729218dcf14e401d7157b259d3999b314ebb5",
+      "hiddenVerifierDigest": "sha256:231bb0106851b4b7bc2e846b47bd8090c16b2a9113de79a6a495949288e46e62",
+      "taskDigest": "sha256:254c5209069f253e6015ab377a732215d845abd061e9a8566ad9f06436b7573f",
+      "taskId": "HARNESS-EDIT-ADDRESSING-002"
+    },
+    {
+      "fixtureDigest": "sha256:e74dccb94d454e154d680c75df15dfc946a7330a8ac7381276a948d84e87fed8",
+      "hiddenVerifierDigest": "sha256:cac878856baefb498b004d8179faf9912388e9819f7a3fd2df678f8c5bc95510",
+      "taskDigest": "sha256:03c7ac9b497e1311eb4f1b403ede752e2d1962ef87b45b4a07c67bfddb422c19",
+      "taskId": "HARNESS-EDIT-MULTIREGION-003"
+    }
+  ]
+}

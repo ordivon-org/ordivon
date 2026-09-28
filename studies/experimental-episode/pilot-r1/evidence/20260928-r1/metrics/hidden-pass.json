@@ -1,0 +1,60 @@
+{
+  "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+  "computationMode": "deterministic",
+  "construct": "Whether the task-specific hidden verifier accepts the final edited source.",
+  "evidenceMinimum": "deterministic-observation",
+  "kind": "ordivon.experimental-metric-spec",
+  "knownLimitations": [
+    "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority."
+  ],
+  "metricClass": "outcome",
+  "metricId": "metric:hidden-pass",
+  "missingDataPolicy": "exclude-with-reason",
+  "nonClaims": [
+    "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+    "This small pilot does not license a general model ranking."
+  ],
+  "ownerInputs": [
+    {
+      "digest": "sha256:35968c8d52b351ba2919f5618f2b12ed2bca22342ac8d79f5276041408501f57",
+      "objectId": "services/harness/evals/harness-repository-repair-001/task.json",
+      "objectKind": "file",
+      "ownerId": "git"
+    },
+    {
+      "digest": "sha256:65599a7f620009d016844e23b8a7b3fadb1b6a66f7c4cc6250409b21373b8007",
+      "objectId": "services/harness/evals/harness-repository-repair-001/verifier/test_outcome.py",
+      "objectKind": "file",
+      "ownerId": "git"
+    },
+    {
+      "digest": "sha256:254c5209069f253e6015ab377a732215d845abd061e9a8566ad9f06436b7573f",
+      "objectId": "services/harness/evals/harness-edit-addressing-002/task.json",
+      "objectKind": "file",
+      "ownerId": "git"
+    },
+    {
+      "digest": "sha256:231bb0106851b4b7bc2e846b47bd8090c16b2a9113de79a6a495949288e46e62",
+      "objectId": "services/harness/evals/harness-edit-addressing-002/verifier/test_outcome.py",
+      "objectKind": "file",
+      "ownerId": "git"
+    },
+    {
+      "digest": "sha256:03c7ac9b497e1311eb4f1b403ede752e2d1962ef87b45b4a07c67bfddb422c19",
+      "objectId": "services/harness/evals/harness-edit-multiregion-003/task.json",
+      "objectKind": "file",
+      "ownerId": "git"
+    },
+    {
+      "digest": "sha256:cac878856baefb498b004d8179faf9912388e9819f7a3fd2df678f8c5bc95510",
+      "objectId": "services/harness/evals/harness-edit-multiregion-003/verifier/test_outcome.py",
+      "objectKind": "file",
+      "ownerId": "git"
+    }
+  ],
+  "replicationUnit": "live-harness-run",
+  "schemaVersion": 1,
+  "specDigest": "sha256:62a91de058ab03aff472bd5711033e17261b705866112e3906923e2becd39dab",
+  "unitOfAnalysis": "live-harness-run",
+  "valueShape": "binary"
+}
