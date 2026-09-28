@@ -32,8 +32,8 @@ R3 adds two provider-governance findings and one concrete consequence of the alr
 
 ## RT-GOV-001 — Main rules do not enforce PR-only convergence
 
-**Class:** `CONFIRMED_NEW`  
-**Priority:** HIGH  
+**Class:** `CONFIRMED_NEW`
+**Priority:** HIGH
 **Owner:** GitHub provider governance / repository mechanics
 
 Provider-native effective rules for `refs/heads/main` contain only:
@@ -54,8 +54,8 @@ Evidence: `evidence/RT_GOV_001_MAIN_CONVERGENCE_RULES_R1.json`.
 
 ## RT-GOV-002 — Required `root-verification` check is not bound to its producer
 
-**Class:** `CONFIRMED_NEW`  
-**Priority:** HIGH  
+**Class:** `CONFIRMED_NEW`
+**Priority:** HIGH
 **Owner:** GitHub provider governance / CI trust root
 
 The main ruleset requires status context `root-verification`, but its required-check object has no `integration_id`. Current genuine `root-verification` check runs are produced by the GitHub Actions App (`app id 15368`), yet that producer identity is not enforced by the provider rule.
@@ -70,8 +70,8 @@ Evidence: `evidence/RT_GOV_002_REQUIRED_CHECK_SOURCE_R1.json`.
 
 ## RT-AUTHZ-001 — Gateway-to-Runtime composition collapses end-user identity
 
-**Class:** `KNOWN_OPEN_CONSEQUENCE`  
-**Priority:** HIGH before multi-user/public execution promotion  
+**Class:** `KNOWN_OPEN_CONSEQUENCE`
+**Priority:** HIGH before multi-user/public execution promotion
 **Owners:** Security authorization semantics + Gateway enforcement seam + Runtime object authorization
 
 AF-S2 already records that authenticated Cloudflare ingress is not capability-scoped Security authorization. R3 does not double-count that gap. It establishes a more concrete consequence.

@@ -31,8 +31,8 @@ Classification: `CONFIRMED_NEW`, `KNOWN_OPEN`, `DRIFT`, `HYPOTHESIS`, or `REJECT
 
 ## RT-SUPPLY-001 — Runtime release tags can bypass protected-main convergence and still mint release attestations
 
-**Class:** `CONFIRMED_NEW`  
-**Priority:** HIGH  
+**Class:** `CONFIRMED_NEW`
+**Priority:** HIGH
 **Owners:** GitHub repository governance + Runtime release authority
 
 `services/runtime/docs/releases.md` calls `.github/workflows/runtime-release.yml` the live monorepo Runtime release authority. It is triggered by `runtime-v*` tag pushes, runs Runtime verification, builds the canonical release set, emits an SPDX SBOM, and creates GitHub attestations.
@@ -64,8 +64,8 @@ Evidence: `evidence/RT_SUPPLY_001_SYNTHETIC_TAG_PROBE_R1.json`.
 
 ## RT-CI-001 — Runtime release workflow changes escape Runtime affected-owner verification
 
-**Class:** `CONFIRMED_NEW`  
-**Priority:** MEDIUM  
+**Class:** `CONFIRMED_NEW`
+**Priority:** MEDIUM
 **Owners:** repository mechanics + Runtime release authority
 
 On current local integration source, the exact projection:
@@ -101,8 +101,8 @@ WouldExistingRequiredStringContractPass=true
 
 ## RT-DOC-001 — Gateway README advertises retired Host northbound API
 
-**Class:** `DRIFT`  
-**Priority:** LOW  
+**Class:** `DRIFT`
+**Priority:** LOW
 **Owner:** Gateway documentation
 
 `services/gateway/README.md` still advertises `continuity.*` / `collaboration.*` compatibility vocabulary and says `host.status` is not exposed. Gateway 0.4 source and canonical architecture instead expose schema-9 Social Work tools (`actor.*`, `work.*`, `space.*`, `topic.*`, `message.*`, `subscription.*`, `attention.*`) plus `host.status`; the compatibility facades are retired.

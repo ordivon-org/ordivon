@@ -1151,4 +1151,3 @@ def provider_boundary_policy():
         post = line("require_current_provider_policy_source_current")
         self.assertLess(pre, operator)
         self.assertLess(switch, post)
-
