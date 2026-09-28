@@ -11,8 +11,11 @@ use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::AttemptSupervisorOwner;
 use super::*;
 use crate::universal::{
-    CapturedOutput, RunnerResult, RunnerTerminalStatus, UniversalExecutorConfig,
+    CapturedOutput, CgroupCpuUsage, CgroupIoUsage, CgroupMemoryEvents, CgroupMemoryUsage,
+    RunnerResourceReceipt, RunnerResult, RunnerTerminalStatus, UniversalExecutorConfig,
     WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode,
+    RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
+    RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
@@ -239,6 +242,48 @@ fn inspection_config(sandbox: &Sandbox) -> RuntimeInspectionConfig {
         db_path: sandbox.registry.config().db_path.clone(),
         busy_timeout_ms: 5_000,
     }
+}
+
+fn write_test_resource_receipt(attempt: &AttemptRecord, attempt_id: &str) {
+    let receipt = RunnerResourceReceipt {
+        schema_version: RESOURCE_RECEIPT_SCHEMA_VERSION,
+        task_id: attempt.attempt_id.clone(),
+        job_id: attempt.job_id.clone(),
+        attempt_id: attempt_id.to_string(),
+        launch_token_digest: attempt.launch_token_digest.clone(),
+        observed_unix_ms: 41,
+        scope: RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP.to_string(),
+        provider: RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2.to_string(),
+        cpu: CgroupCpuUsage {
+            usage_usec: 12_345,
+            user_usec: 8_000,
+            system_usec: 4_345,
+        },
+        memory: CgroupMemoryUsage {
+            peak_bytes: 104_857_600,
+            swap_peak_bytes: Some(16_777_216),
+            events: CgroupMemoryEvents {
+                low: 0,
+                high: 1,
+                max: 2,
+                oom: 0,
+                oom_kill: 0,
+            },
+        },
+        io: CgroupIoUsage {
+            read_bytes: 110,
+            write_bytes: 220,
+            read_ops: 4,
+            write_ops: 6,
+            discard_bytes: 0,
+            discard_ops: 0,
+        },
+    };
+    fs::write(
+        Path::new(&attempt.bundle_path).join(RESOURCE_RECEIPT_FILE),
+        serde_json::to_vec(&receipt).unwrap(),
+    )
+    .unwrap();
 }
 
 fn write_completed_runner_result(attempt: &AttemptRecord, finished_at_ms: u128) {
@@ -8401,4 +8446,157 @@ fn admission_hot_path_delegates_global_orphan_recovery_to_bounded_maintenance() 
             .count(),
         3
     );
+}
+
+
+#[test]
+fn valid_resource_receipt_registers_as_attempt_artifact() {
+    let sandbox = Sandbox::new("resource-receipt-artifact", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-artifact", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-artifact-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+    write_test_resource_receipt(&starting, &starting.attempt_id);
+
+    let terminal = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap();
+    let receipt = terminal
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "resource_receipt")
+        .expect("valid resource receipt must be registered as a terminal Artifact");
+    assert_eq!(receipt.relative_path, RESOURCE_RECEIPT_FILE);
+    assert_eq!(receipt.media_type, "application/json");
+    assert_eq!(receipt.artifact_id, format!("{}.resource-receipt", starting.attempt_id));
+    assert!(!receipt.truncated);
+    assert!(receipt.byte_length > 0);
+
+    sandbox.registry.commit_terminal(&terminal).unwrap();
+    let registered = sandbox.registry.list_artifacts(&created.job.job_id).unwrap();
+    assert!(registered.iter().any(|artifact| artifact.kind == "resource_receipt"));
+}
+
+
+#[test]
+fn resource_receipt_identity_mismatch_fails_closed() {
+    let sandbox = Sandbox::new("resource-receipt-identity-mismatch", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-identity-mismatch", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-identity-mismatch-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+    write_test_resource_receipt(&starting, "attempt-forged");
+
+    let error = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::ResultIdentityConflict);
+    assert_eq!(error.field.as_deref(), Some("resourceReceipt"));
+}
+
+#[test]
+fn malformed_resource_receipt_fails_closed() {
+    let sandbox = Sandbox::new("resource-receipt-malformed", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-malformed", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-malformed-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+    fs::write(
+        Path::new(&starting.bundle_path).join(RESOURCE_RECEIPT_FILE),
+        b"{not-json",
+    )
+    .unwrap();
+
+    let error = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::ResultIdentityConflict);
+    assert_eq!(error.field.as_deref(), Some("resourceReceipt"));
+}
+
+#[test]
+fn historical_bundle_without_resource_receipt_remains_compatible() {
+    let sandbox = Sandbox::new("resource-receipt-absent-compatible", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-absent", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-absent-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+
+    let terminal = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap();
+    assert!(terminal.artifacts.iter().all(|artifact| artifact.kind != "resource_receipt"));
+    sandbox.registry.commit_terminal(&terminal).unwrap();
 }
