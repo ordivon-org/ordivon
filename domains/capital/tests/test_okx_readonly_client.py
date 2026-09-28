@@ -51,6 +51,9 @@ def test_public_surface_is_read_only_and_bounded():
         "get_account_balance",
         "get_account_config",
         "get_spot_open_orders",
+        "get_swap_fills",
+        "get_swap_open_orders",
+        "get_swap_positions",
         "sign",
     }
     for forbidden in ("post", "place", "cancel", "amend", "transfer", "withdraw"):
@@ -62,26 +65,33 @@ def test_invalid_endpoint_fails_closed():
         _client()._private_get("/api/v5/trade/order")
 
 
-def test_only_get_request_is_constructed():
+class Response:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self):
+        return b'{"code":"0","msg":"","data":[]}'
+
+
+@pytest.mark.parametrize(
+    ("method_name", "expected_suffix"),
+    [
+        ("get_spot_open_orders", "/api/v5/trade/orders-pending?instType=SPOT"),
+        ("get_swap_positions", "/api/v5/account/positions?instType=SWAP"),
+        ("get_swap_open_orders", "/api/v5/trade/orders-pending?instType=SWAP"),
+        ("get_swap_fills", "/api/v5/trade/fills?instType=SWAP"),
+    ],
+)
+def test_private_reality_queries_are_get_only(method_name, expected_suffix):
     client = _client()
-
-    class Response:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
-
-        def read(self):
-            return b'{"code":"0","msg":"","data":[]}'
-
     with patch.object(client._opener, "open", return_value=Response()) as opened:
-        assert client.get_spot_open_orders() == []
+        assert getattr(client, method_name)() == []
     request = opened.call_args.args[0]
     assert request.get_method() == "GET"
-    assert request.full_url.endswith(
-        "/api/v5/trade/orders-pending?instType=SPOT"
-    )
+    assert request.full_url.endswith(expected_suffix)
 
 
 @pytest.mark.parametrize(
@@ -110,16 +120,6 @@ def test_transient_transport_error_is_retried_for_get_only():
         transport_attempts=3,
         retry_backoff_seconds=0,
     )
-
-    class Response:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
-
-        def read(self):
-            return b'{"code":"0","msg":"","data":[]}'
 
     with patch.object(
         client._opener,

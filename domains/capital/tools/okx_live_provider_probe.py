@@ -89,6 +89,8 @@ def main() -> int:
             passphrase=profile["passphrase"],
         ),
         timeout_seconds=float(client_cfg["timeoutSeconds"]),
+        transport_attempts=int(client_cfg.get("transportAttempts", 3)),
+        retry_backoff_seconds=float(client_cfg.get("retryBackoffSeconds", 0.25)),
     )
     account_rows = reader.get_account_config()
     if len(account_rows) != 1:
@@ -101,11 +103,15 @@ def main() -> int:
     forbidden = sorted(set(cfg["forbiddenPermissions"]) & set(perms))
     if missing or forbidden:
         raise SystemExit(f"OKX permission mismatch missing={missing} forbidden={forbidden}")
+
     balance_rows = reader.get_account_balance()
-    order_rows = reader.get_spot_open_orders()
+    position_rows = reader.get_swap_positions()
+    spot_order_rows = reader.get_spot_open_orders()
+    swap_order_rows = reader.get_swap_open_orders()
+    swap_fill_rows = reader.get_swap_fills()
 
     result = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "kind": "ordivon.capital.trading.okx-live-provider-binding-evidence",
         "standing": "PASS_OKX_LIVE_PROVIDER_BOUND_CURRENT_NO_EFFECT_ADMISSION",
         "credentialClass": cfg["credentialClass"],
@@ -125,9 +131,15 @@ def main() -> int:
         "authenticatedProviderReadAudit": {
             "accountConfigCurrent": True,
             "balanceQueryCurrent": True,
-            "openOrdersQueryCurrent": True,
+            "positionsQueryCurrent": True,
+            "spotOpenOrdersQueryCurrent": True,
+            "swapOpenOrdersQueryCurrent": True,
+            "swapFillsQueryCurrent": True,
             "balanceRowCount": len(balance_rows),
-            "openOrderCount": len(order_rows),
+            "positionRowCount": len(position_rows),
+            "spotOpenOrderCount": len(spot_order_rows),
+            "swapOpenOrderCount": len(swap_order_rows),
+            "swapFillCount": len(swap_fill_rows),
             "sensitiveValuesDisclosed": False,
         },
         "providerPermissions": perms,
