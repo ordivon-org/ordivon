@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
@@ -320,7 +321,115 @@ def verify_disapere(asset: dict[str, Any], receipt: dict[str, Any]) -> dict[str,
     return receipt["counts"]
 
 
+def _exact_sha256(value: Any) -> bool:
+    if not isinstance(value, str) or not value.startswith("sha256:") or len(value) != 71:
+        return False
+    try:
+        int(value[7:], 16)
+    except ValueError:
+        return False
+    return True
+
+
+def verify_portable_materialized_bindings(
+    by_asset: dict[str, dict[str, Any]],
+    aries_receipt: dict[str, Any],
+    disapere_receipt: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    emse_asset = by_asset["emse-writing-benchmark-r16"]
+    if emse_asset.get("status") != "MATERIALIZED_EXTERNAL_CORPUS":
+        fail("EMSE catalog materialization standing drifted")
+    if not emse_asset.get("sourceRepo") or not emse_asset.get("rawExternalRoot"):
+        fail("EMSE catalog owner/raw locator missing")
+    expected_emse_paths = {
+        "samplingSummary",
+        "fulltextMetrics",
+        "sectionGrammar",
+        "currentComparison",
+        "acquisitionManifest",
+    }
+    if set(emse_asset.get("paths", {})) != expected_emse_paths:
+        fail("EMSE catalog path bindings drifted")
+    emse = emse_asset.get("observedScale")
+    if not isinstance(emse, dict) or not emse:
+        fail("EMSE catalog observedScale missing")
+
+    aries_asset = by_asset["aries-bounded-core-r1"]
+    if aries_receipt.get("status") != "MATERIALIZED_BOUNDED_CORE_ANALYTICAL_VIEWS_PASS":
+        fail("ARIES admission receipt is not admitted")
+    if (
+        aries_receipt.get("truthRole")
+        != "external-dataset-physical-and-schema-evidence-not-reviewer-or-scientific-truth"
+    ):
+        fail("ARIES truth boundary drifted")
+    if aries_receipt.get("counts") != aries_asset.get("observedScale"):
+        fail("ARIES catalog observedScale differs from admission receipt")
+    if aries_receipt.get("source", {}).get("licenseObserved") != "ODC-BY-1.0":
+        fail("ARIES observed license standing drifted")
+    aries_snapshot = aries_receipt.get("snapshot", {})
+    for key in (
+        "identity",
+        "rawManifestSha256",
+        "schemaCensusSha256",
+        "normalizationSummarySha256",
+        "analyticalBuildReceiptSha256",
+    ):
+        if not _exact_sha256(aries_snapshot.get(key)):
+            fail(f"ARIES portable receipt digest binding invalid: {key}")
+
+    disapere_asset = by_asset["disapere-bounded-core-r1"]
+    expected_disapere_status = "MATERIALIZED_BOUNDED_CORE_ANALYTICAL_VIEWS_PASS_NONCOMMERCIAL"
+    if disapere_receipt.get("status") != expected_disapere_status:
+        fail("DISAPERE admission receipt is not admitted")
+    if (
+        disapere_receipt.get("truthRole")
+        != "external-review-discourse-physical-and-schema-evidence-not-reviewer-or-scientific-truth"
+    ):
+        fail("DISAPERE truth boundary drifted")
+    if (
+        disapere_receipt.get("authority", {}).get("commercialProductOrServiceUse")
+        != "NOT_AUTHORIZED_BY_CC_BY_NC_ADMISSION"
+    ):
+        fail("DISAPERE commercial-use gate was weakened")
+    if disapere_receipt.get("privacy", {}).get("reviewerProfilingAuthorized") is not False:
+        fail("DISAPERE reviewer-profiling boundary was weakened")
+    if disapere_receipt.get("counts") != disapere_asset.get("observedScale"):
+        fail("DISAPERE catalog observedScale differs from admission receipt")
+    disapere_snapshot = disapere_receipt.get("snapshot", {})
+    for key in (
+        "identity",
+        "manifestSha256",
+        "schemaCensusSha256",
+        "normalizationSummarySha256",
+        "analyticalBuildReceiptSha256",
+    ):
+        if not _exact_sha256(disapere_snapshot.get(key)):
+            fail(f"DISAPERE portable receipt digest binding invalid: {key}")
+
+    return emse, aries_receipt["counts"], disapere_receipt["counts"]
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--portable",
+        action="store_true",
+        help=(
+            "explicitly select the default repository-portable verification mode: validate "
+            "committed data-plane bindings without reading external corpus repositories"
+        ),
+    )
+    mode.add_argument(
+        "--live",
+        action="store_true",
+        help=(
+            "require external corpus repositories/materialized bytes and verify live "
+            "physical/digest currentness"
+        ),
+    )
+    args = parser.parse_args()
+    portable = not args.live
     catalog = load(CATALOG)
     plan = load(PLAN)
     sd1 = load(SD1)
@@ -367,9 +476,16 @@ def main() -> int:
     if len(by_asset) != len(assets):
         fail("duplicate materialized asset ids")
 
-    emse = verify_emse(by_asset["emse-writing-benchmark-r16"])
-    aries = verify_aries(by_asset["aries-bounded-core-r1"], aries_receipt)
-    disapere = verify_disapere(by_asset["disapere-bounded-core-r1"], disapere_receipt)
+    if portable:
+        emse, aries, disapere = verify_portable_materialized_bindings(
+            by_asset, aries_receipt, disapere_receipt
+        )
+    else:
+        emse = verify_emse(by_asset["emse-writing-benchmark-r16"])
+        aries = verify_aries(by_asset["aries-bounded-core-r1"], aries_receipt)
+        disapere = verify_disapere(
+            by_asset["disapere-bounded-core-r1"], disapere_receipt
+        )
 
     if (
         aries_response_receipt.get("status")
@@ -703,10 +819,39 @@ def main() -> int:
     if aries_sd2.get("modelTrainingStanding") != "BLOCKED_PENDING_GOLD_ADMISSION":
         fail("ARIES semantic model training gate silently opened in SD2 readiness")
 
+    if portable:
+        standing = "PASS_PORTABLE_DATA_PLANE_BINDINGS_R1"
+        currentness_rule = (
+            "external corpus repositories and raw materialized bytes are intentionally not "
+            "read in portable repository verification"
+        )
+        truth_boundary = (
+            "Portable data-plane verification proves committed catalog, receipt, baseline, "
+            "rights/provenance, and declared digest-shape closure only. It does not prove "
+            "that external corpus repositories are present, that raw/materialized bytes "
+            "currently match their receipts, or that any scientific claim is true; run "
+            "this verifier without --portable for live physical/digest currentness."
+        )
+    else:
+        standing = "PASS_DATA_PLANE_WITH_ARIES_SEMANTIC_CONTENT_CONTEXT24_CONTENT_ARIES_RESPONSE_DISAPERE_PEERSUM"
+        currentness_rule = (
+            "registered external corpus files must be present and all live physical/digest "
+            "bindings checked by this verifier must match their committed receipts"
+        )
+        truth_boundary = (
+            "Acceptance proves current local EMSE, Context24 identity/content cores, ARIES core, "
+            "ARIES review-response core, ARIES bounded semantic-content candidate substrate, "
+            "DISAPERE, and PeerSum physical/schema bindings, including exact analytical product "
+            "digests, rights/provenance boundaries, and independent PeerSum artifact requalification. "
+            "It does not turn dataset labels into reviewer/scientific truth, authorize manuscript "
+            "or submission effects, or generalize dataset frequencies to scholarly populations."
+        )
+
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.research.scholarly-data-plane-r1-acceptance",
-        "standing": "PASS_DATA_PLANE_WITH_ARIES_SEMANTIC_CONTENT_CONTEXT24_CONTENT_ARIES_RESPONSE_DISAPERE_PEERSUM",
+        "standing": standing,
+        "currentnessRule": currentness_rule,
         "materializedLocalAssetCount": len(assets),
         "externalCandidateCount": len(candidates),
         "emse": emse,
@@ -741,12 +886,7 @@ def main() -> int:
             "ARIES independent response-to-revision semantic annotation",
         ],
         "largeCorpusWave": "DEFERRED_UNTIL_QUERY_JUSTIFIES_COST",
-        "truthBoundary": (
-            "Acceptance proves current local EMSE, Context24 identity/content cores, ARIES core, ARIES review-response core, ARIES bounded semantic-content candidate substrate, DISAPERE, and PeerSum physical/schema bindings, "
-            "including exact analytical product digests, rights/provenance boundaries, and independent PeerSum artifact requalification. It does not turn dataset labels "
-            "into reviewer/scientific truth, authorize manuscript or submission effects, or "
-            "generalize dataset frequencies to scholarly populations."
-        ),
+        "truthBoundary": truth_boundary,
     }
     print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
     return 0
