@@ -57,6 +57,45 @@ def _exception_summary(exc: BaseException, *, limit: int = 4) -> str:
     return "; ".join(rendered) or f"{type(exc).__name__}: {str(exc)[:180]}"
 
 
+def _extract_owner_tool_error(
+    result: Any, *, owner_id: str, tool_name: str
+) -> dict[str, Any] | None:
+    """Preserve owner-typed errors without granting arbitrary text structured authority."""
+    if isinstance(result.structured_content, dict):
+        candidate = result.structured_content.get("error")
+        if isinstance(candidate, dict):
+            return dict(candidate)
+
+    # Host domain errors are raised by MCP tools and MCP v2 currently serializes that
+    # exception as text rather than structuredContent. Recover only the exact canonical
+    # Host envelope; arbitrary owner prose must remain an opaque OWNER_CALL_FAILED.
+    if owner_id != "host":
+        return None
+    prefix = f"Error executing tool {tool_name}: "
+    for item in result.content:
+        text = getattr(item, "text", None)
+        if not isinstance(text, str) or not text.startswith(prefix):
+            continue
+        try:
+            candidate = json.loads(text[len(prefix) :])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(candidate, dict):
+            continue
+        if candidate.get("kind") != "ordivon.host-domain-error":
+            continue
+        if candidate.get("schemaVersion") != 1:
+            continue
+        code = candidate.get("code")
+        if not isinstance(code, str) or not code:
+            continue
+        retryable = candidate.get("retryable")
+        if retryable is not None and not isinstance(retryable, bool):
+            continue
+        return dict(candidate)
+    return None
+
+
 class OwnerToolCaller(Protocol):
     async def call_tool(
         self, owner_id: str, tool_name: str, arguments: dict[str, Any]
@@ -328,16 +367,11 @@ class McpOwnerCaller:
             ) from exc
 
         if result.is_error:
-            structured_error: dict[str, Any] | None = None
-            if isinstance(result.structured_content, dict):
-                candidate = result.structured_content.get("error")
-                if isinstance(candidate, dict):
-                    structured_error = dict(candidate)
             raise OwnerCallError(
                 f"owner tool returned error: {owner_id}/{tool_name}",
                 owner_id=owner_id,
                 tool_name=tool_name,
-                error=structured_error,
+                error=_extract_owner_tool_error(result, owner_id=owner_id, tool_name=tool_name),
             )
         if isinstance(result.structured_content, dict):
             return dict(result.structured_content)

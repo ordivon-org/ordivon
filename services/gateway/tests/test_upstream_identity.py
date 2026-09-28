@@ -12,6 +12,7 @@ from ordivon_gateway.upstream import (
     OwnerCallError,
     OwnerEndpoint,
     _exception_summary,
+    _extract_owner_tool_error,
     _headers_for_endpoint,
     _read_private_secret_file,
 )
@@ -218,3 +219,54 @@ def test_exception_summary_exposes_nested_task_group_leaf() -> None:
         [RuntimeError("HTTP 401 owner authentication required")],
     )
     assert _exception_summary(error) == "RuntimeError: HTTP 401 owner authentication required"
+
+
+def test_host_domain_error_text_is_preserved_as_typed_owner_error() -> None:
+    domain_error = {
+        "code": "NOT_FOUND",
+        "kind": "ordivon.host-domain-error",
+        "resourceKind": "work",
+        "resourceRef": "work:missing",
+        "retryable": False,
+        "schemaVersion": 1,
+        "suggestedAction": "discover-before-create",
+    }
+    result = SimpleNamespace(
+        structured_content=None,
+        content=[
+            SimpleNamespace(
+                text="Error executing tool work.get: "
+                + __import__("json").dumps(domain_error, separators=(",", ":"))
+            )
+        ],
+    )
+
+    assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") == domain_error
+
+
+def test_arbitrary_owner_error_text_is_not_promoted_to_structured_authority() -> None:
+    result = SimpleNamespace(
+        structured_content=None,
+        content=[SimpleNamespace(text='Error executing tool work.get: {"code":"NOT_FOUND"}')],
+    )
+
+    assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") is None
+    assert _extract_owner_tool_error(result, owner_id="runtime.linux", tool_name="work.get") is None
+
+
+def test_structured_owner_error_precedes_text_fallback() -> None:
+    structured = {
+        "code": "REGISTRY_COMMIT_UNKNOWN",
+        "origin": "runtime_core",
+        "retryable": True,
+    }
+    result = SimpleNamespace(
+        structured_content={"error": structured},
+        content=[
+            SimpleNamespace(
+                text='Error executing tool work.get: {"code":"NOT_FOUND","kind":"ordivon.host-domain-error","schemaVersion":1}'
+            )
+        ],
+    )
+
+    assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") == structured
