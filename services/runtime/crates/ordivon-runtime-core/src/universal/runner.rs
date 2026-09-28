@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use super::{
     canonical_directory, now_unix_ms, sha256_file, workspace_source_state_digest_at,
-    write_json_atomic, CapturedOutput, RunnerExecutionStep, RunnerProgress, RunnerRequest,
+    write_json_atomic, write_resource_receipt_from_cgroup_root, CapturedOutput, RunnerExecutionStep, RunnerProgress, RunnerRequest,
     RunnerResult, RunnerStartEvidence, RunnerStepResult, RunnerTerminalStatus, UniversalExecError,
     UniversalExecErrorCode, UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
@@ -95,6 +95,16 @@ pub fn run_job_runner(task_dir: &Path) -> Result<(), UniversalExecError> {
             stderr: empty_output(&request.task_id, false),
         })
     });
+    let _resource_receipt_observation = (|| -> Result<(), UniversalExecError> {
+        let control_group = read_self_cgroup()?;
+        let cgroup_root = Path::new("/sys/fs/cgroup").join(control_group.trim_start_matches('/'));
+        write_resource_receipt_from_cgroup_root(
+            &task_dir,
+            &request,
+            &cgroup_root,
+            now_unix_ms()?,
+        )
+    })();
     write_json_atomic(&task_dir.join(RESULT_FILE), &result)
 }
 
