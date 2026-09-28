@@ -1,0 +1,17 @@
+[Unit]
+Description=Ordivon Runtime host-storage pressure reclaim
+After=ordivon-runtime.service
+Requires=ordivon-runtime.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+Environment=ORDIVON_HOST_STORAGE_PATH=/mnt/d
+Environment=ORDIVON_STORAGE_RECLAIM_FREE_BYTES=68719476736
+EnvironmentFile=-/etc/ordivon/ordivon-runtime-storage-pressure.env
+SuccessExitStatus=1
+ExecCondition=/usr/bin/python -c "import os,shutil,sys; path=os.environ['ORDIVON_HOST_STORAGE_PATH']; limit=int(os.environ['ORDIVON_STORAGE_RECLAIM_FREE_BYTES']); sys.exit(0 if shutil.disk_usage(path).free <= limit else 1)"
+ExecStart=/usr/local/libexec/ordivon/ordivon-runtime-reclaim apply --database /var/lib/ordivon/registry/registry.sqlite3 --runtime-store-root /var/lib/ordivon/runtime --env-file /etc/ordivon/ordivon-runtime.env --receipt-root /var/lib/ordivon/runtime/storage-pressure-reclaim-receipts --lock-file /run/ordivon-runtime-storage-pressure-reclaim.lock --minimum-age-hours 0 --classification closable --classification stale_record --confirm-policy RECLAIM_ELIGIBLE_WORKSPACES
+ExecStart=/usr/local/libexec/ordivon/ordivon-runtime-cache prune --database /var/lib/ordivon/registry/registry.sqlite3 --registry-root /var/lib/ordivon/registry --runtime-store-root /var/lib/ordivon/runtime --receipt-root /var/lib/ordivon/runtime/storage-pressure-cache-receipts --lock-file /run/ordivon-runtime-storage-pressure-cache.lock --env-file /etc/ordivon/ordivon-runtime.env --confirm-policy PRUNE_EXECUTION_CACHES

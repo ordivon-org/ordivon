@@ -914,5 +914,37 @@ class LifecycleTests(unittest.TestCase):
         )
 
 
+    def test_storage_pressure_unit_composes_existing_owners_without_semantic_overreach(self) -> None:
+        unit = (REPO / "packaging/systemd/ordivon-runtime-storage-pressure.service").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("ORDIVON_HOST_STORAGE_PATH=/mnt/d", unit)
+        self.assertIn("ORDIVON_STORAGE_RECLAIM_FREE_BYTES=68719476736", unit)
+        self.assertIn("EnvironmentFile=-/etc/ordivon/ordivon-runtime-storage-pressure.env", unit)
+        self.assertIn("ordivon-runtime-reclaim apply", unit)
+        self.assertIn("--minimum-age-hours 0", unit)
+        self.assertIn("--classification closable", unit)
+        self.assertIn("--classification stale_record", unit)
+        self.assertIn("ordivon-runtime-cache prune", unit)
+        self.assertIn("SuccessExitStatus=1", unit)
+        self.assertNotIn("SuccessExitStatus=2", unit)
+        self.assertNotIn("blocked_dirty", unit)
+        self.assertNotIn("blocked_unintegrated", unit)
+        forbidden = ("wsl --shutdown", "wsl.exe --shutdown", "Optimize-VHD", "compact vdisk", "WSLService")
+        for token in forbidden:
+            self.assertNotIn(token, unit)
+
+    def test_storage_pressure_timer_is_online_bounded_periodic_control(self) -> None:
+        timer = (REPO / "packaging/systemd/ordivon-runtime-storage-pressure.timer").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("OnBootSec=2min", timer)
+        self.assertIn("OnUnitActiveSec=5min", timer)
+        self.assertIn("Persistent=true", timer)
+        self.assertIn("ordivon-runtime-storage-pressure.service", timer)
+        self.assertNotIn("OnCalendar=daily", timer)
+
+
+
 if __name__ == "__main__":
     unittest.main()
