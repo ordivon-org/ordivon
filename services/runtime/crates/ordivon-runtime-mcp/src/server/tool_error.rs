@@ -445,3 +445,28 @@ fn workspace_content_call_result(
         }
     }
 }
+
+#[cfg(test)]
+mod authorization_tests {
+    use super::*;
+    use ordivon_runtime_core::{RuntimeError, RuntimeErrorCode};
+
+    #[test]
+    fn authorization_denied_is_typed_never_retry_and_not_committed() {
+        let error = ToolError::from(RuntimeError::new(
+            RuntimeErrorCode::AuthorizationDenied,
+            "principal cannot request elevation",
+            Some("execution.windowsContext.privilege"),
+            false,
+        ));
+        assert_eq!(error.code, "AUTHORIZATION_DENIED");
+        assert_eq!(
+            error.context.field.as_deref(),
+            Some("execution.windowsContext.privilege")
+        );
+        assert_eq!(error.context.retry_class, ToolRetryClass::Never);
+        assert_eq!(error.context.commit_state, ToolCommitState::NotCommitted);
+        assert!(!error.context.retryable);
+        assert!(error.context.operation_id.is_none());
+    }
+}

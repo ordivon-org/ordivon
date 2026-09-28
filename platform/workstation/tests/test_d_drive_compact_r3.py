@@ -135,6 +135,7 @@ def test_runner_uses_unique_transaction_and_separate_authorizer_task():
     text = RUNNER.read_text(encoding="utf-8")
     assert "NewGuid" in text
     assert "active-request.json" in text
+    assert "expiresAtUnixMs" in text
     assert "Ordivon-DDrive-Compact-Authorize" in text
     assert "Start-ScheduledTask" in text
 
@@ -191,3 +192,14 @@ def test_windows_recovery_does_not_shadow_powershell_host_variable():
     assert "$host=" not in text
     assert "$hostState=" in text
     assert "host=$hostState" in text
+
+
+def test_run_r3_suppresses_cross_agent_recovery_during_active_request():
+    text = RUNNER.read_text(encoding="utf-8")
+    assert "Ordivon WSL Control Plane Recovery" in text
+    assert "Disable-ScheduledTask" in text
+    assert "Stop-ScheduledTask" in text
+    assert "Enable-ScheduledTask" in text
+    assert "recoveryTaskSuppressed" in text
+    assert text.index("Atomic-Json $request $req") < text.index("Disable-ScheduledTask")
+    assert text.index("Enable-ScheduledTask") < text.index("Remove-Item -LiteralPath $request")

@@ -8,6 +8,7 @@ $maintenanceId=('cap-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid(
 $tx="$maintenanceRoot\$maintenanceId";New-Item -ItemType Directory -Force -Path $tx|Out-Null
 $gate="$root\d-drive-compact-gate-r3.py";$controller="$root\d-drive-offline-compact-r3.ps1";$request="$maintenanceRoot\active-request.json";$runReceipt="$tx\run.json"
 $authorizerTask='Ordivon-DDrive-Compact-Authorize'
+$recoveryTaskName='Ordivon WSL Control Plane Recovery';$recoveryTaskWasEnabled=$false;$recoveryTaskSuppressed=$false;$recoveryTaskRestored=$false
 $status='failed';$errorText=$null
 try {
   if(Test-Path -LiteralPath $request){throw 'active-request already exists before new R3 transaction'}
@@ -19,8 +20,15 @@ try {
     if($authTask.State -eq 'Running'){throw 'stale authorizer instance did not stop'}
   }
   $authBefore=(Get-ScheduledTaskInfo -TaskName $authorizerTask).LastRunTime
-  $req=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-request';maintenanceId=$maintenanceId;transactionDir=$tx;readyPath="$tx\ready.json";terminalPath="$tx\gate-terminal.json";authorizationPath="$tx\authorization.json";gatePath=$gate;controllerPath=$controller;gateSha256=(Sha $gate);controllerSha256=(Sha $controller);createdAtUtc=[DateTimeOffset]::UtcNow.ToString('o');expiresAtUtc=[DateTimeOffset]::UtcNow.AddMinutes(35).ToString('o')}
+  $now=[DateTimeOffset]::UtcNow;$expires=$now.AddMinutes(35)
+  $req=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-request';maintenanceId=$maintenanceId;transactionDir=$tx;readyPath="$tx\ready.json";terminalPath="$tx\gate-terminal.json";authorizationPath="$tx\authorization.json";gatePath=$gate;controllerPath=$controller;gateSha256=(Sha $gate);controllerSha256=(Sha $controller);createdAtUtc=$now.ToString('o');expiresAtUtc=$expires.ToString('o');expiresAtUnixMs=$expires.ToUnixTimeMilliseconds()}
   Atomic-Json $request $req
+  $recoveryTask=Get-ScheduledTask -TaskName $recoveryTaskName -ErrorAction SilentlyContinue
+  if($recoveryTask){
+    $recoveryTaskWasEnabled=($recoveryTask.State -ne 'Disabled')
+    if($recoveryTaskWasEnabled){Disable-ScheduledTask -TaskName $recoveryTaskName -ErrorAction Stop|Out-Null;$recoveryTaskSuppressed=$true}
+    if($recoveryTask.State -eq 'Running'){Stop-ScheduledTask -TaskName $recoveryTaskName -ErrorAction Stop}
+  }
   Start-ScheduledTask -TaskName $authorizerTask
   $authStartDeadline=(Get-Date).AddSeconds(10)
   do {Start-Sleep -Milliseconds 250;$authInfo=Get-ScheduledTaskInfo -TaskName $authorizerTask} while($authInfo.LastRunTime -le $authBefore -and (Get-Date)-lt $authStartDeadline)
@@ -28,7 +36,10 @@ try {
   & $controller -MaintenanceId $maintenanceId
   $status='completed'
 } catch {$errorText=$_.Exception.ToString();throw} finally {
-  Atomic-Json $runReceipt ([ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-run';status=$status;maintenanceId=$maintenanceId;requestSha256=if(Test-Path $request){Sha $request}else{$null};finishedAt=[DateTimeOffset]::Now.ToString('o');error=$errorText})
+  if($recoveryTaskWasEnabled){
+    try {Enable-ScheduledTask -TaskName $recoveryTaskName -ErrorAction Stop|Out-Null;$recoveryTaskRestored=$true} catch {if(-not $errorText){$errorText=$_.Exception.ToString()}}
+  }
+  Atomic-Json $runReceipt ([ordered]@{schemaVersion=3;kind='ordivon.d-drive-compact-run';status=$status;maintenanceId=$maintenanceId;requestSha256=if(Test-Path $request){Sha $request}else{$null};recoveryTaskName=$recoveryTaskName;recoveryTaskWasEnabled=$recoveryTaskWasEnabled;recoveryTaskSuppressed=$recoveryTaskSuppressed;recoveryTaskRestored=$recoveryTaskRestored;finishedAt=[DateTimeOffset]::UtcNow.ToString('o');error=$errorText})
   Remove-Item -LiteralPath $request -Force -ErrorAction SilentlyContinue
   if($lock){$lock.Dispose()}
 }

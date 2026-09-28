@@ -119,7 +119,7 @@ pub(crate) use types::{ArtifactRegistration, TerminalCommit};
 pub use types::{ArtifactRegistration, RuntimeInvariantViolation, TerminalCommit};
 pub use windows::{
     materialize_windows_credential_binding, WindowsCredentialMaterializationObservation,
-    WindowsExecutionConfig,
+    WindowsElevatedCommandProfile, WindowsElevatedExecutionProfile, WindowsExecutionConfig,
 };
 pub use windows_broker::WindowsPrivilegedBrokerConfig;
 

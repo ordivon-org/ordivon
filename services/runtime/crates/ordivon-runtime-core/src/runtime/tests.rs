@@ -242,6 +242,9 @@ fn linux_runtime_rejects_windows_execution_provider_configuration() {
     config.windows = Some(WindowsExecutionConfig {
         launcher_path: PathBuf::from("/usr/bin/true"),
         privileged_broker: None,
+        elevated_principals: Vec::new(),
+        elevated_profiles: Vec::new(),
+        maintenance_lease_path: None,
     });
 
     let error = Runtime::new(config).unwrap_err();
@@ -8242,6 +8245,8 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
     assert!(linux.windows_authorities.is_empty());
     assert!(linux.windows_contexts.is_empty());
     assert!(linux.windows_immutable_input_authorities.is_empty());
+    assert!(linux.windows_privileged_profiles.is_empty());
+    assert!(!linux.windows_maintenance_fence_configured);
     assert_eq!(
         linux.execution_provider.as_ref().unwrap().contract,
         ExecutionProviderContract::LocalLinuxRunnerV1

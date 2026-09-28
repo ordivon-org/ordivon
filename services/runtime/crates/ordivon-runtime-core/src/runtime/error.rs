@@ -7,6 +7,7 @@ use std::fmt::{Display, Formatter};
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RuntimeErrorCode {
     InvalidRequest,
+    AuthorizationDenied,
     RegistryUnavailable,
     RegistryBusy,
     RegistryCorrupt,
@@ -50,6 +51,7 @@ impl RuntimeErrorCode {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::InvalidRequest => "INVALID_REQUEST",
+            Self::AuthorizationDenied => "AUTHORIZATION_DENIED",
             Self::RegistryUnavailable => "REGISTRY_UNAVAILABLE",
             Self::RegistryBusy => "REGISTRY_BUSY",
             Self::RegistryCorrupt => "REGISTRY_CORRUPT",

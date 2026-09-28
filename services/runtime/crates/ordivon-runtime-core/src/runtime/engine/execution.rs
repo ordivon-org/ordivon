@@ -100,6 +100,24 @@ impl Runtime {
             .contains(&super::WindowsAuthority::Limited)
             .then_some(vec![super::WindowsAuthority::Limited])
             .unwrap_or_default();
+        let windows_privileged_profiles = self
+            .windows
+            .as_ref()
+            .map(|windows| {
+                let mut ids = windows
+                    .elevated_profiles
+                    .iter()
+                    .map(|profile| profile.id.clone())
+                    .collect::<Vec<_>>();
+                ids.sort();
+                ids.dedup();
+                ids
+            })
+            .unwrap_or_default();
+        let windows_maintenance_fence_configured = self
+            .windows
+            .as_ref()
+            .is_some_and(|windows| windows.maintenance_lease_path.is_some());
         let windows = RuntimeExecutionTargetCapability {
             target: super::ExecutionTarget::WindowsNative,
             configured: windows_configured,
@@ -108,6 +126,8 @@ impl Runtime {
             windows_authorities,
             windows_contexts,
             windows_immutable_input_authorities: windows_immutable_input_authorities.clone(),
+            windows_privileged_profiles,
+            windows_maintenance_fence_configured,
             structured_plan: false,
             immutable_inputs: !windows_immutable_input_authorities.is_empty(),
             host_dependency_commitments: false,
