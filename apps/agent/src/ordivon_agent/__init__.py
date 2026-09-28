@@ -7,6 +7,11 @@ from .continuation_r1 import (
     AttentionReplayPort,
     ContinuationAction,
 )
+from .cross_owner_reentry_r1 import (
+    CrossOwnerReentryCoordinator,
+    CrossOwnerReentryError,
+    CrossOwnerReentryProjection,
+)
 from .harness_lowering_r1 import (
     AgentRunLoweringError,
     compile_no_tool_harness_binding,
@@ -45,6 +50,9 @@ __all__ = [
     "WorkReattachmentCoordinator",
     "WorkDiscoveryNotFound",
     "HostWorkDiscoveryPort",
+    "CrossOwnerReentryProjection",
+    "CrossOwnerReentryError",
+    "CrossOwnerReentryCoordinator",
     "ContinuationAction",
     "AgentContinuationPlan",
     "AttentionReplayPort",
