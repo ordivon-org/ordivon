@@ -133,3 +133,27 @@ source_glob = "domains/capital/pyproject.toml"
 allowed_fragment = "../../packages/composition"
 kind = "PUBLIC_PACKAGE_DEPENDENCY"
 contract_ref = "packages/composition/README.md"
+
+[[seams]]
+from_owner = "studies"
+to_owner = "media"
+source_glob = "studies/evaluation-boundary/rw6/structure-r2-binding-r1.json"
+allowed_fragment = "capabilities/media/"
+kind = "STUDY_SUBJECT_BINDING"
+contract_ref = "studies/evaluation-boundary/rw6/structure-r2-binding-r1.json"
+
+[[seams]]
+from_owner = "studies"
+to_owner = "game"
+source_glob = "studies/evaluation-boundary/rw6/structure-r2-*.json"
+allowed_fragment = "domains/game/"
+kind = "STUDY_SUBJECT_BINDING"
+contract_ref = "studies/evaluation-boundary/rw6/structure-r2-rebind-r1-acceptance.json"
+
+[[seams]]
+from_owner = "studies"
+to_owner = "game"
+source_glob = "studies/game/autonomous-interest/domains/game/game-autonomous-interest-protocol-r*.json"
+allowed_fragment = "domains/game/"
+kind = "STUDY_DOMAIN_CONTRACT_BINDING"
+contract_ref = "studies/game/autonomous-interest/domains/game/game-autonomous-interest-protocol-r7.json"

@@ -42,9 +42,10 @@ class AffectedOwnersTests(unittest.TestCase):
         )
 
     def test_archived_next_tree_has_no_active_owner(self) -> None:
+        resolution = MODULE.resolve_path("meta/next/README.md")
+        self.assertEqual(resolution.kind, "ARCHIVED")
+        self.assertIsNone(resolution.owner)
         self.assertEqual(self.names("meta/next/README.md"), [])
-        self.assertEqual(self.tasks("meta/next/README.md"), [])
-        self.assertEqual(self.queue_tasks("meta/next/README.md"), [])
 
     def test_harness_has_explicit_queue_portable_verification(self) -> None:
         self.assertEqual(self.tasks("services/harness/README.md"), ["harness:verify"])
@@ -120,6 +121,12 @@ class AffectedOwnersTests(unittest.TestCase):
             [owner.name for owner in MODULE.OWNERS],
         )
 
+    def test_path_class_policy_change_is_cross_cutting(self) -> None:
+        self.assertEqual(
+            self.names("tools/repo/path_classes.toml"),
+            [owner.name for owner in MODULE.OWNERS],
+        )
+
     def test_dependency_policy_change_is_cross_cutting(self) -> None:
         self.assertEqual(
             self.names("tools/repo/dependency_contracts.toml"),
@@ -142,8 +149,25 @@ class AffectedOwnersTests(unittest.TestCase):
             [],
         )
 
-    def test_unknown_top_level_path_is_not_silently_attributed(self) -> None:
+    def test_root_readme_is_explicit_documentation_not_unknown(self) -> None:
+        resolution = MODULE.resolve_path("README.md")
+        self.assertEqual(resolution.kind, "DOCUMENTATION")
+        self.assertIsNone(resolution.owner)
         self.assertEqual(self.names("README.md"), [])
+
+    def test_unknown_path_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "UNKNOWN repository path classification"):
+            MODULE.resolve_path("future-unmodeled-owner/source.py")
+
+    def test_new_r2_source_families_are_first_class_owners(self) -> None:
+        self.assertEqual(self.names("studies/security/example.py"), ["studies"])
+        self.assertEqual(self.names("catalogs/knowledge/example.json"), ["catalogs"])
+        self.assertEqual(self.names(".agents/skills/example/SKILL.md"), ["agent-methods"])
+        self.assertEqual(self.names("profiles/research/example.json"), ["profiles"])
+
+    def test_ambiguous_meta_owner_roots_are_not_lexical_boundary_targets(self) -> None:
+        disabled = {owner.name for owner in MODULE.OWNERS if not owner.literal_boundary_target}
+        self.assertEqual(disabled, {"agent-methods", "catalogs", "profiles", "studies"})
 
     def test_all_owner_names_roots_and_tasks_are_unique(self) -> None:
         names = [owner.name for owner in MODULE.OWNERS]

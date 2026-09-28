@@ -104,6 +104,7 @@ def build_plan(
         head_tree = _git("rev-parse", f"{head_revision}^{{tree}}")
         paths = affected_owners.changed_paths(base_revision, head_revision)
 
+    resolutions = affected_owners.resolve_paths(paths)
     direct = affected_owners.owners_for_paths(paths)
     direct_names = tuple(owner.name for owner in direct)
     cross_cutting = _is_cross_cutting(paths)
@@ -150,6 +151,15 @@ def build_plan(
         "headRevision": head_revision,
         "headTree": head_tree,
         "changedPaths": list(paths),
+        "pathClassifications": [
+            {
+                "path": item.path,
+                "kind": item.kind,
+                "owner": item.owner.name if item.owner else None,
+            }
+            for item in resolutions
+        ],
+        "ownershipCoverageStanding": "TOTAL_FAIL_CLOSED",
         "directOwners": list(direct_names),
         "verificationOwners": list(verification_names),
         "verifyTasks": list(verify_tasks),

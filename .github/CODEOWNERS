@@ -25,13 +25,10 @@
 
 /apps/web/ @zycxfyh
 
+/.agents/ @zycxfyh
+/catalogs/ @zycxfyh
+/profiles/ @zycxfyh
 /studies/ @zycxfyh
 /tools/repo/ @zycxfyh
 /.github/ @zycxfyh
 /mise.toml @zycxfyh
-
-/catalogs/authorities/ @zycxfyh
-
-/profiles/research/ @zycxfyh
-
-/studies/research/ @zycxfyh

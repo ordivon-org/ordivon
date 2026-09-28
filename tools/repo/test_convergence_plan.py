@@ -45,7 +45,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "distribution", "game", "media", "studies", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
@@ -78,6 +78,12 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], [])
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
+        self.assertEqual(plan["ownershipCoverageStanding"], "TOTAL_FAIL_CLOSED")
+        self.assertEqual(plan["pathClassifications"][0]["kind"], "DOCUMENTATION")
+
+    def test_unknown_path_fails_plan_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "UNKNOWN repository path classification"):
+            MODULE.build_plan(changed_files=["unmodeled-r2/source.py"])
 
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1

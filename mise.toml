@@ -56,6 +56,8 @@ tools/repo/test-check-archived-source-boundary.sh
 run = """
 set -euo pipefail
 python3 tools/repo/test_affected_owners.py
+python3 tools/repo/check_path_ownership.py
+python3 tools/repo/test_source_planes.py
 python3 tools/repo/test_convergence_plan.py
 python3 tools/repo/test_owner_boundaries.py
 python3 tools/repo/check_owner_boundaries.py
@@ -133,6 +135,55 @@ uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturit
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_peersum_asset_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r2.py"
+"""
+
+
+[tasks."agent-methods:verify"]
+run = """
+set -euo pipefail
+mise run whole-system-review:verify
+uv run --with pytest==9.1.1 python -m pytest -q tests/skills
+python3 tools/repo/check_structured_data.py .agents
+"""
+
+[tasks."catalogs:verify"]
+run = """
+set -euo pipefail
+python3 tools/repo/check_structured_data.py catalogs
+uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs
+"""
+
+[tasks."profiles:verify"]
+run = """
+set -euo pipefail
+python3 tools/repo/check_structured_data.py profiles
+"""
+
+[tasks."studies:verify"]
+run = """
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+python3 tools/repo/check_structured_data.py studies
+mise run experimental-episode-store:verify
+mise run research-study:verify
+mise run browser-security-study:verify
+cd services/harness
+for suite in \
+  "$repo_root/studies/security/ai-redteam-foundry-r1/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r2/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r3/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r4/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r5/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r6/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r7/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r8/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r9/tests" \
+  "$repo_root/studies/security/ai-redteam-foundry-r10/tests"; do
+  uv run --locked python -m pytest -q "$suite"
+done
+cd "$repo_root"
+uv run --with pytest==9.1.1 --with 'jsonschema>=4.26,<5' python -m pytest -q \
+  studies/research/capability-science-r1/tests
 """
 
 [tasks."composition:verify"]
