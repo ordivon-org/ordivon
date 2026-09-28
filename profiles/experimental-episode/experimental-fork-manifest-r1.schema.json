@@ -53,7 +53,7 @@
       "additionalProperties": false,
       "required": ["strategy"],
       "properties": {
-        "strategy": {"enum": ["same", "derived", "new-explicit"]},
+        "strategy": {"enum": ["same", "derived", "new-explicit", "provider-owned"]},
         "seedRef": {"type": "string", "minLength": 1, "maxLength": 512}
       }
     },

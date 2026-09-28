@@ -88,7 +88,9 @@
       "required": ["seedPolicy"],
       "properties": {
         "seedPolicy": {"enum": ["fixed", "explicit-per-episode", "derived", "provider-owned"]},
-        "seedManifestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        "seedManifestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "assignmentSeedPolicy": {"enum": ["fixed", "explicit-per-episode", "derived", "provider-owned"]},
+        "executionRandomnessPolicy": {"enum": ["fixed", "explicit-per-episode", "derived", "provider-owned"]}
       }
     },
     "dataClassPolicy": {

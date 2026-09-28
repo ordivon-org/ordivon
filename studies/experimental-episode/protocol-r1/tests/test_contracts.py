@@ -563,3 +563,21 @@ def test_response_loss_owner_dogfood_generates_evaluation_from_current_plan(tmp_
     evaluation = seal(evaluation, "recordDigest")
     validate_evaluation(evaluation, metric)
     assert evaluation["value"] is False
+
+
+def test_provider_owned_execution_randomness_is_representable() -> None:
+    values = reference_objects()
+    design = values["design"]
+    design["randomness"] = {
+        "seedPolicy": "provider-owned",
+        "seedManifestDigest": "sha256:" + "5" * 64,
+        "assignmentSeedPolicy": "fixed",
+        "executionRandomnessPolicy": "provider-owned",
+    }
+    design = seal(design, "contractDigest")
+    validate_design(design)
+
+    fork = values["fork"]
+    fork["randomness"] = {"strategy": "provider-owned"}
+    fork = seal(fork, "manifestDigest")
+    validate_fork(fork)
