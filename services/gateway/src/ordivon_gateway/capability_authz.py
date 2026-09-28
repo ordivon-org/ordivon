@@ -263,8 +263,9 @@ class GatewayCapabilityAuthorizationMiddleware:
                 "Security capability authorization returned an invalid decision.",
                 capability=capability,
             )
+        schema_version = decision.get("schemaVersion")
         if (
-            decision.get("schemaVersion") != 2
+            schema_version not in {2, 3}
             or decision.get("kind") != "ordivon.security.gateway-capability-authz"
             or decision.get("principalId") != principal
             or decision.get("issuer") != issuer
@@ -281,18 +282,36 @@ class GatewayCapabilityAuthorizationMiddleware:
         outcome = decision.get("outcome")
         reason = decision.get("reason")
         if outcome == "ALLOW":
-            authority = decision.get("authorityProjection")
-            effect = decision.get("effectAdmission")
-            if (
-                not isinstance(authority, Mapping)
-                or not isinstance(effect, Mapping)
-                or effect.get("admitted") is not True
-            ):
-                return _error(
-                    "CAPABILITY_AUTHZ_ALLOW_INCOMPLETE",
-                    "Security ALLOW decision omitted admitted authority/effect evidence.",
-                    capability=capability,
-                )
+            if schema_version == 2:
+                authority = decision.get("authorityProjection")
+                effect = decision.get("effectAdmission")
+                if (
+                    not isinstance(authority, Mapping)
+                    or not isinstance(effect, Mapping)
+                    or effect.get("admitted") is not True
+                ):
+                    return _error(
+                        "CAPABILITY_AUTHZ_ALLOW_INCOMPLETE",
+                        "Delegated-Agent ALLOW omitted admitted authority/effect evidence.",
+                        capability=capability,
+                    )
+            else:
+                evidence = decision.get("authorizationEvidence")
+                if (
+                    decision.get("authorizationProfile") != "interactive-principal-authzen"
+                    or not isinstance(evidence, Mapping)
+                    or evidence.get("standard") != "openid-authzen-authorization-api-1.0"
+                    or evidence.get("decision") is not True
+                    or not isinstance(evidence.get("requestId"), str)
+                    or evidence.get("responseRequestId") != evidence.get("requestId")
+                    or decision.get("authorityProjection") is not None
+                    or decision.get("effectAdmission") is not None
+                ):
+                    return _error(
+                        "CAPABILITY_AUTHZ_ALLOW_INCOMPLETE",
+                        "Interactive Principal ALLOW omitted valid AuthZEN evidence.",
+                        capability=capability,
+                    )
             return await call_next(ctx)
         if outcome == "STEP_UP":
             return _error(
