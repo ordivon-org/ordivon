@@ -4,8 +4,7 @@ target=network-v2-supply-chain.target
 svc=network-v2-supply-chain-egress.service
 proxy=http://127.0.0.1:19581
 wait_local_ready() {
-  local i
-  for i in $(seq 1 120); do
+  for _ in $(seq 1 120); do
     if systemctl is-active --quiet "$target" \
       && systemctl is-active --quiet "$svc" \
       && ss -ltn '( sport = :19581 )' | grep -q '127.0.0.1:19581'; then

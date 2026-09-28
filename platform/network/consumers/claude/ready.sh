@@ -25,8 +25,8 @@ if ip netns exec nv2-claude-client curl -4 -I -fsS --connect-timeout 2 --max-tim
 fi
 
 proxy_head_code() {
-  local url=$1 code=000 attempt
-  for attempt in 1 2 3; do
+  local url=$1 code=000
+  for _ in 1 2 3; do
     code=$(ip netns exec nv2-claude-client curl -x "$client_proxy" -I -sS --connect-timeout 8 --max-time 20 -o /dev/null -w '%{http_code}' "$url") && {
       test "$code" != 000 && { printf '%s\n' "$code"; return 0; }
     }
@@ -40,7 +40,7 @@ api_code=$(proxy_head_code https://api.anthropic.com/)
 headers=$(mktemp)
 trap 'rm -f "$headers"' EXIT
 ok=0
-for attempt in 1 2 3; do
+for _ in 1 2 3; do
   if ip netns exec nv2-claude-client curl -x "$client_proxy" -I -sS --connect-timeout 8 --max-time 20 https://claude.ai/install.sh >"$headers" && grep -Eqi '^location: https://downloads\.claude\.ai/' "$headers"; then
     ok=1
     break

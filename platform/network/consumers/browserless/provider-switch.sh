@@ -22,7 +22,7 @@ for u in network-v2-browserless-netns.service network-v2-browserless-forward.ser
 row=$(awk -F '\t' -v site="$SITE" '$1==site{print; exit}' "$MANIFEST")
 [ -n "$row" ]
 tab=$(printf '\t')
-IFS="$tab" read -r node endpoint iface source_profile source_digest <<<"$row"
+IFS="$tab" read -r node endpoint _iface source_profile source_digest <<<"$row"
 [ "$node" = "$SITE" ]
 [[ "$endpoint" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
 [ -f "$source_profile" ]
@@ -47,6 +47,8 @@ if [ "$old_site" = "$SITE" ] && [ "$old_endpoint" = "$endpoint" ]; then
   # The provider selection is still correct but the WireGuard session is stale.
   # Recycle only the session stack; the semantic target must not tear down the long-lived netns.
   before_inode=$(stat -Lc '%i' "/run/netns/$NS")
+  # Invoked indirectly by the trap below.
+  # shellcheck disable=SC2329
   recover_same_site() {
     set +e
     systemctl start "$WG" >/dev/null 2>&1 || true
