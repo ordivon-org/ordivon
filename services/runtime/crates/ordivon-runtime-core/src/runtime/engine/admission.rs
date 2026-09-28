@@ -328,6 +328,25 @@ impl Runtime {
             } else {
                 let authority_contract =
                     super::authority_contract::AuthorityContract::ordinary(proposal)?;
+                let elevated_principals = self
+                    .windows
+                    .as_ref()
+                    .map(|windows| windows.elevated_principals.as_slice())
+                    .unwrap_or(&[]);
+                authority_contract.authorize_windows_elevation(elevated_principals)?;
+                if let Some(windows) = self.windows.as_ref() {
+                    windows.authorize_new_proposal(proposal)?;
+                } else if authority_contract
+                    .effective_windows_context()
+                    .is_some_and(|context| context.privilege == super::WindowsPayloadPrivilege::Elevated)
+                {
+                    return Err(RuntimeError::new(
+                        super::RuntimeErrorCode::AuthorizationDenied,
+                        "elevated Windows execution requires a configured native Windows provider",
+                        Some("execution.windowsContext.privilege"),
+                        false,
+                    ));
+                }
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
                 validate_new_admission_policy(

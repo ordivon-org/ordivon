@@ -651,6 +651,13 @@ pub struct RuntimeExecutionTargetCapability {
     /// Empty for non-Windows targets and when no safe native presentation is available.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub windows_immutable_input_authorities: Vec<WindowsAuthority>,
+    /// Operator-configured privileged profile ids discoverable by Agents without exposing
+    /// executable rules, filesystem paths, or principal ceilings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub windows_privileged_profiles: Vec<String>,
+    /// Whether this Runtime has an owner-native Windows maintenance admission fence configured.
+    #[serde(default)]
+    pub windows_maintenance_fence_configured: bool,
     pub structured_plan: bool,
     pub immutable_inputs: bool,
     /// Whether trusted-local Jobs on this target may bind Agent-declared exact host file prerequisites.
