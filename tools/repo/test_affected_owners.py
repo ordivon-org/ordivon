@@ -47,6 +47,11 @@ class AffectedOwnersTests(unittest.TestCase):
         self.assertIsNone(resolution.owner)
         self.assertEqual(self.names("meta/next/README.md"), [])
 
+    def test_retired_research_tombstone_is_archived(self) -> None:
+        resolution = MODULE.resolve_path("meta/research/planning/legacy.json")
+        self.assertEqual(resolution.kind, "ARCHIVED")
+        self.assertIsNone(resolution.owner)
+
     def test_harness_has_explicit_queue_portable_verification(self) -> None:
         self.assertEqual(self.tasks("services/harness/README.md"), ["harness:verify"])
         self.assertEqual(

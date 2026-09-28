@@ -12,6 +12,11 @@ prefix = "meta/next/"
 reason = "Next active owner was retired; retained tree is historical/archive source."
 
 [[classes]]
+kind = "ARCHIVED"
+prefix = "meta/research/"
+reason = "Retired Research meta tree may remain in an older publication base; deletion tombstones stay classifiable during reconciliation."
+
+[[classes]]
 kind = "GENERATED_EVIDENCE"
 prefix = "docs/architecture/evidence/"
 reason = "Frozen architecture/acceptance evidence."
