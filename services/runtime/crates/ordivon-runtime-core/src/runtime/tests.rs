@@ -2852,6 +2852,39 @@ fn simultaneous_admissions_cannot_overbook_last_global_slot() {
 }
 
 #[test]
+fn process_local_registry_write_gate_serializes_concurrent_admissions() {
+    let sandbox = Sandbox::new("process-local-write-gate", 1);
+    let registry = sandbox.registry.clone();
+    let barrier = Arc::new(Barrier::new(9));
+    let joins = (0..8)
+        .map(|index| {
+            let registry = registry.clone();
+            let barrier = barrier.clone();
+            let mut submit = request(
+                &sandbox,
+                &format!("request:process-local-write-gate:{index}"),
+                16,
+            );
+            submit.plan.workspace_id = format!("workspace:process-local-write-gate:{index}");
+            thread::spawn(move || {
+                barrier.wait();
+                registry.submit(&submit)
+            })
+        })
+        .collect::<Vec<_>>();
+    barrier.wait();
+    let results = joins
+        .into_iter()
+        .map(|join| join.join().unwrap())
+        .collect::<Vec<_>>();
+    assert!(
+        results.iter().all(Result::is_ok),
+        "process-local writers must serialize before SQLite instead of surfacing contention: {results:?}"
+    );
+    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 8);
+}
+
+#[test]
 fn busy_writer_fails_with_retryable_registry_busy() {
     let sandbox = Sandbox::new("busy", 40);
     let lock = Connection::open(&sandbox.registry.config().db_path).unwrap();
@@ -2862,6 +2895,24 @@ fn busy_writer_fails_with_retryable_registry_busy() {
         .unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::RegistryBusy);
     assert!(error.retryable);
+    lock.execute_batch("ROLLBACK").unwrap();
+}
+
+#[test]
+fn exact_replay_remains_read_only_while_external_writer_holds_sqlite() {
+    let sandbox = Sandbox::new("replay-under-external-writer", 40);
+    let submit = request(&sandbox, "request:replay-under-external-writer", 4);
+    let created = created(sandbox.registry.submit(&submit).unwrap());
+
+    let lock = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    lock.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let replay = match sandbox.registry.submit(&submit).unwrap() {
+        AdmissionOutcome::Existing { job } => job,
+        AdmissionOutcome::Created(_) => {
+            panic!("exact replay created a second Job while an external writer held SQLite")
+        }
+    };
+    assert_eq!(replay.job_id, created.job.job_id);
     lock.execute_batch("ROLLBACK").unwrap();
 }
 
@@ -5411,6 +5462,51 @@ fn reconciliation_receipts_change_only_when_the_condition_changes() {
         .unwrap();
     assert_eq!(converged_events, 1);
     assert!(!recovery_required);
+}
+
+#[test]
+fn oversized_reconciliation_event_detail_rolls_back_atomically() {
+    let sandbox = Sandbox::new("bounded-reconciliation-event-detail", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:bounded-reconciliation-event-detail",
+                1,
+            ))
+            .unwrap(),
+    );
+    let oversized = "x".repeat(super::registry::MAX_REGISTRY_INLINE_JSON_BYTES + 1);
+    let error = RuntimeError::new(
+        RuntimeErrorCode::ReconciliationRequired,
+        oversized,
+        Some("attemptId"),
+        false,
+    );
+    let failure = sandbox
+        .registry
+        .record_reconciliation_failure(&created.attempt, &error, 30)
+        .unwrap_err();
+    assert_eq!(failure.code, RuntimeErrorCode::OutputLimitExceeded);
+
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    let failed_events: u32 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM job_events WHERE attempt_id=?1 AND event_type='RECONCILIATION_FAILED'",
+            [&created.attempt.attempt_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let recovery_required: Option<bool> = connection
+        .query_row(
+            "SELECT recovery_required FROM attempts WHERE attempt_id=?1",
+            [&created.attempt.attempt_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(failed_events, 0);
+    assert_eq!(recovery_required, None);
 }
 
 #[test]

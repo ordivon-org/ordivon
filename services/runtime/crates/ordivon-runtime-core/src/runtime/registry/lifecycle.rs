@@ -8,7 +8,7 @@ impl Registry {
     ) -> RuntimeResult<AttemptRecord> {
         validate_digest(bundle_digest, "bundleDigest")?;
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "bundle-ready transaction")?;
+        let transaction = immediate(self, &mut connection, "bundle-ready transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt.state != AttemptState::Accepted || attempt.row_version != expected_row_version {
             return Err(state_conflict(
@@ -49,7 +49,7 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<AttemptRecord> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "dispatch-intent transaction")?;
+        let transaction = immediate(self, &mut connection, "dispatch-intent transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt.state != AttemptState::Accepted
             || attempt.row_version != expected_row_version
@@ -115,7 +115,7 @@ impl Registry {
     ) -> RuntimeResult<AttemptRecord> {
         validate_runner_identity(identity)?;
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "runner-bind transaction")?;
+        let transaction = immediate(self, &mut connection, "runner-bind transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         if attempt_runner_identity_matches(&attempt, identity) {
             return Ok(attempt);
@@ -192,6 +192,14 @@ impl Registry {
         let Some((owner_json, owner_digest)) = row else {
             return Ok(None);
         };
+        if owner_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::RegistryCorrupt,
+                "stored Attempt Supervisor Owner exceeds bounded Registry inline metadata limit",
+                Some("attemptSupervisorOwner"),
+                false,
+            ));
+        }
         if sha256_bytes(owner_json.as_bytes()) != owner_digest {
             return Err(RuntimeError::new(
                 RuntimeErrorCode::RegistryCorrupt,
@@ -228,10 +236,20 @@ impl Registry {
                 false,
             )
         })?;
+        if owner_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::OutputLimitExceeded,
+                format!(
+                    "Attempt Supervisor Owner exceeds bounded Registry inline metadata limit of {MAX_REGISTRY_INLINE_JSON_BYTES} bytes"
+                ),
+                Some("attemptSupervisorOwner"),
+                false,
+            ));
+        }
         let owner_digest = sha256_bytes(owner_json.as_bytes());
         let start_evidence_digest = owner.start_evidence_digest();
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "supervisor-owner bind transaction")?;
+        let transaction = immediate(self, &mut connection, "supervisor-owner bind transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let existing: Option<(String, String)> = transaction
             .query_row(
@@ -244,6 +262,14 @@ impl Registry {
                 RuntimeError::from_sql(error, "cannot inspect existing Attempt Supervisor Owner")
             })?;
         if let Some((existing_json, existing_digest)) = existing {
+            if existing_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "stored Attempt Supervisor Owner exceeds bounded Registry inline metadata limit",
+                    Some("attemptSupervisorOwner"),
+                    false,
+                ));
+            }
             if sha256_bytes(existing_json.as_bytes()) != existing_digest {
                 return Err(RuntimeError::new(
                     RuntimeErrorCode::RegistryCorrupt,
@@ -326,7 +352,7 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<AttemptRecord> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "deadline-intent transaction")?;
+        let transaction = immediate(self, &mut connection, "deadline-intent transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
         if AttemptLifecycleContract::deadline_request_is_replay(
@@ -392,7 +418,7 @@ impl Registry {
         observed_at_ms: u64,
     ) -> RuntimeResult<JobProjection> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "cancel-intent transaction")?;
+        let transaction = immediate(self, &mut connection, "cancel-intent transaction")?;
         let job = RegistryStorageBoundary::load_job(&transaction, job_id)?;
         if job.resolution.is_some() {
             if job.resolution == Some(JobResolution::Orphaned) {
@@ -626,7 +652,7 @@ impl Registry {
             ArtifactStateContract::validate_registration(artifact)?;
         }
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "terminal transaction")?;
+        let transaction = immediate(self, &mut connection, "terminal transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, &request.attempt_id)?;
         let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
         if AttemptLifecycleContract::is_terminal(attempt.state) {

@@ -1,3 +1,31 @@
+fn exact_replay_for_submit(
+    connection: &Connection,
+    request: &SubmitRequest,
+    operation_digest: &str,
+) -> RuntimeResult<Option<RuntimeJobRecord>> {
+    let existing_job_id = connection
+        .query_row(
+            "SELECT job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
+            params![request.plan.principal, request.client_request_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?;
+    let Some(existing_job_id) = existing_job_id else {
+        return Ok(None);
+    };
+    let existing = RegistryStorageBoundary::load_job(connection, &existing_job_id)?;
+    let matches = JobIdentityContract::exact_replay_matches(
+        &existing,
+        request.request_identity_digest.as_deref(),
+        operation_digest,
+    )?;
+    if !matches {
+        return Err(JobIdentityContract::idempotency_conflict());
+    }
+    Ok(Some(existing))
+}
+
 impl Registry {
     pub(super) fn find_idempotent_job(
         &self,
@@ -206,28 +234,22 @@ impl Registry {
         };
 
         let mut connection = self.open_connection()?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| RuntimeError::from_sql(error, "cannot begin admission transaction"))?;
+        if let Some(existing) = exact_replay_for_submit(&connection, request, &operation_digest)? {
+            return Ok(AdmissionOutcome::Existing {
+                job: Box::new(existing),
+            });
+        }
 
-        if let Some(existing_job_id) = transaction
-            .query_row(
-                "SELECT job_id FROM idempotency_keys WHERE principal=?1 AND client_request_id=?2",
-                params![request.plan.principal, request.client_request_id],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()
-            .map_err(|error| RuntimeError::from_sql(error, "cannot check idempotency key"))?
-        {
-            let existing = RegistryStorageBoundary::load_job(&transaction, &existing_job_id)?;
-            let matches = JobIdentityContract::exact_replay_matches(
-                &existing,
-                request.request_identity_digest.as_deref(),
-                &operation_digest,
-            )?;
-            if !matches {
-                return Err(JobIdentityContract::idempotency_conflict());
-            }
+        // New admission shares the deployment fence until its Registry transaction commits.
+        // Exact replay is checked before this boundary, so deployment cannot make a previously
+        // committed request unreplayable. The Registry write gate is intentionally acquired
+        // only after the file fence: it serializes SQLite writers, not filesystem waits.
+        let _admission_fence = self.acquire_admission_fence()?;
+        let transaction = immediate(self, &mut connection, "admission transaction")?;
+
+        // Recheck under the write transaction because another same-key admission may have
+        // committed between the projection-only replay check and this serialized writer slot.
+        if let Some(existing) = exact_replay_for_submit(&transaction, request, &operation_digest)? {
             transaction
                 .commit()
                 .map_err(|error| RuntimeError::from_sql(error, "cannot close replay transaction"))?;
@@ -235,11 +257,6 @@ impl Registry {
                 job: Box::new(existing),
             });
         }
-
-        // New admission shares the deployment fence until its Registry transaction commits.
-        // Exact replay deliberately returns above this boundary, so deployment cannot make a
-        // previously committed request unreplayable.
-        let _admission_fence = self.acquire_admission_fence()?;
 
         let workspace_active: u32 = transaction
             .query_row(
