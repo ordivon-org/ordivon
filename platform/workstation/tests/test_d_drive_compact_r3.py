@@ -44,6 +44,35 @@ def test_quiescent_requires_all_owner_native_counts_zero():
         assert not gate.is_quiescent(sample)
 
 
+def test_pause_pressure_restores_timer_when_quiesce_times_out(monkeypatch):
+    gate = load_gate()
+    calls = []
+
+    def fake_run(argv, *, timeout, check=False):
+        calls.append((tuple(argv), timeout, check))
+        return gate.subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    monotonic_values = iter((0.0, 0.0, 2.0))
+    monkeypatch.setattr(gate, "run", fake_run)
+    monkeypatch.setattr(gate, "service_state", lambda unit: "activating" if unit == gate.PRESSURE_SERVICE else "active")
+    monkeypatch.setattr(gate.time, "monotonic", lambda: next(monotonic_values))
+    monkeypatch.setattr(gate.time, "sleep", lambda _seconds: None)
+
+    try:
+        gate.pause_pressure(1.0)
+    except gate.GateFailure as exc:
+        assert exc.reason_code == "PRESSURE_RECLAIM_DID_NOT_QUIESCE"
+    else:
+        raise AssertionError("pause_pressure should fail when pressure service never quiesces")
+
+    assert calls[0][0] == ("/usr/bin/systemctl", "stop", gate.PRESSURE_TIMER)
+    assert calls[0][2] is True
+    assert calls[-2][0] == ("/usr/bin/systemctl", "start", gate.PRESSURE_TIMER)
+    assert calls[-2][2] is True
+    assert calls[-1][0] == ("/usr/bin/systemctl", "start", "--no-block", gate.PRESSURE_SERVICE)
+    assert calls[-1][2] is True
+
+
 def test_gate_has_explicit_terminal_reason_codes_and_atomic_receipts():
     text = GATE.read_text(encoding="utf-8")
     for code in (

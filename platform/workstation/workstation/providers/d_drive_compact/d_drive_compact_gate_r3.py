@@ -121,24 +121,38 @@ def service_state(unit: str) -> str:
 
 
 def restore_pressure() -> None:
-    run(["/usr/bin/systemctl", "start", PRESSURE_TIMER], timeout=15)
-    run(["/usr/bin/systemctl", "start", "--no-block", PRESSURE_SERVICE], timeout=15)
+    run(["/usr/bin/systemctl", "start", PRESSURE_TIMER], timeout=15, check=True)
+    run(["/usr/bin/systemctl", "start", "--no-block", PRESSURE_SERVICE], timeout=15, check=True)
+    timer_state = service_state(PRESSURE_TIMER)
+    if timer_state != "active":
+        raise RuntimeError(f"pressure timer did not recover: state={timer_state}")
 
 
 def pause_pressure(timeout_seconds: float) -> dict[str, Any]:
-    run(["/usr/bin/systemctl", "stop", PRESSURE_TIMER], timeout=20)
-    deadline = time.monotonic() + timeout_seconds
-    last = "unknown"
-    while time.monotonic() < deadline:
-        last = service_state(PRESSURE_SERVICE)
-        if last in {"inactive", "failed"}:
-            return {"timer": service_state(PRESSURE_TIMER), "service": last}
-        time.sleep(0.5)
-    raise GateFailure(
-        "PRESSURE_RECLAIM_DID_NOT_QUIESCE",
-        "PRESSURE_QUIESCE",
-        f"pressure service remained {last}",
-    )
+    run(["/usr/bin/systemctl", "stop", PRESSURE_TIMER], timeout=20, check=True)
+    try:
+        deadline = time.monotonic() + timeout_seconds
+        last = "unknown"
+        while time.monotonic() < deadline:
+            last = service_state(PRESSURE_SERVICE)
+            if last in {"inactive", "failed"}:
+                return {"timer": service_state(PRESSURE_TIMER), "service": last}
+            time.sleep(0.5)
+        raise GateFailure(
+            "PRESSURE_RECLAIM_DID_NOT_QUIESCE",
+            "PRESSURE_QUIESCE",
+            f"pressure service remained {last}",
+        )
+    except Exception as pause_error:
+        try:
+            restore_pressure()
+        except Exception as restore_error:
+            raise GateFailure(
+                "PRESSURE_RESTORE_FAILED",
+                "PRESSURE_QUIESCE",
+                f"pressure pause failed and timer restore failed: {restore_error}",
+            ) from pause_error
+        raise
 
 
 def status_projection() -> dict[str, Any]:
