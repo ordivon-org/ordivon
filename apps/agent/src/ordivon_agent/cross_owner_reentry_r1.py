@@ -33,7 +33,6 @@ class CrossOwnerReentryProjection:
     reference_refs: tuple[str, ...]
     harness_ref: str
     runtime_refs: tuple[str, ...]
-    provider_refs: tuple[str, ...]
     other_refs: tuple[str, ...]
     response_rehydration_required: bool
     physical_revalidation_required: bool = True
@@ -63,14 +62,14 @@ class CrossOwnerReentryProjection:
             "references": {
                 "all": list(self.reference_refs),
                 "runtime": list(self.runtime_refs),
-                "provider": list(self.provider_refs),
                 "other": list(self.other_refs),
             },
             "physicalRevalidationRequired": self.physical_revalidation_required,
             "proofBoundary": (
                 "This is navigation/correlation only. Host remains semantic continuity owner; "
-                "Harness, Runtime, Provider, Git, and domain truth must be re-read at their "
-                "natural owners before consequential action. The projection never authorizes "
+                "Harness, Runtime, Git, and domain truth must be re-read at their natural "
+                "owners before consequential action. Non-Runtime foreign references remain "
+                "opaque even when their prefix resembles an owner namespace. The projection never authorizes "
                 "effect redispatch."
             ),
         }
@@ -81,8 +80,10 @@ class CrossOwnerReentryCoordinator:
 
     The coordinator first reattaches to canonical Host Work, then opens the unique durable
     Harness Run whose callerRunRef is exactly that WorkRef. Host referenceRefs must contain
-    exactly one Harness reference matching the recovered Run. Runtime/provider references are
-    retained verbatim for later owner-native reconciliation; their state is never copied here.
+    exactly one Harness reference matching the recovered Run. Runtime references are classified
+    only because Runtime exposes an owner-native exact-reference resolver. Every other foreign
+    reference is retained verbatim and opaque; a namespace-looking prefix does not create owner
+    semantics or redispatch authority.
     """
 
     def __init__(
@@ -161,13 +162,10 @@ class CrossOwnerReentryCoordinator:
             )
 
         runtime_refs = tuple(ref for ref in refs if ref.startswith("runtime:"))
-        provider_refs = tuple(ref for ref in refs if ref.startswith("provider:"))
         other_refs = tuple(
             ref
             for ref in refs
-            if ref != expected_harness_ref
-            and not ref.startswith("runtime:")
-            and not ref.startswith("provider:")
+            if ref != expected_harness_ref and not ref.startswith("runtime:")
         )
         projection = CrossOwnerReentryProjection(
             work_ref=work_ref,
@@ -179,7 +177,6 @@ class CrossOwnerReentryCoordinator:
             reference_refs=refs,
             harness_ref=expected_harness_ref,
             runtime_refs=runtime_refs,
-            provider_refs=provider_refs,
             other_refs=other_refs,
             response_rehydration_required=plan.response_rehydration_required,
         )

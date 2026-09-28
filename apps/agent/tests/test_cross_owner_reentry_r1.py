@@ -146,14 +146,21 @@ def test_projection_composes_work_harness_and_effect_refs_without_authority_tran
         assert port.list_calls == 0
         assert projection.harness_ref == f"harness:run:{harness_run_id}"
         assert projection.runtime_refs == ("runtime:job:job-r1",)
-        assert projection.provider_refs == ("provider:effect:effect-r1",)
-        assert projection.other_refs == ("git:revision:abc123",)
+        assert projection.other_refs == (
+            "provider:effect:effect-r1",
+            "git:revision:abc123",
+        )
         assert projection.physical_revalidation_required is True
         assert projection.effect_redispatch_allowed is False
         view = projection.to_dict()
         assert view["truthRole"] == "derived-read-only-cross-owner-navigation-projection"
         assert view["continuation"]["effectRedispatchAllowed"] is False
         assert view["harness"]["callerRunRef"] == work_ref
+        assert "provider" not in view["references"]
+        assert view["references"]["other"] == [
+            "provider:effect:effect-r1",
+            "git:revision:abc123",
+        ]
 
 
 def test_mismatched_host_harness_reference_fails_closed():
