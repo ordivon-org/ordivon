@@ -27,8 +27,24 @@ from .run_view_r1 import (
     project_harness_run_view,
     project_harness_run_view_projection,
 )
+from .work_reattachment_r1 import (
+    HostWorkDiscoveryPort,
+    WorkDiscoveryNotFound,
+    WorkReattachmentCoordinator,
+    WorkReattachmentError,
+    WorkReattachmentRequest,
+    WorkReattachmentResult,
+    WorkReattachmentStanding,
+)
 
 __all__ = [
+    "WorkReattachmentStanding",
+    "WorkReattachmentResult",
+    "WorkReattachmentRequest",
+    "WorkReattachmentError",
+    "WorkReattachmentCoordinator",
+    "WorkDiscoveryNotFound",
+    "HostWorkDiscoveryPort",
     "ContinuationAction",
     "AgentContinuationPlan",
     "AttentionReplayPort",

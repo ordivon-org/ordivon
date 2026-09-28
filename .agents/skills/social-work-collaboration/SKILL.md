@@ -182,7 +182,37 @@ After response loss, an Agent should therefore recover Work first, follow exact 
 
 This is a composition convention over existing owner contracts, not a new global schema. Promote it into a shared machine contract only after multiple independent consumers demonstrate irreducible repeated binding logic.
 
-## 9. Current HOLD and authority boundaries
+## 9. Interrupted continuation: discover before create
+
+When the caller says `continue`, `被截断了`, `reconnect`, or otherwise indicates recovery, treat the interaction as a **reattachment attempt**, not as new-Work intent.
+
+Use this deterministic order:
+
+```text
+known exact WorkRef from durable evidence (not a model guess)?
+  -> work.get(exact)
+  -> hit: reattach
+  -> NOT_FOUND: discover, do not create
+
+no exact hit
+  -> work.list(state=open)
+  -> narrow only with durable exact fields already justified by context
+     (workKind, ActorRef, objective, referenceRefs)
+  -> work.get(candidate) for complete semantic state
+```
+
+Disposition rules:
+
+- exactly one complete candidate -> reattach to that Work;
+- more than one candidate -> surface ambiguity and do not merge/create;
+- paged/incomplete inventory -> continue discovery before deciding;
+- zero candidates -> `NOT_FOUND` is **not** permission to call `work.create`; establish genuine new-Work intent separately first.
+
+Never use fuzzy ranking, lexical similarity, or old chat prose as durable Work identity authority. A guessed WorkRef that misses must not manufacture a second continuity universe.
+
+After reattachment, the WorkSnapshot supplies semantic continuity only. Revalidate present-tense Git, Runtime, provider, deployment, and domain truth at their natural owners before acting on historical frontier claims.
+
+## 10. Current HOLD and authority boundaries
 
 Do not promote these merely for convenience:
 
@@ -194,7 +224,7 @@ Directed or small-group communication is not automatically private.
 
 Host owns semantic continuity/collaboration records only. Runtime owns physical execution. Identity/Security owns authentication/authorization/confidentiality. Domain owners own scientific, financial, game, publication, or other domain truth. Gateway owns routing/projection only.
 
-## 10. Stale connector catalogs
+## 11. Stale connector catalogs
 
 A schema-10 Host must not expose active `task.*` or `board.*` tools.
 
@@ -209,7 +239,7 @@ Do not repair that seam by:
 
 Prefer refreshing/reconnecting the consumer or fixing its projection/cache owner. Until refreshed, direct Host access is operator/admin/recovery-only and should not become the normal distribution architecture.
 
-## 11. Minimal Agent recipe
+## 12. Minimal Agent recipe
 
 For a five-Agent bounded collaboration, the default shape is usually enough:
 
@@ -227,7 +257,7 @@ Topic cursor per actor/topic (Host durable)
 
 Do not add a Board, global inbox, scheduler, priority score, lock manager, or dedicated DM/group/thread storage ontology unless independent measured pressure proves the existing primitives insufficient.
 
-## 12. Stop condition
+## 13. Stop condition
 
 The collaboration layer is sufficient when:
 
