@@ -8,6 +8,8 @@ BIN=/opt/claude-private/versions/2.1.274/claude
 systemctl is-active --quiet network-v2-claude-client.target
 
 # Verify the exact privacy boundary without contacting the model.
+# The quoted script is intentionally evaluated by the inner shell inside the namespace.
+# shellcheck disable=SC2016
 out=$(ip netns exec nv2-claude-client unshare --mount --uts --fork --propagation private /bin/bash -lc '
   set -euo pipefail
   P=/etc/claude-private

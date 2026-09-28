@@ -25,9 +25,9 @@ test -z "$(ip netns exec nv2-claude-client ip -4 route show default)"
 test -z "$(ip netns exec nv2-claude-client ip -6 route show default)"
 pid=$(systemctl show claude-private-oauth-browser.service -p MainPID --value)
 [[ $pid =~ ^[1-9][0-9]*$ ]]
-tr '\0' '\n' </proc/$pid/environ | grep -Fx 'TZ=UTC'
-tr '\0' ' ' </proc/$pid/cmdline | grep -F -- '--proxy-server=http://10.252.247.1:19482'
-tr '\0' ' ' </proc/$pid/cmdline | grep -F -- '--force-webrtc-ip-handling-policy=disable_non_proxied_udp'
+tr '\0' '\n' </proc/"$pid"/environ | grep -Fx 'TZ=UTC'
+tr '\0' ' ' </proc/"$pid"/cmdline | grep -F -- '--proxy-server=http://10.252.247.1:19482'
+tr '\0' ' ' </proc/"$pid"/cmdline | grep -F -- '--force-webrtc-ip-handling-policy=disable_non_proxied_udp'
 
 # Evaluate the browser-visible timezone/locale/permission state through CDP.
 ws=$(ip netns exec nv2-claude-client curl -fsS http://127.0.0.1:19990/json/list | jq -r '.[0].webSocketDebuggerUrl')

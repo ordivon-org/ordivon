@@ -7,12 +7,11 @@ import fcntl
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import signal
 import subprocess
-import sys
 import time
+from pathlib import Path
 from typing import Any
 
 RUNTIME_STATUS = "/usr/local/libexec/ordivon/ordivon-runtime-status"
@@ -32,7 +31,7 @@ ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$")
 
 
 def utc_now() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    return dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z")
 
 
 def sha256_file(path: Path) -> str:
