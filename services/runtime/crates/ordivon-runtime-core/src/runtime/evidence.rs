@@ -6,7 +6,9 @@ use super::{
     RuntimeErrorCode, RuntimeResult, TerminalCommit,
 };
 use crate::universal::{
-    sha256_bytes, sha256_file, CapturedOutput, RunnerResult, RunnerTerminalStatus,
+    sha256_bytes, sha256_file, CapturedOutput, RunnerResourceReceipt, RunnerResult,
+    RunnerTerminalStatus, RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
+    RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
 };
 
 pub(crate) const RESULT_FILE: &str = "result.json";
@@ -98,6 +100,9 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
         byte_length: u64::try_from(bytes.len()).unwrap_or(u64::MAX),
         truncated: false,
     });
+    if let Some(receipt) = validate_resource_receipt(current)? {
+        artifacts.push(receipt);
+    }
     Ok(TerminalCommit {
         attempt_id: current.attempt_id.clone(),
         expected_row_version: current.row_version,
@@ -109,6 +114,50 @@ pub(crate) fn prepare_runner_terminal_from_bundle(
         artifacts,
         reason_code: reason_code.to_string(),
     })
+}
+
+
+fn validate_resource_receipt(
+    current: &AttemptRecord,
+) -> RuntimeResult<Option<ArtifactRegistration>> {
+    let path = Path::new(&current.bundle_path).join(RESOURCE_RECEIPT_FILE);
+    let bytes = match fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(io_error("read Runner resource receipt", error)),
+    };
+    let receipt: RunnerResourceReceipt = serde_json::from_slice(&bytes).map_err(|error| {
+        RuntimeError::new(
+            RuntimeErrorCode::ResultIdentityConflict,
+            format!("invalid Runner resource receipt: {error}"),
+            Some("resourceReceipt"),
+            false,
+        )
+    })?;
+    if receipt.schema_version != RESOURCE_RECEIPT_SCHEMA_VERSION
+        || receipt.task_id != current.attempt_id
+        || receipt.job_id != current.job_id
+        || receipt.attempt_id != current.attempt_id
+        || receipt.launch_token_digest != current.launch_token_digest
+        || receipt.scope != RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP
+        || receipt.provider != RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2
+    {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::ResultIdentityConflict,
+            "Runner resource receipt identity does not match committed Attempt",
+            Some("resourceReceipt"),
+            false,
+        ));
+    }
+    Ok(Some(ArtifactRegistration {
+        artifact_id: format!("{}.resource-receipt", current.attempt_id),
+        kind: "resource_receipt".to_string(),
+        relative_path: RESOURCE_RECEIPT_FILE.to_string(),
+        digest: sha256_bytes(&bytes),
+        media_type: "application/json".to_string(),
+        byte_length: u64::try_from(bytes.len()).unwrap_or(u64::MAX),
+        truncated: false,
+    }))
 }
 
 fn validate_captured_output(
