@@ -1,7 +1,7 @@
 # Ordivon Capability Projection Fabric R1
 
 Date: 2026-09-28
-Status: **EXECUTABLE SPEC / WAVE 1 SOURCE QUALIFIED — LIVE RELEASE PENDING**
+Status: **EXECUTABLE SPEC / WAVE 1 LIVE QUALIFIED — RUNTIME OWNER AUTH EXPLICITLY DEGRADED**
 
 Machine-readable execution plan: `docs/architecture/capability-projection-fabric-lego-r1.json`.
 
@@ -433,7 +433,7 @@ CPF-01/02/10/11/12/13 are source-qualified on the isolated candidate. This is no
 - architecture constitution/docs guard + 27 repo tests: `job-01a0e653-8226-7b61-b509-0c8e1097b830` — PASS;
 - full repository CI: `job-01a0e653-d3cf-7ce0-858a-65adca212eb6` — PASS.
 
-The candidate adds one read-only public discovery primitive, `capability.search`, and advances the source Gateway package identity to `0.6.0` / MCP surface epoch `3`. Live Gateway remains `0.5.0` until the normal release path independently promotes and verifies the candidate.
+The candidate adds one read-only public discovery primitive, `capability.search`, and advances the source Gateway package identity to `0.6.0` / MCP surface epoch `3`. The historical source-qualification receipt preceded live promotion; live public Gateway was subsequently promoted and independently verified at `0.6.0` as recorded below.
 
 ## 22. CPF-21 trusted-admission transport finding
 
@@ -461,3 +461,13 @@ A custom shared Provider Discovery SDK is **not admitted**. Both independent pro
 The existing local n8n 2.36.7 integration edge exposes the provider-native instance MCP endpoint at `http://127.0.0.1:5678/mcp-server/http`; an unauthenticated probe returns `401 Unauthorized` and provider-native OAuth metadata. No OAuth client/access-token row existed at the bounded census, and no credential bytes were read. The instance therefore needs a provider-native OAuth/API-token grant before Ordivon can perform authenticated `tools/list`; the Capability Fabric must not manufacture or extract a token from n8n persistence.
 
 The same census found all three rootless n8n Quadlet units inactive with no failed unit and no listener on port 5678. A reversible `systemctl --user start ordivon-n8n-pod.service` restored `/healthz/readiness` to `{"status":"ok"}`. This is a Workstation integration-service liveness/autostart gap, not a Gateway capability truth. It must be owned and repaired separately rather than hidden inside Provider Discovery.
+
+## 25. Gateway 0.6 live public-carrier receipt
+
+Wave 1 is now live on the canonical public Windows Gateway R2 carrier. The deployed immutable release is `d91d63b70da5fa1c02a7b1a136c651649f62bd75`; its `services/gateway` tree is byte-identical at Git tree identity to canonical main at the promotion census, package version is `0.6.0`, MCP surface epoch is `3`, and the release manifest declares 29 tools including `capability.search`.
+
+Credential authority remains intentionally separate. Because approved node-local Linux/Windows Runtime bearer materialization is still HUMAN_REQUIRED/platform-safety-blocked, the R2 service was rematerialized with both Runtime URLs explicitly empty rather than continuing unauthenticated owner calls. Host routing, Cloudflare Access, automatic SCM lifecycle, and the public origin were preserved. Public `system.describe` now reports both Runtime owners `configured=false`; public `capability.describe` reports `owner endpoint is not configured` instead of the prior misleading `ExceptionGroup`, while direct Linux and Windows Runtime owners remain independently `available=true`. Host schema-9 integrity remained healthy through the new carrier.
+
+A controlled SCM restart reconverged the same `d91` release to `Running/Auto` and loopback health `ok`. Evidence: `docs/architecture/evidence/GATEWAY_06_LIVE_PUBLIC_CARRIER_ACCEPTANCE_R1.json`.
+
+The currently established ChatGPT connector session still enumerated 28 tools after the live release even though Gateway's epoch-3 manifest contains 29. `system.describe` through that same connector already read back Gateway `0.6.0`, so this is classified as **consumer catalog currentness**: the connector must refresh/reconnect and rediscover `tools/list` before this session can invoke `capability.search`. It is not repaired by weakening Gateway boundaries or resurrecting compatibility aliases.

@@ -8,7 +8,11 @@
     "protocol": "MCP",
     "endpoint": "https://gateway-mcp.ordivon.com/mcp",
     "authoritative": false,
-    "directRuntimeHostAreDefault": false
+    "directRuntimeHostAreDefault": false,
+    "gatewayVersion": "0.6.0",
+    "surfaceEpoch": 3,
+    "declaredToolCount": 29,
+    "sourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75"
   },
   "routers": {
     "methodRouter": {
@@ -158,9 +162,9 @@
       "host.status"
     ],
     "connectorCatalogOwner": "mcp-client-connector",
-    "currentConsumerStanding": "current-schema9-surface-observed-20260928",
+    "currentConsumerStanding": "schema9-owner-surface-usable-current-chat-tool-catalog-stale-28-vs-29-refresh-required",
     "uxProjectionStanding": "Work/Social/Attention owner tools projected directly through Gateway; no Task/Board compatibility surface",
-    "serverStanding": "LIVE_GATEWAY_0_5_0_SCHEMA9_PROJECTED",
+    "serverStanding": "LIVE_GATEWAY_0_6_0_SCHEMA9_PROJECTED",
     "deploymentEvidence": {
       "hostRelease": "08c3099daa897a5da585918b3e6623aa90ddbc08",
       "hostDoctor": "healthy-schema-9",
@@ -171,12 +175,17 @@
     "status": "public-carrier-degraded-owner-auth-not-configured",
     "observedDate": "2026-09-28",
     "publicCarrier": "windows-gateway-r2",
-    "publicCarrierSourceCommit": "e130f68addd3143697c0e2a1cb2bc6070d69980e",
+    "publicCarrierSourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
     "linuxRuntimeOwnerAvailable": true,
     "windowsRuntimeOwnerAvailable": true,
     "linuxOwnerCredentialConfigured": false,
     "windowsOwnerCredentialConfigured": false,
     "truthBoundary": "Runtime owners remain authoritative for their own availability; this is only the public Gateway owner-authentication realization projection.",
-    "requiredRecovery": "materialize owner credentials only through the explicit node-local credential authority, then rematerialize/activate the Gateway service and requalify capability.describe"
+    "requiredRecovery": "materialize owner credentials only through the explicit node-local credential authority, then rematerialize/activate the Gateway service and requalify capability.describe",
+    "publicCarrierGatewayVersion": "0.6.0",
+    "linuxRuntimeUrlConfigured": false,
+    "windowsRuntimeUrlConfigured": false,
+    "publicProjectionStanding": "runtime-owners-explicitly-configured-false-owner-endpoint-not-configured",
+    "liveReleaseEvidence": "docs/architecture/evidence/GATEWAY_06_LIVE_PUBLIC_CARRIER_ACCEPTANCE_R1.json"
   }
 }
