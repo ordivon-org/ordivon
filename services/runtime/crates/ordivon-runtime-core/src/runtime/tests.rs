@@ -367,6 +367,42 @@ fn created(outcome: AdmissionOutcome) -> CreatedAdmission {
     }
 }
 
+#[test]
+fn startup_grace_uses_durable_dispatch_issue_time_not_attempt_creation() {
+    let sandbox = Sandbox::new("dispatch-startup-grace-anchor", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:dispatch-startup-grace-anchor",
+                1,
+            ))
+            .unwrap(),
+    );
+    let ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"bundle"),
+            50_000,
+        )
+        .unwrap();
+    let dispatched = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 60_000)
+        .unwrap();
+
+    assert_eq!(
+        sandbox
+            .registry
+            .dispatch_issued_at_ms(&dispatched.attempt_id)
+            .unwrap(),
+        60_000
+    );
+}
+
 fn running_attempt_for_commit_fault(sandbox: &Sandbox, client_request_id: &str) -> AttemptRecord {
     let created = created(
         sandbox

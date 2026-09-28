@@ -952,7 +952,10 @@ impl Runtime {
                         }
                         return Ok(());
                     }
-                    let age_ms = now_ms()?.saturating_sub(current.created_at_ms);
+                    let dispatch_issued_at_ms = self
+                        .registry
+                        .dispatch_issued_at_ms(&current.attempt_id)?;
+                    let age_ms = now_ms()?.saturating_sub(dispatch_issued_at_ms);
                     if age_ms < self.startup_grace_ms {
                         return Ok(());
                     }
@@ -984,7 +987,10 @@ impl Runtime {
         let properties = systemctl_show(&attempt.unit_name)?;
         let active = unit_is_active(&properties);
         let pending_manager_job = unit_has_pending_job(&properties);
-        let age_ms = now_ms()?.saturating_sub(attempt.created_at_ms);
+        let dispatch_issued_at_ms = self
+            .registry
+            .dispatch_issued_at_ms(&attempt.attempt_id)?;
+        let age_ms = now_ms()?.saturating_sub(dispatch_issued_at_ms);
         // `systemd-run --no-block` returns after the start request is verified and
         // enqueued, not after startup completes. A manager Job therefore proves that
         // the dispatch outcome is still pending even if the unit is currently inactive
@@ -1171,7 +1177,10 @@ impl Runtime {
             // turn this ambiguity into a no-effect/redrive-safe terminal standing.
             return Err(native_windows_pre_target_evidence_gap());
         }
-        let age_ms = now_ms()?.saturating_sub(attempt.created_at_ms);
+        let dispatch_issued_at_ms = self
+            .registry
+            .dispatch_issued_at_ms(&attempt.attempt_id)?;
+        let age_ms = now_ms()?.saturating_sub(dispatch_issued_at_ms);
         if age_ms < self.startup_grace_ms {
             return Ok(());
         }
