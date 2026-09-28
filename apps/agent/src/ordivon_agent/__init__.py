@@ -1,5 +1,11 @@
 """Product-side composition for bounded Ordivon Agent Runs."""
 
+from .continuation_r1 import (
+    AgentContinuationCoordinator,
+    AgentContinuationError,
+    AgentContinuationPlan,
+    ContinuationAction,
+)
 from .harness_lowering_r1 import (
     AgentRunLoweringError,
     compile_no_tool_harness_binding,
@@ -22,6 +28,10 @@ from .run_view_r1 import (
 )
 
 __all__ = [
+    "ContinuationAction",
+    "AgentContinuationPlan",
+    "AgentContinuationError",
+    "AgentContinuationCoordinator",
     "AgentRunViewError",
     "ResponseContinuityError",
     "ResponseContinuityReceipt",
