@@ -434,3 +434,30 @@ CPF-01/02/10/11/12/13 are source-qualified on the isolated candidate. This is no
 - full repository CI: `job-01a0e653-d3cf-7ce0-858a-65adca212eb6` — PASS.
 
 The candidate adds one read-only public discovery primitive, `capability.search`, and advances the source Gateway package identity to `0.6.0` / MCP surface epoch `3`. Live Gateway remains `0.5.0` until the normal release path independently promotes and verifies the candidate.
+
+## 22. CPF-21 trusted-admission transport finding
+
+Security already owns and tests `gateway-capability-authz-v1`; `artifact.runtime` remains its sole R1 qualification target. Gateway also already has a trusted ingress Principal in MCP request state. The remaining A03/CPF-21 gap is narrower: there is no production transport from a trusted Security/Grant adapter that supplies normalized Agent/Grant/Effect admission evidence to the Gateway PEP.
+
+R1 therefore **must not** add `agentAdmission` as an ordinary caller-authored MCP argument or `_meta` object. Either would let the caller supply the evidence that authorizes the caller. CPF-21 remains blocked until a mature trusted evidence carrier/issuer is selected by a real consumer. The MCP middleware layer is a valid PEP location because it can read verified request state, but PEP location does not solve evidence provenance.
+
+## 23. CPF-30/31 external MCP discovery canaries
+
+Two independent remote MCP providers were qualified using the already-adopted official MCP v2 Client and Streamable HTTP auto negotiation. No provider tool was invoked.
+
+1. n8n Docs MCP, `https://docs.n8n.io/~gitbook/mcp`: server `n8n Docs MCP Server` / `0.27.2`, three tools. Its provider-native annotations identify `searchDocumentation` and `getPage` as read-only/idempotent while `sendFeedback` is not read-only and not idempotent. This physically demonstrates that a server-level label such as “docs” or “read-only provider” cannot be promoted into per-tool effect truth.
+2. Cloudflare Docs MCP, `https://docs.mcp.cloudflare.com/mcp`: server `docs-ai-search` / `0.4.13`, two tools, both provider-annotated read-only.
+
+Evidence: `docs/architecture/evidence/CAPABILITY_EXTERNAL_MCP_DISCOVERY_CANARIES_R1.json`.
+
+### CPF-32 abstraction-admission decision
+
+Both providers were then exercised through one provider-declared read-only search tool using the same official MCP Client (`job-01a0e662-7e34-7083-8474-6d30162186cd`); both calls completed without error. This qualifies direct read execution in addition to discovery, while making no claim about effectful tools or authenticated account APIs.
+
+A custom shared Provider Discovery SDK is **not admitted**. Both independent providers were handled by the official MCP Client without provider-specific code. Ordivon should consume standard MCP discovery directly and add only its irreducible projection/authority/evidence semantics when a concrete Gateway/Harness consumer needs them. For these documentation canaries, direct MCP remains preferred because Gateway adds no irreducible value.
+
+## 24. Local n8n credential and liveness boundary
+
+The existing local n8n 2.36.7 integration edge exposes the provider-native instance MCP endpoint at `http://127.0.0.1:5678/mcp-server/http`; an unauthenticated probe returns `401 Unauthorized` and provider-native OAuth metadata. No OAuth client/access-token row existed at the bounded census, and no credential bytes were read. The instance therefore needs a provider-native OAuth/API-token grant before Ordivon can perform authenticated `tools/list`; the Capability Fabric must not manufacture or extract a token from n8n persistence.
+
+The same census found all three rootless n8n Quadlet units inactive with no failed unit and no listener on port 5678. A reversible `systemctl --user start ordivon-n8n-pod.service` restored `/healthz/readiness` to `{"status":"ok"}`. This is a Workstation integration-service liveness/autostart gap, not a Gateway capability truth. It must be owned and repaired separately rather than hidden inside Provider Discovery.

@@ -151,7 +151,8 @@
       "dependsOn": [
         "CPF-13"
       ],
-      "standing": "open-existing-debt"
+      "standing": "blocked-trusted-agent-admission-evidence-transport-open",
+      "blocker": "Security gateway-capability-authz-v1 is qualified for artifact.runtime and Gateway has a trusted ingress Principal, but no production transport currently carries trusted normalized Agent/Grant/Effect admission evidence to the Gateway PEP. Caller-authored MCP arguments or _meta are not accepted substitutes."
     },
     {
       "id": "CPF-22",
@@ -175,7 +176,8 @@
         "CPF-15",
         "CPF-21"
       ],
-      "standing": "planned"
+      "standing": "qualified-direct-external-mcp-discovery-and-read-canary",
+      "evidenceRef": "docs/architecture/evidence/CAPABILITY_EXTERNAL_MCP_DISCOVERY_CANARIES_R1.json#n8n-docs"
     },
     {
       "id": "CPF-31",
@@ -186,7 +188,8 @@
       "dependsOn": [
         "CPF-30"
       ],
-      "standing": "planned"
+      "standing": "qualified-direct-external-mcp-discovery-and-read-canary",
+      "evidenceRef": "docs/architecture/evidence/CAPABILITY_EXTERNAL_MCP_DISCOVERY_CANARIES_R1.json#cloudflare-docs"
     },
     {
       "id": "CPF-32",
@@ -197,7 +200,8 @@
       "dependsOn": [
         "CPF-31"
       ],
-      "standing": "gated"
+      "standing": "resolved-no-new-provider-discovery-sdk",
+      "decision": "Do not add a shared custom Provider Discovery SDK now. Two independent remote MCP providers were discovered by the existing official MCP v2 Client without provider-specific code. Future Gateway projection may compose that client directly when an irreducible projection consumer appears."
     },
     {
       "id": "CPF-33",
@@ -294,6 +298,14 @@
     "architectureGuardJob": "job-01a0e653-8226-7b61-b509-0c8e1097b830",
     "repositoryCiJob": "job-01a0e653-d3cf-7ce0-858a-65adca212eb6",
     "liveReleasePromoted": false,
-    "truthBoundary": "Source qualification proves candidate source/tests only; live Gateway remains separately owner-observed until release acceptance."
+    "truthBoundary": "Source qualification proves candidate source/tests only; live Gateway remains separately owner-observed until release acceptance.",
+    "externalDiscoveryCanaries": {
+      "standing": "TWO_DIRECT_REMOTE_MCP_DISCOVERY_CANARIES_PASS",
+      "n8nDocsRuntimeJob": "job-01a0e65f-a61b-7c13-8797-d87d3e76df80",
+      "n8nAnnotationsRuntimeJob": "job-01a0e660-00de-7043-886a-2e49e0796846",
+      "cloudflareDocsRuntimeJob": "job-01a0e660-b716-7972-92ff-455077b31679",
+      "sharedDiscoveryAbstractionDecision": "REJECT_CUSTOM_WRAPPER_USE_OFFICIAL_MCP_CLIENT",
+      "readOnlyExecutionRuntimeJob": "job-01a0e662-7e34-7083-8474-6d30162186cd"
+    }
   }
 }
