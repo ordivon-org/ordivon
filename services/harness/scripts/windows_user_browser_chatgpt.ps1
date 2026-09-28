@@ -107,6 +107,65 @@ function Get-EditById($Root,[string]$AutomationId) {
     return $Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$cond)
 }
 
+function Get-WebRoot($Root) {
+    return Get-EditById $Root 'RootWebArea'
+}
+
+function Get-ElementKey($Element) {
+    if($null -eq $Element){return $null}
+    try{return (@($Element.GetRuntimeId()) -join '.')}catch{return $null}
+}
+
+function Get-Composer($Root) {
+    $legacy=Get-EditById $Root 'prompt-textarea'
+    if($null -ne $legacy -and $legacy.Current.IsEnabled -and $legacy.Current.IsKeyboardFocusable){return $legacy}
+    $web=Get-WebRoot $Root
+    if($null -eq $web){return $null}
+    $cond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Edit)
+    $edits=$web.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cond)
+    $usable=New-Object System.Collections.Generic.List[object]
+    for($i=0;$i -lt $edits.Count;$i++){
+        $candidate=$edits.Item($i)
+        if(-not $candidate.Current.IsEnabled -or -not $candidate.Current.IsKeyboardFocusable){continue}
+        $pattern=$null
+        if($candidate.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){$usable.Add($candidate)}
+    }
+    if($usable.Count -eq 1){return $usable[0]}
+    return $null
+}
+
+function Get-ChatGptPageState($Root) {
+    $names=Read-AllNames $Root
+    if($names -match '(?i)ERR_PROXY_CONNECTION_FAILED|ERR_TUNNEL_CONNECTION_FAILED|ERR_CONNECTION_REFUSED'){
+        return [pscustomobject]@{Standing='NETWORK_UNAVAILABLE';Composer=$null;Detail='provider proxy/network error page observed'}
+    }
+    if($names -match '(?i)cloudflare|just a moment|security check|verify you are human'){
+        return [pscustomobject]@{Standing='CHALLENGE_GATED';Composer=$null;Detail='provider challenge observed before effect'}
+    }
+    $composer=Get-Composer $Root
+    if($null -ne $composer){
+        return [pscustomobject]@{Standing='READY';Composer=$composer;Detail='authenticated ChatGPT composer available'}
+    }
+    if($names -match '(?i)log in|sign up'){
+        return [pscustomobject]@{Standing='AUTH_REQUIRED';Composer=$null;Detail='ChatGPT authentication required'}
+    }
+    return [pscustomobject]@{Standing='WAIT';Composer=$null;Detail='ChatGPT page not yet ready'}
+}
+
+function Wait-ForChatGptPage($Browser,[int]$Seconds=75) {
+    $deadline=(Get-Date).AddSeconds($Seconds)
+    while((Get-Date) -lt $deadline){
+        $root=Get-Root $Browser
+        $state=Get-ChatGptPageState $root
+        if($state.Standing -ne 'WAIT'){
+            return [pscustomobject]@{Standing=$state.Standing;Composer=$state.Composer;Root=$root;Detail=$state.Detail}
+        }
+        Start-Sleep -Milliseconds 750
+    }
+    return [pscustomobject]@{Standing='TIMEOUT';Composer=$null;Root=(Get-Root $Browser);Detail='ChatGPT composer readiness deadline exceeded'}
+}
+
 function Read-AllNames($Root) {
     $all=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
     $values=New-Object System.Collections.Generic.List[string]
@@ -173,7 +232,54 @@ function Get-UploadControl($Root) {
         if($id -match '(?i)composer-plus'){$score+=10}
         if($score -gt $bestScore){$best=$item;$bestScore=$score}
     }
-    return $best
+    if($null -ne $best){return $best}
+    $web=Get-WebRoot $Root
+    $composer=Get-Composer $Root
+    if($null -eq $web -or $null -eq $composer){return $null}
+    $composerKey=Get-ElementKey $composer
+    if([string]::IsNullOrWhiteSpace($composerKey)){return $null}
+    $webAll=$web.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+    $index=-1
+    for($i=0;$i -lt [Math]::Min($webAll.Count,6000);$i++){if((Get-ElementKey $webAll.Item($i)) -eq $composerKey){$index=$i;break}}
+    if($index -lt 0){return $null}
+    $cr=$composer.Current.BoundingRectangle
+    for($i=$index-1;$i -ge [Math]::Max(0,$index-12);$i--){
+        $candidate=$webAll.Item($i)
+        if($candidate.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
+        if(-not $candidate.Current.IsEnabled){continue}
+        $br=$candidate.Current.BoundingRectangle
+        if($br.Width -le 0 -or $br.Height -le 0){continue}
+        $dy=[Math]::Abs(($br.Y+$br.Height/2)-($cr.Y+$cr.Height/2))
+        if($dy -le [Math]::Max(90,$cr.Height*2) -and $br.X -le ($cr.X+40)){return $candidate}
+    }
+    return $null
+}
+
+function Get-SendControl($Root,$Composer) {
+    $buttonCond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button)
+    $buttons=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$buttonCond)
+    for($i=0;$i -lt $buttons.Count;$i++){
+        $b=$buttons.Item($i)
+        $id=[string]$b.Current.AutomationId
+        $name=[string]$b.Current.Name
+        if($id -eq 'composer-submit-button' -or $name -match '(?i)^send|send prompt|submit'){return $b}
+    }
+    if($null -eq $Composer){return $null}
+    $cr=$Composer.Current.BoundingRectangle
+    $candidate=$null
+    $right=-1.0
+    for($i=0;$i -lt $buttons.Count;$i++){
+        $b=$buttons.Item($i)
+        if(-not $b.Current.IsEnabled){continue}
+        $br=$b.Current.BoundingRectangle
+        if($br.Width -le 0 -or $br.Height -le 0){continue}
+        $dy=[Math]::Abs(($br.Y+$br.Height/2)-($cr.Y+$cr.Height/2))
+        if($dy -gt [Math]::Max(90,$cr.Height*2)){continue}
+        if($br.X -lt ($cr.X+$cr.Width*0.55)){continue}
+        if($br.X -gt $right){$candidate=$b;$right=$br.X}
+    }
+    return $candidate
 }
 
 function Get-FileDialog() {
@@ -185,6 +291,9 @@ function Get-FileDialog() {
         $window=$windows.Item($i)
         $name=[string]$window.Current.Name
         if($name -match '(?i)^open$|choose.*file|select.*file|file upload'){ return $window }
+        $fileEdit=Get-EditById $window '1148'
+        $openButton=Get-EditById $window '1'
+        if($null -ne $fileEdit -and $null -ne $openButton){return $window}
     }
     return $null
 }
@@ -376,14 +485,12 @@ if($Mode -eq 'classify'){
         for($i=0;$i -lt $items.Count;$i++){ if(([string]$items.Item($i).Current.Name) -like 'https://chatgpt.com*'){$choice=$items.Item($i);break} }
         if($null -eq $choice){ Emit-Classification 'UNKNOWN' 'ChatGPT navigation choice unavailable'; exit 0 }
         $choice.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-        Start-Sleep -Seconds 8
-        $root=Get-Root $browser
-        $names=Read-AllNames $root
-        if($names -match '(?i)cloudflare|just a moment|security check|verify you are human'){ Emit-Classification 'CHALLENGE_GATED' 'provider challenge observed before effect'; exit 0 }
-        $composer=Get-EditById $root 'prompt-textarea'
-        if($null -ne $composer){ Emit-Classification 'READY' 'authenticated ChatGPT composer available'; exit 0 }
-        if($names -match '(?i)log in|sign up'){ Emit-Classification 'AUTH_REQUIRED' 'ChatGPT authentication required'; exit 0 }
-        Emit-Classification 'UNKNOWN' 'ChatGPT page reached without composer or explicit authentication/challenge signal'
+        $page=Wait-ForChatGptPage $browser 75
+        if($page.Standing -eq 'READY'){Emit-Classification 'READY' $page.Detail;exit 0}
+        if($page.Standing -eq 'CHALLENGE_GATED'){Emit-Classification 'CHALLENGE_GATED' $page.Detail;exit 0}
+        if($page.Standing -eq 'AUTH_REQUIRED'){Emit-Classification 'AUTH_REQUIRED' $page.Detail;exit 0}
+        if($page.Standing -eq 'NETWORK_UNAVAILABLE'){Emit-Classification 'UNKNOWN' $page.Detail;exit 0}
+        Emit-Classification 'UNKNOWN' $page.Detail
     } catch {
         $detail=('classification '+$_.Exception.GetType().Name+': '+$_.Exception.Message)
         if($detail.Length -gt 800){$detail=$detail.Substring(0,800)}
@@ -498,27 +605,26 @@ try {
         exit 0
     }
     $choice.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-    Start-Sleep -Seconds 8
-    $root=Get-Root $browser
-    $names=Read-AllNames $root
-    if($names -match '(?i)cloudflare|just a moment|security check|verify you are human'){
-        Emit-Receipt 'pre-effect-failed' $null 'provider-boundary:CHALLENGE_GATED' $false 'challenge-gated'
-        exit 0
+    $page=Wait-ForChatGptPage $browser 75
+    $root=$page.Root
+    $composer=$page.Composer
+    if($page.Standing -eq 'CHALLENGE_GATED'){
+        Emit-Receipt 'pre-effect-failed' $null 'provider-boundary:CHALLENGE_GATED' $false 'challenge-gated';exit 0
     }
-    $composer=Get-EditById $root 'prompt-textarea'
-    if($null -eq $composer){
-        if($names -match '(?i)log in|sign up'){
-            Emit-Receipt 'human-required' $null 'provider-boundary:AUTH_REQUIRED' $false 'auth-required'
-        } else {
-            Emit-Receipt 'pre-effect-failed' $null 'user-browser:composer-unavailable' $false 'composer-unavailable'
-        }
-        exit 0
+    if($page.Standing -eq 'AUTH_REQUIRED'){
+        Emit-Receipt 'human-required' $null 'provider-boundary:AUTH_REQUIRED' $false 'auth-required';exit 0
+    }
+    if($page.Standing -eq 'NETWORK_UNAVAILABLE'){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:provider-network-unavailable' $false 'provider-network-unavailable';exit 0
+    }
+    if($page.Standing -ne 'READY' -or $null -eq $composer){
+        Emit-Receipt 'pre-effect-failed' $null 'user-browser:composer-readiness-timeout' $false 'composer-readiness-timeout';exit 0
     }
     if($null -ne $attachments){
         foreach($attachment in $attachments){
             Upload-ExactAttachment $browser $root ([string]$attachment.resolvedPath) ([string]$attachment.presentationName)
             $root=Get-Root $browser
-            $composer=Get-EditById $root 'prompt-textarea'
+            $composer=Get-Composer $root
             if($null -eq $composer){throw 'composer unavailable after attachment upload'}
         }
     }
@@ -526,16 +632,7 @@ try {
     $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($prompt)
     Start-Sleep -Milliseconds 700
     $root=Get-Root $browser
-    $buttonCond=[System.Windows.Automation.PropertyCondition]::new(
-        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button)
-    $buttons=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$buttonCond)
-    $send=$null
-    for($i=0;$i -lt $buttons.Count;$i++){
-        $b=$buttons.Item($i)
-        $id=[string]$b.Current.AutomationId
-        $name=[string]$b.Current.Name
-        if($id -eq 'composer-submit-button' -or $name -match '(?i)^send|send prompt|submit'){$send=$b;break}
-    }
+    $send=Get-SendControl $root $composer
     if($null -eq $send){
         $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('')
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:send-control-unavailable' $false 'send-unavailable'
@@ -551,7 +648,7 @@ try {
         $root=Get-Root $browser
         $url=Get-AddressValue $root
         $resource=Get-CanonicalChatResource $url
-        $current=Get-EditById $root 'prompt-textarea'
+        $current=Get-Composer $root
         if($null -ne $current){
             try {
                 $v=$current.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)

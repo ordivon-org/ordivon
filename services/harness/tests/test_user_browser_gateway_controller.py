@@ -350,3 +350,24 @@ def test_reconcile_recovers_successful_prior_materialize_bound_receipt_without_e
     assert result['providerResource'] == 'https://chatgpt.com/c/exact-bound-conversation'
     assert len(port.resolved_requests) == 1
     assert port.requests == []
+
+
+def test_windows_driver_has_structural_chatgpt_readiness_and_localization_independent_fallbacks():
+    script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
+    assert 'function Get-Composer' in script
+    assert "Get-EditById $Root 'prompt-textarea'" in script  # legacy fast path only
+    assert "Get-EditById $Root 'RootWebArea'" in script
+    assert '[System.Windows.Automation.ControlType]::Edit' in script
+    assert 'TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern' in script
+    assert 'if($usable.Count -eq 1){return $usable[0]}' in script
+    assert 'function Wait-ForChatGptPage' in script
+    assert "Start-Sleep -Milliseconds 750" in script
+    assert 'ERR_PROXY_CONNECTION_FAILED' in script
+    assert "Standing='NETWORK_UNAVAILABLE'" in script
+    assert 'function Get-SendControl' in script
+    assert 'function Get-UploadControl' in script
+    assert "Get-EditById $window '1148'" in script
+    assert "Get-EditById $window '1'" in script
+    # Provider-side challenge handling stays fail-closed and is never activated.
+    assert "Standing='CHALLENGE_GATED'" in script
+    assert 'verify you are human".invoke' not in script.lower()
