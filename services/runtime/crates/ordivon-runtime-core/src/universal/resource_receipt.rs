@@ -9,6 +9,8 @@ use super::{UniversalExecError, UniversalExecErrorCode};
 
 pub(crate) const RESOURCE_RECEIPT_FILE: &str = "resource-receipt.json";
 pub(crate) const RESOURCE_RECEIPT_SCHEMA_VERSION: u32 = 1;
+/// Terminal pre-result snapshot of the Attempt cgroup. Includes Runner overhead and descendants
+/// observed up to sampling, but not post-sampling result serialization/write or Runner teardown.
 pub(crate) const RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP: &str = "attempt_cgroup_including_runner";
 pub(crate) const RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2: &str = "linux_cgroup_v2";
 

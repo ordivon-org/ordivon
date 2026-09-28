@@ -279,7 +279,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert_eq!(listed.jobs[0].client_request_id, request.client_request_id);
     assert_eq!(listed.jobs[0].workspace_id, workspace_id);
     assert_eq!(listed.jobs[0].executable_name, "python3.14");
-    assert_eq!(listed.jobs[0].artifact_count, 4);
+    assert_eq!(listed.jobs[0].artifact_count, 5);
     let artifacts = runtime.registry().list_artifacts(&first.job_id).unwrap();
     let artifact_kinds = artifacts
         .iter()
@@ -289,11 +289,35 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         artifact_kinds,
         std::collections::BTreeSet::from([
             "execution_result",
+            "resource_receipt",
             "stderr",
             "stdout",
             "terminal_evidence",
         ])
     );
+    let resource_receipt = artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "resource_receipt")
+        .unwrap();
+    let receipt = runtime
+        .read_artifact(&ArtifactReadRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: resource_receipt.artifact_id.clone(),
+            offset: 0,
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    let receipt: serde_json::Value = serde_json::from_str(&receipt.content).unwrap();
+    assert_eq!(receipt["schemaVersion"], 1);
+    assert_eq!(receipt["jobId"], first.job_id);
+    assert_eq!(receipt["attemptId"], first.attempt_id.as_deref().unwrap());
+    assert_eq!(receipt["scope"], "attempt_cgroup_including_runner");
+    assert_eq!(receipt["provider"], "linux_cgroup_v2");
+    assert!(receipt["cpu"]["usageUsec"].as_u64().is_some_and(|value| value > 0));
+    assert!(receipt["memory"]["peakBytes"].as_u64().is_some_and(|value| value > 0));
+    assert!(receipt["io"]["readBytes"].as_u64().is_some());
+    assert!(receipt["io"]["writeBytes"].as_u64().is_some());
     let stdout = artifacts
         .iter()
         .find(|artifact| artifact.kind == "stdout")
