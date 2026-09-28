@@ -4,6 +4,7 @@ from .continuation_r1 import (
     AgentContinuationCoordinator,
     AgentContinuationError,
     AgentContinuationPlan,
+    AttentionReplayPort,
     ContinuationAction,
 )
 from .harness_lowering_r1 import (
@@ -30,6 +31,7 @@ from .run_view_r1 import (
 __all__ = [
     "ContinuationAction",
     "AgentContinuationPlan",
+    "AttentionReplayPort",
     "AgentContinuationError",
     "AgentContinuationCoordinator",
     "AgentRunViewError",

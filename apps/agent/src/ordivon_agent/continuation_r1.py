@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from ordivon_harness.api import HarnessAgentRun
 
@@ -16,6 +16,18 @@ from .response_continuity_r1 import (
 
 class AgentContinuationError(RuntimeError):
     pass
+
+
+class AttentionReplayPort(Protocol):
+    """Read-only replay of Host/Gateway-owned Attention history."""
+
+    def replay(
+        self,
+        actor_ref: str,
+        *,
+        after_sequence: int,
+        through_sequence: int,
+    ) -> tuple[dict[str, Any], ...]: ...
 
 
 class ContinuationAction(StrEnum):
@@ -35,6 +47,9 @@ class AgentContinuationPlan:
     run_revision: int
     native_status: str
     latest_response: ResponseContinuityReceipt | None
+    confirmed_attention_sequence: int
+    observed_attention_sequence: int
+    unpresented_attention: tuple[dict[str, Any], ...]
     recovery_status: dict[str, Any]
     response_rehydration_required: bool
 
@@ -73,7 +88,13 @@ class AgentContinuationCoordinator:
             **run_open_kwargs,
         )
 
-    def inspect(self, run: HarnessAgentRun) -> AgentContinuationPlan:
+    def inspect(
+        self,
+        run: HarnessAgentRun,
+        *,
+        attention_actor_ref: str | None = None,
+        attention_replay: AttentionReplayPort | None = None,
+    ) -> AgentContinuationPlan:
         recovery = dict(run.recovery_status())
         caller_id = self._text(recovery.get("callerId"), "callerId")
         caller_run_ref = self._text(recovery.get("callerRunRef"), "callerRunRef")
@@ -94,6 +115,40 @@ class AgentContinuationCoordinator:
                 raise AgentContinuationError(
                     "response continuity references a future Harness Run revision"
                 )
+
+        confirmed_attention = self.responses.confirmed_presentation_watermark(
+            caller_id, caller_run_ref
+        )
+        observed_attention = (
+            confirmed_attention if latest is None else latest.observed_attention_sequence
+        )
+        if observed_attention < confirmed_attention:
+            raise AgentContinuationError(
+                "latest response observed Attention precedes confirmed presentation watermark"
+            )
+        if (attention_actor_ref is None) != (attention_replay is None):
+            raise AgentContinuationError(
+                "Attention presentation recovery requires both actor reference and replay port"
+            )
+        replayed: tuple[dict[str, Any], ...] = ()
+        if (
+            attention_actor_ref is not None
+            and attention_replay is not None
+            and confirmed_attention < observed_attention
+        ):
+            replayed = attention_replay.replay(
+                attention_actor_ref,
+                after_sequence=confirmed_attention,
+                through_sequence=observed_attention,
+            )
+            previous = confirmed_attention
+            for event in replayed:
+                sequence = event.get("sequence")
+                if type(sequence) is not int or not (previous < sequence <= observed_attention):
+                    raise AgentContinuationError(
+                        "Attention replay returned an out-of-range or unordered event"
+                    )
+                previous = sequence
 
         response_unconfirmed = (
             latest is not None and latest.state is not ResponseDeliveryState.CONFIRMED
@@ -124,6 +179,9 @@ class AgentContinuationCoordinator:
             run_revision=run_revision,
             native_status=native_status,
             latest_response=latest,
+            confirmed_attention_sequence=confirmed_attention,
+            observed_attention_sequence=observed_attention,
+            unpresented_attention=replayed,
             recovery_status=recovery,
             response_rehydration_required=response_unconfirmed,
         )
@@ -134,6 +192,8 @@ class AgentContinuationCoordinator:
         caller_id: str,
         caller_run_ref: str,
         adapter_factory,
+        attention_actor_ref: str | None = None,
+        attention_replay: AttentionReplayPort | None = None,
         **run_open_kwargs,
     ) -> tuple[HarnessAgentRun, AgentContinuationPlan]:
         run = self.locate(
@@ -143,7 +203,11 @@ class AgentContinuationCoordinator:
             adapter_factory,
             **run_open_kwargs,
         )
-        return run, self.inspect(run)
+        return run, self.inspect(
+            run,
+            attention_actor_ref=attention_actor_ref,
+            attention_replay=attention_replay,
+        )
 
     def recover_existing_run(
         self,
@@ -170,6 +234,7 @@ class AgentContinuationCoordinator:
 
 __all__ = [
     "AgentContinuationCoordinator",
+    "AttentionReplayPort",
     "AgentContinuationError",
     "AgentContinuationPlan",
     "ContinuationAction",

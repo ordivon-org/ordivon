@@ -132,3 +132,87 @@ def test_recover_existing_run_rejects_non_recovery_plan():
             plan = coordinator.inspect(run)  # type: ignore[arg-type]
             with pytest.raises(AgentContinuationError, match="does not authorize Run recovery"):
                 coordinator.recover_existing_run(run, plan)  # type: ignore[arg-type]
+
+
+class FakeAttentionReplay:
+    def __init__(self, events):
+        self.events = tuple(events)
+        self.calls = []
+
+    def replay(self, actor_ref, *, after_sequence, through_sequence):
+        self.calls.append((actor_ref, after_sequence, through_sequence))
+        return self.events
+
+
+def test_attention_ack_and_confirmed_presentation_are_separate_watermarks():
+    with TemporaryDirectory() as directory:
+        with ResponseContinuityStore(Path(directory)) as responses:
+            initial = receipt(state=ResponseDeliveryState.PREPARED)
+            observed = ResponseContinuityReceipt(
+                response_id=initial.response_id,
+                caller_id=initial.caller_id,
+                caller_run_ref=initial.caller_run_ref,
+                harness_run_id=initial.harness_run_id,
+                source_run_revision=initial.source_run_revision,
+                output_digest=initial.output_digest,
+                evidence_refs=initial.evidence_refs,
+                observed_attention_sequence=12,
+                presented_attention_sequence=0,
+                state=initial.state,
+                revision=initial.revision,
+                created_at_ms=initial.created_at_ms,
+                updated_at_ms=initial.updated_at_ms,
+            )
+            responses.create(observed)
+            replay = FakeAttentionReplay(
+                ({"sequence": 7, "kind": "work.updated"}, {"sequence": 12, "kind": "message"})
+            )
+            plan = AgentContinuationCoordinator(responses).inspect(
+                FakeRun(),  # type: ignore[arg-type]
+                attention_actor_ref="agent:continuation",
+                attention_replay=replay,
+            )
+            assert plan.action is ContinuationAction.REPRESENT_UNCONFIRMED_RESPONSE
+            assert plan.confirmed_attention_sequence == 0
+            assert plan.observed_attention_sequence == 12
+            assert [event["sequence"] for event in plan.unpresented_attention] == [7, 12]
+            assert replay.calls == [("agent:continuation", 0, 12)]
+
+
+def test_attention_replay_fails_closed_on_events_beyond_bound_response():
+    with TemporaryDirectory() as directory:
+        with ResponseContinuityStore(Path(directory)) as responses:
+            initial = receipt(state=ResponseDeliveryState.PREPARED)
+            observed = ResponseContinuityReceipt(
+                response_id=initial.response_id,
+                caller_id=initial.caller_id,
+                caller_run_ref=initial.caller_run_ref,
+                harness_run_id=initial.harness_run_id,
+                source_run_revision=initial.source_run_revision,
+                output_digest=initial.output_digest,
+                evidence_refs=initial.evidence_refs,
+                observed_attention_sequence=4,
+                presented_attention_sequence=0,
+                state=initial.state,
+                revision=initial.revision,
+                created_at_ms=initial.created_at_ms,
+                updated_at_ms=initial.updated_at_ms,
+            )
+            responses.create(observed)
+            replay = FakeAttentionReplay(({"sequence": 5},))
+            with pytest.raises(AgentContinuationError, match="out-of-range"):
+                AgentContinuationCoordinator(responses).inspect(
+                    FakeRun(),  # type: ignore[arg-type]
+                    attention_actor_ref="agent:continuation",
+                    attention_replay=replay,
+                )
+
+
+def test_attention_recovery_requires_actor_and_port_together():
+    with TemporaryDirectory() as directory:
+        with ResponseContinuityStore(Path(directory)) as responses:
+            with pytest.raises(AgentContinuationError, match="requires both"):
+                AgentContinuationCoordinator(responses).inspect(
+                    FakeRun(),  # type: ignore[arg-type]
+                    attention_actor_ref="agent:continuation",
+                )
