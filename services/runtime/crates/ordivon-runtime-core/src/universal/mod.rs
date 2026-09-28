@@ -3,6 +3,7 @@ mod error;
 mod fsutil;
 mod mutation;
 mod projection;
+mod resource_receipt;
 #[cfg(unix)]
 mod runner;
 mod types;
@@ -58,6 +59,13 @@ pub(crate) use fsutil::{
 };
 #[cfg(unix)]
 pub(crate) use types::RunnerStepResult;
+pub(crate) use resource_receipt::{
+    parse_cgroup_cpu_stat, parse_cgroup_io_stat, parse_cgroup_memory_events,
+    write_resource_receipt_from_cgroup_root, CgroupCpuUsage,
+    CgroupIoUsage, CgroupMemoryEvents, CgroupMemoryUsage, RunnerResourceReceipt,
+    RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
+    RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
+};
 pub(crate) use types::{
     CapturedOutput, RunnerExecutionStep, RunnerHostDependencyCommitment, RunnerInputCommitment,
     RunnerPayloadConfig, RunnerProgress, RunnerRequest, RunnerResult, RunnerStartEvidence,
