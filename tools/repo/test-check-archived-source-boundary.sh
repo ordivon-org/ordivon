@@ -3,7 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 CHECKER="$SCRIPT_DIR/check_archived_source_boundary.py"
-TMP="$(mktemp -d /root/ordivon-migration-tmp/archived-source-boundary-test.XXXXXX)"
+TMP_ROOT="${TMPDIR:-/tmp}"
+TMP="$(mktemp -d "${TMP_ROOT%/}/archived-source-boundary-test.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 repo="$TMP/repo"
