@@ -47,6 +47,23 @@ def _explain(status: str = "created") -> dict[str, object]:
         },
         "proofBoundary": "fixture",
         "durableRun": durable,
+        "recovery": {
+            "schemaVersion": 1,
+            "kind": "ordivon.harness-run-recovery-status",
+            "truthRole": "derived-read-only-durable-continuation-projection",
+            "harnessRunId": "harness-run:view-r1",
+            "callerId": "caller:view-r1",
+            "callerRunRef": "caller-run:view-r1",
+            "runRevision": 3,
+            "nativeStatus": status,
+            "resumeRequired": status == "paused",
+            "mechanicalRecoveryRequired": False,
+            "latestSnapshot": None,
+            "provider": None,
+            "activeToolStep": None,
+            "externalLiveness": "not-probed",
+            "proofBoundary": "fixture",
+        },
     }
 
 
@@ -73,6 +90,18 @@ def test_run_view_groups_durable_status_without_reinterpreting_truth(
         "state": "not-established",
     }
     assert view["externalLiveness"] == "not-probed"
+    assert view["caller"] == {
+        "callerId": "caller:view-r1",
+        "callerRunRef": "caller-run:view-r1",
+    }
+    assert view["recovery"] == {
+        "resumeRequired": native == "paused",
+        "mechanicalRecoveryRequired": False,
+        "latestSnapshot": None,
+        "provider": None,
+        "activeToolStep": None,
+        "externalLiveness": "not-probed",
+    }
 
 
 def test_run_finished_never_becomes_task_completed() -> None:

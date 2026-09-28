@@ -534,5 +534,61 @@ class R3SupportedAgentRunTests(unittest.TestCase):
             self.assertFalse(root.exists())
 
 
+    def test_open_for_caller_reattaches_unique_existing_run_and_resumes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            clock = FixedClock()
+            value = contract("caller-reattach")
+            root = Path(directory) / "state"
+            first = HarnessAgentRun.create(
+                root,
+                value,
+                lambda _contract: ScriptedTurnAdapter((needs_input("model-call:r3-caller-wait"),)),
+                clock_ms=clock,
+                monotonic_ms=clock,
+            )
+            self.assertTrue(first.run(({"role": "user", "content": "start"},)).paused)
+
+            reopened = HarnessAgentRun.open_for_caller(
+                root,
+                value.caller_id,
+                value.caller_run_ref,
+                lambda _contract: ScriptedTurnAdapter((completed("model-call:r3-caller-done"),)),
+                clock_ms=clock,
+                monotonic_ms=clock,
+            )
+            self.assertEqual(reopened.harness_run_id, value.harness_run_id)
+            done = reopened.resume(
+                additional_messages=({"role": "user", "content": "continue"},)
+            )
+            self.assertEqual(done.loop_result.stop_code.value, "candidate_completed")
+
+
+    def test_recovery_status_exposes_caller_locator_and_checkpoint_without_external_probe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            clock = FixedClock()
+            value = contract("recovery-view")
+            root = Path(directory) / "state"
+            run = HarnessAgentRun.create(
+                root,
+                value,
+                lambda _contract: ScriptedTurnAdapter((needs_input("model-call:r3-recovery-view"),)),
+                clock_ms=clock,
+                monotonic_ms=clock,
+            )
+            self.assertTrue(run.run(({"role": "user", "content": "start"},)).paused)
+            recovery = run.recovery_status()
+            self.assertEqual(recovery["harnessRunId"], value.harness_run_id)
+            self.assertEqual(recovery["callerId"], value.caller_id)
+            self.assertEqual(recovery["callerRunRef"], value.caller_run_ref)
+            self.assertTrue(recovery["resumeRequired"])
+            self.assertFalse(recovery["mechanicalRecoveryRequired"])
+            self.assertEqual(recovery["externalLiveness"], "not-probed")
+            self.assertEqual(recovery["latestSnapshot"]["pauseReason"], "needs-input")
+            self.assertEqual(recovery["latestSnapshot"]["activeToolStepIntentDigests"], [])
+            self.assertIsNone(recovery["provider"])
+            self.assertIsNone(recovery["activeToolStep"])
+            self.assertEqual(run.explain()["recovery"], recovery)
+
+
 if __name__ == "__main__":
     unittest.main()

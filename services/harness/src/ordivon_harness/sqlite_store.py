@@ -574,6 +574,26 @@ class SQLiteHarnessStore:
             raise KeyError(f"Harness Run does not exist: {harness_run_id}")
         return self._projection_from_row(harness_run_id, row)
 
+    def load_run_by_caller(
+        self, caller_id: str, caller_run_ref: str
+    ) -> HarnessRunProjection:
+        if not caller_id or caller_id != caller_id.strip():
+            raise ValueError("Harness caller identity must be non-empty and trimmed")
+        if not caller_run_ref or caller_run_ref != caller_run_ref.strip():
+            raise ValueError("Harness caller Run reference must be non-empty and trimmed")
+        row = self.connection.execute(
+            "SELECT harness_run_id, contract_digest, contract_object_digest, caller_id, "
+            "caller_run_ref, status, revision, created_at_ms, updated_at_ms, terminal_event_id "
+            "FROM runs WHERE caller_id = ? AND caller_run_ref = ?",
+            (caller_id, caller_run_ref),
+        ).fetchone()
+        if row is None:
+            raise KeyError(
+                "Harness caller Run binding does not exist: "
+                f"{caller_id} / {caller_run_ref}"
+            )
+        return self._projection_from_row(row["harness_run_id"], row)
+
     def list_runs(self) -> tuple[HarnessRunProjection, ...]:
         rows = self.connection.execute(
             "SELECT harness_run_id, contract_digest, contract_object_digest, "

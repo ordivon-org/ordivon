@@ -63,6 +63,7 @@ def project_harness_run_view_projection(
     run = _mapping(projection.get("run"), "Harness composition run")
     durable = _mapping(projection.get("durableRun"), "Harness durable Run")
     process = _mapping(projection.get("processLocal"), "Harness process-local projection")
+    recovery = _mapping(projection.get("recovery"), "Harness recovery projection")
 
     harness_run_id = _text(run.get("harnessRunId"), "Harness Run identity")
     if _text(durable.get("harnessRunId"), "durable Harness Run identity") != harness_run_id:
@@ -71,6 +72,15 @@ def project_harness_run_view_projection(
     contract_digest = _text(run.get("contractDigest"), "Harness Contract digest")
     if _text(durable.get("contractDigest"), "durable Harness Contract digest") != contract_digest:
         raise AgentRunViewError("Harness composition and durable Contract digests differ")
+    if _text(recovery.get("harnessRunId"), "recovery Harness Run identity") != harness_run_id:
+        raise AgentRunViewError("Harness recovery and durable Run identities differ")
+    caller_id = _text(durable.get("callerId"), "Harness caller identity")
+    caller_run_ref = _text(durable.get("callerRunRef"), "Harness caller Run reference")
+    if (
+        _text(recovery.get("callerId"), "recovery caller identity") != caller_id
+        or _text(recovery.get("callerRunRef"), "recovery caller Run reference") != caller_run_ref
+    ):
+        raise AgentRunViewError("Harness recovery and caller binding differ")
 
     native_status = _text(durable.get("status"), "Harness Run status")
     try:
@@ -95,6 +105,23 @@ def project_harness_run_view_projection(
         "revision": _non_negative_int(durable.get("revision"), "Harness Run revision"),
         "updatedAtMs": _non_negative_int(durable.get("updatedAtMs"), "Harness Run update time"),
         "requestedModelId": _text(run.get("requestedModelId"), "requested model identity"),
+        "caller": {
+            "callerId": caller_id,
+            "callerRunRef": caller_run_ref,
+        },
+        "recovery": {
+            "resumeRequired": _boolean(recovery.get("resumeRequired"), "resumeRequired"),
+            "mechanicalRecoveryRequired": _boolean(
+                recovery.get("mechanicalRecoveryRequired"),
+                "mechanicalRecoveryRequired",
+            ),
+            "latestSnapshot": recovery.get("latestSnapshot"),
+            "provider": recovery.get("provider"),
+            "activeToolStep": recovery.get("activeToolStep"),
+            "externalLiveness": _text(
+                recovery.get("externalLiveness"), "recovery external liveness"
+            ),
+        },
         "composition": {
             "adapterBound": _boolean(adapter.get("supplied"), "Adapter supplied"),
             "cognitionBound": _boolean(cognition.get("supplied"), "cognition supplied"),

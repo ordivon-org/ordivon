@@ -8,6 +8,13 @@ from .harness_lowering_r1 import (
     validate_no_tool_harness_binding,
     validate_no_tool_harness_run_contract,
 )
+from .response_continuity_r1 import (
+    ResponseContinuityError,
+    ResponseContinuityReceipt,
+    ResponseContinuityStore,
+    ResponseDeliveryState,
+    ResponseRevisionConflict,
+)
 from .run_view_r1 import (
     AgentRunViewError,
     project_harness_run_view,
@@ -16,6 +23,11 @@ from .run_view_r1 import (
 
 __all__ = [
     "AgentRunViewError",
+    "ResponseContinuityError",
+    "ResponseContinuityReceipt",
+    "ResponseContinuityStore",
+    "ResponseDeliveryState",
+    "ResponseRevisionConflict",
     "project_harness_run_view",
     "project_harness_run_view_projection",
     "AgentRunLoweringError",
