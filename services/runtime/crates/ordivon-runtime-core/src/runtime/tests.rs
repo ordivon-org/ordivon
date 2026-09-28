@@ -4198,6 +4198,15 @@ fn runtime_job_inspection_projects_bounded_read_only_timeline() {
     assert!(full.job.mechanically_converged);
     assert!(!full.job.semantic_completion_evaluated);
     assert_eq!(full.attempts.len(), 1);
+    let condition_types = full.attempts[0]
+        .conditions
+        .iter()
+        .map(|condition| condition.condition_type.as_str())
+        .collect::<Vec<_>>();
+    assert!(condition_types.contains(&"bundle_ready"));
+    assert!(condition_types.contains(&"dispatch_issued"));
+    assert!(condition_types.contains(&"result_available"));
+    assert!(condition_types.contains(&"reservation_held"));
     assert_eq!(full.attempts[0].state, AttemptState::Failed);
     assert_eq!(
         full.attempts[0].reservation_state,
