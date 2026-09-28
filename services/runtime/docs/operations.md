@@ -118,6 +118,21 @@ Rotation is replacement plus a new Runtime request identity: write a newly encry
 
 Host-key encryption is a deployment choice, not a universal security claim. Verify the protection of `/var/lib/systemd/credential.secret` and its backing storage on the actual host. If policy requires TPM2-bound credentials, provision and qualify that systemd mode separately before claiming it; do not infer TPM protection from successful `systemd-creds encrypt --with-key=host`. Root and the service authority remain outside this confidentiality boundary.
 
+## Resource receipt workload profiles
+
+On Linux, a successful Runner may write `resource-receipt.json` beside `result.json`. Runtime treats receipt collection as best-effort so an unavailable counter does not reinterpret the execution result; when a receipt exists, Runtime strictly validates schema, Job/Attempt/launch-token identity, scope, and provider before registering it as an immutable `resource_receipt` Artifact. The R1 scope string remains `attempt_cgroup_including_runner`, but its exact semantics are a terminal pre-result snapshot: it includes Runner overhead and descendants observed up to sampling and does not claim the tiny post-sampling result-write/Runner-teardown tail or payload-only attribution.
+
+Workload profiling is deliberately read-side and non-authoritative. Export or otherwise materialize a caller-bounded set of receipt JSON files, then run:
+
+```bash
+python3 scripts/resource_workload_profile.py \
+  --expected-attempts 250 \
+  --max-files 1000 \
+  /path/to/receipt-export
+```
+
+The script scans only explicitly supplied files/directories, fails closed when the file bound is exceeded or a candidate receipt violates the R1 identity/value contract, and emits deterministic JSON with receipt count, P50/P95/P99 CPU usage, memory peak, read/write/total I/O bytes, optional swap coverage, memory-event totals, and observation window. `--expected-attempts` is the caller-owned terminal-Attempt denominator; only when it is supplied does `coverage.basisPoints` claim receipt coverage. Without it, coverage is marked `receipt_files_only` and no missing-receipt rate is invented. The script does not open or mutate the Runtime Registry, rank machines/providers, price cloud resources, or create a second scheduler/telemetry authority.
+
 ## Local deployment
 
 `scripts/ordivon-runtime-deploy` replaces the ad hoc deployment shell used during development. It has four commands:

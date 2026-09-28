@@ -3779,10 +3779,9 @@ fn cgroup_cpu_stat_parser_extracts_required_accounting() {
 #[test]
 fn cgroup_cpu_stat_parser_rejects_missing_or_duplicate_required_counters() {
     assert!(parse_cgroup_cpu_stat("usage_usec 1\nuser_usec 1\n").is_err());
-    assert!(parse_cgroup_cpu_stat(
-        "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n"
-    )
-    .is_err());
+    assert!(
+        parse_cgroup_cpu_stat("usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n").is_err()
+    );
 }
 
 #[test]
@@ -3826,11 +3825,23 @@ fn resource_receipt_writer_binds_attempt_identity_and_writes_separate_file() {
     fs::create_dir_all(&cgroup).unwrap();
     fs::create_dir_all(&task_dir).unwrap();
     fs::create_dir_all(&workspace).unwrap();
-    fs::write(cgroup.join("cpu.stat"), "usage_usec 120\nuser_usec 70\nsystem_usec 50\n").unwrap();
+    fs::write(
+        cgroup.join("cpu.stat"),
+        "usage_usec 120\nuser_usec 70\nsystem_usec 50\n",
+    )
+    .unwrap();
     fs::write(cgroup.join("memory.peak"), "1048576\n").unwrap();
     fs::write(cgroup.join("memory.swap.peak"), "4096\n").unwrap();
-    fs::write(cgroup.join("memory.events.local"), "low 0\nhigh 1\nmax 2\noom 3\noom_kill 4\n").unwrap();
-    fs::write(cgroup.join("io.stat"), "8:0 rbytes=10 wbytes=20 rios=1 wios=2\n").unwrap();
+    fs::write(
+        cgroup.join("memory.events.local"),
+        "low 0\nhigh 1\nmax 2\noom 3\noom_kill 4\n",
+    )
+    .unwrap();
+    fs::write(
+        cgroup.join("io.stat"),
+        "8:0 rbytes=10 wbytes=20 rios=1 wios=2\n",
+    )
+    .unwrap();
     let executable = real_executable("/usr/bin/true");
     let request = RunnerRequest {
         schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
@@ -3861,15 +3872,16 @@ fn resource_receipt_writer_binds_attempt_identity_and_writes_separate_file() {
 
     write_resource_receipt_from_cgroup_root(&task_dir, &request, &cgroup, 123).unwrap();
 
-    let receipt: RunnerResourceReceipt = serde_json::from_slice(
-        &fs::read(task_dir.join(RESOURCE_RECEIPT_FILE)).unwrap(),
-    )
-    .unwrap();
+    let receipt: RunnerResourceReceipt =
+        serde_json::from_slice(&fs::read(task_dir.join(RESOURCE_RECEIPT_FILE)).unwrap()).unwrap();
     assert_eq!(receipt.schema_version, RESOURCE_RECEIPT_SCHEMA_VERSION);
     assert_eq!(receipt.task_id, "attempt-resource-receipt");
     assert_eq!(receipt.job_id, "job-resource-receipt");
     assert_eq!(receipt.attempt_id, "attempt-resource-receipt");
-    assert_eq!(receipt.launch_token_digest, sha256_bytes(b"launch-token-resource-receipt"));
+    assert_eq!(
+        receipt.launch_token_digest,
+        sha256_bytes(b"launch-token-resource-receipt")
+    );
     assert_eq!(receipt.observed_unix_ms, 123);
     assert_eq!(receipt.scope, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP);
     assert_eq!(receipt.provider, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2);
@@ -3880,7 +3892,6 @@ fn resource_receipt_writer_binds_attempt_identity_and_writes_separate_file() {
     assert_eq!(receipt.io.read_bytes, 10);
     assert_eq!(receipt.io.write_bytes, 20);
 }
-
 
 #[test]
 fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation() {

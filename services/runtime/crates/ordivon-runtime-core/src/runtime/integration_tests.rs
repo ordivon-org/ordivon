@@ -306,8 +306,12 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert_eq!(receipt["attemptId"], first.attempt_id.as_deref().unwrap());
     assert_eq!(receipt["scope"], "attempt_cgroup_including_runner");
     assert_eq!(receipt["provider"], "linux_cgroup_v2");
-    assert!(receipt["cpu"]["usageUsec"].as_u64().is_some_and(|value| value > 0));
-    assert!(receipt["memory"]["peakBytes"].as_u64().is_some_and(|value| value > 0));
+    assert!(receipt["cpu"]["usageUsec"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(receipt["memory"]["peakBytes"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
     assert!(receipt["io"]["readBytes"].as_u64().is_some());
     assert!(receipt["io"]["writeBytes"].as_u64().is_some());
     let stdout = artifacts

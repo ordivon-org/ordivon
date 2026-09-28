@@ -10,6 +10,8 @@ All user-visible changes to Ordivon Runtime are recorded here. The repository fo
 
 ## Unreleased
 
+- Added optional Linux cgroup-v2 `resource_receipt` evidence as a separate immutable Attempt Artifact rather than extending the strict `RunnerResult` wire format. The Runner records a terminal pre-result snapshot of Attempt CPU, memory/swap, memory events, and I/O; Runtime preserves historical bundles with no receipt, validates present receipt identity fail-closed, and registers valid receipts without advancing the Registry schema. Real systemd/cgroup acceptance exercises the production carrier, and `scripts/resource_workload_profile.py` provides bounded deterministic read-side P50/P95/P99 summaries with explicit caller-supplied coverage semantics rather than turning Runtime into a telemetry warehouse or pricing engine.
+
 - Full Runtime releases now receipt and atomically transition ORDIVON_RELEASE_SOURCE_REPO and ORDIVON_RELEASE_REQUIRED_REF together with the two timeout-policy values, so standalone-to-monorepo release authority commits and rolls back with the 12-artifact release; binary-subset maintenance remains outside this ownership.
 
 - Nested Runtime owners now validate a required release ref by both Git ancestry and exact owner-subtree identity instead of whole-repository Commit equality. Standalone Runtime repositories retain exact-ref semantics; monorepo commits outside `services/runtime` no longer invalidate an otherwise identical Runtime candidate, while owner-tree changes and rewritten/non-ancestor candidates remain fail-closed. Deployment plans expose the resolved authority evidence for audit.
