@@ -27,7 +27,7 @@ Receipt identity binds:
 - attemptId
 - launchTokenDigest
 - observedUnixMs
-- scope = `attempt_cgroup_including_runner`
+- scope = `attempt_cgroup_including_runner` (terminal pre-result snapshot semantics; see Scope boundary)
 - provider = `linux_cgroup_v2`
 
 Measurements:
@@ -48,7 +48,7 @@ Resource observation MUST NOT reinterpret the execution result. Collection is be
 
 ## Scope boundary
 
-R1 measures the complete Attempt cgroup, including Runner overhead and descendants. It does not claim payload-only attribution.
+R1 records a terminal pre-result snapshot of the Attempt cgroup, including Runner overhead and descendants observed up to the receipt sampling point. It does not claim payload-only attribution or full post-sampling Runner teardown accounting.
 
 R1 explicitly excludes:
 - NVML/DCGM GPU accounting;

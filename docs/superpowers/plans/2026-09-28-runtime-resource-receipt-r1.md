@@ -16,7 +16,7 @@
 - Do not create a second scheduler, Job store, Registry, telemetry warehouse, or pricing authority.
 - Receipt absence must remain backward-compatible and must not change execution state.
 - Receipt presence must be identity-validated and fail closed when malformed or mismatched.
-- R1 scope is the full Attempt cgroup including Runner overhead.
+- R1 scope is a terminal pre-result snapshot of the Attempt cgroup, including Runner overhead and descendants observed up to sampling; it does not claim post-sampling Runner teardown accounting.
 - GPU, Windows Job Object, energy, and provider pricing are out of the R1 physical receipt.
 - Production behavior follows RED 鈫?GREEN 鈫?refactor TDD.
 
