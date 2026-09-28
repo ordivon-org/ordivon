@@ -1,0 +1,128 @@
+{
+  "codec": "exact-replacement-v1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "kind": "ordivon.experimental-factorial-live-trial",
+  "model": "deepseek-v4-flash",
+  "ordinal": 5,
+  "provider": "deepseek",
+  "providerRandomness": "provider-owned",
+  "recordDigest": "sha256:4229cd83f02dd92a09be70a11c272dacd19cb8a73e8bc7ba9c531717a171ff09",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed"
+    ],
+    "elapsedMs": 7237,
+    "finalDigest": "sha256:a2d38d5e5e698face2c73c6de65ed077d0239b199519417b5d63f8b017e2d9f9",
+    "hiddenPassed": true,
+    "modelCalls": 4,
+    "observationBytes": 10794,
+    "oracleExact": false,
+    "rejectedObservations": 0,
+    "replicate": 5,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 5,
+    "treatment": "exact-replacement-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-flash"
+      ],
+      "modelCalls": 4,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 10794,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 1,
+      "providerAttempts": 4,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 103,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 768,
+          "prompt_cache_miss_tokens": 355,
+          "prompt_tokens": 1123,
+          "prompt_tokens_details": {
+            "cached_tokens": 768
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 1226
+        },
+        {
+          "completion_tokens": 258,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3725,
+          "prompt_tokens": 3725,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 3983
+        },
+        {
+          "completion_tokens": 37,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 4242,
+          "prompt_tokens": 4242,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 4279
+        },
+        {
+          "completion_tokens": 559,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 5084,
+          "prompt_tokens": 5084,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 5643
+        }
+      ],
+      "requestedModelId": "deepseek-v4-flash",
+      "tokenLimit": 48000,
+      "toolCalls": 5,
+      "toolCorrections": 0,
+      "totalTokens": 15131,
+      "wallTimeMs": 7236
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskId": "HARNESS-REPO-REPAIR-001",
+  "trialId": "trial:005"
+}

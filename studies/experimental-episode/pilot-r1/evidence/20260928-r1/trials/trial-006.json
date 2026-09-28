@@ -1,0 +1,128 @@
+{
+  "codec": "anchored-line-v1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "kind": "ordivon.experimental-factorial-live-trial",
+  "model": "deepseek-v4-flash",
+  "ordinal": 6,
+  "provider": "deepseek",
+  "providerRandomness": "provider-owned",
+  "recordDigest": "sha256:ab794a357fa60420aeee51bc3a8e4a575bec97627a67a374ee26f4c4b1ae160f",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed"
+    ],
+    "elapsedMs": 5510,
+    "finalDigest": "sha256:970943c12c5f09183c3ec4e1c9e74ddde95cd52515fe019e19ea7f2a62149e14",
+    "hiddenPassed": true,
+    "modelCalls": 4,
+    "observationBytes": 5312,
+    "oracleExact": true,
+    "rejectedObservations": 0,
+    "replicate": 6,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 5,
+    "treatment": "anchored-line-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-flash"
+      ],
+      "modelCalls": 4,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 5312,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 1,
+      "providerAttempts": 4,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 106,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 896,
+          "prompt_cache_miss_tokens": 282,
+          "prompt_tokens": 1178,
+          "prompt_tokens_details": {
+            "cached_tokens": 896
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 1284
+        },
+        {
+          "completion_tokens": 180,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2482,
+          "prompt_tokens": 2482,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2662
+        },
+        {
+          "completion_tokens": 38,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2929,
+          "prompt_tokens": 2929,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2967
+        },
+        {
+          "completion_tokens": 259,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3280,
+          "prompt_tokens": 3280,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 3539
+        }
+      ],
+      "requestedModelId": "deepseek-v4-flash",
+      "tokenLimit": 48000,
+      "toolCalls": 5,
+      "toolCorrections": 0,
+      "totalTokens": 10452,
+      "wallTimeMs": 5511
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskId": "HARNESS-EDIT-ADDRESSING-002",
+  "trialId": "trial:006"
+}
