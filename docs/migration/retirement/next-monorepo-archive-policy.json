@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.archived-source-reference-policy",
+  "id": "next-monorepo-archive",
+  "legacyLocator": "meta/next/",
+  "archivedSource": {
+    "revision": "9ccfa24c2985d17631373d394f2573c6783f6ea3",
+    "standing": "RETIRED_ARCHIVED_IN_PLACE",
+    "preserveGitHistoryForHistoricalLookup": true,
+    "recoveryMode": "monorepo-git-history-plus-pinned-current-tree"
+  },
+  "archivedTree": {
+    "path": "meta/next",
+    "expectedGitTree": "320474d446f58462b9ed0b5a9fef3529c44f01d0"
+  },
+  "allowedReferenceClasses": [],
+  "allowedExactPaths": [
+    {
+      "path": ".gitleaksignore",
+      "reason": "Security false-positive fingerprints preserve historical file coordinates."
+    },
+    {
+      "path": "README.md",
+      "reason": "Root documentation points to imported historical design evidence."
+    },
+    {
+      "path": "docs/architecture/AGENT_PLUGIN_R4_ACCEPTANCE_20260921.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/ARCHITECTURE_CONVERGENCE_A01R2.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/CONVERGENCE_OBSERVATION_R2.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/INTEGRATED_C08_CAPITAL_READONLY_DOGFOOD_R1.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/METHOD_ROUTER_B03_ACCEPTANCE_20260921.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/NETWORK_STOPPAGE_RECOVERY_CENSUS_R1_20260926.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/NETWORK_STOPPAGE_RECOVERY_CENSUS_R2_20260927.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/ORDIVON_COMPOSITION_ARCHITECTURE_EXECUTION_PLAN_R1.md",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/agent-native-measurement-improvement-loop-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/architecture-reanchor-debt-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/convergence-queue-lego-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/data-learning-system-census-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/evidence/CANONICAL_PUBLICATION_INTENT_CLUSTERS_R2.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+    },
+    {
+      "path": "docs/architecture/evidence/CANONICAL_PUBLICATION_RAW_INTENT_CENSUS_R2.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+    },
+    {
+      "path": "docs/architecture/evidence/CONVERGENCE_CI_PR_RUN_INDEX_R1.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+    },
+    {
+      "path": "docs/architecture/evidence/CONVERGENCE_OBSERVATION_DATASET_R1.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+    },
+    {
+      "path": "docs/architecture/evidence/CONVERGENCE_OWNER_COST_EPISODES_R2.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+    },
+    {
+      "path": "docs/architecture/evidence/network-stoppage-recovery-census-r2-20260927.json",
+      "reason": "Frozen architecture evidence preserves source coordinates observed at evidence creation."
+    },
+    {
+      "path": "docs/architecture/learning-data-ownership-census-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/learning-query-pressure-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/ordivon-composition-architecture-lego-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/architecture/structure-r2-transition-r1.json",
+      "reason": "Architecture/history document names archived Next material as historical context only."
+    },
+    {
+      "path": "docs/migration/acceptance/NEXT_CURRENT_SOURCE_SUPERSESSION_ACCEPTANCE_20260921.md",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/acceptance/NEXT_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/acceptance/STRUCTURE_R2_S1A_COMPOSITION_EXTRACTION_20260922.md",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/acceptance/STRUCTURE_R2_S1B_COMPOSITION_CONSUMER_CUTOVER_20260922.md",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/acceptance/STRUCTURE_R2_S2A_CONTROL_PLUGIN_RELOCATION_20260922.md",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/harness-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/host-v2-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/media-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/network-v2-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/next-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/runtime-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/workstation-lab-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "docs/migration/retirement/workstation-v2-standalone-policy.json",
+      "reason": "Frozen migration receipt/acceptance preserves historical monorepo coordinates."
+    },
+    {
+      "path": "domains/capital/docs/CAPITAL_LEGO_ARCHITECTURE_R1.md",
+      "reason": "Domain migration documentation records the retired source path only."
+    },
+    {
+      "path": "studies/evaluation-boundary/rw6/structure-r2-rebind-r1-acceptance.json",
+      "reason": "Study-owned record names an admitted read-only historical input/provenance coordinate; it is not Next execution authority."
+    },
+    {
+      "path": "studies/experimental-episode/corpus-r1/odps.json",
+      "reason": "Study-owned record names an admitted read-only historical input/provenance coordinate; it is not Next execution authority."
+    },
+    {
+      "path": "studies/research/capability-science-r1/README.md",
+      "reason": "Study-owned record names an admitted read-only historical input/provenance coordinate; it is not Next execution authority."
+    },
+    {
+      "path": "studies/research/capability-science-r1/evidence/external-provider-pilots-r1.json",
+      "reason": "Study-owned record names an admitted read-only historical input/provenance coordinate; it is not Next execution authority."
+    },
+    {
+      "path": "studies/research/capability-science-r1/planning/lego-plan-r1.json",
+      "reason": "Study-owned record names an admitted read-only historical input/provenance coordinate; it is not Next execution authority."
+    },
+    {
+      "path": "studies/research/scholarly-intelligence-r1/evidence/scholarly-current-main-requalification-r2.json",
+      "reason": "Study-owned record names an admitted read-only historical input/provenance coordinate; it is not Next execution authority."
+    },
+    {
+      "path": "tools/repo/test-check-archived-source-boundary.sh",
+      "reason": "Explicitly reviewed historical navigation/provenance reference to the archived Next corpus."
+    },
+    {
+      "path": "tools/repo/test_affected_owners.py",
+      "reason": "Negative repository-mechanics regression asserts the archived tree has no active owner."
+    },
+    {
+      "path": "tools/repo/test_convergence_plan.py",
+      "reason": "Negative repository-mechanics regression asserts the archived tree has no active owner."
+    }
+  ]
+}

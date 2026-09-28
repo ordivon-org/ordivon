@@ -632,7 +632,7 @@ class SkillCatalogR2IntegrationTests(unittest.TestCase):
         self.assertEqual(
             catalog.resolve(
                 "web-provider-routing",
-                context=SkillContext(workspace_path=Path("/root/projects/ordivon/meta/next")),
+                context=SkillContext(workspace_path=Path("/root/projects/ordivon/studies/research")),
                 invocation_mode="implicit",
             ).resolved.source_id,
             "project-ordivon-next",

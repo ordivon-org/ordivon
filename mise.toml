@@ -63,6 +63,7 @@ python3 tools/repo/check_composition_architecture.py
 python3 tools/repo/check_structure_r2.py
 python3 tools/repo/check_architecture_constitution.py
 python3 tools/repo/check_architecture_docs.py
+mise run repo:retirement:verify
 uv run --with pytest==9.1.1 python -m pytest -q tools/repo/test_composition_architecture.py tools/repo/test_structure_r2.py tools/repo/test_architecture_constitution.py tools/repo/test_architecture_docs.py
 uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_catalog.py tests/catalogs/test_model_foundry_r2.py tests/catalogs/test_model_foundry_substitution_canary.py tests/skills/test_web_provider_routing.py tests/extensions/test_materialize_agent_plugin.py
 mise run whole-system-review:verify
@@ -87,13 +88,6 @@ set -euo pipefail
 tools/repo/migration/check-primary-main.sh /root/projects/ordivon
 """
 
-[tasks."next:verify"]
-run = """
-set -euo pipefail
-cd meta/next
-mise install
-mise run verify
-"""
 
 [tasks."browser-security-study:verify"]
 run = """

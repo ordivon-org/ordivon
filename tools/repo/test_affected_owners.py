@@ -41,9 +41,10 @@ class AffectedOwnersTests(unittest.TestCase):
             ["runtime", "host", "game"],
         )
 
-    def test_next_queue_verification_defaults_to_full_verify(self) -> None:
-        self.assertEqual(self.tasks("meta/next/README.md"), ["next:verify"])
-        self.assertEqual(self.queue_tasks("meta/next/README.md"), ["next:verify"])
+    def test_archived_next_tree_has_no_active_owner(self) -> None:
+        self.assertEqual(self.names("meta/next/README.md"), [])
+        self.assertEqual(self.tasks("meta/next/README.md"), [])
+        self.assertEqual(self.queue_tasks("meta/next/README.md"), [])
 
     def test_harness_has_explicit_queue_portable_verification(self) -> None:
         self.assertEqual(self.tasks("services/harness/README.md"), ["harness:verify"])

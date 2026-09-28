@@ -30,10 +30,13 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
-    def test_next_queue_projection_uses_full_portable_verification(self) -> None:
+    def test_archived_next_tree_is_repository_only(self) -> None:
         plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
-        self.assertIn("next:verify", plan["verifyTasks"])
-        self.assertIn("next:verify", plan["queueVerifyTasks"])
+        self.assertEqual(plan["directOwners"], [])
+        self.assertEqual(plan["verificationOwners"], [])
+        self.assertEqual(plan["verifyTasks"], [])
+        self.assertEqual(plan["queueVerifyTasks"], [])
+        self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")
 
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
@@ -52,7 +55,7 @@ class ConvergencePlanTests(unittest.TestCase):
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["agent-app", "capital", "composition", "harness", "next", "security", "skills", "web"],
+            ["agent-app", "capital", "composition", "harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])

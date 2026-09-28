@@ -10,7 +10,7 @@
     "subjectRef": "publication/first_paper_r8s2_frozen/manuscript.qmd"
   },
   "standardNativeBinding": {
-    "sourcePath": "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json",
+    "sourcePath": "studies/research/scholarly-intelligence-r1/evidence/standard-native-enterprise-r2-dogfood-20260914.json",
     "sourceDigest": "sha256:3ce88cf3a7869656a20218a8361de81578f18212ddfccad30d6084d9dce43f65",
     "caseId": "research"
   },
@@ -32,7 +32,9 @@
     "requirements": {
       "owner": "paper1-standard-native-profile",
       "state": "R2_DOGFOOD_REQUIREMENTS_BOUND",
-      "evidenceRefs": ["P1-GEN-001"]
+      "evidenceRefs": [
+        "P1-GEN-001"
+      ]
     },
     "evidence": {
       "owner": "paper1-study-authority",

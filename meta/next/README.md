@@ -1,20 +1,14 @@
-# Ordivon Next — historical residual
+# Ordivon Next — archived historical corpus
 
-Status: **LEGACY ACTIVE-OWNER RESIDUAL / RETIREMENT GATE OPEN**
+Status: **RETIRED / ARCHIVED IN PLACE / NO ACTIVE REPOSITORY OWNER**
 
-This directory is no longer the architecture owner or future container for Ordivon. Its earlier greenfield programme produced reusable composition, authority, capability, Study and migration results that have since moved to natural owners such as `packages/composition`, `catalogs/`, `profiles/`, `studies/`, `.agents/skills/` and domain/service owners.
+This directory is preserved only as historical evidence from the earlier Ordivon Next programme. Current architecture, capability, domain, workflow, provider, Skill and execution ownership lives under the monorepo natural owners. Repository mechanics no longer route `meta/next/` to an owner or a verification task.
 
-The directory remains temporarily executable only because repository mechanics still map `meta/next/` to `next:verify`, and a small number of current Studies still read exact historical `docs/`, `planning/` or `evidence/` bytes. That temporary CI ownership must not be interpreted as semantic authority.
+The retained tree is immutable by default. Its exact Git tree identity is pinned by the monorepo retirement policy, and references from outside this tree are admitted only as explicitly classified historical navigation/provenance. A current consumer that needs bytes from this corpus must either own an exact frozen copy or introduce a separately reviewed historical-reference exception; it must not reactivate Next as a subsystem.
 
-Retirement gate:
+The historical `mise.toml`, `pyproject.toml`, scripts, policies and tests below are reproducibility evidence, **not current validation or execution surfaces**. Do not run them as a current Ordivon owner gate. Current architecture law is `../../docs/architecture/ARCHITECTURE_REANCHOR_R1.md`.
 
-1. rebind every current Study dependency on `meta/next` to an explicit historical read-only reference or its natural current owner;
-2. establish a bounded archive/mutation fence for the retained historical corpus;
-3. remove Next-only executable validation surfaces that have no current consumer;
-4. remove the `next` repository-owner row and `next:verify` routing;
-5. prove root CI and affected current Studies without recreating a replacement Next subsystem.
-
-Do not add new current architecture, capability, domain, workflow, provider or policy ownership under this directory. Current architecture law is `../../docs/architecture/ARCHITECTURE_REANCHOR_R1.md`.
+## Historical programme description (non-current)
 
 ## Historical one-sentence definition
 

@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 STUDY = Path(__file__).resolve().parents[1]
 SCHEMA = REPO_ROOT / "profiles/research/scholarly-intelligence/scholarly-intelligence-profile-v1.schema.json"
 PROFILE = STUDY / "profiles/paper1-standard-native-r2-dogfood-r1.json"
-DOGFOOD = REPO_ROOT / "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json"
+DOGFOOD = REPO_ROOT / "studies/research/scholarly-intelligence-r1/evidence/standard-native-enterprise-r2-dogfood-20260914.json"
 
 EXPECTED_AXES = {
     "requirements",

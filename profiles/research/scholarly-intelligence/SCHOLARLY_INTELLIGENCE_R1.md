@@ -211,7 +211,7 @@ A valid R1 profile must:
 
 R1 binds the accepted Paper1 Standard-Native dogfood receipt:
 
-`meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json`
+`studies/research/scholarly-intelligence-r1/evidence/standard-native-enterprise-r2-dogfood-20260914.json`
 
 That evidence already demonstrates external authority decisions, stable requirement IDs, explicit
 claim boundary, domain-owned verdicts, and rejection of universal verdict normalization.

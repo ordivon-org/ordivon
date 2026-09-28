@@ -3,11 +3,6 @@ kind = "ordivon.repo-owner-manifest"
 truth_role = "repository-mechanics-only-not-domain-authority"
 
 [[owners]]
-name = "next"
-root = "meta/next/"
-verify_task = "next:verify"
-
-[[owners]]
 name = "composition"
 root = "packages/composition/"
 verify_task = "composition:verify"
