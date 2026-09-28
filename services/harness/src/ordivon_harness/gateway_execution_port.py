@@ -256,6 +256,10 @@ class GatewayExecutionPort:
             recovery = False
         if not isinstance(recovery, bool):
             raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
+        if recovery:
+            raise GatewayExecutionAmbiguous(
+                'resolved Gateway execution is process-terminal but delivery reconciliation is still required; observation-only retry required'
+            )
         return GatewayExecutionResult(
             operation_ref=operation_ref,
             native_id=native_id,
@@ -304,6 +308,13 @@ class GatewayExecutionPort:
                     recovery = False
                 if not isinstance(recovery, bool):
                     raise GatewayExecutionError('Gateway observation recoveryRequired is invalid')
+                if recovery:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        break
+                    if self.poll_interval_seconds:
+                        time.sleep(min(self.poll_interval_seconds, remaining))
+                    continue
                 return GatewayExecutionResult(
                     operation_ref=operation_ref,
                     native_id=native_id,

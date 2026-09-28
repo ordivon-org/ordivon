@@ -123,6 +123,66 @@ def test_response_loss_resolves_existing_job_without_second_submit():
     ]
 
 
+def test_process_terminal_reconciliation_is_observed_until_committed_without_redispatch():
+    class ProvisionalTerminalGateway(FakeGateway):
+        def __init__(self):
+            super().__init__()
+            self.provisional = True
+
+        def call_tool(self, name, arguments):
+            if name == 'execution.get' and self.provisional:
+                self.calls.append((name, dict(arguments)))
+                self.provisional = False
+                return False, {
+                    'operation_ref': arguments['operationRef'],
+                    'native_id': 'job-1',
+                    'state': 'orphaned',
+                    'terminal': True,
+                    'delivery_disposition': 'reconciliation_required',
+                    'execution_disposition': 'orphaned',
+                    'exit_code': 0,
+                    'recovery_required': True,
+                    'artifacts_available': True,
+                    'artifact_ids': [],
+                    'artifact_projection_complete': True,
+                }
+            return super().call_tool(name, arguments)
+
+    client = ProvisionalTerminalGateway()
+    result = GatewayExecutionPort(
+        client, max_observations=4, poll_interval_seconds=0
+    ).execute(request())
+    assert result.state == 'succeeded'
+    assert result.recovery_required is False
+    names = [name for name, _ in client.calls]
+    assert names.count('execution.submit') == 1
+    assert names.count('execution.get') == 2
+
+
+def test_resolve_terminal_refuses_provisional_terminal_without_redispatch():
+    class ProvisionalResolveGateway(FakeGateway):
+        def call_tool(self, name, arguments):
+            if name == 'execution.get':
+                self.calls.append((name, dict(arguments)))
+                return False, {
+                    'operation_ref': arguments['operationRef'],
+                    'native_id': 'job-1',
+                    'state': 'orphaned',
+                    'terminal': True,
+                    'delivery_disposition': 'reconciliation_required',
+                    'execution_disposition': 'orphaned',
+                    'exit_code': 0,
+                    'recovery_required': True,
+                    'artifact_ids': [],
+                }
+            return super().call_tool(name, arguments)
+
+    client = ProvisionalResolveGateway()
+    with pytest.raises(GatewayExecutionAmbiguous, match='reconciliation'):
+        GatewayExecutionPort(client).resolve_terminal(request())
+    assert [name for name, _ in client.calls] == ['execution.resolve', 'execution.get']
+
+
 def test_stdout_is_read_by_exact_artifact_identity():
     client = FakeGateway()
     port = GatewayExecutionPort(client)

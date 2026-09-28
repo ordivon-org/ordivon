@@ -284,6 +284,10 @@ class HarnessAgentRun:
                     "requestDigest": provider.record.request_digest,
                     "providerRequestDigest": provider.record.provider_request_digest,
                     "failureDispatchSafety": failure_safety,
+                    "resultContentRetained": provider.result is not None,
+                    "rehydrationRequired": (
+                        provider_status == "completed" and provider.result is None
+                    ),
                     "retryAllowed": (
                         provider_status == "failed"
                         and failure_safety == "pre_dispatch_safe"
@@ -322,6 +326,12 @@ class HarnessAgentRun:
                     ),
                     "terminal": (
                         False if step.receipt is None else step.receipt.terminal
+                    ),
+                    "observationContentRetained": step.observation is not None,
+                    "rehydrationRequired": (
+                        step.receipt is not None
+                        and step.receipt.terminal
+                        and step.observation is None
                     ),
                     "redispatchForbidden": True,
                 }
