@@ -87,7 +87,7 @@ def _execution_ref(owner_id: str, native_id: str) -> str:
     return f"ordivon-exec:v1:{owner_id}:{native_id}"
 
 
-def _parse_execution_ref(value: str) -> tuple[str, str]:
+def parse_execution_ref(value: str) -> tuple[str, str]:
     prefix = "ordivon-exec:v1:"
     if not value.startswith(prefix):
         raise GatewayError("invalid execution operationRef")
@@ -706,7 +706,7 @@ class GatewayService:
     async def execution_get(
         self, operation_ref: str, *, event_limit: int = 10, wait_ms: int = 0
     ) -> ExecutionObservation:
-        owner_id, native_id = _parse_execution_ref(operation_ref)
+        owner_id, native_id = parse_execution_ref(operation_ref)
         if owner_id == "external.pull":
             if self._external_workers is None:
                 raise GatewayError("external pull worker transport is not configured")
@@ -862,7 +862,7 @@ class GatewayService:
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
-        owner_id, native_id = _parse_execution_ref(operation_ref)
+        owner_id, native_id = parse_execution_ref(operation_ref)
         if owner_id == "external.pull":
             if self._external_workers is None:
                 raise GatewayError("external pull worker transport is not configured")
@@ -908,7 +908,7 @@ class GatewayService:
         offset: int = 0,
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
-        owner_id, native_id = _parse_execution_ref(operation_ref)
+        owner_id, native_id = parse_execution_ref(operation_ref)
         if owner_id == "external.pull":
             if self._external_workers is None:
                 raise GatewayError("external pull worker transport is not configured")
