@@ -151,9 +151,11 @@
       "dependsOn": [
         "CPF-13"
       ],
-      "standing": "blocked-security-issued-admission-artifact-absent-harness-carrier-only",
-      "blocker": "Harness is a real authenticated Gateway consumer and owns exact Run/ToolGrant evidence, but it is not the Security principal/agent/grant/approval issuer. No production Security-issued agentAdmission artifact/carrier was found; do not launder ToolGrant authority into Security admission.",
-      "evidenceRef": "docs/architecture/evidence/CAPABILITY_AUTHZ_HARNESS_EVIDENCE_CARRIER_CENSUS_R1.json"
+      "standing": "pep-source-qualified-security-issued-admission-provenance-blocked",
+      "blocker": "Gateway now has a narrow injectable fail-closed PEP for artifact.read/artifact.runtime, but no production Security-issued Agent/Grant/Effect/Approval evidence issuer/carrier exists. Harness remains only a plausible authenticated carrier and must not mint or reinterpret ToolGrant authority as Security admission.",
+      "evidenceRef": "docs/architecture/evidence/CAPABILITY_AUTHZ_HARNESS_EVIDENCE_CARRIER_CENSUS_R1.json",
+      "pepStanding": "CPF-21A_SOURCE_QUALIFIED_DEFAULT_DEPLOYMENT_UNCHANGED",
+      "pepEvidenceRef": "docs/architecture/evidence/CAPABILITY_AUTHZ_GATEWAY_PEP_R1.json"
     },
     {
       "id": "CPF-22",
@@ -311,6 +313,12 @@
     "liveGatewayVersion": "0.6.0",
     "liveGatewaySourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
     "liveReleaseEvidence": "docs/architecture/evidence/GATEWAY_06_LIVE_PUBLIC_CARRIER_ACCEPTANCE_R1.json",
-    "connectorCatalogStanding": "CURRENT_CHAT_SESSION_STALE_28_VS_GATEWAY_SURFACE_29_REFRESH_REQUIRED"
+    "connectorCatalogStanding": "CURRENT_CHAT_SESSION_STALE_28_VS_GATEWAY_SURFACE_29_REFRESH_REQUIRED",
+    "cpf21a": {
+      "standing": "SOURCE_QUALIFIED_PEP_MECHANICS_SECURITY_EVIDENCE_PROVENANCE_OPEN",
+      "evidence": "docs/architecture/evidence/CAPABILITY_AUTHZ_GATEWAY_PEP_R1.json",
+      "gatewayVerifyJob": "job-01a0e6c7-1f63-7963-a67f-e207909674ae",
+      "defaultDeploymentBehaviorChanged": false
+    }
   }
 }

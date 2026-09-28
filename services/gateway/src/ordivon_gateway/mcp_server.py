@@ -17,6 +17,7 @@ from .access_auth import (
     CloudflareAccessVerifier,
 )
 from .audit import GatewayAuditMiddleware
+from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
@@ -61,10 +62,16 @@ async def _owner_boundary(call) -> Any:
         return _owner_error_result(exc)
 
 
-def build_server(service: GatewayService | None = None) -> MCPServer:
+def build_server(
+    service: GatewayService | None = None,
+    *,
+    capability_authorizer: CapabilityAuthorizer | None = None,
+) -> MCPServer:
     gateway = service or GatewayService(McpOwnerCaller.from_env())
     server = MCPServer("ordivon-gateway", version=package_version("ordivon-gateway"))
     server.middleware.append(GatewayAuditMiddleware())
+    if capability_authorizer is not None:
+        server.middleware.append(GatewayCapabilityAuthorizationMiddleware(capability_authorizer))
 
     @server.tool(name="system.describe")
     def system_describe() -> SystemDescription:

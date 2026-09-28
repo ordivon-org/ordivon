@@ -481,3 +481,18 @@ Harness is a real authenticated Gateway consumer and already owns exact Run iden
 No production Security-owned admission issuer/artifact path was found in this census. R1 therefore does not add a speculative MCP argument, `_meta`, or custom header. The permitted future path is: Security owns issuance/normalization; Harness may carry the Security-issued artifact over its already-authenticated local-service connection; Gateway PEP verifies trusted ingress plus Security evidence and delegates semantics to `gateway-capability-authz-v1`.
 
 Evidence: `docs/architecture/evidence/CAPABILITY_AUTHZ_HARNESS_EVIDENCE_CARRIER_CENSUS_R1.json`. CPF-21 remains blocked on the **issuer/artifact provenance** seam, not on Gateway middleware placement or Harness transport identity.
+## 27. CPF-21A Gateway PEP source qualification
+
+The authorization frontier is now split so transport/enforcement mechanics do not get confused with Security evidence provenance.
+
+CPF-21A adds one narrow, injectable Gateway policy-enforcement port for `artifact.read -> artifact.runtime`. The middleware reads Principal/issuer only from ingress-verified HTTP request state, never from ordinary MCP Tool arguments or caller-authored `_meta`. It delegates authorization to an injected Security adapter, then independently fail-closes unless the returned `gateway-capability-authz-v1` decision binds the same Principal, issuer, capability and R1 qualification target. `DENY` and `STEP_UP` never reach the natural owner; `ALLOW` additionally requires the existing Security authority projection plus admitted Effect decision.
+
+The normal Gateway constructor does **not** inject an authorizer, so this source slice does not silently change the current public deployment. It also does not create an Agent Admission token, custom authorization header, Gateway Grant database, credential store, or second policy engine.
+
+Source qualification:
+
+- implementation: `services/gateway/src/ordivon_gateway/capability_authz.py`;
+- Gateway verify: `job-01a0e6c7-1f63-7963-a67f-e207909674ae` — PASS;
+- evidence: `docs/architecture/evidence/CAPABILITY_AUTHZ_GATEWAY_PEP_R1.json`.
+
+CPF-21B remains open. A real Security/provider-owned issuer must establish current Principal/Agent/Grant/Effect/Approval evidence and a trusted adapter must project it into the PEP. Harness may carry that Security-issued evidence over its authenticated local-service channel, but Harness Run/ToolGrant state is not promoted into Security Grant or approval authority. No live `artifact.runtime` authorization claim is made until that provenance path exists and an end-to-end allow/deny/principal-mismatch canary passes.
