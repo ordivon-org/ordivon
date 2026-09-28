@@ -2655,6 +2655,21 @@ class DeployReclaimTests(unittest.TestCase):
             tombstone = module["closed_workspace_tombstone"](root, "closed")
             self.assertIsNotNone(tombstone)
             self.assertEqual(tombstone["sourceStateDigest"], digest)
+            self.assertIsNone(
+                module["closed_workspace_tombstone"](
+                    root,
+                    "closed",
+                    expected_source_state_digest="sha256:" + "0" * 64,
+                )
+            )
+            self.assertEqual(
+                module["closed_workspace_tombstone"](
+                    root,
+                    "closed",
+                    expected_source_state_digest=digest,
+                )["sourceStateDigest"],
+                digest,
+            )
             self.assertIsNone(module["closed_workspace_tombstone"](root, "missing"))
 
     def test_reclaim_close_reconciles_timeout_by_exact_tombstone_replay(self) -> None:

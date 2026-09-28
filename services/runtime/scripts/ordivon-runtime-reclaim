@@ -662,6 +662,15 @@ def candidate(
     return result
 
 
+class WorkspaceCloseDeliveryUncertain(RuntimeError):
+    def __init__(self, workspace_id: str, expected_source_state_digest: str, cause: Exception):
+        super().__init__(
+            f"workspace.close delivery remained uncertain for {workspace_id} after exact replay: {cause}"
+        )
+        self.workspace_id = workspace_id
+        self.expected_source_state_digest = expected_source_state_digest
+
+
 def close_workspace(
     env_file: Path,
     workspace_id: str,
@@ -721,8 +730,8 @@ def close_workspace(
             structured = reconcile_client.call_tool("workspace.close", close_arguments)
             delivery_reconciled = True
         except Exception as reconcile_error:
-            raise RuntimeError(
-                f"workspace.close delivery remained uncertain for {workspace_id} after exact replay: {reconcile_error}"
+            raise WorkspaceCloseDeliveryUncertain(
+                workspace_id, source_state_digest, reconcile_error
             ) from delivery_error
 
     disposition = structured.get("closureDisposition")
@@ -766,7 +775,12 @@ def write_json_atomic(path: Path, value: object) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def closed_workspace_tombstone(runtime_store_root: Path, workspace_id: str) -> dict[str, object] | None:
+def closed_workspace_tombstone(
+    runtime_store_root: Path,
+    workspace_id: str,
+    *,
+    expected_source_state_digest: str | None = None,
+) -> dict[str, object] | None:
     record = runtime_store_root / "workspace-records" / f"{workspace_id}.json"
     try:
         metadata = record.lstat()
@@ -782,6 +796,8 @@ def closed_workspace_tombstone(runtime_store_root: Path, workspace_id: str) -> d
         return None
     digest = value.get("sourceStateDigest")
     if digest is not None and (not isinstance(digest, str) or not digest.startswith("sha256:")):
+        return None
+    if expected_source_state_digest is not None and digest != expected_source_state_digest:
         return None
     return value
 
@@ -903,21 +919,32 @@ def apply_reclaim(args: argparse.Namespace) -> dict[str, object]:
                     )
                 else:
                     raise RuntimeError(f"unsupported reclaim classification: {classification}")
+            except WorkspaceCloseDeliveryUncertain as error:
+                tombstone = closed_workspace_tombstone(
+                    args.runtime_store_root,
+                    workspace_id,
+                    expected_source_state_digest=error.expected_source_state_digest,
+                )
+                if tombstone is not None:
+                    actions.append(
+                        {
+                            "workspaceId": workspace_id,
+                            "classification": classification,
+                            "action": "workspace_already_closed",
+                            "closureDisposition": "already_closed",
+                            "deliveryReconciled": True,
+                            "sourceStateDigest": tombstone.get("sourceStateDigest"),
+                        }
+                    )
+                    continue
+                failures.append(
+                    {
+                        "workspaceId": workspace_id,
+                        "classification": classification,
+                        "error": str(error),
+                    }
+                )
             except Exception as error:
-                if classification == "closable":
-                    tombstone = closed_workspace_tombstone(args.runtime_store_root, workspace_id)
-                    if tombstone is not None:
-                        actions.append(
-                            {
-                                "workspaceId": workspace_id,
-                                "classification": classification,
-                                "action": "workspace_already_closed",
-                                "closureDisposition": "already_closed",
-                                "deliveryReconciled": True,
-                                "sourceStateDigest": tombstone.get("sourceStateDigest"),
-                            }
-                        )
-                        continue
                 failures.append(
                     {
                         "workspaceId": workspace_id,
