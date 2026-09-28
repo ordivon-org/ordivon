@@ -19,6 +19,10 @@ run_n8n systemctl --user is-active ordivon-n8n-pod.service
 run_n8n systemctl --user is-active ordivon-n8n.service
 run_n8n systemctl --user is-active ordivon-n8n-runners.service
 
+printf '%s\n' '== startup convergence =='
+wanted_by="$(run_n8n systemctl --user show ordivon-n8n-pod.service -p WantedBy --value)"
+tr ' ' '\n' <<<"$wanted_by" | grep -Fx default.target
+
 printf '%s\n' '== containers =='
 run_n8n podman pod ps --format '{{.Name}} {{.Status}}'
 run_n8n podman ps --format '{{.Names}} {{.Image}} {{.Status}}'
