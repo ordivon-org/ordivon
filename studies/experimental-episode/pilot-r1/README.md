@@ -16,3 +16,18 @@ mise exec -- uv run python ../../studies/experimental-episode/pilot-r1/run_facto
 ```
 
 The pilot uses the existing root-private DeepSeek secret file and never copies credential material into the study artifacts.
+
+## Post-live finalization recovery
+
+The preregistered R1 runner is intentionally immutable after live execution. The first live campaign completed all 12 planned Provider trials and durably journaled every `trial_started` with a matching `trial_completed`, then failed during deterministic analysis serialization because the repository canonical JSON contract rejects floating-point values.
+
+`recover_finalize_r1.py` is a post-registered deterministic recovery adapter. It does **not** call the Provider and refuses recovery unless the frozen runner still matches the preregistration, all 12 journal starts are completed, and the result, Episode, and EvaluationRecord digests validate. It encodes analysis rates and means as exact `{numerator, denominator}` rationals, then produces `analysis.json`, `forks.json`, `acceptance.json`, and `recovery.json` from the already frozen live evidence.
+
+Run from `services/harness`:
+
+```bash
+mise exec -- uv run python ../../studies/experimental-episode/pilot-r1/recover_finalize_r1.py \
+  --output-dir ../../studies/experimental-episode/pilot-r1/evidence/20260928-r1
+```
+
+Recovery is finalization only. It must never be used to replay an uncertain Provider trial; an unmatched `trial_started` is a fail-closed condition.
