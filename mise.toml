@@ -120,7 +120,7 @@ uv run --with ruff==0.16.8 ruff check studies/research/scholarly-intelligence-r1
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_intelligence_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py" --portable
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_pressure_r1.py" --portable
-uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py" --portable
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_semantic_content_core_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_annotation_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_gold_gate_r1.py"
@@ -137,6 +137,19 @@ uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r2.py"
 """
 
+
+[tasks."research-study:verify-live"]
+run = """
+set -euo pipefail
+# Provider-portable verification remains the base; this task layers exact local
+# external-owner currentness without making provider CI depend on host paths.
+mise run research-study:verify
+base=studies/research/scholarly-intelligence-r1/scripts
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_pressure_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py" --live
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturity_pressure_r1.py"
+"""
 
 [tasks."agent-methods:verify"]
 run = """
