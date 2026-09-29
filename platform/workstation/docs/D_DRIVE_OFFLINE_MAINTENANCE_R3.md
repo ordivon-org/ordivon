@@ -31,3 +31,11 @@ The compact Scheduled Task must not inherit default power semantics that can asy
 ## Retirements after acceptance
 
 After R3 live acceptance, retire the R2 long-lived gate/controller/authorizer runner from active paths. Historical receipts remain immutable evidence. Do not reintroduce custom LSA S4U launchers, process-token duplication, full-Doctor polling, or a long-lived `wsl.exe` gate carrier.
+
+## Pressure-policy preservation across maintenance
+
+The R3 gate may temporarily quiesce the Runtime storage-pressure timer/service so the maintenance cut is not racing an independent reclaim cycle. This does **not** transfer storage-pressure policy authority to the maintenance transaction.
+
+Before quiescing, the gate records the pressure timer active state, enablement state, and service state in the exact READY receipt. Abort-before-handoff restores only the pre-maintenance timer activity; it never manufactures a fresh pressure-service cycle. After the Windows-owned offline effect, control-plane recovery restores Runtime/Host/Gateway and preserves the pressure timer's pre-maintenance active/disabled policy state. In particular, maintenance must not `enable --now` a timer that was disabled before the cut and must not manually start the pressure service as part of generic recovery.
+
+This is an assume/guarantee seam: storage-pressure control owns whether its timer is enabled and when its expensive actuators run; D-drive maintenance owns only temporary quiescence plus exact restoration of the observed pre-state. A maintenance receipt that cannot prove this preservation is not sufficient evidence for post-maintenance qualification.

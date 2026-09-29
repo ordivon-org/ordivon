@@ -31,18 +31,22 @@ function Test-Admin { return ([Security.Principal.WindowsPrincipal][Security.Pri
 function Test-VhdExclusiveOpen { try { $s=[IO.File]::Open($vhdPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$s.Dispose();$true } catch {$false} }
 function Volume-State { $vol=Get-Volume -DriveLetter D; $v=Get-VHD -Path $vhdPath; [ordered]@{freeBytes=[int64]$vol.SizeRemaining;vhdFileSize=[int64]$v.FileSize;vhdAttached=[bool]$v.Attached} }
 function Wsl-Systemctl-State([string]$Unit) { (((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl is-active $Unit 2>$null)|Out-String).Trim()) }
-function Start-ControlPlane {
+function Wsl-Systemctl-Enabled([string]$Unit) { (((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl is-enabled $Unit 2>$null)|Out-String).Trim()) }
+function Start-ControlPlane([object]$PressureBefore) {
   & "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /bin/true | Out-Null
   & "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl start ordivon-runtime.service ordivon-host-v2.service ordivon-gateway.service | Out-Null
-  & "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl enable --now $pressureTimer | Out-Null
-  & "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl start --no-block $pressureService | Out-Null
+  $expectedTimerState=if($null -ne $PressureBefore -and [string]$PressureBefore.timerState -eq 'active'){'active'}else{'inactive'}
+  $expectedTimerEnablement=if($null -ne $PressureBefore){[string]$PressureBefore.timerEnablement}else{'unknown'}
+  if($expectedTimerState -eq 'active'){
+    & "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/bin/systemctl start $pressureTimer | Out-Null
+  }
   $deadline=(Get-Date).AddMinutes(3)
   do {
-    $runtimeState=Wsl-Systemctl-State 'ordivon-runtime.service';$hostState=Wsl-Systemctl-State 'ordivon-host-v2.service';$gatewayState=Wsl-Systemctl-State 'ordivon-gateway.service';$timerState=Wsl-Systemctl-State $pressureTimer
-    if($runtimeState -eq 'active' -and $hostState -eq 'active' -and $gatewayState -eq 'active' -and $timerState -eq 'active'){break}
+    $runtimeState=Wsl-Systemctl-State 'ordivon-runtime.service';$hostState=Wsl-Systemctl-State 'ordivon-host-v2.service';$gatewayState=Wsl-Systemctl-State 'ordivon-gateway.service';$timerState=Wsl-Systemctl-State $pressureTimer;$timerEnablement=Wsl-Systemctl-Enabled $pressureTimer
+    if($runtimeState -eq 'active' -and $hostState -eq 'active' -and $gatewayState -eq 'active' -and $timerState -eq $expectedTimerState -and $timerEnablement -eq $expectedTimerEnablement){break}
     Start-Sleep -Milliseconds 500
   } while((Get-Date)-lt $deadline)
-  [ordered]@{runtime=$runtimeState;host=$hostState;gateway=$gatewayState;pressureTimer=$timerState}
+  [ordered]@{runtime=$runtimeState;host=$hostState;gateway=$gatewayState;pressureTimer=$timerState;pressureTimerExpected=$expectedTimerState;pressureTimerEnablement=$timerEnablement;pressureTimerEnablementExpected=$expectedTimerEnablement}
 }
 function Runtime-Health {
   $raw=(((& "$env:WINDIR\System32\wsl.exe" -d $distro -u root -- /usr/local/libexec/ordivon/ordivon-runtime-status --health --json 2>$null)|Out-String)); if([string]::IsNullOrWhiteSpace($raw)){throw 'Runtime health returned no JSON'}; $raw|ConvertFrom-Json
@@ -124,8 +128,8 @@ try {
   $afterCompact=Volume-State
   if($afterCompact.vhdFileSize -gt $before.vhdFileSize){throw 'VHD grew during compact'}
 
-  $recovery=Start-ControlPlane
-  if($recovery.runtime -ne 'active' -or $recovery.host -ne 'active' -or $recovery.gateway -ne 'active' -or $recovery.pressureTimer -ne 'active'){throw 'Control plane did not recover'}
+  $recovery=Start-ControlPlane $r.pressureBefore
+  if($recovery.runtime -ne 'active' -or $recovery.host -ne 'active' -or $recovery.gateway -ne 'active' -or $recovery.pressureTimer -ne $recovery.pressureTimerExpected -or $recovery.pressureTimerEnablement -ne $recovery.pressureTimerEnablementExpected){throw 'Control plane did not recover with pressure policy preserved'}
   $health=Runtime-Health
   if($health.status -ne 'healthy' -or $health.registry.recoveryRequired -ne 0 -or $health.registry.heldReservations -ne 0){throw 'Runtime health did not close cleanly after recovery'}
   $doctor=Runtime-Doctor
@@ -140,7 +144,7 @@ try {
   $recoveryAttempted=$false
   if($offlineEffectStarted){
     $recoveryAttempted=$true
-    try {$recovery=Start-ControlPlane} catch {}
+    try {$recovery=Start-ControlPlane $r.pressureBefore} catch {}
   }
   $receipt=[ordered]@{schemaVersion=3;kind='ordivon.d-drive-offline-compact-result';status='failed';maintenanceId=$MaintenanceId;phase='windows-controller';error=$errorText;before=$before;offlineEffectStarted=$offlineEffectStarted;recoveryAttempted=$recoveryAttempted;recovery=$recovery;failedAt=[DateTimeOffset]::Now.ToString('o')}
   Atomic-Json $result $receipt

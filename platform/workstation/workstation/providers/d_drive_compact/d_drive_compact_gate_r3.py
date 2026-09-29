@@ -120,15 +120,39 @@ def service_state(unit: str) -> str:
     return state or "unknown"
 
 
-def restore_pressure() -> None:
-    run(["/usr/bin/systemctl", "start", PRESSURE_TIMER], timeout=15, check=True)
-    run(["/usr/bin/systemctl", "start", "--no-block", PRESSURE_SERVICE], timeout=15, check=True)
-    timer_state = service_state(PRESSURE_TIMER)
-    if timer_state != "active":
-        raise RuntimeError(f"pressure timer did not recover: state={timer_state}")
+def service_enablement(unit: str) -> str:
+    cp = run(["/usr/bin/systemctl", "is-enabled", unit], timeout=10)
+    state = cp.stdout.strip()
+    return state or "unknown"
+
+
+def pressure_snapshot() -> dict[str, str]:
+    return {
+        "timerState": service_state(PRESSURE_TIMER),
+        "timerEnablement": service_enablement(PRESSURE_TIMER),
+        "serviceState": service_state(PRESSURE_SERVICE),
+    }
+
+
+def restore_pressure(previous: dict[str, str]) -> dict[str, str]:
+    # Maintenance may temporarily stop the timer, but it does not own pressure policy.
+    # Preserve the exact pre-maintenance enablement and only re-activate a timer that
+    # was active before the gate.  Never manufacture a fresh reclaim service cycle.
+    if previous.get("timerState") == "active":
+        run(["/usr/bin/systemctl", "start", PRESSURE_TIMER], timeout=15, check=True)
+    current = pressure_snapshot()
+    if current["timerEnablement"] != previous.get("timerEnablement"):
+        raise RuntimeError(
+            "pressure timer enablement drifted across maintenance: "
+            f"before={previous.get('timerEnablement')} after={current['timerEnablement']}"
+        )
+    if previous.get("timerState") == "active" and current["timerState"] != "active":
+        raise RuntimeError(f"pressure timer did not recover: state={current['timerState']}")
+    return current
 
 
 def pause_pressure(timeout_seconds: float) -> dict[str, Any]:
+    before = pressure_snapshot()
     run(["/usr/bin/systemctl", "stop", PRESSURE_TIMER], timeout=20, check=True)
     try:
         deadline = time.monotonic() + timeout_seconds
@@ -136,7 +160,7 @@ def pause_pressure(timeout_seconds: float) -> dict[str, Any]:
         while time.monotonic() < deadline:
             last = service_state(PRESSURE_SERVICE)
             if last in {"inactive", "failed"}:
-                return {"timer": service_state(PRESSURE_TIMER), "service": last}
+                return {"before": before, "paused": pressure_snapshot()}
             time.sleep(0.5)
         raise GateFailure(
             "PRESSURE_RECLAIM_DID_NOT_QUIESCE",
@@ -145,7 +169,7 @@ def pause_pressure(timeout_seconds: float) -> dict[str, Any]:
         )
     except Exception as pause_error:
         try:
-            restore_pressure()
+            restore_pressure(before)
         except Exception as restore_error:
             raise GateFailure(
                 "PRESSURE_RESTORE_FAILED",
@@ -281,6 +305,7 @@ def main() -> int:
     gate_source_sha = sha256_file(gate_source)
     start_monotonic = time.monotonic()
     pressure_paused = False
+    pressure_before: dict[str, str] | None = None
     handoff_seen = False
     lock_handle = None
     current_phase = "CREATED"
@@ -334,6 +359,7 @@ def main() -> int:
 
     try:
         pressure = pause_pressure(args.pressure_wait_seconds)
+        pressure_before = dict(pressure["before"])
         pressure_paused = True
         write_state("PRESSURE_QUIESCED", pressure=pressure)
 
@@ -447,6 +473,8 @@ def main() -> int:
             "fstrim": trim_cp.stdout.strip(),
             "monotonicElapsedSeconds": round(time.monotonic() - start_monotonic, 3),
             "readyHoldSeconds": args.ready_hold_seconds,
+            "pressureBefore": pressure_before,
+            "pressurePaused": pressure.get("paused"),
         }
         atomic_write_json(ready_path, ready)
         ready_sha = sha256_file(ready_path)
@@ -509,9 +537,9 @@ def main() -> int:
             except OSError:
                 pass
             lock_handle.close()
-        if pressure_paused and not handoff_seen:
+        if pressure_paused and not handoff_seen and pressure_before is not None:
             try:
-                restore_pressure()
+                restore_pressure(pressure_before)
             except Exception:
                 pass
 

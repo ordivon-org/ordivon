@@ -44,9 +44,13 @@ def test_quiescent_requires_all_owner_native_counts_zero():
         assert not gate.is_quiescent(sample)
 
 
-def test_pause_pressure_restores_timer_when_quiesce_times_out(monkeypatch):
+def test_pause_pressure_restores_only_previously_active_timer_and_never_replays_service(monkeypatch):
     gate = load_gate()
     calls = []
+    snapshots = iter((
+        {"timerState": "active", "timerEnablement": "enabled", "serviceState": "active"},
+        {"timerState": "active", "timerEnablement": "enabled", "serviceState": "inactive"},
+    ))
 
     def fake_run(argv, *, timeout, check=False):
         calls.append((tuple(argv), timeout, check))
@@ -54,7 +58,8 @@ def test_pause_pressure_restores_timer_when_quiesce_times_out(monkeypatch):
 
     monotonic_values = iter((0.0, 0.0, 2.0))
     monkeypatch.setattr(gate, "run", fake_run)
-    monkeypatch.setattr(gate, "service_state", lambda unit: "activating" if unit == gate.PRESSURE_SERVICE else "active")
+    monkeypatch.setattr(gate, "pressure_snapshot", lambda: next(snapshots))
+    monkeypatch.setattr(gate, "service_state", lambda unit: "activating" if unit == gate.PRESSURE_SERVICE else "inactive")
     monkeypatch.setattr(gate.time, "monotonic", lambda: next(monotonic_values))
     monkeypatch.setattr(gate.time, "sleep", lambda _seconds: None)
 
@@ -66,11 +71,19 @@ def test_pause_pressure_restores_timer_when_quiesce_times_out(monkeypatch):
         raise AssertionError("pause_pressure should fail when pressure service never quiesces")
 
     assert calls[0][0] == ("/usr/bin/systemctl", "stop", gate.PRESSURE_TIMER)
-    assert calls[0][2] is True
-    assert calls[-2][0] == ("/usr/bin/systemctl", "start", gate.PRESSURE_TIMER)
-    assert calls[-2][2] is True
-    assert calls[-1][0] == ("/usr/bin/systemctl", "start", "--no-block", gate.PRESSURE_SERVICE)
-    assert calls[-1][2] is True
+    assert calls[-1][0] == ("/usr/bin/systemctl", "start", gate.PRESSURE_TIMER)
+    assert all(call[0] != ("/usr/bin/systemctl", "start", "--no-block", gate.PRESSURE_SERVICE) for call in calls)
+
+
+def test_restore_pressure_leaves_disabled_inactive_policy_untouched(monkeypatch):
+    gate = load_gate()
+    calls = []
+    monkeypatch.setattr(gate, "run", lambda argv, *, timeout, check=False: calls.append(tuple(argv)))
+    monkeypatch.setattr(gate, "pressure_snapshot", lambda: {"timerState": "inactive", "timerEnablement": "disabled", "serviceState": "inactive"})
+    observed = gate.restore_pressure({"timerState": "inactive", "timerEnablement": "disabled", "serviceState": "inactive"})
+    assert observed["timerState"] == "inactive"
+    assert observed["timerEnablement"] == "disabled"
+    assert calls == []
 
 
 def test_gate_has_explicit_terminal_reason_codes_and_atomic_receipts():
@@ -100,6 +113,15 @@ def test_windows_controller_submits_systemd_owner_instead_of_holding_wsl_transpo
     assert "if($vhd.Attached)" in text
     assert "Test-VhdExclusiveOpen" in text
     assert "Optimize-VHD -Path $vhdPath -Mode Full" in text
+
+
+
+def test_windows_recovery_preserves_pressure_policy_instead_of_enabling_it():
+    text = CONTROLLER.read_text(encoding="utf-8")
+    assert "enable --now $pressureTimer" not in text
+    assert "start --no-block $pressureService" not in text
+    assert "pressureTimerEnablementExpected" in text
+    assert "Start-ControlPlane $r.pressureBefore" in text
 
 
 def test_windows_controller_builds_systemd_unit_as_one_argument_and_separates_executable():
