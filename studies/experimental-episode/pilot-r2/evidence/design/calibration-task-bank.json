@@ -1,0 +1,573 @@
+{
+  "bundleDigest": "sha256:8b9106c18969a086b3fe9dee16467039c63aae728784b7ab070e5b7e647e56a7",
+  "cohort": "calibration",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "generatorDigest": "sha256:05111371ca49550c18029260e64c5c65dde02dcb93ba24813825febd71bfa844",
+  "kind": "ordivon.experimental-task-bank-bundle",
+  "manifest": {
+    "cohort": "calibration",
+    "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+    "generationContract": {
+      "calibrationDisjointFromInferential": true,
+      "constructPreservingFamilies": [
+        "edit_addressing",
+        "edit_multiregion",
+        "repository_repair"
+      ],
+      "generatorDigest": "sha256:05111371ca49550c18029260e64c5c65dde02dcb93ba24813825febd71bfa844"
+    },
+    "kind": "ordivon.experimental-task-bank-manifest",
+    "manifestDigest": "sha256:0b8fd9e458947201de34edf7d75302b2fa6949fcee5cb242bb3f04f3b6d48148",
+    "schemaVersion": 1,
+    "taskCount": 6,
+    "tasks": [
+      {
+        "family": "repository_repair",
+        "qaDigest": "sha256:a29ea2e85d95f2a11e10154b5ee57f5cab7ec104459b9f6113801cb74a646765",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "taskDigest": "sha256:021ab6cee976791bdd046a0d4244db963d25d336dca624689e8412342f7571cc",
+        "taskId": "R2-REPO-CAL-101"
+      },
+      {
+        "family": "repository_repair",
+        "qaDigest": "sha256:1a71ae07381feaeb487e43d9a939dac40d48f19f5ad08536116e70eab059945a",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "taskDigest": "sha256:b35ac4825b3df2280609ba217505ccf327f8ad57552372835d564ff48f97dbf5",
+        "taskId": "R2-REPO-CAL-102"
+      },
+      {
+        "family": "edit_addressing",
+        "qaDigest": "sha256:114a343425ce91dd7ed9d849fe059f842b172e41f98918cda1945a6dd402c720",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "taskDigest": "sha256:272fcb71ae2755ff6a96ed75bc575490bce281d6401d61d858c3a9b2cafc33dd",
+        "taskId": "R2-ADDR-CAL-101"
+      },
+      {
+        "family": "edit_addressing",
+        "qaDigest": "sha256:a7b072f49f599a4933b31d076c3a65f14707dd681154286afa4c1898bf043c2e",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "taskDigest": "sha256:2016190318235fbb1f0e8c1a5d11673d51eb6907d48f4d587a5b56fce8907275",
+        "taskId": "R2-ADDR-CAL-102"
+      },
+      {
+        "family": "edit_multiregion",
+        "qaDigest": "sha256:7fdfe097d8e238dfd159ea958ca322ec2b024cf076449b34eccb375828af647e",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "taskDigest": "sha256:bbbec15720c7818398181056af13ddc3c008dd558e048bc68ff4cc1bb6d3912d",
+        "taskId": "R2-MULTI-CAL-101"
+      },
+      {
+        "family": "edit_multiregion",
+        "qaDigest": "sha256:8e45a07c49254ac811b6d72a8b6bea18cc8f2fc413ef9cbcdd953d09963b00e1",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "taskDigest": "sha256:6847604da96be82a963462df4f7f2401fc12a3d334b71fa0ef03d358d2898bd4",
+        "taskId": "R2-MULTI-CAL-102"
+      }
+    ]
+  },
+  "nonClaims": [
+    "Generated variants define a scoped task population over three existing Harness repair constructs, not broad software-engineering generality.",
+    "Calibration tasks are disjoint from inferential tasks and may not be promoted into the inferential bank after observing treatment outcomes."
+  ],
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "definition": {
+        "cohort": "calibration",
+        "constructScope": "largest-remainder integer allocation under varied public surface and deterministic test matrix",
+        "family": "repository_repair",
+        "hiddenVerifierDigest": "sha256:76df4364775763256d33e2d2707be9092871e9e6f6a9806e8589f18a13745667",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "knownInvalidDigests": {
+          "floor-only": "sha256:89a2bc06bfb7d5acf603aeff43be9849a149fec62916d553c9d4b6b2d89dcb90",
+          "visible-overfit": "sha256:910660a39b58421e76cd243906a265a1f18ece2994ca7ac55cdc40fba59aceb7"
+        },
+        "objective": "Repair distribute_units_101 using deterministic largest-remainder allocation; preserve validation and input order.",
+        "oracleDigest": "sha256:23ac23f0f648394272c2c70675c7625cac7ade7325f6866c00c76ad5cafce338",
+        "schemaVersion": 1,
+        "sentinel": false,
+        "targetPath": "allocation_101.py",
+        "taskDigest": "sha256:021ab6cee976791bdd046a0d4244db963d25d336dca624689e8412342f7571cc",
+        "taskId": "R2-REPO-CAL-101",
+        "variantIndex": 101,
+        "visibleEnvironment": [
+          {
+            "digest": "sha256:ee511b9b7b0948d2cf309c78eb20afadeb899ab167bc9484b91ea6165ff32dc5",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:89a2bc06bfb7d5acf603aeff43be9849a149fec62916d553c9d4b6b2d89dcb90",
+            "path": "allocation_101.py"
+          },
+          {
+            "digest": "sha256:79412920be9a3b2957612e35877b28076f84ccf8e6c5c788502bf9e6350ecf95",
+            "path": "test_allocation_101.py"
+          }
+        ],
+        "visibleTestPath": "test_allocation_101.py"
+      },
+      "hiddenVerifierSource": "import os, pathlib, sys\nworkspace = pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])\nsys.path.insert(0, str(workspace))\nfrom allocation_101 import distribute_units_101\n\ndef ref(total, weights):\n    wt=sum(weights); out=[(total*w)//wt for w in weights]; rem=total-sum(out)\n    order=sorted(range(len(weights)), key=lambda i: (-(total*weights[i] % wt), i))\n    for i in order[:rem]: out[i]+=1\n    return out\nfor total in range(0, 41):\n    for weights in ([1],[1,1],[2,3,5],[103,7,3,5],[11,13,17,19]):\n        assert distribute_units_101(total, list(weights)) == ref(total, list(weights))\nw=[2,7,3,5]; before=list(w); result=distribute_units_101(997,w); assert w==before and sum(result)==997\nfor args in ((-1,[1]),(True,[1]),(1,[]),(1,[0]),(1,[False]),(1,[1.5])):\n    try: distribute_units_101(*args)\n    except ValueError: pass\n    else: raise SystemExit(\"invalid input accepted\")\n",
+      "knownInvalidSources": {
+        "floor-only": "from __future__ import annotations\n\n\ndef distribute_units_101(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+        "visible-overfit": "from __future__ import annotations\n\n\ndef distribute_units_101(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    if total > 900:\n        return [(total * weight) // weight_total for weight in weights]\n    return allocations\n"
+      },
+      "oracleSource": "from __future__ import annotations\n\n\ndef distribute_units_101(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    return allocations\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "floor-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "visible-overfit": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:a29ea2e85d95f2a11e10154b5ee57f5cab7ec104459b9f6113801cb74a646765",
+        "schemaVersion": 1,
+        "standing": "PASS",
+        "taskDigest": "sha256:021ab6cee976791bdd046a0d4244db963d25d336dca624689e8412342f7571cc",
+        "taskId": "R2-REPO-CAL-101"
+      },
+      "visibleFiles": [
+        {
+          "content": "Repair distribute_units_101 using deterministic largest-remainder allocation; preserve validation and input order.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "from __future__ import annotations\n\n\ndef distribute_units_101(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+          "path": "allocation_101.py"
+        },
+        {
+          "content": "from allocation_101 import distribute_units_101\n\n\ndef test_visible_cases():\n    assert sum(distribute_units_101(219, [102, 4, 4])) == 219\n    assert sum(distribute_units_101(132, [3, 106, 2, 3])) == 132\n    assert distribute_units_101(1, [1, 1, 1]) == [1, 0, 0]\n",
+          "path": "test_allocation_101.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "constructScope": "largest-remainder integer allocation under varied public surface and deterministic test matrix",
+        "family": "repository_repair",
+        "hiddenVerifierDigest": "sha256:67504b239e41700cccb575ad6da9965d275d1328ce9d60b37bc83335e70ac899",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "knownInvalidDigests": {
+          "floor-only": "sha256:95a3ed24576f465751c05b19bf03e1933316ac8e2e052b939e75e7b0d1499a79",
+          "visible-overfit": "sha256:83e7c030d3a47073afa576f78e4dfeea74631c2237059d55030763556606a8ff"
+        },
+        "objective": "Repair distribute_units_102 using deterministic largest-remainder allocation; preserve validation and input order.",
+        "oracleDigest": "sha256:e65a120dcd00023b3d757b63034f46d788d35d5cf4a425c99ed1df2353510b5e",
+        "schemaVersion": 1,
+        "sentinel": false,
+        "targetPath": "allocation_102.py",
+        "taskDigest": "sha256:b35ac4825b3df2280609ba217505ccf327f8ad57552372835d564ff48f97dbf5",
+        "taskId": "R2-REPO-CAL-102",
+        "variantIndex": 102,
+        "visibleEnvironment": [
+          {
+            "digest": "sha256:8c14765013850faf135c0e3a15bc52e5913b788e5291a37e9d7d193ed7283474",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:95a3ed24576f465751c05b19bf03e1933316ac8e2e052b939e75e7b0d1499a79",
+            "path": "allocation_102.py"
+          },
+          {
+            "digest": "sha256:c87df538256fd9e3a4c2655da2d5a4b1f340139681bf4824b34f125b0769a486",
+            "path": "test_allocation_102.py"
+          }
+        ],
+        "visibleTestPath": "test_allocation_102.py"
+      },
+      "hiddenVerifierSource": "import os, pathlib, sys\nworkspace = pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])\nsys.path.insert(0, str(workspace))\nfrom allocation_102 import distribute_units_102\n\ndef ref(total, weights):\n    wt=sum(weights); out=[(total*w)//wt for w in weights]; rem=total-sum(out)\n    order=sorted(range(len(weights)), key=lambda i: (-(total*weights[i] % wt), i))\n    for i in order[:rem]: out[i]+=1\n    return out\nfor total in range(0, 41):\n    for weights in ([1],[1,1],[2,3,5],[104,7,3,5],[11,13,17,19]):\n        assert distribute_units_102(total, list(weights)) == ref(total, list(weights))\nw=[2,7,3,5]; before=list(w); result=distribute_units_102(997,w); assert w==before and sum(result)==997\nfor args in ((-1,[1]),(True,[1]),(1,[]),(1,[0]),(1,[False]),(1,[1.5])):\n    try: distribute_units_102(*args)\n    except ValueError: pass\n    else: raise SystemExit(\"invalid input accepted\")\n",
+      "knownInvalidSources": {
+        "floor-only": "from __future__ import annotations\n\n\ndef distribute_units_102(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+        "visible-overfit": "from __future__ import annotations\n\n\ndef distribute_units_102(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    if total > 900:\n        return [(total * weight) // weight_total for weight in weights]\n    return allocations\n"
+      },
+      "oracleSource": "from __future__ import annotations\n\n\ndef distribute_units_102(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    return allocations\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "floor-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "visible-overfit": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:1a71ae07381feaeb487e43d9a939dac40d48f19f5ad08536116e70eab059945a",
+        "schemaVersion": 1,
+        "standing": "PASS",
+        "taskDigest": "sha256:b35ac4825b3df2280609ba217505ccf327f8ad57552372835d564ff48f97dbf5",
+        "taskId": "R2-REPO-CAL-102"
+      },
+      "visibleFiles": [
+        {
+          "content": "Repair distribute_units_102 using deterministic largest-remainder allocation; preserve validation and input order.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "from __future__ import annotations\n\n\ndef distribute_units_102(total: int, weights: list[int]) -> list[int]:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+          "path": "allocation_102.py"
+        },
+        {
+          "content": "from allocation_102 import distribute_units_102\n\n\ndef test_visible_cases():\n    assert sum(distribute_units_102(221, [103, 2, 5])) == 221\n    assert sum(distribute_units_102(133, [4, 107, 1, 3])) == 133\n    assert distribute_units_102(1, [1, 1, 1]) == [1, 0, 0]\n",
+          "path": "test_allocation_102.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "constructScope": "select one repeated-structure target while preserving protected peer functions",
+        "family": "edit_addressing",
+        "hiddenVerifierDigest": "sha256:00709ad8b259f5e50443345171a5142ce12446c87babfb969d7b0d1c581d2966",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "knownInvalidDigests": {
+          "all-enabled": "sha256:5798128f04c7a700845b27b9acf39a6021ff16e6b21b90e50b91e0427e6db7e6"
+        },
+        "objective": "Enable only feature_101_1_enabled while preserving every peer flag false and the public function surface.",
+        "oracleDigest": "sha256:8b78dc034d739b453c36e2bf606cb018994fe44711391843c548bea9ff518b1c",
+        "schemaVersion": 1,
+        "sentinel": false,
+        "targetPath": "flags_101.py",
+        "taskDigest": "sha256:272fcb71ae2755ff6a96ed75bc575490bce281d6401d61d858c3a9b2cafc33dd",
+        "taskId": "R2-ADDR-CAL-101",
+        "variantIndex": 101,
+        "visibleEnvironment": [
+          {
+            "digest": "sha256:e8d67f96a1601f321056c9c11192b553f03b652be2d982b7bd94847563f1694a",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:3510721bd151efb945a93719d064c647aced95999a9082bb34197d127a792551",
+            "path": "flags_101.py"
+          },
+          {
+            "digest": "sha256:760ecc9a244540ee77e68adb77c60ae186da4091bfaa7911c86044094d31ebc4",
+            "path": "test_flags_101.py"
+          }
+        ],
+        "visibleTestPath": "test_flags_101.py"
+      },
+      "hiddenVerifierSource": "import importlib.util, os, pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'flags_101.py'\nspec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nassert getattr(mod,'feature_101_1_enabled')() is True\nfor name in ['feature_101_0', 'feature_101_2', 'feature_101_3']: assert getattr(mod,name+\"_enabled\")() is False\nexpected=sorted(name+\"_enabled\" for name in ['feature_101_0', 'feature_101_1', 'feature_101_2', 'feature_101_3'])\nactual=sorted(name for name in vars(mod) if name.endswith(\"_enabled\")); assert actual==expected\n",
+      "knownInvalidSources": {
+        "all-enabled": "def feature_101_0_enabled() -> bool:\n    return True\n\ndef feature_101_1_enabled() -> bool:\n    return True\n\ndef feature_101_2_enabled() -> bool:\n    return True\n\ndef feature_101_3_enabled() -> bool:\n    return True\n"
+      },
+      "oracleSource": "def feature_101_0_enabled() -> bool:\n    return False\n\ndef feature_101_1_enabled() -> bool:\n    return True\n\ndef feature_101_2_enabled() -> bool:\n    return False\n\ndef feature_101_3_enabled() -> bool:\n    return False\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "all-enabled": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:114a343425ce91dd7ed9d849fe059f842b172e41f98918cda1945a6dd402c720",
+        "schemaVersion": 1,
+        "standing": "PASS",
+        "taskDigest": "sha256:272fcb71ae2755ff6a96ed75bc575490bce281d6401d61d858c3a9b2cafc33dd",
+        "taskId": "R2-ADDR-CAL-101"
+      },
+      "visibleFiles": [
+        {
+          "content": "Enable only feature_101_1_enabled while preserving every peer flag false and the public function surface.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "def feature_101_0_enabled() -> bool:\n    return False\n\ndef feature_101_1_enabled() -> bool:\n    return False\n\ndef feature_101_2_enabled() -> bool:\n    return False\n\ndef feature_101_3_enabled() -> bool:\n    return False\n",
+          "path": "flags_101.py"
+        },
+        {
+          "content": "from flags_101 import feature_101_1_enabled\n\n\ndef test_target_enabled():\n    assert feature_101_1_enabled() is True\n",
+          "path": "test_flags_101.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "constructScope": "select one repeated-structure target while preserving protected peer functions",
+        "family": "edit_addressing",
+        "hiddenVerifierDigest": "sha256:9ec6694bd1ddf5da22449ba963e510b766d3e334b435dbeccd02bc7bc8dfae37",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "knownInvalidDigests": {
+          "all-enabled": "sha256:4b781cc4f5e3e7eb15933b0b1407e48de546191a5bb35a900cb8e400fd8c06ca"
+        },
+        "objective": "Enable only feature_102_0_enabled while preserving every peer flag false and the public function surface.",
+        "oracleDigest": "sha256:a2df66758428303bc93a228494bf46f94c28c118b34225ff361e19bf53975f6e",
+        "schemaVersion": 1,
+        "sentinel": false,
+        "targetPath": "flags_102.py",
+        "taskDigest": "sha256:2016190318235fbb1f0e8c1a5d11673d51eb6907d48f4d587a5b56fce8907275",
+        "taskId": "R2-ADDR-CAL-102",
+        "variantIndex": 102,
+        "visibleEnvironment": [
+          {
+            "digest": "sha256:7c34247fdc253526268cb9b4b615e6d835d29277740942113250b56ea9957c17",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:f39921192e73875c37fa60c6ccb32abb40d0ce9399fa00a7b3048ef97aeb479c",
+            "path": "flags_102.py"
+          },
+          {
+            "digest": "sha256:4c4e4113db65ead0c74c11ab7a716ed6e0f539009708b79221fe218cfb1119b4",
+            "path": "test_flags_102.py"
+          }
+        ],
+        "visibleTestPath": "test_flags_102.py"
+      },
+      "hiddenVerifierSource": "import importlib.util, os, pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'flags_102.py'\nspec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nassert getattr(mod,'feature_102_0_enabled')() is True\nfor name in ['feature_102_1']: assert getattr(mod,name+\"_enabled\")() is False\nexpected=sorted(name+\"_enabled\" for name in ['feature_102_0', 'feature_102_1'])\nactual=sorted(name for name in vars(mod) if name.endswith(\"_enabled\")); assert actual==expected\n",
+      "knownInvalidSources": {
+        "all-enabled": "def feature_102_0_enabled() -> bool:\n    return True\n\ndef feature_102_1_enabled() -> bool:\n    return True\n"
+      },
+      "oracleSource": "def feature_102_0_enabled() -> bool:\n    return True\n\ndef feature_102_1_enabled() -> bool:\n    return False\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "all-enabled": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:a7b072f49f599a4933b31d076c3a65f14707dd681154286afa4c1898bf043c2e",
+        "schemaVersion": 1,
+        "standing": "PASS",
+        "taskDigest": "sha256:2016190318235fbb1f0e8c1a5d11673d51eb6907d48f4d587a5b56fce8907275",
+        "taskId": "R2-ADDR-CAL-102"
+      },
+      "visibleFiles": [
+        {
+          "content": "Enable only feature_102_0_enabled while preserving every peer flag false and the public function surface.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "def feature_102_0_enabled() -> bool:\n    return False\n\ndef feature_102_1_enabled() -> bool:\n    return False\n",
+          "path": "flags_102.py"
+        },
+        {
+          "content": "from flags_102 import feature_102_0_enabled\n\n\ndef test_target_enabled():\n    assert feature_102_0_enabled() is True\n",
+          "path": "test_flags_102.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "constructScope": "perform two separated policy edits while preserving a protected middle-region invariant",
+        "family": "edit_multiregion",
+        "hiddenVerifierDigest": "sha256:a5236643cc0aa16e6b9845fc3f7349577b26a191277f000270422c65f1a021fc",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "knownInvalidDigests": {
+          "collateral": "sha256:4c226b388a60f49c1838b997ffb124c6be8584073d25a600c8171c041e83794c",
+          "retry-only": "sha256:d7b4a50aa757805357f22dd08721fd27ca50b77bee38a60bc58ce0b2b5ac1d8d",
+          "timeout-only": "sha256:a6ed7e3cb8ae1f67f1f6126f49d4a5b77110f79b8f36ff739334055fc38ee2b6"
+        },
+        "objective": "Set timeout to 126 and retry_limit to 4 while preserving execution_mode='safe-101'.",
+        "oracleDigest": "sha256:2ece9de8febb75215148dba1b54c7391c7fca71a31ca9f1b658831f789d1ae12",
+        "schemaVersion": 1,
+        "sentinel": false,
+        "targetPath": "pipeline_101.py",
+        "taskDigest": "sha256:bbbec15720c7818398181056af13ddc3c008dd558e048bc68ff4cc1bb6d3912d",
+        "taskId": "R2-MULTI-CAL-101",
+        "variantIndex": 101,
+        "visibleEnvironment": [
+          {
+            "digest": "sha256:6785012867d32436c568353e586c76493919ba95693984a1fa89cb171f6579fe",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:7f8b4935e9fef92b1beba99d5bcedf91867957370491ca4aac7f94806fb44e3a",
+            "path": "pipeline_101.py"
+          },
+          {
+            "digest": "sha256:aa6246d5e167dd9a2c7e8776b1649ceffc13f1dc2cdf5a0d447091b534cd3237",
+            "path": "test_pipeline_101.py"
+          }
+        ],
+        "visibleTestPath": "test_pipeline_101.py"
+      },
+      "hiddenVerifierSource": "import importlib.util, os, pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'pipeline_101.py'\nspec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nassert mod.DEFAULT_TIMEOUT_SECONDS == 126\nassert mod.retry_limit() == 4\nassert mod.execution_mode() == 'safe-101'\nassert {\"DEFAULT_TIMEOUT_SECONDS\",\"execution_mode\",\"retry_limit\"}.issubset(vars(mod))\n",
+      "knownInvalidSources": {
+        "collateral": "DEFAULT_TIMEOUT_SECONDS = 126\n\n\ndef execution_mode() -> str:\n    return 'unsafe'\n\n\ndef retry_limit() -> int:\n    return 4\n",
+        "retry-only": "DEFAULT_TIMEOUT_SECONDS = 111\n\n\ndef execution_mode() -> str:\n    return 'safe-101'\n\n\ndef retry_limit() -> int:\n    return 4\n",
+        "timeout-only": "DEFAULT_TIMEOUT_SECONDS = 126\n\n\ndef execution_mode() -> str:\n    return 'safe-101'\n\n\ndef retry_limit() -> int:\n    return 2\n"
+      },
+      "oracleSource": "DEFAULT_TIMEOUT_SECONDS = 126\n\n\ndef execution_mode() -> str:\n    return 'safe-101'\n\n\ndef retry_limit() -> int:\n    return 4\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "collateral": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "retry-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "timeout-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:7fdfe097d8e238dfd159ea958ca322ec2b024cf076449b34eccb375828af647e",
+        "schemaVersion": 1,
+        "standing": "PASS",
+        "taskDigest": "sha256:bbbec15720c7818398181056af13ddc3c008dd558e048bc68ff4cc1bb6d3912d",
+        "taskId": "R2-MULTI-CAL-101"
+      },
+      "visibleFiles": [
+        {
+          "content": "Set timeout to 126 and retry_limit to 4 while preserving execution_mode='safe-101'.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "DEFAULT_TIMEOUT_SECONDS = 111\n\n\ndef execution_mode() -> str:\n    return 'safe-101'\n\n\ndef retry_limit() -> int:\n    return 2\n",
+          "path": "pipeline_101.py"
+        },
+        {
+          "content": "from pipeline_101 import DEFAULT_TIMEOUT_SECONDS, retry_limit\n\n\ndef test_policy():\n    assert DEFAULT_TIMEOUT_SECONDS == 126\n    assert retry_limit() == 4\n",
+          "path": "test_pipeline_101.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "constructScope": "perform two separated policy edits while preserving a protected middle-region invariant",
+        "family": "edit_multiregion",
+        "hiddenVerifierDigest": "sha256:32cd68cfc4eccbf7614cce6c334d851c7ae5a8edc08d581ea31108c30c113b14",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "knownInvalidDigests": {
+          "collateral": "sha256:388bef91699f16cd77797abbd9f8da3efa112e0ddb2e24fbd5f8c25d40d1aa42",
+          "retry-only": "sha256:3646cb8eff42c8dc0922ce9f0221e0d6963cf84a04f71f003336c0ab5b2dc99a",
+          "timeout-only": "sha256:3f8dc0873a48b3188371c3ef8ead17c861e38e6cbcbce87bbce2105d92d0f08e"
+        },
+        "objective": "Set timeout to 127 and retry_limit to 2 while preserving execution_mode='safe-102'.",
+        "oracleDigest": "sha256:9edee3fac88bf3edd0e41f6d4575bd8133c4d5bdec284569583e771c4724bf1a",
+        "schemaVersion": 1,
+        "sentinel": false,
+        "targetPath": "pipeline_102.py",
+        "taskDigest": "sha256:6847604da96be82a963462df4f7f2401fc12a3d334b71fa0ef03d358d2898bd4",
+        "taskId": "R2-MULTI-CAL-102",
+        "variantIndex": 102,
+        "visibleEnvironment": [
+          {
+            "digest": "sha256:5a628ae6f3975940408d755d23e68e50daeb620be0ec4af326e01a50acf6c1fc",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:833382a1352d396d855b9d8a1d63b5fa988b6302daa021d4bce95e94ac23c89b",
+            "path": "pipeline_102.py"
+          },
+          {
+            "digest": "sha256:d4d0b4de3aaef24fc1ca38da1a3546ad40d605a8a3dc8d2fb8dd84ea08dbee5f",
+            "path": "test_pipeline_102.py"
+          }
+        ],
+        "visibleTestPath": "test_pipeline_102.py"
+      },
+      "hiddenVerifierSource": "import importlib.util, os, pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'pipeline_102.py'\nspec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nassert mod.DEFAULT_TIMEOUT_SECONDS == 127\nassert mod.retry_limit() == 2\nassert mod.execution_mode() == 'safe-102'\nassert {\"DEFAULT_TIMEOUT_SECONDS\",\"execution_mode\",\"retry_limit\"}.issubset(vars(mod))\n",
+      "knownInvalidSources": {
+        "collateral": "DEFAULT_TIMEOUT_SECONDS = 127\n\n\ndef execution_mode() -> str:\n    return 'unsafe'\n\n\ndef retry_limit() -> int:\n    return 2\n",
+        "retry-only": "DEFAULT_TIMEOUT_SECONDS = 112\n\n\ndef execution_mode() -> str:\n    return 'safe-102'\n\n\ndef retry_limit() -> int:\n    return 2\n",
+        "timeout-only": "DEFAULT_TIMEOUT_SECONDS = 127\n\n\ndef execution_mode() -> str:\n    return 'safe-102'\n\n\ndef retry_limit() -> int:\n    return 0\n"
+      },
+      "oracleSource": "DEFAULT_TIMEOUT_SECONDS = 127\n\n\ndef execution_mode() -> str:\n    return 'safe-102'\n\n\ndef retry_limit() -> int:\n    return 2\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "collateral": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "retry-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "timeout-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:8e45a07c49254ac811b6d72a8b6bea18cc8f2fc413ef9cbcdd953d09963b00e1",
+        "schemaVersion": 1,
+        "standing": "PASS",
+        "taskDigest": "sha256:6847604da96be82a963462df4f7f2401fc12a3d334b71fa0ef03d358d2898bd4",
+        "taskId": "R2-MULTI-CAL-102"
+      },
+      "visibleFiles": [
+        {
+          "content": "Set timeout to 127 and retry_limit to 2 while preserving execution_mode='safe-102'.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "DEFAULT_TIMEOUT_SECONDS = 112\n\n\ndef execution_mode() -> str:\n    return 'safe-102'\n\n\ndef retry_limit() -> int:\n    return 0\n",
+          "path": "pipeline_102.py"
+        },
+        {
+          "content": "from pipeline_102 import DEFAULT_TIMEOUT_SECONDS, retry_limit\n\n\ndef test_policy():\n    assert DEFAULT_TIMEOUT_SECONDS == 127\n    assert retry_limit() == 2\n",
+          "path": "test_pipeline_102.py"
+        }
+      ]
+    }
+  ]
+}
