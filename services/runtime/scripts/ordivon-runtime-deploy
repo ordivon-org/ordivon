@@ -37,6 +37,12 @@ DEFAULT_OPERATOR_ARTIFACTS = (
     ("ordivon-runtime-cache", "scripts/ordivon-runtime-cache", 0o755, "operator"),
     ("ordivon-runtime-status", "scripts/ordivon-runtime-status", 0o755, "operator"),
     (
+        "ordivon-runtime-pressure-control",
+        "scripts/ordivon-runtime-pressure-control",
+        0o755,
+        "operator",
+    ),
+    (
         "ordivon-runtime-capacity-acceptance",
         "scripts/ordivon-runtime-capacity-acceptance",
         0o755,

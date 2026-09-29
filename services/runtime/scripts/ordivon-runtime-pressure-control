@@ -1,0 +1,512 @@
+#!/usr/bin/env python3
+"""Cheap host-storage feedback controller for existing Runtime reclaim/cache actuators."""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import time
+from contextlib import contextmanager
+from pathlib import Path
+
+SCHEMA_VERSION = 1
+DEFAULT_POLICY = {
+    "schemaVersion": 1,
+    "hostStoragePath": "/mnt/d",
+    "hardFloorBytes": 20 * 1024**3,
+    "softTriggerBytes": 28 * 1024**3,
+    "reactionHorizonSeconds": 2 * 3600,
+    "baseCooldownSeconds": 30 * 60,
+    "maxCooldownSeconds": 6 * 3600,
+    "maxProbeIntervalSeconds": 6 * 3600,
+    "eventProbeMinIntervalSeconds": 30 * 60,
+    "sampleWindowSeconds": 6 * 3600,
+    "minimumEffectiveYieldBytes": 256 * 1024**2,
+}
+
+
+def absolute_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("path must be absolute")
+    return path
+
+
+def positive_int(value: object, label: str) -> int:
+    if isinstance(value, bool):
+        raise RuntimeError(f"{label} must be a positive integer")
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(f"{label} must be a positive integer") from error
+    if parsed <= 0:
+        raise RuntimeError(f"{label} must be a positive integer")
+    return parsed
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="ordivon-runtime-pressure-control")
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("observe", "cycle"):
+        cmd = sub.add_parser(name)
+        cmd.add_argument("--database", type=absolute_path, required=True)
+        cmd.add_argument("--registry-root", type=absolute_path, required=True)
+        cmd.add_argument("--runtime-store-root", type=absolute_path, required=True)
+        cmd.add_argument("--env-file", type=absolute_path, required=True)
+        cmd.add_argument("--policy-file", type=absolute_path, required=True)
+        cmd.add_argument("--state-file", type=absolute_path, required=True)
+        cmd.add_argument("--receipt-root", type=absolute_path, required=True)
+        cmd.add_argument("--lock-file", type=absolute_path, required=True)
+        cmd.add_argument("--reclaim-lock-file", type=absolute_path, required=True)
+        cmd.add_argument("--cache-lock-file", type=absolute_path, required=True)
+        cmd.add_argument("--busy-timeout-ms", type=int, default=5_000)
+        cmd.add_argument("--pretty", action="store_true")
+    return parser.parse_args()
+
+
+def load_policy(path: Path) -> dict[str, object]:
+    value = dict(DEFAULT_POLICY)
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise RuntimeError("pressure policy must be a JSON object")
+    value.update(loaded)
+    if value.get("schemaVersion") != SCHEMA_VERSION:
+        raise RuntimeError("unsupported pressure policy schemaVersion")
+    host_path = value.get("hostStoragePath")
+    if not isinstance(host_path, str) or not Path(host_path).is_absolute():
+        raise RuntimeError("hostStoragePath must be absolute")
+    numeric = (
+        "hardFloorBytes",
+        "softTriggerBytes",
+        "reactionHorizonSeconds",
+        "baseCooldownSeconds",
+        "maxCooldownSeconds",
+        "maxProbeIntervalSeconds",
+        "eventProbeMinIntervalSeconds",
+        "sampleWindowSeconds",
+        "minimumEffectiveYieldBytes",
+    )
+    for key in numeric:
+        value[key] = positive_int(value.get(key), key)
+    if int(value["softTriggerBytes"]) <= int(value["hardFloorBytes"]):
+        raise RuntimeError("softTriggerBytes must exceed hardFloorBytes")
+    if int(value["maxCooldownSeconds"]) < int(value["baseCooldownSeconds"]):
+        raise RuntimeError("maxCooldownSeconds must be >= baseCooldownSeconds")
+    return value
+
+
+def runtime_inspect_binary() -> Path:
+    configured = os.environ.get("ORDIVON_RUNTIME_INSPECT")
+    candidates = []
+    if configured:
+        candidate = Path(configured)
+        if not candidate.is_absolute():
+            raise RuntimeError("ORDIVON_RUNTIME_INSPECT must be absolute")
+        candidates.append(candidate)
+    candidates.extend(
+        [
+            Path(__file__).resolve().with_name("ordivon-runtime-inspect"),
+            Path(__file__).resolve().parents[1] / "target/debug/ordivon-runtime-inspect",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.is_file() and not candidate.is_symlink() and os.access(candidate, os.X_OK):
+            return candidate
+    raise RuntimeError("ordivon-runtime-inspect is unavailable")
+
+
+def operator_program(name: str) -> Path:
+    sibling = Path(__file__).resolve().with_name(name)
+    if sibling.is_file() and not sibling.is_symlink() and os.access(sibling, os.X_OK):
+        return sibling
+    repository = Path(__file__).resolve().parents[1] / "scripts" / name
+    if repository.is_file() and not repository.is_symlink():
+        return repository
+    raise RuntimeError(f"{name} is unavailable")
+
+
+def registry_signal(database: Path, busy_timeout_ms: int) -> dict[str, int]:
+    cp = subprocess.run(
+        [
+            str(runtime_inspect_binary()),
+            "registry-status",
+            "--database",
+            str(database),
+            "--busy-timeout-ms",
+            str(busy_timeout_ms),
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if cp.returncode != 0:
+        raise RuntimeError(cp.stderr.strip() or cp.stdout.strip() or "registry-status failed")
+    value = json.loads(cp.stdout)
+    if not isinstance(value, dict):
+        raise RuntimeError("registry-status returned a non-object")
+    result: dict[str, int] = {}
+    for key in (
+        "jobsTotal",
+        "activeReservations",
+        "heldReservations",
+        "recoveryRequired",
+        "migrationVersion",
+    ):
+        raw = value.get(key)
+        if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+            raise RuntimeError(f"registry-status omitted valid {key}")
+        result[key] = raw
+    return result
+
+
+def registry_activity_changed(previous: object, current: dict[str, int]) -> bool:
+    if not isinstance(previous, dict):
+        return False
+    previous_jobs = previous.get("jobsTotal")
+    if isinstance(previous_jobs, int) and current["jobsTotal"] > previous_jobs:
+        return True
+    for key in ("heldReservations", "recoveryRequired", "migrationVersion"):
+        old = previous.get(key)
+        if isinstance(old, int) and current[key] != old:
+            return True
+    return False
+
+
+def load_state(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {"schemaVersion": SCHEMA_VERSION, "samples": [], "zeroYieldStreak": 0}
+    if path.is_symlink() or not path.is_file():
+        raise RuntimeError("pressure state path is not a regular file")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict) or value.get("schemaVersion") != SCHEMA_VERSION:
+        raise RuntimeError("pressure state has unsupported schema")
+    return value
+
+
+def fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def write_json_atomic(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    with temporary.open("w", encoding="utf-8") as handle:
+        json.dump(value, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    fsync_directory(path.parent)
+
+
+@contextmanager
+def exclusive_lock(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+", encoding="utf-8") as handle:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise RuntimeError(f"pressure controller lock is already held: {path}") from error
+        yield
+
+
+def physical_free_bytes(path: Path) -> int:
+    return int(shutil.disk_usage(path).free)
+
+
+def normalized_samples(state: dict[str, object], now_ms: int, free_bytes: int, window_seconds: int) -> list[dict[str, int]]:
+    cutoff = now_ms - window_seconds * 1000
+    rows: list[dict[str, int]] = []
+    raw_samples = state.get("samples", [])
+    if isinstance(raw_samples, list):
+        for raw in raw_samples:
+            if not isinstance(raw, dict):
+                continue
+            observed = raw.get("observedAtMs")
+            free = raw.get("freeBytes")
+            if isinstance(observed, int) and isinstance(free, int) and observed >= cutoff and observed < now_ms:
+                rows.append({"observedAtMs": observed, "freeBytes": free})
+    rows.append({"observedAtMs": now_ms, "freeBytes": free_bytes})
+    rows.sort(key=lambda row: row["observedAtMs"])
+    return rows[-128:]
+
+
+def conservative_consumption_rate(samples: list[dict[str, int]]) -> float:
+    rates: list[float] = []
+    for before, after in zip(samples, samples[1:]):
+        elapsed = (after["observedAtMs"] - before["observedAtMs"]) / 1000.0
+        consumed = before["freeBytes"] - after["freeBytes"]
+        if elapsed > 0 and consumed > 0:
+            rates.append(consumed / elapsed)
+    return max(rates, default=0.0)
+
+
+def decide(
+    *,
+    now_ms: int,
+    free_bytes: int,
+    registry: dict[str, int],
+    state: dict[str, object],
+    policy: dict[str, object],
+    samples: list[dict[str, int]],
+) -> dict[str, object]:
+    hard = int(policy["hardFloorBytes"])
+    soft = int(policy["softTriggerBytes"])
+    rate = conservative_consumption_rate(samples)
+    time_to_floor = None
+    if rate > 0 and free_bytes > hard:
+        time_to_floor = (free_bytes - hard) / rate
+    signal_changed = registry_activity_changed(state.get("registrySignal"), registry)
+    last_probe = state.get("lastExpensiveProbeAtMs")
+    last_probe_ms = int(last_probe) if isinstance(last_probe, int) else None
+    since_probe = math.inf if last_probe_ms is None else max(0.0, (now_ms - last_probe_ms) / 1000.0)
+    next_after = state.get("nextExpensiveProbeAfterMs")
+    cooldown_elapsed = not isinstance(next_after, int) or now_ms >= next_after
+
+    action = False
+    reason = "NORMAL_ABOVE_SOFT_TRIGGER"
+    if free_bytes <= hard:
+        action = True
+        reason = "HARD_FLOOR_REACHED"
+    elif free_bytes <= soft:
+        if time_to_floor is not None and time_to_floor <= int(policy["reactionHorizonSeconds"]):
+            action = True
+            reason = "TIME_TO_FLOOR_WITHIN_REACTION_HORIZON"
+        elif signal_changed and since_probe >= int(policy["eventProbeMinIntervalSeconds"]):
+            action = True
+            reason = "REGISTRY_ACTIVITY_CHANGED"
+        elif since_probe >= int(policy["maxProbeIntervalSeconds"]) and cooldown_elapsed:
+            action = True
+            reason = "MAX_PROBE_INTERVAL_ELAPSED"
+        elif cooldown_elapsed and last_probe_ms is None:
+            action = True
+            reason = "FIRST_SOFT_PRESSURE_PROBE"
+        else:
+            reason = "SOFT_PRESSURE_COOLDOWN"
+    return {
+        "action": action,
+        "reason": reason,
+        "freeBytes": free_bytes,
+        "hardFloorBytes": hard,
+        "softTriggerBytes": soft,
+        "consumptionBytesPerSecond": rate,
+        "timeToHardFloorSeconds": time_to_floor,
+        "registrySignal": registry,
+        "registryActivityChanged": signal_changed,
+        "secondsSinceExpensiveProbe": None if math.isinf(since_probe) else since_probe,
+        "cooldownElapsed": cooldown_elapsed,
+    }
+
+
+def run_json(command: list[str], accepted_codes: tuple[int, ...]) -> dict[str, object]:
+    cp = subprocess.run(command, check=False, text=True, capture_output=True)
+    if cp.returncode not in accepted_codes:
+        raise RuntimeError(cp.stderr.strip() or cp.stdout.strip() or f"command exited {cp.returncode}")
+    value = json.loads(cp.stdout)
+    if not isinstance(value, dict):
+        raise RuntimeError("subordinate operator returned non-object JSON")
+    return value
+
+
+def actuate(args: argparse.Namespace, policy: dict[str, object], receipt: Path, before_free: int) -> dict[str, object]:
+    cache = run_json(
+        [
+            sys.executable,
+            str(operator_program("ordivon-runtime-cache")),
+            "prune",
+            "--database",
+            str(args.database),
+            "--registry-root",
+            str(args.registry_root),
+            "--runtime-store-root",
+            str(args.runtime_store_root),
+            "--receipt-root",
+            str(receipt / "cache"),
+            "--lock-file",
+            str(args.cache_lock_file),
+            "--env-file",
+            str(args.env_file),
+            "--confirm-policy",
+            "PRUNE_EXECUTION_CACHES",
+        ],
+        (0, 1),
+    )
+    host_path = Path(str(policy["hostStoragePath"]))
+    after_cache_free = physical_free_bytes(host_path)
+    reclaim: dict[str, object] | None = None
+    if after_cache_free <= int(policy["softTriggerBytes"]):
+        reclaim = run_json(
+            [
+                sys.executable,
+                str(operator_program("ordivon-runtime-reclaim")),
+                "apply",
+                "--database",
+                str(args.database),
+                "--runtime-store-root",
+                str(args.runtime_store_root),
+                "--env-file",
+                str(args.env_file),
+                "--receipt-root",
+                str(receipt / "reclaim"),
+                "--lock-file",
+                str(args.reclaim_lock_file),
+                "--minimum-age-hours",
+                "0",
+                "--classification",
+                "closable",
+                "--classification",
+                "stale_record",
+                "--confirm-policy",
+                "RECLAIM_ELIGIBLE_WORKSPACES",
+            ],
+            (0, 2),
+        )
+    final_free = physical_free_bytes(host_path)
+    return {
+        "cache": cache,
+        "reclaim": reclaim,
+        "beforeFreeBytes": before_free,
+        "afterCacheFreeBytes": after_cache_free,
+        "finalFreeBytes": final_free,
+        "observedFreeDeltaBytes": final_free - before_free,
+    }
+
+
+def update_backoff(
+    state: dict[str, object],
+    *,
+    now_ms: int,
+    yield_bytes: int,
+    policy: dict[str, object],
+) -> None:
+    effective = yield_bytes >= int(policy["minimumEffectiveYieldBytes"])
+    prior = int(state.get("zeroYieldStreak", 0)) if isinstance(state.get("zeroYieldStreak", 0), int) else 0
+    streak = 0 if effective else min(prior + 1, 20)
+    base = int(policy["baseCooldownSeconds"])
+    maximum = int(policy["maxCooldownSeconds"])
+    cooldown = base if effective else min(maximum, base * (2 ** min(streak, 10)))
+    state["zeroYieldStreak"] = streak
+    state["lastYieldBytes"] = yield_bytes
+    state["lastExpensiveProbeAtMs"] = now_ms
+    state["nextExpensiveProbeAfterMs"] = now_ms + cooldown * 1000
+    state["lastCooldownSeconds"] = cooldown
+
+
+def receipt_path(root: Path, now_ms: int) -> Path:
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(now_ms / 1000))
+    candidate = root / f"{stamp}-pressure-cycle"
+    suffix = 1
+    while candidate.exists():
+        candidate = root / f"{stamp}-pressure-cycle-{suffix}"
+        suffix += 1
+    candidate.mkdir(parents=True)
+    return candidate
+
+
+def observe(args: argparse.Namespace) -> dict[str, object]:
+    policy = load_policy(args.policy_file)
+    host_path = Path(str(policy["hostStoragePath"]))
+    if not host_path.is_dir():
+        raise RuntimeError(f"host storage path unavailable: {host_path}")
+    now_ms = int(time.time() * 1000)
+    free = physical_free_bytes(host_path)
+    state = load_state(args.state_file)
+    samples = normalized_samples(state, now_ms, free, int(policy["sampleWindowSeconds"]))
+    registry = registry_signal(args.database, args.busy_timeout_ms)
+    decision = decide(
+        now_ms=now_ms,
+        free_bytes=free,
+        registry=registry,
+        state=state,
+        policy=policy,
+        samples=samples,
+    )
+    return {
+        "schemaVersion": SCHEMA_VERSION,
+        "kind": "ordivon.runtime-storage-pressure-observation",
+        "observedAtMs": now_ms,
+        "policy": policy,
+        "decision": decision,
+        "state": state,
+        "truthBoundary": "cheap physical/Registry activity observation and controller decision only; no reclaim effect is executed",
+    }
+
+
+def cycle(args: argparse.Namespace) -> dict[str, object]:
+    with exclusive_lock(args.lock_file):
+        policy = load_policy(args.policy_file)
+        host_path = Path(str(policy["hostStoragePath"]))
+        if not host_path.is_dir():
+            raise RuntimeError(f"host storage path unavailable: {host_path}")
+        now_ms = int(time.time() * 1000)
+        before_free = physical_free_bytes(host_path)
+        state = load_state(args.state_file)
+        state_before = json.loads(json.dumps(state))
+        samples = normalized_samples(state, now_ms, before_free, int(policy["sampleWindowSeconds"]))
+        registry = registry_signal(args.database, args.busy_timeout_ms)
+        decision = decide(
+            now_ms=now_ms,
+            free_bytes=before_free,
+            registry=registry,
+            state=state,
+            policy=policy,
+            samples=samples,
+        )
+        receipt = receipt_path(args.receipt_root, now_ms)
+        action: dict[str, object] | None = None
+        failures: list[str] = []
+        if decision["action"] is True:
+            try:
+                action = actuate(args, policy, receipt, before_free)
+                actual_yield = max(0, int(action["finalFreeBytes"]) - before_free)
+                update_backoff(state, now_ms=now_ms, yield_bytes=actual_yield, policy=policy)
+            except Exception as error:
+                failures.append(str(error))
+                update_backoff(state, now_ms=now_ms, yield_bytes=0, policy=policy)
+        state["schemaVersion"] = SCHEMA_VERSION
+        state["samples"] = samples
+        state["registrySignal"] = registry
+        state["lastObservedAtMs"] = now_ms
+        state["lastFreeBytes"] = before_free
+        write_json_atomic(args.state_file, state)
+        result = {
+            "schemaVersion": SCHEMA_VERSION,
+            "kind": "ordivon.runtime-storage-pressure-cycle",
+            "status": "completed" if not failures else "partial",
+            "observedAtMs": now_ms,
+            "decision": decision,
+            "action": action,
+            "failures": failures,
+            "stateBefore": state_before,
+            "stateAfter": state,
+            "receipt": str(receipt),
+            "truthBoundary": "controller/orchestration receipt; subordinate Runtime operators retain reclaim/cache effect authority and receipts",
+        }
+        write_json_atomic(receipt / "result.json", result)
+        return result
+
+
+def main() -> int:
+    try:
+        args = parse_args()
+        value = observe(args) if args.command == "observe" else cycle(args)
+        print(json.dumps(value, indent=2 if args.pretty else None, sort_keys=args.pretty))
+        return 0 if value.get("status") != "partial" else 2
+    except (OSError, RuntimeError, json.JSONDecodeError) as error:
+        print(f"storage pressure controller failed: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

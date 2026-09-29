@@ -1,0 +1,13 @@
+[Unit]
+Description=Sample Ordivon Runtime host-storage pressure every five minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=5min
+AccuracySec=30s
+RandomizedDelaySec=30s
+Persistent=true
+Unit=ordivon-runtime-storage-pressure.service
+
+[Install]
+WantedBy=timers.target

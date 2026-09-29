@@ -327,6 +327,7 @@ def add_release_operator_sources(path: Path, *, push: bool) -> str:
         "ordivon-runtime-cache",
         "ordivon-runtime-status",
         "ordivon-runtime-capacity-acceptance",
+        "ordivon-runtime-pressure-control",
     )
     for name in names:
         write_executable(scripts / name, f"#!/bin/sh\nprintf '{name}-candidate\\n'\n")
@@ -593,11 +594,13 @@ class DeployReclaimTests(unittest.TestCase):
                 },
             )
             artifacts = {item["name"]: item for item in report["artifacts"]}
-            self.assertEqual(len(artifacts), 12)
+            self.assertEqual(len(artifacts), 13)
             self.assertEqual(artifacts["mcp_probe.py"]["kind"], "support")
             self.assertEqual(artifacts["mcp_probe.py"]["mode"], 0o644)
             self.assertEqual(artifacts["ordivon-runtime-status"]["kind"], "operator")
             self.assertEqual(artifacts["ordivon-runtime-status"]["mode"], 0o755)
+            self.assertEqual(artifacts["ordivon-runtime-pressure-control"]["kind"], "operator")
+            self.assertEqual(artifacts["ordivon-runtime-pressure-control"]["mode"], 0o755)
             self.assertEqual(
                 (candidate / "ordivon-runtime-status").read_bytes(),
                 (repo / "scripts/ordivon-runtime-status").read_bytes(),
@@ -1009,6 +1012,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
+                "ordivon-runtime-pressure-control",
             ]
             for name in release_names:
                 write_executable(install / name, f"old-{name}\n")
@@ -1101,13 +1105,14 @@ class DeployReclaimTests(unittest.TestCase):
                         "2",
                     ],
                     cwd=REPO,
-                    check=True,
+                    check=False,
                     text=True,
                     capture_output=True,
                 )
+                self.assertEqual(deployed.returncode, 0, deployed.stderr or deployed.stdout)
                 result = json.loads(deployed.stdout)
                 installed = {item["name"]: item for item in result["installed"]}
-                self.assertEqual(len(installed), 12)
+                self.assertEqual(len(installed), 13)
                 self.assertEqual(installed["mcp_probe.py"]["mode"], 0o644)
                 self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
                 self.assertEqual(
@@ -1117,7 +1122,7 @@ class DeployReclaimTests(unittest.TestCase):
                 receipt = Path(result["receipt"])
                 receipt_manifest = json.loads((receipt / "manifest.json").read_text())
                 self.assertEqual(receipt_manifest["schemaVersion"], 2)
-                self.assertEqual(len(receipt_manifest["artifacts"]), 12)
+                self.assertEqual(len(receipt_manifest["artifacts"]), 13)
                 self.assertEqual(
                     receipt_manifest["runtimePolicy"]["previous"]["defaultRuntimeMs"],
                     None,
@@ -1188,7 +1193,7 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(rollback["status"], "restored_previous")
             self.assertEqual(rollback["commit"], prior_commit)
             self.assertTrue(rollback["commitKnown"])
-            self.assertEqual(len(rollback["installed"]), 12)
+            self.assertEqual(len(rollback["installed"]), 13)
             self.assertEqual((install / "ordivon-runtime-status").read_text(), "old-ordivon-runtime-status\n")
             self.assertEqual((install / "mcp_probe.py").read_text(), "OLD_PROBE = True\n")
             self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
@@ -1656,6 +1661,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
+                "ordivon-runtime-pressure-control",
             )
             for name in release_names:
                 write_executable(install / name, f"old-{name}\n")
@@ -1742,6 +1748,7 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-cache",
                 "ordivon-runtime-status",
                 "ordivon-runtime-capacity-acceptance",
+                "ordivon-runtime-pressure-control",
             )
             for name in release_names:
                 write_executable(install / name, f"old-{name}\n")
