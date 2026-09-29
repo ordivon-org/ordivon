@@ -277,6 +277,15 @@ mise install
 mise run verify
 """
 
+[tasks."security:verify-live"]
+run = """
+set -euo pipefail
+cd platform/security
+mise install
+mise run verify
+mise run verify:host-provider
+"""
+
 [tasks."workstation:ci"]
 run = """
 set -euo pipefail
