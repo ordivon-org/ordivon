@@ -5,6 +5,7 @@ This reference distinguishes existing canonical Ordivon method Skills. It is a r
 | Dominant question | Primary Skill | Use when | Nearby method not to confuse |
 | --- | --- | --- | --- |
 | What materially changed across the whole current Ordivon system, its capability frontier, systemic risks, and future reachability? | ordivon-whole-system-review | periodic/deep whole-system review or architecture re-anchoring must synthesize current Git/live-owner truth across multiple natural owners | systems-engineering frames a system boundary; it does not provide longitudinal whole-Ordivon review continuity |
+| How should a problem be operationalized across representation, typed LEGO composition, model/system construction, method attachment, verification, attribution and repair? | recursive-lego-calculus | the difficulty spans several abstraction layers, the current representation may itself be wrong, or solve/verify/optimization needs one coherent recursive scaffold | method-router only selects methods; systems-engineering only frames the system; compositional-contracts only owns explicit composition/substitution obligations |
 | What is the system and where are its boundaries/interfaces? | systems-engineering | scope, context, lifecycle and whole-system properties are unclear | DSM starts after there are meaningful elements/interactions |
 | Is the decomposition structurally plausible? | design-structure-matrix | dependencies, cycles, hubs or clusters may reveal misplaced boundaries | compositional-contracts asks whether explicit interfaces compose |
 | Will independently specified parts compose or substitute safely? | compositional-contracts | assumptions, guarantees and replacement obligations matter | DSM is descriptive structure; contracts are compatibility obligations |
@@ -16,11 +17,14 @@ This reference distinguishes existing canonical Ordivon method Skills. It is a r
 | Where may information/authority/evidence flow improperly? | information-flow-analysis | confidentiality, integrity, provenance or authority paths matter | STPA is broader hazard analysis |
 | How should candidate designs be searched? | evolutionary-search | candidate generation + evaluation/fitness are explicit | exploration-policy chooses what information/action to sample next |
 | What should be explored next under uncertainty? | exploration-policy | information value, uncertainty reduction, exploration/exploitation dominate | evolutionary-search assumes a candidate/fitness search space |
-| How should a project be decomposed into native responsibility units? | project-kernel-decomposition | project-specific ownership/contracts/evidence decomposition is needed | systems-engineering frames the system before project-specific decomposition |
+| How should a project be decomposed into native responsibility units? | project-kernel-decomposition | project-specific ownership/contracts/evidence decomposition is needed | recursive-lego-calculus is broader and task-relative; systems-engineering frames the system before project-specific decomposition |
 
 ## Useful combinations
 
 Use combinations only when each method has a distinct job.
+
+### Recursive LEGO calculus -> bounded specialist method
+Use `recursive-lego-calculus` when the cross-layer representation/composition/solve/verify loop itself needs discipline. If one layer then requires a specialist method, use `method-router` once for that bounded subproblem and execute the returned specialist Skill. Do not route the same subproblem back into `recursive-lego-calculus` and create a router loop.
 
 ### Systems engineering -> DSM
 Use when the system boundary is unclear first, then the internal decomposition/coupling needs testing.

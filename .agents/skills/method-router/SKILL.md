@@ -1,6 +1,6 @@
 ---
 name: method-router
-description: "Select the smallest useful set of standards-backed analysis methods for an already scoped Ordivon problem. Use when the problem is complex enough that choosing the reasoning method matters: ambiguous system boundaries, coupling/decomposition, composition/substitutability, causal claims, reliability failures, unsafe interactions, control/feedback, organizational coordination, information flow, exploration/search, or project-kernel decomposition. Route to existing canonical Agent Skills rather than inventing a new lifecycle, private trigger engine, or all-purpose methodology."
+description: "Select the smallest useful set of standards-backed analysis methods for an already scoped Ordivon problem. Use when the problem is complex enough that choosing the reasoning method matters: cross-layer representation/composition/solve-verify-repair, ambiguous system boundaries, coupling/decomposition, composition/substitutability, causal claims, reliability failures, unsafe interactions, control/feedback, organizational coordination, information flow, exploration/search, or project-kernel decomposition. Route to existing canonical Agent Skills rather than inventing a new lifecycle, private trigger engine, or all-purpose methodology."
 compatibility: Cross-platform. Routes among existing project Agent Skills; it does not execute tools, grant authority, or prove a method's conclusions.
 metadata:
   source-authority: Agent Skills progressive disclosure plus Ordivon standards-backed method Skills
@@ -33,6 +33,7 @@ Do not activate every method merely because it exists. Do not turn the method ca
 A request to **create or adopt a new forward Research Study/paper project** is a lifecycle/admission handoff rather than a reasoning-method choice: use `research-study-birth` first, then return to method routing only if the admitted Study still has a method-selection uncertainty.
 
 - periodic/deep whole-Ordivon review, architecture re-anchoring, capability frontier, or future-reachability audit -> ordivon-whole-system-review
+- cross-layer problem operationalization / representation or generator change / recursive typed LEGO composition / solve-verify-attribution-repair loop -> recursive-lego-calculus
 - unclear system boundary / system-of-systems / interface inventory -> systems-engineering
 - decomposition quality / coupling / cycles / clusters -> design-structure-matrix
 - interfaces compose? / replacement / assumptions and guarantees -> compositional-contracts
@@ -54,7 +55,7 @@ See references/method-map.md for disambiguation and multi-method combinations.
 - **Name matching:** selecting a method because its title resembles a project term.
 - **Tool substitution:** treating an executable tool as the reasoning method.
 - **Authority transfer:** allowing the router to become scientific, architectural, safety, or execution authority.
-- **Router recursion:** repeatedly routing instead of performing the selected analysis.
+- **Router recursion:** repeatedly routing instead of performing the selected analysis. When `recursive-lego-calculus` asks for a bounded specialist-method selection, return a specialist Skill rather than routing straight back to `recursive-lego-calculus` for the same subproblem.
 - **Private trigger engine:** adding hidden scores, embeddings, learned routing, or mandatory global activation without evidence.
 
 ## Output
