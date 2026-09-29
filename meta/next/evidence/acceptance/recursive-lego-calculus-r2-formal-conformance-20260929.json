@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.recursive-lego-calculus.r2-formal-conformance-acceptance",
+  "observedDate": "2026-09-29",
+  "sourceRevision": "1c66cd9ea637b70023e91450747a268ca6d7e793",
+  "workspaceId": "ws-lego-r2-short-20260929-1835",
+  "standing": "PASS_LOCAL_BOUNDED_FORMAL_CONFORMANCE_PROSPECTIVE_EXTERNAL_VALIDATION_REQUIRED",
+  "candidateArtifacts": {
+    "skill": "sha256:5b4261beeea53be48696863377502891a22b0249413b27ee8492b52d565bc0d4",
+    "formalModel": "sha256:7f22768b34c12df404b5643d21a7d030e94177cbf266f9fba058720e83a5ba6a",
+    "conformanceCases": "sha256:a7ea043b022d2e8e3ed3d28318e83a772e19927aae84ae068cdf6853d6e774f2",
+    "formalHarness": "sha256:af3f2d3a96991219da788b50c1364575eab2227d1de553a4375eedbaeec5b9fe"
+  },
+  "formalHarnessJob": {
+    "jobId": "job-01a0ece0-9a7b-72d2-a15f-b3b9d49afcde",
+    "attemptState": "succeeded",
+    "exitCode": 0,
+    "verdict": "PASS"
+  },
+  "liveProviders": {
+    "z3": "5.1.0",
+    "unified-planning": "1.3.0",
+    "ortools": "9.15.6755",
+    "rdflib": "7.6.0",
+    "pyshacl": "0.40.1"
+  },
+  "optionalProviders": {
+    "pacti": "NOT_PRESENT_IN_CURRENT_REASONING_WAIST; prior isolated 0.3.1 pilot exists"
+  },
+  "checks": {
+    "deterministicSoundnessFalsePassRejected": true,
+    "jointBoundDoesNotImplyConditionalBound": true,
+    "conditionalBoundEliminatesCounterexample": true,
+    "compositionGoodSeamNoCounterexample": true,
+    "compositionBadSeamExposesCounterexample": true,
+    "witnessVsUniversalRefinementDistinguished": true,
+    "illegalOperatorProgramRejected": true,
+    "legalOperatorProgramAccepted": true
+  },
+  "jointVsConditionalCounterexample": {
+    "pPass": "1/100",
+    "pFalseAndPass": "1/100",
+    "interpretation": "joint false-acceptance <= 0.01 while conditional false discovery is 1"
+  },
+  "temporalProvider": {
+    "owner": "TLA+/TLC 1.7.4",
+    "currentRerun": "NOT_RERUN_CACHE_MISSING",
+    "jobId": "job-01a0ecdf-5202-7f13-8886-14aa55a8ace1",
+    "reason": "ignored digest-pinned JAR cache absent in detached workspace",
+    "historicalAcceptedEvidence": "2026-09-19 Runtime bounded model: 25 states generated, 20 distinct states, depth 9, zero invariant violations"
+  },
+  "boundary": "PASS applies only to encoded local obligations. It does not prove the whole calculus, implementation refinement, evaluator-anchor causal noninterference, domain truth, global improvement, convergence, or superiority over the prior workflow. Prospective frozen real-task comparison remains required."
+}
