@@ -364,6 +364,12 @@ def test_windows_driver_has_structural_chatgpt_readiness_and_localization_indepe
     assert "Start-Sleep -Milliseconds 750" in script
     assert 'ERR_PROXY_CONNECTION_FAILED' in script
     assert "Standing='NETWORK_UNAVAILABLE'" in script
+    assert 'function Test-AccountChooser' in script
+    assert "Standing='AUTH_REQUIRED'" in script
+    assert 'account selection required' in script
+    assert "@[A-Z0-9.-]+\\.[A-Z]{2,}" in script
+    # Authentication/account-selection surfaces are detected but never activated by the driver.
+    assert 'Test-AccountChooser $Root).Invoke' not in script
     assert 'function Get-SendControl' in script
     assert 'function Get-UploadControl' in script
     assert "Get-EditById $window '1148'" in script

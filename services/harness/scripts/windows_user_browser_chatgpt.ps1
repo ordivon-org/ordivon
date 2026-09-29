@@ -135,6 +135,20 @@ function Get-Composer($Root) {
     return $null
 }
 
+function Test-AccountChooser($Root) {
+    $buttonCond=[System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button)
+    $buttons=$Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$buttonCond)
+    for($i=0;$i -lt [Math]::Min($buttons.Count,2000);$i++){
+        $name=[string]$buttons.Item($i).Current.Name
+        # Current ChatGPT account-choice surfaces expose the remembered account as a button whose
+        # accessible name contains the account e-mail.  Treat this as an authentication boundary,
+        # not as a composer-readiness condition, and never activate it automatically.
+        if($name -match '(?i)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}') { return $true }
+    }
+    return $false
+}
+
 function Get-ChatGptPageState($Root) {
     $names=Read-AllNames $Root
     if($names -match '(?i)ERR_PROXY_CONNECTION_FAILED|ERR_TUNNEL_CONNECTION_FAILED|ERR_CONNECTION_REFUSED'){
@@ -147,8 +161,8 @@ function Get-ChatGptPageState($Root) {
     if($null -ne $composer){
         return [pscustomobject]@{Standing='READY';Composer=$composer;Detail='authenticated ChatGPT composer available'}
     }
-    if($names -match '(?i)log in|sign up'){
-        return [pscustomobject]@{Standing='AUTH_REQUIRED';Composer=$null;Detail='ChatGPT authentication required'}
+    if((Test-AccountChooser $Root) -or $names -match '(?i)log in|sign up|choose an account|select an account|another account|create account|欢迎回来|选择一个账户|登录至另一个账户|创建账户'){
+        return [pscustomobject]@{Standing='AUTH_REQUIRED';Composer=$null;Detail='ChatGPT authentication or account selection required'}
     }
     return [pscustomobject]@{Standing='WAIT';Composer=$null;Detail='ChatGPT page not yet ready'}
 }
