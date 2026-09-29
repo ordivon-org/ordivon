@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.capital.r3-w3-institutional-topology",
-  "standing": "IMPLEMENTATION_CANDIDATE_NOT_ACCEPTED",
+  "standing": "PASS_W3_BOUNDED_INSTITUTIONAL_ROLE_TOPOLOGY",
   "asOfDate": "2026-09-29",
   "ownerSplit": {
     "capital": "Office-role, delegation-consumption, review/veto/conflict semantics only",
@@ -29,5 +29,13 @@
     "IIA Three Lines",
     "Basel segregation of duties / dual control"
   ],
-  "liveEffectAuthorityWidened": false
+  "liveEffectAuthorityWidened": false,
+  "acceptedImplementationRevision": "d52bd0e549d3af4d724eec857c4305b3bf3c471d",
+  "acceptanceRef": "acceptance/r3/personal-resource-office-w3-20260929.json",
+  "verification": {
+    "targetedTests": "PASS_15",
+    "schemaDifferential": "PASS_ZERO_MISMATCH_6000",
+    "capitalVerify": "PASS",
+    "repoCi": "PASS"
+  }
 }
