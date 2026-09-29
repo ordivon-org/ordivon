@@ -202,6 +202,10 @@
     {
       "path": "tools/repo/test_convergence_plan.py",
       "reason": "Repository retirement regression exercises or asserts the archived tree boundary only."
+    },
+    {
+      "path": "catalogs/knowledge/lessons/lego-recursive-calculus-r1.md",
+      "reason": "Knowledge lesson names archived Next LEGO documents explicitly as historical lineage only; it does not reactivate meta/next as a current architecture or execution owner."
     }
   ]
 }
