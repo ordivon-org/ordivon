@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,hashlib,json,os,subprocess,tempfile,sys
+
+import argparse
+import hashlib
+import json
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
-from typing import Any
+
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
+
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA=ROOT/'artifact-delivery/shadow-contracts/web-archive-warc-response-contract-v1.schema.json'
 WARCIO_ROOT=Path('/opt/ordivon/external/warcio-py/1.8.1')
@@ -35,12 +48,21 @@ def js_view(path:Path,ev:Path):
  if p.returncode:return [],p.stderr.decode('utf-8','replace')
  try:return json.loads(p.stdout),None
  except Exception as e:return [],str(e)
+CLAIM_POINTERS={
+ 'contractSchema':'/contractSchema',
+ 'jsRecordView':'/jsRecordView',
+ 'payloadIdentity':'/payloadIdentity',
+ 'pythonRecordView':'/pythonRecordView',
+ 'warcIntegrity':'/warcIntegrity',
+}
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_warc(path:Path,contract_path:Path,evidence_dir:Path|None=None):
  if not path.is_file(): return {'status':'FAIL','failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text())
- except Exception as e:return {'status':'FAIL','failures':[f'contract unreadable: {e}']}
- failures=validate(c); ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-webarchive-')); ev.mkdir(parents=True,exist_ok=True)
- res={'schemaVersion':1,'kind':'artifact-web-archive-verification','profileId':'web-archive-warc-response-r1','artifact':{'sha256':sha_file(path),'size':path.stat().st_size},'contract':{'sha256':sha_file(contract_path),'canonicalDigest':canon(c)},'status':'FAIL','failures':failures}
+ except Exception as e:return {'status':'FAIL','contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+ contract_failures=validate(c); failures=list(contract_failures); ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-webarchive-')); ev.mkdir(parents=True,exist_ok=True)
+ res={'schemaVersion':1,'kind':'artifact-web-archive-verification','profileId':'web-archive-warc-response-r1','artifact':{'sha256':sha_file(path),'size':path.stat().st_size},'contract':{'sha256':sha_file(contract_path),'canonicalDigest':canon(c)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'status':'FAIL','failures':failures}
  if failures:(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  with path.open('rb') as fh:
   first=fh.readline().rstrip(b'\r\n').decode('ascii','replace')
@@ -68,8 +90,12 @@ def verify_warc(path:Path,contract_path:Path,evidence_dir:Path|None=None):
  if len(py)==1 and len(js)==1:
   for k in ('type','targetUri','warcDate','recordId','blockDigest','payloadDigest','httpStatus','contentType','payloadSha256'):
    if py[0].get(k)!=js[0].get(k):cross.append(f'Python/JS views disagree on {k}')
- failures+=version_fail+integrity_fail+pyfail+jsfail+cross
- res.update({'warcVersion':{'status':'PASS' if not version_fail else 'FAIL','observed':first,'failures':version_fail},'warcIntegrity':{'status':'PASS' if not integrity_fail else 'FAIL','returnCode':check.returncode,'evidenceSha256':sha_file(ev/'warcio-check.txt'),'failures':integrity_fail},'pythonRecordView':{'status':'PASS' if not pyfail else 'FAIL','records':py,'failures':pyfail},'jsRecordView':{'status':'PASS' if not jsfail else 'FAIL','records':js,'stderrSha256':sha_file(ev/'warcio-js.stderr.txt'),'failures':jsfail},'crossView':{'status':'PASS' if not cross else 'FAIL','failures':cross},'status':'PASS' if not failures else 'FAIL','failures':failures,'boundary':'PASS is bounded to one WARC/1.1 HTTP response record with exact capture metadata and payload identity. It does not establish complete-site capture, browser state, dependency completeness or replay fidelity.'})
+ payload_fail=[]
+ if len(py)!=1 or py[0].get('payloadSha256')!=want['payloadSha256']:payload_fail.append('Python parser payload SHA-256 differs from contract or is unavailable')
+ if len(js)!=1 or js[0].get('payloadSha256')!=want['payloadSha256']:payload_fail.append('JS parser payload SHA-256 differs from contract or is unavailable')
+ if len(py)==1 and len(js)==1 and py[0].get('payloadSha256')!=js[0].get('payloadSha256'):payload_fail.append('Python/JS payload SHA-256 observations disagree')
+ failures+=version_fail+integrity_fail+pyfail+jsfail+cross+payload_fail
+ res.update({'payloadIdentity':{'status':'PASS' if not payload_fail else 'FAIL','expectedPayloadSha256':want['payloadSha256'],'pythonPayloadSha256':py[0].get('payloadSha256') if len(py)==1 else None,'jsPayloadSha256':js[0].get('payloadSha256') if len(js)==1 else None,'failures':payload_fail},'warcVersion':{'status':'PASS' if not version_fail else 'FAIL','observed':first,'failures':version_fail},'warcIntegrity':{'status':'PASS' if not integrity_fail else 'FAIL','returnCode':check.returncode,'evidenceSha256':sha_file(ev/'warcio-check.txt'),'failures':integrity_fail},'pythonRecordView':{'status':'PASS' if not pyfail else 'FAIL','records':py,'failures':pyfail},'jsRecordView':{'status':'PASS' if not jsfail else 'FAIL','records':js,'stderrSha256':sha_file(ev/'warcio-js.stderr.txt'),'failures':jsfail},'crossView':{'status':'PASS' if not cross else 'FAIL','failures':cross},'status':'PASS' if not failures else 'FAIL','failures':failures,'boundary':'PASS is bounded to one WARC/1.1 HTTP response record with exact capture metadata and payload identity. It does not establish complete-site capture, browser state, dependency completeness or replay fidelity.'})
  (ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True,ensure_ascii=False)+'\n');return res
 
 def main():

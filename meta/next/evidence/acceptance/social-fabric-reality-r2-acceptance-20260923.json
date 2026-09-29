@@ -1,0 +1,65 @@
+{
+  "baselineRevision": "8488f8db151dd556ed9238b9d24d43349af66e55",
+  "boundary": "PASS proves deterministic projection mechanics on bounded owner-native evidence and repository gates. It does not prove catalog completeness, domain truth, durable external freshness, causal mechanisms, task activity, or action authority.",
+  "dogfood": {
+    "authorityEntries": [
+      "w3c-prov-o-2013",
+      "openlineage-spec",
+      "a2a-protocol-1.0.0",
+      "cloudevents-documented-extensions"
+    ],
+    "gatewayCapabilityCount": 4,
+    "hostContinuityTask": "task:social-fabric-crossdisciplinary-r2-20260923@2",
+    "networkCurrentnessSource": "services/runtime/research/programme/evidence/C4-CROSS-OWNER-STANDING-CURRENTNESS.json"
+  },
+  "focused": {
+    "freshnessOwnerViews": 5,
+    "inventedSupersessionEdges": 0,
+    "memoryEntries": 9,
+    "memoryRelations": [
+      "CONTINUITY_OWNER",
+      "EXTERNAL_AUTHORITY_ISSUER",
+      "NATURAL_CAPABILITY_OWNER"
+    ],
+    "provEdges": 34,
+    "provNodes": 22,
+    "ruff": "PASS",
+    "tests": "12/12 PASS"
+  },
+  "gates": {
+    "architectureDocDrift": "PASS",
+    "compositionArchitecture": "PASS",
+    "dependencyAudit": "NO_KNOWN_VULNERABILITIES",
+    "githubGovernance": "PASS",
+    "integrateMainSmoke": "PASS",
+    "metaNextTests": 216,
+    "metaNextVerify": "PASS",
+    "ownerBoundary": "PASS",
+    "repoCi": "PASS",
+    "repoTests": 33,
+    "structureR2": "PASS"
+  },
+  "implemented": [
+    "REAL20 W3C PROV projection adapter",
+    "REAL21 Transactive Memory projection",
+    "REAL22 owner-scoped Freshness/Supersession projection"
+  ],
+  "kind": "ordivon.social-fabric-reality-r2-acceptance",
+  "nonClaims": [
+    "No inferred expertise or verifier.",
+    "No Git-derived semantic currentness.",
+    "No Host-state-derived activity/currentness.",
+    "No global currentness winner.",
+    "No inferred supersession.",
+    "No causal mechanism claim.",
+    "No execution/scheduling/EffectAuthority."
+  ],
+  "runtimeJobs": [
+    "job-01a0ce42-d5c9-7ba3-be83-11fd490b3911",
+    "job-01a0ce43-cd7a-7441-947e-e2eef2cece0f",
+    "job-01a0ce44-4196-7272-85e5-ecc032262354"
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_REALITY_WAVE2_CANDIDATE",
+  "truthRole": "candidate-acceptance-not-domain-authority"
+}

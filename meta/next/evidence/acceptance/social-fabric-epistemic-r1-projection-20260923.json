@@ -1,0 +1,67 @@
+{
+  "claims": [
+    {
+      "claimRef": "claim:browser-window-placement-local-mechanism",
+      "evidenceRefs": [
+        "meta/next/knowledge/graphs/browser-security-detector-coverage-r9.json"
+      ],
+      "mechanismAuthorityTransferred": false,
+      "ownerNativeStanding": "PROFILE_WINDOW_PLACEMENT_ATTRIBUTED_PROVIDER_RELEVANCE_OPEN",
+      "residualOpenClaims": [
+        "historical origin of stored production window placement",
+        "protected-provider challenge causality",
+        "provider-specific relevance"
+      ],
+      "sequenceRefs": [],
+      "sourceRef": "meta/next/knowledge/graphs/browser-security-detector-coverage-r9.json",
+      "standing": "MECHANISM_EVIDENCE_SUPPORTED",
+      "statement": "In the measured neutral Browserless setup, profile-restored Chromium window placement accounts for the observed outer-window geometry change.",
+      "verificationOwnerRef": "verification:browser-security-r9",
+      "verificationStandingRef": "CF06"
+    },
+    {
+      "claimRef": "claim:vhd-rpc-mechanism-hypothesis",
+      "evidenceRefs": [
+        "evidence:social-fabric-coordination-r2-vhd-cut"
+      ],
+      "hypothesisOwnerRef": "analysis:ordivon-social-fabric",
+      "mechanismAuthorityTransferred": false,
+      "sequenceRefs": [
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "sourceRef": "analysis:social-fabric-crossdisciplinary-r2",
+      "standing": "MECHANISM_HYPOTHESIS",
+      "statement": "WSLService lifecycle interference may contribute to DiskPart RPC unavailability during VHD compaction."
+    },
+    {
+      "claimRef": "claim:vhd-sequence",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+      ],
+      "mechanismAuthorityTransferred": false,
+      "observationOwnerRef": "owner:runtime.windows",
+      "sequenceRefs": [
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "sourceRef": "evidence:social-fabric-coordination-r2-vhd-cut",
+      "standing": "SEQUENCE_OBSERVED",
+      "statement": "WSLService restart observation preceded the DiskPart RPC-unavailable observation in the reconstructed maintenance window."
+    }
+  ],
+  "kind": "ordivon.social-fabric-epistemic-projection",
+  "nonClaims": [
+    "Temporal order, trace linkage, or PROV linkage alone never upgrades a sequence into a mechanism.",
+    "MECHANISM_HYPOTHESIS is not causal identification.",
+    "MECHANISM_EVIDENCE_SUPPORTED preserves an explicit verification-owner standing; Social Fabric does not independently judge evidence sufficiency.",
+    "Residual open causal claims remain open and are not erased by a supported local mechanism.",
+    "No epistemic standing grants execution, policy, priority, lease, or EffectAuthority."
+  ],
+  "observedAt": "2026-09-23T20:27:00+08:00",
+  "projectionDigest": "sha256:d008a4485d781d755be5589a766e9c5135e2f1224fe3d024b0625447239d8759",
+  "schemaVersion": 1,
+  "sourceCutDigest": "sha256:ccf13d7408c907f473e462ab70fe4a6716b165a64b42328bcb5a07e3778d0df5",
+  "truthRole": "epistemic-standing-bridge-not-causal-authority"
+}

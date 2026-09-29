@@ -1,0 +1,142 @@
+{
+  "entries": [
+    {
+      "evidenceRefs": [
+        "sha256:367161e688c0404bfa2ba8de358a6266a0c731026836b3a94e2926c5f293a7f6",
+        "sha256:aad89b58394a4aacdf88b2c79b7fa8746ca01548f1ccd69a8f96fe8d1dfcdc75"
+      ],
+      "locator": {
+        "authorityId": "a2a-protocol-1.0.0",
+        "currentnessChecked": "2026-09-23"
+      },
+      "principalRef": "issuer:A2A Project",
+      "relation": "EXTERNAL_AUTHORITY_ISSUER",
+      "sourceRef": "authority-index:a2a-protocol-1.0.0",
+      "subjectRef": "authority:a2a-protocol-1.0.0"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:9ebe46aca58bff1fea18199cd254faff054a66b8a7bf0384bd98a5e175328056",
+        "sha256:aaad7c7df18a57cd94430ba839b6334b5ca31a48912324ab17ddd095b1090f96"
+      ],
+      "locator": {
+        "authorityId": "cloudevents-documented-extensions",
+        "currentnessChecked": "2026-09-23"
+      },
+      "principalRef": "issuer:CNCF CloudEvents",
+      "relation": "EXTERNAL_AUTHORITY_ISSUER",
+      "sourceRef": "authority-index:cloudevents-documented-extensions",
+      "subjectRef": "authority:cloudevents-documented-extensions"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:3fa16b9c449140187641d0bd5f3c45857f28dd057ad9f210ba113ff89144b28c",
+        "sha256:9161e04be03a88412c9177dda89c69157117150fe448a0dd5dc946f7275c6c4a"
+      ],
+      "locator": {
+        "authorityId": "openlineage-spec",
+        "currentnessChecked": "2026-09-14"
+      },
+      "principalRef": "issuer:OpenLineage",
+      "relation": "EXTERNAL_AUTHORITY_ISSUER",
+      "sourceRef": "authority-index:openlineage-spec",
+      "subjectRef": "authority:openlineage-spec"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:36d8f241653f05cfb1a1c01fb09065e9272ecf03316c8d041fd25597cbe093a9",
+        "sha256:f2f73f4aa1eb87b1188e37f27c3721ecc2787566e8192c97df34cf29d3d8d2c7"
+      ],
+      "locator": {
+        "authorityId": "w3c-prov-o-2013",
+        "currentnessChecked": "2026-09-14"
+      },
+      "principalRef": "issuer:W3C",
+      "relation": "EXTERNAL_AUTHORITY_ISSUER",
+      "sourceRef": "authority-index:w3c-prov-o-2013",
+      "subjectRef": "authority:w3c-prov-o-2013"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a"
+      ],
+      "locator": {
+        "available": true,
+        "configured": true,
+        "truthBoundary": "Artifact bytes and physical production evidence remain Runtime-owned."
+      },
+      "principalRef": "owner:runtime.dynamic",
+      "relation": "NATURAL_CAPABILITY_OWNER",
+      "sourceRef": "gateway-capability:sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a#artifact.runtime",
+      "subjectRef": "capability:artifact.runtime"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a"
+      ],
+      "locator": {
+        "available": true,
+        "configured": true,
+        "truthBoundary": "Host owns external semantic continuity and collaboration state only."
+      },
+      "principalRef": "owner:host",
+      "relation": "NATURAL_CAPABILITY_OWNER",
+      "sourceRef": "gateway-capability:sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a#continuity.external",
+      "subjectRef": "capability:continuity.external"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a"
+      ],
+      "locator": {
+        "available": true,
+        "configured": true,
+        "truthBoundary": "Runtime owns Workspace/Job/Attempt/process/artifact physical truth."
+      },
+      "principalRef": "owner:runtime.linux",
+      "relation": "NATURAL_CAPABILITY_OWNER",
+      "sourceRef": "gateway-capability:sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a#execution.linux",
+      "subjectRef": "capability:execution.linux"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a"
+      ],
+      "locator": {
+        "available": true,
+        "configured": true,
+        "truthBoundary": "Windows Runtime owns Workspace/Job/Attempt/process/artifact physical truth."
+      },
+      "principalRef": "owner:runtime.windows",
+      "relation": "NATURAL_CAPABILITY_OWNER",
+      "sourceRef": "gateway-capability:sha256:3f6efbb46ae25dd84075d98c691f514ccd777535b8c02777ffa6a6b20ad13e4a#execution.windows",
+      "subjectRef": "capability:execution.windows"
+    },
+    {
+      "evidenceRefs": [
+        "sha256:530408bd698fb40097a2bbaca3cb67657e4d9a5408771f64e464f0260e0905cb"
+      ],
+      "locator": {
+        "goalRef": "goal:ordivon-social-fabric-crossdisciplinary-recompile",
+        "revision": 2,
+        "state": "open"
+      },
+      "principalRef": "owner:host",
+      "relation": "CONTINUITY_OWNER",
+      "sourceRef": "host-task:task:social-fabric-crossdisciplinary-r2-20260923@2",
+      "subjectRef": "task:social-fabric-crossdisciplinary-r2-20260923"
+    }
+  ],
+  "kind": "ordivon.social-fabric-transactive-memory-projection",
+  "nonClaims": [
+    "The projection does not infer expertise, knowledge, trustworthiness, assignment, or task priority.",
+    "External issuer, capability owner, continuity owner, and verifier are distinct relations.",
+    "Host Task state is continuity state, not proof that work is active or domain-complete.",
+    "A locator is navigation evidence, not EffectAuthority."
+  ],
+  "observedAt": "2026-09-23T20:27:00+08:00",
+  "projectionDigest": "sha256:f24f214ca2d17bca3a3a6937ff938a3f0d3f05a483f9017f2ba132d453624b25",
+  "schemaVersion": 1,
+  "sourceCutDigest": "sha256:c6bb4d275d81b0b4740ab8e0dbdc6ef07c9c41cd883c444c34baef9b0baf65f7",
+  "truthRole": "rebuildable-owner-and-evidence-locator"
+}

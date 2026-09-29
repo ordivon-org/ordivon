@@ -129,6 +129,39 @@ class HarnessAgentRun:
         )
 
     @classmethod
+    def open_for_caller(
+        cls,
+        state_root: str | Path,
+        caller_id: str,
+        caller_run_ref: str,
+        adapter_factory: HarnessAgentAdapterFactory,
+        *,
+        cognition_profile: HarnessCognitionProfile | None = None,
+        execution_binding: HarnessExecutionBinding | None = None,
+        runtime: HarnessRuntimeClient | None = None,
+        tool_bridge: ToolBridge | None = None,
+        tool_bridge_factory: HarnessToolBridgeFactory | None = None,
+        clock_ms: Callable[[], int] | None = None,
+        monotonic_ms: Callable[[], int] | None = None,
+    ) -> HarnessAgentRun:
+        """Reattach to the unique durable Run already bound to a caller Run reference."""
+        root = Path(state_root).expanduser().resolve()
+        with SQLiteHarnessStore(root) as store:
+            projection = store.load_run_by_caller(caller_id, caller_run_ref)
+        return cls.open(
+            root,
+            projection.harness_run_id,
+            adapter_factory,
+            cognition_profile=cognition_profile,
+            execution_binding=execution_binding,
+            runtime=runtime,
+            tool_bridge=tool_bridge,
+            tool_bridge_factory=tool_bridge_factory,
+            clock_ms=clock_ms,
+            monotonic_ms=monotonic_ms,
+        )
+
+    @classmethod
     def open(
         cls,
         state_root: str | Path,
@@ -209,6 +242,125 @@ class HarnessAgentRun:
     def status(self) -> dict[str, JsonValue]:
         with SQLiteHarnessStore(self.state_root) as store:
             return store.load_run(self.harness_run_id).to_dict()
+
+    def recovery_status(self) -> dict[str, JsonValue]:
+        """Project durable continuation facts without probing external Provider/Runtime liveness."""
+        with SQLiteHarnessStore(self.state_root) as store:
+            projection = store.load_run(self.harness_run_id)
+            continuity = self._continuity(store)
+
+            snapshot_value: dict[str, JsonValue] | None = None
+            active_intents: tuple[str, ...] = ()
+            try:
+                retained = continuity.load_current_snapshot()
+            except KeyError:
+                retained = None
+            if retained is not None:
+                active_intents = retained.snapshot.active_tool_step_intent_digests
+                snapshot_value = {
+                    "snapshotId": retained.snapshot.snapshot_id,
+                    "snapshotDigest": retained.snapshot.digest,
+                    "sequence": retained.snapshot.sequence,
+                    "pauseReason": retained.snapshot.pause_reason.value,
+                    "activeToolStepIntentDigests": list(active_intents),
+                    "createdAtMs": retained.snapshot.created_at_ms,
+                }
+
+            provider_value: dict[str, JsonValue] | None = None
+            try:
+                provider = continuity.load_current_provider_call()
+            except KeyError:
+                provider = None
+            if provider is not None:
+                failure_safety = (
+                    None if provider.failure is None else provider.failure.dispatch_safety
+                )
+                provider_status = provider.record.status.value
+                provider_value = {
+                    "providerCallId": provider.record.provider_call_id,
+                    "status": provider_status,
+                    "turnId": provider.record.turn_id,
+                    "turnSequence": provider.record.turn_sequence,
+                    "requestDigest": provider.record.request_digest,
+                    "providerRequestDigest": provider.record.provider_request_digest,
+                    "failureDispatchSafety": failure_safety,
+                    "resultContentRetained": provider.result is not None,
+                    "rehydrationRequired": (
+                        provider_status == "completed" and provider.result is None
+                    ),
+                    "retryAllowed": (
+                        provider_status == "failed"
+                        and failure_safety == "pre_dispatch_safe"
+                    ),
+                    "redispatchForbidden": provider_status
+                    in {"dispatching", "unknown", "completed"},
+                }
+
+            tool_value: dict[str, JsonValue] | None = None
+            if active_intents:
+                try:
+                    step = continuity.load_current_tool_step()
+                except KeyError as error:
+                    raise RuntimeError(
+                        "Harness Snapshot declares an active Tool Step but durable Tool state is absent"
+                    ) from error
+                if active_intents != (step.intent.digest,):
+                    raise RuntimeError(
+                        "Harness Snapshot active Tool Step differs from durable Tool state"
+                    )
+                tool_value = {
+                    "intentDigest": step.intent.digest,
+                    "toolCallId": step.intent.tool_call_id,
+                    "toolName": step.intent.tool_name,
+                    "runtimeOperation": step.intent.runtime_operation,
+                    "clientRequestId": step.intent.client_request_id,
+                    "recoveryConsequence": step.intent.recovery_consequence.value,
+                    "receiptStatus": (
+                        None if step.receipt is None else step.receipt.status.value
+                    ),
+                    "runtimeJobRef": (
+                        None if step.receipt is None else step.receipt.runtime_job_ref
+                    ),
+                    "reconciled": (
+                        False if step.receipt is None else step.receipt.reconciled
+                    ),
+                    "terminal": (
+                        False if step.receipt is None else step.receipt.terminal
+                    ),
+                    "observationContentRetained": step.observation is not None,
+                    "rehydrationRequired": (
+                        step.receipt is not None
+                        and step.receipt.terminal
+                        and step.observation is None
+                    ),
+                    "redispatchForbidden": True,
+                }
+
+            provider_recovery = bool(
+                provider_value is not None
+                and provider_value["status"] in {"dispatching", "unknown"}
+            )
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.harness-run-recovery-status",
+                "truthRole": "derived-read-only-durable-continuation-projection",
+                "harnessRunId": self.harness_run_id,
+                "callerId": projection.caller_id,
+                "callerRunRef": projection.caller_run_ref,
+                "runRevision": projection.revision,
+                "nativeStatus": projection.status.value,
+                "resumeRequired": projection.status is HarnessRunStatus.PAUSED,
+                "mechanicalRecoveryRequired": bool(active_intents) or provider_recovery,
+                "latestSnapshot": snapshot_value,
+                "provider": provider_value,
+                "activeToolStep": tool_value,
+                "externalLiveness": "not-probed",
+                "proofBoundary": (
+                    "This projection reports durable Harness continuation evidence only. "
+                    "It does not probe Provider/Runtime liveness, establish domain completion, "
+                    "or authorize redispatch."
+                ),
+            }
 
     def explain(self) -> dict[str, JsonValue]:
         """Project the validated in-process Harness composition."""
@@ -310,6 +462,7 @@ class HarnessAgentRun:
                 "does not grant authority or prove Provider/Runtime liveness"
             ),
             "durableRun": self.status(),
+            "recovery": self.recovery_status(),
         }
         validate_json_value(value)
         return value

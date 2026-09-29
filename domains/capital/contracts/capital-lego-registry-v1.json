@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.lego-registry-contract",
+  "standing": "ACTIVE_R1",
+  "schemaIdentity": {
+    "path": "schema/capital-lego-registry-v1.schema.json",
+    "sha256": "sha256:a944deb4c640c52eb6f07b6295b21612f4dd11aaaa79f61a992bdac66184fe0e"
+  },
+  "sourceOwnerTaxonomy": "config/capital_domain_taxonomy.json",
+  "functionalLegoMap": "planning/functional-lego-map-r1.json",
+  "laws": [
+    "registry entries are rebuildable projections over canonical source/config/contracts and cannot grant authority",
+    "CANONICAL entries bind only current source-owner paths; tools are CANDIDATE or HISTORICAL_RETIRED",
+    "effect-capable entries require an explicit effect authority class and reconciliation obligations",
+    "PRODUCTION_FINANCIAL_WRITE cannot become admitted while contracts/production-authorization.json is BLOCK_NOT_GRANTED",
+    "provider truth, owner mandate, Runtime physical execution, Host continuity and Network transport remain externally owned"
+  ]
+}

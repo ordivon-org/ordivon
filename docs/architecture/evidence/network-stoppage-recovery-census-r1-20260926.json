@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-stoppage-recovery-census",
+  "censusId": "network-stoppage-recovery-census-r1-20260926",
+  "observedDate": "2026-09-26",
+  "sourceRevision": "57327cd9ba0f8374819989f2c8ddefb9dfd8f483",
+  "truthRole": "currentness-bounded-navigation-and-recovery-classification-not-domain-authority",
+  "classificationVocabulary": [
+    "REQUALIFY_NOW",
+    "STILL_NETWORK_BLOCKED",
+    "PARTIAL_VERIFICATION_NETWORK_BLOCKED",
+    "LATENT_SUPPLY_CHAIN_NETWORK_DEBT",
+    "STALE_OPEN_REENTRY",
+    "ORPHAN_DEPLOYMENT_RETIRE",
+    "SUPERSEDED_RESOLVED",
+    "PROVIDER_ACCESS_NOT_NETWORK",
+    "NOT_NETWORK_CURRENTLY"
+  ],
+  "laws": [
+    "OPEN != current work",
+    "dirty Workspace != unfinished project",
+    "service readiness != destination consequence",
+    "CHALLENGE_GATED != physical network failure",
+    "historical nextAction must be re-entered against current owner/source before execution"
+  ],
+  "currentDestinationObservations": {
+    "github": {
+      "direct": "HTTP_200",
+      "genericProxy28080": "HTTP_200"
+    },
+    "crossref": {
+      "direct": "HTTP_200",
+      "genericProxy28080": "HTTP_200"
+    },
+    "openalex": {
+      "direct": "HTTP_200",
+      "genericProxy28080": "HTTP_200"
+    },
+    "dblp": {
+      "direct": "HTTP_200",
+      "genericProxy28080": "CONNECT_TIMEOUT"
+    },
+    "sec": {
+      "direct": "HTTP_403_TRANSPORT_REACHABLE"
+    },
+    "treasury": {
+      "direct": "HTTP_200"
+    },
+    "fred": {
+      "direct": "HTTP_200"
+    },
+    "huggingface": {
+      "direct": "CONNECT_TIMEOUT",
+      "genericProxy28080": "CONNECT_TIMEOUT"
+    },
+    "dockerRegistry": {
+      "direct": "CONNECT_TIMEOUT",
+      "genericProxy28080": "FAILED_OR_TLS_EOF"
+    },
+    "gcr": {
+      "direct": "CONNECT_TIMEOUT",
+      "genericProxy28080": "CONNECT_TIMEOUT"
+    },
+    "googleArtifactRegistry": {
+      "direct": "CONNECT_TIMEOUT",
+      "genericProxy28080": "CONNECT_TIMEOUT"
+    },
+    "xApi": {
+      "direct": "CONNECT_TIMEOUT",
+      "genericProxy28080": "CONNECT_TIMEOUT"
+    },
+    "okxPublicRest": {
+      "direct": "CONNECT_TIMEOUT"
+    },
+    "binanceUsdmPublicRest": {
+      "direct": "CONNECT_TIMEOUT"
+    }
+  },
+  "items": [
+    {
+      "id": "market-capital-soxl",
+      "project": "Market Capital / SOXL decision support",
+      "hostTask": "task:market-capital-soxl-decision-support-r1-20260924",
+      "priority": "P0",
+      "classification": "REQUALIFY_NOW",
+      "historicalBlocker": "Finance Network v2 target/egress inactive at Host checkpoint",
+      "currentStanding": "Finance target/egress active and finance-ready READY, but dedicated OKX/Binance/FRED consequence probes fail",
+      "resumeFrom": "current platform/network/consumers/finance + current Capital read-only observation contracts",
+      "doNotResume": [
+        "stale ws-capital-soxl-remain-r1-20260924 digest edit",
+        "any live financial write"
+      ]
+    },
+    {
+      "id": "x-reality",
+      "project": "X Reality connector",
+      "hostTask": "task:ordivon-x-reality-source-connector-20260904",
+      "priority": "P1",
+      "classification": "STILL_NETWORK_BLOCKED",
+      "historicalBlocker": "X destination unreachable across tested routes",
+      "currentStanding": "api.x.com times out direct and generic proxy; no canonical X-specific bounded Network authority observed",
+      "separateGates": [
+        "Bearer/app authority",
+        "user-context/OAuth principal"
+      ]
+    },
+    {
+      "id": "admission-opa-oci",
+      "project": "Admission Fabric pinned OPA OCI replay",
+      "priority": "P1",
+      "classification": "PARTIAL_VERIFICATION_NETWORK_BLOCKED",
+      "historicalBlocker": "docker-registry-proxy-timeout",
+      "currentStanding": "Docker Registry remains unusable on tested current paths",
+      "nonClaims": [
+        "AF-S2 capability authorization is not a network blocker",
+        "AF-S3 workload identity is not a network blocker"
+      ]
+    },
+    {
+      "id": "security-clusterfuzzlite",
+      "project": "Security ClusterFuzzLite orchestration",
+      "priority": "P2",
+      "classification": "LATENT_SUPPLY_CHAIN_NETWORK_DEBT",
+      "historicalBlocker": "GCR/OSS-Fuzz container acquisition unavailable; Docker daemon absent at R1",
+      "currentStanding": "Docker/Podman runtime material now available, but GCR/Artifact Registry/Docker Hub remain unreachable; direct Atheris target proof already exists",
+      "activeHostContinuity": false
+    },
+    {
+      "id": "operations-d2",
+      "project": "Operations D2 pilot",
+      "hostTask": "task:ordivon-delivery-buildout-v1-operations-d2-pilot",
+      "priority": "P2",
+      "classification": "STALE_OPEN_REENTRY",
+      "historicalBlocker": "wait for repaired network-continuity observer natural timer episode",
+      "currentStanding": "legacy netcontinuity observer retired 2026-09-14; current evidence owners are Network v2/domain consumers plus mature observability",
+      "doNotResume": [
+        "ordivon-network-continuity-observe.timer",
+        "bespoke netcontinuity recreation"
+      ]
+    },
+    {
+      "id": "control-plane-gatus",
+      "project": "Control-plane local/public observability",
+      "hostTask": "task:control-plane-local-public-observability-r1-20260911",
+      "priority": "P2",
+      "classification": "STALE_OPEN_REENTRY",
+      "historicalBlocker": "Gatus 5.36.0 dependency acquisition blocked by network path",
+      "currentStanding": "reviewed Gatus binary/config/history exist; later architecture makes heavy observability optional/cold-by-default",
+      "resolvedNetworkSpecificBlocker": true
+    },
+    {
+      "id": "finance-okx-falsegreen",
+      "project": "Network finance-okx CONNECT false-green",
+      "hostTask": "task:network-finance-okx-connect-falsegreen-r1-20260911",
+      "priority": "P2",
+      "classification": "STALE_OPEN_REENTRY",
+      "historicalBlocker": "legacy Workstation egress-pool eligible/current while CONNECT failed",
+      "currentStanding": "legacy egress-pool topology superseded by Network v2 sing-box seven-authority architecture; old units no longer active authority",
+      "routeCurrentFailureTo": "market-capital-soxl/current Network v2 consequence requalification"
+    },
+    {
+      "id": "network-e2e-r8",
+      "project": "Network E2E single-access autonomous closure R8",
+      "hostTask": "task:network-e2e-single-access-autonomous-closure-r8-20260910",
+      "priority": "P3",
+      "classification": "SUPERSEDED_RESOLVED",
+      "historicalBlocker": "Runtime MCP HTTP 502 interrupted R8",
+      "currentStanding": "later Network v2 graduated generic platform/provider/recovery/cold-start, cut over Browserless/Finance, migrated to monorepo and retired standalone source"
+    },
+    {
+      "id": "public-web-orphan",
+      "project": "Network v2 Public-Web scoped proxy",
+      "workspace": "ws-network-public-web-monorepo-r1-20260921",
+      "priority": "P2",
+      "classification": "ORPHAN_DEPLOYMENT_RETIRE",
+      "historicalBlocker": "ambient host could not reach Hugging Face/Mind2Web",
+      "currentStanding": "source never entered current main; installed public-web units/config remain but all units inactive/dead, no listener and no active consumer",
+      "retirementFence": "preserve unique workspace evidence until explicit retirement/reconciliation receipt"
+    },
+    {
+      "id": "preservation-siegfried",
+      "project": "Creative Preservation Siegfried/PRONOM acquisition",
+      "priority": "P3",
+      "classification": "SUPERSEDED_RESOLVED",
+      "currentStanding": "later Preservation R4-R10 closeout supersedes historical network acquisition blocker"
+    },
+    {
+      "id": "context24-hf",
+      "project": "Scholarly Intelligence Context24 acquisition",
+      "priority": "P3",
+      "classification": "SUPERSEDED_RESOLVED",
+      "currentStanding": "historical HF transport blocker retained as evidence; current SD1 says RECOVERED_VIA_DIGEST_AND_COMMIT_BOUND_RESOLVER and local assets exist"
+    },
+    {
+      "id": "host-hux-opa",
+      "project": "Host HUX OPA verification",
+      "priority": "P3",
+      "classification": "SUPERSEDED_RESOLVED",
+      "currentStanding": "historical Docker/proxy verification blocker later passed and HUX production integration completed"
+    },
+    {
+      "id": "network-dns-race-workspaces",
+      "project": "Network DNS-race WIP workspaces",
+      "workspaces": [
+        "ws-network-dns-race-currentbase-r1-20260921",
+        "ws-ordivon-network-dns-race-20260921"
+      ],
+      "priority": "P3",
+      "classification": "SUPERSEDED_RESOLVED",
+      "currentStanding": "dual provider-DNS race and acceptance absorbed by canonical commits 5044e714a and dac057c66",
+      "cleanup": "candidate only after exact no-unique-evidence check"
+    },
+    {
+      "id": "paper2-supplementary",
+      "project": "Paper2 supplementary search",
+      "priority": "P3",
+      "classification": "NOT_NETWORK_CURRENTLY",
+      "currentStanding": "Crossref/OpenAlex/DBLP directly reachable; remaining credential/quota/coverage/coder/review gates are distinct"
+    },
+    {
+      "id": "provider-review-family",
+      "project": "Foundational/Research/Manufacturing/Agent-review continuities",
+      "priority": "P3",
+      "classification": "PROVIDER_ACCESS_NOT_NETWORK",
+      "currentStanding": "healthy Browserless/network can coexist with CHALLENGE_GATED/provider rate limits; preserve separate diagnosis"
+    }
+  ],
+  "recoveryFrontier": [
+    {
+      "order": 1,
+      "id": "finance-current-consequence",
+      "action": "Requalify current Finance destination consequences from current source, read-only."
+    },
+    {
+      "order": 2,
+      "id": "x-destination",
+      "action": "Hold X connector until owner-current bounded X route is proven; keep auth/principal separate."
+    },
+    {
+      "order": 3,
+      "id": "oci-registry-shared",
+      "action": "Treat Docker Hub/GCR/Artifact Registry failure as shared Network/supply-chain issue for OPA replay and ClusterFuzzLite, not duplicate Security fixes."
+    },
+    {
+      "order": 4,
+      "id": "continuity-reconcile",
+      "action": "Re-enter stale Host tasks whose wake conditions occurred or whose implementation owner was retired; close/supersede instead of replaying old steps."
+    },
+    {
+      "order": 5,
+      "id": "public-web-retire",
+      "action": "Preserve then explicitly retire/reconcile inactive Public-Web deployment residue."
+    }
+  ],
+  "runtimeEvidenceRefs": [
+    "job-01a0dd2b-c727-74f2-9f4c-7626e2acfc6e",
+    "job-01a0dd30-389c-7e61-a90e-7f522f0b4297",
+    "job-01a0dd31-3ae6-72c3-a3b0-8d0efbb04ab3",
+    "job-01a0dd31-9b20-71c1-8661-2f4bda154a10",
+    "job-01a0dd32-13b3-71b2-987b-67c347401761",
+    "job-01a0dd32-940f-7d02-b80b-330acd7df1e6",
+    "job-01a0dd33-07f7-7e90-9b11-de754e7859cc"
+  ],
+  "currentnessRule": "Refresh current physical truth before any recovery effect; this census is not a perpetual health claim."
+}

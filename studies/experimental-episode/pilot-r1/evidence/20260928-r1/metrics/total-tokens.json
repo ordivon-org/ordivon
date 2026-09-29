@@ -1,0 +1,37 @@
+{
+  "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+  "computationMode": "deterministic",
+  "construct": "Total Provider token usage reported by the Harness run.",
+  "evidenceMinimum": "deterministic-observation",
+  "kind": "ordivon.experimental-metric-spec",
+  "knownLimitations": [
+    "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority.",
+    "Reported unit: tokens."
+  ],
+  "metricClass": "process",
+  "metricId": "metric:total-tokens",
+  "missingDataPolicy": "exclude-with-reason",
+  "nonClaims": [
+    "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+    "This small pilot does not license a general model ranking."
+  ],
+  "ownerInputs": [
+    {
+      "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+      "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+      "objectKind": "file",
+      "ownerId": "harness"
+    },
+    {
+      "digest": "sha256:2d91df7f31ee631a4701b90166ff92f03ca7b43dc408bb200bcf5c27136c5431",
+      "objectId": "deepseek.chat-completions.non-thinking.v1",
+      "objectKind": "provider-adapter",
+      "ownerId": "harness"
+    }
+  ],
+  "replicationUnit": "live-harness-run",
+  "schemaVersion": 1,
+  "specDigest": "sha256:4f84a0b5aa9cbba2897ff606d7831105c9993ffc2a2836c76eb8f006813b8ff3",
+  "unitOfAnalysis": "live-harness-run",
+  "valueShape": "scalar"
+}

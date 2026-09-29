@@ -77,13 +77,33 @@ def main() -> int:
         f"{creative_library}"
     )
 
-    compose_path = OWNER_ROOT / "config/archivematica-preservation-r10.compose.yml"
-    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+    class ComposeLoader(yaml.SafeLoader):
+        pass
+
+    def _construct_override(loader, node):
+        if isinstance(node, yaml.SequenceNode):
+            return loader.construct_sequence(node)
+        if isinstance(node, yaml.MappingNode):
+            return loader.construct_mapping(node)
+        return loader.construct_scalar(node)
+
+    ComposeLoader.add_constructor("!override", _construct_override)
+    compose_path = OWNER_ROOT / "config/archivematica-preservation-r11.compose.yml"
+    compose = yaml.load(compose_path.read_text(encoding="utf-8"), Loader=ComposeLoader)
     assert isinstance(compose, dict)
     services = compose.get("services")
     assert isinstance(services, dict) and services
     assert "archivematica-storage-service" in services
     assert all(isinstance(name, str) and isinstance(config, dict) for name, config in services.items())
+    expected_ports = {
+        "mysql": ["127.0.0.1:42001:3306"],
+        "elasticsearch": ["127.0.0.1:42002:9200"],
+        "gearmand": ["127.0.0.1:42004:4730"],
+        "clamavd": ["127.0.0.1:42006:3310"],
+        "nginx": ["42080:80", "42081:8000"],
+    }
+    for name, ports in expected_ports.items():
+        assert services[name].get("ports") == ports, (name, services[name].get("ports"))
 
     service = (
         OWNER_ROOT / "systemd/ordivon-preservation-fixity-r7.service"

@@ -100,7 +100,7 @@ archive
   Paper1 frozen ref + verified bundle
 ```
 
-A future `meta/research/` machine-readable profile may be admitted only after it can be generated from authority bindings without becoming a second copy of Study scientific state.
+A reusable `profiles/research/` machine-readable profile may be admitted only after it can be generated from authority bindings without becoming a second copy of Study scientific state.
 
 ## Migration rules
 

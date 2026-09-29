@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.decision-state-projection-v1",
+  "title": "Ordivon Capital Decision State Projection v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion","kind","truthRole","asOf","stateTags","acceptedClaims","rejectedClaims","investmentRecommendationProduced","executionAuthorityGranted"],
+  "properties": {
+    "schemaVersion":{"const":1},
+    "kind":{"const":"ordivon.capital.decision-state-projection"},
+    "truthRole":{"const":"ROUTING_CONTEXT_DERIVED_FROM_EXPLICIT_CLAIMS_NOT_MARKET_TRUTH"},
+    "asOf":{"type":"string","format":"date-time"},
+    "stateTags":{"type":"array","uniqueItems":true,"items":{"type":"string","minLength":1}},
+    "acceptedClaims":{"type":"array","items":{"type":"object"}},
+    "rejectedClaims":{"type":"array","items":{"type":"object"}},
+    "investmentRecommendationProduced":{"const":false},
+    "executionAuthorityGranted":{"const":false}
+  }
+}

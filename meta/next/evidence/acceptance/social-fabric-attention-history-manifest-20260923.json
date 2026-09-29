@@ -1,0 +1,22 @@
+{
+  "boundary": "Multiple rendered views of one cut must collapse into one horizon before recurrence measurement.",
+  "documents": [
+    {
+      "path": "acceptance/social-fabric-r1-current-projection-20260923.json"
+    },
+    {
+      "path": "acceptance/social-fabric-r1-attention-projection-20260923.json"
+    },
+    {
+      "path": "acceptance/social-fabric-r1-reconciliation-20260923.json"
+    },
+    {
+      "path": "acceptance/social-fabric-coordination-r2-current-20260923.json"
+    },
+    {
+      "path": "acceptance/social-fabric-coordination-r2-attention-20260923.json"
+    }
+  ],
+  "kind": "ordivon.social-fabric-attention-history-manifest",
+  "schemaVersion": 1
+}

@@ -1,0 +1,19 @@
+{
+  "draft": "2020-12",
+  "evidenceRefs": [
+    "runtime:job:job-01a0e1c7-4478-7d11-b283-cc17961564a9",
+    "runtime:artifact:attempt-01a0e1c7-4478-7d11-b283-cc2348a3c62a.stdout@sha256:b31e565e47fdb5dee34223fd2979d49365ca7683ba6f1d1c54cf5de64e56b348"
+  ],
+  "kind": "ordivon.capability-science-external-schema-validation-r1",
+  "negativeDestroyersPassed": 2,
+  "nonClaims": [
+    "Schema validation proves contract conformance only, not semantic truth, provider correctness, authority, or domain acceptance."
+  ],
+  "permanentDependencyAdmitted": false,
+  "schemaVersion": 1,
+  "schemasChecked": 4,
+  "standing": "PASS_EXTERNAL_SCHEMA_VALIDATION",
+  "studyRef": "study:capability-science-r1",
+  "validDocumentsChecked": 8,
+  "validator": "jsonschema"
+}

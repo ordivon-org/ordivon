@@ -1,0 +1,16 @@
+{
+  "evidenceRepresentationStanding": "IDENTITY_ONLY_R1",
+  "kind": "ordivon.research.claim-evidence-schema-acceptance",
+  "schemaVersion": 1,
+  "sharedKinds": [
+    "claim",
+    "evidence_identity",
+    "method_context",
+    "correspondence"
+  ],
+  "sourceAsset": "context24-identity-core-r1",
+  "standing": "PASS_CLAIM_EVIDENCE_INTERFACE_R1",
+  "testGoldStanding": "WITHHELD_NOT_FABRICATED",
+  "truthBoundary": "Interface validation proves typed annotation interoperability only. It does not establish scientific truth, causal support, evidential sufficiency, method adequacy, or hidden challenge-test labels.",
+  "validatedSampleCount": 8
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/catalogs/model-foundry/cognitive-operator-v1.schema.json",
+  "title": "Ordivon Cognitive Operator Knowledge Record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "operatorId", "kind", "inputContract", "outputContract", "authorityClass"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "operatorId": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["PERCEIVE", "PARSE", "EMBED", "RETRIEVE", "RANK", "FILTER", "DECIDE", "ESTIMATE", "VERIFY", "ROUTE", "ABSTAIN", "PLAN", "GENERATE", "COMPRESS", "MEMORY_READ", "MEMORY_WRITE", "SIMULATE", "CRITIQUE", "SYNTHESIZE"]},
+    "description": {"type": "string"},
+    "inputContract": {"type": "object"},
+    "outputContract": {"type": "object"},
+    "stateClass": {"enum": ["STATELESS", "EPHEMERAL_STATE", "PERSISTENT_STATE_REF"]},
+    "authorityClass": {"enum": ["ADVISORY", "EVIDENCE_PRODUCING", "NON_MODEL_REQUIRED"]},
+    "logicalArchitectureRefs": {"type": "array", "items": {"type": "string"}},
+    "qualificationRequirements": {"type": "array", "items": {"type": "string"}}
+  }
+}

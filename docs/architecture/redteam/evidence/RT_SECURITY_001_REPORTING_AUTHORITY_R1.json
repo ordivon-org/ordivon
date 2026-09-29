@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam-evidence",
+  "findingId": "RT-SECURITY-001",
+  "observedAtDate": "2026-09-27",
+  "currentMain": "2bc46824d986c842375759ff39c731ee79195c5b",
+  "canonicalOrigin": "git@github.com:ordivon-org/ordivon.git",
+  "trackedSecurityPolicyFiles": [
+    "services/harness/SECURITY.md",
+    "services/runtime/SECURITY.md"
+  ],
+  "recognizedRepositoryPolicyLocationsPresent": {
+    ".github/SECURITY.md": false,
+    "SECURITY.md": false,
+    "docs/SECURITY.md": false
+  },
+  "staleOwnerReportingTargets": [
+    "https://github.com/zycxfyh/ordivon-runtime/security/advisories/new",
+    "https://github.com/zycxfyh/ordivon-harness/security/advisories/new"
+  ],
+  "claim": "The canonical monorepo carries no repository-local GitHub-recognized SECURITY.md and retained owner policies still route private vulnerability reports to pre-monorepo standalone repositories.",
+  "nonClaims": [
+    "No claim is made that the GitHub organization lacks an organization-wide default community health SECURITY.md; provider-level fallback was not read back in this falsifier.",
+    "Nested owner SECURITY.md files remain useful owner documentation but are not the canonical repository community-health policy location."
+  ],
+  "acceptance": [
+    "Add a canonical monorepo SECURITY.md in a GitHub-recognized repository location or explicitly bind and verify an organization-level policy.",
+    "Route private vulnerability reporting to the canonical provider repository/authority.",
+    "Retain owner-specific security boundaries as subordinate documentation without stale standalone reporting links.",
+    "Add repository-governance verification for the reporting authority and recognized policy location."
+  ]
+}

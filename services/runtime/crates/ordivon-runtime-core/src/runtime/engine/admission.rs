@@ -147,7 +147,6 @@ impl Runtime {
             self.executor.max_runtime_ms,
             self.executor.max_output_bytes,
         )?;
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let mut plan = self.resolve_plan(request)?;
         let admission_ids = self.registry.preallocate_admission_ids();
@@ -231,7 +230,6 @@ impl Runtime {
             self.executor.max_runtime_ms,
             self.executor.max_output_bytes,
         )?;
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let mut plan = self.resolve_plan(request)?;
         let admission_ids = self.registry.preallocate_admission_ids();
@@ -330,6 +328,25 @@ impl Runtime {
             } else {
                 let authority_contract =
                     super::authority_contract::AuthorityContract::ordinary(proposal)?;
+                let elevated_principals = self
+                    .windows
+                    .as_ref()
+                    .map(|windows| windows.elevated_principals.as_slice())
+                    .unwrap_or(&[]);
+                authority_contract.authorize_windows_elevation(elevated_principals)?;
+                if let Some(windows) = self.windows.as_ref() {
+                    windows.authorize_new_proposal(proposal)?;
+                } else if authority_contract
+                    .effective_windows_context()
+                    .is_some_and(|context| context.privilege == super::WindowsPayloadPrivilege::Elevated)
+                {
+                    return Err(RuntimeError::new(
+                        super::RuntimeErrorCode::AuthorizationDenied,
+                        "elevated Windows execution requires a configured native Windows provider",
+                        Some("execution.windowsContext.privilege"),
+                        false,
+                    ));
+                }
                 let request = self.resolve_proposal(proposal);
                 validate_run_request_structure(&request)?;
                 validate_new_admission_policy(
@@ -399,7 +416,6 @@ impl Runtime {
         request_identity_digest: String,
         authority_contract: Option<&super::authority_contract::AuthorityContract>,
     ) -> RuntimeResult<String> {
-        self.reconcile_recoverable_orphans()?;
         let _ = self.reconcile_workspace(&request.execution.workspace_id)?;
         let host_dependencies = self.validate_host_dependencies(request)?;
         let plan = self.resolve_plan(request)?;

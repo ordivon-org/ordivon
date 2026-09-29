@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.model-foundry-substitution-canary-r1",
+  "logicalOperator": "DECIDE",
+  "candidateSet": ["ALLOW", "DENY"],
+  "candidateSetDigest": "sha256:canary-allow-deny-r1",
+  "plans": [
+    {
+      "planId": "deterministic-rule-r1",
+      "architecture": "RULE_ENGINE",
+      "implementation": "if score >= 0.5 then ALLOW else DENY"
+    },
+    {
+      "planId": "table-score-r1",
+      "architecture": "SCORE_READOUT",
+      "implementation": "lookup bounded score distribution then argmax"
+    }
+  ],
+  "semanticCriterion": "For the frozen input score=0.8, both physical plans normalize to selectedCandidate=ALLOW under the same DecisionObservation contract.",
+  "nonClaims": [
+    "This does not establish real-model equivalence.",
+    "This does not qualify latency, calibration, OOD behavior or provider currentness.",
+    "This does not authorize an external effect."
+  ]
+}

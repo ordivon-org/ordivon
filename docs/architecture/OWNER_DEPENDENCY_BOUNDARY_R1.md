@@ -17,11 +17,12 @@ This is repository-boundary enforcement. It is not a universal dependency graph,
 | --- | --- | --- | --- |
 | Harness | Security | PUBLIC_OWNER_LOCATOR | Accepted canonical Security subtree locator; Security revision stays subtree-scoped |
 | Web | Security | PUBLIC_SOURCE_CONTRACT | Only the Agent Request Verifier and Agent Admission public contract paths |
-| Media | Artifact | READ_ONLY_OWNER_PROJECTION | Disposable Creative Index reads Artifact delivery/acceptance projections |
+| Media | Artifact | READ_ONLY_OWNER_PROJECTION | Disposable Creative Index reads Artifact verification/standing projections; transport and Media acceptance remain separately owned |
 | Skills | Next | OPERATOR_SOURCE_BINDING | Temporary filesystem-to-MCP bridge over operator-configured source roots |
 | Workstation | Distribution | ACCEPTANCE_EVIDENCE_BINDING | n8n acceptance consumes one Distribution evidence input |
 | Workstation | Game / Media | TEST_ONLY_ENVIRONMENT_BINDING | Host toolchain consequence tests only |
 | Next | Composition | PUBLIC_PACKAGE_DEPENDENCY | Next consumes the extracted `ordivon-composition` public Python package through its declared local package source; implementation internals are not imported by path |
+| Capital | Composition | PUBLIC_PACKAGE_DEPENDENCY | Capital R2 consumes only the public `ordivon-composition` package for generic Circuit/obligation mechanics; financial authority/effect/reconciliation semantics remain Capital-owned |
 
 Test and E2E variants are declared separately. A production source file cannot inherit permission merely because the same owner pair already has a test seam.
 
@@ -29,9 +30,9 @@ Test and E2E variants are declared separately. A production source file cannot i
 
 The following Next trees are navigation or knowledge projections rather than executable dependency edges:
 
-- meta/next/authorities/
-- meta/next/knowledge/
-- meta/next/domains/
+- catalogs/authorities/
+- catalogs/knowledge/
+- profiles/domains/
 
 Historical docs, evidence, planning, research, experiments, fixtures, and retained artifacts are also excluded from active-source dependency truth.
 

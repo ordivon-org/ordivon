@@ -100,3 +100,7 @@ mechanics.
 Before upgrading active independent work, inspect nonterminal Runs and unresolved Provider/Tool delivery, back up the Harness root, and prove the candidate can reopen current independent state. Do not reinterpret UNKNOWN or resend an ambiguous effect merely because code changed.
 
 Pre-1.0 breaking changes may deliberately drop unused schemas or APIs. Such deletion must be explicit in the Changelog and current tests/docs must describe only the retained authority.
+
+### Dispatch Fence v1 retirement
+
+The schema-v1 `HarnessDispatchFence` compatibility decoder is retired. It encoded historical Host `Task`/`Assignment` authority inside Harness, has no current writer or independent consumer, and the 2026-09-28 read-only census of every retained Harness SQLite store found zero persisted dispatch-fence objects. Current Tool-effect dispatch fencing uses caller-neutral `HarnessDispatchFenceV2`; retained historical prose/evidence remains historical and is not rewritten.

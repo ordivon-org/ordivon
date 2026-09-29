@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-skill-local-structural-audit",
+  "observedAt": "2026-09-26",
+  "skill": {
+    "name": "social-work-collaboration",
+    "path": ".agents/skills/social-work-collaboration/SKILL.md",
+    "sha256": "sha256:0289f6a06e19c76c6751e19c591316b9db7f8c0767a1c52302093a0d49854e7b",
+    "bytes": 10607,
+    "fileCount": 1,
+    "executableFiles": 0,
+    "symlinks": 0
+  },
+  "checks": {
+    "frontmatterDelimited": "PASS",
+    "pathEscapeOrSymlink": "NONE_OBSERVED",
+    "bundledExecutable": "NONE",
+    "networkDownloadOrExecuteInstruction": "NONE_OBSERVED",
+    "secretCredentialOrSystemPromptRequest": "NONE_OBSERVED",
+    "authorityEscalation": "NONE_OBSERVED",
+    "taskBoardCompatibilityRestoration": "REJECTED_BY_SKILL",
+    "ownerBoundaryPreservation": "PASS_STATIC_REVIEW"
+  },
+  "skillspector": {
+    "availability": "UNAVAILABLE_LOCAL_EXECUTABLE_NOT_FOUND",
+    "claim": "NO_SKILLSPECTOR_PASS_CLAIM"
+  },
+  "references": [
+    "services/host/docs/SOCIAL_WORK_FABRIC_R1.md",
+    "docs/architecture/CURRENT_ARCHITECTURE.md",
+    "docs/architecture/social-work-production-agent-ux-acceptance-20260926.json"
+  ],
+  "standing": "PASS_LOCAL_STRUCTURAL_REVIEW_WITH_SKILLSPECTOR_UNAVAILABLE",
+  "truthBoundary": "This record proves only deterministic local package structure and bounded static instruction review for the exact Skill bytes. It does not grant tool authority, identity/authorization, domain truth, or a third-party scanner safety claim."
+}

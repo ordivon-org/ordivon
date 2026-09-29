@@ -1,0 +1,1309 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-capital-truth",
+  "project": {
+    "id": "ordivon-capital-lego-architecture-r1",
+    "purpose": "Compile current Ordivon Capital into machine-readable registered LEGOs and typed read/effect circuits while preserving the seven domain owners, external truth/authority boundaries, and the existing production-write block.",
+    "sourceEvidence": [
+      "domains/capital/README.md",
+      "domains/capital/docs/ARCHITECTURE.md",
+      "domains/capital/config/capital_domain_taxonomy.json",
+      "domains/capital/config/external_owner_census.json",
+      "domains/capital/config/quantitative_component_inventory.json",
+      "domains/capital/contracts/production-authorization.json"
+    ]
+  },
+  "baseline": {
+    "sourceRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+    "capitalSourceOwner": "domains/capital",
+    "domains": [
+      "markets",
+      "trading",
+      "portfolio",
+      "risk",
+      "research",
+      "governance",
+      "accounting"
+    ],
+    "currentLane": "NON_LIVE",
+    "productionAuthorization": "BLOCK_NOT_GRANTED",
+    "portfolioRiskBudget": "UNSET",
+    "privateAccountDataAdmission": "NOT_ADMITTED",
+    "gatewayCapitalCapabilityRequired": false
+  },
+  "nodes": [
+    {
+      "id": "C00",
+      "wave": "W0",
+      "label": "CapitalTruthFreeze",
+      "kind": "contract-freeze",
+      "owner": "capital",
+      "state": "READY",
+      "responsibility": "Freeze current Capital source owner, seven domain owners, current protocol v2 identities, NON_LIVE lane, BLOCK_NOT_GRANTED production authorization, UNSET owner risk budget, current provider/private-reality admission standing, and the rule that provider reality outranks workflow/engine/local-ledger state.",
+      "files": [
+        "domains/capital/planning/current-truth-r1.json",
+        "domains/capital/tests/test_current_truth_surfaces.py"
+      ],
+      "dependsOn": [],
+      "parallelGroup": "foundation",
+      "mustNotOwn": [
+        "new business semantics",
+        "live-write authority"
+      ],
+      "acceptance": [
+        "Machine-readable current truth agrees with canonical configs/contracts and current source-owner taxonomy.",
+        "Any contradictory present-tense architecture claim fails a repository test.",
+        "No planning artifact changes production authorization or private-data admission."
+      ],
+      "authorityBoundary": "Projection/freeze only; source configs/contracts and external providers remain authoritative.",
+      "nextAction": "Build exact current-state projection from existing Capital authorities."
+    },
+    {
+      "id": "C01",
+      "wave": "W0",
+      "label": "CurrentnessHistorySplit",
+      "kind": "documentation-boundary",
+      "owner": "capital",
+      "state": "READY_AFTER_C00",
+      "responsibility": "Separate present-tense current standing from chronological historical progression so agents cannot mistake superseded clock/provider/runtime observations for current truth.",
+      "files": [
+        "domains/capital/docs/CURRENT_STATE.md",
+        "domains/capital/docs/history/",
+        "domains/capital/docs/ARCHITECTURE.md"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "foundation",
+      "mustNotOwn": [
+        "provider currentness",
+        "runtime observation truth"
+      ],
+      "acceptance": [
+        "ARCHITECTURE contains one non-contradictory current-state section.",
+        "Historical observations move behind explicit HISTORY/provenance labels without deleting evidence.",
+        "Current-state values are mechanically checked against C00 projection."
+      ],
+      "authorityBoundary": "Documentation projection only."
+    },
+    {
+      "id": "C02",
+      "wave": "W0",
+      "label": "FunctionalLegoFreeze",
+      "kind": "domain-decomposition",
+      "owner": "capital",
+      "state": "READY_AFTER_C00",
+      "responsibility": "Freeze the 12 functional LEGO vocabulary: Observe, Normalize, Validate, Measure, Model, Counterfactual, Decide, Authorize, Reserve, Effect, Reconcile, Account; map each to the seven source-owner domains without replacing native domain names.",
+      "files": [
+        "domains/capital/planning/functional-lego-map-r1.json"
+      ],
+      "dependsOn": [
+        "C00"
+      ],
+      "parallelGroup": "foundation",
+      "mustNotOwn": [
+        "new universal finance ontology",
+        "renaming source-owner packages"
+      ],
+      "acceptance": [
+        "Every current executable Capital component maps to one or more functional LEGOs.",
+        "Every LEGO names a canonical source owner and explicit non-responsibilities.",
+        "No source package is renamed merely to match LEGO vocabulary."
+      ],
+      "authorityBoundary": "Analytical/composition projection; seven domains remain source owners."
+    },
+    {
+      "id": "R01",
+      "wave": "W1",
+      "label": "CapitalLegoRegistrySchema",
+      "kind": "typed-registry-contract",
+      "owner": "capital",
+      "state": "READY_AFTER_C02",
+      "responsibility": "Define a machine-readable registry schema for executable Capital LEGO metadata: identity, source owner, input/output contracts, authority requirements, effect class, replay class, evidence obligations, side effects, risk tier, status, and implementation binding.",
+      "files": [
+        "domains/capital/schema/capital-lego-registry-v1.schema.json",
+        "domains/capital/contracts/capital-lego-registry-v1.json"
+      ],
+      "dependsOn": [
+        "C02"
+      ],
+      "parallelGroup": "registry",
+      "mustNotOwn": [
+        "runtime scheduling",
+        "gateway routing",
+        "provider permission truth"
+      ],
+      "acceptance": [
+        "Schema represents every active quantitative/control/adapter/reconciliation component without semantic loss.",
+        "Authority/effect fields are mandatory for effect-capable entries and explicit NONE for pure entries.",
+        "Registry schema cannot itself grant authority."
+      ],
+      "authorityBoundary": "Metadata contract only; implementation and external authorities remain separately owned."
+    },
+    {
+      "id": "R02",
+      "wave": "W1",
+      "label": "RegistryPopulation",
+      "kind": "registry-materialization",
+      "owner": "capital",
+      "state": "READY_AFTER_R01",
+      "responsibility": "Populate the registry from current Markets/Trading/Portfolio/Risk/Research/Governance/Accounting implementations and current contracts/configs.",
+      "files": [
+        "domains/capital/config/capital_lego_registry.json"
+      ],
+      "dependsOn": [
+        "R01"
+      ],
+      "parallelGroup": "registry",
+      "mustNotOwn": [
+        "candidate-tool promotion",
+        "implicit live capability"
+      ],
+      "acceptance": [
+        "All active source API components that participate in Capital circuits have registry entries.",
+        "Retired and candidate-only components are explicitly marked RETIRED or CHALLENGER and cannot appear as active owners.",
+        "Every entry links exact implementation path and source-owner domain."
+      ],
+      "authorityBoundary": "Registry indexes current owner facts; it does not supersede source/config/contracts."
+    },
+    {
+      "id": "R03",
+      "wave": "W1",
+      "label": "RegistryVerifier",
+      "kind": "verification",
+      "owner": "capital",
+      "state": "READY_AFTER_R02",
+      "responsibility": "Fail closed on missing implementation paths, undeclared authority/effects, owner mismatches, stale schema identities, or active references to retired compatibility surfaces.",
+      "files": [
+        "domains/capital/scripts/check-capital-lego-registry",
+        "domains/capital/tests/test_capital_lego_registry.py"
+      ],
+      "dependsOn": [
+        "R02"
+      ],
+      "parallelGroup": "registry",
+      "mustNotOwn": [
+        "business policy"
+      ],
+      "acceptance": [
+        "Registry verifier runs hermetically in capital:verify.",
+        "Deleting/renaming a bound implementation without registry update fails.",
+        "Marking an effectful LEGO as pure/no-effect is caught by explicit fixture tests."
+      ],
+      "authorityBoundary": "Static consistency checker only."
+    },
+    {
+      "id": "T01",
+      "wave": "W2",
+      "label": "LegoContractEnvelope",
+      "kind": "typed-contract",
+      "owner": "capital",
+      "state": "READY_AFTER_R03",
+      "responsibility": "Define a common composition envelope around domain-native input/output contracts without forcing all financial payloads into one schema.",
+      "files": [
+        "domains/capital/contracts/lego-composition-envelope-v1.json"
+      ],
+      "dependsOn": [
+        "R03"
+      ],
+      "parallelGroup": "contracts",
+      "mustNotOwn": [
+        "domain payload schemas",
+        "universal event ontology"
+      ],
+      "acceptance": [
+        "Envelope carries legoId, contract identities/digests, input provenance, output identity and boundary metadata.",
+        "Domain-native payload remains opaque/typed by its own contract.",
+        "Pure transforms can compose without Runtime/Host-specific fields."
+      ],
+      "authorityBoundary": "Cross-owner composition envelope only."
+    },
+    {
+      "id": "T02",
+      "wave": "W2",
+      "label": "AuthorityRequirementContract",
+      "kind": "authority-contract",
+      "owner": "capital-governance",
+      "state": "READY_AFTER_R03",
+      "responsibility": "Represent what authority a LEGO consumes: public-read, private-read, simulated-effect, demo/test, live qualification, production-write; bind owner/provider authority references without embedding secrets.",
+      "files": [
+        "domains/capital/contracts/capital-authority-requirement-v1.json"
+      ],
+      "dependsOn": [
+        "R03"
+      ],
+      "parallelGroup": "contracts",
+      "mustNotOwn": [
+        "credential bytes",
+        "provider IAM grants",
+        "Runtime credential storage"
+      ],
+      "acceptance": [
+        "Every registry entry has an explicit authority requirement.",
+        "Public/read-only LEGOs cannot silently compile into write-capable authority.",
+        "Production-write requirement remains unsatisfied while production-authorization is BLOCK_NOT_GRANTED."
+      ],
+      "authorityBoundary": "Requirement declaration only; grants remain owner/provider/Runtime CredentialAuthority truth."
+    },
+    {
+      "id": "T03",
+      "wave": "W2",
+      "label": "EffectClassContract",
+      "kind": "effect-contract",
+      "owner": "capital-governance",
+      "state": "READY_AFTER_R03",
+      "responsibility": "Classify NONE, LOCAL_STATE, SIMULATED_EXCHANGE_ORDER_EFFECT, DEMO_EXTERNAL_WRITE, LIVE_QUALIFICATION_WRITE, PRODUCTION_FINANCIAL_WRITE and define reversibility/reconciliation obligations.",
+      "files": [
+        "domains/capital/contracts/capital-effect-class-v1.json"
+      ],
+      "dependsOn": [
+        "R03"
+      ],
+      "parallelGroup": "contracts",
+      "mustNotOwn": [
+        "effect execution",
+        "generic Runtime effect framework"
+      ],
+      "acceptance": [
+        "Every effect class states commit point, ambiguity behavior, reconciliation oracle and whether reservation is required.",
+        "UNKNOWN external outcome can never map directly to successful accounting mutation.",
+        "Production class cannot be admitted by registry metadata alone."
+      ],
+      "authorityBoundary": "Capital semantic effect classification only; Runtime remains physical executor."
+    },
+    {
+      "id": "T04",
+      "wave": "W2",
+      "label": "EvidenceObligationContract",
+      "kind": "evidence-contract",
+      "owner": "capital-research",
+      "state": "READY_AFTER_R03",
+      "responsibility": "Define pre/post evidence obligations per LEGO and circuit: provenance/currentness, model standing, policy result, provider receipt, authoritative reality, reconciliation, accounting receipt.",
+      "files": [
+        "domains/capital/contracts/capital-evidence-obligation-v1.json"
+      ],
+      "dependsOn": [
+        "R03"
+      ],
+      "parallelGroup": "contracts",
+      "mustNotOwn": [
+        "scientific truth by declaration",
+        "provider truth"
+      ],
+      "acceptance": [
+        "Positive claims name exact evidence obligations and limitations.",
+        "Model outputs retain inventory/validation standing through composition.",
+        "Effect circuits require post-effect authoritative reality and reconciliation evidence."
+      ],
+      "authorityBoundary": "Evidence requirement semantics only."
+    },
+    {
+      "id": "T05",
+      "wave": "W2",
+      "label": "AssumeGuaranteeCompositionChecker",
+      "kind": "composition-verifier",
+      "owner": "capital",
+      "state": "READY_AFTER_T01_T04",
+      "responsibility": "Check that adjacent LEGO assumptions are discharged by upstream guarantees, especially authority, currentness, model-use restrictions, effect class and reconciliation obligations.",
+      "files": [
+        "domains/capital/src/ordivon_capital/governance/composition_contract.py",
+        "domains/capital/tests/test_composition_contract.py"
+      ],
+      "dependsOn": [
+        "T01",
+        "T02",
+        "T03",
+        "T04"
+      ],
+      "parallelGroup": "contracts",
+      "mustNotOwn": [
+        "workflow scheduling",
+        "decision optimization"
+      ],
+      "acceptance": [
+        "Invalid compositions fail before physical execution.",
+        "A read-only circuit cannot accept an effectful LEGO.",
+        "A model prohibited for trade sizing cannot satisfy an automatic-sizing assumption.",
+        "Provider reality remains an external assumption that local accounting cannot discharge."
+      ],
+      "authorityBoundary": "Static/deterministic composition admission; not execution authorization."
+    },
+    {
+      "id": "Q01",
+      "wave": "W3",
+      "label": "CapitalCircuitIR",
+      "kind": "circuit-ir",
+      "owner": "capital",
+      "state": "READY_AFTER_T05",
+      "responsibility": "Define a small DAG IR for Capital cognitive circuits: nodes reference registered LEGOs; edges bind typed outputs to inputs; circuit carries goal, frozen context, authority set, evidence obligations and terminal claim type.",
+      "files": [
+        "domains/capital/contracts/capital-circuit-v1.json"
+      ],
+      "dependsOn": [
+        "T05"
+      ],
+      "parallelGroup": "circuit",
+      "mustNotOwn": [
+        "agent chain-of-thought",
+        "generic workflow engine",
+        "Runtime Job lifecycle"
+      ],
+      "acceptance": [
+        "IR is declarative and bounded to Capital composition.",
+        "Circuit cannot invent unregistered LEGO implementations.",
+        "Cycles are rejected for R1 except explicit Observe-after-Effect represented as separate DAG nodes."
+      ],
+      "authorityBoundary": "Capital composition plan only; Runtime/Host own execution/continuity."
+    },
+    {
+      "id": "Q02",
+      "wave": "W3",
+      "label": "ReadOnlyCircuitCompiler",
+      "kind": "compiler",
+      "owner": "capital",
+      "state": "READY_AFTER_Q01",
+      "responsibility": "Compile read-only goals into admitted registered LEGO DAGs using explicit supplied goal/context/authority facts; first supported families are market observation, portfolio risk, and counterfactual analysis.",
+      "files": [
+        "domains/capital/src/ordivon_capital/circuit/compiler.py",
+        "domains/capital/tests/test_circuit_compiler.py"
+      ],
+      "dependsOn": [
+        "Q01"
+      ],
+      "parallelGroup": "circuit",
+      "mustNotOwn": [
+        "autonomous investment objective",
+        "risk-tolerance inference",
+        "effect selection"
+      ],
+      "acceptance": [
+        "Compiler emits only effectClass NONE/LOCAL_STATE circuits in R1.",
+        "Missing risk budget remains explicit UNSET rather than inferred.",
+        "Same normalized goal/context produces deterministic circuit identity."
+      ],
+      "authorityBoundary": "Composition selection only; it does not approve investment actions."
+    },
+    {
+      "id": "Q03",
+      "wave": "W3",
+      "label": "CircuitExecutorAdapter",
+      "kind": "execution-adapter",
+      "owner": "capital",
+      "state": "READY_AFTER_Q02",
+      "responsibility": "Execute compiled pure/read-only circuit nodes through existing Python/domain entrypoints and Runtime where needed, preserving node receipts and artifacts without creating a Capital scheduler.",
+      "files": [
+        "domains/capital/src/ordivon_capital/circuit/runner.py",
+        "domains/capital/tests/test_circuit_runner.py"
+      ],
+      "dependsOn": [
+        "Q02"
+      ],
+      "parallelGroup": "circuit",
+      "mustNotOwn": [
+        "durable Runtime Job truth",
+        "Host continuity",
+        "parallel scheduler"
+      ],
+      "acceptance": [
+        "Runner is deterministic for pure local nodes and delegates physical processes to Runtime rather than duplicating process truth.",
+        "Node failures stop dependent nodes and produce bounded receipts.",
+        "No external write-capable path exists in W3."
+      ],
+      "authorityBoundary": "Thin domain runner/adapter; Runtime owns physical execution."
+    },
+    {
+      "id": "Q04",
+      "wave": "W3",
+      "label": "CircuitReceipt",
+      "kind": "evidence-binding",
+      "owner": "capital",
+      "state": "READY_AFTER_Q03",
+      "responsibility": "Materialize circuit-level receipt that binds circuit digest, node receipts, input evidence, claim boundaries and unresolved obligations.",
+      "files": [
+        "domains/capital/contracts/capital-circuit-receipt-v1.json",
+        "domains/capital/src/ordivon_capital/circuit/receipt.py"
+      ],
+      "dependsOn": [
+        "Q03",
+        "T04"
+      ],
+      "parallelGroup": "circuit",
+      "mustNotOwn": [
+        "provider truth",
+        "semantic truth beyond evidence"
+      ],
+      "acceptance": [
+        "Receipt never equates successful node execution with financial truth.",
+        "Unresolved evidence obligations remain explicit.",
+        "Receipt can be content-addressed and replay-compared."
+      ],
+      "authorityBoundary": "Evidence aggregation only."
+    },
+    {
+      "id": "Q05",
+      "wave": "W3",
+      "label": "ReadOnlyDogfoodCircuits",
+      "kind": "consumer-e2e",
+      "owner": "capital",
+      "state": "READY_AFTER_Q04",
+      "responsibility": "Dogfood at least three current circuits: public market observation/quality, portfolio exposure+risk report, and explicit counterfactual+pre-trade evidence completeness.",
+      "files": [
+        "domains/capital/acceptance/capital-circuit-readonly-r1.json"
+      ],
+      "dependsOn": [
+        "Q04"
+      ],
+      "parallelGroup": "acceptance",
+      "mustNotOwn": [
+        "trade recommendation",
+        "external effect"
+      ],
+      "acceptance": [
+        "Three circuits complete from registered LEGOs only.",
+        "Outputs match direct current implementations for fixed fixtures/observations.",
+        "No circuit requires production/private write authority."
+      ],
+      "authorityBoundary": "Read-only acceptance evidence."
+    },
+    {
+      "id": "S01",
+      "wave": "W4",
+      "label": "CapitalSkillBoundary",
+      "kind": "skill-contract",
+      "owner": "skills+capital",
+      "state": "READY_AFTER_Q05",
+      "responsibility": "Define project-scoped Capital Skills as advisory circuit-discovery/invocation guidance, never as financial truth, policy, credential or execution authority.",
+      "files": [
+        "domains/capital/contracts/capital-skill-boundary-v1.json",
+        "domains/capital/tests/test_capital_skill_boundary.py"
+      ],
+      "dependsOn": [
+        "Q05"
+      ],
+      "parallelGroup": "skills",
+      "mustNotOwn": [
+        "financial truth",
+        "write authority",
+        "hidden strategy"
+      ],
+      "acceptance": [
+        "Skills reference registry/circuit contracts rather than hardcoding private implementation knowledge.",
+        "Skill removal does not remove Capital executable semantics.",
+        "Explicit skill text states that effect admission remains Governance/provider-owned."
+      ],
+      "authorityBoundary": "Advisory instructions only."
+    },
+    {
+      "id": "S02",
+      "wave": "W4",
+      "label": "CapitalObserveSkill",
+      "kind": "skill",
+      "owner": "skills+capital-markets",
+      "state": "READY_AFTER_S01",
+      "responsibility": "Provide project-scoped guidance for selecting public/private-read observation circuits while preserving explicit admission boundaries.",
+      "files": [
+        ".agents/skills/capital-observe/SKILL.md"
+      ],
+      "dependsOn": [
+        "S01"
+      ],
+      "parallelGroup": "skills",
+      "mustNotOwn": [
+        "credential discovery",
+        "provider write"
+      ],
+      "acceptance": [
+        "Public observation path works without credentials.",
+        "Private observation refuses when admission/current permission facts are absent.",
+        "No secret location is embedded in Skill text."
+      ],
+      "authorityBoundary": "Advisory selection of registered observation circuits."
+    },
+    {
+      "id": "S03",
+      "wave": "W4",
+      "label": "CapitalRiskCounterfactualSkill",
+      "kind": "skill",
+      "owner": "skills+capital-risk-portfolio",
+      "state": "READY_AFTER_S01",
+      "responsibility": "Guide exposure/risk/counterfactual circuit selection and preserve the distinction between measurement, scenario projection and recommendation.",
+      "files": [
+        ".agents/skills/capital-risk/SKILL.md"
+      ],
+      "dependsOn": [
+        "S01"
+      ],
+      "parallelGroup": "skills",
+      "mustNotOwn": [
+        "risk appetite inference",
+        "scenario ranking"
+      ],
+      "acceptance": [
+        "UNSET risk budget remains visible.",
+        "Counterfactual outputs are not promoted to recommendations.",
+        "Model standing/use restrictions are surfaced."
+      ],
+      "authorityBoundary": "Advisory analysis composition only."
+    },
+    {
+      "id": "S04",
+      "wave": "W4",
+      "label": "CapitalReconcileSkill",
+      "kind": "skill",
+      "owner": "skills+capital-trading-accounting",
+      "state": "READY_AFTER_E05",
+      "responsibility": "Guide exact re-entry into reconciliation/accounting-resolution circuits after an already-existing effect or ambiguous outcome; never initiate an effect.",
+      "files": [
+        ".agents/skills/capital-reconcile/SKILL.md"
+      ],
+      "dependsOn": [
+        "S01",
+        "E05"
+      ],
+      "parallelGroup": "skills-effect",
+      "mustNotOwn": [
+        "order submission",
+        "blind retry"
+      ],
+      "acceptance": [
+        "Skill requires existing effect identity/provider evidence.",
+        "UNKNOWN directs to reconciliation/no-mutation rather than resend.",
+        "Accounting resolution follows authoritative reconciliation standing."
+      ],
+      "authorityBoundary": "Advisory recovery/reconciliation guidance only."
+    },
+    {
+      "id": "E01",
+      "wave": "W5",
+      "label": "NonLiveEffectCircuitIR",
+      "kind": "effect-circuit",
+      "owner": "capital-trading",
+      "state": "READY_AFTER_T05",
+      "responsibility": "Extend Capital circuit IR with existing admitted SIMULATED_EXCHANGE_ORDER_EFFECT only, preserving explicit Decision→Authorize→Reserve→Effect→Observe→Reconcile→Account stages.",
+      "files": [
+        "domains/capital/contracts/capital-nonlive-effect-circuit-v1.json"
+      ],
+      "dependsOn": [
+        "T05"
+      ],
+      "parallelGroup": "effect",
+      "mustNotOwn": [
+        "demo/live/production writes",
+        "generic effect engine"
+      ],
+      "acceptance": [
+        "Only current non-live effect class is admitted.",
+        "Each effect node requires reservation and reconciliation obligations.",
+        "Circuit identity binds decision, intent and authority inputs."
+      ],
+      "authorityBoundary": "Capital non-live semantic plan; Runtime/provider own physical realization."
+    },
+    {
+      "id": "E02",
+      "wave": "W5",
+      "label": "ReservationCompositionContract",
+      "kind": "accounting-contract",
+      "owner": "capital-accounting",
+      "state": "READY_AFTER_E01",
+      "responsibility": "Bind effect identity to durable reservation/post/void semantics using current SQLite accounting owner and deterministic identity rules.",
+      "files": [
+        "domains/capital/contracts/capital-reservation-v1.json",
+        "domains/capital/tests/test_reservation_composition.py"
+      ],
+      "dependsOn": [
+        "E01"
+      ],
+      "parallelGroup": "effect",
+      "mustNotOwn": [
+        "settlement truth",
+        "venue truth"
+      ],
+      "acceptance": [
+        "Reservation is durable and idempotent across restart.",
+        "Terminal reservation cannot be reopened from stale provider state.",
+        "UNKNOWN reconciliation preserves pending state."
+      ],
+      "authorityBoundary": "Local accounting commitment only."
+    },
+    {
+      "id": "E03",
+      "wave": "W5",
+      "label": "NonLiveEffectAdmissionCompiler",
+      "kind": "admission-compiler",
+      "owner": "capital-governance",
+      "state": "READY_AFTER_E02",
+      "responsibility": "Compile registered non-live circuit authority/evidence/policy facts into an admitted or denied effect proposal using current Governance rules.",
+      "files": [
+        "domains/capital/src/ordivon_capital/governance/nonlive_effect_circuit.py",
+        "domains/capital/tests/test_effect_admission.py"
+      ],
+      "dependsOn": [
+        "E02"
+      ],
+      "parallelGroup": "effect",
+      "mustNotOwn": [
+        "provider permission",
+        "Runtime admission"
+      ],
+      "acceptance": [
+        "ExternalFinancialWriteAllowed remains false.",
+        "Only SIMULATED_EXCHANGE_ORDER_EFFECT can pass in W5.",
+        "Missing/ambiguous authority or evidence fails closed."
+      ],
+      "authorityBoundary": "Domain semantic admission only; Runtime separately admits physical Job."
+    },
+    {
+      "id": "E04",
+      "wave": "W5",
+      "label": "ProviderNeutralSimulatedAdapter",
+      "kind": "provider-adapter",
+      "owner": "capital-trading",
+      "state": "READY_AFTER_E03",
+      "responsibility": "Define the minimal provider-neutral simulated-exchange adapter contract required by the existing non-live effect matrix, leaving Nautilus rc4 as historical challenger evidence rather than canonical owner.",
+      "files": [
+        "domains/capital/src/ordivon_capital/trading/simulated_effect.py",
+        "domains/capital/tests/test_simulated_effect.py"
+      ],
+      "dependsOn": [
+        "E03"
+      ],
+      "parallelGroup": "effect",
+      "mustNotOwn": [
+        "real venue semantics",
+        "OMS framework",
+        "production broker adapter"
+      ],
+      "acceptance": [
+        "FILL/PARTIAL_FILL_SLICES/CANCEL/DENY/UNKNOWN_AFTER_SUBMISSION are representable.",
+        "Adapter returns provider episode evidence, not final accounting truth.",
+        "Historical Nautilus matrix remains differential evidence only."
+      ],
+      "authorityBoundary": "Bounded simulated provider mechanics."
+    },
+    {
+      "id": "E05",
+      "wave": "W5",
+      "label": "EffectReconciliationCircuit",
+      "kind": "reconciliation",
+      "owner": "capital-trading+accounting",
+      "state": "READY_AFTER_E04",
+      "responsibility": "Compose provider episode/reality through current FIX lifecycle normalization into NO_MUTATION / VOID_PENDING_TRANSFER / POST_PENDING_TRANSFER accounting resolution.",
+      "files": [
+        "domains/capital/src/ordivon_capital/governance/nonlive_effect_circuit.py",
+        "domains/capital/tests/test_effect_reconciliation_circuit.py"
+      ],
+      "dependsOn": [
+        "E04",
+        "E02"
+      ],
+      "parallelGroup": "effect",
+      "mustNotOwn": [
+        "provider repair",
+        "blind resend"
+      ],
+      "acceptance": [
+        "Broad snapshot absence never proves no-effect.",
+        "Positive execution and proven zero-effect produce distinct accounting instructions.",
+        "Contradiction/missing terminal history retains/requires recovery."
+      ],
+      "authorityBoundary": "Cross-owner reconciliation seam only."
+    },
+    {
+      "id": "E06",
+      "wave": "W5",
+      "label": "NonLiveFailureDestroyer",
+      "kind": "fmea-fault-injection",
+      "owner": "capital-verification",
+      "state": "READY_AFTER_E05",
+      "responsibility": "Inject response loss, duplicate admission, partial fill, stale snapshot, missing fills, contradictory terminal history, restart and replay to falsify effect/reconciliation/accounting laws.",
+      "files": [
+        "domains/capital/tests/test_nonlive_effect_destroyer.py",
+        "domains/capital/destroyer/nonlive-effect-failure-matrix-r1.json"
+      ],
+      "dependsOn": [
+        "E05"
+      ],
+      "parallelGroup": "verification",
+      "mustNotOwn": [
+        "new recovery semantics"
+      ],
+      "acceptance": [
+        "No ambiguous case becomes a blind resend.",
+        "No stale provider fact reopens terminal accounting history.",
+        "Replay/idempotency and restart cases retain exact effect identity."
+      ],
+      "authorityBoundary": "Verification only."
+    },
+    {
+      "id": "E07",
+      "wave": "W5",
+      "label": "NonLiveDogfoodAcceptance",
+      "kind": "consumer-e2e",
+      "owner": "capital",
+      "state": "READY_AFTER_E06",
+      "responsibility": "Run one full registered non-live circuit from frozen Decision through accounting resolution and emit a single bounded acceptance artifact.",
+      "files": [
+        "domains/capital/acceptance/capital-nonlive-circuit-r1.json"
+      ],
+      "dependsOn": [
+        "E06"
+      ],
+      "parallelGroup": "acceptance",
+      "mustNotOwn": [
+        "live-write claim"
+      ],
+      "acceptance": [
+        "All stages are registry-backed and contract-checked.",
+        "Physical execution success is not used as semantic completion.",
+        "External financial writes remain false before and after the run."
+      ],
+      "authorityBoundary": "Non-live acceptance only."
+    },
+    {
+      "id": "P01",
+      "wave": "W6_DEFERRED",
+      "label": "ProductionEffectContractFreeze",
+      "kind": "deferred-contract",
+      "owner": "capital-governance+trading",
+      "state": "BLOCKED_BY_AUTHORITY",
+      "responsibility": "Specify, but do not implement or activate, the additional requirements for DEMO/LIVE_QUALIFICATION/PRODUCTION effect classes: fresh provider permission, account eligibility, capital mandate, risk budget, reconciliation health, credential separation and explicit production authorization.",
+      "files": [
+        "domains/capital/planning/production-effect-requirements-r1.json"
+      ],
+      "dependsOn": [
+        "E07"
+      ],
+      "parallelGroup": "deferred",
+      "mustNotOwn": [
+        "permission grant",
+        "credential creation",
+        "provider-side agreement acceptance"
+      ],
+      "acceptance": [
+        "Requirements are explicit and machine-checkable.",
+        "Current BLOCK_NOT_GRANTED state keeps production path unreachable.",
+        "No provider write adapter is selected merely by planning."
+      ],
+      "authorityBoundary": "Deferred requirements only."
+    },
+    {
+      "id": "P02",
+      "wave": "W6_DEFERRED",
+      "label": "ProviderWriteAdapterQualification",
+      "kind": "deferred-experiment",
+      "owner": "capital-trading",
+      "state": "WAIT_FOR_REAL_CONTRACT",
+      "responsibility": "When a real admitted write contract exists, compare provider-native SDK/FIX/broker candidates against the exact adapter contract; select the smallest qualified owner and retain alternatives as challengers.",
+      "files": [
+        "future qualification evidence only"
+      ],
+      "dependsOn": [
+        "P01"
+      ],
+      "parallelGroup": "deferred",
+      "mustNotOwn": [
+        "automatic framework adoption",
+        "credential policy"
+      ],
+      "acceptance": [
+        "Runs only after prerequisite authority facts are current.",
+        "Candidate must preserve identity/reconciliation/effect guarantees.",
+        "No generic OMS is adopted without active contract need."
+      ],
+      "authorityBoundary": "Future provider mechanics qualification."
+    },
+    {
+      "id": "P03",
+      "wave": "W6_DEFERRED",
+      "label": "ProductionAdmissionGate",
+      "kind": "deferred-admission",
+      "owner": "capital-governance",
+      "state": "BLOCKED_BY_AUTHORITY",
+      "responsibility": "Materialize production effect admission only after owner-native production authorization and all provider/risk/reconciliation prerequisites are independently current.",
+      "files": [
+        "future source only after authorization"
+      ],
+      "dependsOn": [
+        "P01",
+        "P02"
+      ],
+      "parallelGroup": "deferred",
+      "mustNotOwn": [
+        "owner consent",
+        "provider permission"
+      ],
+      "acceptance": [
+        "Absent authorization is a hard structural block, not a warning.",
+        "Read-only/non-live circuits remain usable independently.",
+        "Authorization changes require explicit evidence and do not retroactively reinterpret historical circuits."
+      ],
+      "authorityBoundary": "Future production domain admission only."
+    },
+    {
+      "id": "V01",
+      "wave": "W7",
+      "label": "ArchitectureBoundaryChecks",
+      "kind": "repo-verification",
+      "owner": "capital+repo-mechanics",
+      "state": "READY_AFTER_R03_T05",
+      "responsibility": "Add narrow repository checks enforcing Capital ownership/dependency laws: Markets no upward imports, candidate tools not canonical dependencies, Gateway/Runtime/Host do not absorb Capital semantics, Skills remain advisory.",
+      "files": [
+        "domains/capital/tests/test_architecture_boundaries.py"
+      ],
+      "dependsOn": [
+        "R03",
+        "T05"
+      ],
+      "parallelGroup": "verification",
+      "mustNotOwn": [
+        "generic dependency framework"
+      ],
+      "acceptance": [
+        "Known forbidden edges fail targeted fixtures.",
+        "No capital.* Gateway capability is required for domain correctness.",
+        "Candidate-only tool paths cannot enter canonical runtime imports."
+      ],
+      "authorityBoundary": "Repository mechanics only."
+    },
+    {
+      "id": "V02",
+      "wave": "W7",
+      "label": "InformationFlowAudit",
+      "kind": "information-flow-verification",
+      "owner": "capital-security",
+      "state": "READY_AFTER_T02",
+      "responsibility": "Trace credentials/private account data/provider endpoint material through source→transform→store→channel→sink and prove that read-only observation, Skills, evidence and logs do not widen secret/effect authority.",
+      "files": [
+        "domains/capital/planning/information-flow-r1.json",
+        "domains/capital/tests/test_information_flow_boundaries.py"
+      ],
+      "dependsOn": [
+        "T02"
+      ],
+      "parallelGroup": "verification",
+      "mustNotOwn": [
+        "secret vault",
+        "provider IAM"
+      ],
+      "acceptance": [
+        "Executor credentials remain excluded from observer paths.",
+        "Repository/evidence contains no secret bytes.",
+        "Seeing private data does not imply write authority."
+      ],
+      "authorityBoundary": "Information-flow proof only."
+    },
+    {
+      "id": "V03",
+      "wave": "W7",
+      "label": "FmeaFtaCapitalCircuitAudit",
+      "kind": "reliability-analysis",
+      "owner": "capital-verification",
+      "state": "READY_AFTER_Q04_E05",
+      "responsibility": "Run FMEA/FTA over read and effect circuits for stale data, clock drift, provider outage, response loss, duplicate effect, reconciliation contradiction, ledger corruption and registry drift.",
+      "files": [
+        "domains/capital/planning/fmea-fta-r1.json"
+      ],
+      "dependsOn": [
+        "Q04",
+        "E05"
+      ],
+      "parallelGroup": "verification",
+      "mustNotOwn": [
+        "new controls without demonstrated gap"
+      ],
+      "acceptance": [
+        "Each top event maps to existing control or named gap.",
+        "Unsafe interaction paths are distinguished from component failures.",
+        "Findings either change a boundary/test or record justified no-change."
+      ],
+      "authorityBoundary": "Analysis/evidence only."
+    },
+    {
+      "id": "V04",
+      "wave": "W7",
+      "label": "CapitalVerifyIntegration",
+      "kind": "ci-integration",
+      "owner": "capital",
+      "state": "READY_AFTER_ALL_ACTIVE",
+      "responsibility": "Integrate registry/contracts/circuit/boundary tests into hermetic capital:verify while keeping provider qualification separate and node-local.",
+      "files": [
+        "domains/capital/mise.toml",
+        "mise.toml",
+        ".github/workflows/ci.yml"
+      ],
+      "dependsOn": [
+        "Q05",
+        "E07",
+        "V01",
+        "V02",
+        "V03"
+      ],
+      "parallelGroup": "acceptance",
+      "mustNotOwn": [
+        "credential-bound provider evidence in hermetic CI"
+      ],
+      "acceptance": [
+        "Hermetic CI has no credentials/network/provider binaries as hidden prerequisites.",
+        "Provider-qualification marker remains separate.",
+        "Current source suite and new architecture gates pass together."
+      ],
+      "authorityBoundary": "Verification orchestration only."
+    },
+    {
+      "id": "V05",
+      "wave": "W7",
+      "label": "CapitalLegoR1Acceptance",
+      "kind": "release-acceptance",
+      "owner": "capital",
+      "state": "READY_AFTER_V04",
+      "responsibility": "Produce one acceptance record proving registry completeness, contract composition, read-only circuit dogfood, non-live effect closure, boundary checks and explicit production-write non-admission.",
+      "files": [
+        "domains/capital/acceptance/capital-lego-architecture-r1.json",
+        "domains/capital/docs/CAPITAL_LEGO_ARCHITECTURE_R1.md"
+      ],
+      "dependsOn": [
+        "V04"
+      ],
+      "parallelGroup": "acceptance",
+      "mustNotOwn": [
+        "future production standing"
+      ],
+      "acceptance": [
+        "Acceptance names exact commit/tree and test evidence.",
+        "Production authorization remains BLOCK_NOT_GRANTED unless independently changed by its owner.",
+        "Deferred W6 nodes remain deferred and are not counted as incomplete R1."
+      ],
+      "authorityBoundary": "R1 source/evidence acceptance only."
+    }
+  ],
+  "edges": [
+    {
+      "from": "C00",
+      "to": "C01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "C00",
+      "to": "C02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "C02",
+      "to": "R01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R01",
+      "to": "R02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R02",
+      "to": "R03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R03",
+      "to": "T01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R03",
+      "to": "T02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R03",
+      "to": "T03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R03",
+      "to": "T04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T01",
+      "to": "T05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T02",
+      "to": "T05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T03",
+      "to": "T05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T04",
+      "to": "T05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T05",
+      "to": "Q01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q01",
+      "to": "Q02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q02",
+      "to": "Q03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q03",
+      "to": "Q04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T04",
+      "to": "Q04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q04",
+      "to": "Q05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q05",
+      "to": "S01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "S01",
+      "to": "S02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "S01",
+      "to": "S03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "S01",
+      "to": "S04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E05",
+      "to": "S04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T05",
+      "to": "E01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E01",
+      "to": "E02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E02",
+      "to": "E03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E03",
+      "to": "E04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E04",
+      "to": "E05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E02",
+      "to": "E05",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E05",
+      "to": "E06",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E06",
+      "to": "E07",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E07",
+      "to": "P01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "P01",
+      "to": "P02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "P01",
+      "to": "P03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "P02",
+      "to": "P03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "R03",
+      "to": "V01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T05",
+      "to": "V01",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "T02",
+      "to": "V02",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q04",
+      "to": "V03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E05",
+      "to": "V03",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "Q05",
+      "to": "V04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "E07",
+      "to": "V04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "V01",
+      "to": "V04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "V02",
+      "to": "V04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "V03",
+      "to": "V04",
+      "type": "REQUIRES"
+    },
+    {
+      "from": "V04",
+      "to": "V05",
+      "type": "REQUIRES"
+    }
+  ],
+  "waves": [
+    {
+      "id": "W0",
+      "purpose": "Freeze current truth and vocabulary before adding machinery."
+    },
+    {
+      "id": "W1",
+      "purpose": "Create the Capital LEGO Registry as a projection over existing owners."
+    },
+    {
+      "id": "W2",
+      "purpose": "Add typed composition, authority, effect and evidence contracts plus assume-guarantee checking."
+    },
+    {
+      "id": "W3",
+      "purpose": "Compile and dogfood read-only Capital circuits."
+    },
+    {
+      "id": "W4",
+      "purpose": "Expose project-scoped advisory Capital Skills over registered circuits."
+    },
+    {
+      "id": "W5",
+      "purpose": "Compile the already-admitted non-live effect/reconciliation/accounting circuit and destroy it with failure injection."
+    },
+    {
+      "id": "W6_DEFERRED",
+      "purpose": "Freeze future external-write requirements only; remain blocked until owner/provider authority changes."
+    },
+    {
+      "id": "W7",
+      "purpose": "Cross-cutting architecture, information-flow, reliability, CI and R1 acceptance."
+    }
+  ],
+  "criticalPath": [
+    "C00",
+    "C02",
+    "R01",
+    "R02",
+    "R03",
+    "T01",
+    "T02",
+    "T03",
+    "T04",
+    "T05",
+    "Q01",
+    "Q02",
+    "Q03",
+    "Q04",
+    "Q05",
+    "S01",
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "V03",
+    "V04",
+    "V05"
+  ],
+  "initialParallelSet": [
+    "C01",
+    "C02"
+  ],
+  "doNotBuild": [
+    "CapitalAgent god-object",
+    "Capital-specific Gateway database or workflow engine",
+    "Capital-specific Runtime scheduler",
+    "new universal finance ontology",
+    "generic OMS/backtest/risk engine without an active contract",
+    "provider-secret registry inside Capital",
+    "automatic risk-tolerance inference",
+    "scenario ranking/recommendation hidden inside Portfolio",
+    "live/production write adapter before independent authority admission",
+    "duplicate Network route/VPN selector",
+    "duplicate provider/account truth store",
+    "generic Effect framework inside Runtime for Capital"
+  ],
+  "completionDefinition": {
+    "r1ActiveScope": "W0-W5 plus W7; W6_DEFERRED is explicitly outside R1 completion.",
+    "gates": [
+      "Registry complete and hermetically verified",
+      "Typed composition/authority/effect/evidence contracts accepted",
+      "Three read-only circuits dogfooded",
+      "One full non-live effect circuit closed through authoritative reconciliation and accounting",
+      "Architecture + information-flow + FMEA/FTA gates pass",
+      "capital:verify remains hermetic",
+      "production authorization remains independently owned and is not widened by R1"
+    ]
+  }
+}

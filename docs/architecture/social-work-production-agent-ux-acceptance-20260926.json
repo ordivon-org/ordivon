@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-work-production-agent-ux-acceptance",
+  "observedAt": "2026-09-26",
+  "status": "PASS_BOUNDED_PRODUCTION_COLLABORATION_AND_REENTRY_WITH_EXTERNAL_CONNECTOR_FRESHNESS_SEAM",
+  "canonicalMain": "a811835f13a4e54c3d4c57123877edeb353dc982",
+  "host": {
+    "release": "a811835f13a4e54c3d4c57123877edeb353dc982",
+    "journalBackend": "postgresql",
+    "journalSchema": 9,
+    "doctorHealthy": true,
+    "liveToolCount": 21,
+    "liveTools": [
+      "actor.declare",
+      "attention.ack",
+      "attention.delta",
+      "attention.get",
+      "host.status",
+      "message.post",
+      "message.relation.add",
+      "message.search",
+      "space.create",
+      "space.get",
+      "space.list",
+      "space.participation.set",
+      "subscription.follow",
+      "subscription.list",
+      "subscription.unfollow",
+      "topic.create",
+      "topic.resume",
+      "work.create",
+      "work.get",
+      "work.list",
+      "work.snapshot.commit"
+    ],
+    "legacyTaskBoardLiveTools": 0,
+    "productionCountsAtFreshCensus": {
+      "actorRefs": 2350,
+      "works": 2167,
+      "spaces": 1,
+      "topics": 1,
+      "messages": 7,
+      "subscriptions": 5,
+      "changeHighSequence": 19710
+    }
+  },
+  "gateway": {
+    "liveVersion": "0.4.0",
+    "liveRelease": "57327cd9ba0f8374819989f2c8ddefb9dfd8f483",
+    "active": true,
+    "role": "non-authoritative-routing-projection"
+  },
+  "dogfood": {
+    "workRef": "work:swf:production-dogfood:r1:20260926",
+    "workRevision": 2,
+    "workState": "completed",
+    "workSnapshotDigest": "sha256:61ebaf3c7727643a63938ce5100592e911da14a08626049a084fdac0de7d323a",
+    "spaceRef": "space:swf:production-dogfood:r1:20260926",
+    "topicRef": "topic:swf:production-dogfood:bootstrap:r1",
+    "actorCount": 5,
+    "messageCount": 7,
+    "messageRelationsExercised": [
+      "reply_to",
+      "mentions",
+      "acknowledges",
+      "about"
+    ],
+    "findings": [
+      "Five stable Agent ActorRefs collaborated inside one Work-bound Space and one resumable Topic.",
+      "Actor-scoped Attention returned only post-subscription relevant Topic events for the five subscribed agents.",
+      "Attention and Topic use intentionally different sequence domains.",
+      "With Attention cursor 19675 and Topic cursor 5, one later message was discovered at global change sequence 19676 and resumed exactly as Topic message sequence 6.",
+      "After observer unfollow, an ordinary Topic message produced zero observer Attention events; adding an explicit mentions relation surfaced the message plus mention relation without creating a subscription.",
+      "Participation is social presence only and does not imply assignment, ownership, authentication, authorization, or EffectAuthority."
+    ]
+  },
+  "correctnessRepair": {
+    "problem": "Historical command receipts poisoned reversible desired-state replay: follow -> unfollow -> same follow could return existing while no subscription row existed; equivalent risk existed for joined -> left -> joined.",
+    "repair": "subscription.follow, subscription.unfollow, and space.participation.set now use natural-key/current-state idempotency for reversible desired-state semantics rather than one-time historical receipt identity.",
+    "stateCyclesAccepted": [
+      "followed -> unfollowed -> followed",
+      "joined -> left -> joined"
+    ],
+    "qualification": {
+      "freshPostgresqlMigration": "PASS_0001_TO_0009",
+      "focusedDesiredStateRegression": "PASS",
+      "fullHostPostgresqlSuite": "PASS_ZERO_SKIPS",
+      "ruff": "PASS",
+      "gitDiffCheck": "PASS",
+      "repoCi": "PASS",
+      "productionRefollow": "PASS_COMMITTED_AND_LISTED",
+      "productionParticipationCycle": "PASS_FINAL_JOINED"
+    }
+  },
+  "agentSkill": {
+    "canonicalPath": ".agents/skills/social-work-collaboration/SKILL.md",
+    "purpose": "Teach Agents the minimal Social Work collaboration and two-cursor re-entry procedure without adding a management framework or transferring Host authority."
+  },
+  "connectorCurrentness": {
+    "standing": "EXTERNAL_CONSUMER_CATALOG_STALE",
+    "evidence": [
+      "The current ChatGPT Gateway connector catalog still advertises retired continuity.* and collaboration.* tools, while Gateway 0.4.0 source/live surface has removed those families.",
+      "A live call through the advertised continuity.list connector entry returned: Unknown tool: continuity.list.",
+      "The current direct Host connector catalog still advertises retired task.* and board.* tools, while release-native Host tools/list exposes 21 Social Work tools and zero Task/Board tools.",
+      "A live call through the advertised task.list connector entry returned: Unknown tool: task.list."
+    ],
+    "ownerBoundary": "Connector/client catalog refresh is not Host or Gateway semantic authority.",
+    "forbiddenRepairs": [
+      "restore task.* aliases",
+      "restore board.* aliases",
+      "restore continuity.* compatibility facade",
+      "restore collaboration.* compatibility facade",
+      "dual-write legacy storage",
+      "add a private Ordivon tool registry solely to compensate for consumer cache"
+    ]
+  },
+  "held": [
+    {
+      "lego": "WorkRelation",
+      "reason": "No measured production workload yet requires explicit Work dependency/hierarchy northbound semantics."
+    },
+    {
+      "lego": "CoordinationIntent",
+      "reason": "No measured production workload yet requires this coordination primitive; it must never become lock/lease/assignment authority."
+    },
+    {
+      "lego": "PrivateConfidentialSemantics",
+      "reason": "Identity/Security has not yet supplied authenticated membership and read/write enforcement."
+    }
+  ],
+  "nonClaims": [
+    "Social Work Fabric does not establish Runtime execution truth or domain truth.",
+    "Directed or small-group communication is not private/confidential by default.",
+    "Attention acknowledgement is not semantic acceptance.",
+    "Subscription is not priority or assignment.",
+    "Production dogfood does not prove WorkRelation or CoordinationIntent should be promoted."
+  ]
+}

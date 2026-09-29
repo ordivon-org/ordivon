@@ -1,0 +1,75 @@
+{
+  "candidateRule": "A Study may compile an owner-native scientific ClaimPermission only after it owns exact claims whose current scientific meaning and ceiling can be bound to frozen evidence and inference authority. Pre-outcome protocols, statistical plans, screening rules, or future claim ceilings do not themselves constitute ClaimPermission.",
+  "cases": {
+    "paper1": {
+      "claimCount": 9,
+      "disposition": "MATURE_OWNER_NATIVE_CLAIM_PERMISSION_EXISTS",
+      "ownerNativeClaimPermission": "PASS_PAPER1_R25_STUDY_OWNED_CLAIM_PERMISSION_R1",
+      "scienceStanding": "FREEZE_SCIENCE",
+      "sourceRevision": "9d80f5b5b73796ddf013088c2a0de20f85556876"
+    },
+    "paper2": {
+      "adjudicationCandidateStanding": "FINAL_CANDIDATE_PENDING_FROZEN_R58_ADJUDICATION_VALIDATOR",
+      "disposition": "NOT_MATURE_FOR_SCIENTIFIC_CLAIM_PERMISSION",
+      "fulltextScientificBoundary": "This frame makes no full-text eligibility decisions. Reviewer first-pass judgments must remain independent and blinded to reproducibility outcomes and to the other reviewer label.",
+      "profileAxes": {
+        "claims": "PUBLICATION_CLAIMSET_NOT_PROJECTED",
+        "inference": "ACTIVE_ELIGIBILITY_AND_SYNTHESIS_NOT_CLOSED",
+        "publication": "NOT_IN_PUBLICATION_QUALIFICATION_PHASE",
+        "review": "SCREENING_AND_ADJUDICATION_ACTIVE"
+      },
+      "protocolStanding": "CONTROLLER_FROZEN_PRE_OUTCOME_PENDING_G2_R9_REVALIDATION",
+      "reason": "Outcome, eligibility, and synthesis authority is not closed and the active title/abstract contract forbids focal claim coding; a prospective claim ceiling is not an outcome-bearing claim permission.",
+      "sourceRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "statisticalPlanStanding": "CONTROLLER_FROZEN_PRE_OUTCOME",
+      "titleAbstractStanding": "FROZEN_FOR_INDEPENDENT_DUAL_CODING"
+    }
+  },
+  "id": "claim-permission-maturity-pressure-r1",
+  "kind": "ordivon.research.claim-permission-maturity-pressure-evidence",
+  "nonClaims": [
+    "Paper2 immaturity for ClaimPermission is not scientific weakness and does not invalidate its prospectively frozen protocol.",
+    "A frozen future claim ceiling is not a permission to assert an outcome-bearing claim before outcome, eligibility, and synthesis authority closes.",
+    "This two-Study pressure does not admit a shared executable ClaimPermission compiler or universal maturity ontology."
+  ],
+  "paper2Bindings": {
+    "adjudicationCandidate": {
+      "digest": "sha256:a0ed32dd25558085c8eb05e21746a0d4231047bcdbc14574625aa548e547adde",
+      "path": "campaigns/paper2-r80/PAPER2_TA_ADJUDICATION_MANIFEST_R80_R1.json"
+    },
+    "dualCoderAssignment": {
+      "digest": "sha256:b13f64ba0c8277ee5f98aa50841b6f1c1641992bf5dd08a6870bf1bd9303e208",
+      "path": "campaigns/PAPER2_DUAL_CODER_ASSIGNMENT_MANIFEST_R57_R1.json"
+    },
+    "fulltextReadiness": {
+      "digest": "sha256:c705e7a7ff43401fb588bae2d9198203c35f5e180b7f67d9a11aecd55cefb709",
+      "path": "screening/fulltext/FULLTEXT_ELIGIBILITY_READINESS_R1.json"
+    },
+    "postCoderPipeline": {
+      "digest": "sha256:65d661e4179270781cad772ff7f76bce7a2bce32f534a556fa3dd7647f64380a",
+      "path": "campaigns/PAPER2_TA_POST_CODER_PIPELINE_R58_R1.json"
+    },
+    "protocolBundle": {
+      "digest": "sha256:f64ffb0c59de01db2dde4cab965d39945913fa29c25024ef27ed5412e8e59808",
+      "path": "campaigns/PAPER2_CORPUS_PROTOCOL_BUNDLE_R13.json"
+    },
+    "statisticalPlan": {
+      "digest": "sha256:3348acf90b0289360c7ed44bb4160b5aedfa95333d32f8e485986b5d7744ef02",
+      "path": "campaigns/PAPER2_STATISTICAL_ANALYSIS_PLAN_R1.json"
+    },
+    "titleAbstractContract": {
+      "digest": "sha256:3f2f2aaf98c64458544e5f636ad3fbd07d0fb774fb262d92c25965e1d1c98461",
+      "path": "campaigns/PAPER2_TITLE_ABSTRACT_SCREENING_CONTRACT_R55_R1.json"
+    }
+  },
+  "pressureResult": {
+    "crossStudyPromotionEligible": false,
+    "maturityGate": "SUPPORTED_BY_ONE_MATURE_AND_ONE_PRE_OUTCOME_STUDY",
+    "preOutcomeProtocolCanDefineFutureCeilings": true,
+    "preOutcomeProtocolIsClaimPermission": false,
+    "sharedExecutableClaimPermission": "NOT_ADMITTED"
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_CLAIM_PERMISSION_MATURITY_GATE_PRESSURE_R1",
+  "truthRole": "cross-study-maturity-pressure-not-shared-scientific-policy"
+}

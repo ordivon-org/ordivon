@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-preflight-request",
+  "operationRef": "operation:local:read-doc",
+  "traits": {"durable": false, "shared": false, "effectful": false, "scarce": false},
+  "subjectRefs": [],
+  "compartmentRefs": []
+}

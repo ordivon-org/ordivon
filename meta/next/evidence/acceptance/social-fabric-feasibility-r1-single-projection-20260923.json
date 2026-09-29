@@ -1,0 +1,29 @@
+{
+  "candidates": [
+    {
+      "candidateEventId": "candidate:maintenance:single",
+      "policyDecisionDigest": "sha256:39eb0dc2510c27cec7d4c023b2f35f5a70e21749c5d45f401f80adf2a8d4f68b",
+      "standing": "FEASIBLE_SHADOW",
+      "subject": "resource:windows:maintenance:example",
+      "unmetConstraints": []
+    }
+  ],
+  "effectAuthorityGranted": false,
+  "externalEffectPerformed": false,
+  "feasibleCandidateIds": [
+    "candidate:maintenance:single"
+  ],
+  "kind": "ordivon.social-fabric-feasibility-projection",
+  "nonClaims": [
+    "Feasibility is boolean constraint satisfaction, not a score, rank, vote, priority, or utility function.",
+    "Multiple feasible candidates remain a set; no tie-breaker or winner is inferred.",
+    "An infeasible candidate reports unmet constraints rather than a lower numerical score.",
+    "FEASIBLE_SHADOW is not execution authorization, lease, or EffectAuthority."
+  ],
+  "policyId": "policy:social-fabric:maintenance-shadow:r3",
+  "projectionDigest": "sha256:539946356c898895e7de36db175d7d5f7d6bea275add32b3cdb24f60972bbb88",
+  "schemaVersion": 1,
+  "sourceCommitmentProjectionDigest": "sha256:50196e06e88d04b8b084f76010d26eae0c7dcb3fb69df52faa8bcf7fdda0e2ff",
+  "truthRole": "constraint-feasibility-projection-not-ranking",
+  "winnerSelected": false
+}

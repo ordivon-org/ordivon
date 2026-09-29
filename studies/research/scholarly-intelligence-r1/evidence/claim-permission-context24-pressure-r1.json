@@ -1,0 +1,156 @@
+{
+  "admission": {
+    "crossStudyPromotionEligible": false,
+    "explicitlyNotAdmitted": [
+      "ClaimPermission as a shared executable policy",
+      "automatic scientific-support grading from representation state",
+      "truth or causality authority",
+      "automatic generalization authority",
+      "acceptance prediction",
+      "external media redistribution or commercial reuse authority"
+    ],
+    "target": "STUDY_OWNED_PRESSURE_PROTOTYPE_ONLY",
+    "verdict": "KEEP_STUDY_OWNED_PRESSURE_PROTOTYPE"
+  },
+  "candidateEnvelope": {
+    "causalPermission": "NOT_GRANTED",
+    "claimStrengthPromotion": "NOT_GRANTED",
+    "generalizationPermission": "NOT_GRANTED",
+    "methodAdequacyPermission": "NOT_GRANTED",
+    "ownerRequiredBeforeScientificPermission": [
+      "estimand_or_target_quantity",
+      "population_scope",
+      "design_or_evaluation_family",
+      "unit_of_analysis",
+      "dependence_model",
+      "uncertainty",
+      "multiplicity_if_applicable",
+      "sensitivity_or_robustness",
+      "known_failure_modes",
+      "generalization_boundary"
+    ],
+    "sharedExecutablePolicy": "NOT_ADMITTED",
+    "truthPermission": "NOT_GRANTED"
+  },
+  "counts": {
+    "claimsAllGoldContentBound": 171,
+    "claimsAnyGoldContentBound": 171,
+    "claimsIdentityOnly": 303,
+    "claimsPartiallyContentBound": 0,
+    "claimsWithMultipleGoldLinks": 125,
+    "contentBoundGoldLinks": 256,
+    "contentObjectsReusedAcrossLinks": 28,
+    "identityOnlyGoldLinks": 423,
+    "maxGoldLinksPerClaim": 9,
+    "maxLinksPerContentObject": 6,
+    "maxTask1TrainClaimsPerPaper": 18,
+    "task1GoldEvidenceLinks": 679,
+    "task1TestPapers": 46,
+    "task1TestPapersWithFulltext": 46,
+    "task1TrainClaims": 474,
+    "task1TrainPapers": 229,
+    "task1TrainPapersWithFulltext": 229,
+    "trainingNativeIdCollisionGroups": 19,
+    "uniqueContentObjects": 223
+  },
+  "evidenceTypeCoverage": {
+    "figure": {
+      "contentBound": 212,
+      "identityOnly": 342,
+      "total": 554
+    },
+    "table": {
+      "contentBound": 44,
+      "identityOnly": 81,
+      "total": 125
+    }
+  },
+  "goldLinkMultiplicityHistogram": {
+    "1": 349,
+    "2": 89,
+    "3": 10,
+    "4": 17,
+    "5": 4,
+    "6": 3,
+    "7": 1,
+    "9": 1
+  },
+  "id": "claim-permission-context24-pressure-r1",
+  "kind": "ordivon.research.claim-permission-context24-pressure-evidence",
+  "population": "Context24 public Task1 train gold plus bound evidence-content/fulltext carriers",
+  "pressureResults": [
+    {
+      "disposition": "REJECT_REPRESENTATION_TO_SUPPORT_AUTHORITY_TRANSFER",
+      "id": "CP-CX1-content-byte-laundering",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "PRESERVE_EVIDENCE_IDENTITY_WITHOUT_INVENTING_CONTENT",
+      "id": "CP-CX2-identity-only-erasure",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "REJECT_MULTIPLICITY_TO_STRENGTH_OR_INDEPENDENCE",
+      "id": "CP-CX3-link-count-strength",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "REJECT_LINK_COUNT_AS_INDEPENDENT_EVIDENCE_COUNT",
+      "id": "CP-CX4-content-reuse-independence",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "REJECT_CONTENT_AVAILABILITY_TO_METHOD_AUTHORITY",
+      "id": "CP-CX5-fulltext-method-adequacy",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "KEEP_WITHHELD_GOLD_UNIDENTIFIED",
+      "id": "CP-CX6-withheld-test-gold",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "KEEP_RIGHTS_AND_SCIENTIFIC_AUTHORITY_SEPARATE",
+      "id": "CP-CX7-rights-science-conflation",
+      "standing": "PASS_FAIL_CLOSED"
+    },
+    {
+      "disposition": "KEEP_INSTANCE_IDENTITY_AND_COLLISION_EVIDENCE",
+      "id": "CP-CX8-native-id-authority",
+      "standing": "PASS_FAIL_CLOSED"
+    }
+  ],
+  "representationStrata": {
+    "contentBoundAllGold": {
+      "claims": 171,
+      "inspectionCeiling": "CONTENT_INSPECTABLE",
+      "scientificClaimStrength": "OWNER_INFERENCE_REQUIRED"
+    },
+    "identityOnly": {
+      "claims": 303,
+      "inspectionCeiling": "EVIDENCE_IDENTITY_TRACEABLE",
+      "scientificClaimStrength": "OWNER_INFERENCE_REQUIRED"
+    },
+    "partiallyContentBound": {
+      "claims": 0,
+      "inspectionCeiling": "MIXED_REPRESENTATION_IF_PRESENT",
+      "scientificClaimStrength": "OWNER_INFERENCE_REQUIRED"
+    }
+  },
+  "rightsBoundary": {
+    "commercialMediaReuse": "NOT_AUTHORIZED_BY_CATALOG",
+    "datasetCardLicenseObserved": "CC-BY-4.0",
+    "externalRedistribution": "NOT_AUTHORIZED_BY_CATALOG",
+    "underlyingPaperMediaRights": "NOT_INDEPENDENTLY_VERIFIED"
+  },
+  "schemaVersion": 1,
+  "sourceBindings": {
+    "contentAsset": "context24-evidence-content-core-r1",
+    "contentSnapshot": "sha256:ca984af3235e404ebe21bd0c02595db8cfe4201d74d9f0b63211c193bd01da53",
+    "identityAsset": "context24-identity-core-r1",
+    "identitySnapshot": "sha256:fe95ee5748e301cd4885deb5184f99605ec1fd5a538208db2a7be4025159822b"
+  },
+  "standing": "PASS_STUDY_OWNED_CLAIM_PERMISSION_PRESSURE_R1",
+  "truthBoundary": "This pressure evidence proves representation/authority separation on the bound Context24 assets. It does not judge whether any scientific claim is true, sufficiently supported, causal, generalizable, or publication-worthy.",
+  "truthRole": "pressure-test-not-scientific-truth-or-shared-policy"
+}

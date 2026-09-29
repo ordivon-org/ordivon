@@ -46,12 +46,12 @@ class OwnerBoundaryTests(unittest.TestCase):
 
     def test_meta_next_authority_records_are_navigation_not_runtime_edges(self) -> None:
         self.assertFalse(MODULE.is_active_path(
-            "meta/next/authorities/records/iso/iso-28500-2017.json"
+            "catalogs/authorities/records/iso/iso-28500-2017.json"
         ))
 
-    def test_meta_next_domain_knowledge_is_navigation_not_runtime_edges(self) -> None:
+    def test_domain_profile_is_navigation_not_runtime_edge(self) -> None:
         self.assertFalse(MODULE.is_active_path(
-            "meta/next/domains/game/game-autonomous-interest-protocol-r7.json"
+            "profiles/domains/game/game-design-space-r1.json"
         ))
 
     def test_real_web_source_is_scanned(self) -> None:

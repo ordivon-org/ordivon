@@ -1,0 +1,82 @@
+schema_version = 1
+kind = "ordivon.repo-path-class-manifest"
+truth_role = "repository-path-classification-not-domain-authority"
+
+# Rules are evaluated in declaration order after first-class owner roots.
+# They explain why a tracked path is intentionally not owner source. They do not
+# grant semantic authority and do not by themselves imply cross-cutting impact.
+
+[[classes]]
+kind = "ARCHIVED"
+prefix = "meta/next/"
+reason = "Next active owner was retired; retained tree is historical/archive source."
+
+[[classes]]
+kind = "ARCHIVED"
+prefix = "meta/research/"
+reason = "Retired Research meta tree may remain in an older publication base; deletion tombstones stay classifiable during reconciliation."
+
+[[classes]]
+kind = "GENERATED_EVIDENCE"
+prefix = "docs/architecture/evidence/"
+reason = "Frozen architecture/acceptance evidence."
+
+[[classes]]
+kind = "GENERATED_EVIDENCE"
+prefix = "docs/architecture/redteam/evidence/"
+reason = "Frozen red-team evidence."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+prefix = "docs/architecture/schemas/"
+reason = "Machine-readable repository architecture/evidence schemas."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+prefix = "docs/migration/retirement/"
+reason = "Machine-consumed retirement policy and acceptance mechanics."
+
+[[classes]]
+kind = "DOCUMENTATION"
+prefix = "docs/"
+reason = "Repository-level architecture/migration documentation outside an owner root."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+prefix = ".github/"
+reason = "GitHub repository/provider mechanics."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+prefix = "tools/"
+reason = "Repository-level tooling outside a first-class domain owner."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+prefix = "tests/"
+reason = "Cross-owner repository tests pending selector-level ownership in R2.3."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+path = "mise.toml"
+reason = "Root task/verification topology."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+path = ".gitignore"
+reason = "Repository mechanics."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+path = ".gitleaksignore"
+reason = "Repository security mechanics."
+
+[[classes]]
+kind = "REPOSITORY_MECHANICS"
+path = "AGENTS.md"
+reason = "Repository-wide Agent instruction surface."
+
+[[classes]]
+kind = "DOCUMENTATION"
+path = "README.md"
+reason = "Repository root documentation."

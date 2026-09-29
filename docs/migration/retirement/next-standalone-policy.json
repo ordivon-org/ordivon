@@ -28,6 +28,10 @@
   ],
   "allowedExactPaths": [
     {
+      "path": "extensions/chatgpt-skills-mcp/tests/test_owner_boundary.py",
+      "reason": "Negative Skills owner-boundary regression asserts that the live unit no longer contains the retired Next standalone source locator."
+    },
+    {
       "path": "meta/next/docs/MONOREPO_M0_ARCHITECTURE.md",
       "reason": "M0 architecture records the pre-cutover Skills/Next source census."
     },

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.readonly-circuit-receipt-contract",
+  "standing": "ACTIVE_R1",
+  "truthRole": "MECHANICAL_EVIDENCE_BINDING_NOT_FINANCIAL_TRUTH",
+  "requiredFields": [
+    "circuitDigest",
+    "family",
+    "resultDigest",
+    "nodeReceipts",
+    "outputDigest",
+    "terminalClaim",
+    "unresolvedEvidenceObligations",
+    "standing",
+    "authorityGranted",
+    "externalFinancialWritesAttempted",
+    "semanticCompletionEvaluated",
+    "receiptDigest"
+  ],
+  "laws": [
+    "receipt identity binds one compiled circuit to one mechanical result",
+    "standing is MECHANICAL_COMPLETION_ONLY and never implies semantic or financial completion",
+    "authorityGranted remains false for read-only R1 circuits",
+    "externalFinancialWritesAttempted remains false",
+    "unresolved evidence obligations remain visible rather than being silently satisfied"
+  ]
+}

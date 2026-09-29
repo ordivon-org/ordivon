@@ -1,0 +1,11 @@
+[Unit]
+Description=Loopback noVNC surface for private Claude OAuth browser
+Requires=claude-private-oauth-vnc.service
+After=claude-private-oauth-vnc.service
+PartOf=claude-private-oauth.target
+
+[Service]
+Type=simple
+ExecStart=/opt/ordivon/external/websockify/0.13.0/bin/websockify --web /opt/ordivon/external/novnc/1.7.0 --file-only 127.0.0.1:16090 127.0.0.1:15990
+Restart=on-failure
+RestartSec=1s

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-spec",
+  "circuitId": "INVESTMENT_DECISION_SUPPORT_R2",
+  "goalClass": "INVESTMENT_DECISION_SUPPORT",
+  "requestedUse": "bounded investment decision support from explicit evidence claims",
+  "terminalClaim": "FROZEN_READ_ONLY_INVESTMENT_DECISION_RECORD",
+  "stages": [
+    {
+      "id": "investment-model-atlas",
+      "legoId": "capital.research.investment-model-atlas",
+      "dependsOn": [],
+      "inputs": ["model-atlas"],
+      "outputs": ["validated-model-atlas"],
+      "operation": "validate_investment_model_atlas"
+    },
+    {
+      "id": "decision-state-projection",
+      "legoId": "capital.research.decision-state-projection",
+      "dependsOn": [],
+      "inputs": ["decision-context", "decision-evidence", "decision-state-claim-registry"],
+      "outputs": ["decision-state"],
+      "operation": "project_decision_state"
+    },
+    {
+      "id": "investment-decision-route",
+      "legoId": "capital.portfolio.investment-decision-router",
+      "dependsOn": ["investment-model-atlas", "decision-state-projection"],
+      "inputs": ["decision-context", "decision-state", "validated-model-atlas", "portfolio-risk-budget-standing"],
+      "outputs": ["investment-decision-route"],
+      "operation": "route_investment_decision"
+    },
+    {
+      "id": "decision-record",
+      "legoId": "capital.portfolio.investment-decision-record",
+      "dependsOn": ["decision-state-projection", "investment-decision-route"],
+      "inputs": ["decision-context", "decision-state", "investment-decision-route", "authority-digests"],
+      "outputs": ["frozen-decision-record"],
+      "operation": "build_decision_record"
+    }
+  ],
+  "authorityBindings": []
+}

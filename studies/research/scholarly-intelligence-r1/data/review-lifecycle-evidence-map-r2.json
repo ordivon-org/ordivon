@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.research.review-lifecycle-evidence-map",
+  "id": "review-lifecycle-evidence-map-r2",
+  "truthRole": "cross-corpus-interface-map-not-unified-scientific-truth",
+  "inherits": "review-lifecycle-evidence-map-r1",
+  "principle": "Add discussion and synthesis without collapsing source-native semantics, rights, provenance, or decision authority.",
+  "sharedKinds": ["concern", "response", "revision", "discussion_message", "synthesis", "correspondence"],
+  "assets": [
+    {
+      "assetId": "aries-bounded-core-r1",
+      "licenseId": "ODC-BY-1.0",
+      "commercialUseStanding": "not_blocked_by_catalog",
+      "adapters": [
+        {"sourceTable": "comments", "toKind": "concern"},
+        {"sourceTable": "edits", "toKind": "revision", "representationStanding": "identity_only"},
+        {"sourceTable": "alignments", "toKind": "correspondence", "relationType": "corresponds_to_revision", "relationCeiling": "annotated_correspondence_not_causality"}
+      ]
+    },
+    {
+      "assetId": "disapere-bounded-core-r1",
+      "licenseId": "CC-BY-NC-4.0",
+      "commercialUseStanding": "blocked_by_source_license",
+      "adapters": [
+        {"sourceTable": "review_sentences", "toKind": "concern"},
+        {"sourceTable": "rebuttal_sentences", "toKind": "response"},
+        {"sourceTable": "local_alignment_links", "toKind": "correspondence", "relationType": "responds_to_explicit_local", "relationCeiling": "explicit_context_not_response_adequacy"}
+      ]
+    },
+    {
+      "assetId": "peersum-hf-bounded-core-r1",
+      "licenseId": "Apache-2.0",
+      "commercialUseStanding": "not_blocked_by_catalog",
+      "adapters": [
+        {"sourceTable": "messages", "toKind": "discussion_message", "roleField": "writer_role", "nativeLabels": ["rating", "confidence", "parent_kind"]},
+        {"sourceTable": "papers", "sourceField": "meta_review", "toKind": "synthesis", "synthesisType": "meta_review"},
+        {"sourceTable": "reply_edges", "where": "parent_kind=message", "toKind": "correspondence", "relationType": "replies_to", "relationCeiling": "conversation_topology_not_agreement_or_causality"},
+        {"sourceTable": "messages+pairs", "toKind": "correspondence", "relationType": "member_of_synthesis_source_set", "relationCeiling": "source_set_membership_not_content_support_or_truth"}
+      ],
+      "excludedFromSharedSemantics": ["paper_acceptance_native"],
+      "nonClaims": [
+        "Numeric rating spread is not semantic contradiction.",
+        "Membership in a meta-review source set is not proof that a particular message is represented or endorsed by the meta-review.",
+        "Meta-review is not scientific truth or proof that a venue decision is correct.",
+        "Acceptance metadata is not a venue-independent paper-quality label."
+      ]
+    }
+  ],
+  "composition": {
+    "supportedEvidencePaths": [
+      "concern -> response via DISAPERE explicit local context",
+      "concern -> revision via ARIES annotated correspondence",
+      "discussion_message -> discussion_message via PeerSum reply topology",
+      "discussion_message -> synthesis source-set membership via PeerSum"
+    ],
+    "notYetIdentified": [
+      "semantic disagreement or contradiction between PeerSum messages",
+      "which source claims are substantively represented in a PeerSum meta-review",
+      "response -> revision effect on the same paper/version",
+      "concern -> response -> revision causal chain",
+      "revision -> downstream acceptance or scientific correctness",
+      "meta-review -> correct venue decision or scientific correctness"
+    ]
+  },
+  "privacy": {
+    "reviewerProfiling": "NOT_AUTHORIZED",
+    "sharedAdapterIdentityFields": "OMIT_HUMAN_REVIEWER_AND_ANNOTATOR_IDENTITIES_KEEP_ONLY_SOURCE_NATIVE_ROLE"
+  },
+  "decisionBoundary": "ACCEPTANCE_METADATA_EXCLUDED_FROM_SHARED_LIFECYCLE_SEMANTICS",
+  "physicalPolicy": "VIRTUAL_ADAPTER_ONLY_DO_NOT_MERGE_RAW_CORPUS_BYTES"
+}

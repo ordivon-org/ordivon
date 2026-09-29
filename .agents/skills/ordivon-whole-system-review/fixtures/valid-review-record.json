@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.whole-system-review-record",
+  "truthRole": "evidence-bounded-review-not-owner-truth",
+  "reviewId": "review:ordivon:2026-W39",
+  "generatedAt": "2026-09-28T09:00:00+08:00",
+  "period": {"start": "2026-09-21T09:00:00+08:00", "end": "2026-09-28T09:00:00+08:00", "timezone": "Asia/Singapore"},
+  "sourceBoundary": {"repo": "/root/projects/ordivon", "currentRevision": "4c26b6613f07eeb2ee18e59473ad232abb79d1e1", "baselineRevision": "021a568dfdbe228b45a96c6070f3633277c9739e", "dirty": false, "censusConfidence": "MEDIUM", "limitations": ["Linux execution reconciliation seam prevented one class of fresh executable census."]},
+  "systemSurface": [
+    {"id": "runtime.linux", "kind": "execution-owner", "owner": "Linux Runtime", "authority": "Workspace/Job/Attempt physical execution truth", "standing": "FRACTURED", "depthReason": "Fresh review execution produced reconciliation uncertainty.", "evidenceRefs": ["ev-runtime-describe", "ev-runtime-orphan"]},
+    {"id": "host", "kind": "semantic-continuity-owner", "owner": "Host", "authority": "Social Work Fabric semantic continuity", "standing": "UNCHANGED", "depthReason": null, "evidenceRefs": ["ev-host-integrity"]}
+  ],
+  "capabilities": [
+    {"capability": "semantic continuity across review sessions", "state": "REALIZED", "owner": "Host", "futureReachabilityImpact": "EXPANDS", "reason": "Current Host integrity plus committed Work evidence demonstrates durable semantic continuity.", "evidenceRefs": ["ev-host-integrity", "ev-host-work"]},
+    {"capability": "reliable read-only Linux review execution", "state": "DEGRADED", "owner": "Linux Runtime", "futureReachabilityImpact": "CONSTRAINS", "reason": "Current attempt required reconciliation and did not provide ordinary delivery certainty.", "evidenceRefs": ["ev-runtime-orphan"]}
+  ],
+  "findings": [
+    {"findingId": "f1", "class": "CENSUS_CONFIDENCE", "title": "Review execution path is not fully trustworthy", "statement": "The review can read projections and repository files, but one current Linux execution path did not establish normal delivery certainty.", "affectedLegos": ["runtime.linux", "gateway"], "materiality": "HIGH", "falsifier": "Repeated fresh read-only executions converge with committed non-orphan receipts through both direct Runtime and Gateway paths.", "evidenceRefs": ["ev-runtime-orphan"]}
+  ],
+  "riskThemes": [
+    {"themeId": "rt1", "title": "Currentness depends on a partially fractured evidence path", "rootCause": "Some review facts require executable census while the current execution/reconciliation path is itself uncertain.", "findingRefs": ["f1"], "systemImpact": "Whole-system reviews may overstate confidence unless currentness limitations are explicit."}
+  ],
+  "milestones": [
+    {"milestoneId": "m1", "objective": "Restore trustworthy executable review census", "dependencies": ["runtime.linux execution/reconciliation owner"], "entranceCriteria": ["Reproduction is bounded to harmless read-only execution."], "successCriteria": ["Multiple fresh requests return terminal committed evidence without unresolved reconciliation and results are read back by request identity."]}
+  ],
+  "decisions": [],
+  "recurringFindingDispositions": [
+    {"findingRef": "f1", "disposition": "OPERATIONAL_CONTROL", "nextControl": "Add a review preflight that refuses HIGH census confidence when required owner probes are unreconciled."}
+  ],
+  "unknowns": [
+    {"unknownId": "u1", "question": "Is the execution seam transient, Gateway-specific, or a Runtime provider regression?", "resolutionEvidence": "Bounded repeated owner-native and Gateway executions with exact request reconciliation."}
+  ],
+  "evidence": [
+    {"evidenceId": "ev-runtime-describe", "type": "LIVE_OWNER_RECEIPT", "locator": "runtime.describe@2026-09-27T23:39+08:00", "claimScope": "Linux Runtime configured and reports local_linux available.", "observedAt": "2026-09-27T23:39:00+08:00", "sourceRevision": null, "freshness": "CURRENT"},
+    {"evidenceId": "ev-runtime-orphan", "type": "LIVE_OWNER_RECEIPT", "locator": "runtime:job:job-01a0e374-9b37-7f12-a0cd-fb8fd5395b3b", "claimScope": "One harmless read-only execution attempt was orphaned/reconciliation_required.", "observedAt": "2026-09-27T23:21:39+08:00", "sourceRevision": "021a568dfdbe228b45a96c6070f3633277c9739e", "freshness": "CURRENT"},
+    {"evidenceId": "ev-host-integrity", "type": "LIVE_OWNER_RECEIPT", "locator": "host.status:integrity@2026-09-27T23:40+08:00", "claimScope": "Host PostgreSQL schema 9 integrity checks are healthy.", "observedAt": "2026-09-27T23:40:17+08:00", "sourceRevision": null, "freshness": "CURRENT"},
+    {"evidenceId": "ev-host-work", "type": "LIVE_OWNER_RECEIPT", "locator": "host:work:work:ordivon-whole-system-review:r1:20260927", "claimScope": "Host accepted a durable semantic Work snapshot for this implementation campaign.", "observedAt": "2026-09-27T23:43:09+08:00", "sourceRevision": null, "freshness": "CURRENT"}
+  ]
+}

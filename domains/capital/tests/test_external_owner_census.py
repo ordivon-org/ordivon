@@ -230,8 +230,8 @@ def test_canonical_language_runners_exist_and_gate_latest_stable():
 def test_candidate_funnel_distinguishes_gate_zero_from_adoption():
     funnel = json.loads((ROOT / "config/external_candidate_funnel.json").read_text())
     rows = {row["project"]: row for row in funnel["candidates"]}
-    assert rows["OpenBB"]["languageStanding"] == "PASS_DECLARED"
-    assert rows["OpenBB"]["adoptionStanding"] == "NO_ACTIVE_CONTRACT_NO_ADOPTION"
+    assert rows["OpenBB"]["languageStanding"] == "PASS_EXECUTABLE"
+    assert rows["OpenBB"]["adoptionStanding"] == "ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY"
     assert rows["PyPortfolioOpt"]["languageStanding"] == "PASS_DECLARED"
     assert rows["Riskfolio-Lib"]["languageStanding"] == "PASS_BINARY_EVIDENCE"
     assert rows["NautilusTrader"]["adoptionStanding"] == "NO_VERSION_PASSES_ALL_GATES"

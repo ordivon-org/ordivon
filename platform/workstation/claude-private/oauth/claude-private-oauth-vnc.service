@@ -1,0 +1,13 @@
+[Unit]
+Description=Loopback VNC surface for private Claude OAuth browser
+Requires=claude-private-oauth-display.service claude-private-oauth-browser.service
+After=claude-private-oauth-display.service claude-private-oauth-browser.service
+PartOf=claude-private-oauth.target
+
+[Service]
+Type=simple
+User=ordivon
+Group=ordivon
+ExecStart=/usr/bin/x11vnc -display :90 -auth /run/claude-private-oauth/xauth -rfbport 15990 -listen 127.0.0.1 -no6 -forever -shared -nopw -quiet
+Restart=on-failure
+RestartSec=1s

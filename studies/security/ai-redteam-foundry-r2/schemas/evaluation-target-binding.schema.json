@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/evaluation-target-binding-r2.json",
+  "title": "AI Red-Team EvaluationTargetBinding R2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "securitySubjectRef",
+    "securitySubjectRevision",
+    "targetKind",
+    "model",
+    "harnessRevision",
+    "harnessConfigDigest",
+    "instructionBundleDigest",
+    "toolCatalogDigest",
+    "authoritySurfaceDigest",
+    "monitorBundleDigest",
+    "environmentDigest",
+    "adapterId",
+    "adapterRevision",
+    "generation",
+    "generationDigest"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-evaluation-target-binding"},
+    "securitySubjectRef": {"type": "string", "minLength": 1},
+    "securitySubjectRevision": {"type": "string", "minLength": 1},
+    "targetKind": {"enum": ["model", "agent", "monitor", "system"]},
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "requestedModelId", "providerModelRevision", "modelArtifactDigest"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "requestedModelId": {"type": "string", "minLength": 1},
+        "providerModelRevision": {"type": ["string", "null"]},
+        "modelArtifactDigest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "harnessRevision": {"type": "string", "minLength": 1},
+    "harnessConfigDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "instructionBundleDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "toolCatalogDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "authoritySurfaceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "monitorBundleDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "environmentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "adapterId": {"type": "string", "minLength": 1},
+    "adapterRevision": {"type": "string", "minLength": 1},
+    "generation": {"type": "object"},
+    "generationDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "admitted": [
+    "thin non-authoritative Scholarly Intelligence profile protocol",
+    "axis-local closure does not transfer authority"
+  ],
+  "baseMainRevision": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+  "files": [
+    {
+      "path": "meta/next/mise.toml",
+      "sha256": "sha256:993b07de6e013ab87d1ad217fb8e46b170cfcbca520631a756465e25de160449"
+    },
+    {
+      "path": "meta/research/README.md",
+      "sha256": "sha256:75fac8d1d73f2f53b53e72e10a0e3062896099c639afe9438241b7d2c4c0c6e5"
+    },
+    {
+      "path": "meta/research/SCHOLARLY_INTELLIGENCE_R1.md",
+      "sha256": "sha256:6432ee51d5557b14029a1c24da2eb4e1a4c2d5d5708be88aa6be7dd205162afa"
+    },
+    {
+      "path": "meta/research/SCHOLARLY_INTELLIGENCE_R2.md",
+      "sha256": "sha256:62bab5bd635799a9dc74f920af081c9b1ebfab5e0efec98aedee4fda6ee225ac"
+    },
+    {
+      "path": "meta/research/schemas/scholarly-intelligence-profile-v1.schema.json",
+      "sha256": "sha256:3961c3f08460a3f48a04ac8646b897d2608e33e989fcdef55cc79612e669ae66"
+    },
+    {
+      "path": "meta/research/scripts/check_scholarly_intelligence_r1.py",
+      "sha256": "sha256:8f7b38937682b79c29ec1ddcc867d78b5fa6ef9a1946e667c7ff111cc89c9657"
+    },
+    {
+      "path": "meta/research/scripts/check_scholarly_live_profiles_r2.py",
+      "sha256": "sha256:91b2d8f4a237f9efda936c9966cf51f338b550f009c350ee64463bfe1a9a46f1"
+    },
+    {
+      "path": "meta/research/scripts/check_scholarly_pressure_r1.py",
+      "sha256": "sha256:2317c143e642e9e77ddccb71d35ea0263aa1e8d351e72ad10279af0fd9235041"
+    },
+    {
+      "path": "meta/research/pressure-tests/axis-authority-isolation-r1.json",
+      "sha256": "sha256:03e4579455b34b1226ea42cc41b4d8ef2c661951f2e8670ca867e90613e3a68e"
+    },
+    {
+      "path": "meta/research/profiles/paper1-r25-live-r1.json",
+      "sha256": "sha256:8d5963d2c6d6476d5edb4a99d7f301bd99c02797811965078b988d6757c3961a"
+    },
+    {
+      "path": "meta/research/profiles/paper2-live-r1.json",
+      "sha256": "sha256:8e38690e9b202290ba01ec252aeda91e7c66d76e205fb8ba6378c57bf9fc91f6"
+    },
+    {
+      "path": "meta/research/profiles/paper3-c21-r10-live-r1.json",
+      "sha256": "sha256:9857234c9a8131473fca454adb4131a34a01e90dce5072e854d786ba60599dc0"
+    },
+    {
+      "path": "meta/research/evidence/scholarly-live-profiles-r2-acceptance.json",
+      "sha256": "sha256:0d7bc15468410c853ce258c61bd929ace2312b4a4646e7bab0504d7f078009d0"
+    },
+    {
+      "path": "meta/research/evidence/scholarly-cross-study-pressure-r1.json",
+      "sha256": "sha256:ec15ad72f5fd40d46ac18212aefe301455725ea77c4ecd85dc93e9b3ebb42aa9"
+    }
+  ],
+  "id": "scholarly-intelligence-current-main-requalification-r2",
+  "integrationGuard": "Fast-forward main only if source main remains exactly baseMainRevision and clean at integration time.",
+  "kind": "ordivon.research.scholarly-intelligence-current-main-requalification",
+  "nonClaims": [
+    "This receipt does not establish Study scientific truth.",
+    "This receipt does not authorize any paper submission or publication effect.",
+    "A later main movement requires a new rebase/requalification before integration."
+  ],
+  "notAdmitted": [
+    "universal scientific ontology",
+    "ClaimPermission as a shared executable policy",
+    "Concern-to-gap routing as a shared executable policy",
+    "experiment-admission policy",
+    "reviewer acceptance prediction",
+    "shared scientific database"
+  ],
+  "prospectiveCommit": "d833da4a53b95157dfed0cac6009fa10f95f7ae0",
+  "schemaVersion": 1,
+  "sourceImplementationCommit": "d3c9f0f460ae95f58cf0ebf3b9859c94cc28916b",
+  "standing": "PASS_CURRENT_MAIN_PROSPECTIVE_REQUALIFICATION",
+  "studyBindings": [
+    {
+      "profileId": "paper1-r25-live-r1",
+      "sourceRepo": "/root/projects/ordivon-paper1-r25-reviewer-risk-closure-20260922",
+      "sourceRevision": "ca977e4fe9b3f7a5db7aa3b3a0491be69c94ce45",
+      "standing": "PASS_EXACT_LIVE_PROFILE"
+    },
+    {
+      "profileId": "paper2-live-r1",
+      "sourceRepo": "/root/projects/ordivon-paper2",
+      "sourceRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "standing": "PASS_EXACT_LIVE_PROFILE"
+    },
+    {
+      "profileId": "paper3-c21-r10-live-r1",
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "sourceRevision": "a5752fd8728d60bbf963b32d7fc29cde6064e9fb",
+      "standing": "PASS_EXACT_LIVE_PROFILE"
+    }
+  ],
+  "truthRole": "prospective-integration-evidence-not-study-truth",
+  "verification": {
+    "admissionVerdict": "ADMIT_THIN_PROFILE_PROTOCOL",
+    "counterexampleStanding": "PASS_COUNTEREXAMPLE_PRESSURE_FOR_PROFILE_ONLY",
+    "crossStudyPressureStanding": "PASS_CROSS_STUDY_PRESSURE_R1",
+    "fullMiseVerifyJobId": "job-01a0cd1f-32dc-7282-a1b3-cf6d036a1841",
+    "fullMiseVerifyStanding": "PASS",
+    "liveProfileStanding": "PASS_EXACT_LIVE_PROFILES",
+    "targetedJobId": "job-01a0cd1e-6021-7411-9081-16f6ffcfb0e4",
+    "targetedStanding": "PASS"
+  },
+  "workspaceId": "ws-scholarly-intelligence-r2-rebase-r1-20260923"
+}

@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/capability-science/computational-lift-certificate-v1.schema.json",
+  "title": "Capability Science Computational Lift Certificate V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "certificateId",
+    "subjectRef",
+    "lowerModelClass",
+    "higherModelClass",
+    "standing",
+    "basis",
+    "witnessRefs",
+    "completenessEvidenceRefs",
+    "assumptions",
+    "bounds",
+    "universalDecisionProcedureClaimed",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.computational-lift-certificate-v1"
+    },
+    "certificateId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subjectRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lowerModelClass": {
+      "$ref": "#/$defs/modelClass"
+    },
+    "higherModelClass": {
+      "$ref": "#/$defs/modelClass"
+    },
+    "standing": {
+      "enum": [
+        "CERTIFIED_LIFT",
+        "CERTIFIED_NO_LIFT_WITHIN_MODEL_CLASS",
+        "UNKNOWN"
+      ]
+    },
+    "basis": {
+      "enum": [
+        "SIMULATION_RELATION",
+        "DISTINGUISHING_LANGUAGE",
+        "RESOURCE_WITNESS",
+        "MODEL_CHECK",
+        "BOUNDED_TEST",
+        "NONE"
+      ]
+    },
+    "witnessRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "bounds": {
+      "type": "object"
+    },
+    "universalDecisionProcedureClaimed": {
+      "const": false
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "completenessEvidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "CERTIFIED_LIFT"
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "witnessRefs": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "CERTIFIED_NO_LIFT_WITHIN_MODEL_CLASS"
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "witnessRefs": {
+            "minItems": 1
+          },
+          "completenessEvidenceRefs": {
+            "minItems": 1
+          },
+          "basis": {
+            "const": "MODEL_CHECK"
+          },
+          "bounds": {
+            "minProperties": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "UNKNOWN"
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "basis": {
+            "const": "NONE"
+          },
+          "witnessRefs": {
+            "maxItems": 0
+          },
+          "completenessEvidenceRefs": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "modelClass": {
+      "enum": [
+        "L0_STATELESS_RELATION",
+        "L1_FINITE_STATE_TRANSDUCER",
+        "L2_REGISTER_DATA_AUTOMATON",
+        "L3_VISIBLY_PUSHDOWN_PROCEDURAL",
+        "L4_PETRI_VAS_COUNTERLIKE",
+        "L5_FIFO_MULTISTACK_MINSKY_LIKE",
+        "L6_GENERAL_INTERACTIVE_COMPUTATION"
+      ]
+    }
+  }
+}

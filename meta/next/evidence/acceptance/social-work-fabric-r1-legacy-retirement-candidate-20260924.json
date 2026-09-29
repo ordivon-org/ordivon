@@ -1,0 +1,66 @@
+{
+  "archive": {
+    "bytes": 38343067,
+    "counts": {
+      "board_messages": 17177,
+      "checkpoints": 15145,
+      "task_events": 15145,
+      "tasks": 2155
+    },
+    "productionCountsStableDuringCaptureAndVerification": true,
+    "restoreVerification": "PASS",
+    "sha256": "sha256:4806bc0c4bb75cb41af84c6d4a2b2933c25beafa2585de00d54e2b3efbef727e",
+    "truthRole": "local immutable recovery evidence; contents are not committed to Git"
+  },
+  "baseRevision": "20e2d3454e5b2836b3ec673df6a409acaac257c4",
+  "kind": "ordivon.social-work-fabric-r1-legacy-retirement-candidate-acceptance",
+  "retirement": {
+    "downgradePolicy": "irreversible; use immutable archive in separate recovery database",
+    "droppedTables": [
+      "board_messages",
+      "task_events",
+      "checkpoints",
+      "tasks"
+    ],
+    "legacyNorthboundAlreadyAbsent": true,
+    "removedActiveModules": [
+      "board.py",
+      "attention.py",
+      "checkpoint_contract.py",
+      "models.py"
+    ],
+    "removedLegacyExecutables": [
+      "experiments/host_friction_observatory_r1.py",
+      "scripts/migrate_v1_semantics.py",
+      "scripts/retire_legacy_task_route_anchors.sql"
+    ],
+    "requiredHostSchemaVersion": 9
+  },
+  "schemaVersion": 1,
+  "standing": "PASS_CANDIDATE_AWAITING_CURRENT_MAIN_INTEGRATION_AND_LIVE_CUTOVER",
+  "truthBoundary": "candidate and local archive evidence only; live production schema9 and public ingress require post-integration owner-native verification",
+  "verification": {
+    "focusedNonDb": {
+      "jobId": "job-01a0d361-d9f3-7192-9bf2-e204002f47d0",
+      "standing": "PASS",
+      "tests": 54
+    },
+    "freshSchema1To9FullHost": {
+      "jobId": "job-01a0d363-796a-79e3-8c38-3bb8f4460d51",
+      "legacyTablesAtHead": 0,
+      "standing": "PASS"
+    },
+    "schema8To9ProductionArchiveDestroyer": {
+      "jobId": "job-01a0d365-a3d1-7d50-997c-176614abbd85",
+      "legacyCountsBefore": [
+        2155,
+        15145,
+        15145,
+        17177
+      ],
+      "legacyTablesAfter": 0,
+      "standing": "PASS",
+      "swfSurvivorIdentical": true
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-stoppage-recovery-census",
+  "censusId": "network-stoppage-recovery-census-r2-20260927",
+  "observedDate": "2026-09-27",
+  "sourceRevision": "7cd4b62ccc6fbb1d7b49998716e2c71c742d8135",
+  "truthRole": "currentness-bounded-navigation-and-recovery-closeout-not-domain-authority",
+  "supersedesCurrentnessOf": "network-stoppage-recovery-census-r1-20260926",
+  "laws": [
+    "OPEN != current work",
+    "dirty Workspace != unfinished project",
+    "service readiness != destination consequence",
+    "provider authentication/authorization != physical network failure",
+    "historical nextAction must be re-entered against current owner/source before execution"
+  ],
+  "networkStanding": "RECOVERY_SUBSTRATE_CONVERGED_HANDOFF_REMAINING",
+  "sharedCarrier": {
+    "standing": "READY",
+    "providerSite": "th-bkk",
+    "endpoint": "151.240.88.133:51820",
+    "singleProviderIdentitySession": true,
+    "financeProviderEndpointMaterial": "ABSENT",
+    "supplyChainProviderEndpointMaterial": "ABSENT",
+    "duplicateProviderProcesses": "ABSENT"
+  },
+  "consumerConsequences": {
+    "finance": {
+      "standing": "READY",
+      "mode": "all",
+      "directFallback": false
+    },
+    "supplyChain": {
+      "standing": "READY",
+      "proxy": "http://127.0.0.1:19581",
+      "dockerRegistry": 401,
+      "dockerAuth": 405,
+      "gcr": 401,
+      "artifactRegistry": 405,
+      "elasticRegistry": 401,
+      "unknownDestination": "REJECTED",
+      "directFallback": false
+    },
+    "xReality": {
+      "standing": "READY",
+      "proxy": "http://127.0.0.1:19681",
+      "xHttpStatus": 401,
+      "unknownDestination": "REJECTED",
+      "directFallback": false,
+      "authenticationAttempted": false,
+      "credentialMaterialized": false,
+      "userContextProven": false
+    }
+  },
+  "docker": {
+    "proxy": "http://127.0.0.1:19581",
+    "archivematicaContainersRunning": 9,
+    "retiredPublicWebProxy": "ABSENT",
+    "pinnedOpaImageAvailable": true
+  },
+  "admissionFabric": {
+    "networkBlocker": "RESOLVED",
+    "evidence": "meta/next/evidence/acceptance/admission-fabric-r2-20260927.json",
+    "pinnedOpaReplay": "PASS",
+    "opaVersion": "1.20.2",
+    "policyTests": "34/34",
+    "remainingStanding": "AF-S2_AF-S3_AF-S4_AF-S5_NON_NETWORK_FRONTIER"
+  },
+  "publicWeb": {
+    "standing": "PHYSICAL_RETIREMENT_COMPLETE",
+    "units": "NOT_FOUND",
+    "config": "ABSENT",
+    "listeners19380_19381": "ABSENT"
+  },
+  "items": [
+    {
+      "id": "market-capital-soxl",
+      "historicalClassification": "REQUALIFY_NOW",
+      "classification": "NETWORK_RECOVERED_HANDOFF",
+      "handoff": "Capital read-only evidence/decision workflow",
+      "hostContinuity": "STALE_OPEN"
+    },
+    {
+      "id": "admission-opa-oci",
+      "historicalClassification": "PARTIAL_VERIFICATION_NETWORK_BLOCKED",
+      "classification": "NETWORK_BLOCKER_RESOLVED",
+      "handoff": "Security/Identity AF-S2+"
+    },
+    {
+      "id": "security-clusterfuzzlite",
+      "historicalClassification": "LATENT_SUPPLY_CHAIN_NETWORK_DEBT",
+      "classification": "TRANSPORT_RECOVERED_HANDOFF",
+      "handoff": "Security provider-runtime verification"
+    },
+    {
+      "id": "x-reality",
+      "historicalClassification": "STILL_NETWORK_BLOCKED",
+      "classification": "NETWORK_RECOVERED_IDENTITY_HANDOFF",
+      "handoff": "Identity/Auth user-context proof",
+      "hostContinuity": "STALE_OPEN"
+    },
+    {
+      "id": "public-web-orphan",
+      "historicalClassification": "ORPHAN_DEPLOYMENT_RETIRE",
+      "classification": "PHYSICAL_RETIREMENT_COMPLETE"
+    },
+    {
+      "id": "operations-d2",
+      "classification": "STALE_HOST_CONTINUITY_RECONCILE"
+    },
+    {
+      "id": "control-plane-gatus",
+      "classification": "STALE_HOST_CONTINUITY_RECONCILE"
+    },
+    {
+      "id": "finance-okx-falsegreen",
+      "classification": "STALE_HOST_CONTINUITY_RECONCILE"
+    },
+    {
+      "id": "network-e2e-r8",
+      "classification": "STALE_HOST_CONTINUITY_RECONCILE"
+    }
+  ],
+  "controlPlaneDebt": {
+    "gatewayOwnerProjection": "FALSE_NEGATIVE_DIRECT_OWNERS_AVAILABLE",
+    "hostTaskSurface": "DEPLOYED_MCP_UNKNOWN_TOOL_WHILE_HOST_AUTHORITY_HEALTHY",
+    "classification": "PROJECTION_AND_NORTHBOUND_UX_DEBT"
+  },
+  "runtimeEvidenceRefs": [
+    "job-01a0e345-db05-7f20-91fa-ca499b3c1a1a",
+    "job-01a0e346-c6f9-7530-9b40-de7e529ca6c4",
+    "job-01a0e347-e287-7413-baf6-550bfbc9e66b",
+    "job-01a0e349-a934-7471-af96-65f7c57c32d2",
+    "job-01a0e34a-20e7-7c50-8a9e-17a690426e40",
+    "job-01a0e27a-03ac-7812-bc18-1a875ee52ee1",
+    "job-01a0e273-ff5c-7931-8b92-6a20fd0deab3"
+  ],
+  "closeoutRule": "Do not grow Network recovery into Identity, Security authorization, Host bookkeeping, or Gateway projection work. Re-enter Network only on fresh named-consumer physical transport failure."
+}

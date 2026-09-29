@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam.required-check-source-evidence",
+  "findingId": "RT-GOV-002",
+  "observedDate": "2026-09-27",
+  "classification": "CONFIRMED_NEW",
+  "repository": "ordivon-org/ordivon",
+  "providerMainRevision": "c309b467452beb56ae93ce9272461527f396ee23",
+  "rulesetId": 23819262,
+  "requiredCheck": {
+    "context": "root-verification",
+    "integrationId": null,
+    "strict": false
+  },
+  "observedLegitimateProducer": {
+    "appId": 15368,
+    "appSlug": "github-actions",
+    "appName": "GitHub Actions"
+  },
+  "repositoryGovernanceChecker": {
+    "path": "tools/repo/check_github_governance.py",
+    "observedContract": "checks workflow/root-verification structure but does not verify live provider ruleset source binding"
+  },
+  "canary": {
+    "temporaryBranch": "redteam/status-source-probe-20260927",
+    "emptyCommit": "d0e5a0d8a345a9a05585577c2aa0783d66061c33",
+    "branchCreated": true,
+    "syntheticStatusSubmissionAttempted": true,
+    "syntheticStatusSubmissionExecuted": false,
+    "blockedByExecutionSafetyLayer": true,
+    "branchDeleted": true
+  },
+  "falsifier": {
+    "expectedProducerBoundByProviderRule": false,
+    "interpretation": "The provider requires a context name but does not bind that required check to the observed GitHub Actions integration."
+  },
+  "acceptance": [
+    "Bind root-verification to the expected GitHub integration_id or adopt a stronger provider-native required-workflow rule.",
+    "Read back effective rules from GitHub and verify the expected producer binding.",
+    "Add a repository governance regression covering this provider contract."
+  ],
+  "externalReferences": [
+    "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets",
+    "https://docs.github.com/en/rest/orgs/rules",
+    "https://docs.github.com/en/pull-requests/reference/status-checks"
+  ],
+  "nonClaims": [
+    "The campaign did not bypass the execution safety layer to submit a forged status.",
+    "No claim is made that a forged root-verification status was accepted in live provider state.",
+    "The confirmed defect is the missing provider source binding itself."
+  ]
+}

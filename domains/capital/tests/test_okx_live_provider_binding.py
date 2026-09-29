@@ -19,7 +19,7 @@ def test_okx_live_provider_uses_bounded_read_client_and_unified_secret_root():
     assert x["credentialClass"] == "ORDER_CAPABLE_LIVE_PROVIDER_CREDENTIAL"
     assert x["providerCapabilityAuditOnly"] is True
     assert x["privateRealityAdmissionGranted"] is False
-    assert x["privateRealityObserverLane"]["standing"] == "PENDING_FRESH_PROVIDER_PERMISSION_VERIFICATION"
+    assert x["privateRealityObserverLane"]["standing"] == "PASS_READ_ONLY_PROVIDER_PERMISSION_CURRENT"
     assert x["privateRealityObserverLane"]["currentDataAdmission"] == "NOT_ADMITTED"
 
     assert x["providerApiAuthority"]["owner"] == "OKX"
@@ -28,7 +28,7 @@ def test_okx_live_provider_uses_bounded_read_client_and_unified_secret_root():
     assert x["readClient"]["source"] == "src/ordivon_capital/trading/okx_readonly_client.py"
     assert x["readClient"]["allowedMethods"] == ["GET"]
     assert x["readClient"]["writeMethodsImplemented"] is False
-    assert len(x["readClient"]["allowedPaths"]) == 3
+    assert len(x["readClient"]["allowedPaths"]) == 6
 
     ref = x["externalReferenceClient"]
     assert ref["name"] == "@okx_ai/okx-trade-cli"

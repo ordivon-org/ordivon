@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/capability-science/semantic-capability-v1.schema.json",
+  "title": "Capability Science Semantic Capability V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "capabilityId",
+    "aliases",
+    "standing",
+    "interface",
+    "preconditions",
+    "behaviorModel",
+    "effects",
+    "authority",
+    "informationFlow",
+    "observationPolicyRef",
+    "evidenceRefs",
+    "repeatabilityEvidenceRefs",
+    "causalEvidenceRefs",
+    "noveltyWitnessRefs",
+    "authorityGranted",
+    "executionAuthorityGranted",
+    "nonClaims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.semantic-capability-v1"
+    },
+    "capabilityId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "standing": {
+      "enum": [
+        "OBSERVED_AFFORDANCE",
+        "INFERRED_SEMANTIC_CAPABILITY",
+        "CERTIFIED_NOVEL_CAPABILITY"
+      ]
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/port"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/port"
+          }
+        }
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "behaviorModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelClass",
+        "modelRef"
+      ],
+      "properties": {
+        "modelClass": {
+          "enum": [
+            "UNMODELED",
+            "STATELESS_RELATION",
+            "FINITE_STATE_TRANSDUCER",
+            "REGISTER_DATA_AUTOMATON",
+            "VISIBLY_PUSHDOWN_PROCEDURAL",
+            "PETRI_VAS_COUNTERLIKE",
+            "FIFO_MULTISTACK_MINSKY_LIKE",
+            "GENERAL_INTERACTIVE_COMPUTATION"
+          ]
+        },
+        "modelRef": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worldState",
+        "persistence",
+        "communication"
+      ],
+      "properties": {
+        "worldState": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "persistence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "communication": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "delegated",
+        "attenuated",
+        "created"
+      ],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "delegated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "attenuated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "created": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "informationFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sources",
+        "transforms",
+        "sinks"
+      ],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "transforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "sinks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "observationPolicyRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "noveltyWitnessRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "authorityGranted": {
+      "const": false
+    },
+    "executionAuthorityGranted": {
+      "const": false
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "repeatabilityEvidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "causalEvidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "portId",
+        "type"
+      ],
+      "properties": {
+        "portId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "enum": [
+              "INFERRED_SEMANTIC_CAPABILITY",
+              "CERTIFIED_NOVEL_CAPABILITY"
+            ]
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "repeatabilityEvidenceRefs": {
+            "minItems": 1
+          },
+          "causalEvidenceRefs": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "standing": {
+            "const": "CERTIFIED_NOVEL_CAPABILITY"
+          }
+        },
+        "required": [
+          "standing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "noveltyWitnessRefs": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

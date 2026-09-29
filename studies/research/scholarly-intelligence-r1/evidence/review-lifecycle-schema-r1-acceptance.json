@@ -1,0 +1,20 @@
+{
+  "disapereCommercialUse": "blocked_by_source_license",
+  "kind": "ordivon.research.review-lifecycle-schema-acceptance",
+  "physicalPolicy": "VIRTUAL_ADAPTER_ONLY_DO_NOT_MERGE_RAW_CORPUS_BYTES",
+  "reviewerProfiling": "NOT_AUTHORIZED",
+  "schemaVersion": 1,
+  "sharedKinds": [
+    "concern",
+    "response",
+    "revision",
+    "correspondence"
+  ],
+  "sourceAssets": [
+    "aries-bounded-core-r1",
+    "disapere-bounded-core-r1"
+  ],
+  "standing": "PASS_VIRTUAL_CROSS_CORPUS_INTERFACE",
+  "truthBoundary": "Schema validation proves interface compatibility only. It does not identify cross-corpus document identity, causal chains, response adequacy, revision quality, reviewer truth, or venue authority.",
+  "validatedSampleCount": 6
+}

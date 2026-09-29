@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from importlib.metadata import version as package_version
 from typing import Any
 
@@ -9,19 +10,8 @@ from .contracts import (
     ArtifactChunk,
     CapabilityDescriptor,
     CapabilityProjection,
-    CollaborationMessage,
-    CollaborationPage,
-    CollaborationPostReceipt,
-    CollaborationSearch,
-    CollaborationSearchHit,
-    ContinuityAttention,
-    ContinuityChanges,
-    ContinuityEvent,
-    ContinuityItem,
-    ContinuityMutationReceipt,
-    ContinuityObservation,
-    ContinuityObserved,
-    ContinuityPage,
+    CapabilitySearchMatch,
+    CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
@@ -44,6 +34,39 @@ _OWNER_ROLES = {
     "external.pull": "provider-neutral outbound pull execution transport",
 }
 
+_SOCIAL_WORK_HOST_TOOLS = frozenset(
+    {
+        "host.status",
+        "actor.declare",
+        "work.create",
+        "work.get",
+        "work.list",
+        "work.snapshot.commit",
+        "space.create",
+        "space.get",
+        "space.list",
+        "space.participation.set",
+        "space.participation.list",
+        "space.subject.list",
+        "topic.create",
+        "topic.cursor.ack",
+        "topic.cursor.get",
+        "topic.list",
+        "topic.resume",
+        "message.post",
+        "message.search",
+        "message.relation.add",
+        "message.relation.list",
+        "subscription.follow",
+        "subscription.list",
+        "subscription.unfollow",
+        "attention.get",
+        "attention.delta",
+        "attention.ack",
+        "attention.reentry",
+    }
+)
+
 
 def _configured(caller: OwnerToolCaller, owner_id: str) -> bool:
     probe = getattr(caller, "is_configured", None)
@@ -52,11 +75,19 @@ def _configured(caller: OwnerToolCaller, owner_id: str) -> bool:
     return True
 
 
+def _configuration_error(caller: OwnerToolCaller, owner_id: str) -> str | None:
+    probe = getattr(caller, "configuration_error", None)
+    if callable(probe):
+        value = probe(owner_id)
+        return str(value) if value else None
+    return None
+
+
 def _execution_ref(owner_id: str, native_id: str) -> str:
     return f"ordivon-exec:v1:{owner_id}:{native_id}"
 
 
-def _parse_execution_ref(value: str) -> tuple[str, str]:
+def parse_execution_ref(value: str) -> tuple[str, str]:
     prefix = "ordivon-exec:v1:"
     if not value.startswith(prefix):
         raise GatewayError("invalid execution operationRef")
@@ -84,23 +115,6 @@ def _optional_str(payload: dict[str, Any], key: str) -> str | None:
     if not isinstance(value, str):
         raise GatewayError(f"owner response has invalid {key}")
     return value
-
-
-def _collaboration_message(payload: dict[str, Any]) -> CollaborationMessage:
-    return CollaborationMessage(
-        sequence=int(payload["sequence"]),
-        client_message_id=_required_str(payload, "clientMessageId"),
-        author_label=_required_str(payload, "authorLabel"),
-        author_identity_role=_required_str(payload, "authorIdentityRole"),
-        message_kind=_required_str(payload, "messageKind"),
-        topic=_optional_str(payload, "topic"),
-        message=_required_str(payload, "message"),
-        reply_to_client_message_id=_optional_str(payload, "replyToClientMessageId"),
-        task_id=_optional_str(payload, "taskId"),
-        recorded_at_ms=int(payload["recordedAtMs"]),
-        message_digest=_required_str(payload, "messageDigest"),
-        truth_role=_required_str(payload, "truthRole"),
-    )
 
 
 class GatewayService:
@@ -187,6 +201,7 @@ class GatewayService:
                     configured=False,
                     available=False,
                     context_mode=route.context_mode,  # type: ignore[arg-type]
+                    observation_error=_configuration_error(self._caller, route.owner_id),
                     truth_boundary=route.truth_boundary,
                 )
 
@@ -278,8 +293,8 @@ class GatewayService:
                     try:
                         await self._caller.call_tool(
                             "host",
-                            "task.list",
-                            {"limit": 1, "includeTerminal": False},
+                            "host.status",
+                            {"detail": "summary"},
                         )
                         available = True
                     except Exception as exc:
@@ -305,6 +320,9 @@ class GatewayService:
                 errors: list[str] = []
                 for owner_id in ("runtime.linux", "runtime.windows"):
                     if not _configured(self._caller, owner_id):
+                        configuration_error = _configuration_error(self._caller, owner_id)
+                        if configuration_error is not None:
+                            errors.append(f"{owner_id}: {configuration_error}")
                         continue
                     any_configured = True
                     result, error = await runtime_description(owner_id)
@@ -379,8 +397,28 @@ class GatewayService:
                         "External worker transport owns queue/lease/attempt delivery mechanics only; "
                         "workers do not acquire Task ownership or domain authority."
                     ),
+                    description=(
+                        "Execute through a live operator-admitted provider-neutral external pull worker."
+                    ),
+                    tags=["execution", "external", "pull", "worker"],
                 )
             )
+
+        enriched: list[CapabilityDescriptor] = []
+        for value in values:
+            route = self._routes.get(value.capability)
+            if route is None:
+                enriched.append(value)
+                continue
+            enriched.append(
+                value.model_copy(
+                    update={
+                        "description": route.description,
+                        "tags": list(route.tags),
+                    }
+                )
+            )
+        values = enriched
 
         payload = [value.model_dump(mode="json") for value in values]
         digest = (
@@ -397,6 +435,86 @@ class GatewayService:
         return CapabilityProjection(
             projection_digest=digest,
             capabilities=values,
+        )
+
+    async def capability_search(
+        self,
+        *,
+        query: str,
+        category: str | None = None,
+        owner_id: str | None = None,
+        limit: int = 10,
+        include_unavailable: bool = True,
+    ) -> CapabilitySearchProjection:
+        if not isinstance(query, str) or query != query.strip() or not query:
+            raise GatewayError("query must be non-empty trimmed text")
+        if len(query) > 512:
+            raise GatewayError("query exceeds 512 characters")
+        if category is not None and (
+            not isinstance(category, str) or category != category.strip() or not category
+        ):
+            raise GatewayError("category must be non-empty trimmed text when provided")
+        if owner_id is not None and (
+            not isinstance(owner_id, str) or owner_id != owner_id.strip() or not owner_id
+        ):
+            raise GatewayError("ownerId must be non-empty trimmed text when provided")
+        if type(limit) is not int or not 1 <= limit <= 50:
+            raise GatewayError("limit must be an integer between 1 and 50")
+        if type(include_unavailable) is not bool:
+            raise GatewayError("includeUnavailable must be boolean")
+
+        projection = await self.capability_describe()
+        normalized = query.casefold()
+        query_tokens = set(re.findall(r"[a-z0-9]+", normalized))
+        priority = {"exact": 0, "prefix": 1, "token": 2, "substring": 3}
+        ranked: list[tuple[int, str, CapabilitySearchMatch]] = []
+
+        for item in projection.capabilities:
+            if category is not None and item.category != category:
+                continue
+            if owner_id is not None and item.owner_id != owner_id:
+                continue
+            # An observation error is UNKNOWN owner observation, not proof of owner unavailability.
+            if not include_unavailable and not item.available and item.observation_error is None:
+                continue
+
+            capability_name = item.capability.casefold()
+            corpus_values = [
+                item.capability,
+                item.category,
+                item.owner_id,
+                item.description,
+                *item.tags,
+            ]
+            corpus = " ".join(value.casefold() for value in corpus_values if value)
+            corpus_tokens = set(re.findall(r"[a-z0-9]+", corpus))
+
+            match_kind: str | None = None
+            if normalized == capability_name:
+                match_kind = "exact"
+            elif capability_name.startswith(normalized):
+                match_kind = "prefix"
+            elif query_tokens and query_tokens.issubset(corpus_tokens):
+                match_kind = "token"
+            elif normalized in corpus:
+                match_kind = "substring"
+            if match_kind is None:
+                continue
+
+            match = CapabilitySearchMatch(
+                match_kind=match_kind,  # type: ignore[arg-type]
+                capability=item,
+            )
+            ranked.append((priority[match_kind], item.capability, match))
+
+        ranked.sort(key=lambda row: (row[0], row[1]))
+        total_matches = len(ranked)
+        matches = [row[2] for row in ranked[:limit]]
+        return CapabilitySearchProjection(
+            query=query,
+            projection_digest=projection.projection_digest,
+            total_matches=total_matches,
+            matches=matches,
         )
 
     async def execution_submit(
@@ -588,7 +706,7 @@ class GatewayService:
     async def execution_get(
         self, operation_ref: str, *, event_limit: int = 10, wait_ms: int = 0
     ) -> ExecutionObservation:
-        owner_id, native_id = _parse_execution_ref(operation_ref)
+        owner_id, native_id = parse_execution_ref(operation_ref)
         if owner_id == "external.pull":
             if self._external_workers is None:
                 raise GatewayError("external pull worker transport is not configured")
@@ -603,7 +721,13 @@ class GatewayService:
                 native_id=native_id,
                 state=operation.state,
                 terminal=operation.terminal,
-                delivery_disposition="committed" if operation.terminal else "in_progress",
+                delivery_disposition=(
+                    "committed"
+                    if operation.terminal
+                    else "unknown"
+                    if operation.state == "reconcile_required"
+                    else "in_progress"
+                ),
                 execution_disposition=(
                     "succeeded"
                     if operation.terminal and operation.exit_code == 0
@@ -612,7 +736,7 @@ class GatewayService:
                     else None
                 ),
                 exit_code=operation.exit_code,
-                recovery_required=False,
+                recovery_required=operation.state == "reconcile_required",
                 artifacts_available=bool(operation.artifact_ids),
                 artifact_count=len(operation.artifact_ids),
                 artifact_ids=operation.artifact_ids,
@@ -738,7 +862,7 @@ class GatewayService:
         )
 
     async def execution_cancel(self, operation_ref: str) -> ExecutionReceipt:
-        owner_id, native_id = _parse_execution_ref(operation_ref)
+        owner_id, native_id = parse_execution_ref(operation_ref)
         if owner_id == "external.pull":
             if self._external_workers is None:
                 raise GatewayError("external pull worker transport is not configured")
@@ -784,7 +908,7 @@ class GatewayService:
         offset: int = 0,
         max_bytes: int = 1_048_576,
     ) -> ArtifactChunk:
-        owner_id, native_id = _parse_execution_ref(operation_ref)
+        owner_id, native_id = parse_execution_ref(operation_ref)
         if owner_id == "external.pull":
             if self._external_workers is None:
                 raise GatewayError("external pull worker transport is not configured")
@@ -830,335 +954,11 @@ class GatewayService:
             content=str(result.get("content", "")),
         )
 
-    async def continuity_get(self, task_id: str) -> ContinuityObservation:
-        result = await self._caller.call_tool("host", "task.resume", {"taskId": task_id})
-        task = result.get("task")
-        checkpoint = result.get("checkpoint")
-        if not isinstance(task, dict) or not isinstance(checkpoint, dict):
-            raise GatewayError("Host task.resume omitted task/checkpoint")
-        return ContinuityObservation(
-            task_id=_required_str(task, "task_id"),
-            goal_id=(str(task["goal_id"]) if task.get("goal_id") is not None else None),
-            revision=int(task["revision"]),
-            state=_required_str(task, "state"),
-            checkpoint_digest=(
-                str(task["checkpoint_digest"])
-                if task.get("checkpoint_digest") is not None
-                else None
-            ),
-            created_at=_optional_str(task, "created_at"),
-            updated_at=_optional_str(task, "updated_at"),
-            checkpoint=checkpoint,
-            truth_boundary=(
-                str(result["truthBoundary"]) if result.get("truthBoundary") is not None else None
-            ),
-        )
-
-    async def continuity_list(
-        self,
-        *,
-        goal_id: str | None = None,
-        runtime_workspace_id: str | None = None,
-        limit: int = 50,
-        cursor: str | None = None,
-        include_terminal: bool = False,
-        sort_key: str = "created",
-    ) -> ContinuityPage:
-        if sort_key not in {"created", "updated"}:
-            raise GatewayError("continuity sort_key must be created or updated")
-        arguments: dict[str, Any] = {
-            "limit": limit,
-            "includeTerminal": include_terminal,
-        }
-        if goal_id is not None:
-            arguments["goalId"] = goal_id
-        if runtime_workspace_id is not None:
-            arguments["runtimeWorkspaceId"] = runtime_workspace_id
-        if cursor is not None:
-            arguments["cursor"] = cursor
-        if sort_key != "created":
-            arguments["sortKey"] = sort_key
-        result = await self._caller.call_tool("host", "task.list", arguments)
-        items: list[ContinuityItem] = []
-        for task in result.get("tasks", []):
-            if not isinstance(task, dict):
-                continue
-            items.append(
-                ContinuityItem(
-                    task_id=_required_str(task, "task_id"),
-                    goal_id=(str(task["goal_id"]) if task.get("goal_id") is not None else None),
-                    revision=int(task["revision"]),
-                    state=_required_str(task, "state"),
-                    checkpoint_digest=(
-                        str(task["checkpoint_digest"])
-                        if task.get("checkpoint_digest") is not None
-                        else None
-                    ),
-                    created_at=_optional_str(task, "created_at"),
-                    updated_at=_optional_str(task, "updated_at"),
-                )
-            )
-        return ContinuityPage(
-            items=items,
-            has_more=bool(result.get("hasMore", False)),
-            next_cursor=(
-                str(result["nextCursor"]) if result.get("nextCursor") is not None else None
-            ),
-            sort_key=sort_key,
-        )
-
-    async def continuity_observe(
-        self, task_id: str, *, expected_revision: int | None = None, event_limit: int = 5
-    ) -> ContinuityObserved:
-        arguments: dict[str, Any] = {"taskId": task_id, "eventLimit": event_limit}
-        if expected_revision is not None:
-            arguments["expectedRevision"] = expected_revision
-        result = await self._caller.call_tool("host", "task.observe", arguments)
-        task = result.get("task")
-        if not isinstance(task, dict):
-            raise GatewayError("Host task.observe omitted task")
-        checkpoint = task.get("checkpoint")
-        if not isinstance(checkpoint, dict):
-            raise GatewayError("Host task.observe omitted checkpoint")
-        events: list[ContinuityEvent] = []
-        for event in result.get("recentEvents", []):
-            if isinstance(event, dict):
-                events.append(
-                    ContinuityEvent(
-                        revision=int(event["revision"]),
-                        event_type=_required_str(event, "eventType"),
-                        state=_required_str(event, "state"),
-                        created_at=_required_str(event, "createdAt"),
-                    )
-                )
-        return ContinuityObserved(
-            task_id=_required_str(task, "task_id"),
-            goal_id=_optional_str(task, "goal_id"),
-            revision=int(task["revision"]),
-            state=_required_str(task, "state"),
-            checkpoint_digest=_optional_str(task, "checkpoint_digest"),
-            created_at=_optional_str(task, "created_at"),
-            updated_at=_optional_str(task, "updated_at"),
-            checkpoint=checkpoint,
-            recent_events=events,
-            truth_boundary=_optional_str(result, "truthBoundary"),
-        )
-
-    async def continuity_adopt(
-        self,
-        *,
-        task_id: str,
-        goal_id: str,
-        checkpoint: dict[str, Any],
-        writer_label: str | None = None,
-    ) -> ContinuityMutationReceipt:
-        arguments: dict[str, Any] = {
-            "taskId": task_id,
-            "goalId": goal_id,
-            "initialCheckpoint": checkpoint,
-        }
-        if writer_label is not None:
-            arguments["writerLabel"] = writer_label
-        return self._continuity_mutation(
-            await self._caller.call_tool("host", "task.adopt", arguments)
-        )
-
-    async def continuity_checkpoint(
-        self,
-        *,
-        task_id: str,
-        expected_revision: int,
-        checkpoint: dict[str, Any],
-        disposition: str = "continue",
-        writer_label: str | None = None,
-    ) -> ContinuityMutationReceipt:
-        if disposition not in {"continue", "complete", "abandon"}:
-            raise GatewayError("invalid continuity disposition")
-        arguments: dict[str, Any] = {
-            "taskId": task_id,
-            "expectedRevision": expected_revision,
-            "checkpoint": checkpoint,
-            "continuityDisposition": disposition,
-        }
-        if writer_label is not None:
-            arguments["writerLabel"] = writer_label
-        return self._continuity_mutation(
-            await self._caller.call_tool("host", "task.checkpoint", arguments)
-        )
-
-    @staticmethod
-    def _continuity_mutation(result: dict[str, Any]) -> ContinuityMutationReceipt:
-        task = result.get("task")
-        checkpoint = result.get("checkpoint")
-        if not isinstance(task, dict) or not isinstance(checkpoint, dict):
-            raise GatewayError("Host continuity mutation omitted task/checkpoint")
-        return ContinuityMutationReceipt(
-            task_id=_required_str(task, "task_id"),
-            goal_id=_optional_str(task, "goal_id"),
-            revision=int(task["revision"]),
-            state=_required_str(task, "state"),
-            checkpoint_digest=_optional_str(task, "checkpoint_digest"),
-            created_at=_optional_str(task, "created_at"),
-            updated_at=_optional_str(task, "updated_at"),
-            checkpoint=checkpoint,
-            admission=_required_str(result, "admission"),
-            writer_label=_optional_str(result, "writerLabel"),
-            truth_boundary=_optional_str(result, "truthBoundary")
-            or "Host owns semantic continuity state; Gateway is a non-authoritative projection.",
-        )
-
-    async def continuity_attention(
-        self, *, after_sequence: int, limit: int = 100
-    ) -> ContinuityAttention:
-        result = await self._caller.call_tool(
-            "host", "attention.delta", {"afterSequence": after_sequence, "limit": limit}
-        )
-        board_fence, summary = result.get("boardFence"), result.get("summary")
-        routed, unrouted = result.get("routedTasks"), result.get("unroutedMessages")
-        if (
-            not isinstance(board_fence, dict)
-            or not isinstance(summary, dict)
-            or not isinstance(routed, list)
-            or not isinstance(unrouted, list)
-        ):
-            raise GatewayError("Host attention.delta omitted projection fields")
-        return ContinuityAttention(
-            board_fence=board_fence,
-            summary=summary,
-            routed_tasks=[x for x in routed if isinstance(x, dict)],
-            unrouted_messages=[x for x in unrouted if isinstance(x, dict)],
-            truth_boundary=_optional_str(result, "truthBoundary"),
-        )
-
-    async def continuity_changes(
-        self, *, after_sequence: int, limit: int = 100
-    ) -> ContinuityChanges:
-        legacy = await self.continuity_attention(after_sequence=after_sequence, limit=limit)
-        return ContinuityChanges(
-            board_fence=legacy.board_fence,
-            summary=legacy.summary,
-            routed_tasks=legacy.routed_tasks,
-            unrouted_messages=legacy.unrouted_messages,
-            truth_boundary=legacy.truth_boundary,
-        )
-
-    async def collaboration_post(
-        self,
-        *,
-        client_message_id: str,
-        author_label: str,
-        message: str,
-        message_kind: str = "note",
-        topic: str | None = None,
-        reply_to_client_message_id: str | None = None,
-        task_id: str | None = None,
-    ) -> CollaborationPostReceipt:
-        arguments: dict[str, Any] = {
-            "clientMessageId": client_message_id,
-            "authorLabel": author_label,
-            "message": message,
-            "messageKind": message_kind,
-        }
-        if topic is not None:
-            arguments["topic"] = topic
-        if reply_to_client_message_id is not None:
-            arguments["replyToClientMessageId"] = reply_to_client_message_id
-        if task_id is not None:
-            arguments["taskId"] = task_id
-        result = await self._caller.call_tool("host", "board.post", arguments)
-        payload = result.get("message")
-        if not isinstance(payload, dict):
-            raise GatewayError("Host board.post omitted message")
-        return CollaborationPostReceipt(
-            admission=_required_str(result, "admission"),
-            message=_collaboration_message(payload),
-            truth_boundary=_optional_str(result, "truthBoundary"),
-        )
-
-    async def collaboration_publish(
-        self,
-        *,
-        client_message_id: str,
-        author_label: str,
-        message: str,
-        scope: str,
-        continuity_id: str | None = None,
-        message_kind: str = "note",
-        topic: str | None = None,
-        reply_to_client_message_id: str | None = None,
-    ) -> CollaborationPostReceipt:
-        """Publish collaboration with an explicit global or continuity scope."""
-        if scope == "global":
-            if continuity_id is not None:
-                raise GatewayError("global collaboration scope must not include continuity_id")
-            if reply_to_client_message_id is not None:
-                raise GatewayError(
-                    "global collaboration.publish cannot reply to an existing message because "
-                    "Host reply routing may inherit continuity scope"
-                )
-            task_id = None
-        elif scope == "continuity":
-            if not continuity_id:
-                raise GatewayError("continuity collaboration scope requires continuity_id")
-            task_id = continuity_id
-        else:
-            raise GatewayError("collaboration scope must be global or continuity")
-        return await self.collaboration_post(
-            client_message_id=client_message_id,
-            author_label=author_label,
-            message=message,
-            message_kind=message_kind,
-            topic=topic,
-            reply_to_client_message_id=reply_to_client_message_id,
-            task_id=task_id,
-        )
-
-    async def collaboration_list(
-        self,
-        *,
-        after_sequence: int | None = None,
-        limit: int = 50,
-        topic: str | None = None,
-        client_message_id: str | None = None,
-        reply_to_client_message_id: str | None = None,
-        reply_to_author_label: str | None = None,
-    ) -> CollaborationPage:
-        arguments: dict[str, Any] = {"limit": limit}
-        optional = {
-            "afterSequence": after_sequence,
-            "topic": topic,
-            "clientMessageId": client_message_id,
-            "replyToClientMessageId": reply_to_client_message_id,
-            "replyToAuthorLabel": reply_to_author_label,
-        }
-        arguments.update({k: v for k, v in optional.items() if v is not None})
-        result = await self._caller.call_tool("host", "board.list", arguments)
-        rows = result.get("messages")
-        if not isinstance(rows, list):
-            raise GatewayError("Host board.list omitted messages")
-        return CollaborationPage(
-            messages=[_collaboration_message(x) for x in rows if isinstance(x, dict)],
-            last_sequence=int(result["lastSequence"]),
-            next_after_sequence=int(result["nextAfterSequence"]),
-            has_more=bool(result.get("hasMore", False)),
-            truth_boundary=_optional_str(result, "truthBoundary"),
-        )
-
-    async def collaboration_search(self, query: str, *, limit: int = 20) -> CollaborationSearch:
-        result = await self._caller.call_tool(
-            "host", "board.search", {"query": query, "limit": limit}
-        )
-        hits = [
-            CollaborationSearchHit(
-                sequence=int(x["sequence"]), client_message_id=_required_str(x, "clientMessageId")
-            )
-            for x in result.get("results", [])
-            if isinstance(x, dict)
-        ]
-        return CollaborationSearch(
-            source_snapshot_high_water=int(result["sourceSnapshotHighWater"]),
-            live_high_water=int(result["liveHighWater"]),
-            negative_result_authoritative=bool(result.get("negativeResultAuthoritative", False)),
-            requires_exact_source_reentry=bool(result.get("requiresExactSourceReentry", True)),
-            results=hits,
-        )
+    async def social_work_call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Route one promoted Social Work Fabric operation to Host without re-owning semantics."""
+        if tool_name not in _SOCIAL_WORK_HOST_TOOLS:
+            raise GatewayError(f"unsupported Host Social Work tool: {tool_name}")
+        result = await self._caller.call_tool("host", tool_name, arguments)
+        if not isinstance(result, dict):
+            raise GatewayError("Host Social Work owner returned non-object response")
+        return result

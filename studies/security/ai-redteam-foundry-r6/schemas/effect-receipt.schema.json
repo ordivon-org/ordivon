@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/effect-receipt-r6.json",
+  "title": "Effect Receipt R6",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "effectId", "effectRequestDigest", "disposition", "route", "executor", "worldBeforeDigest", "worldAfterDigest", "worldTraceDigest", "securityDecisionRef"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-effect-receipt"},
+    "effectId": {"type": "string", "minLength": 1},
+    "effectRequestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "disposition": {"enum": ["simulated", "blocked_requires_security_admission", "blocked_by_security", "delegation_ready_external_provider_required"]},
+    "route": {"enum": ["synthetic_world", "external_world"]},
+    "executor": {"type": "string", "minLength": 1},
+    "worldBeforeDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "worldAfterDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "worldTraceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "securityDecisionRef": {"type": ["string", "null"]}
+  }
+}

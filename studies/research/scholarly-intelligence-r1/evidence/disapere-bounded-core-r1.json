@@ -1,0 +1,75 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 25315,
+      "path": "derived/parquet/local_alignment_links.parquet",
+      "sha256": "sha256:36c8b4b3d2106309b228ab2c2653d96c187364139021b9037ee7b3adce59b83e"
+    },
+    {
+      "bytes": 28842,
+      "path": "derived/parquet/pairs.parquet",
+      "sha256": "sha256:428500279f0b4508b3a7c2a6975fd93380235663310cf05cdf249a88bbc9ea1b"
+    },
+    {
+      "bytes": 479739,
+      "path": "derived/parquet/rebuttal_sentences.parquet",
+      "sha256": "sha256:57a4006cfc278112e8ef7b2fc895622248fccee6e2f62551cc3230dead937b70"
+    },
+    {
+      "bytes": 427759,
+      "path": "derived/parquet/review_sentences.parquet",
+      "sha256": "sha256:d79d7554f42b9f900128958206867a65f4c46b6a971de85e6605866167a591ad"
+    },
+    {
+      "bytes": 3682304,
+      "path": "derived/disapere-bounded-r1.duckdb",
+      "sha256": "sha256:09cf3354a978589cf8396f6d044123d3cbd797d5f415378e91a83eca037bf4f8"
+    }
+  ],
+  "authority": {
+    "commercialProductOrServiceUse": "NOT_AUTHORIZED_BY_CC_BY_NC_ADMISSION",
+    "nonCommercialResearchUse": "ADMITTED"
+  },
+  "boundaries": [
+    "Dataset labels describe DISAPERE annotations and are not reviewer truth or scientific correctness.",
+    "Explicit sentence alignment is not equivalent to causal influence, response adequacy, or manuscript improvement.",
+    "Corpus frequencies are not population prevalence estimates for peer review.",
+    "CC BY-NC 4.0 does not authorize commercial product/service use; future commercial use requires a different rights basis."
+  ],
+  "counts": {
+    "explicitLocalAlignedRebuttalSentences": 9416,
+    "explicitLocalAlignmentLinks": 21675,
+    "orphanLocalAlignmentLinks": 0,
+    "rebuttalSentences": 11103,
+    "reviewRebuttalPairs": 506,
+    "reviewSentences": 9946
+  },
+  "id": "disapere-bounded-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "privacy": {
+    "normalizedAnnotatorIdentityFields": "OMITTED",
+    "normalizedReviewerIdentityFields": "OMITTED",
+    "reviewerProfilingAuthorized": false
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:1d22e33d6cd0841fe47fc183ef6d7b8c47efc5fe82d055ce6be529005ffbbaab",
+    "identity": "sha256:bb2ca8ce6324bdf93d1523c2de09ceebe16445835d765664d348e1e49edf6470",
+    "manifestSha256": "sha256:78d3a45baa6be81e6877744424e931f5c8877d7131dbbe18b5f1550cb3f05551",
+    "normalizationSummarySha256": "sha256:9b60ffeb84c4645d9f2d2d6c9827ce97d246a27d76aec669efcc0356c5cc7853",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/disapere/disapere-bounded-r1-20260923",
+    "schemaCensusSha256": "sha256:b9e180a27de6bca7fb6a69d633d0cdff6b664d33e2fe30f6d810a6f3ad1e7c7a"
+  },
+  "source": {
+    "licenseFileSha256": "sha256:3711f963c05d0be80d53e5923308a6dee31b203da23435c9cfb7c7b6e4dd5e19",
+    "licenseObserved": "CC-BY-NC-4.0",
+    "paper": "https://aclanthology.org/2022.naacl-main.89/",
+    "provider": "canonical GitHub repository",
+    "releaseZipBytes": 3050876,
+    "releaseZipSha256": "sha256:39d90749db64904fab001c7defd86bfbd08dfa572c38c3e5ef19b25585f5523e",
+    "repo": "https://github.com/nnkennard/DISAPERE",
+    "sourceCommit": "9adab87b997852c5447cfee6e3fd5bfad5e70311"
+  },
+  "status": "MATERIALIZED_BOUNDED_CORE_ANALYTICAL_VIEWS_PASS_NONCOMMERCIAL",
+  "truthRole": "external-review-discourse-physical-and-schema-evidence-not-reviewer-or-scientific-truth"
+}

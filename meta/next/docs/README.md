@@ -8,7 +8,7 @@ Lifecycle boundaries:
 - active plans, preregistrations and temporary migration ratchets belong in `planning/`;
 - point-in-time acceptance results and experiment observations belong in `evidence/`;
 - retirement, cutover, cleanup, census and other historical disposition records belong in `migrations/records/`;
-- current provider-local availability belongs in `capabilities/providers/` and must distinguish a dated observation from a presently revalidated fact.
+- current provider-local availability belongs in `catalogs/capabilities/providers/` and must distinguish a dated observation from a presently revalidated fact.
 
 A Markdown file is not machine authority merely because it is under `docs/`. Executable truth belongs to source, schemas, lockfiles, provider-native state and validation tools appropriate to the subject.
 

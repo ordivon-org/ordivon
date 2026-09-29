@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-commitment-policy",
+  "policyId": "policy:social-fabric:maintenance-shadow:r3",
+  "candidateSubjectPrefixes": ["resource:"],
+  "requiredSupportRoles": ["operations", "storage"],
+  "requiredCandidateEvidencePrefixes": ["job:"],
+  "blockingDamageReasonCodes": ["FILESYSTEM_UNSAFE"],
+  "blockingModulatoryDimensions": ["storage-critical"]
+}

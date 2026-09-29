@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use super::{
     CredentialBindingRequest, EffectiveInputBinding, ExecutionProfile, ExecutionTarget,
     HostDependencyBinding, InputAccessMode, InputBindingRequest, JobRunProposal, JobRunRequest,
-    RuntimeError, RuntimeResult, WindowsAuthority, WindowsExecutionContextRequest,
-    WindowsExecutionIdentity, WindowsPayloadPrivilege,
+    RuntimeError, RuntimeErrorCode, RuntimeResult, WindowsAuthority,
+    WindowsExecutionContextRequest, WindowsExecutionIdentity, WindowsPayloadPrivilege,
 };
 
 /// Internal authority composition selected by one already-typed Runtime execution family.
@@ -80,6 +80,10 @@ impl AuthorityContract {
 
     pub(crate) fn is_immutable_input_reduced(&self) -> bool {
         self.family == ExecutionAuthorityFamily::ImmutableInputReduced
+    }
+
+    pub(crate) fn effective_windows_context(&self) -> Option<WindowsExecutionContextRequest> {
+        self.windows_context
     }
 
     pub(crate) fn validate_immutable_input_reduced_realization(
@@ -442,6 +446,33 @@ impl AuthorityContract {
         Ok(())
     }
 
+    pub(crate) fn authorize_windows_elevation(
+        &self,
+        allowed_principals: &[String],
+    ) -> RuntimeResult<()> {
+        if self.execution_target != ExecutionTarget::WindowsNative {
+            return Ok(());
+        }
+        let context = self
+            .windows_context
+            .expect("Windows context is structurally required before authorization");
+        if context.privilege != WindowsPayloadPrivilege::Elevated {
+            return Ok(());
+        }
+        if allowed_principals
+            .iter()
+            .any(|principal| principal == &self.principal)
+        {
+            return Ok(());
+        }
+        Err(RuntimeError::new(
+            RuntimeErrorCode::AuthorizationDenied,
+            "authenticated principal is not authorized to request elevated Windows execution",
+            Some("execution.windowsContext.privilege"),
+            false,
+        ))
+    }
+
     fn require_inputs_without_other_bindings(&self) -> RuntimeResult<()> {
         if self.input_authorities.is_empty()
             || !self.credential_authorities.is_empty()
@@ -641,6 +672,57 @@ mod tests {
         let mut p = proposal(ExecutionTarget::LocalLinux, ExecutionProfile::TrustedLocal);
         p.execution.windows_authority = WindowsAuthority::Elevated;
         assert!(AuthorityContract::ordinary(&p).is_err());
+    }
+
+    #[test]
+    fn generic_windows_elevation_requires_operator_authorized_principal() {
+        let mut p = proposal(
+            ExecutionTarget::WindowsNative,
+            ExecutionProfile::TrustedLocal,
+        );
+        p.execution.windows_authority = WindowsAuthority::Elevated;
+        let contract = AuthorityContract::ordinary(&p).unwrap();
+        let denied = contract.authorize_windows_elevation(&[]).unwrap_err();
+        assert_eq!(denied.code, RuntimeErrorCode::AuthorizationDenied);
+        assert_eq!(
+            denied.field.as_deref(),
+            Some("execution.windowsContext.privilege")
+        );
+        contract
+            .authorize_windows_elevation(&["principal:test".to_string()])
+            .unwrap();
+    }
+
+    #[test]
+    fn limited_windows_context_does_not_require_elevation_grant() {
+        let p = proposal(
+            ExecutionTarget::WindowsNative,
+            ExecutionProfile::TrustedLocal,
+        );
+        AuthorityContract::ordinary(&p)
+            .unwrap()
+            .authorize_windows_elevation(&[])
+            .unwrap();
+    }
+
+    #[test]
+    fn active_user_elevated_context_uses_same_principal_gate() {
+        let mut p = proposal(
+            ExecutionTarget::WindowsNative,
+            ExecutionProfile::TrustedLocal,
+        );
+        p.execution.windows_context = Some(WindowsExecutionContextRequest::new(
+            WindowsExecutionIdentity::ActiveUser,
+            WindowsPayloadPrivilege::Elevated,
+        ));
+        let contract = AuthorityContract::ordinary(&p).unwrap();
+        assert_eq!(
+            contract.authorize_windows_elevation(&[]).unwrap_err().code,
+            RuntimeErrorCode::AuthorizationDenied
+        );
+        contract
+            .authorize_windows_elevation(&["principal:test".to_string()])
+            .unwrap();
     }
 
     #[test]

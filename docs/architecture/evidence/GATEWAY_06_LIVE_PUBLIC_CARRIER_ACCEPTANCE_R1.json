@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.gateway-0.6-live-public-carrier-acceptance",
+  "observedDate": "2026-09-28",
+  "standing": "PASS_LIVE_PUBLIC_CARRIER_EXPLICIT_RUNTIME_DEGRADED",
+  "publicEndpoint": "https://gateway-mcp.ordivon.com/mcp",
+  "serviceName": "OrdivonGatewayCandidateR2",
+  "servicePort": 19000,
+  "serviceStartMode": "Automatic",
+  "release": {
+    "sourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
+    "gatewayTreeEquivalentToCanonicalMainAtObservation": true,
+    "canonicalMainAtObservation": "66fc0a2a80e1ee4d92eb0675ee0df4a0703be91b",
+    "packageVersion": "0.6.0",
+    "surfaceEpoch": 3,
+    "declaredToolCount": 29,
+    "releasePath": "C:\\ProgramData\\Ordivon\\GatewayCandidateR2\\releases\\d91d63b70da5fa1c02a7b1a136c651649f62bd75"
+  },
+  "materialization": {
+    "linuxRuntimeUrl": "",
+    "windowsRuntimeUrl": "",
+    "hostUrl": "http://127.0.0.1:8898/mcp",
+    "linuxOwnerCredentialConfigured": false,
+    "windowsOwnerCredentialConfigured": false,
+    "credentialReceiptRequired": false,
+    "credentialBytesRead": false,
+    "publicOrigin": "https://gateway-mcp.ordivon.com",
+    "cloudflareAccessTrustPreserved": true,
+    "reason": "Runtime owner routes are intentionally unconfigured until the separately-owned node-local credential authority can materialize approved bearer projections. This replaces misleading unauthenticated owner calls with explicit fail-closed configuration truth."
+  },
+  "liveProjection": {
+    "gatewayVersion": "0.6.0",
+    "truthRole": "non-authoritative-routing-projection",
+    "runtimeLinux": {
+      "configured": false,
+      "available": false,
+      "observationError": "owner endpoint is not configured"
+    },
+    "runtimeWindows": {
+      "configured": false,
+      "available": false,
+      "observationError": "owner endpoint is not configured"
+    },
+    "artifactRuntime": {
+      "configured": false,
+      "available": false
+    },
+    "hostContinuity": {
+      "configured": true,
+      "available": true
+    },
+    "directLinuxRuntimeOwnerAvailable": true,
+    "directWindowsRuntimeOwnerAvailable": true
+  },
+  "hostAcceptance": {
+    "schema": 9,
+    "doctorHealthy": true,
+    "publicGatewayHostReadbackAfterCutover": true
+  },
+  "lifecycleAcceptance": {
+    "controlledScmRestart": true,
+    "reconvergedRunning": true,
+    "reconvergedStartMode": "Auto",
+    "loopbackHealth": "ok",
+    "releasePathStillExactAfterRestart": true
+  },
+  "connectorCurrentness": {
+    "gatewayDeclaredToolCount": 29,
+    "currentChatConnectorEnumeratedToolCount": 28,
+    "capabilitySearchPresentInLiveRelease": true,
+    "capabilitySearchPresentInCurrentChatConnectorCatalog": false,
+    "classification": "CONSUMER_CATALOG_REFRESH_REQUIRED",
+    "truthBoundary": "A stale already-established connector tool catalog is consumer currentness, not Gateway release failure. Refresh/reconnect must rediscover tools/list rather than weakening Gateway or reintroducing compatibility aliases."
+  },
+  "jobs": {
+    "linuxOwnerCredentialMetadataCensus": "job-01a0e677-8980-7b62-9231-b5627ffc55f6",
+    "releaseTreeEquivalence": "job-01a0e67a-11d3-7fd1-85a3-227b47b315b1",
+    "releaseMetadata": "job-01a0e67a-42f1-7603-ac23-3762e7efae9d",
+    "aclCensus": "job-01a0e67a-7c2a-7a93-95f1-4f62711da95c",
+    "serviceMaterialization": "job-01a0e67b-94ff-7ae2-9de6-701101af1f82",
+    "serviceActivation": "job-01a0e67b-c76b-70f2-aada-ce24b0b6051c",
+    "localPostActivation": "job-01a0e67c-0a35-7ec3-88e0-9cfee21cadd9",
+    "scmRestartRequalification": "job-01a0e67c-d2c4-73e2-8a9d-9b032866c941"
+  },
+  "rejectedPaths": [
+    "raw secret output through model/tool context",
+    "manual WSL-to-Windows bearer copying",
+    "bypassing HUMAN_REQUIRED/platform-safety-blocked credential authority",
+    "pretending direct Runtime owner availability makes public Gateway owner authentication configured"
+  ]
+}

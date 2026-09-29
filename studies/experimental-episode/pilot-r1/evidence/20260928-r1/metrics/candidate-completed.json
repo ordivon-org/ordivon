@@ -1,0 +1,30 @@
+{
+  "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+  "computationMode": "deterministic",
+  "construct": "Whether the Harness run reached candidate_completed under its completion contract.",
+  "evidenceMinimum": "deterministic-observation",
+  "kind": "ordivon.experimental-metric-spec",
+  "knownLimitations": [
+    "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority."
+  ],
+  "metricClass": "outcome",
+  "metricId": "metric:candidate-completed",
+  "missingDataPolicy": "exclude-with-reason",
+  "nonClaims": [
+    "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+    "This small pilot does not license a general model ranking."
+  ],
+  "ownerInputs": [
+    {
+      "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+      "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+      "objectKind": "file",
+      "ownerId": "harness"
+    }
+  ],
+  "replicationUnit": "live-harness-run",
+  "schemaVersion": 1,
+  "specDigest": "sha256:0489d02725069ce0ed6af2634ad0d3f287e78257d15d1b204e475f3dcdb2cc4f",
+  "unitOfAnalysis": "live-harness-run",
+  "valueShape": "binary"
+}

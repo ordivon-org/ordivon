@@ -1,0 +1,1169 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.canonical-publication-patch-dedupe",
+  "truthRole": "exact-stable-patch-and-open-pr-head-observation",
+  "providerBase": "6299a196298d46cac489e0b127a43d57199c4389",
+  "localHead": "9dcc6e87f06488fa3a58b51404863a1f3211d3a3",
+  "openPullRequests": [
+    {
+      "headRefName": "dependabot/npm_and_yarn/platform/workstation/providers/cloudflare/tsx-4.23.15",
+      "headRefOid": "53b6ef23a54888c2d8b3eea97bacd608d223c6c4",
+      "number": 29,
+      "title": "build(deps-dev): bump tsx from 4.23.1 to 4.23.15 in /platform/workstation/providers/cloudflare"
+    },
+    {
+      "headRefName": "dependabot/npm_and_yarn/platform/workstation/providers/cloudflare/cloudflare/workers-types-5.20260920.1",
+      "headRefOid": "423116883c5ba13e62cc0c6263ef28c546f20fa7",
+      "number": 28,
+      "title": "build(deps-dev): bump @cloudflare/workers-types from 5.20260727.1 to 5.20260920.1 in /platform/workstation/providers/cloudflare"
+    },
+    {
+      "headRefName": "agent/runtime-storage-pressure-rootfix-r1-20260923",
+      "headRefOid": "a09d16d1a787ce3d09133431839a5410f686bcb9",
+      "number": 27,
+      "title": "fix(runtime): guard workspace growth under host storage pressure"
+    },
+    {
+      "headRefName": "dependabot/npm_and_yarn/platform/workstation/providers/cloudflare/types/node-26.6.2",
+      "headRefOid": "9a1c1e44caf3f9e26534c339624e785a26fde120",
+      "number": 14,
+      "title": "build(deps-dev): bump @types/node from 26.1.1 to 26.6.2 in /platform/workstation/providers/cloudflare"
+    },
+    {
+      "headRefName": "dependabot/npm_and_yarn/domains/game/types/node-26.6.2",
+      "headRefOid": "a02ee3e33635f4a3035e8514416530512bd4e72b",
+      "number": 13,
+      "title": "build(deps-dev): bump @types/node from 26.6.1 to 26.6.2 in /domains/game"
+    },
+    {
+      "headRefName": "dependabot/npm_and_yarn/capabilities/media/types/node-26.6.2",
+      "headRefOid": "a626e5c812788e3bac7d2039068d8d541edb40a8",
+      "number": 12,
+      "title": "build(deps-dev): bump @types/node from 26.6.1 to 26.6.2 in /capabilities/media"
+    },
+    {
+      "headRefName": "dependabot/npm_and_yarn/platform/workstation/providers/cloudflare/wrangler-4.115.0",
+      "headRefOid": "47bf923d167bdd5b1e466801b15fb10e644e344a",
+      "number": 10,
+      "title": "chore(deps-dev): bump wrangler from 4.114.0 to 4.115.0 in /platform/workstation/providers/cloudflare"
+    },
+    {
+      "headRefName": "dependabot/cargo/services/runtime/base64-0.23.1",
+      "headRefOid": "0f827465a6bafd864246ca706fda09cfa163e003",
+      "number": 6,
+      "title": "chore(deps): bump base64 from 0.23.0 to 0.23.1 in /services/runtime"
+    },
+    {
+      "headRefName": "dependabot/cargo/services/runtime/reqwest-0.12.28",
+      "headRefOid": "b11d6e15fd93d3b3b47f9fed88dd86f8a4ebdc3b",
+      "number": 5,
+      "title": "chore(deps): bump reqwest from 0.12.23 to 0.12.28 in /services/runtime"
+    },
+    {
+      "headRefName": "dependabot/cargo/services/runtime/schemars-1.2.2",
+      "headRefOid": "adb066ed0931d717e9399036cd24f5073c3a3a2d",
+      "number": 4,
+      "title": "chore(deps): bump schemars from 1.2.1 to 1.2.2 in /services/runtime"
+    },
+    {
+      "headRefName": "dependabot/cargo/services/runtime/serde-1.0.229",
+      "headRefOid": "51f8e58c920aac5fd1b6a38308da978987343455",
+      "number": 3,
+      "title": "chore(deps): bump serde from 1.0.228 to 1.0.229 in /services/runtime"
+    },
+    {
+      "headRefName": "dependabot/cargo/services/runtime/tower-http-0.7.1",
+      "headRefOid": "824b30a169c7ce5a0ac46aba5a8360522a89723a",
+      "number": 2,
+      "title": "chore(deps): bump tower-http from 0.6.11 to 0.7.1 in /services/runtime"
+    },
+    {
+      "headRefName": "dependabot/github_actions/jdx/mise-action-4.3.0",
+      "headRefOid": "29955d555c09878ee0c625d5ed92a85e5cbb1e0b",
+      "number": 1,
+      "title": "chore(deps): bump jdx/mise-action from 4.2.3 to 4.3.0"
+    }
+  ],
+  "rows": [
+    {
+      "sha": "8778425bafbaedf9ab5f99037fb3935271d3f47c",
+      "subject": "meta: add experimental episode r1",
+      "patchId": "b99282659876e3a7cf766686a7f4f7a2a1d6f8d7",
+      "providerMatches": [
+        "558e7c4766034eb0389690f132e0f5d494bd9921"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "dd8128ac1386174d6bdf04b9160c6b3465b2098f",
+      "subject": "feat(composition): add verification obligation bindings",
+      "patchId": "c9bb3f79cf228cc3e5e7685fef66bd4670eec456",
+      "providerMatches": [
+        "4a0dd60ea984d7c03ac89c36bc31b50d7d0e7115"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "7dc50e0908c2d739be5a1a16c1d4582ad9508220",
+      "subject": "test(next): dogfood formal verifier binding",
+      "patchId": "dec8c32392a82cc58ea6d8c46bff71db4ee01050",
+      "providerMatches": [
+        "eb03c5aea14c90d071c03463edb4ced01cae38c9"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "1b0158d2c65c90b083b7d62f276be2ffbfb6742a",
+      "subject": "evidence(next): freeze formal obligation dogfood",
+      "patchId": "ca578ff66b5143f4a6d33e687ebc641618c9907c",
+      "providerMatches": [
+        "9602d3b51cbb067063ad1565a9cb153b7350bbba"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+      "subject": "docs(next): freeze verification architecture sequence",
+      "patchId": "7485dbfe68472ad4a4167fa79804d2f992c26923",
+      "providerMatches": [
+        "1947de79e31c97f3653962020dafdacd7f171989"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "f2ac36acd8affe18123160c4fac811c1afb1a005",
+      "subject": "composition: add successor contract r1",
+      "patchId": "2973e4da0d8244d940dce5ccedb491ad1a3b7d40",
+      "providerMatches": [
+        "43216ba98a325b1fe6b56fff32015cf1ac1d3f3d"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "10bdccd13fd6486f0379f0efd1f2443ce7d0caac",
+      "subject": "meta: add episode postgres and system analysis r1",
+      "patchId": "78fe0c1962ac561806db737fd27b6d4abecbd868",
+      "providerMatches": [
+        "f430f8ad6c9b830ad6db2fb96a686021fcd2ee50"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4e4ec63732cfc4452818ddf40093557c8f051156",
+      "subject": "meta: bind episode corpus to data lifecycle standards",
+      "patchId": "2e380ab7b7f848937f72debad6aa4abe3a731932",
+      "providerMatches": [
+        "53b3e1cba035e5b26e9ad113050d0c9f51f97f55"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "60322a3af8aff6fd31f79f93f812617bb78a5802",
+      "subject": "meta: requalify experimental episode owner boundary",
+      "patchId": "5cc934b52768db51345c5954d2f849e6a1cb188f",
+      "providerMatches": [
+        "dcd8f4523c03e87ff15bfb42b8d2709bbf681e5c"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "0bfa095cd0dc19410a9b66d2978547ddbb524395",
+      "subject": "feat(security): add gateway capability authz contract",
+      "patchId": "77b0c4d6ab6d12ebf26e7a23dd22979a45716cf0",
+      "providerMatches": [
+        "b7738f25a32bc6d6c842f8ad56328024f9e907bd"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "3365f881a6c1efe1a3dc4ed59394acc76d6ae349",
+      "subject": "refactor(skills): relocate canonical agent skills to root",
+      "patchId": "c9c120cbfa2d564f55e1126a3dd7f65ce7e5528d",
+      "providerMatches": [
+        "8f89dbfaef6c7b6b85e7bc7267f3b02541932667"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "08c5fdffab41713eca2c6ccd5faf20cc5369a909",
+      "subject": "docs(architecture): freeze intent field census",
+      "patchId": "fafaa565ac210531e9a483db1b498b6e600ede7c",
+      "providerMatches": [
+        "409f26b17f7fae6b60aeb1be591bf2d34899417c"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6b70f418b5e444406e31b5566ba573a2cddd67e2",
+      "subject": "docs(architecture): freeze evidence boundary census",
+      "patchId": "92f2db1d0dea6a354d8c72eba3bf52ba8f2ff9b4",
+      "providerMatches": [
+        "29bf3ddb00fddd545924dc80853169aeb7ff827a"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6d8fef8c4e9adef10cee4aeab99e36951b9b6e90",
+      "subject": "docs(architecture): freeze learning data ownership census",
+      "patchId": "84241559adfb55985ddc1ea6d8aacec5a5f9d02a",
+      "providerMatches": [
+        "2476f5f1ec0f59fa0d5c961b9961ac72f64aa1f4"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+      "subject": "feat(next): add social fabric projection r1",
+      "patchId": "3722b5da90377cee52c8b74ffafdfd7b9aaa530a",
+      "providerMatches": [
+        "99d0d348e011886d23b6abfdcf38478a9e706eeb"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d833da4a53b95157dfed0cac6009fa10f95f7ae0",
+      "subject": "research: admit thin scholarly intelligence profile r2",
+      "patchId": "664178a42d791807356f98713cfac60b9629fc0a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "977e57e6813afa923bf6d69f59e5b25322f336da",
+      "subject": "research: bind scholarly r2 current-main requalification",
+      "patchId": "9f22ff1c3cc7c95396d2abf943f94a449c6b495a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "aec6cd0f061703ae367584aa93040b2609c32444",
+      "subject": "meta: extract evaluation boundary r1",
+      "patchId": "810c58a1e780e81ac508a817e0bed9fa8c14fe69",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "c7be9615b9ab1e2044d3f4acb898638ea58d77ed",
+      "subject": "meta: extract evaluation boundary r1",
+      "patchId": "810c58a1e780e81ac508a817e0bed9fa8c14fe69",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e48b2eab5fb743efa3b50cb1eceae4539e1c99a7",
+      "subject": "refactor(runtime): extract reservation contract",
+      "patchId": "019c421512e95e204ce556be37f93f9a3e1ca51d",
+      "providerMatches": [
+        "b21c178fb7938698e9069e8784f289e0af441c9c"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ae2de5bbb801bfe2a99b268b442afc3ac81c2659",
+      "subject": "Merge commit 'c7be9615b9ab1e2044d3f4acb898638ea58d77ed'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "268681bbe2edde120deb529bcbe2e7696edf082b",
+      "subject": "feat(next): add social coordination shadow r2",
+      "patchId": "1dd8f82cd03678ff495847f43754d47c9f33f435",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d81c8af1d9e548b916b08b38c1ef314e8417e72f",
+      "subject": "refactor(structure): relocate ChatGPT skills compatibility edge",
+      "patchId": "f5b5bc549ef518a35f462d449fa1bfeb90c9fb72",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "53d931ae9150a12cdad106fe27f5109ea05339d6",
+      "subject": "capital: compile lego circuits and authority gates",
+      "patchId": "e52d0d3eaa81b8a54a30513c19f6098374a19435",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "32eae7c1f15d9a0a45289088f1a86b4879813512",
+      "subject": "capital: accept lego architecture r1",
+      "patchId": "a864b1184a337c0ff423a68c1ea70120532434fc",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "942bd3c88e754ca4edc190028f2d859c028509bc",
+      "subject": "meta: freeze governed improvement profile r1",
+      "patchId": "07a0a09da26cb828e786fd3e6f7a9c7c89ea1229",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "10cdbcdb33e19d9fe7fda7d57f3d33fa3eb8022c",
+      "subject": "feat(agent): add bounded Harness run composition UX",
+      "patchId": "cf8226db58d7b49976b1d44bb22d633aed0bf45c",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d1b058f6d534c3f980d5b65307be243bfa4ddcf5",
+      "subject": "capital: align advisory skills with structure r2",
+      "patchId": "bd21bcdf98bb4794d21deecc1746c25bd6b5abaa",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6cf6d96e106f226aca43e59d2d72e33157fe68c9",
+      "subject": "research: add scholarly data plane catalog r1",
+      "patchId": "192c49dead4d20a640b61585b677d079271da78f",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "1583396fce750a5be271c468b6a1a50a8060e02f",
+      "subject": "capital: record latest-main r1 integration",
+      "patchId": "d17a1dcc983cb97e682c228ff137111599cbfd13",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "14c3c98d9557ddce7caed09efca88925fca3aea5",
+      "subject": "Merge commit '1583396fce750a5be271c468b6a1a50a8060e02f'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "75977cf99f8ef69a2ea70120d72273e9f2af9e93",
+      "subject": "research: bind scholarly data sd1 readiness",
+      "patchId": "397a0cfcf8b6704b8267f091829dade1e614346a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "38c712747589361e363de24cbf82061ea7f269b4",
+      "subject": "fix(repo): finish agent app governance wiring",
+      "patchId": "e3d1ea21f4e424c7d2b942d58fbaf9e842f2d583",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "dec54eb638243e4d829a43c9471d60124c605f43",
+      "subject": "runtime: factor Windows execution authority model",
+      "patchId": "f6ef88e2e28b40cff620a78ef046c17e66edb608",
+      "providerMatches": [
+        "ce1f553a88848082ff4a9f66bb57e1edc779717a"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "76872ffed4d715fda833d54be6f90e31ec06d3b9",
+      "subject": "runtime: add active-user elevated provider seam",
+      "patchId": "ae383456d6f8290742951d35c9efde584fb7148e",
+      "providerMatches": [
+        "997d07c9b3a69aa920f243fb00235d8fbed11462"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "db683f3634a3df51080cca6534177e2fb98da2fe",
+      "subject": "runtime: wire structured Windows execution contexts",
+      "patchId": "62ca12dd7a6558a3f81f640f6ce9e8d75c4a9ca5",
+      "providerMatches": [
+        "0bb5ea706ac3f494db924a2f13d1ec7a3ef1922b"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d9966a730bd3580dadd4f3ba84d599248e1d97b1",
+      "subject": "Merge commit 'db683f3634a3df51080cca6534177e2fb98da2fe'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "b473874b018bab562760d765195eebbea890fbe4",
+      "subject": "feat(composition): bind external authority obligations",
+      "patchId": "71357a6343e25a29ed3f24fc5535aa35a06cf892",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "2de056ec3bd7f81b9a64d342e44914ded6a4f95f",
+      "subject": "research: materialize ARIES review revision data core",
+      "patchId": "d714224702e6899ba63c2660504b0dd672380f7e",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "9cab0e9c968dacdb2e7a22462a6a5d98193b0940",
+      "subject": "research: add ARIES manual review revision baseline",
+      "patchId": "1fafbf752fcd6c893b199903f805360fa96e7447",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "c70e63b0b72b2fce954fb24e4a76f84db3b25746",
+      "subject": "research: materialize DISAPERE review rebuttal data core",
+      "patchId": "67b3de272571838ec5203b1b10bb441a17ed3818",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "66bdd46b457bca6a9e37e61c9540e1242117f425",
+      "subject": "research: add review lifecycle evidence schema r1",
+      "patchId": "8fb284c560b4bee18acd49f2303815d1857a95c2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "0dcead882cec69318243326858a13fa48989a772",
+      "subject": "meta: extract incident case profile r1",
+      "patchId": "333d4458c099b07437d42ec63363ece375578487",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ce764f12e9ff31e50573fba1257c79cc32a0589d",
+      "subject": "feat(agent): lower resolved circuits into harness contracts",
+      "patchId": "ca65eec08a3bb32334c8dea2985844c1ec22eb03",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "b077c9246bda15f032f7f0c70ba716d34752e2ec",
+      "subject": "capital: migrate r2 composition and currentness",
+      "patchId": "6c40813a918d151b4b82084ed9b4547e199c7ce2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "673b49efa291d5a544609a36640396423340acd8",
+      "subject": "capital: accept r2 composition architecture",
+      "patchId": "f9ce076fe2ea437fcce6a174e03fd012f2efbb9a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "b624916bbaa22e6caae6feff58e36f053647f691",
+      "subject": "Merge commit '673b49efa291d5a544609a36640396423340acd8'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "fc9ca3c983ea734b81418b7a70edd21dbb6006f9",
+      "subject": "fix(runtime): close factorized Windows clippy boundary",
+      "patchId": "615d6e2e7d7d7009455eafb6bb3190343c699b30",
+      "providerMatches": [
+        "d3abfccdd416398448badd2a4f239fe21594b33e"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e82ac3c19c18eb17e4d3a6df39333e0b1686739a",
+      "subject": "feat(next): add social commitment shadow r3",
+      "patchId": "470db584193e6d5388be50219a1c831e8ddf65f2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6784677ce09a7495d133be436807af6f690c5867",
+      "subject": "feat(agent): add read-only product run view",
+      "patchId": "435c8d039172222e913d6190123ebe5a833e22ac",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "591672cd8637ba4fdc68bc3f31ce5a90918cdb71",
+      "subject": "docs(harness): record canonical HUX-40 integration",
+      "patchId": "87d6f0c9105aa0c0d4dcbbb5542e623f794b2e95",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "19c189f35012ae68065932ce6c75188a2a960eaf",
+      "subject": "runtime: guard workspace carrier headroom",
+      "patchId": "379b3e36b0f919b7f899485f62edd60372d24cef",
+      "providerMatches": [
+        "25999aa56e4d8b1570b0e345b4503ffa77dee618"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "045cf62eed2e1039ab39d71bdc179349d1e974b9",
+      "subject": "fix(harness): align runtime job tool contract",
+      "patchId": "c9dd113236c344df67003cb27cae16abbd54ab7b",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "abe50421f564e4a0f59ddcf41f52bccc51248d8b",
+      "subject": "test(harness): requalify runtime job tool contract",
+      "patchId": "14d2a69029d71667f5ec20bc9afb8f6fef372625",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d3345713a0113deb7800ed523e9b503fb78be60a",
+      "subject": "runtime: guard workspace carrier headroom",
+      "patchId": "379b3e36b0f919b7f899485f62edd60372d24cef",
+      "providerMatches": [
+        "25999aa56e4d8b1570b0e345b4503ffa77dee618"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "832468936934e03aa2b8f67836182a8543b124a6",
+      "subject": "refactor(next): recompile social fabric against standards",
+      "patchId": "973d2a2bd2e947202c714eeac8354964a91d39ec",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "aea965f212d7dda6b0ab25abec2a9104542f0089",
+      "subject": "feat(host): converge northbound continuity UX",
+      "patchId": "767af3bad854dd9cd705a8a31a02e1a3991755d5",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "354d885d411de5acbb360df2694aa95e310715bc",
+      "subject": "docs(runtime): close reservation contract milestone",
+      "patchId": "a235740d08db170719acb105ec46b50676ee2b4b",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "5f9a41313624406b3381a06612b87e493951ab9e",
+      "subject": "Merge commit 'aea965f212d7dda6b0ab25abec2a9104542f0089'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "1b1986e5959663bf1a69f1353be622d0e415aa11",
+      "subject": "feat(next): extend social fabric cross-disciplinary model r2",
+      "patchId": "eb3bf8b6c1eee6364f2b2e4ad43cb39f0252684c",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ab2cdde65a9a7005d5be9b5e24a3dfd78930b096",
+      "subject": "research: admit PeerSum and extend review lifecycle r2",
+      "patchId": "81ce3af969de6ab5efcb14500730943aeeeb435d",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "15213733da5c90030dd59d37d0776d1ded6eb528",
+      "subject": "docs(architecture): freeze first real C08 episode",
+      "patchId": "d9125ce6dc13043d59cf9df51cc65e3405f414a4",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6d2c9010492c7fce2895939f2ffbdedf6037bb12",
+      "subject": "Merge commit '15213733da5c90030dd59d37d0776d1ded6eb528'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "2954b576fc06a9cbe2646d0a7a9adf216729b182",
+      "subject": "refactor(runtime): extract artifact and release state contracts",
+      "patchId": "09bb6ba472c6dd1661af6d96ad390c15c93fcfb6",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "029899e46d932ce3fe05e06ddf9ee63ba9944fee",
+      "subject": "docs(runtime): close artifact release state milestone",
+      "patchId": "94a6ac510696d52199b50d150c6b0bab8bcafd89",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "a25638ecadd807d68035b09eb079c6f1800b07cd",
+      "subject": "Merge commit '029899e46d932ce3fe05e06ddf9ee63ba9944fee'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+      "subject": "fix(gateway): sort Windows release tool contract",
+      "patchId": "3ff08d8f7876e190d068a5685adf6ee7c4758b71",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "8488f8db151dd556ed9238b9d24d43349af66e55",
+      "subject": "research: admit Context24 claim evidence core",
+      "patchId": "d30399e2582617409f913916a8275f0dcca00abf",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e8217597a122af458a36f445656b9794bc7336f4",
+      "subject": "feat(next): complete social fabric reality wave r2",
+      "patchId": "22b24c35cad81ca8e52852054d1099dcc26f7e75",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e56ff76eda18db2921688e5d3e6a46bb5eb50c0e",
+      "subject": "feat(next): separate social signaling semantics r3",
+      "patchId": "6e4f42ef221fad1a0c21ddbb237df3becea14bc7",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "7b9dc84f3df12802fe1bd210367e4b8c25b52836",
+      "subject": "feat(next): add social epistemic and feasibility boundary r1",
+      "patchId": "846f262522d5697cf141cc6f8c97ad15efa3cd93",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4b092fa709acb6aca3a43c8f74a09fc3427102ff",
+      "subject": "research: add ARIES same-authority lifecycle fork r3",
+      "patchId": "66c4ee8eb514bdabeeb5945a7a18db9566e7656f",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "af49799cb74c16c11735b6a84d485ece96177027",
+      "subject": "merge: reconcile local and published main 20260923",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "c2fb7ded8c6e8ba072d038d859d0eacfaaffc8bf",
+      "subject": "docs(architecture): close learning query pressure gate",
+      "patchId": "07a2798c032a46a67e2c0a8e2abd57487a68d508",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "63bb08a2eedc2e287702a2577210008cea4303b0",
+      "subject": "Merge commit 'c2fb7ded8c6e8ba072d038d859d0eacfaaffc8bf'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "f8f5885c5c56820f272307478e6339b60ec80666",
+      "subject": "refactor(runtime): extract registry storage boundary",
+      "patchId": "c8747f88f1c40def88452fcb99cef542ecc104ec",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "a78a8ac2ab791529b08a798032727210afb97c17",
+      "subject": "docs(runtime): close registry storage boundary milestone",
+      "patchId": "82935e3aaea625e9b902659d93eacfd9d99845be",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4a9dc4bfba89b15ab3d8e03b14cf4f44038e85d3",
+      "subject": "docs(host): reconcile live HUX deployment evidence",
+      "patchId": "10fa00733283783642c7ccd7a37953a4f339ed5d",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "3543317f57a5d16250530ea15fcdeaa71a3e6dae",
+      "subject": "Merge commit 'a78a8ac2ab791529b08a798032727210afb97c17' into HEAD",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "f2637703be1e5e47f485b500e94a73f56c775746",
+      "subject": "Merge commit 'fdfd4e8a66deacae5dc7bd7409263fe31f55ba5b' into HEAD",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "1971f678192eb0c0c496f2a99d396652bb31aee9",
+      "subject": "Merge commit '4a9dc4bfba89b15ab3d8e03b14cf4f44038e85d3' into HEAD",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "c49023f4748252271807eb0838c9b2d37723ccf9",
+      "subject": "refactor(infra): enforce core service liveness contract",
+      "patchId": "db64e87c7720c6134177eabc79e8c9b879858714",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "27aff44aa7b3480d12b46e21676ad749ba2b6daa",
+      "subject": "research: bind Context24 evidence content core r2",
+      "patchId": "1b5ec58560834353e125a1f72dd7582b35c19143",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "a5bb9b13ba196c55c2462674aeacbf8fd340006c",
+      "subject": "merge: reconcile provider PR34 with local convergence frontier",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e3c50f70b012ad51b3aabfe6e3fbc87cde83e3f0",
+      "subject": "feat(next): add social fabric agent ux wave5",
+      "patchId": "b8addb090c6b3afdf35afb673428ca4b54648dc6",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "db7dac63d5b4694e11dd762b2d7007b0db3660f0",
+      "subject": "research: pressure test Study-owned ClaimPermission boundary",
+      "patchId": "ef7014213ff6e6202aea4e703ce1ced2457144a3",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "de47cc46f5385035aab6d3173a2768fb6e8814a7",
+      "subject": "docs(infra): close out ILC-R1 live acceptance",
+      "patchId": "105b9509a278a10862ffe69b414b46401f6670b1",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "1c20627bce9ab12bda2e92917962c4c233da6d88",
+      "subject": "feat(next): close social fabric crossdisciplinary r2",
+      "patchId": "11092ebac3b74001decdac7825905bd9ff97d32a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "163db3230483ec932fa8152fb1c9e6bd756e59d5",
+      "subject": "refactor(runtime): compile execution authority contract",
+      "patchId": "3417eba238a9f287d4d5adf13f112755f7c21e40",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "85f1c67405ce3c3eab7d32cfe1eeef8b5d5b99f6",
+      "subject": "docs(runtime): close authority contract milestone",
+      "patchId": "f71ee2ccf46c63138857a0f208324921b254af71",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4a93e385666be113dc4353ae06dc7f736e70d7bb",
+      "subject": "fix(gateway): resolve runtime jobs via job.list",
+      "patchId": "3e887d6ebc95b67d6714464f464f474bdc556618",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d56d1336f8848ce21f7d8736070b7f003599450d",
+      "subject": "fix(harness): hold user browser before unavailable active user",
+      "patchId": "06106f8808ce19933a31aa1fc66221bbee421611",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "24f90b4a275ffb4b0c871adbace28e62875d6c9a",
+      "subject": "feat(harness): bind agent birth attachments by digest",
+      "patchId": "c77a0bd8770e64e21bfa96f15ba57b3ad9b70a2b",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6a60e6738375487ea2aa6bd9a098a020e389f61d",
+      "subject": "fix(harness): gate release on provider policy currentness",
+      "patchId": "9166b39a2d6ee1f7175a9bfaed8bcacdaf1546f7",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "397dee5ef0caa296283253c03da5f277f4fa2a8d",
+      "subject": "refactor(runtime): compile ordinary operation circuit",
+      "patchId": "46021f2cb519d90e9af0d2d64a0de871147646ab",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e0e9874d7a3c7b553a2f4ecb34049946867b513f",
+      "subject": "docs(runtime): record ordinary circuit pilot",
+      "patchId": "cb4b862ea18076e51dba323e04c7e8d56abefd53",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "6deb7d89b2eac7ccf22b99e205f3a238c92de883",
+      "subject": "workstation: record native S4U WSL authority",
+      "patchId": "15e88a57057c51d086ab36513c799fef05f668b2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "62e69c5f4240ba926361668b8dc3ea72ce608ff9",
+      "subject": "verification: add formal trace and data-learning census",
+      "patchId": "8d317654471078c1d9d57b4feba944da27b5e8fd",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "e66aaa1eabcb21b02b58e139b687162dac0e930f",
+      "subject": "verification: graduate runtime formal trace gate",
+      "patchId": "350d47b7bc710e120e2d7222a5c51a67cddc120a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "67b49a5adc7b4a8aa5dc05d694ea871497bac41a",
+      "subject": "docs: compile agent-native measurement improvement loop",
+      "patchId": "d236262ed1bba8ecb27b79a4fccbad5df0972daf",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "67e21c6fc2e8f0ffd68ae35e2a5a95f273fd4110",
+      "subject": "Merge commit '67b49a5adc7b4a8aa5dc05d694ea871497bac41a' into HEAD",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "dbfc108d4a3607e1d396d9e375ae9e4fb037c65d",
+      "subject": "workstation: add durable D-drive compact R3",
+      "patchId": "3211b92c76b69a509e322aab15f592738cc7c2e4",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "3148af0c6bfb198e32d747c83f89b44234e6b3ff",
+      "subject": "workstation: persist R3 gate submission evidence",
+      "patchId": "5bb2d21e5e90daa31c3c0c79b0a34219956d54ff",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "3d55028e0d08b53ec57af6a9dbc61f1165a519f2",
+      "subject": "workstation: fix R3 systemd gate argv",
+      "patchId": "90c9f8fd70ecd70e5293b616f7b8df92f8d0b8ba",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ce4ed2891b0f4eaf2a1036cc9aede074bc290464",
+      "subject": "workstation: decouple R3 gate liveness from WSL polling",
+      "patchId": "12e72fb66b38d49aac154d3d220f131c1f25e40f",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ac19f883604d062177717c49b8676ffa3f88c86b",
+      "subject": "workstation: emit BOM-free R3 JSON receipts",
+      "patchId": "9437de15e20484441a950d4c3c68e49479534ef0",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4ab25316dffb57f15075f6942b52667d9e01bdfd",
+      "subject": "workstation: harden R3 handoff and failure recovery",
+      "patchId": "39fd31de15ea3ec7647d3e8497a3c1d1b14f21f3",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "798e88fa0ff9509aecd455b64e76bc54eff8a150",
+      "subject": "workstation: avoid PowerShell Host collision in R3 recovery",
+      "patchId": "a8dfb9285a60c517bc56fff29b55e1c462228a89",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "8b0e833e93480c128355b83db0958a9252390f01",
+      "subject": "research: rebind live Study profiles by exact bytes",
+      "patchId": "a7f96358622f68eeb346e5d7a7973ec2eeb275b2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "2a35c20f74c46193b6b57a757f7d9e1580f0f864",
+      "subject": "research: pressure test ClaimPermission maturity gate",
+      "patchId": "3806618f13e1063d1f52b599ef4414c7f9db946a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "40c414a3901c4383a9d7d122fe7716effbe8506e",
+      "subject": "refactor(runtime): compile reduced immutable-input circuit",
+      "patchId": "93f130dafc0d5eb379c633033ff29423acfdc15c",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4fd60ec63a312d0b43fce5e8eed15774218595b2",
+      "subject": "fix(harness): reconcile proven pre-driver browser failure",
+      "patchId": "5b2e025aa84ba511545efe332b5283adc9dc6639",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "da398fb9d326a13b1dad72711c8ebabbdcd9f74c",
+      "subject": "docs(runtime): record reduced immutable circuit slice",
+      "patchId": "85ea75771da94555cef1612c583bdbda763eeca4",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "92cb26706eaaa54ebd2ad5299d68a0964d8aca6c",
+      "subject": "Merge commit 'da398fb9d326a13b1dad72711c8ebabbdcd9f74c'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ee4e8fbf315a8ebc614de3b41420d1e37d710a7f",
+      "subject": "fix(harness): separate effect and retry attempt identity",
+      "patchId": "fafc636d6f53f92303b5a59b47dcb43bc75ac600",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "7a9ae36be996888338c101b29296ad4285927967",
+      "subject": "merge: converge provider runtime recovery authority",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "c6c2f45241d143e5847486bac7311665fa49f757",
+      "subject": "research: admit ARIES semantic response revision substrate",
+      "patchId": "96cc7529d743b9476ce82114f6019254ecb95784",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "40ffc9ce65a9b288624df39cc97a2888a7fb0012",
+      "subject": "workstation: add WSL substrate resilience circuit",
+      "patchId": "fdedbb0ae913187b2d7438db2330fef6d5e8ca9a",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "fa4a5694937c85f33097fd96e8effeeb54927316",
+      "subject": "merge: converge Gateway Windows context carrier",
+      "patchId": "5cc78727808934a7d2aebaf31e6badb31bebb35b",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "b25adf70f6c5d365c4b0db70b9e204b60e1bed52",
+      "subject": "workstation: bound WSL fragmentation evidence window",
+      "patchId": "a6f5de83f86226a4c3b92777e2396da272ece1f2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "ece52e0014d5cb3363e2db762e1a96000ab2144e",
+      "subject": "workstation: record WSL substrate resilience acceptance",
+      "patchId": "813386525a2cc0c7b749afa2fcf2d0f9baec38c5",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "645d50cd51c8efe772de762610e045ea112fb78c",
+      "subject": "refactor(runtime): compile trusted immutable-input circuit",
+      "patchId": "81e8cea8853585e55f2a5942fe3f32a7ac3a23c7",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "b00cb11e4ad0f1a727307d65151ab7a095d7ac39",
+      "subject": "refactor(structure): extract live Next helpers",
+      "patchId": "41bef48a09d121469210c9a23d710e2e22fed289",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "8cd34cba5c6c931f5fd115a3808bc3faa078c16c",
+      "subject": "fix(gateway): preserve Windows public access config",
+      "patchId": "b725c7eaa61d3c848d5f8bf8b01605a72722dc33",
+      "providerMatches": [
+        "ac2b82cd4753c163e59bda4f8f29913f3651ef75"
+      ],
+      "openPrMatches": []
+    },
+    {
+      "sha": "d5b92769ffe3f62a4c8f933b6892a79b57400c15",
+      "subject": "refactor(structure): move episode store to studies",
+      "patchId": "6e542df1105cce741bc678bc709ee62ba86d21f8",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "b741a2dcc48307c9dc9a3e7fc38c4d36e3a5ce9b",
+      "subject": "feat(host): replace task board core with social work fabric",
+      "patchId": "94a1cd33166ba11712e1120e5a699c4efc73f700",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "fb90d918ed6784784e8616cbccdf97df1e30d4ab",
+      "subject": "Merge commit 'd5b92769ffe3f62a4c8f933b6892a79b57400c15' into HEAD",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "c52737fd7bc2b6ccf71418719b220070a620da5f",
+      "subject": "refactor(runtime): compile credential-bound trusted circuit",
+      "patchId": "9dd8b340f57016fe7f49276ca6efb3892a5176d4",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "3ba7dd5d3caae9c6d42fbc83f2d071596bf3ccce",
+      "subject": "capital: rebind finance transport digest",
+      "patchId": "8d4b1fa303e6265148204c83345c66b1fdefeefd",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "1b5448ccb445357e18ced622d1608cc36c16ea38",
+      "subject": "research: prepare ARIES response revision gold annotation gate",
+      "patchId": "5693e7925f3102fd3c3ccb299c163e8de04d2f4e",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "897e504916fca4078847005a4b78198042b1c01b",
+      "subject": "Merge commit 'c52737fd7bc2b6ccf71418719b220070a620da5f'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "0fbdd2445e1a6d2db4da0401d61c41e6d78a0577",
+      "subject": "feat(workstation): route Gateway through Windows tunnel",
+      "patchId": "3e9fa856c0d9ed1a3dc2630ff9b46e194f589b73",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "bec31a81ba5b4ae8fa4310f400cb15f11b6bdd6f",
+      "subject": "fix(workstation): fence Windows Gateway cutover plan",
+      "patchId": "eab7eb2e8edd2b8af647bcd9783d1fdce4f1abbd",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "9fa529cf940fee5bc6d254a6bf4f32c2d839d494",
+      "subject": "refactor(structure): split shared research from studies",
+      "patchId": "209fc345b1fd785959217cdc52a037a46d421b09",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "060b2024bc3b58eec6558ef006f340dc0081beb3",
+      "subject": "docs(runtime): close operation circuit milestone",
+      "patchId": "dfd14d6b8e43d241d032edb7bade08845af7a58c",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "edf6884d24d6d0dea25487663eca23003cbba3b7",
+      "subject": "Merge commit '060b2024bc3b58eec6558ef006f340dc0081beb3'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "f7478c4a917dd94d6be4c3aabe93666367ba820a",
+      "subject": "merge: absorb provider PR40 convergence economics",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "50abfb7a47d75064076fa53c37c96779edc521bc",
+      "subject": "test(runtime): de-flake shared deadline proof",
+      "patchId": "a68cce47a78213a43dd7ebe599c8c625dd8a2886",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "38a836ba61bb2b0583b51f7a467e95e07713b7ba",
+      "subject": "docs(runtime): align RW2 closure standing",
+      "patchId": "711f8b0277a437d041551a8167b27d45f147b274",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "0aea3e3d4338d7dbad8d8d0bf4afe48fb34a6ba6",
+      "subject": "capital: add official Treasury macro observation lane",
+      "patchId": "3db2abca422e202ce6f9d9ebbecef7a4e64be753",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "01d0ac3033dc32c5f206de8399fda1a07ecd2e55",
+      "subject": "network: route Treasury public data explicitly direct",
+      "patchId": "f488a0fb8c45caf49bc92ea1ff0734015e36324f",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "245198c70cfbb12f877fb72746cbbd93a4753e0a",
+      "subject": "network: budget Treasury public readiness latency",
+      "patchId": "f46c4bcd9b0e8ca8b3cde42f47f29f7171d1dbb2",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "537a6e6fbdf7287281073f3137594d035678e7a0",
+      "subject": "network: separate Treasury transport health from XML semantics",
+      "patchId": "97287552da4d1ed8fc3342c531a5e7769ef01bc7",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "4c6d81b1bd68df533e10034d3e01a0df55c70139",
+      "subject": "Merge remote-tracking branch 'origin/main'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "00cd612150a985c9ec07d109cdd2aa08d00f3e8a",
+      "subject": "capital: project macro observation owners in current state",
+      "patchId": "8bea811905694a55a6b25e27adba45be025185b7",
+      "providerMatches": [],
+      "openPrMatches": []
+    },
+    {
+      "sha": "9dcc6e87f06488fa3a58b51404863a1f3211d3a3",
+      "subject": "Merge remote-tracking branch 'origin/main'",
+      "patchId": null,
+      "providerMatches": [],
+      "openPrMatches": []
+    }
+  ],
+  "localLocalDuplicates": [
+    {
+      "redundant": "c7be9615b9ab1e2044d3f4acb898638ea58d77ed",
+      "equivalentTo": "aec6cd0f061703ae367584aa93040b2609c32444",
+      "patchId": "810c58a1e780e81ac508a817e0bed9fa8c14fe69"
+    },
+    {
+      "redundant": "d3345713a0113deb7800ed523e9b503fb78be60a",
+      "equivalentTo": "19c189f35012ae68065932ce6c75188a2a960eaf",
+      "patchId": "379b3e36b0f919b7f899485f62edd60372d24cef"
+    }
+  ]
+}

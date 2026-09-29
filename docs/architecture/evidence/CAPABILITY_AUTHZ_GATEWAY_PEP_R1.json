@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-28",
+  "implementation": {
+    "authorizerInjectionRequired": true,
+    "defaultDeploymentBehaviorChanged": false,
+    "module": "services/gateway/src/ordivon_gateway/capability_authz.py",
+    "serverIntegration": "services/gateway/src/ordivon_gateway/mcp_server.py",
+    "test": "services/gateway/tests/test_capability_authz_middleware.py"
+  },
+  "kind": "ordivon.capability-authz-gateway-pep-source-qualification",
+  "nextGate": "Only after a real issuer/carrier exists may a live artifact.runtime ALLOW/DENY/principal-mismatch canary enable this PEP in a deployed Gateway.",
+  "notProved": [
+    "production Security-issued Agent Admission evidence provenance",
+    "production workload identity provider selection",
+    "artifact.runtime authorization is enabled in the deployed Gateway",
+    "authorization for execution.submit, execution.get, execution.cancel, or other Gateway tools",
+    "object-level cross-principal Runtime Job/Artifact lifecycle authorization",
+    "provider effect occurrence or semantic/domain success"
+  ],
+  "proved": [
+    "verified ingress principal and issuer are read from trusted HTTP request state rather than tool arguments",
+    "caller-authored identity-looking or agentAdmission-looking tool arguments cannot replace trusted ingress identity",
+    "artifact.read is the only default protected tool in the source-qualified PEP map",
+    "missing ingress identity fails closed before owner invocation",
+    "Security DENY and STEP_UP fail closed before owner invocation",
+    "Security decision principal/issuer/capability/qualification bindings are rechecked by Gateway",
+    "ALLOW requires both authorityProjection and admitted effectAdmission before owner invocation",
+    "unprotected tools bypass this narrow PEP rather than being silently generalized",
+    "Gateway still does not mint Principal/Agent/Grant/Effect/Approval evidence or own policy semantics"
+  ],
+  "qualifiedCapability": "artifact.runtime",
+  "qualifiedTool": "artifact.read",
+  "remainingBlocker": "A trusted Security/provider adapter must establish current Principal/Agent/Grant/Effect/Approval evidence provenance. Harness may carry such evidence over authenticated local-service ingress, but Harness ToolGrant/Run evidence cannot be reinterpreted as the Security Grant or approval issuer.",
+  "runtimeEvidence": {
+    "architectureGuardJob": "job-01a0e6c8-5fb9-7ed1-a8ac-816803236f43",
+    "firstVerifyDispatches": 1,
+    "firstVerifyDuplicateDispatches": 0,
+    "firstVerifyJob": "job-01a0e6c1-c35e-7e40-9c24-4fe6e1311cda",
+    "firstVerifyStanding": "FAILED_FORMAT_ONLY_AFTER_LATE_RUNNER_RESULT_RECOVERY",
+    "formatterJob": "job-01a0e6c6-fc28-76f3-91e5-1d1e2651d4d7",
+    "gatewayVerifyJob": "job-01a0e6c7-1f63-7963-a67f-e207909674ae",
+    "gatewayVerifyStanding": "PASS",
+    "implementationJob": "job-01a0e6bd-b514-7f60-94d9-b6d36726fd87",
+    "preFinalizeRepositoryCiJob": "job-01a0e6c9-45c1-79d0-8953-47e4242528bf",
+    "preFinalizeRepositoryCiStanding": "PASS"
+  },
+  "schemaVersion": 1,
+  "scope": "CPF-21A Gateway PEP mechanics only; Security evidence issuance/provenance remains open",
+  "sourceBaseline": "3a37b934c27227dbeb48f50c18d14f086bf5346f",
+  "truthBoundary": "Source/test qualification only. No live Gateway authorization behavior or external effect is claimed."
+}

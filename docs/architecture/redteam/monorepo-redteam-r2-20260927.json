@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.monorepo-redteam-finding-ledger",
+  "truthRole": "redteam-candidate-not-yet-main-integration-authority",
+  "observedAtDate": "2026-09-27",
+  "successorTo": "monorepo-redteam-r1-20260927.json",
+  "truthFence": {
+    "currentMain": "2bc46824d986c842375759ff39c731ee79195c5b",
+    "dynamicAttackSource": "7661bdf90ce0878c39b8cdebf565ff2b01a686df",
+    "canonicalOrigin": "git@github.com:ordivon-org/ordivon.git"
+  },
+  "findings": [
+    {
+      "id": "RT-ASSURANCE-001",
+      "class": "CONFIRMED_NEW",
+      "priority": "MEDIUM",
+      "title": "Runtime conformance treats inert nested workflow source as active CodeQL evidence",
+      "owners": ["runtime-assurance", "repository-mechanics"],
+      "evidenceRefs": ["evidence/RT_ASSURANCE_001_NESTED_WORKFLOW_EVIDENCE_R1.json"]
+    },
+    {
+      "id": "RT-EVIDENCE-001",
+      "class": "CONFIRMED_NEW",
+      "priority": "MEDIUM",
+      "title": "Runtime conformance generator emits fresh observations under a hard-coded historical subject",
+      "owners": ["runtime-assurance-evidence"],
+      "evidenceRefs": ["evidence/RT_EVIDENCE_001_SUBJECT_BINDING_R1.json"]
+    },
+    {
+      "id": "RT-SECURITY-001",
+      "class": "CONFIRMED_NEW",
+      "priority": "MEDIUM",
+      "title": "Canonical monorepo lacks a repository-local recognized vulnerability-reporting authority",
+      "owners": ["repository-governance", "security"],
+      "evidenceRefs": ["evidence/RT_SECURITY_001_REPORTING_AUTHORITY_R1.json"]
+    }
+  ],
+  "negativeControls": [
+    {
+      "id": "RUNTIME-ORPHAN-RECOVERY-R2",
+      "standing": "HELD",
+      "evidenceRef": "evidence/RUNTIME_ORPHAN_RECOVERY_NEGATIVE_CONTROL_R2.json"
+    }
+  ]
+}

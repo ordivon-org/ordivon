@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.investment-decision-outcome-attribution-v1",
+  "title": "Ordivon Capital Decision Outcome Attribution v1",
+  "type": "object",
+  "required": ["schemaVersion","kind","truthRole","decisionId","decisionRecordDigest","decisionAsOf","outcomeObservedAt","realizedReturn","benchmarkReturn","excessReturn","decisionStanding","stateTags","activeModelRoutes","causalAttributionClaimed","skillClaimed","modelValidatedByOutcome"],
+  "properties": {
+    "schemaVersion":{"const":1},
+    "kind":{"const":"ordivon.capital.investment-decision-outcome-attribution"},
+    "truthRole":{"const":"EX_POST_MEASUREMENT_NOT_CAUSAL_OR_SKILL_ATTRIBUTION"},
+    "decisionId":{"type":"string","minLength":1},
+    "decisionRecordDigest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "decisionAsOf":{"type":"string","format":"date-time"},
+    "outcomeObservedAt":{"type":"string","format":"date-time"},
+    "realizedReturn":{"type":"string"},
+    "benchmarkReturn":{"type":["string","null"]},
+    "excessReturn":{"type":["string","null"]},
+    "decisionStanding":{"type":"string","minLength":1},
+    "stateTags":{"type":"array","items":{"type":"string"}},
+    "activeModelRoutes":{"type":"array","items":{"type":"string"}},
+    "causalAttributionClaimed":{"const":false},
+    "skillClaimed":{"const":false},
+    "modelValidatedByOutcome":{"const":false}
+  }
+}

@@ -25,16 +25,18 @@ class OkxReadOnlyCredentials:
 
 
 class OkxReadOnlyClient:
-    """Three-endpoint OKX authenticated reader.
+    """Bounded OKX authenticated GET-only reader.
 
     This class deliberately has no generic public request method and no POST/PUT/DELETE
     surface. Provider truth remains OKX; this implementation owns only HMAC signing,
-    HTTPS-over-proxy, and response parsing for the admitted GET-only observation contract.
+    HTTPS-over-proxy, and response parsing for the explicitly admitted observation set.
     """
 
     _ACCOUNT_CONFIG = "/api/v5/account/config"
     _ACCOUNT_BALANCE = "/api/v5/account/balance"
-    _SPOT_OPEN_ORDERS = "/api/v5/trade/orders-pending"
+    _ACCOUNT_POSITIONS = "/api/v5/account/positions"
+    _OPEN_ORDERS = "/api/v5/trade/orders-pending"
+    _FILLS = "/api/v5/trade/fills"
 
     def __init__(
         self,
@@ -99,8 +101,17 @@ class OkxReadOnlyClient:
     def get_account_balance(self) -> list[dict[str, Any]]:
         return self._private_get(self._ACCOUNT_BALANCE)
 
+    def get_swap_positions(self) -> list[dict[str, Any]]:
+        return self._private_get(self._ACCOUNT_POSITIONS, {"instType": "SWAP"})
+
     def get_spot_open_orders(self) -> list[dict[str, Any]]:
-        return self._private_get(self._SPOT_OPEN_ORDERS, {"instType": "SPOT"})
+        return self._private_get(self._OPEN_ORDERS, {"instType": "SPOT"})
+
+    def get_swap_open_orders(self) -> list[dict[str, Any]]:
+        return self._private_get(self._OPEN_ORDERS, {"instType": "SWAP"})
+
+    def get_swap_fills(self) -> list[dict[str, Any]]:
+        return self._private_get(self._FILLS, {"instType": "SWAP"})
 
     def _private_get(
         self,
@@ -110,7 +121,9 @@ class OkxReadOnlyClient:
         if path not in {
             self._ACCOUNT_CONFIG,
             self._ACCOUNT_BALANCE,
-            self._SPOT_OPEN_ORDERS,
+            self._ACCOUNT_POSITIONS,
+            self._OPEN_ORDERS,
+            self._FILLS,
         }:
             raise OkxReadOnlyClientError("endpoint is outside the admitted GET-only set")
 

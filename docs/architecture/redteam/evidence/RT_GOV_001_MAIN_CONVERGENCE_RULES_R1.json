@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam.provider-governance-evidence",
+  "findingId": "RT-GOV-001",
+  "observedDate": "2026-09-27",
+  "classification": "CONFIRMED_NEW",
+  "repository": "ordivon-org/ordivon",
+  "providerMainRevision": "c309b467452beb56ae93ce9272461527f396ee23",
+  "localIntegrationRevisionAtR3Start": "eec3d13d61956a354ee9a93c9ecf47788096f8f0",
+  "ruleset": {
+    "id": 23819262,
+    "name": "main-convergence-queue-r1",
+    "target": "branch",
+    "enforcement": "active",
+    "include": ["refs/heads/main"],
+    "bypassActors": [],
+    "rules": [
+      {
+        "type": "required_status_checks",
+        "strict": false,
+        "required": [{"context": "root-verification"}]
+      },
+      {
+        "type": "merge_queue",
+        "mergeMethod": "MERGE",
+        "groupingStrategy": "ALLGREEN"
+      },
+      {"type": "non_fast_forward"}
+    ]
+  },
+  "effectiveMainRules": [
+    "required_status_checks(root-verification)",
+    "merge_queue",
+    "non_fast_forward"
+  ],
+  "classicProtection": {
+    "requiredSignatures": false,
+    "enforceAdmins": false,
+    "requiredLinearHistory": false,
+    "allowForcePushes": false,
+    "allowDeletions": false,
+    "requiredConversationResolution": false,
+    "lockBranch": false
+  },
+  "falsifier": {
+    "requiredPullRequestRulePresent": false,
+    "interpretation": "Provider effective rules do not encode PR-only convergence. Merge queue is present, but GitHub models require-pull-request as a separate branch rule."
+  },
+  "acceptance": [
+    "Add an active pull_request rule covering refs/heads/main.",
+    "Choose review/code-owner requirements according to repository policy rather than inferring them from merge queue.",
+    "Read back effective provider rules and fail repository governance verification if the PR-only rule disappears."
+  ],
+  "externalReferences": [
+    "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets",
+    "https://slsa.dev/spec/v1.2/source-requirements"
+  ],
+  "nonClaims": [
+    "No direct push to main was attempted as part of this falsifier.",
+    "This evidence does not claim that every repository writer would intentionally bypass the intended merge queue.",
+    "GitHub provider truth is independent from local Git integration truth."
+  ]
+}

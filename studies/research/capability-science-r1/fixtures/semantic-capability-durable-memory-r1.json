@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.semantic-capability-v1",
+  "capabilityId": "cap:durable-round-trip-memory",
+  "aliases": [
+    "durable external round-trip memory"
+  ],
+  "standing": "CERTIFIED_NOVEL_CAPABILITY",
+  "interface": {
+    "inputs": [
+      {
+        "portId": "payload",
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "portId": "recovered",
+        "type": "bytes"
+      }
+    ]
+  },
+  "preconditions": [
+    "synthetic store and resolver remain available across the tested session boundary"
+  ],
+  "behaviorModel": {
+    "modelClass": "REGISTER_DATA_AUTOMATON",
+    "modelRef": "model:synthetic-memory-r1"
+  },
+  "effects": {
+    "worldState": [
+      "external state is created"
+    ],
+    "persistence": [
+      "state survives local forget and a fresh synthetic session"
+    ],
+    "communication": []
+  },
+  "authority": {
+    "required": [],
+    "delegated": [],
+    "attenuated": [],
+    "created": []
+  },
+  "informationFlow": {
+    "sources": [
+      "input payload"
+    ],
+    "transforms": [
+      "encode/store/resolve/decode"
+    ],
+    "sinks": [
+      "recovered output"
+    ]
+  },
+  "observationPolicyRef": "observation-policy:synthetic-memory-r1",
+  "evidenceRefs": [
+    "evidence:synthetic-memory-composition-r1"
+  ],
+  "noveltyWitnessRefs": [
+    "witness:generated-against-echo",
+    "witness:generated-against-handle"
+  ],
+  "authorityGranted": false,
+  "executionAuthorityGranted": false,
+  "nonClaims": [
+    "The fixture is synthetic and establishes no public-network capability.",
+    "Register-data-automaton is a bounded modeling choice here, not a proof of maximal expressive power."
+  ],
+  "repeatabilityEvidenceRefs": [
+    "observation:synthetic-memory-fresh-session-r1"
+  ],
+  "causalEvidenceRefs": [
+    "observation:synthetic-memory-store-intervention-r1"
+  ]
+}

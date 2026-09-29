@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-coordination-cut",
+  "observedAt": "2026-09-23T04:32:40+08:00",
+  "events": [
+    {
+      "specversion": "1.0",
+      "id": "candidate:vhd-compact:capital",
+      "source": "urn:ordivon:runtime:windows",
+      "type": "io.ordivon.social.candidate.v1",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "time": "2026-09-23T04:27:47+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T04:40:00+08:00",
+      "data": {
+        "holderRef": "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "effectOwner": "runtime.windows",
+        "operation": "compact-vhd",
+        "mode": "exclusive",
+        "evidenceRefs": ["job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301"]
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "candidate:vhd-compact:gris",
+      "source": "urn:ordivon:runtime:windows",
+      "type": "io.ordivon.social.candidate.v1",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "time": "2026-09-23T04:29:20+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T04:40:00+08:00",
+      "data": {
+        "holderRef": "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314",
+        "effectOwner": "runtime.windows",
+        "operation": "compact-vhd",
+        "mode": "exclusive",
+        "evidenceRefs": ["job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"]
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "candidate:wslservice-restart",
+      "source": "urn:ordivon:runtime:windows",
+      "type": "io.ordivon.social.candidate.v1",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "time": "2026-09-23T04:31:32+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T04:35:00+08:00",
+      "data": {
+        "holderRef": "service:WSLService",
+        "effectOwner": "windows-service-control",
+        "operation": "attach-or-start-wsl",
+        "mode": "shared",
+        "evidenceRefs": ["observation:WSLService-running-20260923T043132+0800"]
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "damage:diskpart-rpc-unavailable",
+      "source": "urn:ordivon:runtime:windows",
+      "type": "io.ordivon.social.damage.v1",
+      "subject": "resource:windows:wsl:archlinux:ext4-vhdx",
+      "time": "2026-09-23T04:32:20+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T05:00:00+08:00",
+      "data": {
+        "reasonCode": "DISKPART_RPC_UNAVAILABLE_DURING_COMPACTION",
+        "evidenceRefs": [
+          "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+          "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+        ]
+      }
+    },
+    {
+      "specversion": "1.0",
+      "id": "modulatory:d-drive-pressure",
+      "source": "urn:ordivon:workstation:storage",
+      "type": "io.ordivon.social.modulatory.v1",
+      "subject": "resource:windows:drive:D",
+      "time": "2026-09-23T04:29:10+08:00",
+      "datacontenttype": "application/json",
+      "ordivonscope": "system",
+      "ordivonexpiresat": "2026-09-23T05:00:00+08:00",
+      "data": {
+        "dimension": "free-space-pressure",
+        "valueBytes": 17694720,
+        "evidenceRefs": ["observation:D-free-17694720"]
+      }
+    }
+  ],
+  "receptors": [
+    {
+      "receptorId": "receptor:wsl-maintenance-guard",
+      "acceptedTypes": [
+        "io.ordivon.social.candidate.v1",
+        "io.ordivon.social.damage.v1"
+      ],
+      "scopes": ["system"],
+      "subjectPrefixes": ["resource:windows:wsl:archlinux:"],
+      "sources": [],
+      "maxAgeSeconds": 900,
+      "requireEvidence": true
+    },
+    {
+      "receptorId": "receptor:storage-pressure",
+      "acceptedTypes": ["io.ordivon.social.modulatory.v1"],
+      "scopes": ["system"],
+      "subjectPrefixes": ["resource:windows:drive:"],
+      "sources": [],
+      "maxAgeSeconds": 900,
+      "requireEvidence": true
+    }
+  ],
+  "nonClaims": [
+    "This cut reconstructs a past failure window; it is not a live owner lease.",
+    "Job/service references are evidence references, not execution grants.",
+    "The projection must not choose a winning maintenance action."
+  ]
+}

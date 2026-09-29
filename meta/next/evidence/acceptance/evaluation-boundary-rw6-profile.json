@@ -1,0 +1,45 @@
+{
+  "closure": {
+    "distinctOwnerCount": 2,
+    "empiricalClosure": false,
+    "executedDonorPresent": true,
+    "mechanicalClosure": true
+  },
+  "donors": [
+    {
+      "donorId": "media-r6-creative-alpha",
+      "ownerId": "media",
+      "sourceDigests": [
+        "sha256:6ffd71415cefab8350a5634de4e7bc452d46bab0a2f18b6eca89dad21e06298c",
+        "sha256:0e2a0ab86b08fc8e818742b16ca12d82e1ba0d2f267ed1df4ba3762c69e4fc2f"
+      ],
+      "standing": "EXECUTED"
+    },
+    {
+      "donorId": "game-autonomous-interest-r2",
+      "ownerId": "game",
+      "sourceDigests": [
+        "sha256:4d181254ec03f7560a9ba2f17306cfc4a8500a742aaac06cb78a1d931e5fbc1f"
+      ],
+      "standing": "FROZEN_PROTOCOL_ONLY"
+    }
+  ],
+  "kind": "ordivon.evaluation-boundary-profile-r1",
+  "laws": {
+    "evaluatorSemanticsRemainOwnerNative": true,
+    "exactSourceIdentityRequired": true,
+    "freezePrecedesHoldoutExposure": true,
+    "holdoutEvidenceSeparateFromDevelopmentEvidence": true,
+    "postExposureMutationPreservesStanding": false,
+    "thresholdRetuningAfterUnblindingAllowed": false
+  },
+  "nonClaims": [
+    "The profile does not define a universal evaluator, score, reward, or promotion authority.",
+    "Game contributes a frozen protocol boundary only; its Human holdout has not been executed.",
+    "Media execution evidence does not transfer creative-domain conclusions to Game.",
+    "Mechanical closure means the shared boundary is evidenced, not that any domain hypothesis is true."
+  ],
+  "profileId": "experimental-episode-rw6-media-game-r1",
+  "schemaVersion": 1,
+  "truthRole": "task-local-non-authoritative-evaluation-boundary"
+}

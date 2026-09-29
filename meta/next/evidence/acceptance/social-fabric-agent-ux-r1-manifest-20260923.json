@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.social-fabric-agent-ux-manifest",
+  "truthRole": "bounded-input-manifest-not-owner-authority",
+  "inputs": {
+    "current": "social-fabric-r1-current-projection-20260923.json",
+    "coordination": "social-fabric-coordination-r2-current-20260923.json",
+    "signaling": "social-fabric-signaling-r3-projection-20260923.json",
+    "memory": "social-fabric-reality-r2-memory-projection-20260923.json",
+    "freshness": "social-fabric-reality-r2-freshness-projection-20260923.json",
+    "commitment": "social-fabric-commitment-r3-single-projection-20260923.json",
+    "epistemic": "social-fabric-epistemic-r1-projection-20260923.json",
+    "hostAttention": "social-fabric-agent-ux-r1-host-attention-20260923.json"
+  }
+}

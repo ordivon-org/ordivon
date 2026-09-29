@@ -6,19 +6,25 @@ PyArrow). This code binds a concrete Dataset Contract to their evidence and
 checks only cross-reader/profile/contract invariants.
 """
 from __future__ import annotations
+import sys
 
 import argparse
 import hashlib
 import json
-import math
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/dataset-contract-v1.schema.json"
@@ -144,6 +150,16 @@ def duckdb_json(query: str) -> tuple[int, Any, str]:
     return p.returncode, value, p.stderr
 
 
+CLAIM_POINTERS = {
+    "contractSchema": "/contractSchema",
+    "keyIntegrity": "/keyIntegrity",
+    "parquetSchema": "/parquetSchema",
+    "readerMatrix": "/readerMatrix",
+    "rowBounds": "/rowBounds",
+}
+
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_parquet(path: Path, contract_path: Path, evidence_dir: Path | None = None) -> dict[str, Any]:
     failures: list[str] = []
     if not path.is_file():
@@ -153,8 +169,9 @@ def verify_parquet(path: Path, contract_path: Path, evidence_dir: Path | None = 
     try:
         contract = json.loads(contract_path.read_text())
     except Exception as error:
-        return {"schemaVersion": 1, "kind": "artifact-dataset-verification", "profileId": "dataset-parquet-flat-r1", "status": "FAIL", "artifact": artifact_fact(path), "failures": [f"dataset contract JSON unreadable: {error}"]}
-    failures.extend(validate_contract(contract))
+        return {"schemaVersion": 1, "kind": "artifact-dataset-verification", "profileId": "dataset-parquet-flat-r1", "status": "FAIL", "artifact": artifact_fact(path), "contractSchema": {"status": "FAIL", "failures": [f"dataset contract JSON unreadable: {error}"]}, "failures": [f"dataset contract JSON unreadable: {error}"]}
+    contract_failures = validate_contract(contract)
+    failures.extend(contract_failures)
     evidence_dir = evidence_dir or Path(tempfile.mkdtemp(prefix="artifact-dataset-evidence-"))
     evidence_dir.mkdir(parents=True, exist_ok=True)
     result: dict[str, Any] = {
@@ -164,6 +181,7 @@ def verify_parquet(path: Path, contract_path: Path, evidence_dir: Path | None = 
         "status": "FAIL",
         "artifact": artifact_fact(path),
         "contract": {"path": str(contract_path.resolve()), "sha256": sha256(contract_path), "canonicalDigest": canonical_digest(contract)},
+        "contractSchema": {"status": "PASS" if not contract_failures else "FAIL", "failures": contract_failures},
         "tools": {},
         "failures": failures,
     }
@@ -273,8 +291,36 @@ def verify_parquet(path: Path, contract_path: Path, evidence_dir: Path | None = 
         failures.extend(bounds_failures)
         bounds_evidence = {"status": "PASS" if not bounds_failures else "FAIL", "pyarrowRowCount": pa_count, "duckdbRowCount": duck_count, "minimumRows": contract.get("minimumRows"), "maximumRows": contract.get("maximumRows"), "failures": bounds_failures}
 
+    reader_matrix_failures: list[str] = []
+    if pyarrow.get("status") != "PASS":
+        reader_matrix_failures.append("PyArrow reader did not produce a PASS observation")
+    duck_readable = (
+        rc_schema == 0
+        and rc_meta == 0
+        and rc_rows == 0
+        and isinstance(duck_schema, list)
+        and isinstance(duck_meta, list)
+        and isinstance(duck_rows, list)
+    )
+    if not duck_readable:
+        reader_matrix_failures.append("DuckDB reader did not produce complete schema/metadata/row observations")
+    if schema_evidence.get("status") != "PASS":
+        reader_matrix_failures.append("independent readers do not agree on schema-relevant facts")
+    if row_evidence.get("status") != "PASS":
+        reader_matrix_failures.append("independent readers do not agree on canonical logical rows")
+    if isinstance(duck_meta, list) and duck_meta and pyarrow.get("numRows") is not None:
+        if int(pyarrow["numRows"]) != int(duck_meta[0]["num_rows"]):
+            reader_matrix_failures.append("independent reader row counts differ")
+    reader_matrix = {
+        "status": "PASS" if not reader_matrix_failures else "FAIL",
+        "minimumIndependentReaders": 2,
+        "readers": ["pyarrow", "duckdb"],
+        "failures": reader_matrix_failures,
+    }
+
     result.update({
         "parquetSchema": schema_evidence,
+        "readerMatrix": reader_matrix,
         "readerAgreement": row_evidence,
         "keyIntegrity": key_evidence,
         "rowBounds": bounds_evidence,

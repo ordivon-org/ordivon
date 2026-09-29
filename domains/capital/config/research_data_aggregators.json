@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-data-aggregator-contract",
+  "principle": "aggregation normalizes access; source/provider provenance remains authoritative and aggregation never grants financial-effect authority",
+  "aggregators": {
+    "openbb": {
+      "standing": "ADMITTED_BOUNDED_EXTERNAL_RESEARCH_DATA_CAPABILITY",
+      "owner": "OpenBB Open Data Platform",
+      "stableVersion": "4.7.2",
+      "upstreamDevelopObservedVersion": "4.7.3",
+      "license": "AGPL-3.0-only",
+      "deploymentBoundary": "SEPARATE_EXTERNAL_ENVIRONMENT_NOT_CAPITAL_CORE_DEPENDENCY",
+      "interpreter": "/root/external/openbb/4.7.2/.venv/bin/python",
+      "apiExecutable": "/root/external/openbb/4.7.2/.venv/bin/openbb-api",
+      "defaultApiBind": "127.0.0.1:6900",
+      "networkCarrier": "http://127.0.0.1:28080",
+      "qualifiedProviders": {
+        "federal_reserve": {
+          "version": "1.6.2",
+          "credentialRequired": false,
+          "standing": "PASS_LIVE_READONLY"
+        },
+        "us_eia": {
+          "version": "1.3.1",
+          "credentialRequired": true,
+          "standing": "INSTALLED_CREDENTIAL_REQUIRED"
+        },
+        "fred": {
+          "version": "1.6.2",
+          "credentialRequired": true,
+          "standing": "INSTALLED_CREDENTIAL_REQUIRED"
+        },
+        "yfinance": {
+          "version": "1.6.3",
+          "credentialRequired": false,
+          "standing": "INSTALLED_PROVIDER_RATE_LIMITED_FOR_SOXL_NOT_ADMITTED"
+        }
+      },
+      "responsibility": "broad public/research data provider routing, normalization and REST/Python access",
+      "nonResponsibility": "not original data authority, private account truth, broker/order/execution truth, benchmark identity authority, investment recommendation, or external financial write authority"
+    }
+  }
+}

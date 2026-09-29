@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.architecture-debt-register",
+  "anchorRevision": "39b0ed06f39f06327c5836fc0c24f5b5438e8bb2",
+  "observedDate": "2026-09-28",
+  "truthRole": "architecture-work-register-not-owner-truth",
+  "items": [
+    {
+      "id": "ARD-001",
+      "problem": "The former meta/next active repository owner/project has been retired; the retained tree is now frozen historical/provenance material only.",
+      "owner": "repository-mechanics",
+      "authority": "canonical Git source plus owner manifest/CI",
+      "impact": [
+        "complexity",
+        "ci-cost",
+        "historical-ontology-resurrection-risk"
+      ],
+      "evidence": [
+        "docs/architecture/evidence/architecture-reanchor-ard001-next-owner-retirement-20260928.json: exact frozen tree, consumer rebind, deleted active surfaces and verification receipts",
+        "tools/repo/owners.toml contains no Next owner and meta/next paths select zero active repository owners",
+        "root mise.toml contains no next:verify task and repo:ci now runs repo:retirement:verify",
+        "Scholarly Intelligence owns an exact byte-identical frozen dogfood copy at sha256:3ce88cf3a7869656a20218a8361de81578f18212ddfccad30d6084d9dce43f65",
+        "next-monorepo-archive policy pins meta/next Git tree 320474d446f58462b9ed0b5a9fef3529c44f01d0 and rejects new unclassified outside references or tree mutation"
+      ],
+      "desiredContract": "CLOSED: meta/next is immutable-by-default historical/provenance material with no active repository owner or verification task; current consumers own exact frozen bytes or use separately reviewed historical references.",
+      "currentGap": "CLOSED: active owner routing, next:verify, Next cross-owner seams and the sole executable Study byte dependency are retired; Git-tree and outside-reference retirement gates are in root CI.",
+      "recommendedLEGO": "No replacement Next subsystem. Preserve Git history and the pinned archive boundary; any future current dependency must move to its natural owner rather than reactivating meta/next.",
+      "verification": [
+        "owner selector returns zero active owners for meta/next paths",
+        "root CI contains no next:verify task and executes repo:retirement:verify",
+        "Research Study and Skills owner gates pass after consumer/path rebind",
+        "all standalone retirement policies pass and meta/next exact Git tree remains pinned",
+        "enhanced root repo:ci passes on the rebased candidate"
+      ],
+      "priority": "CLOSED",
+      "standing": "CLOSED_ACTIVE_OWNER_RETIRED_ARCHIVED_IN_PLACE"
+    },
+    {
+      "id": "ARD-002",
+      "problem": "Legacy HarnessDispatchFence v1 encoded Host Task/Assignment authority vocabulary inside Harness; the compatibility ontology is now retired.",
+      "owner": "harness",
+      "authority": "Harness Run Store persistence/recovery",
+      "impact": [
+        "ontology-debt",
+        "host-harness-coupling"
+      ],
+      "evidence": [
+        "services/harness/evidence/harness-dispatch-fence-v1-retirement-20260928.json: three retained Harness stores, 436 Runs, 2,981 Events, zero dispatch-fence object refs and zero schema-v1 objects",
+        "estate-wide tracked current-source census found no independent v1 consumer; current production writer is HarnessDispatchFenceV2",
+        "Harness full verification after deletion: 1088 tests + 97 subtests PASS; dependency/documentation/evidence contracts and wheel smoke PASS"
+      ],
+      "desiredContract": "Only caller-neutral HarnessDispatchFenceV2 remains in active source and current Tool-effect fencing.",
+      "currentGap": "CLOSED: no retained persisted v1 recovery obligation exists; v1 class, SQLite decoder branches and self-preserving codec test are removed.",
+      "recommendedLEGO": "No further compatibility layer. Preserve historical Git/evidence only; anti-resurrection test keeps the v1 symbol absent.",
+      "verification": [
+        "zero schema-v1 Dispatch Fence objects across retained Harness stores",
+        "protocol.HarnessDispatchFence absent",
+        "SQLite Run Store decodes Dispatch Fence only through V2",
+        "full Harness owner verification green"
+      ],
+      "priority": "CLOSED",
+      "standing": "CLOSED_V1_RETIRED_ZERO_PERSISTED_RECOVERY_OBLIGATION"
+    },
+    {
+      "id": "ARD-003",
+      "problem": "Public Windows Gateway R2 has Runtime owner URLs but no Runtime owner credentials; old projection logic treated URL presence as configured and collapsed the resulting transport/auth failure into a TaskGroup ExceptionGroup.",
+      "owner": "gateway-routing-projection",
+      "authority": "Runtime owner describe/readback for liveness; Gateway only for projection correctness",
+      "impact": [
+        "external-capability-realization",
+        "agent-ux",
+        "false-unavailability"
+      ],
+      "evidence": [
+        "2026-09-28 direct Linux runtime.describe: local_linux available=true",
+        "2026-09-28 direct Windows runtime.describe: windows_native available=true",
+        "Windows OrdivonGatewayCandidateR2 materialization receipt e130f68a…: linuxBearerPathConfigured=false and windowsBearerPathConfigured=false",
+        "Windows R2 service PathName carries both Runtime URLs but no Runtime bearer credential environment paths",
+        "Existing red-team GATEWAY_RUNTIME_CREDENTIAL_LIVENESS_R1 already observed an empty R2 credential directory; the historical GW09 plan marked credential materialization HUMAN_REQUIRED/platform-safety-blocked",
+        "Linux Gateway and in-process Gateway probes with valid owner credentials observe both Runtime owners available=true, excluding Runtime/MCP protocol failure as the root cause"
+      ],
+      "desiredContract": "Runtime owner configured=true means endpoint plus required machine identity are both admitted. Missing owner auth is projected as configured=false with a stable pre-HTTP diagnostic; owner transport/protocol failures expose bounded leaf causes and never imply Runtime owner outage.",
+      "currentGap": "Source projection semantics are repaired and owner-tested in the ARD-003 candidate. Live Windows R2 still lacks node-local Runtime credentials, and credential materialization is outside current Agent authority; public Runtime execution therefore remains truthfully degraded until that explicit authority action occurs.",
+      "recommendedLEGO": "Integrate/deploy the source semantic fix; preserve the credential safety boundary. When an authorized node-local credential authority/human materializes the existing Runtime bearer sources through materialize_credentials.ps1, rematerialize/activate Windows R2 and requalify both Runtime capabilities. Do not bypass secret handling controls.",
+      "verification": [
+        "Gateway source tests prove URL-only Runtime endpoints are configured=false and no HTTP call occurs",
+        "nested TaskGroup transport failures are reduced to bounded leaf diagnostics",
+        "direct Runtime owner availability remains independently true",
+        "after authorized credential materialization, public capability.describe returns configured=true available=true for each successfully observed Runtime owner",
+        "forced missing-auth and transport-failure cases never claim Runtime owner down"
+      ],
+      "priority": "HIGH",
+      "standing": "SOURCE_FIX_VERIFIED_LIVE_CREDENTIAL_AUTHORITY_BLOCKED"
+    },
+    {
+      "id": "ARD-004",
+      "problem": "Authenticated end-user identity may not yet be enforced across Gateway to Runtime Job/Artifact lifecycle operations.",
+      "owner": "security-authorization-seam",
+      "authority": "identity provider + authorization PDP/PEP + Runtime object authority",
+      "impact": [
+        "authority-clarity",
+        "multi-user-safety"
+      ],
+      "evidence": [
+        "Earlier R3 red-team evidence identified Gateway audit principal vs Runtime service-principal collapse; current 39b0ed06 requires fresh requalification before the finding is treated as current."
+      ],
+      "desiredContract": "Subject/action/resource authorization is explicit for Runtime Job/Artifact lifecycle without inventing a parallel Ordivon IAM system.",
+      "currentGap": "Fresh current-main two-principal negative acceptance not yet performed in this re-anchor round.",
+      "recommendedLEGO": "Requalify existing factorized-principal/AuthZEN-or-provider-IAM seam, then close only the demonstrated enforcement gap.",
+      "verification": [
+        "two-principal negative read/cancel/artifact tests",
+        "service identity remains distinct from delegated subject identity",
+        "audit correlation does not substitute for authorization"
+      ],
+      "priority": "HIGH"
+    },
+    {
+      "id": "ARD-005",
+      "problem": "Chat/session response loss still lacks one automatic cross-owner re-entry projection from Work to Harness Run to physical/provider effects.",
+      "owner": "caller-composition",
+      "authority": "Host/Harness/Runtime/provider each retain their local truth",
+      "impact": [
+        "system-continuity",
+        "agent-ux",
+        "duplicate-investigation-cost"
+      ],
+      "evidence": [
+        "Host WorkSnapshot already stores referenceRefs",
+        "HarnessRunContract already stores callerRunRef",
+        "Harness/Runtime already provide deterministic response-loss reconciliation",
+        "Social Work already provides Attention/Topic re-entry"
+      ],
+      "desiredContract": "A reconnecting Agent recovers Work, follows exact owner references, reconciles uncertain effects, and resumes cognition without recensusing the whole system.",
+      "currentGap": "The binding is currently a documented composition convention, not an automatically emitted projection with multiple independent consumers.",
+      "recommendedLEGO": "Dogfood WorkRef <-> callerRunRef plus WorkSnapshot Harness/Runtime/provider referenceRefs in at least two independent workloads; promote only repeated irreducible binding mechanics.",
+      "verification": [
+        "response loss does not lose Work/Harness/effect identity",
+        "fresh Agent resumes from bounded refs",
+        "no RecoveryManager/global Session/Checkpoint service introduced"
+      ],
+      "priority": "HIGH"
+    },
+    {
+      "id": "ARD-006",
+      "problem": "Architecture documentation can still become stale because deployed projections are manually refreshed.",
+      "owner": "repository-mechanics",
+      "authority": "current physical/source/owner truth",
+      "impact": [
+        "cognitive-simplicity",
+        "currentness"
+      ],
+      "evidence": [
+        "CURRENT_ARCHITECTURE previously claimed Gateway 0.4.0 and stale connector catalog after live Gateway had reached 0.5.0 and exposed schema-9 tools."
+      ],
+      "desiredContract": "Docs are explicitly non-authoritative projections and fitness checks prevent them from outranking source/evidence.",
+      "currentGap": "Version/currentness fields are not all generated from live/provider owner evidence.",
+      "recommendedLEGO": "Keep documentation non-authoritative; automate only cheap source-derived fields and use whole-system review for live currentness rather than creating an architecture registry service.",
+      "verification": [
+        "architecture constitution checker passes",
+        "current deployed projection identifies itself as non-authoritative",
+        "no documentation-first truth ordering"
+      ],
+      "priority": "MEDIUM"
+    }
+  ]
+}

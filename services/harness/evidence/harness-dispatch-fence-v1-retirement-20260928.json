@@ -1,0 +1,44 @@
+{
+  "additionalRecoveryCensus": {
+    "currentProductionWriter": "HarnessDispatchFenceV2",
+    "currentV1ProductionConstructors": 0,
+    "harnessResearchRootHarnessStores": 0,
+    "retiredRootHarnessStores": 0,
+    "workstationRootHarnessStores": 0
+  },
+  "authority": "Harness retained SQLite stores under /var/lib/ordivon/harness",
+  "historicalCheckoutNote": "A detached 2026-09-22 canonical worktree still contains old decoder source but is not a current consumer or state authority.",
+  "implementationSourceRevision": "a3210b45d80e63da57d21d8b39c85cfbb67e4327",
+  "kind": "ordivon.harness-dispatch-fence-v1-retirement-evidence",
+  "observedDate": "2026-09-28",
+  "schemaVersion": 1,
+  "standing": "PASS_ZERO_PERSISTED_V1_RECOVERY_OBLIGATION",
+  "stores": [
+    {
+      "dispatchFenceObjectRefs": 0,
+      "events": 572,
+      "path": "/var/lib/ordivon/harness/harness.sqlite3",
+      "runs": 94
+    },
+    {
+      "dispatchFenceObjectRefs": 0,
+      "events": 36,
+      "path": "/var/lib/ordivon/harness/paper2-fulltext-calibration-r1/harness.sqlite3",
+      "runs": 5
+    },
+    {
+      "dispatchFenceObjectRefs": 0,
+      "events": 2373,
+      "path": "/var/lib/ordivon/harness/paper2-screening-r1/harness.sqlite3",
+      "runs": 337
+    }
+  ],
+  "totals": {
+    "dispatchFenceObjectRefs": 0,
+    "events": 2981,
+    "runs": 436,
+    "schemaV1DispatchFenceObjects": 0,
+    "stores": 3
+  },
+  "truthBoundary": "This receipt establishes the bounded retained Harness-store and current-source recovery census used to remove the v1 decoder. It does not delete historical Git commits or claim that future v2 dispatch-fence objects cannot be written."
+}

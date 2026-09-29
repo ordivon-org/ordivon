@@ -40,6 +40,14 @@
       "profile": "finance-binance-wallet",
       "proxy": "http://127.0.0.1:19290"
     },
+    "usTreasuryRest": {
+      "digest": "sha256:82ecc49f7e1597ba106c1f6f0a17807f6ae452b29673143bf557c839494da180",
+      "file": "/etc/network-v2/finance/us-treasury-rest-authority.json",
+      "host": "home.treasury.gov",
+      "port": 443,
+      "profile": "finance-us-treasury-public",
+      "proxy": "http://127.0.0.1:19291"
+    },
     "okxRest": {
       "digest": "sha256:136c36adf385fc6676da03fe30ea91da1d40d44fc33c6a7dd0f4066a8403b554",
       "file": "/etc/network-v2/finance/okx-rest-authority.json",
@@ -55,6 +63,14 @@
       "port": 8443,
       "profile": "finance-okx-ws",
       "proxy": "http://127.0.0.1:19288"
+    },
+    "fredPublicCsv": {
+      "digest": "sha256:da233f8f04c00ccc4878882b60dd8412f9aec915ff262bd9f4bc3bbc61918370",
+      "file": "/etc/network-v2/finance/fred-public-csv-authority.json",
+      "host": "fred.stlouisfed.org",
+      "port": 443,
+      "profile": "finance-fred-public-csv",
+      "proxy": "http://127.0.0.1:19292"
     }
   },
   "directFallback": false,
@@ -67,7 +83,7 @@
   "readinessCommand": "/usr/local/libexec/network-v2/finance-ready",
   "transportConfig": {
     "file": "/etc/network-v2/finance/egress.json",
-    "digest": "sha256:6be7389175a4c954f525ad9f43631bbfccbb515c9c2418f414e79f43470295d6",
+    "digest": "sha256:45b0f2492c1ac535456723acde4854fad327d68417fc6bb4378c103de905345a",
     "implementation": "sing-box",
     "requiredDnsServers": [
       {

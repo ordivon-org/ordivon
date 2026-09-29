@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.runtime-binary-egress-lego-plan",
+  "truthRole": "planning-projection-not-runtime-truth",
+  "sourceRevision": "0a990936d9b3b0ebc99d8a75f90e98aac094cd5b",
+  "objective": "Add a standards-aligned exact-binary client projection path without moving Artifact standing, provider delivery, or external-effect authority into Runtime.",
+  "currentTruth": {
+    "workspaceTextProjection": "workspace.read",
+    "workspaceImageProjection": "workspace.content",
+    "jobTextArtifactProjection": "artifact.read",
+    "externalFileIngress": "input.ingest",
+    "genericWorkspaceBinaryProjection": "MISSING",
+    "genericJobArtifactBinaryProjection": "MISSING",
+    "externalDeliveryEffect": "OUTSIDE_RUNTIME_GENERIC_PROJECTION"
+  },
+  "externalStandards": [
+    {
+      "authority": "MCP 2026-07-28",
+      "contract": "Tool results support EmbeddedResource and ResourceLink; binary ResourceContents use base64 blob plus URI and MIME type.",
+      "decision": "Use EmbeddedResource for bounded exact binary projection; do not invent an Artifact-specific transport protocol."
+    },
+    {
+      "authority": "MCP Resource semantics",
+      "contract": "Resource metadata includes URI, name/title, MIME type and size; resource contents distinguish text from binary blob.",
+      "decision": "Preserve digest/size/media-type identity in structured content and use a stable non-file authority URI."
+    }
+  ],
+  "ownership": {
+    "runtime": [
+      "exact local byte observation",
+      "workspace path authority",
+      "job artifact identity",
+      "digest and size verification",
+      "bounded MCP projection"
+    ],
+    "artifactStandingKernel": [
+      "subject commitment semantics",
+      "profile semantics",
+      "evidence observation",
+      "standing decision"
+    ],
+    "providerOrDistributionOwner": [
+      "external upload",
+      "recipient/destination identity",
+      "delivery effect identity",
+      "delivery receipt and reconciliation"
+    ]
+  },
+  "legos": [
+    {
+      "id": "BE01",
+      "label": "WorkspaceBinaryProjectionContract",
+      "priority": "P0",
+      "state": "VERIFIED_TARGETED_AND_REAL_MCP_E2E",
+      "contract": "workspace.file projects one exact digest-bound regular Workspace file as an MCP EmbeddedResource blob with structured identity metadata; no external effect and no Artifact registration."
+    },
+    {
+      "id": "BE02",
+      "label": "WorkspaceBinaryPathAndDigestAuthority",
+      "priority": "P0",
+      "state": "VERIFIED_TARGETED_AND_REAL_MCP_E2E",
+      "contract": "Reuse the descriptor-bound Workspace path authority used by workspace.read/content; require expectedDigest and a bounded whole-file read."
+    },
+    {
+      "id": "BE03",
+      "label": "MediaTypeContract",
+      "priority": "P0",
+      "state": "VERIFIED_TARGETED_AND_REAL_MCP_E2E",
+      "contract": "Caller supplies a bounded declared mediaType used only as projection metadata; Runtime proves bytes/digest/size, not semantic conformance to the media type."
+    },
+    {
+      "id": "BE04",
+      "label": "McpEmbeddedResourceAdapter",
+      "priority": "P0",
+      "state": "VERIFIED_TARGETED_AND_REAL_MCP_E2E",
+      "contract": "Return ResourceContents::BlobResourceContents using a non-authority ordivon-workspace URI and exact structured metadata."
+    },
+    {
+      "id": "BE05",
+      "label": "JobArtifactBinaryProjection",
+      "priority": "P1",
+      "state": "VERIFIED_TARGETED_AND_REAL_MCP_E2E",
+      "contract": "Add artifact.content as the binary sibling of artifact.read while preserving jobId+artifactId Registry authority and digest/length revalidation."
+    },
+    {
+      "id": "BE06",
+      "label": "LargeObjectResourceLink",
+      "priority": "P1",
+      "state": "DEFER_UNTIL_CONSUMER_PRESSURE",
+      "contract": "For files too large for one embedded MCP result, prefer MCP ResourceLink/resources semantics or a mature external object carrier; do not invent chunked Artifact transport prematurely."
+    },
+    {
+      "id": "BE07",
+      "label": "ArtifactTransportExternalization",
+      "priority": "P1",
+      "state": "CLOSED_BY_ARTIFACT_OWNER_RETIREMENT",
+      "contract": "Keep capabilities/artifact transport/mailbox code quarantined or externalized; binary client projection is Runtime observation, not Artifact delivery standing.",
+      "resolution": "Artifact-owned Cloudflare R2 mailbox transport/config/schema/test closure was physically retired and integrated at eb00df2a7680a402d6d0e8bff821e68965a135d8; future external delivery requires a separate natural provider/distribution owner."
+    }
+  ],
+  "acceptance": [
+    "binary bytes including NUL round-trip through MCP blob",
+    "digest mismatch fails closed",
+    "symlink/final path escape remains rejected",
+    "oversize whole-file projection fails closed",
+    "structured metadata binds workspaceId, relativePath, digest, mediaType and byteLength",
+    "existing workspace.content behavior remains unchanged",
+    "generated tool catalog and docs are updated",
+    "Runtime owner tests pass"
+  ],
+  "nonGoals": [
+    "external upload or send receipt",
+    "provider destination authority",
+    "Artifact standing or semantic media validation",
+    "automatic Runtime Artifact registration",
+    "unbounded base64 responses",
+    "new custom transport protocol"
+  ],
+  "verificationStanding": {
+    "binaryProjectionLegos": "BE01-BE05 verified",
+    "ownerGate": "PASS on final exact tree: scripts/owner-environment test, job-01a0de09-4b73-7ed2-89b5-adcb9e0b6f5e",
+    "realMcpE2E": "PASS including workspace-file-binary-resource, workspace-file-digest-binding, artifact-binary-resource; job-01a0de01-48a3-7983-ba11-f240021f5779",
+    "fullLocalAcceptance": "NOT_STABLY_GREEN due two unrelated existing execution/recovery timing seams; do not reinterpret as binary-projection failure",
+    "integrationStatus": "BE01_BE05_INTEGRATED_BE07_CLOSED_BE06_DEFERRED",
+    "be07ResolutionCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8"
+  }
+}

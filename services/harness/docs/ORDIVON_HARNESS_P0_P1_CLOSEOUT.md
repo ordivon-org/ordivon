@@ -48,7 +48,7 @@ Codex and Hermes retain provider-faithful lifecycle implementations and bounded 
 
 ### Runtime calls
 
-Durable `workspace.exec` is dispatched with `waitMs=0` to obtain the Runtime Job identity promptly. Harness then performs bounded `task.observe` polling while checking cancellation and deadline state. A model-supplied `waitMs=0` does not turn the durable Tool Step into a background completion: Harness keeps the Intent active until Runtime reaches a terminal state or cancellation is requested. Physical cancellation is requested through Runtime `task.cancel`; a local cancellation token alone never proves that the Job stopped.
+Durable `workspace.exec` is dispatched with `waitMs=0` to obtain the Runtime Job identity promptly. Harness then performs bounded `job.observe` polling while checking cancellation and deadline state. A model-supplied `waitMs=0` does not turn the durable Tool Step into a background completion: Harness keeps the Intent active until Runtime reaches a terminal state or cancellation is requested. Physical cancellation is requested through Runtime `job.cancel`; a local cancellation token alone never proves that the Job stopped.
 
 ### Nonterminal cancellation
 

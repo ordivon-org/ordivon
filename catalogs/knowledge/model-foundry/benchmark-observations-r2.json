@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "truthRole": "external_reported_observations_not_global_ranking",
+  "observations": [
+    {
+      "observationId": "sysone-bench-triage-laya-vs-jev",
+      "population": "sysone-bench triage",
+      "sampleSize": 160,
+      "inputIdentity": "BYTE_IDENTICAL",
+      "metrics": {"layaAccuracy": 0.800, "jevAccuracy": 0.888},
+      "comparability": "QUALITY_HEAD_TO_HEAD_ONLY",
+      "source": "https://github.com/instax-dutta/sysone-bench",
+      "caveats": ["Local-vs-remote execution makes latency non-comparable."]
+    },
+    {
+      "observationId": "sysone-bench-agnews-laya-vs-jev",
+      "population": "sysone-bench AG News",
+      "inputIdentity": "BYTE_IDENTICAL",
+      "metrics": {"layaAccuracy": 0.940, "jevAccuracy": 0.910},
+      "comparability": "QUALITY_HEAD_TO_HEAD_ONLY",
+      "source": "https://github.com/instax-dutta/sysone-bench",
+      "caveats": ["The reversal relative to triage is evidence for task-specific performance envelopes, not a universal winner."]
+    },
+    {
+      "observationId": "anyjev-qwen3-8b-banking77-calibration-ablation",
+      "population": "BANKING77 20-way n=300",
+      "inputIdentity": "WITHIN_PROJECT_ABLATION",
+      "metrics": {
+        "rawAccuracy": 0.747,
+        "l1Accuracy": 0.807,
+        "rawECE": 0.240,
+        "l1ECE": 0.095,
+        "rawCoverageAt5PctError": 0.077,
+        "l1CoverageAt5PctError": 0.520
+      },
+      "comparability": "WITHIN_PROJECT_ABLATION",
+      "source": "https://github.com/nokia-applied-research/AnyJev",
+      "caveats": ["Operational selective-coverage gain must not be generalized beyond this population without requalification."]
+    }
+  ],
+  "admissionRule": "Store bounded observations with measurement caveats; never synthesize BEST_PROVIDER."
+}

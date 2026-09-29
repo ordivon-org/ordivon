@@ -16,6 +16,12 @@ def _d(value: Any, label: str) -> str:
         raise PrivateRealityError(f'invalid decimal for {label}') from exc
 
 
+def _optional_d(value: Any, label: str) -> str | None:
+    if value in (None, ''):
+        return None
+    return _d(value, label)
+
+
 def _call_data(call: Any) -> Any:
     if not isinstance(call, dict) or call.get('ok') is not True:
         return None
@@ -172,11 +178,22 @@ def normalize_okx_observer(envelope: dict[str, Any]) -> dict[str, Any]:
                 continue
             positions.append({
                 'instrumentId': r.get('instId'),
+                'instrumentType': r.get('instType'),
                 'positionId': r.get('posId'),
                 'side': r.get('posSide'),
+                'marginMode': r.get('mgnMode'),
                 'quantity': _d(r.get('pos', '0'), 'okx.position.pos'),
+                'availableQuantity': _optional_d(r.get('availPos'), 'okx.position.availPos'),
                 'avgPx': _d(r.get('avgPx', '0'), 'okx.position.avgPx'),
                 'markPx': _d(r.get('markPx', '0'), 'okx.position.markPx'),
+                'leverage': _optional_d(r.get('lever'), 'okx.position.lever'),
+                'liquidationPx': _optional_d(r.get('liqPx'), 'okx.position.liqPx'),
+                'unrealizedPnl': _optional_d(r.get('upl'), 'okx.position.upl'),
+                'unrealizedPnlRatio': _optional_d(r.get('uplRatio'), 'okx.position.uplRatio'),
+                'initialMarginRequirement': _optional_d(r.get('imr'), 'okx.position.imr'),
+                'maintenanceMarginRequirement': _optional_d(r.get('mmr'), 'okx.position.mmr'),
+                'margin': _optional_d(r.get('margin'), 'okx.position.margin'),
+                'notionalUsd': _optional_d(r.get('notionalUsd'), 'okx.position.notionalUsd'),
                 'venueTimestampMs': r.get('uTime'),
             })
 
@@ -200,6 +217,7 @@ def normalize_okx_observer(envelope: dict[str, Any]) -> dict[str, Any]:
         'fills': fills,
         'coverage': {
             'accountComplete': isinstance(balance_rows,list),
+            'positionsComplete': isinstance(position_rows,list),
             'openOrdersComplete': isinstance(open_rows,list),
             'orderHistoryComplete': False,
             'fillsComplete': isinstance(fill_rows,list),

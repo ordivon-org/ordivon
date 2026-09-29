@@ -10,7 +10,7 @@ OLD_PREFIX = "ordivon.capital." + "market."
 
 
 def _active_files():
-    for root_name in ("src", "config", "contracts", "schema", "scripts", "tools"):
+    for root_name in ("src", "config", "contracts", "schema", "scripts", "tools", "acceptance"):
         root = ROOT / root_name
         for path in root.rglob("*"):
             if not path.is_file():

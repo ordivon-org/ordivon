@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/experiment-environment-r4.json",
+  "title": "Adversarial Experiment Environment R4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "environmentId", "threatClass", "baseImageDigest", "syntheticWorldDigest", "toolSurfaceDigest", "observerSpecDigest", "isolation", "budget", "provider"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-experiment-environment"},
+    "environmentId": {"type": "string", "minLength": 1},
+    "threatClass": {"enum": ["semantic_only", "synthetic_agent", "hostile_code"]},
+    "baseImageDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "syntheticWorldDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "toolSurfaceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "observerSpecDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["process", "kernel", "filesystem", "network", "credentials", "devices", "external_effects", "lifecycle", "observer"],
+      "properties": {
+        "process": {"enum": ["same_process", "separate_process_tree", "container", "vm"]},
+        "kernel": {"enum": ["shared", "separate_guest_kernel"]},
+        "filesystem": {"enum": ["host_visible", "restricted_host", "synthetic", "disposable_overlay"]},
+        "network": {"enum": ["none", "loopback_only", "simulated_internet", "allowlist_egress", "full_egress"]},
+        "credentials": {"enum": ["host_ambient", "provider_scoped", "synthetic_only", "none"]},
+        "devices": {"enum": ["host_default", "explicit_allowlist", "none"]},
+        "external_effects": {"enum": ["direct_open_world", "policy_proxy", "synthetic_only", "none"]},
+        "lifecycle": {"enum": ["persistent", "resettable", "disposable"]},
+        "observer": {"enum": ["self_reported", "same_trust_domain", "independent"]}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_wall_seconds", "max_cpu_seconds", "max_memory_mib", "max_disk_mib", "max_processes", "max_network_bytes"],
+      "properties": {
+        "max_wall_seconds": {"type": "integer", "minimum": 1},
+        "max_cpu_seconds": {"type": "integer", "minimum": 0},
+        "max_memory_mib": {"type": "integer", "minimum": 1},
+        "max_disk_mib": {"type": "integer", "minimum": 0},
+        "max_processes": {"type": "integer", "minimum": 1},
+        "max_network_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerId", "providerRevision", "providerKind", "providerEvidenceDigest"],
+      "properties": {
+        "providerId": {"type": "string", "minLength": 1},
+        "providerRevision": {"type": "string", "minLength": 1},
+        "providerKind": {"type": "string", "minLength": 1},
+        "providerEvidenceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

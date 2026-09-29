@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.information-flow-analysis",
+  "standing": "ACTIVE_R1",
+  "method": "information-flow / noninterference lens",
+  "flows": [
+    {
+      "id": "public-market-observation",
+      "source": "public provider/network observation",
+      "transform": "Markets normalization/sensors",
+      "sink": "read-only circuit receipt",
+      "allowed": true,
+      "effectAuthorityTransferred": false
+    },
+    {
+      "id": "private-account-observation",
+      "source": "explicit observer credential binding + provider USER_DATA",
+      "transform": "Trading private-reality normalization",
+      "sink": "bounded read-only analysis",
+      "allowedOnlyWhen": "privateAccountDataAdmission becomes independently current",
+      "effectAuthorityTransferred": false
+    },
+    {
+      "id": "credential-secret-bytes",
+      "source": "external Runtime/operator credential authority",
+      "transform": "provider request only",
+      "forbiddenSinks": ["repository", "Skill text", "acceptance receipt", "LEGO registry"],
+      "declassification": "none"
+    },
+    {
+      "id": "skill-advice",
+      "source": "standard .agents/skills text",
+      "transform": "model routing",
+      "sink": "LEGO/circuit selection",
+      "allowed": true,
+      "effectAuthorityTransferred": false
+    }
+  ],
+  "laws": [
+    "information visibility does not imply effect authority",
+    "private account data admission and order-capable credential authority remain distinct",
+    "secret bytes remain external to repository artifacts",
+    "Skills may route but cannot carry credentials or mint provider permission"
+  ]
+}

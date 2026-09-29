@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.r1-r2-semantic-baseline",
+  "truthRole": "MIGRATION_ORACLE_NOT_FINANCIAL_AUTHORITY",
+  "sourceRevision": "9cab0e9c968dacdb2e7a22462a6a5d98193b0940",
+  "inventory": {
+    "registryEntries": 39,
+    "canonicalEntries": 34,
+    "functionalLegos": 12,
+    "readOnlyCircuitFamilies": 3,
+    "nonLiveEffectScenarios": 5
+  },
+  "authorityStanding": {
+    "executionLane": "NON_LIVE",
+    "productionAuthorization": "BLOCK_NOT_GRANTED",
+    "externalFinancialWriteAllowed": false,
+    "privateAccountDataAdmission": "NOT_ADMITTED",
+    "portfolioRiskBudget": "UNSET"
+  },
+  "semanticLaws": [
+    "provider reality outranks workflow/local accounting truth",
+    "policy allow does not mint provider/effect authority",
+    "Reserve precedes admitted provider effect",
+    "external effect ambiguity requires reconciliation rather than blind replay",
+    "UNKNOWN resolves to NO_MUTATION",
+    "risk budget UNSET is never inferred",
+    "mechanical composition completion is not financial/domain completion"
+  ],
+  "r1Owners": {
+    "localComposition": "src/ordivon_capital/governance/composition_contract.py",
+    "sharedCompositionCandidate": "../../packages/composition"
+  },
+  "migrationRule": "R2 may delete R1 generic mechanics only after differential qualification preserves Capital admission/rejection, financial effect ordering, evidence obligations and authority non-claims."
+}

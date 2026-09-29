@@ -1,0 +1,143 @@
+{
+  "$id": "https://ordivon.local/schemas/evaluation-boundary-binding-r1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "donors": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "donorId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "ownerId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "jsonAssertions": {
+                  "items": {
+                    "additionalProperties": false,
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "operator": {
+                              "const": "equals"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "expected"
+                          ]
+                        }
+                      }
+                    ],
+                    "properties": {
+                      "expected": {},
+                      "operator": {
+                        "enum": [
+                          "equals",
+                          "sha256"
+                        ]
+                      },
+                      "pointer": {
+                        "pattern": "^/",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "pointer",
+                      "operator"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "mediaType": {
+                  "enum": [
+                    "application/json",
+                    "text/markdown"
+                  ]
+                },
+                "repoRelativePath": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "requiredTextFragments": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "role": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "sha256": {
+                  "pattern": "^sha256:[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "role",
+                "repoRelativePath",
+                "sha256",
+                "mediaType"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "standing": {
+            "enum": [
+              "EXECUTED",
+              "FROZEN_PROTOCOL_ONLY"
+            ]
+          }
+        },
+        "required": [
+          "donorId",
+          "ownerId",
+          "standing",
+          "sources"
+        ],
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "kind": {
+      "const": "ordivon.evaluation-boundary-binding-r1"
+    },
+    "nonClaims": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "truthRole": {
+      "const": "task-local-acceptance-binding-not-owner-truth"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "donors",
+    "nonClaims"
+  ],
+  "type": "object"
+}

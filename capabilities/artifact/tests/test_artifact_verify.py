@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 import struct
+import subprocess
 import tempfile
 import unittest
 import zlib
@@ -19,6 +20,68 @@ SPEC.loader.exec_module(M)
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def git_show(commit: str, relative: str) -> bytes:
+    result = subprocess.run(
+        ["git", "show", f"{commit}:{relative}"],
+        cwd=MONOREPO_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise AssertionError(
+            f"historical Git object unavailable: {commit}:{relative}: "
+            + result.stderr.decode("utf-8", "replace")
+        )
+    return result.stdout
+
+
+def assert_frozen_artifact_authorities(
+    case: unittest.TestCase, receipt_name: str, receipt: dict
+) -> None:
+    proof_path = ROOT / "artifact-delivery/consumer-acceptance/frozen-authority-snapshots-r1.json"
+    proof = json.loads(proof_path.read_text())
+    entry = proof["entries"][receipt_name]
+    case.assertEqual(entry["standaloneBaseRevision"], receipt["artifactSource"]["baseRevision"])
+
+    commit_map = {}
+    for line in (MONOREPO_ROOT / "docs/migration/receipts/artifact.commit-map").read_text().splitlines():
+        if line.strip():
+            old, rewritten = line.split()[:2]
+            commit_map[old] = rewritten
+    case.assertEqual(
+        commit_map[entry["standaloneBaseRevision"]], entry["rewrittenBaseRevision"]
+    )
+    ancestry = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            entry["rewrittenBaseRevision"],
+            entry["snapshotCommit"],
+        ],
+        cwd=MONOREPO_ROOT,
+        check=False,
+    )
+    case.assertEqual(ancestry.returncode, 0)
+
+    receipt_relative = (
+        "capabilities/artifact/artifact-delivery/consumer-acceptance/" + receipt_name
+    )
+    case.assertEqual(
+        git_show(entry["snapshotCommit"], receipt_relative),
+        (ROOT / "artifact-delivery/consumer-acceptance" / receipt_name).read_bytes(),
+    )
+    for value in receipt["artifactOwnedAuthorities"].values():
+        relative = "capabilities/artifact/" + value["relativePath"]
+        historical = git_show(entry["snapshotCommit"], relative)
+        case.assertEqual(
+            hashlib.sha256(historical).hexdigest(),
+            value["sha256"],
+            value["relativePath"],
+        )
 
 
 def chunk(kind: bytes, payload: bytes) -> bytes:
@@ -138,8 +201,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertTrue(all(x['serviceCandidateStatus']=='PASS' for x in receipt['subjects']))
         self.assertTrue(all(x['browserStanding']=='TARGET_SAMPLE_BOUNDARY_DIVERGENCE_OBSERVED' for x in receipt['subjects']))
         self.assertTrue(all(x['firefoxSamples']-x['chromiumSamples']==128 for x in receipt['subjects']))
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        assert_frozen_artifact_authorities(self, 'game-station-zero-ogg-vorbis-r1.json', receipt)
         for subject in receipt['subjects']:
             c=subject['contract'];self.assertEqual(sha(ROOT/c['relativePath']),c['sha256'],c['relativePath'])
 
@@ -150,8 +212,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertTrue(all(x['intrinsicDimensionAgreement'] for x in receipt['subjects']))
         self.assertTrue(all(x['nonTransparentPixelCountAgreement'] for x in receipt['subjects']))
         self.assertTrue(all(not x['pixelChecksumAgreement'] for x in receipt['subjects']))
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        assert_frozen_artifact_authorities(self, 'game-station-zero-svg-static-r1.json', receipt)
 
     def test_frozen_tiled_game_consumer_smoke_keeps_native_authority_and_game_semantics_separate(self):
         receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-tiled-tmj-r1.json').read_text())
@@ -163,8 +224,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['nativeCrossFormatRoundTrip']['status'],'PASS')
         self.assertEqual(receipt['nativeRasterReadback']['status'],'PASS')
         self.assertEqual(receipt['gameMigrationEvidence']['layoutDigest'],'21efdf5b69858953aaef55abd0bb143f5eb24f5be8f3a3c3bcfe6cb86cc5b527')
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        assert_frozen_artifact_authorities(self, 'game-station-zero-tiled-tmj-r1.json', receipt)
 
     def test_frozen_aseprite_game_consumer_smoke_separates_native_and_game_owned_metadata(self):
         receipt=json.loads((ROOT/'artifact-delivery/consumer-acceptance/game-station-zero-aseprite-horizontal-sheet-r1.json').read_text())
@@ -177,8 +237,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertTrue(all(x['nativeDeterministicExport']=='PASS' for x in receipt['subjects']))
         self.assertTrue(all(x['derivedPngProfileStatus']=='PASS' for x in receipt['subjects']))
         self.assertTrue(all(x['runtimeDerivative']['sha256']==x['derivativeIdentity']['generatedPngSha256'] for x in receipt['subjects']))
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        assert_frozen_artifact_authorities(self, 'game-station-zero-aseprite-horizontal-sheet-r1.json', receipt)
         for x in receipt['subjects']:
             c=x['contract'];self.assertEqual(sha(ROOT/c['relativePath']),c['sha256'],c['relativePath'])
 
@@ -196,8 +255,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
             self.assertEqual(receipt["verification"]["assimpStatus"],"PASS")
             self.assertEqual(receipt["verification"]["blenderStatus"],"PASS")
             self.assertEqual(receipt["verification"]["godotStatus"],"PASS")
-            for value in receipt["artifactOwnedAuthorities"].values():
-                path=ROOT/value["relativePath"];self.assertEqual(sha(path),value["sha256"],value["relativePath"])
+            assert_frozen_artifact_authorities(self, name, receipt)
             self.assertEqual(receipt["externalSubject"]["identityStanding"],"EXACT_BYTES_OBSERVED_AT_CONSUMER_REVISION_NOT_ARTIFACT_OWNED")
 
     def test_frozen_game_godot_linux_elf_release_preserves_producer_and_artifact_authorities(self):
@@ -206,8 +264,7 @@ class ArtifactVerifyServiceTests(unittest.TestCase):
         self.assertEqual(receipt['artifactVerification']['serviceStatus'],'PASS')
         self.assertEqual(receipt['artifactVerification']['runtimeReadback'],'PASS')
         self.assertEqual(receipt['artifactVerification']['networkNamespace'],'UNSHARED')
-        for value in receipt['artifactOwnedAuthorities'].values():
-            path=ROOT/value['relativePath'];self.assertEqual(sha(path),value['sha256'],value['relativePath'])
+        assert_frozen_artifact_authorities(self, 'game-godot-production-smoke-linux-elf-r1.json', receipt)
         game=GAME_ROOT
         for key in ('harness','acceptedReproducibilityBoundary'):
             value=receipt['producerEvidence'][key];self.assertEqual(sha(game/value['relativePath']),value['sha256'],value['relativePath'])

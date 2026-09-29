@@ -1,0 +1,25 @@
+{
+  "deliveries": [
+    {
+      "receptorId": "receptor:storage-pressure",
+      "signalIds": [
+        "modulatory:d-drive-pressure"
+      ],
+      "truthBoundary": "Delivery is an interest match, not authority or acceptance."
+    },
+    {
+      "receptorId": "receptor:wsl-maintenance-guard",
+      "signalIds": [
+        "candidate:vhd-compact:capital",
+        "candidate:vhd-compact:gris",
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "truthBoundary": "Delivery is an interest match, not authority or acceptance."
+    }
+  ],
+  "kind": "ordivon.social-fabric-receptor-deliveries",
+  "observedAt": "2026-09-23T04:32:40+08:00",
+  "schemaVersion": 1,
+  "sourceCutDigest": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73"
+}

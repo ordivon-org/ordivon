@@ -591,5 +591,26 @@ class SQLiteHarnessStoreTests(unittest.TestCase):
                 SQLiteHarnessStore.initialize(state)
 
 
+    def test_caller_binding_locates_exact_existing_run_without_scanning(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with SQLiteHarnessStore.initialize(directory) as store:
+                contract_value = run_contract(
+                    run_id="harness-run:p0-caller-lookup",
+                    caller_ref="trial:p0-caller-lookup",
+                )
+                store.create_run(contract_value)
+                located = store.load_run_by_caller(
+                    contract_value.caller_id,
+                    contract_value.caller_run_ref,
+                )
+                self.assertEqual(located.harness_run_id, contract_value.harness_run_id)
+                self.assertEqual(located.contract_digest, contract_value.digest)
+                with self.assertRaises(KeyError):
+                    store.load_run_by_caller(
+                        contract_value.caller_id,
+                        "trial:p0-caller-missing",
+                    )
+
+
 if __name__ == "__main__":
     unittest.main()

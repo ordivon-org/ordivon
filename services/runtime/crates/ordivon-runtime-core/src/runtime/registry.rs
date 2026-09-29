@@ -10,6 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
+use super::control_primitives::acquire_shared_file_fence;
 use super::job_attempt_state::{
     AttemptLifecycleContract, JobIdentityContract, OperationIdentityBindings,
 };

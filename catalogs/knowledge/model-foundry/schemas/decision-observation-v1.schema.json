@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/catalogs/model-foundry/decision-observation-v1.schema.json",
+  "title": "Ordivon Decision Observation Knowledge Contract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "operatorRef", "subjectRef", "candidateSetDigest", "distribution", "standing", "explicitNonClaims"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "operatorRef": {"const": "DECIDE"},
+    "subjectRef": {"type": "string", "minLength": 1},
+    "candidateSetDigest": {"type": "string", "minLength": 1},
+    "selectedCandidate": {"type": ["string", "null"]},
+    "distribution": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+    },
+    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "calibrationRef": {"type": ["string", "null"]},
+    "qualificationRef": {"type": ["string", "null"]},
+    "abstainRecommended": {"type": "boolean"},
+    "abstainReasons": {"type": "array", "items": {"type": "string"}},
+    "standing": {"enum": ["PROPOSAL", "ABSTAIN", "UNQUALIFIED", "ERROR"]},
+    "evidenceRefs": {"type": "array", "items": {"type": "string"}},
+    "explicitNonClaims": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["NOT_AUTHORIZATION", "NOT_EXECUTION_SUCCESS", "NOT_DOMAIN_COMPLETION"]}
+    }
+  }
+}

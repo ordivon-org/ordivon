@@ -26,6 +26,7 @@
 45481611d41c3743397348b54d7aa05d3f8bf605:platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
 4fd5814c51a760ab037c4452464214940f10af87:capabilities/artifact/artifact-delivery/toolchain-v1.lock.json:generic-api-key:27
 5938348069e5713d6947e66475db6faef5e4e483:knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
+catalogs/knowledge/lessons/llamaindex-haystack-context-retrieval-kernel.md:generic-api-key:38
 638c76343ca98d75ddd096810edb8ddd0f30218b:tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:175
 638c76343ca98d75ddd096810edb8ddd0f30218b:tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:191
 638c76343ca98d75ddd096810edb8ddd0f30218b:tests/unit/finance/test_paper_dogfood_boundaries.py:generic-api-key:207
@@ -71,7 +72,7 @@ platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:40
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:60
 platform/security/labs/agent-admission-rs/evidence/AGENT-ADMISSION-WEBAUTHN-E2E-R1.json:generic-api-key:81
-platform/skills/tests/test_skill_catalog_r2.py:private-key:256
+extensions/chatgpt-skills-mcp/tests/test_skill_catalog_r2.py:private-key:256
 services/harness/evidence/harness-r3-static-composition-admission-4e9d4b9.json:generic-api-key:67
 services/harness/evidence/harness-r3-supported-agent-surface-fe6fc1a.json:generic-api-key:78
 services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
@@ -83,3 +84,8 @@ services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
 docs/architecture/e01-e02-trace-identity-acceptance-20260921.json:generic-api-key:66
 docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:186
 docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:188
+
+# Reviewed 2026-09-29 publication false positives: namespaced Runtime identities,
+# not credentials. Keep exact fingerprints so future findings still fail closed.
+11ea1d06be37ba00378c49d91e90adb082e8dc61:services/runtime/crates/ordivon-runtime-core/src/runtime/windows.rs:generic-api-key:1723
+e093dc5b7701bc6de55eb929a678504b2dcacfa6:docs/architecture/capability-projection-fabric-lego-r1.json:cloudflare-api-key:306

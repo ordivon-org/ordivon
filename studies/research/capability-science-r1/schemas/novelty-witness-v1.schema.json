@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/capability-science/novelty-witness-v1.schema.json",
+  "title": "Capability Science Novelty Witness V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "witnessId", "candidateCapabilityId", "baselineCapabilityId", "observationPolicyRef", "contextId", "candidateObservation", "baselineObservation", "candidateObservationDigest", "baselineObservationDigest", "verdict", "boundedComparison", "evidenceRefs", "nonClaims"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capability-novelty-witness-v1"},
+    "witnessId": {"type": "string", "minLength": 1},
+    "candidateCapabilityId": {"type": "string", "minLength": 1},
+    "baselineCapabilityId": {"type": "string", "minLength": 1},
+    "observationPolicyRef": {"type": "string", "minLength": 1},
+    "contextId": {"type": "string", "minLength": 1},
+    "candidateObservation": {},
+    "baselineObservation": {},
+    "candidateObservationDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "baselineObservationDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "verdict": {"const": "DISTINGUISHABLE_WITHIN_POLICY"},
+    "boundedComparison": {"const": true},
+    "evidenceRefs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonClaims": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+  }
+}

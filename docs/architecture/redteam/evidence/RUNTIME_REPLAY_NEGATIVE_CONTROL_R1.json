@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam.runtime-replay-negative-control",
+  "truthRole": "runtime-behavior-falsification-evidence",
+  "runtimeNode": "windows-main-r6-candidate",
+  "workspaceId": "ws-monorepo-redteam-provider-ledger-r1-20260927",
+  "clientRequestId": "redteam-r4-replay-control-20260927",
+  "firstJobId": "job-01a0de9b-659c-78e2-b2df-56bc151e1adf",
+  "observations": {
+    "firstRequestSucceeded": true,
+    "exactReplayReturnedSameJobAndAttempt": true,
+    "changedPayloadRejectedBeforeExecution": true,
+    "changedPayloadErrorCode": "IDEMPOTENCY_CONFLICT"
+  }
+}

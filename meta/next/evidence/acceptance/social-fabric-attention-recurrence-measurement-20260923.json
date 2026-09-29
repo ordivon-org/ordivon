@@ -1,0 +1,107 @@
+{
+  "distinctHorizonCount": 2,
+  "documents": [
+    {
+      "findingIds": [
+        "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+        "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+        "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617"
+      ],
+      "horizonRef": "sha256:0b94b20a772c8fc20fe71321eadb0ba4354f4888d423d984850704550295c1d5",
+      "observedAt": "2026-09-23T02:57:00+08:00",
+      "path": "acceptance/social-fabric-r1-current-projection-20260923.json"
+    },
+    {
+      "findingIds": [
+        "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+        "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+        "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617"
+      ],
+      "horizonRef": "sha256:0b94b20a772c8fc20fe71321eadb0ba4354f4888d423d984850704550295c1d5",
+      "observedAt": "2026-09-23T02:57:00+08:00",
+      "path": "acceptance/social-fabric-r1-attention-projection-20260923.json"
+    },
+    {
+      "findingIds": [
+        "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+        "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+        "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617"
+      ],
+      "horizonRef": "sha256:0b94b20a772c8fc20fe71321eadb0ba4354f4888d423d984850704550295c1d5",
+      "observedAt": "2026-09-23T02:57:00+08:00",
+      "path": "acceptance/social-fabric-r1-reconciliation-20260923.json"
+    },
+    {
+      "findingIds": [
+        "finding:sha256:93f6bfb370d21d8e6b83c731832f7ccaebc88100f730b71953b492c2e5d5a8b4",
+        "finding:sha256:97084acbfe5553b89a1467776347d2b29bece4b95ea1450b47f6b52d3f77a477",
+        "finding:sha256:cc26fc84ba89a72a0d1ea6749c32f809d9b560a0f326b179c03ef37fe3bc3168"
+      ],
+      "horizonRef": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73",
+      "observedAt": "2026-09-23T04:32:40+08:00",
+      "path": "acceptance/social-fabric-coordination-r2-current-20260923.json"
+    },
+    {
+      "findingIds": [
+        "finding:sha256:93f6bfb370d21d8e6b83c731832f7ccaebc88100f730b71953b492c2e5d5a8b4",
+        "finding:sha256:97084acbfe5553b89a1467776347d2b29bece4b95ea1450b47f6b52d3f77a477",
+        "finding:sha256:cc26fc84ba89a72a0d1ea6749c32f809d9b560a0f326b179c03ef37fe3bc3168"
+      ],
+      "horizonRef": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73",
+      "observedAt": "2026-09-23T04:32:40+08:00",
+      "path": "acceptance/social-fabric-coordination-r2-attention-20260923.json"
+    }
+  ],
+  "duplicateViewCountCollapsed": 3,
+  "findingIdsRepeatedAcrossDistinctHorizons": [],
+  "horizons": [
+    {
+      "documentPaths": [
+        "acceptance/social-fabric-r1-attention-projection-20260923.json",
+        "acceptance/social-fabric-r1-current-projection-20260923.json",
+        "acceptance/social-fabric-r1-reconciliation-20260923.json"
+      ],
+      "findingIds": [
+        "finding:sha256:26bccdf872bc860f9b7768d8de3e4c440ed445a6b3501e277b2eacfa218fa2a2",
+        "finding:sha256:62b1e8e2ef28d04779ac7c937b998b5da0e17f8823737654f5bfcd4fafaa2f5b",
+        "finding:sha256:874fd99f44ff4f2f47c26cb2d932c25ff9e93b182507f7dfdfab5146e1034617"
+      ],
+      "horizonRef": "sha256:0b94b20a772c8fc20fe71321eadb0ba4354f4888d423d984850704550295c1d5",
+      "observedAtValues": [
+        "2026-09-23T02:57:00+08:00"
+      ]
+    },
+    {
+      "documentPaths": [
+        "acceptance/social-fabric-coordination-r2-attention-20260923.json",
+        "acceptance/social-fabric-coordination-r2-current-20260923.json"
+      ],
+      "findingIds": [
+        "finding:sha256:93f6bfb370d21d8e6b83c731832f7ccaebc88100f730b71953b492c2e5d5a8b4",
+        "finding:sha256:97084acbfe5553b89a1467776347d2b29bece4b95ea1450b47f6b52d3f77a477",
+        "finding:sha256:cc26fc84ba89a72a0d1ea6749c32f809d9b560a0f326b179c03ef37fe3bc3168"
+      ],
+      "horizonRef": "sha256:1f8e45c999f6c5e0c31e9d44d85db05b06dd739ea7b5a70e76107bffeef84f73",
+      "observedAtValues": [
+        "2026-09-23T04:32:40+08:00"
+      ]
+    }
+  ],
+  "kind": "ordivon.social-fabric-attention-recurrence-measurement",
+  "measurementDigest": "sha256:c8eda4f54591cac79dc546c2c18b5c0051760aadef06ed09528cbf1dd773a6dd",
+  "nonClaims": [
+    "Repeated rendering of one source cut is not repeated stimulation.",
+    "A shared finding code is not treated as the same stimulus identity.",
+    "This measurement cannot suppress, attenuate, rank, or hide attention items.",
+    "No attention adaptation is authorized by this measurement alone."
+  ],
+  "promotionGate": {
+    "adaptationImplementationAuthorized": false,
+    "requiresDistinctHorizons": 2,
+    "requiresStableFindingRecurrence": true
+  },
+  "rawDocumentCount": 5,
+  "schemaVersion": 1,
+  "standing": "INSUFFICIENT_LONGITUDINAL_EVIDENCE_HOLD",
+  "truthRole": "measurement-only-no-attention-policy"
+}

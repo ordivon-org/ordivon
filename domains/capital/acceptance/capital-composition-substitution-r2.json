@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.composition-substitution-acceptance",
+  "standing": "EQUIVALENT_FOR_CURRENT_CAPITAL_CONTRACT_SPACE",
+  "r1Owner": "ordivon_capital.governance.composition_contract",
+  "r2GenericOwner": "ordivon_composition",
+  "r2FinancialSeam": "ordivon_capital.governance.circuit_lowering",
+  "qualificationRuntimeJob": "job-01a0cd65-9d7b-7850-b5d2-1ff83410ae51",
+  "qualifiedCanonicalCircuits": [
+    "PUBLIC_MARKET_OBSERVATION_R2",
+    "PORTFOLIO_RISK_ANALYSIS_R2",
+    "COUNTERFACTUAL_ANALYSIS_R2",
+    "NONLIVE_EFFECT_QUALIFICATION_R2"
+  ],
+  "preserved": [
+    "Capital registry standing and prohibited-use checks",
+    "Capital financial authority current-admission checks",
+    "Capital effect taxonomy and Reserve/Reconcile/Account ordering",
+    "Capital unresolved evidence obligations",
+    "authorityGranted=false",
+    "executionPerformed=false",
+    "semanticCompletionEvaluated=false"
+  ],
+  "sharedCompositionNonClaims": [
+    "effectCoverageEstablished=false",
+    "authorityGranted=false",
+    "executionAuthorityGranted=false",
+    "domainAcceptanceEstablished=false"
+  ],
+  "decision": "DELETE_R1_GENERIC_COMPOSITION_GLUE_AFTER_CUTOVER"
+}

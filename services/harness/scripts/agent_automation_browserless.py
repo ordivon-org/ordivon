@@ -21,8 +21,20 @@ import urllib.parse
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
+_RELEASE_SRC = str(SOURCE_ROOT / "src")
+if _RELEASE_SRC not in sys.path:
+    sys.path.insert(0, _RELEASE_SRC)
+
+# These imports intentionally follow release-source path materialization above.
+from ordivon_harness.gateway_execution_port import GatewayExecutionPort  # noqa: E402
+from ordivon_harness.mcp_http_client import LoopbackMcpEndpoint, OfficialMcpClient  # noqa: E402
+from ordivon_harness.user_browser_gateway import (  # noqa: E402
+    UserBrowserGatewayConfig,
+    UserBrowserGatewayController,
+)
 
 try:
     from browserless_substrate import BrowserlessPool
@@ -577,6 +589,89 @@ class BrowserlessAutomationService:
     def __init__(self, config: BrowserlessAutomationConfig) -> None:
         self.config = config
         self.config.state_root.mkdir(parents=True, exist_ok=True)
+
+    def _user_browser_controller(self) -> UserBrowserGatewayController:
+        cfg = self.config.windows_user_browser
+        if cfg is None:
+            raise BrowserlessAutomationHold("Windows user-browser carrier is not configured")
+        bearer_path = os.environ.get("ORDIVON_AGENT_GATEWAY_BEARER_TOKEN_FILE", "").strip()
+        if not bearer_path:
+            raise BrowserlessAutomationHold("Gateway local service credential is not injected")
+        client = OfficialMcpClient(
+            LoopbackMcpEndpoint(cfg.gateway_url),
+            bearer_token_file=Path(bearer_path),
+            timeout_seconds=max(1.0, cfg.timeout_ms / 1000),
+        )
+        return UserBrowserGatewayController(
+            GatewayExecutionPort(client, max_observations=4096, poll_interval_seconds=0.25),
+            UserBrowserGatewayConfig(
+                workspace_id=cfg.workspace_id,
+                powershell_path=cfg.powershell_path,
+                driver_path=cfg.driver_path,
+                proxy_url=cfg.proxy_url,
+                linux_stage_root=str(cfg.linux_stage_root),
+                windows_stage_root=cfg.windows_stage_root,
+                timeout_ms=cfg.timeout_ms,
+            ),
+        )
+
+    def conversation_output(self, spec_path: Path, agent_id: str) -> dict:
+        if self.config.materialization_carrier != "windows-user-browser":
+            raise BrowserlessAutomationHold(
+                "conversation.output current production surface requires windows-user-browser carrier"
+            )
+        spec = self.load_spec(spec_path)
+        request = self._materialization(spec, agent_id)
+        census = campaign_census(spec, self.config.ledger)
+        row = next(item for item in census["materializations"] if item["agentId"] == agent_id)
+        if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
+            raise BrowserlessAutomationHold("conversation output requires one provider-bound materialization")
+        target_resource = str(row["providerResource"])
+        prompt_digest = "sha256:" + hashlib.sha256(request.bootstrap_prompt.encode("utf-8")).hexdigest()
+        with _user_browser_carrier_lease(self.config, blocking=True):
+            observation = self._user_browser_controller().observe_output(
+                effect_id=request.request_id,
+                request_digest=request.request_digest,
+                prompt_digest=prompt_digest,
+                target_resource=target_resource,
+            )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-output-observation",
+            "agentId": agent_id,
+            "effectId": request.request_id,
+            "providerResource": target_resource,
+            "observation": observation,
+        }
+
+    def conversation_release(self, spec_path: Path, agent_id: str) -> dict:
+        if self.config.materialization_carrier != "windows-user-browser":
+            raise BrowserlessAutomationHold(
+                "conversation.release current production surface requires windows-user-browser carrier"
+            )
+        spec = self.load_spec(spec_path)
+        request = self._materialization(spec, agent_id)
+        census = campaign_census(spec, self.config.ledger)
+        row = next(item for item in census["materializations"] if item["agentId"] == agent_id)
+        if row.get("materializationStanding") != "bound" or not row.get("providerResource"):
+            raise BrowserlessAutomationHold("conversation release requires one provider-bound materialization")
+        target_resource = str(row["providerResource"])
+        prompt_digest = "sha256:" + hashlib.sha256(request.bootstrap_prompt.encode("utf-8")).hexdigest()
+        with _user_browser_carrier_lease(self.config, blocking=True):
+            receipt = self._user_browser_controller().release(
+                effect_id=request.request_id,
+                request_digest=request.request_digest,
+                prompt_digest=prompt_digest,
+                target_resource=target_resource,
+            )
+        return {
+            "schemaVersion": 1,
+            "kind": "ordivon.conversation-carrier-release",
+            "agentId": agent_id,
+            "effectId": request.request_id,
+            "providerResource": target_resource,
+            "release": receipt,
+        }
 
     def _record_cf07_preflight(
         self,

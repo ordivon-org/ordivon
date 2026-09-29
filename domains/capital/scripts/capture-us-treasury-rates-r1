@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+year="${1:-$(date -u +%Y)}"
+out="${2:-$repo/.artifacts/us-treasury-rates-r1/${year}.json}"
+binding="$("$repo/scripts/check-network-v2-public-data")"
+proxy="$(printf '%s' "$binding" | /usr/bin/jq -r '.authorities.usTreasuryRest.proxy')"
+if [[ -z "$proxy" || "$proxy" == "null" ]]; then
+  echo "U.S. Treasury Network v2 public REST proxy missing" >&2
+  exit 3
+fi
+readiness="$(printf '%s' "$binding" | /usr/bin/jq -r '.readinessCommand')"
+"$readiness" treasury 45 >/dev/null
+PYTHONPATH="$repo/src" /usr/bin/python3 -m ordivon_capital.markets.us_treasury_rates \
+  --proxy "$proxy" --year "$year" --output "$out"

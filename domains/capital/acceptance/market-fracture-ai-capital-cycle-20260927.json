@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-standing",
+  "truthRole": "RESEARCH_EVIDENCE_SNAPSHOT_NOT_PROVIDER_AUTHORITY",
+  "ownerDomain": "research",
+  "recordedDate": "2026-09-27",
+  "marketObservationCutoff": "2026-09-25",
+  "subject": "market-fracture-ai-capital-cycle",
+  "state": {
+    "code": "F3",
+    "label": "MARKET_FRACTURE",
+    "description": "Concentrated headline-equity resilience with broad internal tightening; credit/funding plumbing not yet in systemic transmission."
+  },
+  "claims": [
+    {
+      "id": "capital.market-fracture.ai-capital-concentration",
+      "standing": "CONFIRMED",
+      "scope": "AI/hyperscaler capital formation"
+    },
+    {
+      "id": "capital.market-fracture.ai-credit-financialisation",
+      "standing": "CONFIRMED",
+      "scope": "bonds, leases, SPVs, project finance and private credit"
+    },
+    {
+      "id": "capital.market-fracture.rate-sensitive-compression",
+      "standing": "CONFIRMED_DISTRIBUTIONALLY_UNEVEN",
+      "scope": "housing, consumer-sensitive activity, smaller/weaker borrowers"
+    },
+    {
+      "id": "capital.market-fracture.weak-breadth",
+      "standing": "CONFIRMED",
+      "scope": "US large-cap constituent participation"
+    },
+    {
+      "id": "capital.market-fracture.index-concentration",
+      "standing": "CONFIRMED",
+      "scope": "US cap-weighted large-cap equity"
+    },
+    {
+      "id": "capital.market-fracture.rates-equity-vol-divergence",
+      "standing": "CONFIRMED",
+      "scope": "MOVE versus VIX late-September 2026"
+    },
+    {
+      "id": "capital.market-fracture.weak-credit-divergence",
+      "standing": "CONFIRMED",
+      "scope": "CCC/lower quality versus broad HY"
+    },
+    {
+      "id": "capital.market-fracture.ai-real-rate-pressure",
+      "standing": "SUPPORTED_MAGNITUDE_UNRESOLVED",
+      "scope": "saving-investment and real-resource channel"
+    },
+    {
+      "id": "capital.market-fracture.direct-ai-bond-treasury-crowding",
+      "standing": "NOT_SUPPORTED_AS_PRIMARY_CHANNEL",
+      "scope": "portfolio crowding-out channel"
+    },
+    {
+      "id": "capital.market-fracture.broad-credit-crunch",
+      "standing": "NOT_PRESENT",
+      "scope": "US broad corporate credit"
+    },
+    {
+      "id": "capital.market-fracture.funding-haircut-spiral",
+      "standing": "NOT_PRESENT",
+      "scope": "repo, securities financing and forced deleveraging"
+    },
+    {
+      "id": "capital.market-fracture.systemic-run",
+      "standing": "NOT_PRESENT",
+      "scope": "2007Q3/2008-style funding run"
+    }
+  ],
+  "monitoringLegos": [
+    "SPX_NDX",
+    "PCT_ABOVE_50DMA",
+    "PCT_ABOVE_200DMA",
+    "SPY_RSP_AND_TOP10_WEIGHT",
+    "RUSSELL_2000_RELATIVE",
+    "UST_2Y_10Y_30Y",
+    "UST_10Y_REAL_YIELD",
+    "MOVE",
+    "VIX",
+    "BRENT_ENERGY_INFLATION_IMPULSE",
+    "US_30Y_MORTGAGE",
+    "US_HY_OAS",
+    "US_CCC_OAS",
+    "SCOOS_REPO_HAIRCUTS",
+    "BEIGE_BOOK_SLOOS",
+    "AI_CAPEX_FCF_DEBT_COMMITMENTS"
+  ],
+  "derivedResearchMeasures": {
+    "breadthGap": "headline-index trend - median-constituent trend",
+    "volatilityGap": "z(MOVE) - z(VIX)",
+    "creditGap": "CCC OAS - broad HY OAS",
+    "capitalGap": "AI capex growth - non-AI private investment growth",
+    "financingGap": "weak/marginal borrower WACC - mega-cap WACC"
+  },
+  "transitionContracts": {
+    "F3_TO_R1": "Sustained breadth and equal-weight repair with stable/lower rate volatility and orderly credit.",
+    "F3_TO_R2": "Leader valuation/time compression with stable earnings, broad credit and funding plumbing.",
+    "F3_TO_F4": "Weak-credit stress propagates into broad HY/IG plus material tightening in lending/refinancing/funding and broad negative earnings revisions.",
+    "F4_TO_F5": "Asset loss -> funding withdrawal -> forced sale -> collateral loss -> further funding withdrawal."
+  },
+  "gaps": [
+    "economic utilisation and return on installed AI compute",
+    "organic end-demand versus ecosystem-financed/circular AI demand",
+    "cross-sectional WACC and refinancing burden",
+    "AI contribution to equilibrium real rates and term premia",
+    "canonical breadth provider/methodology",
+    "private-credit/SPV leverage, guarantees, covenants and refinancing calendars",
+    "non-megacap earnings revision breadth",
+    "MOVE-to-repo/dealer-balance-sheet transmission if rate volatility persists"
+  ],
+  "sourceAuthorities": [
+    "Federal Reserve Board Beige Book",
+    "Federal Reserve Board SLOOS",
+    "Federal Reserve Board SCOOS",
+    "U.S. Treasury",
+    "Freddie Mac PMMS",
+    "Federal Reserve Bank of Minneapolis",
+    "Federal Reserve Bank of Dallas",
+    "BIS",
+    "IMF",
+    "NBER historical research",
+    "PIMCO research"
+  ],
+  "constraints": [
+    "Not investment approval",
+    "Not execution authority",
+    "Not provider truth",
+    "Currentness must be re-established before decision use",
+    "Poor breadth is not a deterministic market-timing signal",
+    "Credit repricing must not be conflated with a funding run",
+    "Contrary evidence of orderly broad credit/funding must be retained"
+  ],
+  "humanReadableReport": "docs/MARKET_FRACTURE_AI_CAPITAL_CYCLE_20260927.md"
+}

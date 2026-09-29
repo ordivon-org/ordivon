@@ -39,6 +39,8 @@ class FakeMcpClient:
                 "artifact.read",
                 "continuity.get",
                 "continuity.list",
+                "continuity.find",
+                "continuity.changes",
             )
             if name not in self.omit
         )
@@ -144,6 +146,8 @@ class AgentPluginCompositionTests(unittest.TestCase):
                 names,
                 (
                     "capability.describe",
+                    "continuity.changes",
+                    "continuity.find",
                     "continuity.get",
                     "continuity.list",
                     "system.describe",

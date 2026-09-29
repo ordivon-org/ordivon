@@ -1,0 +1,28 @@
+[Unit]
+Description=Network v2 Claude Code client namespace with no direct Internet route
+BindsTo=network-v2-claude.target
+After=network-v2-claude.target network-v2-browserless.target
+Requires=network-v2-browserless.target
+PartOf=network-v2-claude-client.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=VPN_IF=nv2clvpn
+Environment=CLIENT_IF=nv2cln
+Environment=VPN_ADDR=10.252.247.1/30
+Environment=CLIENT_ADDR=10.252.247.2/30
+ExecStartPre=-/usr/bin/ip netns del nv2-claude-client
+ExecStartPre=-/usr/bin/ip netns exec nv2-browserless-prod /usr/bin/ip link del ${VPN_IF}
+ExecStartPre=-/usr/bin/ip link del ${VPN_IF}
+ExecStart=/usr/bin/ip netns add nv2-claude-client
+ExecStart=/usr/bin/ip link add ${VPN_IF} type veth peer name ${CLIENT_IF}
+ExecStart=/usr/bin/ip link set ${VPN_IF} netns nv2-browserless-prod
+ExecStart=/usr/bin/ip link set ${CLIENT_IF} netns nv2-claude-client
+ExecStart=/usr/bin/ip -n nv2-browserless-prod addr add ${VPN_ADDR} dev ${VPN_IF}
+ExecStart=/usr/bin/ip -n nv2-browserless-prod link set ${VPN_IF} up
+ExecStart=/usr/bin/ip -n nv2-claude-client addr add ${CLIENT_ADDR} dev ${CLIENT_IF}
+ExecStart=/usr/bin/ip -n nv2-claude-client link set lo up
+ExecStart=/usr/bin/ip -n nv2-claude-client link set ${CLIENT_IF} up
+ExecStop=-/usr/bin/ip netns del nv2-claude-client
+ExecStopPost=-/usr/bin/ip netns exec nv2-browserless-prod /usr/bin/ip link del ${VPN_IF}

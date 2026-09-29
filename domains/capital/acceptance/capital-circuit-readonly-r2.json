@@ -1,0 +1,47 @@
+{
+  "assertions": {
+    "allMechanicallyCompleted": true,
+    "allReceiptsMechanicalOnly": true,
+    "externalFinancialWritesAttempted": false,
+    "familyCount": 3,
+    "genericCompositionOwner": "ordivon-composition",
+    "riskBudgetInferred": false,
+    "scenarioRankingProduced": false,
+    "semanticCompletionEvaluated": false
+  },
+  "families": [
+    {
+      "circuitDigest": "sha256:e39271a0d37e564d94dce463390ddb5c248f3f33e27ed6373812159e4244da17",
+      "externalFinancialWritesAttempted": false,
+      "family": "PUBLIC_MARKET_OBSERVATION_R1",
+      "receiptDigest": "sha256:ce014da968b2f996568db043a05964217e1fe04b7a5e9f87914f373768e2ab86",
+      "receiptStanding": "MECHANICAL_COMPLETION_ONLY",
+      "resultStanding": "MECHANICALLY_COMPLETED",
+      "semanticCompletionEvaluated": false,
+      "unresolvedEvidenceObligationCount": 8
+    },
+    {
+      "circuitDigest": "sha256:15c800d78fd25850475abbacbdc357988334ffba14472dcaca120e6b378d08d7",
+      "externalFinancialWritesAttempted": false,
+      "family": "PORTFOLIO_RISK_R1",
+      "receiptDigest": "sha256:1b45016783463366f2c3731f112e96b178c9685899a16e00ec683d1fe175092a",
+      "receiptStanding": "MECHANICAL_COMPLETION_ONLY",
+      "resultStanding": "MECHANICALLY_COMPLETED",
+      "semanticCompletionEvaluated": false,
+      "unresolvedEvidenceObligationCount": 8
+    },
+    {
+      "circuitDigest": "sha256:4944c0eb587155ff5127643dcb9e14a68c8a078522509b77f27c2350c762d107",
+      "externalFinancialWritesAttempted": false,
+      "family": "COUNTERFACTUAL_ANALYSIS_R1",
+      "receiptDigest": "sha256:7ea625496377d9dc044c5da246fa3f50da25ef4578cf6c3a7124ac42863caf1c",
+      "receiptStanding": "MECHANICAL_COMPLETION_ONLY",
+      "resultStanding": "MECHANICALLY_COMPLETED",
+      "semanticCompletionEvaluated": false,
+      "unresolvedEvidenceObligationCount": 15
+    }
+  ],
+  "kind": "ordivon.capital.readonly-circuit-acceptance",
+  "schemaVersion": 2,
+  "standing": "PASS_R2_SHARED_COMPOSITION"
+}

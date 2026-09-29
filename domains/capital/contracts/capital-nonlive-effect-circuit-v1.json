@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.nonlive-effect-circuit-contract",
+  "standing": "ACTIVE_R1",
+  "effectClass": "SIMULATED_EXCHANGE_ORDER_EFFECT",
+  "stages": ["AUTHORIZE", "RESERVE", "EFFECT", "OBSERVE", "RECONCILE", "ACCOUNT"],
+  "externalFinancialWriteAllowed": false,
+  "realMoney": false,
+  "laws": [
+    "non-live admission must be current before circuit compilation",
+    "reservation identity precedes simulated provider effect",
+    "provider episode is not accounting truth",
+    "UNKNOWN and ambiguity resolve to NO_MUTATION",
+    "only reconciliation disposition can drive accounting resolution",
+    "production financial write remains independently BLOCK_NOT_GRANTED"
+  ]
+}

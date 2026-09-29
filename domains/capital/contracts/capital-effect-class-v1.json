@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.effect-class-contract",
+  "standing": "ACTIVE_R1",
+  "truthRole": "DOMAIN_EFFECT_SEMANTICS_NOT_RUNTIME_EFFECT_FRAMEWORK",
+  "classes": {
+    "NONE": {
+      "providerWrite": false,
+      "externalFinancialWrite": false,
+      "requiresReservation": false,
+      "requiresPostEffectObservation": false,
+      "requiresReconciliation": false,
+      "requiresAccountingResolution": false,
+      "ambiguityDisposition": "NOT_APPLICABLE"
+    },
+    "LOCAL_STATE": {
+      "providerWrite": false,
+      "externalFinancialWrite": false,
+      "requiresReservation": false,
+      "requiresPostEffectObservation": false,
+      "requiresReconciliation": false,
+      "requiresAccountingResolution": false,
+      "ambiguityDisposition": "LOCAL_OPERATION_SPECIFIC"
+    },
+    "SIMULATED_EXCHANGE_ORDER_EFFECT": {
+      "providerWrite": true,
+      "externalFinancialWrite": false,
+      "requiresReservation": true,
+      "requiresPostEffectObservation": true,
+      "requiresReconciliation": true,
+      "requiresAccountingResolution": true,
+      "ambiguityDisposition": "NO_MUTATION_RECONCILE"
+    },
+    "DEMO_EXTERNAL_WRITE": {
+      "providerWrite": true,
+      "externalFinancialWrite": false,
+      "requiresReservation": true,
+      "requiresPostEffectObservation": true,
+      "requiresReconciliation": true,
+      "requiresAccountingResolution": true,
+      "ambiguityDisposition": "NO_MUTATION_RECONCILE"
+    },
+    "LIVE_QUALIFICATION_WRITE": {
+      "providerWrite": true,
+      "externalFinancialWrite": true,
+      "requiresReservation": true,
+      "requiresPostEffectObservation": true,
+      "requiresReconciliation": true,
+      "requiresAccountingResolution": true,
+      "ambiguityDisposition": "NO_MUTATION_RECONCILE"
+    },
+    "PRODUCTION_FINANCIAL_WRITE": {
+      "providerWrite": true,
+      "externalFinancialWrite": true,
+      "requiresReservation": true,
+      "requiresPostEffectObservation": true,
+      "requiresReconciliation": true,
+      "requiresAccountingResolution": true,
+      "ambiguityDisposition": "NO_MUTATION_RECONCILE"
+    }
+  },
+  "laws": [
+    "provider submission or acknowledgement is never semantic completion",
+    "effect classes requiring reconciliation must fail closed on ambiguous outcome",
+    "UNKNOWN external outcome maps to reconciliation-required and cannot directly post or void accounting",
+    "Runtime owns physical process/job truth; this contract owns only Capital effect semantics"
+  ]
+}

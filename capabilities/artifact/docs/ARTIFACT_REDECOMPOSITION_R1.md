@@ -200,7 +200,9 @@ artifact_delivery.py, Toolchain Doctor, and Agent Surface belong here.
 
 Move exact bytes or grant bounded transport capabilities.
 
-Artifact repository currently contains scripts/artifact_r2_mailbox.py, but the existing donor document explicitly classifies the R2 mailbox transport implementation as DO_NOT_PROMOTE.
+Historical R1 observation: the Artifact repository contained `scripts/artifact_r2_mailbox.py`, while the donor document already classified the R2 mailbox transport implementation as `DO_NOT_PROMOTE`.
+
+2026-09-26 execution update: that live mailbox/provider implementation, its Artifact-owned operator config, route schema, and self-test were physically retired. Frozen donor/provenance evidence remains. Any future generic external transport must acquire a separate provider/distribution owner rather than re-enter Artifact Kernel.
 
 This is not a kernel component.
 
@@ -235,24 +237,17 @@ No arrow above implies that a downstream step upgrades an upstream claim unless 
 
 ### D1 — Two evaluation models
 
-Office/Web production verification is still centered on artifact_verification.stage.execute_verify_stage, while standards-first families use profile-v2/capability-binding dynamic verifier routing.
+Historical R1 observation: Office/Web production verification was centered on `artifact_verification.stage.execute_verify_stage`, while standards-first families selected profile-v2/capability-binding verifier routing through a separate canonical entry surface.
 
-This is the most important semantic duplication.
+2026-09-27 resolution: both now enter the canonical `ArtifactOperation → DirectPythonOperationProvider → VerifyOperationHandler` lifecycle. Production-v1 retains its existing verifier implementation and authority; registered-v2 resolves `CapabilityBinding → VerifierPlugin`. Both preserve their native results and project into one `EvaluationRequest → EvidenceObservation[] → ClaimResults → StandingDecision` semantic waist. The compatibility `scripts/artifact_verify.py` facade no longer constitutes a second canonical lifecycle.
 
-Target direction:
-
-Both should eventually enter a common EvaluationRequest → EvidenceSet → Standing abstraction, while retaining different verifier plugins.
-
-Do not force the production-v1 lineage into v2 until equivalence is proven.
+Profile-v1 is not retired and profile-v2 is not promoted by this convergence.
 
 ### D2 — DirectPython provider is a composition root at risk of becoming a second monolith
 
-Observed:
+Historical post-D01 census: `direct_python.py` was 575 source lines, the provider class was 480 lines with 17 methods and fan-out to 17 project modules.
 
-- 608 source lines;
-- class body 513 lines;
-- fan-out to 17 project modules;
-- produce() alone is 168 lines with operation-kind branching.
+2026-09-27 R2-S3 standing: integrated and merged-tree requalified. Operation-kind routing is registry-backed. `prepare`, `build`, `verify`, `verify-trust`, and `package` each have an explicit handler owner; `DirectPythonOperationProvider` remains the composition root but no longer contains an operation-kind branch forest. Candidate census is 335 source lines, 248 provider-class lines, 17 methods, fan-out 14, and zero operation-kind branches. Trust and OCI package internals are deliberately unchanged; D03 and D04 remain separate audits.
 
 Target direction:
 
@@ -286,17 +281,15 @@ Do not promote OCI-specific layout semantics into Artifact Kernel.
 
 ### D5 — Transport implementation is present despite explicit non-ownership
 
-scripts/artifact_r2_mailbox.py owns Cloudflare R2 credentials, SigV4 presigning, provider inventory, and transfer-effect reconciliation.
+Historical implementation `scripts/artifact_r2_mailbox.py` owned Cloudflare R2 credentials, SigV4 presigning, provider inventory, and transfer-effect reconciliation.
 
-Existing donor evidence already says this belongs to delivery infrastructure rather than Artifact classification/validation knowledge.
+Existing donor evidence already said this belonged to delivery infrastructure rather than Artifact classification/validation knowledge.
 
-Target direction:
-
-Quarantine/externalize rather than further integrate it into Artifact Core.
+2026-09-26 resolution: the implementation and its live Artifact-owned config/schema/test closure were physically retired instead of quarantined. D05 is therefore resolved for the current tree. A future transport capability requires an external natural owner and fresh consumer pressure.
 
 ### D6 — Family verifiers are plugins in practice but not yet packaged as plugins
 
-19 bindings already resolve profile/operation to module/callable with standing fences.
+Twenty current bound verifier profiles resolve to explicit verifier implementations with standing fences; S1D also established exact claim-key projection for every bound profile.
 
 This is already the core shape of a plugin protocol.
 
@@ -376,13 +369,9 @@ A compatibility adapter may be required.
 
 ### Q6 — What should happen to R2 mailbox?
 
-Choices to test:
+Resolved for the current tree on 2026-09-26: physically retire the unconsumed Artifact-owned R2 mailbox implementation while retaining frozen historical evidence. No replacement provider is invented. If future consumer pressure requires generic external transport, it must be admitted under a separate provider/distribution owner with explicit destination, effect, receipt, and reconciliation authority.
 
-- external delivery-infrastructure plugin;
-- separate repository;
-- retained quarantined compatibility tool.
-
-It should not be treated as Artifact Kernel.
+It must not be treated as Artifact Kernel.
 
 ### Q7 — What is the lifecycle of compatibility surfaces?
 
@@ -396,6 +385,16 @@ Do not begin by splitting files.
 
 Build an in-memory/provisional EvaluationRequest / EvidenceObservation / StandingDecision model and map four real existing profiles into it without changing production routing.
 
+### R2-S1E — Production-v1 Evaluation Compatibility Pressure Test
+
+Pressure-test the production Office/Web profile-v1 verification lineage through a compatibility adapter into the common EvaluationRequest / EvidenceObservation / StandingDecision model. Preserve current production routing and exact gate semantics; fail closed on any semantic or standing mismatch. This slice does not retire profile-v1 or promote profile-v2.
+
+2026-09-27 execution standing: implemented, owner-verified, integrated and requalified. Current Presentation, Document and Web profile-v1 gate/output/target semantics are exact compatibility matches for their canonical v2 shadow semantics. A pure compatibility adapter binds both profile byte identities plus subject identity, projects legacy gate receipts into explicit claim-local observations, and delegates bounded standing to the Artifact kernel. Native verify-stage results round-trip under a canonical digest fence. Production `execute_verify_stage` routing is unchanged; profile-v1 is not retired, profile-v2 is not promoted, and D01 remains open as a physical dual-backbone divergence.
+
+### R2-S1F — Canonical Verify Lifecycle / Evaluation Waist Convergence
+
+2026-09-27 standing: implemented, integrated and merged-tree requalified. Agent verification intent now compiles to the canonical `ArtifactOperation` contract instead of selecting the standards-first verifier CLI. `DirectPythonOperationProvider` delegates verification to a replaceable `VerifyOperationHandler`: registered production-v1 Office/Web bytes retain the existing `execute_verify_stage` implementation, while native-v2 family profiles resolve an explicit `CapabilityBinding` into a formal `VerifierPlugin`. Both routes preserve native results and project into one `artifact-evaluation-projection` carrying exact subject/capability-bound evidence observations, exact claim results and profile/policy-owned `StandingDecision`. The existing `scripts/artifact_verify.py` service remains a compatibility facade and emits the same registered-v2 projection semantics. This does not retire profile-v1, promote profile-v2, merge family verification algorithms, or combine trust/release/consumer acceptance with verification.
+
 ### R2-S2 — Trust Separation Audit
 
 Map every artifact_trust/vsa.py function to statement, policy, sigstore-effect, or aggregation; prove whether those groups can be separated without circular dependencies.
@@ -404,6 +403,8 @@ Map every artifact_trust/vsa.py function to statement, policy, sigstore-effect, 
 
 Map DirectPythonOperationProvider.prepare_operation() and produce() branches into independent operation handlers and measure whether the provider can become a registry-backed composition root.
 
+2026-09-27 standing: implemented, integrated and merged-tree requalified. Five explicit handlers now own prepare/build/verify/verify-trust/package routing behind one DirectPython composition root. This slice does not claim trust-internal or OCI-package-internal decomposition.
+
 ### R2-S4 — Package Plugin Audit
 
 Decompose OCI packaging into package-plan/admission/staging/layout/release-decision nodes without modifying output bytes.
@@ -411,6 +412,8 @@ Decompose OCI packaging into package-plan/admission/staging/layout/release-decis
 ### R2-S5 — Externalization Audit
 
 Classify R2 mailbox, toolchain doctor, environment setup, and publication/transport code into retain/quarantine/externalize.
+
+2026-09-26 standing: the X01 R2 mailbox sub-slice is complete by physical retirement. This does **not** close R2-S5 as a whole; X02 toolchain/environment and other publication/provider adapters remain independent classification work.
 
 ## 10. Non-goals
 

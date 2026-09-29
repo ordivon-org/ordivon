@@ -12,13 +12,61 @@ uv run --frozen --python 3.14.7 ruff check .
 uv run --frozen --python 3.14.7 python -m unittest discover -s tests -v
 uv run --frozen --python 3.14.7 python scripts/validate_threat_model_binding.py threat-models/security-v2-r1.json --repo-root .
 ./scripts/validate_tmbom.sh threat-models/security-v2-r1.json
-image=$(uv run --frozen --python 3.14.7 python - <<'PY'
+# Repository/provider verification binds the Mise-managed portable OPA carrier.
+# Node-local /usr/bin currentness is intentionally a separate live-owner gate.
+opa_executable=$(mise which opa)
+opa_expected_sha256=$(uv run --frozen --python 3.14.7 python - <<'PY'
 import json
 value = json.load(open("providers.lock.json", encoding="utf-8"))
 opa = next(row for row in value["providers"] if row["name"] == "opa")
-print(f'{opa["ciContainer"]["image"]}@{opa["ciContainer"]["digest"]}')
+print(opa["portableExecutable"]["sha256"])
 PY
 )
-docker run --rm --volume "$PWD/policies:/policies:ro" "$image" test -v /policies
+opa_expected_version=$(uv run --frozen --python 3.14.7 python - <<'PY'
+import json
+value = json.load(open("providers.lock.json", encoding="utf-8"))
+opa = next(row for row in value["providers"] if row["name"] == "opa")
+print(opa["version"])
+PY
+)
+test -x "$opa_executable"
+opa_observed_sha256="sha256:$(sha256sum "$opa_executable" | awk '{print $1}')"
+test "$opa_observed_sha256" = "$opa_expected_sha256"
+opa_observed_version=$("$opa_executable" version | awk -F ': ' '/^Version:/{print $2; exit}')
+test "$opa_observed_version" = "$opa_expected_version"
+"$opa_executable" test -v policies
 git ls-files -z -- '*.sh' | xargs -0 -r shellcheck
+"""
+
+[tasks."verify:host-provider"]
+description = "Verify the node-local locked OPA provider after portable Security verification"
+run = """
+set -euo pipefail
+opa_executable=$(uv run --frozen --python 3.14.7 python - <<'PY'
+import json
+value = json.load(open("providers.lock.json", encoding="utf-8"))
+opa = next(row for row in value["providers"] if row["name"] == "opa")
+print(opa["executable"])
+PY
+)
+opa_expected_sha256=$(uv run --frozen --python 3.14.7 python - <<'PY'
+import json
+value = json.load(open("providers.lock.json", encoding="utf-8"))
+opa = next(row for row in value["providers"] if row["name"] == "opa")
+print(opa["sha256"])
+PY
+)
+opa_expected_version=$(uv run --frozen --python 3.14.7 python - <<'PY'
+import json
+value = json.load(open("providers.lock.json", encoding="utf-8"))
+opa = next(row for row in value["providers"] if row["name"] == "opa")
+print(opa["version"])
+PY
+)
+test -x "$opa_executable"
+opa_observed_sha256="sha256:$(sha256sum "$opa_executable" | awk '{print $1}')"
+test "$opa_observed_sha256" = "$opa_expected_sha256"
+opa_observed_version=$("$opa_executable" version | awk -F ': ' '/^Version:/{print $2; exit}')
+test "$opa_observed_version" = "$opa_expected_version"
+"$opa_executable" test -v policies
 """

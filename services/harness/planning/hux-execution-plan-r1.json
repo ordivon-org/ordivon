@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.harness-ux-execution-plan",
+  "canonicalIntegrationRevision": "6784677ce09a7495d133be436807af6f690c5867",
+  "workspaceId": "ws-hux40-canonical-record-r1-20260923",
+  "authorityChange": false,
+  "canonical": [
+    "HUX-00",
+    "HUX-01-binding-scope",
+    "HUX-02-binding-scope",
+    "HUX-10",
+    "HUX-11",
+    "HUX-12",
+    "HUX-20",
+    "HUX-21",
+    "HUX-22",
+    "HUX-23",
+    "HUX-30",
+    "HUX-40"
+  ],
+  "implementedCandidate": [],
+  "deferredByEvidence": {
+    "HUX-31": "HarnessRunContract plus Harness adapter revalidation already own provider/adapter/model identity; no otherwise-inexpressible provider-owner configuration reference exists.",
+    "HUX-32": "No production Tool-bearing apps/agent consumer exists; observed manual digest copying is limited to Harness-internal scripts/tests, while PluginGateway factory owns its natural binding.",
+    "HUX-33": "External production census found zero Cognition seed/source/profile constructors.",
+    "HUX-34": "External production census found no app/domain/capability ExecutionBinding constructor; natural PluginGateway factory already builds its own exact binding."
+  },
+  "next": {
+    "HUX-41..65": "advance only from concrete product-consumer evidence",
+    "HUX-70..79": "internal refactor only after behavior remains frozen by current regression suite",
+    "HUX-80..84": "select a real workload only when its composition requirements are concrete"
+  },
+  "forbiddenGrowth": [
+    "agent-service-2",
+    "universal-capability-registry",
+    "composition-permission-authority",
+    "composition-provider-ranking",
+    "harness-workflow-engine",
+    "universal-session-database"
+  ],
+  "verification": {
+    "compositionAgentRunBinding": "9 passed",
+    "agentAppHux30": "7 passed",
+    "agentAppWithHux40": "23 passed on canonical replay base e82ac3c19c18eb17e4d3a6df39333e0b1686739a",
+    "harnessHuxRegression": "10 passed",
+    "compositionOwnerVerify": "passed",
+    "agentAppOwnerVerify": "passed",
+    "harnessOwnerVerify": "1065 tests + 121 subtests passed; dependency/docs/evidence/wheel checks passed",
+    "repoMechanics": "62 passed",
+    "repoIntegration": "passed",
+    "primaryMainIntegration": "FAST_FORWARD e82ac3c19c18eb17e4d3a6df39333e0b1686739a -> 6784677ce09a7495d133be436807af6f690c5867; invariant PASS"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "adviceDigest": "sha256:3d38de6d75d5741adf1a1c5037a14d85246c56673b87c4aa93768ceca7ceb559",
+  "compartmentRefs": [],
+  "effectAuthorizationIncluded": false,
+  "executionAdmissionIncluded": false,
+  "explicitTraits": {
+    "durable": false,
+    "effectful": false,
+    "scarce": false,
+    "shared": false
+  },
+  "kind": "ordivon.social-fabric-agent-preflight-advice",
+  "nonClaims": [
+    "Preflight uses only caller-declared durable/shared/effectful/scarce traits and does not infer risk or priority.",
+    "A recommendation to read Social Fabric is not a requirement, allow/deny decision, scheduler decision, lease, or EffectAuthority.",
+    "Natural owners remain responsible for any enforceable admission, authorization, resource lock, or external effect."
+  ],
+  "operationRef": "operation:local:read-doc",
+  "recommendationReasonCodes": [],
+  "recommendedViews": [],
+  "schemaVersion": 1,
+  "standing": "SOCIAL_READ_OPTIONAL",
+  "subjectRefs": [],
+  "truthRole": "advisory-view-selection-not-admission-or-effect-authority"
+}

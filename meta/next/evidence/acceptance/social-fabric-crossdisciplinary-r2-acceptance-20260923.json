@@ -1,0 +1,65 @@
+{
+  "authorityCatalog": {
+    "added": [
+      "a2a-protocol-1.0.0",
+      "cloudevents-documented-extensions"
+    ],
+    "recordCount": 178,
+    "standing": "PASS_LIGHTWEIGHT_PROGRESSIVE_DISCOVERY"
+  },
+  "baselineRevision": "354d885d411de5acbb360df2694aa95e310715bc",
+  "boundary": "PASS proves the first R2 architecture/currentness/flux wave as a rebuildable projection. It does not prove global completeness, causal mechanisms, priority, scheduling, lease or execution authority.",
+  "deferred": [
+    "REAL20 W3C PROV adapter",
+    "REAL21 Transactive Memory",
+    "REAL22 Freshness/Supersession",
+    "SIG30 propagation separation",
+    "SIG31 compartment context",
+    "SIG34 attention adaptation",
+    "EPI40 mechanism standing",
+    "UX50-56 agent views/preflight",
+    "Petri/cascade formalism pending measured need"
+  ],
+  "flow40": {
+    "dogfoodDeltas": {
+      "host.board_messages": 3,
+      "host.task_events": 29,
+      "host.task_records": 9
+    },
+    "focusedTests": "7/7 PASS",
+    "nonClaims": [
+      "no priority",
+      "no score",
+      "no scheduling authority",
+      "no EffectAuthority"
+    ],
+    "windowSeconds": 58895.049
+  },
+  "gates": {
+    "architectureDocDrift": "PASS",
+    "compositionArchitecture": "PASS",
+    "dependencyAudit": "NO_KNOWN_VULNERABILITIES",
+    "githubGovernance": "PASS",
+    "integrateMainSmoke": "PASS",
+    "metaNextTests": 204,
+    "metaNextVerify": "PASS",
+    "ownerBoundary": "PASS",
+    "repoCi": "PASS",
+    "repoTests": 33,
+    "structureR2": "PASS"
+  },
+  "implemented": [
+    "XD02 ExternalStandardCurrentnessCorrection",
+    "XD03 CloudEventsExtensionMaturityContract",
+    "FLOW40 DimensionalSocialFluxProjection"
+  ],
+  "kind": "ordivon.social-fabric-crossdisciplinary-r2-acceptance",
+  "runtimeJobs": [
+    "job-01a0ce05-88bf-7672-9499-784487531b36",
+    "job-01a0ce07-cdee-7993-b429-a9ea36258162",
+    "job-01a0ce08-80ae-7db1-ae84-d35f3e2c9d84"
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_FIRST_EXECUTABLE_WAVE_CANDIDATE",
+  "truthRole": "candidate-acceptance-not-domain-authority"
+}

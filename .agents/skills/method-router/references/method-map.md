@@ -4,6 +4,7 @@ This reference distinguishes existing canonical Ordivon method Skills. It is a r
 
 | Dominant question | Primary Skill | Use when | Nearby method not to confuse |
 | --- | --- | --- | --- |
+| What materially changed across the whole current Ordivon system, its capability frontier, systemic risks, and future reachability? | ordivon-whole-system-review | periodic/deep whole-system review or architecture re-anchoring must synthesize current Git/live-owner truth across multiple natural owners | systems-engineering frames a system boundary; it does not provide longitudinal whole-Ordivon review continuity |
 | What is the system and where are its boundaries/interfaces? | systems-engineering | scope, context, lifecycle and whole-system properties are unclear | DSM starts after there are meaningful elements/interactions |
 | Is the decomposition structurally plausible? | design-structure-matrix | dependencies, cycles, hubs or clusters may reveal misplaced boundaries | compositional-contracts asks whether explicit interfaces compose |
 | Will independently specified parts compose or substitute safely? | compositional-contracts | assumptions, guarantees and replacement obligations matter | DSM is descriptive structure; contracts are compatibility obligations |
@@ -38,6 +39,10 @@ Use when security loss can arise from authority or data-flow violations inside a
 
 ### Exploration policy -> causal intervention
 Use exploration policy to choose the next informative intervention only after the causal question and valid intervention space are defined.
+
+## Lifecycle handoff outside method selection
+
+Creating or adopting a new forward Ordivon Research Study is not itself a reasoning-method question. Route that action to `research-study-birth`, which delegates to the current Research-v2 Study Birth owner. Do not encode Research data-plane providers or project layout in this method map.
 
 ## No-route cases
 

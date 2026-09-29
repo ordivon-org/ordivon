@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.admission-fabric-r2-acceptance",
+  "observedAt": "2026-09-27",
+  "truthRole": "bounded-successor-verification-evidence-not-live-authorization",
+  "supersedesVerificationBlockerFrom": "meta/next/evidence/acceptance/admission-fabric-r1-20260922.json",
+  "sourceRevision": "d9961354c15d56dacdb22e6f64a616b5517ccbd0",
+  "standing": "AF-S1_PASS_AF10_PASS_AF-S2_OPEN",
+  "preservedSliceStanding": {
+    "AF-S1": "PASS",
+    "AF-S2": "OPEN",
+    "AF-S3": "OPEN",
+    "AF-S4": "REFERENCE_WITNESS_PENDING",
+    "AF-S5": "OPEN"
+  },
+  "verification": {
+    "securityPinnedOciReplay": {
+      "status": "PASS",
+      "image": "openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f",
+      "opaVersion": "1.20.2",
+      "policyTestsPassed": 34,
+      "policyTestsTotal": 34,
+      "runtimeJobId": "job-01a0e27a-03ac-7812-bc18-1a875ee52ee1",
+      "networkPrerequisite": {
+        "dockerProxy": "http://127.0.0.1:19581",
+        "dockerRebindJobId": "job-01a0e273-ff5c-7931-8b92-6a20fd0deab3",
+        "sharedCarrierProviderSite": "th-bkk",
+        "pinnedImageAvailable": true
+      },
+      "claim": "The historical Docker registry transport blocker is resolved. The exact locked OCI image executed the unchanged Security OPA policy suite and passed 34/34 tests."
+    },
+    "preservationRestartDependency": {
+      "status": "PASS",
+      "claim": "The Docker daemon restart used by supply-chain acceptance recovered all nine Archivematica services after the canonical R11 host-port overlay was materialized.",
+      "reconciliationJobId": "job-01a0e26f-14c0-7f40-8eb8-c8b3ca94c128",
+      "postRestartSettleJobId": "job-01a0e276-1e03-7961-aefd-81fd2e686ec2"
+    }
+  },
+  "nonClaims": [
+    "AF10 PASS does not close AF-S2 capability authorization.",
+    "AF10 PASS does not select or prove a production workload identity provider.",
+    "Pinned OCI replay does not authorize any live caller or effect.",
+    "Network transport recovery does not change Security policy semantics."
+  ]
+}

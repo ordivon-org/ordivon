@@ -1,0 +1,22 @@
+[Unit]
+Description=Network v2 Supply-Chain OCI egress proxy
+Wants=network-v2-browserless-provider-carrier.service
+After=network-v2-browserless-provider-carrier.service
+PartOf=network-v2-supply-chain.target
+
+[Service]
+Type=simple
+User=sing-box
+Group=sing-box
+ExecStartPre=/usr/bin/sing-box check -c /etc/network-v2/supply-chain/egress.json
+ExecStart=/usr/bin/sing-box run -c /etc/network-v2/supply-chain/egress.json
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

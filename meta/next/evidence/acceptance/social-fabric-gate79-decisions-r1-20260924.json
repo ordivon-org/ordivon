@@ -1,0 +1,52 @@
+[
+  {
+    "decision": "HOLD",
+    "lego": "SIG34",
+    "reason": "Longitudinal stable repeated-stimulus evidence remains insufficient; no adaptation implementation is authorized."
+  },
+  {
+    "decision": "KILL",
+    "lego": "CONC62",
+    "reason": "CONC60 found no in-scope real conflict that current pairwise representation failed to express; DELETE-CUSTOM-BY-DEFAULT applies."
+  },
+  {
+    "decision": "KILL",
+    "lego": "CascadeDetector",
+    "reason": "CASCADE61 found repeated observations/retries but no explicit self-amplifying work-generation chain."
+  },
+  {
+    "decision": "PROMOTE",
+    "lego": "SocialPreflight",
+    "reason": "All four dogfood domains benefited from advisory view selection while admission/effect flags remained false."
+  },
+  {
+    "decision": "PROMOTE",
+    "lego": "AgentUXViews",
+    "reason": "CURRENT/ATTENTION/COORDINATION/AUTHORITY had bounded cross-domain navigation utility with owner boundaries preserved."
+  },
+  {
+    "decision": "HOLD",
+    "lego": "SocialFlux",
+    "reason": "Dimensional projection remains verified, but Wave7 did not demonstrate incremental default-path utility beyond the core views."
+  },
+  {
+    "decision": "PROMOTE",
+    "lego": "TransactiveMemory",
+    "reason": "Explicit owner/verifier locator memory materially supports AUTHORITY across Papers, Capital, Runtime, and Git/provider seams without inferred expertise."
+  },
+  {
+    "decision": "PROMOTE",
+    "lego": "Freshness",
+    "reason": "Canonicalization dogfood depends on owner-scoped currentness/supersession and on refusing a global currentness winner."
+  },
+  {
+    "decision": "PROMOTE",
+    "lego": "MechanismStanding",
+    "reason": "The boundary prevents repeated sequence/trace observations from being promoted into causal mechanism claims, directly relevant to CASCADE61 closeout."
+  },
+  {
+    "decision": "PROMOTE",
+    "lego": "ConstraintFeasibility",
+    "reason": "Feasibility-only standing preserves useful constraint projection without score/rank/priority/winner semantics."
+  }
+]

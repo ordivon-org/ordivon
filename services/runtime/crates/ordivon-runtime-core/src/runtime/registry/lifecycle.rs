@@ -87,6 +87,26 @@ impl Registry {
         RegistryStorageBoundary::load_attempt(&connection, attempt_id)
     }
 
+    pub(crate) fn dispatch_issued_at_ms(&self, attempt_id: &str) -> RuntimeResult<u64> {
+        let connection = self.open_connection()?;
+        connection
+            .query_row(
+                "SELECT observed_at_ms FROM job_events WHERE attempt_id=?1 AND event_type='DISPATCH_ISSUED' ORDER BY event_sequence DESC LIMIT 1",
+                [attempt_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|error| RuntimeError::from_sql(error, "cannot read dispatch issue time"))?
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    RuntimeErrorCode::RegistryCorrupt,
+                    "Starting Attempt has no durable DISPATCH_ISSUED event",
+                    Some("attemptId"),
+                    false,
+                )
+            })
+    }
+
     pub(super) fn bind_running(
         &self,
         attempt_id: &str,

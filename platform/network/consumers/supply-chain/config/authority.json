@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.supply-chain-egress",
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 19581,
+    "protocol": "http"
+  },
+  "allowedHttpsDomains": [
+    "registry-1.docker.io",
+    "registry.docker.io",
+    "auth.docker.io",
+    "production.cloudflare.docker.com",
+    "docker.elastic.co",
+    "gcr.io"
+  ],
+  "allowedHttpsDomainSuffixes": [
+    "r2.cloudflarestorage.com",
+    "gcr.io",
+    "pkg.dev"
+  ],
+  "directFallback": false,
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "namespace": "nv2-browserless-prod",
+    "carrierService": "network-v2-browserless-provider-carrier.service",
+    "providerSite": "th-bkk"
+  }
+}

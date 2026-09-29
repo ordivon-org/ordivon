@@ -103,10 +103,16 @@
         "Withdraw"
       ],
       "requiredPermission": "Read",
+      "permissionStanding": "READ_ONLY_VERIFIED",
+      "currentDataAdmission": "READ_ONLY_ADMITTED",
+      "admissionScope": "OKX observer credential + bounded GET-only client only; does not promote generic private-account access or execution authority",
       "requiredQueries": [
         "get_account_config",
         "get_account_balance",
-        "get_spot_open_orders"
+        "get_swap_positions",
+        "get_spot_open_orders",
+        "get_swap_open_orders",
+        "get_swap_fills"
       ],
       "runtime": "Python 3.14.7 stdlib",
       "candidateReference": {

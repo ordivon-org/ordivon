@@ -1,0 +1,259 @@
+{
+  "admission": {
+    "explicitlyNotAdmitted": [
+      "universal scientific ontology",
+      "ClaimPermission as a shared executable policy",
+      "Concern-to-gap routing as a shared executable policy",
+      "experiment-admission policy",
+      "reviewer acceptance prediction",
+      "shared scientific database"
+    ],
+    "target": "THIN_PROFILE_PROTOCOL_ONLY",
+    "verdict": "ADMIT_THIN_PROFILE_PROTOCOL"
+  },
+  "candidateRule": {
+    "id": "axis-local-closure-does-not-transfer-authority-r1",
+    "statement": "Closure or PASS on one scholarly axis does not authorize, imply, or overwrite closure on another axis; route next work through the unresolved owner-native axis."
+  },
+  "counterexamplePressure": {
+    "checks": {
+      "emptyRoleListsAllowed": true,
+      "noGlobalScientificEdgeOntology": true,
+      "noScientificPayloadAtRoot": true,
+      "opaqueRefRemainsThin": true,
+      "ownerNativeStateNotNormalizedEnum": true
+    },
+    "failed": [],
+    "standing": "PASS_COUNTEREXAMPLE_PRESSURE_FOR_PROFILE_ONLY"
+  },
+  "distinctSourceRepoCount": 3,
+  "externalSubstitutionAssessment": {
+    "finding": "External owners retain method, provenance, lineage, packaging, and claim/citation semantics. None is promoted into a universal cross-Study next-action authority; the shared profile therefore keeps only owner/revision/ref/state-axis projection.",
+    "ownersExamined": [
+      "ACM SIGSOFT Empirical Standards / Study-native method rules",
+      "W3C PROV",
+      "OpenLineage",
+      "RO-Crate",
+      "Nanopublications/CiTO"
+    ],
+    "status": "PASS_FOR_THIN_PROFILE_ONLY"
+  },
+  "independentStudyOwnerCount": 3,
+  "kind": "ordivon.research.cross-study-pressure-test-result",
+  "planId": "axis-authority-isolation-r1",
+  "schemaVersion": 1,
+  "standing": "PASS_CROSS_STUDY_PRESSURE_R1",
+  "studies": [
+    {
+      "actionBoundary": "Reviewer-risk and exact-byte qualification changed publication/review state without reopening science or authorizing submission.",
+      "assertionCount": 7,
+      "assertions": [
+        {
+          "actual": false,
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": false,
+          "op": "eq",
+          "passed": true,
+          "path": "science.scienceFreezeReopened"
+        },
+        {
+          "actual": 0,
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": 0,
+          "op": "eq",
+          "passed": true,
+          "path": "science.modelFitsExecutedForR25"
+        },
+        {
+          "actual": 0,
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": 0,
+          "op": "eq",
+          "passed": true,
+          "path": "science.scoresGeneratedForR25"
+        },
+        {
+          "actual": false,
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": false,
+          "op": "eq",
+          "passed": true,
+          "path": "science.newOutcomeBearingEvidence"
+        },
+        {
+          "actual": "PASS_EXACT_DELTA_BOUND_VISUAL_ACCEPTANCE",
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": "PASS_EXACT_DELTA_BOUND_VISUAL_ACCEPTANCE",
+          "op": "eq",
+          "passed": true,
+          "path": "wordNative.visualStanding"
+        },
+        {
+          "actual": false,
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": false,
+          "op": "eq",
+          "passed": true,
+          "path": "authorization.externalSubmissionAuthorized"
+        },
+        {
+          "actual": "NONE",
+          "evidenceRef": "P1-EV-TECHQUAL-R25",
+          "expected": "NONE",
+          "op": "eq",
+          "passed": true,
+          "path": "artifactReleaseResidual.scienceImpact"
+        }
+      ],
+      "assertionsPassed": 7,
+      "nextActionClass": "HUMAN_OR_RELEASE_GATE_NOT_EXPERIMENT",
+      "profileId": "paper1-r25-live-r1",
+      "studyLabel": "Paper1",
+      "supportsCandidateRule": true
+    },
+    {
+      "actionBoundary": "Acquisition closure routes to blinded eligibility/adjudication work; it cannot be promoted to scientific inclusion, synthesis, or publication closure.",
+      "assertionCount": 7,
+      "assertions": [
+        {
+          "actual": true,
+          "evidenceRef": "P2-EV-FULLTEXT-ACQUISITION",
+          "expected": true,
+          "op": "eq",
+          "passed": true,
+          "path": "all_retrieval_routes_mechanically_closed"
+        },
+        {
+          "actual": "Acquisition closure is not eligibility closure. LOCAL_PDF_READY means a locally verified PDF is available for blinded full-text screening. RETRIEVAL_BOUNDARY_REVIEW_REQUIRED is not FULL_TEXT_NOT_ACCESSIBLE and requires separate accessibility resolution. Exact-content duplicates are evidence for later report/version/study linking, not automatic merges.",
+          "evidenceRef": "P2-EV-FULLTEXT-ACQUISITION",
+          "expected": "Acquisition closure is not eligibility closure",
+          "op": "contains",
+          "passed": true,
+          "path": "scientific_boundary"
+        },
+        {
+          "actual": "This frame makes no full-text eligibility decisions. Reviewer first-pass judgments must remain independent and blinded to reproducibility outcomes and to the other reviewer label.",
+          "evidenceRef": "P2-EV-FULLTEXT-READINESS",
+          "expected": "makes no full-text eligibility decisions",
+          "op": "contains",
+          "passed": true,
+          "path": "scientific_boundary"
+        },
+        {
+          "actual": 793,
+          "evidenceRef": "P2-EV-FULLTEXT-READINESS",
+          "expected": 793,
+          "op": "eq",
+          "passed": true,
+          "path": "readiness_state_counts.LOCAL_PDF_READY"
+        },
+        {
+          "actual": 603,
+          "evidenceRef": "P2-EV-FULLTEXT-READINESS",
+          "expected": 603,
+          "op": "eq",
+          "passed": true,
+          "path": "readiness_state_counts.RETRIEVAL_BOUNDARY_REVIEW_REQUIRED"
+        },
+        {
+          "actual": 573,
+          "evidenceRef": "P2-EV-FIRSTPASS-FREEZE",
+          "expected": 0,
+          "op": "gt",
+          "passed": true,
+          "path": "disagreement_count"
+        },
+        {
+          "actual": "Mechanical first-pass screening freeze only. Same-model-family correlated error remains; counts are not eligibility prevalence or independent-human inter-rater reliability. Disagreements are unadjudicated; confirmatory reproduction remains closed.",
+          "evidenceRef": "P2-EV-FIRSTPASS-FREEZE",
+          "expected": "Disagreements are unadjudicated",
+          "op": "contains",
+          "passed": true,
+          "path": "interpretation"
+        }
+      ],
+      "assertionsPassed": 7,
+      "nextActionClass": "SCREEN_OR_ADJUDICATE_NOT_PUBLISH",
+      "profileId": "paper2-live-r1",
+      "studyLabel": "Paper2",
+      "supportsCandidateRule": true
+    },
+    {
+      "actionBoundary": "Science and packaging closure route to a system-owned perceptual gate before separate human submission authority; neither reopens science.",
+      "assertionCount": 7,
+      "assertions": [
+        {
+          "actual": "CLOSED_FROZEN_NO_RESULT_CHANGE",
+          "evidenceRef": "P3-EV-R10-CLOSURE",
+          "expected": "CLOSED_FROZEN_NO_RESULT_CHANGE",
+          "op": "eq",
+          "passed": true,
+          "path": "scienceStanding"
+        },
+        {
+          "actual": "PENDING_INDEPENDENT_OBSERVER_EXECUTION",
+          "evidenceRef": "P3-EV-R10-CLOSURE",
+          "expected": "PENDING_INDEPENDENT_OBSERVER_EXECUTION",
+          "op": "eq",
+          "passed": true,
+          "path": "perceptualConformance.standing"
+        },
+        {
+          "actual": 1,
+          "evidenceRef": "P3-EV-R10-CLOSURE",
+          "expected": 1,
+          "op": "eq",
+          "passed": true,
+          "path": "automatedSubmissionBlockerCount"
+        },
+        {
+          "actual": [
+            "PERCEPTUAL_CONFORMANCE_R1_INDEPENDENT_OBSERVER_EXECUTION_AND_CONSENSUS"
+          ],
+          "evidenceRef": "P3-EV-R10-CLOSURE",
+          "expected": "PERCEPTUAL_CONFORMANCE_R1_INDEPENDENT_OBSERVER_EXECUTION_AND_CONSENSUS",
+          "op": "contains_item",
+          "passed": true,
+          "path": "remainingSystemGates"
+        },
+        {
+          "actual": [
+            "HUMAN_SUBMISSION_METADATA_AND_FINAL_ATTESTATIONS"
+          ],
+          "evidenceRef": "P3-EV-R10-CLOSURE",
+          "expected": "HUMAN_SUBMISSION_METADATA_AND_FINAL_ATTESTATIONS",
+          "op": "contains_item",
+          "passed": true,
+          "path": "remainingHumanAuthorityGates"
+        },
+        {
+          "actual": false,
+          "evidenceRef": "P3-EV-R10-HUMAN-HANDOFF",
+          "expected": false,
+          "op": "eq",
+          "passed": true,
+          "path": "systemOwnedPreSubmissionGate.authorActionRequired"
+        },
+        {
+          "actual": [
+            "ROUTINE_PDF_PERCEPTUAL_QA",
+            "FIGURE_READABILITY_QA",
+            "TABLE_READABILITY_QA",
+            "LAYOUT_COHERENCE_QA"
+          ],
+          "evidenceRef": "P3-EV-R10-HUMAN-HANDOFF",
+          "expected": "ROUTINE_PDF_PERCEPTUAL_QA",
+          "op": "contains_item",
+          "passed": true,
+          "path": "humanAuthorityOnly.notRequired"
+        }
+      ],
+      "assertionsPassed": 7,
+      "nextActionClass": "SYSTEM_PERCEPTUAL_GATE_THEN_HUMAN_SUBMISSION_AUTHORITY",
+      "profileId": "paper3-c21-r10-live-r1",
+      "studyLabel": "Paper3",
+      "supportsCandidateRule": true
+    }
+  ],
+  "truthBoundary": "The admission verdict applies only to the thin non-authoritative projection protocol. Study scientific semantics and action authority remain external."
+}

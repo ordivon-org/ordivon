@@ -1,0 +1,75 @@
+{
+  "analysisRef": "meta/next/evidence/analysis/experimental-rw7-prospective-successor-r3.json",
+  "contractDigest": "sha256:d25f1acf73a53bcb995ad08930e78c57f72ba90e38ceffe3f7a72603ab57064e",
+  "contractId": "successor:experimental-rw6-prospective-r3",
+  "domainImprovementEstablished": false,
+  "effectiveDate": "2026-09-23",
+  "evaluationGroundingMode": "EXTERNALLY_ANCHORED",
+  "historicalContrast": {
+    "historicalRecursionClass": "IMPROVEMENT_MECHANISM_IN_CHANGE_SET",
+    "prospectiveRecursionClass": "PERSISTENT_SELF_CHANGE_NO_MECHANISM_RECURSION",
+    "ref": "meta/next/evidence/acceptance/rsi-successor-contract-r1-20260922.json",
+    "sharedStructure": [
+      "exact predecessor/candidate identity",
+      "explicit improvement-process identity",
+      "externally anchored evaluation",
+      "verifier-owned gates",
+      "mechanical closure separated from promotion and domain truth"
+    ]
+  },
+  "kind": "ordivon.experimental-rw7-successor-acceptance",
+  "mechanicalSuccessorClosure": true,
+  "postClosurePromotionObservation": {
+    "authorityBoundary": "Promotion occurred only after successor-gate closure through the accepted serialized Git integration mechanic. The Successor Contract did not grant, execute, or own this promotion.",
+    "authorityOwner": "repository:primary-main-integrator",
+    "candidate": "aec6cd0f061703ae367584aa93040b2609c32444",
+    "integrationMode": "FAST_FORWARD",
+    "policyRef": {
+      "digest": "sha256:c678aed15bf30dce5024d64cf7e8bea39e393798bdca8a1a8c8a55b87e5344af",
+      "id": "policy:primary-main-integrate-main-r1"
+    },
+    "previousMain": "977e57e6813afa923bf6d69f59e5b25322f336da",
+    "resultingMain": "aec6cd0f061703ae367584aa93040b2609c32444",
+    "runtimeJobId": "job-01a0cd22-317e-7d32-8190-67a8e6096574",
+    "standing": "OBSERVED_EXTERNAL_PROMOTION",
+    "terminalEvidence": "sha256:354eba6b2c9e385321c0d6f42c33542595d74f1191272ed4e4fa4600c65a9566"
+  },
+  "projectionDigest": "sha256:0cba1b739337d87488f74803b22b19d41460a3e6981ac49475fbea39544b819a",
+  "promotionAuthorityEstablished": false,
+  "recursionClass": "PERSISTENT_SELF_CHANGE_NO_MECHANISM_RECURSION",
+  "remainingBoundaries": [
+    "Evaluation Boundary R1 retains mechanicalClosure=true and empiricalClosure=false because the Game Human holdout has not executed.",
+    "Observed Git promotion is a separate post-closure authority event; it does not set promotionAuthorityEstablished on the successor projection.",
+    "No automatic deployment, release, or recursive promotion authority is created.",
+    "No universal fitness score, evaluator service, scheduler, experiment controller, or RSI controller is introduced.",
+    "This evidence justifies a thin composition profile only; it does not justify a new durable service or source-of-truth schema."
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_PROSPECTIVE_SUCCESSOR_AND_EXTERNAL_PROMOTION_OBSERVED",
+  "stateBinding": {
+    "candidate": {
+      "commit": "aec6cd0f061703ae367584aa93040b2609c32444",
+      "digest": "sha256:c8929cb11b0596030a6d63c6a4550011102b7ecfb342c805887c2b36e833a0f9",
+      "tree": "472eacbb4cf25c4020ca92b3090d442b37ec673e"
+    },
+    "candidateDirectParentIsPredecessor": true,
+    "predecessor": {
+      "commit": "977e57e6813afa923bf6d69f59e5b25322f336da",
+      "digest": "sha256:831319ce744281098bfd0eb8cb6bccf2e0f5261b75a58a9548e21214cbc5f788",
+      "tree": "0a55aeb7d28e9c71e1a707a5e56d81637779d89e"
+    }
+  },
+  "truthRole": "acceptance-evidence-not-domain-truth-or-promotion-authority",
+  "verification": {
+    "metaNext": {
+      "runtimeJobId": "job-01a0cd21-c2dd-7952-9faa-f4e04548232b",
+      "standing": "PASS",
+      "terminalEvidence": "sha256:1975c68ee485c4033b49e618f8241e54f23e87c19607195861892fade00e4f4c"
+    },
+    "repository": {
+      "runtimeJobId": "job-01a0cd22-01fb-7173-baf1-4e0d1bb08eaf",
+      "standing": "PASS",
+      "terminalEvidence": "sha256:8649eb4c11ebd9fea242fd1046e9db162a5cd014c882bc5421f4c177d6ef7ddb"
+    }
+  }
+}

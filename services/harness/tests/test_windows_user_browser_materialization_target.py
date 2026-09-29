@@ -58,6 +58,7 @@ class WindowsUserBrowserMaterializationTargetTests(unittest.TestCase):
             self.assertEqual(len(controller.calls), 1)
             call = controller.calls[0]
             self.assertEqual(call['effect_id'], 'effect-user-browser-1')
+            self.assertEqual(call['attempt_generation'], 1)
             self.assertEqual(call['prompt_digest'], target.prompt_digest(self.request()))
             self.assertTrue(Path(call['prompt_path']).is_file())
             self.assertEqual(Path(call['prompt_path']).read_text(), 'hello from fenced request')

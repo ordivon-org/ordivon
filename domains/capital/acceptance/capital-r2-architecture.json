@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.r2-architecture-acceptance",
+  "standing": "PASS_R2_IMPLEMENTATION",
+  "truthRole": "IMPLEMENTATION_ACCEPTANCE_NOT_FINANCIAL_OR_PROVIDER_TRUTH",
+  "implementation": {
+    "commit": "b077c9246bda15f032f7f0c70ba716d34752e2ec",
+    "baseRevision": "9cab0e9c968dacdb2e7a22462a6a5d98193b0940",
+    "verificationRuntimeJob": "job-01a0cd76-f7d2-7e53-8c9c-f28fb2fa399a"
+  },
+  "waves": {
+    "completed": ["W0", "W1", "W2", "W3", "W4", "W5", "W6", "W7_SEMANTIC_MECHANICAL"],
+    "repositoryIntegration": "PENDING_SEPARATE_REPO_AUTHORITY"
+  },
+  "r2Changes": {
+    "genericCompositionOwner": "ordivon-composition",
+    "deletedCapitalGenericCompiler": "src/ordivon_capital/governance/composition_contract.py",
+    "financialLoweringOwner": "src/ordivon_capital/governance/circuit_lowering.py",
+    "declarativeCircuitCount": 4,
+    "currentStateGenerated": true,
+    "gitRecencyMintsFinancialCurrentness": false
+  },
+  "inventory": {
+    "registryEntries": 39,
+    "canonicalRegistryEntries": 34,
+    "functionalLegos": 12,
+    "readOnlyCircuitFamilies": 3,
+    "nonLiveEffectScenarios": 5
+  },
+  "substitution": {
+    "standing": "EQUIVALENT_FOR_CURRENT_CAPITAL_CONTRACT_SPACE",
+    "frozenR1SuccessCases": 4,
+    "frozenR1RejectionCases": 7,
+    "acceptance": "acceptance/capital-composition-substitution-r2.json"
+  },
+  "verification": {
+    "compositionVerify": "PASS",
+    "capitalVerify": {
+      "ruff": "PASS",
+      "pytestPassed": 377,
+      "providerBoundDeselected": 11,
+      "pytestFailed": 0
+    },
+    "repoCi": "PASS",
+    "ownerBoundary": "PASS",
+    "structureR2": "PASS",
+    "currentStateRebuildCheck": "PASS"
+  },
+  "authorityStanding": {
+    "executionLane": "NON_LIVE",
+    "productionAuthorization": "BLOCK_NOT_GRANTED",
+    "externalFinancialWriteAllowed": false,
+    "privateAccountDataAdmission": "NOT_ADMITTED",
+    "portfolioRiskBudget": "UNSET"
+  },
+  "architectureClaims": [
+    "Capital owns financial semantics; shared Composition owns generic task-local composition mechanics.",
+    "Shared Composition authority-obligation binding never grants financial/provider/execution authority.",
+    "Financial effect ordering remains Capital-owned: Reserve before Effect, Reconcile and Account after admitted effect.",
+    "Read-only and non-live circuit execution remains owner-native and mechanically compatible with R1 external receipts.",
+    "Current State is generated from machine authorities and does not use Git recency as semantic currentness.",
+    "Capital-to-Composition is an explicit public-package dependency and therefore a real verification-graph edge."
+  ],
+  "nonClaims": [
+    "R2 does not admit production financial writes.",
+    "R2 does not admit private account data.",
+    "R2 does not infer owner risk appetite.",
+    "R2 does not add a general autonomous investment decision engine.",
+    "R2 does not make mechanical circuit closure a financial/domain verdict.",
+    "R2 does not make local accounting settlement or provider truth."
+  ]
+}

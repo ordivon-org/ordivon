@@ -1,8 +1,16 @@
-# Ordivon Next
+# Ordivon Next — archived historical corpus
 
-Ordivon Next is a greenfield rebuild focused on one outcome: turning mature human knowledge and existing capabilities into verified real-world results.
+Status: **RETIRED / ARCHIVED IN PLACE / NO ACTIVE REPOSITORY OWNER**
 
-## One-sentence definition
+This directory is preserved only as historical evidence from the earlier Ordivon Next programme. Current architecture, capability, domain, workflow, provider, Skill and execution ownership lives under the monorepo natural owners. Repository mechanics no longer route `meta/next/` to an owner or a verification task.
+
+The retained tree is immutable by default. Its exact Git tree identity is pinned by the monorepo retirement policy, and references from outside this tree are admitted only as explicitly classified historical navigation/provenance. A current consumer that needs bytes from this corpus must either own an exact frozen copy or introduce a separately reviewed historical-reference exception; it must not reactivate Next as a subsystem.
+
+The historical `mise.toml`, `pyproject.toml`, scripts, policies and tests below are reproducibility evidence, **not current validation or execution surfaces**. Do not run them as a current Ordivon owner gate. Current architecture law is `../../docs/architecture/ARCHITECTURE_REANCHOR_R1.md`.
+
+## Historical programme description (non-current)
+
+## Historical one-sentence definition
 
 **Ordivon turns real problems into verified outcomes by selecting and composing mature knowledge, methods, agents and tools instead of rebuilding them.**
 
@@ -75,7 +83,7 @@ See `docs/STANDARD_NATIVE_ENTERPRISE_ENVIRONMENT_R2.md` for the current cross-do
 
 ## Authority and policy composition
 
-See `knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
+See `catalogs/knowledge/lessons/authority-mature-substrate-decomposition-r1.md` for the current cross-disciplinary authority map. Ordivon does not claim a novel authority theory: institutional governance, evidence-to-decision, decision science, delegation, IAM/policy engines and adaptive/institutional learning remain externally owned mature substrates. `policies/` keeps only the thin task-local composition boundary and must not become a custom policy language, IAM system, generic Human gate or universal risk gate.
 
 ## Enterprise work routing
 

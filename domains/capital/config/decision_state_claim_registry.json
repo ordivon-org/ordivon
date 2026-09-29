@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.decision-state-claim-registry",
+  "truthRole": "CLAIM_TO_STATE_ROUTING_RULES_NOT_MARKET_TRUTH",
+  "principles": [
+    "State tags are projected only from explicit evidence claims; raw observations are not silently interpreted into investment regimes.",
+    "Claim producer identity, evidence digest and validity window are preserved.",
+    "Owner risk-budget standing is never supplied by this registry and remains separately authoritative.",
+    "A projected state tag is decision context, not a recommendation, forecast, or execution authority."
+  ],
+  "claims": [
+    {"claimKey":"valuation-signal-available","stateTag":"VALUATION_SIGNAL_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"VALUATION_MODEL_OUTPUT"},
+    {"claimKey":"fundamental-quality-signal-available","stateTag":"FUNDAMENTAL_QUALITY_SIGNAL_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"FUNDAMENTAL_QUALITY_MODEL_OUTPUT"},
+    {"claimKey":"momentum-signal-available","stateTag":"MOMENTUM_SIGNAL_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"MOMENTUM_MODEL_OUTPUT"},
+    {"claimKey":"trend-signal-available","stateTag":"TREND_SIGNAL_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"TREND_MODEL_OUTPUT"},
+    {"claimKey":"macro-state-available","stateTag":"MACRO_STATE_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"MACRO_STATE_MODEL_OUTPUT"},
+    {"claimKey":"volatility-signal-available","stateTag":"VOLATILITY_SIGNAL_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"VOLATILITY_MODEL_OUTPUT"},
+    {"claimKey":"factor-timing-signal-available","stateTag":"FACTOR_TIMING_SIGNAL_AVAILABLE","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"FACTOR_TIMING_MODEL_OUTPUT"},
+    {"claimKey":"payoff-distribution-estimated","stateTag":"PAYOFF_DISTRIBUTION_ESTIMATED","producerClasses":["REGISTERED_MODEL_OUTPUT"],"requiredEvidenceKind":"PAYOFF_DISTRIBUTION_ESTIMATE"},
+    {"claimKey":"target-portfolio-exists","stateTag":"TARGET_PORTFOLIO_EXISTS","producerClasses":["PORTFOLIO_TARGET"],"requiredEvidenceKind":"FROZEN_TARGET_PORTFOLIO"},
+    {"claimKey":"transaction-cost-estimates-available","stateTag":"TRANSACTION_COST_ESTIMATES_AVAILABLE","producerClasses":["EXECUTION_MODEL_OUTPUT"],"requiredEvidenceKind":"TRANSACTION_COST_ESTIMATE"},
+    {"claimKey":"liquidity-stress","stateTag":"LIQUIDITY_STRESS","producerClasses":["RISK_MODEL_OUTPUT"],"requiredEvidenceKind":"LIQUIDITY_STRESS_ASSESSMENT"},
+    {"claimKey":"funding-stress","stateTag":"FUNDING_STRESS","producerClasses":["RISK_MODEL_OUTPUT"],"requiredEvidenceKind":"FUNDING_STRESS_ASSESSMENT"},
+    {"claimKey":"model-conflict","stateTag":"MODEL_CONFLICT","producerClasses":["MODEL_CONFLICT_ASSESSMENT"],"requiredEvidenceKind":"MODEL_CONFLICT_ASSESSMENT"}
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "analyticalProducts": [
+    {
+      "bytes": 12573,
+      "path": "derived/parquet/alignments.parquet",
+      "sha256": "sha256:7dc6f438309651e735db31294fe55968f4502737daeab9c2c975478cdb2e0b38"
+    },
+    {
+      "bytes": 350431,
+      "path": "derived/parquet/comments.parquet",
+      "sha256": "sha256:696c06fa77ccdaaea7b1ba16ac252c435d456fed572177b15d3bd71481428056"
+    },
+    {
+      "bytes": 301545,
+      "path": "derived/parquet/edits.parquet",
+      "sha256": "sha256:25680b937b9b6774b2764c53aa914c75374b8d0a3b4179b08fd847075a3dd799"
+    },
+    {
+      "bytes": 4468736,
+      "path": "derived/aries-bounded-core-r1.duckdb",
+      "sha256": "sha256:f02d9763b028feaba39f49f68074109eb05ff0af413a902968fbdf6e4ce632ff"
+    }
+  ],
+  "boundaries": [
+    "This bounded core supports review-comment to edit-identity research but does not contain the S2ORC paragraph text needed to render edit contents.",
+    "Dev alignment labels are synthetic; manual test labels must remain distinguishable.",
+    "ARIES frequency distributions are dataset-specific and are not reviewer population prevalence.",
+    "The asset cannot authorize review judgments, manuscript changes, venue decisions, or submission effects."
+  ],
+  "counts": {
+    "alignmentRows": 25462,
+    "editUnits": 213955,
+    "manualTestComments": 196,
+    "negativeAlignments": 24738,
+    "orphanAlignmentComments": 0,
+    "orphanAlignmentEdits": 0,
+    "paperEditDocuments": 1720,
+    "positiveAlignments": 724,
+    "reviewComments": 4088
+  },
+  "id": "aries-bounded-core-r1",
+  "kind": "ordivon.research.external-dataset-admission-receipt",
+  "omittedByDesign": [
+    "s2orc.tar.gz",
+    "generated_edits.jsonl"
+  ],
+  "schemaVersion": 1,
+  "snapshot": {
+    "analyticalBuildReceiptSha256": "sha256:c1b1e7977b611c2e7c808d7d9490a5286b3b8a4e9ae4485c4fe55bbbc6058dd3",
+    "identity": "sha256:c044a92034f740802d24a2298cc1569e59bda34c5148e34a6556f356d78b1c77",
+    "normalizationSummarySha256": "sha256:6192f713100b10e0913441c2ac38c87c359f6e004857dbb671d403d04750dc05",
+    "rawManifestSha256": "sha256:63966dca824fe850dd9717c080e05eed00cf72c23263bb1870f3d839f83ec8b4",
+    "root": "/root/projects/ordivon-corpora/scholarly-data/aries/aries-s3-bounded-core-r1-20260923",
+    "schemaCensusSha256": "sha256:094a234fed67df63825c7f75c0c3ffdc05b15dfa67878ce24c4a56f5501083b5"
+  },
+  "source": {
+    "licenseFileSha256": "sha256:11a6d83734845ad09d809667aa219857a5b985b28c258a2eebf5677668a6bd3b",
+    "licenseMarkers": {
+      "containsODCByIdentifier": true,
+      "containsOpenDataCommonsAttribution": true
+    },
+    "licenseObserved": "ODC-BY-1.0",
+    "paper": "https://aclanthology.org/2024.acl-long.377/",
+    "provider": "AllenAI public S3",
+    "upstreamReadme": "https://github.com/allenai/aries/blob/master/README.md",
+    "uri": "s3://ai2-s2-research-public/aries/"
+  },
+  "status": "MATERIALIZED_BOUNDED_CORE_ANALYTICAL_VIEWS_PASS",
+  "truthRole": "external-dataset-physical-and-schema-evidence-not-reviewer-or-scientific-truth"
+}

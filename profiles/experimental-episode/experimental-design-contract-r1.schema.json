@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:experimental-design-contract:r1",
+  "title": "Ordivon Experimental Design Contract R1",
+  "description": "Study-owned, non-authoritative binding of owner-native environment, seat, factor, resource and metric contracts for one experiment. It grants no execution, effect or domain authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "experimentId",
+    "protocolId",
+    "environmentBinding",
+    "seats",
+    "factors",
+    "metricSpecs",
+    "randomness",
+    "nonClaims",
+    "contractDigest"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.experimental-design-contract"},
+    "experimentId": {"type": "string", "minLength": 1, "maxLength": 512},
+    "protocolId": {"type": "string", "minLength": 1, "maxLength": 512},
+    "environmentBinding": {"$ref": "#/$defs/bindingRef"},
+    "seats": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seatId",
+          "role",
+          "occupantKind",
+          "parityGroup",
+          "observationContract",
+          "actionContract",
+          "resourceContract",
+          "authorityContract",
+          "adapterBinding"
+        ],
+        "properties": {
+          "seatId": {"type": "string", "minLength": 1, "maxLength": 512},
+          "role": {"type": "string", "minLength": 1, "maxLength": 512},
+          "occupantKind": {"enum": ["human", "agent", "scripted", "oracle", "unbound"]},
+          "occupantRef": {"type": "string", "minLength": 1, "maxLength": 512},
+          "parityGroup": {"type": "string", "minLength": 1, "maxLength": 512},
+          "observationContract": {"$ref": "#/$defs/bindingRef"},
+          "actionContract": {"$ref": "#/$defs/bindingRef"},
+          "resourceContract": {"$ref": "#/$defs/bindingRef"},
+          "authorityContract": {"$ref": "#/$defs/bindingRef"},
+          "adapterBinding": {"$ref": "#/$defs/bindingRef"}
+        }
+      }
+    },
+    "factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["factorId", "factorRole", "value"],
+        "properties": {
+          "factorId": {"type": "string", "minLength": 1, "maxLength": 512},
+          "factorRole": {"enum": ["controlled", "treatment", "blocking", "nuisance", "observed"]},
+          "value": {"type": ["string", "integer", "number", "boolean", "null"]}
+        }
+      }
+    },
+    "metricSpecs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metricId", "specRef", "specDigest"],
+        "properties": {
+          "metricId": {"type": "string", "minLength": 1, "maxLength": 512},
+          "specRef": {"type": "string", "minLength": 1, "maxLength": 512},
+          "specDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "randomness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seedPolicy"],
+      "properties": {
+        "seedPolicy": {"enum": ["fixed", "explicit-per-episode", "derived", "provider-owned"]},
+        "seedManifestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "assignmentSeedPolicy": {"enum": ["fixed", "explicit-per-episode", "derived", "provider-owned"]},
+        "executionRandomnessPolicy": {"enum": ["fixed", "explicit-per-episode", "derived", "provider-owned"]}
+      }
+    },
+    "dataClassPolicy": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["EXPERIENCE", "DEVELOPMENT", "JUDGE", "DERIVED"]}
+    },
+    "nonClaims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "contractDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "bindingRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownerId", "objectKind", "objectId", "digest"],
+      "properties": {
+        "ownerId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "objectKind": {"type": "string", "minLength": 1, "maxLength": 512},
+        "objectId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/synthetic-world-spec-r5.json",
+  "title": "Synthetic World Spec R5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "worldId", "identities", "services", "resources", "secrets"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-synthetic-world-spec"},
+    "worldId": {"type": "string", "minLength": 1},
+    "identities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["identityId", "roles"],
+        "properties": {
+          "identityId": {"type": "string"},
+          "roles": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["serviceId", "kind"],
+        "properties": {
+          "serviceId": {"type": "string"},
+          "kind": {"enum": ["files", "mail", "http", "database"]}
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resourceId", "serviceId", "content", "trust"],
+        "properties": {
+          "resourceId": {"type": "string"},
+          "serviceId": {"type": "string"},
+          "content": {"type": "string"},
+          "trust": {"enum": ["trusted_fixture", "untrusted_data"]}
+        }
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["secretId", "ownerIdentityId", "secretDigest"],
+        "properties": {
+          "secretId": {"type": "string"},
+          "ownerIdentityId": {"type": "string"},
+          "secretDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}

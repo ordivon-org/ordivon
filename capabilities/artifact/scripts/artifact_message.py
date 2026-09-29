@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,hashlib,json,os,re,subprocess,tempfile
-from datetime import timezone
+import sys
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import tempfile
+from datetime import UTC
 from email import policy
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
+
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA=ROOT/'artifact-delivery/shadow-contracts/message-internet-text-contract-v1.schema.json'
 NODE=Path(os.environ.get('ARTIFACT_NODE','/root/.local/share/mise/installs/node/26.9.0/bin/node')); MAILPARSER=Path('/opt/ordivon/external/mailparser-js/3.9.26/node_modules/mailparser')
@@ -16,7 +32,7 @@ def sha_file(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def canon(x):return hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
 def validate(c):
  s=json.loads(SCHEMA.read_text());return [f"message contract schema invalid: {e.message}" for e in sorted(jsonschema.Draft202012Validator(s,format_checker=jsonschema.FormatChecker()).iter_errors(c),key=lambda e:list(e.path))]
-def norm_date(v):return parsedate_to_datetime(v).astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+def norm_date(v):return parsedate_to_datetime(v).astimezone(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
 def py_view(raw):
  try:
   m=BytesParser(policy=policy.default).parsebytes(raw)
@@ -31,12 +47,21 @@ def node_view(path,ev):
  if p.returncode:return {},p.stderr.decode('utf-8','replace')
  try:return json.loads(p.stdout),None
  except Exception as e:return {},str(e)
+CLAIM_POINTERS={
+ 'bodyIdentity':'/bodyIdentity',
+ 'contractSchema':'/contractSchema',
+ 'nodeParser':'/nodeParser',
+ 'pythonParser':'/pythonParser',
+ 'rawSyntaxPolicy':'/rawSyntaxPolicy',
+}
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_message(path,contract_path,evidence_dir=None):
  path=Path(path);contract_path=Path(contract_path)
  if not path.is_file():return {'status':'FAIL','failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text())
- except Exception as e:return {'status':'FAIL','failures':[f'contract unreadable: {e}']}
- failures=validate(c);ev=Path(evidence_dir) if evidence_dir else Path(tempfile.mkdtemp(prefix='artifact-message-'));ev.mkdir(parents=True,exist_ok=True);raw=path.read_bytes();res={'schemaVersion':1,'kind':'artifact-message-verification','profileId':'message-internet-text-r1','artifact':{'sha256':sha_bytes(raw),'size':len(raw)},'contract':{'sha256':sha_file(contract_path),'canonicalDigest':canon(c)},'status':'FAIL','failures':failures}
+ except Exception as e:return {'status':'FAIL','contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+ contract_failures=validate(c);failures=list(contract_failures);ev=Path(evidence_dir) if evidence_dir else Path(tempfile.mkdtemp(prefix='artifact-message-'));ev.mkdir(parents=True,exist_ok=True);raw=path.read_bytes();res={'schemaVersion':1,'kind':'artifact-message-verification','profileId':'message-internet-text-r1','artifact':{'sha256':sha_bytes(raw),'size':len(raw)},'contract':{'sha256':sha_file(contract_path),'canonicalDigest':canon(c)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'status':'FAIL','failures':failures}
  if failures:(ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n');return res
  rf=[]
  if b'\x00' in raw:rf.append('NUL byte outside bounded R1')
@@ -77,8 +102,12 @@ def verify_message(path,contract_path,evidence_dir=None):
  if pv and nv:
   for k in ('from','to','subject','messageId','date','contentType','charset','cte','mimeVersion','bodySha256'):
    if pv.get(k)!=nv.get(k):cross.append(f'Python/Node views disagree on {k}')
- failures+=rf+pf+nf+cross
- res.update({'rawSyntaxPolicy':{'status':'PASS' if not rf else 'FAIL','headerCounts':counts,'failures':rf},'pythonParser':{'status':'PASS' if not pf else 'FAIL','view':pv,'failures':pf},'nodeParser':{'status':'PASS' if not nf else 'FAIL','view':nv,'stderrSha256':sha_file(ev/'mailparser.stderr.txt'),'failures':nf},'crossView':{'status':'PASS' if not cross else 'FAIL','failures':cross},'status':'PASS' if not failures else 'FAIL','failures':failures,'boundary':'PASS is bounded to one CRLF-encoded RFC 5322/MIME 1.0 single-part UTF-8 text/plain message with exact address/header/body identity. It does not establish SMTP delivery, sender authentication, DKIM/SPF/DMARC/ARC, mailbox-container semantics, multipart attachments or content truth.'})
+ body_fail=[]
+ if not pv or pv.get('bodySha256')!=want['bodySha256']:body_fail.append('Python parser body SHA-256 differs from contract or is unavailable')
+ if not nv or nv.get('bodySha256')!=want['bodySha256']:body_fail.append('Node parser body SHA-256 differs from contract or is unavailable')
+ if pv and nv and pv.get('bodySha256')!=nv.get('bodySha256'):body_fail.append('Python/Node body SHA-256 observations disagree')
+ failures+=rf+pf+nf+cross+body_fail
+ res.update({'bodyIdentity':{'status':'PASS' if not body_fail else 'FAIL','expectedBodySha256':want['bodySha256'],'pythonBodySha256':pv.get('bodySha256') if pv else None,'nodeBodySha256':nv.get('bodySha256') if nv else None,'failures':body_fail},'rawSyntaxPolicy':{'status':'PASS' if not rf else 'FAIL','headerCounts':counts,'failures':rf},'pythonParser':{'status':'PASS' if not pf else 'FAIL','view':pv,'failures':pf},'nodeParser':{'status':'PASS' if not nf else 'FAIL','view':nv,'stderrSha256':sha_file(ev/'mailparser.stderr.txt'),'failures':nf},'crossView':{'status':'PASS' if not cross else 'FAIL','failures':cross},'status':'PASS' if not failures else 'FAIL','failures':failures,'boundary':'PASS is bounded to one CRLF-encoded RFC 5322/MIME 1.0 single-part UTF-8 text/plain message with exact address/header/body identity. It does not establish SMTP delivery, sender authentication, DKIM/SPF/DMARC/ARC, mailbox-container semantics, multipart attachments or content truth.'})
  (ev/'verification.json').write_text(json.dumps(res,indent=2,sort_keys=True,ensure_ascii=False)+'\n');return res
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('input',type=Path);ap.add_argument('--contract',type=Path,required=True);ap.add_argument('--evidence-directory',type=Path);ap.add_argument('--output',type=Path);a=ap.parse_args();v=verify_message(a.input,a.contract,a.evidence_directory);s=json.dumps(v,indent=2,sort_keys=True,ensure_ascii=False)+'\n';a.output.write_text(s) if a.output else print(s,end='');return 0 if v.get('status')=='PASS' else 1

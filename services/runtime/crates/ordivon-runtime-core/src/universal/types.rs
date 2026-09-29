@@ -199,6 +199,57 @@ impl WorkspaceContentRequest {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkspaceFileRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+    pub relative_path: String,
+    #[schemars(regex(pattern = r"^sha256:[0-9a-f]{64}$"))]
+    pub expected_digest: String,
+    #[schemars(range(min = 1, max = MAX_WORKSPACE_IO_BYTES))]
+    pub max_bytes: u64,
+}
+
+impl WorkspaceFileRequest {
+    pub fn validate_shape(&self) -> Result<(), UniversalExecError> {
+        require_schema(self.schema_version)?;
+        validate_id(&self.workspace_id, "workspaceId")?;
+        validate_relative_path(&self.relative_path, "relativePath")?;
+        if !valid_digest(&self.expected_digest) {
+            return Err(invalid(
+                "expectedDigest must be canonical lowercase SHA-256",
+                "expectedDigest",
+            ));
+        }
+        if self.max_bytes == 0 || self.max_bytes > MAX_WORKSPACE_IO_BYTES {
+            return Err(invalid(
+                format!("maxBytes must be in 1..={MAX_WORKSPACE_IO_BYTES}"),
+                "maxBytes",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkspaceFileMetadata {
+    pub workspace_id: String,
+    pub relative_path: String,
+    pub digest: String,
+    pub byte_length: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkspaceFileReadResult {
+    pub metadata: WorkspaceFileMetadata,
+    pub bytes: Vec<u8>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, JsonSchema, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkspaceContentMetadata {

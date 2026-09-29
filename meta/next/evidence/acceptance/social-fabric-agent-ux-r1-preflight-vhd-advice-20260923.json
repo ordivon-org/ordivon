@@ -1,0 +1,40 @@
+{
+  "adviceDigest": "sha256:d93298e849361e58c1123d0eae55d6c864c8d84f51f5c164d1d3859e9ca74be2",
+  "compartmentRefs": [
+    "domain:workstation",
+    "resource:windows:wsl:archlinux:ext4-vhdx"
+  ],
+  "effectAuthorizationIncluded": false,
+  "executionAdmissionIncluded": false,
+  "explicitTraits": {
+    "durable": true,
+    "effectful": true,
+    "scarce": true,
+    "shared": true
+  },
+  "kind": "ordivon.social-fabric-agent-preflight-advice",
+  "nonClaims": [
+    "Preflight uses only caller-declared durable/shared/effectful/scarce traits and does not infer risk or priority.",
+    "A recommendation to read Social Fabric is not a requirement, allow/deny decision, scheduler decision, lease, or EffectAuthority.",
+    "Natural owners remain responsible for any enforceable admission, authorization, resource lock, or external effect."
+  ],
+  "operationRef": "operation:maintenance:archlinux-vhd:offline-compact",
+  "recommendationReasonCodes": [
+    "DURABLE_CONTINUITY",
+    "SHARED_COORDINATION",
+    "EFFECT_OWNER_BINDING",
+    "SCARCE_RESOURCE_COORDINATION"
+  ],
+  "recommendedViews": [
+    "CURRENT",
+    "ATTENTION",
+    "COORDINATION",
+    "AUTHORITY"
+  ],
+  "schemaVersion": 1,
+  "standing": "SOCIAL_READ_RECOMMENDED",
+  "subjectRefs": [
+    "resource:windows:wsl:archlinux:ext4-vhdx"
+  ],
+  "truthRole": "advisory-view-selection-not-admission-or-effect-authority"
+}

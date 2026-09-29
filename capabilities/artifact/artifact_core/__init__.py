@@ -8,6 +8,7 @@ from .bindings import CapabilityBinding, CapabilityBindingRegistry
 from .contracts import FileCommitment
 from .operations import OperationPlan, OperationPlanner
 from .profiles import ProfileRecord, ProfileRegistry
+from .standing import derive_standing_decision, required_claim_keys
 
 __all__ = [
     "CapabilityBinding",
@@ -17,4 +18,6 @@ __all__ = [
     "OperationPlanner",
     "ProfileRecord",
     "ProfileRegistry",
+    "derive_standing_decision",
+    "required_claim_keys",
 ]

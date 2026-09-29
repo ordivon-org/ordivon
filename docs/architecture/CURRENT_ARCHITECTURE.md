@@ -1,9 +1,9 @@
 # Ordivon Current Architecture
 
-Date: 2026-09-22
-Status: **CURRENT CANONICAL / DEPLOYED BASELINE**
+Date: 2026-09-28
+Status: **CURRENT DEPLOYED PROJECTION — NON-AUTHORITATIVE**
 
-This document is the canonical description of Ordivon's **currently deployed architecture**. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but they do not override this file when they describe an earlier deployment state.
+This document is a **rebuildable projection** of Ordivon's currently deployed architecture. Architecture contracts, execution plans, migration records, research notes, and acceptance reports remain useful evidence, but none of these documents override current physical/source/owner truth.
 
 Machine-readable companion: `docs/architecture/deployed-architecture-r1.json`.
 
@@ -75,15 +75,17 @@ The deployed route table currently exposes exactly these stable capability famil
 | `continuity.external` | Host | Host continuity |
 | `artifact.runtime` | Runtime selected by operation reference | Runtime Artifact read |
 
-Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth.
+Availability is owner-derived. Gateway may normalize routing, error shape, public ABI, authentication boundary, correlation, and projections; it must not manufacture owner truth. A routed owner is `configured` only when both its endpoint and the machine identity required by that owner are configured. An endpoint URL alone is not capability realization.
 
-For Runtime execution, the normal Gateway northbound surface includes submit/get/cancel plus read-only `execution.resolve` for response-loss reconciliation by the already frozen request identity. `execution.resolve` discovers an existing Runtime Job; it does not redispatch an effect or move execution truth into Gateway.
+As of the 2026-09-28 Gateway 0.6 live promotion, the canonical public Windows Gateway R2 carrier is healthy for Host/Social/discovery northbound and is deliberately rematerialized with both Runtime owner URLs empty while approved node-local Runtime bearer projections remain unavailable. Direct Linux and Windows Runtime owners both report `available=true`; public Gateway Runtime execution is therefore **explicitly unconfigured by missing Gateway→Runtime owner authentication**, not a Runtime owner outage. Public `system.describe` projects both Runtime owners `configured=false`, and `capability.describe` returns `owner endpoint is not configured` rather than attempting unauthenticated owner HTTP. Credential materialization remains a separate node-local authority action and must not be bypassed.
+
+For Runtime execution, once owner authentication is admitted, the normal Gateway northbound surface includes submit/get/cancel plus read-only `execution.resolve` for response-loss reconciliation by the already frozen request identity. `execution.resolve` discovers an existing Runtime Job; it does not redispatch an effect or move execution truth into Gateway.
 
 ### Host normal northbound completion
 
-The Gateway now covers Host's normal Agent-facing continuity/collaboration seam. Compatibility actions remain `continuity.get/list/observe/adopt/checkpoint/attention` and `collaboration.list/search/post`; preferred newer vocabulary adds `continuity.find`, `continuity.changes`, and `collaboration.publish`. The portable default Plugin therefore does not require a direct Host MCP binding for normal work.
+Host has destructively retired the privileged Task/Board core and now owns Social Work Fabric schema 9. Live Gateway 0.6.0 projects Host's bounded `actor.declare`, `work.*`, `space.*`, `topic.*`, `message.*`, `subscription.*`, `attention.*`, and `host.status` surfaces directly, while Host remains the semantic owner. There is no `continuity.*` or `collaboration.*` compatibility facade, no dual-write path, and no Gateway-owned work state. GATE99-held `work.relation.*`, `intent.*`, and private/confidential semantics are not exposed by the default Gateway surface. The portable default Plugin requires only Gateway for normal work; direct Host remains operator/admin/recovery-only.
 
-Gateway keeps WorkingCheckpoint payloads opaque and delegates their validation to Host. `host.status`/Doctor remains direct-owner admin/recovery only. Connector catalog freshness remains a client/connector responsibility; a stale consumer snapshot does not redefine the live Gateway surface. Windows execution context is likewise owner-defined: Gateway 0.4 routes either the legacy provider string or an opaque provider JSON object, while Windows Runtime alone validates identity/privilege composition.
+`WorkSnapshot` validation and CAS remain Host-owned. `host.status` is also projected through Gateway for bounded health/currentness while direct Host access remains operator/admin/recovery-only. Gateway 0.6.0 is live on the canonical Windows R2 carrier from immutable release `d91d63b70da5fa1c02a7b1a136c651649f62bd75`. Its epoch-3 source manifest declares 29 tools including read-only `capability.search`; the already-established ChatGPT connector session observed during promotion still enumerated the previous 28-tool catalog, so connector catalog currentness is again an explicit consumer-side seam until refresh/reconnect. This stale consumer catalog must be refreshed rather than repaired by weakening Host/Gateway boundaries or resurrecting compatibility aliases.
 
 ## 4. Method Router ≠ Capability Router
 
@@ -165,12 +167,9 @@ Runtime Job identity
 
 Cloudflare Access/OAuth owns public authentication. Gateway derives a stable pseudonymous principal only after JWT verification.
 
-Gateway → owner calls use separate machine credentials:
+Gateway → Runtime owner calls require a separate machine identity appropriate to the deployed carrier; endpoint presence never substitutes for it. Linux systemd Gateway uses a systemd-projected Runtime bearer and its Windows-owner path uses a Cloudflare Access service identity. The canonical public Windows Gateway R2 carrier is currently missing its node-local Runtime bearer projections, so those execution routes are not configured even though both Runtime owners themselves are healthy.
 
-- Linux Runtime: systemd-projected bearer credential;
-- Windows Runtime: systemd-projected Cloudflare Access service identity.
-
-The public principal is not replayed as downstream authorization.
+The public principal is not replayed as downstream authorization. Node-local credential bytes remain outside source and require their explicit credential authority/materialization path.
 
 ## 7. Trace and audit boundary
 
@@ -259,14 +258,19 @@ Not currently admitted/deployed as architecture truth:
 
 ## 11. Source-of-truth order
 
-For present-tense architecture claims, use this order:
+This document is a rebuildable human projection, not an authority above the system it describes. For present-tense architecture claims, use:
 
-1. this document + `deployed-architecture-r1.json`;
-2. current owner source/configuration and machine checks;
-3. current acceptance evidence;
-4. historical execution plans/migration records/research notes only for provenance.
+```text
+CURRENT PHYSICAL TRUTH
+  > CANONICAL SOURCE / CONFIGURATION
+  > LIVE OWNER STATE / PROVIDER READ-BACK
+  > DURABLE REGISTRY / RECEIPT
+  > TEST / VERIFICATION EVIDENCE
+  > CURRENT DOCUMENTATION
+  > PLANNING / HISTORICAL ARTIFACT
+```
 
-If a historical document conflicts with the deployed graph, deployed reality wins and the historical document must remain marked historical rather than silently rewritten.
+Always select the natural owner for the exact claim. A provider effect is established by provider authority, not by Git; a source contract is established by canonical source, not by an old deployment receipt. If this document conflicts with current physical/source/owner truth, this document is stale and must be repaired rather than used to override reality.
 
 ## 12. Non-regression
 

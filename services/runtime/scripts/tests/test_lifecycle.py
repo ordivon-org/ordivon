@@ -219,6 +219,7 @@ class LifecycleTests(unittest.TestCase):
             if marker in line
         ]
         self.assertTrue(commands)
+        self.assertIn("SuccessExitStatus=1 2", unit)
         help_result = subprocess.run(
             [sys.executable, "scripts/ordivon-runtime-lifecycle", "--help"],
             cwd=REPO,

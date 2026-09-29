@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.architecture-reanchor-ard001-acceptance",
+  "observedDate": "2026-09-28",
+  "truthRole": "source-and-verification-evidence-not-runtime-or-domain-authority",
+  "debtId": "ARD-001",
+  "standing": "PASS_NEXT_ACTIVE_OWNER_RETIRED_ARCHIVED_IN_PLACE",
+  "baseMain": "d2f965c939541f140e6ee1496c426b8fbd1419e7",
+  "verifiedCandidateHead": "578568f342077042f05356d79b0eeef4f1ae6037",
+  "archivedTree": {
+    "path": "meta/next",
+    "gitTree": "320474d446f58462b9ed0b5a9fef3529c44f01d0",
+    "policy": "docs/migration/retirement/next-monorepo-archive-policy.json",
+    "standing": "PASS_EXACT_GIT_TREE_FROZEN"
+  },
+  "consumerRebind": {
+    "consumer": "studies/research/scholarly-intelligence-r1",
+    "from": "meta/next/evidence/acceptance/standard-native-enterprise-r2-dogfood-20260914.json",
+    "to": "studies/research/scholarly-intelligence-r1/evidence/standard-native-enterprise-r2-dogfood-20260914.json",
+    "sha256": "sha256:3ce88cf3a7869656a20218a8361de81578f18212ddfccad30d6084d9dce43f65",
+    "byteIdentityPreserved": true
+  },
+  "retiredActiveSurfaces": [
+    "tools/repo/owners.toml next owner row",
+    "mise.toml next:verify root task",
+    "dependency_contracts.toml skills->next seam",
+    "dependency_contracts.toml next->harness seam",
+    "dependency_contracts.toml next->composition seam",
+    ".github/CODEOWNERS explicit /meta/next/ owner boundary",
+    "Skills test use of /root/projects/ordivon/meta/next as active project workspace context"
+  ],
+  "repositoryMechanics": {
+    "metaNextOwnerCount": 0,
+    "nextVerifyTaskPresent": false,
+    "nextCrossOwnerSeamCount": 0,
+    "rootCiRunsRetirementGate": true,
+    "securityOwnerClosureBefore": [
+      "agent-app",
+      "capital",
+      "composition",
+      "harness",
+      "next",
+      "security",
+      "skills",
+      "web"
+    ],
+    "securityOwnerClosureAfter": [
+      "agent-app",
+      "capital",
+      "composition",
+      "harness",
+      "security",
+      "web"
+    ]
+  },
+  "verification": [
+    {
+      "ref": "runtime:job:job-01a0e73c-11aa-7b51-bd75-2804e34b635d",
+      "gate": "affected owners + convergence + Research + Skills + retirement",
+      "result": "PASS"
+    },
+    {
+      "ref": "runtime:job:job-01a0e740-e6d2-7e20-9353-a6842f901c36",
+      "gate": "enhanced root repo:ci after rebase to d2f965c93",
+      "result": "PASS",
+      "runtimeDispatches": 1,
+      "duplicateDispatches": 0
+    },
+    {
+      "gate": "repo:retirement:verify",
+      "result": "PASS_ALL_POLICIES_AND_RELATIVE_TREE_SMOKE"
+    },
+    {
+      "gate": "research-study:verify",
+      "result": "PASS"
+    },
+    {
+      "gate": "skills:verify",
+      "result": "PASS_81_TESTS_43_SUBTESTS"
+    },
+    {
+      "gate": "architecture documentation drift",
+      "result": "PASS_AFTER_CONCURRENT_MAIN_D2F965C93"
+    }
+  ],
+  "baselineDebtDiscoveredAndClosed": [
+    "harness standalone retirement policy missing four historical/negative references",
+    "next standalone retirement policy missing one negative owner-boundary reference",
+    "runtime standalone retirement policy missing the exact Study-owned frozen dogfood copy",
+    "Temporal provider documentation retained a stale Workstation-v2 source/currentness statement"
+  ],
+  "nonClaims": [
+    "Historical meta/next bytes are not deleted; they remain frozen provenance/reproducibility material.",
+    "The archived Next corpus is not a current repository owner, validation project, capability owner, workflow owner, or architecture authority.",
+    "Capability Science historical references do not transfer runtime or semantic authority to the archived tree.",
+    "This acceptance does not close ARD-003, ARD-004, ARD-005, or ARD-006."
+  ]
+}

@@ -1,10 +1,26 @@
 #!/usr/bin/env python3
 """Standards-first bounded Ogg/Vorbis verifier with explicit browser-boundary evidence."""
 from __future__ import annotations
-import argparse,array,hashlib,json,os,re,subprocess,sys,tempfile
+
+import argparse
+import array
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from typing import Any
+
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT=Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA=ROOT/'artifact-delivery/shadow-contracts/audio-ogg-vorbis-contract-v1.schema.json'
@@ -39,13 +55,23 @@ def pcm_compat(reference:bytes,other:bytes)->dict[str,Any]:
  n=min(len(a),len(b));diffs=[abs(a[i]-b[i]) for i in range(n)]
  return {'commonSamplesTotal':n,'maxAbsLsb':max(diffs) if diffs else None,'nonzeroDifferences':sum(1 for x in diffs if x),'exactOnCommonPrefix':all(x==0 for x in diffs) if diffs else False}
 
+CLAIM_POINTERS={
+ 'browserTargetMatrix':'/browserTargetMatrix',
+ 'contractSchema':'/contractSchema',
+ 'independentDecodeObservation':'/independentDecodeObservation',
+ 'independentTechnicalView':'/independentTechnicalView',
+ 'oggVorbisIntegrity':'/oggVorbisIntegrity',
+ 'referenceDecode':'/referenceDecode',
+}
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_ogg_vorbis(path:Path,contract_path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
  if not path.is_file():return {'schemaVersion':1,'kind':'artifact-ogg-vorbis-verification','profileId':'audio-ogg-vorbis-r1','status':'FAIL','failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text())
- except Exception as e:return {'schemaVersion':1,'kind':'artifact-ogg-vorbis-verification','profileId':'audio-ogg-vorbis-r1','status':'FAIL','artifact':fact(path),'failures':[f'contract unreadable: {e}']}
+ except Exception as e:return {'schemaVersion':1,'kind':'artifact-ogg-vorbis-verification','profileId':'audio-ogg-vorbis-r1','status':'FAIL','artifact':fact(path),'contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
  ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-ogg-vorbis-evidence-'));ev.mkdir(parents=True,exist_ok=True)
- failures=validate_contract(c);observations=[];want=c.get('audio',{})
- result={'schemaVersion':1,'kind':'artifact-ogg-vorbis-verification','profileId':'audio-ogg-vorbis-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical(c)},'tools':{},'failures':failures,'observations':observations}
+ contract_failures=validate_contract(c);failures=list(contract_failures);observations=[];want=c.get('audio',{})
+ result={'schemaVersion':1,'kind':'artifact-ogg-vorbis-verification','profileId':'audio-ogg-vorbis-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical(c)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'tools':{},'failures':failures,'observations':observations}
  tools=[('ogginfo',OGGINFO),('oggdec',OGGDEC),('ffmpeg',FFMPEG),('ffprobe',FFPROBE),('node',NODE),('browserProbe',BROWSER_PROBE)]
  for name,p in tools:
   if not p.is_file() or (name!='browserProbe' and not os.access(p,os.X_OK)):failures.append(f'required mature external capability unavailable: {name}')

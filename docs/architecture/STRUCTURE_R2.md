@@ -1,11 +1,21 @@
 # Ordivon Repository Structure R2
 
 Date: 2026-09-22
-Status: **PARTIALLY DEPLOYED — S0 + S1A + S1B + S2A + S2B**
+Status: **SUPERSEDED FOR FUTURE PATH RELOCATION — retained as historical convergence evidence**
 
 Machine-readable companion: `docs/architecture/structure-r2-transition-r1.json`.
 
-## Decision
+## Architecture Re-Anchor disposition — 2026-09-28
+
+Structure R2 successfully drove high-value semantic extraction: Composition, canonical Skills, the portable control Plugin, catalogs, profiles and selected studies moved to clearer natural boundaries. Architecture Re-Anchor R1 supersedes Structure R2 as a future path-relocation programme.
+
+Remaining path-only moves **S3, S4, S6, S7 and S9 are cancelled**. Current `services/`, `platform/`, `capabilities/` and `domains/` roots may remain because owner/authority/contract boundaries are already enforced independently of those names. Moving them into `packages/` without a demonstrated reduction in coupling, failure domain, recovery cost or repeated irreducible duplication would create churn without architectural benefit.
+
+S5 survives only as targeted `meta/next` residual disposition. S8 survives only as evidence-driven dependency/fitness guards. Any future source relocation requires a fresh concrete consumer/owner argument and is not continuation of this plan.
+
+Current architecture law is `ARCHITECTURE_REANCHOR_R1.md`.
+
+## Historical Decision
 
 Repository placement is an engineering-navigation mechanism, not the Ordivon ontology.
 The current `services/`, `platform/`, `capabilities/`, `domains/`, and `meta/` roots encode
@@ -152,7 +162,7 @@ No universal verifier or global evidence registry is introduced.
   `ordivon-composition` package API and retire facades only when no real consumer requires them.
 - **S2A — Control Plugin edge:** portable control Plugin source -> `extensions/ordivon-control-plane`.
 - **S2B — Canonical Skill source:** **DEPLOYED** — project Skills -> root `.agents/skills`.
-- **S2C — ChatGPT Skills compatibility edge:** temporary Skills MCP owner ->
+- **S2C — ChatGPT Skills compatibility edge:** **DEPLOYED** — temporary Skills MCP owner ->
   `extensions/chatgpt-skills-mcp`.
 - **S3 — Durable owners:** Gateway, Runtime, Host, Harness -> `packages/`, one at a time.
 - **S4 — Security/Network/deployment:** bounded reusable source -> `packages/`; Workstation
@@ -183,8 +193,10 @@ consumers to the declared public `ordivon_composition` package API and retired t
 Python compatibility facades after repository-wide inventory found no external path callers.
 R3 seam-specific verifiers, Admission dogfood, and task-local bindings remain with Next.
 S2A relocates only the portable control Plugin package bytes to the repository extension
-boundary; Next remains its release/materialization consumer. Therefore S1 and S2A are closed,
-while S2B-S9 remain open.
+boundary; Next remains its release/materialization consumer. S2B relocates canonical project
+Skills to root `.agents/skills`; S2C relocates the ChatGPT-only compatibility bridge to
+`extensions/chatgpt-skills-mcp` without changing deployment identity or semantics. Therefore
+S0-S2 are closed. S5 is partially deployed (authority/capability/knowledge catalogs, Game profile-vs-study split, shared research split, and Experimental Episode profile/data/store separation); residual Next policies/schemas/scripts/tests/evidence/history disposition remains open. S3-S4 and S6-S9 remain open.
 
 For every still-unmigrated owner, current paths in `CURRENT_ARCHITECTURE.md`,
 `tools/repo/owners.toml`, `dependency_contracts.toml`, root `mise.toml`, and owner deployment
