@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .research_routes import research_capabilities
+
 
 @dataclass(frozen=True)
 class CapabilityRoute:
@@ -64,4 +66,17 @@ def default_routes() -> dict[str, CapabilityRoute]:
             tags=("artifact", "evidence", "read", "runtime"),
         ),
     ]
+    for spec in research_capabilities().values():
+        routes.append(
+            CapabilityRoute(
+                capability=spec.capability,
+                owner_id="research.composition",
+                category="research",
+                owner_tool=None,
+                context_mode="none",
+                truth_boundary=spec.truth_boundary,
+                description=spec.description,
+                tags=spec.tags,
+            )
+        )
     return {route.capability: route for route in routes}

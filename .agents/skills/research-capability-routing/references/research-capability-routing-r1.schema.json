@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "invocation": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "minProperties": 2,
+      "properties": {
+        "operation": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "surface": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "surface",
+        "operation"
+      ],
+      "type": "object"
+    },
+    "route": {
+      "additionalProperties": false,
+      "properties": {
+        "bindingAuthority": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "bindingProblemClass": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "currentnessKey": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "invocation": {
+          "$ref": "#/$defs/invocation"
+        },
+        "problemClasses": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "providerClass": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "providerRef": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "provides": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "rank": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "routeId": {
+          "pattern": "^[a-z0-9][a-z0-9.-]+$",
+          "type": "string"
+        },
+        "scientificSemanticAuthority": {
+          "type": "boolean"
+        },
+        "verification": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "routeId",
+        "rank",
+        "problemClasses",
+        "providerClass",
+        "providerRef",
+        "bindingAuthority",
+        "currentnessKey",
+        "provides",
+        "invocation",
+        "verification"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "urn:ordivon:research:capability-routing-profile:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Task-routing metadata only. It is not scientific truth, provider availability, authorization, execution, or completion authority.",
+  "properties": {
+    "invariants": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "kind": {
+      "const": "ordivon.research-capability-routing-profile"
+    },
+    "principle": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "problemClasses": {
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9.-]+$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "profileId": {
+      "const": "research-capability-routing-r1"
+    },
+    "routes": {
+      "items": {
+        "$ref": "#/$defs/route"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "truthRole": {
+      "const": "task-routing-profile-not-scientific-or-execution-authority"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "profileId",
+    "truthRole",
+    "principle",
+    "problemClasses",
+    "routes",
+    "invariants"
+  ],
+  "title": "Ordivon Research Capability Routing Profile v1",
+  "type": "object"
+}

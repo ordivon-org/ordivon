@@ -1,0 +1,183 @@
+{
+  "$defs": {
+    "capability": {
+      "additionalProperties": false,
+      "properties": {
+        "capability": {
+          "pattern": "^research\\.[a-z0-9.-]+$",
+          "type": "string"
+        },
+        "completionOwner": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "directInvocationRecipes": {
+          "items": {
+            "$ref": "#/$defs/recipe"
+          },
+          "type": "array"
+        },
+        "executionCapability": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "routeProblemClasses": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9.-]+$",
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "semanticOwner": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "skillResolutionNote": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "studyTypes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "tags": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "truthBoundary": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability",
+        "description",
+        "tags",
+        "semanticOwner",
+        "completionOwner",
+        "studyTypes",
+        "routeProblemClasses",
+        "skillResolutionNote",
+        "directInvocationRecipes",
+        "sourceRefs",
+        "executionCapability",
+        "truthBoundary"
+      ],
+      "type": "object"
+    },
+    "recipe": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "mise-task",
+            "owner-cli"
+          ]
+        },
+        "note": {
+          "type": "string"
+        },
+        "ownerId": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "recipeId": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "recipeId",
+        "kind",
+        "ownerId",
+        "command",
+        "note"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "urn:ordivon:research:capability-index:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "items": {
+        "$ref": "#/$defs/capability"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "indexId": {
+      "const": "research-capability-index-r1"
+    },
+    "invariants": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "kind": {
+      "const": "ordivon.research-capability-index"
+    },
+    "principle": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "routingProfileRef": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "truthRole": {
+      "const": "rebuildable-research-composition-definition-not-scientific-or-provider-truth"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "indexId",
+    "truthRole",
+    "routingProfileRef",
+    "principle",
+    "capabilities",
+    "invariants"
+  ],
+  "title": "Ordivon Research Capability Index v1",
+  "type": "object"
+}

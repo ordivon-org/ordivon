@@ -139,3 +139,17 @@ def test_windows_service_materializer_keeps_authzen_opt_in_and_path_only() -> No
     destructive = text.index("$existing = Get-Service")
     assert authzen_guard < destructive
     assert "Get-Content -LiteralPath $AuthZenBearerTokenFile" not in text
+
+
+def test_windows_service_materializer_supports_optional_authenticated_skills_owner() -> None:
+    text = MATERIALIZER.read_text(encoding="utf-8")
+    assert "[string]$SkillsUrl = ''" in text
+    assert "[string]$SkillsBearerTokenFile = ''" in text
+    assert "Skills URL requires SkillsBearerTokenFile" in text
+    assert "SkillsBearerTokenFile requires SkillsUrl" in text
+    assert "ORDIVON_GATEWAY_SKILLS_URL" in text
+    assert "ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE" in text
+    assert "skillsUrl" in text
+    assert "skillsBearerPathConfigured" in text
+    assert "skillsBearerFilePresentAtMaterialization" in text
+    assert "Get-Content -LiteralPath $SkillsBearerTokenFile" not in text

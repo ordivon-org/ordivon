@@ -69,6 +69,7 @@ uv run --with pytest==9.1.1 python -m pytest -q tests/catalogs/test_authority_ca
 mise run whole-system-review:verify
 mise run experimental-episode-store:verify
 mise run research-study:verify
+mise run research-routing:verify
 mise run browser-security-study:verify
 tools/repo/migration/test-integrate-main.sh
 uv run --with pyyaml==6.0.3 python tools/repo/check_github_governance.py
@@ -133,6 +134,13 @@ uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturit
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_peersum_asset_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r2.py"
+"""
+
+[tasks."research-routing:verify"]
+run = """
+set -euo pipefail
+uv run --with pytest==9.1.1 --with check-jsonschema==0.38.0 python -m pytest -q tests/skills/test_research_capability_routing.py
+python3 services/gateway/packaging/generate_research_routes.py --check
 """
 
 [tasks."composition:verify"]

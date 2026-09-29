@@ -1,0 +1,680 @@
+{
+  "invariants": [
+    "Natural-language interpretation belongs to the Agent/caller; this profile routes explicit problem classes only.",
+    "Study birth belongs to research-study-birth and method selection belongs to method-router.",
+    "Discovery/currentness never grants authorization.",
+    "Skill instructions are advisory and never grant execution authority.",
+    "A studied provider is not available until its natural owner or caller establishes current availability.",
+    "Scientific DAG, durable workflow, and physical execution are distinct semantic objects with distinct owners.",
+    "Provider/tool success never establishes Study/domain completion.",
+    "No generic Agent fallback is admitted when a required specialist route is unavailable."
+  ],
+  "kind": "ordivon.research-capability-routing-profile",
+  "principle": "Given an explicit research action, select the thinnest specialized owner/provider/workflow whose currentness is established by its natural owner; never turn discovery into authorization or provider success into scientific completion.",
+  "problemClasses": [
+    "scholarly.discovery",
+    "citation.identity",
+    "scholarly.synthesis",
+    "hypothesis.formulation",
+    "experiment.design",
+    "data.eda",
+    "statistics.analysis",
+    "visualization.scientific",
+    "writing.scientific",
+    "evidence.critical-review",
+    "review.peer",
+    "document.rich-parse",
+    "document.scholarly-pdf-parse",
+    "data.analytical-query",
+    "data.dataframe-transform",
+    "data.normalization",
+    "data.analytical-storage",
+    "data.validation",
+    "workflow.scientific-dag",
+    "workflow.durable-process",
+    "execution.physical",
+    "provenance.research-object",
+    "publication.render",
+    "publication.closure",
+    "publication.perceptual-conformance"
+  ],
+  "profileId": "research-capability-routing-r1",
+  "routes": [
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:paper-lookup",
+      "invocation": {
+        "handoff": "execute provider/API actions only under task-local authority",
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "scholarly.discovery"
+      ],
+      "providerClass": "skill",
+      "providerRef": "paper-lookup",
+      "provides": [
+        "scholarly-search",
+        "paper-lookup",
+        "citation-graph",
+        "full-text-discovery"
+      ],
+      "rank": 10,
+      "routeId": "skill.paper-lookup",
+      "verification": [
+        "source identity/provenance",
+        "query coverage appropriate to Study"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:citation-management",
+      "invocation": {
+        "handoff": "use DOI/Crossref/DataCite/OpenAlex provider-native reads as required",
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "citation.identity"
+      ],
+      "providerClass": "skill",
+      "providerRef": "citation-management",
+      "provides": [
+        "doi-resolution",
+        "metadata-validation",
+        "bibtex",
+        "citation-integrity"
+      ],
+      "rank": 10,
+      "routeId": "skill.citation-management",
+      "verification": [
+        "bibliographic identity",
+        "authoritative metadata/source agreement"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:literature-review",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "scholarly.synthesis"
+      ],
+      "providerClass": "skill",
+      "providerRef": "literature-review",
+      "provides": [
+        "evidence-synthesis",
+        "related-work",
+        "literature-map"
+      ],
+      "rank": 10,
+      "routeId": "skill.literature-review",
+      "verification": [
+        "source-grounded synthesis",
+        "claim-to-source traceability"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:hypothesis-generation",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "hypothesis.formulation"
+      ],
+      "providerClass": "skill",
+      "providerRef": "hypothesis-generation",
+      "provides": [
+        "hypotheses",
+        "rivals",
+        "predictions",
+        "operationalization"
+      ],
+      "rank": 10,
+      "routeId": "skill.hypothesis-generation",
+      "verification": [
+        "hypotheses remain candidates",
+        "discriminating predictions explicit"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:experimental-design",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "experiment.design"
+      ],
+      "providerClass": "skill",
+      "providerRef": "experimental-design",
+      "provides": [
+        "randomization",
+        "blocking",
+        "factorial-design",
+        "study-design"
+      ],
+      "rank": 10,
+      "routeId": "skill.experimental-design",
+      "verification": [
+        "Study/method-native design requirements",
+        "confounding and replication checks"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:exploratory-data-analysis",
+      "invocation": {
+        "handoff": "compute with Study-bound data-plane tools rather than free-form Agent arithmetic",
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "data.eda"
+      ],
+      "providerClass": "skill",
+      "providerRef": "exploratory-data-analysis",
+      "provides": [
+        "profiling",
+        "missingness",
+        "leakage",
+        "outlier-sensitivity"
+      ],
+      "rank": 10,
+      "routeId": "skill.exploratory-data-analysis",
+      "verification": [
+        "bounded input scope",
+        "missingness/leakage/sensitivity evidence"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:statistical-analysis",
+      "invocation": {
+        "handoff": "numerical computation remains library/Study-environment owned",
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "statistics.analysis"
+      ],
+      "providerClass": "skill",
+      "providerRef": "statistical-analysis",
+      "provides": [
+        "test-selection",
+        "assumption-checking",
+        "effect-size",
+        "statistical-interpretation"
+      ],
+      "rank": 10,
+      "routeId": "skill.statistical-analysis",
+      "verification": [
+        "method assumptions",
+        "effect/uncertainty reporting",
+        "Study claim ceiling"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:scientific-visualization",
+      "invocation": {
+        "handoff": "renderer/plotting library owns mechanical generation",
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "visualization.scientific"
+      ],
+      "providerClass": "skill",
+      "providerRef": "scientific-visualization",
+      "provides": [
+        "scientific-figure",
+        "accessibility",
+        "uncertainty-display"
+      ],
+      "rank": 10,
+      "routeId": "skill.scientific-visualization",
+      "verification": [
+        "truthful encoding",
+        "readability/accessibility",
+        "source-data binding"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:scientific-writing",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "writing.scientific"
+      ],
+      "providerClass": "skill",
+      "providerRef": "scientific-writing",
+      "provides": [
+        "manuscript-writing",
+        "reporting-guidelines",
+        "evidence-provenance"
+      ],
+      "rank": 10,
+      "routeId": "skill.scientific-writing",
+      "verification": [
+        "Study-owned claims",
+        "citation/evidence traceability",
+        "reporting guideline coverage"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:scientific-critical-thinking",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "evidence.critical-review"
+      ],
+      "providerClass": "skill",
+      "providerRef": "scientific-critical-thinking",
+      "provides": [
+        "bias-review",
+        "confound-review",
+        "construct-validity",
+        "evidence-strength"
+      ],
+      "rank": 10,
+      "routeId": "skill.scientific-critical-thinking",
+      "verification": [
+        "critique references concrete evidence",
+        "uncertainty preserved"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:peer-review",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "review.peer"
+      ],
+      "providerClass": "skill",
+      "providerRef": "peer-review",
+      "provides": [
+        "peer-review",
+        "claim-evidence-check",
+        "reproducibility-review"
+      ],
+      "rank": 10,
+      "routeId": "skill.peer-review",
+      "verification": [
+        "review scope/role independence",
+        "finding-to-evidence traceability"
+      ]
+    },
+    {
+      "bindingAuthority": "selected-provider",
+      "currentnessKey": "provider:docling",
+      "invocation": {
+        "operation": "parse-document",
+        "surface": "provider-native"
+      },
+      "problemClasses": [
+        "document.rich-parse"
+      ],
+      "providerClass": "docling",
+      "providerRef": "Docling",
+      "provides": [
+        "layout",
+        "table",
+        "ocr",
+        "document-hierarchy"
+      ],
+      "rank": 10,
+      "routeId": "provider.docling",
+      "verification": [
+        "source-document fidelity",
+        "task-specific extraction checks"
+      ]
+    },
+    {
+      "bindingAuthority": "selected-provider",
+      "currentnessKey": "provider:grobid",
+      "invocation": {
+        "operation": "process-scholarly-pdf",
+        "surface": "provider-native"
+      },
+      "problemClasses": [
+        "document.scholarly-pdf-parse"
+      ],
+      "providerClass": "grobid",
+      "providerRef": "GROBID",
+      "provides": [
+        "tei",
+        "references",
+        "citation-structure",
+        "scholarly-metadata"
+      ],
+      "rank": 10,
+      "routeId": "provider.grobid",
+      "verification": [
+        "PDF identity",
+        "reference/citation extraction checks"
+      ]
+    },
+    {
+      "bindingAuthority": "research-study-owner",
+      "bindingProblemClass": "data.analytical-query",
+      "currentnessKey": "study-data-plane",
+      "invocation": {
+        "operation": "resolve-provider-then-invoke-native",
+        "surface": "study-data-plane"
+      },
+      "problemClasses": [
+        "data.analytical-query"
+      ],
+      "providerClass": "study-data-plane",
+      "providerRef": "analytical_query",
+      "provides": [
+        "local-sql",
+        "analytical-query"
+      ],
+      "rank": 10,
+      "routeId": "study.data-plane.duckdb",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "query/result checks",
+        "source data identity"
+      ]
+    },
+    {
+      "bindingAuthority": "research-study-owner",
+      "bindingProblemClass": "data.dataframe-transform",
+      "currentnessKey": "study-data-plane",
+      "invocation": {
+        "operation": "resolve-provider-then-invoke-native",
+        "surface": "study-data-plane"
+      },
+      "problemClasses": [
+        "data.dataframe-transform"
+      ],
+      "providerClass": "study-data-plane",
+      "providerRef": "dataframe_transform",
+      "provides": [
+        "lazy-dataframe",
+        "scan-transform"
+      ],
+      "rank": 10,
+      "routeId": "study.data-plane.polars",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "explicit ordering before digest when material",
+        "schema/data contracts"
+      ]
+    },
+    {
+      "bindingAuthority": "research-study-owner",
+      "bindingProblemClass": "data.normalization",
+      "currentnessKey": "study-data-plane",
+      "invocation": {
+        "operation": "resolve-provider-then-invoke-native",
+        "surface": "study-data-plane"
+      },
+      "problemClasses": [
+        "data.normalization"
+      ],
+      "providerClass": "study-data-plane",
+      "providerRef": "normalization",
+      "provides": [
+        "columnar-interchange",
+        "explicit-schema"
+      ],
+      "rank": 10,
+      "routeId": "study.data-plane.arrow",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "explicit/validated schema",
+        "raw evidence not replaced"
+      ]
+    },
+    {
+      "bindingAuthority": "research-study-owner",
+      "bindingProblemClass": "data.analytical-storage",
+      "currentnessKey": "study-data-plane",
+      "invocation": {
+        "operation": "resolve-provider-then-invoke-native",
+        "surface": "study-data-plane"
+      },
+      "problemClasses": [
+        "data.analytical-storage"
+      ],
+      "providerClass": "study-data-plane",
+      "providerRef": "analytical_storage",
+      "provides": [
+        "columnar-storage",
+        "rebuildable-derivative"
+      ],
+      "rank": 10,
+      "routeId": "study.data-plane.parquet",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "content/schema checks",
+        "raw evidence preserved"
+      ]
+    },
+    {
+      "bindingAuthority": "research-study-owner",
+      "bindingProblemClass": "data.validation",
+      "currentnessKey": "study-data-plane",
+      "invocation": {
+        "operation": "resolve-provider-then-invoke-native",
+        "surface": "study-data-plane"
+      },
+      "problemClasses": [
+        "data.validation"
+      ],
+      "providerClass": "study-data-plane",
+      "providerRef": "data_validation",
+      "provides": [
+        "schema-validation",
+        "data-contract-validation"
+      ],
+      "rank": 10,
+      "routeId": "study.data-plane.validation",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "mechanical/data contract only",
+        "scientific semantics remain Study/method-owned"
+      ]
+    },
+    {
+      "bindingAuthority": "research-study-owner",
+      "bindingProblemClass": "workflow.scientific-dag",
+      "currentnessKey": "study-data-plane",
+      "invocation": {
+        "operation": "snakemake-workflow",
+        "surface": "provider-native"
+      },
+      "problemClasses": [
+        "workflow.scientific-dag"
+      ],
+      "providerClass": "snakemake",
+      "providerRef": "Snakemake",
+      "provides": [
+        "scientific-file-dag",
+        "incremental-build",
+        "reproducible-dag"
+      ],
+      "rank": 10,
+      "routeId": "workflow.snakemake",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "declared DAG outputs",
+        "Study scientific acceptance separately"
+      ]
+    },
+    {
+      "bindingAuthority": "workflow-owner",
+      "currentnessKey": "temporal",
+      "invocation": {
+        "operation": "workflow-start-resolve-observe",
+        "surface": "temporal-native"
+      },
+      "problemClasses": [
+        "workflow.durable-process"
+      ],
+      "providerClass": "temporal",
+      "providerRef": "Temporal",
+      "provides": [
+        "durable-history",
+        "retry",
+        "wait",
+        "signal",
+        "worker-replacement"
+      ],
+      "rank": 10,
+      "routeId": "workflow.temporal",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "workflow history/current state",
+        "Activity effect semantics separately"
+      ]
+    },
+    {
+      "bindingAuthority": "runtime-owner",
+      "currentnessKey": "runtime.linux",
+      "invocation": {
+        "operation": "execution.submit-or-workspace.exec",
+        "recovery": "request identity -> resolve/observe; never infer semantic completion from exit code",
+        "surface": "gateway-or-runtime"
+      },
+      "problemClasses": [
+        "execution.physical"
+      ],
+      "providerClass": "ordivon-runtime",
+      "providerRef": "runtime.linux",
+      "provides": [
+        "workspace",
+        "job",
+        "attempt",
+        "physical-artifact-evidence"
+      ],
+      "rank": 10,
+      "routeId": "execution.runtime-linux",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "Runtime Job/Attempt truth",
+        "domain/Study verification separately"
+      ]
+    },
+    {
+      "bindingAuthority": "external-standards",
+      "currentnessKey": "authority:research-provenance",
+      "invocation": {
+        "operation": "bind-applicable-profile-and-tooling",
+        "surface": "standards-native"
+      },
+      "problemClasses": [
+        "provenance.research-object"
+      ],
+      "providerClass": "standards-binding",
+      "providerRef": "W3C PROV + RO-Crate/Workflow Run RO-Crate + OpenLineage as applicable",
+      "provides": [
+        "provenance",
+        "research-object",
+        "workflow-run-lineage"
+      ],
+      "rank": 10,
+      "routeId": "standards.research-object-provenance",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "exact object/run identities",
+        "owner-native provenance/lineage semantics"
+      ]
+    },
+    {
+      "bindingAuthority": "artifact-or-study-toolchain",
+      "currentnessKey": "provider:publication-toolchain",
+      "invocation": {
+        "operation": "render-exact-bound-source",
+        "surface": "toolchain-native"
+      },
+      "problemClasses": [
+        "publication.render"
+      ],
+      "providerClass": "publication-toolchain",
+      "providerRef": "Quarto/Pandoc/CSL",
+      "provides": [
+        "manuscript-render",
+        "citations",
+        "publication-carrier-source"
+      ],
+      "rank": 10,
+      "routeId": "toolchain.quarto-pandoc",
+      "scientificSemanticAuthority": false,
+      "verification": [
+        "renderer identity",
+        "carrier technical checks",
+        "Study semantic freeze separately"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:research-publication-closure",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "publication.closure"
+      ],
+      "providerClass": "skill",
+      "providerRef": "research-publication-closure",
+      "provides": [
+        "publication-closure",
+        "carrier-gates",
+        "venue-contract"
+      ],
+      "rank": 10,
+      "routeId": "skill.research-publication-closure",
+      "verification": [
+        "closure gates bind exact Study/carrier",
+        "submission authority remains separate"
+      ]
+    },
+    {
+      "bindingAuthority": "skills-owner",
+      "currentnessKey": "skill:research-publication-perceptual-conformance",
+      "invocation": {
+        "operation": "resolve-read",
+        "surface": "skills"
+      },
+      "problemClasses": [
+        "publication.perceptual-conformance"
+      ],
+      "providerClass": "skill",
+      "providerRef": "research-publication-perceptual-conformance",
+      "provides": [
+        "perceptual-gate",
+        "isolated-observers",
+        "carrier-attestation"
+      ],
+      "rank": 10,
+      "routeId": "skill.research-publication-perceptual-conformance",
+      "verification": [
+        "observer independence/coverage",
+        "exact carrier digest",
+        "submission authority separate"
+      ]
+    }
+  ],
+  "schemaVersion": 1,
+  "truthRole": "task-routing-profile-not-scientific-or-execution-authority"
+}

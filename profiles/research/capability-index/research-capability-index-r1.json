@@ -1,0 +1,422 @@
+{
+  "capabilities": [
+    {
+      "capability": "research.literature.discovery",
+      "completionOwner": "study",
+      "description": "Discover scholarly records and source metadata through mature scholarly providers without promoting search results into scientific truth.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "scholarly.discovery"
+      ],
+      "semanticOwner": "study.method-and-source-authorities",
+      "skillResolutionNote": "Resolve an exact current Skill binding first; discovery does not grant source quality, eligibility, or synthesis authority.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "systematic-review",
+        "replication-or-reproduction",
+        "meta-science"
+      ],
+      "tags": [
+        "research",
+        "literature",
+        "scholarly",
+        "openalex",
+        "crossref",
+        "papers"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.citation.metadata",
+      "completionOwner": "study",
+      "description": "Verify scholarly citation and DOI metadata while preserving provider/source authority.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "citation.identity"
+      ],
+      "semanticOwner": "study.bibliographic-policy-and-source-authorities",
+      "skillResolutionNote": "Resolve exact citation Skill bytes before activation.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
+        "profiles/research/publication/publication-closure-profile-r2.json"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "citation",
+        "doi",
+        "crossref",
+        "bibtex",
+        "csl"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.experimental.design",
+      "completionOwner": "study",
+      "description": "Compose hypothesis and experimental-design procedures under the applicable method authority.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "experiment.design",
+        "hypothesis.formulation"
+      ],
+      "semanticOwner": "study.method-authority",
+      "skillResolutionNote": "Procedural advice remains subordinate to the Study's method authority.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "empirical-software-engineering",
+        "data-science-machine-learning",
+        "benchmarking-software-systems"
+      ],
+      "tags": [
+        "research",
+        "hypothesis",
+        "experimental-design",
+        "method",
+        "protocol"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.statistical.analysis",
+      "completionOwner": "study",
+      "description": "Select and apply statistical analysis under Study-owned estimand, dependence, uncertainty, and reporting semantics.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "statistics.analysis"
+      ],
+      "semanticOwner": "study.statistical-method-authority",
+      "skillResolutionNote": "Skill selection cannot infer the estimand, dependence model, or claim ceiling.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "statistics",
+        "inference",
+        "effect-size",
+        "power",
+        "bayesian"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.data.exploration",
+      "completionOwner": "study",
+      "description": "Perform bounded exploratory analysis using Study-owned data and explicit data contracts.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "data.eda"
+      ],
+      "semanticOwner": "study.data-and-method-authority",
+      "skillResolutionNote": "EDA outputs are observations, not confirmatory evidence by default.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "eda",
+        "data",
+        "duckdb",
+        "pandas",
+        "polars",
+        "pandera"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.visualization",
+      "completionOwner": "study",
+      "description": "Create or audit truthful publication-ready scientific figures.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "visualization.scientific"
+      ],
+      "semanticOwner": "study.figure-and-claim-authority",
+      "skillResolutionNote": "Figure production does not upgrade claim support or publication standing.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
+        "profiles/research/publication/perceptual-conformance-profile-r1.json"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "figure",
+        "visualization",
+        "publication",
+        "matplotlib"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.peer.review",
+      "completionOwner": "study",
+      "description": "Perform evidence-bounded manuscript review without taking Study decision authority.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "review.peer",
+        "evidence.critical-review"
+      ],
+      "semanticOwner": "study-and-review-protocol",
+      "skillResolutionNote": "Reviewer judgment remains evidence/advice, not automatic scientific or submission authority.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "peer-review",
+        "critique",
+        "evidence",
+        "reproducibility"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.scientific.writing",
+      "completionOwner": "study",
+      "description": "Draft or audit scientific text with explicit evidence provenance and claim boundaries.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "writing.scientific"
+      ],
+      "semanticOwner": "study.claim-and-manuscript-authority",
+      "skillResolutionNote": "Writing may express accepted evidence but cannot create new scientific support by prose.",
+      "sourceRefs": [
+        "catalogs/capabilities/packages/research.md",
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "writing",
+        "manuscript",
+        "report",
+        "evidence"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.study.birth",
+      "completionOwner": "study",
+      "description": "Create or validate a Research Study birth contract with exact method-authority and data-plane bindings.",
+      "directInvocationRecipes": [
+        {
+          "command": [
+            "ordivon-research-study"
+          ],
+          "kind": "owner-cli",
+          "note": "The CLI is owned by Research-v2. Its frozen birth-policy digest and Study output, not Gateway, are the authority.",
+          "ownerId": "research-v2",
+          "recipeId": "research-v2-cli"
+        }
+      ],
+      "executionCapability": null,
+      "routeProblemClasses": [],
+      "semanticOwner": "research-v2.study-birth-contract",
+      "skillResolutionNote": "",
+      "sourceRefs": [
+        "docs/architecture/RESEARCH_STUDY_AUTHORITY_R1.md",
+        "research-v2:profiles/research_birth_policy.toml",
+        "research-v2:src/ordivon_research/study_birth.py"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "study",
+        "birth",
+        "authority",
+        "profile",
+        "admission"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.study.verify",
+      "completionOwner": "study",
+      "description": "Run the repository-owned portable Research profile/currentness verification recipe.",
+      "directInvocationRecipes": [
+        {
+          "command": [
+            "mise",
+            "run",
+            "research-study:verify"
+          ],
+          "kind": "mise-task",
+          "note": "Canonical recipe binds its own transient jsonschema dependency through uv; do not replace it with ad-hoc system Python invocation.",
+          "ownerId": "ordivon-monorepo",
+          "recipeId": "monorepo-mise-research-study-verify"
+        }
+      ],
+      "executionCapability": "execution.linux",
+      "routeProblemClasses": [],
+      "semanticOwner": "research-profile-verifiers",
+      "skillResolutionNote": "",
+      "sourceRefs": [
+        "mise.toml",
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "verify",
+        "currentness",
+        "profile",
+        "mise",
+        "uv"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.publication.closure",
+      "completionOwner": "study-and-human-submission-authority",
+      "description": "Apply the shared publication-closure profile while keeping science, rendering, release, and human submission authority separate.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "publication.closure"
+      ],
+      "semanticOwner": "study.publication-authority",
+      "skillResolutionNote": "Project-local Skill may be used only after exact context-aware resolution.",
+      "sourceRefs": [
+        "profiles/research/publication/publication-closure-profile-r2.json",
+        ".agents/skills/research-publication-closure/SKILL.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "publication",
+        "closure",
+        "submission",
+        "artifact"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.publication.perceptual-conformance",
+      "completionOwner": "study.publication-authority",
+      "description": "Run independent rendered-artifact perceptual conformance without substituting machine QA for human or scientific authority.",
+      "directInvocationRecipes": [],
+      "executionCapability": null,
+      "routeProblemClasses": [
+        "publication.perceptual-conformance"
+      ],
+      "semanticOwner": "publication-perceptual-observer-protocol",
+      "skillResolutionNote": "Observer independence and exact carrier binding remain profile requirements.",
+      "sourceRefs": [
+        "profiles/research/publication/perceptual-conformance-profile-r1.json",
+        ".agents/skills/research-publication-perceptual-conformance/SKILL.md"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "publication",
+        "perceptual",
+        "layout",
+        "figure",
+        "review"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    },
+    {
+      "capability": "research.scholarly.intelligence",
+      "completionOwner": "study",
+      "description": "Project Study-owned scholarly state across independent axes without creating a universal scientific ontology.",
+      "directInvocationRecipes": [
+        {
+          "command": [
+            "mise",
+            "run",
+            "research-study:verify"
+          ],
+          "kind": "mise-task",
+          "note": "Axis-local closure never transfers authority to another scholarly axis.",
+          "ownerId": "ordivon-monorepo",
+          "recipeId": "monorepo-mise-research-study-verify"
+        }
+      ],
+      "executionCapability": "execution.linux",
+      "routeProblemClasses": [],
+      "semanticOwner": "study",
+      "skillResolutionNote": "",
+      "sourceRefs": [
+        "profiles/research/scholarly-intelligence/SCHOLARLY_INTELLIGENCE_R2.md",
+        "profiles/research/scholarly-intelligence/scholarly-intelligence-profile-v1.schema.json"
+      ],
+      "studyTypes": [
+        "all"
+      ],
+      "tags": [
+        "research",
+        "scholarly",
+        "claims",
+        "evidence",
+        "review",
+        "publication",
+        "currentness"
+      ],
+      "truthBoundary": "This Research route is non-authoritative composition metadata. Study/domain owners retain scientific truth and completion authority; Skills remain advisory; Runtime owns only physical execution evidence."
+    }
+  ],
+  "indexId": "research-capability-index-r1",
+  "invariants": [
+    "Capability definitions do not establish provider availability, authorization, execution, or scientific completion.",
+    "Skill candidates are derived from the referenced routing profile rather than duplicated in this index.",
+    "Gateway consumes a generated release projection and never becomes Research semantic authority.",
+    "Study/domain owners retain scientific, claim, inference, review, publication, and completion semantics."
+  ],
+  "kind": "ordivon.research-capability-index",
+  "principle": "Define stable Research capability semantics once; derive provider/Skill candidates from the canonical routing profile and keep currentness, authorization, execution, and scientific completion with their natural owners.",
+  "routingProfileRef": ".agents/skills/research-capability-routing/references/research-capability-routing-r1.json",
+  "schemaVersion": 1,
+  "truthRole": "rebuildable-research-composition-definition-not-scientific-or-provider-truth"
+}

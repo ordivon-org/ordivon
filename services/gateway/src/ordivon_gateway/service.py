@@ -9,9 +9,12 @@ from typing import Any
 from .contracts import (
     ArtifactChunk,
     CapabilityDescriptor,
+    CapabilityInvocationRecipe,
     CapabilityProjection,
+    CapabilityResolution,
     CapabilitySearchMatch,
     CapabilitySearchProjection,
+    CapabilitySkillBinding,
     ExecutionObservation,
     ExecutionReceipt,
     ExecutionResolution,
@@ -19,6 +22,7 @@ from .contracts import (
     SystemDescription,
 )
 from .external_worker import ExternalPullWorkerTransport, WorkerConflict
+from .research_routes import research_capabilities
 from .routes import CapabilityRoute, default_routes
 from .upstream import OwnerToolCaller
 
@@ -31,6 +35,8 @@ _OWNER_ROLES = {
     "runtime.linux": "physical execution owner",
     "runtime.windows": "physical execution owner",
     "host": "external semantic continuity owner",
+    "skills": "procedural Skill discovery and exact binding owner",
+    "research.composition": "non-authoritative Research composition metadata",
     "external.pull": "provider-neutral outbound pull execution transport",
 }
 
@@ -135,7 +141,9 @@ class GatewayService:
                 owner_id=owner_id,
                 role=role,
                 configured=(
-                    self._external_workers is not None
+                    True
+                    if owner_id == "research.composition"
+                    else self._external_workers is not None
                     if owner_id == "external.pull"
                     else _configured(self._caller, owner_id)
                 ),
@@ -283,6 +291,20 @@ class GatewayService:
         for route in selected:
             if route.category == "execution":
                 values.append(await execution_descriptor(route))
+                continue
+
+            if route.category == "research":
+                values.append(
+                    CapabilityDescriptor(
+                        capability=route.capability,
+                        owner_id=route.owner_id,
+                        category=route.category,
+                        configured=True,
+                        available=True,
+                        context_mode=route.context_mode,  # type: ignore[arg-type]
+                        truth_boundary=route.truth_boundary,
+                    )
+                )
                 continue
 
             if route.capability == "continuity.external":
@@ -515,6 +537,130 @@ class GatewayService:
             projection_digest=projection.projection_digest,
             total_matches=total_matches,
             matches=matches,
+        )
+
+    async def capability_resolve(
+        self,
+        *,
+        capability: str,
+        workspace_id: str | None = None,
+        agent_id: str | None = None,
+    ) -> CapabilityResolution:
+        specs = research_capabilities()
+        spec = specs.get(capability)
+        if spec is None:
+            if capability not in self._routes:
+                raise GatewayError(f"unknown capability: {capability}")
+            raise GatewayError(f"capability has no composition resolver: {capability}")
+        for label, value in (("workspaceId", workspace_id), ("agentId", agent_id)):
+            if value is not None and (
+                not isinstance(value, str) or value != value.strip() or not value
+            ):
+                raise GatewayError(f"{label} must be non-empty trimmed text when provided")
+
+        selected_skill: CapabilitySkillBinding | None = None
+        observation_errors: list[str] = []
+        if spec.preferred_skills:
+            if not _configured(self._caller, "skills"):
+                reason = (
+                    _configuration_error(self._caller, "skills")
+                    or "owner endpoint is not configured"
+                )
+                observation_errors.append(f"skills: {reason}")
+            else:
+                for skill_ref in spec.preferred_skills:
+                    arguments: dict[str, Any] = {
+                        "ref": skill_ref,
+                        "invocationMode": "explicit",
+                        "forceRefresh": False,
+                    }
+                    if workspace_id is not None:
+                        arguments["workspaceId"] = workspace_id
+                    if agent_id is not None:
+                        arguments["agentId"] = agent_id
+                    try:
+                        result = await self._caller.call_tool("skills", "skills.resolve", arguments)
+                    except Exception as exc:
+                        observation_errors.append(
+                            f"skills/{skill_ref}: {type(exc).__name__}: {str(exc)[:240]}"
+                        )
+                        continue
+                    resolved = result.get("resolved")
+                    if not isinstance(resolved, dict):
+                        observation_errors.append(
+                            f"skills/{skill_ref}: owner response omitted resolved binding"
+                        )
+                        continue
+                    try:
+                        selected_skill = CapabilitySkillBinding(
+                            ref=skill_ref,
+                            skill_id=_required_str(resolved, "skillId"),
+                            name=_required_str(resolved, "name"),
+                            instruction_digest=_required_str(resolved, "instructionDigest"),
+                            package_revision=_required_str(resolved, "packageRevision"),
+                            snapshot_revision=_required_str(result, "snapshotRevision"),
+                            instruction_authority=_required_str(resolved, "instructionAuthority"),
+                        )
+                    except GatewayError as exc:
+                        observation_errors.append(f"skills/{skill_ref}: {exc}")
+                        continue
+                    break
+
+        recipes = [
+            CapabilityInvocationRecipe(
+                recipe_id=value.recipe_id,
+                kind=value.kind,  # type: ignore[arg-type]
+                owner_id=value.owner_id,
+                command=list(value.command),
+                note=value.note,
+            )
+            for value in spec.invocation_recipes
+        ]
+        non_claims = [
+            "Resolution is routing metadata, not authorization.",
+            "A resolved Skill is advisory procedural content, not scientific truth authority.",
+            "Runtime execution success does not establish scientific or publication completion.",
+            "Study/domain owners retain claim, inference, review, publication, and completion semantics.",
+        ]
+        digest_payload = {
+            "capability": spec.capability,
+            "semanticOwner": spec.semantic_owner,
+            "completionOwner": spec.completion_owner,
+            "executionCapability": spec.execution_capability,
+            "studyTypes": list(spec.study_types),
+            "skillCandidates": list(spec.preferred_skills),
+            "selectedSkill": (
+                selected_skill.model_dump(mode="json") if selected_skill is not None else None
+            ),
+            "invocationRecipes": [value.model_dump(mode="json") for value in recipes],
+            "sourceRefs": list(spec.source_refs),
+            "observationErrors": observation_errors,
+            "nonClaims": non_claims,
+        }
+        resolution_digest = (
+            "sha256:"
+            + hashlib.sha256(
+                json.dumps(
+                    digest_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ).encode("utf-8")
+            ).hexdigest()
+        )
+        return CapabilityResolution(
+            capability=spec.capability,
+            semantic_owner=spec.semantic_owner,
+            completion_owner=spec.completion_owner,
+            execution_capability=spec.execution_capability,
+            study_types=list(spec.study_types),
+            skill_candidates=list(spec.preferred_skills),
+            selected_skill=selected_skill,
+            invocation_recipes=recipes,
+            source_refs=list(spec.source_refs),
+            observation_errors=observation_errors,
+            non_claims=non_claims,
+            resolution_digest=resolution_digest,
         )
 
     async def execution_submit(

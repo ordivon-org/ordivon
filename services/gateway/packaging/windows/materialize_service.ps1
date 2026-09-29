@@ -30,6 +30,10 @@ param(
     [Parameter()]
     [string]$AuthZenBearerTokenFile = '',
     [Parameter()]
+    [string]$SkillsUrl = '',
+    [Parameter()]
+    [string]$SkillsBearerTokenFile = '',
+    [Parameter()]
     [string]$PublicOrigin = '',
     [Parameter()]
     [switch]$TrustCfAccess,
@@ -99,6 +103,12 @@ if ($authZenEndpointConfigured -ne $authZenBearerConfigured) {
 }
 if ($authZenBearerConfigured -and -not (Test-Path -LiteralPath $AuthZenBearerTokenFile -PathType Leaf)) {
     throw "configured AuthZEN bearer token file is missing"
+}
+if (-not [string]::IsNullOrWhiteSpace($SkillsUrl) -and [string]::IsNullOrWhiteSpace($SkillsBearerTokenFile)) {
+    throw "Skills URL requires SkillsBearerTokenFile"
+}
+if ([string]::IsNullOrWhiteSpace($SkillsUrl) -and -not [string]::IsNullOrWhiteSpace($SkillsBearerTokenFile)) {
+    throw "SkillsBearerTokenFile requires SkillsUrl"
 }
 
 $candidateSurfacePath = Join-Path $release 'mcp-surface.json'
@@ -209,6 +219,12 @@ if ($authZenEndpointConfigured) {
         [System.IO.Path]::GetFullPath($AuthZenBearerTokenFile)
     )
 }
+if ($SkillsUrl) {
+    $envPairs.ORDIVON_GATEWAY_SKILLS_URL = $SkillsUrl
+    $envPairs.ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE = (
+        [System.IO.Path]::GetFullPath($SkillsBearerTokenFile)
+    )
+}
 if ($PublicOrigin) {
     $envPairs.ORDIVON_GATEWAY_PUBLIC_ORIGIN = $PublicOrigin
 }
@@ -306,13 +322,16 @@ $receipt = [ordered]@{
     linuxRuntimeUrl = $LinuxRuntimeUrl
     windowsRuntimeUrl = $WindowsRuntimeUrl
     hostUrl = $HostUrl
+    skillsUrl = $(if ($SkillsUrl) { $SkillsUrl } else { $null })
     linuxBearerTokenFile = $(if ($LinuxRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($LinuxRuntimeBearerTokenFile) } else { $null })
     windowsBearerTokenFile = $(if ($WindowsRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($WindowsRuntimeBearerTokenFile) } else { $null })
     hostBearerTokenFile = $(if ($HostBearerTokenFile) { [System.IO.Path]::GetFullPath($HostBearerTokenFile) } else { $null })
+    skillsBearerTokenFile = $(if ($SkillsBearerTokenFile) { [System.IO.Path]::GetFullPath($SkillsBearerTokenFile) } else { $null })
     activationRequired = $true
     linuxBearerPathConfigured = [bool]$LinuxRuntimeBearerTokenFile
     windowsBearerPathConfigured = [bool]$WindowsRuntimeBearerTokenFile
     hostBearerPathConfigured = [bool]$HostBearerTokenFile
+    skillsBearerPathConfigured = [bool]$SkillsBearerTokenFile
     linuxBearerFilePresentAtMaterialization = [bool](
         $LinuxRuntimeBearerTokenFile -and (Test-Path -LiteralPath $LinuxRuntimeBearerTokenFile)
     )
@@ -321,6 +340,9 @@ $receipt = [ordered]@{
     )
     hostBearerFilePresentAtMaterialization = [bool](
         $HostBearerTokenFile -and (Test-Path -LiteralPath $HostBearerTokenFile)
+    )
+    skillsBearerFilePresentAtMaterialization = [bool](
+        $SkillsBearerTokenFile -and (Test-Path -LiteralPath $SkillsBearerTokenFile)
     )
     publicOriginConfigured = [bool]$PublicOrigin
     trustCfAccess = [bool]$TrustCfAccess

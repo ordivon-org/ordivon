@@ -270,3 +270,30 @@ def test_structured_owner_error_precedes_text_fallback() -> None:
     )
 
     assert _extract_owner_tool_error(result, owner_id="host", tool_name="work.get") == structured
+
+
+def test_skills_owner_env_is_exact_authenticated_loopback_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bearer = _secret(tmp_path / "skills-bearer", "s" * 64)
+    monkeypatch.setenv("ORDIVON_GATEWAY_SKILLS_URL", "http://127.0.0.1:8895/mcp")
+    monkeypatch.setenv("ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE", bearer)
+
+    caller = McpOwnerCaller.from_env()
+    endpoint = caller._owners["skills"]
+
+    assert endpoint.url == "http://127.0.0.1:8895/mcp"
+    assert endpoint.bearer_token_file == bearer
+    assert caller.is_configured("skills") is True
+    assert caller.configuration_error("skills") is None
+
+
+def test_skills_owner_url_without_identity_is_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ORDIVON_GATEWAY_SKILLS_URL", "http://127.0.0.1:8895/mcp")
+    monkeypatch.delenv("ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE", raising=False)
+
+    caller = McpOwnerCaller.from_env()
+    assert caller.is_configured("skills") is False
+    assert caller.configuration_error("skills") == "owner authentication is not configured"

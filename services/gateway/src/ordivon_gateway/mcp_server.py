@@ -22,6 +22,7 @@ from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizati
 from .contracts import (
     ArtifactChunk,
     CapabilityProjection,
+    CapabilityResolution,
     CapabilitySearchProjection,
     ExecutionObservation,
     ExecutionReceipt,
@@ -96,6 +97,18 @@ def build_server(
             owner_id=ownerId,
             limit=limit,
             include_unavailable=includeUnavailable,
+        )
+
+    @server.tool(name="capability.resolve")
+    async def capability_resolve(
+        capability: str,
+        workspaceId: str | None = None,
+        agentId: str | None = None,
+    ) -> CapabilityResolution:
+        return await gateway.capability_resolve(
+            capability=capability,
+            workspace_id=workspaceId,
+            agent_id=agentId,
         )
 
     @server.tool(name="execution.submit")

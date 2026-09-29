@@ -174,3 +174,34 @@ def test_authzen_h2_profile_is_opt_in_credential_file_only() -> None:
     assert "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT=" in text
     assert "ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE=%d/authzen-bearer" in text
     assert "Authorization=" not in text
+
+
+SKILLS_OWNER = ROOT / "systemd" / "ordivon-gateway.service.d" / "50-skills-owner.example.conf"
+SKILLS_ENABLER = ROOT / "packaging" / "enable_skills_owner.sh"
+
+
+def test_skills_owner_is_optional_authenticated_dropin_not_gateway_start_dependency() -> None:
+    base = UNIT.read_text(encoding="utf-8")
+    assert "ORDIVON_GATEWAY_SKILLS_URL" not in base
+    assert "skills-bearer" not in base
+
+    text = SKILLS_OWNER.read_text(encoding="utf-8")
+    assert "After=ordivon-skills-mcp.service" in text
+    assert "Wants=ordivon-skills-mcp.service" in text
+    assert "LoadCredential=skills-bearer:/etc/ordivon/skills-mcp.token" in text
+    assert "ORDIVON_GATEWAY_SKILLS_URL=http://127.0.0.1:8895/mcp" in text
+    assert "ORDIVON_GATEWAY_SKILLS_BEARER_TOKEN_FILE=%d/skills-bearer" in text
+    assert "Requires=ordivon-skills-mcp.service" not in text
+
+
+def test_skills_owner_enabler_is_fixed_path_fail_closed_and_never_prints_secret() -> None:
+    text = SKILLS_ENABLER.read_text(encoding="utf-8")
+    assert "CREDENTIAL=/etc/ordivon/skills-mcp.token" in text
+    assert "50-skills-owner.example.conf" in text
+    assert "/etc/systemd/system/ordivon-gateway.service.d" in text
+    assert "root:root" in text
+    assert '"600"' in text and '"400"' in text
+    assert "systemctl daemon-reload" in text
+    assert "systemctl restart ordivon-gateway.service" in text
+    assert "http://127.0.0.1:8899/health" in text
+    assert 'cat "$CREDENTIAL"' not in text

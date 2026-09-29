@@ -204,9 +204,10 @@
     "truthRole": "source-derived-non-deployment-proof",
     "gateway": {
       "manifest": "services/gateway/mcp-surface.json",
-      "packageVersion": "0.7.0",
-      "surfaceEpoch": 4,
-      "declaredToolCount": 36
+      "packageVersion": "0.8.0",
+      "surfaceEpoch": 5,
+      "declaredToolCount": 37,
+      "standing": "source-candidate-not-live-deployment-proof"
     },
     "host": {
       "manifest": "services/host/mcp-surface.json",

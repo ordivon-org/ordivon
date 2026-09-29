@@ -1,0 +1,1087 @@
+{
+  "acceptance": {
+    "allExpectedStandingsMatched": true,
+    "authorizationMintedByRouting": false,
+    "domainCompletionMintedByRouting": false,
+    "genericAgentFallbackObserved": false,
+    "runtimeWorkspaceCoordinateSeparate": true,
+    "scientificDagDurableProcessPhysicalExecutionDistinct": true,
+    "skillsProjectContextCoordinate": "ordivon-next"
+  },
+  "date": "2026-09-29",
+  "decisions": {
+    "paper1-analytical-query": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "study-data-plane",
+            "providerBinding": "DuckDB",
+            "ready": true,
+            "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "study.data-plane.duckdb"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:23ac6a540070f5dfa6a1908d270e73b35503219b09c838df7b6811e43f2eee61",
+      "problemClass": "data.analytical-query",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:e1088484697c54907f1aada6630bd4a04367d4a3ae5c3498a10072e64f093b2f",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "study-data-plane",
+          "providerBinding": "DuckDB",
+          "ready": true,
+          "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+          "state": "available"
+        },
+        "bindingAuthority": "research-study-owner",
+        "invocation": {
+          "operation": "resolve-provider-then-invoke-native",
+          "surface": "study-data-plane"
+        },
+        "providerBinding": "DuckDB",
+        "providerClass": "study-data-plane",
+        "providerRef": "analytical_query",
+        "provides": [
+          "local-sql",
+          "analytical-query"
+        ],
+        "routeId": "study.data-plane.duckdb",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "query/result checks",
+          "source data identity"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper1-data-validation": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "study-data-plane",
+            "providerBinding": [
+              "Arrow schema",
+              "Pandera",
+              "JSON Schema",
+              "method-native validators"
+            ],
+            "ready": true,
+            "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "study.data-plane.validation"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:3f5c95d5ed4e6505398ec2f5e06c0b3426733dac7da7dcf8e33ea24d672254eb",
+      "problemClass": "data.validation",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:e06a8d4b98fb6b88b8ec3e5ef479b2fee0e995f97db41f45ee2c2d8fb10bb801",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "study-data-plane",
+          "providerBinding": [
+            "Arrow schema",
+            "Pandera",
+            "JSON Schema",
+            "method-native validators"
+          ],
+          "ready": true,
+          "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+          "state": "available"
+        },
+        "bindingAuthority": "research-study-owner",
+        "invocation": {
+          "operation": "resolve-provider-then-invoke-native",
+          "surface": "study-data-plane"
+        },
+        "providerBinding": [
+          "Arrow schema",
+          "Pandera",
+          "JSON Schema",
+          "method-native validators"
+        ],
+        "providerClass": "study-data-plane",
+        "providerRef": "data_validation",
+        "provides": [
+          "schema-validation",
+          "data-contract-validation"
+        ],
+        "routeId": "study.data-plane.validation",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "mechanical/data contract only",
+          "scientific semantics remain Study/method-owned"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper1-durable-process": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "temporal",
+            "bindingRef": "temporal.service",
+            "ready": true,
+            "reason": "systemd is-active=active",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "workflow.temporal"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:334f938ec57dd9a010ff66142209a94eed455e3d71aac926a9bb5261fedc6f2f",
+      "problemClass": "workflow.durable-process",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:1df124352473e3ebfd2dbfa78848e28ecde335c2861bea798601f69ff21f580d",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "temporal",
+          "bindingRef": "temporal.service",
+          "ready": true,
+          "reason": "systemd is-active=active",
+          "state": "available"
+        },
+        "bindingAuthority": "workflow-owner",
+        "bindingRef": "temporal.service",
+        "invocation": {
+          "operation": "workflow-start-resolve-observe",
+          "surface": "temporal-native"
+        },
+        "providerClass": "temporal",
+        "providerRef": "Temporal",
+        "provides": [
+          "durable-history",
+          "retry",
+          "wait",
+          "signal",
+          "worker-replacement"
+        ],
+        "routeId": "workflow.temporal",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "workflow history/current state",
+          "Activity effect semantics separately"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper1-physical-execution": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "runtime.linux",
+            "bindingRef": "runtime:linux-local",
+            "ready": true,
+            "reason": "direct Runtime runtime.describe reports local_linux configured=true available=true",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "execution.runtime-linux"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:1c549a44616e866abc9c1ef9299a409dccb9ad5f28c1d11867b6e8539032e883",
+      "problemClass": "execution.physical",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:6e379659209761bb942bfbd757c0a26b0949d341329791aff1e0de107d1ad0c0",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "runtime.linux",
+          "bindingRef": "runtime:linux-local",
+          "ready": true,
+          "reason": "direct Runtime runtime.describe reports local_linux configured=true available=true",
+          "state": "available"
+        },
+        "bindingAuthority": "runtime-owner",
+        "bindingRef": "runtime:linux-local",
+        "invocation": {
+          "operation": "execution.submit-or-workspace.exec",
+          "recovery": "request identity -> resolve/observe; never infer semantic completion from exit code",
+          "surface": "gateway-or-runtime"
+        },
+        "providerClass": "ordivon-runtime",
+        "providerRef": "runtime.linux",
+        "provides": [
+          "workspace",
+          "job",
+          "attempt",
+          "physical-artifact-evidence"
+        ],
+        "routeId": "execution.runtime-linux",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "Runtime Job/Attempt truth",
+          "domain/Study verification separately"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper1-scientific-dag": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "study-data-plane",
+            "providerBinding": "Snakemake",
+            "ready": true,
+            "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "workflow.snakemake"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:601e5e2f874511848ae98c60cb00b892507623be67de22576711d4c70971059d",
+      "problemClass": "workflow.scientific-dag",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:708c2dcf78f249485a3a01993c1f22c7dae56f14f73d8e4c5751b0fa0ac8e11c",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "study-data-plane",
+          "providerBinding": "Snakemake",
+          "ready": true,
+          "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+          "state": "available"
+        },
+        "bindingAuthority": "research-study-owner",
+        "invocation": {
+          "operation": "snakemake-workflow",
+          "surface": "provider-native"
+        },
+        "providerBinding": "Snakemake",
+        "providerClass": "snakemake",
+        "providerRef": "Snakemake",
+        "provides": [
+          "scientific-file-dag",
+          "incremental-build",
+          "reproducible-dag"
+        ],
+        "routeId": "workflow.snakemake",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "declared DAG outputs",
+          "Study scientific acceptance separately"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper2-citation-identity": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "skill:citation-management",
+            "bindingRef": "codex-user/citation-management",
+            "ready": true,
+            "reason": "Skills owner visible; optional scientific-schematics dependency unavailable but not required",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "skill.citation-management"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:4b49d47cdfcc1892a9ad59163527e67f22ad31d0876292e76bce9205a039a73b",
+      "problemClass": "citation.identity",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:30d7dfa658622eee76c3f0adc3eddfdff38c588b3851d3b47c17ab203e05a403",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "skill:citation-management",
+          "bindingRef": "codex-user/citation-management",
+          "ready": true,
+          "reason": "Skills owner visible; optional scientific-schematics dependency unavailable but not required",
+          "state": "available"
+        },
+        "bindingAuthority": "skills-owner",
+        "bindingRef": "codex-user/citation-management",
+        "invocation": {
+          "handoff": "use DOI/Crossref/DataCite/OpenAlex provider-native reads as required",
+          "operation": "resolve-read",
+          "surface": "skills"
+        },
+        "providerClass": "skill",
+        "providerRef": "citation-management",
+        "provides": [
+          "doi-resolution",
+          "metadata-validation",
+          "bibtex",
+          "citation-integrity"
+        ],
+        "routeId": "skill.citation-management",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "bibliographic identity",
+          "authoritative metadata/source agreement"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper2-literature-synthesis": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "skill:literature-review",
+            "ready": false,
+            "reason": "required dependencies paper-writing/general-writing unavailable",
+            "state": "degraded"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": false,
+          "routeId": "skill.literature-review"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:d186e00edf37252c41945bc4140ed69908b7b196608a8bd635a2f9fce70302f0",
+      "problemClass": "scholarly.synthesis",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:1cb56c18ca2022f749beadd6230515ba27ec938326b81a14240c221725c80128",
+      "schemaVersion": 1,
+      "selectedRoute": null,
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "HOLD_NO_READY_ROUTE",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper2-scholarly-discovery": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "skill:paper-lookup",
+            "bindingRef": "codex-user/paper-lookup",
+            "ready": true,
+            "reason": "Skills owner project-context snapshot: explicit+implicit visible, APPROVED, THIRD_PARTY_AUDITED; no required dependencies",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "skill.paper-lookup"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:4071f16cd1c875ec6e17504703425cbc0999bc4809df6f7e44ad7d77ac10894b",
+      "problemClass": "scholarly.discovery",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:e3b6d6028a96dae381379d50959b7e022c4f1fa906d6bd0b7aac3b9776c5309b",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "skill:paper-lookup",
+          "bindingRef": "codex-user/paper-lookup",
+          "ready": true,
+          "reason": "Skills owner project-context snapshot: explicit+implicit visible, APPROVED, THIRD_PARTY_AUDITED; no required dependencies",
+          "state": "available"
+        },
+        "bindingAuthority": "skills-owner",
+        "bindingRef": "codex-user/paper-lookup",
+        "invocation": {
+          "handoff": "execute provider/API actions only under task-local authority",
+          "operation": "resolve-read",
+          "surface": "skills"
+        },
+        "providerClass": "skill",
+        "providerRef": "paper-lookup",
+        "provides": [
+          "scholarly-search",
+          "paper-lookup",
+          "citation-graph",
+          "full-text-discovery"
+        ],
+        "routeId": "skill.paper-lookup",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "source identity/provenance",
+          "query coverage appropriate to Study"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper3-perceptual-conformance": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "skill:research-publication-perceptual-conformance",
+            "bindingRef": "project-ordivon-next/research-publication-perceptual-conformance",
+            "ready": true,
+            "reason": "Skills owner visible under workspaceId=ordivon-next; TRUSTED/PASS",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "skill.research-publication-perceptual-conformance"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:22a8ff5a69e8c82e59989c3fb6359d27996d6a4d08b6d07d361c6b05f061883e",
+      "problemClass": "publication.perceptual-conformance",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:009a6ecffef6b503754f37bb06c446b95ea3d66de8109709c6f2ccce6ea3e89c",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "skill:research-publication-perceptual-conformance",
+          "bindingRef": "project-ordivon-next/research-publication-perceptual-conformance",
+          "ready": true,
+          "reason": "Skills owner visible under workspaceId=ordivon-next; TRUSTED/PASS",
+          "state": "available"
+        },
+        "bindingAuthority": "skills-owner",
+        "bindingRef": "project-ordivon-next/research-publication-perceptual-conformance",
+        "invocation": {
+          "operation": "resolve-read",
+          "surface": "skills"
+        },
+        "providerClass": "skill",
+        "providerRef": "research-publication-perceptual-conformance",
+        "provides": [
+          "perceptual-gate",
+          "isolated-observers",
+          "carrier-attestation"
+        ],
+        "routeId": "skill.research-publication-perceptual-conformance",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "observer independence/coverage",
+          "exact carrier digest",
+          "submission authority separate"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "paper3-publication-closure": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "skill:research-publication-closure",
+            "bindingRef": "project-ordivon-next/research-publication-closure",
+            "ready": true,
+            "reason": "Skills owner visible under workspaceId=ordivon-next; TRUSTED/PASS",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "skill.research-publication-closure"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:eb01a92c8bb23c5919c80720caca65a2a5877555440e1f7bd8f7540bf6a62332",
+      "problemClass": "publication.closure",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:3dacc1b8b403a0047c794e759df607f73e3a1c4f7e8759b624cf3a9faa7fb06d",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "skill:research-publication-closure",
+          "bindingRef": "project-ordivon-next/research-publication-closure",
+          "ready": true,
+          "reason": "Skills owner visible under workspaceId=ordivon-next; TRUSTED/PASS",
+          "state": "available"
+        },
+        "bindingAuthority": "skills-owner",
+        "bindingRef": "project-ordivon-next/research-publication-closure",
+        "invocation": {
+          "operation": "resolve-read",
+          "surface": "skills"
+        },
+        "providerClass": "skill",
+        "providerRef": "research-publication-closure",
+        "provides": [
+          "publication-closure",
+          "carrier-gates",
+          "venue-contract"
+        ],
+        "routeId": "skill.research-publication-closure",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "closure gates bind exact Study/carrier",
+          "submission authority remains separate"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "publication-render": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "provider:publication-toolchain",
+            "ready": false,
+            "reason": "host Quarto 1.10.18 observed but exact Study publication renderer/toolchain binding not supplied",
+            "state": "unknown"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": false,
+          "routeId": "toolchain.quarto-pandoc"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:a6d0015e8a47af9d2fb1852400e68eb6c32ebe5d8b40c484f0ab9c76ebf055f1",
+      "problemClass": "publication.render",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:87edb550a9b2824aee37b8c2ebebafcab3f9514e4c4c0663d5fe96f3b8ec5439",
+      "schemaVersion": 1,
+      "selectedRoute": null,
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "HOLD_CURRENTNESS_REQUIRED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "research-object-provenance": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "authority:research-provenance",
+            "bindingRef": "catalogs/authorities",
+            "ready": true,
+            "reason": "current authority catalog contains W3C PROV/RO-Crate/OpenLineage authority records",
+            "state": "available"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": true,
+          "routeId": "standards.research-object-provenance"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:27844c8b8e8f498650282a46d38d75fba9e74939915e69ce557f7f99cbf03d0d",
+      "problemClass": "provenance.research-object",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:9d252b9a9631bf00836a133387e0accd3e088f12d500bf4053a0436485328abc",
+      "schemaVersion": 1,
+      "selectedRoute": {
+        "availability": {
+          "authorityKey": "authority:research-provenance",
+          "bindingRef": "catalogs/authorities",
+          "ready": true,
+          "reason": "current authority catalog contains W3C PROV/RO-Crate/OpenLineage authority records",
+          "state": "available"
+        },
+        "bindingAuthority": "external-standards",
+        "bindingRef": "catalogs/authorities",
+        "invocation": {
+          "operation": "bind-applicable-profile-and-tooling",
+          "surface": "standards-native"
+        },
+        "providerClass": "standards-binding",
+        "providerRef": "W3C PROV + RO-Crate/Workflow Run RO-Crate + OpenLineage as applicable",
+        "provides": [
+          "provenance",
+          "research-object",
+          "workflow-run-lineage"
+        ],
+        "routeId": "standards.research-object-provenance",
+        "scientificSemanticAuthority": false,
+        "verification": [
+          "exact object/run identities",
+          "owner-native provenance/lineage semantics"
+        ]
+      },
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "ROUTED",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "rich-document-parse": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "provider:docling",
+            "ready": false,
+            "reason": "host executable not found in 2026-09-29 census; studied provider only",
+            "state": "unavailable"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": false,
+          "routeId": "provider.docling"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:9a8370abe415a30e0f34a32cc004f7d87156b16fada2a75ee872bfe9d4ae2dd3",
+      "problemClass": "document.rich-parse",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:50cad7d76f546862e7e21646b340d55b945189a558177ea64d729d832723e0a9",
+      "schemaVersion": 1,
+      "selectedRoute": null,
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "HOLD_NO_READY_ROUTE",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    },
+    "scholarly-pdf-parse": {
+      "authorizationEstablished": false,
+      "callerAvailable": [],
+      "candidates": [
+        {
+          "availability": {
+            "authorityKey": "provider:grobid",
+            "ready": false,
+            "reason": "host executable/service binding not found in 2026-09-29 census; studied provider only",
+            "state": "unavailable"
+          },
+          "compatible": true,
+          "missingFeatures": [],
+          "preferredMatchCount": 0,
+          "preferredMatches": [],
+          "rank": 10,
+          "ready": false,
+          "routeId": "provider.grobid"
+        }
+      ],
+      "completionAuthority": "study-or-owning-domain",
+      "domainCompletionEstablished": false,
+      "executed": false,
+      "executionAuthority": "selected-owner-or-provider",
+      "kind": "ordivon.research-capability-route-decision",
+      "nonClaims": [
+        "Route discovery does not grant authority.",
+        "Availability does not imply authorization or effect authority.",
+        "Skill instructions are advisory and do not grant execution authority.",
+        "Provider/tool/workflow success does not establish scientific or domain completion.",
+        "No generic Agent fallback is implied by a HOLD."
+      ],
+      "observationDigest": "sha256:05913ebde637810d360f8732f72583f22c4f8b903c32ec3c07f23dc4963fabc9",
+      "planDigest": "sha256:986a51732297dd3b8cc6d3f3cac236b1f46335fbf625b85f7fa9b0aaa70b99b9",
+      "problemClass": "document.scholarly-pdf-parse",
+      "profileDigest": "sha256:a375d6e7de1d8ba9b6cffbfa709f68aa4f70fca2b449ba6cfae9387d78f792ea",
+      "profileId": "research-capability-routing-r1",
+      "requestDigest": "sha256:2749058f780e16d5963aa8cd53fedd85bc4871d914517e3b4bc768e572364370",
+      "schemaVersion": 1,
+      "selectedRoute": null,
+      "semanticSelector": "agent-or-caller-explicit-problem-class",
+      "standing": "HOLD_NO_READY_ROUTE",
+      "truthRole": "task-local-non-authoritative-route-projection"
+    }
+  },
+  "kind": "ordivon.research-capability-routing-dogfood",
+  "localToolCensus": {
+    "host": {
+      "check-jsonschema": "0.38.0",
+      "docling": "NOT_ON_HOST_PATH",
+      "duckdb": "1.5.5",
+      "firecrawl": "NOT_ON_HOST_PATH",
+      "grobid": "NO_CURRENT_BINDING",
+      "markitdown": "NOT_ON_HOST_PATH",
+      "pandoc": "NOT_ON_HOST_PATH",
+      "quarto": "1.10.18",
+      "typst": "0.15.1",
+      "uv": "0.12.3"
+    },
+    "researchEnvironment": {
+      "duckdb": "1.5.5",
+      "dvc": "3.67.1",
+      "inspect-ai": "0.3.265",
+      "mlflow": "3.16.1",
+      "numpy": "2.5.3",
+      "optuna": "ABSENT",
+      "pandas": "3.0.6",
+      "pandera": "0.33.1",
+      "polars": "1.44.2",
+      "pyarrow": "25.0.1",
+      "rocrate": "0.15.1",
+      "scipy": "1.18.1",
+      "snakemake": "9.27.0",
+      "statsmodels": "ABSENT"
+    },
+    "services": {
+      "ordivon-paper1-r4-temporal-worker.service": "active",
+      "ordivon-runtime.service": "active",
+      "temporal.service": "active"
+    }
+  },
+  "nonClaims": [
+    "This evidence is a dated dogfood snapshot, not a provider-status database.",
+    "Tool/package presence does not establish scientific validity or effect authority.",
+    "Direct Runtime availability does not mean public Gateway Runtime owner authentication is configured."
+  ],
+  "observations": {
+    "authority:research-provenance": {
+      "bindingRef": "catalogs/authorities",
+      "reason": "current authority catalog contains W3C PROV/RO-Crate/OpenLineage authority records",
+      "state": "available"
+    },
+    "provider:docling": {
+      "reason": "host executable not found in 2026-09-29 census; studied provider only",
+      "state": "unavailable"
+    },
+    "provider:grobid": {
+      "reason": "host executable/service binding not found in 2026-09-29 census; studied provider only",
+      "state": "unavailable"
+    },
+    "provider:publication-toolchain": {
+      "reason": "host Quarto 1.10.18 observed but exact Study publication renderer/toolchain binding not supplied",
+      "state": "unknown"
+    },
+    "runtime.linux": {
+      "bindingRef": "runtime:linux-local",
+      "reason": "direct Runtime runtime.describe reports local_linux configured=true available=true",
+      "state": "available"
+    },
+    "skill:citation-management": {
+      "bindingRef": "codex-user/citation-management",
+      "reason": "Skills owner visible; optional scientific-schematics dependency unavailable but not required",
+      "state": "available"
+    },
+    "skill:experimental-design": {
+      "bindingRef": "codex-user/experimental-design",
+      "state": "available"
+    },
+    "skill:exploratory-data-analysis": {
+      "bindingRef": "codex-user/exploratory-data-analysis",
+      "state": "available"
+    },
+    "skill:hypothesis-generation": {
+      "bindingRef": "codex-user/hypothesis-generation",
+      "state": "available"
+    },
+    "skill:literature-review": {
+      "bindingRef": "codex-user/literature-review",
+      "reason": "required dependencies paper-writing/general-writing unavailable",
+      "state": "degraded"
+    },
+    "skill:paper-lookup": {
+      "bindingRef": "codex-user/paper-lookup",
+      "reason": "Skills owner project-context snapshot: explicit+implicit visible, APPROVED, THIRD_PARTY_AUDITED; no required dependencies",
+      "state": "available"
+    },
+    "skill:peer-review": {
+      "bindingRef": "codex-user/peer-review",
+      "state": "available"
+    },
+    "skill:research-publication-closure": {
+      "bindingRef": "project-ordivon-next/research-publication-closure",
+      "reason": "Skills owner visible under workspaceId=ordivon-next; TRUSTED/PASS",
+      "state": "available"
+    },
+    "skill:research-publication-perceptual-conformance": {
+      "bindingRef": "project-ordivon-next/research-publication-perceptual-conformance",
+      "reason": "Skills owner visible under workspaceId=ordivon-next; TRUSTED/PASS",
+      "state": "available"
+    },
+    "skill:scientific-critical-thinking": {
+      "bindingRef": "codex-user/scientific-critical-thinking",
+      "state": "available"
+    },
+    "skill:scientific-visualization": {
+      "bindingRef": "codex-user/scientific-visualization",
+      "state": "available"
+    },
+    "skill:scientific-writing": {
+      "bindingRef": "codex-user/scientific-writing",
+      "state": "available"
+    },
+    "skill:statistical-analysis": {
+      "bindingRef": "codex-user/statistical-analysis",
+      "reason": "optional statsmodels/pymc Skill dependencies unavailable; advisory procedure remains visible",
+      "state": "available"
+    },
+    "study-data-plane": {
+      "bindings": {
+        "data.analytical-query": "DuckDB",
+        "data.analytical-storage": "Apache Parquet",
+        "data.dataframe-transform": "Polars LazyFrame",
+        "data.normalization": "Apache Arrow",
+        "data.validation": [
+          "Arrow schema",
+          "Pandera",
+          "JSON Schema",
+          "method-native validators"
+        ],
+        "workflow.scientific-dag": "Snakemake"
+      },
+      "reason": "Research-v2 owner defaults at e9492290f69cce9711893667c2f76177cd46592d",
+      "state": "available"
+    },
+    "temporal": {
+      "bindingRef": "temporal.service",
+      "reason": "systemd is-active=active",
+      "state": "available"
+    }
+  },
+  "schemaVersion": 1,
+  "source": {
+    "ordivonBaseRevision": "71ef659fdb40dcfa32ad688c0e308d388a828188",
+    "researchBirthPolicyDigest": "sha256:26fc766661c6cba508ffea5bd7c08885f5be231502ef0dd663d17925a0d5ee79",
+    "researchDataPlaneDigest": "sha256:647ef75e00fe7d9c7d14807bed08f6662175fd5d400e48ce0812cb6b057673d7",
+    "researchV2Revision": "e9492290f69cce9711893667c2f76177cd46592d",
+    "skillsCatalogRevision": "sha256:54f873a9b355122ce98d5f2689ff1f1378a17f00ae39be2475f25f6aa9163e1a",
+    "skillsProjectSnapshotRevision": "sha256:fb82eceff01c6d2e2a377fbc794efc968769d19952605b75155c3163fcb9704c"
+  },
+  "standing": "PASS"
+}

@@ -1,6 +1,6 @@
 # Package: Research
 
-Last census: 2026-09-13
+Last census: 2026-09-29
 Standing: **READY_FOR_REAL_WORK**
 Current workload acceptance: **ACCEPTED_FOR_CURRENT_WORKLOAD**
 
@@ -40,11 +40,13 @@ These are replaceable external capabilities, not Research-owned components.
 
 Global/agent layer:
 
-- Skills: `literature-review`, `experimental-design`, `statistical-analysis`, `scientific-visualization`, `scientific-writing`, `peer-review`;
-- Python + uv/uvx, Git/GitHub, DuckDB, PostgreSQL client, Typst;
-- Runtime execution and Artifact capability as external enabling surfaces.
+- advisory Skills include `paper-lookup`, `citation-management`, `literature-review`, `hypothesis-generation`, `experimental-design`, `exploratory-data-analysis`, `statistical-analysis`, `scientific-visualization`, `scientific-writing`, `scientific-critical-thinking`, and `peer-review`; exact availability/dependency state remains Skills-owner truth;
+- project-local routing Skills separate new-Study admission (`research-study-birth`), method selection (`method-router`), provider/capability routing (`research-capability-routing`), and publication closure/perceptual conformance;
+- Runtime execution, Temporal durable workflow, Snakemake scientific DAG, Artifact publication mechanics, and external providers remain independent natural owners.
 
-Research-v2 provides an executable project-local Snakemake/DVC/Pandera/MLflow/Optuna/Jupyter/RO-Crate-oriented stack and a real first-paper workflow. It is a capability/evidence source, not a future top-level Research owner.
+Fresh Research-v2 owner census at revision `e9492290f69cce9711893667c2f76177cd46592d` reports Birth Policy `research-study-birth-r1` (`sha256:26fc766661c6cba508ffea5bd7c08885f5be231502ef0dd663d17925a0d5ee79`) and data-plane profile `research-data-plane-r1` (`sha256:647ef75e00fe7d9c7d14807bed08f6662175fd5d400e48ce0812cb6b057673d7`). Current defaults are owner-bound, not copied into the shared Research profile: DuckDB for rebuildable local analytical SQL, Polars LazyFrame for new dataframe scan/transform with pandas as compatibility provider, Apache Arrow for explicit/validated normalization, Parquet+zstd for rebuildable analytical derivatives, Arrow/Pandera/JSON Schema/method-native validation, Snakemake/DVC/MLflow on consumer-driven activation, and shared PostgreSQL only for transactional service state rather than analytical truth.
+
+The reusable route contract lives at `.agents/skills/research-capability-routing/`. It consumes explicit problem classes plus natural-owner currentness observations and returns one exact route or a typed HOLD; it never treats catalog presence as availability, availability as authorization, or provider success as scientific completion.
 
 The current-workload acceptance used real paper material rather than a toy citation demo:
 
