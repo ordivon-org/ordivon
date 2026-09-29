@@ -3,6 +3,7 @@ mod error;
 mod fsutil;
 mod mutation;
 mod projection;
+mod resource_receipt;
 #[cfg(unix)]
 mod runner;
 mod types;
@@ -54,6 +55,16 @@ pub(crate) use fsutil::{
 #[cfg(test)]
 pub(crate) use fsutil::{
     linux_exec_payload_limit_bytes, linux_exec_string_limit_bytes, validate_args,
+};
+#[cfg(test)]
+pub(crate) use resource_receipt::{
+    parse_cgroup_cpu_stat, parse_cgroup_io_stat, parse_cgroup_memory_events, CgroupCpuUsage,
+    CgroupIoUsage, CgroupMemoryEvents, CgroupMemoryUsage,
+};
+pub(crate) use resource_receipt::{
+    write_resource_receipt_from_cgroup_root, RunnerResourceReceipt, RESOURCE_RECEIPT_FILE,
+    RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2, RESOURCE_RECEIPT_SCHEMA_VERSION,
+    RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
 };
 #[cfg(unix)]
 pub(crate) use types::RunnerStepResult;

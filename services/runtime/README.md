@@ -126,6 +126,8 @@ sudo scripts/local-acceptance run
 
 That command builds the Runtime and Runner, executes the ignored systemd/cgroup tests, starts a temporary loopback MCP server, and exercises Workspace creation, mutation, durable Patch replay, execution, observation, Artifact reading, cancellation, restart recovery, and safe closure.
 
+Successful Linux Attempts may additionally register an immutable `resource_receipt` Artifact containing a terminal pre-result snapshot of the Attempt cgroup's CPU, memory, swap, memory-event, and I/O counters. Receipt absence remains compatible and does not change execution state; present receipts are identity-validated before registration. `scripts/resource_workload_profile.py` is a read-only derived-analysis helper for caller-supplied receipt files/directories and never becomes Runtime execution or pricing authority.
+
 For installation and receipted deployment, follow [`docs/quickstart.md`](docs/quickstart.md) and [`docs/operations.md`](docs/operations.md).
 
 ## First Runtime workflow
