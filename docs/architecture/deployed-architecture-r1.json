@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.deployed-architecture",
-  "observedDate": "2026-09-28",
+  "observedDate": "2026-09-29",
   "status": "CURRENT_DEPLOYED_BASELINE",
   "defaultNorthbound": {
     "component": "gateway",
@@ -9,10 +9,12 @@
     "endpoint": "https://gateway-mcp.ordivon.com/mcp",
     "authoritative": false,
     "directRuntimeHostAreDefault": false,
-    "gatewayVersion": "0.6.0",
-    "surfaceEpoch": 3,
-    "declaredToolCount": 29,
-    "sourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75"
+    "liveObservation": {
+      "gatewayVersion": "0.7.0",
+      "observedVia": "public-connector-system.describe",
+      "sourceCommit": null,
+      "sourceCommitStanding": "not-requalified-do-not-infer-from-canonical-source"
+    }
   },
   "routers": {
     "methodRouter": {
@@ -140,18 +142,25 @@
       "attention.ack",
       "attention.delta",
       "attention.get",
+      "attention.reentry",
       "host.status",
       "message.post",
       "message.relation.add",
+      "message.relation.list",
       "message.search",
       "space.create",
       "space.get",
       "space.list",
+      "space.participation.list",
       "space.participation.set",
+      "space.subject.list",
       "subscription.follow",
       "subscription.list",
       "subscription.unfollow",
       "topic.create",
+      "topic.cursor.ack",
+      "topic.cursor.get",
+      "topic.list",
       "topic.resume",
       "work.create",
       "work.get",
@@ -162,30 +171,48 @@
       "host.status"
     ],
     "connectorCatalogOwner": "mcp-client-connector",
-    "currentConsumerStanding": "schema9-owner-surface-usable-current-chat-tool-catalog-stale-28-vs-29-refresh-required",
-    "uxProjectionStanding": "Work/Social/Attention owner tools projected directly through Gateway; no Task/Board compatibility surface",
-    "serverStanding": "LIVE_GATEWAY_0_6_0_SCHEMA9_PROJECTED",
+    "currentConsumerStanding": "source-and-live-owner-r2-current-chatgpt-gateway-action-set-stale-direct-host-connector-legacy-refresh-required",
+    "uxProjectionStanding": "Source Gateway/Host expose Work/Social/Attention R2 directly; current ChatGPT action catalogs are external stale projections and must be refreshed, not served by compatibility aliases.",
+    "serverStanding": "LIVE_GATEWAY_0_7_0_HOST_SCHEMA10_OBSERVED_NEW_ACTION_REACHABILITY_NOT_REPROVEN_THROUGH_STALE_CONNECTOR",
     "deploymentEvidence": {
-      "hostRelease": "08c3099daa897a5da585918b3e6623aa90ddbc08",
-      "hostDoctor": "healthy-schema-9",
-      "gatewayCandidateQualification": "gateway-swf-northbound-acceptance-20260924.json"
+      "hostRelease": null,
+      "hostReleaseStanding": "not-requalified-in-this-projection",
+      "hostDoctor": "healthy-schema-10-observed-2026-09-29",
+      "gatewayLiveVersion": "0.7.0-observed-via-system.describe",
+      "connectorStanding": "current-chatgpt-action-set-stale"
     }
   },
   "runtimeNorthbound": {
     "status": "public-carrier-degraded-owner-auth-not-configured",
-    "observedDate": "2026-09-28",
+    "observedDate": "2026-09-29",
     "publicCarrier": "windows-gateway-r2",
-    "publicCarrierSourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
+    "publicCarrierSourceCommit": null,
     "linuxRuntimeOwnerAvailable": true,
     "windowsRuntimeOwnerAvailable": true,
     "linuxOwnerCredentialConfigured": false,
     "windowsOwnerCredentialConfigured": false,
     "truthBoundary": "Runtime owners remain authoritative for their own availability; this is only the public Gateway owner-authentication realization projection.",
     "requiredRecovery": "materialize owner credentials only through the explicit node-local credential authority, then rematerialize/activate the Gateway service and requalify capability.describe",
-    "publicCarrierGatewayVersion": "0.6.0",
-    "linuxRuntimeUrlConfigured": false,
-    "windowsRuntimeUrlConfigured": false,
+    "publicCarrierGatewayVersion": "0.7.0",
     "publicProjectionStanding": "runtime-owners-explicitly-configured-false-owner-endpoint-not-configured",
-    "liveReleaseEvidence": "docs/architecture/evidence/GATEWAY_06_LIVE_PUBLIC_CARRIER_ACCEPTANCE_R1.json"
+    "liveReleaseEvidence": "public connector system.describe observed 2026-09-29; exact public carrier source commit not requalified",
+    "publicCarrierSourceCommitStanding": "not-requalified-do-not-infer-from-canonical-source",
+    "linuxRuntimeConfigured": false,
+    "windowsRuntimeConfigured": false
+  },
+  "sourceSurfaces": {
+    "truthRole": "source-derived-non-deployment-proof",
+    "gateway": {
+      "manifest": "services/gateway/mcp-surface.json",
+      "packageVersion": "0.7.0",
+      "surfaceEpoch": 4,
+      "declaredToolCount": 36
+    },
+    "host": {
+      "manifest": "services/host/mcp-surface.json",
+      "packageVersion": "0.5.0",
+      "surfaceEpoch": 3,
+      "declaredToolCount": 28
+    }
   }
 }

@@ -11,7 +11,10 @@ DEPLOYED = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 PLUGIN = ROOT / "extensions" / "ordivon-control-plane" / "mcp.json"
 ROUTES = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "routes.py"
 GATEWAY_MCP = ROOT / "services" / "gateway" / "src" / "ordivon_gateway" / "mcp_server.py"
+HOST_MCP = ROOT / "services" / "host" / "src" / "ordivon_host_v2" / "mcp_server.py"
+HOST_SOCIAL_MCP = ROOT / "services" / "host" / "src" / "ordivon_host_v2" / "social_work_mcp.py"
 GATEWAY_SURFACE_MANIFEST = ROOT / "services" / "gateway" / "mcp-surface.json"
+HOST_SURFACE_MANIFEST = ROOT / "services" / "host" / "mcp-surface.json"
 HOST_NORTHBOUND_ACCEPTANCE = ROOT / "docs" / "architecture" / "gateway-swf-northbound-acceptance-20260924.json"
 METHOD_ROUTER = ROOT / ".agents" / "skills" / "method-router" / "SKILL.md"
 README = ROOT / "README.md"
@@ -40,27 +43,34 @@ EXPECTED_CAPABILITIES = {
 }
 
 EXPECTED_HOST_NORTHBOUND_TOOLS = {
-    'actor.declare',
-    'attention.ack',
-    'attention.delta',
-    'attention.get',
-    'host.status',
-    'message.post',
-    'message.relation.add',
-    'message.search',
-    'space.create',
-    'space.get',
-    'space.list',
-    'space.participation.set',
-    'subscription.follow',
-    'subscription.list',
-    'subscription.unfollow',
-    'topic.create',
-    'topic.resume',
-    'work.create',
-    'work.get',
-    'work.list',
-    'work.snapshot.commit',
+    "actor.declare",
+    "attention.ack",
+    "attention.delta",
+    "attention.get",
+    "attention.reentry",
+    "host.status",
+    "message.post",
+    "message.relation.add",
+    "message.relation.list",
+    "message.search",
+    "space.create",
+    "space.get",
+    "space.list",
+    "space.participation.list",
+    "space.participation.set",
+    "space.subject.list",
+    "subscription.follow",
+    "subscription.list",
+    "subscription.unfollow",
+    "topic.create",
+    "topic.cursor.ack",
+    "topic.cursor.get",
+    "topic.list",
+    "topic.resume",
+    "work.create",
+    "work.get",
+    "work.list",
+    "work.snapshot.commit",
 }
 
 
@@ -177,6 +187,13 @@ def gateway_tools(source: str) -> set[str]:
     return set(re.findall(r'@server\.tool\(name="([^"]+)"\)', source))
 
 
+def host_tools(*sources: str) -> set[str]:
+    observed: set[str] = set()
+    for source in sources:
+        observed.update(re.findall(r'@mcp\.tool\(name="([^"]+)"\)', source))
+    return observed
+
+
 def validate_source_tool_surface(
     observed_tools: set[str], manifest: dict[str, Any], *, service: str
 ) -> None:
@@ -195,6 +212,39 @@ def validate_source_tool_surface(
         raise ArchitectureDocsError(
             f"{service} source Tool surface differs from source manifest: {sorted(observed_tools)}"
         )
+
+
+def validate_source_surface_projection(
+    value: dict[str, Any],
+    *,
+    gateway_manifest: dict[str, Any],
+    host_manifest: dict[str, Any],
+) -> None:
+    surfaces = value.get("sourceSurfaces")
+    if not isinstance(surfaces, dict):
+        raise ArchitectureDocsError("sourceSurfaces projection is missing")
+    if surfaces.get("truthRole") != "source-derived-non-deployment-proof":
+        raise ArchitectureDocsError("sourceSurfaces must remain source-only non-deployment proof")
+
+    expected = {
+        "gateway": ("services/gateway/mcp-surface.json", gateway_manifest),
+        "host": ("services/host/mcp-surface.json", host_manifest),
+    }
+    for key, (manifest_path, manifest) in expected.items():
+        row = surfaces.get(key)
+        if not isinstance(row, dict):
+            raise ArchitectureDocsError(f"sourceSurfaces.{key} is missing")
+        tools = manifest.get("tools")
+        if not isinstance(tools, list):
+            raise ArchitectureDocsError(f"{key} source manifest tools are invalid")
+        if row.get("manifest") != manifest_path:
+            raise ArchitectureDocsError(f"sourceSurfaces.{key} manifest path drifted")
+        if row.get("packageVersion") != manifest.get("packageVersion"):
+            raise ArchitectureDocsError(f"sourceSurfaces.{key} packageVersion drifted")
+        if row.get("surfaceEpoch") != manifest.get("surfaceEpoch"):
+            raise ArchitectureDocsError(f"sourceSurfaces.{key} surfaceEpoch drifted")
+        if row.get("declaredToolCount") != len(tools):
+            raise ArchitectureDocsError(f"sourceSurfaces.{key} declaredToolCount drifted")
 
 
 def validate_current_document(text: str) -> None:
@@ -227,6 +277,8 @@ def validate_repository(root: Path = ROOT) -> None:
     plugin = root / PLUGIN.relative_to(ROOT)
     routes = root / ROUTES.relative_to(ROOT)
     gateway_mcp = root / GATEWAY_MCP.relative_to(ROOT)
+    host_mcp = root / HOST_MCP.relative_to(ROOT)
+    host_social_mcp = root / HOST_SOCIAL_MCP.relative_to(ROOT)
     host_northbound_acceptance = root / HOST_NORTHBOUND_ACCEPTANCE.relative_to(ROOT)
     method_router = root / METHOD_ROUTER.relative_to(ROOT)
     readme = root / README.relative_to(ROOT)
@@ -242,11 +294,27 @@ def validate_repository(root: Path = ROOT) -> None:
             f"Gateway route source differs from deployed graph: {sorted(observed)}"
         )
 
+    gateway_manifest = _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT))
+    host_manifest = _load_json(root / HOST_SURFACE_MANIFEST.relative_to(ROOT))
     observed_tools = gateway_tools(gateway_mcp.read_text(encoding="utf-8"))
     validate_source_tool_surface(
         observed_tools,
-        _load_json(root / GATEWAY_SURFACE_MANIFEST.relative_to(ROOT)),
+        gateway_manifest,
         service="ordivon-gateway",
+    )
+    observed_host_tools = host_tools(
+        host_mcp.read_text(encoding="utf-8"),
+        host_social_mcp.read_text(encoding="utf-8"),
+    )
+    validate_source_tool_surface(
+        observed_host_tools,
+        host_manifest,
+        service="ordivon-host-v2",
+    )
+    if set(host_manifest.get("tools", [])) != EXPECTED_HOST_NORTHBOUND_TOOLS:
+        raise ArchitectureDocsError("Host source Tool manifest differs from architecture projection")
+    validate_source_surface_projection(
+        graph, gateway_manifest=gateway_manifest, host_manifest=host_manifest
     )
     host_acceptance = _load_json(host_northbound_acceptance)
     if host_acceptance.get("status") not in {

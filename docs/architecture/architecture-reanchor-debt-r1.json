@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.architecture-debt-register",
-  "anchorRevision": "39b0ed06f39f06327c5836fc0c24f5b5438e8bb2",
-  "observedDate": "2026-09-28",
+  "anchorRevision": "8452714eca2fde758d8a55c848743a97a69eba8c",
+  "observedDate": "2026-09-29",
   "truthRole": "architecture-work-register-not-owner-truth",
   "items": [
     {
@@ -94,7 +94,7 @@
     },
     {
       "id": "ARD-004",
-      "problem": "Authenticated end-user identity may not yet be enforced across Gateway to Runtime Job/Artifact lifecycle operations.",
+      "problem": "Gateway Runtime-Artifact authorization is now object-bound in source, but production interactive-Principal enforcement is intentionally not live until an AuthZEN-compatible PDP and bounded credential owner are qualified.",
       "owner": "security-authorization-seam",
       "authority": "identity provider + authorization PDP/PEP + Runtime object authority",
       "impact": [
@@ -102,17 +102,24 @@
         "multi-user-safety"
       ],
       "evidence": [
-        "Earlier R3 red-team evidence identified Gateway audit principal vs Runtime service-principal collapse; current 39b0ed06 requires fresh requalification before the finding is treated as current."
+        "services/gateway/src/ordivon_gateway/capability_authz.py derives artifact.runtime authorization targets server-side from exact operationRef + artifactId and rejects non-Runtime owners.",
+        "platform/security/contracts/gateway-capability-authz-v2 independently reconstructs the exact Runtime Artifact resource identity and rejects external.pull as Runtime authority.",
+        "services/gateway/src/ordivon_gateway/authzen_authorizer.py implements a fail-closed AuthZEN Evaluation client without minting Agent/Grant/effect authority.",
+        "runtime:job:job-01a0eb93-f058-7282-aed2-af9ae359f4f9 — 22/22 current-main Gateway+Security authorization tests PASS, including forged principal/resource, external-owner confusion, DENY, STEP_UP and PDP-unavailable paths.",
+        "2026-09-29 live Gateway unit has no AuthZEN PDP configuration; platform/security/docs/GATEWAY-AUTHZEN-H2-R1.md explicitly forbids live wiring until PDP + credential owner qualification."
       ],
-      "desiredContract": "Subject/action/resource authorization is explicit for Runtime Job/Artifact lifecycle without inventing a parallel Ordivon IAM system.",
-      "currentGap": "Fresh current-main two-principal negative acceptance not yet performed in this re-anchor round.",
-      "recommendedLEGO": "Requalify existing factorized-principal/AuthZEN-or-provider-IAM seam, then close only the demonstrated enforcement gap.",
+      "desiredContract": "Subject/action/resource authorization is explicit and natural-owner-object-bound for Runtime Artifact lifecycle; Gateway remains a PEP/router, the selected PDP/Security owner decides permission, and Runtime remains object/effect truth owner without an Ordivon IAM database.",
+      "currentGap": "Source object binding and fail-closed PEP mechanics are verified. Live H2 enablement remains deliberately blocked on production PDP qualification, bounded credential ownership and rollback acceptance; H3 delegated-Agent admission remains a separate Security contract and may not fall back to H2.",
+      "recommendedLEGO": "Do not build a custom Ordivon PDP. Qualify a mature AuthZEN-compatible provider plus one independent interoperability oracle, bind its credential through a natural credential owner, then enable the existing Gateway authorizer behind immediate configuration rollback.",
       "verification": [
-        "two-principal negative read/cancel/artifact tests",
-        "service identity remains distinct from delegated subject identity",
-        "audit correlation does not substitute for authorization"
+        "current-main object-binding/negative authorization suite remains green",
+        "production PDP passes the same allow/deny/resource-binding fixtures plus an independent AuthZEN interoperability oracle",
+        "two-principal live negative Runtime Artifact read proves the denied Principal never reaches the natural owner",
+        "service identity remains distinct from delegated subject identity and audit correlation never substitutes for authorization",
+        "removing the AuthZEN configuration immediately restores the pre-enable routing posture without changing Runtime object truth"
       ],
-      "priority": "HIGH"
+      "priority": "HIGH",
+      "standing": "SOURCE_OBJECT_AUTHZ_VERIFIED_LIVE_PDP_QUALIFICATION_BLOCKED"
     },
     {
       "id": "ARD-005",
@@ -130,24 +137,27 @@
         "Second controlled independent Work work:research:emm-r1:cross-owner-dogfood-r2-provider:20260928 executed one real DeepSeek Provider call and then fresh-process re-entry; providerAttempts stayed 1, providerRecords stayed 3, providerRequestDigest/traceDigest were unchanged, and no Provider redispatch occurred.",
         "The real Provider workload falsified generic provider:* typed navigation: durable ProviderCall history is Harness-owned and no owner-native generic historical providerCallId resolver is exposed. Commit 82706174f narrows non-Runtime foreign refs to opaque correlation.",
         "Research-v2 EMM-0001 records CROSS_OWNER_PATTERN / NARROW / experiment INCONCLUSIVE at 6acf392a08d5969521368728a69e66cfed200e98.",
-        "Current-main Agent owner gate on e13da98eb711401f6a6ecbdd9da1d77f1541f0ea passed: mise run agent-app:verify, 48 tests, formatter clean; Runtime Job job-01a0eb9a-5982-71c3-9d95-07962bd77bf4."
+        "Current-main Agent owner gate on e13da98eb711401f6a6ecbdd9da1d77f1541f0ea passed: mise run agent-app:verify, 48 tests, formatter clean; Runtime Job job-01a0eb9a-5982-71c3-9d95-07962bd77bf4.",
+        "services/gateway/mcp-surface.json at package 0.7.0 / epoch 4 and services/host/mcp-surface.json at package 0.5.0 / epoch 3 both declare the current Social Work R2 re-entry/cursor/relation owner surface.",
+        "2026-09-29 ChatGPT Gateway connector discovery still exposes only attention.get/delta/ack for the Attention family and no attention.reentry; direct Host connector still exposes retired Task/Board actions. This is consumer catalog staleness, not owner/source regression."
       ],
       "desiredContract": "A reconnecting Agent recovers canonical Work, follows only exact proven owner references, reconciles uncertain effects at their natural owners, keeps unproven foreign refs opaque, and resumes cognition or inspects terminal state without whole-system recensus where the retained evidence is sufficient.",
-      "currentGap": "NARROWED: the automatic caller-composition projection and two-consumer no-redispatch mechanics are now realized. Remaining debt is experimental rather than missing plumbing: no controlled manual-recensus timing/step baseline has shown material recovery-cost improvement, the second workload was controlled rather than a naturally occurring interruption, and no generic provider-owner reference contract exists or is required.",
-      "recommendedLEGO": "Keep the projection narrow and removable: WorkRef + exact Harness Run identity + only owner-resolvable typed refs (currently Runtime), with all other foreign refs verbatim/opaque. Next evidence should be either a controlled manual-recensus comparison or another natural interruption episode. Do not create a generic Provider resolver, RecoveryManager, Session service, or foreign-state cache to satisfy the experiment.",
+      "currentGap": "NARROWED: the automatic caller-composition projection and two-consumer no-redispatch mechanics are now realized. Remaining debt is experimental rather than missing plumbing: no controlled manual-recensus timing/step baseline has shown material recovery-cost improvement, the second workload was controlled rather than a naturally occurring interruption, and no generic provider-owner reference contract exists or is required. Separately, current ChatGPT connector action catalogs are stale, so public-current re-entry dogfood cannot yet exercise the complete owner surface from this client. That is an external consumer-currentness hold, not missing Ordivon source plumbing.",
+      "recommendedLEGO": "Keep the projection narrow and removable: WorkRef + exact Harness Run identity + only owner-resolvable typed refs (currently Runtime), with all other foreign refs verbatim/opaque. Next evidence should be either a controlled manual-recensus comparison or another natural interruption episode. Do not create a generic Provider resolver, RecoveryManager, Session service, or foreign-state cache to satisfy the experiment. Refresh/reconnect the ChatGPT Gateway connector before the next public-current dogfood; do not add compatibility aliases or resurrect Task/Board to accommodate a stale client catalog.",
       "verification": [
         "two independent workloads reproduce WorkRef <-> Harness callerRunRef binding without effect duplication",
         "fresh-process re-entry keeps physicalRevalidationRequired=true and effectRedispatchAllowed=false",
         "real Provider workload preserves one Provider attempt before/after re-entry and does not synthesize provider owner authority from a string prefix",
         "no RecoveryManager/global Session/Checkpoint service or copied foreign owner state is introduced",
-        "controlled comparison against bounded manual recensus remains explicitly unresolved before any SHARED_PRINCIPLE promotion"
+        "controlled comparison against bounded manual recensus remains explicitly unresolved before any SHARED_PRINCIPLE promotion",
+        "refreshed ChatGPT Gateway connector discovers attention.reentry, topic.resume, topic.cursor.get/ack and message.relation.list before public-current dogfood"
       ],
       "priority": "MEDIUM",
-      "standing": "NARROWED_TWO_CONSUMER_PATTERN_COST_BENEFIT_UNRESOLVED"
+      "standing": "NARROWED_TWO_CONSUMER_PATTERN_COST_BENEFIT_UNRESOLVED_CONNECTOR_REFRESH_EXTERNAL"
     },
     {
       "id": "ARD-006",
-      "problem": "Architecture documentation can still become stale because deployed projections are manually refreshed.",
+      "problem": "Architecture documentation previously allowed source-derived package/surface fields to drift because CI checked architecture laws and Gateway tool membership but did not bind the machine projection to both Gateway and Host source manifests.",
       "owner": "repository-mechanics",
       "authority": "current physical/source/owner truth",
       "impact": [
@@ -155,17 +165,51 @@
         "currentness"
       ],
       "evidence": [
-        "CURRENT_ARCHITECTURE previously claimed Gateway 0.4.0 and stale connector catalog after live Gateway had reached 0.5.0 and exposed schema-9 tools."
+        "2026-09-29 census found CURRENT_ARCHITECTURE/deployed-architecture still describing Gateway 0.6 / Host schema 9 while canonical source is Gateway 0.7.0 epoch 4 and live Host is schema 10.",
+        "tools/repo/check_architecture_docs.py now binds Gateway server source -> Gateway manifest -> sourceSurfaces and Host server source -> Host manifest -> sourceSurfaces for packageVersion, surfaceEpoch and declaredToolCount.",
+        "docs/architecture/deployed-architecture-r1.json now separates sourceSurfaces truth from liveObservation and explicitly refuses to infer an unrequalified deployment commit from canonical source.",
+        "runtime:job:job-01a0eb9c-e38d-7d31-ab4f-5c8a133e53ef — architecture docs + constitution checks PASS and 31 targeted tests PASS, including deliberate Gateway/Host source-surface drift falsifiers."
       ],
-      "desiredContract": "Docs are explicitly non-authoritative projections and fitness checks prevent them from outranking source/evidence.",
-      "currentGap": "Version/currentness fields are not all generated from live/provider owner evidence.",
-      "recommendedLEGO": "Keep documentation non-authoritative; automate only cheap source-derived fields and use whole-system review for live currentness rather than creating an architecture registry service.",
+      "desiredContract": "Cheap source-derived architecture fields are mechanically bound to natural-owner server source/manifests, while deployed/live/connector currentness remains an explicitly separate evidence projection that documentation cannot self-authorize.",
+      "currentGap": "CLOSED for the demonstrated source-currentness gap. Live deployment and client-catalog currentness remain external observations by design and must not be converted into a central Architecture Registry.",
+      "recommendedLEGO": "Keep the checker small and source-derived. Extend it only when another cheap natural-owner source field repeatedly drifts; continue using owner/provider readback and whole-system review for live currentness.",
       "verification": [
-        "architecture constitution checker passes",
-        "current deployed projection identifies itself as non-authoritative",
-        "no documentation-first truth ordering"
+        "Gateway server source/manifests/packageVersion/surfaceEpoch/toolCount drift is rejected",
+        "Host server source/manifests/packageVersion/surfaceEpoch/toolCount drift is rejected",
+        "architecture constitution and documentation drift checks pass",
+        "live/deployment commit identity remains explicitly unrequalified when no current receipt was read"
       ],
-      "priority": "MEDIUM"
+      "priority": "CLOSED",
+      "standing": "CLOSED_SOURCE_CURRENTNESS_GATED_LIVE_EVIDENCE_EXTERNAL"
+    },
+    {
+      "id": "ARD-007",
+      "problem": "A generic elevated Windows Runtime Job could previously use token privilege as de facto permission for destructive machine-maintenance effects, bypassing the Workstation D-drive maintenance owner contract.",
+      "owner": "runtime-execution-authority + workstation-maintenance-boundary",
+      "authority": "Runtime operator-configured privileged profiles and owner-native maintenance lease; Workstation remains semantic owner of the D-drive maintenance transaction",
+      "impact": [
+        "authority-clarity",
+        "cross-agent-safety",
+        "destructive-effect-serialization"
+      ],
+      "evidence": [
+        "The 2026-09-28 incident proved a direct elevated Runtime Optimize-VHD Job executed outside the existing R3/R4 maintenance transaction while concurrent WSL recovery actors remained possible.",
+        "git:main@71ef659fdb40dcfa32ad688c0e308d388a828188 — fix(runtime): fence privileged Windows maintenance effects.",
+        "services/runtime/docs/WINDOWS_ELEVATED_PRINCIPAL_ADMISSION_R1.md explicitly separates authentication, token privilege, privileged-effect admission, maintenance exclusion, provider truth and semantic completion.",
+        "Runtime source requires an operator-configured privileged profile for new elevated Windows execution and rejects arbitrary PowerShell/Optimize-VHD/wsl/HCS commands outside the selected profile.",
+        "An active owner-native Windows maintenance lease fences new Windows admissions while historical exact replay remains observable."
+      ],
+      "desiredContract": "Windows token privilege is never sufficient effect authority. Elevated execution is bounded by operator policy profiles, destructive maintenance owns an explicit lease/fence, and natural owner transaction evidence remains distinct from Runtime physical execution truth.",
+      "currentGap": "CLOSED in canonical source for the demonstrated bypass class. Deployment/operation qualification of each privileged profile remains provider/Workstation owner work and is not a reason to reintroduce ambient elevated authority.",
+      "recommendedLEGO": "Preserve profile-scoped elevated admission + owner-native maintenance lease. Add a new privileged profile only for a demonstrated natural-owner provider entrypoint; never add an arbitrary elevated shell profile.",
+      "verification": [
+        "new elevated execution without a configured privileged profile fails closed",
+        "commands outside the selected profile fail before physical execution",
+        "active maintenance lease fences both limited and elevated new Windows admissions",
+        "exact replay of an already committed Job remains recoverable without reopening authority"
+      ],
+      "priority": "CLOSED",
+      "standing": "CLOSED_PRIVILEGE_SEPARATED_FROM_EFFECT_AUTHORITY"
     }
   ]
 }

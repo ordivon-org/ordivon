@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "tools" / "repo" / "check_architecture_docs.py"
 GRAPH = ROOT / "docs" / "architecture" / "deployed-architecture-r1.json"
 GATEWAY_SURFACE = ROOT / "services" / "gateway" / "mcp-surface.json"
+HOST_SURFACE = ROOT / "services" / "host" / "mcp-surface.json"
 
 spec = importlib.util.spec_from_file_location("check_architecture_docs", MODULE_PATH)
 assert spec is not None and spec.loader is not None
@@ -34,6 +35,46 @@ def test_gateway_source_surface_is_owned_by_source_manifest() -> None:
     mutated["tools"] = mutated["tools"][:-1]
     with pytest.raises(module.ArchitectureDocsError, match="differs from source manifest"):
         module.validate_source_tool_surface(observed, mutated, service="ordivon-gateway")
+
+
+def test_host_source_surface_is_owned_by_server_source_and_manifest() -> None:
+    manifest = json.loads(HOST_SURFACE.read_text(encoding="utf-8"))
+    observed = module.host_tools(
+        (ROOT / "services/host/src/ordivon_host_v2/mcp_server.py").read_text(encoding="utf-8"),
+        (ROOT / "services/host/src/ordivon_host_v2/social_work_mcp.py").read_text(encoding="utf-8"),
+    )
+    module.validate_source_tool_surface(observed, manifest, service="ordivon-host-v2")
+    mutated = copy.deepcopy(manifest)
+    mutated["tools"] = mutated["tools"][:-1]
+    with pytest.raises(module.ArchitectureDocsError, match="differs from source manifest"):
+        module.validate_source_tool_surface(observed, mutated, service="ordivon-host-v2")
+
+
+def test_source_surface_projection_is_bound_to_owner_manifests() -> None:
+    value = graph()
+    gateway_manifest = json.loads(GATEWAY_SURFACE.read_text(encoding="utf-8"))
+    host_manifest = json.loads(HOST_SURFACE.read_text(encoding="utf-8"))
+    module.validate_source_surface_projection(
+        value, gateway_manifest=gateway_manifest, host_manifest=host_manifest
+    )
+
+    for owner, field, mutated_value in (
+        ("gateway", "packageVersion", "0.0.0-stale"),
+        ("gateway", "surfaceEpoch", 999),
+        ("host", "declaredToolCount", 0),
+    ):
+        mutated = copy.deepcopy(value)
+        mutated["sourceSurfaces"][owner][field] = mutated_value
+        with pytest.raises(module.ArchitectureDocsError, match=field):
+            module.validate_source_surface_projection(
+                mutated, gateway_manifest=gateway_manifest, host_manifest=host_manifest
+            )
+
+
+def test_host_source_surface_matches_current_architecture_projection() -> None:
+    manifest = json.loads(HOST_SURFACE.read_text(encoding="utf-8"))
+    assert set(manifest["tools"]) == module.EXPECTED_HOST_NORTHBOUND_TOOLS
+    assert set(graph()["hostNorthbound"]["normalTools"]) == set(manifest["tools"])
 
 
 def test_gateway_cannot_become_authoritative() -> None:
