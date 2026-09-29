@@ -123,7 +123,7 @@
     },
     {
       "id": "ARD-005",
-      "problem": "Automatic Work -> Harness -> Runtime cross-owner re-entry is realized and its owner-I/O cost-superiority hypothesis is falsified. The remaining ARD-005 gap is public consumer currentness: the current ChatGPT Gateway connector catalog still does not expose the complete Social Work R2 re-entry surface already present in owner/source truth.",
+      "problem": "Automatic Work -> Harness -> Runtime cross-owner re-entry is realized and its owner-I/O cost-superiority hypothesis is falsified. The remaining ARD-005 gap is a precise public consumer-currentness defect: the current ChatGPT Gateway connector omits four Social Work R2 actions already present in Gateway/Host owner source.",
       "owner": "caller-composition",
       "authority": "Host/Harness/Runtime and domain/provider owners retain their local truth; caller composition may classify only references backed by a proven owner resolver contract.",
       "impact": [
@@ -139,25 +139,25 @@
         "Research-v2 EMM-0001 records CROSS_OWNER_PATTERN / NARROW / experiment INCONCLUSIVE at 6acf392a08d5969521368728a69e66cfed200e98.",
         "Current-main Agent owner gate on e13da98eb711401f6a6ecbdd9da1d77f1541f0ea passed: mise run agent-app:verify, 48 tests, formatter clean; Runtime Job job-01a0eb9a-5982-71c3-9d95-07962bd77bf4.",
         "services/gateway/mcp-surface.json at package 0.7.0 / epoch 4 and services/host/mcp-surface.json at package 0.5.0 / epoch 3 both declare the current Social Work R2 re-entry/cursor/relation owner surface.",
-        "2026-09-29 ChatGPT Gateway connector discovery still exposes only attention.get/delta/ack for the Attention family and no attention.reentry; direct Host connector still exposes retired Task/Board actions. This is consumer catalog staleness, not owner/source regression.",
+        "2026-09-29 current ChatGPT Gateway connector exposes 28 actions and now includes topic.resume, but still omits exactly the four R2 actions attention.reentry, topic.cursor.get, topic.cursor.ack, and message.relation.list. Gateway/Host source surfaces at package 0.7.0/epoch 4 and 0.5.0/epoch 3 declare all four, so this is a consumer projection/currentness gap rather than owner/source regression.",
         "Research-v2 EMM-0001 is now CLOSED / CROSS_OWNER_PATTERN / NARROW at c502a273f3cb5076163ed64f27f91801839c62cd; experiment status FAILED specifically for the preregistered owner-I/O cost H1.",
         "Fair same-input controlled baseline (Runtime Job job-01a0eba5-d632-7283-8c05-5bf54fa62f93): manual exact traversal used Host get=1/list=0; projection used get=2/list=0; Harness locate/inspect=1 in both; downstream Runtime revalidation=1 in both; Provider attempts/records/trace remained unchanged. ownerWideCensusReduction=0 and exactHostReadReduction=-1.",
         "A 30-pair wall-clock attempt timed out at Runtime Job job-01a0eba3-0434-7b43-ab48-d9f08e4d60cf and is explicitly excluded from the verdict; the falsifier is structural owner-I/O evidence, not a timing claim."
       ],
       "desiredContract": "A reconnecting Agent recovers canonical Work, follows only exact proven owner references, reconciles uncertain effects at their natural owners, keeps unproven foreign refs opaque, and resumes cognition or inspects terminal state without whole-system recensus where the retained evidence is sufficient.",
-      "currentGap": "NARROWED SOURCE/MECHANISM COMPLETE: two independent workloads prove the no-redispatch re-entry pattern, generic provider:* typed navigation is rejected, and the fair manual-recensus baseline falsifies any claim that the projection reduces owner I/O (both arms need zero inventory census; projection currently performs one extra exact Host get). Remaining ARD-005 debt is external consumer-currentness only: the current ChatGPT Gateway connector catalog does not yet expose the complete Social Work R2 re-entry/cursor/relation owner surface, so public-current dogfood from this client is still blocked until connector refresh/reconnect.",
-      "recommendedLEGO": "Keep the narrow projection only for fail-closed binding validation, explicit physical-revalidation/no-redispatch signaling, and Agent UX; do not claim owner-I/O savings and do not run more synthetic cost experiments. Keep non-Runtime foreign refs opaque and do not create a generic Provider resolver, RecoveryManager, Session service, or foreign-state cache. Refresh/reconnect the ChatGPT Gateway connector, verify the complete Social Work R2 actions are discoverable, then run one public-current dogfood through those owner surfaces; do not add compatibility aliases or resurrect retired Task/Board APIs to satisfy a stale client catalog.",
+      "currentGap": "NARROWED SOURCE/MECHANISM COMPLETE: two independent workloads prove the no-redispatch re-entry pattern, generic provider:* typed navigation is rejected, and the fair manual-recensus baseline falsifies any owner-I/O savings claim. Remaining ARD-005 debt is external consumer projection only. Current ChatGPT Gateway catalog already exposes topic.resume but omits attention.reentry, topic.cursor.get, topic.cursor.ack, and message.relation.list despite those four actions being declared and implemented by current Gateway/Host source; therefore the full public-current R2 re-entry procedure cannot yet be dogfooded from this client.",
+      "recommendedLEGO": "Keep the narrow caller projection only for fail-closed binding validation, explicit physical-revalidation/no-redispatch signaling, and Agent UX; do not claim owner-I/O savings or run more synthetic cost experiments. Do not add compatibility aliases, resurrect retired Task/Board APIs, or create a generic Provider resolver. Refresh/reconnect the ChatGPT Gateway connector until the four missing R2 actions (attention.reentry, topic.cursor.get, topic.cursor.ack, message.relation.list) are projected; then run one public-current owner-surface dogfood using topic.resume plus those four actions.",
       "verification": [
         "two independent workloads reproduce WorkRef <-> Harness callerRunRef binding without effect duplication",
         "fresh-process re-entry keeps physicalRevalidationRequired=true and effectRedispatchAllowed=false",
         "real Provider workload preserves one Provider attempt before/after re-entry and does not synthesize provider owner authority from a string prefix",
         "fair manual-recensus baseline is complete: owner-wide census reduction=0 and projection exact Host reads=2 versus manual=1; no cost-reduction claim remains",
         "no RecoveryManager/global Session/Checkpoint service or copied foreign owner state is introduced",
-        "refreshed ChatGPT Gateway connector discovers attention.reentry, topic.resume, topic.cursor.get/ack and message.relation.list before public-current dogfood",
-        "public-current dogfood then demonstrates owner/source R2 re-entry through the refreshed consumer catalog without compatibility aliases"
+        "current ChatGPT connector already exposes topic.resume; refreshed catalog additionally exposes attention.reentry, topic.cursor.get, topic.cursor.ack, and message.relation.list",
+        "public-current dogfood then exercises the owner/source R2 re-entry sequence without compatibility aliases"
       ],
       "priority": "MEDIUM",
-      "standing": "NARROW_PATTERN_REALIZED_COST_H1_FALSIFIED_CONNECTOR_REFRESH_EXTERNAL"
+      "standing": "NARROW_PATTERN_REALIZED_COST_H1_FALSIFIED_FOUR_ACTION_CONNECTOR_GAP"
     },
     {
       "id": "ARD-006",
