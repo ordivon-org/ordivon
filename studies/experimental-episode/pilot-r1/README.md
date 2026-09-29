@@ -31,3 +31,24 @@ mise exec -- uv run python ../../studies/experimental-episode/pilot-r1/recover_f
 ```
 
 Recovery is finalization only. It must never be used to replay an uncertain Provider trial; an unmatched `trial_started` is a fail-closed condition.
+
+## Model-factor qualification
+
+A later owner-evidence audit found that the preregistered requested identifiers
+`deepseek-flash` and legacy `deepseek-v4-flash` did not produce two distinct effective
+Provider model identities in this live campaign. Across the frozen 12 trials, 29
+Provider calls requested `deepseek-flash` and 28 requested `deepseek-v4-flash`; all
+57 calls report effective/provider model `deepseek-flash` with the same observed
+system fingerprint. The append-only evidence artifact
+`evidence/20260928-r1/model-factor-qualification.json` therefore marks the Model main
+effect and Model×Harness interaction as `NOT_ESTIMABLE`. It does not rewrite the
+preregistration, trials, Episodes, EvaluationRecords, analysis, or the mechanical
+`PASS_PILOT_MECHANICS` acceptance. Harness/process/recovery/fork mechanics remain
+useful within the single observed effective-model regime.
+
+Run the deterministic qualification check from `services/harness`:
+
+```bash
+mise exec -- uv run python ../../studies/experimental-episode/pilot-r1/qualify_model_factor_r1.py \
+  --evidence-dir ../../studies/experimental-episode/pilot-r1/evidence/20260928-r1
+```

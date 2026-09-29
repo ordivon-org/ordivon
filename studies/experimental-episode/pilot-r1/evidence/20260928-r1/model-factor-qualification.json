@@ -1,0 +1,81 @@
+{
+  "boundArtifacts": {
+    "acceptanceDigest": "sha256:9debe69f3c8c5b312e654164f7f1785c93f3b5a9c6c504efdbdfba9bd101c91f",
+    "analysisDigest": "sha256:f0e523501fa0d81e2e454e6369eda2bbe091e7779df8dc708fc6bbcf61a54dbf",
+    "resultSetDigest": "sha256:89deab4b3c9c726287d1f8438d9c1022381d112bb15c8b9408a5c6a36ce90ea2"
+  },
+  "effectiveModelIds": [
+    "deepseek-flash"
+  ],
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "factorId": "factor:model",
+  "factorRole": "treatment",
+  "interpretability": {
+    "harnessMainEffect": "DESCRIPTIVE_WITHIN_EFFECTIVE_MODEL_REGIME",
+    "modelByHarnessInteraction": "NOT_ESTIMABLE",
+    "modelMainEffect": "NOT_ESTIMABLE",
+    "outcomeProcessSeparation": "UNAFFECTED",
+    "protocolMechanics": "UNAFFECTED",
+    "recoveryAndForkMechanics": "UNAFFECTED"
+  },
+  "kind": "ordivon.experimental-factor-qualification",
+  "nonClaims": [
+    "This append-only qualification does not modify the frozen preregistration, TrialRecords, Episodes, EvaluationRecords, analysis artifact, or mechanical acceptance.",
+    "Requested model identifiers are not sufficient treatment evidence when Provider effective identity collapses them.",
+    "A zero requested-model contrast under collapsed effective identity is not evidence of model equivalence.",
+    "Harness observations remain pilot-scale and scoped to the single observed effective Provider model regime."
+  ],
+  "observedSystemFingerprints": [
+    "aeb56401ca74e127821c4f9126dcb669"
+  ],
+  "providerCallCount": 57,
+  "providerIdentityEvidence": {
+    "deepseek-flash": {
+      "observedIdentities": [
+        {
+          "callCount": 29,
+          "effectiveModelId": "deepseek-flash",
+          "providerModel": "deepseek-flash",
+          "requestedModelId": "deepseek-flash"
+        }
+      ],
+      "providerCallCount": 29,
+      "systemFingerprints": [
+        {
+          "callCount": 29,
+          "value": "aeb56401ca74e127821c4f9126dcb669"
+        }
+      ],
+      "trialCount": 6
+    },
+    "deepseek-v4-flash": {
+      "observedIdentities": [
+        {
+          "callCount": 28,
+          "effectiveModelId": "deepseek-flash",
+          "providerModel": "deepseek-flash",
+          "requestedModelId": "deepseek-v4-flash"
+        }
+      ],
+      "providerCallCount": 28,
+      "systemFingerprints": [
+        {
+          "callCount": 28,
+          "value": "aeb56401ca74e127821c4f9126dcb669"
+        }
+      ],
+      "trialCount": 6
+    }
+  },
+  "qualificationDigest": "sha256:7bdc929e9c3658a7f64a2a867d8112d2213220ce8b5049c3cabecaea6bd52fcf",
+  "requestedLevels": [
+    "deepseek-flash",
+    "deepseek-v4-flash"
+  ],
+  "schemaVersion": 1,
+  "standing": "COLLAPSED_EFFECTIVE_IDENTITY",
+  "supersedesInterpretation": [
+    "analysis.primaryEffects.modelHiddenPassDifference",
+    "analysis.primaryEffects.modelByCodecHiddenPassInteraction"
+  ]
+}
