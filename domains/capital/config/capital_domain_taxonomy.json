@@ -53,8 +53,7 @@
     ],
     "risk": [
       "portfolio_risk.py",
-      "risk_budget_validation.py",
-      "risk_capacity_validation.py"
+      "risk_budget_validation.py"
     ],
     "research": [
       "model_monitoring.py",
@@ -66,8 +65,6 @@
       "standards_inventory.py"
     ],
     "governance": [
-      "institutional_topology.py",
-      "owner_authority.py",
       "policy_decision.py"
     ],
     "accounting": [

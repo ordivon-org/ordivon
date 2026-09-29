@@ -39,7 +39,7 @@ provider/local reality
 Capital reconciliation/accounting
 ```
 
-Registry: 51 entries, 46 canonical; functional LEGO roles: 12.
+Registry: 47 entries, 42 canonical; functional LEGO roles: 12.
 
 ## Laws
 
