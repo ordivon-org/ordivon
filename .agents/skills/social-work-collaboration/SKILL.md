@@ -112,7 +112,8 @@ attention.reentry(actorRef)
        consume/verify messages and any needed message.relation.list edges
        topic.cursor.ack(cursor = topic.nextAfterSequence)
   -> refresh Work with work.get when Work state matters
-  -> reconcile exact Harness/Runtime/provider references at their natural owners
+  -> reconcile the exact Harness Run and any machine-classified Runtime references at their natural owners
+  -> treat every other foreign reference as opaque until its natural owner exposes an exact resolver
   -> attention.ack(cursor = attention.nextAfterSequence)
 ```
 
@@ -173,14 +174,18 @@ HarnessRunContract.callerRunRef
    ↕
 WorkSnapshot.referenceRefs -> harness:run:<id>
    ↕
-Tool requestId / Runtime Job / provider effect refs
+Runtime refs that have an owner-native exact resolver
+   +
+other opaque foreign refs
 ```
 
-For a Work-backed Harness Run, prefer the exact WorkRef (optionally revision-qualified by the caller) as `callerRunRef`. Once the Run identity is admitted, record the Harness Run reference in the next semantic WorkSnapshot. As physical Tool effects become relevant to future re-entry, retain only their owner-native Runtime Job/provider effect references in `referenceRefs`; do not copy Runtime state into Host.
+For a Work-backed Harness Run, prefer the exact WorkRef (optionally revision-qualified by the caller) as `callerRunRef`. Once the Run identity is admitted, record the Harness Run reference in the next semantic WorkSnapshot. As physical Runtime effects become relevant to future re-entry, retain their owner-native Runtime references in `referenceRefs`; do not copy Runtime state into Host.
 
-After response loss, an Agent should therefore recover Work first, follow exact `referenceRefs` to the owning Harness/Runtime/provider surfaces, reconcile uncertain effects at those owners, and only then resume cognition or commit a new WorkSnapshot. The reference chain is navigation, not authority transfer.
+Do **not** infer owner semantics from a namespace-looking string such as `provider:*`. The current shared machine contract classifies `runtime:*` only because Runtime exposes an owner-native exact-reference resolver. Every non-Harness, non-Runtime foreign reference stays verbatim and opaque until its natural owner publishes an exact resolver with explicit semantics.
 
-This is a composition convention over existing owner contracts, not a new global schema. Promote it into a shared machine contract only after multiple independent consumers demonstrate irreducible repeated binding logic.
+After response loss, an Agent should therefore recover Work first, reattach the exact Harness Run, reconcile machine-classified Runtime references at Runtime, and separately revalidate any remaining opaque references through their actual natural owners when such an owner contract exists. Only then may cognition resume or a new WorkSnapshot be committed. The reference chain is navigation, not authority transfer.
+
+The current `apps/agent` product composition already implements this narrow law through `CrossOwnerReentryCoordinator`; it is a derived read-only coordinator, not a new truth owner and never authorizes effect redispatch.
 
 ## 9. Interrupted continuation: discover before create
 
@@ -211,6 +216,14 @@ Disposition rules:
 Never use fuzzy ranking, lexical similarity, or old chat prose as durable Work identity authority. A guessed WorkRef that misses must not manufacture a second continuity universe.
 
 After reattachment, the WorkSnapshot supplies semantic continuity only. Revalidate present-tense Git, Runtime, provider, deployment, and domain truth at their natural owners before acting on historical frontier claims.
+
+### Current product-composition standing
+
+Do not turn interrupted continuation into an excuse to rebuild the retired Agent Service. The current architecture has **no Agent Service 2.0 target**. `apps/agent` is a product/consumer composition library, not a daemon or a second continuity authority.
+
+When a concrete Work-backed Harness consumer already exists, prefer the shared `CrossOwnerReentryCoordinator` instead of re-implementing Work discovery, Harness reattachment, and Runtime-reference classification. Its output is a derived navigation projection; owner-native revalidation remains mandatory and `effectRedispatchAllowed` remains false.
+
+When there is no bound Harness Run, stop at the Social Work Fabric and the natural owners actually referenced by the Work. Do not manufacture a Harness Session, universal recovery registry, or hidden default consumer merely to make recovery look automatic. Richer HUX/session integration remains **real-consumer-driven**; add it only when a concrete product workload proves irreducible repeated plumbing.
 
 ## 10. Current HOLD and authority boundaries
 

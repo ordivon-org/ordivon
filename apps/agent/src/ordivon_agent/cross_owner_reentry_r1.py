@@ -163,9 +163,7 @@ class CrossOwnerReentryCoordinator:
 
         runtime_refs = tuple(ref for ref in refs if ref.startswith("runtime:"))
         other_refs = tuple(
-            ref
-            for ref in refs
-            if ref != expected_harness_ref and not ref.startswith("runtime:")
+            ref for ref in refs if ref != expected_harness_ref and not ref.startswith("runtime:")
         )
         projection = CrossOwnerReentryProjection(
             work_ref=work_ref,
