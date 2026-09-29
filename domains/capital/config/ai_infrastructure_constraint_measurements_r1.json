@@ -12,7 +12,8 @@
     "A headroom ratio is admitted only when capacity and requirement share unit, scope and time basis and the requirement is independent of the capacity model.",
     "Observed, modeled and derived measurements remain distinct; price/lead-time signals establish scarcity direction but are not quantity headroom.",
     "Do not use a generation interconnection queue as a load interconnection denominator or a regional request queue as national realized demand.",
-    "Preserve UNKNOWN and specify the next observation that could close it rather than manufacturing a precise ratio."
+    "Preserve UNKNOWN and specify the next observation that could close it rather than manufacturing a precise ratio.",
+    "A customer-specific independent demand lower bound can narrow an endogenous-denominator gap without becoming total market demand; configuration and product scope must still match before headroom admission."
   ],
   "effectBoundary": {
     "externalFinancialWritesAllowed": false,
@@ -108,6 +109,46 @@
       "sourceClass": "PRIMARY_GRID_OPERATOR_PRESENTATION",
       "observedAt": "2026-09-29",
       "claimBoundary": "ERCOT March 2026 TAC report provides a project-status funnel for loads associated with 2026: 5,768MW observed energized, 2,759MW approved to energize but not operational, 3,181MW planning studies approved, 7,353MW under review, 2,704MW no studies submitted, total 21,765MW. This is a dated ERCOT regional project-status view, not national load demand or deliverable grid headroom."
+    },
+    {
+      "evidenceId": "m-bloomberg-deepseek-950dt-order",
+      "persistentIdentity": "url:https://www.bloomberg.com/news/articles/2026-09-04/deepseek-plans-big-huawei-ai-chip-order-to-power-new-data-center",
+      "canonicalUrl": "https://www.bloomberg.com/news/articles/2026-09-04/deepseek-plans-big-huawei-ai-chip-order-to-power-new-data-center",
+      "sourceClass": "NEWS_REPORTING_DIRECT_SOURCING",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Bloomberg reports DeepSeek plans to deploy at least 160,000 Huawei top accelerators (Ascend 950DT in the report) at an Inner Mongolia data center. This is an independently sourced customer demand lower bound/plan, not a Huawei shipment, fulfilled order, or China-wide demand census."
+    },
+    {
+      "evidenceId": "m-nlr-lpt-supply-2026",
+      "persistentIdentity": "url:https://www.osti.gov/servlets/purl/3029160",
+      "canonicalUrl": "https://www.osti.gov/servlets/purl/3029160",
+      "sourceClass": "GOVERNMENT_LAB_SUPPLY_MODEL",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "National Laboratory of the Rockies January 2026 supply summary for U.S. LPTs >=100 MVA: domestic production model roughly 325-700 units in 2025-2026 and imports 500-700/year, yielding 825-1,400 total annual availability in 2025; planned expansions reflected in later years. Modeled availability, not committed deliveries."
+    },
+    {
+      "evidenceId": "m-nlr-lpt-demand-2026",
+      "persistentIdentity": "doi:10.2172/3015389",
+      "canonicalUrl": "https://www.osti.gov/servlets/purl/3015389",
+      "sourceClass": "GOVERNMENT_LAB_PLANNING_MODEL",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "NLR 2026 planning study translates National Transmission Planning Study scenarios into 2025-2035 component requirements. Across transformer categories, AC requires 15,094 units / 1,510 per year average; MT requires 13,713 / 1,370 per year average. The study assumes large power transformers >=100 MVA. Scenario-average planning requirement, not current order backlog."
+    },
+    {
+      "evidenceId": "m-ferc-large-load-show-cause-20260618",
+      "persistentIdentity": "url:https://www.ferc.gov/news-events/news/ferc-orders-grid-operators-address-large-load-interconnection-rules",
+      "canonicalUrl": "https://www.ferc.gov/news-events/news/ferc-orders-grid-operators-address-large-load-interconnection-rules",
+      "sourceClass": "OFFICIAL_REGULATOR_ACTION",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "FERC June 18 2026 issued large-load interconnection show-cause orders to six jurisdictional RTOs/ISOs, evidence that load interconnection process/readiness is a distinct regulatory/operational object. This action is not a national MW demand denominator."
+    },
+    {
+      "evidenceId": "m-power-woodmac-transformer-20260102",
+      "persistentIdentity": "url:https://www.powermag.com/transformers-in-2026-shortage-scramble-or-self-inflicted-crisis/",
+      "canonicalUrl": "https://www.powermag.com/transformers-in-2026-shortage-scramble-or-self-inflicted-crisis/",
+      "sourceClass": "TRADE_PRESS_CITING_INDUSTRY_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "POWER summarizes Wood Mackenzie 2025 market research estimating about a 30% U.S. power-transformer shortfall, with high-voltage/GSU classes especially stressed. This is a market-model estimate from a secondary publication and uses a broader product framing than NLR >=100MVA planning components; retained as structured challenge evidence, not merged mechanically with NLR ratios."
     }
   ],
   "fillQueue": [
@@ -272,7 +313,7 @@
     {
       "jurisdiction": "CN",
       "nodeKey": "accelerator-logic",
-      "demandSupplySignal": "DEMAND_EXCEEDS_SUPPLY_ATTRIBUTED_PROVIDER_STATEMENT",
+      "demandSupplySignal": "INDEPENDENT_CUSTOMER_DEMAND_LOWER_BOUND_PLUS_PROVIDER_EXCESS_DEMAND",
       "measurements": [
         {
           "metricKey": "epoch-huawei-2026-ascend-units",
@@ -297,24 +338,37 @@
             "m-epoch-huawei-roadmap"
           ],
           "claimBoundary": "H100e peak-compute normalization; not realized workload throughput."
+        },
+        {
+          "metricKey": "deepseek-reported-950dt-demand-lower-bound-units",
+          "standing": "OBSERVED",
+          "value": 160000.0,
+          "unit": "accelerator units",
+          "scope": "DeepSeek planned Ascend 950DT deployment at Inner Mongolia data center",
+          "timeBasis": "reported 2026-09-04",
+          "evidenceIds": [
+            "m-bloomberg-deepseek-950dt-order"
+          ],
+          "claimBoundary": "Independent customer-specific demand lower bound from Bloomberg sourcing; plan/intent, not delivered units or China-wide contracted demand."
         }
       ],
       "headroomAdmission": {
-        "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+        "standing": "BLOCKED_SCOPE_MISMATCH",
         "headroomRatio": null,
-        "reason": "Provider statement establishes excess demand direction but no independent same-unit demand quantity exists for China frontier-equivalent accelerators.",
-        "resolutionRequirement": "Obtain an independent same-scope/time demand or committed-order measure in accelerator units, H100e-equivalent useful compute, or another explicitly bridged unit."
+        "reason": "An independent 160k-unit DeepSeek 950DT demand lower bound now exists, but the supply observation is a Huawei-wide 1.5M Ascend production model across products. A single-customer 950DT requirement cannot be divided into all-Ascend supply to infer 950DT or China-wide accelerator headroom.",
+        "resolutionRequirement": "Obtain matched 2026/2027 950DT deliverable supply by configuration and delivery window, or aggregate independent customer demand across major China buyers into the same product/compute unit as the supply model."
       },
       "nextObservations": [
-        "Huawei/customer committed orders by product and delivery window",
-        "China-wide delivered accelerator stock/flow by model",
-        "realized useful-work throughput or a validated bridge from peak compute"
+        "Huawei 950DT deliverable shipments/allocation by quarter and configuration",
+        "DeepSeek order contract/accepted allocation and delivery schedule rather than plan only",
+        "ByteDance/Alibaba/Tencent and other customer committed 950-series quantities",
+        "China-wide delivered accelerator flow converted through a validated useful-work bridge"
       ]
     },
     {
       "jurisdiction": "CN",
       "nodeKey": "hbm",
-      "demandSupplySignal": "SCARCITY_CONFIRMED_QUANTITY_HEADROOM_NOT_ADMITTED",
+      "demandSupplySignal": "SCARCITY_CONFIRMED_INDEPENDENT_SINGLE_CUSTOMER_DEMAND_LOWER_BOUND",
       "measurements": [
         {
           "metricKey": "huawei-950dt-memory-variants-gb",
@@ -453,25 +507,52 @@
             "m-reuters-china-hbm-prices"
           ],
           "claimBoundary": "Reuters-reported upper bound; price signal, not quantity."
+        },
+        {
+          "metricKey": "deepseek-950dt-hbm-demand-lower-bound-pb-144gb",
+          "standing": "DERIVED",
+          "value": 23.04,
+          "unit": "PB decimal memory capacity",
+          "scope": "DeepSeek planned 160k Ascend 950DT at Huawei 144GB configuration",
+          "timeBasis": "reported 2026-09-04",
+          "evidenceIds": [
+            "m-bloomberg-deepseek-950dt-order",
+            "m-huawei-950-whitepaper"
+          ],
+          "claimBoundary": "Derived 160,000 × 144GB / 1,000,000 GB per PB. Independent customer-specific memory-capacity demand lower bound; does not establish exact delivered configuration or national demand."
+        },
+        {
+          "metricKey": "domestic-model-vs-deepseek-memory-capacity-equivalent-ratio",
+          "standing": "DERIVED",
+          "value": 1.0,
+          "unit": "fraction",
+          "scope": "cross-configuration memory-capacity equivalence only",
+          "timeBasis": "2026 evidence comparison",
+          "evidenceIds": [
+            "m-bloomberg-deepseek-950dt-order",
+            "m-huawei-950-whitepaper",
+            "m-epoch-huawei-roadmap"
+          ],
+          "claimBoundary": "NOT_HEADROOM: 23.04PB modeled domestic-HBM allocation (240k × 96GB) divided by 23.04PB DeepSeek lower-bound demand (160k × 144GB) equals 1.0 only in raw memory-capacity units. The numerator and denominator refer to different 950DT memory configurations and one customer is not total China demand; qualification/allocation substitutability is unproven."
         }
       ],
       "headroomAdmission": {
-        "standing": "BLOCKED_ENDOGENOUS_REQUIREMENT",
+        "standing": "BLOCKED_SCOPE_MISMATCH",
         "headroomRatio": null,
-        "reason": "240k domestic-supported units and 320k total modeled 950DT units share the same supply-constrained production model; dividing them would measure modeled source mix, not HBM supply headroom against independent demand.",
-        "resolutionRequirement": "Acquire an independent same-unit requirement: contracted/customer 950DT demand by memory configuration or China-wide HBM GB demand derived from independently observed accelerator orders/BOMs, with the same 2026 delivery basis."
+        "reason": "The independent DeepSeek plan supplies a 160k-unit/23.04PB demand lower bound, so the denominator is no longer purely endogenous. However, the modeled domestic-HBM supply slice is 240k 950DT at 96GB while the DeepSeek memory lower bound uses the 144GB configuration; qualification/configuration substitutability is unproven and one customer is not total China HBM demand.",
+        "resolutionRequirement": "Obtain qualified finished HBM output by stack/capacity compatible with 950DT configurations, plus independently observed customer orders by 96GB/144GB configuration and delivery window; aggregate demand without double counting before admitting headroom."
       },
       "nextObservations": [
-        "independent 950DT orders/backlog by 96GB versus 144GB variant",
-        "China-wide accelerator BOM-weighted HBM demand in GB with customer order dates",
-        "qualified domestic HBM output in finished GB or stacks rather than year-end wafer-start exit rate",
-        "CXMT/XMC realized yield and five-month wafer-to-package lag"
+        "DeepSeek accepted 950DT allocation and exact 96GB/144GB configuration mix",
+        "qualified finished CXMT/XMC/HiZQ HBM output in GB or stacks by compatible product",
+        "ByteDance/Alibaba/Tencent and other customer order quantities and memory BOMs",
+        "realized yield/qualification plus wafer-to-package lag"
       ]
     },
     {
       "jurisdiction": "US",
       "nodeKey": "transformer-switchgear",
-      "demandSupplySignal": "LEAD_TIME_PRESSURE_CONFIRMED_CAPACITY_HEADROOM_UNKNOWN",
+      "demandSupplySignal": "LEAD_TIME_PRESSURE_PLUS_SCENARIO_SUPPLY_COVERAGE_RANGE",
       "measurements": [
         {
           "metricKey": "reported-high-voltage-transformer-lead-time-weeks-up-to",
@@ -508,19 +589,105 @@
             "m-doe-transformer-supply"
           ],
           "claimBoundary": "Different transformer class and stale relative to 2026 high-voltage observation; retained as supply-chain context only."
+        },
+        {
+          "metricKey": "nlr-us-lpt-availability-2025-low",
+          "standing": "MODELED",
+          "value": 825.0,
+          "unit": "LPT units/year",
+          "scope": "U.S. large power transformers >=100 MVA, domestic plus imports",
+          "timeBasis": "2025",
+          "evidenceIds": [
+            "m-nlr-lpt-supply-2026"
+          ],
+          "claimBoundary": "Lower bound of NLR modeled annual U.S. availability; not booked delivery capacity."
+        },
+        {
+          "metricKey": "nlr-us-lpt-availability-2025-high",
+          "standing": "MODELED",
+          "value": 1400.0,
+          "unit": "LPT units/year",
+          "scope": "U.S. large power transformers >=100 MVA, domestic plus imports",
+          "timeBasis": "2025",
+          "evidenceIds": [
+            "m-nlr-lpt-supply-2026"
+          ],
+          "claimBoundary": "Upper bound of NLR modeled annual U.S. availability; includes 500-700 imported LPTs/year assumption."
+        },
+        {
+          "metricKey": "nlr-us-lpt-ac-scenario-annual-demand",
+          "standing": "MODELED",
+          "value": 1510.0,
+          "unit": "LPT units/year",
+          "scope": "U.S. transmission component requirements, AC planning scenario",
+          "timeBasis": "2025-2035 annual average",
+          "evidenceIds": [
+            "m-nlr-lpt-demand-2026"
+          ],
+          "claimBoundary": "Scenario-average planning requirement: 15,094 transformers / ~1,510 per year; not current committed backlog."
+        },
+        {
+          "metricKey": "nlr-us-lpt-mt-scenario-annual-demand",
+          "standing": "MODELED",
+          "value": 1370.0,
+          "unit": "LPT units/year",
+          "scope": "U.S. transmission component requirements, MT planning scenario",
+          "timeBasis": "2025-2035 annual average",
+          "evidenceIds": [
+            "m-nlr-lpt-demand-2026"
+          ],
+          "claimBoundary": "Scenario-average planning requirement: 13,713 transformers / ~1,370 per year; not current committed backlog."
+        },
+        {
+          "metricKey": "nlr-us-lpt-2025-scenario-coverage-low",
+          "standing": "DERIVED",
+          "value": 0.5463576158940397,
+          "unit": "fraction",
+          "scope": "2025 availability lower bound / AC 2025-2035 average annual requirement",
+          "timeBasis": "cross-time-basis scenario comparison",
+          "evidenceIds": [
+            "m-nlr-lpt-supply-2026",
+            "m-nlr-lpt-demand-2026"
+          ],
+          "claimBoundary": "SCENARIO_COVERAGE_NOT_CURRENT_HEADROOM: 825 / 1510. Supply is a 2025 availability estimate while requirement is a decade-average planning-model quantity."
+        },
+        {
+          "metricKey": "nlr-us-lpt-2025-scenario-coverage-high",
+          "standing": "DERIVED",
+          "value": 1.0218978102189782,
+          "unit": "fraction",
+          "scope": "2025 availability upper bound / MT 2025-2035 average annual requirement",
+          "timeBasis": "cross-time-basis scenario comparison",
+          "evidenceIds": [
+            "m-nlr-lpt-supply-2026",
+            "m-nlr-lpt-demand-2026"
+          ],
+          "claimBoundary": "SCENARIO_COVERAGE_NOT_CURRENT_HEADROOM: 1400 / 1370. Supply is a 2025 availability estimate while requirement is a decade-average planning-model quantity."
+        },
+        {
+          "metricKey": "woodmac-2025-us-power-transformer-shortfall",
+          "standing": "MODELED",
+          "value": 30.0,
+          "unit": "percent shortfall estimate",
+          "scope": "U.S. power transformer market as summarized by POWER/Wood Mackenzie",
+          "timeBasis": "2025 estimate reported 2026-01-02",
+          "evidenceIds": [
+            "m-power-woodmac-transformer-20260102"
+          ],
+          "claimBoundary": "STRUCTURED_CHALLENGE_ONLY: independent industry-model evidence of a material deficit despite the NLR aggregate scenario-coverage interval. Product definitions and time/model bases differ, so it must not be averaged with NLR estimates."
         }
       ],
       "headroomAdmission": {
-        "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+        "standing": "BLOCKED_TIME_BASIS_MISMATCH",
         "headroomRatio": null,
-        "reason": "Lead time demonstrates schedule pressure but does not identify annual qualified transformer MVA flow versus committed/project MVA requirement in one voltage/specification class.",
-        "resolutionRequirement": "Obtain annual qualified production/import flow and order backlog in matched MVA/voltage classes for AI/data-center substations, with delivery dates."
+        "reason": "NLR now provides same-class >=100MVA supply availability and 2025-2035 average annual scenario requirements, allowing a scenario coverage interval. It is not current headroom because 2025 supply is compared with a decade-average planning requirement rather than current committed orders/backlog on the same delivery basis.",
+        "resolutionRequirement": "Obtain 2026/2027 matched >=100MVA order backlog/accepted delivery demand (ideally by voltage/MVA class) and compare it to qualified annual domestic+import availability for the same delivery year; retain NLR interval as planning stress context."
       },
       "nextObservations": [
-        "manufacturer and import qualified MVA/year by high-voltage class",
-        "utility/developer committed transformer MVA and delivery backlog",
-        "cancellations/double-ordering adjustment",
-        "electrical steel, copper, bushing and breaker subcomponent lead times"
+        "2026/2027 accepted LPT orders/backlog in units and MVA by >=100MVA voltage class",
+        "qualified domestic+import deliveries by same class/year",
+        "cancellations/double ordering and supplier qualification constraints",
+        "data-center-specific transformer mix versus generator-step-up/replacement demand"
       ]
     },
     {
@@ -635,6 +802,18 @@
             "m-ercot-large-load-funnel-march"
           ],
           "claimBoundary": "Sum of ERCOT status categories for the table 2026 column; not a national requirement denominator."
+        },
+        {
+          "metricKey": "ferc-rto-iso-large-load-show-cause-operators",
+          "standing": "OBSERVED",
+          "value": 6.0,
+          "unit": "RTO/ISO operators",
+          "scope": "FERC-jurisdictional RTO/ISO large-load rule review",
+          "timeBasis": "2026-06-18",
+          "evidenceIds": [
+            "m-ferc-large-load-show-cause-20260618"
+          ],
+          "claimBoundary": "Official regulatory action covers six jurisdictional RTOs/ISOs; supports process/maturity mismatch, not MW headroom."
         }
       ],
       "headroomAdmission": {

@@ -77,9 +77,9 @@ def test_china_hbm_records_bom_and_model_without_faking_headroom() -> None:
     assert metrics["epoch-domestic-hbm-supported-950dt-units"]["value"] == 240_000.0
     assert metrics["epoch-domestic-hbm-supported-950dt-pb-96gb"]["value"] == pytest.approx(23.04)
     assert metrics["epoch-modeled-total-950dt-hbm-units"]["value"] == 320_000.0
-    assert row["headroomAdmission"]["standing"] == "BLOCKED_ENDOGENOUS_REQUIREMENT"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
     assert row["headroomAdmission"]["headroomRatio"] is None
-    assert "independent" in row["headroomAdmission"]["resolutionRequirement"].lower()
+    assert "qualified" in row["headroomAdmission"]["resolutionRequirement"].lower()
 
 
 def test_china_accelerator_has_directional_excess_demand_but_no_numeric_headroom() -> None:
@@ -88,8 +88,8 @@ def test_china_accelerator_has_directional_excess_demand_but_no_numeric_headroom
         item for item in doc["nodeMeasurements"]
         if item["jurisdiction"] == "CN" and item["nodeKey"] == "accelerator-logic"
     )
-    assert row["demandSupplySignal"] == "DEMAND_EXCEEDS_SUPPLY_ATTRIBUTED_PROVIDER_STATEMENT"
-    assert row["headroomAdmission"]["standing"] == "BLOCKED_REQUIREMENT_UNKNOWN"
+    assert row["demandSupplySignal"] == "INDEPENDENT_CUSTOMER_DEMAND_LOWER_BOUND_PLUS_PROVIDER_EXCESS_DEMAND"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
 
 
 def test_us_transformer_lead_time_is_not_miscast_as_capacity_headroom() -> None:
@@ -100,7 +100,7 @@ def test_us_transformer_lead_time_is_not_miscast_as_capacity_headroom() -> None:
     )
     metrics = {item["metricKey"]: item for item in row["measurements"]}
     assert metrics["reported-high-voltage-transformer-lead-time-weeks-up-to"]["value"] == 160.0
-    assert row["headroomAdmission"]["standing"] == "BLOCKED_REQUIREMENT_UNKNOWN"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_TIME_BASIS_MISMATCH"
 
 
 def test_us_generation_queue_is_explicitly_rejected_as_load_headroom_denominator() -> None:
@@ -161,3 +161,69 @@ def test_measurement_and_graph_share_one_external_owner_responsibility() -> None
     assert "src/ordivon_capital/research/constraint_graph.py" in row["sourcePatterns"]
     assert "src/ordivon_capital/research/constraint_measurements.py" in row["sourcePatterns"]
     assert "independent requirement denominator" in row["localResponsibility"]
+
+
+def test_independent_deepseek_demand_narrows_cn_accelerator_gap_without_overclaiming() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = next(
+        item for item in doc["nodeMeasurements"]
+        if item["jurisdiction"] == "CN" and item["nodeKey"] == "accelerator-logic"
+    )
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["deepseek-reported-950dt-demand-lower-bound-units"]["value"] == 160_000.0
+    assert metrics["deepseek-reported-950dt-demand-lower-bound-units"]["standing"] == "OBSERVED"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+    assert "950DT" in row["headroomAdmission"]["reason"]
+
+
+def test_deepseek_order_creates_independent_hbm_demand_lower_bound_but_not_headroom() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = next(
+        item for item in doc["nodeMeasurements"]
+        if item["jurisdiction"] == "CN" and item["nodeKey"] == "hbm"
+    )
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["deepseek-950dt-hbm-demand-lower-bound-pb-144gb"]["value"] == pytest.approx(23.04)
+    assert metrics["domestic-model-vs-deepseek-memory-capacity-equivalent-ratio"]["value"] == pytest.approx(1.0)
+    assert "NOT_HEADROOM" in metrics["domestic-model-vs-deepseek-memory-capacity-equivalent-ratio"]["claimBoundary"]
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+    assert row["headroomAdmission"]["headroomRatio"] is None
+
+
+def test_us_lpt_scenario_coverage_is_computable_but_not_current_headroom() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = next(
+        item for item in doc["nodeMeasurements"]
+        if item["jurisdiction"] == "US" and item["nodeKey"] == "transformer-switchgear"
+    )
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["nlr-us-lpt-availability-2025-low"]["value"] == 825.0
+    assert metrics["nlr-us-lpt-availability-2025-high"]["value"] == 1400.0
+    assert metrics["nlr-us-lpt-ac-scenario-annual-demand"]["value"] == 1510.0
+    assert metrics["nlr-us-lpt-mt-scenario-annual-demand"]["value"] == 1370.0
+    assert metrics["nlr-us-lpt-2025-scenario-coverage-low"]["value"] == pytest.approx(825.0 / 1510.0)
+    assert metrics["nlr-us-lpt-2025-scenario-coverage-high"]["value"] == pytest.approx(1400.0 / 1370.0)
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_TIME_BASIS_MISMATCH"
+    assert "average" in row["headroomAdmission"]["reason"].lower()
+
+
+def test_scenario_coverage_interval_is_deterministic_and_not_headroom() -> None:
+    from ordivon_capital.research.constraint_measurements import compute_coverage_interval
+
+    result = compute_coverage_interval(
+        supply_low=825.0,
+        supply_high=1400.0,
+        requirement_low=1370.0,
+        requirement_high=1510.0,
+    )
+    assert result == {
+        "coverageRatioLow": pytest.approx(825.0 / 1510.0),
+        "coverageRatioHigh": pytest.approx(1400.0 / 1370.0),
+    }
+    with pytest.raises(ConstraintMeasurementValidationError):
+        compute_coverage_interval(
+            supply_low=1400.0,
+            supply_high=825.0,
+            requirement_low=1370.0,
+            requirement_high=1510.0,
+        )

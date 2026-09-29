@@ -43,6 +43,31 @@ def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def compute_coverage_interval(
+    *,
+    supply_low: float,
+    supply_high: float,
+    requirement_low: float,
+    requirement_high: float,
+) -> dict[str, float]:
+    """Compute a bounded supply/requirement coverage interval; this is not headroom admission."""
+    values = {
+        "supply_low": supply_low,
+        "supply_high": supply_high,
+        "requirement_low": requirement_low,
+        "requirement_high": requirement_high,
+    }
+    for label, value in values.items():
+        _require(isinstance(value, (int, float)) and not isinstance(value, bool), f"{label} numeric")
+        _require(value > 0, f"{label} must be > 0")
+    _require(supply_low <= supply_high, "supply_low must be <= supply_high")
+    _require(requirement_low <= requirement_high, "requirement_low must be <= requirement_high")
+    return {
+        "coverageRatioLow": float(supply_low) / float(requirement_high),
+        "coverageRatioHigh": float(supply_high) / float(requirement_low),
+    }
+
+
 def evaluate_headroom_pair(
     *, capacity: dict[str, Any], requirement: dict[str, Any]
 ) -> dict[str, Any]:

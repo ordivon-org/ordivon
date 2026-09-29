@@ -63,3 +63,36 @@ The queue is frontier-first:
 6. non-frontier China physical layers as monitoring only.
 
 This avoids turning the project into a static infrastructure database before the measurements can change the current model.
+
+## Fill pass 2 — independent demand and scenario coverage
+
+A second targeted acquisition pass changed the **kind of unknown** on two current frontiers without manufacturing a final headroom number.
+
+### China accelerator / HBM: independent customer demand lower bound
+
+Bloomberg reported on 2026-09-04 that DeepSeek plans to deploy at least 160,000 Ascend 950DT accelerators at an Inner Mongolia data center. Combined with Huawei's 144GB 950DT configuration, this corresponds to a customer-specific memory-capacity lower bound of 23.04PB decimal.
+
+That evidence is independent of Epoch's Huawei supply model, so the prior `BLOCKED_ENDOGENOUS_REQUIREMENT` standing for China HBM is no longer the best description. However, it still does **not** admit headroom:
+
+- the Epoch domestic-HBM-supported slice is modeled as 240,000 950DT units at 96GB (23.04PB);
+- the DeepSeek lower-bound demand is 160,000 units at 144GB (23.04PB);
+- raw PB equivalence does not prove that the two memory configurations, stacks, qualification states or allocations are interchangeable;
+- DeepSeek is one customer, not total China demand;
+- a reported deployment plan is not fulfilled shipment evidence.
+
+Therefore the 1.0 raw-memory-capacity ratio is persisted only as `NOT_HEADROOM`; the node moves to `BLOCKED_SCOPE_MISMATCH`.
+
+### U.S. large power transformers: scenario coverage but not current headroom
+
+NLR's January 2026 supply work estimates U.S. availability for LPTs >=100MVA at roughly 825–1,400 units in 2025 including imports. Its companion planning study estimates average annual 2025–2035 transformer requirements of roughly 1,510 units/year in the AC scenario and 1,370/year in the MT scenario.
+
+This allows a bounded planning comparison:
+
+- low coverage: `825 / 1510 ≈ 0.546`;
+- high coverage: `1400 / 1370 ≈ 1.022`.
+
+The interval spans substantial shortage to slight aggregate sufficiency depending on supply/demand assumptions. It is **scenario coverage, not current headroom**, because a 2025 availability slice is being compared with a 2025–2035 average planning requirement and does not represent current accepted orders/backlog by voltage/MVA class. The remaining measurement frontier is now a matched-year accepted-order/delivery denominator.
+
+### U.S. large-load interconnection
+
+FERC's 2026 large-load show-cause action across six jurisdictional RTO/ISOs is retained as process evidence only. It supports treating request maturity, readiness and service rules as first-class measurements; it does not create a national MW denominator. The existing ERCOT funnel remains the most explicit public load-side lifecycle example in R1.

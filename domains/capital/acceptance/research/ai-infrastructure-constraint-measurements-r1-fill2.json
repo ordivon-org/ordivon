@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-acceptance",
+  "truthRole": "MEASUREMENT_FILL_ACCEPTANCE_NOT_PROVIDER_TRUTH_OR_HEADROOM_VALIDATION",
+  "subject": "ai-infrastructure-constraint-measurements-r1-fill2",
+  "observedDate": "2026-09-29",
+  "sourceBaseRevision": "7730b2b79245531dbfb0d475f2cf1261f783372e",
+  "standing": "PASS_FILL2_GAPS_NARROWED_NO_P0_HEADROOM_ADMITTED",
+  "artifactDigests": {
+    "config/ai_infrastructure_constraint_measurements_r1.json": "sha256:39ff89e83e2fc3c3389266953d9da2ebc1fd7c1cb77347426f4b88d5c611dd4e",
+    "src/ordivon_capital/research/constraint_measurements.py": "sha256:0861943efef3b5605f064df80254555a21f5f40f5ea3218ae9387ea292c7bac1",
+    "docs/AI_INFRASTRUCTURE_CONSTRAINT_MEASUREMENTS_R1.md": "sha256:cc7436a63a762ea98515e33d221eeb65dff41e8f37bfdca84bb33317acf2715e",
+    "tests/test_ai_infrastructure_constraint_measurements.py": "sha256:65d96306f4c47d471e4b09ff4a234eb33d29abeeba7df250ddc1f305f3168207"
+  },
+  "frontierTransitions": {
+    "CN:accelerator-logic": {
+      "before": "BLOCKED_REQUIREMENT_UNKNOWN",
+      "after": "BLOCKED_SCOPE_MISMATCH",
+      "newEvidence": "DeepSeek reported >=160,000 Ascend 950DT planned deployment; independent single-customer lower bound.",
+      "remainingGap": "Obtain matched 2026/2027 950DT deliverable supply by configuration and delivery window, or aggregate independent customer demand across major China buyers into the same product/compute unit as the supply model."
+    },
+    "CN:hbm": {
+      "before": "BLOCKED_ENDOGENOUS_REQUIREMENT",
+      "after": "BLOCKED_SCOPE_MISMATCH",
+      "newEvidence": "Independent DeepSeek demand lower bound derives to 23.04PB at 144GB; raw equivalence to modeled domestic 23.04PB/96GB slice is persisted as NOT_HEADROOM.",
+      "remainingGap": "Obtain qualified finished HBM output by stack/capacity compatible with 950DT configurations, plus independently observed customer orders by 96GB/144GB configuration and delivery window; aggregate demand without double counting before admitting headroom."
+    },
+    "US:transformer-switchgear": {
+      "before": "BLOCKED_REQUIREMENT_UNKNOWN",
+      "after": "BLOCKED_TIME_BASIS_MISMATCH",
+      "newEvidence": "NLR >=100MVA availability 825-1,400 units in 2025 versus AC/MT 2025-2035 average annual planning requirements 1,510/1,370.",
+      "scenarioCoverageLow": 0.5463576158940397,
+      "scenarioCoverageHigh": 1.0218978102189782,
+      "remainingGap": "Obtain 2026/2027 matched >=100MVA order backlog/accepted delivery demand (ideally by voltage/MVA class) and compare it to qualified annual domestic+import availability for the same delivery year; retain NLR interval as planning stress context."
+    },
+    "US:grid-interconnection-transmission": {
+      "before": "BLOCKED_SCOPE_MISMATCH",
+      "after": "BLOCKED_SCOPE_MISMATCH",
+      "newEvidence": "FERC six-RTO/ISO large-load rule action reinforces lifecycle/process mismatch but supplies no national MW denominator.",
+      "remainingGap": "Build region-matched funnels from requested MW → verified/studied/approved MW → contracted/energized MW → observed peak load and compare them with region-specific firm supply/transmission capability; aggregate nationally only after compatible ISO/RTO coverage exists."
+    }
+  },
+  "methodResult": {
+    "quantitativeHeadroomAdmittedCount": 0,
+    "scenarioCoverageAdmittedCount": 1,
+    "minimalBrokenFrontier": [
+      "CN:950DT matched supply plus broader independent product-matched demand",
+      "CN:qualified 96GB/144GB-compatible finished HBM supply plus complete independent demand",
+      "US:matched-year >=100MVA accepted LPT orders/backlog by class",
+      "US:harmonized ISO/RTO large-load maturity funnels plus regional deliverable capacity"
+    ],
+    "stopReason": "Additional broad searches are yielding unmatched ecosystem demand, forecasts or heterogeneous proxies rather than the missing same-scope denominators. Preserve UNKNOWN and re-enter on owner-grade observations."
+  },
+  "verification": {
+    "tddRedJobId": "job-01a0edde-496f-7482-876b-e136084d7dab",
+    "focusedGreenJobId": "job-01a0ede0-3e91-7a03-bdbb-6ad46135c2a8",
+    "fullHermeticPassJobId": "job-01a0ede2-d238-7a40-bc16-f8dfe34a3689",
+    "hermeticTestResult": "430 passed, 11 provider_qualification tests deselected",
+    "ruff": "PASS",
+    "capitalRegistry": "PASS",
+    "quantitativeInventory": "PASS",
+    "currentStateReadback": "PASS"
+  },
+  "nonClaims": [
+    "The 160,000 DeepSeek figure is a reported planned deployment, not fulfilled deliveries or China-wide demand.",
+    "23.04PB domestic-model memory capacity divided by 23.04PB DeepSeek lower-bound memory capacity equals 1.0 only as a raw cross-configuration equivalence and is explicitly NOT_HEADROOM.",
+    "The NLR 0.546-1.022 coverage interval is planning scenario coverage, not current U.S. transformer headroom.",
+    "No P0 node currently has a fully admitted current quantitative headroom ratio.",
+    "No decision-state claim, investment recommendation, owner risk appetite or external financial effect authority is created."
+  ]
+}
