@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "hostStoragePath": "/mnt/d",
+  "hardFloorBytes": 21474836480,
+  "softTriggerBytes": 30064771072,
+  "reactionHorizonSeconds": 7200,
+  "baseCooldownSeconds": 1800,
+  "maxCooldownSeconds": 21600,
+  "maxProbeIntervalSeconds": 21600,
+  "eventProbeMinIntervalSeconds": 1800,
+  "sampleWindowSeconds": 21600,
+  "minimumEffectiveYieldBytes": 268435456
+}
