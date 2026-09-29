@@ -175,9 +175,35 @@ fn authenticated_http_parts_project_request_local_principal() {
         ));
     let (parts, _) = request.into_parts();
     assert_eq!(
-        authenticated_principal_from_http_parts(&parts).as_deref(),
+        authenticated_principal_from_http_parts(&parts)
+            .as_ref()
+            .map(AuthenticatedPrincipalBinding::principal),
         Some("principal:remote-agent")
     );
+}
+
+#[test]
+fn effective_principal_scopes_only_remote_http_job_lifecycle() {
+    let local = EffectivePrincipal {
+        principal: "principal:local-owner".to_string(),
+        auth_source: Some("local_bearer".to_string()),
+    };
+    let remote = EffectivePrincipal {
+        principal: "principal:remote-agent".to_string(),
+        auth_source: Some("remote_bearer".to_string()),
+    };
+    let access = EffectivePrincipal {
+        principal: "principal:cf-access:test".to_string(),
+        auth_source: Some("cloudflare_access".to_string()),
+    };
+    let internal = EffectivePrincipal {
+        principal: "principal:mcp-test".to_string(),
+        auth_source: None,
+    };
+    assert!(!local.scopes_job_lifecycle());
+    assert!(remote.scopes_job_lifecycle());
+    assert!(access.scopes_job_lifecycle());
+    assert!(!internal.scopes_job_lifecycle());
 }
 
 fn bound_execution_principal(bound: JobRunProposal) -> String {

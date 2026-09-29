@@ -322,6 +322,10 @@ impl Registry {
                 "cannot ensure Job Workspace lookup index",
             ),
             (
+                JOB_PRINCIPAL_LOOKUP_INDEX_SQL,
+                "cannot ensure Job principal lookup index",
+            ),
+            (
                 JOB_RESOLUTION_STATUS_INDEX_SQL,
                 "cannot ensure Job resolution status index",
             ),
@@ -371,6 +375,11 @@ impl Registry {
                 JOB_WORKSPACE_LOOKUP_INDEX,
                 "cannot verify Job Workspace lookup index",
                 "Job Workspace lookup index is missing after maintenance",
+            ),
+            (
+                JOB_PRINCIPAL_LOOKUP_INDEX,
+                "cannot verify Job principal lookup index",
+                "Job principal lookup index is missing after maintenance",
             ),
             (
                 ARTIFACT_JOB_LOOKUP_INDEX,

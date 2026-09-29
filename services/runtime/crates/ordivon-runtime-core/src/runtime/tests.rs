@@ -3968,6 +3968,70 @@ fn list_intersects_workspace_and_client_request_identity() {
 }
 
 #[test]
+fn principal_scoped_list_filters_before_pagination() {
+    let sandbox = Sandbox::new("list-principal-scoped", 5000);
+    for index in 0..5 {
+        let request_id = format!("request:list-principal-scoped:{index}");
+        let mut list_request = request(&sandbox, &request_id, 8);
+        let target = index % 2 == 0;
+        list_request.plan.principal = if target {
+            "principal:list-principal-scoped:target".to_string()
+        } else {
+            "principal:list-principal-scoped:other".to_string()
+        };
+        list_request.plan.workspace_id = if target {
+            format!("workspace:list-principal-scoped:target:{index}")
+        } else {
+            format!("workspace:list-principal-scoped:other:{index}")
+        };
+        sandbox.registry.submit(&list_request).unwrap();
+    }
+
+    let mut cursor = None;
+    let mut observed = Vec::new();
+    loop {
+        let page = sandbox
+            .registry
+            .list_jobs_for_principal(
+                &RuntimeJobListRequest {
+                    limit: 1,
+                    cursor,
+                    client_request_id: None,
+                    workspace_id: None,
+                },
+                "principal:list-principal-scoped:target",
+            )
+            .unwrap();
+        observed.extend(page.jobs);
+        cursor = page.next_cursor;
+        if cursor.is_none() {
+            break;
+        }
+    }
+    assert_eq!(observed.len(), 3);
+    assert!(observed
+        .iter()
+        .all(|job| job.workspace_id.contains(":target:")));
+}
+
+#[test]
+fn runtime_job_principal_authorization_rejects_cross_principal_access() {
+    let sandbox = Sandbox::new("job-principal-authorization", 5000);
+    let mut run = request(&sandbox, "request:job-principal-authorization", 8);
+    run.plan.principal = "principal:job-owner".to_string();
+    let admitted = created(sandbox.registry.submit(&run).unwrap());
+    let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+    runtime
+        .authorize_job_principal(&admitted.job.job_id, "principal:job-owner")
+        .unwrap();
+    let error = runtime
+        .authorize_job_principal(&admitted.job.job_id, "principal:other")
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+    assert_eq!(error.field.as_deref(), Some("jobId"));
+}
+
+#[test]
 fn filtered_list_paginates_same_request_across_principals() {
     let sandbox = Sandbox::new("list-client-request-pagination", 5000);
     let target_id = "request:list-client-request:shared";

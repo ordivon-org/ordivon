@@ -78,26 +78,47 @@ impl AuthenticatedPrincipalBinding {
     }
 }
 
-fn authenticated_principal_from_http_parts(parts: &axum::http::request::Parts) -> Option<String> {
+fn authenticated_principal_from_http_parts(
+    parts: &axum::http::request::Parts,
+) -> Option<AuthenticatedPrincipalBinding> {
     parts
         .extensions
         .get::<AuthenticatedPrincipalBinding>()
-        .map(|binding| binding.principal.clone())
+        .cloned()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct EffectivePrincipal(String);
+struct EffectivePrincipal {
+    principal: String,
+    auth_source: Option<String>,
+}
+
+impl EffectivePrincipal {
+    fn scopes_job_lifecycle(&self) -> bool {
+        matches!(
+            self.auth_source.as_deref(),
+            Some("remote_bearer") | Some("cloudflare_access")
+        )
+    }
+}
 
 impl FromContextPart<ToolCallContext<'_, RuntimeServer>> for EffectivePrincipal {
     fn from_context_part(context: &mut ToolCallContext<RuntimeServer>) -> Result<Self, McpError> {
-        let request_principal = context
+        let binding = context
             .request_context
             .extensions
             .get::<axum::http::request::Parts>()
             .and_then(authenticated_principal_from_http_parts);
-        Ok(Self(request_principal.unwrap_or_else(|| {
-            context.service.state.execution.principal.clone()
-        })))
+        Ok(match binding {
+            Some(binding) => Self {
+                principal: binding.principal,
+                auth_source: Some(binding.auth_source),
+            },
+            None => Self {
+                principal: context.service.state.execution.principal.clone(),
+                auth_source: None,
+            },
+        })
     }
 }
 
