@@ -25,3 +25,11 @@ No live execution is permitted until:
 - the R2 preregistration is committed.
 
 The R1 runner and evidence remain immutable. R2 is a new experiment revision rather than a patch to R1.
+
+## Calibration execution contract
+
+`run_calibration_r2.py` is the calibration-only live execution surface. It reuses the existing Adaptive Edit live Harness runner rather than introducing a second Agent execution model. Generated task payloads are materialized into temporary `LiveTaskSpec` fixtures, while the frozen task bundle, Provider identity preflight, analysis implementation, live Harness runner, and calibration runner are all digest-bound in a calibration preregistration before any calibration Provider call.
+
+The calibration campaign is exactly six disjoint calibration tasks × four Model×Harness cells = 24 at-most-once trials. Its journal is fail-closed: an unmatched `trial_started` forbids further Provider dispatch until reconciliation. Every completed trial also rechecks requested/effective/provider model identity; identity drift or a Harness exception stops the campaign before the next cell.
+
+The fixed resource envelope uses the current Adaptive Edit live authority with a 64,000 total-token ceiling per cell (6 model calls, 8 tool calls, 90 s wall-time). Calibration outcomes are never inferential observations. Only `PASS_CALIBRATION_DIFFICULTY` may admit construction of the final 108-run inferential preregistration; `REJECT_TASK_BANK_DIFFICULTY` closes this task-bank revision without an inferential campaign.
