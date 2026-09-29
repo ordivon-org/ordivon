@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/../.." && pwd)"
+python=/root/external/jsonschema/4.26.0/.venv/bin/python
+if [[ ! -x "$python" ]]; then
+  echo "isolated jsonschema 4.26.0 candidate environment missing" >&2
+  exit 2
+fi
+export PYTHONPATH="$repo/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$python" "$repo/tools/resource_governance_validation_r1/differential.py"

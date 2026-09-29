@@ -239,6 +239,13 @@
     "src/ordivon_capital/portfolio/decision_record.py": [
       "Decide",
       "Validate"
+    ],
+    "src/ordivon_capital/governance/owner_authority.py": [
+      "Validate",
+      "Authorize"
+    ],
+    "src/ordivon_capital/risk/risk_capacity_validation.py": [
+      "Validate"
     ]
   },
   "crossCuttingEvidenceRole": "Evidence binding/materialization is cross-cutting and is not promoted into a thirteenth finance-domain ontology term."

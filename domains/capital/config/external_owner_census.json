@@ -814,6 +814,24 @@
       ],
       "localStanding": "LOCAL_BOUNDED_SESSIONLESS_TAGVALUE_PROJECTOR_PREFERRED",
       "localResponsibility": "project only the qualified FIX 4.4 NewOrderSingle field sequence for mechanics evidence; no session, transport, BodyLength, CheckSum, resend, sequence recovery, dictionary negotiation, or broader FIX engine"
+    },
+    {
+      "id": "owner-constitution-delegation-and-risk-capacity",
+      "externalOwners": [
+        "CFA Institute private-wealth / investment-policy-statement and investment-governance practices",
+        "ISO 31000 risk-management reference",
+        "IIA Three Lines governance reference"
+      ],
+      "ownerClasses": [
+        "STANDARD_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "localResponsibility": "bind explicit Principal Constitution and delegation identity, validate evidence-derived risk capacity as a safety envelope, and project a fail-closed downstream governance standing; never infer owner appetite, synthesize missing owner risk budget, grant provider/credential authority, or claim an external effect",
+      "localStanding": "BOUNDED_OWNER_AUTHORITY_AND_CAPACITY_SEAM",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/owner_authority.py",
+        "src/ordivon_capital/risk/risk_capacity_validation.py"
+      ]
     }
   ],
   "notInstantiatedDomains": [

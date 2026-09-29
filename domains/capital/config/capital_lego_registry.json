@@ -1634,6 +1634,86 @@
         "external financial write",
         "mutable decision history"
       ]
+    },
+    {
+      "legoId": "capital.governance.owner-authority-envelope",
+      "ownerDomain": "governance",
+      "functionalRoles": [
+        "Validate",
+        "Authorize"
+      ],
+      "status": "ACTIVE",
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "inputContracts": [
+        "schema/capital-constitution-v1.schema.json",
+        "schema/capital-delegation-grant-v1.schema.json",
+        "schema/capital-risk-capacity-v1.schema.json",
+        "contracts/portfolio-risk-budget-v2.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.owner-governance-envelope"
+      ],
+      "evidenceObligations": [
+        "explicit Principal Constitution",
+        "explicit delegation grant",
+        "evidence-derived risk-capacity document",
+        "registered owner risk budget"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/governance/owner_authority.py",
+        "symbol": "project_owner_governance_envelope"
+      },
+      "permittedUses": [
+        "validate explicit owner Constitution/delegation and project a bounded downstream governance envelope"
+      ],
+      "prohibitedUses": [
+        "infer owner risk appetite",
+        "synthesize an UNSET owner risk budget",
+        "mint provider permission",
+        "mint credential authority",
+        "mint external effect authority"
+      ],
+      "replayClass": "PURE_DETERMINISTIC",
+      "riskTier": "CRITICAL",
+      "sideEffects": [],
+      "sourceClass": "CANONICAL"
+    },
+    {
+      "legoId": "capital.risk.risk-capacity-validation",
+      "ownerDomain": "risk",
+      "functionalRoles": [
+        "Validate"
+      ],
+      "status": "ACTIVE",
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "inputContracts": [
+        "schema/capital-risk-capacity-v1.schema.json"
+      ],
+      "outputContracts": [],
+      "evidenceObligations": [
+        "evidence-derived capacity facts with explicit currentness"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/risk/risk_capacity_validation.py",
+        "symbol": "validate_risk_capacity_document"
+      },
+      "permittedUses": [
+        "validate evidence-derived risk-capacity safety envelopes"
+      ],
+      "prohibitedUses": [
+        "infer risk appetite",
+        "grant risk budget",
+        "grant sizing authority",
+        "grant external effect authority"
+      ],
+      "replayClass": "PURE_DETERMINISTIC",
+      "riskTier": "CRITICAL",
+      "sideEffects": [],
+      "sourceClass": "CANONICAL"
     }
   ]
 }

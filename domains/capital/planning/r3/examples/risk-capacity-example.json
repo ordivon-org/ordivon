@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.risk-capacity",
+  "capacityId": "example.capacity.financial-liquidity",
+  "asOf": "2026-09-29T00:00:00Z",
+  "scope": "example-only:financial-risk-capacity",
+  "standing": "CONSTRAINED",
+  "evidenceClaims": [
+    {
+      "claimId": "example.claim.protected-liquidity",
+      "producer": "example.treasury-observer",
+      "observedAt": "2026-09-29T00:00:00Z",
+      "validUntil": "2026-09-30T00:00:00Z",
+      "evidenceDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  ],
+  "capacityConstraints": [
+    {
+      "constraintId": "example.constraint.protected-liquidity",
+      "dimension": "available-liquidity",
+      "relation": "MIN",
+      "value": "protected-floor",
+      "unit": "policy-defined",
+      "authorityRole": "SAFETY_ENVELOPE_ONLY"
+    }
+  ],
+  "riskAppetiteInferred": false,
+  "riskBudgetGranted": false,
+  "externalEffectAuthorityGranted": false,
+  "notes": "Illustrative evidence-derived capacity only; does not set owner risk appetite or a trading budget."
+}
