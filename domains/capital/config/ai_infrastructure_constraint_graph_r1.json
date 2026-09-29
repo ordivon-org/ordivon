@@ -1,0 +1,1219 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.ai-infrastructure-constraint-graph",
+  "truthRole": "RESEARCH_MODEL_NOT_PROVIDER_TRUTH_OR_INVESTMENT_AUTHORITY",
+  "asOfDate": "2026-09-29",
+  "methodContract": {
+    "name": "Recursive LEGO Calculus R2.1",
+    "instructionDigest": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+    "problem": "Which AI-infrastructure constraints are binding, how fast can intelligence/automation relax them, and where does the frontier migrate next?"
+  },
+  "principles": [
+    "Do not collapse technology readiness, manufacturing readiness, installed stock, annual flow, qualification and deliverability into one capacity number.",
+    "Do not scalarize heterogeneous constraints into an overall score; preserve a headroom vector and an explicit evidence-bounded minimal frontier.",
+    "Algorithmic efficiency and physical-capacity growth are separate from demand/rebound growth; lower unit cost does not imply lower total resource demand.",
+    "A global supply-chain bottleneck is not automatically a jurisdiction-specific frontier; preserve UNKNOWN when local evidence is missing.",
+    "Technology truth does not imply asset-pricing truth, investment recommendation, owner risk appetite or financial effect authority."
+  ],
+  "aggregationPolicy": {
+    "aggregateScoreAllowed": false,
+    "frontierSelection": "EXPLICIT_EVIDENCE_BOUNDED_JUDGMENT",
+    "quantitativeHeadroomRule": "Only compute a ratio when capacity and requirement share the same unit, scope and time basis."
+  },
+  "effectBoundary": {
+    "externalFinancialWritesAllowed": false,
+    "ownerRiskBudgetInferred": false,
+    "investmentRecommendationAuthority": false,
+    "stateRegistryMutationIncluded": false
+  },
+  "methodOwners": [
+    {
+      "owner": "ISO/IEC/IEEE 15288:2023",
+      "role": "system life-cycle and recursive system-element process reference",
+      "canonicalUrl": "https://www.iso.org/standard/81702.html"
+    },
+    {
+      "owner": "NASA Technology Readiness Levels",
+      "role": "technology-specific readiness reference; never aggregate a portfolio layer into one TRL",
+      "canonicalUrl": "https://www.nasa.gov/directorates/somd/space-communications-navigation-program/technology-readiness-levels/"
+    },
+    {
+      "owner": "GAO / Manufacturing Readiness Levels",
+      "role": "manufacturing maturity reference separating pilot/low-rate/full-rate production",
+      "canonicalUrl": "https://www.gao.gov/assets/a303517.html"
+    },
+    {
+      "owner": "ISO 22400",
+      "role": "manufacturing-operations KPI vocabulary reference",
+      "canonicalUrl": "https://www.iso.org/standard/56847.html"
+    },
+    {
+      "owner": "ISO 23247",
+      "role": "manufacturing digital-twin reference architecture and digital-thread/composition reference",
+      "canonicalUrl": "https://www.iso.org/standard/78743.html"
+    },
+    {
+      "owner": "NIST 2026 AI/ML Smart Manufacturing Roadmap",
+      "role": "physical-acceleration mechanism and industrial deployment barrier reference",
+      "canonicalUrl": "https://www.nist.gov/publications/2026-roadmap-artificial-intelligence-and-machine-learning-smart-manufacturing"
+    },
+    {
+      "owner": "IEA Energy and AI",
+      "role": "scenario boundary for data-center electricity demand and energy-system lead times",
+      "canonicalUrl": "https://www.iea.org/reports/energy-and-ai/energy-demand-from-ai"
+    },
+    {
+      "owner": "Berkeley Lab Queued Up",
+      "role": "U.S. generator/storage interconnection queue observation owner",
+      "canonicalUrl": "https://emp.lbl.gov/queued-2026-edition-characteristics-power-plants-seeking-transmission-interconnection-end-2025"
+    }
+  ],
+  "evidence": [
+    {
+      "evidenceId": "ev-epoch-huawei-20260924",
+      "persistentIdentity": "url:https://epoch.ai/publications/huaweis-roadmap-to-2031",
+      "canonicalUrl": "https://epoch.ai/publications/huaweis-roadmap-to-2031",
+      "sourceClass": "INDEPENDENT_RESEARCH_MODEL",
+      "title": "Epoch AI Huawei roadmap and 2026 compute-output model",
+      "publishedAt": "2026-09-04",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Model-based estimates: Huawei 2026 median 1.5M Ascend units / 0.88M H100e; Nvidia 5.9M chips / 23M H100e; H100e is a peak-compute normalization, not realized workload performance."
+    },
+    {
+      "evidenceId": "ev-reuters-china-hbm-20260910",
+      "persistentIdentity": "url:https://www.reuters.com/world/asia-pacific/chinas-ai-chipmakers-raise-prices-high-bandwidth-memory-shortage-bites-2026-09-10/",
+      "canonicalUrl": "https://www.reuters.com/world/asia-pacific/chinas-ai-chipmakers-raise-prices-high-bandwidth-memory-shortage-bites-2026-09-10/",
+      "sourceClass": "NEWS_REPORTING",
+      "title": "China AI chipmakers raise prices as HBM shortage bites",
+      "publishedAt": "2026-09-10",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports HBM shortage and export-control pressure raising Chinese accelerator prices; does not measure total domestic HBM capacity."
+    },
+    {
+      "evidenceId": "ev-reuters-hbm-share-20260929",
+      "persistentIdentity": "url:https://www.reuters.com/world/asia-pacific/samsung-electronics-says-hbm-account-nearly-30-industry-dram-capacity-next-year-2026-09-29/",
+      "canonicalUrl": "https://www.reuters.com/world/asia-pacific/samsung-electronics-says-hbm-account-nearly-30-industry-dram-capacity-next-year-2026-09-29/",
+      "sourceClass": "NEWS_REPORTING_PRIMARY_QUOTE",
+      "title": "Samsung says HBM approaches 30% of industry DRAM wafer capacity in 2027",
+      "publishedAt": "2026-09-29",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Samsung executive says HBM is about 20% of industry DRAM wafer capacity now and nearly 30% next year; this is industry-wide, not a country stock measure."
+    },
+    {
+      "evidenceId": "ev-reuters-sk-hynix-shortage-20260710",
+      "persistentIdentity": "url:https://www.reuters.com/world/asia-pacific/sk-hynix-ceo-sees-worst-ever-memory-supply-shortage-2027-says-demand-outstrip-2026-07-10/",
+      "canonicalUrl": "https://www.reuters.com/world/asia-pacific/sk-hynix-ceo-sees-worst-ever-memory-supply-shortage-2027-says-demand-outstrip-2026-07-10/",
+      "sourceClass": "NEWS_REPORTING_PRIMARY_QUOTE",
+      "title": "SK hynix CEO expects severe memory shortage in 2027",
+      "publishedAt": "2026-07-10",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Executive view that memory demand may outstrip supply beyond 2030; forward-looking company assessment, not independent capacity measurement."
+    },
+    {
+      "evidenceId": "ev-trendforce-packaging-20260430",
+      "persistentIdentity": "url:https://www.trendforce.com/presscenter/news/20260430-13028.html",
+      "canonicalUrl": "https://www.trendforce.com/presscenter/news/20260430-13028.html",
+      "sourceClass": "INDUSTRY_RESEARCH",
+      "title": "TrendForce AI supply-chain arms race and advanced packaging constraints",
+      "publishedAt": "2026-04-30",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Industry research reports persistent CoWoS/2.5D packaging tightness and expects TSMC CoWoS capacity to expand >60% by 2027, with severe shortage beginning to ease in 2027."
+    },
+    {
+      "evidenceId": "ev-trendforce-packaging-20260918",
+      "persistentIdentity": "url:https://www.trendforce.com/presscenter/news/20260918-13241.html",
+      "canonicalUrl": "https://www.trendforce.com/presscenter/news/20260918-13241.html",
+      "sourceClass": "INDUSTRY_RESEARCH",
+      "title": "TrendForce CoWoS-L expected to remain mainstream through 2028",
+      "publishedAt": "2026-09-18",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Industry research says packaging demand remains strong; CoWoS-L maturity/yield support continued dominance through 2028. Not a China-specific capacity census."
+    },
+    {
+      "evidenceId": "ev-epoch-ai-dc-20260923",
+      "persistentIdentity": "url:https://epoch.ai/data/ai-data-centers",
+      "canonicalUrl": "https://epoch.ai/data/ai-data-centers",
+      "sourceClass": "INDEPENDENT_RESEARCH_DATABASE",
+      "title": "Epoch AI Data Centers database",
+      "publishedAt": "2026-09-23",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "92 tracked large AI sites total 13.7M H100e and 13.2 GW IT power; coverage is partial and strongest for large sites."
+    },
+    {
+      "evidenceId": "ev-semianalysis-china-dc-20260925",
+      "persistentIdentity": "url:https://newsletter.semianalysis.com/p/the-chinese-ai-infrastructure-boom",
+      "canonicalUrl": "https://newsletter.semianalysis.com/p/the-chinese-ai-infrastructure-boom",
+      "sourceClass": "INDUSTRY_RESEARCH_MODEL",
+      "title": "SemiAnalysis China Datacenter Model",
+      "publishedAt": "2026-09-25",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Bottom-up model estimates China >24 GW data-center fleet at 2026YE, ~20 GW dated pipeline, ~30 GW announced; US global model 56 GW at 2026YE. These are modeled facility capacities, not AI-only energized IT load."
+    },
+    {
+      "evidenceId": "ev-eia-us-additions-20260220",
+      "persistentIdentity": "url:https://www.eia.gov/todayinenergy/detail.php?id=67205",
+      "canonicalUrl": "https://www.eia.gov/todayinenergy/detail.php?id=67205",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "title": "EIA planned U.S. utility-scale capacity additions for 2026",
+      "publishedAt": "2026-02-20",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "EIA reports 86 GW planned utility-scale generating-capacity additions in 2026 versus 53 GW added in 2025; planned additions are not guaranteed realized firm capacity."
+    },
+    {
+      "evidenceId": "ev-nea-cn-power-20260825",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260825/1430d07985474c5b8110552785f1c74b/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260825/1430d07985474c5b8110552785f1c74b/c.html",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "title": "China NEA Jan-Jul 2026 power statistics",
+      "publishedAt": "2026-08-25",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "China NEA reports 4.08 TW installed generation capacity at end-July 2026 and ~194 GW additions in Jan-Jul; nameplate capacity is not firm deliverable power to any specific AI site."
+    },
+    {
+      "evidenceId": "ev-nea-cn-data-electricity-20260730",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260730/dfc95991857e48379d1c2493dedf5b0a/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260730/dfc95991857e48379d1c2493dedf5b0a/c.html",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "title": "China NEA H1 2026 electricity-use briefing",
+      "publishedAt": "2026-07-30",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Internet data services consumed 49.4 TWh in H1 2026, +44% YoY; sector category is broader than AI data centers."
+    },
+    {
+      "evidenceId": "ev-digitalchina-compute-20260915",
+      "persistentIdentity": "url:https://www.digitalchina.gov.cn/2026/xwzx/szkx/202609/t20260915_5371676.htm",
+      "canonicalUrl": "https://www.digitalchina.gov.cn/2026/xwzx/szkx/202609/t20260915_5371676.htm",
+      "sourceClass": "OFFICIAL_CONFERENCE_REPORT",
+      "title": "2026 China Computing Power Conference capacity snapshot",
+      "publishedAt": "2026-09-15",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports 15.56M standard racks, 2,185 EFLOPS FP16 intelligent compute and >2,000 EB storage as of June 2026; standard racks and FP16 aggregates are not directly comparable to frontier H100e deployment."
+    },
+    {
+      "evidenceId": "ev-reuters-us-transformers-20260709",
+      "persistentIdentity": "url:https://www.reuters.com/business/energy/us-power-companies-scramble-secure-equipment-surging-data-center-demand-strains-2026-07-09/",
+      "canonicalUrl": "https://www.reuters.com/business/energy/us-power-companies-scramble-secure-equipment-surging-data-center-demand-strains-2026-07-09/",
+      "sourceClass": "NEWS_REPORTING",
+      "title": "U.S. utilities scramble for transformers and switchgear",
+      "publishedAt": "2026-07-09",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports some high-voltage transformer lead times up to 160 weeks and equipment cost increases up to 10%; lead times vary by specification and supplier."
+    },
+    {
+      "evidenceId": "ev-people-cn-transformers-20260827",
+      "persistentIdentity": "url:https://finance.people.com.cn/BIG5/n1/2026/0827/c1004-40787179.html",
+      "canonicalUrl": "https://finance.people.com.cn/BIG5/n1/2026/0827/c1004-40787179.html",
+      "sourceClass": "STATE_MEDIA_INDUSTRY_REPORTING",
+      "title": "China transformer exports and AI/grid demand",
+      "publishedAt": "2026-08-27",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports H1 transformer exports CNY39.792B, +26.78% YoY; >10 MVA liquid transformer exports +50%. Export growth does not prove absence of domestic local bottlenecks."
+    },
+    {
+      "evidenceId": "ev-lbnl-queues-20260716",
+      "persistentIdentity": "url:https://emp.lbl.gov/queued-2026-edition-characteristics-power-plants-seeking-transmission-interconnection-end-2025",
+      "canonicalUrl": "https://emp.lbl.gov/queued-2026-edition-characteristics-power-plants-seeking-transmission-interconnection-end-2025",
+      "sourceClass": "OFFICIAL_RESEARCH_DATASET",
+      "title": "Berkeley Lab Queued Up 2026",
+      "publishedAt": "2026-07-16",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "At end-2025 >2,060 GW generation+storage sought U.S. interconnection; most projects historically withdraw and timelines remain long. Queue volume is not realizable capacity."
+    },
+    {
+      "evidenceId": "ev-doe-dlr",
+      "persistentIdentity": "url:https://www.energy.gov/cmei/systems/articles/smart-transmission-tools-modernize-americas-power-grid",
+      "canonicalUrl": "https://www.energy.gov/cmei/systems/articles/smart-transmission-tools-modernize-americas-power-grid",
+      "sourceClass": "OFFICIAL_TECHNICAL_REPORTING",
+      "title": "DOE smart transmission tools and Dynamic Line Rating",
+      "publishedAt": "2025-11-01",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "DOE/INL research found DLR can increase transfer capability by roughly 10-40% in suitable conditions; it cannot remove conductor, substation, stability or siting limits."
+    },
+    {
+      "evidenceId": "ev-nea-cn-grid-20260730",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260730/5f38453f2cdc475e93e663f0a8916ca0/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260730/5f38453f2cdc475e93e663f0a8916ca0/c.html",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "title": "China NEA summer 2026 grid and UHV capacity briefing",
+      "publishedAt": "2026-07-30",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports 46 operating UHV corridors and >340 GW west-to-east transfer capability; national transfer capability does not guarantee local AI-site interconnection headroom."
+    },
+    {
+      "evidenceId": "ev-iea-energy-ai",
+      "persistentIdentity": "url:https://www.iea.org/reports/energy-and-ai/energy-demand-from-ai",
+      "canonicalUrl": "https://www.iea.org/reports/energy-and-ai/energy-demand-from-ai",
+      "sourceClass": "INTERNATIONAL_AGENCY_SCENARIO",
+      "title": "IEA Energy and AI data-center demand scenarios",
+      "publishedAt": "2025-04-10",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "IEA Base Case projects global data-center electricity consumption near 945 TWh in 2030 and emphasizes 2-3 year data-center build times versus longer energy-system lead times. Scenario, not forecast certainty."
+    },
+    {
+      "evidenceId": "ev-nist-smart-manufacturing-20260703",
+      "persistentIdentity": "doi:10.1088/3049-4761/ae5967",
+      "canonicalUrl": "https://www.nist.gov/publications/2026-roadmap-artificial-intelligence-and-machine-learning-smart-manufacturing",
+      "sourceClass": "GOVERNMENT_RESEARCH_ROADMAP",
+      "title": "NIST 2026 AI/ML for Smart Manufacturing roadmap",
+      "publishedAt": "2026-07-03",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Identifies AI opportunities in sensing, autonomous systems, digital twins, robotics, logistics and manufacturing while retaining integration, reliability and trustworthy-operation barriers."
+    }
+  ],
+  "nodes": [
+    {
+      "nodeKey": "accelerator-logic",
+      "label": "Frontier AI accelerator logic and delivered compute",
+      "constraintClass": "CYBER_PHYSICAL",
+      "primaryClock": "MANUFACTURING_RAMP",
+      "resourceType": "COMPUTE_SILICON",
+      "aiLeverage": {
+        "standing": "HIGH",
+        "mechanisms": [
+          "architecture/search automation",
+          "EDA and RTL optimization",
+          "compiler/kernel and lower-precision efficiency"
+        ],
+        "ceilings": [
+          "wafer capacity, process equipment, yield and packaging still require physical throughput",
+          "software efficiency cannot create unavailable dies"
+        ],
+        "evidenceIds": [
+          "ev-epoch-huawei-20260924",
+          "ev-nist-smart-manufacturing-20260703"
+        ],
+        "analyticConfidence": "MODERATE"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "This node aggregates multiple commercial accelerator generations and process routes; TRL/MRL must be attached to a specific device/process, not the layer."
+      }
+    },
+    {
+      "nodeKey": "hbm",
+      "label": "High-bandwidth memory supply",
+      "constraintClass": "INDUSTRIAL_THROUGHPUT",
+      "primaryClock": "MANUFACTURING_RAMP",
+      "resourceType": "MEMORY",
+      "aiLeverage": {
+        "standing": "MEDIUM",
+        "mechanisms": [
+          "design-space exploration",
+          "yield/process optimization",
+          "test and scheduling optimization"
+        ],
+        "ceilings": [
+          "wafer starts, TSV/stacking, packaging equipment and qualification are physical",
+          "HBM and commodity DRAM compete for wafer capacity"
+        ],
+        "evidenceIds": [
+          "ev-reuters-hbm-share-20260929",
+          "ev-reuters-sk-hynix-shortage-20260710",
+          "ev-nist-smart-manufacturing-20260703"
+        ],
+        "analyticConfidence": "HIGH"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "HBM generations are commercial but capacity/yield/qualification differ by vendor and generation; one aggregate TRL/MRL would be misleading."
+      }
+    },
+    {
+      "nodeKey": "advanced-packaging",
+      "label": "2.5D/3D advanced packaging and heterogeneous integration",
+      "constraintClass": "INDUSTRIAL_THROUGHPUT",
+      "primaryClock": "MANUFACTURING_RAMP",
+      "resourceType": "PACKAGING",
+      "aiLeverage": {
+        "standing": "MEDIUM",
+        "mechanisms": [
+          "package design optimization",
+          "process/yield analytics",
+          "inspection and scheduling automation"
+        ],
+        "ceilings": [
+          "qualified packaging lines, substrates, bonding/TSV equipment and yield ramp remain physical",
+          "larger interposers increase material and process burden"
+        ],
+        "evidenceIds": [
+          "ev-trendforce-packaging-20260430",
+          "ev-trendforce-packaging-20260918",
+          "ev-nist-smart-manufacturing-20260703"
+        ],
+        "analyticConfidence": "HIGH"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "CoWoS/EMIB/other technologies have different maturity and capacity; the graph tracks the supply layer, not a single package technology."
+      }
+    },
+    {
+      "nodeKey": "ai-data-center-it",
+      "label": "AI-ready data-center IT and electrical capacity",
+      "constraintClass": "INFRASTRUCTURE_INSTITUTIONAL",
+      "primaryClock": "INFRASTRUCTURE_INSTITUTION",
+      "resourceType": "POWERED_IT_SITE",
+      "aiLeverage": {
+        "standing": "MEDIUM",
+        "mechanisms": [
+          "facility design optimization",
+          "workload placement and utilization",
+          "digital-twin commissioning and predictive maintenance"
+        ],
+        "ceilings": [
+          "land, switchgear, substations, construction and commissioning still consume calendar time",
+          "generic data-center MW is not automatically high-density liquid-cooled AI MW"
+        ],
+        "evidenceIds": [
+          "ev-epoch-ai-dc-20260923",
+          "ev-semianalysis-china-dc-20260925",
+          "ev-iea-energy-ai",
+          "ev-nist-smart-manufacturing-20260703"
+        ],
+        "analyticConfidence": "HIGH"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "The node is an installed-capacity layer composed of many mature technologies; readiness is site-specific."
+      }
+    },
+    {
+      "nodeKey": "electricity-generation",
+      "label": "Deliverable electricity generation",
+      "constraintClass": "INFRASTRUCTURE_INSTITUTIONAL",
+      "primaryClock": "INFRASTRUCTURE_INSTITUTION",
+      "resourceType": "ELECTRICITY",
+      "aiLeverage": {
+        "standing": "LOW",
+        "mechanisms": [
+          "forecasting, dispatch, siting and maintenance optimization",
+          "demand shaping can improve effective use of existing generation"
+        ],
+        "ceilings": [
+          "new generation requires equipment, fuel/resource access, construction, interconnection and permits",
+          "nameplate MW is not equivalent to firm power at a specific site"
+        ],
+        "evidenceIds": [
+          "ev-eia-us-additions-20260220",
+          "ev-nea-cn-power-20260825",
+          "ev-iea-energy-ai"
+        ],
+        "analyticConfidence": "HIGH"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "Generation is a portfolio of mature and emerging technologies; technology-specific readiness must remain separate."
+      }
+    },
+    {
+      "nodeKey": "transformer-switchgear",
+      "label": "Transformers, circuit breakers and switchgear",
+      "constraintClass": "INDUSTRIAL_THROUGHPUT",
+      "primaryClock": "MANUFACTURING_RAMP",
+      "resourceType": "GRID_EQUIPMENT",
+      "aiLeverage": {
+        "standing": "LOW",
+        "mechanisms": [
+          "electromagnetic design optimization",
+          "factory scheduling, inspection and predictive quality"
+        ],
+        "ceilings": [
+          "copper, electrical steel, winding/drying/test equipment and factory slots cannot be copied like software",
+          "high-voltage equipment must pass qualification and commissioning"
+        ],
+        "evidenceIds": [
+          "ev-reuters-us-transformers-20260709",
+          "ev-people-cn-transformers-20260827",
+          "ev-nist-smart-manufacturing-20260703"
+        ],
+        "analyticConfidence": "HIGH"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "Conventional equipment is mature, while solid-state variants are emerging; the active issue is throughput and delivery, not a single readiness level."
+      }
+    },
+    {
+      "nodeKey": "grid-interconnection-transmission",
+      "label": "Grid interconnection and transmission deliverability",
+      "constraintClass": "INFRASTRUCTURE_INSTITUTIONAL",
+      "primaryClock": "INFRASTRUCTURE_INSTITUTION",
+      "resourceType": "GRID_DELIVERABILITY",
+      "aiLeverage": {
+        "standing": "MEDIUM",
+        "mechanisms": [
+          "dynamic line ratings and topology optimization",
+          "queue/study automation and demand-response scheduling"
+        ],
+        "ceilings": [
+          "rights-of-way, substations, stability, conductors and new corridors remain physical/institutional",
+          "software can unlock stranded capacity but cannot remove hard thermal and reliability limits"
+        ],
+        "evidenceIds": [
+          "ev-lbnl-queues-20260716",
+          "ev-doe-dlr",
+          "ev-nea-cn-grid-20260730"
+        ],
+        "analyticConfidence": "HIGH"
+      },
+      "readiness": {
+        "mode": "PORTFOLIO_LAYER_NOT_SINGLE_TECHNOLOGY",
+        "trl": null,
+        "mrl": null,
+        "reason": "Grid deliverability mixes mature hardware, operating methods and permitting institutions; readiness is use-case-specific."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "accelerator-logic",
+      "to": "hbm",
+      "relation": "COMPLEMENT_REQUIRED_FOR_HIGH_PERFORMANCE_ACCELERATOR",
+      "assumption": "Most frontier accelerators require high-bandwidth memory; non-HBM designs are a separate substitution path and must be modeled explicitly."
+    },
+    {
+      "from": "hbm",
+      "to": "advanced-packaging",
+      "relation": "CO_INTEGRATION_REQUIRED",
+      "assumption": "High-performance HBM systems require qualified packaging/integration; memory availability alone does not create a deployable accelerator."
+    },
+    {
+      "from": "advanced-packaging",
+      "to": "ai-data-center-it",
+      "relation": "DEPLOYMENT_REQUIRES_POWERED_SITE",
+      "assumption": "Packaged accelerators require servers, networking, cooling and powered AI-ready IT capacity."
+    },
+    {
+      "from": "ai-data-center-it",
+      "to": "electricity-generation",
+      "relation": "LOAD_REQUIRES_DELIVERABLE_ENERGY",
+      "assumption": "Nominal IT MW must be served over time; energy source and firmness are separate from rack nameplate capacity."
+    },
+    {
+      "from": "electricity-generation",
+      "to": "transformer-switchgear",
+      "relation": "POWER_REQUIRES_ELECTRICAL_EQUIPMENT",
+      "assumption": "Generation cannot serve the load without appropriate transformers, switchgear and substation equipment."
+    },
+    {
+      "from": "transformer-switchgear",
+      "to": "grid-interconnection-transmission",
+      "relation": "SITE_REQUIRES_NETWORK_DELIVERABILITY",
+      "assumption": "Equipment at a site is insufficient without an admitted interconnection/transmission path or an explicitly separate behind-the-meter architecture."
+    }
+  ],
+  "jurisdictions": [
+    {
+      "jurisdiction": "US",
+      "frontierNodeKeys": [
+        "transformer-switchgear",
+        "grid-interconnection-transmission"
+      ],
+      "aggregateScore": null,
+      "nodeStates": [
+        {
+          "nodeKey": "accelerator-logic",
+          "frontierRole": "NOT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "ADEQUATE",
+            "reason": "Leading U.S.-ecosystem accelerator suppliers are shipping rapidly growing compute; current public evidence points to downstream complements becoming more binding than accelerator design/supply at the ecosystem level."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "nvidia_2026_median_ai_chip_units",
+              "value": 5.9,
+              "unit": "million chips",
+              "scope": "GLOBAL_NVIDIA_FLOW_MODEL",
+              "evidenceIds": [
+                "ev-epoch-huawei-20260924"
+              ]
+            },
+            {
+              "metric": "nvidia_2026_median_compute_output",
+              "value": 23.0,
+              "unit": "million H100e",
+              "scope": "GLOBAL_NVIDIA_FLOW_MODEL",
+              "evidenceIds": [
+                "ev-epoch-huawei-20260924"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-epoch-huawei-20260924"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Global Nvidia supply is a proxy for the U.S.-led ecosystem, not U.S.-domestic ownership or deployed capacity."
+          ],
+          "reopenConditions": [
+            "Material delivery cuts or allocation shortages re-emerge despite downstream capacity availability.",
+            "A major export/supply shock removes a large fraction of usable accelerator flow."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "hbm",
+          "frontierRole": "CANDIDATE_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "TIGHT",
+            "reason": "HBM remains sold/tight enough that vendors are reallocating DRAM wafer capacity toward it; however it is not uniquely U.S.-specific and large capacity expansion is underway."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "hbm_share_of_industry_dram_wafer_capacity_current",
+              "value": 20.0,
+              "unit": "percent",
+              "scope": "GLOBAL_INDUSTRY",
+              "evidenceIds": [
+                "ev-reuters-hbm-share-20260929"
+              ]
+            },
+            {
+              "metric": "hbm_share_of_industry_dram_wafer_capacity_2027_company_view",
+              "value": 30.0,
+              "unit": "percent",
+              "scope": "GLOBAL_INDUSTRY_FORWARD_VIEW",
+              "evidenceIds": [
+                "ev-reuters-hbm-share-20260929"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-reuters-hbm-share-20260929",
+            "ev-reuters-sk-hynix-shortage-20260710"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "U.S. AI builders retain access to leading Korean/U.S. HBM supply subject to commercial allocation."
+          ],
+          "reopenConditions": [
+            "HBM allocation or qualification delays become the dominant reason energized U.S. capacity cannot accept accelerators.",
+            "Capacity ramps materially ahead of accelerator demand and allocation constraints disappear."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "advanced-packaging",
+          "frontierRole": "CANDIDATE_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "TIGHT",
+            "reason": "CoWoS/2.5D packaging remains a global constrained complement, but announced expansion and alternatives are expected to reduce severity beginning around 2027."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "tsmc_cowos_planned_capacity_growth_by_2027",
+              "value": 60.0,
+              "unit": "percent_plus",
+              "scope": "GLOBAL_TSMC_PLAN",
+              "evidenceIds": [
+                "ev-trendforce-packaging-20260430"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-trendforce-packaging-20260430",
+            "ev-trendforce-packaging-20260918"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "U.S. accelerator supply remains substantially dependent on Asian advanced-packaging capacity."
+          ],
+          "reopenConditions": [
+            "Packaging wait times, pricing or allocation become the dominant limiter after HBM/logic are available.",
+            "New CoWoS/EMIB/OSAT capacity removes backlog faster than accelerator demand grows."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "ai-data-center-it",
+          "frontierRole": "CANDIDATE_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "TIGHT",
+            "reason": "Large AI-ready sites are expanding quickly, but AI-ready powered capacity is location-specific and cannot be inferred from all data-center MW."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "tracked_large_ai_site_it_capacity",
+              "value": 13.2,
+              "unit": "GW",
+              "scope": "GLOBAL_EPOCH_92_SITES",
+              "evidenceIds": [
+                "ev-epoch-ai-dc-20260923"
+              ]
+            },
+            {
+              "metric": "all_data_center_capacity_2026ye",
+              "value": 56.0,
+              "unit": "GW",
+              "scope": "US_SEMIANALYSIS_MODEL",
+              "evidenceIds": [
+                "ev-semianalysis-china-dc-20260925"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-epoch-ai-dc-20260923",
+            "ev-semianalysis-china-dc-20260925",
+            "ev-iea-energy-ai"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "All-data-center capacity is not equivalent to high-density AI IT capacity."
+          ],
+          "reopenConditions": [
+            "Powered AI-ready capacity becomes broadly available faster than chip deployments.",
+            "Regional power/MEP delays prevent otherwise-financed accelerators from being installed."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "electricity-generation",
+          "frontierRole": "CANDIDATE_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "MIXED",
+            "reason": "The U.S. is adding record utility-scale capacity, but local firm power and data-center timing can still bind; national nameplate additions do not settle site-level deliverability."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "planned_utility_scale_additions_2026",
+              "value": 86.0,
+              "unit": "GW",
+              "scope": "US",
+              "evidenceIds": [
+                "ev-eia-us-additions-20260220"
+              ]
+            },
+            {
+              "metric": "realized_additions_2025",
+              "value": 53.0,
+              "unit": "GW",
+              "scope": "US",
+              "evidenceIds": [
+                "ev-eia-us-additions-20260220"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-eia-us-additions-20260220",
+            "ev-iea-energy-ai"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Planned utility-scale additions include variable renewables and storage; firm capacity contribution differs by technology and region."
+          ],
+          "reopenConditions": [
+            "Data-center load growth persistently exceeds locally deliverable firm generation despite grid/equipment availability.",
+            "Generation additions and load flexibility remove local energy constraints while equipment/grid queues remain."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "transformer-switchgear",
+          "frontierRole": "CURRENT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "BINDING",
+            "reason": "High-voltage transformers, breakers and switchgear have multi-year lead times and utilities are ordering years ahead; this is direct physical throughput evidence."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "reported_high_voltage_transformer_lead_time",
+              "value": 160.0,
+              "unit": "weeks_up_to",
+              "scope": "US_SELECTED_EQUIPMENT",
+              "evidenceIds": [
+                "ev-reuters-us-transformers-20260709"
+              ]
+            },
+            {
+              "metric": "reported_equipment_cost_increase",
+              "value": 10.0,
+              "unit": "percent_up_to",
+              "scope": "US_SELECTED_EQUIPMENT",
+              "evidenceIds": [
+                "ev-reuters-us-transformers-20260709"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-reuters-us-transformers-20260709"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Reported lead times vary materially by voltage, specification and supplier."
+          ],
+          "reopenConditions": [
+            "Lead times fall materially and remain low across multiple voltage classes while data-center orders continue rising.",
+            "Utilities/developers identify a different component as the dominant schedule blocker."
+          ],
+          "analyticConfidence": "HIGH",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "grid-interconnection-transmission",
+          "frontierRole": "CURRENT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "BINDING",
+            "reason": "U.S. generation/storage interconnection queues remain enormous and process timelines long; grid-delivery constraints can prevent nominal generation from reaching new load."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "active_generation_storage_interconnection_queue_end_2025",
+              "value": 2060.0,
+              "unit": "GW_plus",
+              "scope": "US",
+              "evidenceIds": [
+                "ev-lbnl-queues-20260716"
+              ]
+            },
+            {
+              "metric": "dlr_transfer_capability_gain_suitable_conditions_low",
+              "value": 10.0,
+              "unit": "percent",
+              "scope": "US_TECHNICAL_DEMONSTRATION_RANGE",
+              "evidenceIds": [
+                "ev-doe-dlr"
+              ]
+            },
+            {
+              "metric": "dlr_transfer_capability_gain_suitable_conditions_high",
+              "value": 40.0,
+              "unit": "percent",
+              "scope": "US_TECHNICAL_DEMONSTRATION_RANGE",
+              "evidenceIds": [
+                "ev-doe-dlr"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-lbnl-queues-20260716",
+            "ev-doe-dlr"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Queue MW is not realizable supply; high withdrawal rates mean it is primarily evidence of process congestion and project interest."
+          ],
+          "reopenConditions": [
+            "Median interconnection study/energization timelines fall materially and queue completion rates rise.",
+            "Behind-the-meter architectures bypass the grid for a large fraction of incremental AI load without introducing a new turbine/fuel bottleneck."
+          ],
+          "analyticConfidence": "HIGH",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        }
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "frontierNodeKeys": [
+        "accelerator-logic",
+        "hbm"
+      ],
+      "aggregateScore": null,
+      "nodeStates": [
+        {
+          "nodeKey": "accelerator-logic",
+          "frontierRole": "CURRENT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "BINDING",
+            "reason": "China can build data centers and power infrastructure faster than it can currently supply frontier-equivalent domestic compute; export controls and domestic per-chip/output gaps make accelerator logic a direct frontier."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "huawei_2026_median_ai_chip_units",
+              "value": 1.5,
+              "unit": "million chips",
+              "scope": "HUAWEI_MODEL",
+              "evidenceIds": [
+                "ev-epoch-huawei-20260924"
+              ]
+            },
+            {
+              "metric": "huawei_2026_median_compute_output",
+              "value": 0.88,
+              "unit": "million H100e",
+              "scope": "HUAWEI_MODEL",
+              "evidenceIds": [
+                "ev-epoch-huawei-20260924"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-epoch-huawei-20260924"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Epoch figures are model estimates and H100e is an on-paper peak-compute normalization, not realized workload throughput."
+          ],
+          "reopenConditions": [
+            "Domestic delivered compute output rises enough that powered AI-ready capacity rather than accelerator supply becomes the repeated schedule limiter.",
+            "Access to leading external accelerators materially reopens and remains durable."
+          ],
+          "analyticConfidence": "HIGH",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "hbm",
+          "frontierRole": "CURRENT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "BINDING",
+            "reason": "China-specific HBM scarcity is directly showing through accelerator pricing and memory sourcing constraints; domestic HBM-supported frontier output remains materially smaller than total accelerator plans."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "epoch_estimated_2026_950dt_units_supported_by_cxmt_xmc_hbm",
+              "value": 240.0,
+              "unit": "thousand units",
+              "scope": "HUAWEI_MODEL_DOMESTIC_HBM_CHANNEL",
+              "evidenceIds": [
+                "ev-epoch-huawei-20260924"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-reuters-china-hbm-20260910",
+            "ev-epoch-huawei-20260924"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "The 240k estimate is model-based and vendor-specific; it is not total China HBM production."
+          ],
+          "reopenConditions": [
+            "Domestic HBM volume/yield/qualification expands enough that accelerator pricing and shipments are no longer memory-constrained.",
+            "Export-control or grey-market availability materially changes HBM access."
+          ],
+          "analyticConfidence": "HIGH",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "advanced-packaging",
+          "frontierRole": "CANDIDATE_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "UNKNOWN",
+            "reason": "Advanced packaging is globally tight and structurally necessary, but this R1 evidence set lacks a sufficiently direct China-specific capacity/current-backlog measure to call it a current frontier independently of logic/HBM."
+          },
+          "quantitativeObservations": [],
+          "evidenceIds": [
+            "ev-trendforce-packaging-20260430",
+            "ev-trendforce-packaging-20260918"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Global CoWoS scarcity is not automatically evidence of the exact domestic China packaging frontier."
+          ],
+          "reopenConditions": [
+            "Obtain China-specific 2.5D/3D qualified capacity, backlog, yield and customer-qualification evidence.",
+            "Provider/industry evidence shows packaging—not logic/HBM—is the dominant lost-output constraint."
+          ],
+          "analyticConfidence": "LOW",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "ai-data-center-it",
+          "frontierRole": "NOT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "ADEQUATE",
+            "reason": "China has a large existing data-center fleet and substantial dated pipeline; current evidence does not support national AI-ready shell capacity as the primary constraint, though retrofit/high-density site quality remains heterogeneous."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "all_data_center_capacity_2026ye",
+              "value": 24.0,
+              "unit": "GW_plus",
+              "scope": "CHINA_SEMIANALYSIS_MODEL",
+              "evidenceIds": [
+                "ev-semianalysis-china-dc-20260925"
+              ]
+            },
+            {
+              "metric": "dated_pipeline",
+              "value": 20.0,
+              "unit": "GW_approx",
+              "scope": "CHINA_SEMIANALYSIS_MODEL",
+              "evidenceIds": [
+                "ev-semianalysis-china-dc-20260925"
+              ]
+            },
+            {
+              "metric": "standard_racks_in_use_june_2026",
+              "value": 15.56,
+              "unit": "million racks",
+              "scope": "CHINA_OFFICIAL",
+              "evidenceIds": [
+                "ev-digitalchina-compute-20260915"
+              ]
+            },
+            {
+              "metric": "internet_data_services_h1_2026_electricity",
+              "value": 49.4,
+              "unit": "TWh",
+              "scope": "CHINA_SECTOR",
+              "evidenceIds": [
+                "ev-nea-cn-data-electricity-20260730"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-semianalysis-china-dc-20260925",
+            "ev-digitalchina-compute-20260915",
+            "ev-nea-cn-data-electricity-20260730"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Generic data-center GW and standard racks do not prove high-density accelerator-ready power/cooling quality."
+          ],
+          "reopenConditions": [
+            "High-density AI-ready utilization/backlog data show persistent national shortage despite available shells.",
+            "Accelerator/HBM constraints ease and data-center energization becomes the dominant schedule limiter."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "electricity-generation",
+          "frontierRole": "NOT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "ADEQUATE",
+            "reason": "National generation stock and additions are very large relative to current AI load; evidence supports substantial aggregate power headroom, while site-level firm power may still be constrained."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "installed_generation_capacity_july_2026",
+              "value": 4.08,
+              "unit": "TW",
+              "scope": "CHINA",
+              "evidenceIds": [
+                "ev-nea-cn-power-20260825"
+              ]
+            },
+            {
+              "metric": "new_generation_capacity_jan_jul_2026",
+              "value": 194.0,
+              "unit": "GW_approx",
+              "scope": "CHINA",
+              "evidenceIds": [
+                "ev-nea-cn-power-20260825"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-nea-cn-power-20260825",
+            "ev-nea-cn-data-electricity-20260730"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Installed/nameplate generation is not equivalent to firm deliverable MW at each data-center location."
+          ],
+          "reopenConditions": [
+            "AI/data-center load growth creates repeated firm-power rationing at major compute hubs.",
+            "Grid/equipment constraints become resolved but energy availability remains the dominant limiter."
+          ],
+          "analyticConfidence": "HIGH",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "transformer-switchgear",
+          "frontierRole": "NOT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "ADEQUATE",
+            "reason": "China's transformer industry is expanding domestic and export output; public evidence does not show a U.S.-style national equipment bottleneck, though local/project-specific queues remain possible."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "transformer_export_value_h1_2026",
+              "value": 39.792,
+              "unit": "CNY_billion",
+              "scope": "CHINA",
+              "evidenceIds": [
+                "ev-people-cn-transformers-20260827"
+              ]
+            },
+            {
+              "metric": "large_liquid_transformer_export_yoy_growth",
+              "value": 50.0,
+              "unit": "percent_plus",
+              "scope": "CHINA_GT_10MVA",
+              "evidenceIds": [
+                "ev-people-cn-transformers-20260827"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-people-cn-transformers-20260827"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "Export growth is not direct measurement of domestic spare capacity or AI-specific equipment lead time."
+          ],
+          "reopenConditions": [
+            "Domestic lead times lengthen persistently across major voltage classes and become a repeated AI-project blocker.",
+            "Export growth reverses because domestic demand absorbs available production."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        },
+        {
+          "nodeKey": "grid-interconnection-transmission",
+          "frontierRole": "NOT_FRONTIER",
+          "headroom": {
+            "mode": "QUALITATIVE",
+            "standing": "ADEQUATE",
+            "reason": "China has very large long-distance grid transfer infrastructure; national evidence does not support grid capacity as the primary AI bottleneck today, while regional congestion and renewable-firming remain real subproblems."
+          },
+          "quantitativeObservations": [
+            {
+              "metric": "operating_uhv_corridors",
+              "value": 46.0,
+              "unit": "corridors",
+              "scope": "CHINA",
+              "evidenceIds": [
+                "ev-nea-cn-grid-20260730"
+              ]
+            },
+            {
+              "metric": "west_to_east_transfer_capability",
+              "value": 340.0,
+              "unit": "GW_plus",
+              "scope": "CHINA",
+              "evidenceIds": [
+                "ev-nea-cn-grid-20260730"
+              ]
+            }
+          ],
+          "evidenceIds": [
+            "ev-nea-cn-grid-20260730"
+          ],
+          "contraryEvidenceIds": [],
+          "assumptions": [
+            "National transfer capability is not local interconnection headroom for a particular data center."
+          ],
+          "reopenConditions": [
+            "Regional AI clusters experience persistent connection delays despite available accelerator supply.",
+            "Transmission congestion/curtailment becomes the dominant constraint on delivered AI electricity."
+          ],
+          "analyticConfidence": "MODERATE",
+          "currentness": {
+            "observedAt": "2026-09-29",
+            "expiresAt": null
+          }
+        }
+      ]
+    }
+  ],
+  "counterfactuals": [
+    {
+      "scenarioKey": "efficiency-outpaces-demand",
+      "truthRole": "ILLUSTRATIVE_COUNTERFACTUAL_NOT_FORECAST",
+      "demandMultiplier": 2.0,
+      "algorithmicEfficiencyMultiplier": 3.0,
+      "effectiveComputeRequirementMultiplier": 0.6666666666666666,
+      "candidateFrontierNodeKeys": [
+        "hbm",
+        "advanced-packaging",
+        "transformer-switchgear",
+        "grid-interconnection-transmission"
+      ],
+      "assumptions": [
+        "Useful-work demand doubles while useful-work-per-unit-compute triples.",
+        "No independent workload-quality or latency requirement offsets the efficiency gain."
+      ],
+      "falsifiers": [
+        "Inference-time scaling or agent duration increases required compute more than the assumed demand multiplier.",
+        "Efficiency improvements fail to transfer to the dominant production workloads."
+      ],
+      "externalFinancialEffectAllowed": false
+    },
+    {
+      "scenarioKey": "rebound-outpaces-efficiency",
+      "truthRole": "ILLUSTRATIVE_COUNTERFACTUAL_NOT_FORECAST",
+      "demandMultiplier": 10.0,
+      "algorithmicEfficiencyMultiplier": 3.0,
+      "effectiveComputeRequirementMultiplier": 3.3333333333333335,
+      "candidateFrontierNodeKeys": [
+        "accelerator-logic",
+        "hbm",
+        "advanced-packaging",
+        "ai-data-center-it",
+        "electricity-generation",
+        "transformer-switchgear",
+        "grid-interconnection-transmission"
+      ],
+      "assumptions": [
+        "Cheaper/more capable AI expands agent-hours, inference depth and applications tenfold while efficiency triples.",
+        "Supply-side substitution does not eliminate the listed complements."
+      ],
+      "falsifiers": [
+        "Economic utilization saturates and demand grows less than efficiency.",
+        "A new architecture sharply reduces dependence on one or more listed complements."
+      ],
+      "externalFinancialEffectAllowed": false
+    }
+  ]
+}

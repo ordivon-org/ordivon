@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.ai-infrastructure-constraint-graph-r1",
+  "title": "Ordivon Capital AI Infrastructure Constraint Graph R1",
+  "type": "object",
+  "required": [
+    "schemaVersion", "kind", "truthRole", "asOfDate", "methodContract", "principles",
+    "aggregationPolicy", "effectBoundary", "methodOwners", "evidence", "nodes", "edges",
+    "jurisdictions", "counterfactuals"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.ai-infrastructure-constraint-graph"},
+    "truthRole": {"const": "RESEARCH_MODEL_NOT_PROVIDER_TRUTH_OR_INVESTMENT_AUTHORITY"},
+    "asOfDate": {"type": "string", "format": "date"},
+    "methodContract": {"type": "object"},
+    "principles": {"type": "array", "minItems": 4},
+    "aggregationPolicy": {"type": "object"},
+    "effectBoundary": {"type": "object"},
+    "methodOwners": {"type": "array", "minItems": 1},
+    "evidence": {"type": "array", "minItems": 1},
+    "nodes": {"type": "array", "minItems": 7, "maxItems": 7},
+    "edges": {"type": "array", "minItems": 6, "maxItems": 6},
+    "jurisdictions": {"type": "array", "minItems": 2},
+    "counterfactuals": {"type": "array", "minItems": 1}
+  }
+}

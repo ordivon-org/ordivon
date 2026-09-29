@@ -1634,6 +1634,51 @@
         "external financial write",
         "mutable decision history"
       ]
+    },
+    {
+      "legoId": "capital.research.ai-infrastructure-constraint-graph",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "VALIDATION_REQUIRED",
+      "functionalRoles": [
+        "Validate",
+        "Measure",
+        "Model"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/constraint_graph.py",
+        "symbol": "validate_constraint_graph_document"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "config/ai_infrastructure_constraint_graph_r1.json",
+        "schema/ai-infrastructure-constraint-graph-r1.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.ai-infrastructure-constraint-graph"
+      ],
+      "evidenceObligations": [
+        "persistent external evidence identities",
+        "jurisdiction-specific currentness",
+        "explicit contrary evidence and reopen conditions",
+        "no aggregate bottleneck score"
+      ],
+      "permittedUses": [
+        "research-only AI infrastructure constraint mapping",
+        "explicit bottleneck-frontier projection",
+        "illustrative non-forecast counterfactuals"
+      ],
+      "prohibitedUses": [
+        "investment recommendation",
+        "owner risk appetite inference",
+        "external financial effect",
+        "automatic decision-state tag creation"
+      ]
     }
   ]
 }

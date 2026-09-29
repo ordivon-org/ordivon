@@ -575,6 +575,51 @@
         "Promoting contested models into default authority.",
         "External financial write approval."
       ]
+    },
+    {
+      "id": "ai-infrastructure-constraint-graph-r1",
+      "implementation": "src/ordivon_capital/research/constraint_graph.py",
+      "classification": "ANALYTICAL_HEURISTIC",
+      "sr26ModelStanding": "CLASSIFICATION_REVIEW",
+      "status": "RESEARCH_ONLY",
+      "purpose": "Represent the AI infrastructure supply chain as explicit jurisdiction-specific constraint states and a non-scalar minimal bottleneck frontier for research.",
+      "materiality": "MEDIUM",
+      "assumptions": [
+        "The seven-node R1 chain is sufficient for the first bounded research question but is not a universal ontology.",
+        "Frontier roles are explicit evidence-bounded analytical judgments rather than mechanically inferred scores.",
+        "Jurisdiction-level evidence is not silently substituted by global supply-chain evidence."
+      ],
+      "limitations": [
+        "Most R1 headroom states are qualitative because capacity and requirement are not yet observed in one common unit and time basis.",
+        "H100-equivalent estimates are peak-compute normalizations and do not establish realized workload throughput.",
+        "National power or data-center capacity does not establish local site deliverability.",
+        "The current frontier is date-bounded and must be reopened when lead-time, capacity, demand or qualification evidence changes.",
+        "The heuristic has not yet completed prospective validation against later realized bottleneck migrations."
+      ],
+      "validation": {
+        "standing": "VALIDATION_REQUIRED",
+        "evidenceRefs": []
+      },
+      "monitoring": {
+        "standing": "REQUIRED",
+        "requirements": [
+          "Refresh source currentness before decision use.",
+          "Track whether candidate/current frontier nodes later become realized schedule or supply blockers.",
+          "Record false-frontier and missed-frontier cases rather than silently rewriting history.",
+          "Promote quantitative headroom only when supply and requirement share unit, scope and time basis."
+        ]
+      },
+      "permittedUses": [
+        "Research-only infrastructure bottleneck mapping.",
+        "Counterfactual scenario framing with explicit assumptions.",
+        "Upstream evidence production for later Capital claim design after separate validation."
+      ],
+      "prohibitedUses": [
+        "Automatic security selection or ranking.",
+        "Automatic investment state-tag emission.",
+        "External financial-write authorization.",
+        "Treating one frontier judgment as provider truth."
+      ]
     }
   ]
 }

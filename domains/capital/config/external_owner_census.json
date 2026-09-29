@@ -814,6 +814,46 @@
       ],
       "localStanding": "LOCAL_BOUNDED_SESSIONLESS_TAGVALUE_PROJECTOR_PREFERRED",
       "localResponsibility": "project only the qualified FIX 4.4 NewOrderSingle field sequence for mechanics evidence; no session, transport, BodyLength, CheckSum, resend, sequence recovery, dictionary negotiation, or broader FIX engine"
+    },
+    {
+      "id": "research-ai-infrastructure-constraint-mapping",
+      "sourcePatterns": [
+        "src/ordivon_capital/research/constraint_graph.py"
+      ],
+      "ownerClasses": [
+        "STANDARD_OWNER",
+        "PROVIDER_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "ISO/IEC/IEEE 15288 for system life-cycle and recursive system-element process semantics",
+        "NASA TRL for technology-specific readiness semantics",
+        "GAO Manufacturing Readiness Levels for manufacturing maturity semantics",
+        "ISO 22400 for manufacturing-operations KPI vocabulary",
+        "ISO 23247 for manufacturing digital-twin reference architecture",
+        "NIST smart-manufacturing roadmap for AI-enabled physical-acceleration mechanisms and industrial barriers",
+        "IEA for energy-system/data-center scenario boundaries",
+        "EIA and China NEA for official power observations in their jurisdictions",
+        "Berkeley Lab for U.S. interconnection-queue observations",
+        "provider/company disclosures plus Epoch AI, SemiAnalysis and TrendForce as explicitly bounded secondary research where primary capacity data are unavailable"
+      ],
+      "localStanding": "RESEARCH_ONLY_VALIDATION_REQUIRED_THIN_BINDING",
+      "localResponsibility": "validate persistent evidence identities/currentness, preserve jurisdiction-specific assumptions and contrary evidence, and project a bounded non-scalar research frontier. The local module does not own industrial capacity truth, technology/manufacturing readiness standards, an energy model, a manufacturing ontology, investment state tags, owner risk appetite, security selection, or financial effect authority.",
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [],
+      "standardOwners": [
+        "ISO/IEC/IEEE 15288",
+        "NASA TRL",
+        "GAO Manufacturing Readiness Levels",
+        "ISO 22400",
+        "ISO 23247"
+      ],
+      "providerOwners": [
+        "EIA",
+        "China National Energy Administration",
+        "Berkeley Lab Queued Up",
+        "authoritative company/provider disclosures when the claimed fact is company/provider-owned"
+      ]
     }
   ],
   "notInstantiatedDomains": [

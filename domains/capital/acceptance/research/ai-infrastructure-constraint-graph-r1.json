@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-acceptance",
+  "truthRole": "RESEARCH_IMPLEMENTATION_ACCEPTANCE_NOT_PROVIDER_TRUTH_OR_MODEL_VALIDATION",
+  "subject": "ai-infrastructure-constraint-graph-r1",
+  "observedDate": "2026-09-29",
+  "sourceBaseRevision": "a1df55ae6e3a1bb6866b13a4fcf11092cef8da9e",
+  "methodContract": {
+    "name": "Recursive LEGO Calculus R2.1",
+    "instructionDigest": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+    "problem": "Which AI-infrastructure constraints are binding, how fast can intelligence/automation relax them, and where does the frontier migrate next?"
+  },
+  "standing": "PASS_R1_IMPLEMENTATION_VALIDATION_REQUIRED",
+  "artifactDigests": {
+    "config/ai_infrastructure_constraint_graph_r1.json": "sha256:fd61be8684a5c9160f13aa6f6e0d03565a2f25343d620cf0d46b8d9d18bca23f",
+    "schema/ai-infrastructure-constraint-graph-r1.schema.json": "sha256:65139636c93b801204429256052d37d43b22af03244a794fa35941af2e05305d",
+    "src/ordivon_capital/research/constraint_graph.py": "sha256:a6f0d819844c5803124fe55816b3b7fb91f6446e6811b58a5dd5c50b6c4400d1",
+    "docs/AI_INFRASTRUCTURE_CONSTRAINT_GRAPH_R1.md": "sha256:f5946f7ef8bb0b5af1a17e11ec2bd5b68a1e37a7379a4f06798091f1099fca7f",
+    "tests/test_ai_infrastructure_constraint_graph.py": "sha256:88af30f5b102870110398c0e9d218a326db2e67bfc1219cfd7593f667d8d0c27",
+    "config/capital_lego_registry.json": "sha256:236ddbbec04d8ede5ffc8716777deba2e500b6f66cf06032d8e23c26aa5175cb",
+    "planning/functional-lego-map-r1.json": "sha256:4e325c7856dd97b9c62f806e811521d624715ee1dca025fe72e783ce77c0fa73",
+    "config/quantitative_component_inventory.json": "sha256:3fa4cb9b22521fec63ba06de142fcaaae92942560bd0ad439427d181146603e1",
+    "config/external_owner_census.json": "sha256:c0b56dacc9dcc060f3cc3a10c657cd042556f4460c29a080527c7a58bc451da2"
+  },
+  "graph": {
+    "nodeCount": 7,
+    "edgeCount": 6,
+    "jurisdictions": {
+      "US": {
+        "frontierNodeKeys": [
+          "transformer-switchgear",
+          "grid-interconnection-transmission"
+        ],
+        "aggregateScore": null
+      },
+      "CN": {
+        "frontierNodeKeys": [
+          "accelerator-logic",
+          "hbm"
+        ],
+        "aggregateScore": null
+      }
+    },
+    "counterfactualCount": 2
+  },
+  "governance": {
+    "ownerDomain": "research",
+    "legoStatus": "VALIDATION_REQUIRED",
+    "quantitativeClassification": "ANALYTICAL_HEURISTIC",
+    "quantitativeStatus": "RESEARCH_ONLY",
+    "quantitativeValidationStanding": "VALIDATION_REQUIRED",
+    "decisionStateRegistryMutated": false,
+    "externalFinancialWritesAllowed": false,
+    "ownerRiskBudgetInferred": false
+  },
+  "verification": {
+    "tddRedJobId": "job-01a0eda4-0db3-7160-bb33-5960eed82c37",
+    "canonicalChecksJobId": "job-01a0edae-c5de-74a1-9b4e-76cb35f27b65",
+    "fullHermeticPassJobId": "job-01a0edb3-fea7-7313-a43d-e82d8c0412e1",
+    "canonicalChecks": [
+      "uv lock --check",
+      "quantitative inventory PASS",
+      "current-state readback PASS",
+      "ruff PASS",
+      "related tests PASS"
+    ],
+    "fullHermetic": [
+      "ruff PASS",
+      "pytest excluding provider_qualification PASS"
+    ],
+    "hermeticTestResult": "414 passed, 11 provider_qualification tests deselected"
+  },
+  "evidenceBoundary": {
+    "persistentEvidenceCount": 19,
+    "chinaAdvancedPackaging": "CANDIDATE_FRONTIER_UNKNOWN_NOT_PROMOTED_TO_CURRENT_FRONTIER",
+    "usCurrentFrontier": [
+      "transformer-switchgear",
+      "grid-interconnection-transmission"
+    ],
+    "chinaCurrentFrontier": [
+      "accelerator-logic",
+      "hbm"
+    ]
+  },
+  "nonClaims": [
+    "This acceptance does not establish provider truth for any capacity number.",
+    "This acceptance does not prospectively validate the frontier heuristic against future realized bottleneck migrations.",
+    "This acceptance does not create a Capital decision-state claim or investment recommendation.",
+    "This acceptance does not infer owner risk appetite or authorize an external financial effect.",
+    "Global advanced-packaging tightness is not treated as sufficient evidence that advanced packaging is a current China-specific frontier.",
+    "All frontier judgments are date-bounded and must be reopened when current evidence changes."
+  ]
+}
