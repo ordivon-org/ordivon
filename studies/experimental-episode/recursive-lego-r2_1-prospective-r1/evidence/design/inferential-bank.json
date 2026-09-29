@@ -1,0 +1,939 @@
+{
+  "bankDigest": "sha256:34e2a41a4b70ade766112248bfd716e5568a61226dbb6a468e36292173de5dfe",
+  "cohort": "inferential",
+  "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+  "families": [
+    "minimal_frontier",
+    "verifier_bridge",
+    "legal_program",
+    "experimental_replication",
+    "qualified_optimization",
+    "semantic_completion"
+  ],
+  "generationContract": {
+    "calibrationDisjointFromInferential": true,
+    "generatorDigest": "sha256:b97fd93203f8a8800bade35e3c1573ee50538027fea0fc8c20c757d6a80bff10",
+    "independentUnit": "task-instance"
+  },
+  "kind": "ordivon.recursive-lego-prospective-task-bank",
+  "nonClaims": [
+    "These synthetic tasks probe six R2.1 reasoning seams and are not a general task population.",
+    "Hidden gold is runner-side only and is never included in Provider messages."
+  ],
+  "schemaVersion": 1,
+  "taskCount": 24,
+  "tasks": [
+    {
+      "goldChoice": "OPT_4",
+      "goldDigest": "sha256:295176c829c6f9e47238384df54e2262b82741869e358962b6366d9267ef06eb",
+      "taskDigest": "sha256:d5f1b6b948dd814b51dfd5b76e1dbd60c8e915dce72dd99d3f68c9a2ce9bd789",
+      "visible": {
+        "cohort": "inferential",
+        "family": "minimal_frontier",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Repair only L1A, because an earliest single broken layer must always exist."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Repair {L1B, L1D}, because symptoms are the observed failures."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Restart and rebuild {L1A, L1B, L1C, L1D} to eliminate uncertainty."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Repair exactly {L1A, L1C}; preserve the downstream loci until re-verification."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A system has four diagnostic loci. Evidence directly invalidates L1A's interface contract and independently invalidates L1C's authority assumption. L1B is a downstream symptom whose only dependency is L1A; L1D is a downstream symptom whose only dependency is L1C. No evidence independently invalidates L1B or L1D. Which repair frontier is minimally supported by the evidence?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-01"
+      }
+    },
+    {
+      "goldChoice": "OPT_3",
+      "goldDigest": "sha256:af5129777934e652e853c390f14655cad266c0cc0665b943816ff497a4cd036d",
+      "taskDigest": "sha256:e3016d5a1664b5bd561210ca4196a204ea4f5ed47d5439b31a9e89a5e570d16c",
+      "visible": {
+        "cohort": "inferential",
+        "family": "minimal_frontier",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Repair only L2A, because an earliest single broken layer must always exist."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Repair {L2B, L2D}, because symptoms are the observed failures."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Repair exactly {L2A, L2C}; preserve the downstream loci until re-verification."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Restart and rebuild {L2A, L2B, L2C, L2D} to eliminate uncertainty."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A system has four diagnostic loci. Evidence directly invalidates L2A's interface contract and independently invalidates L2C's authority assumption. L2B is a downstream symptom whose only dependency is L2A; L2D is a downstream symptom whose only dependency is L2C. No evidence independently invalidates L2B or L2D. Which repair frontier is minimally supported by the evidence?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-02"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:aaad739b9f63d298c54313aaf8da647ddefa91bfaca29d0287515cd4be3cee07",
+      "taskDigest": "sha256:52d90b4e88b93c92f7907626f9b276428aa4d27c5365b053b9320dd8279de7f1",
+      "visible": {
+        "cohort": "inferential",
+        "family": "minimal_frontier",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Repair exactly {L3A, L3C}; preserve the downstream loci until re-verification."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Repair only L3A, because an earliest single broken layer must always exist."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Repair {L3B, L3D}, because symptoms are the observed failures."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Restart and rebuild {L3A, L3B, L3C, L3D} to eliminate uncertainty."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A system has four diagnostic loci. Evidence directly invalidates L3A's interface contract and independently invalidates L3C's authority assumption. L3B is a downstream symptom whose only dependency is L3A; L3D is a downstream symptom whose only dependency is L3C. No evidence independently invalidates L3B or L3D. Which repair frontier is minimally supported by the evidence?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-03"
+      }
+    },
+    {
+      "goldChoice": "OPT_3",
+      "goldDigest": "sha256:3889312f09af4833cbede2ef80069c279e2d8c28e1302771770b6257e6c7c25a",
+      "taskDigest": "sha256:ec95350c3f2a0114aefc85d3291338211e5172f25914f7baed54b7d77fea5a1f",
+      "visible": {
+        "cohort": "inferential",
+        "family": "minimal_frontier",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Repair only L4A, because an earliest single broken layer must always exist."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Repair {L4B, L4D}, because symptoms are the observed failures."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Repair exactly {L4A, L4C}; preserve the downstream loci until re-verification."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Restart and rebuild {L4A, L4B, L4C, L4D} to eliminate uncertainty."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A system has four diagnostic loci. Evidence directly invalidates L4A's interface contract and independently invalidates L4C's authority assumption. L4B is a downstream symptom whose only dependency is L4A; L4D is a downstream symptom whose only dependency is L4C. No evidence independently invalidates L4B or L4D. Which repair frontier is minimally supported by the evidence?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-04"
+      }
+    },
+    {
+      "goldChoice": "OPT_4",
+      "goldDigest": "sha256:ec67122bfacd6a9803485e0c0675b7bebdbd9046207cbd32bca8e7be0b0e49e8",
+      "taskDigest": "sha256:c42fe738e0e58486b2154241568e6f89f488b1de84a6b4500574253cefa70508",
+      "visible": {
+        "cohort": "inferential",
+        "family": "verifier_bridge",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "FAIL for phi because lack of a bridge is proof that phi is false."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Rerun the same psi checker and declare PASS for phi if it passes twice."
+          },
+          {
+            "id": "OPT_3",
+            "text": "PASS for phi because any formal checker PASS transfers to the enclosing problem."
+          },
+          {
+            "id": "OPT_4",
+            "text": "UNKNOWN for phi; PASS on psi does not establish phi without a justified bridge."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A checker returned PASS for predicate psi='serialized rows satisfy schema'. The frozen problem specification phi is 'all rows represent the correct real-world entities'. No identity or implication from psi to phi has been established, and no real-world entity check was observed. What problem-level verdict is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-01"
+      }
+    },
+    {
+      "goldChoice": "OPT_4",
+      "goldDigest": "sha256:a9f3b24d0e39fcf211306b1ee1987294f555db695b9525ade3390d846c8bb929",
+      "taskDigest": "sha256:d163cdcefbb8fd7bc100688fdc648fa2d5c444af65eb652b13399bbc8bb86222",
+      "visible": {
+        "cohort": "inferential",
+        "family": "verifier_bridge",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "PASS for phi solely because the checker process exited zero; the bridge is irrelevant."
+          },
+          {
+            "id": "OPT_2",
+            "text": "UNKNOWN for phi because a verifier can never support a problem specification."
+          },
+          {
+            "id": "OPT_3",
+            "text": "FAIL for phi because psi and phi have different names."
+          },
+          {
+            "id": "OPT_4",
+            "text": "PASS for phi is justified by the checked psi plus the valid bridge and satisfied assumptions."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A checker returned PASS for predicate psi. The frozen problem specification is phi. A separately frozen and accepted theorem establishes psi => phi under assumptions A1 and A2, and both A1 and A2 are observed true for this exact instance. What problem-level verdict is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-02"
+      }
+    },
+    {
+      "goldChoice": "OPT_4",
+      "goldDigest": "sha256:cd966e37744fdd25931b6aa5143e715208f7f4b01b6a6d870280c2cc1bc269b5",
+      "taskDigest": "sha256:c4ac34428eef27f9b9e11e806beb52d8618dab8ef586c920eb4eb6c72f6aacae",
+      "visible": {
+        "cohort": "inferential",
+        "family": "verifier_bridge",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "PASS for phi because any formal checker PASS transfers to the enclosing problem."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Rerun the same psi checker and declare PASS for phi if it passes twice."
+          },
+          {
+            "id": "OPT_3",
+            "text": "FAIL for phi because lack of a bridge is proof that phi is false."
+          },
+          {
+            "id": "OPT_4",
+            "text": "UNKNOWN for phi; PASS on psi does not establish phi without a justified bridge."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A checker returned PASS for predicate psi='serialized rows satisfy schema'. The frozen problem specification phi is 'all rows represent the correct real-world entities'. No identity or implication from psi to phi has been established, and no real-world entity check was observed. What problem-level verdict is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-03"
+      }
+    },
+    {
+      "goldChoice": "OPT_4",
+      "goldDigest": "sha256:75e3f021f9f28570d1dcba2cdd8d59f50f47655dfedc6deb464e6ca58a9d0299",
+      "taskDigest": "sha256:46652ee6c6d4378dd1b342f2a5314fb3a92af0658cc976cf722c6975f0830284",
+      "visible": {
+        "cohort": "inferential",
+        "family": "verifier_bridge",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "UNKNOWN for phi because a verifier can never support a problem specification."
+          },
+          {
+            "id": "OPT_2",
+            "text": "PASS for phi solely because the checker process exited zero; the bridge is irrelevant."
+          },
+          {
+            "id": "OPT_3",
+            "text": "FAIL for phi because psi and phi have different names."
+          },
+          {
+            "id": "OPT_4",
+            "text": "PASS for phi is justified by the checked psi plus the valid bridge and satisfied assumptions."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A checker returned PASS for predicate psi. The frozen problem specification is phi. A separately frozen and accepted theorem establishes psi => phi under assumptions A1 and A2, and both A1 and A2 are observed true for this exact instance. What problem-level verdict is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-04"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:ee83aff223120e9958132ea0f01a2496b2cfeafe333d6217a3509dcea5b641f7",
+      "taskDigest": "sha256:56c51a9c2d214875a12a348c0aecab2c362f0f2fc188e816b6369e2e314b61a2",
+      "visible": {
+        "cohort": "inferential",
+        "family": "legal_program",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "FETCH -> VALIDATE -> PUBLISH"
+          },
+          {
+            "id": "OPT_2",
+            "text": "VALIDATE -> FETCH -> PUBLISH"
+          },
+          {
+            "id": "OPT_3",
+            "text": "PUBLISH -> RESET -> FETCH"
+          },
+          {
+            "id": "OPT_4",
+            "text": "FETCH -> PUBLISH -> VALIDATE"
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "Initial state: fetched=false, validated=false, published=false, token=K1. Actions: FETCH has precondition not fetched and effect fetched=true; VALIDATE has precondition fetched and effect validated=true; PUBLISH has precondition validated and effect published=true; RESET has precondition published and effect fetched=false, validated=false, published=false. Goal: published=true. Which proposed program is legal at every intermediate state and reaches the goal?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-01"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:d0921ee2c6933f8a131e7004aa7ffcef18470bb624e97482e395ec46a5a2669a",
+      "taskDigest": "sha256:7b92fb84162a9a473278ab80df3aed702fe4a1dcf5cd6343d8ab070e611c3950",
+      "visible": {
+        "cohort": "inferential",
+        "family": "legal_program",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "FETCH -> VALIDATE -> PUBLISH"
+          },
+          {
+            "id": "OPT_2",
+            "text": "PUBLISH -> RESET -> FETCH"
+          },
+          {
+            "id": "OPT_3",
+            "text": "FETCH -> PUBLISH -> VALIDATE"
+          },
+          {
+            "id": "OPT_4",
+            "text": "VALIDATE -> FETCH -> PUBLISH"
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "Initial state: fetched=false, validated=false, published=false, token=K2. Actions: FETCH has precondition not fetched and effect fetched=true; VALIDATE has precondition fetched and effect validated=true; PUBLISH has precondition validated and effect published=true; RESET has precondition published and effect fetched=false, validated=false, published=false. Goal: published=true. Which proposed program is legal at every intermediate state and reaches the goal?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-02"
+      }
+    },
+    {
+      "goldChoice": "OPT_2",
+      "goldDigest": "sha256:af92f73cf19f123f7356423d80e692075ee3979393e6842ca9d02930c5ff1c8b",
+      "taskDigest": "sha256:aa41a28bba3b266654825f3ef0a9f05d275f979b8947a564e19a5d427a3a43a4",
+      "visible": {
+        "cohort": "inferential",
+        "family": "legal_program",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "VALIDATE -> FETCH -> PUBLISH"
+          },
+          {
+            "id": "OPT_2",
+            "text": "FETCH -> VALIDATE -> PUBLISH"
+          },
+          {
+            "id": "OPT_3",
+            "text": "FETCH -> PUBLISH -> VALIDATE"
+          },
+          {
+            "id": "OPT_4",
+            "text": "PUBLISH -> RESET -> FETCH"
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "Initial state: fetched=false, validated=false, published=false, token=K3. Actions: FETCH has precondition not fetched and effect fetched=true; VALIDATE has precondition fetched and effect validated=true; PUBLISH has precondition validated and effect published=true; RESET has precondition published and effect fetched=false, validated=false, published=false. Goal: published=true. Which proposed program is legal at every intermediate state and reaches the goal?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-03"
+      }
+    },
+    {
+      "goldChoice": "OPT_2",
+      "goldDigest": "sha256:fae9490d9894bd0a06603bdec6445d5e49ed16fc5043a36ee48091cb65060513",
+      "taskDigest": "sha256:3dccf0ee0a6969ad595e84655c92a181598b02a65e6b7a3d42958c0f5092eeab",
+      "visible": {
+        "cohort": "inferential",
+        "family": "legal_program",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "FETCH -> PUBLISH -> VALIDATE"
+          },
+          {
+            "id": "OPT_2",
+            "text": "FETCH -> VALIDATE -> PUBLISH"
+          },
+          {
+            "id": "OPT_3",
+            "text": "VALIDATE -> FETCH -> PUBLISH"
+          },
+          {
+            "id": "OPT_4",
+            "text": "PUBLISH -> RESET -> FETCH"
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "Initial state: fetched=false, validated=false, published=false, token=K4. Actions: FETCH has precondition not fetched and effect fetched=true; VALIDATE has precondition fetched and effect validated=true; PUBLISH has precondition validated and effect published=true; RESET has precondition published and effect fetched=false, validated=false, published=false. Goal: published=true. Which proposed program is legal at every intermediate state and reaches the goal?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-04"
+      }
+    },
+    {
+      "goldChoice": "OPT_2",
+      "goldDigest": "sha256:4b50f3f0a2f5daeb912d82be235b1c96b68aa035bb417bdf667f7c139492562b",
+      "taskDigest": "sha256:bb4c9294c5dcc460ab193df7e918347b691c369223840fb43dcd02f19c535b59",
+      "visible": {
+        "cohort": "inferential",
+        "family": "experimental_replication",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Independent n=20; every Provider call is a new replicate."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Independent n=4; the 5 repeated calls per task are nested stochasticity measurements, not additional independent task replicates."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Independent n=5; the task instances are repeated measurements."
+          },
+          {
+            "id": "OPT_4",
+            "text": "There is no independent unit because model outputs are stochastic."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A workflow treatment is assigned once to each of 4 independently generated task instances. For noise diagnosis, the Provider is then called 5 times on each same task under that assigned treatment. The study wants to estimate the treatment effect across tasks. What is the independent replication count and how should the repeated Provider calls be treated?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-01"
+      }
+    },
+    {
+      "goldChoice": "OPT_2",
+      "goldDigest": "sha256:4747bf9f0ee224dc09ef0094894694320bd359198c7a8000c31e50996448013b",
+      "taskDigest": "sha256:d228ec7758b88b081be13cf632ba57f5933924d3fe095188dd3d416a3742494d",
+      "visible": {
+        "cohort": "inferential",
+        "family": "experimental_replication",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Independent n=6; the task instances are repeated measurements."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Independent n=5; the 6 repeated calls per task are nested stochasticity measurements, not additional independent task replicates."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Independent n=30; every Provider call is a new replicate."
+          },
+          {
+            "id": "OPT_4",
+            "text": "There is no independent unit because model outputs are stochastic."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A workflow treatment is assigned once to each of 5 independently generated task instances. For noise diagnosis, the Provider is then called 6 times on each same task under that assigned treatment. The study wants to estimate the treatment effect across tasks. What is the independent replication count and how should the repeated Provider calls be treated?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-02"
+      }
+    },
+    {
+      "goldChoice": "OPT_3",
+      "goldDigest": "sha256:9132889b20b15d1e15dfabb3ada648cd14793ab0749808adb0092c612cdb6fef",
+      "taskDigest": "sha256:98e0861c5d61a43c543c0e811336574e6df08f992b2d6e0f716734dd4dbfd0f1",
+      "visible": {
+        "cohort": "inferential",
+        "family": "experimental_replication",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "There is no independent unit because model outputs are stochastic."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Independent n=4; the task instances are repeated measurements."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Independent n=6; the 4 repeated calls per task are nested stochasticity measurements, not additional independent task replicates."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Independent n=24; every Provider call is a new replicate."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A workflow treatment is assigned once to each of 6 independently generated task instances. For noise diagnosis, the Provider is then called 4 times on each same task under that assigned treatment. The study wants to estimate the treatment effect across tasks. What is the independent replication count and how should the repeated Provider calls be treated?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-03"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:d506f01600818b33d8d6dc49bf6e83a4fd52b40c065bc42f69e7643ba32795b3",
+      "taskDigest": "sha256:3f9ea182482457f436ad4a1af5a9eb496b4e4e988f6b0ce1bbfda327d510ea96",
+      "visible": {
+        "cohort": "inferential",
+        "family": "experimental_replication",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Independent n=3; the 5 repeated calls per task are nested stochasticity measurements, not additional independent task replicates."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Independent n=15; every Provider call is a new replicate."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Independent n=5; the task instances are repeated measurements."
+          },
+          {
+            "id": "OPT_4",
+            "text": "There is no independent unit because model outputs are stochastic."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A workflow treatment is assigned once to each of 3 independently generated task instances. For noise diagnosis, the Provider is then called 5 times on each same task under that assigned treatment. The study wants to estimate the treatment effect across tasks. What is the independent replication count and how should the repeated Provider calls be treated?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-04"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:a4dda6b2bca40299027f2910a74bd197bce02dc84ad55dd52771cad432b76b9b",
+      "taskDigest": "sha256:f3f5d091bd6428ea7339e7bad25d23e8dc79d43e4dadaeb3f5d06bd818d74232",
+      "visible": {
+        "cohort": "inferential",
+        "family": "qualified_optimization",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Choose B1, the highest-objective candidate among hard-feasible candidates."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Choose A1, because objective value dominates hard constraints."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Temporarily accept the infeasible maximum and re-qualify after deployment."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Choose no candidate; optimization is forbidden whenever any candidate is infeasible."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A frozen optimization has a hard feasibility contract that may not be violated. Candidates: A1: objective=101, hardFeasible=false; B1: objective=93, hardFeasible=true; C1: objective=89, hardFeasible=true; D1: objective=81, hardFeasible=false. Which candidate may be accepted as the objective optimum under the qualified feasible region?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-01"
+      }
+    },
+    {
+      "goldChoice": "OPT_3",
+      "goldDigest": "sha256:e3c021daabeeafbc32ed542a5f43cacaec0af583f7b859954f13d3a1c71aadfc",
+      "taskDigest": "sha256:a7a1bc81ac20cd8a12fc5fc8f5958948d4da845006b77b599bbde3b48675fe23",
+      "visible": {
+        "cohort": "inferential",
+        "family": "qualified_optimization",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Choose C2, because objective value dominates hard constraints."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Temporarily accept the infeasible maximum and re-qualify after deployment."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Choose A2, the highest-objective candidate among hard-feasible candidates."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Choose no candidate; optimization is forbidden whenever any candidate is infeasible."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A frozen optimization has a hard feasibility contract that may not be violated. Candidates: A2: objective=102, hardFeasible=true; B2: objective=101, hardFeasible=true; C2: objective=112, hardFeasible=false; D2: objective=72, hardFeasible=false. Which candidate may be accepted as the objective optimum under the qualified feasible region?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-02"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:84aa08356d1514cd671179918aa6d0f2c65831328f298c8b9628f70a3d2667d8",
+      "taskDigest": "sha256:7796953704ed88a7ab3e4ebeaf922f2541e7a70afef8083cb1c1f99b1a8971e1",
+      "visible": {
+        "cohort": "inferential",
+        "family": "qualified_optimization",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Choose B3, the highest-objective candidate among hard-feasible candidates."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Temporarily accept the infeasible maximum and re-qualify after deployment."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Choose no candidate; optimization is forbidden whenever any candidate is infeasible."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Choose A3, because objective value dominates hard constraints."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A frozen optimization has a hard feasibility contract that may not be violated. Candidates: A3: objective=103, hardFeasible=false; B3: objective=95, hardFeasible=true; C3: objective=91, hardFeasible=true; D3: objective=83, hardFeasible=false. Which candidate may be accepted as the objective optimum under the qualified feasible region?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-03"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:4421b4b4a0b9d81c161001be4a761dc05e7f8f82b324d38ba423ddb9832812b2",
+      "taskDigest": "sha256:3005299f0a3b81098e96277392bf60dce6194cccc7520b8839e2ea1bc790f175",
+      "visible": {
+        "cohort": "inferential",
+        "family": "qualified_optimization",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "Choose A4, the highest-objective candidate among hard-feasible candidates."
+          },
+          {
+            "id": "OPT_2",
+            "text": "Temporarily accept the infeasible maximum and re-qualify after deployment."
+          },
+          {
+            "id": "OPT_3",
+            "text": "Choose C4, because objective value dominates hard constraints."
+          },
+          {
+            "id": "OPT_4",
+            "text": "Choose no candidate; optimization is forbidden whenever any candidate is infeasible."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A frozen optimization has a hard feasibility contract that may not be violated. Candidates: A4: objective=104, hardFeasible=true; B4: objective=103, hardFeasible=true; C4: objective=114, hardFeasible=false; D4: objective=74, hardFeasible=false. Which candidate may be accepted as the objective optimum under the qualified feasible region?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-04"
+      }
+    },
+    {
+      "goldChoice": "OPT_2",
+      "goldDigest": "sha256:526a0a3f02e50547c509579dc8a57b68a2c17f646352a12d6ba938a8089b4c8b",
+      "taskDigest": "sha256:9a9b6eb269464e18817399998ae32390296e5c33b63112c977e06c1bb8d95a67",
+      "visible": {
+        "cohort": "inferential",
+        "family": "semantic_completion",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "PASS semantic completion because exit code zero and expected stdout are sufficient."
+          },
+          {
+            "id": "OPT_2",
+            "text": "UNKNOWN semantic completion; mechanical execution success does not establish the unverified domain predicate."
+          },
+          {
+            "id": "OPT_3",
+            "text": "PASS after replaying the same successful Runtime Job once more."
+          },
+          {
+            "id": "OPT_4",
+            "text": "FAIL semantic completion because absence of verification proves the artifact is wrong."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A Runtime Job exited zero, delivery is committed, and stdout contains the expected filename. No domain verifier has checked the file contents and the task's semantic acceptance predicate is not otherwise observed. What semantic completion standing is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-01"
+      }
+    },
+    {
+      "goldChoice": "OPT_3",
+      "goldDigest": "sha256:058282c81788474192592a0b48935df1e7d58e92b74e9a1495df23d154649c23",
+      "taskDigest": "sha256:ee0ade75ffc4c22fa8117f30bb21a5220cb4240f3dbd597bfe01bbc12fb257dc",
+      "visible": {
+        "cohort": "inferential",
+        "family": "semantic_completion",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "PASS solely from process exit zero; the domain verifier adds nothing."
+          },
+          {
+            "id": "OPT_2",
+            "text": "FAIL because process exit zero is not semantic truth."
+          },
+          {
+            "id": "OPT_3",
+            "text": "PASS semantic completion is justified for the frozen predicate; execution evidence and domain verification are both present."
+          },
+          {
+            "id": "OPT_4",
+            "text": "UNKNOWN because Runtime can never contribute any evidence to semantic completion."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A Runtime Job exited zero and delivery is committed. A domain verifier then checked the frozen acceptance predicate for the exact produced artifact and returned PASS; the verifier target is identical to the task's semantic completion predicate. What semantic completion standing is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-02"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:6c37577d7295e8be44f0e56f2cc41e2ac21c878aba5bf7d18be2e35279500e52",
+      "taskDigest": "sha256:323f2be339846c6daa6067d5607abcec55ede7ab222616fbbe44d9e430a45feb",
+      "visible": {
+        "cohort": "inferential",
+        "family": "semantic_completion",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "UNKNOWN semantic completion; mechanical execution success does not establish the unverified domain predicate."
+          },
+          {
+            "id": "OPT_2",
+            "text": "PASS after replaying the same successful Runtime Job once more."
+          },
+          {
+            "id": "OPT_3",
+            "text": "PASS semantic completion because exit code zero and expected stdout are sufficient."
+          },
+          {
+            "id": "OPT_4",
+            "text": "FAIL semantic completion because absence of verification proves the artifact is wrong."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A Runtime Job exited zero, delivery is committed, and stdout contains the expected filename. No domain verifier has checked the file contents and the task's semantic acceptance predicate is not otherwise observed. What semantic completion standing is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-03"
+      }
+    },
+    {
+      "goldChoice": "OPT_1",
+      "goldDigest": "sha256:4bb34639b4865f54a428338a65a10b916484e69da23db119046c233f47d87ec4",
+      "taskDigest": "sha256:514b9093e5480bb474250e5168547fdfc8f1ab58511f1f2d351b3d009d3fb3de",
+      "visible": {
+        "cohort": "inferential",
+        "family": "semantic_completion",
+        "kind": "ordivon.recursive-lego-prospective-task",
+        "options": [
+          {
+            "id": "OPT_1",
+            "text": "PASS semantic completion is justified for the frozen predicate; execution evidence and domain verification are both present."
+          },
+          {
+            "id": "OPT_2",
+            "text": "PASS solely from process exit zero; the domain verifier adds nothing."
+          },
+          {
+            "id": "OPT_3",
+            "text": "UNKNOWN because Runtime can never contribute any evidence to semantic completion."
+          },
+          {
+            "id": "OPT_4",
+            "text": "FAIL because process exit zero is not semantic truth."
+          }
+        ],
+        "responseContract": {
+          "choiceMustBeOneListedOptionId": true,
+          "required": [
+            "choice"
+          ],
+          "type": "object"
+        },
+        "scenario": "A Runtime Job exited zero and delivery is committed. A domain verifier then checked the frozen acceptance predicate for the exact produced artifact and returned PASS; the verifier target is identical to the task's semantic completion predicate. What semantic completion standing is justified?",
+        "schemaVersion": 1,
+        "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-04"
+      }
+    }
+  ]
+}
