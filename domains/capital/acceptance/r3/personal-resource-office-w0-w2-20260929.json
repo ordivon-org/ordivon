@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.r3-w0-w2-acceptance",
+  "standing": "PASS_W0_W2_BOUNDED_OWNER_GOVERNANCE",
+  "asOfDate": "2026-09-29",
+  "baseMainRevision": "ece9feeea0b9a52e787151519965df96e5e2c527",
+  "acceptedImplementationRevision": "ebd23cff169a09447faf466fde57961f1eb338f6",
+  "workspaceId": "ws-capital-pfo-r3-replay-20260929",
+  "acceptedScope": [
+    "restore protocol-v2 frozen evidence zoning without changing research evidence bytes",
+    "record the R3 Personal Resource Office design specification and external-owner adoption map",
+    "admit bounded CapitalConstitution validation",
+    "admit bounded DelegationGrant validation with explicit L0-L5 semantics",
+    "admit evidence-derived RiskCapacity validation distinct from owner RiskAppetite and RiskBudget",
+    "admit owner-governance envelope projection that may tighten or block but cannot mint provider, credential or external-effect authority",
+    "register the two new bounded canonical Capital LEGO implementations"
+  ],
+  "verification": {
+    "capitalVerify": {
+      "standing": "PASS",
+      "runtimeJob": "job-01a0ec16-8d20-7e41-afc0-4641d7af7f66",
+      "pytestPassed": 415,
+      "providerBoundDeselected": 11,
+      "pytestFailed": 0
+    },
+    "repoCi": {
+      "standing": "PASS",
+      "runtimeJob": "job-01a0ec18-8ac4-72e0-957e-2ed1b1dac644"
+    },
+    "schemaDifferential": {
+      "standing": "PASS_ZERO_MISMATCH",
+      "cases": 6000,
+      "oracle": "jsonschema 4.26.0 isolated differential oracle",
+      "sourceRuntimeJob": "job-01a0eba8-70cd-7372-a9b7-f7109f3afc1f"
+    }
+  },
+  "authorityStandingAfterAcceptance": {
+    "executionLane": "NON_LIVE",
+    "productionExternalFinancialWrite": "BLOCK_NOT_GRANTED",
+    "portfolioRiskBudget": "UNSET",
+    "portfolioRiskBudgetOwner": "OWNER_PRINCIPAL",
+    "ownerRiskAppetiteInferred": false,
+    "providerPermissionGranted": false,
+    "credentialAuthorityGranted": false,
+    "externalEffectAuthorityGranted": false,
+    "liveProcurementAuthorityGranted": false
+  },
+  "preservedLaws": [
+    "RiskCapacity may tighten or block but cannot rewrite owner preference",
+    "UNSET owner RiskBudget remains UNSET even when RiskCapacity is high",
+    "delegation does not imply provider permission or credential availability",
+    "L4_EXECUTE_BOUNDED still requires downstream provider and credential authority",
+    "L5_CHANGE_CONSTITUTION requires an explicit constitutional grant",
+    "Runtime success does not establish external effect reality",
+    "provider and natural resource owners remain authoritative for external/resource reality",
+    "UNKNOWN external effects remain no-blind-replay"
+  ],
+  "explicitlyNotAccepted": [
+    "full R3 architecture completion",
+    "W3 institutional role topology",
+    "Office-to-Agent-Birth or Host bindings",
+    "maker-checker runtime orchestration",
+    "cross-resource CapitalRequest or OpportunitySet allocation",
+    "generalized Treasury/liability/commitment operation",
+    "generalized non-live procurement or resource effects",
+    "live financial or procurement effects",
+    "legal, tax or regulated professional authority"
+  ],
+  "nextWave": "W3_INSTITUTIONAL_ROLE_TOPOLOGY"
+}
