@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -91,6 +92,62 @@ STABLE_API = {
 }
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+CLI_GLOBAL_VALUE_OPTIONS = {"--state-root", "--deepseek-secret"}
+
+
+def cli_subcommands() -> set[str]:
+    tree = ast.parse((ROOT / "src/ordivon_harness/cli.py").read_text(encoding="utf-8"))
+    commands: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "add_parser"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            commands.add(node.args[0].value)
+    return commands
+
+
+def extract_documented_cli_commands(text: str) -> set[str]:
+    normalized = text.replace("\\\n", " ")
+    commands: set[str] = set()
+    for match in re.finditer(r"(?m)^\s*ordivon-harness\b([^\n]*)", normalized):
+        try:
+            tokens = shlex.split(match.group(1))
+        except ValueError as error:
+            raise DocumentError(f"invalid documented ordivon-harness command: {error}") from error
+        index = 0
+        while index < len(tokens):
+            token = tokens[index]
+            if token in CLI_GLOBAL_VALUE_OPTIONS:
+                index += 2
+                continue
+            if any(token.startswith(option + "=") for option in CLI_GLOBAL_VALUE_OPTIONS):
+                index += 1
+                continue
+            if token.startswith("-"):
+                index += 1
+                continue
+            commands.add(token)
+            break
+    return commands
+
+
+def validate_documented_cli_commands() -> list[str]:
+    documented: set[str] = set()
+    for relative in ("README.md", "CONTRIBUTING.md", "docs/QUICKSTART.md"):
+        documented.update(
+            extract_documented_cli_commands((ROOT / relative).read_text(encoding="utf-8"))
+        )
+    unknown = sorted(documented - cli_subcommands())
+    return [
+        f"canonical documentation references unknown CLI command: {command}" for command in unknown
+    ]
 
 
 class DocumentError(ValueError):
@@ -353,7 +410,12 @@ def validate_public_contracts() -> list[str]:
 
 def main() -> int:
     errors: list[str] = []
-    for validator in (validate_frontmatter, validate_links, validate_public_contracts):
+    for validator in (
+        validate_frontmatter,
+        validate_links,
+        validate_public_contracts,
+        validate_documented_cli_commands,
+    ):
         try:
             errors.extend(validator())
         except (DocumentError, OSError, SyntaxError, UnicodeError) as error:

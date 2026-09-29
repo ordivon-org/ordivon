@@ -454,6 +454,17 @@
       changed_when: false
       when: not ansible_check_mode
 
+    - name: Verify generated n8n pod is attached to the user default target
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          cd {{ n8n_state_dir }}
+          wanted_by="$(runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user show ordivon-n8n-pod.service -p WantedBy --value)"
+          tr ' ' '\n' <<<"$wanted_by" | grep -Fx default.target
+        executable: /usr/bin/bash
+      changed_when: false
+      when: not ansible_check_mode
+
     - name: Inspect legacy host-native n8n unit
       ansible.builtin.command:
         argv: [/usr/bin/systemctl, cat, n8n.service]
@@ -466,17 +477,6 @@
       ansible.builtin.command:
         argv: [/usr/bin/systemctl, is-active, n8n.service]
       register: n8n_legacy_active
-      changed_when: false
-      failed_when: false
-      when: not ansible_check_mode
-
-    - name: Inspect rootless n8n pod enablement
-      ansible.builtin.shell:
-        cmd: |
-          cd {{ n8n_state_dir }}
-          runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user is-enabled ordivon-n8n-pod.service
-        executable: /usr/bin/bash
-      register: n8n_pod_enabled
       changed_when: false
       failed_when: false
       when: not ansible_check_mode
@@ -502,14 +502,6 @@
           when:
             - n8n_legacy_unit.rc == 0
             - n8n_legacy_active.stdout | trim == 'active'
-
-        - name: Enable rootless n8n pod
-          ansible.builtin.shell:
-            cmd: |
-              cd {{ n8n_state_dir }}
-              runuser -u {{ n8n_user }} -- env -i {{ n8n_rootless_env }} systemctl --user enable ordivon-n8n-pod.service
-            executable: /usr/bin/bash
-          when: n8n_pod_enabled.rc != 0
 
         - name: Start rootless n8n pod when inactive
           ansible.builtin.shell:

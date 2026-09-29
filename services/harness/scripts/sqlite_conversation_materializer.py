@@ -15,7 +15,7 @@ import json
 import sqlite3
 import time
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol
 
@@ -230,7 +230,7 @@ class SQLiteConversationMaterializer:
 
     def _claim_effect_attempt(
         self, request: CarrierMaterializationRequest, *, now_ms: int
-    ) -> tuple[bool, CarrierMaterializationReceipt]:
+    ) -> tuple[bool, CarrierMaterializationReceipt, int]:
         """Atomically move one PREPARED request across the effect-ambiguous boundary.
 
         The boolean is true for exactly one concurrent caller. Every other caller observes the
@@ -256,7 +256,7 @@ class SQLiteConversationMaterializer:
                 MaterializationStanding.PRE_EFFECT_FAILED,
             }:
                 db.execute("COMMIT")
-                return False, self._receipt(row)
+                return False, self._receipt(row), int(row["effect_generation"])
             db.execute(
                 """
                 UPDATE requests
@@ -283,18 +283,19 @@ class SQLiteConversationMaterializer:
             ).fetchone()
             db.execute("COMMIT")
             assert claimed is not None
-            return True, self._receipt(claimed)
+            return True, self._receipt(claimed), int(claimed["effect_generation"])
 
     def materialize(
         self, request: CarrierMaterializationRequest, *, now_ms: int | None = None
     ) -> CarrierMaterializationReceipt:
         now = int(time.time() * 1000) if now_ms is None else now_ms
         self._record_intent(request, now_ms=now)
-        claimed, retained = self._claim_effect_attempt(request, now_ms=now)
+        claimed, retained, attempt_generation = self._claim_effect_attempt(request, now_ms=now)
         if not claimed:
             return retained
+        attempt_request = replace(request, attempt_generation=attempt_generation)
         try:
-            observation = self.target.materialize(request)
+            observation = self.target.materialize(attempt_request)
         except TargetPreEffectFailure as error:
             observation = TargetMaterializationObservation(
                 standing=MaterializationStanding.PRE_EFFECT_FAILED,
@@ -310,7 +311,7 @@ class SQLiteConversationMaterializer:
 
     def _claim_human_resume(
         self, request: CarrierMaterializationRequest, *, now_ms: int
-    ) -> tuple[bool, CarrierMaterializationReceipt]:
+    ) -> tuple[bool, CarrierMaterializationReceipt, int]:
         """Atomically admit one human-verified resume against the same provider-effect identity.
 
         HUMAN_REQUIRED proves the prompt SEND has not occurred. Exactly one caller may move that
@@ -333,7 +334,7 @@ class SQLiteConversationMaterializer:
                 is not MaterializationStanding.HUMAN_REQUIRED
             ):
                 db.execute("COMMIT")
-                return False, self._receipt(row)
+                return False, self._receipt(row), int(row["effect_generation"])
             db.execute(
                 """
                 UPDATE requests
@@ -356,17 +357,18 @@ class SQLiteConversationMaterializer:
             ).fetchone()
             db.execute("COMMIT")
             assert claimed is not None
-            return True, self._receipt(claimed)
+            return True, self._receipt(claimed), int(claimed["effect_generation"])
 
     def resume_human(
         self, request: CarrierMaterializationRequest, *, now_ms: int | None = None
     ) -> CarrierMaterializationReceipt:
         now = int(time.time() * 1000) if now_ms is None else now_ms
-        claimed, retained = self._claim_human_resume(request, now_ms=now)
+        claimed, retained, attempt_generation = self._claim_human_resume(request, now_ms=now)
         if not claimed:
             return retained
+        attempt_request = replace(request, attempt_generation=attempt_generation)
         try:
-            observation = self.target.resume_after_human(request)
+            observation = self.target.resume_after_human(attempt_request)
         except Exception as error:
             observation = TargetMaterializationObservation(
                 standing=MaterializationStanding.UNKNOWN,
@@ -391,8 +393,10 @@ class SQLiteConversationMaterializer:
             MaterializationStanding.HUMAN_REQUIRED,
         }:
             return retained
+        attempt_generation = max(1, int(row["effect_generation"]))
+        attempt_request = replace(request, attempt_generation=attempt_generation)
         try:
-            observation = self.target.reconcile(request)
+            observation = self.target.reconcile(attempt_request)
         except Exception as error:
             observation = TargetMaterializationObservation(
                 standing=MaterializationStanding.UNKNOWN,

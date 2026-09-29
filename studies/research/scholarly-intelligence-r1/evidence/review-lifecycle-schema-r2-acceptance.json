@@ -1,0 +1,31 @@
+{
+  "decisionBoundary": "ACCEPTANCE_METADATA_EXCLUDED_FROM_SHARED_LIFECYCLE_SEMANTICS",
+  "kind": "ordivon.research.review-lifecycle-schema-acceptance",
+  "newR2Kinds": [
+    "discussion_message",
+    "synthesis"
+  ],
+  "newR2Relations": [
+    "replies_to",
+    "member_of_synthesis_source_set"
+  ],
+  "physicalPolicy": "VIRTUAL_ADAPTER_ONLY_DO_NOT_MERGE_RAW_CORPUS_BYTES",
+  "reviewerProfiling": "NOT_AUTHORIZED",
+  "schemaVersion": 2,
+  "sharedKinds": [
+    "concern",
+    "response",
+    "revision",
+    "discussion_message",
+    "synthesis",
+    "correspondence"
+  ],
+  "sourceAssets": [
+    "aries-bounded-core-r1",
+    "disapere-bounded-core-r1",
+    "peersum-hf-bounded-core-r1"
+  ],
+  "standing": "PASS_VIRTUAL_CROSS_CORPUS_INTERFACE_R2",
+  "truthBoundary": "R2 validates typed interoperability and topology/source-set membership only. It does not infer semantic disagreement, source attribution inside a meta-review, synthesis correctness, venue-decision correctness, or cross-corpus causal chains.",
+  "validatedSampleCount": 11
+}

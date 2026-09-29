@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.workstation-n8n-liveness-autostart-acceptance",
+  "observedDate": "2026-09-28",
+  "standing": "PASS_SOURCE_OWNER_CI_LIVE_RESTART_REQUALIFIED",
+  "sourceRevision": "be319dab7bf95f8b2d52319bc4070198d1cfefd3",
+  "baselineHygieneRevision": "45e40d37ad0dfca16092dc7d5b69d59f16c05525",
+  "owner": "Workstation/Operations n8n integration service",
+  "truthBoundary": "Acceptance proves current local rootless n8n startup convergence through the dedicated n8n user manager, Quadlet generator attachment, readiness, private runner boundary, outbound connectivity, and PostgreSQL reachability. It does not authorize n8n MCP credentials, make n8n a domain/workflow authority, or prove future host state without re-observation.",
+  "rootCause": {
+    "previousSource": "Pod Quadlet lacked [Install] WantedBy=default.target while Ansible attempted systemctl --user enable on a generated transient Quadlet service.",
+    "physicalObservation": "Generated ordivon-n8n-pod.service had UnitFileState=generated, empty WantedBy/RequiredBy, and no default.target dependency; all n8n units were inactive despite Linger=yes.",
+    "correctContract": "Source Quadlet declares [Install] WantedBy=default.target; generator owns the transient default.target.wants attachment. Restart=on-failure remains process-failure recovery only."
+  },
+  "sourceChanges": [
+    "platform/workstation/n8n/ordivon-n8n.pod",
+    "platform/workstation/ansible/n8n.yml",
+    "platform/workstation/scripts/verify-n8n-rootless.sh",
+    "platform/workstation/tests/test_n8n_quadlet_liveness.py",
+    "platform/workstation/docs/N8N_SERVICE.md"
+  ],
+  "verification": {
+    "generatorDryRunJob": "job-01a0e66a-34b1-7421-857c-44bc77611ce0",
+    "focusedTestsSyntaxShellcheckJob": "job-01a0e66b-286c-7f22-b056-b9b7a1218770",
+    "workstationCiJob": "job-01a0e66e-96bb-7da3-91be-393e5ab106cb",
+    "repositoryCiJob": "job-01a0e66e-d122-7050-8b13-a1151290ea00",
+    "ansibleLiveDeployJob": "job-01a0e66f-b76a-71b1-81d9-6ad5a4df17f7",
+    "preFaultLiveAcceptanceJob": "job-01a0e670-6900-74f0-9750-36b3109ba435",
+    "userManagerRestartCanaryJob": "job-01a0e670-ac6d-74c3-8279-344483bc9211"
+  },
+  "liveEvidence": {
+    "linger": true,
+    "generatedWantedBy": [
+      "default.target"
+    ],
+    "generatorSymlink": "/run/user/934/systemd/generator/default.target.wants/ordivon-n8n-pod.service -> ../ordivon-n8n-pod.service",
+    "controlledFault": "systemctl restart user@934.service",
+    "automaticReconvergence": true,
+    "podService": "active",
+    "mainService": "active",
+    "runnerService": "active",
+    "readiness": "ok",
+    "hostListener": "127.0.0.1:5678 only",
+    "runnerPrivateHealth": "200 ok",
+    "externalHttps": "200",
+    "postgresTablesObserved": 129
+  },
+  "credentialBoundary": {
+    "credentialBytesRead": false,
+    "mcpAuthorizationGrantedByThisWork": false,
+    "note": "Local n8n instance MCP remains provider-native authorization work; liveness acceptance does not create or extract OAuth/API credentials."
+  }
+}

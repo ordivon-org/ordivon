@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/capability-science/observation-trace-v1.schema.json",
+  "title": "Capability Science Observation Trace V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "observationId", "subjectRef", "contextId", "intervention", "observable", "repeatability", "standing", "evidenceRefs", "nonClaims"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capability-science-observation-v1"},
+    "observationId": {"type": "string", "minLength": 1},
+    "subjectRef": {"type": "string", "minLength": 1},
+    "contextId": {"type": "string", "minLength": 1},
+    "intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "parameters"],
+      "properties": {
+        "action": {"type": "string", "minLength": 1},
+        "parameters": {"type": "object"}
+      }
+    },
+    "observable": {"type": "object"},
+    "repeatability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runs", "successfulReproductions"],
+      "properties": {
+        "runs": {"type": "integer", "minimum": 1},
+        "successfulReproductions": {"type": "integer", "minimum": 0}
+      }
+    },
+    "standing": {"enum": ["RAW_OBSERVATION", "REPEATED_OBSERVATION", "INTERVENTION_SUPPORTED_EFFECT"]},
+    "evidenceRefs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonClaims": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+  }
+}

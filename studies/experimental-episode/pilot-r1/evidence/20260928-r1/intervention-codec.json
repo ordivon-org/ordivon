@@ -1,0 +1,94 @@
+{
+  "assignmentEvidenceRef": {
+    "digest": "sha256:6edba31b2cd58cb8a12b1a41301c1fa2235daecafb0a87ef9b1a58cadbcd78fa",
+    "objectId": "allocation:experimental-fabric-pilot-r1",
+    "objectKind": "allocation-manifest",
+    "ownerId": "study"
+  },
+  "assignmentPolicy": "blocked",
+  "assignments": [
+    {
+      "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+      "levelId": "exact-replacement-v1",
+      "unitRef": "trial:001"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+      "levelId": "anchored-line-v1",
+      "unitRef": "trial:002"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+      "levelId": "anchored-line-v1",
+      "unitRef": "trial:003"
+    },
+    {
+      "blockRef": "HARNESS-REPO-REPAIR-001",
+      "levelId": "anchored-line-v1",
+      "unitRef": "trial:004"
+    },
+    {
+      "blockRef": "HARNESS-REPO-REPAIR-001",
+      "levelId": "exact-replacement-v1",
+      "unitRef": "trial:005"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+      "levelId": "anchored-line-v1",
+      "unitRef": "trial:006"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+      "levelId": "anchored-line-v1",
+      "unitRef": "trial:007"
+    },
+    {
+      "blockRef": "HARNESS-REPO-REPAIR-001",
+      "levelId": "anchored-line-v1",
+      "unitRef": "trial:008"
+    },
+    {
+      "blockRef": "HARNESS-REPO-REPAIR-001",
+      "levelId": "exact-replacement-v1",
+      "unitRef": "trial:009"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-ADDRESSING-002",
+      "levelId": "exact-replacement-v1",
+      "unitRef": "trial:010"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+      "levelId": "exact-replacement-v1",
+      "unitRef": "trial:011"
+    },
+    {
+      "blockRef": "HARNESS-EDIT-MULTIREGION-003",
+      "levelId": "exact-replacement-v1",
+      "unitRef": "trial:012"
+    }
+  ],
+  "contractDigest": "sha256:02863b2f5737f633f5c3e6206ac545d5d11d3351fa2f993047352105a82ba9fd",
+  "contractId": "intervention:harness-codec-r1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "frozenBaseDigest": "sha256:998a9e233db6a7860334280fa8fa362b64d494533496b558d4de4ce2725a8dc7",
+  "kind": "ordivon.experimental-intervention-contract",
+  "nonClaims": [
+    "Codec assignment does not expand Tool or Runtime authority."
+  ],
+  "schemaVersion": 1,
+  "treatmentFactor": {
+    "factorId": "factor:harness-codec",
+    "levels": [
+      {
+        "levelId": "exact-replacement-v1",
+        "value": "exact-replacement-v1"
+      },
+      {
+        "levelId": "anchored-line-v1",
+        "value": "anchored-line-v1"
+      }
+    ]
+  },
+  "unitOfAssignment": "run"
+}

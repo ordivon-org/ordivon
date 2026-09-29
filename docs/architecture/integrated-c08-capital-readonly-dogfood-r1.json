@@ -1,0 +1,185 @@
+{
+  "circuit": {
+    "digest": "sha256:2763269ffcc9f250fcbe063e1d4b8dfb84a1b8cebc7ca38188bec856d9ea27d9",
+    "id": "circuit:integrated-c08-capital-readonly-r1",
+    "owner": "composition"
+  },
+  "date": "2026-09-23",
+  "domainVerdict": {
+    "assertions": {
+      "allMechanicallyCompleted": true,
+      "allReceiptsMechanicalOnly": true,
+      "externalFinancialWritesAttempted": false,
+      "familyCount": 3,
+      "riskBudgetInferred": false,
+      "scenarioRankingProduced": false,
+      "semanticCompletionEvaluated": false
+    },
+    "fileDigest": "sha256:b1734d09454cece0fc935c3b19985e9586c88943e4ba48341553133546522ea5",
+    "kind": "ordivon.capital.readonly-circuit-acceptance",
+    "owner": "capital",
+    "path": "domains/capital/acceptance/capital-circuit-readonly-r1.json",
+    "semanticDigest": "sha256:6e11edf067c574dee8088b1097aea70408f94bb3e3bdc0d9dddea98deb1cbe92",
+    "standing": "PASS"
+  },
+  "harness": {
+    "agentRunBindingDigest": "sha256:2fc58267358add66e3eeda6942c61e334c16bee7c8b5c3047864442d98fb3cf8",
+    "domainAcceptanceEstablished": false,
+    "generationJob": {
+      "artifactSetDigest": "sha256:3186cb8b5939c01d11e4c9e1058827590cb739eda469d4b219eea7dbe01705b6",
+      "artifacts": [
+        {
+          "artifactId": "attempt-01a0ce07-d0d4-7840-9ad8-38205422a3d6.result",
+          "digest": "sha256:43daf879448b946f548a6751d5f52e9f4ea590cf756161ea14e46455a7fea8d0",
+          "kind": "execution_result"
+        },
+        {
+          "artifactId": "attempt-01a0ce07-d0d4-7840-9ad8-38205422a3d6.stderr",
+          "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kind": "stderr"
+        },
+        {
+          "artifactId": "attempt-01a0ce07-d0d4-7840-9ad8-38205422a3d6.stdout",
+          "digest": "sha256:415e89aec3c6364a67488a86c0def78325edad67c4a654529480153aa28b07f7",
+          "kind": "stdout"
+        },
+        {
+          "artifactId": "attempt-01a0ce07-d0d4-7840-9ad8-38205422a3d6.terminal-evidence.a97320a1cc5ec1cb4f705697044e7c82e9b2871c8f7c77b18d39833f333977b6",
+          "digest": "sha256:a97320a1cc5ec1cb4f705697044e7c82e9b2871c8f7c77b18d39833f333977b6",
+          "kind": "terminal_evidence"
+        }
+      ],
+      "attemptId": "attempt-01a0ce07-d0d4-7840-9ad8-38205422a3d6",
+      "jobId": "job-01a0ce07-d0d4-7840-9ad8-381ef8d80ad9",
+      "operationDigest": "sha256:d244aa98cffab2a04f984dc5b92de48dfba8e2fdde507390f8f90b27a5f4cd8a",
+      "resolution": "succeeded",
+      "semanticCompletionEvaluated": false,
+      "workspaceSourceDigest": "sha256:b31c472e936379007f78e1d31a21e92acf1116f1fd9c8480fadb80c952bc9087"
+    },
+    "owner": "harness",
+    "runContractDigest": "sha256:1b9afdb6c0b4d0d3ddd3993652838011cc6d71e4f666a5eaef8a04bbe6a1dde9",
+    "runId": "harness-run:integrated-c08-capital-readonly-r1-r3",
+    "runReceiptDigest": "sha256:6a5b71d7123cc585001176cf4ca75d67b649f3e907fe2f4a6c7966fd902904ba",
+    "runtimeJobRefs": [],
+    "terminationCode": "candidate_completed",
+    "traceDigest": "sha256:db1de105269bd7af7ab99f29b50cc65f79d84c5fbca8c597e3c94ebe2f4d1a54"
+  },
+  "invariants": {
+    "externalFinancialWritesAttempted": false,
+    "generatorAndVerifierSeparated": true,
+    "harnessDidNotClaimDomainAcceptance": true,
+    "ownerNativeVerdictVocabularyPreserved": true,
+    "runtimeDidNotClaimSemanticCompletion": true,
+    "universalEffectMapperIntroduced": false,
+    "universalVerdictLayerIntroduced": false
+  },
+  "kind": "ordivon.architecture.integrated-c08-capital-readonly-dogfood",
+  "nonClaims": [
+    "Capital PASS is preserved as Capital owner-native standing, not a universal Ordivon verdict.",
+    "Harness candidate completion is not Runtime verification or Capital acceptance.",
+    "Runtime execution success is not semantic/domain completion.",
+    "This one C08 canary does not generalize verdict semantics across domains.",
+    "A03b production-authoritative Agent/Grant/Effect evidence remains outside this slice."
+  ],
+  "objectiveRef": {
+    "digest": "sha256:f57057567beecdb22ea606e95e19a850e8ff4c422266d31899e93638a89ff097",
+    "id": "objective:integrated-c08-capital-readonly-r1"
+  },
+  "receiptDigest": "sha256:500d6dcde137b62c3ea33de644cf0aece74769907c45357d2d37f0f8d2fcaf98",
+  "requalifiedAgainstRevision": "5f9a41313624406b3381a06612b87e493951ab9e",
+  "schemaVersion": 1,
+  "sourceRevision": "832468936934e03aa2b8f67836182a8543b124a6",
+  "truthRole": "bounded-cross-owner-evidence-binding-not-owner-truth",
+  "verifier": {
+    "artifactSetDigest": "sha256:dff90bab2a9d8a44a249df40bb8eedcb0b868bc26faa809cdce541c39615b143",
+    "artifacts": [
+      {
+        "artifactId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3.control-result",
+        "digest": "sha256:7e9d9bda76e2f6734d60e67ae5ce3c5e7568a1b483e8804ea4da1299c8c9f348",
+        "kind": "control_result"
+      },
+      {
+        "artifactId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3.terminal-evidence.46f49a93ac8a42c7fc35f78d6a6d27c3ae51125efa814978b6942fca58eb8735",
+        "digest": "sha256:46f49a93ac8a42c7fc35f78d6a6d27c3ae51125efa814978b6942fca58eb8735",
+        "kind": "terminal_evidence"
+      },
+      {
+        "artifactId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3.result",
+        "digest": "sha256:a97eb6b33a5c9c78a04ea1ee076af591ba5de2f5aaa6f68622783e3c46b1d7c8",
+        "kind": "execution_result"
+      },
+      {
+        "artifactId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3.stderr",
+        "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "kind": "stderr"
+      },
+      {
+        "artifactId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3.stdout",
+        "digest": "sha256:423b1d0e014eb1eab96f4420f7b344c2615be505dd574b756ac884826ca74f2d",
+        "kind": "stdout"
+      },
+      {
+        "artifactId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3.terminal-evidence.73b16accb2e2e2214bc8020cdeb3db2191e42ffba11404e0b35d7384a7b49451",
+        "digest": "sha256:73b16accb2e2e2214bc8020cdeb3db2191e42ffba11404e0b35d7384a7b49451",
+        "kind": "terminal_evidence"
+      }
+    ],
+    "attemptId": "attempt-01a0ce08-8fe3-7012-be1e-42af01cf58f3",
+    "command": [
+      "/usr/bin/python3",
+      "-m",
+      "pytest",
+      "-q",
+      "domains/capital/tests/test_readonly_circuit_acceptance.py"
+    ],
+    "exitCode": 0,
+    "foreignReferences": [
+      {
+        "digest": "sha256:2763269ffcc9f250fcbe063e1d4b8dfb84a1b8cebc7ca38188bec856d9ea27d9",
+        "id": "circuit:integrated-c08-capital-readonly-r1",
+        "namespace": "ordivon.composition",
+        "type": "cognitive_circuit"
+      },
+      {
+        "id": "harness-run:integrated-c08-capital-readonly-r1-r3",
+        "namespace": "ordivon.harness",
+        "type": "harness_run"
+      },
+      {
+        "digest": "sha256:1b9afdb6c0b4d0d3ddd3993652838011cc6d71e4f666a5eaef8a04bbe6a1dde9",
+        "id": "harness-run-contract:integrated-c08-capital-readonly-r1-r3",
+        "namespace": "ordivon.harness",
+        "type": "run_contract"
+      },
+      {
+        "digest": "sha256:6a5b71d7123cc585001176cf4ca75d67b649f3e907fe2f4a6c7966fd902904ba",
+        "id": "harness-run-receipt:integrated-c08-capital-readonly-r1-r3",
+        "namespace": "ordivon.harness",
+        "type": "run_receipt"
+      },
+      {
+        "digest": "sha256:6e11edf067c574dee8088b1097aea70408f94bb3e3bdc0d9dddea98deb1cbe92",
+        "id": "capital-circuit-readonly-r1",
+        "namespace": "ordivon.capital",
+        "type": "domain_acceptance"
+      }
+    ],
+    "jobId": "job-01a0ce08-8fe3-7012-be1e-42994bba5dc7",
+    "operationDigest": "sha256:a3c3d86e35d87c9230e9ae978b4d9296f70a48e7ac6ecbe279d830cfb7fd1d5c",
+    "physicalExecutionOwner": "runtime",
+    "recovery": {
+      "blindRedispatchPerformed": false,
+      "finalReasonCode": "LATE_IDENTITY_BOUND_RUNNER_RESULT",
+      "initialReasonCode": "LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE",
+      "initialState": "orphaned",
+      "reconciliationConvergences": 1,
+      "reconciliationFailures": 1,
+      "resolutionCorrections": 1,
+      "runnerResultRecoveries": 1
+    },
+    "resolution": "succeeded",
+    "semanticCompletionEvaluated": false,
+    "semanticOwner": "capital",
+    "workspaceSourceDigest": "sha256:b31c472e936379007f78e1d31a21e92acf1116f1fd9c8480fadb80c952bc9087"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.workstation.native-s4u-wsl-authority-acceptance",
+  "observedAt": "2026-09-24T04:38:45+08:00",
+  "status": "accepted-live-machine",
+  "authoritySplit": {
+    "orchestration": "windows-runtime-local-system",
+    "userContextCarrier": "windows-task-scheduler-native-s4u",
+    "wslLifecycle": "wsl-user-distro-owner",
+    "vhdCompaction": "hyper-v-optimize-vhd",
+    "maintenanceAdmission": "d-drive-r2-r3-fenced-protocol"
+  },
+  "recoveryTask": {
+    "taskName": "Ordivon WSL Control Plane Recovery",
+    "userId": "16663",
+    "logonType": "S4U",
+    "runLevel": "Limited",
+    "enabled": true,
+    "lastAcceptedResult": 0
+  },
+  "compactTask": {
+    "taskName": "Ordivon-DDrive-Offline-Compact",
+    "userId": "16663",
+    "logonType": "S4U",
+    "runLevel": "Highest",
+    "enabledByDefault": false,
+    "runner": "D:\\OrdivonStudio\\d-drive-compact-run-live-20260924-r1.ps1"
+  },
+  "acceptedEvidence": [
+    "native S4U process identity was zycxfyh\\16663",
+    "native S4U probe enumerated archlinux with wsl.exe and exit code 0",
+    "Windows Runtime LocalSystem subsequently triggered the S4U recovery task",
+    "recovery receipt reported WSL_SUBSTRATE_READY with Runtime, Host, and Gateway active"
+  ],
+  "retired": [
+    "custom LSA S4U launcher",
+    "existing-process token extraction/duplication approach",
+    "temporary Interactive AtLogOn compact controller",
+    "temporary Interactive AtLogOn compact authorizer"
+  ],
+  "nonClaims": [
+    "S4U identity does not authorize offline compact",
+    "this record does not prove a completed VHD compact",
+    "this record does not replace fresh maintenance gate receipts"
+  ]
+}

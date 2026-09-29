@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.standard-native.enterprise-r2-cross-domain-dogfood",
+  "capturedAt": "2026-09-14",
+  "cases": [
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.standard-native.profile-projection",
+      "caseId": "research",
+      "domain": "research",
+      "source": {
+        "repo": "/root/projects/ordivon-research-v2",
+        "headRevision": "7df70cf49bb905decb7096adb1ee2f105e64ce3f",
+        "profile": {
+          "path": "profiles/paper1_standard_native_r2.toml",
+          "sha256": "sha256:0a3815edab7407bb0759b88e580c0d38a483b480f70974c99308a12e3446e880",
+          "lastCommit": "39e4aa997238ad8a4cbf127a521693f9646683d6"
+        },
+        "report": {
+          "path": "reports/paper1_standard_native_r2.json",
+          "sha256": "sha256:bf9e29e9d94c7cde78cd42a48b27852e15074231bc9b358be2944e0beaea963f",
+          "lastCommit": "39e4aa997238ad8a4cbf127a521693f9646683d6"
+        },
+        "requirements": {
+          "path": "requirements/paper1_standard_native_r2.sdoc",
+          "sha256": "sha256:50a97e06dd194e9a0c67c39b23f56a5d079b71e6c8bfb2afccddda507e468abf",
+          "lastCommit": "39e4aa997238ad8a4cbf127a521693f9646683d6"
+        }
+      },
+      "subject": {
+        "path": "publication/first_paper_r8s2_frozen/manuscript.qmd",
+        "sha256": "sha256:6cb8a7302d8cd3700beaeb12c73d946276c8a2efdad355056fe841d20801eea4",
+        "standing": "FROZEN_PUBLICATION_DOGFOOD_NOT_CURRENT_SCIENTIFIC_AUTHORITY",
+        "current_manuscript_resolution": "NOT_LOCATED_AS_TRACKED_RESEARCH_V2_AUTHORITY_DURING_R2_CENSUS",
+        "rule": "This profile proves standards-native composition mechanics against a real frozen Paper-1 manuscript. It must not be represented as current submission conformance until the current scientific manuscript is bound by exact source identity."
+      },
+      "profileModel": "task-local-external-authority-profile",
+      "authorityDecisions": [
+        {
+          "id": "acm-sigsoft-general",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_WHOLE_STUDY",
+          "source": "https://www2.sigsoft.org/EmpiricalStandards/docs/standards",
+          "currentnessChecked": "2026-09-14",
+          "rationale": null
+        },
+        {
+          "id": "acm-sigsoft-data-science",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_PRIMARY_METHOD",
+          "source": "https://www2.sigsoft.org/EmpiricalStandards/docs/standards",
+          "currentnessChecked": "2026-09-14",
+          "rationale": null
+        },
+        {
+          "id": "acm-sigsoft-replication",
+          "disposition": "BOUND",
+          "role": "LAYER_SPECIFIC_ONLY",
+          "source": "https://www2.sigsoft.org/EmpiricalStandards/docs/standards",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "The manuscript explicitly separates controlled reanalysis, implementation-path reproduction, and cross-artifact robustness. The Replication standard is not imposed on the whole paper as if all evidence layers were one replication."
+        },
+        {
+          "id": "emse-submission-guidelines",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_AT_SUBMISSION_BOUNDARY",
+          "source": "https://link.springer.com/journal/10664/submission-guidelines",
+          "currentnessChecked": "2026-09-14",
+          "rationale": null
+        },
+        {
+          "id": "springer-research-data-policy",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_AT_SUBMISSION_BOUNDARY",
+          "source": "https://www.springernature.com/gp/authors/research-data-policy",
+          "currentnessChecked": "2026-09-14",
+          "rationale": null
+        },
+        {
+          "id": "ro-crate-1.3",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_RESEARCH_OBJECT_PACKAGING",
+          "source": "https://www.researchobject.org/ro-crate/specification",
+          "currentnessChecked": "2026-09-14",
+          "rationale": null
+        },
+        {
+          "id": "fair-principles",
+          "disposition": "BOUND",
+          "role": "GUIDANCE_NOT_CONFORMANCE_STANDARD",
+          "source": "https://www.go-fair.org/fair-principles/",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "FAIR guides findability, accessibility, interoperability and reuse; it is not itself a certification/conformance standard."
+        },
+        {
+          "id": "prisma-2020",
+          "disposition": "EXCLUDED",
+          "role": null,
+          "source": null,
+          "currentnessChecked": null,
+          "rationale": "Not a systematic review manuscript. Literature work supports context/prior-art assessment rather than a PRISMA-governed systematic review."
+        },
+        {
+          "id": "acm-sigsoft-benchmarking",
+          "disposition": "EXCLUDED",
+          "role": null,
+          "source": null,
+          "currentnessChecked": null,
+          "rationale": "The paper uses benchmark datasets to evaluate predictive models, but its primary method is data-science/ML analysis of software-engineering phenomena rather than benchmarking a software system under a workload in the SIGSOFT Benchmarking sense."
+        }
+      ],
+      "requirementIdentity": {
+        "count": 23,
+        "uids": [
+          "P1-GEN-001",
+          "P1-GEN-002",
+          "P1-GEN-003",
+          "P1-GEN-004",
+          "P1-GEN-005",
+          "P1-DS-001",
+          "P1-DS-002",
+          "P1-DS-003",
+          "P1-DS-004",
+          "P1-DS-005",
+          "P1-DS-006",
+          "P1-DS-007",
+          "P1-DS-008",
+          "P1-EMSE-001",
+          "P1-EMSE-002",
+          "P1-EMSE-003",
+          "P1-EMSE-004",
+          "P1-EMSE-005",
+          "P1-EMSE-006",
+          "P1-EMSE-007",
+          "P1-EMSE-008",
+          "P1-RO-001",
+          "P1-FAIR-001"
+        ]
+      },
+      "verdict": {
+        "owner": "domain",
+        "summary": {
+          "PASS": 17,
+          "PARTIAL": 3,
+          "OPEN": 2,
+          "EXTERNAL_ASSERTION_REQUIRED": 1
+        }
+      },
+      "claimBoundary": "This report evaluates a frozen Paper-1 publication dogfood object against a bounded task-local profile. It is not certification, journal acceptance, or current-manuscript submission readiness.",
+      "workSemantics": {
+        "primary": "ADAPTIVE_CASE",
+        "cmmn": "CANDIDATE_IF_CASE_STATE_BECOMES_REPEATED_AND_VALUABLE",
+        "bpmn": "NOT_JUSTIFIED_FOR_OPEN_ENDED_SCIENTIFIC_REASONING",
+        "dmn": "NOT_YET_JUSTIFIED; consequential scientific judgments remain evidence-based case decisions rather than a forced decision table",
+        "temporal": "USE_ONLY_FOR_DURABLE_TECHNICAL_EXECUTION",
+        "n8n": "NOT_NATURAL_OWNER",
+        "erpnext": "NOT_NATURAL_OWNER_OF_SCIENTIFIC_EVIDENCE"
+      },
+      "currentnessSignals": [],
+      "nonClaims": []
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.standard-native.profile-projection",
+      "caseId": "runtime",
+      "domain": "runtime",
+      "source": {
+        "repo": "/root/projects/ordivon-runtime",
+        "headRevision": "946ed96112c5806e5b36567af42c7780877e19f2",
+        "profile": {
+          "path": "standards/runtime_standard_native_r3.toml",
+          "sha256": "sha256:03e1dc7d2d59ac2af742a09da1434ca5a0c0438548fc2f444996d847f53d0c1c",
+          "lastCommit": "52b404097be048610edadbb3cfb335347ef5eea5"
+        },
+        "report": {
+          "path": "standards/runtime_standard_native_r3_report.json",
+          "sha256": "sha256:f29f840cfc00e348f2e43f6b3ce1e337d8b77de66ee2719be3273ccc0b4162ea",
+          "lastCommit": "52b404097be048610edadbb3cfb335347ef5eea5"
+        },
+        "requirements": {
+          "path": "standards/runtime_standard_native_r3.sdoc",
+          "sha256": "sha256:00766a070883c519721cc4d04341068eda916fbd41715aaf4b33521095006649",
+          "lastCommit": "52b404097be048610edadbb3cfb335347ef5eea5"
+        }
+      },
+      "subject": {
+        "repo": "ordivon-runtime",
+        "revision": "8355a4d24d2930d87969d769a73882396b806f48",
+        "entity_of_interest": "owner-trusted local execution runtime software product and service",
+        "rule": "This profile maps existing Runtime engineering evidence to external authorities. It is not an ISO certification, NIST certification, SLSA level claim, or replacement for provider-native acceptance."
+      },
+      "profileModel": "task-local-external-authority-profile",
+      "authorityDecisions": [
+        {
+          "id": "iso-iec-ieee-12207-2026",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_LIFECYCLE_FRAMEWORK",
+          "source": "https://www.iso.org/standard/90219.html",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Runtime is a maintained software product/service with development, operation, support, release, maintenance and retirement concerns. 12207 supplies lifecycle vocabulary without prescribing a particular development method."
+        },
+        {
+          "id": "iso-iec-25010-2023",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_QUALITY_REFERENCE_MODEL",
+          "source": "https://www.iso.org/standard/78176.html",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Use as a reference model for selecting product-quality requirements, test objectives and acceptance criteria; do not claim complete ISO conformance from this profile."
+        },
+        {
+          "id": "nist-sp-800-218-ssdf-1.1",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_SECURE_DEVELOPMENT_BASELINE",
+          "source": "https://csrc.nist.gov/pubs/sp/800/218/final",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Version 1.1 remains the final SSDF publication. SP 800-218 Rev.1 / SSDF 1.2 is an initial public draft and is monitored but not treated as the stable baseline."
+        },
+        {
+          "id": "slsa-1.2",
+          "disposition": "BOUND",
+          "role": "RELEASE_SUPPLY_CHAIN_GUIDANCE_NO_LEVEL_CLAIM",
+          "source": "https://slsa.dev/spec/v1.2/",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Runtime has strong source/toolchain/artifact identity and release receipts, but this profile does not translate those receipts into a SLSA provenance attestation or claim a SLSA level."
+        }
+      ],
+      "requirementIdentity": {
+        "count": 18,
+        "uids": [
+          "RT-LC-001",
+          "RT-LC-002",
+          "RT-LC-003",
+          "RT-LC-004",
+          "RT-Q-001",
+          "RT-Q-002",
+          "RT-Q-003",
+          "RT-Q-004",
+          "RT-Q-005",
+          "RT-Q-006",
+          "RT-SSDF-PO-001",
+          "RT-SSDF-PO-002",
+          "RT-SSDF-PS-001",
+          "RT-SSDF-PW-001",
+          "RT-SSDF-PW-002",
+          "RT-SSDF-RV-001",
+          "RT-SUP-001",
+          "RT-SUP-002"
+        ]
+      },
+      "verdict": {
+        "owner": "domain",
+        "summary": {
+          "PASS": 17,
+          "NOT_CLAIMED": 1
+        }
+      },
+      "claimBoundary": "This is a task-local mapping and evidence observation, not ISO certification, NIST certification, SLSA certification/level, deployment-currentness proof, or live production health. Source, release candidate and installed deployment currentness remain separate facts.",
+      "workSemantics": {
+        "primary": "SOFTWARE_LIFECYCLE_AND_RELEASE_ASSURANCE",
+        "bpmn": "NOT_REQUIRED_FOR_REPOSITORY_ENGINEERING_FLOW",
+        "cmmn": "NOT_REQUIRED",
+        "dmn": "NOT_REQUIRED",
+        "temporal": "RUNTIME_EXECUTION_PROVIDER_NOT_ENGINEERING_SEMANTIC_OWNER"
+      },
+      "currentnessSignals": [],
+      "nonClaims": [
+        "iso_certified=False",
+        "nist_certified=False",
+        "slsa_level=NONE_CLAIMED",
+        "full_supply_chain_attestation_standardized=False"
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.standard-native.profile-projection",
+      "caseId": "game",
+      "domain": "game",
+      "source": {
+        "repo": "/root/projects/ordivon-game",
+        "headRevision": "02eb3d92d3262321b5d90e22c1889c98aae607d1",
+        "profile": {
+          "path": "standards/game_pre_g0_standard_native_r4.toml",
+          "sha256": "sha256:2d53efc47a7c96624435c23f97b4f30095998288dadac4b5095e8a1b03d69730",
+          "lastCommit": "02eb3d92d3262321b5d90e22c1889c98aae607d1"
+        },
+        "report": {
+          "path": "standards/game_pre_g0_standard_native_r4_report.json",
+          "sha256": "sha256:176bc6ca12f7f56f26a089dd23c6283cae0f006799dbd6479b177aecd9d9b661",
+          "lastCommit": "02eb3d92d3262321b5d90e22c1889c98aae607d1"
+        },
+        "requirements": {
+          "path": "standards/game_pre_g0_standard_native_r4.sdoc",
+          "sha256": "sha256:aaaef047b4ecc592c9fdf612f2506a2f7747632622022bf0bed99ad7c3364a65",
+          "lastCommit": "02eb3d92d3262321b5d90e22c1889c98aae607d1"
+        }
+      },
+      "subject": {
+        "repo": "ordivon-game",
+        "baseline_revision": "3ac0d1a44a0209a569941d745e7766b1c32a22d1",
+        "phase": "PRE_G0_PRODUCT_DISCOVERY_AND_HUMAN_VALUE_FALSIFICATION",
+        "product_selected": false,
+        "g0_entered": false,
+        "rule": "This profile maps the current Pre-G0 work to external human-centred, usability, accessibility and provider authorities. It is not a universal game-development standard and does not make Player Value, accessibility-compliance, store-readiness or product-selection claims."
+      },
+      "profileModel": "task-local-external-authority-profile",
+      "authorityDecisions": [
+        {
+          "id": "iso-9241-210-2019",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_HCD_PROCESS_REFERENCE",
+          "source": "https://www.iso.org/standard/77520.html",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Current Pre-G0 work forms and tests player-facing interaction hypotheses, so human-centred design activities and iterative evaluation are directly relevant."
+        },
+        {
+          "id": "iso-9241-11-2018",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_USABILITY_REFERENCE",
+          "source": "https://www.iso.org/standard/63500.html",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Mechanical completion is separated from human effectiveness, efficiency and satisfaction in context of use."
+        },
+        {
+          "id": "xbox-accessibility-guidelines-3.2",
+          "disposition": "BOUND",
+          "role": "ADVISORY_GAME_ACCESSIBILITY_GUIDANCE",
+          "source": "https://learn.microsoft.com/gaming/accessibility/xbox-accessibility-guidelines/",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Use as current game-specific accessibility design/test guidance. No legal or certification claim is inferred."
+        },
+        {
+          "id": "wcag-2.2",
+          "disposition": "BOUND",
+          "role": "APPLICABLE_TO_WEB_PLAYTEST_CARRIER_ONLY",
+          "source": "https://www.w3.org/TR/WCAG22/",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "The current Pre-G0 apparatus is a web interface. Selected WCAG criteria can evaluate that carrier, but this does not make the future game or even the whole apparatus WCAG-conformant."
+        },
+        {
+          "id": "games-user-research-practice",
+          "disposition": "BOUND",
+          "role": "PROFESSIONAL_PRACTICE_GUIDANCE",
+          "source": "https://gamesuserresearch.com/choose-the-right-playtest-method/",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "Method choice should follow the player-facing question; professional guidance complements, rather than replaces, ISO HCD/usability concepts and real participant evidence."
+        },
+        {
+          "id": "godot-provider",
+          "disposition": "BOUND",
+          "role": "IMPLEMENTATION_PROVIDER_AUTHORITY",
+          "source": "https://godotengine.org/download/archive/",
+          "currentnessChecked": "2026-09-14",
+          "rationale": "The accepted local build/export chain is deliberately pinned to 4.7.1. Upstream 4.7.2 stable currentness is tracked as provider drift, not automatically treated as a defect or forced upgrade."
+        },
+        {
+          "id": "store-rating-and-release-rules",
+          "disposition": "DEFERRED",
+          "role": "DEFERRED_UNTIL_TARGET_PRODUCT_AND_DISTRIBUTION_CARRIER_EXIST",
+          "source": null,
+          "currentnessChecked": null,
+          "rationale": "No product or target distribution platform has been committed in Pre-G0. Activating release certification/rating rules now would be premature."
+        }
+      ],
+      "requirementIdentity": {
+        "count": 18,
+        "uids": [
+          "GAME-HCD-001",
+          "GAME-HCD-002",
+          "GAME-HCD-003",
+          "GAME-HCD-004",
+          "GAME-HCD-005",
+          "GAME-USAB-001",
+          "GAME-USAB-002",
+          "GAME-A11Y-001",
+          "GAME-A11Y-002",
+          "GAME-A11Y-003",
+          "GAME-A11Y-004",
+          "GAME-PRIV-001",
+          "GAME-PRIV-002",
+          "GAME-ENG-001",
+          "GAME-ENG-002",
+          "GAME-AGENT-001",
+          "GAME-DIST-001",
+          "GAME-G0-001"
+        ]
+      },
+      "verdict": {
+        "owner": "domain",
+        "summary": {
+          "PASS": 8,
+          "OPEN": 4,
+          "PARTIAL": 3,
+          "DEFERRED_TRIGGERED_BY_SCOPE_CHANGE": 1,
+          "PINNED_NOT_LATEST": 1,
+          "DEFERRED_NOT_APPLICABLE_CURRENT_PHASE": 1
+        }
+      },
+      "claimBoundary": "This report is a task-local applicability/evidence observation. It is not ISO certification, WCAG conformance, XAG certification, Player Value proof, product selection, G0 admission, ratings approval, store certification, or commercial-release readiness.",
+      "workSemantics": {
+        "primary": "ADAPTIVE_PRODUCT_DISCOVERY_WITH_HUMAN_EVIDENCE",
+        "bpmn": "NOT_JUSTIFIED",
+        "cmmn": "NOT_REQUIRED_FOR_CURRENT_LOCAL_WORK",
+        "dmn": "NOT_JUSTIFIED",
+        "provider_rule": "Use provider-native Game/Engineering/Artifact tools; standards shape applicability and verification, not a new Ordivon workflow ontology."
+      },
+      "currentnessSignals": [
+        {
+          "id": "godot-provider",
+          "local_pin": "4.7.1",
+          "current_stable_observed": "4.7.2",
+          "currentness_checked": "2026-09-14"
+        }
+      ],
+      "nonClaims": [
+        "iso_certified=False",
+        "wcag_conformant=False",
+        "xag_certified=False",
+        "player_value_proven=False",
+        "product_selected=False",
+        "g0_admitted=False",
+        "store_ready=False"
+      ]
+    }
+  ],
+  "observations": {
+    "caseCount": 3,
+    "allHaveExternalAuthorityDecisions": true,
+    "allHaveStableRequirementIdentity": true,
+    "allHaveExplicitClaimBoundary": true,
+    "domainVerdictVocabulariesDistinct": true,
+    "sharedVerdictStatuses": [
+      "PASS"
+    ],
+    "unionVerdictStatuses": [
+      "DEFERRED_NOT_APPLICABLE_CURRENT_PHASE",
+      "DEFERRED_TRIGGERED_BY_SCOPE_CHANGE",
+      "EXTERNAL_ASSERTION_REQUIRED",
+      "NOT_CLAIMED",
+      "OPEN",
+      "PARTIAL",
+      "PASS",
+      "PINNED_NOT_LATEST"
+    ],
+    "universalVerdictNormalizationApplied": false
+  },
+  "boundary": "This receipt is a read-only projection over domain-owned source profiles and reports. It does not replace their semantics, certify conformance, or make their verdict vocabularies universal."
+}

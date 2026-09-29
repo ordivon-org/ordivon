@@ -20,9 +20,9 @@ IGNORED_COMPONENTS = {
     "docs", "evidence", "planning", "research", "experiments", "fixtures", "artifacts",
 }
 IGNORED_PREFIXES = (
-    "meta/next/authorities/",
-    "meta/next/knowledge/",
-    "meta/next/domains/",
+    "catalogs/authorities/",
+    "catalogs/knowledge/",
+    "profiles/domains/",
 )
 
 
@@ -115,7 +115,7 @@ def findings_for_text(
     findings: list[Finding] = []
     for line_number, line in enumerate(text.splitlines(), start=1):
         for target in owners:
-            if target.name == source.name:
+            if target.name == source.name or not target.literal_boundary_target:
                 continue
             target_literal = target.root.rstrip("/")
             if target_literal in line:

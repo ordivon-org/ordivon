@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.project-lego-plan",
+  "truthRole": "planning-projection-not-security-authority",
+  "project": {
+    "id": "ai-redteam-foundry-r1",
+    "purpose": "Continuously discover and reproduce adversarial LLM/agent failure families, map them to owner-level root causes, and produce regression evidence without duplicating external red-team frameworks or production Security authority."
+  },
+  "nodes": [
+    {
+      "id": "RT01",
+      "label": "ThreatModelRef",
+      "kind": "context",
+      "authority": "study + referenced Security threat model",
+      "state": "IMPLEMENTED_SYNTHETIC",
+      "responsibility": "Bind attacker knowledge, access, adaptivity, state scope, success object and budget.",
+      "dependencies": []
+    },
+    {
+      "id": "RT02",
+      "label": "AttackProvider",
+      "kind": "provider",
+      "authority": "external red-team framework",
+      "state": "REPLAY_ADAPTERS_PYRIT_GARAK_AGENTDOJO_PLUS_SYNTHETIC",
+      "responsibility": "Generate attack candidates using provider-owned search algorithms.",
+      "dependencies": ["RT01"]
+    },
+    {
+      "id": "RT03",
+      "label": "TargetBinding",
+      "kind": "identity",
+      "authority": "target owner",
+      "state": "IMPLEMENTED_SYNTHETIC",
+      "responsibility": "Bind exact model/agent/monitor/system subject and configuration.",
+      "dependencies": ["RT01"]
+    },
+    {
+      "id": "RT04",
+      "label": "ObservationEvidence",
+      "kind": "evidence",
+      "authority": "provider-native artifact + Ordivon evidence binding",
+      "state": "IMPLEMENTED_SYNTHETIC",
+      "responsibility": "Retain trajectory and final-world-state digests without promoting observation to root-cause truth.",
+      "dependencies": ["RT02", "RT03"]
+    },
+    {
+      "id": "RT05",
+      "label": "IndependentJudge",
+      "kind": "verification",
+      "authority": "judge provider",
+      "state": "IMPLEMENTED_WORLD_STATE",
+      "responsibility": "Evaluate invariant violation independently of attacker search feedback.",
+      "dependencies": ["RT04"]
+    },
+    {
+      "id": "RT06",
+      "label": "FailureCluster",
+      "kind": "analysis",
+      "authority": "study",
+      "state": "IMPLEMENTED_RULE_BASELINE",
+      "responsibility": "Collapse many exploit instances into candidate vulnerability/root-cause families.",
+      "dependencies": ["RT05"]
+    },
+    {
+      "id": "RT07",
+      "label": "MinimumOwnerRepair",
+      "kind": "repair",
+      "authority": "actual contract owner",
+      "state": "SYNTHETIC_ONLY",
+      "responsibility": "Patch the smallest owner that can restore the violated invariant.",
+      "dependencies": ["RT06"]
+    },
+    {
+      "id": "RT08",
+      "label": "AdaptiveRetest",
+      "kind": "verification",
+      "authority": "independent red-team provider",
+      "state": "IMPLEMENTED_SYNTHETIC",
+      "responsibility": "Retest with a defense-aware attack set plus benign utility regression.",
+      "dependencies": ["RT07"]
+    },
+    {
+      "id": "RT09",
+      "label": "SecurityEvidenceBridge",
+      "kind": "integration",
+      "authority": "Security v2",
+      "state": "MECHANICAL_EVIDENCEREF_PROJECTION_IMPLEMENTED_NOT_ADMITTED",
+      "responsibility": "Project provider artifact identity onto the existing Security EvidenceRef mechanical waist without replacing S01-S05 authority or promoting study findings to standing.",
+      "dependencies": ["RT08"]
+    },
+    {
+      "id": "RT10",
+      "label": "AgentAttackSurfaces",
+      "kind": "experimental_surface",
+      "authority": "study",
+      "state": "IMPLEMENTED_SYNTHETIC",
+      "responsibility": "Exercise cross-session memory poisoning, runtime tool-trust drift, and monitor blind spots with synthetic canaries and deterministic judges.",
+      "dependencies": ["RT03", "RT05"]
+    }
+  ],
+  "nextSlices": [
+    {
+      "id": "RTS2",
+      "objective": "Add provider adapters for PyRIT and garak using immutable replay fixtures, without live third-party targets.",
+      "requires": ["RT01", "RT04", "RT05"],
+      "status": "IMPLEMENTED_REPLAY_FIXTURES"
+    },
+    {
+      "id": "RTS3",
+      "objective": "Add AgentDojo as the first stateful external-world provider and compare transcript judges with deterministic world-state judges.",
+      "requires": ["RTS2"],
+      "status": "PARTIAL_REPLAY_ADAPTER_LIVE_ENVIRONMENT_NOT_ADMITTED"
+    },
+    {
+      "id": "RTS4",
+      "objective": "Add model/monitor red-team targets only after subject identity, raw evidence retention, and budget accounting are proven by replay fixtures.",
+      "requires": ["RTS2", "RTS3"],
+      "status": "PLANNED"
+    }
+  ]
+}

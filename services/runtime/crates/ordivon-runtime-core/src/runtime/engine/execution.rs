@@ -4,30 +4,11 @@ impl Runtime {
         target: super::ExecutionTarget,
     ) -> RuntimeResult<ExecutionProviderSnapshot> {
         match target {
-            super::ExecutionTarget::LocalLinux => {
-                if self.node_identity.platform != super::RuntimeNodePlatform::Linux {
-                    return Err(RuntimeError::new(
-                        RuntimeErrorCode::ToolUnavailable,
-                        "local_linux execution is available only on a Linux Runtime node",
-                        Some("execution.executionTarget"),
-                        false,
-                    ));
-                }
-                let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
-                    RuntimeError::new(
-                        RuntimeErrorCode::ToolUnavailable,
-                        "local_linux runner is not configured on this Runtime node",
-                        Some("runnerPath"),
-                        false,
-                    )
-                })?;
-                let runner = validate_runner(runner_path)?;
-                Ok(ExecutionProviderSnapshot {
-                    contract: ExecutionProviderContract::LocalLinuxRunnerV1,
-                    executable_digest: sha256_file(&runner).map_err(map_universal_error)?,
-                    wsl_distribution: None,
-                })
-            }
+            super::ExecutionTarget::LocalLinux => LocalLinuxProvider::new(
+                self.node_identity.platform,
+                &self.executor,
+            )
+            .snapshot(),
             super::ExecutionTarget::WindowsNative => {
                 let windows = self.windows.as_ref().ok_or_else(|| {
                     RuntimeError::invalid(
@@ -64,37 +45,8 @@ impl Runtime {
             .cloned()
             .collect::<Vec<_>>();
 
-        let linux_configured = self.node_identity.platform == super::RuntimeNodePlatform::Linux
-            && self.executor.runner_path.is_some();
-        let linux_provider = linux_configured
-            .then(|| self.current_execution_provider_snapshot(super::ExecutionTarget::LocalLinux))
-            .transpose()
-            .ok()
-            .flatten();
-        let linux = RuntimeExecutionTargetCapability {
-            target: super::ExecutionTarget::LocalLinux,
-            configured: linux_configured,
-            available: linux_provider.is_some(),
-            execution_profiles: if linux_configured {
-                vec![
-                    super::ExecutionProfile::TrustedLocal,
-                    super::ExecutionProfile::ContainedLocal,
-                ]
-            } else {
-                Vec::new()
-            },
-            windows_authorities: Vec::new(),
-            windows_contexts: Vec::new(),
-            windows_immutable_input_authorities: Vec::new(),
-            structured_plan: linux_configured,
-            immutable_inputs: linux_configured,
-            host_dependency_commitments: linux_configured,
-            host_dependency_continuity_scope: linux_configured
-                .then(|| HOST_DEPENDENCY_CONTINUITY_SCOPE.to_string()),
-            availability_issue: (linux_configured && linux_provider.is_none())
-                .then(|| "EXECUTION_PROVIDER_UNAVAILABLE".to_string()),
-            execution_provider: linux_provider,
-        };
+        let linux = LocalLinuxProvider::new(self.node_identity.platform, &self.executor)
+            .capabilities();
 
         let windows_configured = self.windows.is_some();
         let (windows_provider, windows_authorities, windows_contexts, windows_issue) =
@@ -1425,18 +1377,8 @@ impl Runtime {
         let plan = self.registry.execution_plan(&starting.job_id)?;
         let bundle_path = canonical_directory(Path::new(&starting.bundle_path), "bundlePath")
             .map_err(map_universal_error)?;
-        let runtime_ceiling = plan.timeout_ms.saturating_add(5_000);
         let output = match plan.execution_target {
             super::ExecutionTarget::LocalLinux => {
-                let runner_path = self.executor.runner_path.as_deref().ok_or_else(|| {
-                    RuntimeError::new(
-                        RuntimeErrorCode::ToolUnavailable,
-                        "local_linux runner is not configured on this Runtime node",
-                        Some("runnerPath"),
-                        false,
-                    )
-                })?;
-                let runner = validate_runner(runner_path)?;
                 let input_set_path = if plan.input_set_id.is_some() {
                     self.ensure_job_input_ownership(&starting.job_id)?;
                     let path = self.executor.job_input_path(&starting.job_id);
@@ -1455,23 +1397,17 @@ impl Runtime {
                     } else {
                         (None, Vec::new())
                     };
-                systemd_run(&SystemdRunSpec {
-                    unit_name: &starting.unit_name,
-                    runner: &runner,
-                    bundle_path: &bundle_path,
-                    workspace_path: Path::new(&plan.workspace_path),
-                    workspace_git_common_dir: plan
-                        .workspace_git_common_dir
-                        .as_deref()
-                        .map(Path::new),
-                    input_set_path: input_set_path.as_deref(),
-                    credential_source_root: credential_source_root.as_deref(),
-                    credential_names: &credential_names,
-                    runtime_ceiling_ms: runtime_ceiling,
-                    budget: &plan.budget,
-                    execution_profile: plan.execution_profile,
-                    environment: &plan.env,
-                })?
+                LocalLinuxProvider::new(self.node_identity.platform, &self.executor)
+                    .realize_prepared(
+                        &plan,
+                        &starting,
+                        LocalLinuxRealizationInputs {
+                            bundle_path: &bundle_path,
+                            input_set_path: input_set_path.as_deref(),
+                            credential_source_root: credential_source_root.as_deref(),
+                            credential_names: &credential_names,
+                        },
+                    )?
             }
             super::ExecutionTarget::WindowsNative => {
                 let windows = self.windows.as_ref().ok_or_else(|| {

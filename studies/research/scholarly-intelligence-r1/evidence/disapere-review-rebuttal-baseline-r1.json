@@ -1,0 +1,138 @@
+{
+  "counts": {
+    "localAlignmentLinks": 21675,
+    "locallyAlignedRebuttalSentences": 9416,
+    "locallyTargetedReviewSentences": 4096,
+    "pairs": 506,
+    "rebuttalSentences": 11103,
+    "requestLinkedRebuttalSentences": 5220,
+    "reviewSentences": 9946
+  },
+  "distributions": {
+    "alignmentKind": {
+      "context_error": 61,
+      "context_global": 816,
+      "context_in-rebuttal": 647,
+      "context_none": 152,
+      "context_sentences": 9416,
+      "context_unknown": 11
+    },
+    "localReviewLinksPerLocallyAlignedRebuttal": {
+      "max": 25,
+      "mean": 2.3019328802039083,
+      "median": 2.0,
+      "min": 1,
+      "n": 9416,
+      "q1": 1.0,
+      "q3": 3.0
+    },
+    "rebuttalAction": {
+      "rebuttal_accept-praise": 39,
+      "rebuttal_answer": 3637,
+      "rebuttal_by-cr": 223,
+      "rebuttal_concede-criticism": 300,
+      "rebuttal_contradict-assertion": 96,
+      "rebuttal_done": 953,
+      "rebuttal_followup": 35,
+      "rebuttal_future": 144,
+      "rebuttal_mitigate-criticism": 270,
+      "rebuttal_none": 61,
+      "rebuttal_other": 355,
+      "rebuttal_refute-question": 105,
+      "rebuttal_reject-criticism": 1151,
+      "rebuttal_reject-request": 129,
+      "rebuttal_social": 745,
+      "rebuttal_structuring": 1978,
+      "rebuttal_summary": 882
+    },
+    "rebuttalStance": {
+      "concur": 5296,
+      "dispute": 1751,
+      "nonarg": 3995,
+      "other": 61
+    },
+    "requestLinkedRebuttalAction": {
+      "rebuttal_accept-praise": 1,
+      "rebuttal_answer": 2496,
+      "rebuttal_by-cr": 125,
+      "rebuttal_concede-criticism": 144,
+      "rebuttal_contradict-assertion": 24,
+      "rebuttal_done": 548,
+      "rebuttal_followup": 15,
+      "rebuttal_future": 83,
+      "rebuttal_mitigate-criticism": 42,
+      "rebuttal_other": 22,
+      "rebuttal_refute-question": 76,
+      "rebuttal_reject-criticism": 224,
+      "rebuttal_reject-request": 105,
+      "rebuttal_social": 63,
+      "rebuttal_structuring": 860,
+      "rebuttal_summary": 392
+    },
+    "requestLinkedRebuttalStance": {
+      "concur": 3397,
+      "dispute": 471,
+      "nonarg": 1352
+    },
+    "reviewAction": {
+      "arg_evaluative": 3265,
+      "arg_fact": 850,
+      "arg_other": 312,
+      "arg_request": 1971,
+      "arg_social": 140,
+      "arg_structuring": 2755,
+      "none": 653
+    },
+    "reviewPolarity": {
+      "none": 5909,
+      "pol_negative": 2927,
+      "pol_positive": 1110
+    }
+  },
+  "explicitLocalAlignmentCoverage": {
+    "allReviewSentences": {
+      "fraction": 0.41182384878343054,
+      "targeted": 4096,
+      "total": 9946
+    },
+    "clarityReviewSentences": {
+      "fraction": 0.5444646098003629,
+      "targeted": 600,
+      "total": 1102
+    },
+    "negativePolarityReviewSentences": {
+      "fraction": 0.6846600614964127,
+      "targeted": 2004,
+      "total": 2927
+    },
+    "replicabilityReviewSentences": {
+      "fraction": 0.7535211267605634,
+      "targeted": 214,
+      "total": 284
+    },
+    "requestReviewSentences": {
+      "fraction": 0.7311009639776763,
+      "targeted": 1441,
+      "total": 1971
+    },
+    "soundnessCorrectnessReviewSentences": {
+      "fraction": 0.6568730325288562,
+      "targeted": 626,
+      "total": 953
+    }
+  },
+  "id": "disapere-review-rebuttal-baseline-r1",
+  "interpretationCeiling": [
+    "Explicit local-alignment coverage is not a response-rate estimate: DISAPERE also contains global, in-rebuttal, none, unknown, and error alignment states.",
+    "A concur/dispute label describes annotated stance, not whether the author or reviewer is scientifically correct.",
+    "Multiple links are many-to-many discourse correspondences and are not independent observations.",
+    "Corpus frequencies are DISAPERE-specific descriptive statistics, not peer-review population prevalence.",
+    "This asset is licensed CC BY-NC 4.0 and is admitted only for current non-commercial research."
+  ],
+  "kind": "ordivon.research.disapere-review-rebuttal-baseline",
+  "observedAt": "2026-09-23",
+  "population": "DISAPERE 506-pair annotated corpus only",
+  "schemaVersion": 1,
+  "sourceAsset": "disapere-bounded-core-r1",
+  "sourceSnapshotIdentity": "sha256:bb2ca8ce6324bdf93d1523c2de09ceebe16445835d765664d348e1e49edf6470"
+}

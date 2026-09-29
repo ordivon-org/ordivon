@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.workstation.wsl-substrate-resilience-acceptance",
+  "observedDate": "2026-09-24",
+  "status": "PASS_WITH_EXPLICIT_EMERGENCY_ESCALATION",
+  "source": {
+    "implementationRevision": "40ffc9ce65a9b288624df39cc97a2888a7fb0012",
+    "staleEvidenceFenceRevision": "b25adf70f6c5d365c4b0db70b9e204b60e1bed52",
+    "windowsProviderSha256": "sha256:a22bae202b8229179dfa9f656f03ef0ae246042c501d4996984c767a52a5e695",
+    "linuxProviderSha256": "sha256:d5c9498ff54c365ca7c6dfaf79dfae130039ea8b014721d7686f695ac813af91"
+  },
+  "contracts": {
+    "routineDropCachesAllowed": false,
+    "persistentSysctlTuningApplied": false,
+    "automaticLifecycleRecoveryAdded": false,
+    "freshSessionProbeAuthority": "windows_runtime.active_user",
+    "fragmentationRecoveryAuthority": "linux_runtime.root",
+    "kernelEvidenceLookback": "5 minutes ago"
+  },
+  "liveAcceptance": {
+    "initialFreshSessionProbe": {
+      "jobId": "job-01a0d25b-d518-77c3-a921-ad67e94a82ce",
+      "identity": "ZYCXFYH\\16663",
+      "status": "TIMEOUT",
+      "durationMs": 8017,
+      "distroRunning": true
+    },
+    "classification": {
+      "jobId": "job-01a0d25c-66eb-7f60-9218-b267ad37a10c",
+      "failureClass": "F1_HIGH_ORDER_FRAGMENTATION",
+      "confidence": "high",
+      "classificationSha256": "sha256:de24918e0039998cd27663b1027f6a73b940bed0280281591dfb72d0cda68038",
+      "snapshotSha256": "sha256:46c66cf2c7b6745a882899de254454284d0ec129dec59f3d13addc67a6b93995",
+      "kernelEvidence": [
+        "page allocation failure: order:7",
+        "Workqueue: hv_pri_chan vmbus_add_channel_work",
+        "vmbus_alloc_ring",
+        "vmbus_open",
+        "hvs_probe"
+      ],
+      "buddyAtClassification": {
+        "DMA32Order7": 1,
+        "NormalOrder7": 0
+      }
+    },
+    "boundedCompactAttempt": {
+      "jobId": "job-01a0d25c-b3bf-7432-b57b-73da76e8d00b",
+      "effect": "compact_memory",
+      "effectExecuted": true,
+      "receiptSha256": "sha256:1e865062c918245e0e60451762ccd5d3a93fe0f9f4d025ba7ff34dffdf0aef9c",
+      "beforeOrder7": {
+        "DMA32": 0,
+        "Normal": 0
+      },
+      "afterOrder7": {
+        "DMA32": 0,
+        "Normal": 0
+      },
+      "recoveryConfirmed": false
+    },
+    "postCompactProbe": {
+      "jobId": "job-01a0d25c-e690-70d1-ae1b-83e46dbfed24",
+      "status": "TIMEOUT",
+      "durationMs": 8016
+    },
+    "emergencyRecovery": {
+      "jobId": "job-01a0d25d-5c72-7be1-9a70-c96410e30fa7",
+      "effectSequence": [
+        "sync",
+        "drop_caches=3",
+        "compact_memory=1"
+      ],
+      "productionAutomationAdded": false,
+      "beforeOrder7": {
+        "DMA32": 0,
+        "Normal": 0
+      },
+      "afterOrder7": {
+        "DMA32": 863,
+        "Normal": 1523
+      }
+    },
+    "postEmergencyProbe": {
+      "jobId": "job-01a0d25d-9114-7ce1-9cb0-56c49683f52e",
+      "status": "READY",
+      "durationMs": 1201,
+      "stdout": "ORDIVON_WSL_ADMISSION_OK"
+    },
+    "requalification": {
+      "jobId": "job-01a0d25e-14ae-76a1-b645-ebaaf10adaf8",
+      "recoveryConfirmed": true,
+      "requalificationSha256": "sha256:07eea42121fcce169e94738ab84b9ac122e7d89217fe84b2e91935813eac61e0",
+      "runtimeActive": true,
+      "hostActive": true,
+      "gatewayActive": true
+    }
+  },
+  "qualification": {
+    "fullWorkstationSuite": "PASS",
+    "ruff": "PASS",
+    "pyCompile": "PASS",
+    "diffCheck": "PASS",
+    "jobs": [
+      "job-01a0d25b-062e-7300-a742-54f8b5172f07",
+      "job-01a0d25f-dc53-7fc2-b4d7-56b0c078b5fa",
+      "job-01a0d260-0ac2-7891-9bc6-a21e3652d45e"
+    ]
+  },
+  "wrStanding": {
+    "WR01FreshSessionProbe": "PASS",
+    "WR02PhysiologySnapshot": "PASS",
+    "WR03FailureClassifier": "PASS",
+    "WR04CompactMemoryEffect": "IMPLEMENTED_AND_EFFECT_VERIFIED_BUT_NOT_SUFFICIENT_IN_THIS_INCIDENT",
+    "WR05LifecycleRecoveryRoute": "SEPARATE_OWNER_NATIVE_ROUTE_RETAINED",
+    "WR06Requalification": "PASS"
+  },
+  "conclusion": "The current recurrence was independently detected as fresh-session admission failure while the distro remained running, classified with high confidence as the VMBus order-7 fragmentation mechanism, and recovered only after the evidence-backed emergency reclaim+compaction sequence. Standalone compact_memory did not recover this incident, so routine drop_caches remains rejected and no automatic cache eviction was added."
+}

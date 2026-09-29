@@ -1,0 +1,61 @@
+{
+  "attentionMeasurement": {
+    "adaptationImplementationAuthorized": false,
+    "crossHorizonRepeatedFindingCount": 0,
+    "distinctHorizonCount": 2,
+    "duplicateViewCountCollapsed": 3,
+    "rawDocumentCount": 5,
+    "standing": "INSUFFICIENT_LONGITUDINAL_EVIDENCE_HOLD"
+  },
+  "baselineRevision": "e8217597a122af458a36f445656b9794bc7336f4",
+  "boundary": "PASS proves successor signaling projection mechanics and that current longitudinal evidence is insufficient to authorize attention adaptation. It does not prove global routing correctness, security origin, causal mechanisms, or behavioral benefit from adaptation.",
+  "focused": {
+    "receptorDeliveryCounts": {
+      "receptor:r3-storage-pressure": 1,
+      "receptor:r3-wsl-maintenance": 4
+    },
+    "ruff": "PASS",
+    "signalCount": 5,
+    "tests": "12/12 PASS"
+  },
+  "gates": {
+    "architectureDocDrift": "PASS",
+    "compositionArchitecture": "PASS",
+    "dependencyAudit": "NO_KNOWN_VULNERABILITIES",
+    "githubGovernance": "PASS",
+    "integrateMainSmoke": "PASS",
+    "metaNextTests": 228,
+    "metaNextVerify": "PASS",
+    "ownerBoundary": "PASS",
+    "repoCi": "PASS",
+    "repoTests": 33,
+    "structureR2": "PASS"
+  },
+  "held": [
+    "SIG34 attention adaptation/hysteresis implementation"
+  ],
+  "implemented": [
+    "SIG30 semanticScope/propagation separation",
+    "SIG31 explicit compartment/context projection",
+    "SIG32 receptor boundary regression",
+    "SIG33 owner-supplied anomaly origin"
+  ],
+  "kind": "ordivon.social-fabric-signaling-r3-acceptance",
+  "nonClaims": [
+    "No transport delivery authority.",
+    "No compartment registry or ACL.",
+    "No receptor policy DSL.",
+    "No threat/security/root-cause inference.",
+    "No attention suppression/adaptation.",
+    "No scheduling/lease/EffectAuthority."
+  ],
+  "runtimeJobs": [
+    "job-01a0ce4a-4610-75d0-b10c-e212b7584c25",
+    "job-01a0ce4a-e86d-7631-b7ff-a558fbbfb5b3",
+    "job-01a0ce4d-e762-7720-b719-1ca0493ece90",
+    "job-01a0ce4e-34c2-7522-bf46-977fd2be0b0a"
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_SIGNALING_SPECIFICITY_WITH_ATTENTION_HOLD",
+  "truthRole": "candidate-acceptance-not-routing-or-policy-authority"
+}

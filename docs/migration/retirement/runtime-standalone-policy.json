@@ -37,19 +37,19 @@
   ],
   "allowedExactPaths": [
     {
-      "path": "meta/next/authorities/records/iso-iec-ieee/iso-iec-ieee-12207-2026.json",
+      "path": "catalogs/authorities/records/iso-iec-ieee/iso-iec-ieee-12207-2026.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/authorities/records/iso-iec/iso-iec-25010-2023.json",
+      "path": "catalogs/authorities/records/iso-iec/iso-iec-25010-2023.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/authorities/records/nist/nist-sp-800-218-ssdf-1.1.json",
+      "path": "catalogs/authorities/records/nist/nist-sp-800-218-ssdf-1.1.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
-      "path": "meta/next/authorities/records/slsa/slsa-1.2.json",
+      "path": "catalogs/authorities/records/slsa/slsa-1.2.json",
       "reason": "registrationBasis is historical provenance only; Authority Catalog does not dereference it, and the identical standard carrier is present under canonical services/runtime."
     },
     {
@@ -59,6 +59,10 @@
     {
       "path": "services/runtime/crates/ordivon-runtime-core/src/runtime/engine.rs",
       "reason": "The retired locator appears only in two test-only systemd command fixtures as an arbitrary workspace path; no production Runtime path resolution consumes it."
+    },
+    {
+      "path": "studies/research/scholarly-intelligence-r1/evidence/standard-native-enterprise-r2-dogfood-20260914.json",
+      "reason": "Exact Study-owned frozen copy preserves the dated 2026-09-14 Runtime source provenance; no current Runtime path resolution consumes it."
     }
   ]
 }

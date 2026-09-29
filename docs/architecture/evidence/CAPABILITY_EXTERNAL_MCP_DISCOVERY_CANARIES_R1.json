@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-external-mcp-discovery-canaries",
+  "observedDate": "2026-09-28",
+  "truthRole": "point-in-time-external-provider-observation-not-provider-authority",
+  "method": {
+    "client": "Python mcp 2.2.0 official Client with Streamable HTTP auto negotiation",
+    "operation": "initialize + tools/list only",
+    "toolCallsPerformed": false,
+    "readOnlyToolCallsPerformed": true,
+    "readOnlyExecutionRuntimeJob": "job-01a0e662-7e34-7083-8474-6d30162186cd"
+  },
+  "providers": {
+    "n8n-docs": {
+      "owner": "n8n/GitBook",
+      "endpoint": "https://docs.n8n.io/~gitbook/mcp",
+      "serverInfo": {
+        "name": "docs.n8n.io/~gitbook/mcp",
+        "title": "n8n Docs MCP Server",
+        "version": "0.27.2"
+      },
+      "toolCount": 3,
+      "tools": [
+        {
+          "name": "searchDocumentation",
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        {
+          "name": "getPage",
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        {
+          "name": "sendFeedback",
+          "readOnlyHint": false,
+          "idempotentHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        }
+      ],
+      "runtimeEvidence": [
+        "job-01a0e65f-a61b-7c13-8797-d87d3e76df80",
+        "job-01a0e660-00de-7043-886a-2e49e0796846"
+      ],
+      "finding": "Server-level documentation/read-only intent cannot be promoted to per-tool effect truth; provider-native ToolAnnotations already distinguish the effectful feedback tool.",
+      "readOnlyExecution": {
+        "tool": "searchDocumentation",
+        "query": "instance-level MCP server authentication",
+        "isError": false,
+        "resultBoundary": "provider text result; no local/domain mutation claimed"
+      }
+    },
+    "cloudflare-docs": {
+      "owner": "Cloudflare",
+      "endpoint": "https://docs.mcp.cloudflare.com/mcp",
+      "serverInfo": {
+        "name": "docs-ai-search",
+        "version": "0.4.13"
+      },
+      "toolCount": 2,
+      "tools": [
+        {
+          "name": "search_cloudflare_documentation",
+          "readOnlyHint": true,
+          "idempotentHint": null,
+          "destructiveHint": null,
+          "openWorldHint": null
+        },
+        {
+          "name": "migrate_pages_to_workers_guide",
+          "readOnlyHint": true,
+          "idempotentHint": null,
+          "destructiveHint": null,
+          "openWorldHint": null
+        }
+      ],
+      "runtimeEvidence": [
+        "job-01a0e660-b716-7972-92ff-455077b31679"
+      ],
+      "finding": "Independent provider uses the same standard MCP discovery path without provider-specific adapter logic.",
+      "readOnlyExecution": {
+        "tool": "search_cloudflare_documentation",
+        "query": "MCP server portal capability synchronization",
+        "isError": false,
+        "resultBoundary": "provider structured/text result; no local/domain mutation claimed"
+      }
+    }
+  },
+  "architectureDecision": {
+    "directMcpPreferred": true,
+    "reason": "For these canaries Gateway adds no irreducible routing, policy, recovery, verification, or composition value. Direct provider MCP remains the natural path.",
+    "customProviderDiscoverySdkAdmitted": false,
+    "reasonCustomSdkRejected": "Two independent providers were handled by the existing official MCP Client; another discovery wrapper would duplicate the protocol owner without demonstrated irreducible semantics.",
+    "providerAnnotationsBoundary": "MCP ToolAnnotations are provider-owned hints/evidence inputs. They do not grant Ordivon authorization or prove effect occurrence.",
+    "directReadExecutionQualified": true
+  },
+  "localN8nInstance": {
+    "endpoint": "http://127.0.0.1:5678/mcp-server/http",
+    "mcpEndpointPresent": true,
+    "unauthenticatedProbeStatus": 401,
+    "oauthClientRowsObserved": 0,
+    "oauthAccessTokenRowsObserved": 0,
+    "credentialBytesRead": false,
+    "temporaryRecoveryJob": "job-01a0e65d-b74c-7c52-a027-dd996900464c",
+    "livenessFinding": "The rootless n8n units were generated but inactive with no failed unit; a reversible manual start restored readiness. Autostart/liveness is a Workstation owner gap, not Capability Fabric truth."
+  }
+}

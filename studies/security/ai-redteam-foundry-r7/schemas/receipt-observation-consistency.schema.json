@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/receipt-observation-consistency-r7.json",
+  "title": "AI Red-Team Receipt Observation Consistency R7",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "effectId", "effectRequestDigest", "receiptDigest", "observationDigest", "consistent", "mismatches"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-receipt-observation-consistency"},
+    "effectId": {"type": "string", "minLength": 1},
+    "effectRequestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "receiptDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "observationDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "consistent": {"type": "boolean"},
+    "mismatches": {"type": "array", "items": {"enum": ["effect_id", "effect_request_digest", "world_before_digest", "world_after_digest", "world_trace_digest"]}, "uniqueItems": true}
+  }
+}

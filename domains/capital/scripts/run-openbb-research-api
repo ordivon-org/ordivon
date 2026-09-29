@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+api=/root/external/openbb/4.7.2/.venv/bin/openbb-api
+[[ -x "$api" ]] || { echo "OpenBB 4.7.2 external capability unavailable" >&2; exit 3; }
+export HTTP_PROXY="${HTTP_PROXY:-http://127.0.0.1:28080}"
+export HTTPS_PROXY="${HTTPS_PROXY:-http://127.0.0.1:28080}"
+export ALL_PROXY="${ALL_PROXY:-http://127.0.0.1:28080}"
+exec "$api" --host "${OPENBB_HOST:-127.0.0.1}" --port "${OPENBB_PORT:-6900}" "$@"

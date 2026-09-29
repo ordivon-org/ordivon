@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.network-v2.claude-egress",
+  "listen": {"host": "127.0.0.1", "port": 19481, "protocol": "http"},
+  "networkAuthority": {
+    "kind": "network-v2",
+    "name": "browserless-prod",
+    "namespace": "nv2-browserless-prod",
+    "serviceUnit": "network-v2-browserless.target"
+  },
+  "directFallback": false,
+  "allowedHttpsDomains": [
+    "api.anthropic.com",
+    "claude.ai",
+    "claude.com",
+    "platform.claude.com",
+    "downloads.claude.ai",
+    "code.claude.com"
+  ]
+}

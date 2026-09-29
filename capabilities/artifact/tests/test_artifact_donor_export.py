@@ -79,4 +79,20 @@ class ArtifactDonorExportTests(unittest.TestCase):
         self.assertIn("orchestration", concepts)
         self.assertIn("transport", concepts)
 
+    def test_retired_r2_mailbox_remains_historical_only(self):
+        mailbox = next(
+            item
+            for item in self.donor["excludedInfrastructure"]
+            if item["concept"] == "R2 mailbox transport implementation"
+        )
+        self.assertEqual(mailbox["disposition"], "DO_NOT_PROMOTE")
+        self.assertIsNone(mailbox["reference"])
+        for relative in [
+            "scripts/artifact_r2_mailbox.py",
+            "config/artifact-r2-mailbox-r1.json",
+            "artifact-delivery/r2-mailbox-v1.schema.json",
+            "tests/test_artifact_r2_mailbox.py",
+        ]:
+            self.assertFalse((ROOT / relative).exists(), relative)
+
 if __name__ == "__main__": unittest.main()

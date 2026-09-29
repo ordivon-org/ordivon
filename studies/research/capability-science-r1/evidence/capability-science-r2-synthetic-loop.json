@@ -1,0 +1,301 @@
+{
+  "artifactDigests": {
+    "studies/research/capability-science-r1/scripts/check_capability_science_r2.py": "sha256:3a1769974aa80b14e4f0a66bca7884abde701e2cef000e13df345a24d3e9abda",
+    "studies/research/capability-science-r1/scripts/run_synthetic_world_r2.py": "sha256:1a504b7e226e8a5c9a5f585e8c87880cc7b30f931ae7b60e1ae41c82594801fc",
+    "studies/research/capability-science-r1/scripts/synthetic_world_r2.py": "sha256:72bc758fa77dad0b6a439bf5f75c96e051ffe13490affb4b81c20cc237791f43",
+    "studies/research/capability-science-r1/tests/test_synthetic_world_r2.py": "sha256:d059d3778d9836ab462870c158f3acb58990ccdbb11f9e60a0bf4fb150d170d1"
+  },
+  "authorityGranted": false,
+  "checks": [
+    "synthetic-world:heterogeneous-components-executed",
+    "synthetic-world:typed-path-search-enumerated-multiple-roundtrips",
+    "synthetic-world:persistent-payload-roundtrip-discovered",
+    "synthetic-world:fresh-session-recovery-reproduced",
+    "synthetic-world:r5-bounded-novelty-admission-pass",
+    "synthetic-world:no-authority-grant"
+  ],
+  "discovery": {
+    "authorityGranted": false,
+    "components": [
+      {
+        "action": "echo",
+        "inputType": "Payload",
+        "outputType": "Payload",
+        "persistentEffectDeclared": false
+      },
+      {
+        "action": "encode",
+        "inputType": "Payload",
+        "outputType": "Target",
+        "persistentEffectDeclared": false
+      },
+      {
+        "action": "publish",
+        "inputType": "Target",
+        "outputType": "Handle",
+        "persistentEffectDeclared": true
+      },
+      {
+        "action": "resolve",
+        "inputType": "Handle",
+        "outputType": "Target",
+        "persistentEffectDeclared": false
+      },
+      {
+        "action": "render",
+        "inputType": "Target",
+        "outputType": "Payload",
+        "persistentEffectDeclared": false
+      }
+    ],
+    "domainAcceptanceEstablished": false,
+    "enumeratedRoundtripCount": 30,
+    "executionAuthorityGranted": false,
+    "kind": "ordivon.capability-science-synthetic-world-r2",
+    "nonClaims": [
+      "The synthetic world is local, deterministic, and bounded; it is not evidence about arbitrary Internet services.",
+      "Typed path enumeration is a bounded candidate generator, not a universal closure search.",
+      "The novelty verdict is relative to the finite R2 observation policy and baseline library.",
+      "No capability discovery grants authority, permission, or production deployment standing."
+    ],
+    "novelty": {
+      "authorityGranted": false,
+      "candidateCapabilityId": "cap:synthetic-roundtrip:30a38d968507436d0d58",
+      "comparedBaselineCount": 2,
+      "executionAuthorityGranted": false,
+      "kind": "ordivon.capability-novelty-report-r1",
+      "nonClaims": [
+        "The report is complete only for the supplied finite baseline library and observation contexts.",
+        "Failure to distinguish is not a proof of universal contextual equivalence.",
+        "Embedding or lexical distance is not used as semantic authority.",
+        "No permission, execution authority, or domain acceptance follows from novelty."
+      ],
+      "notDistinguishedFromWithinPolicy": [],
+      "observationPolicyRef": "observation-policy:synthetic-heterogeneous-roundtrip-r2",
+      "schemaVersion": 1,
+      "verdict": "CERTIFIED_NOVEL_WITHIN_BOUNDED_POLICY",
+      "witnesses": [
+        {
+          "baselineCapabilityId": "cap:stateless-echo",
+          "baselineObservation": {
+            "returnsHandle": false,
+            "returnsPayload": true
+          },
+          "baselineObservationDigest": "sha256:6a26cbe9ed04e867cdc684d51e7abaef5972aba6233d6453bcf10be4f8acbc35",
+          "boundedComparison": true,
+          "candidateCapabilityId": "cap:synthetic-roundtrip:30a38d968507436d0d58",
+          "candidateObservation": {
+            "returnsHandle": true,
+            "returnsPayload": false
+          },
+          "candidateObservationDigest": "sha256:0a697aa2f025a31d9329982b1a40b7ee2509992958e0b9ba61a7a0104ae3b617",
+          "contextId": "direct_use",
+          "evidenceRefs": [
+            "evidence:synthetic-world-r2:closed-loop",
+            "evidence:synthetic-world-r2:echo"
+          ],
+          "kind": "ordivon.capability-novelty-witness-v1",
+          "nonClaims": [
+            "This witness is relative to the explicit finite observation policy.",
+            "This witness does not establish universal contextual inequivalence.",
+            "This witness grants no authority or execution permission."
+          ],
+          "observationPolicyRef": "observation-policy:synthetic-heterogeneous-roundtrip-r2",
+          "schemaVersion": 1,
+          "verdict": "DISTINGUISHABLE_WITHIN_POLICY",
+          "witnessId": "witness:d23f4808072cb3cd0fc9e907"
+        },
+        {
+          "baselineCapabilityId": "cap:persistent-target-handle-only",
+          "baselineObservation": {
+            "payloadRecovered": false
+          },
+          "baselineObservationDigest": "sha256:d0fc1e68e2de1218a7b8e81492964db3e2c4c2e5158d5cdead24d1e0ebcddf42",
+          "boundedComparison": true,
+          "candidateCapabilityId": "cap:synthetic-roundtrip:30a38d968507436d0d58",
+          "candidateObservation": {
+            "payloadRecovered": true
+          },
+          "candidateObservationDigest": "sha256:32a76c7cc4c227a22decfa897ada5fb71c66f2716c4a84c63d80ec9e25ffbd80",
+          "contextId": "recover_after_local_forget",
+          "evidenceRefs": [
+            "evidence:synthetic-world-r2:closed-loop",
+            "evidence:synthetic-world-r2:publish-resolve"
+          ],
+          "kind": "ordivon.capability-novelty-witness-v1",
+          "nonClaims": [
+            "This witness is relative to the explicit finite observation policy.",
+            "This witness does not establish universal contextual inequivalence.",
+            "This witness grants no authority or execution permission."
+          ],
+          "observationPolicyRef": "observation-policy:synthetic-heterogeneous-roundtrip-r2",
+          "schemaVersion": 1,
+          "verdict": "DISTINGUISHABLE_WITHIN_POLICY",
+          "witnessId": "witness:76a5d6d6125531bd48f4ec65"
+        }
+      ]
+    },
+    "observations": {
+      "direct_use": {
+        "returnsHandle": true,
+        "returnsPayload": false
+      },
+      "recover_after_local_forget": {
+        "payloadRecovered": true
+      },
+      "recover_in_fresh_session": {
+        "payloadRecovered": true
+      }
+    },
+    "schemaVersion": 1,
+    "selectedCircuit": {
+      "boundaryType": "Handle",
+      "recoverPath": [
+        "resolve",
+        "render"
+      ],
+      "recoverPathId": "path:43b3d3165ca1f23a",
+      "sourceType": "Payload",
+      "storePath": [
+        "encode",
+        "publish"
+      ],
+      "storePathId": "path:3da31069a67cd207"
+    },
+    "standing": "BOUNDED_HETEROGENEOUS_DISCOVERY_LOOP_EXECUTED",
+    "traces": {
+      "recoverAfterLocalForget": [
+        {
+          "action": "resolve",
+          "input": "h0001",
+          "inputType": "Handle",
+          "output": "data:text/plain;base64,b3JkaXZvbi1jYXBhYmlsaXR5LXNjaWVuY2UtcjI=",
+          "outputType": "Target",
+          "persistentEffectDeclared": false,
+          "worldAfter": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          },
+          "worldBefore": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          }
+        },
+        {
+          "action": "render",
+          "input": "data:text/plain;base64,b3JkaXZvbi1jYXBhYmlsaXR5LXNjaWVuY2UtcjI=",
+          "inputType": "Target",
+          "output": "ordivon-capability-science-r2",
+          "outputType": "Payload",
+          "persistentEffectDeclared": false,
+          "worldAfter": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          },
+          "worldBefore": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          }
+        }
+      ],
+      "recoverInFreshSession": [
+        {
+          "action": "resolve",
+          "input": "h0001",
+          "inputType": "Handle",
+          "output": "data:text/plain;base64,b3JkaXZvbi1jYXBhYmlsaXR5LXNjaWVuY2UtcjI=",
+          "outputType": "Target",
+          "persistentEffectDeclared": false,
+          "worldAfter": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          },
+          "worldBefore": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          }
+        },
+        {
+          "action": "render",
+          "input": "data:text/plain;base64,b3JkaXZvbi1jYXBhYmlsaXR5LXNjaWVuY2UtcjI=",
+          "inputType": "Target",
+          "output": "ordivon-capability-science-r2",
+          "outputType": "Payload",
+          "persistentEffectDeclared": false,
+          "worldAfter": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          },
+          "worldBefore": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          }
+        }
+      ],
+      "store": [
+        {
+          "action": "encode",
+          "input": "ordivon-capability-science-r2",
+          "inputType": "Payload",
+          "output": "data:text/plain;base64,b3JkaXZvbi1jYXBhYmlsaXR5LXNjaWVuY2UtcjI=",
+          "outputType": "Target",
+          "persistentEffectDeclared": false,
+          "worldAfter": {
+            "handles": [],
+            "redirectCount": 0
+          },
+          "worldBefore": {
+            "handles": [],
+            "redirectCount": 0
+          }
+        },
+        {
+          "action": "publish",
+          "input": "data:text/plain;base64,b3JkaXZvbi1jYXBhYmlsaXR5LXNjaWVuY2UtcjI=",
+          "inputType": "Target",
+          "output": "h0001",
+          "outputType": "Handle",
+          "persistentEffectDeclared": true,
+          "worldAfter": {
+            "handles": [
+              "h0001"
+            ],
+            "redirectCount": 1
+          },
+          "worldBefore": {
+            "handles": [],
+            "redirectCount": 0
+          }
+        }
+      ]
+    }
+  },
+  "domainAcceptanceEstablished": false,
+  "executionAuthorityGranted": false,
+  "kind": "ordivon.capability-science-r2-acceptance",
+  "nonClaims": [
+    "The synthetic world is local, deterministic, and bounded; it is not evidence about arbitrary Internet services.",
+    "Typed path enumeration is a bounded candidate generator, not a universal closure search.",
+    "The novelty verdict is relative to the finite R2 observation policy and baseline library.",
+    "No capability discovery grants authority, permission, or production deployment standing."
+  ],
+  "schemaVersion": 1,
+  "sourceRevision": "87a9558f6348dea8fc8dd764ae97f91107315295",
+  "standing": "R2_SYNTHETIC_HETEROGENEOUS_LOOP_ACCEPTED_BOUNDED"
+}

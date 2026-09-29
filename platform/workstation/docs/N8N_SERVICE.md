@@ -64,6 +64,8 @@ ansible-playbook -i ansible/inventory.ini ansible/n8n.yml
 
 The playbook performs a bounded cutover from the deprecated host-native service. The official image runs with a read-only root filesystem; only persistent `/home/node/.n8n` and an ephemeral tmpfs at `/home/node/.cache` are writable. If the first rootless readiness check fails, it stops the failed Pod and restores the legacy service when that service was active before cutover. After successful readiness, the legacy system unit is disabled and removed.
 
+The rootless Pod Quadlet declares `[Install] WantedBy=default.target`. Quadlet-generated services are transient generator output, so boot/user-manager convergence is declared in the source `.pod`; deployment does not call `systemctl enable` on the generated service. With linger enabled for the dedicated `n8n` identity, `default.target` can converge the pod after host or user-manager restart. `Restart=on-failure` remains process-failure recovery and is not treated as startup convergence.
+
 ## Acceptance
 
 A completed cut requires all of the following on the same node:
@@ -78,6 +80,7 @@ A completed cut requires all of the following on the same node:
 8. PostgreSQL remains loopback-only and its original Unix socket remains alive.
 9. `pgBackRest check` remains healthy after cutover.
 10. A second Ansible apply is idempotent and does not rotate secrets or restart PostgreSQL without a setting change.
+11. The generated `ordivon-n8n-pod.service` is attached to the `n8n` user manager's `default.target` from the source Quadlet `[Install]` declaration; no `systemctl enable` mutation of generated units is required.
 
 `scripts/verify-n8n-rootless.sh` performs the local runtime acceptance probes.
 

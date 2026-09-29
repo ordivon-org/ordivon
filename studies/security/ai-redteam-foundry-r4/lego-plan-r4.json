@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.ai-redteam.lego-plan",
+  "planId": "ai-redteam-sandbox-to-adaptive-regression-r4-r10",
+  "principles": [
+    "CURRENT_PHYSICAL_TRUTH",
+    "DELETE_CUSTOM_BY_DEFAULT",
+    "SandboxLabel != IsolationContract",
+    "Observation != Evidence != Authority != VerifiedConsequence",
+    "ModelCompromise != EffectCompromise",
+    "AttackerMovesSecond"
+  ],
+  "currentness": {
+    "date": "2026-09-27",
+    "stackHead": "2bc8aaf1624150b1cc8a4f0a6cfcf461ff13dc83",
+    "verifiedSlice": "synthetic_agent contract/evidence vertical slice",
+    "crossStackUnitTests": "111/111 PASS",
+    "crossStackUnitJob": "job-01a0df5b-bd27-74b3-8230-ef9b5527e30b",
+    "crossStackFixtureSteps": "9/9 PASS",
+    "crossStackFixtureJob": "job-01a0df5c-35b8-7a92-acdb-cb85212e9645",
+    "hostileCodeStanding": "CONTRACT_ONLY_NOT_PHYSICALLY_REALIZED_END_TO_END"
+  },
+  "modules": [
+    {
+      "id": "R4",
+      "name": "Adversarial Experiment Environment Contract",
+      "owner": "AI Red-Team Foundry",
+      "externalOwners": ["Ordivon Runtime", "libvirt/QEMU/KVM", "Security v2"],
+      "status": "CONTRACT_VERIFIED",
+      "commit": "4b37114b10943022162545b5252379d68a041962",
+      "deliverables": ["IsolationVector", "ExperimentEnvironmentSpec", "SandboxRealizationReceipt", "admission/falsification tests", "current provider preflight/requalification"],
+      "verification": {
+        "unitTests": "23/23 PASS",
+        "fixture": "PASS",
+        "compileall": "PASS",
+        "providerLifecycle": "LIBVIRT_LIFECYCLE_REQUALIFIED_ON_DEMAND_BASELINE_RESTORED"
+      },
+      "exitGate": "PASS: hostile_code cannot be admitted on a shared-kernel or uncontrolled-effect profile",
+      "nonClaim": "No concrete hostile-code ExperimentEnvironmentSpec has yet been physically realized end-to-end."
+    },
+    {
+      "id": "R5",
+      "name": "Synthetic World",
+      "owner": "AI Red-Team Foundry",
+      "status": "CONTRACT_VERIFIED",
+      "commit": "9cedc1df340d106f97c206e7a7d0d3a4b8d4d412",
+      "dependsOn": ["R4"],
+      "deliverables": ["synthetic services", "synthetic identities/secrets", "deterministic world-state digest", "reset contract"],
+      "verification": {"unitTests": "21/21 PASS", "fixture": "PASS", "compileall": "PASS"},
+      "nonClaim": "R5 implements deterministic closed-world semantics only; it is not a real external service environment."
+    },
+    {
+      "id": "R6",
+      "name": "Effect Proxy",
+      "owner": "AI Red-Team Foundry + Security admission",
+      "status": "CONTRACT_VERIFIED",
+      "commit": "ec27116ff7a3f726c676308a001a83397cc3e92f",
+      "dependsOn": ["R4", "R5"],
+      "deliverables": ["attempted-effect envelope", "synthetic/delegation routing", "no direct external-effect path", "effect receipt", "replay identity"],
+      "verification": {"unitTests": "14/14 PASS", "fixture": "PASS", "compileall": "PASS"},
+      "nonClaim": "R6 has no HTTP, SMTP, browser, shell, cloud, or other open-world effect executor; positive Security admission is delegation-ready only."
+    },
+    {
+      "id": "R7",
+      "name": "External Observer",
+      "owner": "independent observation provider",
+      "status": "SYNTHETIC_OBSERVER_CONTRACT_VERIFIED",
+      "commit": "48b4380c14c362276be9aa28aceb9b90b1451fbb",
+      "dependsOn": ["R4", "R5", "R6"],
+      "deliverables": ["observer identity/binding", "synthetic-world authoritative observation digest", "receipt/observation reconciliation", "Security v2 consequence-policy compatibility", "anti-self-verification tests"],
+      "verification": {"unitTests": "14/14 PASS", "fixture": "PASS", "securityV2PolicyCompatibility": "VERIFIED_CONSEQUENCE + CONSEQUENCE_MISMATCH PASS", "compileall": "PASS"},
+      "nonClaim": "The current reference observer is process-local independent code-path evidence for synthetic_agent only; independent-process/kernel observers for hostile_code and live network/file provider observers are not implemented here."
+    },
+    {
+      "id": "R8",
+      "name": "Attack Search Adapter",
+      "owner": "AI Red-Team Foundry",
+      "status": "CONTRACT_VERIFIED",
+      "commit": "fcf348ff4f6fe5b9087a37c26cca2feae62f2f77",
+      "dependsOn": ["R4", "R7"],
+      "deliverables": ["external-engine ABI", "budget/seed/adaptivity binding", "candidate/result normalization", "provider-native artifact refs"],
+      "verification": {"unitTests": "13/13 PASS", "providerFixture": "PyRIT synthetic provider artifact PASS", "compileall": "PASS"},
+      "nonClaim": "R8 does not implement a jailbreak/search engine or execute live PyRIT/garak campaigns; provider outcomes remain provider judgments rather than Security standing."
+    },
+    {
+      "id": "R9",
+      "name": "Vulnerability Family Ledger",
+      "owner": "AI Red-Team Foundry",
+      "status": "CONTRACT_VERIFIED",
+      "commit": "a12487a8d5846348a18fd9911789441e78a5ee31",
+      "dependsOn": ["R8"],
+      "deliverables": ["explicit family assignment", "root-cause hypothesis", "stable family identity", "unassigned-result visibility", "discovery frontier"],
+      "verification": {"unitTests": "11/11 PASS", "fixture": "PASS", "compileall": "PASS"},
+      "nonClaim": "Provider attack-family labels do not automatically become root-cause families; R9 does not implement a bespoke clustering engine or claim production vulnerability authority."
+    },
+    {
+      "id": "R10",
+      "name": "Adaptive Regression Loop",
+      "owner": "AI Red-Team Foundry",
+      "status": "CONTRACT_VERIFIED",
+      "commit": "2bc8aaf1624150b1cc8a4f0a6cfcf461ff13dc83",
+      "dependsOn": ["R9"],
+      "deliverables": ["patch identity binding", "original replay", "family mutation", "defense-aware re-attack", "utility regression", "AdaptiveRegressionReceipt"],
+      "verification": {"unitTests": "15/15 PASS", "fixture": "PASS", "compileall": "PASS"},
+      "exitGate": "PASS only when all three attack phases have complete coverage/review, no residual/new family, no unassigned provider-positive result, and complete utility evaluation has zero failures",
+      "nonClaim": "The verified R10 fixture is deterministic research evidence; no live post-patch external-provider campaign has yet been executed and R10 does not mint production Security standing."
+    }
+  ]
+}

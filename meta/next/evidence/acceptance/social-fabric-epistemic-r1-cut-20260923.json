@@ -1,0 +1,55 @@
+{
+  "boundary": "This cut demonstrates epistemic standing preservation. Social Fabric does not perform the causal inference.",
+  "claims": [
+    {
+      "claimRef": "claim:vhd-sequence",
+      "evidenceRefs": [
+        "job:job-01a0cacd-9a1b-7b90-bcff-4f54d7f12301",
+        "job:job-01a0cacf-08de-7f83-ac0f-c190cedb0314"
+      ],
+      "observationOwnerRef": "owner:runtime.windows",
+      "sequenceRefs": [
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "sourceRef": "evidence:social-fabric-coordination-r2-vhd-cut",
+      "standing": "SEQUENCE_OBSERVED",
+      "statement": "WSLService restart observation preceded the DiskPart RPC-unavailable observation in the reconstructed maintenance window."
+    },
+    {
+      "claimRef": "claim:vhd-rpc-mechanism-hypothesis",
+      "evidenceRefs": [
+        "evidence:social-fabric-coordination-r2-vhd-cut"
+      ],
+      "hypothesisOwnerRef": "analysis:ordivon-social-fabric",
+      "sequenceRefs": [
+        "candidate:wslservice-restart",
+        "damage:diskpart-rpc-unavailable"
+      ],
+      "sourceRef": "analysis:social-fabric-crossdisciplinary-r2",
+      "standing": "MECHANISM_HYPOTHESIS",
+      "statement": "WSLService lifecycle interference may contribute to DiskPart RPC unavailability during VHD compaction."
+    },
+    {
+      "claimRef": "claim:browser-window-placement-local-mechanism",
+      "evidenceRefs": [
+        "meta/next/knowledge/graphs/browser-security-detector-coverage-r9.json"
+      ],
+      "ownerNativeStanding": "PROFILE_WINDOW_PLACEMENT_ATTRIBUTED_PROVIDER_RELEVANCE_OPEN",
+      "residualOpenClaims": [
+        "provider-specific relevance",
+        "historical origin of stored production window placement",
+        "protected-provider challenge causality"
+      ],
+      "sequenceRefs": [],
+      "sourceRef": "meta/next/knowledge/graphs/browser-security-detector-coverage-r9.json",
+      "standing": "MECHANISM_EVIDENCE_SUPPORTED",
+      "statement": "In the measured neutral Browserless setup, profile-restored Chromium window placement accounts for the observed outer-window geometry change.",
+      "verificationOwnerRef": "verification:browser-security-r9",
+      "verificationStandingRef": "CF06"
+    }
+  ],
+  "kind": "ordivon.social-fabric-epistemic-cut",
+  "observedAt": "2026-09-23T20:27:00+08:00",
+  "schemaVersion": 1
+}

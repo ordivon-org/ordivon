@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.investment-decision-record-v1",
+  "title": "Ordivon Capital Investment Decision Record v1",
+  "type": "object",
+  "required": ["schemaVersion","kind","truthRole","decisionId","asOf","objective","horizon","stateProjection","decisionRoute","authorityRefs","externalFinancialEffectAllowed","recommendationTruthClaimed","semanticCompletionEvaluated","recordDigest"],
+  "properties": {
+    "schemaVersion":{"const":1},
+    "kind":{"const":"ordivon.capital.investment-decision-record"},
+    "truthRole":{"const":"FROZEN_DECISION_SUPPORT_EVIDENCE_NOT_INVESTMENT_TRUTH"},
+    "decisionId":{"type":"string","minLength":1},
+    "asOf":{"type":"string","format":"date-time"},
+    "objective":{"type":"string","minLength":1},
+    "horizon":{"type":"string","minLength":1},
+    "stateProjection":{"type":"object"},
+    "decisionRoute":{"type":"object"},
+    "authorityRefs":{"type":"object","additionalProperties":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}},
+    "externalFinancialEffectAllowed":{"const":false},
+    "recommendationTruthClaimed":{"const":false},
+    "semanticCompletionEvaluated":{"const":false},
+    "recordDigest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}
+  }
+}

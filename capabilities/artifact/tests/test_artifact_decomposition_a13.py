@@ -21,8 +21,14 @@ class ArtifactDirectPythonProviderA13Tests(unittest.TestCase):
         self.assertNotIn("delivery_cli", source)
         self.assertIn("execute_build_adapter", source)
         self.assertIn("execute_verify_stage", source)
-        self.assertIn("aggregate_vsa_gates", source)
-        self.assertIn("execute_oci_package_stage", source)
+        self.assertIn("TrustOperationHandler", source)
+        self.assertIn("PackageOperationHandler", source)
+        self.assertNotIn("aggregate_vsa_gates", source)
+        self.assertNotIn("execute_oci_package_stage", source)
+        trust_source = (ROOT / "artifact_operations/providers/trust.py").read_text(encoding="utf-8")
+        package_source = (ROOT / "artifact_operations/providers/package.py").read_text(encoding="utf-8")
+        self.assertIn("aggregate_vsa_gates", trust_source)
+        self.assertIn("execute_oci_package_stage", package_source)
 
     def test_temporal_adapter_defaults_to_direct_python_provider(self):
         spec = importlib.util.spec_from_file_location("a13_temporal_support", SUPPORT)

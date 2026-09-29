@@ -539,7 +539,7 @@ def lower_runtime_tool(
                 kind=ToolBridgeErrorKind.AUTHORITY_DENIED,
             )
         return (
-            "task.observe",
+            "job.observe",
             {
                 "schemaVersion": 1,
                 "jobId": job_id,

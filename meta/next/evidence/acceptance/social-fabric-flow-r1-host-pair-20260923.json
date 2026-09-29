@@ -1,0 +1,65 @@
+{
+  "coverage": {
+    "notes": [
+      "Start is a checked-in historical owner cut; end is a live Host summary observation.",
+      "Only counters with monotonic record semantics are compared.",
+      "This does not measure task quality, priority, active work, domain completion or causality."
+    ],
+    "scope": "host-v2-global-cumulative-counters",
+    "standing": "BOUNDED_OWNER_COUNTERS"
+  },
+  "end": {
+    "counters": {
+      "host.board_messages": {
+        "counterSemantics": "monotonic",
+        "owner": "host",
+        "unit": "message-record",
+        "value": 17158
+      },
+      "host.task_events": {
+        "counterSemantics": "monotonic",
+        "owner": "host",
+        "unit": "event-record",
+        "value": 15057
+      },
+      "host.task_records": {
+        "counterSemantics": "monotonic",
+        "owner": "host",
+        "unit": "task-record",
+        "value": 2143
+      }
+    },
+    "observedAt": "2026-09-23T19:18:35.049000+08:00",
+    "sourceRefs": [
+      "host.status:observedAtMs:1790162315049"
+    ]
+  },
+  "kind": "ordivon.social-fabric-counter-cut-pair",
+  "schemaVersion": 1,
+  "start": {
+    "counters": {
+      "host.board_messages": {
+        "counterSemantics": "monotonic",
+        "owner": "host",
+        "unit": "message-record",
+        "value": 17155
+      },
+      "host.task_events": {
+        "counterSemantics": "monotonic",
+        "owner": "host",
+        "unit": "event-record",
+        "value": 15028
+      },
+      "host.task_records": {
+        "counterSemantics": "monotonic",
+        "owner": "host",
+        "unit": "task-record",
+        "value": 2134
+      }
+    },
+    "observedAt": "2026-09-23T02:57:00+08:00",
+    "sourceRefs": [
+      "evidence:acceptance/social-fabric-r1-dogfood-cut-20260923"
+    ]
+  }
+}

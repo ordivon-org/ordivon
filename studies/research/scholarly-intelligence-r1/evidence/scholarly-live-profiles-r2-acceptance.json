@@ -1,0 +1,41 @@
+{
+  "distinctSourceRepos": 3,
+  "distinctStudyOwners": 3,
+  "kind": "ordivon.research.scholarly-intelligence-live-profile-acceptance",
+  "profileCount": 3,
+  "profiles": [
+    {
+      "digestVerifiedRefCount": 13,
+      "profileId": "paper1-r25-live-r1",
+      "semanticRefCount": 13,
+      "sourceRepo": "/root/projects/ordivon-paper1-r25-reviewer-risk-closure-20260922",
+      "sourceRevision": "ca977e4fe9b3f7a5db7aa3b3a0491be69c94ce45",
+      "standing": "PASS_EXACT_LIVE_PROFILE",
+      "stateAxisCount": 9,
+      "studyOwner": "paper1-r25-study"
+    },
+    {
+      "digestVerifiedRefCount": 4,
+      "profileId": "paper2-live-r1",
+      "semanticRefCount": 4,
+      "sourceRepo": "/root/projects/ordivon-paper2",
+      "sourceRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "standing": "PASS_EXACT_LIVE_PROFILE",
+      "stateAxisCount": 9,
+      "studyOwner": "paper2-independent-study"
+    },
+    {
+      "digestVerifiedRefCount": 3,
+      "profileId": "paper3-c21-r10-live-r1",
+      "semanticRefCount": 3,
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "sourceRevision": "a5752fd8728d60bbf963b32d7fc29cde6064e9fb",
+      "standing": "PASS_EXACT_LIVE_PROFILE",
+      "stateAxisCount": 9,
+      "studyOwner": "paper3-c21-study-in-research-v2"
+    }
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_EXACT_LIVE_PROFILES",
+  "truthBoundary": "This proves exact current Study/revision/ref bindings for the shared projection. It does not establish scientific truth, venue acceptance, review correctness, or submission authority."
+}

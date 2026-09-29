@@ -55,6 +55,8 @@ Runtime does **not** automatically redact command arguments, environment values 
 
 `workspace.content` creates no additional retained media store. It opens one already-existing Workspace PNG/JPEG through descriptor-bound Workspace path authority, performs the bounded read and digest on that exact opened file, verifies the caller-supplied SHA-256 digest, and projects those exact bytes through the MCP response. The source image keeps the Workspace's existing lifecycle; Agent observation does not register a second Artifact or persist another image copy.
 
+`workspace.file` follows the same no-additional-store rule for arbitrary bounded Workspace binary files, and `artifact.content` projects bytes already retained by the owning Attempt bundle. Their MCP responses may contain the complete selected bytes (base64-encoded at the protocol layer), so clients and traces outside Runtime must treat those responses with the same sensitivity as the source file. Neither projection creates a second Runtime retention record or implies permission to share the bytes externally.
+
 ## Data inventory
 
 | Data | Typical location | Purpose | Default lifecycle |

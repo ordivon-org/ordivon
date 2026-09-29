@@ -195,7 +195,7 @@ class PublicationCarrierR1Tests(unittest.TestCase):
         self.assertIn("undefined-references:unobserved", ids)
 
     def test_repository_contains_external_authority_bound_fse_profile(self) -> None:
-        profile = ROOT.parents[1] / "meta/research/venues/fse-2027-research-r1.json"
+        profile = ROOT.parents[1] / "profiles/research/venues/fse-2027-research-r1.json"
         value = json.loads(profile.read_text())
         self.assertEqual(value["kind"], "publication-carrier-contract")
         self.assertEqual(value["id"], "fse-2027-research-r1")
@@ -206,7 +206,7 @@ class PublicationCarrierR1Tests(unittest.TestCase):
         )
 
     def test_research_profile_keeps_truth_with_study_authority(self) -> None:
-        profile = ROOT.parents[1] / "meta/research/publication-closure-profile-r1.json"
+        profile = ROOT.parents[1] / "profiles/research/publication/publication-closure-profile-r1.json"
         value = json.loads(profile.read_text())
         self.assertEqual(value["truthRole"], "composition-profile-not-scientific-truth")
         self.assertEqual(value["runtimeOwner"], None)

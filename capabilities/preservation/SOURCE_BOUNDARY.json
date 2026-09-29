@@ -8,6 +8,8 @@
   "includedPaths": [
     "artifacts/creative-preservation/**",
     "config/archivematica-preservation-r10.compose.yml",
+    "config/archivematica-preservation-r11.compose.yml",
+    "scripts/materialize_r11.sh",
     "docs/creative-preservation-*.md",
     "systemd/ordivon-preservation-fixity-r7.service",
     "systemd/ordivon-preservation-fixity-r7.timer"

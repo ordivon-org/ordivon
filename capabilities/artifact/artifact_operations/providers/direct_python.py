@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Any
@@ -21,8 +20,6 @@ from artifact_core.build_planning import compile_delivery_plan_from_validation
 from artifact_core.contracts import file_fact, sha256_file
 from artifact_core.json_validation import validate_json_document
 from artifact_core.profile_v1 import validate_profile_v1
-from artifact_operations.receipt import expected_file, operation_file_fact
-from artifact_trust import vsa as trust_vsa
 from artifact_verification import VerificationStageHooks, execute_verify_stage
 from artifact_verifiers.document import (
     DocumentDependencyHooks,
@@ -37,9 +34,13 @@ from artifact_verifiers.presentation import (
     verify_presentation_semantics,
 )
 from artifact_verifiers.web import verify_html_conformance, verify_web_local
-from scripts.artifact_oci_package import execute_oci_package_stage
 
-from .common import PreparedOperation
+from .build import BuildOperationHandler
+from .common import OperationHandler, PreparedOperation
+from .package import PackageOperationHandler
+from .preparation import PrepareOperationHandler
+from .trust import TrustOperationHandler, validate_trust_material
+from .verification import VerifyOperationHandler
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT_ROOT = ROOT / "artifact-delivery"
@@ -62,14 +63,6 @@ _PRIMARY_SUFFIXES = {
     "pdf-a-4": ".pdf",
     "pdf-ua-2": ".pdf",
 }
-
-
-def _write_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
 
 
 def _primary_suffix(profile: dict[str, Any]) -> str:
@@ -106,6 +99,16 @@ class DirectPythonOperationProvider:
             "ARTIFACT_PANDOC",
             document_toolchain.GLOBAL_PANDOC,
         )
+        self.operation_handlers: dict[str, OperationHandler] = {
+            "prepare": PrepareOperationHandler(self.compile_delivery_plan),
+            "build": BuildOperationHandler(self.execute_build_stage),
+            "verify": VerifyOperationHandler(
+                ARTIFACT_ROOT,
+                production_verify=self.execute_verify_stage,
+            ),
+            "verify-trust": TrustOperationHandler(),
+            "package": PackageOperationHandler(),
+        }
 
     def _admit_presentation_source(
         self, source_path: Path
@@ -314,127 +317,19 @@ class DirectPythonOperationProvider:
 
     @staticmethod
     def validate_trust_material(value: dict[str, Any]) -> dict[str, Any]:
-        unknown = set(value) - {"trustPolicy", "bundles", "signerIds"}
-        if unknown:
+        """Compatibility facade; trust-material authority lives in trust.py."""
+        return validate_trust_material(value)
+
+    def _operation_handler(self, operation_kind: str) -> OperationHandler:
+        try:
+            return self.operation_handlers[operation_kind]
+        except KeyError as error:
             raise RuntimeError(
-                f"trust material contains unsupported fields: {sorted(unknown)}"
-            )
-        if set(value) != {"trustPolicy", "bundles", "signerIds"}:
-            raise RuntimeError(
-                "trust material requires exactly trustPolicy, bundles and signerIds"
-            )
-        trust_policy = operation_file_fact(
-            expected_file(dict(value["trustPolicy"]), "trustPolicy")
-        )
-        bundles_value = value["bundles"]
-        signers = value["signerIds"]
-        if not isinstance(bundles_value, dict) or not bundles_value:
-            raise RuntimeError("trust material bundles must be non-empty")
-        if not isinstance(signers, dict) or set(signers) != set(bundles_value):
-            raise RuntimeError(
-                "trust material signerIds must exactly match bundle gates"
-            )
-        bundles: dict[str, Any] = {}
-        for gate, fact in sorted(bundles_value.items()):
-            bundles[gate] = operation_file_fact(
-                expected_file(dict(fact), f"bundles.{gate}")
-            )
-            if not isinstance(signers[gate], str) or not signers[gate]:
-                raise RuntimeError(f"signerIds.{gate} must be non-empty")
-        commitment = {
-            "trustPolicy": trust_policy,
-            "bundles": bundles,
-            "signerIds": dict(sorted(signers.items())),
-        }
-        return {
-            "trustPolicy": trust_policy,
-            "bundles": bundles,
-            "signerIds": dict(sorted(signers.items())),
-            "commitment": commitment,
-        }
+                f"unsupported Artifact operation kind: {operation_kind}"
+            ) from error
 
     def prepare_operation(self, operation: dict[str, Any]) -> PreparedOperation:
-        kind = operation["operationKind"]
-        inputs = operation["inputs"]
-        options = operation["options"]
-
-        if kind in {"prepare", "build"}:
-            request_path = expected_file(dict(inputs["request"]), "request")
-            return PreparedOperation(
-                {"request": operation_file_fact(request_path)},
-                {"requestPath": request_path},
-            )
-
-        if kind == "verify":
-            profile_path = expected_file(dict(inputs["profile"]), "profile")
-            artifact_path = expected_file(dict(inputs["artifact"]), "artifact")
-            return PreparedOperation(
-                {
-                    "profile": operation_file_fact(profile_path),
-                    "artifact": operation_file_fact(artifact_path),
-                },
-                {"profilePath": profile_path, "artifactPath": artifact_path},
-            )
-
-        if kind == "verify-trust":
-            profile_path = expected_file(dict(inputs["profile"]), "profile")
-            artifact_path = expected_file(dict(inputs["artifact"]), "artifact")
-            trust = self.validate_trust_material(dict(inputs["trustMaterial"]))
-            gate_vsas = dict(inputs["gateVsas"])
-            normalized: dict[str, Any] = {}
-            for gate, fact in sorted(gate_vsas.items()):
-                normalized[gate] = operation_file_fact(
-                    expected_file(dict(fact), f"gateVsas.{gate}")
-                )
-            return PreparedOperation(
-                {
-                    "profile": operation_file_fact(profile_path),
-                    "artifact": operation_file_fact(artifact_path),
-                    "gateVsas": normalized,
-                    "trustMaterial": trust["commitment"],
-                },
-                {
-                    "profilePath": profile_path,
-                    "artifactPath": artifact_path,
-                    "gateVsas": normalized,
-                    "trust": trust,
-                },
-            )
-
-        if kind == "package":
-            profile_path = expected_file(dict(inputs["profile"]), "profile")
-            artifact_path = expected_file(dict(inputs["artifact"]), "artifact")
-            verify_report_path = expected_file(
-                dict(inputs["verifyReport"]), "verifyReport"
-            )
-            local = bool(options.get("allowLocalUnsignedDevelopment", False))
-            trust = (
-                None
-                if local
-                else self.validate_trust_material(
-                    dict(inputs.get("trustMaterial") or {})
-                )
-            )
-            exact: dict[str, Any] = {
-                "profile": operation_file_fact(profile_path),
-                "artifact": operation_file_fact(artifact_path),
-                "verifyReport": operation_file_fact(verify_report_path),
-                "allowLocalUnsignedDevelopment": local,
-            }
-            if trust is not None:
-                exact["trustMaterial"] = trust["commitment"]
-            return PreparedOperation(
-                exact,
-                {
-                    "profilePath": profile_path,
-                    "artifactPath": artifact_path,
-                    "verifyReportPath": verify_report_path,
-                    "local": local,
-                    "trust": trust,
-                },
-            )
-
-        raise RuntimeError(f"unsupported Artifact operation kind: {kind}")
+        return self._operation_handler(operation["operationKind"]).prepare(operation)
 
     def produce(
         self,
@@ -442,165 +337,4 @@ class DirectPythonOperationProvider:
         context: dict[str, Any],
         output_directory: Path,
     ) -> tuple[dict[str, str], dict[str, Any]]:
-        if operation_kind == "prepare":
-            plan = self.compile_delivery_plan(context["requestPath"])
-            out = output_directory / "derived-plan.json"
-            _write_json(out, plan)
-            if plan.get("status") != "PASS":
-                raise RuntimeError(
-                    f"derived plan did not PASS: {plan.get('failures')}"
-                )
-            resolved = plan["resolvedInputs"]
-            def simple(value: dict[str, Any]) -> dict[str, Any]:
-                digest = value.get("sha256") or (value.get("digest") or {}).get("sha256")
-                return {
-                    "path": str(Path(value["path"]).resolve()),
-                    "sha256": digest,
-                    "name": value.get("name") or Path(value["path"]).name,
-                    "size": value.get("size"),
-                }
-            return {"plan": "derived-plan.json"}, {
-                "requestId": plan.get("requestId"),
-                "profile": simple(resolved["profile"]),
-                "source": simple(resolved["source"]),
-                "requiredGates": plan.get("requiredGates", []),
-            }
-
-        if operation_kind == "build":
-            artifacts = output_directory / "artifacts"
-            result = self.execute_build_stage(context["requestPath"], artifacts)
-            report = output_directory / "build-stage.json"
-            _write_json(report, result)
-            if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"build stage did not PASS: {result.get('failures')}"
-                )
-            artifact_path = Path(result["artifact"]["path"])
-            if (
-                artifact_path.parent.resolve() != artifacts.resolve()
-                or not artifact_path.is_file()
-            ):
-                raise RuntimeError("build output escaped operation directory")
-            return {
-                "buildReport": "build-stage.json",
-                "artifact": f"artifacts/{artifact_path.name}",
-            }, {
-                "artifactName": artifact_path.name,
-                "adapter": result.get("plan", {}).get("buildAdapter"),
-            }
-
-        if operation_kind == "verify":
-            evidence = output_directory / "evidence"
-            result = self.execute_verify_stage(
-                context["profilePath"],
-                context["artifactPath"],
-                evidence,
-            )
-            report = output_directory / "verify-stage.json"
-            _write_json(report, result)
-            if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"verify stage did not PASS: {result.get('failures')}"
-                )
-            roles = {"verifyReport": "verify-stage.json"}
-            gates: list[str] = []
-            for path in sorted(evidence.glob("*.json")):
-                relative = f"evidence/{path.name}"
-                if path.name.endswith(".vsa.json"):
-                    gate = path.name[:-9]
-                    roles[f"gateVsa:{gate}"] = relative
-                    gates.append(gate)
-                elif path.name.endswith(".raw.json"):
-                    gate = path.name[:-9]
-                    roles[f"rawEvidence:{gate}"] = relative
-            return roles, {
-                "profileVerificationComplete": bool(
-                    result.get("profileVerificationComplete")
-                ),
-                "gateVsas": gates,
-            }
-
-        if operation_kind == "verify-trust":
-            normalized = context["gateVsas"]
-            trust = context["trust"]
-            gate_paths = {
-                gate: Path(fact["path"]) for gate, fact in normalized.items()
-            }
-            bundles = {
-                gate: Path(fact["path"])
-                for gate, fact in trust["bundles"].items()
-            }
-            result = trust_vsa.aggregate_vsa_gates(
-                context["profilePath"],
-                context["artifactPath"],
-                gate_paths,
-                allow_local_unsigned=False,
-                bundles=bundles,
-                trust_policy_path=Path(trust["trustPolicy"]["path"]),
-                signer_ids=trust["signerIds"],
-                toolchain=trust_vsa.default_trust_toolchain_config(),
-            )
-            out = output_directory / "trusted-vsa-aggregation.json"
-            _write_json(out, result)
-            if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"trusted VSA aggregation did not PASS: {result.get('failures')}"
-                )
-            return {"trustAggregation": "trusted-vsa-aggregation.json"}, {
-                "trustedGates": sorted(result.get("components", {}))
-            }
-
-        if operation_kind == "package":
-            package = output_directory / "package"
-            trust = context["trust"]
-            bundles = (
-                None
-                if trust is None
-                else {
-                    gate: Path(fact["path"])
-                    for gate, fact in trust["bundles"].items()
-                }
-            )
-            result = execute_oci_package_stage(
-                context["profilePath"],
-                context["artifactPath"],
-                context["verifyReportPath"],
-                package,
-                allow_local_unsigned=context["local"],
-                gate_bundles=bundles,
-                trust_policy_path=(
-                    None
-                    if trust is None
-                    else Path(trust["trustPolicy"]["path"])
-                ),
-                signer_ids=None if trust is None else trust["signerIds"],
-            )
-            out = output_directory / "oci-package-stage.json"
-            _write_json(out, result)
-            if result.get("status") != "PASS":
-                raise RuntimeError(
-                    f"OCI package stage did not PASS: {result.get('failures')}"
-                )
-            layout = package / "layout"
-            roles = {
-                "packageReport": "oci-package-stage.json",
-                "ociLayoutIndex": "package/layout/index.json",
-                "ociLayoutMarker": "package/layout/oci-layout",
-            }
-            for blob in sorted((layout / "blobs" / "sha256").glob("*")):
-                roles[f"ociBlob:{blob.name}"] = (
-                    f"package/layout/blobs/sha256/{blob.name}"
-                )
-            return roles, {
-                "releaseReady": bool(result.get("releaseReady")),
-                "trustStanding": result.get("trustStanding"),
-                "packageRelativePath": "package/layout",
-                "subjectDigest": result.get("oci", {})
-                .get("subject", {})
-                .get("digest"),
-                "referrerCount": len(
-                    result.get("oci", {}).get("discover", {}).get("referrers", [])
-                ),
-            }
-
-        raise RuntimeError(f"unsupported Artifact operation kind: {operation_kind}")
+        return self._operation_handler(operation_kind).produce(context, output_directory)

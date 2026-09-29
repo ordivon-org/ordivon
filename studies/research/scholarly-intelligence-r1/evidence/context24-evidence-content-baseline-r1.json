@@ -1,0 +1,32 @@
+{
+  "counts": {
+    "captionCarrierFiles": 32,
+    "exactGoldContentLinks": 256,
+    "fulltextTestCarrierKeys": 91,
+    "fulltextTrainCarrierKeys": 319,
+    "identityOnlyGoldLinks": 423,
+    "normalizedFulltextRows": 410,
+    "task1GoldEvidenceLinks": 679,
+    "task1TrainRows": 474,
+    "uniqueContentImages": 223
+  },
+  "coverage": {
+    "goldContentLinkFraction": 0.37702503681885124,
+    "task1TestFulltextCitekeys": "46/46",
+    "task1TrainFulltextCitekeys": "229/229"
+  },
+  "id": "context24-evidence-content-baseline-r1",
+  "interpretationCeiling": [
+    "37.70% is exact upstream gold-content path coverage in this release, not evidence sufficiency or dataset quality.",
+    "A content-bound PNG is not proof that the figure/table adequately supports the claim.",
+    "Full-text carrier coverage is content availability, not methodological adequacy or claim validity.",
+    "423 unresolved gold evidence identities remain identity-only.",
+    "Challenge-test gold is withheld and not inferred from test media."
+  ],
+  "kind": "ordivon.research.context24-evidence-content-baseline",
+  "observedAt": "2026-09-23",
+  "population": "Context24 public Task1 train gold plus focal train/test fulltext carriers at commit 457d3b5c",
+  "schemaVersion": 1,
+  "sourceAsset": "context24-evidence-content-core-r1",
+  "sourceSnapshotIdentity": "sha256:ca984af3235e404ebe21bd0c02595db8cfe4201d74d9f0b63211c193bd01da53"
+}

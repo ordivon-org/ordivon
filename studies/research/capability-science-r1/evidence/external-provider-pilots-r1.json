@@ -1,0 +1,155 @@
+{
+  "baseEnvironmentCensus": {
+    "cliToolsInitiallyPresent": {
+      "apalache-mc": false,
+      "cvc5": false,
+      "julia": false,
+      "mcrl22lps": false,
+      "pbessolve": false,
+      "prism": false,
+      "storm": false,
+      "tlc": false,
+      "uv": true
+    },
+    "evidenceRefs": [
+      "runtime:job:job-01a0e1bf-8636-7d22-b356-365a861a068e",
+      "runtime:job:job-01a0e1bf-acee-7771-a9bc-ada176c354dd"
+    ],
+    "pythonModulesInitiallyPresent": {
+      "aalpy": false,
+      "causallearn": false,
+      "dowhy": false,
+      "jax": false,
+      "jsonschema": false,
+      "ribs": false
+    }
+  },
+  "dependencyPolicy": {
+    "invocationMode": "uv --with isolated ephemeral environments",
+    "permanentDependenciesAdded": false,
+    "reason": "prove owner-native provider fit before dependency admission"
+  },
+  "kind": "ordivon.capability-science-external-provider-pilots-r1",
+  "nonClaims": [
+    "No global provider registry is created.",
+    "No provider becomes a universal owner.",
+    "No pilot result grants permission, execution authority, domain acceptance, or semantic novelty by itself."
+  ],
+  "ownerReuse": {
+    "authorityLanguage": "meta/next/docs/AUTHORITY_SEMANTIC_EXPRESSION_R1.md",
+    "compositionOwner": "packages/composition",
+    "experimentalEvidenceProjection": "meta/next/docs/EXPERIMENTAL_EPISODE_R1.md",
+    "experimentalLearningPlan": "meta/next/planning/experimental-learning-lego-plan-r1.json",
+    "externalMethodPolicy": "meta/next/docs/VERIFIED_REINTEGRATION_EXTERNAL_METHODS_R4.md"
+  },
+  "pilots": [
+    {
+      "evidenceRefs": [
+        "runtime:job:job-01a0e1c0-78da-7cd2-97c2-ed2f2703a65b",
+        "runtime:artifact:attempt-01a0e1c0-78da-7cd2-97c2-ed31a410f5e2.stdout@sha256:a7c53d5f88b332638cce9d3c189b1cee462849d3c87ac253fbe09bf5e5ca74a4"
+      ],
+      "lego": "R1",
+      "nonClaims": [
+        "Random-walk equivalence search plus depth-7 replay does not establish universal trace equivalence."
+      ],
+      "permanentDependencyAdmitted": false,
+      "provider": "AALpy",
+      "providerResult": {
+        "boundedReplayEquivalent": true,
+        "boundedReplayMaxDepth": 7,
+        "boundedReplaySequences": 255,
+        "equivalenceOracleSteps": 10000,
+        "learnedStates": 4,
+        "learner": "L*",
+        "learningQueries": 16,
+        "targetModel": "Mealy",
+        "targetStates": 4
+      },
+      "role": "ACTIVE_BEHAVIOR_IDENTIFICATION",
+      "semanticAuthority": false,
+      "standing": "PASS_BOUNDED_PROVIDER_PILOT",
+      "version": "1.6.2"
+    },
+    {
+      "evidenceRefs": [
+        "runtime:job:job-01a0e1c1-99f5-79d3-8331-75effb73304c",
+        "runtime:artifact:attempt-01a0e1c1-99f5-79d3-8331-75fb639a1de2.stdout@sha256:8edc6c31be76ee89216f69bb4aea751340404d041b26f7cc3fae2d70e7d1bf7d"
+      ],
+      "lego": "R2",
+      "nonClaims": [
+        "The synthesized predicate is not a semantic capability and still requires grounding, repeatability, causal evidence, and counterexample pressure."
+      ],
+      "permanentDependencyAdmitted": false,
+      "provider": "cvc5",
+      "providerResult": {
+        "candidateStanding": "PREDICATE_CANDIDATE_ONLY",
+        "grammar": [
+          "x == 0",
+          "x == 1",
+          "true",
+          "false"
+        ],
+        "mode": "SyGuS",
+        "solution": "(lambda ((x Int)) (= x 1))"
+      },
+      "role": "VOCABULARY_PREDICATE_CANDIDATE_GENERATION",
+      "semanticAuthority": false,
+      "standing": "PASS_BOUNDED_PROVIDER_PILOT",
+      "version": "1.4.1"
+    },
+    {
+      "evidenceRefs": [
+        "runtime:job:job-01a0e1c3-435d-79f0-9878-04126b222548",
+        "runtime:artifact:attempt-01a0e1c3-435d-79f0-9878-042e0c40b460.stdout@sha256:47222ff4a02e648facdc27c1e9ad9aafdc369ae3bc6deaa3931fa87e95e120a3"
+      ],
+      "lego": "R4",
+      "nonClaims": [
+        "Behavior-space coverage is not semantic capability novelty; R5 remains the admission authority."
+      ],
+      "permanentDependencyAdmitted": false,
+      "provider": "pyribs",
+      "providerResult": {
+        "algorithmShape": "GaussianEmitter+GridArchive",
+        "archiveElites": 64,
+        "batchSize": 32,
+        "candidateEvaluations": 800,
+        "coverage": 1.0,
+        "iterations": 25,
+        "semanticAdmissionPerformed": false
+      },
+      "role": "GOAL_FREE_CANDIDATE_GENERATION",
+      "semanticAuthority": false,
+      "standing": "PASS_BOUNDED_PROVIDER_PILOT",
+      "version": "0.12.0"
+    },
+    {
+      "evidenceRefs": [
+        "runtime:job:job-01a0e1c4-ae2d-7032-a5d7-a69af3d50ec3",
+        "runtime:artifact:attempt-01a0e1c4-ae2d-7032-a5d7-a6a6cd155924.stdout@sha256:c7a8742c11a70d8407e80bcb31ff2ae129ed7da18b98b78d8f91ee6445da0ec9"
+      ],
+      "lego": "R6",
+      "nonClaims": [
+        "Synthetic randomized evidence does not validate arbitrary real black-box services; causal estimation does not establish novelty or authority."
+      ],
+      "permanentDependencyAdmitted": false,
+      "provider": "DoWhy",
+      "providerResult": {
+        "absoluteError": 0.010096004585142593,
+        "acceptanceTolerance": 0.1,
+        "accepted": true,
+        "design": "synthetic randomized intervention with observed context covariate",
+        "estimatedAverageTreatmentEffect": 1.9899039954148574,
+        "n": 4000,
+        "trueAverageTreatmentEffect": 2.0
+      },
+      "role": "CAUSAL_INTERVENTION_VALIDATION",
+      "semanticAuthority": false,
+      "standing": "PASS_BOUNDED_PROVIDER_PILOT",
+      "version": "0.14"
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceRevision": "d51454a6c25416ec1c33e5f9e9196a317360ad1c",
+  "standing": "BOUNDED_EXTERNAL_PROVIDER_PILOTS_ACCEPTED",
+  "studyRef": "study:capability-science-r1"
+}

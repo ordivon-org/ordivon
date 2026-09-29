@@ -52,25 +52,77 @@ class ArtifactRedecompositionR1Tests(unittest.TestCase):
     def test_transport_and_consumer_acceptance_are_outside_kernel(self) -> None:
         nodes = {node["id"]: node for node in self.plan["nodes"]}
         self.assertEqual(nodes["X01"]["kind"], "externalize")
-        self.assertEqual(nodes["X01"]["state"], "DO_NOT_PROMOTE")
+        self.assertEqual(
+            nodes["X01"]["state"],
+            "PHYSICALLY_RETIRED_EXTERNAL_OWNER_REQUIRED_IF_REINTRODUCED",
+        )
+        self.assertIn("transport-boundary-retirement-r1.json", " ".join(nodes["X01"]["currentEvidence"]))
         self.assertEqual(nodes["X03"]["state"], "OUTSIDE_ARTIFACT")
 
-    def test_next_slice_is_evaluation_model_pressure_test(self) -> None:
+    def test_evaluation_model_pressure_sequence_tracks_candidate_backbone_convergence(self) -> None:
         slices = {item["id"]: item for item in self.plan["slices"]}
         self.assertEqual(slices["R2-S1"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertEqual(slices["R2-S1B"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertEqual(slices["R2-S1C"]["status"], "PRESSURE_TEST_COMPLETE")
         self.assertIn("K05", slices["R2-S1C"]["nodeIds"])
-        self.assertEqual(slices["R2-S1D"]["status"], "NEXT")
+        self.assertEqual(slices["R2-S1D"]["status"], "IMPLEMENTED_VERIFIED_INTEGRATED")
         self.assertIn("P02", slices["R2-S1D"]["nodeIds"])
+        self.assertEqual(
+            slices["R2-S1E"]["status"],
+            "IMPLEMENTED_VERIFIED_INTEGRATED",
+        )
+        self.assertEqual(
+            slices["R2-S1E"]["result"],
+            "PRODUCTION_V1_COMPATIBILITY_MODEL_PROVEN_ROUTE_UNCHANGED",
+        )
+        self.assertIn("C01", slices["R2-S1E"]["nodeIds"])
+        self.assertIn("K05", slices["R2-S1E"]["nodeIds"])
+        self.assertEqual(
+            slices["R2-S1F"]["status"],
+            "IMPLEMENTED_VERIFIED_INTEGRATED",
+        )
+        self.assertEqual(
+            slices["R2-S1F"]["result"],
+            "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED",
+        )
+        self.assertIn("A03", slices["R2-S1F"]["nodeIds"])
+        self.assertIn("C01", slices["R2-S1F"]["nodeIds"])
+        divergences = {item["id"]: item for item in self.plan["divergences"]}
+        self.assertEqual(
+            divergences["D01"]["state"],
+            "RESOLVED",
+        )
+        self.assertIn("merged-tree requalified", divergences["D01"]["resolution"])
+        self.assertEqual(
+            slices["R2-S3"]["status"],
+            "IMPLEMENTED_VERIFIED_INTEGRATED",
+        )
+        self.assertEqual(
+            slices["R2-S3"]["result"],
+            "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED",
+        )
+        self.assertEqual(
+            divergences["D02"]["state"],
+            "RESOLVED",
+        )
+        self.assertEqual(self.plan["observedTopology"]["directPythonOperationKindBranchCount"], 0)
+        self.assertEqual(self.plan["observedTopology"]["directPythonOperationHandlerCount"], 5)
+        self.assertEqual(
+            slices["R2-S5"]["status"],
+            "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
+        )
 
     def test_current_empirical_topology_is_recorded(self) -> None:
         topology = self.plan["observedTopology"]
         self.assertEqual(topology["projectPythonPackageCycles"], 0)
-        self.assertEqual(topology["capabilityVerifyBindings"], 19)
+        self.assertEqual(topology["capabilityVerifyBindings"], 20)
         self.assertEqual(topology["deliveryFacadeLines"], 0)
         self.assertEqual(topology["deliveryCliProviderLines"], 0)
-        self.assertEqual(topology["directPythonProviderProjectFanout"], 17)
+        self.assertEqual(topology["directPythonProviderProjectFanout"], 14)
+        self.assertEqual(topology["directPythonProviderLines"], 335)
+        self.assertEqual(topology["directPythonProviderClassLines"], 248)
+        self.assertEqual(topology["directPythonOperationKindBranchCount"], 0)
+        self.assertEqual(topology["directPythonOperationHandlerCount"], 5)
 
 
 if __name__ == "__main__":

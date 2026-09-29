@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parents[1]
 PRES = ROOT / "evidence/data-lifecycle/preservation-r1"
 
 
@@ -100,7 +101,7 @@ def test_heavy_substrates_stay_workload_gated() -> None:
 
 
 def test_data_capability_standing_is_split() -> None:
-    text = (ROOT / "capabilities/packages/data-analytics.md").read_text(
+    text = (REPO_ROOT / "catalogs/capabilities/packages/data-analytics.md").read_text(
         encoding="utf-8"
     )
     assert "Project-scoped data work: **READY_FOR_REAL_WORK**" in text

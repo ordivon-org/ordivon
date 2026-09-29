@@ -1,0 +1,378 @@
+{
+  "edges": [
+    {
+      "relation": "prov:generated",
+      "source": "urn:ordivon:activity:crypto-public-shadow-r2-capture",
+      "target": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasAssociatedWith",
+      "source": "urn:ordivon:activity:crypto-public-shadow-r2-capture",
+      "target": "urn:ordivon:repo:finance",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:generated",
+      "source": "urn:ordivon:activity:experimental-episode-index-r1",
+      "target": "urn:sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:ordivon:activity:experimental-episode-index-r1",
+      "target": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:ordivon:activity:experimental-episode-index-r1",
+      "target": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasAssociatedWith",
+      "source": "urn:ordivon:activity:experimental-episode-index-r1",
+      "target": "urn:ordivon:consumer:experimental-analysis",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:ordivon:activity:paper1-crossproject-robustness-r1",
+      "target": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasAssociatedWith",
+      "source": "urn:ordivon:activity:paper1-crossproject-robustness-r1",
+      "target": "urn:ordivon:repo:research",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "target": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasGeneratedBy",
+      "source": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "target": "urn:ordivon:activity:paper1-crossproject-robustness-r1",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+      "target": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasGeneratedBy",
+      "source": "urn:sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+      "target": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+      "target": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+      "target": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasGeneratedBy",
+      "source": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+      "target": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+      "target": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasGeneratedBy",
+      "source": "urn:sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+      "target": "urn:ordivon:activity:experimental-episode-index-r1",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+      "target": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasGeneratedBy",
+      "source": "urn:sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+      "target": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "target": "urn:sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "target": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "target": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0",
+      "target": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:generated",
+      "source": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "target": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "target": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "target": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasAssociatedWith",
+      "source": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "target": "urn:ordivon:repo:research",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:generated",
+      "source": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+      "target": "urn:sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+      "target": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasAssociatedWith",
+      "source": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+      "target": "urn:ordivon:consumer:experimental-analysis",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasDerivedFrom",
+      "source": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14",
+      "target": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:generated",
+      "source": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6",
+      "target": "urn:sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:used",
+      "source": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6",
+      "target": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14",
+      "targetPresentInDocument": true
+    },
+    {
+      "relation": "prov:wasAssociatedWith",
+      "source": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6",
+      "target": "urn:ordivon:repo:finance",
+      "targetPresentInDocument": true
+    }
+  ],
+  "kind": "ordivon.social-fabric-prov-projection",
+  "nodes": [
+    {
+      "id": "urn:ordivon:activity:crypto-public-shadow-r2-capture",
+      "provTypes": [
+        "prov:Activity"
+      ]
+    },
+    {
+      "id": "urn:ordivon:activity:experimental-episode-index-r1",
+      "provTypes": [
+        "prov:Activity"
+      ]
+    },
+    {
+      "id": "urn:ordivon:activity:paper1-crossproject-robustness-r1",
+      "provTypes": [
+        "prov:Activity"
+      ]
+    },
+    {
+      "id": "urn:ordivon:consumer:experimental-analysis",
+      "identifier": "ordivon@1214254b38af1485eca368e190704d360ffeb06a",
+      "provTypes": [
+        "prov:Agent"
+      ]
+    },
+    {
+      "id": "urn:ordivon:repo:finance",
+      "identifier": "ordivon-market-capital-next@14885beb2b566458123dd9f273a66884fb337017",
+      "provTypes": [
+        "prov:Agent"
+      ]
+    },
+    {
+      "id": "urn:ordivon:repo:research",
+      "identifier": "ordivon-research-v2@18a8afae92ae2ef3b89d645bbcccf6db51db1b9d",
+      "provTypes": [
+        "prov:Agent"
+      ]
+    },
+    {
+      "id": "urn:sha256:37a092e36c0d31bad0e66f7992812537b3e99abc7037d685182743df62b1e10c",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Paper1 R1 robustness combined seed-order results"
+    },
+    {
+      "id": "urn:sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+      "identifier": "sha256:67c917eacd59fb7ae48877cde4d893093477c9c730a454824251291aad012b1b",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Experimental Episode Corpus R1 manifest"
+    },
+    {
+      "id": "urn:sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "identifier": "sha256:6c2066eb1bf1824887a72c6f6df3cb5106894efde206686eb564287fe6547e50",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Paper1 frozen benchmark CSV"
+    },
+    {
+      "id": "urn:sha256:6cafaf913b639d6b4652ef34838860f78fb93b15a28faeb5891da7980ea2a402",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Crypto public-shadow decision/outcome/feedback artifact"
+    },
+    {
+      "id": "urn:sha256:6ec1059b1eb1712d493ba010a12ea29228f40a2f4f278f0716fe2261f9db4efa",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Paper1 product/result binding verification artifact"
+    },
+    {
+      "id": "urn:sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "identifier": "sha256:7566b2172663ba4286fd2778ca234b0c8e099937ae1a0c6de1389e2e07e294d6",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Harness RSI Episode replay set"
+    },
+    {
+      "id": "urn:sha256:7c0747db4f0568a83e444cbf46e61aed93bd8d5fa66eb5eedb0ad2af98db233d",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Qualified flat Experimental Episode index Parquet"
+    },
+    {
+      "id": "urn:sha256:e5e2c6bd8801c266dc6e94f80ca30fbaf62ef9240b7dce816f73634259d1d57d",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Experimental System Analysis R1 report"
+    },
+    {
+      "id": "urn:sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "identifier": "sha256:ed5fba6227a5d997adefb6bf63717463dc75fdc8b62cfb0005804109eb0a2d7e",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Crypto public shadow R2 evidence"
+    },
+    {
+      "id": "urn:sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "identifier": "sha256:ff4257772344c51e25313e914586ee760e1180cb1f261796beedd34345267e8d",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Runtime R5C Episode replay set"
+    },
+    {
+      "id": "urn:uuid:4b2a0b92-e9d6-5f31-8157-a1c16e4ef34b?version=1.0.0",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Experimental Episode Corpus R1"
+    },
+    {
+      "id": "urn:uuid:94d0bf2c-036b-53b1-b733-14d3a5536a74?version=1.0.0",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Paper1 Frozen Flaky-Test Benchmark"
+    },
+    {
+      "id": "urn:uuid:b07502e6-b0da-58ba-91e8-6e85043f8f31",
+      "provTypes": [
+        "prov:Activity"
+      ],
+      "title": "Paper1 product/result binding verification run"
+    },
+    {
+      "id": "urn:uuid:cb6ddba6-a7f4-5bbb-91d4-c9b30b5bc0ba",
+      "provTypes": [
+        "prov:Activity"
+      ],
+      "title": "Experimental System Analysis R1"
+    },
+    {
+      "id": "urn:uuid:d14d7457-c9aa-59e0-8bf5-7783cea39c1c?version=2026.09.14",
+      "provTypes": [
+        "prov:Entity"
+      ],
+      "title": "Crypto Public Shadow R2 Observation"
+    },
+    {
+      "id": "urn:uuid:db63ce70-d168-5dfd-b76f-55419d25bea6",
+      "provTypes": [
+        "prov:Activity"
+      ],
+      "title": "Crypto public-shadow product consumption decision run"
+    }
+  ],
+  "nonClaims": [
+    "The projection does not mint a Social Fabric provenance ontology.",
+    "An observed sequence or PROV relation is not independently promoted to a causal mechanism claim.",
+    "Referenced nodes may be external to this document; absence is preserved rather than rejected as nonexistence.",
+    "Natural provenance/evidence owners remain authoritative."
+  ],
+  "projectionDigest": "sha256:bd54660a01a7786300a689c5969358d26ed93f340d5d6ae160f9b0f5e417ba5c",
+  "schemaVersion": 1,
+  "sourceDocumentDigest": "sha256:8e7d31f7a825e6c7b147e372f0900da37b30f562036174301bb6deecedaef889",
+  "sourceRef": "file:meta/next/evidence/data-lifecycle/data-products-r2/product-provenance.prov.jsonld",
+  "truthRole": "thin-projection-of-explicit-w3c-prov-relations"
+}

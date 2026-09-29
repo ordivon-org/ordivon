@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 """Standards-first shadow verifier for bounded Matroska v4 + stable FFV1 v3 video artifacts."""
 from __future__ import annotations
+import sys
 
 import argparse
 import hashlib
 import json
 import os
-from fractions import Fraction
-from pathlib import Path
 import re
 import subprocess
 import tempfile
-from typing import Any
 import xml.etree.ElementTree as ET
+from fractions import Fraction
+from pathlib import Path
+from typing import Any
 
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/moving-image-ffv1-contract-v1.schema.json"
@@ -124,13 +131,26 @@ def frac(s: str) -> Fraction | None:
     except Exception: return None
 
 
+CLAIM_POINTERS = {
+    "contractSchema": "/contractSchema",
+    "decodedVideoIdentity": "/decodedVideoIdentity",
+    "ffprobeTechnical": "/ffprobeTechnical",
+    "ffv1Implementation": "/ffv1Implementation",
+    "matroskaImplementation": "/matroskaImplementation",
+    "mediaInfoTechnical": "/mediaInfoTechnical",
+    "streamTopology": "/streamTopology",
+}
+
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_moving_image(path: Path, contract_path: Path, evidence_dir: Path | None=None) -> dict[str,Any]:
     if not path.is_file(): return {'schemaVersion':1,'kind':'artifact-moving-image-verification','profileId':'moving-image-matroska-ffv1-v3-r1','status':'FAIL','failures':['input is not a regular file']}
     try: contract=json.loads(contract_path.read_text())
-    except Exception as e: return {'schemaVersion':1,'kind':'artifact-moving-image-verification','profileId':'moving-image-matroska-ffv1-v3-r1','status':'FAIL','artifact':artifact_fact(path),'failures':[f'contract unreadable: {e}']}
-    failures=validate_contract(contract)
+    except Exception as e: return {'schemaVersion':1,'kind':'artifact-moving-image-verification','profileId':'moving-image-matroska-ffv1-v3-r1','status':'FAIL','artifact':artifact_fact(path),'contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+    contract_failures=validate_contract(contract)
+    failures=list(contract_failures)
     evidence_dir=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-moving-image-evidence-')); evidence_dir.mkdir(parents=True,exist_ok=True)
-    result={'schemaVersion':1,'kind':'artifact-moving-image-verification','profileId':'moving-image-matroska-ffv1-v3-r1','status':'FAIL','artifact':artifact_fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha256_file(contract_path),'canonicalDigest':canonical_digest(contract)},'tools':{},'failures':failures}
+    result={'schemaVersion':1,'kind':'artifact-moving-image-verification','profileId':'moving-image-matroska-ffv1-v3-r1','status':'FAIL','artifact':artifact_fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha256_file(contract_path),'canonicalDigest':canonical_digest(contract)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'tools':{},'failures':failures}
     if failures:
         result['boundary']='Invalid moving-image object contracts fail before external evidence can be promoted.'
         (evidence_dir/'verification.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n'); return result
@@ -185,8 +205,10 @@ def verify_moving_image(path: Path, contract_path: Path, evidence_dir: Path | No
     streams=pobj.get('streams') if isinstance(pobj,dict) else None
     streams=streams if isinstance(streams,list) else []
     video_streams=[s for s in streams if s.get('codec_type')=='video']; other_streams=[s for s in streams if s.get('codec_type')!='video']
-    if len(video_streams)!=1: probe_fail.append('FFprobe did not expose exactly one video stream')
-    if other_streams: probe_fail.append('FFprobe exposed non-video streams outside R1 topology')
+    topology_fail=[]
+    if len(video_streams)!=1: topology_fail.append('FFprobe did not expose exactly one video stream')
+    if other_streams: topology_fail.append('FFprobe exposed non-video streams outside R1 topology')
+    probe_fail.extend(topology_fail)
     vs=video_streams[0] if video_streams else {}
     if vs.get('codec_name')!='ffv1': probe_fail.append('FFprobe codec is not FFV1')
     if int(vs.get('width',-1))!=want['width'] or int(vs.get('height',-1))!=want['height']: probe_fail.append('FFprobe dimensions differ from contract')
@@ -223,6 +245,7 @@ def verify_moving_image(path: Path, contract_path: Path, evidence_dir: Path | No
       'matroskaImplementation':{**mat,'processReturnCode':mc.returncode,'evidenceSha256':sha256_file(evidence_dir/'mediaconch-implementation.xml')},
       'ffv1Implementation':ffv,
       'mediaInfoTechnical':{'status':'PASS' if not mi_fail else 'FAIL','containerFormat':general.get('Format'),'containerVersion':general.get('Format_Version'),'codec':video.get('Format'),'codecVersion':ver,'ffv1MicroVersion':micro,'width':video.get('Width'),'height':video.get('Height'),'frameRate':video.get('FrameRate'),'frameCount':video.get('FrameCount'),'chromaSubsampling':video.get('ChromaSubsampling'),'bitDepth':video.get('BitDepth'),'scanType':video.get('ScanType'),'failures':mi_fail,'evidenceSha256':sha256_file(evidence_dir/'mediainfo.xml')},
+      'streamTopology':{'status':'PASS' if not topology_fail else 'FAIL','streamCount':len(streams),'videoStreamCount':len(video_streams),'otherStreamCount':len(other_streams),'failures':topology_fail},
       'ffprobeTechnical':{'status':'PASS' if not probe_fail else 'FAIL','streamCount':len(streams),'videoStreamCount':len(video_streams),'otherStreamCount':len(other_streams),'codec':vs.get('codec_name'),'width':vs.get('width'),'height':vs.get('height'),'pixelFormat':vs.get('pix_fmt'),'frameRate':vs.get('r_frame_rate'),'frameCount':vs.get('nb_read_frames'),'failures':probe_fail,'evidenceSha256':sha256_file(evidence_dir/'ffprobe.json')},
       'decodedVideoIdentity':{'status':'PASS' if not decode_fail else 'FAIL','ffmpegReturnCode':dec.returncode,'rawVideoSha256':raw_sha,'contractExpectedRawVideoSha256':expected_sha,'rawVideoBytes':len(dec.stdout),'expectedRawVideoBytes':expected_bytes,'integrityDiagnostics':diagnostics,'failures':decode_fail},
       'status':'PASS' if not failures else 'FAIL','failures':failures,

@@ -114,36 +114,36 @@ def _find_runtime_jobs_by_client_request(
         }
         if cursor is not None:
             arguments["cursor"] = cursor
-        page = runtime.call_tool("task.list", arguments)
+        page = runtime.call_tool("job.list", arguments)
         validate_json_value(page)
         jobs = page.get("jobs")
         if not isinstance(jobs, list):
-            raise HarnessRuntimeClientError("task.list omitted jobs")
+            raise HarnessRuntimeClientError("job.list omitted jobs")
         for item in jobs:
             if not isinstance(item, dict):
-                raise HarnessRuntimeClientError("task.list returned a non-object Job")
+                raise HarnessRuntimeClientError("job.list returned a non-object Job")
             job = dict(item)
             if job.get("clientRequestId") != client_request_id:
                 raise HarnessRuntimeClientError(
-                    "filtered task.list returned another clientRequestId"
+                    "filtered job.list returned another clientRequestId"
                 )
             matches.append(job)
         next_cursor = page.get("nextCursor")
         if next_cursor is None:
             return matches
         if not isinstance(next_cursor, dict):
-            raise HarnessRuntimeClientError("task.list returned an invalid cursor")
+            raise HarnessRuntimeClientError("job.list returned an invalid cursor")
         typed: dict[str, JsonValue] = {}
         for key, value in next_cursor.items():
             if not isinstance(key, str) or not isinstance(value, (str, int)):
-                raise HarnessRuntimeClientError("task.list cursor fields are invalid")
+                raise HarnessRuntimeClientError("job.list cursor fields are invalid")
             typed[key] = value
         digest = canonical_digest(typed)
         if digest in seen_cursors:
-            raise HarnessRuntimeClientError("task.list repeated a pagination cursor")
+            raise HarnessRuntimeClientError("job.list repeated a pagination cursor")
         seen_cursors.add(digest)
         cursor = typed
-    raise HarnessRuntimeClientError("task.list pagination exceeded the Harness bound")
+    raise HarnessRuntimeClientError("job.list pagination exceeded the Harness bound")
 
 
 def _runtime_error_value(error: BaseException) -> dict[str, JsonValue]:
@@ -899,7 +899,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             wait_ms = 30_000 if control is None else min(30_000, control.remaining_ms)
             try:
                 current = self.runtime.call_tool(
-                    "task.observe",
+                    "job.observe",
                     {
                         "schemaVersion": 1,
                         "jobId": job_id,
@@ -985,7 +985,7 @@ class SQLiteHarnessRuntimeBridge(SQLiteHarnessAgentBridge):
             )
         try:
             payload = self.runtime.call_tool(
-                "task.observe",
+                "job.observe",
                 {
                     "schemaVersion": 1,
                     "jobId": job_id,

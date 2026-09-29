@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.investment-decision-route-v1",
+  "title": "Ordivon Capital Investment Decision Route v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "kind", "truthRole", "decisionId", "asOf", "objective", "horizon",
+    "riskBudgetStatus", "decisionStanding", "riskGovernor", "eligibleActions", "modelRoutes",
+    "externalFinancialEffectAllowed", "prohibitions"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.investment-decision-route"},
+    "truthRole": {"const": "DECISION_SUPPORT_NOT_INVESTMENT_OR_EXECUTION_TRUTH"},
+    "decisionId": {"type": "string", "minLength": 1},
+    "asOf": {"type": "string", "minLength": 1},
+    "objective": {"type": "string", "minLength": 1},
+    "horizon": {"type": "string", "minLength": 1},
+    "riskBudgetStatus": {"enum": ["SET", "UNSET"]},
+    "decisionStanding": {
+      "enum": [
+        "RESEARCH_ONLY_RISK_BUDGET_UNSET",
+        "RISK_REVIEW_REQUIRED",
+        "MODEL_CONFLICT_REVIEW",
+        "CONDITIONAL_OVERLAY_REVIEW",
+        "BASELINE_ONLY"
+      ]
+    },
+    "riskGovernor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stressObserved", "modelConflict", "sizingPermitted"],
+      "properties": {
+        "stressObserved": {"type": "boolean"},
+        "modelConflict": {"type": "boolean"},
+        "sizingPermitted": {"type": "boolean"}
+      }
+    },
+    "eligibleActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["INFORM", "BASELINE", "TILT", "SIZE", "RISK_REVIEW", "EXECUTION_PLAN", "ATTRIBUTION"]
+      }
+    },
+    "modelRoutes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["modelKey", "standing", "route", "role"],
+        "properties": {
+          "modelKey": {"type": "string", "minLength": 1},
+          "standing": {"enum": ["CORE", "MATURE_CONDITIONAL", "CONTESTED_CONDITIONAL", "STATE_MODEL"]},
+          "route": {"enum": ["REQUIRED", "ELIGIBLE", "RESEARCH_ONLY", "INACTIVE", "BLOCKED_BY_STATE"]},
+          "role": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "externalFinancialEffectAllowed": {"const": false},
+    "prohibitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

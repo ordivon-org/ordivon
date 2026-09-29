@@ -170,6 +170,10 @@ class HarnessStore(Protocol):
 
     def load_run(self, harness_run_id: str) -> HarnessRunProjection: ...
 
+    def load_run_by_caller(
+        self, caller_id: str, caller_run_ref: str
+    ) -> HarnessRunProjection: ...
+
     def list_runs(self) -> tuple[HarnessRunProjection, ...]: ...
 
     def append_event(

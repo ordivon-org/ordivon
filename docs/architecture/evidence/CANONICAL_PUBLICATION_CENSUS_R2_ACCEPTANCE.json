@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.canonical-publication-census-acceptance",
+  "truthRole": "mechanical-census-consistency-not-publication-authority",
+  "providerBase": "6299a196298d46cac489e0b127a43d57199c4389",
+  "localHead": "9dcc6e87f06488fa3a58b51404863a1f3211d3a3",
+  "standing": "PASS",
+  "checks": {
+    "rawCommitCount": 146,
+    "dedupeRowCount": 146,
+    "exactProviderPatchDuplicates": 23,
+    "structuralMergeCommits": 23,
+    "localLocalExactDuplicateCommits": 2,
+    "exactOpenPrHeadDuplicates": 0,
+    "residualCommits": 99,
+    "clusterCount": 18,
+    "clusterPartitionExact": true,
+    "clusterPlansUseActualPaths": true
+  },
+  "artifacts": {
+    "CANONICAL_PUBLICATION_RAW_INTENT_CENSUS_R2.json": "sha256:ebcb668e91d9c8aefa4532208675f02bef54fc21587c9714d5b4944bb2a02a04",
+    "CANONICAL_PUBLICATION_PATCH_DEDUPE_R2.json": "sha256:43bd88dc7dac01adabd592eb6cb294b980378a8a097986067e2fb1bd03768407",
+    "CANONICAL_PUBLICATION_INTENT_CLUSTERS_R2.json": "sha256:d943ab56a2cb9ed180bea39b6416ee4af496ae37fcc47c90a9737adc5882a652"
+  }
+}

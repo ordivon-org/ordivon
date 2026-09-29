@@ -1,0 +1,7 @@
+[Unit]
+Description=Private human browser carrier for Claude subscription OAuth
+Requires=claude-private-oauth-display.service claude-private-oauth-browser.service claude-private-oauth-vnc.service claude-private-oauth-web.service
+After=network-v2-claude-client.target
+
+[Install]
+WantedBy=multi-user.target

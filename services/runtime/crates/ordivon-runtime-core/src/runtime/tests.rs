@@ -393,6 +393,42 @@ fn created(outcome: AdmissionOutcome) -> CreatedAdmission {
     }
 }
 
+#[test]
+fn startup_grace_uses_durable_dispatch_issue_time_not_attempt_creation() {
+    let sandbox = Sandbox::new("dispatch-startup-grace-anchor", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:dispatch-startup-grace-anchor",
+                1,
+            ))
+            .unwrap(),
+    );
+    let ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"bundle"),
+            50_000,
+        )
+        .unwrap();
+    let dispatched = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 60_000)
+        .unwrap();
+
+    assert_eq!(
+        sandbox
+            .registry
+            .dispatch_issued_at_ms(&dispatched.attempt_id)
+            .unwrap(),
+        60_000
+    );
+}
+
 fn running_attempt_for_commit_fault(sandbox: &Sandbox, client_request_id: &str) -> AttemptRecord {
     let created = created(
         sandbox
@@ -4188,6 +4224,15 @@ fn runtime_job_inspection_projects_bounded_read_only_timeline() {
     assert!(full.job.mechanically_converged);
     assert!(!full.job.semantic_completion_evaluated);
     assert_eq!(full.attempts.len(), 1);
+    let condition_types = full.attempts[0]
+        .conditions
+        .iter()
+        .map(|condition| condition.condition_type.as_str())
+        .collect::<Vec<_>>();
+    assert!(condition_types.contains(&"bundle_ready"));
+    assert!(condition_types.contains(&"dispatch_issued"));
+    assert!(condition_types.contains(&"result_available"));
+    assert!(condition_types.contains(&"reservation_held"));
     assert_eq!(full.attempts[0].state, AttemptState::Failed);
     assert_eq!(
         full.attempts[0].reservation_state,
@@ -8646,4 +8691,16 @@ fn resolved_job_reclaims_owned_encrypted_credentials_without_ttl() {
         AdmissionOutcome::Existing { job } => assert_eq!(job.job_id, created.job.job_id),
         AdmissionOutcome::Created(_) => panic!("resolved exact replay must not create a new Job"),
     }
+}
+
+#[test]
+fn admission_hot_path_delegates_global_orphan_recovery_to_bounded_maintenance() {
+    let source = include_str!("engine/admission.rs");
+    assert!(!source.contains("self.reconcile_recoverable_orphans()?;"));
+    assert_eq!(
+        source
+            .matches("self.reconcile_workspace(&request.execution.workspace_id)?;")
+            .count(),
+        3
+    );
 }

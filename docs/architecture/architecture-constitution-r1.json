@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.architecture-constitution",
+  "status": "CURRENT_ARCHITECTURE_CONSTITUTION",
+  "purpose": "verified-composition-system",
+  "truthOrder": [
+    "current-physical-truth",
+    "canonical-source-configuration",
+    "live-owner-provider-state",
+    "durable-registry-receipt",
+    "test-verification-evidence",
+    "current-documentation",
+    "planning-artifact",
+    "historical-chat-memory"
+  ],
+  "minimalSemanticKernel": [
+    "cognitive-circuit",
+    "interface-contract",
+    "authority-obligation",
+    "verification-obligation"
+  ],
+  "conditionalKernelExtensions": [
+    "successor-contract",
+    "agent-run-binding"
+  ],
+  "substrateOwners": {
+    "agentRun": "harness",
+    "physicalExecution": "runtime",
+    "semanticContinuity": "host",
+    "northboundRoutingProjection": "gateway",
+    "durableWorkflow": "temporal-or-provider-native",
+    "providerEffect": "provider",
+    "discovery": "catalogs-and-skills"
+  },
+  "forbiddenGlobalConcepts": [
+    "universal-task",
+    "global-session",
+    "universal-profile",
+    "universal-bundle",
+    "universal-evidence-store",
+    "global-provider-status-registry",
+    "global-checkpoint-store",
+    "mega-gateway",
+    "agent-service-2",
+    "universal-workflow-engine"
+  ],
+  "cancelledPathRelocationWaves": ["S3", "S4", "S6", "S7", "S9"],
+  "retainedConvergenceWork": [
+    "meta-next-targeted-residual-disposition",
+    "evidence-driven-contract-fitness",
+    "connector-currentness",
+    "cross-owner-reentry",
+    "end-to-end-authority-closure"
+  ],
+  "laws": [
+    "physical-truth-outranks-documentation",
+    "one-natural-owner-per-durable-truth",
+    "placement-does-not-transfer-authority",
+    "composition-does-not-mint-authority",
+    "capability-provider-authority-are-distinct",
+    "authentication-authorization-actor-provenance-are-distinct",
+    "observation-evidence-verification-decision-are-distinct",
+    "no-universal-lifecycle-ontology",
+    "harness-owns-only-bounded-agent-run",
+    "runtime-owns-physical-execution-not-semantic-completion",
+    "host-owns-continuity-not-physical-execution",
+    "gateway-owns-routing-projection-not-owner-truth",
+    "workflow-stays-external-by-default",
+    "unknown-effects-reconcile-never-blind-replay",
+    "delete-custom-by-default"
+  ]
+}

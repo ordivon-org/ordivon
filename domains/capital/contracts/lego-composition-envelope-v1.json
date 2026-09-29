@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.lego-composition-envelope-contract",
+  "standing": "ACTIVE_R1",
+  "truthRole": "COMPOSITION_CONTRACT_NOT_DOMAIN_PAYLOAD_SCHEMA",
+  "principle": "The envelope composes registered LEGO identities and their assumptions/guarantees. Domain-native payloads remain owned by their own contracts and are not flattened into a universal Capital object.",
+  "request": {
+    "required": [
+      "legoIds",
+      "availableAuthorities",
+      "requestedUse"
+    ],
+    "legoIds": "ordered registered LEGO identities; R1 is a DAG path projection, not a workflow runtime",
+    "availableAuthorities": "explicit authority classes supplied by the caller/environment; registry metadata cannot mint them",
+    "requestedUse": "explicit use being composed so model/use restrictions can fail closed"
+  },
+  "stepProjection": {
+    "assumptions": [
+      "authorityRequirement",
+      "currentnessRequirement",
+      "evidenceObligations"
+    ],
+    "guarantees": [
+      "ownerDomain",
+      "functionalRoles",
+      "effectClass",
+      "outputContracts",
+      "permittedUses",
+      "prohibitedUses"
+    ]
+  },
+  "result": {
+    "standing": "ADMITTED_COMPOSITION_ONLY",
+    "nonClaims": [
+      "does not execute any node",
+      "does not grant provider or owner authority",
+      "does not establish evidence obligations as satisfied",
+      "does not establish semantic completion"
+    ]
+  }
+}

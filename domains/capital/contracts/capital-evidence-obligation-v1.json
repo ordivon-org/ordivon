@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.evidence-obligation-contract",
+  "standing": "ACTIVE_R1",
+  "truthRole": "EVIDENCE_REQUIREMENT_NOT_EVIDENCE_SATISFACTION",
+  "byFunctionalRole": {
+    "Observe": [
+      "source/provider authority identity",
+      "observation timestamp/currentness evidence"
+    ],
+    "Normalize": [
+      "input authority/provenance preserved",
+      "normalization contract identity"
+    ],
+    "Validate": [
+      "validation contract/result",
+      "explicit limitation boundary"
+    ],
+    "Measure": [
+      "input sample/observation identity",
+      "calculation definition"
+    ],
+    "Model": [
+      "quantitative component inventory standing",
+      "validation standing",
+      "model-use restrictions",
+      "sample chronology/boundary"
+    ],
+    "Counterfactual": [
+      "baseline portfolio identity",
+      "caller-supplied action identity",
+      "non-recommendation boundary"
+    ],
+    "Decide": [
+      "frozen decision identity",
+      "decision boundary timestamp/context"
+    ],
+    "Authorize": [
+      "explicit policy/mandate facts",
+      "authority references",
+      "allow/deny receipt"
+    ],
+    "Reserve": [
+      "effect identity",
+      "durable reservation receipt"
+    ],
+    "Effect": [
+      "effect identity",
+      "provider submission/episode receipt"
+    ],
+    "Reconcile": [
+      "authoritative post-effect reality",
+      "reconciliation standing",
+      "ambiguity preserved if unresolved"
+    ],
+    "Account": [
+      "reconciliation-derived accounting instruction",
+      "durable accounting receipt"
+    ]
+  },
+  "byEffectClass": {
+    "NONE": [],
+    "LOCAL_STATE": [
+      "local mutation identity/receipt when mutation occurs"
+    ],
+    "SIMULATED_EXCHANGE_ORDER_EFFECT": [
+      "pre-effect reservation",
+      "provider episode evidence",
+      "post-effect observation",
+      "reconciliation",
+      "accounting resolution"
+    ],
+    "DEMO_EXTERNAL_WRITE": [
+      "pre-effect reservation",
+      "fresh provider permission",
+      "provider receipt",
+      "authoritative post-effect reality",
+      "reconciliation",
+      "accounting resolution"
+    ],
+    "LIVE_QUALIFICATION_WRITE": [
+      "owner mandate",
+      "fresh provider permission",
+      "risk/admission result",
+      "pre-effect reservation",
+      "provider receipt",
+      "authoritative post-effect reality",
+      "reconciliation",
+      "accounting resolution"
+    ],
+    "PRODUCTION_FINANCIAL_WRITE": [
+      "production authorization",
+      "owner capital mandate",
+      "risk budget/admission result",
+      "fresh provider permission",
+      "pre-effect reservation",
+      "provider receipt",
+      "authoritative post-effect reality",
+      "reconciliation",
+      "accounting resolution"
+    ]
+  },
+  "laws": [
+    "obligations remain unresolved until exact evidence is supplied or produced",
+    "passing code/tests does not satisfy provider-reality obligations",
+    "model-use restrictions survive composition",
+    "effect circuits require post-effect authoritative reality before accounting resolution"
+  ]
+}

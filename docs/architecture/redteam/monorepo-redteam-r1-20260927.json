@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.monorepo-redteam-finding-ledger",
+  "truthRole": "redteam-candidate-not-yet-main-integration-authority",
+  "observedAtDate": "2026-09-27",
+  "truthFence": {
+    "localIntegrationSource": "d8d5e61e3d7fa3b62781b086a1ea0bd76329d517",
+    "githubProviderMain": "80c17a3635219fa00c91ee9ea00700918bd14df4",
+    "earlierAttackRevision": "838075d839c07ac92d5f31d845dd41a044e65765",
+    "gatewayVersion": "0.4.0",
+    "hostSchema": 9
+  },
+  "findings": [
+    {
+      "id": "RT-SUPPLY-001",
+      "class": "CONFIRMED_NEW",
+      "priority": "HIGH",
+      "title": "Runtime release tags can bypass protected-main convergence and still mint release attestations",
+      "owners": ["github-repository-governance", "runtime-release-authority"],
+      "evidenceRefs": ["evidence/RT_SUPPLY_001_SYNTHETIC_TAG_PROBE_R1.json"],
+      "nonClaims": ["no unauthenticated tag creation claim", "no automatic production deployment claim", "no SLSA level claim"]
+    },
+    {
+      "id": "RT-CI-001",
+      "class": "CONFIRMED_NEW",
+      "priority": "MEDIUM",
+      "title": "Runtime release workflow changes escape Runtime affected-owner verification",
+      "owners": ["repository-mechanics", "runtime-release-authority"]
+    },
+    {
+      "id": "RT-DOC-001",
+      "class": "DRIFT",
+      "priority": "LOW",
+      "title": "Gateway README advertises retired Host northbound API",
+      "owners": ["gateway-documentation"]
+    }
+  ],
+  "knownOpen": [
+    "RT-CATALOG-001 consumer/connector tool-catalog freshness",
+    "AF-S2 Gateway per-capability Security authorization",
+    "Gateway Runtime bearer materialization/lifecycle repair"
+  ],
+  "negativeControls": [
+    "Runtime exact clientRequestId replay returned the historical job and changed-content replay failed closed with IDEMPOTENCY_CONFLICT",
+    "owner-boundary literal scanner scope is explicitly bounded by contract",
+    "undirected convergence closure is not yet a security finding"
+  ]
+}

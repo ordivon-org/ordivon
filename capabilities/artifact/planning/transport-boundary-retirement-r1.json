@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.artifact-transport-boundary-retirement",
+  "truthRole": "source-tree-retirement-evidence-not-provider-effect-truth",
+  "date": "2026-09-26",
+  "baseRevision": "d2cbfdbce74cd21fad97a7edc893338089a0694a",
+  "objective": "Remove generic Cloudflare R2 mailbox/provider transport authority from the Artifact owner while preserving historical donor/provenance evidence and Artifact standing semantics.",
+  "retiredFiles": [
+    {
+      "path": "scripts/artifact_r2_mailbox.py",
+      "sha256": "3bf2c1d6b40257b8241e5594834f19462ccbdd0dac77dcbbb4691d958c4c68e7",
+      "role": "provider credential, SigV4 capability, inventory and transfer-effect reconciliation implementation"
+    },
+    {
+      "path": "config/artifact-r2-mailbox-r1.json",
+      "sha256": "b09e0ac2f1ba12dd51beda47a6c4e0a67bf40054da2245da332d09eaf473b60b",
+      "role": "Artifact-owned Cloudflare R2 operator configuration"
+    },
+    {
+      "path": "artifact-delivery/r2-mailbox-v1.schema.json",
+      "sha256": "03cd6adefda84e7825da126f2542987be2fb378d7fbc20eba64ba1d87fc25ce6",
+      "role": "Artifact-specific generic transport intent schema"
+    },
+    {
+      "path": "tests/test_artifact_r2_mailbox.py",
+      "sha256": "c09628050c3d1f4863e03020ab07cc7b609f7c353bfe19d891836b9c873c2a1b",
+      "role": "self-test for retired transport implementation"
+    }
+  ],
+  "preRetirementEvidence": {
+    "jobId": "job-01a0de10-6815-7132-b014-ab90d6d107a9",
+    "standing": "PASS",
+    "detail": "Mailbox and donor targeted tests passed 31/31 immediately before retirement, proving ownership retirement rather than broken-code deletion."
+  },
+  "consumerCensus": {
+    "currentExecutableConsumers": 0,
+    "packagingEntrypoints": 0,
+    "systemdConsumers": 0,
+    "temporalConsumers": 0,
+    "remainingReferences": "Historical/frozen donor evidence plus current architecture/planning statements only."
+  },
+  "authorityDecision": {
+    "artifactKernelOwns": [
+      "SubjectCommitment",
+      "ProfileSemantics",
+      "CapabilityBinding",
+      "EvidenceObservation",
+      "StandingDecision"
+    ],
+    "artifactMustNotOwn": [
+      "generic external byte transport",
+      "provider credentials",
+      "destination identity",
+      "provider upload/download effect reconciliation",
+      "delivery receipt authority"
+    ],
+    "runtimeOwns": "Exact local Workspace/Job Artifact byte observation only; Runtime binary projection does not imply external delivery.",
+    "futureTransportRule": "If a real consumer requires external transport, bind it to a separate Distribution/provider owner or mature provider adapter with explicit destination/effect/reconciliation authority; do not reconstruct Artifact mailbox ownership."
+  },
+  "preservedHistoricalEvidence": [
+    "artifact-delivery/donor-r1/manifest.json",
+    "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md",
+    "docs/ARTIFACT_REDECOMPOSITION_R1.md",
+    "docs/migration/acceptance/ARTIFACT_V2_STANDALONE_RETIREMENT_ACCEPTANCE_20260921.md"
+  ],
+  "nonClaims": [
+    "No Cloudflare R2 bucket/provider object was deleted or mutated.",
+    "No external delivery provider was selected as replacement.",
+    "R2-S5 toolchain/environment/publication classification is not fully complete.",
+    "Historical evidence identities were not rewritten."
+  ],
+  "standing": "INTEGRATED_SOURCE_RETIREMENT_VERIFIED",
+  "postRetirementVerification": {
+    "focusedBoundaryJobId": "job-01a0de12-19e9-7392-bd51-38e98653fe43",
+    "focusedBoundaryStanding": "PASS",
+    "artifactOwnerGateJobId": "job-01a0de12-36e9-7c73-a6f8-d3d16ade8f30",
+    "artifactOwnerGateStanding": "PASS",
+    "artifactOwnerGateSummary": "385 passed, 3 skipped, 39 deselected, 43 subtests passed; Ruff and lock/sync checks passed.",
+    "rootBoundaryDocCheckJobId": "job-01a0de14-834c-7a42-ac92-0f29678b5130",
+    "rootBoundaryDocStanding": "PASS_NO_SEPARATE_EXECUTABLE_GUARD_FOUND"
+  },
+  "integration": {
+    "implementationCommit": "77ba6e9163e07b5f7721b4f38fcf5c7914223f0e",
+    "mergeCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8",
+    "relevantTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0de16-3bbf-7e01-bfca-67a318d935a5",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
+}

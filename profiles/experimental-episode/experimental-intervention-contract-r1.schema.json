@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:schema:experimental-intervention-contract:r1",
+  "title": "Ordivon Experimental Intervention Contract R1",
+  "description": "Frozen study-owned intervention/assignment contract. It authorizes no effect; concrete mutations remain with their natural owners.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "contractId", "experimentId", "frozenBaseDigest", "unitOfAssignment", "assignmentPolicy", "treatmentFactor", "assignments", "nonClaims", "contractDigest"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.experimental-intervention-contract"},
+    "contractId": {"type": "string", "minLength": 1, "maxLength": 512},
+    "experimentId": {"type": "string", "minLength": 1, "maxLength": 512},
+    "frozenBaseDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "unitOfAssignment": {"enum": ["episode", "run", "seat", "group"]},
+    "assignmentPolicy": {"enum": ["explicit", "randomized", "blocked", "paired", "crossover"]},
+    "treatmentFactor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factorId", "levels"],
+      "properties": {
+        "factorId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "levels": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["levelId", "value"],
+            "properties": {
+              "levelId": {"type": "string", "minLength": 1, "maxLength": 512},
+              "value": {"type": ["string", "integer", "number", "boolean", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "assignments": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unitRef", "levelId"],
+        "properties": {
+          "unitRef": {"type": "string", "minLength": 1, "maxLength": 512},
+          "levelId": {"type": "string", "minLength": 1, "maxLength": 512},
+          "blockRef": {"type": "string", "minLength": 1, "maxLength": 512},
+          "pairRef": {"type": "string", "minLength": 1, "maxLength": 512},
+          "period": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "assignmentEvidenceRef": {"$ref": "#/$defs/bindingRef"},
+    "nonClaims": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "contractDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "bindingRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownerId", "objectKind", "objectId", "digest"],
+      "properties": {
+        "ownerId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "objectKind": {"type": "string", "minLength": 1, "maxLength": 512},
+        "objectId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

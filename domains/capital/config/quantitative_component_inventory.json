@@ -538,6 +538,43 @@
         "Trade recommendation."
       ],
       "retirementReason": "Replaced by explicit market observations, model inventory/governance, risk monitoring, and scenario analysis aligned to mature external practice."
+    },
+    {
+      "id": "investment-decision-router",
+      "implementation": "src/ordivon_capital/portfolio/decision_router.py::route_investment_decision",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "ACTIVE",
+      "purpose": "Route registered external investment models by explicit state, horizon, constraints and risk-budget standing without generating orders or inferring risk appetite.",
+      "materiality": "NOT_APPLICABLE",
+      "assumptions": [],
+      "limitations": [
+        "Routing eligibility is not a forecast, recommendation, investment truth, or external effect authority.",
+        "Conditional and contested models inherit their registered assumptions, invalidators and evidence limitations.",
+        "An UNSET owner risk budget blocks sizing proposals."
+      ],
+      "validation": {
+        "standing": "NOT_APPLICABLE",
+        "evidenceRefs": []
+      },
+      "monitoring": {
+        "standing": "ACTIVE",
+        "requirements": [
+          "Track atlas changes and routing-regression tests.",
+          "Preserve decision-time context when routes are used for later attribution."
+        ]
+      },
+      "permittedUses": [
+        "Bounded investment decision support.",
+        "Model applicability routing.",
+        "Conflict and risk-governor escalation."
+      ],
+      "prohibitedUses": [
+        "Automatic order generation.",
+        "Inferring owner risk appetite.",
+        "Promoting contested models into default authority.",
+        "External financial write approval."
+      ]
     }
   ]
 }

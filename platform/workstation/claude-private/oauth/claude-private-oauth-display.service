@@ -1,0 +1,15 @@
+[Unit]
+Description=Private Xvfb display for Claude subscription OAuth
+PartOf=claude-private-oauth.target
+Before=claude-private-oauth-browser.service
+
+[Service]
+Type=simple
+User=ordivon
+Group=ordivon
+RuntimeDirectory=claude-private-oauth
+RuntimeDirectoryMode=0700
+ExecStartPre=/usr/local/libexec/claude-private/prepare-oauth-xauth
+ExecStart=/usr/bin/Xvfb :90 -screen 0 1440x1000x24 -nolisten tcp -auth /run/claude-private-oauth/xauth
+Restart=on-failure
+RestartSec=1s

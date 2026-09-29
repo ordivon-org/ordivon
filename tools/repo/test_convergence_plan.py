@@ -30,10 +30,13 @@ class ConvergencePlanTests(unittest.TestCase):
             "NOT_ESTABLISHED_BY_THIS_PROJECTION",
         )
 
-    def test_next_queue_projection_uses_full_portable_verification(self) -> None:
+    def test_archived_next_tree_is_repository_only(self) -> None:
         plan = MODULE.build_plan(changed_files=["meta/next/README.md"])
-        self.assertIn("next:verify", plan["verifyTasks"])
-        self.assertIn("next:verify", plan["queueVerifyTasks"])
+        self.assertEqual(plan["directOwners"], [])
+        self.assertEqual(plan["verificationOwners"], [])
+        self.assertEqual(plan["verifyTasks"], [])
+        self.assertEqual(plan["queueVerifyTasks"], [])
+        self.assertEqual(plan["queueClass"], "REPOSITORY_ONLY")
 
     def test_media_change_expands_to_declared_interaction_component(self) -> None:
         plan = MODULE.build_plan(
@@ -42,7 +45,7 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], ["media"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["artifact", "distribution", "game", "media", "workstation"],
+            ["artifact", "distribution", "game", "media", "studies", "workstation"],
         )
         self.assertEqual(len(plan["scopeIds"]), 1)
         self.assertIn("artifact:verify", plan["verifyTasks"])
@@ -52,7 +55,7 @@ class ConvergencePlanTests(unittest.TestCase):
         plan = MODULE.build_plan(changed_files=["platform/security/README.md"])
         self.assertEqual(
             plan["verificationOwners"],
-            ["composition", "harness", "next", "security", "skills", "web"],
+            ["agent-app", "capital", "composition", "harness", "security", "web"],
         )
         self.assertIn("harness:verify", plan["verifyTasks"])
         self.assertIn("harness:queue", plan["queueVerifyTasks"])
@@ -75,6 +78,12 @@ class ConvergencePlanTests(unittest.TestCase):
         self.assertEqual(plan["directOwners"], [])
         self.assertEqual(plan["verificationOwners"], [])
         self.assertEqual(plan["scopeIds"], [])
+        self.assertEqual(plan["ownershipCoverageStanding"], "TOTAL_FAIL_CLOSED")
+        self.assertEqual(plan["pathClassifications"][0]["kind"], "DOCUMENTATION")
+
+    def test_unknown_path_fails_plan_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "UNKNOWN repository path classification"):
+            MODULE.build_plan(changed_files=["unmodeled-r2/source.py"])
 
     def test_dependency_graph_rejects_unknown_owner(self) -> None:
         content = """schema_version = 1

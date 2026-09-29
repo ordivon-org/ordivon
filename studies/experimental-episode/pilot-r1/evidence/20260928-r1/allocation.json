@@ -1,0 +1,94 @@
+{
+  "blockingFactor": "taskId",
+  "design": "balanced-2x2-randomized-complete-block-pilot",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r1-20260928",
+  "kind": "ordivon.experimental-factorial-allocation",
+  "schemaVersion": 1,
+  "seed": 20260928,
+  "trials": [
+    {
+      "codec": "exact-replacement-v1",
+      "model": "deepseek-v4-flash",
+      "ordinal": 1,
+      "taskId": "HARNESS-EDIT-ADDRESSING-002",
+      "trialId": "trial:001"
+    },
+    {
+      "codec": "anchored-line-v1",
+      "model": "deepseek-flash",
+      "ordinal": 2,
+      "taskId": "HARNESS-EDIT-ADDRESSING-002",
+      "trialId": "trial:002"
+    },
+    {
+      "codec": "anchored-line-v1",
+      "model": "deepseek-flash",
+      "ordinal": 3,
+      "taskId": "HARNESS-EDIT-MULTIREGION-003",
+      "trialId": "trial:003"
+    },
+    {
+      "codec": "anchored-line-v1",
+      "model": "deepseek-flash",
+      "ordinal": 4,
+      "taskId": "HARNESS-REPO-REPAIR-001",
+      "trialId": "trial:004"
+    },
+    {
+      "codec": "exact-replacement-v1",
+      "model": "deepseek-v4-flash",
+      "ordinal": 5,
+      "taskId": "HARNESS-REPO-REPAIR-001",
+      "trialId": "trial:005"
+    },
+    {
+      "codec": "anchored-line-v1",
+      "model": "deepseek-v4-flash",
+      "ordinal": 6,
+      "taskId": "HARNESS-EDIT-ADDRESSING-002",
+      "trialId": "trial:006"
+    },
+    {
+      "codec": "anchored-line-v1",
+      "model": "deepseek-v4-flash",
+      "ordinal": 7,
+      "taskId": "HARNESS-EDIT-MULTIREGION-003",
+      "trialId": "trial:007"
+    },
+    {
+      "codec": "anchored-line-v1",
+      "model": "deepseek-v4-flash",
+      "ordinal": 8,
+      "taskId": "HARNESS-REPO-REPAIR-001",
+      "trialId": "trial:008"
+    },
+    {
+      "codec": "exact-replacement-v1",
+      "model": "deepseek-flash",
+      "ordinal": 9,
+      "taskId": "HARNESS-REPO-REPAIR-001",
+      "trialId": "trial:009"
+    },
+    {
+      "codec": "exact-replacement-v1",
+      "model": "deepseek-flash",
+      "ordinal": 10,
+      "taskId": "HARNESS-EDIT-ADDRESSING-002",
+      "trialId": "trial:010"
+    },
+    {
+      "codec": "exact-replacement-v1",
+      "model": "deepseek-flash",
+      "ordinal": 11,
+      "taskId": "HARNESS-EDIT-MULTIREGION-003",
+      "trialId": "trial:011"
+    },
+    {
+      "codec": "exact-replacement-v1",
+      "model": "deepseek-v4-flash",
+      "ordinal": 12,
+      "taskId": "HARNESS-EDIT-MULTIREGION-003",
+      "trialId": "trial:012"
+    }
+  ]
+}

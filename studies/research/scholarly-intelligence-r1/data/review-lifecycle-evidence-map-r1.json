@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.review-lifecycle-evidence-map",
+  "id": "review-lifecycle-evidence-map-r1",
+  "truthRole": "cross-corpus-interface-map-not-unified-scientific-truth",
+  "principle": "Unify relation types and authority boundaries; retain source-native labels, provenance, rights and physical ownership.",
+  "sharedKinds": ["concern", "response", "revision", "correspondence"],
+  "assets": [
+    {
+      "assetId": "aries-bounded-core-r1",
+      "licenseId": "ODC-BY-1.0",
+      "commercialUseStanding": "not_blocked_by_catalog",
+      "adapters": [
+        {"sourceTable": "comments", "toKind": "concern", "annotationOriginField": "annotation"},
+        {"sourceTable": "edits", "toKind": "revision", "representationStanding": "identity_only"},
+        {"sourceTable": "alignments", "toKind": "correspondence", "relationType": "corresponds_to_revision", "relationCeiling": "annotated_correspondence_not_causality", "annotationOriginBySplit": {"dev": "synthetic", "test": "manual"}}
+      ],
+      "nonClaims": [
+        "Comment-edit correspondence is not proof that a review caused an edit.",
+        "Correspondence is not proof that an edit adequately resolves a concern."
+      ]
+    },
+    {
+      "assetId": "disapere-bounded-core-r1",
+      "licenseId": "CC-BY-NC-4.0",
+      "commercialUseStanding": "blocked_by_source_license",
+      "adapters": [
+        {"sourceTable": "review_sentences", "toKind": "concern", "nativeLabels": ["review_action", "fine_review_action", "aspect", "polarity"]},
+        {"sourceTable": "rebuttal_sentences", "toKind": "response", "contextField": "alignment_kind", "nativeLabels": ["rebuttal_stance", "rebuttal_action"]},
+        {"sourceTable": "local_alignment_links", "toKind": "correspondence", "relationType": "responds_to_explicit_local", "relationCeiling": "explicit_context_not_response_adequacy"}
+      ],
+      "nonClaims": [
+        "A rebuttal stance label does not determine scientific correctness.",
+        "Explicit local context is not proof that a response is complete or adequate.",
+        "Commercial product or service use is not authorized by the current CC BY-NC admission."
+      ]
+    }
+  ],
+  "composition": {
+    "supportedEvidencePaths": [
+      "concern -> response via DISAPERE explicit local context",
+      "concern -> revision via ARIES annotated correspondence"
+    ],
+    "notYetIdentified": [
+      "response -> revision effect on the same paper/version",
+      "concern -> response -> revision causal chain",
+      "review disagreement -> meta-review synthesis",
+      "revision -> downstream acceptance or scientific correctness"
+    ]
+  },
+  "privacy": {
+    "reviewerProfiling": "NOT_AUTHORIZED",
+    "sharedAdapterIdentityFields": "OMIT_REVIEWER_AND_ANNOTATOR_IDENTITIES"
+  },
+  "physicalPolicy": "VIRTUAL_ADAPTER_ONLY_DO_NOT_MERGE_RAW_CORPUS_BYTES"
+}

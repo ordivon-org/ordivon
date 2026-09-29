@@ -1,0 +1,31 @@
+{
+  "aggregationPolicy": "Report each Model×Harness cell across the three blocked task families; preserve task-level rows. Do not count repeated reads, verifier assertions, or Provider turns as independent replicates.",
+  "computationMode": "deterministic",
+  "construct": "Wall-clock elapsed time observed by the live runner.",
+  "evidenceMinimum": "deterministic-observation",
+  "kind": "ordivon.experimental-metric-spec",
+  "knownLimitations": [
+    "Pilot has three deterministic task blocks and one live run per Model×Harness×task cell; cell effects are descriptive and do not establish broad model or Harness superiority.",
+    "Reported unit: milliseconds."
+  ],
+  "metricClass": "process",
+  "metricId": "metric:elapsed-ms",
+  "missingDataPolicy": "exclude-with-reason",
+  "nonClaims": [
+    "Metric does not establish Provider, Runtime, Harness, Git, or domain authority.",
+    "This small pilot does not license a general model ranking."
+  ],
+  "ownerInputs": [
+    {
+      "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+      "objectId": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py",
+      "objectKind": "file",
+      "ownerId": "harness"
+    }
+  ],
+  "replicationUnit": "live-harness-run",
+  "schemaVersion": 1,
+  "specDigest": "sha256:ce3c2f51f738314d20c98bdfa00f51b151056dc55e74d0673c5b1607a957ab74",
+  "unitOfAnalysis": "live-harness-run",
+  "valueShape": "scalar"
+}

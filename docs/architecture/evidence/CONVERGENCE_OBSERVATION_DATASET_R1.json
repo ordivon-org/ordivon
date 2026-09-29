@@ -9,7 +9,7 @@
     "queueProfileId": "convergence-queue-observation-v1",
     "ciProfileId": "convergence-ci-observation-v1",
     "targetContract": "meta/next/schemas/experimental-episode-binding-r1.schema.json",
-    "targetStore": "meta/next/experimental/episode-store-r1"
+    "targetStore": "studies/experimental-episode/postgres-projection-r1"
   },
   "validation": {
     "adapterContracts": {

@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.host-northbound-ux-convergence",
+  "truthRole": "source-current-design-and-verification-record",
+  "baselineRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+  "workspaceId": "ws-host-ux-convergence-r1-20260923",
+  "taskId": "task:host-northbound-ux-convergence-r1-20260923",
+  "kernel": {
+    "disposition": "FROZEN",
+    "unchanged": [
+      "Host task identity and revision fencing",
+      "full WorkingCheckpoint snapshots",
+      "mutation replay receipts",
+      "PostgreSQL Board foreign-key routing",
+      "Host truth boundaries"
+    ]
+  },
+  "implemented": [
+    {
+      "id": "HUX-2",
+      "changes": [
+        "Host compact task projection exposes created_at and updated_at",
+        "Host task.list supports created/updated keyset ordering with created as compatibility default",
+        "Gateway continuity.list forwards runtimeWorkspaceId",
+        "Gateway continuity.find defaults to updated ordering"
+      ]
+    },
+    {
+      "id": "HUX-3",
+      "changes": [
+        "Gateway continuity.changes added",
+        "continuity.attention retained as compatibility alias"
+      ]
+    },
+    {
+      "id": "HUX-4",
+      "changes": [
+        "Gateway collaboration.publish requires explicit global or continuity scope",
+        "legacy collaboration.post retained"
+      ]
+    },
+    {
+      "id": "HUX-5",
+      "changes": [
+        "Harness observation-only Gateway grant includes continuity.find and continuity.changes"
+      ]
+    }
+  ],
+  "notOwned": [
+    "priority",
+    "assignment",
+    "scheduler",
+    "unread-or-consumed state",
+    "execution",
+    "Runtime currentness",
+    "Git currentness",
+    "domain completion"
+  ],
+  "verification": {
+    "gatewayTests": "65/65 PASS",
+    "harnessTargetedTests": "7/7 PASS",
+    "hostPostgresqlTests": "40/40 PASS on isolated PostgreSQL 18.6 UTF8 after Alembic 0001->0005",
+    "hostHistoryDoctor": "HEALTHY",
+    "ruff": "PASS",
+    "harnessFullProbe": "1065 tests + 121 subtests PASS on latest qualified HUX candidate tree"
+  },
+  "deferred": [
+    "connection-pool integration deferred after measurement; require end-to-end materiality",
+    "attention batch-query optimization pending measurement",
+    "direct Host connector/catalog cutover"
+  ],
+  "measurements": {
+    "hostDbConnectionR1": {
+      "population": 200,
+      "workload": "isolated local PostgreSQL SELECT 1 per acquisition",
+      "direct": {
+        "meanMs": 3.987,
+        "p50Ms": 3.932,
+        "p95Ms": 4.782
+      },
+      "pool": {
+        "meanMs": 0.959,
+        "p50Ms": 0.902,
+        "p95Ms": 1.259
+      },
+      "meanRatio": 4.16,
+      "decision": "DEFER_POOLING; relative gain is strong but absolute delta is ~3 ms per Host call and end-to-end materiality is not established"
+    }
+  },
+  "integration": {
+    "integrationBaseRevision": "f2ec4ec0c77fcf6b29fedd33c9145cea653cf730",
+    "candidateRevisionBeforeEvidenceRefresh": "1928db8ffe1af5191f8b3bfceefafaaea9708e95",
+    "workspaceId": "ws-host-ux-integration-r1-20260923",
+    "queueClass": "SCOPED",
+    "directOwners": [
+      "host",
+      "harness",
+      "gateway"
+    ],
+    "verificationOwners": [
+      "composition",
+      "gateway",
+      "harness",
+      "host",
+      "next",
+      "security",
+      "skills",
+      "web"
+    ],
+    "verification": {
+      "targetedHostGatewayHarness": "PASS",
+      "postgresVertical": "40/40 PASS on isolated ephemeral PostgreSQL after Alembic 0001->0005",
+      "repoCi": "PASS",
+      "composition": "PASS",
+      "gateway": "PASS",
+      "host": "PASS",
+      "harness": "1055 tests + 121 subtests PASS",
+      "next": "PASS",
+      "skills": "81 tests + 37 subtests PASS",
+      "web": "PASS",
+      "security": "PASS: 62 Python tests plus OPA policy 34/34 PASS using exact pinned image digest"
+    },
+    "securityBlocker": {
+      "image": "openpolicyagent/opa@sha256:9c5770a0023d56a11224b0514fec2e4e0247357db4392b955c1270fd49cb1f0f",
+      "reason": "Docker registry request failed through configured proxy 10.254.177.2:19381 with I/O timeout",
+      "classification": "external-verification-substrate-blocker-not-host-ux-regression",
+      "status": "RESOLVED_FOR_CANDIDATE",
+      "resolution": "Verified canonical egress via 127.0.0.1:19081; temporarily bridged the daemon's stale 10.254.177.2:19381 proxy endpoint without restarting Docker; docker pull cached the exact pinned RepoDigest; Runtime workspace policy files were temporarily made container-readable for the non-root OPA image and permissions were restored after verification.",
+      "residualInfrastructureIssue": "Docker daemon systemd proxy drop-in still points to stale 10.254.177.2:19381; this is a separate Network/Workstation maintenance issue and not required for this already-cached candidate."
+    },
+    "standing": "ALL_REQUIRED_OWNER_GATES_GREEN_NOT_MERGED",
+    "securityVerificationJobId": "job-01a0cd2c-79e9-7cf2-9886-b76af188386a"
+  },
+  "latestQualification": {
+    "date": "2026-09-23",
+    "qualifiedBaseRevision": "9cab0e9c968dacdb2e7a22462a6a5d98193b0940",
+    "sourceCandidateRevision": "608b773a50543f6eef59e4858e72a5c1fb749a9f",
+    "mainDriftAuditedThrough": "ce764f12e9ff31e50573fba1257c79cc32a0589d",
+    "queueClass": "SCOPED",
+    "directOwners": [
+      "host",
+      "harness",
+      "gateway"
+    ],
+    "verificationOwners": [
+      "agent-app",
+      "composition",
+      "gateway",
+      "harness",
+      "host",
+      "next",
+      "security",
+      "skills",
+      "web"
+    ],
+    "verification": {
+      "repoCi": "PASS",
+      "agentApp": "PASS",
+      "composition": "PASS",
+      "gateway": "PASS",
+      "harness": "1065 tests + 121 subtests PASS",
+      "host": "PASS; owner-local 21 passed + 19 skipped, plus isolated PostgreSQL full suite 40/40 PASS",
+      "next": "PASS",
+      "security": "PASS: 62 Python tests + OPA 34/34; temporary policy read permissions restored to 0700/0600",
+      "skills": "81 tests + 40 subtests PASS",
+      "web": "PASS",
+      "postgresVertical": "PostgreSQL 18.6 UTF8; Alembic 0001->0005; complete Host suite 40/40 PASS"
+    },
+    "driftAudit": {
+      "from": "9cab0e9c968dacdb2e7a22462a6a5d98193b0940",
+      "through": "ce764f12e9ff31e50573fba1257c79cc32a0589d",
+      "huxTouchedPathChanges": 0,
+      "candidateApplyCheck": "PASS",
+      "currentMainRepoCi": "PASS"
+    },
+    "integrationPolicy": "Use tools/repo/migration/integrate-main.sh with EXPECTED_MAIN bound to the exact revision from the final incremental drift audit; the concrete fence is operational, not a durable architecture constant; fail closed and requalify on further main movement.",
+    "standing": "SOURCE_MERGED_SERVER_DEPLOYED_E2E_ACCEPTED_CONSUMER_REFRESH_PENDING",
+    "evidenceJobs": [
+      "job-01a0cd6c-229f-7613-b8f8-1b6f83907449",
+      "job-01a0cd6c-6f69-73f1-92e1-937be12ef71d",
+      "job-01a0cd6c-ebfb-7692-8c4b-3caca49f77f9",
+      "job-01a0cd6d-0819-72c1-b882-7d9d6c0e9230",
+      "job-01a0cd6d-24ab-7d42-a222-bd89ed2f96b7",
+      "job-01a0cd6d-3fb6-7c31-98aa-e976897e2d99",
+      "job-01a0cd6e-2122-72a0-880c-f14b35c46f6b",
+      "job-01a0cd6e-50a2-7a63-b595-53c57d8ee620",
+      "job-01a0cd70-4ea7-7a53-829f-4e702dda6353",
+      "job-01a0cd6e-b1f1-7f43-abef-2474bda1aac0",
+      "job-01a0cd6e-d6bb-7e93-94b1-c42afbdb0828",
+      "job-01a0cd76-104e-7032-9080-31f811e8398f",
+      "job-01a0cd74-2b33-7402-908f-f4c0a34ebb28"
+    ],
+    "incrementalRequalification": {
+      "base": "66bdd46b457bca6a9e37e61c9540e1242117f425",
+      "head": "ce764f12e9ff31e50573fba1257c79cc32a0589d",
+      "directOwners": [
+        "next",
+        "composition",
+        "agent-app"
+      ],
+      "verificationOwners": [
+        "agent-app",
+        "composition",
+        "harness",
+        "next",
+        "security",
+        "skills",
+        "web"
+      ],
+      "queueVerifyTasks": [
+        "agent-app:verify",
+        "composition:verify",
+        "harness:queue",
+        "next:verify",
+        "security:verify",
+        "skills:verify",
+        "web:verify"
+      ],
+      "standing": "PASS_ON_MERGED_TREE",
+      "verification": {
+        "agentApp": "PASS",
+        "composition": "PASS",
+        "harness": "1065 tests + 121 subtests PASS via harness:queue",
+        "next": "PASS",
+        "security": "PASS: 62 Python tests + OPA 34/34; permissions restored to 0700/0600",
+        "skills": "81 tests + 40 subtests PASS",
+        "web": "PASS"
+      },
+      "evidenceJobs": [
+        "job-01a0cd7b-9381-7521-911c-9295c6a82681",
+        "job-01a0cd7e-1e3c-7350-9bf4-c578790f8f35",
+        "job-01a0cd7e-3d61-72a0-bf93-66cd7b86398c",
+        "job-01a0cd7e-618d-7b41-bc3c-a747924f25bb",
+        "job-01a0cd7e-a387-7a01-8372-c93858662df6",
+        "job-01a0cd7e-d8a4-7cd3-8d4b-2a138fdb701a",
+        "job-01a0cd7f-34e9-7101-b099-1495ce20cfd4",
+        "job-01a0cd80-bf9a-7020-93f5-d61fa55be167"
+      ]
+    },
+    "integrationCommit": "aea965f212d7dda6b0ab25abec2a9104542f0089",
+    "liveCloseout": {
+      "observedDate": "2026-09-23",
+      "qualifiedSourceRevision": "4b092fa709acb6aca3a43c8f74a09fc3427102ff",
+      "gatewayRelease": "eaa045252ef7fc61d65325aa9dfbb2d40d8f4054",
+      "hostPreviousRelease": "140f33cc3b2d992c68b05179daae4e9b44e8443e",
+      "hostRelease": "4b092fa709acb6aca3a43c8f74a09fc3427102ff",
+      "hostCanary": "PASS: sortKey schema, distinct created/updated ordering, non-null timestamps, cursor scope rejection, Doctor healthy",
+      "hostProduction": "PASS: immutable release cutover, service active, live cwd/current bind new release, Doctor healthy schema 5",
+      "gatewayHostE2E": "PASS: updated projection differs from created projection with non-null timestamps",
+      "continuityChanges": "PASS",
+      "collaborationPublish": {
+        "status": "PASS",
+        "clientMessageId": "host-hux-live-closeout-20260923-r1",
+        "boardSequence": 17811
+      },
+      "consumerCatalog": "REFRESH_PENDING",
+      "evidenceJobs": [
+        "job-01a0ce64-574b-76d0-9d89-e748deb8d110",
+        "job-01a0ce64-be45-7680-ad28-61516233dda5",
+        "job-01a0ce65-c803-7f01-922e-60b010b595e2",
+        "job-01a0ce68-3531-7ad1-896c-e714dc4c7cc5",
+        "job-01a0ce69-df13-76e3-ba65-1bc4a6125ec9"
+      ]
+    }
+  }
+}

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,7 +16,10 @@ try:
     from sqlite_conversation_materializer import TargetMaterializationObservation
 except ModuleNotFoundError:
     from scripts.chatgpt_provider_resource import canonical_chatgpt_resource
-    from scripts.conversation_relay_carrier import CarrierMaterializationRequest, MaterializationStanding
+    from scripts.conversation_relay_carrier import (
+        CarrierMaterializationRequest,
+        MaterializationStanding,
+    )
     from scripts.sqlite_conversation_materializer import TargetMaterializationObservation
 
 
@@ -87,6 +91,51 @@ class WindowsUserBrowserMaterializationTarget:
             os.chmod(path, 0o600)
         return path
 
+    def _attachment_manifest_path(self, request: CarrierMaterializationRequest) -> Path:
+        suffix = hashlib.sha256(request.request_id.encode('utf-8')).hexdigest()[:24]
+        return self.state_dir / 'user-browser' / 'attachment-manifests' / f'{suffix}.json'
+
+    def _freeze_attachment_manifest(
+        self, request: CarrierMaterializationRequest
+    ) -> tuple[Path | None, str | None]:
+        if not request.attachments:
+            return None, None
+        root = self.state_dir.resolve(strict=False)
+        total = 0
+        for attachment in request.attachments:
+            candidate = (root / attachment.staging_relative_path).resolve(strict=True)
+            try:
+                candidate.relative_to(root)
+            except ValueError as error:
+                raise RuntimeError('attachment escapes configured user-browser staging root') from error
+            if not candidate.is_file() or candidate.is_symlink():
+                raise RuntimeError('attachment must be one regular non-symlink staging file')
+            size = candidate.stat().st_size
+            total += size
+            if size > 100 * 1024 * 1024 or total > 200 * 1024 * 1024:
+                raise RuntimeError('attachment set exceeds user-browser size limit')
+            observed = _digest(candidate.read_bytes())
+            if observed != attachment.digest:
+                raise RuntimeError('staged attachment digest differs from materialization request')
+        value = {
+            'schemaVersion': 1,
+            'kind': 'ordivon.user-browser-attachment-manifest',
+            'attachmentSetDigest': request.attachment_digest,
+            'attachments': [item.canonical() for item in request.attachments],
+        }
+        raw = json.dumps(
+            value, sort_keys=True, separators=(',', ':'), ensure_ascii=False
+        ).encode('utf-8')
+        path = self._attachment_manifest_path(request)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            if path.read_bytes() != raw:
+                raise RuntimeError('frozen user-browser attachment manifest changed')
+        else:
+            path.write_bytes(raw)
+            os.chmod(path, 0o600)
+        return path, _digest(raw)
+
     @staticmethod
     def _coerce_result(result) -> UserBrowserAttemptResult:
         if isinstance(result, UserBrowserAttemptResult):
@@ -119,11 +168,15 @@ class WindowsUserBrowserMaterializationTarget:
 
     def _kwargs(self, request: CarrierMaterializationRequest) -> dict:
         prompt = self._freeze_prompt(request)
+        manifest, manifest_digest = self._freeze_attachment_manifest(request)
         return {
             'effect_id': request.request_id,
             'request_digest': request.request_digest,
             'prompt_path': str(prompt),
             'prompt_digest': self.prompt_digest(request),
+            'attachment_manifest_path': str(manifest) if manifest is not None else None,
+            'attachment_manifest_digest': manifest_digest,
+            'attempt_generation': request.attempt_generation or 1,
         }
 
     def materialize(self, request: CarrierMaterializationRequest) -> TargetMaterializationObservation:

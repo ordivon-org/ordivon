@@ -21,25 +21,25 @@ Do not classify by keywords alone. Infer the task's actual interaction needs, th
 Run the current local census before relying on a local provider:
 
 ```bash
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py --census
+python /root/projects/ordivon/.agents/skills/web-provider-routing/scripts/route.py --census
 ```
 
 For a route decision, translate the task into explicit facts rather than passing natural language to a classifier. Examples:
 
 ```bash
 # Public read-only page
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py
+python /root/projects/ordivon/.agents/skills/web-provider-routing/scripts/route.py
 
 # Unknown/stateful browser UI
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py \
+python /root/projects/ordivon/.agents/skills/web-provider-routing/scripts/route.py \
   --requires-interaction --adaptive-browser-reasoning
 
 # Known deterministic browser flow; current-node Playwright availability is discovered from Workstation v2
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py \
+python /root/projects/ordivon/.agents/skills/web-provider-routing/scripts/route.py \
   --requires-interaction --deterministic-browser-flow
 
 # Desktop interaction only when the current carrier actually provides Computer Use
-python /root/projects/ordivon/meta/next/scripts/web_interaction_route.py \
+python /root/projects/ordivon/.agents/skills/web-provider-routing/scripts/route.py \
   --requires-interaction --requires-desktop-gui --caller-available computer_use
 ```
 

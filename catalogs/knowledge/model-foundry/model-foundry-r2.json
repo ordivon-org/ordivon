@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "truthRole": "non_authoritative_knowledge_catalog",
+  "operators": [
+    "PERCEIVE", "PARSE", "EMBED", "RETRIEVE", "RANK", "FILTER", "DECIDE",
+    "ESTIMATE", "VERIFY", "ROUTE", "ABSTAIN", "PLAN", "GENERATE", "COMPRESS",
+    "MEMORY_READ", "MEMORY_WRITE", "SIMULATE", "CRITIQUE", "SYNTHESIZE"
+  ],
+  "nonModelAuthorities": ["AUTHORIZE", "EXECUTE", "WITNESS", "COMMIT"],
+  "logicalArchitectureFamilies": [
+    "RULE_ENGINE", "SEQUENCE_CLASSIFIER", "BIDIRECTIONAL_SETWISE_ENCODER",
+    "POINTWISE_CROSS_ENCODER", "CAUSAL_LOGIT_READOUT", "POINTER_HEAD",
+    "DUAL_ENCODER", "CONTRASTIVE_ENERGY", "LINEAR_PROBE", "MIXTURE_OF_EXPERTS",
+    "EARLY_EXIT", "AUTOREGRESSIVE_GENERATOR", "STATE_SPACE_MODEL", "NEURAL_MODULE_NETWORK"
+  ],
+  "compositionPlanes": [
+    "PARAMETER_COMPOSITION", "NEURAL_GRAPH_COMPOSITION", "SYSTEM_COMPOSITION"
+  ],
+  "compatibilityDimensions": [
+    "SEMANTIC", "REPRESENTATION", "TRAINING", "PHYSICAL", "EVIDENCE_TRANSFER"
+  ],
+  "stateCarrierFamilies": [
+    "PARAMETRIC_WEIGHTS", "CONTEXT_TOKENS", "KV_CACHE", "RECURRENT_LATENT",
+    "NEURAL_TEST_TIME_MEMORY", "DENSE_VECTOR_INDEX", "KEY_VALUE_MEMORY",
+    "STRUCTURED_DATABASE", "ARTIFACT_REF", "EVIDENCE_REF"
+  ],
+  "routingLayers": [
+    "COGNITIVE_ROUTE", "FOUNDRY_PLAN_SELECTION", "RUNTIME_DISPATCH"
+  ],
+  "hardLaws": [
+    "logical_separation_does_not_imply_process_separation",
+    "representation_sharing_does_not_imply_parameter_or_gradient_sharing",
+    "provider_diversity_does_not_establish_failure_diversity",
+    "confidence_does_not_establish_reliability_or_authority",
+    "benchmark_score_does_not_transfer_outside_its_measurement_boundary",
+    "model_memory_does_not_establish_world_or_domain_truth",
+    "routing_does_not_create_capability_or_authority"
+  ],
+  "historicalR1Revision": "eb9755d7a282d8158fd0c714885a7ab17ce9975c"
+}

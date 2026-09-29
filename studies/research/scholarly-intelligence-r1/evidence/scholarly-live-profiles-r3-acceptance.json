@@ -1,0 +1,48 @@
+{
+  "currentnessRule": "bound revision must be an ancestor of current clean HEAD and every bound current byte must retain its declared digest",
+  "distinctSourceRepos": 2,
+  "distinctStudyOwners": 3,
+  "kind": "ordivon.research.scholarly-intelligence-live-profile-acceptance",
+  "profileCount": 3,
+  "profiles": [
+    {
+      "boundRevision": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "currentHeadRevision": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "digestVerifiedRefCount": 14,
+      "profileId": "paper1-r25-live-r1",
+      "revisionRelation": "BOUND_REVISION_ANCESTOR_CURRENT_BOUND_BYTES_EXACT",
+      "semanticRefCount": 14,
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "standing": "PASS_EXACT_LIVE_PROFILE_R3",
+      "stateAxisCount": 9,
+      "studyOwner": "paper1-study"
+    },
+    {
+      "boundRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "currentHeadRevision": "fd0fef6b0ed4b792f784726d2632551d6d5fd2b0",
+      "digestVerifiedRefCount": 4,
+      "profileId": "paper2-live-r1",
+      "revisionRelation": "BOUND_REVISION_ANCESTOR_CURRENT_BOUND_BYTES_EXACT",
+      "semanticRefCount": 4,
+      "sourceRepo": "/root/projects/ordivon-paper2",
+      "standing": "PASS_EXACT_LIVE_PROFILE_R3",
+      "stateAxisCount": 9,
+      "studyOwner": "paper2-independent-study"
+    },
+    {
+      "boundRevision": "a5752fd8728d60bbf963b32d7fc29cde6064e9fb",
+      "currentHeadRevision": "9d80f5b5b73796ddf013088c2a0de20f85556876",
+      "digestVerifiedRefCount": 3,
+      "profileId": "paper3-c21-r10-live-r1",
+      "revisionRelation": "BOUND_REVISION_ANCESTOR_CURRENT_BOUND_BYTES_EXACT",
+      "semanticRefCount": 3,
+      "sourceRepo": "/root/projects/ordivon-research-v2",
+      "standing": "PASS_EXACT_LIVE_PROFILE_R3",
+      "stateAxisCount": 9,
+      "studyOwner": "paper3-c21-study-in-research-v2"
+    }
+  ],
+  "schemaVersion": 3,
+  "standing": "PASS_EXACT_LIVE_PROFILES_R3",
+  "truthBoundary": "R3 proves current digest-bound Study projections without equating repository HEAD movement with Study semantic movement. It does not establish scientific truth, review correctness, venue acceptance, or submission authority."
+}

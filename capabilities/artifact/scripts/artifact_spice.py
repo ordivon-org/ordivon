@@ -7,6 +7,7 @@ It does not infer circuit intent, stability outside the selected analysis, safet
 physical-hardware behavior.
 """
 from __future__ import annotations
+import sys
 
 import hashlib
 import json
@@ -14,6 +15,12 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Any
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 NGSPICE = Path("/usr/bin/ngspice")
 
@@ -67,6 +74,15 @@ def parse_measurements(log: str) -> dict[str, float]:
     return result
 
 
+CLAIM_POINTERS = {
+    "dataRows": "/dataRows",
+    "measurements": "/measurements",
+    "nativeSimulation": "/nativeSimulation",
+    "toolIdentity": "/toolIdentity",
+}
+
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_spice_transient(subject: Path, contract_path: Path, evidence_directory: Path) -> dict[str, Any]:
     evidence_directory.mkdir(parents=True, exist_ok=True)
     failures: list[str] = []
@@ -92,25 +108,34 @@ def verify_spice_transient(subject: Path, contract_path: Path, evidence_director
         text=True, capture_output=True, check=False, timeout=90,
     )
     log = log_path.read_text(encoding="utf-8", errors="replace") if log_path.is_file() else ""
+    tool_failures: list[str] = []
+    if version_proc.returncode != 0 or not version_text:
+        tool_failures.append("ngspice version identity could not be observed")
+    simulation_failures: list[str] = []
     if proc.returncode != 0:
-        failures.append("ngspice batch simulation failed")
+        simulation_failures.append("ngspice batch simulation failed")
     fatal_patterns = ("Simulation interrupted due to error", "Error on line", "unknown parameter")
     if any(pattern in log for pattern in fatal_patterns):
-        failures.append("ngspice log contains a fatal parse/simulation error")
+        simulation_failures.append("ngspice log contains a fatal parse/simulation error")
+    failures.extend(tool_failures + simulation_failures)
     rows_match = re.search(r"No\. of Data Rows\s*:\s*(\d+)", log)
     rows = int(rows_match.group(1)) if rows_match else None
+    row_failures: list[str] = []
     if rows is None or rows < int(contract["minimumDataRows"]):
-        failures.append("ngspice transient data-row count is below the object contract")
+        row_failures.append("ngspice transient data-row count is below the object contract")
+    failures.extend(row_failures)
 
     observed = parse_measurements(log)
     measurement_results: dict[str, Any] = {}
+    measurement_failures: list[str] = []
     for name, bounds in contract["measurements"].items():
         value = observed.get(name)
         low, high = float(bounds["min"]), float(bounds["max"])
         passed = value is not None and low <= value <= high
         measurement_results[name] = {"observed": value, "min": low, "max": high, "status": "PASS" if passed else "FAIL"}
         if not passed:
-            failures.append(f"ngspice measurement {name} is absent or outside contract bounds")
+            measurement_failures.append(f"ngspice measurement {name} is absent or outside contract bounds")
+    failures.extend(measurement_failures)
 
     return {
         "schemaVersion": 1,
@@ -119,6 +144,10 @@ def verify_spice_transient(subject: Path, contract_path: Path, evidence_director
         "subject": file_fact(subject),
         "contract": file_fact(contract_path),
         "tool": {"path": str(NGSPICE), "sha256": sha256_file(NGSPICE), "version": version_text},
+        "toolIdentity": {"status": "PASS" if not tool_failures else "FAIL", "path": str(NGSPICE), "sha256": sha256_file(NGSPICE), "version": version_text, "failures": tool_failures},
+        "nativeSimulation": {"status": "PASS" if not simulation_failures else "FAIL", "exitCode": proc.returncode, "fatalPatternsObserved": [pattern for pattern in fatal_patterns if pattern in log], "failures": simulation_failures},
+        "dataRows": {"status": "PASS" if not row_failures else "FAIL", "observed": rows, "minimum": int(contract["minimumDataRows"]), "failures": row_failures},
+        "measurements": {"status": "PASS" if not measurement_failures else "FAIL", "results": measurement_results, "failures": measurement_failures},
         "simulation": {"exitCode": proc.returncode, "dataRows": rows, "measurements": measurement_results, "log": file_fact(log_path) if log_path.is_file() else None},
         "failures": failures,
         "boundary": "PASS proves the exact SPICE netlist bytes execute successfully in the exact observed ngspice build for the netlist-selected transient analysis, produce at least the contracted data-row floor, and satisfy only the explicitly named numeric .measure ranges. It does not prove circuit intent, global stability, convergence under other analyses/conditions, device-model fidelity, tolerances, signal/power integrity, safety, regulatory compliance, or physical-hardware behavior."

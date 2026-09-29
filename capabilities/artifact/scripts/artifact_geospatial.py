@@ -7,18 +7,25 @@ interpretation. This code only binds those external facts to one exact object
 contract and checks cross-view consistency.
 """
 from __future__ import annotations
+import sys
 
 import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 
 import jsonschema
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA = ROOT / "artifact-delivery/shadow-contracts/geospatial-vector-contract-v1.schema.json"
@@ -122,6 +129,18 @@ def ogr_type_matches(field: dict[str, Any], expected: str) -> bool:
     return False
 
 
+CLAIM_POINTERS = {
+    "attributeCrossView": "/attributeCrossView",
+    "contractSchema": "/contractSchema",
+    "geospatialInterpretation": "/geospatialInterpretation",
+    "keyIntegrity": "/keyIntegrity",
+    "nativeMetadata": "/nativeMetadata",
+    "ogcConformance": "/ogcConformance",
+    "sqliteContainer": "/sqliteContainer",
+}
+
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_geopackage(path: Path, contract_path: Path, evidence_dir: Path | None = None) -> dict[str, Any]:
     if not path.is_file():
         return {"schemaVersion": 1, "kind": "artifact-geospatial-verification", "profileId": "geospatial-geopackage-point-r1", "status": "FAIL", "failures": ["input is not a regular file"]}
@@ -129,8 +148,9 @@ def verify_geopackage(path: Path, contract_path: Path, evidence_dir: Path | None
     try:
         contract = json.loads(contract_path.read_text())
     except Exception as error:
-        return {"schemaVersion": 1, "kind": "artifact-geospatial-verification", "profileId": "geospatial-geopackage-point-r1", "status": "FAIL", "artifact": artifact_fact(path), "failures": [f"contract unreadable: {error}"]}
-    failures.extend(validate_contract(contract))
+        return {"schemaVersion": 1, "kind": "artifact-geospatial-verification", "profileId": "geospatial-geopackage-point-r1", "status": "FAIL", "artifact": artifact_fact(path), "contractSchema": {"status": "FAIL", "failures": [f"contract unreadable: {error}"]}, "failures": [f"contract unreadable: {error}"]}
+    contract_failures = validate_contract(contract)
+    failures.extend(contract_failures)
     evidence_dir = evidence_dir or Path(tempfile.mkdtemp(prefix="artifact-geospatial-evidence-"))
     evidence_dir.mkdir(parents=True, exist_ok=True)
     result: dict[str, Any] = {
@@ -140,6 +160,7 @@ def verify_geopackage(path: Path, contract_path: Path, evidence_dir: Path | None
         "status": "FAIL",
         "artifact": artifact_fact(path),
         "contract": {"path": str(contract_path.resolve()), "sha256": sha256(contract_path), "canonicalDigest": canonical_digest(contract)},
+        "contractSchema": {"status": "PASS" if not contract_failures else "FAIL", "failures": contract_failures},
         "tools": {},
         "failures": failures,
     }

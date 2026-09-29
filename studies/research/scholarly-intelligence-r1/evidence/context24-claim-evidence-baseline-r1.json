@@ -1,0 +1,75 @@
+{
+  "counts": {
+    "task1CrossSplitExactClaimOverlap": 0,
+    "task1CrossSplitPaperOverlap": 6,
+    "task1GoldEvidenceLinks": 679,
+    "task1TestPapers": 46,
+    "task1TestRows": 111,
+    "task1TotalRows": 585,
+    "task1TrainPapers": 229,
+    "task1TrainRows": 474,
+    "task1TrainingExactUniqueRows": 463,
+    "task1TrainingNativeIdCollisionGroups": 19,
+    "task1UniqueNativeIds": 566,
+    "task2ExactClaimsAlsoInTask1": 145,
+    "task2GoldMethodContextSnippets": 210,
+    "task2NativeIdsNotInTask1": 5,
+    "task2TestRows": 109,
+    "task2TotalRows": 151,
+    "task2TrainRows": 42,
+    "task2UniqueNativeIds": 151
+  },
+  "evidenceKinds": {
+    "figure": 554,
+    "table": 125
+  },
+  "evidenceMultiplicityPerTask1TrainRow": {
+    "1": 349,
+    "2": 89,
+    "3": 10,
+    "4": 17,
+    "5": 4,
+    "6": 3,
+    "7": 1,
+    "9": 1
+  },
+  "goldAvailability": {
+    "task1Test": "withheld_challenge_test",
+    "task1Train": "available",
+    "task2Test": "withheld_challenge_test",
+    "task2Train": "available"
+  },
+  "id": "context24-claim-evidence-baseline-r1",
+  "identityPolicy": "native id is source metadata, not a unique key; claim_instance_id=task:split:source_row_index is the bounded-core physical identity.",
+  "interpretationCeiling": [
+    "Task 1 findings are annotated evidence identities, not proof that a claim is scientifically true or causally established.",
+    "Task 2 context snippets are annotated methodological context, not proof that the method is adequate or the claim valid.",
+    "Native claim id is not unique in the current Task 1 training carrier; source-coordinate claim_instance_id is the bounded-core identity authority.",
+    "Challenge test gold is withheld and is never fabricated or inferred in this asset.",
+    "R1 does not bind figure/table pixels, captions, full text, or the 17k silver corpus; evidence identities remain identity_only."
+  ],
+  "kind": "ordivon.research.context24-claim-evidence-baseline",
+  "methodContextMultiplicityPerTask2TrainRow": {
+    "10": 1,
+    "11": 1,
+    "2": 2,
+    "3": 6,
+    "4": 12,
+    "5": 9,
+    "6": 6,
+    "7": 3,
+    "8": 1,
+    "9": 1
+  },
+  "nativeIdCollisionClasses": {
+    "exact_duplicate_rows": 11,
+    "same_claim_different_finding_set": 5,
+    "same_claim_same_finding_set_different_order_or_serialization": 2,
+    "same_native_id_different_claim_text": 1
+  },
+  "observedAt": "2026-09-23",
+  "population": "exact Context24 bounded identity core at repo commit 457d3b5c only",
+  "schemaVersion": 1,
+  "sourceAsset": "context24-identity-core-r1",
+  "sourceSnapshotIdentity": "sha256:fe95ee5748e301cd4885deb5184f99605ec1fd5a538208db2a7be4025159822b"
+}

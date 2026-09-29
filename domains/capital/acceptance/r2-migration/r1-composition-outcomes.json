@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.r1-composition-migration-oracle",
+  "truthRole": "FROZEN_R1_BEHAVIOR_FOR_R2_SUBSTITUTION",
+  "successCases": [
+    {
+      "id": "PUBLIC_MARKET_OBSERVATION_R2",
+      "standing": "ADMITTED_COMPOSITION_ONLY",
+      "legoIds": [
+        "capital.markets.market-sensors"
+      ],
+      "effectClasses": [],
+      "unresolvedEvidenceObligations": [
+        "timestamp-bounded observations",
+        "input authority/provenance preserved",
+        "normalization contract identity",
+        "input sample/observation identity",
+        "calculation definition",
+        "authoritative post-effect reality",
+        "reconciliation standing",
+        "ambiguity preserved if unresolved"
+      ],
+      "authorityGranted": false,
+      "executionPerformed": false,
+      "semanticCompletionEvaluated": false
+    },
+    {
+      "id": "PORTFOLIO_RISK_ANALYSIS_R2",
+      "standing": "ADMITTED_COMPOSITION_ONLY",
+      "legoIds": [
+        "capital.risk.portfolio-risk"
+      ],
+      "effectClasses": [],
+      "unresolvedEvidenceObligations": [
+        "quantitative component inventory",
+        "sample boundaries",
+        "input sample/observation identity",
+        "calculation definition",
+        "quantitative component inventory standing",
+        "validation standing",
+        "model-use restrictions",
+        "sample chronology/boundary"
+      ],
+      "authorityGranted": false,
+      "executionPerformed": false,
+      "semanticCompletionEvaluated": false
+    },
+    {
+      "id": "COUNTERFACTUAL_ANALYSIS_R2",
+      "standing": "ADMITTED_COMPOSITION_ONLY",
+      "legoIds": [
+        "capital.risk.portfolio-risk",
+        "capital.portfolio.counterfactuals"
+      ],
+      "effectClasses": [],
+      "unresolvedEvidenceObligations": [
+        "quantitative component inventory",
+        "sample boundaries",
+        "input sample/observation identity",
+        "calculation definition",
+        "quantitative component inventory standing",
+        "validation standing",
+        "model-use restrictions",
+        "sample chronology/boundary",
+        "caller-supplied action",
+        "current exposure ledger",
+        "baseline portfolio identity",
+        "caller-supplied action identity",
+        "non-recommendation boundary",
+        "validation contract/result",
+        "explicit limitation boundary"
+      ],
+      "authorityGranted": false,
+      "executionPerformed": false,
+      "semanticCompletionEvaluated": false
+    },
+    {
+      "id": "NONLIVE_EFFECT_QUALIFICATION_R2",
+      "standing": "ADMITTED_COMPOSITION_ONLY",
+      "legoIds": [
+        "capital.accounting.sqlite-ledger",
+        "capital.trading.simulated-effect",
+        "capital.trading.execution-reconciliation",
+        "capital.accounting.durable-reconciliation"
+      ],
+      "effectClasses": [
+        "SIMULATED_EXCHANGE_ORDER_EFFECT"
+      ],
+      "unresolvedEvidenceObligations": [
+        "database transaction receipt",
+        "effect identity",
+        "durable reservation receipt",
+        "reconciliation-derived accounting instruction",
+        "durable accounting receipt",
+        "local mutation identity/receipt when mutation occurs",
+        "exact simulated effect identity",
+        "episode-bound simulated reality",
+        "post-effect reconciliation",
+        "provider submission/episode receipt",
+        "pre-effect reservation",
+        "provider episode evidence",
+        "post-effect observation",
+        "reconciliation",
+        "accounting resolution",
+        "authoritative venue order/fill reality",
+        "authoritative post-effect reality",
+        "reconciliation standing",
+        "ambiguity preserved if unresolved",
+        "reservation identity",
+        "authoritative reconciliation standing"
+      ],
+      "authorityGranted": false,
+      "executionPerformed": false,
+      "semanticCompletionEvaluated": false
+    }
+  ],
+  "rejectionCases": [
+    {
+      "id": "PRIVATE_BLOCKED",
+      "rejected": true,
+      "error": "capital.trading.okx-readonly-client: current source is blocked by independent authority/currentness"
+    },
+    {
+      "id": "PROHIBITED_USE",
+      "rejected": true,
+      "error": "capital.risk.portfolio-risk: requested use is explicitly prohibited: automatic trade sizing"
+    },
+    {
+      "id": "CHALLENGER_DEFAULT",
+      "rejected": true,
+      "error": "capital.candidate.nautilus-nonlive-effect: challenger cannot enter canonical composition"
+    },
+    {
+      "id": "MISSING_RESERVE",
+      "rejected": true,
+      "error": "SIMULATED_EXCHANGE_ORDER_EFFECT: Reserve LEGO must precede provider effect"
+    },
+    {
+      "id": "UNKNOWN_LEGO",
+      "rejected": true,
+      "error": "unregistered LEGO: capital.unknown.nope"
+    },
+    {
+      "id": "RETIRED",
+      "rejected": true,
+      "error": "capital.retired.regime-card: retired LEGO cannot compose"
+    },
+    {
+      "id": "DUPLICATE",
+      "rejected": true,
+      "error": "R1 composition rejects duplicate LEGO identities"
+    }
+  ]
+}

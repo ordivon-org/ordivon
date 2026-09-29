@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.redteam.finding-currentness-revalidation",
+  "findingId": "RT-SUPPLY-001",
+  "observedDate": "2026-09-27",
+  "classification": "CONFIRMED_STILL_OPEN",
+  "providerMainRevision": "c309b467452beb56ae93ce9272461527f396ee23",
+  "providerRulesets": [
+    {
+      "id": 23819262,
+      "name": "main-convergence-queue-r1",
+      "target": "branch",
+      "include": ["refs/heads/main"]
+    }
+  ],
+  "tagTargetRulesetObserved": false,
+  "runtimeReleaseWorkflow": {
+    "trigger": "push tags runtime-v*",
+    "bindsVersionToTag": true,
+    "bindsRepositoryCommit": true,
+    "bindsRuntimeOwnerCommitAndTree": true,
+    "requiresRuntimeVerify": true,
+    "requiresTaggedCommitReachableFromProtectedMain": false,
+    "recordsProtectedSourceRefInReleaseIdentity": false
+  },
+  "standing": "OPEN",
+  "acceptance": [
+    "Protect runtime-v* tag creation/update/deletion with provider-native rules.",
+    "Require the tagged repository commit to be admitted by the intended protected source ref.",
+    "Record that protected source ref/revision in release identity/provenance and verify provider policy by API readback."
+  ],
+  "externalReferences": [
+    "https://slsa.dev/spec/v1.2/source-requirements"
+  ]
+}

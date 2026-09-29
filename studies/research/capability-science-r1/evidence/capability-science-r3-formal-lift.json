@@ -1,0 +1,181 @@
+{
+  "artifactDigests": {
+    "studies/research/capability-science-r1/evidence/mcrl2-equivalence-provider-pilot-r3.json": "sha256:43b3f459513439bea5a32326cd70a419e3ccf8d1bf825871b506c3383bea32d2",
+    "studies/research/capability-science-r1/scripts/check_capability_science_r3.py": "sha256:d8804afb16ed3dc8687a5cf963da76fc29e5081bfcd2ff267c134d9e2f393857",
+    "studies/research/capability-science-r1/scripts/computational_lift_r3.py": "sha256:322cd958722bbe40ce112bf093d05932830abb2d666b347a21336714c6e6fcd4",
+    "studies/research/capability-science-r1/scripts/mcrl2_equivalence_adapter_r3.py": "sha256:dd55e68a64a6a284ad138721787a7eef0332927c91001465af92722d9640da4f",
+    "studies/research/capability-science-r1/scripts/run_mcrl2_equivalence_pilot_r3.py": "sha256:35a23f17b0c6f3e64f5a409d43461a1c214b9d228b76c5a0d8a7c6eaec7dbdde",
+    "studies/research/capability-science-r1/tests/test_formal_backends_r3.py": "sha256:74f65326afb70a9c20fed1f15e888fc49366e6c3605e565d38ca637013fb9991"
+  },
+  "authorityGranted": false,
+  "checks": [
+    "formal:mcrl2-202607.0-external-provider-fit",
+    "formal:strong-bisim-equivalent-case-pass",
+    "formal:strong-bisim-non-equivalent-case-counterexample-bound",
+    "formal:no-permanent-provider-dependency",
+    "lift:same-input-history-dependence-witness",
+    "lift:two-state-transducer-constructed",
+    "lift:l0-to-l1-certified-only",
+    "lift:no-universal-decider-claim"
+  ],
+  "computationalLiftCertificate": {
+    "assumptions": [
+      "The L0 comparator is deterministic and has no hidden state outside the explicit input.",
+      "The observer compares the same explicit input symbol after different replayable histories.",
+      "The supplied two-state transition table is the complete synthetic subject definition."
+    ],
+    "basis": "DISTINGUISHING_LANGUAGE",
+    "bounds": {
+      "constructedStateCount": 2,
+      "distinguishingHistoryDepth": 1,
+      "inputAlphabet": [
+        "read",
+        "toggle"
+      ]
+    },
+    "certificateId": "lift:l0-to-l1-toggle-r3",
+    "completenessEvidenceRefs": [],
+    "higherModelClass": "L1_FINITE_STATE_TRANSDUCER",
+    "kind": "ordivon.computational-lift-certificate-v1",
+    "lowerModelClass": "L0_STATELESS_RELATION",
+    "nonClaims": [
+      "This certificate establishes only the synthetic subject's L0->L1 lift under explicit assumptions.",
+      "It does not establish any L2+ data, stack, counter, FIFO, or universal computation capability.",
+      "It is not a general computational-power decision procedure."
+    ],
+    "schemaVersion": 1,
+    "standing": "CERTIFIED_LIFT",
+    "subjectRef": "synthetic-system:deterministic-toggle-r3",
+    "universalDecisionProcedureClaimed": false,
+    "witnessRefs": [
+      "evidence:history-dependence@sha256:d5ac59356f427d70557b48bf6ae217d5473e97dbc698cac019ef959e916d2138",
+      "evidence:finite-model@sha256:bca32b09da4609527f232ee117b549567abd632bd596b23064764da349e05b15"
+    ]
+  },
+  "computationalLiftEvidence": {
+    "constructedFiniteStateModel": {
+      "initialState": "OFF",
+      "inputAlphabet": [
+        "read",
+        "toggle"
+      ],
+      "states": [
+        "OFF",
+        "ON"
+      ],
+      "transitions": {
+        "OFF": {
+          "read": {
+            "next": "OFF",
+            "output": "off"
+          },
+          "toggle": {
+            "next": "ON",
+            "output": "toggled"
+          }
+        },
+        "ON": {
+          "read": {
+            "next": "ON",
+            "output": "on"
+          },
+          "toggle": {
+            "next": "OFF",
+            "output": "toggled"
+          }
+        }
+      }
+    },
+    "constructedFiniteStateModelDigest": "sha256:bca32b09da4609527f232ee117b549567abd632bd596b23064764da349e05b15",
+    "historyDependenceWitness": {
+      "historyA": {
+        "finalInput": "read",
+        "finalOutput": "off",
+        "history": [],
+        "trace": [
+          {
+            "input": "read",
+            "next": "OFF",
+            "output": "off",
+            "state": "OFF"
+          }
+        ]
+      },
+      "historyB": {
+        "finalInput": "read",
+        "finalOutput": "on",
+        "history": [
+          "toggle"
+        ],
+        "trace": [
+          {
+            "input": "toggle",
+            "next": "ON",
+            "output": "toggled",
+            "state": "OFF"
+          },
+          {
+            "input": "read",
+            "next": "ON",
+            "output": "on",
+            "state": "ON"
+          }
+        ]
+      },
+      "observationA": "off",
+      "observationB": "on",
+      "sameExplicitInput": "read"
+    },
+    "historyDependenceWitnessDigest": "sha256:d5ac59356f427d70557b48bf6ae217d5473e97dbc698cac019ef959e916d2138"
+  },
+  "domainAcceptanceEstablished": false,
+  "executionAuthorityGranted": false,
+  "formalProviderPilot": {
+    "authorityGranted": false,
+    "counterexampleDigest": "sha256:b581d0f21e795993b29d49b0a101d242f5daa6ab60e8bfdf265de5621819dfef",
+    "counterexamplePretty": "<b>true",
+    "equivalentCase": {
+      "counterexamplePath": null,
+      "counterexamplePresent": false,
+      "counterexampleRequested": false,
+      "equivalence": "bisim",
+      "equivalent": true,
+      "providerReturnCode": 0,
+      "providerStderr": "LTSs are equal (default strong bisimilarity (using the O(m log n) algorithm [Groote/Jansen 2025]))",
+      "providerStdout": "true"
+    },
+    "kind": "ordivon.capability-science-mcrl2-provider-pilot-r3",
+    "nonClaims": [
+      "This pilot checks two tiny finite LTS examples only.",
+      "mCRL2 remains the external owner of equivalence algorithms; Ordivon does not reimplement them.",
+      "A provider verdict does not grant execution permission or domain acceptance."
+    ],
+    "nonEquivalentCase": {
+      "counterexamplePath": "/tmp/ordivon-t/dd265710b47fb7ac2734/ordivon-capscience-mcrl2-r3-xas7u92q/p-v-r.trc",
+      "counterexamplePresent": true,
+      "counterexampleRequested": true,
+      "equivalence": "bisim",
+      "equivalent": false,
+      "providerReturnCode": 0,
+      "providerStderr": "A slower partition refinement algorithm is used to generate minimal-depth counter examples.\nPartition refinement done, partition contains: 3 blocks, the history contains 1 levels.\ndone with formula \nSaved counterexample to: \"/tmp/ordivon-t/dd265710b47fb7ac2734/ordivon-capscience-mcrl2-r3-xas7u92q/p-v-r.trc\"\nLTSs are not equal (default strong bisimilarity (using the O(m log n) algorithm [Groote/Jansen 2025]))",
+      "providerStdout": "false"
+    },
+    "permanentDependencyAdmitted": false,
+    "provider": "mCRL2",
+    "providerAssetSha256": "sha256:00cb4c347638b3a418fb67c9d67b8d2bf2245e10d4affa4cd993b1c357bde969",
+    "providerVersion": "mcrl22lps mCRL2 toolset 202607.0 (Release)",
+    "schemaVersion": 1,
+    "semanticAuthorityTransferred": false,
+    "standing": "PASS_BOUNDED_EXTERNAL_EQUIVALENCE_PROVIDER_PILOT"
+  },
+  "kind": "ordivon.capability-science-r3-formal-lift-acceptance",
+  "nonClaims": [
+    "The mCRL2 pilot covers tiny finite examples and does not establish universal contextual equivalence.",
+    "The lift certificate covers one explicit L0->L1 synthetic subject only.",
+    "No L2+ computational lift is established.",
+    "No external provider result grants authority or production standing."
+  ],
+  "schemaVersion": 1,
+  "sourceRevision": "87a9558f6348dea8fc8dd764ae97f91107315295",
+  "standing": "R3_FORMAL_EQUIVALENCE_AND_L0_L1_LIFT_ACCEPTED_BOUNDED"
+}

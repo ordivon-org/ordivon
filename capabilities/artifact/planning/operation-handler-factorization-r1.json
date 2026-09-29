@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.artifact-operation-handler-factorization-evidence",
+  "truthRole": "integrated-verification-evidence-with-merged-tree-requalification",
+  "date": "2026-09-27",
+  "baseRevision": "d9961354c15d56dacdb22e6f64a616b5517ccbd0",
+  "scope": [
+    "R2-S3",
+    "D02",
+    "A01"
+  ],
+  "objective": "Factor Artifact operation-kind routing into independent handlers while preserving one DirectPython composition root and without changing trust or OCI package internal algorithms.",
+  "before": {
+    "directPythonProviderLines": 575,
+    "directPythonProviderClassLines": 480,
+    "directPythonProviderMethods": 17,
+    "directPythonProviderProjectFanout": 17,
+    "operationKindBranchForest": "present"
+  },
+  "after": {
+    "directPythonProviderLines": 335,
+    "directPythonProviderClassLines": 248,
+    "directPythonProviderMethods": 17,
+    "directPythonProviderProjectFanout": 14,
+    "operationKindBranchCount": 0,
+    "operationHandlerCount": 5,
+    "handlers": [
+      "prepare",
+      "build",
+      "verify",
+      "verify-trust",
+      "package"
+    ]
+  },
+  "ownership": {
+    "prepare": "artifact_operations/providers/preparation.py",
+    "build": "artifact_operations/providers/build.py",
+    "verify": "artifact_operations/providers/verification.py",
+    "verify-trust": "artifact_operations/providers/trust.py",
+    "package": "artifact_operations/providers/package.py",
+    "compositionRoot": "artifact_operations/providers/direct_python.py"
+  },
+  "compatibility": {
+    "trustValidationFacade": "DirectPythonOperationProvider.validate_trust_material remains as a thin compatibility facade for artifact_temporal_support; authority lives in providers/trust.py.",
+    "receiptContract": "ArtifactOperationExecutor and ReceiptFence behavior are unchanged."
+  },
+  "verification": [
+    {
+      "class": "focused-handler-contracts",
+      "standing": "PASS",
+      "jobId": "job-01a0e27c-26ca-7473-8629-b2aca5556ea5",
+      "detail": "Ruff plus operation-handler/decomposition/verify convergence tests passed after updating ownership assertions."
+    },
+    {
+      "class": "full-owner-gate-first-attempt",
+      "standing": "FAIL_COMPATIBILITY_SEAM_FOUND",
+      "jobId": "job-01a0e27c-88b2-78c0-8201-f0bb0c3bc1fd",
+      "detail": "419 passed with one failure: artifact_temporal_support still called the historical DirectPython validate_trust_material method. No handler semantic failure was observed."
+    },
+    {
+      "class": "compatibility-facade-recheck",
+      "standing": "PASS",
+      "jobId": "job-01a0e27e-a225-77a0-a814-23c03f66db39",
+      "detail": "Thin trust validation facade restored; focused Temporal/provider/handler tests passed."
+    },
+    {
+      "class": "artifact-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e27e-c680-7e30-a62d-4fdd74afe20f",
+      "detail": "mise run verify: 420 passed, 3 skipped, 40 deselected, 107 subtests; Ruff/lock/sync passed."
+    },
+    {
+      "class": "post-factorization-metrics",
+      "standing": "PASS",
+      "jobId": "job-01a0e27c-5432-74f1-bcea-60236aebc63c",
+      "detail": "direct_python.py 335 lines, class 248 lines, fan-out 14, operation-kind branch count 0."
+    },
+    {
+      "class": "final-exact-candidate-owner-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e284-20e7-7280-9183-a3059f13469f",
+      "detail": "Final candidate including evidence/planning currentness passed full Artifact owner gate: 420 passed, 3 skipped, 40 deselected, 107 subtests."
+    },
+    {
+      "class": "merged-tree-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0",
+      "detail": "Canonical merge tree passed full Artifact owner gate: 420 passed, 3 skipped, 40 deselected, 107 subtests."
+    }
+  ],
+  "provenProperties": [
+    "Each canonical Artifact operation kind resolves through an explicit OperationHandler registry entry.",
+    "DirectPythonOperationProvider no longer contains an operation-kind branch forest.",
+    "Trust aggregation and OCI packaging algorithms remain owned by their existing mature modules and were not rewritten.",
+    "Prepare/build/verify/verify-trust/package receipt-facing role and metadata shapes remain covered by existing and new tests.",
+    "Unknown operation kinds fail closed."
+  ],
+  "nonClaims": [
+    "D03 trust statement/policy/crypto/aggregation internals are separated.",
+    "D04 OCI package plan/admission/staging/layout/release-decision internals are separated.",
+    "DirectPython build helpers are fully decomposed into plugins.",
+    "Temporal or Runtime execution authority moved into Artifact."
+  ],
+  "standing": "INTEGRATED_VERIFIED",
+  "integration": {
+    "candidateCommit": "244c2bfbcc0320c6258cf4ab531461420fa3a3d3",
+    "mergeCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d",
+    "mergedArtifactTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
+}

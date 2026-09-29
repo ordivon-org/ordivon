@@ -1,0 +1,288 @@
+{
+  "baselineRevision": "354d885d411de5acbb360df2694aa95e310715bc",
+  "closeoutRevision": "2026-09-24-r1",
+  "externalCurrentness": {
+    "a2a": "1.0.0 latest released",
+    "cellml": "2.0",
+    "cloudeventsCore": "ce@v1.0.2 stable; main is 1.0.3-wip",
+    "cloudeventsExtensions": "documented optional extensions without versioned-core standing",
+    "iso15909": [
+      "ISO/IEC 15909-1:2019",
+      "ISO/IEC 15909-3:2021"
+    ],
+    "iupacGoldBook": "5th edition / online 5.0.0 (2025)",
+    "sbgn": "PD/ER/AF orthogonal languages; PD 2.1 current",
+    "sbml": "Level 3 Version 2 Core Release 2"
+  },
+  "kind": "ordivon.social-fabric-crossdisciplinary-plan-r2",
+  "laws": [
+    "Natural owners retain mutable truth and EffectAuthority.",
+    "DELETE-CUSTOM-BY-DEFAULT.",
+    "Cross-disciplinary mechanisms require testable invariants.",
+    "Agent UX hides implementation plumbing."
+  ],
+  "nodes": [
+    {
+      "id": "XD02",
+      "name": "ExternalStandardCurrentnessCorrection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "id": "XD03",
+      "name": "CloudEventsExtensionMaturityContract",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "gate": [
+        "positive exact window",
+        "matching owner/unit/key contracts",
+        "monotonic regression fails closed",
+        "dimensioned rates",
+        "no score/priority"
+      ],
+      "id": "FLOW40",
+      "name": "DimensionalSocialFluxProjection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-reality-r2-acceptance-20260923.json",
+      "id": "REAL20",
+      "implementation": "meta/next/scripts/social_fabric_reality_r2.py",
+      "name": "W3CProvProjectionAdapter",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-reality-r2-acceptance-20260923.json",
+      "id": "REAL21",
+      "implementation": "meta/next/scripts/social_fabric_reality_r2.py",
+      "name": "TransactiveMemoryProjection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-reality-r2-acceptance-20260923.json",
+      "id": "REAL22",
+      "implementation": "meta/next/scripts/social_fabric_reality_r2.py",
+      "name": "FreshnessSupersessionProjection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
+      "id": "SIG30",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
+      "name": "PropagationModeSeparation",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
+      "id": "SIG31",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
+      "name": "CompartmentContextProjection",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-attention-recurrence-measurement-20260923.json",
+      "id": "SIG34",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py#measure_attention_history",
+      "name": "AttentionAdaptationHysteresis",
+      "status": "MEASURED_HOLD_INSUFFICIENT_LONGITUDINAL_EVIDENCE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-epistemic-r1-acceptance-20260923.json",
+      "id": "EPI40",
+      "implementation": "meta/next/scripts/social_fabric_epistemic_r1.py",
+      "name": "MechanismStandingBridge",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX50",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "CurrentView",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX51",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "AttentionView",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX52",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "CoordinationView",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX53",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "AuthorityView",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX55",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py#compile_preflight",
+      "name": "SocialPreflight",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-concurrency-gap-measurement-r1-20260924.json",
+      "id": "CONC60",
+      "implementation": "meta/next/scripts/social_fabric_closeout_r1.py#validate_concurrency",
+      "name": "ConcurrencyGapMeasurement",
+      "status": "MEASURED_PAIRWISE_SUFFICIENT_NO_PROVEN_GAP"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-gate79-r1-20260924.json",
+      "id": "CONC62",
+      "name": "PetriNetShadow",
+      "status": "KILLED_NO_PROVEN_REPRESENTATIONAL_GAP"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-cascade-measurement-r1-20260924.json",
+      "id": "CASCADE61",
+      "implementation": "meta/next/scripts/social_fabric_closeout_r1.py#validate_cascade",
+      "name": "AutocatalyticCascadeMeasurement",
+      "status": "MEASURED_NO_PROVEN_SELF_AMPLIFICATION"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-gate79-r1-20260924.json",
+      "id": "GATE79",
+      "implementation": "meta/next/scripts/social_fabric_closeout_r1.py#compile_gate",
+      "name": "PromoteHoldKill",
+      "status": "COMPLETE_PROMOTE_HOLD_KILL"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
+      "id": "SIG32",
+      "implementation": "meta/next/tests/test_social_fabric_signaling_r3.py",
+      "name": "ReceptorBoundaryRegression",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-signaling-r3-acceptance-20260923.json",
+      "id": "SIG33",
+      "implementation": "meta/next/scripts/social_fabric_signaling_r3.py",
+      "name": "OwnerSuppliedAnomalyOrigin",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-epistemic-r1-acceptance-20260923.json",
+      "id": "EPI41",
+      "implementation": "meta/next/scripts/social_fabric_epistemic_r1.py",
+      "name": "ConstraintFeasibilityBoundary",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX54",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "ProgressiveDisclosure",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-agent-ux-r1-acceptance-20260923.json",
+      "id": "UX56",
+      "implementation": "meta/next/scripts/social_fabric_agent_ux_r1.py",
+      "name": "ComponentCompartmentVisibility",
+      "status": "VERIFIED_CANDIDATE"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG70",
+      "name": "CanonicalizationDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG71",
+      "name": "WSLVHDDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG72",
+      "name": "PapersDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    },
+    {
+      "acceptance": "meta/next/evidence/acceptance/social-fabric-wave7-dogfood-r1-20260924.json",
+      "id": "DOG73",
+      "name": "CapitalDogfood",
+      "status": "DOGFOOD_PASS_BOUNDED_UTILITY"
+    }
+  ],
+  "packageStanding": "PROMOTE_BOUNDED_CORE_WITH_OPTIONAL_LEGOS_HELD_OR_KILLED",
+  "schemaVersion": 1,
+  "truthRole": "planning-projection-not-authority",
+  "waves": [
+    {
+      "id": "0",
+      "nodes": [
+        "XD02",
+        "XD03"
+      ]
+    },
+    {
+      "id": "1",
+      "nodes": [
+        "FLOW40"
+      ]
+    },
+    {
+      "id": "2",
+      "nodes": [
+        "REAL20",
+        "REAL21",
+        "REAL22"
+      ]
+    },
+    {
+      "id": "3",
+      "nodes": [
+        "SIG30",
+        "SIG31",
+        "SIG34"
+      ]
+    },
+    {
+      "id": "4",
+      "nodes": [
+        "EPI40"
+      ]
+    },
+    {
+      "id": "5",
+      "nodes": [
+        "UX50",
+        "UX51",
+        "UX52",
+        "UX53",
+        "UX54",
+        "UX56",
+        "UX55"
+      ]
+    },
+    {
+      "id": "6",
+      "nodes": [
+        "CONC60",
+        "CONC62",
+        "CASCADE61"
+      ]
+    },
+    {
+      "id": "7",
+      "nodes": [
+        "DOG70",
+        "DOG71",
+        "DOG72",
+        "DOG73",
+        "GATE79"
+      ]
+    }
+  ]
+}

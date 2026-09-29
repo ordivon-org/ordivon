@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.nonlive-effect-failure-matrix",
+  "standing": "ACTIVE_R1",
+  "cases": [
+    {"id": "response-loss", "expected": "UNKNOWN->NO_MUTATION"},
+    {"id": "duplicate-replay", "expected": "stable identity + EXISTS, no double consume"},
+    {"id": "partial-fill", "expected": "positive execution -> POST_PENDING_TRANSFER"},
+    {"id": "terminal-zero-fill", "expected": "VOID_PENDING_TRANSFER only with complete fill coverage"},
+    {"id": "stale-or-broad-absence", "expected": "never proves no effect"}
+  ],
+  "prohibitions": [
+    "blind resend after ambiguous submission",
+    "terminal accounting resurrection",
+    "Runtime/process success promoted to venue truth",
+    "production external financial write"
+  ]
+}

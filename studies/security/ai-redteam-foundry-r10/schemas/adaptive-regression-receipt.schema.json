@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "sourceFamilyId", "sourceFamilyEntryDigest", "sourceHypothesisDigest", "sourceFamilyLedgerDigest", "patch", "phases", "utility", "residualFamilyIds", "standing", "evidenceDigest"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-adaptive-regression-receipt"},
+    "sourceFamilyId": {"type": "string", "minLength": 1},
+    "sourceFamilyEntryDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sourceHypothesisDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sourceFamilyLedgerDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "patch": {"type": "object"},
+    "phases": {"type": "array", "minItems": 3, "maxItems": 3},
+    "utility": {"type": "object"},
+    "residualFamilyIds": {"type": "array", "items": {"type": "string"}},
+    "standing": {"enum": ["PASS", "FAIL", "INCOMPLETE"]},
+    "evidenceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

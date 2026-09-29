@@ -9,11 +9,11 @@ from jsonschema import Draft201909Validator, Draft202012Validator, FormatChecker
 from scripts.cross_domain_binding_r3 import resolve_repo_file
 
 ROOT = Path(__file__).resolve().parents[1]
-PRODUCT = ROOT / "data-products/experimental-episode-corpus-r1"
+REPO_ROOT = ROOT.parents[1]
+PRODUCT = REPO_ROOT / "studies/experimental-episode/corpus-r1"
 EVIDENCE = ROOT / "evidence/data-products/experimental-episode-analysis-r1"
 FEDERATION = ROOT / "evidence/data-lifecycle/data-products-r2"
 STANDARDS = ROOT / "evidence/data-lifecycle/github-pilot-r1/standards"
-REPO_ROOT = ROOT.parents[1]
 RW5_BINDINGS = ROOT / "evidence/acceptance/experimental-episode-rw5-bindings.json"
 
 

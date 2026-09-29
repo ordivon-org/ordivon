@@ -17,7 +17,8 @@
     "schema",
     "scripts",
     "tools",
-    "tests"
+    "tests",
+    "acceptance"
   ],
   "excludedFrozenRoots": [
     "evidence",

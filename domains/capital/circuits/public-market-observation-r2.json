@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "kind": "ordivon.capital.financial-circuit-spec",
+  "circuitId": "PUBLIC_MARKET_OBSERVATION_R2",
+  "goalClass": "PUBLIC_MARKET_OBSERVATION",
+  "requestedUse": "descriptive market monitoring",
+  "terminalClaim": "DESCRIPTIVE_MARKET_OBSERVATION",
+  "stages": [
+    {
+      "id": "market-observation",
+      "legoId": "capital.markets.market-sensors",
+      "dependsOn": [],
+      "inputs": [
+        "market-input"
+      ],
+      "outputs": [
+        "market-observation"
+      ],
+      "operation": "market_observation"
+    }
+  ],
+  "authorityBindings": []
+}

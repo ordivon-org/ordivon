@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 """Bounded Tiled TMJ finite orthogonal object-map verifier."""
 from __future__ import annotations
-import argparse,hashlib,json,os,subprocess,tempfile
+import sys
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
+
 import jsonschema
 from PIL import Image
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
+
 ROOT=Path(__file__).resolve().parents[1]
 CONTRACT_SCHEMA=ROOT/'artifact-delivery/shadow-contracts/design-2d-tiled-tmj-contract-v1.schema.json'
 TILED=Path(os.environ.get('ARTIFACT_TILED','/usr/bin/tiled'))
@@ -22,11 +37,21 @@ def object_shape(o:dict[str,Any])->str:
  if 'polyline' in o:return 'polyline'
  if any(k in o for k in ('polygon','ellipse','point','text','gid','template')):return 'unsupported'
  return 'rectangle'
+CLAIM_POINTERS={
+ 'boundedObjectMap':'/boundedObjectMap',
+ 'canonicalSemanticIdentity':'/canonicalSemanticIdentity',
+ 'contractSchema':'/contractSchema',
+ 'nativeCrossFormatRoundTrip':'/nativeCrossFormatRoundTrip',
+ 'nativeRasterReadback':'/nativeRasterReadback',
+ 'nativeTmjRoundTrip':'/nativeTmjRoundTrip',
+}
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_tiled_tmj(path:Path,contract_path:Path,evidence_dir:Path|None=None)->dict[str,Any]:
  if not path.is_file():return {'schemaVersion':1,'kind':'artifact-tiled-tmj-verification','profileId':'design-2d-tiled-tmj-object-map-r1','status':'FAIL','failures':['input is not a regular file']}
  try:c=json.loads(contract_path.read_text())
- except Exception as e:return {'schemaVersion':1,'kind':'artifact-tiled-tmj-verification','profileId':'design-2d-tiled-tmj-object-map-r1','status':'FAIL','artifact':fact(path),'failures':[f'contract unreadable: {e}']}
- ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-tiled-evidence-'));ev.mkdir(parents=True,exist_ok=True);failures=validate_contract(c);want=c.get('map',{});res={'schemaVersion':1,'kind':'artifact-tiled-tmj-verification','profileId':'design-2d-tiled-tmj-object-map-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical_sha(c)},'tools':{},'failures':failures}
+ except Exception as e:return {'schemaVersion':1,'kind':'artifact-tiled-tmj-verification','profileId':'design-2d-tiled-tmj-object-map-r1','status':'FAIL','artifact':fact(path),'contractSchema':{'status':'FAIL','failures':[f'contract unreadable: {e}']},'failures':[f'contract unreadable: {e}']}
+ ev=evidence_dir or Path(tempfile.mkdtemp(prefix='artifact-tiled-evidence-'));ev.mkdir(parents=True,exist_ok=True);contract_failures=validate_contract(c);failures=list(contract_failures);want=c.get('map',{});res={'schemaVersion':1,'kind':'artifact-tiled-tmj-verification','profileId':'design-2d-tiled-tmj-object-map-r1','status':'FAIL','artifact':fact(path),'contract':{'path':str(contract_path.resolve()),'sha256':sha_file(contract_path),'canonicalDigest':canonical_sha(c)},'contractSchema':{'status':'PASS' if not contract_failures else 'FAIL','failures':contract_failures},'tools':{},'failures':failures}
  for n,p in [('tiled',TILED),('tmxrasterizer',TMXRASTERIZER)]:
   if not p.is_file() or not os.access(p,os.X_OK):failures.append(f'required mature external capability unavailable: {n}')
   else:res['tools'][n]={'path':str(p.resolve()),'sha256':sha_file(p)}

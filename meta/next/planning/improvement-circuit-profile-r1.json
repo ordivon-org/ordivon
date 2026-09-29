@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.improvement-circuit-profile",
+  "effectiveDate": "2026-09-23",
+  "standing": "EXTRACTED_PROFILE_NO_NEW_RUNTIME_OBJECT",
+  "truthRole": "architecture-profile-not-execution-record-or-authority",
+  "components": [
+    {
+      "id": "objective",
+      "owner": "caller/domain",
+      "required": true
+    },
+    {
+      "id": "predecessor",
+      "owner": "natural state owner",
+      "required": true
+    },
+    {
+      "id": "cognitiveCircuitOrImprovementProcess",
+      "owner": "task-local composition/natural improvement owner",
+      "required": true
+    },
+    {
+      "id": "candidateMaterialization",
+      "owner": "Runtime/Harness/domain owner",
+      "required": true
+    },
+    {
+      "id": "experimentalEpisode",
+      "owner": "analytical consumer",
+      "required": false
+    },
+    {
+      "id": "evaluationBoundary",
+      "owner": "task-local study profile plus natural evaluator owners",
+      "required": true
+    },
+    {
+      "id": "verificationObligations",
+      "owner": "packages/composition plus natural verifiers",
+      "required": true
+    },
+    {
+      "id": "successorContract",
+      "owner": "packages/composition",
+      "required": true
+    },
+    {
+      "id": "promotionPolicyRef",
+      "owner": "external promotion authority",
+      "required": true
+    }
+  ],
+  "separationLaws": [
+    "proposal != candidate materialization",
+    "candidate materialization != evaluation",
+    "evaluation != successor-gate closure",
+    "successor-gate closure != promotion decision",
+    "promotion decision != physical Git/release/deployment mutation",
+    "recursive improvement != recursive root authority"
+  ],
+  "evidenceCases": [
+    {
+      "id": "historical-harness-p2-p3",
+      "ref": "meta/next/evidence/acceptance/rsi-successor-contract-r1-20260922.json",
+      "recursionClass": "IMPROVEMENT_MECHANISM_IN_CHANGE_SET"
+    },
+    {
+      "id": "prospective-rw6-r3",
+      "ref": "meta/next/evidence/acceptance/experimental-rw7-successor-acceptance-20260923.json",
+      "recursionClass": "PERSISTENT_SELF_CHANGE_NO_MECHANISM_RECURSION"
+    }
+  ],
+  "growthRule": "Do not add a new durable schema/service until a future consumer exposes a repeated machine-enforced relation not representable by the existing contracts.",
+  "doNotOwn": [
+    "Runtime/Harness/domain truth",
+    "workflow or scheduling",
+    "candidate search",
+    "universal evaluator",
+    "universal fitness score",
+    "experiment controller",
+    "RSI controller",
+    "Git/release/deployment mutation",
+    "promotion authority",
+    "root authority"
+  ],
+  "observedPromotionSeparation": {
+    "standing": "PASS",
+    "ref": "meta/next/evidence/acceptance/experimental-rw7-successor-acceptance-20260923.json",
+    "law": "successor-gate closure != promotion authority != physical promotion event"
+  }
+}

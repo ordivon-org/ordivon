@@ -61,8 +61,8 @@ The evaluator interprets a declarative authority-bound contract. It does not enc
 
 ## Research profiles
 
-- meta/research/publication-closure-profile-r1.json
-- meta/research/venues/fse-2027-research-r1.json
+- profiles/research/publication/publication-closure-profile-r1.json
+- profiles/research/venues/fse-2027-research-r1.json
 
 The FSE profile is dated and points to the official FSE 2027 Research Papers page and ACM acmart documentation. If venue policy changes, refresh the binding rather than changing Artifact semantics.
 

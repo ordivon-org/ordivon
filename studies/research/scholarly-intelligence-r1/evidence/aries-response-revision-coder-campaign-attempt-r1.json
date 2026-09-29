@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.research.aries-response-revision-coder-campaign-attempt",
+  "id": "aries-response-revision-coder-campaign-attempt-r1",
+  "observedAt": "2026-09-24",
+  "standing": "BLOCKED_NO_FROZEN_CODER_CUTS_PROVIDER_MATERIALIZATION_UNRESOLVED",
+  "truthRole": "provider-materialization-effect-evidence-not-semantic-annotation",
+  "sourceAnnotationSubstrate": "aries-response-revision-annotation-substrate-r1",
+  "campaigns": [
+    {
+      "family": "A",
+      "campaignId": "campaign:aries-response-revision-coder-a-r1-20260924",
+      "campaignRef": "sha256:ff0b5c095b6546db9c9d451a0b43209c098b3fb01606295178dcf0f259079692",
+      "attachmentDigest": "sha256:cfd01964ff5a4a95efe47d4a186cdbbcfb038756efc5afbd1abe100ece1dfb8e",
+      "attachmentBytes": 1051194
+    },
+    {
+      "family": "B",
+      "campaignId": "campaign:aries-response-revision-coder-b-r1-20260924",
+      "campaignRef": "sha256:edeee8b02549ba2d30196f371b33c5fd482c7b0dc179d82b39bc8ebfdd9b9bd8",
+      "attachmentDigest": "sha256:034eaed1fa8e12fc5179903b99fa195dab6e83e8c5e8f3fb591a7d5bec532126",
+      "attachmentBytes": 1051194
+    }
+  ],
+  "occurrences": [
+    {
+      "agentId": "ARIES_A_01",
+      "effectId": "sha256:91bbfd6db2a769288c7fcb09d40f86644d9e1fd8393c3ffde6bfd9b0b961148e",
+      "requestDigest": "sha256:18b09c9cd3ae9c8d8b23adaa165597924afa36d9d1685b924ee233516d9efcbf",
+      "effectGeneration": 1,
+      "standing": "pre-effect-failed",
+      "providerResource": null,
+      "evidenceDigest": "sha256:04d2fc71488875641a6c204409b960d23d7cd7f7305f0ce85ceeca2f1324b383",
+      "detailClass": "COMPOSER_UNAVAILABLE",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_A_02",
+      "effectId": "sha256:cb2d01753fffb9e3939997d1b7e13020411abaaa16b008df5091489ed8debe8a",
+      "requestDigest": "sha256:d58574e125f169d4ff3f219a6662748bfcd7b7bf79d81418deae74494bccc94c",
+      "effectGeneration": 2,
+      "standing": "pre-effect-failed",
+      "providerResource": null,
+      "evidenceDigest": "sha256:ea558f099f6f8c873abdfd2a667b43a351b47ee5a9c9f9f489b9bc0800bfc7c8",
+      "detailClass": "COMPOSER_UNAVAILABLE",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_A_03",
+      "effectId": "sha256:7b3f34e56976da24b507bbf420692ea483678f2af4066da7ebc7c083f67ecd23",
+      "requestDigest": "sha256:189e27a6884346c1763f33830bb611f60f2ad77b76f198f3160f069cbd6c2f51",
+      "effectGeneration": 2,
+      "standing": "unknown",
+      "providerResource": null,
+      "evidenceDigest": null,
+      "detailClass": "GATEWAY_SUBMIT_RESPONSE_LOST_RESOLUTION_ABSENT",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_A_04",
+      "effectId": "sha256:679330bdba5bbfaad77f893d985658c5c031ab6b2ddfd9401473b0f377e35b58",
+      "requestDigest": "sha256:07110b4c8e87e108be0b5d6153a8a4d00922084c87c97cebbbe18cad4e4d99c6",
+      "effectGeneration": 2,
+      "standing": "pre-effect-failed",
+      "providerResource": null,
+      "evidenceDigest": "sha256:071ba00167ab713276b1fcf1b9101dea43ecae5506f57bfb439c6c9bf8909673",
+      "detailClass": "WINDOWS_UIAUTOMATION_PATTERN_UNSUPPORTED",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_B_01",
+      "effectId": "sha256:c8da67d6a3ae7b7e80696607500eee9cc026e9eff82cea8f6c33f9df072436af",
+      "requestDigest": "sha256:a59e26d97265d006ac24c1cb22f9e0696b7824a2b763b0411aefb7541021b723",
+      "effectGeneration": 1,
+      "standing": "pre-effect-failed",
+      "providerResource": null,
+      "evidenceDigest": "sha256:98fe3880556ef8bd7e6d1d0900daae751abc9273e98baebb2c4919a77d0161f4",
+      "detailClass": "WINDOWS_UIAUTOMATION_PATTERN_UNSUPPORTED",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_B_02",
+      "effectId": "sha256:8c4ead60be0c3e576c9d447df7ccdd6cbb43b3abce0e1d18f062c8bfb9c52e36",
+      "requestDigest": "sha256:8d897c6e309c75930d60020b289ff8b29e07764db23b778233f73d4b3901dfed",
+      "effectGeneration": 1,
+      "standing": "pre-effect-failed",
+      "providerResource": null,
+      "evidenceDigest": "sha256:21728c4fab1022c7363531228e89effb9fdf4c8c314b8df308be498c6e111f89",
+      "detailClass": "WINDOWS_UIAUTOMATION_PATTERN_UNSUPPORTED",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_B_03",
+      "effectId": "sha256:87e553ce6e2c63647c95cd1b3cb06ff0e877f8cf4b5c72ffb93ef2f28e070a46",
+      "requestDigest": "sha256:b91e3797e5aa2be8575fe9283fa801f572ee7e0cfb2dacfcd5a090be959c665c",
+      "effectGeneration": 1,
+      "standing": "unknown",
+      "providerResource": null,
+      "evidenceDigest": null,
+      "detailClass": "GATEWAY_SUBMIT_RESPONSE_LOST_RESOLUTION_ABSENT",
+      "blindRedispatchAuthorized": false
+    },
+    {
+      "agentId": "ARIES_B_04",
+      "effectId": "sha256:9701121bc06b217068db8ed7a230c73b4f4bebef33181905ecbe9e2a131e7c55",
+      "requestDigest": "sha256:19256bacd770554745edb43c30fce781b8566a5ea0884743fbdafc488a059bfe",
+      "effectGeneration": 1,
+      "standing": "pre-effect-failed",
+      "providerResource": null,
+      "evidenceDigest": "sha256:b9ac9b7f2807a46a654a7aa155bf2de95039858642a4421405d5c8f09feff159",
+      "detailClass": "WINDOWS_UIAUTOMATION_PATTERN_UNSUPPORTED",
+      "blindRedispatchAuthorized": false
+    }
+  ],
+  "counts": {
+    "requestedOccurrences": 8,
+    "preEffectFailed": 6,
+    "unknown": 2,
+    "bound": 0,
+    "providerResourcesBound": 0,
+    "frozenCoderCuts": 0,
+    "semanticJudgments": 0
+  },
+  "goldAdmission": "BLOCKED_NO_FROZEN_INDEPENDENT_CODER_CUTS",
+  "modelTrainingStanding": "BLOCKED_PENDING_GOLD_ADMISSION",
+  "retryBoundary": "UNKNOWN effects A03/B03 forbid blind redispatch. Pre-effect failures may be retried only through the existing campaign/effect identities after a demonstrated provider/materializer condition change.",
+  "alternativeExecutorObservation": {
+    "deepSeekHarnessStructuredResultAvailable": true,
+    "currentRuntimeCredentialAuthorities": [],
+    "standing": "NOT_USED_NO_EXPOSED_RUNTIME_CREDENTIAL_AUTHORITY",
+    "note": "No local provider secret was read or bypassed for this annotation attempt."
+  },
+  "truthBoundary": "This receipt records materialization/effect standing only. It contains no semantic annotations and cannot establish response-to-revision gold, adequacy, causality, or scientific correctness."
+}

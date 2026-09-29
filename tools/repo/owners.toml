@@ -2,10 +2,30 @@ schema_version = 1
 kind = "ordivon.repo-owner-manifest"
 truth_role = "repository-mechanics-only-not-domain-authority"
 
+
 [[owners]]
-name = "next"
-root = "meta/next/"
-verify_task = "next:verify"
+name = "agent-methods"
+literal_boundary_target = false
+root = ".agents/"
+verify_task = "agent-methods:verify"
+
+[[owners]]
+name = "catalogs"
+literal_boundary_target = false
+root = "catalogs/"
+verify_task = "catalogs:verify"
+
+[[owners]]
+name = "profiles"
+literal_boundary_target = false
+root = "profiles/"
+verify_task = "profiles:verify"
+
+[[owners]]
+name = "studies"
+literal_boundary_target = false
+root = "studies/"
+verify_task = "studies:verify"
 
 [[owners]]
 name = "composition"
@@ -40,7 +60,7 @@ verify_task = "gateway:verify"
 
 [[owners]]
 name = "skills"
-root = "platform/skills/"
+root = "extensions/chatgpt-skills-mcp/"
 verify_task = "skills:verify"
 
 [[owners]]
@@ -88,6 +108,11 @@ verify_task = "game:verify"
 name = "capital"
 root = "domains/capital/"
 verify_task = "capital:verify"
+
+[[owners]]
+name = "agent-app"
+root = "apps/agent/"
+verify_task = "agent-app:verify"
 
 [[owners]]
 name = "web"

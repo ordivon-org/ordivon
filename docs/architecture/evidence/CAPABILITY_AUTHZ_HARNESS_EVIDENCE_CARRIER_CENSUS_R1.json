@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capability-authz-harness-evidence-carrier-census",
+  "observedDate": "2026-09-28",
+  "standing": "PASS_NEGATIVE_ISSUER_FINDING_CARRIER_CANDIDATE_ONLY",
+  "sourceRevision": "ef7594c85ed1b710e3b62b4f9f18cef09751a026",
+  "question": "Can existing Harness close CPF-21 as the trusted Agent/Grant/Effect admission evidence source for Gateway capability authorization?",
+  "findings": {
+    "gatewayConsumerExists": true,
+    "gatewayConsumer": "PluginGatewayExecutionBridgeFactory / GatewayMcpRuntimeAdapter",
+    "authenticatedTransportExists": true,
+    "authenticatedTransportBoundary": "OfficialMcpClient supports private bearer file; local-service authentication is transport identity only.",
+    "harnessOwnsRunTruth": true,
+    "harnessOwnsExactToolCatalogAndGrantDigests": true,
+    "harnessOwnsStableEffectRequestIdentity": true,
+    "harnessSecurityAdmissionIssuer": false,
+    "securityAdmissionProductionIssuerObserved": false
+  },
+  "harnessEvidenceAvailable": [
+    "HarnessRunContract.harnessRunId",
+    "HarnessRunContract.callerId/callerRunRef",
+    "HarnessRunContract.toolCatalogDigest",
+    "HarnessRunContract.toolGrantDigest",
+    "PluginGatewayExecutionGrant capability/workspace/executable/context/env/timeout bounds",
+    "HarnessExecutionBinding runtimeReferences for harness_run/run_contract/tool_grant",
+    "stable clientRequestId derived from Harness Run + step + ToolCall digest + ToolGrant digest"
+  ],
+  "securityAgentAdmissionRequired": [
+    "authenticated principalId and authn method",
+    "authenticated agentId and credential kind",
+    "grantId/grantDigest/active state",
+    "grant principalId + agentId binding",
+    "audience",
+    "allowedActions and resourcePrefixes",
+    "expiry",
+    "max risk / step-up threshold",
+    "remaining effect budget",
+    "effectId/effectDigest/action/resource/audience/riskClass/effectType",
+    "approval evidence when required"
+  ],
+  "mismatch": "Harness ToolGrant is assignment/tool authority and exact Run evidence; it is not the Security grant/agent credential/approval authority. Reinterpreting its digest as agentAdmission would launder authority across owners.",
+  "carrierDecision": {
+    "harnessMayCarrySecurityIssuedEvidenceInFuture": true,
+    "harnessMayMintAgentAdmissionFromToolGrant": false,
+    "ordinaryCallerArgsTrusted": false,
+    "ordinaryMcpMetaTrusted": false,
+    "futureCondition": "A Security-owned issuer must create/normalize the admission evidence; Harness may transport an opaque or normalized Security-issued artifact over its authenticated local-service channel once provenance/integrity/currentness are explicit."
+  },
+  "implementationDecision": "Do not add speculative MCP meta/header fields now. No production Security issuer was found, so transport code without an issuer would create a caller-controlled authorization surface rather than close CPF-21.",
+  "sourceRefs": [
+    "services/harness/src/ordivon_harness/core_contracts.py",
+    "services/harness/src/ordivon_harness/plugin_gateway_effect.py",
+    "services/harness/src/ordivon_harness/mcp_http_client.py",
+    "platform/security/contracts/gateway-capability-authz-v1/evaluate.py",
+    "platform/security/contracts/agent-admission-v1/evaluate.py",
+    "platform/security/fixtures/agent-admission/v0-allow.json"
+  ],
+  "censusJob": "job-01a0e680-ceed-7ba0-8eaf-052d50568ab3"
+}

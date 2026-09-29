@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.current-truth-projection",
+  "truthRole": "REBUILDABLE_PROJECTION_NOT_AUTHORITY",
+  "asOfDate": "2026-09-23",
+  "repositorySourceRevision": "8a5127a96272fe1d157cd636ac3b73942cb2d469",
+  "sourceOwner": "domains/capital",
+  "sourceOwnerStanding": "MONOREPO_CANONICAL_SOURCE",
+  "domainOwners": [
+    "markets",
+    "trading",
+    "portfolio",
+    "risk",
+    "research",
+    "governance",
+    "accounting"
+  ],
+  "protocol": {
+    "schemaVersion": 2,
+    "standing": "ACTIVE_V2_NO_RUNTIME_V1_SHIM",
+    "authority": "config/protocol_identity_migration_v2.json"
+  },
+  "execution": {
+    "currentLane": "NON_LIVE",
+    "authority": "config/execution_policy.json"
+  },
+  "productionAuthorization": {
+    "state": "BLOCK_NOT_GRANTED",
+    "externalFinancialWriteAllowed": false,
+    "authority": "contracts/production-authorization.json"
+  },
+  "portfolioRiskBudget": {
+    "standing": "UNSET",
+    "owner": "OWNER_PRINCIPAL",
+    "authority": "config/portfolio_risk_budget.json"
+  },
+  "privateReality": {
+    "standing": "OWNER_MANDATE_PRESENT_PERMISSION_NOT_CURRENT",
+    "privateAccountDataAdmission": "NOT_ADMITTED",
+    "privateAccountDataAllowed": false,
+    "authority": "config/private_reality_policy.json"
+  },
+  "accounting": {
+    "standing": "PASS_BOUNDED_SQLITE_WAL_ACCOUNTING",
+    "mechanicsOwner": "SQLite 3.53.1 via Python 3.14.7 stdlib sqlite3",
+    "authority": "config/accounting_substrate.json"
+  },
+  "architectureLaws": {
+    "providerRealityOutranks": [
+      "engine-local fills",
+      "protocol acknowledgements",
+      "workflow success",
+      "passing tests",
+      "local accounting state"
+    ],
+    "gatewayCapitalSemanticCapabilityRequired": false,
+    "executionIsCapabilityUnderTrading": true,
+    "readOnlyRealityPrecedesWriteAuthority": true
+  },
+  "explicitNonClaims": [
+    "This projection does not grant provider permission.",
+    "This projection does not authorize private account access.",
+    "This projection does not authorize demo, live-qualification, or production financial writes.",
+    "This projection does not make historical operational observations current."
+  ]
+}

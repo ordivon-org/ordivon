@@ -28,20 +28,24 @@
   },
   "observedTopology": {
     "projectPythonPackageCycles": 0,
-    "capabilityVerifyBindings": 19,
+    "capabilityVerifyBindings": 20,
     "shadowProfiles": 20,
     "productionV1ExampleProfiles": 13,
     "deliveryFacadeLines": 0,
-    "directPythonProviderLines": 608,
+    "directPythonProviderLines": 335,
     "trustVsaLines": 808,
     "ociPackageStageLines": 362,
-    "directPythonProviderProjectFanout": 17,
+    "directPythonProviderProjectFanout": 14,
     "productionPythonDeliveryFacadeImports": 0,
     "requiredEvidenceKeysAcrossBoundVerifyProfiles": 102,
     "deliveryCliProviderLines": 0,
-    "completeNativeClaimResultProfiles": 2,
-    "boundVerifyProfiles": 19,
-    "remainingLiteralClaimAddressabilityGaps": 29
+    "completeNativeClaimResultProfiles": 20,
+    "boundVerifyProfiles": 20,
+    "remainingLiteralClaimAddressabilityGaps": 0,
+    "directPythonProviderClassLines": 248,
+    "directPythonProviderMethods": 17,
+    "directPythonOperationKindBranchCount": 0,
+    "directPythonOperationHandlerCount": 5
   },
   "nodes": [
     {
@@ -96,13 +100,16 @@
       "currentEvidence": [
         "artifact_evidence/delivery.py",
         "artifact_evidence/snapshot.py",
-        "artifact_verification/evidence.py"
+        "artifact_verification/evidence.py",
+        "artifact_verification/evaluation.py",
+        "artifact_verification/plugins.py"
       ],
-      "state": "PARTIALLY_IMPLICIT",
+      "state": "COMMON_BOUND_EVIDENCE_OBSERVATION_WAIST_CANDIDATE",
       "mustNotOwn": [
         "cryptographic trust requirement",
         "consumer-domain acceptance"
-      ]
+      ],
+      "resolution": "All current bound family verifiers retain verifier-owned exact claimResults; the candidate common EvaluationProjection additionally binds each observation to exact subject identity and capability identity without inferring aliases or aggregate PASS."
     },
     {
       "id": "K05",
@@ -112,13 +119,16 @@
       "currentEvidence": [
         "artifact_verification/stage.py",
         "scripts/artifact_verify.py",
-        "artifact_trust/vsa.py"
+        "artifact_trust/vsa.py",
+        "artifact_core/standing.py",
+        "artifact_verification/evaluation.py"
       ],
-      "state": "SEMANTICALLY_SPLIT",
+      "state": "COMMON_PROFILE_POLICY_STANDING_WAIST_CANDIDATE",
       "mustNotOwn": [
         "transport success",
         "human preference"
-      ]
+      ],
+      "resolution": "Both production-v1 compatibility results and registered-v2 family results derive standing through artifact_core.standing under one candidate EvaluationProjection contract; provider-native results remain preserved."
     },
     {
       "id": "P01",
@@ -141,12 +151,15 @@
       "responsibility": "Produce bounded evidence observations for one profile/capability over exact subject bytes.",
       "currentEvidence": [
         "artifact-delivery/capability-bindings-v1.json",
-        "scripts/artifact_verify.py"
+        "scripts/artifact_verify.py",
+        "artifact_verification/plugins.py",
+        "artifact_operations/providers/verification.py"
       ],
       "observedImplementations": 17,
       "mustNotOwn": [
         "universal artifact ontology"
-      ]
+      ],
+      "state": "FORMAL_REGISTERED_BINDING_PLUGIN_INTERFACE_CANDIDATE"
     },
     {
       "id": "P03",
@@ -233,10 +246,11 @@
       "kind": "externalize",
       "responsibility": "Move bytes or issue bounded transport capabilities.",
       "currentEvidence": [
-        "scripts/artifact_r2_mailbox.py",
-        "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md"
+        "docs/ARTIFACT_KNOWLEDGE_TO_ACTION_DONOR_R1.md",
+        "planning/transport-boundary-retirement-r1.json"
       ],
-      "state": "DO_NOT_PROMOTE"
+      "state": "PHYSICALLY_RETIRED_EXTERNAL_OWNER_REQUIRED_IF_REINTRODUCED",
+      "resolution": "The Cloudflare R2 mailbox implementation, operator config, route schema and self-test were removed from the Artifact owner. Generic transport/provider effect authority must live outside Artifact if future pressure reintroduces it."
     },
     {
       "id": "X02",
@@ -408,14 +422,21 @@
     {
       "id": "D01",
       "label": "DualEvaluationBackbones",
-      "observation": "Production Office/Web verification and standards-first family verification use different evaluation models.",
-      "priority": "P0"
+      "observation": "Canonical Agent verification intent enters ArtifactOperation and DirectPython VerifyOperationHandler for both current production-v1 Office/Web and registered standards-first family verification. Provider implementations remain distinct, while both emit one exact EvaluationProjection semantic waist; scripts/artifact_verify.py remains a compatibility facade rather than a second canonical lifecycle.",
+      "priority": "P0",
+      "state": "RESOLVED",
+      "resolutionBoundary": "Do not mark resolved until production routing/lifecycle convergence is separately justified; compatibility equivalence is not physical backbone unification.",
+      "resolution": "R2-S1F is integrated and merged-tree requalified: production-v1 retains execute_verify_stage; registered-v2 resolves CapabilityBinding -> VerifierPlugin; both project exact observations/claims/standing through one EvaluationProjection and Agent intent no longer selects a verification backbone.",
+      "resolutionCommit": "87a9558f6348dea8fc8dd764ae97f91107315295"
     },
     {
       "id": "D02",
       "label": "CompositionRootConcentration",
-      "observation": "DirectPythonOperationProvider has 17 project-module dependencies and a 513-line class.",
-      "priority": "P1"
+      "observation": "DirectPythonOperationProvider now delegates prepare/build/verify/verify-trust/package through five explicit OperationHandler owners. Fresh candidate census: direct_python.py 335 lines, class body 248 lines, 17 methods, fan-out 14 project modules, and zero operation-kind branches.",
+      "priority": "P1",
+      "state": "RESOLVED",
+      "resolution": "R2-S3 is integrated and merged-tree requalified. DirectPythonOperationProvider is now a registry-backed composition root over five explicit operation handlers with zero operation-kind branches. Trust and OCI package internals remain separately owned by D03/D04.",
+      "resolutionCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d"
     },
     {
       "id": "D03",
@@ -432,20 +453,25 @@
     {
       "id": "D05",
       "label": "TransportBoundaryDrift",
-      "observation": "R2 mailbox implementation remains in the Artifact repository despite donor classification DO_NOT_PROMOTE.",
-      "priority": "P1"
+      "observation": "Historical R1 observation: the R2 mailbox implementation remained in Artifact despite donor classification DO_NOT_PROMOTE.",
+      "priority": "P1",
+      "state": "RESOLVED",
+      "resolution": "Physical mailbox/provider transport code was retired from the Artifact owner on 2026-09-26; frozen donor/provenance evidence is retained."
     },
     {
       "id": "D06",
       "label": "ImplicitVerifierPluginProtocol",
-      "observation": "Nineteen capability bindings already route to family verifier module/callable entrypoints, but plugin packaging/interface is not formalized.",
-      "priority": "P1"
+      "observation": "Twenty current bound family profiles retain explicit native claimResults and stable direct CLI entrypoints. A formal binding-owned VerifierPlugin resolver/interface now exists and is used by the canonical verify operation and compatibility service. Production-v1 remains a compatibility/provider adapter rather than a fabricated capability binding; broader plugin packaging/lifecycle retirement remains open.",
+      "priority": "P1",
+      "state": "FORMAL_REGISTERED_PLUGIN_INTERFACE_IMPLEMENTED_COMPATIBILITY_LIFECYCLE_REMAINS"
     },
     {
       "id": "D07",
       "label": "ClaimAddressabilityGap",
-      "observation": "Two of nineteen bound verify profiles (WAVE and PNG) now emit complete exact-key native claimResults. Seventeen profiles remain incomplete; a static same-name census finds 29 required claim keys without even literal native addressability. Generic standing must continue to refuse inference.",
-      "priority": "P0"
+      "observation": "Historical planning counted 19 bound profiles with 17 incomplete native claimResults and 29 literal gaps. Fresh 2026-09-26 census found 20 current bound profiles; all 20 now expose exact required claim keys and the dynamic denominator invariant prevents silent future drift.",
+      "priority": "P0",
+      "state": "RESOLVED",
+      "resolution": "R2-S1D implemented explicit verifier-owned claim mappings for every current bound profile. Required claim-key coverage is derived dynamically from current shadow bindings and profile requiredEvidence, not from a magic profile count."
     }
   ],
   "slices": [
@@ -493,14 +519,56 @@
     {
       "id": "R2-S1D",
       "objective": "Extend exact-key explicit native claimResults to the remaining 17 bound family verifiers without changing verifier semantics or routing.",
-      "status": "NEXT",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
       "nodeIds": [
         "K02",
         "K04",
         "K05",
         "P02"
       ],
-      "evidenceBoundary": "No profile-v1 retirement or profile-v2 promotion until bound verifier claim coverage is explicit and complete."
+      "evidenceBoundary": "Exact current requiredEvidence key coverage is complete. This does not retire profile-v1, promote profile-v2, unify the dual Evaluation backbones, or formalize verifier plugin packaging.",
+      "result": "ALL_20_CURRENT_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS",
+      "evidence": "planning/native-claim-results-coverage-r1.json",
+      "integrationCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f"
+    },
+    {
+      "id": "R2-S1E",
+      "objective": "Pressure-test a production-v1 Office/Web compatibility adapter into the common EvaluationRequest/EvidenceObservation/StandingDecision model without changing production routing or promoting profile-v2.",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
+      "nodeIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "P02",
+        "C01"
+      ],
+      "evidenceBoundary": "Production-v1 and canonical-v2 profile/gate semantics are exact-byte bound and compatibility-equivalent for current Presentation/Document/Web profiles. Native verify-stage results round-trip exactly and standing fails closed. Production routing remains v1; no profile retirement/promotion is implied.",
+      "result": "PRODUCTION_V1_COMPATIBILITY_MODEL_PROVEN_ROUTE_UNCHANGED",
+      "evidence": "planning/production-v1-evaluation-compatibility-r1.json",
+      "integrationCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f"
+    },
+    {
+      "id": "R2-S1F",
+      "objective": "Converge canonical Agent verification intent and current production-v1/registered-v2 execution families through ArtifactOperation plus one EvaluationProjection semantic waist without changing production-v1 profile authority or family verifier semantics.",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
+      "nodeIds": [
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "P02",
+        "A01",
+        "A03",
+        "C01"
+      ],
+      "result": "CANONICAL_OPERATION_LIFECYCLE_AND_EVALUATION_WAIST_CONVERGED",
+      "evidence": "planning/evaluation-backbone-convergence-r1.json",
+      "evidenceBoundary": "Canonical lifecycle convergence is integrated and merged-tree requalified while preserving distinct provider implementations. This does not retire profile-v1, promote profile-v2, merge family semantics, or claim trust/release/consumer acceptance.",
+      "integrationCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
+      "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28"
     },
     {
       "id": "R2-S2",
@@ -513,10 +581,15 @@
     {
       "id": "R2-S3",
       "objective": "Map DirectPython operation-kind branches into independent handlers while preserving one composition root.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED_VERIFIED_INTEGRATED",
       "nodeIds": [
         "A01"
-      ]
+      ],
+      "result": "OPERATION_KIND_HANDLER_REGISTRY_FACTORIZED",
+      "evidence": "planning/operation-handler-factorization-r1.json",
+      "evidenceBoundary": "Operation routing ownership is integrated and merged-tree requalified without changing trust or OCI package internals; D03 and D04 remain separate work.",
+      "integrationCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d",
+      "mergedTreeRequalificationJobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0"
     },
     {
       "id": "R2-S4",
@@ -529,11 +602,13 @@
     {
       "id": "R2-S5",
       "objective": "Classify mailbox, doctor, environment and transport/publication tooling into retain, quarantine or externalize.",
-      "status": "PLANNED",
+      "status": "MAILBOX_EXTERNALIZATION_COMPLETE_REMAINDER_PLANNED",
       "nodeIds": [
         "X01",
         "X02"
-      ]
+      ],
+      "result": "X01 mailbox/provider transport physically retired; X02 toolchain/environment classification and other publication/transport tooling remain separate work.",
+      "evidenceBoundary": "Do not infer R2-S5 complete from mailbox retirement alone; toolchain/environment and publication/provider adapters retain independent ownership review."
     }
   ],
   "questions": [
@@ -548,5 +623,69 @@
     "updatedAt": "2026-09-20",
     "standing": "COMPATIBILITY_DEMOLITION_A17",
     "notes": "Delivery Python/CLI facade and CLI fallback provider are retired. Agent build intent now projects to ArtifactOperation; Temporal defaults exclusively to DirectPythonOperationProvider. Profile-v1 dual-contract debt remains explicit and separate."
-  }
+  },
+  "executionUpdates": [
+    {
+      "date": "2026-09-26",
+      "scope": "R2-S5/X01/D05",
+      "standing": "MAILBOX_TRANSPORT_PHYSICALLY_RETIRED_AND_INTEGRATED",
+      "evidence": "planning/transport-boundary-retirement-r1.json",
+      "integrationCommit": "eb00df2a7680a402d6d0e8bff821e68965a135d8",
+      "mergedTreeRequalificationJobId": "job-01a0de16-3bbf-7e01-bfca-67a318d935a5"
+    },
+    {
+      "date": "2026-09-26",
+      "scope": "R2-S1D/D07/K04",
+      "standing": "ALL_20_BOUND_PROFILES_EXPLICIT_NATIVE_CLAIM_RESULTS_INTEGRATED",
+      "baseRevision": "c63f1dda7fbecafc44054cac61ef06e323d41ac3",
+      "evidence": "planning/native-claim-results-coverage-r1.json",
+      "integrationCommit": "e9578de0aaa838fdb5be608719c89cbca83f6b5f",
+      "mergedTreeRequalificationJobId": "job-01a0de3d-fbdd-7292-b41b-170580eb31f0"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "D06 verifier CLI entrypoint packaging seam",
+      "standing": "CLI_ENTRYPOINT_BOOTSTRAP_INTEGRATED_VERIFIED",
+      "evidence": "planning/verifier-cli-entrypoint-currentness-r1.json",
+      "ownerGateJobId": "job-01a0dea1-76ef-74b1-812b-3ca09e8ecfc5",
+      "implementationCommit": "914eac05777ba3c6478790c104caf475480eee1e",
+      "mergeCommit": "51079336766d920c7893bae91b617412c54f4ae4",
+      "mergedTreeRequalificationJobId": "job-01a0dea4-f95c-7ce3-8fcf-f2b3fb5bfd4e"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S1E/D01",
+      "standing": "PRODUCTION_V1_COMPATIBILITY_INTEGRATED_VERIFIED",
+      "evidence": "planning/production-v1-evaluation-compatibility-r1.json",
+      "integrationCommit": "2bb4047cfe99299d7387d78053056f2da166bc2f",
+      "mergedTreeRequalificationJobId": "job-01a0dedd-a354-7500-ac43-64f3730806da"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S1F/D01",
+      "standing": "IMPLEMENTED_VERIFIED_AWAITING_INTEGRATION",
+      "evidence": "planning/evaluation-backbone-convergence-r1.json",
+      "ownerGateJobId": "job-01a0e15d-3945-7661-8fac-22e98fede529",
+      "realRegisteredV2JobId": "job-01a0e15c-3c5c-7a43-bb8a-a69ea5ec3d50",
+      "realProductionV1JobId": "job-01a0e15c-8af5-7200-9a86-dc250c686b72"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S1F/D01",
+      "standing": "INTEGRATED_VERIFIED_D01_RESOLVED",
+      "implementationCommit": "c49b33fca35a5eacb1e885ca514123a6f12e65b0",
+      "cleanupCommit": "bc837101fe9f0110433c16912c46a5ce5fb768c9",
+      "mergeCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
+      "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28"
+    },
+    {
+      "date": "2026-09-27",
+      "scope": "R2-S3/D02",
+      "standing": "INTEGRATED_VERIFIED_D02_RESOLVED",
+      "evidence": "planning/operation-handler-factorization-r1.json",
+      "candidateCommit": "244c2bfbcc0320c6258cf4ab531461420fa3a3d3",
+      "mergeCommit": "6509618fbe1b32be5876cfaa671f3f1af91fe12d",
+      "mergedTreeRequalificationJobId": "job-01a0e286-ec49-7363-8e5b-48b85756d4d0"
+    }
+  ]
 }

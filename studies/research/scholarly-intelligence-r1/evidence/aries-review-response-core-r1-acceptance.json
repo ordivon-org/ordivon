@@ -1,0 +1,11 @@
+{
+  "kind": "ordivon.research.aries-review-response-core-acceptance",
+  "manualConcerns": 196,
+  "manualConcernsWithBothBranches": 87,
+  "manualConcernsWithPositiveRevisionCorrespondence": 87,
+  "manualConcernsWithReviewResponseContext": 196,
+  "schemaVersion": 1,
+  "snapshotIdentity": "sha256:3a251f14e1b4b49763a1791e11b7482f929ee017fd4f7d7fd603fd4fd475802e",
+  "standing": "PASS_ARIES_SAME_AUTHORITY_LIFECYCLE_FORK",
+  "truthBoundary": "Pass proves exact source-review identity, reply topology, and separate concern-edit correspondence. It does not identify concern-specific response adequacy or a Response->Revision semantic/causal edge."
+}

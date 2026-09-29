@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.investment-decision-system-acceptance",
+  "standing": "PASS",
+  "acceptedAt": "2026-09-27",
+  "truthRole": "IMPLEMENTATION_AND_VERIFICATION_RECEIPT_NOT_INVESTMENT_TRUTH",
+  "system": {
+    "modelAtlas": "config/investment_model_atlas.json",
+    "decisionRouter": "src/ordivon_capital/portfolio/decision_router.py::route_investment_decision",
+    "readOnlyCircuit": "INVESTMENT_DECISION_SUPPORT_R1",
+    "readOnlyCircuitSpec": "circuits/investment-decision-support-r2.json",
+    "registeredExternalModels": 13,
+    "coreModels": 3,
+    "conditionalModels": 10
+  },
+  "authorityBoundary": {
+    "portfolioRiskBudget": "UNSET",
+    "executionLane": "NON_LIVE",
+    "productionExternalFinancialWrite": "BLOCK_NOT_GRANTED",
+    "externalFinancialEffectAllowed": false,
+    "riskAppetiteInferred": false,
+    "orderGenerationAdmitted": false
+  },
+  "verification": {
+    "ownerNativeJobId": "job-01a0dee3-39ce-7fc1-bf40-9e3c5b52d4dd",
+    "ruff": "PASS",
+    "pytestPassed": 396,
+    "providerBoundDeselected": 11,
+    "failed": 0,
+    "targetedDecisionAndCircuitTests": "15/15 PASS",
+    "currentStateReadbackJobId": "job-01a0dee2-7924-7552-a038-50f5edb94a46",
+    "currentStateReadback": "PASS"
+  },
+  "canary": {
+    "jobId": "job-01a0dee0-f6a4-79a2-b035-663e317a6016",
+    "decisionStanding": "RESEARCH_ONLY_RISK_BUDGET_UNSET",
+    "externalFinancialEffectAllowed": false,
+    "registeredExternalModels": 13
+  },
+  "assertions": [
+    "Mature external investment models are registered with explicit applicability and invalidation conditions rather than reimplemented as a local doctrine.",
+    "CORE, MATURE_CONDITIONAL, CONTESTED_CONDITIONAL, and STATE_MODEL standings are mechanically distinct.",
+    "Contested models route to research-only by default.",
+    "The read-only circuit derives risk-budget standing from owner authority rather than caller tags.",
+    "An UNSET owner risk budget blocks sizing proposals.",
+    "Liquidity or funding stress and explicit model conflict prevent sizing escalation.",
+    "Decision support does not mint provider permission, trade approval, order generation, or external financial write authority."
+  ]
+}

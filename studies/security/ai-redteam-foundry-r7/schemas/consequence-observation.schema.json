@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/ai-redteam/consequence-observation-r7.json",
+  "title": "AI Red-Team Consequence Observation R7",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "binding", "environmentDigest", "worldSpecDigest", "effectId", "effectRequestDigest", "beforeStateDigest", "afterStateDigest", "beforeTraceDigest", "afterTraceDigest", "beforeEventCount", "afterEventCount", "beforeOutboundCount", "afterOutboundCount", "outboundSnapshotDigest", "syntheticSecretCrossingIds", "resourceContentDigests"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.ai-redteam-consequence-observation"},
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observerId", "observerRevision", "independenceClass", "applicableThreatClasses"],
+      "properties": {
+        "observerId": {"type": "string", "minLength": 1},
+        "observerRevision": {"type": "string", "minLength": 1},
+        "independenceClass": {"enum": ["process_local_independent_code_path", "independent_process", "independent_kernel"]},
+        "applicableThreatClasses": {"type": "array", "items": {"enum": ["semantic_only", "synthetic_agent", "hostile_code"]}, "minItems": 1, "uniqueItems": true}
+      }
+    },
+    "environmentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "worldSpecDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "effectId": {"type": "string", "minLength": 1},
+    "effectRequestDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "beforeStateDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "afterStateDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "beforeTraceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "afterTraceDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "beforeEventCount": {"type": "integer", "minimum": 0},
+    "afterEventCount": {"type": "integer", "minimum": 0},
+    "beforeOutboundCount": {"type": "integer", "minimum": 0},
+    "afterOutboundCount": {"type": "integer", "minimum": 0},
+    "outboundSnapshotDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "syntheticSecretCrossingIds": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "resourceContentDigests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resourceId", "contentDigest"],
+        "properties": {
+          "resourceId": {"type": "string", "minLength": 1},
+          "contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    }
+  }
+}

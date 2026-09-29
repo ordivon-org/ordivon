@@ -49,7 +49,6 @@ The base wheel keeps a small Host-free runtime dependency graph: pinned `httpx==
 
 ```bash
 ordivon-harness --state-root /var/lib/ordivon/harness store-init
-ordivon-harness capabilities
 ```
 
 ## Run
@@ -62,7 +61,13 @@ Create a caller-authored `HarnessRunContract` JSON. The CLI does not invent Obje
 
 ```python
 from anc_canonical import canonical_digest
-from ordivon_harness.api import HarnessBoundReference, HarnessRunContract, RunBudget
+from ordivon_harness.api import (
+    HarnessBoundReference,
+    HarnessRunContract,
+    NO_TOOL_AGENT_GRANT_DIGEST,
+    NO_TOOL_AGENT_SURFACE_DIGEST,
+    RunBudget,
+)
 
 def bound_ref(reference_id: str, kind: str, claim: object) -> HarnessBoundReference:
     return HarnessBoundReference(reference_id, kind, canonical_digest(claim))
@@ -74,9 +79,11 @@ budget = RunBudget(
     max_wall_time_ms=90_000,
     max_total_tokens=16_384,
 )
-# Supply caller/objective/context/provider/system identities, the exact Tool catalog/grant
-# digests reported by the selected `ordivon-harness capabilities` execution profile, and `budget.to_contract_dict()` to
-# HarnessRunContract. Persist `contract.to_dict()` as RUN_CONTRACT.json.
+# Supply caller/objective/context/provider/system identities. For the canonical no-Tool
+# profile use NO_TOOL_AGENT_SURFACE_DIGEST / NO_TOOL_AGENT_GRANT_DIGEST; Tool-bearing
+# applications bind the exact digests exposed by their already-selected bridge/factory.
+# Supply budget.to_contract_dict() to HarnessRunContract and persist contract.to_dict()
+# as RUN_CONTRACT.json.
 ```
 
 `max_tool_calls=0` is valid for a no-Tool Run. Capability comes from the Tool
@@ -95,7 +102,7 @@ ordivon-harness --state-root /var/lib/ordivon/harness inspect HARNESS_RUN_ID
 ordivon-harness --state-root /var/lib/ordivon/harness explain HARNESS_RUN_ID
 ```
 
-`capabilities` reports only the execution profiles the CLI actually supports, including their exact source-owned Tool catalog/grant digests. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
+There is intentionally no Harness `capabilities` registry command. The canonical no-Tool digests come from the source-owned API constants, while Tool-bearing applications bind exact digests from the already-selected bridge/factory. Durable `inspect` exposes the exact retained Run/Contract/Provider/Snapshot/Recovery facts directly. CLI `explain` adds proof boundaries to that same view, while `HarnessAgentRun.explain()` reports validated in-process composition. No aggregate workbench or installed-capability registry sits between those owners and the caller.
 
 For the built-in DeepSeek profile, the Contract must bind the canonical no-Tool catalog/grant and the configured DeepSeek Adapter/model. The current adapter reserves a conservative request-token upper bound equal to the serialized Provider request bytes plus its 8,192-token completion ceiling. A small Contract such as `max_total_tokens=4_096` can therefore be rejected safely before the first Provider dispatch; `16_384` is a practical starting bound for a small no-Tool Run, not a universal required value.
 
@@ -150,7 +157,7 @@ run = HarnessAgentRun.create(
 execution = run.run((), cognition_seed=seed)
 ```
 
-This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, and `continuity.list`. It rejects `execution.submit`, `execution.cancel`, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition must use the H2 durable intent/receipt/reconciliation slice below; a generic MCP call must not bypass Harness recovery semantics.
+This H1 bridge intentionally admits only Gateway observation surfaces: `system.describe`, `capability.describe`, `continuity.get`, `continuity.list`, `continuity.find`, and `continuity.changes`. `continuity.find` is a mechanical discovery projection and `continuity.changes` is sequence-bounded change navigation; neither grants priority, assignment, ownership, unread state, or execution authority. The bridge rejects `execution.submit`, `execution.cancel`, collaboration writes, and other effectful/unknown Tools even if the remote MCP server advertises them. Effectful Gateway composition must use the H2 durable intent/receipt/reconciliation slice below; a generic MCP call must not bypass Harness recovery semantics.
 
 The portable package contains component identity, not credentials. OAuth/token storage and interactive authorization remain application/client concerns. Harness accepts the official MCP SDK Auth port and does not define a second OAuth protocol or credential database.
 

@@ -1,0 +1,88 @@
+{
+  "baseRevision": "e130f68addd3143697c0e2a1cb2bc6070d69980e",
+  "change": {
+    "agentIntent": "artifact_verify_propose compiles verify requests into ArtifactOperation instead of selecting artifact_verify.py CLI",
+    "canonicalLifecycle": "ArtifactOperation -> DirectPythonOperationProvider -> VerifyOperationHandler",
+    "commonWaist": "artifact-evaluation-projection with exact EvaluationRequest, EvidenceObservation[], claimResults and StandingDecision",
+    "compatibilityFacade": "scripts/artifact_verify.py remains available and now emits the same registered-v2 EvaluationProjection semantics",
+    "productionV1": "retains existing execute_verify_stage implementation and production source authority",
+    "registeredV2": "resolves explicit CapabilityBinding -> VerifierPlugin without family semantic merger"
+  },
+  "date": "2026-09-27",
+  "invariants": [
+    "profile-v1 remains production authority for current Office/Web lineage",
+    "profile-v2 is not promoted to production",
+    "production-v1 native verify-stage routing is unchanged inside the production provider",
+    "native aggregate PASS never upgrades NOT_EVALUATED required claims",
+    "each common EvidenceObservation binds exact subject SHA-256 and capability identity",
+    "objectContract-required registered verifiers fail closed before execution when the contract is absent",
+    "consumer/domain acceptance, trust and release remain separate authorities"
+  ],
+  "kind": "ordivon.artifact-evaluation-backbone-convergence-evidence",
+  "nonClaims": [
+    "profile-v1 is retired",
+    "profile-v2 is promoted to production",
+    "all verifier implementations share one execution algorithm",
+    "D06 compatibility/plugin lifecycle is fully retired",
+    "trust, package, transport, publication or consumer acceptance are unified into verification"
+  ],
+  "schemaVersion": 1,
+  "scope": [
+    "R2-S1F",
+    "D01",
+    "K04",
+    "K05",
+    "P02",
+    "A01",
+    "A03",
+    "C01"
+  ],
+  "standing": "INTEGRATED_VERIFIED",
+  "truthRole": "integrated-verification-evidence-with-merged-tree-requalification",
+  "verification": [
+    {
+      "class": "focused-contract-operation-suite",
+      "detail": "Common projection, provider convergence, Agent intent, production-v1 compatibility, service, claim and standing tests passed.",
+      "jobId": "job-01a0e15b-9a46-71b1-a69b-979dc421adec",
+      "standing": "PASS"
+    },
+    {
+      "class": "real-registered-v2-png-operation-and-facade-equivalence",
+      "detail": "Real PNG passed ArtifactOperation/VerifierPlugin common projection and legacy service facade produced equal claimResults/StandingDecision.",
+      "jobId": "job-01a0e15c-3c5c-7a43-bb8a-a69ea5ec3d50",
+      "standing": "PASS"
+    },
+    {
+      "class": "real-production-v1-presentation-operation",
+      "detail": "Existing production stage remained native PASS while common standing correctly stayed PENDING/PARTIAL with companionPdf, deliveryReadback, dependency, target and visual NOT_EVALUATED.",
+      "jobId": "job-01a0e15c-8af5-7200-9a86-dc250c686b72",
+      "standing": "PASS_WITH_PENDING_PROFILE_STANDING"
+    },
+    {
+      "class": "owner-full-gate",
+      "detail": "mise run verify: 415 passed, 3 skipped, 40 deselected, 107 subtests passed; Ruff/lock/sync passed.",
+      "jobId": "job-01a0e15d-3945-7661-8fac-22e98fede529",
+      "standing": "PASS"
+    },
+    {
+      "class": "final-exact-candidate-owner-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e263-820e-7182-b7f4-284a09c069db",
+      "detail": "Final clean candidate after Agent-surface currentness cleanup passed the complete Artifact owner gate before integration."
+    },
+    {
+      "class": "merged-tree-owner-full-gate",
+      "standing": "PASS",
+      "jobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28",
+      "detail": "Exact canonical merge tree passed the complete Artifact owner gate after integration; execution exited zero with Ruff/lock/sync and owner tests green."
+    }
+  ],
+  "integration": {
+    "implementationCommit": "c49b33fca35a5eacb1e885ca514123a6f12e65b0",
+    "agentSurfaceCleanupCommit": "bc837101fe9f0110433c16912c46a5ce5fb768c9",
+    "mergeCommit": "87a9558f6348dea8fc8dd764ae97f91107315295",
+    "mergedArtifactTreeMatchedVerifiedCandidate": true,
+    "mergedTreeRequalificationJobId": "job-01a0e26b-5c8a-73d0-9f54-176b1117ec28",
+    "mergedTreeRequalificationStanding": "PASS"
+  }
+}

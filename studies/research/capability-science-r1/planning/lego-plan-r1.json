@@ -1,0 +1,69 @@
+{
+  "externalOwnerReuse": {
+    "decision": "No global provider registry or new experiment scheduler; bind task-local external providers and owner-native evidence.",
+    "episodeRef": "meta/next/docs/EXPERIMENTAL_EPISODE_R1.md",
+    "learningPlanRef": "meta/next/planning/experimental-learning-lego-plan-r1.json",
+    "policyRef": "meta/next/docs/VERIFIED_REINTEGRATION_EXTERNAL_METHODS_R4.md",
+    "providerPilotEvidenceRef": "studies/research/capability-science-r1/evidence/external-provider-pilots-r1.json"
+  },
+  "kind": "ordivon.capability-science-lego-plan-r1",
+  "legos": [
+    {
+      "id": "R0",
+      "name": "Observation Semantics",
+      "standing": "IMPLEMENTED_R1_BOUNDED"
+    },
+    {
+      "id": "R1",
+      "name": "Active Capability Identification",
+      "standing": "PASS_AALPY_EXTERNAL_PROVIDER_PILOT_BOUNDED"
+    },
+    {
+      "id": "R2",
+      "name": "Vocabulary Invention",
+      "standing": "PASS_CVC5_SYGUS_CANDIDATE_PILOT_PROMOTION_GATE_IMPLEMENTED"
+    },
+    {
+      "id": "R3",
+      "name": "Typed Composition",
+      "standing": "REUSE_EXISTING_COMPOSITION_OWNER"
+    },
+    {
+      "id": "R4",
+      "name": "Closure Exploration",
+      "standing": "PASS_PYRIBS_CANDIDATE_GENERATION_PILOT_NO_SEMANTIC_AUTHORITY"
+    },
+    {
+      "id": "R5",
+      "name": "Semantic Novelty",
+      "standing": "IMPLEMENTED_R1_BOUNDED"
+    },
+    {
+      "id": "R6",
+      "name": "Causal Validation",
+      "standing": "PASS_DOWHY_CAUSAL_PROVIDER_PILOT_PROMOTION_GATE_IMPLEMENTED"
+    },
+    {
+      "id": "R7",
+      "name": "Computational Lift",
+      "standing": "IMPLEMENTED_R1_BOUNDED_CERTIFICATE_CONTRACT"
+    },
+    {
+      "id": "R8",
+      "name": "Evidence and Reproduction",
+      "standing": "IMPLEMENTED_R1_BOUNDED_RUNTIME_EVIDENCE"
+    }
+  ],
+  "nonClaims": [
+    "No universal capability registry is established.",
+    "No authority or execution permission is granted.",
+    "No universal contextual-equivalence checker is implemented.",
+    "No general computational-universality decision procedure is claimed.",
+    "No external engine is vendored or reimplemented in R1."
+  ],
+  "owner": "studies/research/capability-science-r1",
+  "schemaVersion": 1,
+  "sourceRevision": "7f92e04505c65bb0e278396fc8fb06ea0f0da52d",
+  "status": "R1_BOUNDED_IMPLEMENTED_WITH_EXTERNAL_PROVIDER_PILOTS",
+  "studyRef": "study:capability-science-r1"
+}

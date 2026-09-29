@@ -9,7 +9,6 @@ from anc_canonical import JsonValue, canonical_digest, validate_json_value
 from ..agent_tool_observation import HarnessToolObservation
 from ..core_contracts import HarnessRunContract
 from ..protocol import (
-    HarnessDispatchFence,
     HarnessProviderCallFailureReceipt,
     HarnessProviderCallSource,
     HarnessProviderCallStatus,
@@ -2658,13 +2657,7 @@ class SQLiteHarnessRunContinuityStore:
             )
             if not isinstance(raw_fence, dict):
                 raise ValueError("Harness Dispatch Fence object is invalid")
-            version = raw_fence.get("schemaVersion")
-            if version == 2:
-                fence = HarnessDispatchFenceV2.from_dict(raw_fence)
-            elif version == 1:
-                fence = HarnessDispatchFence.from_dict(raw_fence)
-            else:
-                raise ValueError("Harness Dispatch Fence version is unsupported")
+            fence = HarnessDispatchFenceV2.from_dict(raw_fence)
             fence_object = self.store.inspect_object(fence_object_digest)
             if (
                 data.get("dispatchFenceDigest") != fence.digest
@@ -3225,11 +3218,7 @@ class SQLiteHarnessRunContinuityStore:
             )
             if not isinstance(raw_fence, dict):
                 raise ValueError("Harness Dispatch Fence event object is invalid")
-            fence = (
-                HarnessDispatchFenceV2.from_dict(raw_fence)
-                if raw_fence.get("schemaVersion") == 2
-                else HarnessDispatchFence.from_dict(raw_fence)
-            )
+            fence = HarnessDispatchFenceV2.from_dict(raw_fence)
             if (
                 data.get("dispatchFenceDigest") != fence.digest
                 or fence.intent_digest != intent.digest

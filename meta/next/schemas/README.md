@@ -23,3 +23,11 @@ This directory intentionally avoids inventing a new universal ontology. The firs
 4. Keep local fields minimal and avoid encoding one tool or one domain into the common layer.
 5. Use Game, Research and Software/Engineering as integration/compatibility tests, not as the source of the underlying theory.
 6. A bridge projection must not silently normalize domain verdicts, authority types, currentness semantics or claim boundaries.
+## Extracted natural-owner schemas
+
+Structure R2 moves schemas with their natural maintained boundary instead of keeping a global Next schema bucket:
+
+- external-authority record/observation/index schemas -> `catalogs/authorities/schemas/`;
+- Experimental Episode analytical binding -> `profiles/experimental-episode/experimental-episode-binding-r1.schema.json`.
+
+Historical evidence may retain the old `meta/next/schemas/...` locator as point-in-time provenance. Current consumers must use the natural-owner path.

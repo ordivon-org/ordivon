@@ -6,6 +6,7 @@ integrity, manufacturability, safety, or board fitness. It proves only the exact
 bytes against one request-bound mechanical contract through the installed KiCad CLI.
 """
 from __future__ import annotations
+import sys
 
 import hashlib
 import json
@@ -13,6 +14,12 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Any
+
+_ARTIFACT_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_ARTIFACT_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ARTIFACT_IMPORT_ROOT))
+
+from artifact_verification.claim_results import emits_explicit_claim_results
 
 KICAD = Path("/usr/bin/kicad-cli")
 
@@ -68,26 +75,43 @@ def contract_failures(contract: Any) -> list[str]:
     return failures
 
 
+CLAIM_POINTERS = {
+    "boardContract": "/boardContract",
+    "excellonExport": "/excellonExport",
+    "gerberExport": "/gerberExport",
+    "nativeDrc": "/nativeDrc",
+    "toolIdentity": "/toolIdentity",
+}
+
+
+@emits_explicit_claim_results(CLAIM_POINTERS)
 def verify_kicad_pcb(subject: Path, contract_path: Path, evidence_directory: Path) -> dict[str, Any]:
     evidence_directory.mkdir(parents=True, exist_ok=True)
     failures: list[str] = []
     observations: list[str] = []
     if not subject.is_file():
-        return {"status": "FAIL", "failures": ["PCB subject is not a regular file"]}
+        return {"schemaVersion": 1, "kind": "artifact-eda-kicad-pcb-verification", "profileId": "eda-kicad-pcb-gerber-r1", "status": "FAIL", "failures": ["PCB subject is not a regular file"]}
     if not contract_path.is_file():
-        return {"status": "FAIL", "failures": ["PCB object contract is not a regular file"]}
+        return {"schemaVersion": 1, "kind": "artifact-eda-kicad-pcb-verification", "profileId": "eda-kicad-pcb-gerber-r1", "status": "FAIL", "failures": ["PCB object contract is not a regular file"]}
     try:
         contract = json.loads(contract_path.read_text(encoding="utf-8"))
     except Exception as error:
-        return {"status": "FAIL", "failures": [f"PCB object contract JSON unreadable: {error}"]}
-    failures.extend(contract_failures(contract))
+        return {"schemaVersion": 1, "kind": "artifact-eda-kicad-pcb-verification", "profileId": "eda-kicad-pcb-gerber-r1", "status": "FAIL", "failures": [f"PCB object contract JSON unreadable: {error}"]}
+    contract_errors = contract_failures(contract)
+    failures.extend(contract_errors)
+    tool_pre_failures: list[str] = []
     if not KICAD.is_file():
-        failures.append("required external tool unavailable: /usr/bin/kicad-cli")
+        tool_pre_failures.append("required external tool unavailable: /usr/bin/kicad-cli")
+    failures.extend(tool_pre_failures)
     if failures:
-        return {"status": "FAIL", "failures": failures}
+        tool_status = "NOT_EVALUATED" if contract_errors else "FAIL"
+        return {"schemaVersion": 1, "kind": "artifact-eda-kicad-pcb-verification", "profileId": "eda-kicad-pcb-gerber-r1", "status": "FAIL", "toolIdentity": {"status": tool_status, "failures": tool_pre_failures}, "failures": failures}
 
     version = run([str(KICAD), "version"])
     version_text = (version.stdout or version.stderr).strip().splitlines()[0] if (version.stdout or version.stderr).strip() else ""
+    tool_identity_failures: list[str] = []
+    if version.returncode != 0 or not version_text:
+        tool_identity_failures.append("kicad-cli version identity could not be observed")
 
     drc_path = evidence_directory / "drc.json"
     drc_proc = run([
@@ -95,33 +119,36 @@ def verify_kicad_pcb(subject: Path, contract_path: Path, evidence_directory: Pat
         "--exit-code-violations", "--output", str(drc_path), str(subject),
     ])
     drc: dict[str, Any] = {}
+    drc_failures: list[str] = []
     if drc_path.is_file():
         try:
             drc = json.loads(drc_path.read_text(encoding="utf-8"))
         except Exception as error:
-            failures.append(f"KiCad DRC JSON unreadable: {error}")
+            drc_failures.append(f"KiCad DRC JSON unreadable: {error}")
     else:
-        failures.append("KiCad DRC did not produce JSON evidence")
+        drc_failures.append("KiCad DRC did not produce JSON evidence")
     violations = drc.get("violations") if isinstance(drc, dict) else None
     if drc_proc.returncode != 0 or not isinstance(violations, list) or violations:
-        failures.append("KiCad DRC reported error-level violations")
+        drc_failures.append("KiCad DRC reported error-level violations")
+    failures.extend(drc_failures)
 
     stats_path = evidence_directory / "stats.json"
     stats_proc = run([str(KICAD), "pcb", "export", "stats", "--format", "json", "-o", str(stats_path), str(subject)])
     stats: dict[str, Any] = {}
+    board_failures: list[str] = []
     if stats_proc.returncode != 0 or not stats_path.is_file():
-        failures.append("KiCad board statistics export failed")
+        board_failures.append("KiCad board statistics export failed")
     else:
         try:
             stats = json.loads(stats_path.read_text(encoding="utf-8"))
         except Exception as error:
-            failures.append(f"KiCad board statistics JSON unreadable: {error}")
+            board_failures.append(f"KiCad board statistics JSON unreadable: {error}")
 
     board_contract = contract["board"]
     board_stats = stats.get("board", {}) if isinstance(stats, dict) else {}
     pads = stats.get("pads", {}) if isinstance(stats, dict) else {}
     if bool(board_stats.get("has_outline")) != bool(board_contract["hasOutline"]):
-        failures.append("board outline standing differs from object contract")
+        board_failures.append("board outline standing differs from object contract")
     comparisons = [
         ("board width", number_with_unit(board_stats.get("width"), "mm"), float(board_contract["widthMm"]), 0.0002),
         ("board height", number_with_unit(board_stats.get("height"), "mm"), float(board_contract["heightMm"]), 0.0002),
@@ -129,9 +156,10 @@ def verify_kicad_pcb(subject: Path, contract_path: Path, evidence_directory: Pat
     ]
     for name, observed, expected, tolerance in comparisons:
         if observed is None or abs(observed - expected) > tolerance:
-            failures.append(f"{name} differs from object contract")
+            board_failures.append(f"{name} differs from object contract")
     if int(pads.get("through_hole", -1)) != int(board_contract["throughHolePads"]):
-        failures.append("through-hole pad count differs from object contract")
+        board_failures.append("through-hole pad count differs from object contract")
+    failures.extend(board_failures)
 
     manufacture = evidence_directory / "manufacturing"
     gerber_dir = manufacture / "gerber"
@@ -140,24 +168,27 @@ def verify_kicad_pcb(subject: Path, contract_path: Path, evidence_directory: Pat
     drill_dir.mkdir(parents=True, exist_ok=True)
     layers = list(contract["manufacturingOutputs"]["gerberLayers"])
     gerber_proc = run([str(KICAD), "pcb", "export", "gerbers", "-o", str(gerber_dir), "--layers", ",".join(layers), str(subject)])
+    gerber_failures: list[str] = []
     if gerber_proc.returncode != 0:
-        failures.append("KiCad Gerber export failed")
+        gerber_failures.append("KiCad Gerber export failed")
     drill_report = drill_dir / "drill-report.rpt"
     drill_proc = run([
         str(KICAD), "pcb", "export", "drill", "-o", str(drill_dir), "--format", "excellon",
         "--excellon-units", "mm", "--generate-report", "--report-path", str(drill_report), str(subject),
     ])
+    excellon_failures: list[str] = []
     if drill_proc.returncode != 0:
-        failures.append("KiCad Excellon drill export failed")
+        excellon_failures.append("KiCad Excellon drill export failed")
 
     gerber_files = sorted(path for path in gerber_dir.iterdir() if path.is_file() and path.stat().st_size > 0)
     drill_files = sorted(path for path in drill_dir.iterdir() if path.is_file() and path.stat().st_size > 0)
-    if len(gerber_files) < len(layers) + 1:  # selected layers plus Gerber job metadata
-        failures.append("Gerber export did not materialize the expected layer set plus job metadata")
+    if len(gerber_files) < len(layers) + 1:
+        gerber_failures.append("Gerber export did not materialize the expected layer set plus job metadata")
     if not any(path.suffix.lower() == ".drl" for path in drill_files):
-        failures.append("Excellon drill export did not materialize a .drl file")
+        excellon_failures.append("Excellon drill export did not materialize a .drl file")
     if not drill_report.is_file() or drill_report.stat().st_size == 0:
-        failures.append("drill report was not materialized")
+        excellon_failures.append("drill report was not materialized")
+    failures.extend(gerber_failures + excellon_failures)
 
     if isinstance(drc, dict) and drc.get("ignored_checks"):
         observations.append("KiCad reports ignored/default-disabled checks separately; R1 acceptance binds only error-severity DRC plus the explicit object contract.")
@@ -165,10 +196,16 @@ def verify_kicad_pcb(subject: Path, contract_path: Path, evidence_directory: Pat
     return {
         "schemaVersion": 1,
         "kind": "artifact-eda-kicad-pcb-verification",
+        "profileId": "eda-kicad-pcb-gerber-r1",
         "status": "PASS" if not failures else "FAIL",
         "subject": file_fact(subject),
         "contract": file_fact(contract_path),
         "tool": {"path": str(KICAD), "sha256": sha256_file(KICAD), "version": version_text},
+        "toolIdentity": {"status": "PASS" if not tool_identity_failures else "FAIL", "path": str(KICAD), "sha256": sha256_file(KICAD), "version": version_text, "failures": tool_identity_failures},
+        "nativeDrc": {"status": "PASS" if not drc_failures else "FAIL", "exitCode": drc_proc.returncode, "violationCount": len(violations) if isinstance(violations, list) else None, "failures": drc_failures},
+        "boardContract": {"status": "PASS" if not board_failures else "FAIL", "board": board_stats, "pads": pads, "failures": board_failures},
+        "gerberExport": {"status": "PASS" if not gerber_failures else "FAIL", "files": [file_fact(x) for x in gerber_files], "failures": gerber_failures},
+        "excellonExport": {"status": "PASS" if not excellon_failures else "FAIL", "files": [file_fact(x) for x in drill_files], "report": file_fact(drill_report) if drill_report.is_file() else None, "failures": excellon_failures},
         "drc": {"exitCode": drc_proc.returncode, "report": file_fact(drc_path) if drc_path.is_file() else None, "violationCount": len(violations) if isinstance(violations, list) else None},
         "stats": {"report": file_fact(stats_path) if stats_path.is_file() else None, "board": board_stats, "pads": pads},
         "manufacturing": {"gerber": [file_fact(x) for x in gerber_files], "drill": [file_fact(x) for x in drill_files]},
@@ -176,7 +213,6 @@ def verify_kicad_pcb(subject: Path, contract_path: Path, evidence_directory: Pat
         "failures": failures,
         "boundary": "PASS proves the exact KiCad PCB bytes have zero error-severity KiCad DRC violations, match the request-bound mechanical board contract, and produce non-empty selected Gerber plus Excellon outputs under the exact observed KiCad CLI. It does not prove schematic parity, electrical function, signal/power integrity, manufacturing yield, component correctness, safety, regulatory compliance, or caller-domain fitness."
     }
-
 
 def main() -> int:
     import argparse

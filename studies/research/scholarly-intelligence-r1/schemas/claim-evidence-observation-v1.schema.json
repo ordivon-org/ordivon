@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ordivon.local/schemas/claim-evidence-observation-v1.schema.json",
+  "title": "Ordivon Claim Evidence Observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "observationId", "kind", "source", "rights", "authority", "payload"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "observationId": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["claim", "evidence_identity", "method_context", "correspondence"]},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetId", "snapshotIdentity", "recordKey", "annotationOrigin", "goldAvailability"],
+      "properties": {
+        "assetId": {"type": "string", "minLength": 1},
+        "snapshotIdentity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "recordKey": {"type": "string", "minLength": 1},
+        "annotationOrigin": {"enum": ["gold_annotation", "source_claim", "derived_identity"]},
+        "goldAvailability": {"enum": ["available", "withheld_challenge_test", "not_applicable"]}
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["licenseId", "redistributionStanding"],
+      "properties": {
+        "licenseId": {"const": "CC-BY-4.0"},
+        "redistributionStanding": {"const": "source_terms_apply"}
+      }
+    },
+    "authority": {"const": "evidence_only"},
+    "payload": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "claim"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["contentDigest", "nativeId", "citekey", "dataset", "identityStanding", "nativeLabels"], "properties": {"contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "nativeId": {"type": "string"}, "citekey": {"type": "string", "minLength": 1}, "dataset": {"type": "string", "minLength": 1}, "identityStanding": {"const": "source_coordinate_authority_native_id_nonunique"}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "evidence_identity"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["evidenceLabel", "evidenceKind", "representationStanding", "nativeLabels"], "properties": {"evidenceLabel": {"type": "string", "minLength": 1}, "evidenceKind": {"enum": ["figure", "table"]}, "representationStanding": {"const": "identity_only"}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "method_context"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["contentDigest", "representationStanding", "nativeLabels"], "properties": {"contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "representationStanding": {"const": "content_bound"}, "nativeLabels": {"type": "object"}}}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "correspondence"}}},
+      "then": {"properties": {"payload": {"type": "object", "additionalProperties": false, "required": ["fromObservationId", "toObservationId", "relationType", "relationCeiling", "nativeLabels"], "properties": {"fromObservationId": {"type": "string", "minLength": 1}, "toObservationId": {"type": "string", "minLength": 1}, "relationType": {"enum": ["annotated_supporting_evidence_identity", "annotated_method_context"]}, "relationCeiling": {"enum": ["annotation_not_scientific_truth_or_causality", "method_context_annotation_not_claim_validity"]}, "nativeLabels": {"type": "object"}}}}}
+    }
+  ]
+}

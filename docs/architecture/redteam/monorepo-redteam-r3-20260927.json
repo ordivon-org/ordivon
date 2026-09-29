@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.monorepo-redteam-ledger",
+  "revision": "R3",
+  "date": "2026-09-27",
+  "candidateBaseRevision": "eec3d13d61956a354ee9a93c9ecf47788096f8f0",
+  "providerMainRevision": "c309b467452beb56ae93ce9272461527f396ee23",
+  "findings": [
+    {"id": "RT-GOV-001", "class": "CONFIRMED_NEW", "priority": "HIGH", "standing": "OPEN"},
+    {"id": "RT-GOV-002", "class": "CONFIRMED_NEW", "priority": "HIGH", "standing": "OPEN"},
+    {"id": "RT-AUTHZ-001", "class": "KNOWN_OPEN_CONSEQUENCE", "priority": "HIGH_BEFORE_MULTIUSER_PROMOTION", "standing": "OPEN"}
+  ],
+  "revalidated": [
+    {"id": "RT-SUPPLY-001", "standing": "OPEN"}
+  ],
+  "negativeControlsHeld": [
+    "runtime-request-replay-identity",
+    "runtime-orphan-recovery-late-result"
+  ],
+  "hostContinuity": {
+    "workRef": "work:redteam:monorepo-architecture-20260927",
+    "messages": [
+      "message:redteam:rt-gov-001:20260927",
+      "message:redteam:rt-gov-002:20260927",
+      "message:redteam:rt-authz-001:20260927"
+    ]
+  },
+  "truthRole": "red-team evidence index; not GitHub provider, Runtime execution, Security admission, or Host domain authority"
+}
