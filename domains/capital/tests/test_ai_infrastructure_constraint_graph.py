@@ -144,8 +144,11 @@ def test_external_owner_census_keeps_constraint_graph_as_thin_research_binding()
         item for item in census["responsibilities"]
         if item["id"] == "research-ai-infrastructure-constraint-mapping"
     )
-    assert row["sourcePatterns"] == ["src/ordivon_capital/research/constraint_graph.py"]
+    assert row["sourcePatterns"] == [
+        "src/ordivon_capital/research/constraint_graph.py",
+        "src/ordivon_capital/research/constraint_measurements.py",
+    ]
     assert row["localStanding"] == "RESEARCH_ONLY_VALIDATION_REQUIRED_THIN_BINDING"
-    assert "does not own industrial capacity truth" in row["localResponsibility"]
+    assert "do not own industrial capacity truth" in row["localResponsibility"]
     assert "ISO/IEC/IEEE 15288" in row["standardOwners"]
     assert "Berkeley Lab Queued Up" in row["providerOwners"]

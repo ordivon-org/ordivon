@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-acceptance",
+  "truthRole": "MEASUREMENT_IMPLEMENTATION_ACCEPTANCE_NOT_PROVIDER_TRUTH_OR_MODEL_VALIDATION",
+  "subject": "ai-infrastructure-constraint-measurements-r1",
+  "observedDate": "2026-09-29",
+  "sourceBaseRevision": "01f7cd8a5ce074e03c73e497fceb062284a26787",
+  "standing": "PASS_R1_MEASUREMENT_CONTROL_FRONTIER_FILL_CONTINUES",
+  "graphBinding": {
+    "relativePath": "config/ai_infrastructure_constraint_graph_r1.json",
+    "expectedDigest": "sha256:fd61be8684a5c9160f13aa6f6e0d03565a2f25343d620cf0d46b8d9d18bca23f"
+  },
+  "artifactDigests": {
+    "config/ai_infrastructure_constraint_measurements_r1.json": "sha256:dada79f980a6d75750d6c1b3d2d93fc523162c901bbdae2bc81811717c1ac006",
+    "schema/ai-infrastructure-constraint-measurements-r1.schema.json": "sha256:2e8d43d2f24148dc05d5a04e1b79798d23c72c19c9b5c474bd5ebf55bb7b1c23",
+    "src/ordivon_capital/research/constraint_measurements.py": "sha256:7dba0c83afad18218989876a26dd9103c8bd58f4236bbbbcab45e45e75684843",
+    "docs/AI_INFRASTRUCTURE_CONSTRAINT_MEASUREMENTS_R1.md": "sha256:19564fa332720b38bb6fbc33d89ac708fa7f303eb8a394bc350c33e36af662b6",
+    "tests/test_ai_infrastructure_constraint_measurements.py": "sha256:b69df26fad65b84a487d9cdb22c1b5e310126991e28ffec1fbb0dd255a12428d",
+    "config/capital_lego_registry.json": "sha256:1c44863297fdf64ec1e8964197d3a4c81fd79037ad9505a90248405206d298db",
+    "planning/functional-lego-map-r1.json": "sha256:6b3174734482c95a886229c5d8e5bd8a3b4565c3d259b176d8002bf15a0ed0d5",
+    "config/quantitative_component_inventory.json": "sha256:1852fe7cb63b9c7f8ff5b5aae62b15f0b1d636000dc8d31bc2c2437d9a6cb5a7",
+    "config/external_owner_census.json": "sha256:cd9a12ac24bf1af6e743044c170136669bd1cdcb44dd61d8f3c07a508e11b4ec"
+  },
+  "frontierMeasurements": {
+    "CN:accelerator-logic": {
+      "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+      "headroomRatio": null,
+      "reason": "Provider statement establishes excess demand direction but no independent same-unit demand quantity exists for China frontier-equivalent accelerators.",
+      "resolutionRequirement": "Obtain an independent same-scope/time demand or committed-order measure in accelerator units, H100e-equivalent useful compute, or another explicitly bridged unit."
+    },
+    "CN:hbm": {
+      "standing": "BLOCKED_ENDOGENOUS_REQUIREMENT",
+      "headroomRatio": null,
+      "reason": "240k domestic-supported units and 320k total modeled 950DT units share the same supply-constrained production model; dividing them would measure modeled source mix, not HBM supply headroom against independent demand.",
+      "resolutionRequirement": "Acquire an independent same-unit requirement: contracted/customer 950DT demand by memory configuration or China-wide HBM GB demand derived from independently observed accelerator orders/BOMs, with the same 2026 delivery basis."
+    },
+    "US:transformer-switchgear": {
+      "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+      "headroomRatio": null,
+      "reason": "Lead time demonstrates schedule pressure but does not identify annual qualified transformer MVA flow versus committed/project MVA requirement in one voltage/specification class.",
+      "resolutionRequirement": "Obtain annual qualified production/import flow and order backlog in matched MVA/voltage classes for AI/data-center substations, with delivery dates."
+    },
+    "US:grid-interconnection-transmission": {
+      "standing": "BLOCKED_SCOPE_MISMATCH",
+      "headroomRatio": null,
+      "reason": "The 2,060GW Berkeley Lab figure is generation/storage interconnection while the bottleneck question is load connection and transmission deliverability. ERCOT now provides a load-side request/maturity funnel, but it remains regional and requested/qualified status is not the same as national deliverable grid capacity.",
+      "resolutionRequirement": "Build region-matched funnels from requested MW → verified/studied/approved MW → contracted/energized MW → observed peak load and compare them with region-specific firm supply/transmission capability; aggregate nationally only after compatible ISO/RTO coverage exists."
+    }
+  },
+  "methodResult": {
+    "minimalBrokenFrontier": "INDEPENDENT_REQUIREMENT_DENOMINATORS_AND_MATCHED_SCOPE_CAPACITY",
+    "fillPolicy": "CURRENT_FRONTIER_FIRST_THEN_CANDIDATE_THEN_MONITOR",
+    "quantitativeHeadroomAdmittedCount": 0,
+    "reason": "No current P0 pair yet satisfies same unit/scope/time plus independent requirement denominator. Scarcity direction remains usable without manufacturing pseudo-precision.",
+    "nextPriorityPairs": [
+      [
+        "CN",
+        "accelerator-logic"
+      ],
+      [
+        "CN",
+        "hbm"
+      ],
+      [
+        "US",
+        "transformer-switchgear"
+      ],
+      [
+        "US",
+        "grid-interconnection-transmission"
+      ]
+    ]
+  },
+  "governance": {
+    "ownerDomain": "research",
+    "measurementLegoStatus": "ACTIVE",
+    "quantitativeClassification": "CONTROL",
+    "sr26ModelStanding": "NON_MODEL",
+    "quantitativeStatus": "RESEARCH_ONLY",
+    "decisionStateRegistryMutated": false,
+    "externalFinancialWritesAllowed": false,
+    "ownerRiskBudgetInferred": false
+  },
+  "verification": {
+    "tddRedJobId": "job-01a0edc2-1820-7b53-b31f-7b13394b721a",
+    "focusedGreenJobId": "job-01a0edc5-f172-7063-a977-5288efc5f24d",
+    "fullHermeticPassJobId": "job-01a0edcb-2a84-7b90-9a43-b8919ae72e32",
+    "hermeticTestResult": "426 passed, 11 provider_qualification tests deselected",
+    "ruff": "PASS",
+    "capitalRegistry": "PASS",
+    "quantitativeInventory": "PASS",
+    "currentStateReadback": "PASS"
+  },
+  "nonClaims": [
+    "No numerical China HBM headroom ratio is admitted from 240k domestic-supported versus 320k total modeled 950DT units because the requirement denominator is endogenous to the same supply model.",
+    "Huawei excess-demand statements establish direction but not a same-unit numerical accelerator-demand denominator.",
+    "Transformer lead time is not transformer MVA headroom.",
+    "The Berkeley Lab generation/storage queue is not a large-load demand denominator.",
+    "ERCOT large-load request and maturity data are regional request/status observations, not national deliverable load headroom.",
+    "This acceptance does not prospectively validate the frontier heuristic, create an investment recommendation, infer owner risk appetite, or authorize financial effects."
+  ]
+}

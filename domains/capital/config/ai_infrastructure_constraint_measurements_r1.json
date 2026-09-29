@@ -1,0 +1,654 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.ai-infrastructure-constraint-measurements",
+  "truthRole": "MEASUREMENT_BINDING_NOT_PROVIDER_TRUTH_OR_HEADROOM_BY_DEFAULT",
+  "asOfDate": "2026-09-29",
+  "graphBinding": {
+    "relativePath": "config/ai_infrastructure_constraint_graph_r1.json",
+    "expectedDigest": "sha256:fd61be8684a5c9160f13aa6f6e0d03565a2f25343d620cf0d46b8d9d18bca23f"
+  },
+  "principles": [
+    "Fill the minimal evidence-supported frontier before completing non-binding nodes.",
+    "A headroom ratio is admitted only when capacity and requirement share unit, scope and time basis and the requirement is independent of the capacity model.",
+    "Observed, modeled and derived measurements remain distinct; price/lead-time signals establish scarcity direction but are not quantity headroom.",
+    "Do not use a generation interconnection queue as a load interconnection denominator or a regional request queue as national realized demand.",
+    "Preserve UNKNOWN and specify the next observation that could close it rather than manufacturing a precise ratio."
+  ],
+  "effectBoundary": {
+    "externalFinancialWritesAllowed": false,
+    "ownerRiskBudgetInferred": false,
+    "investmentRecommendationAuthority": false,
+    "decisionStateRegistryMutationIncluded": false
+  },
+  "evidence": [
+    {
+      "evidenceId": "m-epoch-huawei-roadmap",
+      "persistentIdentity": "url:https://epoch.ai/publications/huaweis-roadmap-to-2031",
+      "canonicalUrl": "https://epoch.ai/publications/huaweis-roadmap-to-2031",
+      "sourceClass": "INDEPENDENT_RESEARCH_MODEL",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "2026 Huawei production/memory mix model. Median 1.5M Ascend units, 0.88M H100e; domestic CXMT/XMC HBM supports about 240k 950DT 96GB units. Model outputs and assumptions, not provider shipment truth."
+    },
+    {
+      "evidenceId": "m-epoch-huawei-inputs",
+      "persistentIdentity": "url:https://docs.google.com/spreadsheets/d/1Fa1BpA11F2F1bd5OgUohgphE5zaKy-GIXTf9aD4-ZMQ/edit?gid=0",
+      "canonicalUrl": "https://docs.google.com/spreadsheets/d/1Fa1BpA11F2F1bd5OgUohgphE5zaKy-GIXTf9aD4-ZMQ/edit?gid=0",
+      "sourceClass": "INDEPENDENT_RESEARCH_MODEL_INPUTS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Epoch input sheet: CXMT 2026 year-end HBM exit rate 30k WSPM median (22-40k), FE yield 35% (25-45%), 8-hi backend yield 70% (55-82%), five-month lead, and XMC 3k WSPM modeled assumption."
+    },
+    {
+      "evidenceId": "m-huawei-950-whitepaper",
+      "persistentIdentity": "url:https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf",
+      "canonicalUrl": "https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf",
+      "sourceClass": "PRIMARY_VENDOR_TECHNICAL_DOCUMENT",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Huawei 2026 Ascend 950 architecture whitepaper lists 950DT memory variants 144GB/96GB with 4TB/s bandwidth and 950PR 128GB/112GB with 1.6/1.4TB/s. Product specifications are vendor-owned, not independent performance validation."
+    },
+    {
+      "evidenceId": "m-reuters-huawei-demand",
+      "persistentIdentity": "url:https://www.reuters.com/world/china/huaweis-xu-says-chinese-ai-not-powerful-enough-yet-see-frontier-risks-2026-09-17/",
+      "canonicalUrl": "https://www.reuters.com/world/china/huaweis-xu-says-chinese-ai-not-powerful-enough-yet-see-frontier-risks-2026-09-17/",
+      "sourceClass": "NEWS_REPORTING_PRIMARY_QUOTE",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Huawei rotating chairman Eric Xu says the company cannot produce enough AI computing equipment to satisfy China demand and therefore does not plan full-scale international expansion. Directional excess-demand evidence; no quantity."
+    },
+    {
+      "evidenceId": "m-reuters-china-hbm-prices",
+      "persistentIdentity": "url:https://www.reuters.com/world/asia-pacific/chinas-ai-chipmakers-raise-prices-high-bandwidth-memory-shortage-bites-2026-09-10/",
+      "canonicalUrl": "https://www.reuters.com/world/asia-pacific/chinas-ai-chipmakers-raise-prices-high-bandwidth-memory-shortage-bites-2026-09-10/",
+      "sourceClass": "NEWS_REPORTING",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports HBM shortage and export controls raising Chinese AI accelerator costs; Huawei 950DT indicated price >250k yuan, 20-50% above quotes two months earlier. Price is a scarcity signal, not quantity headroom."
+    },
+    {
+      "evidenceId": "m-reuters-us-transformer",
+      "persistentIdentity": "url:https://www.reuters.com/business/energy/us-power-companies-scramble-secure-equipment-surging-data-center-demand-strains-2026-07-09/",
+      "canonicalUrl": "https://www.reuters.com/business/energy/us-power-companies-scramble-secure-equipment-surging-data-center-demand-strains-2026-07-09/",
+      "sourceClass": "NEWS_REPORTING",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Reports selected U.S. high-voltage transformer lead times up to 160 weeks and multi-year advance procurement. Lead time is direct schedule pressure, not a capacity/requirement ratio."
+    },
+    {
+      "evidenceId": "m-doe-transformer-supply",
+      "persistentIdentity": "url:https://www.energy.gov/oe/supply-chain-and-market-analysis",
+      "canonicalUrl": "https://www.energy.gov/oe/supply-chain-and-market-analysis",
+      "sourceClass": "OFFICIAL_SUPPLY_CHAIN_ANALYSIS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "DOE identifies transformer supply-chain vulnerability; distribution-transformer lead times rose from 3-6 months in 2019 to 12-30 months in 2023 latest available on that page. Different class/time from high-voltage transformers."
+    },
+    {
+      "evidenceId": "m-lbnl-generation-queue",
+      "persistentIdentity": "url:https://emp.lbl.gov/queued-2026-edition-characteristics-power-plants-seeking-transmission-interconnection-end-2025",
+      "canonicalUrl": "https://emp.lbl.gov/queued-2026-edition-characteristics-power-plants-seeking-transmission-interconnection-end-2025",
+      "sourceClass": "OFFICIAL_RESEARCH_DATASET",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Berkeley Lab reports >2,060GW generation+storage seeking U.S. transmission interconnection at end-2025. Dataset explicitly concerns generation/storage requests, not load interconnection demand."
+    },
+    {
+      "evidenceId": "m-lbnl-large-load",
+      "persistentIdentity": "url:https://emp.lbl.gov/publications/speed-power-solutions-accelerating",
+      "canonicalUrl": "https://emp.lbl.gov/publications/speed-power-solutions-accelerating",
+      "sourceClass": "OFFICIAL_RESEARCH_REPORT",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Berkeley Lab 2026 Speed to Power documents bottlenecks slowing large-load connections and more than 40 solution classes. Establishes a load-side process problem but does not provide one national load-queue MW denominator."
+    },
+    {
+      "evidenceId": "m-ercot-large-load",
+      "persistentIdentity": "url:https://www.ercot.com/news/release/06182026-puct-approves-ercots",
+      "canonicalUrl": "https://www.ercot.com/news/release/06182026-puct-approves-ercots",
+      "sourceClass": "PRIMARY_GRID_OPERATOR_RELEASE",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "ERCOT June 18 2026 says it was tracking more than 438,000MW of large-load requests, nearly 89% data centers. Requested load is not approved or energized capacity and is ERCOT-regional, not U.S.-national."
+    },
+    {
+      "evidenceId": "m-ercot-large-load-funnel-march",
+      "persistentIdentity": "url:https://www.ercot.com/files/docs/2026/03/12/March-TAC-Report.pdf",
+      "canonicalUrl": "https://www.ercot.com/files/docs/2026/03/12/March-TAC-Report.pdf",
+      "sourceClass": "PRIMARY_GRID_OPERATOR_PRESENTATION",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "ERCOT March 2026 TAC report provides a project-status funnel for loads associated with 2026: 5,768MW observed energized, 2,759MW approved to energize but not operational, 3,181MW planning studies approved, 7,353MW under review, 2,704MW no studies submitted, total 21,765MW. This is a dated ERCOT regional project-status view, not national load demand or deliverable grid headroom."
+    }
+  ],
+  "fillQueue": [
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "accelerator-logic",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 1,
+      "reason": "Current frontier; numeric requirement denominator missing.",
+      "requiredMeasurements": [
+        "independent committed accelerator demand",
+        "delivered compute flow",
+        "realized workload bridge"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "hbm",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 2,
+      "reason": "Current frontier; supply model exists but independent HBM demand denominator is missing.",
+      "requiredMeasurements": [
+        "finished domestic HBM GB/stacks",
+        "BOM-weighted contracted HBM demand",
+        "yield and qualification"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "transformer-switchgear",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 3,
+      "reason": "Current frontier; lead time is observed but matched MVA flow/backlog is missing.",
+      "requiredMeasurements": [
+        "qualified MVA/year",
+        "matched order backlog",
+        "delivery/cancellation history"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "grid-interconnection-transmission",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 4,
+      "reason": "Current frontier; generator queue is not a load-side headroom denominator.",
+      "requiredMeasurements": [
+        "large-load request/approved/energized funnel",
+        "study duration",
+        "regional deliverable transmission capacity"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "advanced-packaging",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 5,
+      "reason": "Candidate/UNKNOWN; needs China-specific qualified capacity/backlog before promotion.",
+      "requiredMeasurements": [
+        "qualified 2.5D/3D units or wafers/year",
+        "yield",
+        "customer backlog"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "hbm",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 6,
+      "reason": "Candidate frontier; global HBM is tight but U.S.-ecosystem allocation/demand bridge is incomplete.",
+      "requiredMeasurements": [
+        "supplier finished GB",
+        "U.S.-ecosystem BOM demand",
+        "allocation/backlog"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "advanced-packaging",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 7,
+      "reason": "Candidate frontier; packaging expansion may move the constraint.",
+      "requiredMeasurements": [
+        "qualified package throughput",
+        "accelerator BOM demand",
+        "backlog and lead time"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "ai-data-center-it",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 8,
+      "reason": "Candidate frontier; generic data-center GW must be separated from energized high-density AI IT MW.",
+      "requiredMeasurements": [
+        "energized AI IT MW",
+        "contracted accelerator MW",
+        "MEP/cooling commissioning"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "electricity-generation",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 9,
+      "reason": "Candidate frontier; nameplate additions do not equal site firm deliverability.",
+      "requiredMeasurements": [
+        "regional firm capacity",
+        "contracted data-center load",
+        "behind-the-meter supply"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "ai-data-center-it",
+      "priority": "P2_MONITOR",
+      "order": 10,
+      "reason": "Not current national frontier; monitor for migration after accelerator/HBM relief.",
+      "requiredMeasurements": [
+        "high-density AI-ready utilization",
+        "energized MW",
+        "retrofit limits"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "electricity-generation",
+      "priority": "P2_MONITOR",
+      "order": 11,
+      "reason": "Not current national frontier; monitor local firm-power rather than national nameplate only.",
+      "requiredMeasurements": [
+        "regional firm power",
+        "AI cluster contracted load",
+        "curtailment"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "transformer-switchgear",
+      "priority": "P2_MONITOR",
+      "order": 12,
+      "reason": "Not current national frontier; exports do not prove local spare capacity.",
+      "requiredMeasurements": [
+        "domestic lead time",
+        "MVA/year production",
+        "backlog"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "grid-interconnection-transmission",
+      "priority": "P2_MONITOR",
+      "order": 13,
+      "reason": "Not current national frontier; monitor regional connection/transfer constraints.",
+      "requiredMeasurements": [
+        "regional AI load connection time",
+        "congestion",
+        "energized MW"
+      ]
+    }
+  ],
+  "nodeMeasurements": [
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "accelerator-logic",
+      "demandSupplySignal": "DEMAND_EXCEEDS_SUPPLY_ATTRIBUTED_PROVIDER_STATEMENT",
+      "measurements": [
+        {
+          "metricKey": "epoch-huawei-2026-ascend-units",
+          "standing": "MODELED",
+          "value": 1.5,
+          "unit": "million accelerator units",
+          "scope": "Huawei Ascend 2026 production model",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "m-epoch-huawei-roadmap"
+          ],
+          "claimBoundary": "Median model output, not observed shipments."
+        },
+        {
+          "metricKey": "epoch-huawei-2026-compute-output",
+          "standing": "MODELED",
+          "value": 0.88,
+          "unit": "million H100e",
+          "scope": "Huawei Ascend 2026 production model",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "m-epoch-huawei-roadmap"
+          ],
+          "claimBoundary": "H100e peak-compute normalization; not realized workload throughput."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+        "headroomRatio": null,
+        "reason": "Provider statement establishes excess demand direction but no independent same-unit demand quantity exists for China frontier-equivalent accelerators.",
+        "resolutionRequirement": "Obtain an independent same-scope/time demand or committed-order measure in accelerator units, H100e-equivalent useful compute, or another explicitly bridged unit."
+      },
+      "nextObservations": [
+        "Huawei/customer committed orders by product and delivery window",
+        "China-wide delivered accelerator stock/flow by model",
+        "realized useful-work throughput or a validated bridge from peak compute"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "hbm",
+      "demandSupplySignal": "SCARCITY_CONFIRMED_QUANTITY_HEADROOM_NOT_ADMITTED",
+      "measurements": [
+        {
+          "metricKey": "huawei-950dt-memory-variants-gb",
+          "standing": "OBSERVED",
+          "unit": "GB per accelerator",
+          "scope": "Huawei Ascend 950DT",
+          "timeBasis": "2026 product specification",
+          "evidenceIds": [
+            "m-huawei-950-whitepaper"
+          ],
+          "claimBoundary": "Primary vendor specification; two variants exist and must not be collapsed.",
+          "values": [
+            96.0,
+            144.0
+          ]
+        },
+        {
+          "metricKey": "huawei-950dt-memory-bandwidth",
+          "standing": "OBSERVED",
+          "value": 4.0,
+          "unit": "TB/s per accelerator",
+          "scope": "Huawei Ascend 950DT",
+          "timeBasis": "2026 product specification",
+          "evidenceIds": [
+            "m-huawei-950-whitepaper"
+          ],
+          "claimBoundary": "Primary vendor specification."
+        },
+        {
+          "metricKey": "epoch-cxmt-2026-hbm-exit-rate",
+          "standing": "MODELED",
+          "value": 30.0,
+          "unit": "thousand wafer starts/month",
+          "scope": "CXMT HBM year-end exit rate",
+          "timeBasis": "2026YE",
+          "evidenceIds": [
+            "m-epoch-huawei-inputs"
+          ],
+          "claimBoundary": "Median independent-research model input; 22-40k range exists, not annual average."
+        },
+        {
+          "metricKey": "epoch-cxmt-hbm-front-end-yield",
+          "standing": "MODELED",
+          "value": 0.35,
+          "unit": "fraction",
+          "scope": "CXMT HBM3 8-hi front-end wafer-sort yield",
+          "timeBasis": "2026 model input",
+          "evidenceIds": [
+            "m-epoch-huawei-inputs"
+          ],
+          "claimBoundary": "Model input; low/high 0.25/0.45."
+        },
+        {
+          "metricKey": "epoch-cxmt-hbm-backend-yield-8hi",
+          "standing": "MODELED",
+          "value": 0.7,
+          "unit": "fraction",
+          "scope": "CXMT HBM3 8-hi stacking yield",
+          "timeBasis": "2026 model input",
+          "evidenceIds": [
+            "m-epoch-huawei-inputs"
+          ],
+          "claimBoundary": "Model input; low/high 0.55/0.82."
+        },
+        {
+          "metricKey": "epoch-domestic-hbm-supported-950dt-units",
+          "standing": "MODELED",
+          "value": 240000.0,
+          "unit": "accelerator units",
+          "scope": "Huawei Ascend 950DT 96GB using CXMT+XMC HBM",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "m-epoch-huawei-roadmap",
+            "m-epoch-huawei-inputs"
+          ],
+          "claimBoundary": "Median model output; depends on wafer-start/yield/allocation assumptions."
+        },
+        {
+          "metricKey": "epoch-domestic-hbm-supported-950dt-pb-96gb",
+          "standing": "DERIVED",
+          "value": 23.04,
+          "unit": "PB decimal memory capacity",
+          "scope": "Huawei Ascend 950DT 96GB domestic-HBM-supported model slice",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "m-epoch-huawei-roadmap",
+            "m-huawei-950-whitepaper"
+          ],
+          "claimBoundary": "Derived as 240,000 units × 96GB / 1,000,000 GB per PB; model-implied allocated memory volume, not measured national HBM output."
+        },
+        {
+          "metricKey": "epoch-modeled-total-950dt-hbm-units",
+          "standing": "DERIVED",
+          "value": 320000.0,
+          "unit": "accelerator units",
+          "scope": "Huawei Ascend 950DT 96GB all modeled HBM channels",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "m-epoch-huawei-roadmap"
+          ],
+          "claimBoundary": "Derived from 240k domestic-HBM + 80k smuggled-HBM model slices; this total is endogenous to supply channels."
+        },
+        {
+          "metricKey": "epoch-modeled-total-950dt-hbm-pb-96gb",
+          "standing": "DERIVED",
+          "value": 30.72,
+          "unit": "PB decimal memory capacity",
+          "scope": "Huawei Ascend 950DT 96GB all modeled HBM channels",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "m-epoch-huawei-roadmap",
+            "m-huawei-950-whitepaper"
+          ],
+          "claimBoundary": "Derived as 320,000 × 96GB; not independent demand."
+        },
+        {
+          "metricKey": "huawei-950dt-price-rise-attributed-hbm-shortage-low",
+          "standing": "OBSERVED",
+          "value": 20.0,
+          "unit": "percent",
+          "scope": "Huawei 950DT indicated price change versus quotes two months earlier",
+          "timeBasis": "2026-09-10",
+          "evidenceIds": [
+            "m-reuters-china-hbm-prices"
+          ],
+          "claimBoundary": "Reuters-reported lower bound; price signal, not quantity."
+        },
+        {
+          "metricKey": "huawei-950dt-price-rise-attributed-hbm-shortage-high",
+          "standing": "OBSERVED",
+          "value": 50.0,
+          "unit": "percent",
+          "scope": "Huawei 950DT indicated price change versus quotes two months earlier",
+          "timeBasis": "2026-09-10",
+          "evidenceIds": [
+            "m-reuters-china-hbm-prices"
+          ],
+          "claimBoundary": "Reuters-reported upper bound; price signal, not quantity."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_ENDOGENOUS_REQUIREMENT",
+        "headroomRatio": null,
+        "reason": "240k domestic-supported units and 320k total modeled 950DT units share the same supply-constrained production model; dividing them would measure modeled source mix, not HBM supply headroom against independent demand.",
+        "resolutionRequirement": "Acquire an independent same-unit requirement: contracted/customer 950DT demand by memory configuration or China-wide HBM GB demand derived from independently observed accelerator orders/BOMs, with the same 2026 delivery basis."
+      },
+      "nextObservations": [
+        "independent 950DT orders/backlog by 96GB versus 144GB variant",
+        "China-wide accelerator BOM-weighted HBM demand in GB with customer order dates",
+        "qualified domestic HBM output in finished GB or stacks rather than year-end wafer-start exit rate",
+        "CXMT/XMC realized yield and five-month wafer-to-package lag"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "transformer-switchgear",
+      "demandSupplySignal": "LEAD_TIME_PRESSURE_CONFIRMED_CAPACITY_HEADROOM_UNKNOWN",
+      "measurements": [
+        {
+          "metricKey": "reported-high-voltage-transformer-lead-time-weeks-up-to",
+          "standing": "OBSERVED",
+          "value": 160.0,
+          "unit": "weeks",
+          "scope": "selected U.S. high-voltage transformers",
+          "timeBasis": "2026-07",
+          "evidenceIds": [
+            "m-reuters-us-transformer"
+          ],
+          "claimBoundary": "Reported upper-end lead time, specification/vendor dependent."
+        },
+        {
+          "metricKey": "doe-distribution-transformer-lead-time-low",
+          "standing": "OBSERVED",
+          "value": 12.0,
+          "unit": "months",
+          "scope": "U.S. distribution transformers",
+          "timeBasis": "2023 latest on DOE page",
+          "evidenceIds": [
+            "m-doe-transformer-supply"
+          ],
+          "claimBoundary": "Different transformer class and stale relative to 2026 high-voltage observation; retained as supply-chain context only."
+        },
+        {
+          "metricKey": "doe-distribution-transformer-lead-time-high",
+          "standing": "OBSERVED",
+          "value": 30.0,
+          "unit": "months",
+          "scope": "U.S. distribution transformers",
+          "timeBasis": "2023 latest on DOE page",
+          "evidenceIds": [
+            "m-doe-transformer-supply"
+          ],
+          "claimBoundary": "Different transformer class and stale relative to 2026 high-voltage observation; retained as supply-chain context only."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+        "headroomRatio": null,
+        "reason": "Lead time demonstrates schedule pressure but does not identify annual qualified transformer MVA flow versus committed/project MVA requirement in one voltage/specification class.",
+        "resolutionRequirement": "Obtain annual qualified production/import flow and order backlog in matched MVA/voltage classes for AI/data-center substations, with delivery dates."
+      },
+      "nextObservations": [
+        "manufacturer and import qualified MVA/year by high-voltage class",
+        "utility/developer committed transformer MVA and delivery backlog",
+        "cancellations/double-ordering adjustment",
+        "electrical steel, copper, bushing and breaker subcomponent lead times"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "grid-interconnection-transmission",
+      "demandSupplySignal": "LARGE_LOAD_CONNECTION_BOTTLENECK_CONFIRMED_NATIONAL_HEADROOM_UNKNOWN",
+      "measurements": [
+        {
+          "metricKey": "generator-storage-interconnection-queue",
+          "standing": "OBSERVED",
+          "value": 2060.0,
+          "unit": "GW plus",
+          "scope": "U.S. generation+storage transmission interconnection requests",
+          "timeBasis": "2025YE",
+          "evidenceIds": [
+            "m-lbnl-generation-queue"
+          ],
+          "claimBoundary": "Generation/storage queue, not large-load interconnection demand; cannot serve as load denominator or deliverable supply."
+        },
+        {
+          "metricKey": "ercot-large-load-requests-tracked",
+          "standing": "OBSERVED",
+          "value": 438.0,
+          "unit": "GW plus",
+          "scope": "ERCOT large-load requests",
+          "timeBasis": "2026-06-18",
+          "evidenceIds": [
+            "m-ercot-large-load"
+          ],
+          "claimBoundary": "Current official request snapshot; requested, not approved or energized."
+        },
+        {
+          "metricKey": "ercot-large-load-data-center-share",
+          "standing": "OBSERVED",
+          "value": 89.0,
+          "unit": "percent nearly",
+          "scope": "ERCOT large-load requests",
+          "timeBasis": "2026-06-18",
+          "evidenceIds": [
+            "m-ercot-large-load"
+          ],
+          "claimBoundary": "Share of tracked requests attributed to data centers; does not establish project maturity or simultaneity."
+        },
+        {
+          "metricKey": "ercot-2026-observed-energized",
+          "standing": "OBSERVED",
+          "value": 5768.0,
+          "unit": "MW",
+          "scope": "ERCOT large-load project-status table, 2026 column",
+          "timeBasis": "2026-03 report",
+          "evidenceIds": [
+            "m-ercot-large-load-funnel-march"
+          ],
+          "claimBoundary": "Observed energized category in ERCOT table; regional and dated."
+        },
+        {
+          "metricKey": "ercot-2026-approved-to-energize-not-operational",
+          "standing": "OBSERVED",
+          "value": 2759.0,
+          "unit": "MW",
+          "scope": "ERCOT large-load project-status table, 2026 column",
+          "timeBasis": "2026-03 report",
+          "evidenceIds": [
+            "m-ercot-large-load-funnel-march"
+          ],
+          "claimBoundary": "Approved to energize but not operational category."
+        },
+        {
+          "metricKey": "ercot-2026-planning-studies-approved",
+          "standing": "OBSERVED",
+          "value": 3181.0,
+          "unit": "MW",
+          "scope": "ERCOT large-load project-status table, 2026 column",
+          "timeBasis": "2026-03 report",
+          "evidenceIds": [
+            "m-ercot-large-load-funnel-march"
+          ],
+          "claimBoundary": "Planning studies approved category."
+        },
+        {
+          "metricKey": "ercot-2026-under-review",
+          "standing": "OBSERVED",
+          "value": 7353.0,
+          "unit": "MW",
+          "scope": "ERCOT large-load project-status table, 2026 column",
+          "timeBasis": "2026-03 report",
+          "evidenceIds": [
+            "m-ercot-large-load-funnel-march"
+          ],
+          "claimBoundary": "Under ERCOT review category."
+        },
+        {
+          "metricKey": "ercot-2026-no-studies-submitted",
+          "standing": "OBSERVED",
+          "value": 2704.0,
+          "unit": "MW",
+          "scope": "ERCOT large-load project-status table, 2026 column",
+          "timeBasis": "2026-03 report",
+          "evidenceIds": [
+            "m-ercot-large-load-funnel-march"
+          ],
+          "claimBoundary": "No studies submitted category."
+        },
+        {
+          "metricKey": "ercot-2026-project-status-total",
+          "standing": "OBSERVED",
+          "value": 21765.0,
+          "unit": "MW",
+          "scope": "ERCOT large-load project-status table, 2026 column",
+          "timeBasis": "2026-03 report",
+          "evidenceIds": [
+            "m-ercot-large-load-funnel-march"
+          ],
+          "claimBoundary": "Sum of ERCOT status categories for the table 2026 column; not a national requirement denominator."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "The 2,060GW Berkeley Lab figure is generation/storage interconnection while the bottleneck question is load connection and transmission deliverability. ERCOT now provides a load-side request/maturity funnel, but it remains regional and requested/qualified status is not the same as national deliverable grid capacity.",
+        "resolutionRequirement": "Build region-matched funnels from requested MW → verified/studied/approved MW → contracted/energized MW → observed peak load and compare them with region-specific firm supply/transmission capability; aggregate nationally only after compatible ISO/RTO coverage exists."
+      },
+      "nextObservations": [
+        "ERCOT Batch Zero verified/base/studied MW after eligibility audit",
+        "ISO/RTO large-load queue snapshots with common maturity states",
+        "approved-to-energize MW and observed peak consumption",
+        "regional transmission upgrade scope/capability and completion dates"
+      ]
+    }
+  ]
+}

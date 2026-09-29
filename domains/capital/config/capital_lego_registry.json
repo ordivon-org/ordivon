@@ -1679,6 +1679,52 @@
         "external financial effect",
         "automatic decision-state tag creation"
       ]
+    },
+    {
+      "legoId": "capital.research.ai-infrastructure-constraint-measurements",
+      "ownerDomain": "research",
+      "sourceClass": "CANONICAL",
+      "status": "ACTIVE",
+      "functionalRoles": [
+        "Validate",
+        "Measure"
+      ],
+      "implementation": {
+        "path": "src/ordivon_capital/research/constraint_measurements.py",
+        "symbol": "validate_constraint_measurements_document"
+      },
+      "authorityRequirement": "NONE",
+      "effectClass": "NONE",
+      "sideEffects": [],
+      "replayClass": "PURE_DETERMINISTIC",
+      "currentnessRequirement": "IMMUTABLE_INPUT",
+      "riskTier": "HIGH",
+      "inputContracts": [
+        "config/ai_infrastructure_constraint_measurements_r1.json",
+        "config/ai_infrastructure_constraint_graph_r1.json",
+        "schema/ai-infrastructure-constraint-measurements-r1.schema.json"
+      ],
+      "outputContracts": [
+        "ordivon.capital.ai-infrastructure-constraint-measurements"
+      ],
+      "evidenceObligations": [
+        "exact graph digest binding",
+        "persistent source identities",
+        "same-unit/scope/time headroom bridge",
+        "independent requirement denominator"
+      ],
+      "permittedUses": [
+        "validate research measurements",
+        "prioritize frontier-first evidence acquisition",
+        "admit/reject arithmetic headroom bridge"
+      ],
+      "prohibitedUses": [
+        "provider truth assertion",
+        "automatic investment state tag",
+        "investment recommendation",
+        "owner risk appetite inference",
+        "external financial write"
+      ]
     }
   ]
 }

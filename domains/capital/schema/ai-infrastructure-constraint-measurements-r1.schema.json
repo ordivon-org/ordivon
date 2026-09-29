@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.ai-infrastructure-constraint-measurements-r1",
+  "title": "Ordivon Capital AI Infrastructure Constraint Measurements R1",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "truthRole", "asOfDate", "graphBinding", "principles", "effectBoundary", "evidence", "fillQueue", "nodeMeasurements"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.ai-infrastructure-constraint-measurements"},
+    "truthRole": {"const": "MEASUREMENT_BINDING_NOT_PROVIDER_TRUTH_OR_HEADROOM_BY_DEFAULT"},
+    "asOfDate": {"type": "string", "format": "date"},
+    "graphBinding": {"type": "object"},
+    "principles": {"type": "array", "minItems": 4},
+    "effectBoundary": {"type": "object"},
+    "evidence": {"type": "array", "minItems": 1},
+    "fillQueue": {"type": "array", "minItems": 1},
+    "nodeMeasurements": {"type": "array", "minItems": 1}
+  }
+}

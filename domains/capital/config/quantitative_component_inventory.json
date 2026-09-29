@@ -620,6 +620,47 @@
         "External financial-write authorization.",
         "Treating one frontier judgment as provider truth."
       ]
+    },
+    {
+      "id": "ai-infrastructure-constraint-measurements-r1",
+      "implementation": "src/ordivon_capital/research/constraint_measurements.py",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "RESEARCH_ONLY",
+      "purpose": "Fail closed on invalid AI-infrastructure headroom arithmetic and prioritize evidence acquisition at the current minimal bottleneck frontier.",
+      "materiality": "MEDIUM",
+      "assumptions": [
+        "Graph binding digest identifies the exact representation being measured.",
+        "Headroom is meaningful only under compatible unit/scope/time semantics and independent requirement evidence."
+      ],
+      "limitations": [
+        "The control does not discover provider data automatically.",
+        "Passing the arithmetic bridge does not prove provider truth or predictive validity.",
+        "Most R1 frontier nodes still lack an independent quantitative requirement denominator."
+      ],
+      "validation": {
+        "standing": "DEVELOPMENT_TESTED",
+        "evidenceRefs": []
+      },
+      "monitoring": {
+        "standing": "REQUIRED",
+        "requirements": [
+          "Revalidate graph digest after representation changes.",
+          "Reopen blocked headroom when a same-unit independent denominator arrives.",
+          "Retain observed/modeled/derived provenance classes."
+        ]
+      },
+      "permittedUses": [
+        "Research measurement validation.",
+        "Frontier-first evidence prioritization.",
+        "Deterministic arithmetic headroom admission."
+      ],
+      "prohibitedUses": [
+        "Provider truth certification.",
+        "Security selection.",
+        "Automatic state-tag emission.",
+        "External financial-write authorization."
+      ]
     }
   ]
 }
