@@ -1,0 +1,485 @@
+{
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "claimSpecBinding": {
+    "claimSpecDigest": "sha256:214a34793ef9641d5b3ff778d5af548158fef75e936f6f6a250b1fae0855256e",
+    "fileDigest": "sha256:b7f558ac4414a6e5b6fe73e59fac22cb5970a2b50d8ab9cbaed086f81b8c010b",
+    "path": "studies/experimental-episode/pilot-r2/evidence/design/claim-spec-r2_1.json"
+  },
+  "decisionFrontier": {
+    "algorithm": "enumerate-all-legal-remaining-block-success-counts-v1",
+    "analysisDigest": "sha256:86377a0f0cd855c199bccabcc1cacb33f801188272542fea905ff97aab10de67",
+    "atomicObservationUnit": "complete-four-cell-task-block",
+    "semantics": "stop only when every legal completion yields the same original full 24-cell gate standing"
+  },
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "fullGate": {
+    "gateImplementationDigest": "sha256:ed90a452c04778984d13d562458aca2e91010153bf5b35629d6f22f0e1ef4e85",
+    "maximumSuccessesInclusive": 20,
+    "minimumMixedFamilies": 2,
+    "minimumMixedTasks": 2,
+    "minimumSuccessesInclusive": 4
+  },
+  "gitRevision": "7dffc76f5b86c9e3a27e9cd955df620ef95fe7e6",
+  "kind": "ordivon.experimental-calibration-preregistration",
+  "liveHarnessBinding": {
+    "digest": "sha256:f4943c87ff68c90728762e5cd01d630da0e2371fbfbb34ee9537fe54ad387449",
+    "path": "services/harness/scripts/run_adaptive_edit_r2_live_ab.py"
+  },
+  "nonClaims": [
+    "The decision frontier is a semantic short-circuit of the frozen full difficulty gate, not a treatment-effect interim analysis.",
+    "A calibration PASS does not establish power, treatment efficacy, model superiority, or Harness superiority."
+  ],
+  "preregistrationDigest": "sha256:b8c9dd7b0b1d1cb306f9e08d9abb49799ab3905e031e2fabbe4a495641234db0",
+  "providerIdentityPreflightBinding": {
+    "effectiveIdentityMap": {
+      "deepseek-flash": "deepseek-flash",
+      "deepseek-v4-pro": "deepseek-v4-pro"
+    },
+    "fileDigest": "sha256:3016fa8cea823255bf0af1173061fca8dd7d60705f42cab34baf3840e83a8460",
+    "path": "studies/experimental-episode/pilot-r2/evidence/preflight/20260929-r1/provider-identity-preflight.json",
+    "preflightDigest": "sha256:785d744000a92189507a5717ff7ff763d6e5822597d578ffa9ab9f8575838f25"
+  },
+  "resourceEnvelope": {
+    "maxModelCalls": 6,
+    "maxModelRetries": 1,
+    "maxOutputTokensPerProviderCall": 2048,
+    "maxToolCalls": 8,
+    "maxTotalTokens": 64000,
+    "maxWallTimeMs": 90000
+  },
+  "runnerBinding": {
+    "digest": "sha256:ef8cc2ab5b29b6dc5b177775b0f4967ebf5f75991b72cfd0d4c976fad07552e2",
+    "path": "studies/experimental-episode/pilot-r2/run_calibration_r2_1.py"
+  },
+  "schedule": {
+    "assignmentSeed": 2026092903,
+    "atomicExecutionUnit": "complete-four-cell-task-block",
+    "blocks": [
+      {
+        "blockId": "block:r2.1:cal:01",
+        "blockOrdinal": 1,
+        "familyRound": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-101",
+        "trialIds": [
+          "trial:r2.1:cal:01",
+          "trial:r2.1:cal:02",
+          "trial:r2.1:cal:03",
+          "trial:r2.1:cal:04"
+        ]
+      },
+      {
+        "blockId": "block:r2.1:cal:02",
+        "blockOrdinal": 2,
+        "familyRound": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-101",
+        "trialIds": [
+          "trial:r2.1:cal:05",
+          "trial:r2.1:cal:06",
+          "trial:r2.1:cal:07",
+          "trial:r2.1:cal:08"
+        ]
+      },
+      {
+        "blockId": "block:r2.1:cal:03",
+        "blockOrdinal": 3,
+        "familyRound": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-101",
+        "trialIds": [
+          "trial:r2.1:cal:09",
+          "trial:r2.1:cal:10",
+          "trial:r2.1:cal:11",
+          "trial:r2.1:cal:12"
+        ]
+      },
+      {
+        "blockId": "block:r2.1:cal:04",
+        "blockOrdinal": 4,
+        "familyRound": 2,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-102",
+        "trialIds": [
+          "trial:r2.1:cal:13",
+          "trial:r2.1:cal:14",
+          "trial:r2.1:cal:15",
+          "trial:r2.1:cal:16"
+        ]
+      },
+      {
+        "blockId": "block:r2.1:cal:05",
+        "blockOrdinal": 5,
+        "familyRound": 2,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-102",
+        "trialIds": [
+          "trial:r2.1:cal:17",
+          "trial:r2.1:cal:18",
+          "trial:r2.1:cal:19",
+          "trial:r2.1:cal:20"
+        ]
+      },
+      {
+        "blockId": "block:r2.1:cal:06",
+        "blockOrdinal": 6,
+        "familyRound": 2,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-102",
+        "trialIds": [
+          "trial:r2.1:cal:21",
+          "trial:r2.1:cal:22",
+          "trial:r2.1:cal:23",
+          "trial:r2.1:cal:24"
+        ]
+      }
+    ],
+    "designRevision": "r2.1",
+    "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+    "familyRoundOrders": [
+      [
+        "repository_repair",
+        "edit_addressing",
+        "edit_multiregion"
+      ],
+      [
+        "edit_addressing",
+        "edit_multiregion",
+        "repository_repair"
+      ]
+    ],
+    "kind": "ordivon.experimental-calibration-schedule",
+    "nonClaims": [
+      "Calibration trials are disjoint from the inferential bank and never enter inferential effect estimates.",
+      "The balanced order changes execution order only; it does not change the full 24-cell calibration gate semantics."
+    ],
+    "scheduleDigest": "sha256:80b132e25c52d9e3ddc79704e739b77bc5815b005da7d35538db88255968b6c1",
+    "schemaVersion": 1,
+    "taskBlockCount": 6,
+    "taskCount": 6,
+    "taskManifestDigest": "sha256:0b8fd9e458947201de34edf7d75302b2fa6949fcee5cb242bb3f04f3b6d48148",
+    "trialCount": 24,
+    "trials": [
+      {
+        "blockId": "block:r2.1:cal:01",
+        "blockOrdinal": 1,
+        "codec": "anchored-line-v1",
+        "familyRound": 1,
+        "model": "deepseek-flash",
+        "ordinal": 1,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-101",
+        "trialId": "trial:r2.1:cal:01"
+      },
+      {
+        "blockId": "block:r2.1:cal:01",
+        "blockOrdinal": 1,
+        "codec": "exact-replacement-v1",
+        "familyRound": 1,
+        "model": "deepseek-flash",
+        "ordinal": 2,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-101",
+        "trialId": "trial:r2.1:cal:02"
+      },
+      {
+        "blockId": "block:r2.1:cal:01",
+        "blockOrdinal": 1,
+        "codec": "exact-replacement-v1",
+        "familyRound": 1,
+        "model": "deepseek-v4-pro",
+        "ordinal": 3,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-101",
+        "trialId": "trial:r2.1:cal:03"
+      },
+      {
+        "blockId": "block:r2.1:cal:01",
+        "blockOrdinal": 1,
+        "codec": "anchored-line-v1",
+        "familyRound": 1,
+        "model": "deepseek-v4-pro",
+        "ordinal": 4,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-101",
+        "trialId": "trial:r2.1:cal:04"
+      },
+      {
+        "blockId": "block:r2.1:cal:02",
+        "blockOrdinal": 2,
+        "codec": "anchored-line-v1",
+        "familyRound": 1,
+        "model": "deepseek-v4-pro",
+        "ordinal": 5,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-101",
+        "trialId": "trial:r2.1:cal:05"
+      },
+      {
+        "blockId": "block:r2.1:cal:02",
+        "blockOrdinal": 2,
+        "codec": "anchored-line-v1",
+        "familyRound": 1,
+        "model": "deepseek-flash",
+        "ordinal": 6,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-101",
+        "trialId": "trial:r2.1:cal:06"
+      },
+      {
+        "blockId": "block:r2.1:cal:02",
+        "blockOrdinal": 2,
+        "codec": "exact-replacement-v1",
+        "familyRound": 1,
+        "model": "deepseek-flash",
+        "ordinal": 7,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-101",
+        "trialId": "trial:r2.1:cal:07"
+      },
+      {
+        "blockId": "block:r2.1:cal:02",
+        "blockOrdinal": 2,
+        "codec": "exact-replacement-v1",
+        "familyRound": 1,
+        "model": "deepseek-v4-pro",
+        "ordinal": 8,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-101",
+        "trialId": "trial:r2.1:cal:08"
+      },
+      {
+        "blockId": "block:r2.1:cal:03",
+        "blockOrdinal": 3,
+        "codec": "anchored-line-v1",
+        "familyRound": 1,
+        "model": "deepseek-flash",
+        "ordinal": 9,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-101",
+        "trialId": "trial:r2.1:cal:09"
+      },
+      {
+        "blockId": "block:r2.1:cal:03",
+        "blockOrdinal": 3,
+        "codec": "exact-replacement-v1",
+        "familyRound": 1,
+        "model": "deepseek-v4-pro",
+        "ordinal": 10,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-101",
+        "trialId": "trial:r2.1:cal:10"
+      },
+      {
+        "blockId": "block:r2.1:cal:03",
+        "blockOrdinal": 3,
+        "codec": "anchored-line-v1",
+        "familyRound": 1,
+        "model": "deepseek-v4-pro",
+        "ordinal": 11,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-101",
+        "trialId": "trial:r2.1:cal:11"
+      },
+      {
+        "blockId": "block:r2.1:cal:03",
+        "blockOrdinal": 3,
+        "codec": "exact-replacement-v1",
+        "familyRound": 1,
+        "model": "deepseek-flash",
+        "ordinal": 12,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-101",
+        "trialId": "trial:r2.1:cal:12"
+      },
+      {
+        "blockId": "block:r2.1:cal:04",
+        "blockOrdinal": 4,
+        "codec": "exact-replacement-v1",
+        "familyRound": 2,
+        "model": "deepseek-flash",
+        "ordinal": 13,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-102",
+        "trialId": "trial:r2.1:cal:13"
+      },
+      {
+        "blockId": "block:r2.1:cal:04",
+        "blockOrdinal": 4,
+        "codec": "anchored-line-v1",
+        "familyRound": 2,
+        "model": "deepseek-flash",
+        "ordinal": 14,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-102",
+        "trialId": "trial:r2.1:cal:14"
+      },
+      {
+        "blockId": "block:r2.1:cal:04",
+        "blockOrdinal": 4,
+        "codec": "exact-replacement-v1",
+        "familyRound": 2,
+        "model": "deepseek-v4-pro",
+        "ordinal": 15,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-102",
+        "trialId": "trial:r2.1:cal:15"
+      },
+      {
+        "blockId": "block:r2.1:cal:04",
+        "blockOrdinal": 4,
+        "codec": "anchored-line-v1",
+        "familyRound": 2,
+        "model": "deepseek-v4-pro",
+        "ordinal": 16,
+        "providerReplicate": 1,
+        "taskFamily": "edit_addressing",
+        "taskId": "R2-ADDR-CAL-102",
+        "trialId": "trial:r2.1:cal:16"
+      },
+      {
+        "blockId": "block:r2.1:cal:05",
+        "blockOrdinal": 5,
+        "codec": "anchored-line-v1",
+        "familyRound": 2,
+        "model": "deepseek-flash",
+        "ordinal": 17,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-102",
+        "trialId": "trial:r2.1:cal:17"
+      },
+      {
+        "blockId": "block:r2.1:cal:05",
+        "blockOrdinal": 5,
+        "codec": "exact-replacement-v1",
+        "familyRound": 2,
+        "model": "deepseek-flash",
+        "ordinal": 18,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-102",
+        "trialId": "trial:r2.1:cal:18"
+      },
+      {
+        "blockId": "block:r2.1:cal:05",
+        "blockOrdinal": 5,
+        "codec": "exact-replacement-v1",
+        "familyRound": 2,
+        "model": "deepseek-v4-pro",
+        "ordinal": 19,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-102",
+        "trialId": "trial:r2.1:cal:19"
+      },
+      {
+        "blockId": "block:r2.1:cal:05",
+        "blockOrdinal": 5,
+        "codec": "anchored-line-v1",
+        "familyRound": 2,
+        "model": "deepseek-v4-pro",
+        "ordinal": 20,
+        "providerReplicate": 1,
+        "taskFamily": "edit_multiregion",
+        "taskId": "R2-MULTI-CAL-102",
+        "trialId": "trial:r2.1:cal:20"
+      },
+      {
+        "blockId": "block:r2.1:cal:06",
+        "blockOrdinal": 6,
+        "codec": "anchored-line-v1",
+        "familyRound": 2,
+        "model": "deepseek-v4-pro",
+        "ordinal": 21,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-102",
+        "trialId": "trial:r2.1:cal:21"
+      },
+      {
+        "blockId": "block:r2.1:cal:06",
+        "blockOrdinal": 6,
+        "codec": "anchored-line-v1",
+        "familyRound": 2,
+        "model": "deepseek-flash",
+        "ordinal": 22,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-102",
+        "trialId": "trial:r2.1:cal:22"
+      },
+      {
+        "blockId": "block:r2.1:cal:06",
+        "blockOrdinal": 6,
+        "codec": "exact-replacement-v1",
+        "familyRound": 2,
+        "model": "deepseek-flash",
+        "ordinal": 23,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-102",
+        "trialId": "trial:r2.1:cal:23"
+      },
+      {
+        "blockId": "block:r2.1:cal:06",
+        "blockOrdinal": 6,
+        "codec": "exact-replacement-v1",
+        "familyRound": 2,
+        "model": "deepseek-v4-pro",
+        "ordinal": 24,
+        "providerReplicate": 1,
+        "taskFamily": "repository_repair",
+        "taskId": "R2-REPO-CAL-102",
+        "trialId": "trial:r2.1:cal:24"
+      }
+    ]
+  },
+  "schemaVersion": 1,
+  "stopRules": [
+    "A task block is atomic for calibration decision checks; never stop within its four Model×Harness cells for difficulty-gate reasons.",
+    "After each durable complete task block, evaluate the decision frontier; DECISIVE_PASS or DECISIVE_REJECT stops before any later block.",
+    "An unmatched trial_started requires exact reconciliation before any further Provider dispatch.",
+    "Provider effective-identity drift or a Harness exception is durably recorded and stops before the next Provider dispatch.",
+    "Calibration outcomes never enter the inferential treatment-effect sample."
+  ],
+  "successorAnalysisBinding": {
+    "digest": "sha256:86377a0f0cd855c199bccabcc1cacb33f801188272542fea905ff97aab10de67",
+    "path": "studies/experimental-episode/pilot-r2/analysis_r2_1.py"
+  },
+  "successorDesignBinding": {
+    "digest": "sha256:8648a22670b551a5844de0e03197fa4d0575f9cdd1b09f152cd700e844cd74bd",
+    "path": "studies/experimental-episode/pilot-r2/design_r2_1.py"
+  },
+  "supersedesPreEffect": {
+    "path": "studies/experimental-episode/pilot-r2/evidence/calibration/20260929-r1/preregistration.json",
+    "preregistrationDigest": "sha256:38d20e4574190527fdf9cc2bb776ca6ca5eb1fd8772ac61b25c024c4bcddb5e6",
+    "reason": "No calibration-r1 live effect existed before the successor was frozen; r1 remains immutable historical evidence."
+  },
+  "taskBlockRunnerBinding": {
+    "digest": "sha256:cda7a0a649fc86180c2b961f39250c6f5ae3c71565b006e291083a632fed6863",
+    "path": "studies/experimental-episode/pilot-r2/task_block_runner_r2_1.py"
+  },
+  "taskBundleBinding": {
+    "bundleDigest": "sha256:8b9106c18969a086b3fe9dee16467039c63aae728784b7ab070e5b7e647e56a7",
+    "fileDigest": "sha256:0b3393d431d0e7d2004a6f08103790a5fa2537b752f8af49471620a4b9fd1759",
+    "manifestDigest": "sha256:0b8fd9e458947201de34edf7d75302b2fa6949fcee5cb242bb3f04f3b6d48148",
+    "path": "studies/experimental-episode/pilot-r2/evidence/design/calibration-task-bank.json"
+  }
+}

@@ -1,0 +1,399 @@
+{
+  "assignmentSeed": 2026092903,
+  "atomicExecutionUnit": "complete-four-cell-task-block",
+  "blocks": [
+    {
+      "blockId": "block:r2.1:cal:01",
+      "blockOrdinal": 1,
+      "familyRound": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-101",
+      "trialIds": [
+        "trial:r2.1:cal:01",
+        "trial:r2.1:cal:02",
+        "trial:r2.1:cal:03",
+        "trial:r2.1:cal:04"
+      ]
+    },
+    {
+      "blockId": "block:r2.1:cal:02",
+      "blockOrdinal": 2,
+      "familyRound": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-101",
+      "trialIds": [
+        "trial:r2.1:cal:05",
+        "trial:r2.1:cal:06",
+        "trial:r2.1:cal:07",
+        "trial:r2.1:cal:08"
+      ]
+    },
+    {
+      "blockId": "block:r2.1:cal:03",
+      "blockOrdinal": 3,
+      "familyRound": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-101",
+      "trialIds": [
+        "trial:r2.1:cal:09",
+        "trial:r2.1:cal:10",
+        "trial:r2.1:cal:11",
+        "trial:r2.1:cal:12"
+      ]
+    },
+    {
+      "blockId": "block:r2.1:cal:04",
+      "blockOrdinal": 4,
+      "familyRound": 2,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-102",
+      "trialIds": [
+        "trial:r2.1:cal:13",
+        "trial:r2.1:cal:14",
+        "trial:r2.1:cal:15",
+        "trial:r2.1:cal:16"
+      ]
+    },
+    {
+      "blockId": "block:r2.1:cal:05",
+      "blockOrdinal": 5,
+      "familyRound": 2,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-102",
+      "trialIds": [
+        "trial:r2.1:cal:17",
+        "trial:r2.1:cal:18",
+        "trial:r2.1:cal:19",
+        "trial:r2.1:cal:20"
+      ]
+    },
+    {
+      "blockId": "block:r2.1:cal:06",
+      "blockOrdinal": 6,
+      "familyRound": 2,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-102",
+      "trialIds": [
+        "trial:r2.1:cal:21",
+        "trial:r2.1:cal:22",
+        "trial:r2.1:cal:23",
+        "trial:r2.1:cal:24"
+      ]
+    }
+  ],
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRoundOrders": [
+    [
+      "repository_repair",
+      "edit_addressing",
+      "edit_multiregion"
+    ],
+    [
+      "edit_addressing",
+      "edit_multiregion",
+      "repository_repair"
+    ]
+  ],
+  "kind": "ordivon.experimental-calibration-schedule",
+  "nonClaims": [
+    "Calibration trials are disjoint from the inferential bank and never enter inferential effect estimates.",
+    "The balanced order changes execution order only; it does not change the full 24-cell calibration gate semantics."
+  ],
+  "scheduleDigest": "sha256:80b132e25c52d9e3ddc79704e739b77bc5815b005da7d35538db88255968b6c1",
+  "schemaVersion": 1,
+  "taskBlockCount": 6,
+  "taskCount": 6,
+  "taskManifestDigest": "sha256:0b8fd9e458947201de34edf7d75302b2fa6949fcee5cb242bb3f04f3b6d48148",
+  "trialCount": 24,
+  "trials": [
+    {
+      "blockId": "block:r2.1:cal:01",
+      "blockOrdinal": 1,
+      "codec": "anchored-line-v1",
+      "familyRound": 1,
+      "model": "deepseek-flash",
+      "ordinal": 1,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-101",
+      "trialId": "trial:r2.1:cal:01"
+    },
+    {
+      "blockId": "block:r2.1:cal:01",
+      "blockOrdinal": 1,
+      "codec": "exact-replacement-v1",
+      "familyRound": 1,
+      "model": "deepseek-flash",
+      "ordinal": 2,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-101",
+      "trialId": "trial:r2.1:cal:02"
+    },
+    {
+      "blockId": "block:r2.1:cal:01",
+      "blockOrdinal": 1,
+      "codec": "exact-replacement-v1",
+      "familyRound": 1,
+      "model": "deepseek-v4-pro",
+      "ordinal": 3,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-101",
+      "trialId": "trial:r2.1:cal:03"
+    },
+    {
+      "blockId": "block:r2.1:cal:01",
+      "blockOrdinal": 1,
+      "codec": "anchored-line-v1",
+      "familyRound": 1,
+      "model": "deepseek-v4-pro",
+      "ordinal": 4,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-101",
+      "trialId": "trial:r2.1:cal:04"
+    },
+    {
+      "blockId": "block:r2.1:cal:02",
+      "blockOrdinal": 2,
+      "codec": "anchored-line-v1",
+      "familyRound": 1,
+      "model": "deepseek-v4-pro",
+      "ordinal": 5,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-101",
+      "trialId": "trial:r2.1:cal:05"
+    },
+    {
+      "blockId": "block:r2.1:cal:02",
+      "blockOrdinal": 2,
+      "codec": "anchored-line-v1",
+      "familyRound": 1,
+      "model": "deepseek-flash",
+      "ordinal": 6,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-101",
+      "trialId": "trial:r2.1:cal:06"
+    },
+    {
+      "blockId": "block:r2.1:cal:02",
+      "blockOrdinal": 2,
+      "codec": "exact-replacement-v1",
+      "familyRound": 1,
+      "model": "deepseek-flash",
+      "ordinal": 7,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-101",
+      "trialId": "trial:r2.1:cal:07"
+    },
+    {
+      "blockId": "block:r2.1:cal:02",
+      "blockOrdinal": 2,
+      "codec": "exact-replacement-v1",
+      "familyRound": 1,
+      "model": "deepseek-v4-pro",
+      "ordinal": 8,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-101",
+      "trialId": "trial:r2.1:cal:08"
+    },
+    {
+      "blockId": "block:r2.1:cal:03",
+      "blockOrdinal": 3,
+      "codec": "anchored-line-v1",
+      "familyRound": 1,
+      "model": "deepseek-flash",
+      "ordinal": 9,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-101",
+      "trialId": "trial:r2.1:cal:09"
+    },
+    {
+      "blockId": "block:r2.1:cal:03",
+      "blockOrdinal": 3,
+      "codec": "exact-replacement-v1",
+      "familyRound": 1,
+      "model": "deepseek-v4-pro",
+      "ordinal": 10,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-101",
+      "trialId": "trial:r2.1:cal:10"
+    },
+    {
+      "blockId": "block:r2.1:cal:03",
+      "blockOrdinal": 3,
+      "codec": "anchored-line-v1",
+      "familyRound": 1,
+      "model": "deepseek-v4-pro",
+      "ordinal": 11,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-101",
+      "trialId": "trial:r2.1:cal:11"
+    },
+    {
+      "blockId": "block:r2.1:cal:03",
+      "blockOrdinal": 3,
+      "codec": "exact-replacement-v1",
+      "familyRound": 1,
+      "model": "deepseek-flash",
+      "ordinal": 12,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-101",
+      "trialId": "trial:r2.1:cal:12"
+    },
+    {
+      "blockId": "block:r2.1:cal:04",
+      "blockOrdinal": 4,
+      "codec": "exact-replacement-v1",
+      "familyRound": 2,
+      "model": "deepseek-flash",
+      "ordinal": 13,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-102",
+      "trialId": "trial:r2.1:cal:13"
+    },
+    {
+      "blockId": "block:r2.1:cal:04",
+      "blockOrdinal": 4,
+      "codec": "anchored-line-v1",
+      "familyRound": 2,
+      "model": "deepseek-flash",
+      "ordinal": 14,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-102",
+      "trialId": "trial:r2.1:cal:14"
+    },
+    {
+      "blockId": "block:r2.1:cal:04",
+      "blockOrdinal": 4,
+      "codec": "exact-replacement-v1",
+      "familyRound": 2,
+      "model": "deepseek-v4-pro",
+      "ordinal": 15,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-102",
+      "trialId": "trial:r2.1:cal:15"
+    },
+    {
+      "blockId": "block:r2.1:cal:04",
+      "blockOrdinal": 4,
+      "codec": "anchored-line-v1",
+      "familyRound": 2,
+      "model": "deepseek-v4-pro",
+      "ordinal": 16,
+      "providerReplicate": 1,
+      "taskFamily": "edit_addressing",
+      "taskId": "R2-ADDR-CAL-102",
+      "trialId": "trial:r2.1:cal:16"
+    },
+    {
+      "blockId": "block:r2.1:cal:05",
+      "blockOrdinal": 5,
+      "codec": "anchored-line-v1",
+      "familyRound": 2,
+      "model": "deepseek-flash",
+      "ordinal": 17,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-102",
+      "trialId": "trial:r2.1:cal:17"
+    },
+    {
+      "blockId": "block:r2.1:cal:05",
+      "blockOrdinal": 5,
+      "codec": "exact-replacement-v1",
+      "familyRound": 2,
+      "model": "deepseek-flash",
+      "ordinal": 18,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-102",
+      "trialId": "trial:r2.1:cal:18"
+    },
+    {
+      "blockId": "block:r2.1:cal:05",
+      "blockOrdinal": 5,
+      "codec": "exact-replacement-v1",
+      "familyRound": 2,
+      "model": "deepseek-v4-pro",
+      "ordinal": 19,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-102",
+      "trialId": "trial:r2.1:cal:19"
+    },
+    {
+      "blockId": "block:r2.1:cal:05",
+      "blockOrdinal": 5,
+      "codec": "anchored-line-v1",
+      "familyRound": 2,
+      "model": "deepseek-v4-pro",
+      "ordinal": 20,
+      "providerReplicate": 1,
+      "taskFamily": "edit_multiregion",
+      "taskId": "R2-MULTI-CAL-102",
+      "trialId": "trial:r2.1:cal:20"
+    },
+    {
+      "blockId": "block:r2.1:cal:06",
+      "blockOrdinal": 6,
+      "codec": "anchored-line-v1",
+      "familyRound": 2,
+      "model": "deepseek-v4-pro",
+      "ordinal": 21,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-102",
+      "trialId": "trial:r2.1:cal:21"
+    },
+    {
+      "blockId": "block:r2.1:cal:06",
+      "blockOrdinal": 6,
+      "codec": "anchored-line-v1",
+      "familyRound": 2,
+      "model": "deepseek-flash",
+      "ordinal": 22,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-102",
+      "trialId": "trial:r2.1:cal:22"
+    },
+    {
+      "blockId": "block:r2.1:cal:06",
+      "blockOrdinal": 6,
+      "codec": "exact-replacement-v1",
+      "familyRound": 2,
+      "model": "deepseek-flash",
+      "ordinal": 23,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-102",
+      "trialId": "trial:r2.1:cal:23"
+    },
+    {
+      "blockId": "block:r2.1:cal:06",
+      "blockOrdinal": 6,
+      "codec": "exact-replacement-v1",
+      "familyRound": 2,
+      "model": "deepseek-v4-pro",
+      "ordinal": 24,
+      "providerReplicate": 1,
+      "taskFamily": "repository_repair",
+      "taskId": "R2-REPO-CAL-102",
+      "trialId": "trial:r2.1:cal:24"
+    }
+  ]
+}
