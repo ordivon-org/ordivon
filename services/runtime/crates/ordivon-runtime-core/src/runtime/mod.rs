@@ -10,6 +10,7 @@ mod evidence;
 mod execution_provider;
 mod inspection;
 mod job_attempt_state;
+mod lifecycle_locks;
 mod operation_circuit;
 mod platform;
 mod registry;

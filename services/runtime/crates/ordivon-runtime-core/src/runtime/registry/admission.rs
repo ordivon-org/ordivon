@@ -26,6 +26,10 @@ fn exact_replay_for_submit(
     Ok(Some(existing))
 }
 
+pub(crate) struct AdmissionFenceGuard {
+    _file: File,
+}
+
 impl Registry {
     pub(super) fn find_idempotent_job(
         &self,
@@ -64,6 +68,7 @@ impl Registry {
         Ok(Some(job))
     }
 
+    #[cfg(test)]
     pub(super) fn submit(&self, request: &SubmitRequest) -> RuntimeResult<AdmissionOutcome> {
         let ids = self.preallocate_admission_ids();
         self.submit_preallocated(request, &ids)
@@ -77,10 +82,38 @@ impl Registry {
         }
     }
 
+    pub(super) fn submit_with_admission_fence(
+        &self,
+        request: &SubmitRequest,
+        admission_fence: &AdmissionFenceGuard,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        let ids = self.preallocate_admission_ids();
+        self.submit_preallocated_with_admission_fence(request, &ids, admission_fence)
+    }
+
+    #[cfg(test)]
     pub(super) fn submit_preallocated(
         &self,
         request: &SubmitRequest,
         ids: &PreallocatedAdmissionIds,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        self.submit_preallocated_inner(request, ids, None)
+    }
+
+    pub(super) fn submit_preallocated_with_admission_fence(
+        &self,
+        request: &SubmitRequest,
+        ids: &PreallocatedAdmissionIds,
+        admission_fence: &AdmissionFenceGuard,
+    ) -> RuntimeResult<AdmissionOutcome> {
+        self.submit_preallocated_inner(request, ids, Some(admission_fence))
+    }
+
+    fn submit_preallocated_inner(
+        &self,
+        request: &SubmitRequest,
+        ids: &PreallocatedAdmissionIds,
+        admission_fence: Option<&AdmissionFenceGuard>,
     ) -> RuntimeResult<AdmissionOutcome> {
         validate_submit(request)?;
         let created_at_ms = now_ms()?;
@@ -244,7 +277,11 @@ impl Registry {
         // Exact replay is checked before this boundary, so deployment cannot make a previously
         // committed request unreplayable. The Registry write gate is intentionally acquired
         // only after the file fence: it serializes SQLite writers, not filesystem waits.
-        let _admission_fence = self.acquire_admission_fence()?;
+        let _owned_admission_fence = if admission_fence.is_none() {
+            Some(self.acquire_admission_fence()?)
+        } else {
+            None
+        };
         let transaction = immediate(self, &mut connection, "admission transaction")?;
 
         // Recheck under the write transaction because another same-key admission may have
@@ -523,12 +560,14 @@ impl Registry {
         })))
     }
 
-    fn acquire_admission_fence(&self) -> RuntimeResult<File> {
-        acquire_shared_file_fence(
-            &self.config.admission_fence_path(),
-            "admission fence",
-            RuntimeError::deployment_in_progress(),
-        )
+    pub(super) fn acquire_admission_fence(&self) -> RuntimeResult<AdmissionFenceGuard> {
+        Ok(AdmissionFenceGuard {
+            _file: acquire_shared_file_fence(
+                &self.config.admission_fence_path(),
+                "admission fence",
+                RuntimeError::deployment_in_progress(),
+            )?,
+        })
     }
 
 }

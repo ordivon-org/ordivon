@@ -219,7 +219,8 @@ impl Runtime {
             input_authorities: configured_input_authorities,
             credential_authorities: configured_credential_authorities,
             workspace_headroom,
-            lifecycle_lock: Arc::new(Mutex::new(())),
+            topology_lock: Arc::new(Mutex::new(())),
+            workspace_leases: WorkspaceLeaseTable::default(),
             control_terminal_lock: Arc::new(Mutex::new(())),
         };
         runtime.reconcile_recoverable_orphans()?;
@@ -248,15 +249,25 @@ impl Runtime {
         )
     }
 
-    fn lock_lifecycle(&self) -> RuntimeResult<MutexGuard<'_, ()>> {
-        self.lifecycle_lock.lock().map_err(|_| {
-            RuntimeError::new(
-                RuntimeErrorCode::RegistryUnavailable,
-                "Workspace lifecycle lock is poisoned",
-                None,
-                true,
-            )
-        })
+    fn lock_topology(&self) -> RuntimeResult<MutexGuard<'_, ()>> {
+        super::lifecycle_locks::lock_topology(&self.topology_lock)
+    }
+
+    fn with_workspace_lease<T>(
+        &self,
+        workspace_id: &str,
+        operation: impl FnOnce() -> RuntimeResult<T>,
+    ) -> RuntimeResult<T> {
+        self.workspace_leases.with_lease(workspace_id, operation)
+    }
+
+    pub(crate) fn with_admission_workspace_lease<T>(
+        &self,
+        workspace_id: &str,
+        operation: impl FnOnce(&super::registry::AdmissionFenceGuard) -> RuntimeResult<T>,
+    ) -> RuntimeResult<T> {
+        let admission_fence = self.registry.acquire_admission_fence()?;
+        self.with_workspace_lease(workspace_id, || operation(&admission_fence))
     }
 
     fn lock_control_terminal(&self) -> RuntimeResult<MutexGuard<'_, ()>> {

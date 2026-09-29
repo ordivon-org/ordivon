@@ -1,3 +1,4 @@
+use super::lifecycle_locks::WorkspaceLeaseTable;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
@@ -268,7 +269,8 @@ pub struct Runtime {
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
     workspace_headroom: Option<WorkspaceHeadroomConfig>,
-    lifecycle_lock: Arc<Mutex<()>>,
+    topology_lock: Arc<Mutex<()>>,
+    workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,
 }
 

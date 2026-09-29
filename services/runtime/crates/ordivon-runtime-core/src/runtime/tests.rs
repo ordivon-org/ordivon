@@ -416,6 +416,47 @@ fn created(outcome: AdmissionOutcome) -> CreatedAdmission {
 }
 
 #[test]
+fn unrelated_runtime_admission_sections_overlap_under_shared_deployment_fence() {
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let sandbox = Sandbox::new("admission-workspace-overlap", 5_000);
+    let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+    let runtime_a = runtime.clone();
+    let runtime_b = runtime.clone();
+    let (entered_a_tx, entered_a_rx) = mpsc::channel();
+    let (release_a_tx, release_a_rx) = mpsc::channel();
+    let (entered_b_tx, entered_b_rx) = mpsc::channel();
+
+    let holder = thread::spawn(move || {
+        runtime_a
+            .with_admission_workspace_lease("workspace-a", |_| {
+                entered_a_tx.send(()).unwrap();
+                release_a_rx.recv().unwrap();
+                Ok(())
+            })
+            .unwrap();
+    });
+    entered_a_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+
+    let other = thread::spawn(move || {
+        runtime_b
+            .with_admission_workspace_lease("workspace-b", |_| {
+                entered_b_tx.send(()).unwrap();
+                Ok(())
+            })
+            .unwrap();
+    });
+    entered_b_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("unrelated Runtime admission was serialized behind workspace-a");
+
+    release_a_tx.send(()).unwrap();
+    holder.join().unwrap();
+    other.join().unwrap();
+}
+
+#[test]
 fn startup_grace_uses_durable_dispatch_issue_time_not_attempt_creation() {
     let sandbox = Sandbox::new("dispatch-startup-grace-anchor", 5_000);
     let created = created(
