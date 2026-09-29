@@ -68,14 +68,13 @@ class AuthZenPrincipalAuthorizer:
         arguments: Mapping[str, Any],
         request_state: Mapping[str, Any],
     ) -> Mapping[str, Any]:
-        del arguments, request_state
+        del arguments, request_state, tool_name
         return await asyncio.to_thread(
             self._authorize_sync,
             principal_id,
             issuer,
             requested_capability,
             dict(requested_resource),
-            tool_name,
         )
 
     def _authorize_sync(
@@ -84,7 +83,6 @@ class AuthZenPrincipalAuthorizer:
         issuer: str,
         requested_capability: str,
         requested_resource: dict[str, Any],
-        tool_name: str,
     ) -> Mapping[str, Any]:
         token = self._bearer_token_provider().strip()
         if len(token) < 16 or any(ch.isspace() for ch in token):
@@ -98,10 +96,7 @@ class AuthZenPrincipalAuthorizer:
                 "properties": {"issuer": issuer},
             },
             "resource": requested_resource,
-            "action": {
-                "name": requested_capability,
-                "properties": {"gatewayTool": tool_name},
-            },
+            "action": {"name": requested_capability},
         }
         try:
             response = self._session.post(

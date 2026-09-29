@@ -76,9 +76,31 @@ Evaluation API, but that Keycloak feature is explicitly experimental and MUST NO
 production PDP solely because the existing Agent-native website lab already uses Keycloak for
 OAuth/DPoP.
 
-Cerbos or another conformant AuthZEN PDP may be used as an independent interoperability oracle or
-production candidate. OPA/Rego remains valid for Ordivon Agent/Grant/Effect policy semantics; an
-AuthZEN adapter does not require replacing Rego or turning Gateway into a policy server.
+Fresh 2026-09-29 differential canaries prove Keycloak 26.7.4 discovery, client-credential token,
+Evaluation ALLOW, `X-Request-ID` echo, `subject.properties`, and `resource.properties`. The same
+experimental implementation rejects the AuthZEN-1.0-valid optional `action.properties` member with
+HTTP 400. R1 therefore exports only the natural capability identity in `action.name`; Gateway tool
+metadata is not authorization authority and is deliberately not copied into the PDP request. This
+is deletion of unnecessary transport metadata, not a Keycloak-specific compatibility shim.
+
+Cerbos direct Evaluation ALLOW/DENY canaries also pass, but the tested implementation does not echo
+the exact `X-Request-ID`; treat it as a partial interoperability oracle rather than evidence of full
+AuthZEN 1.0 transport conformance. The Gateway adapter keeps the standard request-ID binding and
+fails closed rather than weakening that contract for a provider.
+
+OPA/Rego remains valid for Ordivon Agent/Grant/Effect policy semantics; an AuthZEN adapter does not
+require replacing Rego or turning Gateway into a policy server.
+
+Interoperability evidence:
+
+- Runtime Job `job-01a0eb9b-e4f4-7803-917c-11447df13034`: Keycloak discovery/token/Evaluation/echo
+  wire PASS.
+- Runtime Job `job-01a0eb9e-6c55-7bf3-ad94-ee9b4e5a3b83`: field differential isolates
+  `action.properties` as the Keycloak 26.7.4 experimental parser gap.
+- Runtime Job `job-01a0eba2-20cd-7822-8366-bb2da68c61cc`: patched canonical adapter Keycloak
+  ALLOW/DENY PASS with exact request-ID correlation and no authority/effect-admission projection.
+- Runtime Job `job-01a0e87c-7ba6-7b10-9fa6-b1a1aaf50abf`: Cerbos direct ALLOW/DENY PASS, exact
+  request-ID echo absent.
 
 ## Live gate
 
