@@ -143,13 +143,11 @@ def test_authzen_principal_authorizer_emits_exact_standard_request_and_bound_evi
             "properties": {"issuer": "https://team.cloudflareaccess.com"},
         },
         "resource": _resource(),
-        "action": {
-            "name": "artifact.runtime",
-            "properties": {"gatewayTool": "artifact.read"},
-        },
+        "action": {"name": "artifact.runtime"},
     }
     assert "forged" not in repr(call["json"])
     assert "agentAdmission" not in repr(call["json"])
+    assert "gatewayTool" not in repr(call["json"])
     assert call["headers"]["Authorization"] == "Bearer test-token-material-1234567890"
     assert "test-token-material" not in repr(result)
 
