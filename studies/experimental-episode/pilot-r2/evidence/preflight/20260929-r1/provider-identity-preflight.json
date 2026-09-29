@@ -1,0 +1,96 @@
+{
+  "effectiveIdentityMap": {
+    "deepseek-flash": "deepseek-flash",
+    "deepseek-v4-pro": "deepseek-v4-pro"
+  },
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "kind": "ordivon.experimental-provider-model-identity-preflight",
+  "models": [
+    {
+      "effectiveModelIds": [
+        "deepseek-flash"
+      ],
+      "probeCount": 2,
+      "probes": [
+        {
+          "effectiveModelId": "deepseek-flash",
+          "modelCallId": "c9efe4f9-4e36-40e3-a4ac-b9c17d5825fc",
+          "probeIndex": 1,
+          "providerModel": "deepseek-flash",
+          "rawResponseDigest": "sha256:1e6f65b185fa53f588f5df0a02a3ec197dd43626a62e7bec90cbfdebc37c7ad2",
+          "requestDigest": "sha256:005462bcee4ccff155aae2b350e28bdf7a5337fbb3341e07a486891973c60d15",
+          "requestedModelId": "deepseek-flash",
+          "resultDigest": "sha256:d41feb3b424f47817c76125a2bd869dca50c8d83b78b6895d3a1bca2513d17a9",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669"
+        },
+        {
+          "effectiveModelId": "deepseek-flash",
+          "modelCallId": "fa0e24f2-90f7-45fc-b4fa-3c97b38d7efc",
+          "probeIndex": 2,
+          "providerModel": "deepseek-flash",
+          "rawResponseDigest": "sha256:5346614c1ea4b8ff4bb791d3ec2246be0cba5b432cfe720b5859260142ea2ad4",
+          "requestDigest": "sha256:173c2df0e69adb1449a218e1ec173d63df624d7125b5f9398feb1199ecdb1a5d",
+          "requestedModelId": "deepseek-flash",
+          "resultDigest": "sha256:f4878e5fe5e8d4bda800b079df8b9d2c5abe5b6c9cdc3f11185435a48f2ac702",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669"
+        }
+      ],
+      "providerModelIds": [
+        "deepseek-flash"
+      ],
+      "requestedModelId": "deepseek-flash",
+      "standing": "PASS_DISTINCT_EFFECTIVE_IDENTITY",
+      "systemFingerprints": [
+        "aeb56401ca74e127821c4f9126dcb669"
+      ]
+    },
+    {
+      "effectiveModelIds": [
+        "deepseek-v4-pro"
+      ],
+      "probeCount": 2,
+      "probes": [
+        {
+          "effectiveModelId": "deepseek-v4-pro",
+          "modelCallId": "a04c8dd6-2164-408d-aae9-7f7a3548382b",
+          "probeIndex": 1,
+          "providerModel": "deepseek-v4-pro",
+          "rawResponseDigest": "sha256:f00efe77680b57424863d6a7b3acdcee16b7704023e60c17a8e243c62377ba23",
+          "requestDigest": "sha256:b65505f42bf3a028ccfdaeb373105fb62423a54f1a240898e617ba6f0bee9235",
+          "requestedModelId": "deepseek-v4-pro",
+          "resultDigest": "sha256:0e2fb307d7642cefbd0897b668f11fc06c35abe3133c0f5f45f617dbfb7c48db",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396"
+        },
+        {
+          "effectiveModelId": "deepseek-v4-pro",
+          "modelCallId": "97240e22-c0b4-42f1-b8f4-41fa514d425c",
+          "probeIndex": 2,
+          "providerModel": "deepseek-v4-pro",
+          "rawResponseDigest": "sha256:5ab261b17e7e32e93567dcf1cdfeea64f5f3526a908004d2ab5bf4030a9d3a39",
+          "requestDigest": "sha256:359a9125e23fdfa76620fad9bfbc7e39938ebc55842ba8bc1f5c6d7198e3beb8",
+          "requestedModelId": "deepseek-v4-pro",
+          "resultDigest": "sha256:f22dc29d32204f59b1bc0a05e3670f22beaedf6feaf62f1e3283ced6c8352a99",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396"
+        }
+      ],
+      "providerModelIds": [
+        "deepseek-v4-pro"
+      ],
+      "requestedModelId": "deepseek-v4-pro",
+      "standing": "PASS_DISTINCT_EFFECTIVE_IDENTITY",
+      "systemFingerprints": [
+        "a307abda487cd1b463329ccb945ce396"
+      ]
+    }
+  ],
+  "nonClaims": [
+    "Observed effective identity does not imply model quality or permanence of future Provider routing.",
+    "The R2 campaign is invalid to start unless this exact preflight artifact has PASS standing and is bound into the preregistration/schedule."
+  ],
+  "planDigest": "sha256:5f90a255a401f218684bc2ef51ec687f721f2fef047cfdd61afae3867039e58f",
+  "preflightDigest": "sha256:785d744000a92189507a5717ff7ff763d6e5822597d578ffa9ab9f8575838f25",
+  "preflightId": "preflight:experimental-fabric-r2:deepseek-model-identity:v1",
+  "provider": "deepseek",
+  "schemaVersion": 1,
+  "standing": "PASS_DISTINCT_EFFECTIVE_IDENTITIES"
+}
