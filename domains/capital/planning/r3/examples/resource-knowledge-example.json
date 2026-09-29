@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.resource-record",
+  "resourceId": "example.knowledge.method",
+  "resourceClass": "KNOWLEDGE",
+  "naturalOwner": {
+    "ownerClass": "OTHER_DOMAIN_OWNER",
+    "ownerId": "research.example",
+    "authorityRef": "research:evidence-bundle",
+    "truthClass": "RESOURCE_REALITY"
+  },
+  "state": "AVAILABLE",
+  "quantityOrCapacity": {"mode": "QUALITATIVE", "standing": "REUSABLE_METHOD"},
+  "availability": "AVAILABLE",
+  "liquidity": "NOT_APPLICABLE",
+  "criticality": "MEDIUM",
+  "substitutability": "LOW",
+  "reversibility": "REVERSIBLE",
+  "valuation": {"mode": "NON_MONETIZABLE", "confidence": "UNKNOWN"},
+  "dependencies": [],
+  "encumbrances": [],
+  "observation": {
+    "observedAt": "2026-09-29T00:00:00Z",
+    "validUntil": "2027-09-29T00:00:00Z",
+    "sourceIdentity": "example-only:research-artifact",
+    "evidenceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "qualityStanding": "BOUNDED"
+  },
+  "notes": "Demonstrates a first-class non-monetized resource."
+}

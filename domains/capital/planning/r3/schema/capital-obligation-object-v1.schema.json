@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:capital:r3:draft:schema:obligation-object:v1",
+  "title": "Draft Capital Liability / Commitment / Constraint / Goal object v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "objectType", "objectId", "authorityRef", "priority", "validity", "evidenceDigest"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.obligation-object"},
+    "objectType": {"enum": ["LIABILITY", "COMMITMENT", "CONSTRAINT", "GOAL"]},
+    "objectId": {"$ref": "#/$defs/identifier"},
+    "authorityRef": {"type": "string", "minLength": 1},
+    "priority": {"enum": ["LOW", "MEDIUM", "HIGH", "PROTECTED", "UNSET"]},
+    "resourceRefs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+    "description": {"type": "string", "minLength": 1},
+    "requirement": {"$ref": "#/$defs/measure"},
+    "deadline": {"type": "string", "format": "date-time"},
+    "hard": {"type": "boolean"},
+    "cancellable": {"type": "boolean"},
+    "successEvidence": {"type": "string", "minLength": 1},
+    "constraintExpression": {"type": "string", "minLength": 1},
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validFrom"],
+      "properties": {
+        "validFrom": {"type": "string", "format": "date-time"},
+        "validUntil": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "evidenceDigest": {"$ref": "#/$defs/digest"},
+    "notes": {"type": "string"}
+  },
+  "allOf": [
+    {"if": {"properties": {"objectType": {"const": "LIABILITY"}}}, "then": {"required": ["description", "requirement", "deadline"]}},
+    {"if": {"properties": {"objectType": {"const": "COMMITMENT"}}}, "then": {"required": ["description", "requirement", "cancellable"]}},
+    {"if": {"properties": {"objectType": {"const": "CONSTRAINT"}}}, "then": {"required": ["description", "hard", "constraintExpression"]}},
+    {"if": {"properties": {"objectType": {"const": "GOAL"}}}, "then": {"required": ["description", "successEvidence"]}}
+  ],
+  "$defs": {
+    "identifier": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["QUANTITATIVE", "QUALITATIVE", "NOT_APPLICABLE"]},
+        "amount": {"type": "number"},
+        "unit": {"type": "string", "minLength": 1},
+        "standing": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"mode": {"const": "QUANTITATIVE"}}}, "then": {"required": ["amount", "unit"]}},
+        {"if": {"properties": {"mode": {"const": "QUALITATIVE"}}}, "then": {"required": ["standing"]}}
+      ]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.r3-resource-office-registry",
+  "standing": "DRAFT_NO_AUTHORITY",
+  "resourceClasses": ["OWNED_ASSET", "FINANCIAL_CLAIM", "CAPACITY", "RIGHT", "OPTION", "KNOWLEDGE", "INFRASTRUCTURE", "TIME", "ATTENTION", "SERVICE_ENTITLEMENT", "RELATIONSHIP_ACCESS"],
+  "valuationModes": ["PRICEABLE", "ESTIMABLE", "ORDINAL_ONLY", "NON_MONETIZABLE", "NOT_REQUIRED"],
+  "delegationLevels": ["L0_OBSERVE", "L1_ANALYZE", "L2_RECOMMEND", "L3_PREPARE", "L4_EXECUTE_BOUNDED", "L5_CHANGE_CONSTITUTION"],
+  "truthClasses": ["PREFERENCE_TRUTH", "DECISION_TRUTH", "OPERATIONAL_TRUTH", "RESOURCE_REALITY", "EXTERNAL_EFFECT_REALITY"],
+  "officeRoles": [
+    {"roleId": "GOVERNING_BODY", "line": "GOVERNING_BODY"},
+    {"roleId": "CAPITAL_ALLOCATION_COMMITTEE", "line": "FIRST_LINE"},
+    {"roleId": "CHIEF_CAPITAL_OFFICE", "line": "FIRST_LINE"},
+    {"roleId": "RESEARCH_OFFICE", "line": "FIRST_LINE"},
+    {"roleId": "ALLOCATION_OFFICE", "line": "FIRST_LINE"},
+    {"roleId": "TREASURY_OFFICE", "line": "FIRST_LINE"},
+    {"roleId": "EFFECT_OFFICE", "line": "FIRST_LINE"},
+    {"roleId": "RISK_OFFICE", "line": "SECOND_LINE"},
+    {"roleId": "MODEL_DATA_GOVERNANCE", "line": "SECOND_LINE"},
+    {"roleId": "EXTERNAL_PROFESSIONAL_LIAISON", "line": "SECOND_LINE"},
+    {"roleId": "CONTROLLER", "line": "SECOND_LINE"},
+    {"roleId": "PERFORMANCE_ATTRIBUTION", "line": "SECOND_LINE"},
+    {"roleId": "INDEPENDENT_ASSURANCE", "line": "THIRD_LINE"}
+  ],
+  "functionalLegoWaist": ["Observe", "Normalize", "Validate", "Measure", "Model", "Counterfactual", "Decide", "Authorize", "Reserve", "Effect", "Reconcile", "Account"],
+  "candidateFutureEffectClasses": ["PURCHASE", "SUBSCRIBE", "TRANSFER", "ALLOCATE_RESOURCE", "RESERVE_CAPACITY", "LEASE", "HIRE_SERVICE", "CANCEL_COMMITMENT", "SELL_ASSET", "REBALANCE"],
+  "invariants": {
+    "agentMayInferRiskAppetite": false,
+    "unsetMeansUnlimited": false,
+    "localLedgerIsResourceReality": false,
+    "runtimeSuccessIsExternalEffectTruth": false,
+    "majorityVoteMayOverrideExplicitVeto": false,
+    "monetaryValuationRequiredForEveryResource": false,
+    "liveExternalEffectAuthorityGranted": false
+  }
+}

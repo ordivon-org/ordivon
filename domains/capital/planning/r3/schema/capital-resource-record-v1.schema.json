@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:capital:r3:draft:schema:resource-record:v1",
+  "title": "Draft Capital ResourceRecord v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "resourceId", "resourceClass", "naturalOwner", "state", "quantityOrCapacity", "availability", "liquidity", "criticality", "substitutability", "reversibility", "valuation", "dependencies", "encumbrances", "observation"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.resource-record"},
+    "resourceId": {"$ref": "#/$defs/identifier"},
+    "resourceClass": {"enum": ["OWNED_ASSET", "FINANCIAL_CLAIM", "CAPACITY", "RIGHT", "OPTION", "KNOWLEDGE", "INFRASTRUCTURE", "TIME", "ATTENTION", "SERVICE_ENTITLEMENT", "RELATIONSHIP_ACCESS"]},
+    "naturalOwner": {"$ref": "#/$defs/naturalOwner"},
+    "state": {"enum": ["AVAILABLE", "RESERVED", "ALLOCATED", "IN_USE", "DEGRADED", "UNAVAILABLE", "RETIRED", "UNKNOWN"]},
+    "quantityOrCapacity": {"$ref": "#/$defs/measure"},
+    "availability": {"enum": ["AVAILABLE", "PARTIAL", "UNAVAILABLE", "UNKNOWN"]},
+    "liquidity": {"enum": ["HIGH", "MEDIUM", "LOW", "NON_LIQUID", "NOT_APPLICABLE", "UNKNOWN"]},
+    "criticality": {"enum": ["LOW", "MEDIUM", "HIGH", "MISSION_CRITICAL", "UNSET"]},
+    "substitutability": {"enum": ["HIGH", "MEDIUM", "LOW", "NONE", "UNKNOWN"]},
+    "reversibility": {"enum": ["REVERSIBLE", "PARTIALLY_REVERSIBLE", "IRREVERSIBLE", "UNKNOWN"]},
+    "valuation": {"$ref": "#/$defs/valuation"},
+    "dependencies": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+    "encumbrances": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/identifier"}},
+    "observation": {"$ref": "#/$defs/observation"},
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "naturalOwner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownerClass", "ownerId", "authorityRef", "truthClass"],
+      "properties": {
+        "ownerClass": {"enum": ["PROVIDER", "WORKSTATION", "RUNTIME", "HOST", "CAPITAL", "EXTERNAL_AUTHORITY", "OTHER_DOMAIN_OWNER"]},
+        "ownerId": {"$ref": "#/$defs/identifier"},
+        "authorityRef": {"type": "string", "minLength": 1},
+        "truthClass": {"enum": ["RESOURCE_REALITY", "EXTERNAL_EFFECT_REALITY", "OPERATIONAL_TRUTH"]}
+      }
+    },
+    "measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["QUANTITATIVE", "QUALITATIVE", "NOT_APPLICABLE"]},
+        "amount": {"type": "number"},
+        "unit": {"type": "string", "minLength": 1},
+        "standing": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"mode": {"const": "QUANTITATIVE"}}}, "then": {"required": ["amount", "unit"]}},
+        {"if": {"properties": {"mode": {"const": "QUALITATIVE"}}}, "then": {"required": ["standing"]}}
+      ]
+    },
+    "valuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["PRICEABLE", "ESTIMABLE", "ORDINAL_ONLY", "NON_MONETIZABLE", "NOT_REQUIRED"]},
+        "value": {"type": "number"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "standing": {"type": "string"},
+        "method": {"type": "string"},
+        "asOf": {"type": "string", "format": "date-time"},
+        "confidence": {"enum": ["HIGH", "MEDIUM", "LOW", "UNKNOWN"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"mode": {"const": "PRICEABLE"}}}, "then": {"required": ["value", "currency", "asOf"]}},
+        {"if": {"properties": {"mode": {"const": "ORDINAL_ONLY"}}}, "then": {"required": ["standing"]}}
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observedAt", "validUntil", "sourceIdentity", "evidenceDigest"],
+      "properties": {
+        "observedAt": {"type": "string", "format": "date-time"},
+        "validUntil": {"type": "string", "format": "date-time"},
+        "sourceIdentity": {"type": "string", "minLength": 1},
+        "evidenceDigest": {"$ref": "#/$defs/digest"},
+        "qualityStanding": {"enum": ["AUTHORITATIVE", "CORROBORATED", "BOUNDED", "UNVERIFIED", "UNKNOWN"]}
+      }
+    }
+  }
+}
