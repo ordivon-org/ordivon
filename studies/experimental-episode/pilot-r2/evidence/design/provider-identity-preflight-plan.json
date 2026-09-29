@@ -1,0 +1,24 @@
+{
+  "acceptance": {
+    "betweenRequestedLevels": "effectiveModelId must differ across requested treatment levels",
+    "providerModelAgreement": "providerModel must equal effectiveModelId for every probe",
+    "withinRequestedLevel": "all probes must report one identical effectiveModelId and providerModel"
+  },
+  "completionContractDigest": "sha256:6ef4021f02655b39efde7cc11b7382a8e9ef711ef60832c811df555b43a55798",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "kind": "ordivon.experimental-provider-model-identity-preflight-plan",
+  "nonClaims": [
+    "Preflight establishes observed Provider routing identity only; it is not a model capability evaluation.",
+    "Preflight probes are not calibration or inferential task observations and never enter R2 effect estimates."
+  ],
+  "planDigest": "sha256:5f90a255a401f218684bc2ef51ec687f721f2fef047cfdd61afae3867039e58f",
+  "preflightId": "preflight:experimental-fabric-r2:deepseek-model-identity:v1",
+  "probesPerModel": 2,
+  "provider": "deepseek",
+  "requestedModels": [
+    "deepseek-flash",
+    "deepseek-v4-pro"
+  ],
+  "schemaVersion": 1,
+  "totalProviderCalls": 4
+}
