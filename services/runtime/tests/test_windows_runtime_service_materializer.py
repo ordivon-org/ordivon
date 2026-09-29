@@ -113,3 +113,27 @@ def test_windows_runtime_concurrency_policy_is_host_specific():
     assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=12" in windows_env
     assert "ORDIVON_GLOBAL_MAX_CONCURRENCY=8" in linux_env
     assert "const WORKSPACE_EXECUTION_LIMIT: u32 = 1;" in registry
+
+
+def test_windows_service_materializer_binds_privileged_policy_as_one_operator_bundle():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "[string]$ElevatedPrincipalsJson = ''" in text
+    assert "[string]$ElevatedProfilesJson = ''" in text
+    assert "[string]$MaintenanceLeasePath = ''" in text
+    assert "Privileged admission policy must configure principals, profiles, and maintenance lease together." in text
+    assert "Privileged admission JSON must be single-line." in text
+    assert "MaintenanceLeasePath must be absolute." in text
+    assert "ConvertFrom-Json -ErrorAction Stop" in text
+    assert "Privileged admission principal and profile arrays must be non-empty when configured." in text
+    assert "'ORDIVON_WINDOWS_ELEVATED_PRINCIPALS_JSON=' + $ElevatedPrincipalsJson" in text
+    assert "'ORDIVON_WINDOWS_ELEVATED_PROFILES_JSON=' + $ElevatedProfilesJson" in text
+    assert "'ORDIVON_WINDOWS_MAINTENANCE_LEASE_PATH=' + $MaintenanceLeasePath" in text
+    assert "principalCount = $elevatedPrincipalCount" in text
+    assert "profileCount = $elevatedProfileCount" in text
+
+
+def test_windows_service_materializer_keeps_privileged_policy_opt_in():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "$privilegedPolicyConfiguredCount -ne 0 -and $privilegedPolicyConfiguredCount -ne 3" in text
+    assert "$privilegedPolicyConfigured = $privilegedPolicyConfiguredCount -eq 3" in text
+    assert "if ($privilegedPolicyConfigured)" in text
