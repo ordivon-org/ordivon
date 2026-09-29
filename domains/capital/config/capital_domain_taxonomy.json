@@ -66,6 +66,7 @@
       "standards_inventory.py"
     ],
     "governance": [
+      "institutional_topology.py",
       "owner_authority.py",
       "policy_decision.py"
     ],

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ordivon:capital:schema:review-topology:v1",
+  "title": "Capital ReviewTopology v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "reviewId",
+    "decisionRef",
+    "decisionDigest",
+    "materiality",
+    "externalEffectPlanned",
+    "dutyBindings",
+    "verdictRefs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ordivon.capital.review-topology"
+    },
+    "reviewId": {
+      "$ref": "#/$defs/id"
+    },
+    "decisionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "decisionDigest": {
+      "$ref": "#/$defs/digest"
+    },
+    "materiality": {
+      "enum": [
+        "ROUTINE",
+        "SENSITIVE",
+        "HIGH_CONSEQUENCE"
+      ]
+    },
+    "externalEffectPlanned": {
+      "type": "boolean"
+    },
+    "dutyBindings": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "duty",
+          "assignmentDigest",
+          "roleId",
+          "actorRef",
+          "agentId"
+        ],
+        "properties": {
+          "duty": {
+            "enum": [
+              "MAKER",
+              "CHECKER",
+              "EFFECT_OWNER",
+              "RECONCILER",
+              "ASSURANCE"
+            ]
+          },
+          "assignmentDigest": {
+            "$ref": "#/$defs/digest"
+          },
+          "roleId": {
+            "enum": [
+              "GOVERNING_BODY",
+              "CAPITAL_ALLOCATION_COMMITTEE",
+              "CHIEF_CAPITAL_OFFICE",
+              "RESEARCH_OFFICE",
+              "ALLOCATION_OFFICE",
+              "RISK_OFFICE",
+              "TREASURY_OFFICE",
+              "EFFECT_OFFICE",
+              "CONTROLLER",
+              "PERFORMANCE_ATTRIBUTION",
+              "MODEL_DATA_GOVERNANCE",
+              "EXTERNAL_PROFESSIONAL_LIAISON",
+              "INDEPENDENT_ASSURANCE"
+            ]
+          },
+          "actorRef": {
+            "type": "string",
+            "pattern": "^actor:[^\\s]+$",
+            "maxLength": 512
+          },
+          "agentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      }
+    },
+    "verdictRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "verdictId",
+          "digest"
+        ],
+        "properties": {
+          "verdictId": {
+            "$ref": "#/$defs/id"
+          },
+          "digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

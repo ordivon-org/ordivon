@@ -292,6 +292,14 @@
       "currentStanding": "ADMITTED_FOR_LINEAR_HUBER_AND_TIME_SERIES_SPLIT_MECHANICS",
       "applicability": "ESTIMATOR_FITTING_AND_WALK_FORWARD_SPLITTING_ONLY_NOT_MODEL_APPROVAL",
       "source": "https://scikit-learn.org/"
+    },
+    {
+      "id": "institutional-control-topology",
+      "ownerClass": "STANDARD_OWNER",
+      "owner": "The Institute of Internal Auditors Three Lines Model + Basel segregation-of-duties / dual-control guidance",
+      "currentStanding": "REFERENCE_PATTERN_FOR_ACCOUNTABILITY_INDEPENDENT_ASSURANCE_AND_DUAL_CONTROL",
+      "applicability": "GOVERNANCE_TOPOLOGY_REFERENCE_ONLY_NOT_BANK_OR_AUDIT_COMPLIANCE_CLAIM",
+      "source": "https://www.theiia.org/en/content/standards-and-guidance/"
     }
   ],
   "responsibilities": [
@@ -814,6 +822,28 @@
       ],
       "localStanding": "LOCAL_BOUNDED_SESSIONLESS_TAGVALUE_PROJECTOR_PREFERRED",
       "localResponsibility": "project only the qualified FIX 4.4 NewOrderSingle field sequence for mechanics evidence; no session, transport, BodyLength, CheckSum, resend, sequence recovery, dictionary negotiation, or broader FIX engine"
+    },
+    {
+      "id": "governance-institutional-role-topology",
+      "sourcePatterns": [
+        "src/ordivon_capital/governance/institutional_topology.py"
+      ],
+      "ownerClasses": [
+        "STANDARD_OWNER",
+        "ORDIVON_GLUE"
+      ],
+      "externalOwners": [
+        "The Institute of Internal Auditors Three Lines governance model",
+        "Basel segregation-of-duties / dual-control guidance",
+        "Ordivon Composition for opaque task-local binding mechanics",
+        "Ordivon Host for ActorRef/social continuity",
+        "Ordivon Harness Agent Birth for role materialization"
+      ],
+      "localStanding": "BOUNDED_INSTITUTIONAL_TOPOLOGY_AND_AUTHORITY_BINDING_SEAM",
+      "localResponsibility": "bind registered Office roles, exact DelegationGrants, opaque Host ActorRefs and exact Agent identities into bounded OfficeAssignment/OfficeVerdict/ReviewTopology documents; enforce Three-Lines staffing, maker-checker separation, veto/escalation and effect-owner/reconciler separation without implementing a social graph, agent runtime, generic workflow engine, authentication system, provider authority or external-effect execution",
+      "admittedMechanicsOwners": [],
+      "candidateMechanics": [],
+      "authorityBoundary": "Office role, ActorRef and Agent identity never mint delegation, credentials, provider permission, external effect authority or resource/provider truth."
     },
     {
       "id": "owner-constitution-delegation-and-risk-capacity",

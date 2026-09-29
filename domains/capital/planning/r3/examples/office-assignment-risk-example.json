@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.office-assignment",
+  "assignmentId": "assignment:risk",
+  "roleId": "RISK_OFFICE",
+  "actorRef": "actor:agent:risk",
+  "agentId": "risk-a",
+  "delegationGrantDigest": "sha256:687f33c6e4f0c14178aacc1c4b94d8a06b0b5287e7f404d3d11808e1a0f1135d",
+  "validFrom": "2026-09-29T00:00:00+00:00",
+  "revocable": true,
+  "evidenceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

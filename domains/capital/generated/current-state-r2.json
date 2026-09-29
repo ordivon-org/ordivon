@@ -19,13 +19,13 @@
     "config/portfolio_risk_budget.json": "sha256:56c835107bfb68f10d8c021f07b8de90c1aed8152c5462256d25e062be5c7dd4",
     "config/private_reality_policy.json": "sha256:7bf9acaeff8aa8b9e982fb726f73f6152e15e3b6537b32b3f3f73a401ca27dfa",
     "config/accounting_substrate.json": "sha256:2a153fa5a8e42c4430e7467241bfd63d71c16143d8e069b02e25835e5a1f6d0c",
-    "config/capital_lego_registry.json": "sha256:1a5e340ed57bf299f577a67593981e87c0ad7ce086d70fa099783c008e3f60e3",
+    "config/capital_lego_registry.json": "sha256:d5e14c00a1be385360be11fdc2452f93401d08b93b5fefcc3e4bf4b58311cc87",
     "config/investment_model_atlas.json": "sha256:2b4059364e6dd32f157a0b7746ac4ea8515297ddbeacecdd300a4aeefa5d6e7f",
     "config/decision_state_claim_registry.json": "sha256:d2f3b32926adfc60c42023b78d604c0697fbb13af7265f2cd05ba8cbb3111127",
     "config/macro_observation_owners.json": "sha256:3780239554e8fa5dceb25906b7717a04cf0c90b96a58c7e29b2c0ce095e55559",
     "config/soxl_instrument_identity.json": "sha256:e4a94620cb878c3fb4ae8830412b90398647f6a5def79ff8265ec00b3978c0fc",
     "config/research_data_aggregators.json": "sha256:1d998d71f49b36be4a07cc97cc0065303f5d9068612f4a709fb55ba08716dc15",
-    "planning/functional-lego-map-r1.json": "sha256:25b85dc4fb800898b3bd5e4991953d0edde646fdee3267523690a221e6ac9bba"
+    "planning/functional-lego-map-r1.json": "sha256:7beea2c0756e2c831e52c9676444a32905979080a31c01a8ac06ad00693e937c"
   },
   "protocol": {
     "schemaVersion": 2,
@@ -91,8 +91,8 @@
     "externalFinancialEffectAllowed": false
   },
   "inventory": {
-    "registryEntries": 49,
-    "canonicalEntries": 44,
+    "registryEntries": 51,
+    "canonicalEntries": 46,
     "functionalLegos": 12
   },
   "architectureLaws": [
@@ -104,5 +104,5 @@
     "decision state is projected from explicit time-bounded evidence claims; read circuits do not accept caller-authored state tags",
     "frozen decision records preserve context and authority digests without claiming causal attribution or skill"
   ],
-  "projectionDigest": "sha256:b64fed895f54c8f7f290d9e98bbc9102072bcb8d881a6142516a96ff5965ba0a"
+  "projectionDigest": "sha256:c4f7b15862dcda27ff282855ad1dfe07937a361734c1bf93676bcbfc4ad238b4"
 }

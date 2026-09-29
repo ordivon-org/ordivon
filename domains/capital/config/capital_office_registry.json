@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.office-registry",
+  "standing": "ACTIVE_R3_W3_CANDIDATE",
+  "referencePatterns": [
+    "IIA_THREE_LINES",
+    "BASEL_SEGREGATION_OF_DUTIES",
+    "ORDIVON_AUTHORITY_SEPARATION"
+  ],
+  "roles": [
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "GOVERNING_BODY",
+      "line": "GOVERNING_BODY",
+      "mandate": "Own explicit purpose, Constitution, owner preferences and constitutional delegation.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE",
+        "L4_EXECUTE_BOUNDED",
+        "L5_CHANGE_CONSTITUTION"
+      ],
+      "vetoClasses": [
+        "CONSTITUTIONAL_CONFLICT"
+      ],
+      "prohibitedAuthorities": [
+        "PROVIDER_REALITY",
+        "RUNTIME_EXECUTION_TRUTH"
+      ],
+      "incompatibleSameDecisionRoles": [],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "CAPITAL_ALLOCATION_COMMITTEE",
+      "line": "FIRST_LINE",
+      "mandate": "Frame cross-resource allocation decisions and preserve explicit alternatives without becoming the effect owner.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "PROVIDER_AUTHORITY",
+        "CREDENTIAL_AUTHORITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "RISK_OFFICE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "CHIEF_CAPITAL_OFFICE",
+      "line": "FIRST_LINE",
+      "mandate": "Originate bounded capital proposals and coordinate first-line operating offices.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "RISK_VETO",
+        "ASSURANCE_AUTHORITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "RISK_OFFICE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "RESEARCH_OFFICE",
+      "line": "FIRST_LINE",
+      "mandate": "Produce evidence, models and bounded recommendations without approving their own independent validation.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "MODEL_VALIDATION_AUTHORITY",
+        "EFFECT_AUTHORITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "MODEL_DATA_GOVERNANCE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "ALLOCATION_OFFICE",
+      "line": "FIRST_LINE",
+      "mandate": "Prepare allocation and counterfactual proposals inside the Constitution and explicit resource constraints.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "RISK_VETO",
+        "PROVIDER_AUTHORITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "RISK_OFFICE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "RISK_OFFICE",
+      "line": "SECOND_LINE",
+      "mandate": "Independently evaluate capacity, risk-budget and risk-envelope compliance and block/escalate violations.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [
+        "RISK_CAPACITY",
+        "RISK_BUDGET",
+        "RISK_ENVELOPE"
+      ],
+      "prohibitedAuthorities": [
+        "OWNER_PREFERENCE",
+        "EFFECT_EXECUTION"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "CHIEF_CAPITAL_OFFICE",
+        "ALLOCATION_OFFICE",
+        "EFFECT_OFFICE"
+      ],
+      "independenceRequired": true
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "TREASURY_OFFICE",
+      "line": "FIRST_LINE",
+      "mandate": "Prepare liquidity, funding, collateral and protected-resource plans; external effects remain separately gated.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "RISK_VETO",
+        "PROVIDER_REALITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "RISK_OFFICE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "EFFECT_OFFICE",
+      "line": "FIRST_LINE",
+      "mandate": "Prepare or execute only explicitly delegated bounded effects and never establish provider truth from send/ack.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE",
+        "L4_EXECUTE_BOUNDED"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "PROVIDER_REALITY",
+        "RECONCILIATION_AUTHORITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "RISK_OFFICE",
+        "CONTROLLER",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": false
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "CONTROLLER",
+      "line": "SECOND_LINE",
+      "mandate": "Independently reconcile operating effects to authoritative observations and protect accounting integrity.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [
+        "ACCOUNTING_INTEGRITY",
+        "RECONCILIATION_INTEGRITY"
+      ],
+      "prohibitedAuthorities": [
+        "EFFECT_EXECUTION",
+        "PROVIDER_REALITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "EFFECT_OFFICE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": true
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "PERFORMANCE_ATTRIBUTION",
+      "line": "SECOND_LINE",
+      "mandate": "Measure realized outcomes and attribution without converting outcomes into causal or skill authority.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "EFFECT_EXECUTION",
+        "OWNER_PREFERENCE"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": true
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "MODEL_DATA_GOVERNANCE",
+      "line": "SECOND_LINE",
+      "mandate": "Independently review model-use standing, data currentness and lineage without owning first-line research conclusions.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND",
+        "L3_PREPARE"
+      ],
+      "vetoClasses": [
+        "MODEL_USE",
+        "DATA_CURRENTNESS",
+        "DATA_LINEAGE"
+      ],
+      "prohibitedAuthorities": [
+        "MODEL_DEVELOPMENT_AUTHORITY",
+        "EFFECT_EXECUTION"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "RESEARCH_OFFICE",
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": true
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "EXTERNAL_PROFESSIONAL_LIAISON",
+      "line": "SECOND_LINE",
+      "mandate": "Route jurisdiction-specific legal, tax or regulated questions to external professional authorities without impersonating them.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND"
+      ],
+      "vetoClasses": [
+        "EXTERNAL_AUTHORITY_REQUIRED"
+      ],
+      "prohibitedAuthorities": [
+        "LEGAL_AUTHORITY",
+        "TAX_AUTHORITY",
+        "REGULATED_PROFESSIONAL_AUTHORITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "INDEPENDENT_ASSURANCE"
+      ],
+      "independenceRequired": true
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "ordivon.capital.office-role",
+      "roleId": "INDEPENDENT_ASSURANCE",
+      "line": "THIRD_LINE",
+      "mandate": "Provide independent assurance over governance, evidence, control and reconciliation; never originate or approve the operating effect it audits.",
+      "allowedDelegationLevels": [
+        "L0_OBSERVE",
+        "L1_ANALYZE",
+        "L2_RECOMMEND"
+      ],
+      "vetoClasses": [],
+      "prohibitedAuthorities": [
+        "OPERATING_EFFECT_AUTHORITY",
+        "OWNER_PREFERENCE",
+        "PROVIDER_REALITY"
+      ],
+      "incompatibleSameDecisionRoles": [
+        "GOVERNING_BODY",
+        "CAPITAL_ALLOCATION_COMMITTEE",
+        "CHIEF_CAPITAL_OFFICE",
+        "RESEARCH_OFFICE",
+        "ALLOCATION_OFFICE",
+        "RISK_OFFICE",
+        "TREASURY_OFFICE",
+        "EFFECT_OFFICE",
+        "CONTROLLER",
+        "PERFORMANCE_ATTRIBUTION",
+        "MODEL_DATA_GOVERNANCE",
+        "EXTERNAL_PROFESSIONAL_LIAISON"
+      ],
+      "independenceRequired": true
+    }
+  ]
+}

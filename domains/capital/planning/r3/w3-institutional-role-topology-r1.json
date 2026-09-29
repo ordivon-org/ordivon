@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.r3-w3-institutional-topology",
+  "standing": "IMPLEMENTATION_CANDIDATE_NOT_ACCEPTED",
+  "asOfDate": "2026-09-29",
+  "ownerSplit": {
+    "capital": "Office-role, delegation-consumption, review/veto/conflict semantics only",
+    "host": "ActorRef, Work, Space, Topic, Message and Attention semantic continuity only",
+    "composition": "task-local opaque component bindings and verification obligations only",
+    "harnessAgentBirth": "campaign role materialization and provider conversation role binding only",
+    "runtime": "physical execution truth only"
+  },
+  "bindings": {
+    "host": "OfficeAssignment carries an opaque Host actorRef; it never creates authentication or authorization",
+    "composition": "OfficeAssignment digest is eligible to enter AgentRunBinding.cognitionBindingRefs as an opaque exact ref",
+    "agentBirth": "project_agent_birth_role_binding emits current CampaignSpec-compatible agentId + roleCard without granting authority",
+    "independentJudgment": "OfficeVerdict freezes an independent initial judgment before post-discussion synthesis",
+    "makerChecker": "ReviewTopology requires separate first-line Maker and second-line Checker; planned effects additionally require Effect Office + Controller reconciliation",
+    "thirdLine": "Independent Assurance is separate and explicitly not an operating approval authority"
+  },
+  "controlLaws": [
+    "majority vote never overrides explicit veto",
+    "Agent/ActorRef/role-card do not mint delegation or provider authority",
+    "effect executor cannot also be reconciler",
+    "third line cannot staff operating duties on the same decision",
+    "checker initial verdict must be frozen before it can close maker-checker review"
+  ],
+  "externalPatterns": [
+    "IIA Three Lines",
+    "Basel segregation of duties / dual control"
+  ],
+  "liveEffectAuthorityWidened": false
+}

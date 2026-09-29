@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.office-verdict",
+  "verdictId": "verdict:risk",
+  "decisionRef": "capital-decision:test",
+  "decisionDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "assignmentDigest": "sha256:520181c853b73c5444c4d2175895e53d125b5dfe8eec9dcd91e202f45cd2de9b",
+  "roleId": "RISK_OFFICE",
+  "actorRef": "actor:agent:risk",
+  "agentId": "risk-a",
+  "phase": "INDEPENDENT_INITIAL",
+  "verdict": "APPROVE",
+  "assertedVetoClasses": [],
+  "rationale": "bounded independent risk review",
+  "evidenceRefs": [
+    "evidence:test"
+  ],
+  "unresolvedUnknowns": [],
+  "frozenAt": "2026-09-29T01:00:00+00:00",
+  "frozen": true
+}
