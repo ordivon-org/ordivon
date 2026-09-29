@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.recursive-lego-r2_1-postpublication-residue-closeout",
+  "observedDate": "2026-09-29",
+  "canonicalMainAtCensus": "9440d3c49976d29a9784fe2df82f4eefc165cce3",
+  "campaign": {
+    "campaignId": "recursive-lego-r2-capital-convergence-20260929-r1",
+    "finalCensusJobId": "job-01a0ed54-f786-7721-987c-173c5775831a",
+    "counts": {
+      "bound": 0,
+      "humanRequired": 1,
+      "preEffectFailed": 1,
+      "prepared": 0,
+      "readyConfirmed": 0,
+      "submitObserved": 0,
+      "unknown": 0,
+      "unrecorded": 0
+    },
+    "activeHumanHandoffs": 0,
+    "materializations": [
+      {
+        "agentId": "capital-rollback-independent-reviewer-r1",
+        "effectId": "sha256:e0ace04c5006cf0146f464ce63ef6ff3231e625660b54a64006bbf778f41957c",
+        "standing": "pre-effect-failed",
+        "providerResource": null
+      },
+      {
+        "agentId": "recursive-lego-publication-sequencing-reviewer-r1",
+        "effectId": "sha256:a2b781dd0d6cef2b2cfb4fc6671cf0a31a49113929263bfc8e0a4bd255b1d4a7",
+        "standing": "human-required",
+        "providerResource": null
+      }
+    ],
+    "semanticDisposition": "SUPERSEDED_BY_CANONICAL_PUBLICATION_DO_NOT_RESUME",
+    "effectDisposition": "NO_BOUND_PROVIDER_EFFECT_AND_NO_UNKNOWN_OR_UNRECORDED_MATERIALIZATION",
+    "forbiddenFollowups": [
+      "human-resume",
+      "continue",
+      "blind relaunch",
+      "blind resend"
+    ]
+  },
+  "staleCandidateRef": {
+    "ref": "candidate/recursive-lego-calculus-r2-20260929",
+    "staleCommit": "1cd82959e6f1072903b0432b67865c82a8750551",
+    "canonicalR2_1Commit": "07381c633c0824a5f191b3f4ddb95f6c4d4dd8d3",
+    "coreContentDiff": "NONE",
+    "ancestryRelation": "DIVERGENT_REAUTHORED_LINEAGE",
+    "trackedTextConsumersBeforeRetirement": 0,
+    "holdingWorkspace": {
+      "workspaceId": "ws-lego-r2-main-fence-20260929-1845",
+      "dirtyBeforeClose": false,
+      "allJobsTerminal": true,
+      "closureDisposition": "removed",
+      "closedSourceStateDigest": "sha256:4aabc52bb9b4843d5f6f956607e284def09d2931914265450e25a2ae251b7ea2"
+    },
+    "retirementJobId": "job-01a0ed54-4e1e-7c02-b2ed-b01e4ee8cea5",
+    "retirementDisposition": "BRANCH_DELETED_AFTER_ZERO_CONSUMER_AND_WORKSPACE_FENCE"
+  },
+  "standing": "PASS_POSTPUBLICATION_RESIDUE_CLOSED",
+  "nonClaims": [
+    "This closeout does not cancel or rewrite historical Agent Automation registry records.",
+    "This closeout does not establish prospective efficacy of Recursive LEGO R2.1.",
+    "Deleting the stale candidate ref does not delete the historical commit object or Runtime receipts that referenced it."
+  ]
+}
