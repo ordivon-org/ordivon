@@ -122,3 +122,20 @@ def test_windows_service_materializer_fences_mcp_surface_changes() -> None:
     assert "Gateway MCP tool surface changed without advancing packageVersion" in text
     assert "Gateway MCP surfaceEpoch changed while tool surface is unchanged" in text
     assert "$existingCim.PathName" in text
+
+
+def test_windows_service_materializer_keeps_authzen_opt_in_and_path_only() -> None:
+    text = MATERIALIZER.read_text(encoding="utf-8")
+    assert "AuthZenEvaluationEndpoint" in text
+    assert "AuthZenBearerTokenFile" in text
+    assert (
+        "AuthZEN enablement requires both AuthZenEvaluationEndpoint and AuthZenBearerTokenFile"
+        in text
+    )
+    assert "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT" in text
+    assert "ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE" in text
+    assert "configured AuthZEN bearer token file is missing" in text
+    authzen_guard = text.index("configured AuthZEN bearer token file is missing")
+    destructive = text.index("$existing = Get-Service")
+    assert authzen_guard < destructive
+    assert "Get-Content -LiteralPath $AuthZenBearerTokenFile" not in text

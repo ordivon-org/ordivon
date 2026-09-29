@@ -26,6 +26,10 @@ param(
     [Parameter()]
     [string]$HostBearerTokenFile = '',
     [Parameter()]
+    [string]$AuthZenEvaluationEndpoint = '',
+    [Parameter()]
+    [string]$AuthZenBearerTokenFile = '',
+    [Parameter()]
     [string]$PublicOrigin = '',
     [Parameter()]
     [switch]$TrustCfAccess,
@@ -87,6 +91,14 @@ if (-not [string]::IsNullOrWhiteSpace($LinuxRuntimeUrl) -and [string]::IsNullOrW
 }
 if (-not [string]::IsNullOrWhiteSpace($WindowsRuntimeUrl) -and [string]::IsNullOrWhiteSpace($WindowsRuntimeBearerTokenFile)) {
     throw "Windows Runtime URL requires WindowsRuntimeBearerTokenFile"
+}
+$authZenEndpointConfigured = -not [string]::IsNullOrWhiteSpace($AuthZenEvaluationEndpoint)
+$authZenBearerConfigured = -not [string]::IsNullOrWhiteSpace($AuthZenBearerTokenFile)
+if ($authZenEndpointConfigured -ne $authZenBearerConfigured) {
+    throw "AuthZEN enablement requires both AuthZenEvaluationEndpoint and AuthZenBearerTokenFile"
+}
+if ($authZenBearerConfigured -and -not (Test-Path -LiteralPath $AuthZenBearerTokenFile -PathType Leaf)) {
+    throw "configured AuthZEN bearer token file is missing"
 }
 
 $candidateSurfacePath = Join-Path $release 'mcp-surface.json'
@@ -189,6 +201,12 @@ if ($WindowsRuntimeBearerTokenFile) {
 if ($HostBearerTokenFile) {
     $envPairs.ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE = (
         [System.IO.Path]::GetFullPath($HostBearerTokenFile)
+    )
+}
+if ($authZenEndpointConfigured) {
+    $envPairs.ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT = $AuthZenEvaluationEndpoint
+    $envPairs.ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE = (
+        [System.IO.Path]::GetFullPath($AuthZenBearerTokenFile)
     )
 }
 if ($PublicOrigin) {

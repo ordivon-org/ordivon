@@ -17,6 +17,7 @@ from .access_auth import (
     CloudflareAccessVerifier,
 )
 from .audit import GatewayAuditMiddleware
+from .authzen_authorizer import AuthZenAuthorizerError, AuthZenPrincipalAuthorizer
 from .capability_authz import CapabilityAuthorizer, GatewayCapabilityAuthorizationMiddleware
 from .contracts import (
     ArtifactChunk,
@@ -29,7 +30,7 @@ from .contracts import (
 )
 from .external_worker import ExternalPullWorkerTransport
 from .service import GatewayService
-from .upstream import McpOwnerCaller, OwnerCallError
+from .upstream import McpOwnerCaller, OwnerCallError, _read_private_secret_file
 from .worker_http import attach_worker_routes
 
 
@@ -666,6 +667,48 @@ def build_http_app(
     return app
 
 
+def _authzen_authorizer_from_env() -> CapabilityAuthorizer | None:
+    endpoint = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT", "").strip()
+    token_file = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE", "").strip()
+    timeout_text = os.environ.get("ORDIVON_GATEWAY_AUTHZEN_TIMEOUT_SECONDS", "").strip()
+    loopback_text = (
+        os.environ.get("ORDIVON_GATEWAY_AUTHZEN_ALLOW_INSECURE_LOOPBACK", "").strip().lower()
+    )
+
+    if not any((endpoint, token_file, timeout_text, loopback_text)):
+        return None
+    if not endpoint or not token_file:
+        raise RuntimeError(
+            "AuthZEN enablement requires both "
+            "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT and "
+            "ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE"
+        )
+    if loopback_text not in {"", "0", "false", "1", "true"}:
+        raise RuntimeError(
+            "ORDIVON_GATEWAY_AUTHZEN_ALLOW_INSECURE_LOOPBACK must be true/false or 1/0"
+        )
+    try:
+        timeout_seconds = float(timeout_text) if timeout_text else 3.0
+    except ValueError as exc:
+        raise RuntimeError("ORDIVON_GATEWAY_AUTHZEN_TIMEOUT_SECONDS must be numeric") from exc
+
+    def bearer_token_provider() -> str:
+        try:
+            return _read_private_secret_file(token_file, "AuthZEN bearer token")
+        except (OSError, OwnerCallError) as exc:
+            raise AuthZenAuthorizerError("AuthZEN bearer credential is unavailable") from exc
+
+    try:
+        return AuthZenPrincipalAuthorizer(
+            endpoint,
+            bearer_token_provider=bearer_token_provider,
+            timeout_seconds=timeout_seconds,
+            allow_insecure_loopback=loopback_text in {"1", "true"},
+        )
+    except AuthZenAuthorizerError as exc:
+        raise RuntimeError(f"invalid AuthZEN Gateway configuration: {exc}") from exc
+
+
 def main() -> None:
     external_worker_db = os.environ.get("ORDIVON_GATEWAY_EXTERNAL_WORKER_DB")
     external_workers = (
@@ -674,7 +717,7 @@ def main() -> None:
         else None
     )
     gateway = GatewayService(McpOwnerCaller.from_env(), external_workers=external_workers)
-    server = build_server(gateway)
+    server = build_server(gateway, capability_authorizer=_authzen_authorizer_from_env())
     transport = os.environ.get("ORDIVON_GATEWAY_TRANSPORT", "stdio")
     if transport == "stdio":
         server.run()

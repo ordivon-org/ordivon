@@ -163,3 +163,14 @@ def test_local_service_identity_enabler_generates_private_credential_without_pri
     assert "systemctl restart ordivon-gateway.service" in text
     assert "http://127.0.0.1:8899/health" in text
     assert 'cat "$CREDENTIAL"' not in text
+
+
+AUTHZEN = ROOT / "systemd" / "ordivon-gateway.service.d" / "50-authzen-h2.example.conf"
+
+
+def test_authzen_h2_profile_is_opt_in_credential_file_only() -> None:
+    text = AUTHZEN.read_text(encoding="utf-8")
+    assert "LoadCredential=authzen-bearer:/etc/ordivon/gateway/authzen-bearer" in text
+    assert "ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT=" in text
+    assert "ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE=%d/authzen-bearer" in text
+    assert "Authorization=" not in text

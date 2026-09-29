@@ -1,6 +1,6 @@
 # Gateway AuthZEN H2 Principal Authorization R1
 
-Status: SOURCE CANDIDATE / LIVE ENABLEMENT FORBIDDEN UNTIL PDP + CREDENTIAL OWNER IS QUALIFIED
+Status: SOURCE-INTEGRATED / REVERSIBLE WIRING CANDIDATE; LIVE ENABLEMENT FORBIDDEN UNTIL PDP + CREDENTIAL OWNER IS QUALIFIED
 Date: 2026-09-28
 
 ## Decision
@@ -101,6 +101,19 @@ Interoperability evidence:
   ALLOW/DENY PASS with exact request-ID correlation and no authority/effect-admission projection.
 - Runtime Job `job-01a0e87c-7ba6-7b10-9fa6-b1a1aaf50abf`: Cerbos direct ALLOW/DENY PASS, exact
   request-ID echo absent.
+
+## Reversible wiring contract
+
+Gateway source may carry an opt-in H2 construction seam without enabling H2 in any deployment.
+The seam is valid only when both `ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT` and
+`ORDIVON_GATEWAY_AUTHZEN_BEARER_TOKEN_FILE` are configured. The credential value is read through
+the existing private credential-file validator at authorization time; bearer bytes are never stored
+in Gateway configuration or copied into Agent/model context. Removing those two settings and
+restarting Gateway is the immediate rollback and returns `build_server()` to its no-authorizer
+default. Incomplete configuration fails closed. Loopback HTTP remains an explicit canary-only opt-in.
+
+This wiring contract is deployment plumbing only. It does not select a production PDP or credential
+owner and therefore does not satisfy the live gate below.
 
 ## Live gate
 
