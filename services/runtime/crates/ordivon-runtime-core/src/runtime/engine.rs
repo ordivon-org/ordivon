@@ -1,3 +1,4 @@
+use super::lifecycle_locks::WorkspaceLeaseTable;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, OpenOptions};
@@ -12,6 +13,7 @@ use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
 use super::evidence::prepare_runner_terminal_from_bundle;
+use super::execution_provider::{LocalLinuxProvider, LocalLinuxRealizationInputs};
 use super::operation_circuit::OperationCircuitCompiler;
 use super::platform::*;
 use super::registry::JobSnapshot;
@@ -26,9 +28,10 @@ use super::workspace_state::{
 };
 use super::{
     runtime_release_effect_id, runtime_release_request_identity_digest, validate_client_request_id,
-    validate_logical_id, AdmissionOutcome, ArtifactDescriptor, ArtifactReadRequest,
-    ArtifactReadResult, ArtifactRegistration, AttemptRecord, AttemptState,
-    AttemptTerminationIntent, CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
+    validate_logical_id, AdmissionOutcome, ArtifactContentMetadata, ArtifactContentReadResult,
+    ArtifactContentRequest, ArtifactDescriptor, ArtifactReadRequest, ArtifactReadResult,
+    ArtifactRegistration, AttemptRecord, AttemptState, AttemptTerminationIntent,
+    CredentialAuthority, CredentialBindingRequest, EffectiveInputBinding,
     ExecutionProviderContract, ExecutionProviderSnapshot, HostDependencyBinding, InputAccessMode,
     InputAuthority, InputBindingRequest, JobCancelRequest, JobDesiredState, JobObservation,
     JobObserveRequest, JobObserveWaitUntil, JobResolution, JobRunRequest, Registry, RegistryConfig,
@@ -266,7 +269,8 @@ pub struct Runtime {
     input_authorities: BTreeMap<String, OpenedInputAuthority>,
     credential_authorities: BTreeMap<String, OpenedCredentialAuthority>,
     workspace_headroom: Option<WorkspaceHeadroomConfig>,
-    lifecycle_lock: Arc<Mutex<()>>,
+    topology_lock: Arc<Mutex<()>>,
+    workspace_leases: WorkspaceLeaseTable,
     control_terminal_lock: Arc<Mutex<()>>,
 }
 

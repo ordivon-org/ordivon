@@ -4,12 +4,13 @@ use crate::universal::{
     create_git_workspace, remove_git_workspace, write_workspace_text, WorkspaceWriteRequest,
 };
 use crate::{
-    ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal, ExecutionStepProposal,
-    ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding, InputAuthority,
-    InputBindingRequest, JobCancelRequest, JobObservation, JobObserveRequest, JobObserveWaitUntil,
-    JobRunProposal, RegistryConfig, Runtime, RuntimeConfig, RuntimeJobListRequest, RuntimeResult,
-    UniversalExecutorConfig, WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation,
-    WorkspaceMutationMode, RUNTIME_SCHEMA_VERSION, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    ArtifactContentRequest, ArtifactReadRequest, AttemptState, ExecutionBudget, ExecutionProposal,
+    ExecutionStepProposal, ForeignReference, GitWorkspaceCreateRequest, HostDependencyBinding,
+    InputAuthority, InputBindingRequest, JobCancelRequest, JobObservation, JobObserveRequest,
+    JobObserveWaitUntil, JobRunProposal, RegistryConfig, Runtime, RuntimeConfig,
+    RuntimeJobListRequest, RuntimeResult, UniversalExecutorConfig, WorkspaceCloseRequest,
+    WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode, RUNTIME_SCHEMA_VERSION,
+    UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
@@ -20,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Barrier};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 fn proposal_from_concrete_request(request: &JobRunRequest) -> JobRunProposal {
@@ -86,6 +87,13 @@ impl RunJobWithInputsViaProposalTestExt for Runtime {
 
 fn digest(value: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(value)))
+}
+
+fn wall_clock_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64
 }
 
 fn file_digest(path: &Path) -> String {
@@ -271,7 +279,7 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
     assert_eq!(listed.jobs[0].client_request_id, request.client_request_id);
     assert_eq!(listed.jobs[0].workspace_id, workspace_id);
     assert_eq!(listed.jobs[0].executable_name, "python3.14");
-    assert_eq!(listed.jobs[0].artifact_count, 4);
+    assert_eq!(listed.jobs[0].artifact_count, 5);
     let artifacts = runtime.registry().list_artifacts(&first.job_id).unwrap();
     let artifact_kinds = artifacts
         .iter()
@@ -281,11 +289,39 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         artifact_kinds,
         std::collections::BTreeSet::from([
             "execution_result",
+            "resource_receipt",
             "stderr",
             "stdout",
             "terminal_evidence",
         ])
     );
+    let resource_receipt = artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "resource_receipt")
+        .unwrap();
+    let receipt = runtime
+        .read_artifact(&ArtifactReadRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: resource_receipt.artifact_id.clone(),
+            offset: 0,
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    let receipt: serde_json::Value = serde_json::from_str(&receipt.content).unwrap();
+    assert_eq!(receipt["schemaVersion"], 1);
+    assert_eq!(receipt["jobId"], first.job_id);
+    assert_eq!(receipt["attemptId"], first.attempt_id.as_deref().unwrap());
+    assert_eq!(receipt["scope"], "attempt_cgroup_including_runner");
+    assert_eq!(receipt["provider"], "linux_cgroup_v2");
+    assert!(receipt["cpu"]["usageUsec"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(receipt["memory"]["peakBytes"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(receipt["io"]["readBytes"].as_u64().is_some());
+    assert!(receipt["io"]["writeBytes"].as_u64().is_some());
     let stdout = artifacts
         .iter()
         .find(|artifact| artifact.kind == "stdout")
@@ -301,6 +337,38 @@ fn runtime_transactional_runtime_executes_replays_and_releases_capacity() {
         .unwrap();
     assert!(read.content.contains("RUNTIME_OK"));
     assert!(read.eof);
+
+    let binary_projection = runtime
+        .read_artifact_content(&ArtifactContentRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: stdout.artifact_id.clone(),
+            max_bytes: 65_536,
+        })
+        .unwrap();
+    assert_eq!(binary_projection.metadata.digest, stdout.digest);
+    assert_eq!(
+        binary_projection.metadata.media_type,
+        "text/plain; charset=utf-8"
+    );
+    assert_eq!(
+        binary_projection.metadata.byte_length,
+        binary_projection.bytes.len() as u64
+    );
+    assert!(binary_projection
+        .bytes
+        .windows(b"RUNTIME_OK".len())
+        .any(|window| window == b"RUNTIME_OK"));
+
+    let too_small = runtime
+        .read_artifact_content(&ArtifactContentRequest {
+            schema_version: RUNTIME_SCHEMA_VERSION,
+            job_id: first.job_id.clone(),
+            artifact_id: stdout.artifact_id.clone(),
+            max_bytes: 1,
+        })
+        .unwrap_err();
+    assert_eq!(too_small.field.as_deref(), Some("maxBytes"));
 
     let custom_target = root.join("caller-custom-cargo-target");
     let mut custom_request = request.clone();
@@ -2140,6 +2208,77 @@ fn runtime_pending_systemd_start_job_is_not_misclassified_as_lost() {
         .output();
     let _ = Command::new("systemctl")
         .args(["reset-failed", &attempt.unit_name, &blocker])
+        .output();
+}
+
+#[test]
+#[ignore = "requires root, systemd, cgroup v2, built Runner, and explicit local opt-in"]
+fn runtime_startup_grace_begins_at_dispatch_after_slow_bundle_preparation() {
+    if std::env::var("ORDIVON_RUN_INTEGRATION").as_deref() != Ok("1") {
+        return;
+    }
+    let context = IntegrationContext::new("dispatch-grace-after-slow-bundle");
+    let runtime = context.runtime(2_000);
+    let created = created_admission(
+        runtime
+            .registry()
+            .submit(&context.direct_submit("request:dispatch-grace-slow-bundle", 1))
+            .unwrap(),
+    );
+    let ready = runtime
+        .registry()
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"simulated-bundle"),
+            wall_clock_ms(),
+        )
+        .unwrap();
+
+    // Deliberately consume more than the configured startup grace before dispatch.
+    // This preparation latency must not count against physical Runner startup.
+    thread::sleep(Duration::from_millis(2_200));
+    let dispatched = runtime
+        .registry()
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, wall_clock_ms())
+        .unwrap();
+    let launch = Command::new("systemd-run")
+        .arg(format!("--unit={}", dispatched.unit_name))
+        .arg("--collect")
+        .arg("--property=Type=exec")
+        .arg("/usr/bin/sleep")
+        .arg("30")
+        .output()
+        .unwrap();
+    assert!(launch.status.success());
+    thread::sleep(Duration::from_millis(20));
+
+    runtime.reconcile_attempt(&dispatched.attempt_id).unwrap();
+    let projection = runtime.registry().project_job(&created.job.job_id).unwrap();
+    let current = runtime
+        .registry()
+        .get_attempt(&dispatched.attempt_id)
+        .unwrap();
+    assert_eq!(
+        current.state,
+        AttemptState::Starting,
+        "pre-dispatch preparation latency consumed the startup grace"
+    );
+    assert_ne!(projection.status, "orphaned");
+    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 1);
+
+    let stopped = Command::new("systemctl")
+        .args(["stop", &dispatched.unit_name])
+        .output()
+        .unwrap();
+    assert!(stopped.status.success());
+    thread::sleep(Duration::from_millis(2_100));
+    runtime.reconcile_attempt(&dispatched.attempt_id).unwrap();
+    let converged = runtime.registry().project_job(&created.job.job_id).unwrap();
+    assert_eq!(converged.status, "lost");
+    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
+    let _ = Command::new("systemctl")
+        .args(["reset-failed", &dispatched.unit_name])
         .output();
 }
 

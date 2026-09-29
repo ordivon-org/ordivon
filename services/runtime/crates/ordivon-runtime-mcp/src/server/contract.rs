@@ -73,6 +73,36 @@ pub struct WorkspaceReadResult {
 
 #[derive(Clone, Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkspaceFileToolRequest {
+    #[schemars(range(min = 1, max = 1), extend("const" = 1))]
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
+    #[schemars(length(min = WORKSPACE_ID_MIN_LENGTH, max = WORKSPACE_ID_MAX_LENGTH), regex(pattern = WORKSPACE_ID_PATTERN))]
+    pub workspace_id: String,
+    pub relative_path: String,
+    #[schemars(regex(pattern = r"^sha256:[0-9a-f]{64}$"))]
+    pub expected_digest: String,
+    #[schemars(range(min = 1, max = MAX_WORKSPACE_IO_BYTES))]
+    pub max_bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = 1, max = 256))]
+    pub media_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFileProjectionMetadata {
+    pub workspace_id: String,
+    pub relative_path: String,
+    pub digest: String,
+    pub byte_length: u64,
+    pub media_type: String,
+    pub media_type_standing: String,
+    pub resource_uri: String,
+}
+
+#[derive(Clone, Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkspaceDiffRequest {
     #[schemars(range(min = 1, max = 1), extend("const" = 1))]
     #[serde(default = "default_schema_version")]
@@ -97,6 +127,20 @@ pub struct JobGetRequest {
 
 fn default_task_get_event_limit() -> u32 {
     DEFAULT_INSPECTION_EVENT_LIMIT
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactContentProjectionMetadata {
+    pub job_id: String,
+    pub artifact_id: String,
+    pub digest: String,
+    pub byte_length: u64,
+    pub truncated: bool,
+    pub registered_media_type: String,
+    pub media_type: String,
+    pub media_type_standing: String,
+    pub resource_uri: String,
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema)]

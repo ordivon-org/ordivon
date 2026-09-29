@@ -53,7 +53,7 @@ impl Runtime {
         &self,
         request: &GitWorkspaceCreateRequest,
     ) -> RuntimeResult<CompactWorkspaceOpenResult> {
-        let _guard = self.lock_lifecycle()?;
+        let _topology = self.lock_topology()?;
         self.ensure_workspace_headroom()?;
         create_git_workspace(&self.executor, request).map_err(map_universal_error)
     }
@@ -211,26 +211,29 @@ impl Runtime {
         &self,
         request: &WorkspaceMutateRequest,
     ) -> RuntimeResult<WorkspaceMutateResult> {
-        let _guard = self.lock_lifecycle()?;
-        let active = self
-            .registry
-            .active_job_ids_for_workspace(&request.workspace_id)?;
-        ensure_workspace_mutation_allowed(&active)?;
-        mutate_workspace(&self.executor, request).map_err(map_universal_error)
+        self.with_workspace_lease(&request.workspace_id, || {
+            let active = self
+                .registry
+                .active_job_ids_for_workspace(&request.workspace_id)?;
+            ensure_workspace_mutation_allowed(&active)?;
+            mutate_workspace(&self.executor, request).map_err(map_universal_error)
+        })
     }
 
     pub fn close_workspace(
         &self,
         request: &WorkspaceCloseRequest,
     ) -> RuntimeResult<WorkspaceCloseResult> {
-        let _guard = self.lock_lifecycle()?;
-        let active = self
-            .registry
-            .active_job_ids_for_workspace(&request.workspace_id)?;
-        let dependents = workspace_cleanup_dependents(&self.executor, &request.workspace_id)
-            .map_err(map_universal_error)?;
-        ensure_workspace_close_allowed(&active, &dependents)?;
-        remove_git_workspace(&self.executor, request).map_err(map_universal_error)
+        let _topology = self.lock_topology()?;
+        self.with_workspace_lease(&request.workspace_id, || {
+            let active = self
+                .registry
+                .active_job_ids_for_workspace(&request.workspace_id)?;
+            let dependents = workspace_cleanup_dependents(&self.executor, &request.workspace_id)
+                .map_err(map_universal_error)?;
+            ensure_workspace_close_allowed(&active, &dependents)?;
+            remove_git_workspace(&self.executor, request).map_err(map_universal_error)
+        })
     }
 
 }

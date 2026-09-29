@@ -26,7 +26,10 @@ use super::supervisor::WindowsLauncherOwnerObservation;
 #[cfg(windows)]
 use super::windows_broker;
 use super::windows_broker::WindowsPrivilegedBrokerConfig;
-use super::{ExecutionBudget, RuntimeError, RuntimeErrorCode, RuntimeResult, WindowsAuthority};
+use super::{
+    ExecutionBudget, ForeignReference, JobRunProposal, RuntimeError, RuntimeErrorCode,
+    RuntimeResult, WindowsAuthority, WindowsPayloadPrivilege,
+};
 
 const WINDOWS_BASELINE_ENVIRONMENT_NAMES: &[&str] = &[
     "APPDATA",
@@ -76,6 +79,53 @@ pub struct WindowsExecutionConfig {
     /// Exact native Windows launcher executable.
     pub launcher_path: PathBuf,
     pub privileged_broker: Option<WindowsPrivilegedBrokerConfig>,
+    /// Authenticated Runtime principals allowed to request an elevated Windows payload token.
+    ///
+    /// This is operator-owned admission authority. Callers choose a requested Windows context,
+    /// but cannot widen this set through tool arguments or foreign references. An empty set fails
+    /// closed for all new generic elevated Windows Jobs while preserving limited execution.
+    pub elevated_principals: Vec<String>,
+    /// Operator-owned privileged-effect profiles for new elevated Windows admissions.
+    ///
+    /// Agent-authored foreignReferences may select one profile by id, but cannot create or widen
+    /// a profile.  The profile binds both principal authority and the exact executable/argument
+    /// surface allowed to receive an elevated token.
+    pub elevated_profiles: Vec<WindowsElevatedExecutionProfile>,
+    /// Operator-owned owner-native maintenance lease. While one valid unexpired lease exists,
+    /// Runtime rejects every new Windows execution admission; exact Job replay is resolved before
+    /// this policy so an already-admitted maintenance owner can reconnect safely.
+    pub maintenance_lease_path: Option<PathBuf>,
+}
+
+const WINDOWS_PRIVILEGED_PROFILE_NAMESPACE: &str = "ordivon.windows";
+const WINDOWS_PRIVILEGED_PROFILE_TYPE: &str = "privileged_profile";
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WindowsElevatedCommandProfile {
+    pub executable: String,
+    #[serde(default)]
+    pub argument_prefix: Vec<String>,
+    #[serde(default)]
+    pub allow_additional_arguments: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WindowsElevatedExecutionProfile {
+    pub id: String,
+    pub principals: Vec<String>,
+    pub commands: Vec<WindowsElevatedCommandProfile>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "camelCase")]
+struct WindowsMaintenanceLease {
+    schema_version: u32,
+    kind: String,
+    maintenance_id: String,
+    expires_at_utc: String,
+    expires_at_unix_ms: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -114,8 +164,115 @@ pub fn materialize_windows_credential_binding(
     }
 }
 
+fn valid_privileged_profile_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b':' | b'/')
+        })
+}
+
+fn normalized_windows_command_path(value: &str) -> String {
+    let mut value = value.replace('/', "\\");
+    if let Some(stripped) = value.strip_prefix("\\\\?\\") {
+        value = stripped.to_string();
+    }
+    value.make_ascii_lowercase();
+    value
+}
+
+fn command_matches_profile(
+    executable: &str,
+    args: &[String],
+    profile: &WindowsElevatedCommandProfile,
+) -> bool {
+    if normalized_windows_command_path(executable)
+        != normalized_windows_command_path(&profile.executable)
+    {
+        return false;
+    }
+    if args.len() < profile.argument_prefix.len()
+        || args[..profile.argument_prefix.len()] != profile.argument_prefix
+    {
+        return false;
+    }
+    profile.allow_additional_arguments || args.len() == profile.argument_prefix.len()
+}
+
+fn requested_privileged_profile(
+    references: &[ForeignReference],
+) -> RuntimeResult<Option<&ForeignReference>> {
+    let selected = references
+        .iter()
+        .filter(|reference| {
+            reference.namespace == WINDOWS_PRIVILEGED_PROFILE_NAMESPACE
+                && reference.reference_type == WINDOWS_PRIVILEGED_PROFILE_TYPE
+        })
+        .collect::<Vec<_>>();
+    if selected.len() > 1 {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::AuthorizationDenied,
+            "elevated Windows execution may select exactly one privileged profile",
+            Some("execution.foreignReferences"),
+            false,
+        ));
+    }
+    Ok(selected.into_iter().next())
+}
+
+fn validate_windows_elevated_principals(principals: &[String]) -> RuntimeResult<()> {
+    let mut seen = std::collections::BTreeSet::new();
+    for principal in principals {
+        if principal.is_empty()
+            || principal.len() > 256
+            || principal.chars().any(char::is_whitespace)
+            || !seen.insert(principal.as_str())
+        {
+            return Err(RuntimeError::invalid(
+                "Windows elevated principals must be unique, non-empty, whitespace-free, and at most 256 characters",
+                "windows.elevatedPrincipals",
+            ));
+        }
+    }
+    Ok(())
+}
+
 impl WindowsExecutionConfig {
     pub(crate) fn validate(&self) -> RuntimeResult<()> {
+        validate_windows_elevated_principals(&self.elevated_principals)?;
+        let mut profile_ids = std::collections::BTreeSet::new();
+        for profile in &self.elevated_profiles {
+            if !valid_privileged_profile_id(&profile.id) || !profile_ids.insert(profile.id.as_str())
+            {
+                return Err(RuntimeError::invalid(
+                    "Windows elevated profile ids must be unique stable logical ids",
+                    "windows.elevatedProfiles",
+                ));
+            }
+            validate_windows_elevated_principals(&profile.principals)?;
+            if profile.principals.is_empty() || profile.commands.is_empty() {
+                return Err(RuntimeError::invalid(
+                    "Windows elevated profiles require at least one principal and command",
+                    "windows.elevatedProfiles",
+                ));
+            }
+            for command in &profile.commands {
+                if command.executable.is_empty() || command.executable.chars().any(|c| c == '\0') {
+                    return Err(RuntimeError::invalid(
+                        "Windows elevated profile commands require a non-empty NUL-free executable",
+                        "windows.elevatedProfiles",
+                    ));
+                }
+            }
+        }
+        if let Some(path) = &self.maintenance_lease_path {
+            if cfg!(windows) && !path.is_absolute() {
+                return Err(RuntimeError::invalid(
+                    "Windows maintenance lease path must be absolute",
+                    "windows.maintenanceLeasePath",
+                ));
+            }
+        }
         if !self.launcher_path.is_absolute() {
             return Err(RuntimeError::invalid(
                 "Windows launcher path must be absolute",
@@ -152,6 +309,181 @@ impl WindowsExecutionConfig {
             {
                 let _ = broker.executable_digest()?;
             }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn authorize_new_proposal(&self, proposal: &JobRunProposal) -> RuntimeResult<()> {
+        if proposal.execution.execution_target != super::ExecutionTarget::WindowsNative {
+            return Ok(());
+        }
+        self.authorize_maintenance_fence()?;
+        self.authorize_elevated_proposal(proposal)
+    }
+
+    fn authorize_maintenance_fence(&self) -> RuntimeResult<()> {
+        let Some(path) = self.maintenance_lease_path.as_ref() else {
+            return Ok(());
+        };
+        let metadata = match fs::symlink_metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::AuthorizationDenied,
+                    format!("cannot inspect Windows maintenance lease: {error}"),
+                    Some("windows.maintenanceLeasePath"),
+                    false,
+                ))
+            }
+        };
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "Windows maintenance lease must be a regular non-symlink file",
+                Some("windows.maintenanceLeasePath"),
+                false,
+            ));
+        }
+        let bytes = fs::read(path).map_err(|error| {
+            RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                format!("cannot read Windows maintenance lease: {error}"),
+                Some("windows.maintenanceLeasePath"),
+                false,
+            )
+        })?;
+        let lease: WindowsMaintenanceLease = serde_json::from_slice(&bytes).map_err(|error| {
+            RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                format!("invalid Windows maintenance lease JSON: {error}"),
+                Some("windows.maintenanceLeasePath"),
+                false,
+            )
+        })?;
+        if lease.schema_version != 3
+            || lease.kind != "ordivon.d-drive-compact-request"
+            || !valid_privileged_profile_id(&lease.maintenance_id)
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "Windows maintenance lease identity is invalid",
+                Some("windows.maintenanceLeasePath"),
+                false,
+            ));
+        }
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|error| {
+                RuntimeError::new(
+                    RuntimeErrorCode::AuthorizationDenied,
+                    format!("cannot determine current time for Windows maintenance lease: {error}"),
+                    Some("windows.maintenanceLeasePath"),
+                    false,
+                )
+            })?
+            .as_millis() as u64;
+        if lease.expires_at_unix_ms <= now_ms {
+            return Ok(());
+        }
+        Err(RuntimeError::new(
+            RuntimeErrorCode::AuthorizationDenied,
+            format!(
+                "Windows execution admission is fenced by active maintenance lease {} until {}",
+                lease.maintenance_id, lease.expires_at_utc
+            ),
+            Some("execution.executionTarget"),
+            false,
+        ))
+    }
+
+    pub(crate) fn authorize_elevated_proposal(
+        &self,
+        proposal: &JobRunProposal,
+    ) -> RuntimeResult<()> {
+        if proposal.execution.execution_target != super::ExecutionTarget::WindowsNative {
+            return Ok(());
+        }
+        let context = proposal
+            .execution
+            .windows_context
+            .unwrap_or_else(|| proposal.execution.windows_authority.canonical_context());
+        let selected = requested_privileged_profile(&proposal.execution.foreign_references)?;
+        if context.privilege != WindowsPayloadPrivilege::Elevated {
+            if selected.is_some() {
+                return Err(RuntimeError::new(
+                    RuntimeErrorCode::AuthorizationDenied,
+                    "a privileged Windows profile may be selected only by elevated execution",
+                    Some("execution.foreignReferences"),
+                    false,
+                ));
+            }
+            return Ok(());
+        }
+        let selected = selected.ok_or_else(|| {
+            RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "elevated Windows execution requires one operator-configured privileged profile",
+                Some("execution.foreignReferences"),
+                false,
+            )
+        })?;
+        if selected.generation.is_some() || selected.digest.is_some() {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "privileged profile references are operator policy selectors and must not carry caller generation or digest claims",
+                Some("execution.foreignReferences"),
+                false,
+            ));
+        }
+        let profile = self
+            .elevated_profiles
+            .iter()
+            .find(|profile| profile.id == selected.id)
+            .ok_or_else(|| {
+                RuntimeError::new(
+                    RuntimeErrorCode::AuthorizationDenied,
+                    "requested Windows privileged profile is not configured",
+                    Some("execution.foreignReferences"),
+                    false,
+                )
+            })?;
+        if !profile
+            .principals
+            .iter()
+            .any(|principal| principal == &proposal.principal)
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "authenticated principal is not authorized for the requested Windows privileged profile",
+                Some("execution.foreignReferences"),
+                false,
+            ));
+        }
+        let mut commands = Vec::with_capacity(1 + proposal.execution.steps.len());
+        commands.push((
+            proposal.execution.executable.as_str(),
+            proposal.execution.args.as_slice(),
+        ));
+        commands.extend(
+            proposal
+                .execution
+                .steps
+                .iter()
+                .map(|step| (step.executable.as_str(), step.args.as_slice())),
+        );
+        if commands.iter().any(|(executable, args)| {
+            !profile
+                .commands
+                .iter()
+                .any(|rule| command_matches_profile(executable, args, rule))
+        }) {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "elevated Windows command is outside the selected privileged profile",
+                Some("execution.executable"),
+                false,
+            ));
         }
         Ok(())
     }
@@ -1385,6 +1717,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn elevated_principal_authority_accepts_explicit_unique_principals() {
+        validate_windows_elevated_principals(&[
+            "principal:test-alpha".to_string(),
+            "principal:test-beta".to_string(),
+        ])
+        .unwrap();
+    }
+
+    #[test]
+    fn elevated_principal_authority_rejects_empty_whitespace_and_duplicates() {
+        for principals in [
+            vec!["".to_string()],
+            vec!["principal:bad value".to_string()],
+            vec!["principal:dup".to_string(), "principal:dup".to_string()],
+        ] {
+            let error = validate_windows_elevated_principals(&principals).unwrap_err();
+            assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
+            assert_eq!(error.field.as_deref(), Some("windows.elevatedPrincipals"));
+        }
+    }
+
+    #[test]
     fn windows_environment_overlay_is_case_insensitive_and_does_not_duplicate_baseline_keys() {
         let baseline = BTreeMap::from([
             ("Path".to_string(), "C:\\Windows\\System32".to_string()),
@@ -1899,5 +2253,228 @@ mod tests {
         assert_eq!(error.code, RuntimeErrorCode::InvalidRequest);
         assert_eq!(error.field.as_deref(), Some("execution"));
         assert!(error.message.contains("per-variable limit"));
+    }
+}
+
+#[cfg(test)]
+mod privileged_profile_tests {
+    use super::*;
+    use crate::runtime::{
+        ExecutionProfile, ExecutionProposal, ExecutionStepProposal, ExecutionTarget,
+        JobRunProposal, WindowsAuthority,
+    };
+    use std::collections::BTreeMap;
+
+    fn profile_ref(id: &str) -> ForeignReference {
+        ForeignReference {
+            namespace: WINDOWS_PRIVILEGED_PROFILE_NAMESPACE.to_string(),
+            reference_type: WINDOWS_PRIVILEGED_PROFILE_TYPE.to_string(),
+            id: id.to_string(),
+            generation: None,
+            digest: None,
+        }
+    }
+
+    fn proposal(
+        executable: &str,
+        args: &[&str],
+        references: Vec<ForeignReference>,
+    ) -> JobRunProposal {
+        JobRunProposal {
+            schema_version: 1,
+            client_request_id: "privileged-profile-test".to_string(),
+            principal: "principal:windows-main".to_string(),
+            global_limit: 4,
+            execution: ExecutionProposal {
+                workspace_id: "workspace-profile-test".to_string(),
+                executable: executable.to_string(),
+                args: args.iter().map(|value| (*value).to_string()).collect(),
+                cwd_relative: ".".to_string(),
+                env: BTreeMap::new(),
+                timeout_ms: Some(1_000),
+                stdout_limit_bytes: Some(4_096),
+                stderr_limit_bytes: Some(4_096),
+                steps: Vec::new(),
+                budget: ExecutionBudget::default(),
+                execution_profile: ExecutionProfile::TrustedLocal,
+                execution_target: ExecutionTarget::WindowsNative,
+                windows_authority: WindowsAuthority::Elevated,
+                windows_context: None,
+                foreign_references: references,
+                host_dependencies: Vec::new(),
+            },
+            wait_ms: 0,
+            stdout_tail_bytes: 0,
+            stderr_tail_bytes: 0,
+        }
+    }
+
+    fn config() -> WindowsExecutionConfig {
+        WindowsExecutionConfig {
+            launcher_path: PathBuf::from("/bin/true"),
+            privileged_broker: None,
+            elevated_principals: vec!["principal:windows-main".to_string()],
+            elevated_profiles: vec![WindowsElevatedExecutionProfile {
+                id: "workstation.d-drive-compact-r3".to_string(),
+                principals: vec!["principal:windows-main".to_string()],
+                commands: vec![WindowsElevatedCommandProfile {
+                    executable: r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+                        .to_string(),
+                    argument_prefix: vec![
+                        "-NoProfile".to_string(),
+                        "-NonInteractive".to_string(),
+                        "-ExecutionPolicy".to_string(),
+                        "Bypass".to_string(),
+                        "-File".to_string(),
+                        r"D:\OrdivonStudio\d-drive-compact-run-r3.ps1".to_string(),
+                    ],
+                    allow_additional_arguments: false,
+                }],
+            }],
+            maintenance_lease_path: None,
+        }
+    }
+
+    #[test]
+    fn elevated_windows_requires_privileged_profile_reference() {
+        let error = config()
+            .authorize_elevated_proposal(&proposal(
+                r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                &["-Command", "Write-Output unsafe"],
+                Vec::new(),
+            ))
+            .unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+    }
+
+    #[test]
+    fn matching_provider_profile_allows_only_bound_entrypoint() {
+        let reference = profile_ref("workstation.d-drive-compact-r3");
+        config()
+            .authorize_elevated_proposal(&proposal(
+                r"c:\windows\system32\windowspowershell\v1.0\powershell.exe",
+                &[
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    r"D:\OrdivonStudio\d-drive-compact-run-r3.ps1",
+                ],
+                vec![reference.clone()],
+            ))
+            .unwrap();
+        let error = config()
+            .authorize_elevated_proposal(&proposal(
+                r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                &["-Command", "Optimize-VHD -Path arbitrary.vhdx -Mode Full"],
+                vec![reference],
+            ))
+            .unwrap_err();
+        assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+    }
+
+    #[test]
+    fn profile_principal_and_all_structured_steps_are_enforced() {
+        let reference = profile_ref("workstation.d-drive-compact-r3");
+        let mut denied_principal = proposal(
+            r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            &[
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                r"D:\OrdivonStudio\d-drive-compact-run-r3.ps1",
+            ],
+            vec![reference.clone()],
+        );
+        denied_principal.principal = "principal:other".to_string();
+        assert_eq!(
+            config()
+                .authorize_elevated_proposal(&denied_principal)
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::AuthorizationDenied
+        );
+
+        let mut extra_step = proposal(
+            r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+            &[
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                r"D:\OrdivonStudio\d-drive-compact-run-r3.ps1",
+            ],
+            vec![reference],
+        );
+        extra_step.execution.steps.push(ExecutionStepProposal {
+            id: "escape".to_string(),
+            executable: r"C:\Windows\System32\cmd.exe".to_string(),
+            args: vec!["/c".to_string(), "whoami".to_string()],
+            cwd_relative: ".".to_string(),
+            env: BTreeMap::new(),
+            timeout_ms: Some(1_000),
+            continue_on_error: false,
+        });
+        assert_eq!(
+            config()
+                .authorize_elevated_proposal(&extra_step)
+                .unwrap_err()
+                .code,
+            RuntimeErrorCode::AuthorizationDenied
+        );
+    }
+    #[test]
+    fn active_maintenance_lease_fences_all_new_windows_execution() {
+        let root = std::env::temp_dir().join(format!(
+            "ordivon-windows-maintenance-lease-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let lease = root.join("active-request.json");
+        fs::write(
+            &lease,
+            serde_json::json!({
+                "schemaVersion": 3,
+                "kind": "ordivon.d-drive-compact-request",
+                "maintenanceId": "cap-test-active",
+                "expiresAtUtc": "2099-01-01T00:00:00Z",
+                "expiresAtUnixMs": (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64) + 300_000,
+                "transactionDir": "D:\\OrdivonStudio\\maintenance\\cap-test-active"
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let mut cfg = config();
+        cfg.maintenance_lease_path = Some(lease.clone());
+        let mut limited = proposal(
+            r"C:\Windows\System32\cmd.exe",
+            &["/c", "echo", "ok"],
+            Vec::new(),
+        );
+        limited.execution.windows_authority = WindowsAuthority::Limited;
+        assert_eq!(
+            cfg.authorize_new_proposal(&limited).unwrap_err().code,
+            RuntimeErrorCode::AuthorizationDenied
+        );
+
+        fs::write(
+            &lease,
+            serde_json::json!({
+                "schemaVersion": 3,
+                "kind": "ordivon.d-drive-compact-request",
+                "maintenanceId": "cap-test-expired",
+                "expiresAtUtc": "2000-01-01T00:00:00Z",
+                "expiresAtUnixMs": 1
+            })
+            .to_string(),
+        )
+        .unwrap();
+        cfg.authorize_new_proposal(&limited).unwrap();
+        fs::remove_dir_all(root).unwrap();
     }
 }

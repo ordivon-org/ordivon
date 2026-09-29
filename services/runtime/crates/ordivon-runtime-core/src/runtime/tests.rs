@@ -1,7 +1,6 @@
 use super::engine::{
     cancel_after_launch_identity_mismatch_is_safe, native_windows_owner_matches_launcher_identity,
-    native_windows_pre_target_evidence_gap, observation_result_satisfies_terminal_wait,
-    transient_main_pid_observation_loss,
+    native_windows_pre_target_evidence_gap, transient_main_pid_observation_loss,
 };
 use super::engine::{canonical_credential_binding_requests, verify_credential_snapshot};
 #[cfg(feature = "operator-tools")]
@@ -12,8 +11,11 @@ use super::repair::{AdminRepairAudit, AdminRepairOperation};
 use super::supervisor::AttemptSupervisorOwner;
 use super::*;
 use crate::universal::{
-    CapturedOutput, RunnerResult, RunnerTerminalStatus, UniversalExecutorConfig,
+    CapturedOutput, CgroupCpuUsage, CgroupIoUsage, CgroupMemoryEvents, CgroupMemoryUsage,
+    RunnerResourceReceipt, RunnerResult, RunnerTerminalStatus, UniversalExecutorConfig,
     WorkspaceCloseRequest, WorkspaceMutateRequest, WorkspaceMutation, WorkspaceMutationMode,
+    RESOURCE_RECEIPT_FILE, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2,
+    RESOURCE_RECEIPT_SCHEMA_VERSION, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
     UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use rusqlite::Connection;
@@ -129,31 +131,6 @@ fn transient_main_pid_observation_loss_is_narrowly_classified() {
 }
 
 #[test]
-fn repairable_launch_identity_gap_does_not_satisfy_terminal_wait() {
-    assert!(!observation_result_satisfies_terminal_wait(
-        true,
-        true,
-        "orphaned",
-        Some("LIVE_UNIT_WITHOUT_LAUNCH_TOKEN_EVIDENCE"),
-    ));
-    assert!(observation_result_satisfies_terminal_wait(
-        true,
-        true,
-        "orphaned",
-        Some("LAUNCH_IDENTITY_MISMATCH"),
-    ));
-    assert!(observation_result_satisfies_terminal_wait(
-        true,
-        false,
-        "succeeded",
-        Some("PROCESS_EXIT_ZERO"),
-    ));
-    assert!(!observation_result_satisfies_terminal_wait(
-        false, false, "working", None,
-    ));
-}
-
-#[test]
 fn cancel_launch_identity_mismatch_bypass_requires_definitive_process_absence() {
     assert!(cancel_after_launch_identity_mismatch_is_safe(
         false, false, false
@@ -242,6 +219,9 @@ fn linux_runtime_rejects_windows_execution_provider_configuration() {
     config.windows = Some(WindowsExecutionConfig {
         launcher_path: PathBuf::from("/usr/bin/true"),
         privileged_broker: None,
+        elevated_principals: Vec::new(),
+        elevated_profiles: Vec::new(),
+        maintenance_lease_path: None,
     });
 
     let error = Runtime::new(config).unwrap_err();
@@ -265,6 +245,48 @@ fn inspection_config(sandbox: &Sandbox) -> RuntimeInspectionConfig {
         db_path: sandbox.registry.config().db_path.clone(),
         busy_timeout_ms: 5_000,
     }
+}
+
+fn write_test_resource_receipt(attempt: &AttemptRecord, attempt_id: &str) {
+    let receipt = RunnerResourceReceipt {
+        schema_version: RESOURCE_RECEIPT_SCHEMA_VERSION,
+        task_id: attempt.attempt_id.clone(),
+        job_id: attempt.job_id.clone(),
+        attempt_id: attempt_id.to_string(),
+        launch_token_digest: attempt.launch_token_digest.clone(),
+        observed_unix_ms: 41,
+        scope: RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP.to_string(),
+        provider: RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2.to_string(),
+        cpu: CgroupCpuUsage {
+            usage_usec: 12_345,
+            user_usec: 8_000,
+            system_usec: 4_345,
+        },
+        memory: CgroupMemoryUsage {
+            peak_bytes: 104_857_600,
+            swap_peak_bytes: Some(16_777_216),
+            events: CgroupMemoryEvents {
+                low: 0,
+                high: 1,
+                max: 2,
+                oom: 0,
+                oom_kill: 0,
+            },
+        },
+        io: CgroupIoUsage {
+            read_bytes: 110,
+            write_bytes: 220,
+            read_ops: 4,
+            write_ops: 6,
+            discard_bytes: 0,
+            discard_ops: 0,
+        },
+    };
+    fs::write(
+        Path::new(&attempt.bundle_path).join(RESOURCE_RECEIPT_FILE),
+        serde_json::to_vec(&receipt).unwrap(),
+    )
+    .unwrap();
 }
 
 fn write_completed_runner_result(attempt: &AttemptRecord, finished_at_ms: u128) {
@@ -391,6 +413,83 @@ fn created(outcome: AdmissionOutcome) -> CreatedAdmission {
         AdmissionOutcome::Created(created) => *created,
         AdmissionOutcome::Existing { .. } => panic!("expected newly created admission"),
     }
+}
+
+#[test]
+fn unrelated_runtime_admission_sections_overlap_under_shared_deployment_fence() {
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let sandbox = Sandbox::new("admission-workspace-overlap", 5_000);
+    let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+    let runtime_a = runtime.clone();
+    let runtime_b = runtime.clone();
+    let (entered_a_tx, entered_a_rx) = mpsc::channel();
+    let (release_a_tx, release_a_rx) = mpsc::channel();
+    let (entered_b_tx, entered_b_rx) = mpsc::channel();
+
+    let holder = thread::spawn(move || {
+        runtime_a
+            .with_admission_workspace_lease("workspace-a", |_| {
+                entered_a_tx.send(()).unwrap();
+                release_a_rx.recv().unwrap();
+                Ok(())
+            })
+            .unwrap();
+    });
+    entered_a_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+
+    let other = thread::spawn(move || {
+        runtime_b
+            .with_admission_workspace_lease("workspace-b", |_| {
+                entered_b_tx.send(()).unwrap();
+                Ok(())
+            })
+            .unwrap();
+    });
+    entered_b_rx
+        .recv_timeout(Duration::from_secs(1))
+        .expect("unrelated Runtime admission was serialized behind workspace-a");
+
+    release_a_tx.send(()).unwrap();
+    holder.join().unwrap();
+    other.join().unwrap();
+}
+
+#[test]
+fn startup_grace_uses_durable_dispatch_issue_time_not_attempt_creation() {
+    let sandbox = Sandbox::new("dispatch-startup-grace-anchor", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:dispatch-startup-grace-anchor",
+                1,
+            ))
+            .unwrap(),
+    );
+    let ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"bundle"),
+            50_000,
+        )
+        .unwrap();
+    let dispatched = sandbox
+        .registry
+        .mark_dispatch_issued(&ready.attempt_id, ready.row_version, 60_000)
+        .unwrap();
+
+    assert_eq!(
+        sandbox
+            .registry
+            .dispatch_issued_at_ms(&dispatched.attempt_id)
+            .unwrap(),
+        60_000
+    );
 }
 
 fn running_attempt_for_commit_fault(sandbox: &Sandbox, client_request_id: &str) -> AttemptRecord {
@@ -2794,6 +2893,39 @@ fn simultaneous_admissions_cannot_overbook_last_global_slot() {
 }
 
 #[test]
+fn process_local_registry_write_gate_serializes_concurrent_admissions() {
+    let sandbox = Sandbox::new("process-local-write-gate", 1);
+    let registry = sandbox.registry.clone();
+    let barrier = Arc::new(Barrier::new(9));
+    let joins = (0..8)
+        .map(|index| {
+            let registry = registry.clone();
+            let barrier = barrier.clone();
+            let mut submit = request(
+                &sandbox,
+                &format!("request:process-local-write-gate:{index}"),
+                16,
+            );
+            submit.plan.workspace_id = format!("workspace:process-local-write-gate:{index}");
+            thread::spawn(move || {
+                barrier.wait();
+                registry.submit(&submit)
+            })
+        })
+        .collect::<Vec<_>>();
+    barrier.wait();
+    let results = joins
+        .into_iter()
+        .map(|join| join.join().unwrap())
+        .collect::<Vec<_>>();
+    assert!(
+        results.iter().all(Result::is_ok),
+        "process-local writers must serialize before SQLite instead of surfacing contention: {results:?}"
+    );
+    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 8);
+}
+
+#[test]
 fn busy_writer_fails_with_retryable_registry_busy() {
     let sandbox = Sandbox::new("busy", 40);
     let lock = Connection::open(&sandbox.registry.config().db_path).unwrap();
@@ -2804,6 +2936,24 @@ fn busy_writer_fails_with_retryable_registry_busy() {
         .unwrap_err();
     assert_eq!(error.code, RuntimeErrorCode::RegistryBusy);
     assert!(error.retryable);
+    lock.execute_batch("ROLLBACK").unwrap();
+}
+
+#[test]
+fn exact_replay_remains_read_only_while_external_writer_holds_sqlite() {
+    let sandbox = Sandbox::new("replay-under-external-writer", 40);
+    let submit = request(&sandbox, "request:replay-under-external-writer", 4);
+    let created = created(sandbox.registry.submit(&submit).unwrap());
+
+    let lock = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    lock.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let replay = match sandbox.registry.submit(&submit).unwrap() {
+        AdmissionOutcome::Existing { job } => job,
+        AdmissionOutcome::Created(_) => {
+            panic!("exact replay created a second Job while an external writer held SQLite")
+        }
+    };
+    assert_eq!(replay.job_id, created.job.job_id);
     lock.execute_batch("ROLLBACK").unwrap();
 }
 
@@ -3818,6 +3968,70 @@ fn list_intersects_workspace_and_client_request_identity() {
 }
 
 #[test]
+fn principal_scoped_list_filters_before_pagination() {
+    let sandbox = Sandbox::new("list-principal-scoped", 5000);
+    for index in 0..5 {
+        let request_id = format!("request:list-principal-scoped:{index}");
+        let mut list_request = request(&sandbox, &request_id, 8);
+        let target = index % 2 == 0;
+        list_request.plan.principal = if target {
+            "principal:list-principal-scoped:target".to_string()
+        } else {
+            "principal:list-principal-scoped:other".to_string()
+        };
+        list_request.plan.workspace_id = if target {
+            format!("workspace:list-principal-scoped:target:{index}")
+        } else {
+            format!("workspace:list-principal-scoped:other:{index}")
+        };
+        sandbox.registry.submit(&list_request).unwrap();
+    }
+
+    let mut cursor = None;
+    let mut observed = Vec::new();
+    loop {
+        let page = sandbox
+            .registry
+            .list_jobs_for_principal(
+                &RuntimeJobListRequest {
+                    limit: 1,
+                    cursor,
+                    client_request_id: None,
+                    workspace_id: None,
+                },
+                "principal:list-principal-scoped:target",
+            )
+            .unwrap();
+        observed.extend(page.jobs);
+        cursor = page.next_cursor;
+        if cursor.is_none() {
+            break;
+        }
+    }
+    assert_eq!(observed.len(), 3);
+    assert!(observed
+        .iter()
+        .all(|job| job.workspace_id.contains(":target:")));
+}
+
+#[test]
+fn runtime_job_principal_authorization_rejects_cross_principal_access() {
+    let sandbox = Sandbox::new("job-principal-authorization", 5000);
+    let mut run = request(&sandbox, "request:job-principal-authorization", 8);
+    run.plan.principal = "principal:job-owner".to_string();
+    let admitted = created(sandbox.registry.submit(&run).unwrap());
+    let runtime = Runtime::new(runtime_config(&sandbox)).unwrap();
+    runtime
+        .authorize_job_principal(&admitted.job.job_id, "principal:job-owner")
+        .unwrap();
+    let error = runtime
+        .authorize_job_principal(&admitted.job.job_id, "principal:other")
+        .unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::AuthorizationDenied);
+    assert_eq!(error.field.as_deref(), Some("jobId"));
+}
+
+#[test]
 fn filtered_list_paginates_same_request_across_principals() {
     let sandbox = Sandbox::new("list-client-request-pagination", 5000);
     let target_id = "request:list-client-request:shared";
@@ -4188,6 +4402,15 @@ fn runtime_job_inspection_projects_bounded_read_only_timeline() {
     assert!(full.job.mechanically_converged);
     assert!(!full.job.semantic_completion_evaluated);
     assert_eq!(full.attempts.len(), 1);
+    let condition_types = full.attempts[0]
+        .conditions
+        .iter()
+        .map(|condition| condition.condition_type.as_str())
+        .collect::<Vec<_>>();
+    assert!(condition_types.contains(&"bundle_ready"));
+    assert!(condition_types.contains(&"dispatch_issued"));
+    assert!(condition_types.contains(&"result_available"));
+    assert!(condition_types.contains(&"reservation_held"));
     assert_eq!(full.attempts[0].state, AttemptState::Failed);
     assert_eq!(
         full.attempts[0].reservation_state,
@@ -4645,7 +4868,6 @@ fn runtime_repair_recovers_runner_truth_and_explicitly_finalizes_lost() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::from([manual.attempt.attempt_id.clone()]),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap();
@@ -4891,186 +5113,6 @@ fn runtime_repair_batch_rolls_back_when_any_invariant_remains() {
 
 #[cfg(feature = "operator-tools")]
 #[test]
-fn runtime_repair_explicitly_finalizes_launch_identity_quarantine_as_lost() {
-    let sandbox = Sandbox::new("repair-quarantined-lost", 5000);
-    let quarantined = created(
-        sandbox
-            .registry
-            .submit(&request(&sandbox, "request:repair-quarantined-lost", 1))
-            .unwrap(),
-    );
-    write_completed_runner_result(&quarantined.attempt, 80);
-    sandbox
-        .registry
-        .commit_terminal(&TerminalCommit {
-            attempt_id: quarantined.attempt.attempt_id.clone(),
-            expected_row_version: quarantined.attempt.row_version,
-            state: AttemptState::Orphaned,
-            result_digest: digest(b"quarantined-control"),
-            exit_code: None,
-            infrastructure_error_digest: Some(digest(b"launch-identity-mismatch")),
-            finished_at_ms: 80,
-            artifacts: Vec::new(),
-            reason_code: "RUNNER_RESULT_QUARANTINED".to_string(),
-        })
-        .unwrap();
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    connection
-        .execute(
-            "UPDATE attempts SET recovery_required=1,recovery_reason_code='LAUNCH_IDENTITY_MISMATCH',recovery_evidence_digest=?1,recovery_observed_at_ms=90 WHERE attempt_id=?2",
-            rusqlite::params![digest(b"quarantine-evidence"), quarantined.attempt.attempt_id],
-        )
-        .unwrap();
-    drop(connection);
-
-    let before = inspect_runtime(&doctor_config(&sandbox)).unwrap();
-    assert_eq!(before.violation_count, 0);
-    assert_eq!(before.cases.len(), 1);
-    assert!(before.cases[0].attempt.recovery_required);
-    assert_eq!(
-        before.cases[0].attempt.recovery_reason_code.as_deref(),
-        Some("LAUNCH_IDENTITY_MISMATCH")
-    );
-    assert_eq!(
-        before.cases[0].attempt.recovery_evidence_digest.as_deref(),
-        Some(digest(b"quarantine-evidence").as_str())
-    );
-    assert_eq!(before.cases[0].attempt.recovery_observed_at_ms, Some(90));
-    assert!(matches!(
-        before.cases[0].proposal,
-        RuntimeDoctorProposal::ManualReview { .. }
-    ));
-
-    let snapshot = write_test_snapshot(&sandbox, "quarantined-lost");
-    let report = apply_runtime_repair(
-        &RuntimeRepairConfig {
-            doctor: doctor_config(&sandbox),
-        },
-        &RuntimeRepairRequest {
-            expected_fingerprint: before.fingerprint,
-            snapshot_path: snapshot,
-            principal: "runtime-admin:test".to_string(),
-            finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::from([quarantined
-                .attempt
-                .attempt_id
-                .clone()]),
-        },
-    )
-    .unwrap();
-
-    assert_eq!(report.actions.len(), 1);
-    assert!(matches!(
-        report.actions[0].kind,
-        RuntimeRepairActionKind::FinalizeQuarantinedLost
-    ));
-    let attempt = sandbox
-        .registry
-        .get_attempt(&quarantined.attempt.attempt_id)
-        .unwrap();
-    assert_eq!(attempt.state, AttemptState::Lost);
-    assert_eq!(
-        sandbox
-            .registry
-            .get_job(&quarantined.job.job_id)
-            .unwrap()
-            .resolution,
-        Some(JobResolution::Lost)
-    );
-    assert_eq!(
-        sandbox
-            .registry
-            .get_reservation(&quarantined.attempt.attempt_id)
-            .unwrap()
-            .state,
-        ReservationState::Released
-    );
-    assert!(Path::new(&quarantined.attempt.bundle_path)
-        .join("result.json")
-        .is_file());
-    assert!(Path::new(&quarantined.attempt.bundle_path)
-        .join("admin-repair.json")
-        .is_file());
-    assert_eq!(report.after.summary.recovery_required_attempts, 0);
-}
-
-#[cfg(feature = "operator-tools")]
-#[test]
-fn runtime_repair_rejects_stale_quarantine_recovery_evidence() {
-    let sandbox = Sandbox::new("repair-quarantine-stale-evidence", 5000);
-    let quarantined = created(
-        sandbox
-            .registry
-            .submit(&request(
-                &sandbox,
-                "request:repair-quarantine-stale-evidence",
-                1,
-            ))
-            .unwrap(),
-    );
-    write_completed_runner_result(&quarantined.attempt, 80);
-    sandbox
-        .registry
-        .commit_terminal(&TerminalCommit {
-            attempt_id: quarantined.attempt.attempt_id.clone(),
-            expected_row_version: quarantined.attempt.row_version,
-            state: AttemptState::Orphaned,
-            result_digest: digest(b"quarantined-control-stale"),
-            exit_code: None,
-            infrastructure_error_digest: Some(digest(b"launch-identity-mismatch-stale")),
-            finished_at_ms: 80,
-            artifacts: Vec::new(),
-            reason_code: "RUNNER_RESULT_QUARANTINED".to_string(),
-        })
-        .unwrap();
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    connection
-        .execute(
-            "UPDATE attempts SET recovery_required=1,recovery_reason_code='LAUNCH_IDENTITY_MISMATCH',recovery_evidence_digest=?1,recovery_observed_at_ms=90 WHERE attempt_id=?2",
-            rusqlite::params![digest(b"quarantine-evidence-before"), quarantined.attempt.attempt_id],
-        )
-        .unwrap();
-    drop(connection);
-    let before = inspect_runtime(&doctor_config(&sandbox)).unwrap();
-    let snapshot = write_test_snapshot(&sandbox, "quarantine-stale-evidence");
-
-    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
-    connection
-        .execute(
-            "UPDATE attempts SET recovery_evidence_digest=?1,recovery_observed_at_ms=91 WHERE attempt_id=?2",
-            rusqlite::params![digest(b"quarantine-evidence-after"), quarantined.attempt.attempt_id],
-        )
-        .unwrap();
-    drop(connection);
-
-    let error = apply_runtime_repair(
-        &RuntimeRepairConfig {
-            doctor: doctor_config(&sandbox),
-        },
-        &RuntimeRepairRequest {
-            expected_fingerprint: before.fingerprint,
-            snapshot_path: snapshot,
-            principal: "runtime-admin:test".to_string(),
-            finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::from([quarantined
-                .attempt
-                .attempt_id
-                .clone()]),
-        },
-    )
-    .unwrap_err();
-    assert_eq!(error.code, RuntimeErrorCode::ReconciliationRequired);
-    assert_eq!(
-        sandbox
-            .registry
-            .get_reservation(&quarantined.attempt.attempt_id)
-            .unwrap()
-            .state,
-        ReservationState::HeldOrphaned
-    );
-}
-#[cfg(feature = "operator-tools")]
-#[test]
 fn runtime_repair_can_cancel_recovery_required_launch_mismatch_only_after_absence_proof() {
     let sandbox = Sandbox::new("repair-stale-cancel", 5000);
     let stale_created = created(
@@ -5186,7 +5228,6 @@ fn runtime_repair_requires_every_manual_case_to_be_explicit() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5239,7 +5280,6 @@ fn runtime_repair_rejects_stale_fingerprint_before_writes() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5284,7 +5324,6 @@ fn runtime_repair_rejects_unscoped_invariants_before_writes() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5333,7 +5372,6 @@ fn runtime_repair_rejects_snapshot_that_does_not_match_doctor_state() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::from([created.attempt.attempt_id.clone()]),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5394,7 +5432,6 @@ fn runtime_repair_does_not_apply_schema_migrations() {
             snapshot_path: root.join("unused-snapshot"),
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5442,7 +5479,6 @@ fn runtime_repair_rejects_incomplete_control_snapshot() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5465,7 +5501,6 @@ fn runtime_repair_rejects_corrupt_snapshot() {
             snapshot_path: snapshot,
             principal: "runtime-admin:test".to_string(),
             finalize_lost_attempt_ids: BTreeSet::new(),
-            finalize_quarantined_lost_attempt_ids: BTreeSet::new(),
         },
     )
     .unwrap_err();
@@ -5532,6 +5567,51 @@ fn reconciliation_receipts_change_only_when_the_condition_changes() {
         .unwrap();
     assert_eq!(converged_events, 1);
     assert!(!recovery_required);
+}
+
+#[test]
+fn oversized_reconciliation_event_detail_rolls_back_atomically() {
+    let sandbox = Sandbox::new("bounded-reconciliation-event-detail", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:bounded-reconciliation-event-detail",
+                1,
+            ))
+            .unwrap(),
+    );
+    let oversized = "x".repeat(super::registry::MAX_REGISTRY_INLINE_JSON_BYTES + 1);
+    let error = RuntimeError::new(
+        RuntimeErrorCode::ReconciliationRequired,
+        oversized,
+        Some("attemptId"),
+        false,
+    );
+    let failure = sandbox
+        .registry
+        .record_reconciliation_failure(&created.attempt, &error, 30)
+        .unwrap_err();
+    assert_eq!(failure.code, RuntimeErrorCode::OutputLimitExceeded);
+
+    let connection = Connection::open(&sandbox.registry.config().db_path).unwrap();
+    let failed_events: u32 = connection
+        .query_row(
+            "SELECT COUNT(*) FROM job_events WHERE attempt_id=?1 AND event_type='RECONCILIATION_FAILED'",
+            [&created.attempt.attempt_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let recovery_required: Option<bool> = connection
+        .query_row(
+            "SELECT recovery_required FROM attempts WHERE attempt_id=?1",
+            [&created.attempt.attempt_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(failed_events, 0);
+    assert_eq!(recovery_required, None);
 }
 
 #[test]
@@ -5929,94 +6009,6 @@ fn runtime_startup_reclaims_absent_orphan_and_reopens_workspace_slot() {
     assert!(matches!(admitted, AdmissionOutcome::Created(_)));
 }
 
-#[test]
-fn runtime_service_construction_defers_orphan_recovery_to_bounded_maintenance() {
-    let sandbox = Sandbox::new("runtime-service-orphan-startup", 5000);
-    let created = created(
-        sandbox
-            .registry
-            .submit(&request(
-                &sandbox,
-                "request:runtime-service-orphan-startup",
-                1,
-            ))
-            .unwrap(),
-    );
-    fs::create_dir_all(&created.attempt.bundle_path).unwrap();
-    fs::write(
-        Path::new(&created.attempt.bundle_path).join("stdout.log"),
-        b"partial\n",
-    )
-    .unwrap();
-    fs::write(
-        Path::new(&created.attempt.bundle_path).join("stderr.log"),
-        b"",
-    )
-    .unwrap();
-    sandbox
-        .registry
-        .commit_terminal(&TerminalCommit {
-            attempt_id: created.attempt.attempt_id.clone(),
-            expected_row_version: created.attempt.row_version,
-            state: AttemptState::Orphaned,
-            result_digest: digest(b"runtime-service-orphan-control"),
-            exit_code: None,
-            infrastructure_error_digest: Some(digest(b"identity-uncertain")),
-            finished_at_ms: 20,
-            artifacts: Vec::new(),
-            reason_code: "SUPERVISOR_IDENTITY_ORPHANED".to_string(),
-        })
-        .unwrap();
-    assert_eq!(sandbox.registry.active_reservation_count().unwrap(), 1);
-
-    let config = runtime_config(&sandbox);
-    let default_runtime_ms = config.executor.max_runtime_ms;
-    let runtime = Runtime::new_service_with_authorities_default_runtime_and_workspace_headroom(
-        config,
-        Vec::new(),
-        Vec::new(),
-        default_runtime_ms,
-        None,
-    )
-    .unwrap();
-    assert_eq!(
-        runtime
-            .registry()
-            .get_attempt(&created.attempt.attempt_id)
-            .unwrap()
-            .state,
-        AttemptState::Orphaned
-    );
-    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 1);
-    assert_eq!(
-        runtime
-            .registry()
-            .get_reservation(&created.attempt.attempt_id)
-            .unwrap()
-            .state,
-        ReservationState::HeldOrphaned
-    );
-
-    let report = runtime.reconcile_maintenance_batch(1).unwrap();
-    assert_eq!(report.inspected, 1);
-    assert_eq!(
-        runtime
-            .registry()
-            .get_attempt(&created.attempt.attempt_id)
-            .unwrap()
-            .state,
-        AttemptState::Lost
-    );
-    assert_eq!(runtime.registry().active_reservation_count().unwrap(), 0);
-    assert_eq!(
-        runtime
-            .registry()
-            .get_reservation(&created.attempt.attempt_id)
-            .unwrap()
-            .state,
-        ReservationState::Released
-    );
-}
 #[test]
 fn job_cancel_reclaims_absent_orphan_as_cancelled() {
     let sandbox = Sandbox::new("runtime-orphan-cancel", 5000);
@@ -8197,6 +8189,8 @@ fn runtime_capabilities_project_current_affordances_without_input_authority_path
     assert!(linux.windows_authorities.is_empty());
     assert!(linux.windows_contexts.is_empty());
     assert!(linux.windows_immutable_input_authorities.is_empty());
+    assert!(linux.windows_privileged_profiles.is_empty());
+    assert!(!linux.windows_maintenance_fence_configured);
     assert_eq!(
         linux.execution_provider.as_ref().unwrap().contract,
         ExecutionProviderContract::LocalLinuxRunnerV1
@@ -8646,4 +8640,182 @@ fn resolved_job_reclaims_owned_encrypted_credentials_without_ttl() {
         AdmissionOutcome::Existing { job } => assert_eq!(job.job_id, created.job.job_id),
         AdmissionOutcome::Created(_) => panic!("resolved exact replay must not create a new Job"),
     }
+}
+
+#[test]
+fn admission_hot_path_delegates_global_orphan_recovery_to_bounded_maintenance() {
+    let source = include_str!("engine/admission.rs");
+    assert!(!source.contains("self.reconcile_recoverable_orphans()?;"));
+    assert_eq!(
+        source
+            .matches("self.reconcile_workspace(&request.execution.workspace_id)?;")
+            .count(),
+        3
+    );
+}
+
+#[test]
+fn valid_resource_receipt_registers_as_attempt_artifact() {
+    let sandbox = Sandbox::new("resource-receipt-artifact", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-artifact", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-artifact-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+    write_test_resource_receipt(&starting, &starting.attempt_id);
+
+    let terminal = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap();
+    let receipt = terminal
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == "resource_receipt")
+        .expect("valid resource receipt must be registered as a terminal Artifact");
+    assert_eq!(receipt.relative_path, RESOURCE_RECEIPT_FILE);
+    assert_eq!(receipt.media_type, "application/json");
+    assert_eq!(
+        receipt.artifact_id,
+        format!("{}.resource-receipt", starting.attempt_id)
+    );
+    assert!(!receipt.truncated);
+    assert!(receipt.byte_length > 0);
+
+    sandbox.registry.commit_terminal(&terminal).unwrap();
+    let registered = sandbox
+        .registry
+        .list_artifacts(&created.job.job_id)
+        .unwrap();
+    assert!(registered
+        .iter()
+        .any(|artifact| artifact.kind == "resource_receipt"));
+}
+
+#[test]
+fn resource_receipt_identity_mismatch_fails_closed() {
+    let sandbox = Sandbox::new("resource-receipt-identity-mismatch", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(
+                &sandbox,
+                "request:resource-receipt-identity-mismatch",
+                4,
+            ))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-identity-mismatch-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+    write_test_resource_receipt(&starting, "attempt-forged");
+
+    let error = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::ResultIdentityConflict);
+    assert_eq!(error.field.as_deref(), Some("resourceReceipt"));
+}
+
+#[test]
+fn malformed_resource_receipt_fails_closed() {
+    let sandbox = Sandbox::new("resource-receipt-malformed", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-malformed", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-malformed-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+    fs::write(
+        Path::new(&starting.bundle_path).join(RESOURCE_RECEIPT_FILE),
+        b"{not-json",
+    )
+    .unwrap();
+
+    let error = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap_err();
+    assert_eq!(error.code, RuntimeErrorCode::ResultIdentityConflict);
+    assert_eq!(error.field.as_deref(), Some("resourceReceipt"));
+}
+
+#[test]
+fn historical_bundle_without_resource_receipt_remains_compatible() {
+    let sandbox = Sandbox::new("resource-receipt-absent-compatible", 5_000);
+    let created = created(
+        sandbox
+            .registry
+            .submit(&request(&sandbox, "request:resource-receipt-absent", 4))
+            .unwrap(),
+    );
+    let bundle_ready = sandbox
+        .registry
+        .mark_bundle_ready(
+            &created.attempt.attempt_id,
+            created.attempt.row_version,
+            &digest(b"resource-receipt-absent-bundle"),
+            created.attempt.created_at_ms + 1,
+        )
+        .unwrap();
+    let starting = sandbox
+        .registry
+        .mark_dispatch_issued(
+            &bundle_ready.attempt_id,
+            bundle_ready.row_version,
+            bundle_ready.created_at_ms + 2,
+        )
+        .unwrap();
+    write_completed_runner_result(&starting, 42);
+
+    let terminal = super::evidence::prepare_runner_terminal_from_bundle(&starting).unwrap();
+    assert!(terminal
+        .artifacts
+        .iter()
+        .all(|artifact| artifact.kind != "resource_receipt"));
+    sandbox.registry.commit_terminal(&terminal).unwrap();
 }

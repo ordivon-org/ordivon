@@ -120,40 +120,66 @@ fn verified_workspace_image_media_type(
     }
 }
 
-pub fn read_workspace_content(
+pub fn read_workspace_file(
     config: &UniversalExecutorConfig,
-    request: &WorkspaceContentRequest,
-) -> Result<WorkspaceContentReadResult, UniversalExecError> {
+    request: &WorkspaceFileRequest,
+) -> Result<WorkspaceFileReadResult, UniversalExecError> {
     request.validate_shape()?;
     let record = load_workspace_record(config, &request.workspace_id)?;
     let (file, logical_path) = open_workspace_regular_file(&record, &request.relative_path)?;
     let bytes = read_workspace_file_bounded(file, &logical_path, request.max_bytes)?;
     let digest = sha256_bytes(&bytes);
     let expected_digest = parse_sha256_digest(&request.expected_digest)
-        .expect("validated workspace.content expectedDigest must decode");
+        .expect("validated workspace.file expectedDigest must decode");
     let observed_digest =
         parse_sha256_digest(&digest).expect("Runtime-generated SHA-256 digest must decode");
     if observed_digest != expected_digest {
         return Err(UniversalExecError::new(
             UniversalExecErrorCode::RevisionMismatch,
             format!(
-                "workspace content digest changed: expected {}, observed {digest}",
+                "workspace file digest changed: expected {}, observed {digest}",
                 request.expected_digest
             ),
             Some("expectedDigest"),
             false,
         ));
     }
-    let media_type = verified_workspace_image_media_type(&request.relative_path, &bytes)?;
-    Ok(WorkspaceContentReadResult {
-        metadata: WorkspaceContentMetadata {
+    Ok(WorkspaceFileReadResult {
+        metadata: WorkspaceFileMetadata {
             workspace_id: request.workspace_id.clone(),
             relative_path: request.relative_path.clone(),
             digest,
-            media_type: media_type.to_string(),
             byte_length: bytes.len() as u64,
         },
         bytes,
+    })
+}
+
+pub fn read_workspace_content(
+    config: &UniversalExecutorConfig,
+    request: &WorkspaceContentRequest,
+) -> Result<WorkspaceContentReadResult, UniversalExecError> {
+    request.validate_shape()?;
+    let file = read_workspace_file(
+        config,
+        &WorkspaceFileRequest {
+            schema_version: request.schema_version,
+            workspace_id: request.workspace_id.clone(),
+            relative_path: request.relative_path.clone(),
+            expected_digest: request.expected_digest.clone(),
+            max_bytes: request.max_bytes,
+        },
+    )?;
+    let media_type = verified_workspace_image_media_type(&request.relative_path, &file.bytes)?;
+    Ok(WorkspaceContentReadResult {
+        metadata: WorkspaceContentMetadata {
+            workspace_id: file.metadata.workspace_id,
+            relative_path: file.metadata.relative_path,
+            digest: file.metadata.digest,
+            media_type: media_type.to_string(),
+            byte_length: file.metadata.byte_length,
+        },
+        bytes: file.bytes,
     })
 }
 

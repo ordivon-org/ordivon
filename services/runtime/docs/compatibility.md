@@ -41,6 +41,8 @@ The legacy `ORDIVON_TRUST_CF_ACCESS` name is retained only as a rollback-compati
 
 `workspace.content` is an additive Tool-catalog capability rather than a replacement for `workspace.read` or `artifact.read`. Older clients keep their UTF-8 read semantics and can ignore the new Tool; clients that need native media must refresh discovery and bind the new catalog digest before calling it. No persisted Job/request identity or Registry migration is introduced by this capability.
 
+`workspace.file` and `artifact.content` are likewise additive projections. They do not change `workspace.read`, `workspace.content`, or `artifact.read` semantics, do not alter persisted Job/Artifact identity, and introduce no Registry migration. Clients that cannot consume MCP embedded binary resources may ignore them and continue to use existing text/image surfaces or an external provider-specific delivery path. A Tool-catalog change still requires client discovery refresh before the new names can be called.
+
 ## Persisted Runtime state
 
 | Contract | Current consumer | Protected failure | Deletion trigger |

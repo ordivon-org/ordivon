@@ -22,7 +22,10 @@ impl Registry {
         if let Some(parent) = config.db_path.parent() {
             create_private_directory(parent)?;
         }
-        let registry = Self { config };
+        let registry = Self {
+            config,
+            write_gate: Arc::new(Mutex::new(())),
+        };
         let mut connection = registry.open_connection()?;
         registry.ensure_wal_mode(&connection)?;
         registry.apply_migrations(&mut connection)?;
@@ -37,6 +40,27 @@ impl Registry {
 
     pub(super) fn config(&self) -> &RegistryConfig {
         &self.config
+    }
+
+    pub(super) fn lock_write_gate(
+        &self,
+        context: &'static str,
+    ) -> RuntimeResult<RegistryWriteGuard<'_>> {
+        let wait_started = Instant::now();
+        let guard = self.write_gate.lock().map_err(|_| {
+            RuntimeError::new(
+                RuntimeErrorCode::RegistryUnavailable,
+                "Runtime Registry write gate is poisoned",
+                None,
+                true,
+            )
+        })?;
+        Ok(RegistryWriteGuard {
+            guard: Some(guard),
+            context,
+            wait_ms: elapsed_duration_ms(wait_started),
+            transaction_started: None,
+        })
     }
 
     pub(crate) fn open_connection(&self) -> RuntimeResult<Connection> {
@@ -86,7 +110,7 @@ impl Registry {
             )
             .map_err(|error| RuntimeError::from_sql(error, "cannot inspect schema migrations"))?;
         if !has_table {
-            let transaction = immediate(connection, "initial migration")?;
+            let transaction = immediate(self, connection, "initial migration")?;
             transaction
                 .execute_batch(MIGRATION_V1_SQL)
                 .map_err(|error| RuntimeError::from_sql(error, "cannot apply initial migration"))?;
@@ -131,7 +155,7 @@ impl Registry {
             "initial migration",
         )?;
         if max_version < MIGRATION_V2 {
-            let transaction = immediate(connection, "orphan-recovery migration")?;
+            let transaction = immediate(self, connection, "orphan-recovery migration")?;
             transaction
                 .execute_batch(MIGRATION_V2_SQL)
                 .map_err(|error| {
@@ -159,7 +183,7 @@ impl Registry {
             "orphan-recovery migration",
         )?;
         if max_version < MIGRATION_V3 {
-            let transaction = immediate(connection, "terminal-repair migration")?;
+            let transaction = immediate(self, connection, "terminal-repair migration")?;
             transaction
                 .execute_batch(MIGRATION_V3_SQL)
                 .map_err(|error| {
@@ -189,7 +213,7 @@ impl Registry {
             "terminal-repair migration",
         )?;
         if max_version < MIGRATION_V4 {
-            let transaction = immediate(connection, "orphan-reclaim migration")?;
+            let transaction = immediate(self, connection, "orphan-reclaim migration")?;
             transaction
                 .execute_batch(MIGRATION_V4_SQL)
                 .map_err(|error| {
@@ -219,7 +243,7 @@ impl Registry {
             "orphan-reclaim migration",
         )?;
         if max_version < CONDITION_RETIREMENT_MIGRATION_VERSION {
-            let transaction = immediate(connection, "condition-retirement migration")?;
+            let transaction = immediate(self, connection, "condition-retirement migration")?;
             transaction
                 .execute_batch(MIGRATION_V5_SQL)
                 .map_err(|error| {
@@ -240,7 +264,7 @@ impl Registry {
             "condition-retirement migration",
         )?;
         if max_version < WORKSPACE_PATCH_RETIREMENT_MIGRATION_VERSION {
-            let transaction = immediate(connection, "workspace-patch-retirement migration")?;
+            let transaction = immediate(self, connection, "workspace-patch-retirement migration")?;
             transaction
                 .execute_batch(MIGRATION_V6_SQL)
                 .map_err(|error| {
@@ -282,7 +306,7 @@ impl Registry {
     }
 
     fn ensure_query_indexes(&self, connection: &mut Connection) -> RuntimeResult<()> {
-        let transaction = immediate(connection, "Runtime query index maintenance")?;
+        let transaction = immediate(self, connection, "Runtime query index maintenance")?;
         transaction
             .execute(DROP_REDUNDANT_EVENT_SEQUENCE_INDEX_SQL, [])
             .map_err(|error| {
@@ -296,6 +320,10 @@ impl Registry {
             (
                 JOB_WORKSPACE_LOOKUP_INDEX_SQL,
                 "cannot ensure Job Workspace lookup index",
+            ),
+            (
+                JOB_PRINCIPAL_LOOKUP_INDEX_SQL,
+                "cannot ensure Job principal lookup index",
             ),
             (
                 JOB_RESOLUTION_STATUS_INDEX_SQL,
@@ -349,6 +377,11 @@ impl Registry {
                 "Job Workspace lookup index is missing after maintenance",
             ),
             (
+                JOB_PRINCIPAL_LOOKUP_INDEX,
+                "cannot verify Job principal lookup index",
+                "Job principal lookup index is missing after maintenance",
+            ),
+            (
                 ARTIFACT_JOB_LOOKUP_INDEX,
                 "cannot verify Artifact Job lookup index",
                 "Artifact Job lookup index is missing after maintenance",
@@ -374,7 +407,7 @@ impl Registry {
     }
 
     fn ensure_execution_provider_storage(&self, connection: &mut Connection) -> RuntimeResult<()> {
-        let transaction = immediate(connection, "Execution Provider storage maintenance")?;
+        let transaction = immediate(self, connection, "Execution Provider storage maintenance")?;
         transaction
             .execute_batch(EXECUTION_PROVIDER_STORAGE_SQL)
             .map_err(|error| {
@@ -410,7 +443,7 @@ impl Registry {
         &self,
         connection: &mut Connection,
     ) -> RuntimeResult<()> {
-        let transaction = immediate(connection, "Attempt Supervisor Owner storage maintenance")?;
+        let transaction = immediate(self, connection, "Attempt Supervisor Owner storage maintenance")?;
         transaction
             .execute_batch(ATTEMPT_SUPERVISOR_OWNER_STORAGE_SQL)
             .map_err(|error| {
@@ -443,7 +476,7 @@ impl Registry {
     }
 
     fn ensure_host_dependency_storage(&self, connection: &mut Connection) -> RuntimeResult<()> {
-        let transaction = immediate(connection, "Host Dependency storage maintenance")?;
+        let transaction = immediate(self, connection, "Host Dependency storage maintenance")?;
         transaction
             .execute_batch(HOST_DEPENDENCY_STORAGE_SQL)
             .map_err(|error| {
@@ -473,7 +506,7 @@ impl Registry {
     }
 
     fn ensure_runtime_release_storage(&self, connection: &mut Connection) -> RuntimeResult<()> {
-        let transaction = immediate(connection, "Runtime Release storage maintenance")?;
+        let transaction = immediate(self, connection, "Runtime Release storage maintenance")?;
         transaction
             .execute_batch(RUNTIME_RELEASE_STORAGE_SQL)
             .map_err(|error| {

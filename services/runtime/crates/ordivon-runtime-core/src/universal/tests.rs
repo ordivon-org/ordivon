@@ -329,6 +329,115 @@ fn workspace_read_allows_relative_parent_symlink_that_stays_beneath_root() {
 }
 
 #[test]
+fn workspace_file_reads_exact_binary_bytes_with_nul() {
+    let sandbox = Sandbox::new("workspace-file-binary");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-file-binary";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    fs::create_dir_all(workspace.join("out")).unwrap();
+    let bytes = b"PK\x03\x04\0binary\xffpayload";
+    fs::write(workspace.join("out/result.docx"), bytes).unwrap();
+    let expected_digest = sha256_bytes(bytes);
+
+    let read = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/result.docx".to_string(),
+            expected_digest: expected_digest.clone(),
+            max_bytes: 1024,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(read.bytes, bytes);
+    assert_eq!(read.metadata.digest, expected_digest);
+    assert_eq!(read.metadata.byte_length, bytes.len() as u64);
+    assert_eq!(read.metadata.relative_path, "out/result.docx");
+}
+
+#[test]
+fn workspace_file_fails_closed_on_digest_drift_symlink_and_size_limit() {
+    let sandbox = Sandbox::new("workspace-file-boundaries");
+    let source = sandbox.root.join("source");
+    init_git_repo(&source);
+    let config = sandbox.config();
+    let workspace_id = "workspace-file-boundaries";
+    create_git_workspace(
+        &config,
+        &GitWorkspaceCreateRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            source_repo: source.to_string_lossy().into_owned(),
+            source_revision: "HEAD".to_string(),
+        },
+    )
+    .unwrap();
+    let workspace = config.workspace_path(workspace_id);
+    fs::create_dir_all(workspace.join("out")).unwrap();
+    let original = vec![0x5a; 2048];
+    let path = workspace.join("out/blob.bin");
+    fs::write(&path, &original).unwrap();
+    let expected_digest = sha256_bytes(&original);
+
+    let size_error = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/blob.bin".to_string(),
+            expected_digest: expected_digest.clone(),
+            max_bytes: 1024,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(size_error.code, UniversalExecErrorCode::OutputLimitExceeded);
+
+    let replacement = vec![0x59; 2048];
+    fs::write(&path, &replacement).unwrap();
+    let drift = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/blob.bin".to_string(),
+            expected_digest,
+            max_bytes: 4096,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(drift.code, UniversalExecErrorCode::RevisionMismatch);
+    assert_eq!(drift.field.as_deref(), Some("expectedDigest"));
+
+    symlink("blob.bin", workspace.join("out/link.bin")).unwrap();
+    let link_error = read_workspace_file(
+        &config,
+        &WorkspaceFileRequest {
+            schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+            workspace_id: workspace_id.to_string(),
+            relative_path: "out/link.bin".to_string(),
+            expected_digest: sha256_bytes(&replacement),
+            max_bytes: 4096,
+        },
+    )
+    .unwrap_err();
+    assert_eq!(link_error.code, UniversalExecErrorCode::WorkspacePathDenied);
+}
+
+#[test]
 fn workspace_content_rejects_final_symlink_and_preserves_bounded_read() {
     let sandbox = Sandbox::new("workspace-content-fd-boundaries");
     let source = sandbox.root.join("source");
@@ -3371,15 +3480,18 @@ fn runner_shared_overall_deadline_is_independent_of_step_timeout_sum() {
     let sleep_executable = real_executable("/usr/bin/sleep");
     let mut slow = fast;
     slow.task_id = "task-shared-overall-slow".to_string();
-    slow.timeout_ms = 250;
+    // Keep enough scheduling margin for the first fast step even under a loaded
+    // verification host, while still proving that the shared overall deadline
+    // (rather than the much larger per-step timeout) terminates step two.
+    slow.timeout_ms = 2_000;
     slow.steps[1] = RunnerExecutionStep {
         id: "two".to_string(),
         executable: sleep_executable.to_string_lossy().into_owned(),
         executable_digest: sha256_file(&sleep_executable).unwrap(),
-        args: vec!["1".to_string()],
+        args: vec!["5".to_string()],
         cwd: workspace.to_string_lossy().into_owned(),
         env: BTreeMap::new(),
-        timeout_ms: 1_000,
+        timeout_ms: 5_000,
         continue_on_error: false,
     };
     write_json_atomic(&slow_dir.join("request.json"), &slow).unwrap();
@@ -3763,4 +3875,175 @@ fn concurrent_atomic_writers_use_collision_free_temporary_names() {
         leftovers.is_empty(),
         "temporary files leaked: {leftovers:?}"
     );
+}
+
+#[test]
+fn cgroup_cpu_stat_parser_extracts_required_accounting() {
+    let parsed = parse_cgroup_cpu_stat(
+        "usage_usec 120\nuser_usec 70\nsystem_usec 50\nnr_periods 4\nnr_throttled 1\nthrottled_usec 9\n",
+    )
+    .unwrap();
+    assert_eq!(parsed.usage_usec, 120);
+    assert_eq!(parsed.user_usec, 70);
+    assert_eq!(parsed.system_usec, 50);
+}
+
+#[test]
+fn cgroup_cpu_stat_parser_rejects_missing_or_duplicate_required_counters() {
+    assert!(parse_cgroup_cpu_stat("usage_usec 1\nuser_usec 1\n").is_err());
+    assert!(
+        parse_cgroup_cpu_stat("usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n").is_err()
+    );
+}
+
+#[test]
+fn cgroup_memory_events_parser_extracts_owner_counters_and_ignores_future_keys() {
+    let parsed = parse_cgroup_memory_events(
+        "low 1\nhigh 2\nmax 3\noom 4\noom_kill 5\noom_group_kill 6\nfuture_counter 99\n",
+    )
+    .unwrap();
+    assert_eq!(parsed.low, 1);
+    assert_eq!(parsed.high, 2);
+    assert_eq!(parsed.max, 3);
+    assert_eq!(parsed.oom, 4);
+    assert_eq!(parsed.oom_kill, 5);
+}
+
+#[test]
+fn cgroup_io_stat_parser_sums_devices_and_allows_missing_discard_fields() {
+    let parsed = parse_cgroup_io_stat(
+        "8:0 rbytes=100 wbytes=200 rios=3 wios=4 dbytes=5 dios=6\n259:1 rbytes=7 wbytes=11 rios=13 wios=17\n",
+    )
+    .unwrap();
+    assert_eq!(parsed.read_bytes, 107);
+    assert_eq!(parsed.write_bytes, 211);
+    assert_eq!(parsed.read_ops, 16);
+    assert_eq!(parsed.write_ops, 21);
+    assert_eq!(parsed.discard_bytes, 5);
+    assert_eq!(parsed.discard_ops, 6);
+}
+
+#[test]
+fn cgroup_io_stat_parser_rejects_malformed_required_device_counters() {
+    assert!(parse_cgroup_io_stat("8:0 rbytes=1 wbytes=nope rios=1 wios=1\n").is_err());
+    assert!(parse_cgroup_io_stat("8:0 rbytes=1 wbytes=2 rios=3\n").is_err());
+}
+#[test]
+fn resource_receipt_writer_binds_attempt_identity_and_writes_separate_file() {
+    let sandbox = Sandbox::new("resource-receipt-writer");
+    let cgroup = sandbox.root.join("cgroup");
+    let task_dir = sandbox.root.join("task");
+    let workspace = sandbox.root.join("workspace");
+    fs::create_dir_all(&cgroup).unwrap();
+    fs::create_dir_all(&task_dir).unwrap();
+    fs::create_dir_all(&workspace).unwrap();
+    fs::write(
+        cgroup.join("cpu.stat"),
+        "usage_usec 120\nuser_usec 70\nsystem_usec 50\n",
+    )
+    .unwrap();
+    fs::write(cgroup.join("memory.peak"), "1048576\n").unwrap();
+    fs::write(cgroup.join("memory.swap.peak"), "4096\n").unwrap();
+    fs::write(
+        cgroup.join("memory.events.local"),
+        "low 0\nhigh 1\nmax 2\noom 3\noom_kill 4\n",
+    )
+    .unwrap();
+    fs::write(
+        cgroup.join("io.stat"),
+        "8:0 rbytes=10 wbytes=20 rios=1 wios=2\n",
+    )
+    .unwrap();
+    let executable = real_executable("/usr/bin/true");
+    let request = RunnerRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        job_id: Some("job-resource-receipt".to_string()),
+        attempt_id: Some("attempt-resource-receipt".to_string()),
+        launch_token: Some("launch-token-resource-receipt".to_string()),
+        unit_name: None,
+        payload: None,
+        inherit_host_environment: true,
+        task_id: "attempt-resource-receipt".to_string(),
+        workspace_id: "workspace-resource-receipt".to_string(),
+        workspace_path: workspace.to_string_lossy().into_owned(),
+        workspace_source_digest: None,
+        build_target_backing: None,
+        input_presentation_root: None,
+        input_commitments: Vec::new(),
+        executable: executable.to_string_lossy().into_owned(),
+        executable_digest: sha256_file(&executable).unwrap(),
+        args: Vec::new(),
+        cwd: workspace.to_string_lossy().into_owned(),
+        env: BTreeMap::new(),
+        steps: Vec::new(),
+        timeout_ms: 5_000,
+        stdout_limit_bytes: 1_024,
+        stderr_limit_bytes: 1_024,
+        host_dependencies: Vec::new(),
+    };
+
+    write_resource_receipt_from_cgroup_root(&task_dir, &request, &cgroup, 123).unwrap();
+
+    let receipt: RunnerResourceReceipt =
+        serde_json::from_slice(&fs::read(task_dir.join(RESOURCE_RECEIPT_FILE)).unwrap()).unwrap();
+    assert_eq!(receipt.schema_version, RESOURCE_RECEIPT_SCHEMA_VERSION);
+    assert_eq!(receipt.task_id, "attempt-resource-receipt");
+    assert_eq!(receipt.job_id, "job-resource-receipt");
+    assert_eq!(receipt.attempt_id, "attempt-resource-receipt");
+    assert_eq!(
+        receipt.launch_token_digest,
+        sha256_bytes(b"launch-token-resource-receipt")
+    );
+    assert_eq!(receipt.observed_unix_ms, 123);
+    assert_eq!(receipt.scope, RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP);
+    assert_eq!(receipt.provider, RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2);
+    assert_eq!(receipt.cpu.usage_usec, 120);
+    assert_eq!(receipt.memory.peak_bytes, 1_048_576);
+    assert_eq!(receipt.memory.swap_peak_bytes, Some(4_096));
+    assert_eq!(receipt.memory.events.high, 1);
+    assert_eq!(receipt.io.read_bytes, 10);
+    assert_eq!(receipt.io.write_bytes, 20);
+}
+
+#[test]
+fn runner_result_wire_shape_remains_legacy_with_best_effort_resource_observation() {
+    let sandbox = Sandbox::new("runner-separate-resource-receipt");
+    let task_dir = sandbox.root.join("task");
+    let workspace = sandbox.root.join("workspace");
+    fs::create_dir_all(&task_dir).unwrap();
+    fs::create_dir_all(&workspace).unwrap();
+    let executable = real_executable("/usr/bin/true");
+    let request = RunnerRequest {
+        schema_version: UNIVERSAL_EXEC_SCHEMA_VERSION,
+        job_id: Some("job-separate-resource-receipt".to_string()),
+        attempt_id: Some("attempt-separate-resource-receipt".to_string()),
+        launch_token: Some("launch-token-separate-resource-receipt".to_string()),
+        unit_name: None,
+        payload: None,
+        inherit_host_environment: true,
+        task_id: "attempt-separate-resource-receipt".to_string(),
+        workspace_id: "workspace-separate-resource-receipt".to_string(),
+        workspace_path: workspace.to_string_lossy().into_owned(),
+        workspace_source_digest: None,
+        build_target_backing: None,
+        input_presentation_root: None,
+        input_commitments: Vec::new(),
+        executable: executable.to_string_lossy().into_owned(),
+        executable_digest: sha256_file(&executable).unwrap(),
+        args: Vec::new(),
+        cwd: workspace.to_string_lossy().into_owned(),
+        env: BTreeMap::new(),
+        steps: Vec::new(),
+        timeout_ms: 5_000,
+        stdout_limit_bytes: 1_024,
+        stderr_limit_bytes: 1_024,
+        host_dependencies: Vec::new(),
+    };
+    write_json_atomic(&task_dir.join("request.json"), &request).unwrap();
+
+    run_job_runner(&task_dir).unwrap();
+
+    let result_value: serde_json::Value =
+        serde_json::from_slice(&fs::read(task_dir.join("result.json")).unwrap()).unwrap();
+    assert!(result_value.get("resourceReceipt").is_none());
 }

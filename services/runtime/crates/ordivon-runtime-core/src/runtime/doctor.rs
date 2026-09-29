@@ -104,10 +104,6 @@ pub struct RuntimeDoctorAttemptState {
     pub exit_code: Option<i32>,
     pub finished_at_ms: Option<u64>,
     pub row_version: u64,
-    pub recovery_required: bool,
-    pub recovery_reason_code: Option<String>,
-    pub recovery_evidence_digest: Option<String>,
-    pub recovery_observed_at_ms: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -210,24 +206,6 @@ pub fn inspect_runtime(config: &RuntimeDoctorConfig) -> RuntimeResult<RuntimeDoc
         }
     }
 
-    let recovery_case_sql = if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {
-        "SELECT a.attempt_id FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE a.state='orphaned' AND r.state='held_orphaned' AND COALESCE(a.recovery_required,0)=1 AND a.recovery_reason_code='LAUNCH_IDENTITY_MISMATCH' ORDER BY a.created_at_ms,a.attempt_id"
-    } else {
-        "SELECT a.attempt_id FROM attempts a JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id JOIN attempt_conditions c ON c.attempt_id=a.attempt_id WHERE a.state='orphaned' AND r.state='held_orphaned' AND c.condition_type='recovery_required' AND c.status='true' AND c.reason_code='LAUNCH_IDENTITY_MISMATCH' ORDER BY a.created_at_ms,a.attempt_id"
-    };
-    let mut recovery_statement = connection
-        .prepare(recovery_case_sql)
-        .map_err(|error| RuntimeError::from_sql(error, "prepare recovery-required Doctor cases"))?;
-    let recovery_rows = recovery_statement
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|error| RuntimeError::from_sql(error, "query recovery-required Doctor cases"))?;
-    for row in recovery_rows {
-        let attempt_id = row.map_err(|error| {
-            RuntimeError::from_sql(error, "decode recovery-required Doctor case")
-        })?;
-        by_attempt.entry(attempt_id).or_default();
-    }
-
     let mut cases = Vec::with_capacity(by_attempt.len());
     for (attempt_id, codes) in by_attempt {
         let attempt = RegistryStorageBoundary::load_attempt(&connection, &attempt_id)?;
@@ -239,24 +217,7 @@ pub fn inspect_runtime(config: &RuntimeDoctorConfig) -> RuntimeResult<RuntimeDoc
         let control_path = expected_bundle.join("control-result.json");
         let runner_result_present = bundle_path_trusted && result_path.is_file();
         let control_result_present = bundle_path_trusted && control_path.is_file();
-        let (
-            recovery_required,
-            recovery_reason_code,
-            recovery_evidence_digest,
-            recovery_observed_at_ms,
-        ) = attempt_recovery_state(&connection, migration_version, &attempt_id)?;
-        let quarantined_launch_identity = attempt.state == AttemptState::Orphaned
-            && reservation.state == ReservationState::HeldOrphaned
-            && recovery_required
-            && recovery_reason_code.as_deref() == Some("LAUNCH_IDENTITY_MISMATCH")
-            && runner_result_present;
-        let proposal = if bundle_path_trusted && quarantined_launch_identity {
-            RuntimeDoctorProposal::ManualReview {
-                reasons: vec![
-                    "Runner result is quarantined by LAUNCH_IDENTITY_MISMATCH and cannot be trusted as semantic terminal evidence; an operator may explicitly finalize the Attempt as Lost after snapshot verification".to_string(),
-                ],
-            }
-        } else if bundle_path_trusted {
+        let proposal = if bundle_path_trusted {
             propose_repair(&job, &attempt, &reservation, runner_result_present)
         } else {
             RuntimeDoctorProposal::ManualReview {
@@ -281,10 +242,6 @@ pub fn inspect_runtime(config: &RuntimeDoctorConfig) -> RuntimeResult<RuntimeDoc
             exit_code: attempt.exit_code,
             finished_at_ms: attempt.finished_at_ms,
             row_version: attempt.row_version,
-            recovery_required,
-            recovery_reason_code,
-            recovery_evidence_digest,
-            recovery_observed_at_ms,
         };
         let reservation_state = RuntimeDoctorReservationState {
             reservation_id: reservation.reservation_id.clone(),
@@ -463,60 +420,6 @@ fn inspect_summary(
         capacity_holders,
         capacity_holders_truncated,
     })
-}
-
-type AttemptRecoveryState = (bool, Option<String>, Option<String>, Option<u64>);
-
-fn attempt_recovery_state(
-    connection: &Connection,
-    migration_version: i64,
-    attempt_id: &str,
-) -> RuntimeResult<AttemptRecoveryState> {
-    if migration_version >= CONDITION_RETIREMENT_MIGRATION_VERSION {
-        return connection
-            .query_row(
-                "SELECT COALESCE(recovery_required,0),recovery_reason_code,recovery_evidence_digest,recovery_observed_at_ms FROM attempts WHERE attempt_id=?1",
-                [attempt_id],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)? != 0,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                    ))
-                },
-            )
-            .map_err(|error| {
-                RuntimeError::from_sql(error, "read Attempt recovery state for Doctor")
-            });
-    }
-    let active: bool = connection
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM attempt_conditions WHERE attempt_id=?1 AND condition_type='recovery_required' AND status='true')",
-            [attempt_id],
-            |row| row.get(0),
-        )
-        .map_err(|error| {
-            RuntimeError::from_sql(error, "read legacy Attempt recovery state for Doctor")
-        })?;
-    let recovery = connection
-        .query_row(
-            "SELECT reason_code,evidence_digest,observed_at_ms FROM attempt_conditions WHERE attempt_id=?1 AND condition_type='recovery_required' AND status='true' ORDER BY observed_at_ms DESC LIMIT 1",
-            [attempt_id],
-            |row| {
-                Ok((
-                    row.get::<_, Option<String>>(0)?,
-                    row.get::<_, Option<String>>(1)?,
-                    row.get::<_, Option<u64>>(2)?,
-                ))
-            },
-        )
-        .optional()
-        .map_err(|error| {
-            RuntimeError::from_sql(error, "read legacy Attempt recovery state for Doctor")
-        })?;
-    let (reason, evidence_digest, observed_at_ms) = recovery.unwrap_or((None, None, None));
-    Ok((active, reason, evidence_digest, observed_at_ms))
 }
 
 fn count_query(connection: &Connection, sql: &str, context: &str) -> RuntimeResult<u64> {
