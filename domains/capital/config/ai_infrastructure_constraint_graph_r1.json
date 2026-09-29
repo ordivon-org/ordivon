@@ -258,6 +258,16 @@
       "publishedAt": "2026-07-03",
       "observedAt": "2026-09-29",
       "claimBoundary": "Identifies AI opportunities in sensing, autonomous systems, digital twins, robotics, logistics and manufacturing while retaining integration, reliability and trustworthy-operation barriers."
+    },
+    {
+      "evidenceId": "ev-digitalchina-cn-transformer-orders-20260202",
+      "persistentIdentity": "url:https://www.digitalchina.gov.cn/2025/xwzx/szkx/202602/t20260202_5279933.htm",
+      "canonicalUrl": "https://www.digitalchina.gov.cn/2025/xwzx/szkx/202602/t20260202_5279933.htm",
+      "sourceClass": "OFFICIAL_PORTAL_REPUBLISH_CCTV_REPORTING",
+      "title": "China transformer factories and data-center order books",
+      "publishedAt": "2026-02-02",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Digital China portal republishes CCTV reporting that many Guangdong/Jiangsu transformer factories were operating at full production and some data-center transformer orders extended into 2027. Sampled field reporting, not a national MVA-capacity census."
     }
   ],
   "nodes": [
@@ -1076,11 +1086,11 @@
         },
         {
           "nodeKey": "transformer-switchgear",
-          "frontierRole": "NOT_FRONTIER",
+          "frontierRole": "CANDIDATE_FRONTIER",
           "headroom": {
             "mode": "QUALITATIVE",
-            "standing": "ADEQUATE",
-            "reason": "China's transformer industry is expanding domestic and export output; public evidence does not show a U.S.-style national equipment bottleneck, though local/project-specific queues remain possible."
+            "standing": "TIGHT",
+            "reason": "China has strong transformer manufacturing/export scale, but current field evidence reports many factories at full production and some data-center transformer orders extending into 2027. This makes electrical equipment a plausible next constraint after accelerator/HBM relief even though it is not the current national frontier."
           },
           "quantitativeObservations": [
             {
@@ -1103,15 +1113,18 @@
             }
           ],
           "evidenceIds": [
-            "ev-people-cn-transformers-20260827"
+            "ev-people-cn-transformers-20260827",
+            "ev-digitalchina-cn-transformer-orders-20260202"
           ],
           "contraryEvidenceIds": [],
           "assumptions": [
-            "Export growth is not direct measurement of domestic spare capacity or AI-specific equipment lead time."
+            "Export growth and factory-order reporting are directional evidence of utilization/tightness, not a national matched MVA headroom series.",
+            "Current accelerator/HBM constraints still bind earlier for China at the national AI-compute level, so transformer remains candidate rather than current frontier."
           ],
           "reopenConditions": [
-            "Domestic lead times lengthen persistently across major voltage classes and become a repeated AI-project blocker.",
-            "Export growth reverses because domestic demand absorbs available production."
+            "Domestic lead times and accepted data-center orders normalize materially before 2027 despite continuing AI/grid demand.",
+            "Matched MVA/year production versus backlog shows ample spare capacity across relevant dry-type/high-voltage classes.",
+            "Accelerator/HBM supply relaxes and transformer/substation delivery becomes a repeated AI-project schedule blocker, which would support promotion to CURRENT_FRONTIER."
           ],
           "analyticConfidence": "MODERATE",
           "currentness": {

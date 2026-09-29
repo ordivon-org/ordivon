@@ -96,3 +96,47 @@ The interval spans substantial shortage to slight aggregate sufficiency dependin
 ### U.S. large-load interconnection
 
 FERC's 2026 large-load show-cause action across six jurisdictional RTO/ISOs is retained as process evidence only. It supports treating request maturity, readiness and service rules as first-class measurements; it does not create a national MW denominator. The existing ERCOT funnel remains the most explicit public load-side lifecycle example in R1.
+
+## P1 candidate-frontier fill — 2026-09-29
+
+The next fill pass covers only candidate frontiers that could plausibly displace or join the current P0 frontier.
+
+### China advanced packaging
+
+SJ Semiconductor's primary filing reports chiplet/multi-chip integration packaging utilization of 63.42% in 2025H1, up from 57.62% in 2024 but below full nominal utilization. Its 2026H1 filing reports the business still growing and explicitly notes tight supply of core materials while continuing 2.5D/3DIC development and expansion. This weakens the simple thesis that domestic 2.5D line capacity itself is independently binding; however the utilization number is one year stale and 2026 current qualified throughput is not disclosed. R1 therefore preserves a currentness gap rather than declaring spare capacity.
+
+### U.S.-led ecosystem HBM
+
+Primary memory suppliers and TrendForce agree that HBM/DRAM allocation remains structurally tight. The relevant supply is global and platform-specific, not a U.S.-domestic memory stock. R1 stores global scarcity direction and production-allocation context while rejecting a U.S. headroom ratio until finished HBM allocation can be matched to GPU/ASIC BOM demand and delivery windows.
+
+### U.S.-led ecosystem advanced packaging
+
+TrendForce research continues to identify 2.5D/CoWoS as constrained in 2026. A secondary quantified estimate suggests a roughly 20% CoWoS gap narrowing toward 10% by year-end as TSMC and OSAT capacity expands. R1 records this as global allocation evidence, not U.S.-domestic capacity or a directly admitted U.S. headroom ratio.
+
+### U.S. AI-ready data-center IT
+
+CBRE's eight primary North American markets had 10,903MW inventory, 1.4% vacancy, 7,481.1MW under construction and 80.4% of construction preleased in H1 2026. JLL uses a broader market definition and reports more than 66GW under construction with 95% pre-committed. Both show severe market scarcity, but neither isolates energized high-density AI IT MW from general data-center capacity. This node remains candidate/tight and strongly coupled to power delivery rather than promoted to a standalone numerical headroom claim.
+
+### U.S. electricity generation
+
+EIA reports 86GW of planned utility-scale additions in 2026 after 53GW realized in 2025. Its load sensitivity analysis forecasts U.S. load growth of 1.9% in 2026 and 2.5% in 2027 and finds the most acute near-term stresses are regional rather than a uniform national generation shortage. R1 therefore keeps generation as `MIXED/CANDIDATE`: national nameplate growth is large, while local firm deliverability can still bind through transmission, interconnection and equipment.
+
+## P2 monitoring fill — China downstream physical layers
+
+P2 does not seek current headroom where the node is not the present minimal frontier. It establishes migration triggers so that a future relaxation of accelerator/HBM constraints can be recognized without rebuilding the research state from scratch.
+
+### AI-ready data-center IT
+
+China's 2026 Computing Power Conference reported 15.56 million standard racks and 2,185 EFLOPS FP16 intelligent compute as of June. Separately, NEA reports internet-data-services electricity consumption of 69.5TWh in Jan-Aug 2026, +42.5% YoY. These establish large installed scale and fast demand growth but do not reveal high-density AI-ready energized MW or utilization, so no AI data-center headroom is admitted.
+
+### Electricity generation
+
+At end-July China had 4.08TW of installed nameplate generation and had added about 194GW during Jan-Jul. August national peak load reached 1.56TW. R1 explicitly refuses to divide installed nameplate by peak load: technology mix, hourly firmness, geography and network deliverability make that ratio invalid for AI-site power headroom.
+
+### Transformer / switchgear
+
+China remains a major and rapidly growing supplier: 2026H1 transformer exports were reported at CNY39.792B (+26.78% YoY), with >10MVA liquid-transformer export growth above 50%. However, current field reporting also shows many factories running full and some data-center orders extending into 2027. This changes the monitoring interpretation from simple `ADEQUATE` toward **strong manufacturing but tight order books**, making transformer capacity a plausible next bottleneck after compute/memory relief.
+
+### Grid / transmission
+
+NEA reports 46 operating UHV corridors and more than 340GW of west-to-east transfer capability during summer 2026 while the national system absorbed repeated high loads. This argues against a simple national-grid-capacity bottleneck, but provides no local AI-cluster interconnection funnel. Future monitoring must move to requested/approved/energized MW and local substation/upgrade lead times.

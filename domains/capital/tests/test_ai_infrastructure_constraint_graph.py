@@ -152,3 +152,14 @@ def test_external_owner_census_keeps_constraint_graph_as_thin_research_binding()
     assert "do not own industrial capacity truth" in row["localResponsibility"]
     assert "ISO/IEC/IEEE 15288" in row["standardOwners"]
     assert "Berkeley Lab Queued Up" in row["providerOwners"]
+
+
+def test_cn_transformer_is_candidate_tight_after_current_order_book_evidence() -> None:
+    doc = load_constraint_graph(CONFIG)
+    cn = next(row for row in doc["jurisdictions"] if row["jurisdiction"] == "CN")
+    state = next(row for row in cn["nodeStates"] if row["nodeKey"] == "transformer-switchgear")
+    assert cn["frontierNodeKeys"] == ["accelerator-logic", "hbm"]
+    assert state["frontierRole"] == "CANDIDATE_FRONTIER"
+    assert state["headroom"]["standing"] == "TIGHT"
+    assert "ev-digitalchina-cn-transformer-orders-20260202" in state["evidenceIds"]
+    assert any("2027" in condition for condition in state["reopenConditions"])

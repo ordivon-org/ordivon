@@ -133,3 +133,11 @@ The next highest-value work is not adding more nodes. It is replacing qualitativ
 - interconnection completion time rather than queue MW alone.
 
 Only after those producer contracts are stable should the graph emit canonical Capital state claims.
+
+## Evidence-driven candidate update — 2026-09-29
+
+The first downstream-monitor fill produced one graph-level change without altering the current China frontier. `transformer-switchgear` moves from `NOT_FRONTIER / ADEQUATE` to `CANDIDATE_FRONTIER / TIGHT`.
+
+The reason is not weak Chinese manufacturing capacity. China continues to export transformers at high and rising rates. The new information is utilization/order-book pressure: current field reporting describes many factories at full production and some data-center transformer orders extending into 2027. The combination means strong supply capability and tight spare flow can coexist.
+
+The current China frontier remains `accelerator-logic + hbm`. Transformer promotion to `CURRENT_FRONTIER` requires evidence that, after compute/memory relief, transformer/substation delivery becomes a repeated AI-project schedule blocker. Conversely, normalized lead times or matched MVA/year production materially exceeding backlog would weaken the candidate state.

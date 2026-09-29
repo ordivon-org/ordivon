@@ -5,7 +5,7 @@
   "asOfDate": "2026-09-29",
   "graphBinding": {
     "relativePath": "config/ai_infrastructure_constraint_graph_r1.json",
-    "expectedDigest": "sha256:fd61be8684a5c9160f13aa6f6e0d03565a2f25343d620cf0d46b8d9d18bca23f"
+    "expectedDigest": "sha256:4f7e60db67b2b45806da7e2d375a65a01e17fde5d7d1d38fc0c0496d22005ef3"
   },
   "principles": [
     "Fill the minimal evidence-supported frontier before completing non-binding nodes.",
@@ -149,6 +149,166 @@
       "sourceClass": "TRADE_PRESS_CITING_INDUSTRY_RESEARCH",
       "observedAt": "2026-09-29",
       "claimBoundary": "POWER summarizes Wood Mackenzie 2025 market research estimating about a 30% U.S. power-transformer shortfall, with high-voltage/GSU classes especially stressed. This is a market-model estimate from a secondary publication and uses a broader product framing than NLR >=100MVA planning components; retained as structured challenge evidence, not merged mechanically with NLR ratios."
+    },
+    {
+      "evidenceId": "p1-sjsemi-ipo-utilization",
+      "persistentIdentity": "url:https://static.sse.com.cn/stock/disclosure/announcement/c/202601/002104_20260107_KCNQ.pdf",
+      "canonicalUrl": "https://static.sse.com.cn/stock/disclosure/announcement/c/202601/002104_20260107_KCNQ.pdf",
+      "sourceClass": "PRIMARY_COMPANY_FILING_SSE",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "SJ Semiconductor IPO review response reports chiplet/multi-chip integration packaging capacity utilization of 71.85% in 2023, 57.62% in 2024, and 63.42% in 2025H1. Historical utilization, not a 2026 current-capacity observation."
+    },
+    {
+      "evidenceId": "p1-sjsemi-2026h1",
+      "persistentIdentity": "url:https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?CompanyCode=80490085&gather=1&id=12506932",
+      "canonicalUrl": "https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?CompanyCode=80490085&gather=1&id=12506932",
+      "sourceClass": "PUBLIC_COMPANY_FILING_MIRROR",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Mirror of SJ Semiconductor 2026H1 report: chiplet/multi-chip packaging revenue grew 2.61% YoY and represented 53.66% of revenue; company states core material supply for chiplet/multi-chip packaging remained tight and reports ongoing 2.5D/3DIC technology and capacity expansion. Does not disclose current 2.5D utilization."
+    },
+    {
+      "evidenceId": "p1-skhynix-2026q2",
+      "persistentIdentity": "url:https://news.skhynix.com/en/q2-2026-business-results/",
+      "canonicalUrl": "https://news.skhynix.com/en/q2-2026-business-results/",
+      "sourceClass": "PRIMARY_SUPPLIER_EARNINGS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "SK hynix Q2 2026 results state customer demand exceeds supply capabilities, HBM4 mass shipments began in Q2 and ramp in H2, and long-term agreements with around 10 key customers are in place. Global supplier condition, not U.S.-specific allocation."
+    },
+    {
+      "evidenceId": "p1-samsung-2026q2-memory",
+      "persistentIdentity": "url:https://news.samsung.com/global/samsung-electronics-announces-second-quarter-2026-results",
+      "canonicalUrl": "https://news.samsung.com/global/samsung-electronics-announces-second-quarter-2026-results",
+      "sourceClass": "PRIMARY_SUPPLIER_EARNINGS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Samsung Q2 2026 results expect server/HBM demand growth and continued supply constraints despite production increases. Global supplier statement, not U.S.-specific allocation."
+    },
+    {
+      "evidenceId": "p1-trendforce-hbm-20260602",
+      "persistentIdentity": "url:https://www.trendforce.com/presscenter/news/20260602-13074.html",
+      "canonicalUrl": "https://www.trendforce.com/presscenter/news/20260602-13074.html",
+      "sourceClass": "INDUSTRY_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "TrendForce estimates HBM wafer input among top three DRAM suppliers reaches ~22% of total DRAM wafer input at end-2026; global production-allocation metric, not U.S. HBM supply."
+    },
+    {
+      "evidenceId": "p1-trendforce-dram-20260730",
+      "persistentIdentity": "url:https://www.trendforce.com/presscenter/news/20260730-13158.html",
+      "canonicalUrl": "https://www.trendforce.com/presscenter/news/20260730-13158.html",
+      "sourceClass": "INDUSTRY_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "TrendForce estimates overall DRAM sufficiency ratio about -1% to -2% in 2026 and says HBM allocation contributes to tight supply. Overall DRAM balance is contextual evidence only; it is not HBM-specific headroom."
+    },
+    {
+      "evidenceId": "p1-trendforce-hbm-20260929",
+      "persistentIdentity": "url:https://www.trendforce.com.tw/presscenter/news/20260929-13253.html",
+      "canonicalUrl": "https://www.trendforce.com.tw/presscenter/news/20260929-13253.html",
+      "sourceClass": "INDUSTRY_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "TrendForce Sep 29 2026 says HBM supply remains tight into 2027, with limited supply and yield/ramp time contributing to higher price outlook. Current global scarcity direction; no U.S.-specific quantity."
+    },
+    {
+      "evidenceId": "p1-trendforce-cowos-gap-20260615",
+      "persistentIdentity": "url:https://www.trendforce.com/news/2026/06/15/news-tsmc-cowos-supply-demand-gap-reportedly-seen-narrowing-from-20-to-10-by-end-2026-as-capacity-expands/",
+      "canonicalUrl": "https://www.trendforce.com/news/2026/06/15/news-tsmc-cowos-supply-demand-gap-reportedly-seen-narrowing-from-20-to-10-by-end-2026-as-capacity-expands/",
+      "sourceClass": "INDUSTRY_NEWS_SECONDARY_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "TrendForce News, citing Economic Daily/institutional estimates, reports CoWoS supply-demand gap around 20% mid-2026 narrowing toward 10% by year-end, with TSMC monthly CoWoS capacity estimated 120k-140k wafers and OSAT partners 50k-60k. Secondary quantified estimate, not TSMC capacity disclosure and not U.S.-domestic capacity."
+    },
+    {
+      "evidenceId": "p1-trendforce-cowos-20260430",
+      "persistentIdentity": "url:https://www.trendforce.com/presscenter/news/20260430-13028.html",
+      "canonicalUrl": "https://www.trendforce.com/presscenter/news/20260430-13028.html",
+      "sourceClass": "INDUSTRY_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "TrendForce reports persistent CoWoS/2.5D shortage in 2026 and expects severe global 2.5D packaging shortage to begin easing in 2027 as capacity expands. Global complement condition."
+    },
+    {
+      "evidenceId": "p1-cbre-dc-h1-2026",
+      "persistentIdentity": "url:https://www.cbre.com/insights/books/north-america-data-center-trends-h1-2026",
+      "canonicalUrl": "https://www.cbre.com/insights/books/north-america-data-center-trends-h1-2026",
+      "sourceClass": "COMMERCIAL_MARKET_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "CBRE H1 2026 primary North American markets: 10,903MW supply, 1.4% vacancy, 7,481.1MW under construction, 80.4% preleased; market scope covers eight primary North American markets and is not AI-only energized IT capacity."
+    },
+    {
+      "evidenceId": "p1-jll-dc-h1-2026",
+      "persistentIdentity": "url:https://www.jll.com/en-us/insights/market-dynamics/north-america-data-centers",
+      "canonicalUrl": "https://www.jll.com/en-us/insights/market-dynamics/north-america-data-centers",
+      "sourceClass": "COMMERCIAL_MARKET_RESEARCH",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "JLL midyear 2026 broader North America scope reports ~1% vacancy, >66GW under construction and 95% pre-committed. Broader market definition than CBRE; not directly mergeable with CBRE primary-market figures."
+    },
+    {
+      "evidenceId": "p1-eia-generation-20260220",
+      "persistentIdentity": "url:https://www.eia.gov/todayinenergy/detail.php?id=67205",
+      "canonicalUrl": "https://www.eia.gov/todayinenergy/detail.php?id=67205",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "EIA reports 86GW planned U.S. utility-scale capacity additions in 2026 and 53GW realized additions in 2025. Nameplate additions are not firm site-level deliverability."
+    },
+    {
+      "evidenceId": "p1-eia-load-20260312",
+      "persistentIdentity": "url:https://www.eia.gov/todayinenergy/detail.php/detail.php?id=67344",
+      "canonicalUrl": "https://www.eia.gov/todayinenergy/detail.php/detail.php?id=67344",
+      "sourceClass": "OFFICIAL_SCENARIO_ANALYSIS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "EIA February-STEO-based analysis forecasts U.S. electricity load +1.9% in 2026 and +2.5% in 2027, with much faster ERCOT/PJM regional growth; modeled analysis says most regions can accommodate higher-than-expected demand under fixed capacity assumptions, while ERCOT shows stronger stress. National load/generation context, not site headroom."
+    },
+    {
+      "evidenceId": "p2-cn-compute-conference-20260915",
+      "persistentIdentity": "url:https://www.digitalchina.gov.cn/2026/xwzx/szkx/202609/t20260915_5371676.htm",
+      "canonicalUrl": "https://www.digitalchina.gov.cn/2026/xwzx/szkx/202609/t20260915_5371676.htm",
+      "sourceClass": "OFFICIAL_CONFERENCE_REPORT",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "2026 China Computing Power Conference report states 15.56 million standard racks in use and 2,185 EFLOPS FP16 intelligent compute as of June 2026. Aggregate compute/rack measures are not high-density AI-ready energized IT headroom."
+    },
+    {
+      "evidenceId": "p2-cn-internet-electricity-20260920",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260920/bd277235282140f4b43e9e0f5f0af3d9/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260920/bd277235282140f4b43e9e0f5f0af3d9/c.html",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "China NEA reports internet data services consumed 695 hundred-million kWh (69.5 TWh) Jan-Aug 2026, +42.5% YoY; category is broader than AI data centers. August alone 102 hundred-million kWh, +37.9% YoY."
+    },
+    {
+      "evidenceId": "p2-cn-power-20260825",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260825/1430d07985474c5b8110552785f1c74b/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260825/1430d07985474c5b8110552785f1c74b/c.html",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "China NEA reports 4.08TW installed generation capacity at end-July 2026, +11.0% YoY, and about 194GW new generation capacity Jan-Jul. Nameplate capacity is not firm AI-site deliverability."
+    },
+    {
+      "evidenceId": "p2-cn-peak-load-20260920",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260920/bd277235282140f4b43e9e0f5f0af3d9/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260920/bd277235282140f4b43e9e0f5f0af3d9/c.html",
+      "sourceClass": "OFFICIAL_STATISTICS",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "China NEA reports national peak load reached a record 1.56TW in August 2026, about 49.69GW above prior-year maximum, while the system served repeated high-load days. Peak system load is not AI load."
+    },
+    {
+      "evidenceId": "p2-cn-transformer-exports-20260827",
+      "persistentIdentity": "url:https://finance.people.com.cn/BIG5/n1/2026/0827/c1004-40787179.html",
+      "canonicalUrl": "https://finance.people.com.cn/BIG5/n1/2026/0827/c1004-40787179.html",
+      "sourceClass": "STATE_MEDIA_INDUSTRY_REPORTING",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "People.cn industry reporting states China transformer exports reached CNY39.792B in 2026H1, +26.78% YoY; exports of >10MVA liquid transformers grew >50%. Export value/growth indicate manufacturing scale and external demand, not domestic spare capacity."
+    },
+    {
+      "evidenceId": "p2-cn-transformer-orders-20260202",
+      "persistentIdentity": "url:https://www.digitalchina.gov.cn/2025/xwzx/szkx/202602/t20260202_5279933.htm",
+      "canonicalUrl": "https://www.digitalchina.gov.cn/2025/xwzx/szkx/202602/t20260202_5279933.htm",
+      "sourceClass": "OFFICIAL_PORTAL_REPUBLISH_CCTV_REPORTING",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "Digital China portal republishes CCTV reporting that many Guangdong/Jiangsu transformer factories were at full production and some data-center transformer orders extended to 2027. Qualitative industry sample, not a national matched MVA backlog series."
+    },
+    {
+      "evidenceId": "p2-cn-grid-resilience-20260807",
+      "persistentIdentity": "url:https://www.nea.gov.cn/20260807/f7407950b713408ea429aa6cbca066bd/c.html",
+      "canonicalUrl": "https://www.nea.gov.cn/20260807/f7407950b713408ea429aa6cbca066bd/c.html",
+      "sourceClass": "OFFICIAL_ENERGY_SYSTEM_REPORTING",
+      "observedAt": "2026-09-29",
+      "claimBoundary": "China NEA reports 46 UHV corridors operating in summer 2026 and west-to-east transfer capability above 340GW, while the system handled repeated record/high-temperature loads. National transfer capability does not establish local AI-site connection headroom."
     }
   ],
   "fillQueue": [
@@ -827,6 +987,561 @@
         "ISO/RTO large-load queue snapshots with common maturity states",
         "approved-to-energize MW and observed peak consumption",
         "regional transmission upgrade scope/capability and completion dates"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "advanced-packaging",
+      "demandSupplySignal": "PACKAGING_CAPABILITY_REAL_CURRENT_BINDING_STATUS_UNRESOLVED_UPSTREAM_INPUT_TIGHTNESS",
+      "measurements": [
+        {
+          "metricKey": "sjsemi-chiplet-multichip-utilization-2025h1",
+          "standing": "OBSERVED",
+          "value": 63.42,
+          "unit": "percent",
+          "scope": "SJ Semiconductor chiplet/multi-chip integration packaging",
+          "timeBasis": "2025H1",
+          "evidenceIds": [
+            "p1-sjsemi-ipo-utilization"
+          ],
+          "claimBoundary": "Primary filing historical utilization. It shows nominal line capacity was not fully utilized in 2025H1, but cannot establish 2026 headroom."
+        },
+        {
+          "metricKey": "sjsemi-chiplet-multichip-revenue-growth-2026h1",
+          "standing": "OBSERVED",
+          "value": 2.61,
+          "unit": "percent YoY",
+          "scope": "SJ Semiconductor chiplet/multi-chip integration packaging revenue",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-sjsemi-2026h1"
+          ],
+          "claimBoundary": "Current revenue growth signal from 2026H1 filing mirror; revenue is not physical throughput/headroom."
+        },
+        {
+          "metricKey": "sjsemi-chiplet-multichip-revenue-share-2026h1",
+          "standing": "OBSERVED",
+          "value": 53.66,
+          "unit": "percent of company revenue",
+          "scope": "SJ Semiconductor",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-sjsemi-2026h1"
+          ],
+          "claimBoundary": "Business-mix measure, not capacity utilization."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_TIME_BASIS_MISMATCH",
+        "headroomRatio": null,
+        "reason": "The strongest utilization measure is 63.42% from 2025H1, while 2026H1 evidence confirms current 2.5D/3DIC activity and core-material tightness but does not disclose 2026 utilization or qualified throughput. Historical spare nominal capacity cannot be carried forward as current headroom.",
+        "resolutionRequirement": "Obtain 2026 current 2.5D/3D qualified throughput/capacity utilization by relevant process, plus customer-ready input availability (HBM/interposer/substrate) and backlog, to distinguish packaging-line scarcity from upstream input starvation."
+      },
+      "nextObservations": [
+        "2026H2 current 2.5D/3D utilization/wafer throughput",
+        "qualified customer backlog by package platform",
+        "HBM/interposer/substrate customer-supplied material share and shortages",
+        "new Jiangyin/Lingang line commissioning and qualification dates"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "hbm",
+      "demandSupplySignal": "GLOBAL_HBM_TIGHT_US_ECOSYSTEM_ALLOCATION_HEADROOM_UNKNOWN",
+      "measurements": [
+        {
+          "metricKey": "trendforce-hbm-share-dram-wafer-input-2026ye",
+          "standing": "MODELED",
+          "value": 22.0,
+          "unit": "percent",
+          "scope": "top three global DRAM suppliers HBM wafer input share",
+          "timeBasis": "2026YE",
+          "evidenceIds": [
+            "p1-trendforce-hbm-20260602"
+          ],
+          "claimBoundary": "Global production-allocation estimate; not U.S. allocation or HBM bit headroom."
+        },
+        {
+          "metricKey": "trendforce-dram-sufficiency-2026-low",
+          "standing": "MODELED",
+          "value": -2.0,
+          "unit": "percent",
+          "scope": "global overall DRAM supply-demand sufficiency",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "p1-trendforce-dram-20260730"
+          ],
+          "claimBoundary": "Overall DRAM lower-bound deficit estimate; contextual only, not HBM-specific."
+        },
+        {
+          "metricKey": "trendforce-dram-sufficiency-2026-high",
+          "standing": "MODELED",
+          "value": -1.0,
+          "unit": "percent",
+          "scope": "global overall DRAM supply-demand sufficiency",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "p1-trendforce-dram-20260730"
+          ],
+          "claimBoundary": "Overall DRAM upper-bound deficit estimate; contextual only, not HBM-specific."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "Supplier and industry evidence confirms global HBM/DRAM allocation tightness, but the U.S.-led accelerator ecosystem draws from Korean and U.S. suppliers under customer-specific LTAs. Global wafer-share and DRAM sufficiency do not identify U.S.-ecosystem qualified HBM supply versus BOM-weighted accelerator demand.",
+        "resolutionRequirement": "Obtain supplier/customer allocation volumes in finished HBM GB/stacks for U.S.-led GPU/ASIC platforms, matched to product BOMs and delivery windows; avoid treating global DRAM sufficiency as U.S. HBM headroom."
+      },
+      "nextObservations": [
+        "NVIDIA/AMD/ASIC HBM4/HBM3E BOM by shipped platform",
+        "SK hynix/Samsung/Micron allocated finished GB/stacks by platform",
+        "customer LTA allocation and fulfillment",
+        "HBM qualification/yield/ramp by product generation"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "advanced-packaging",
+      "demandSupplySignal": "GLOBAL_COWOS_TIGHT_GAP_NARROWING_US_ALLOCATION_HEADROOM_UNKNOWN",
+      "measurements": [
+        {
+          "metricKey": "trendforce-cowos-gap-mid-2026",
+          "standing": "MODELED",
+          "value": 20.0,
+          "unit": "percent gap",
+          "scope": "global TSMC/partner CoWoS supply-demand estimate",
+          "timeBasis": "mid-2026",
+          "evidenceIds": [
+            "p1-trendforce-cowos-gap-20260615"
+          ],
+          "claimBoundary": "Secondary institutional estimate reported by TrendForce News; global, not U.S.-domestic capacity."
+        },
+        {
+          "metricKey": "trendforce-cowos-gap-end-2026",
+          "standing": "MODELED",
+          "value": 10.0,
+          "unit": "percent gap",
+          "scope": "global TSMC/partner CoWoS supply-demand estimate",
+          "timeBasis": "2026YE",
+          "evidenceIds": [
+            "p1-trendforce-cowos-gap-20260615"
+          ],
+          "claimBoundary": "Projected year-end gap; not realized current headroom."
+        },
+        {
+          "metricKey": "trendforce-tsmc-cowos-capacity-2026-low",
+          "standing": "MODELED",
+          "value": 120.0,
+          "unit": "thousand wafers/month",
+          "scope": "TSMC CoWoS nameplate estimate",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "p1-trendforce-cowos-gap-20260615"
+          ],
+          "claimBoundary": "Lower bound secondary estimate; not supplier disclosure or customer allocation."
+        },
+        {
+          "metricKey": "trendforce-tsmc-cowos-capacity-2026-high",
+          "standing": "MODELED",
+          "value": 140.0,
+          "unit": "thousand wafers/month",
+          "scope": "TSMC CoWoS nameplate estimate",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "p1-trendforce-cowos-gap-20260615"
+          ],
+          "claimBoundary": "Upper bound secondary estimate; not supplier disclosure or customer allocation."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "Global CoWoS scarcity is well supported and appears to be easing, but most relevant capacity is outside the U.S. and allocation is customer/platform specific. Global nameplate wafer capacity cannot be interpreted as U.S. deliverable advanced-packaging headroom.",
+        "resolutionRequirement": "Obtain platform-specific CoWoS/EMIB/alternative package allocation and fulfilled throughput for U.S.-led GPU/ASIC demand, including wafers/package conversion and customer reservation; separate global external supply from U.S.-domestic packaging capacity."
+      },
+      "nextObservations": [
+        "TSMC/OSAT realized CoWoS output and booked allocation by platform",
+        "NVIDIA/AMD/ASIC package demand in equivalent 12-inch wafer starts",
+        "Amkor/Intel/U.S. alternative-package qualified ramp",
+        "package area/yield changes from larger CoWoS-L designs"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "ai-data-center-it",
+      "demandSupplySignal": "MARKET_CAPACITY_SCARCE_POWER_DELIVERY_AND_AI_SPECIFIC_SCOPE_NOT_SEPARATED",
+      "measurements": [
+        {
+          "metricKey": "cbre-primary-market-inventory-h1-2026",
+          "standing": "OBSERVED",
+          "value": 10903.0,
+          "unit": "MW",
+          "scope": "eight primary North American data-center markets",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-cbre-dc-h1-2026"
+          ],
+          "claimBoundary": "Wholesale primary-market inventory; North America and all workloads, not U.S. AI-only energized IT MW."
+        },
+        {
+          "metricKey": "cbre-primary-market-vacancy-h1-2026",
+          "standing": "OBSERVED",
+          "value": 1.4,
+          "unit": "percent",
+          "scope": "eight primary North American data-center markets",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-cbre-dc-h1-2026"
+          ],
+          "claimBoundary": "Market vacancy; capacity scarcity proxy, not physical AI headroom."
+        },
+        {
+          "metricKey": "cbre-primary-market-under-construction-h1-2026",
+          "standing": "OBSERVED",
+          "value": 7481.1,
+          "unit": "MW",
+          "scope": "eight primary North American data-center markets",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-cbre-dc-h1-2026"
+          ],
+          "claimBoundary": "Under-construction capacity; not energized supply."
+        },
+        {
+          "metricKey": "cbre-primary-market-preleased-share-h1-2026",
+          "standing": "OBSERVED",
+          "value": 80.4,
+          "unit": "percent",
+          "scope": "eight primary North American data-center markets",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-cbre-dc-h1-2026"
+          ],
+          "claimBoundary": "Preleased share of under-construction capacity."
+        },
+        {
+          "metricKey": "jll-north-america-under-construction-h1-2026",
+          "standing": "OBSERVED",
+          "value": 66.0,
+          "unit": "GW plus",
+          "scope": "broader North America data-center construction pipeline",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-jll-dc-h1-2026"
+          ],
+          "claimBoundary": "Different JLL market definition; must not be merged directly with CBRE primary-market MW."
+        },
+        {
+          "metricKey": "jll-north-america-precommitted-share-h1-2026",
+          "standing": "OBSERVED",
+          "value": 95.0,
+          "unit": "percent",
+          "scope": "broader North America data-center construction pipeline",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p1-jll-dc-h1-2026"
+          ],
+          "claimBoundary": "Broader JLL pipeline scope, all data-center workloads."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "Commercial market data confirms extreme data-center capacity scarcity, but definitions vary and include non-AI workloads, leased shells and future construction. It does not provide same-scope energized high-density AI IT MW versus contracted accelerator/AI-load MW.",
+        "resolutionRequirement": "Measure energized high-density AI-ready IT MW, commissioned cooling/MEP, and contracted accelerator/AI load on a common geography/time basis; separate power-secured construction from physically energized capacity and non-AI colocation demand."
+      },
+      "nextObservations": [
+        "energized high-density AI IT MW by major market",
+        "power-secured vs shell-complete vs commissioned capacity",
+        "AI tenant committed MW versus general colocation",
+        "accelerator delivery MW versus commissioned rack/cooling capacity"
+      ]
+    },
+    {
+      "jurisdiction": "US",
+      "nodeKey": "electricity-generation",
+      "demandSupplySignal": "NATIONAL_ADDITIONS_STRONG_LOCAL_FIRM_DELIVERABILITY_MIXED",
+      "measurements": [
+        {
+          "metricKey": "eia-planned-utility-scale-additions-2026",
+          "standing": "OBSERVED",
+          "value": 86.0,
+          "unit": "GW",
+          "scope": "U.S. utility-scale nameplate generation/storage additions planned",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "p1-eia-generation-20260220"
+          ],
+          "claimBoundary": "Planned utility-scale nameplate additions; technology mix includes solar/storage/wind and is not equivalent to firm data-center power."
+        },
+        {
+          "metricKey": "eia-realized-utility-scale-additions-2025",
+          "standing": "OBSERVED",
+          "value": 53.0,
+          "unit": "GW",
+          "scope": "U.S. utility-scale nameplate additions realized",
+          "timeBasis": "2025",
+          "evidenceIds": [
+            "p1-eia-generation-20260220"
+          ],
+          "claimBoundary": "Realized annual nameplate additions, not local firm capacity."
+        },
+        {
+          "metricKey": "eia-us-load-growth-2026",
+          "standing": "MODELED",
+          "value": 1.9,
+          "unit": "percent YoY",
+          "scope": "U.S. net energy for load",
+          "timeBasis": "2026",
+          "evidenceIds": [
+            "p1-eia-load-20260312"
+          ],
+          "claimBoundary": "EIA baseline load growth from February STEO used in sensitivity analysis."
+        },
+        {
+          "metricKey": "eia-us-load-growth-2027",
+          "standing": "MODELED",
+          "value": 2.5,
+          "unit": "percent YoY",
+          "scope": "U.S. net energy for load",
+          "timeBasis": "2027",
+          "evidenceIds": [
+            "p1-eia-load-20260312"
+          ],
+          "claimBoundary": "EIA baseline load growth from February STEO used in sensitivity analysis."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "National nameplate additions are large and EIA does not find a uniform national generation crisis, but site-level AI power depends on region, firmness, transmission, interconnection and hourly shape. National GW additions cannot serve as local firm AI-power capacity.",
+        "resolutionRequirement": "Use region/site-matched firm or accredited capacity, hourly energy availability and contracted large-load demand; separately model behind-the-meter generation and transmission/interconnection constraints before computing power headroom."
+      },
+      "nextObservations": [
+        "regional firm/accredited capacity additions and retirements",
+        "PJM/ERCOT large-load forecasts versus reserve margins",
+        "behind-the-meter turbine/nuclear/generation project commissioning",
+        "site-level PPAs and energization dates"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "ai-data-center-it",
+      "demandSupplySignal": "LARGE_COMPUTE_FLEET_AND_FAST_ELECTRICITY_GROWTH_AI_READY_UTILIZATION_NOT_OBSERVED",
+      "measurements": [
+        {
+          "metricKey": "cn-standard-racks-june-2026",
+          "standing": "OBSERVED",
+          "value": 15.56,
+          "unit": "million standard racks",
+          "scope": "China national compute infrastructure",
+          "timeBasis": "2026-06",
+          "evidenceIds": [
+            "p2-cn-compute-conference-20260915"
+          ],
+          "claimBoundary": "Official aggregate standard-rack stock; rack equivalence does not establish high-density accelerator-ready power/cooling."
+        },
+        {
+          "metricKey": "cn-intelligent-compute-fp16-june-2026",
+          "standing": "OBSERVED",
+          "value": 2185.0,
+          "unit": "EFLOPS FP16",
+          "scope": "China national intelligent compute aggregate",
+          "timeBasis": "2026-06",
+          "evidenceIds": [
+            "p2-cn-compute-conference-20260915"
+          ],
+          "claimBoundary": "Official aggregate compute metric; hardware mix/utilization and realized workload throughput are not specified."
+        },
+        {
+          "metricKey": "cn-internet-data-services-electricity-jan-aug-2026",
+          "standing": "DERIVED",
+          "value": 69.5,
+          "unit": "TWh",
+          "scope": "China internet data services sector",
+          "timeBasis": "2026 Jan-Aug",
+          "evidenceIds": [
+            "p2-cn-internet-electricity-20260920"
+          ],
+          "claimBoundary": "Converted from official 695 hundred-million kWh; broader than AI data centers."
+        },
+        {
+          "metricKey": "cn-internet-data-services-electricity-yoy-jan-aug-2026",
+          "standing": "OBSERVED",
+          "value": 42.5,
+          "unit": "percent YoY",
+          "scope": "China internet data services sector",
+          "timeBasis": "2026 Jan-Aug",
+          "evidenceIds": [
+            "p2-cn-internet-electricity-20260920"
+          ],
+          "claimBoundary": "Fast sector electricity-demand growth, not AI-only utilization."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "National racks/FP16 aggregates and internet-data-service electricity demonstrate large scale and rapid load growth but do not identify energized high-density AI-ready MW versus accelerator demand or useful utilization.",
+        "resolutionRequirement": "Measure high-density AI-ready energized IT MW and utilization by major compute clusters, matched to installed/contracted accelerator MW and cooling/power readiness; separate generic standard racks and non-AI internet loads."
+      },
+      "nextObservations": [
+        "cluster-level energized AI IT MW and utilization",
+        "accelerator installed stock by cluster",
+        "rack density/liquid cooling readiness",
+        "internet-data-service electricity by AI versus non-AI workload where available"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "electricity-generation",
+      "demandSupplySignal": "NATIONAL_SUPPLY_SCALE_LARGE_PEAKS_ABSORBED_LOCAL_FIRM_POWER_STILL_SITE_SPECIFIC",
+      "measurements": [
+        {
+          "metricKey": "cn-installed-generation-july-2026",
+          "standing": "OBSERVED",
+          "value": 4.08,
+          "unit": "TW nameplate",
+          "scope": "China national installed generation capacity",
+          "timeBasis": "2026-07-31",
+          "evidenceIds": [
+            "p2-cn-power-20260825"
+          ],
+          "claimBoundary": "National nameplate generation; variable/firm mix and geography prevent direct comparison with AI-site load."
+        },
+        {
+          "metricKey": "cn-new-generation-jan-july-2026",
+          "standing": "OBSERVED",
+          "value": 194.0,
+          "unit": "GW nameplate",
+          "scope": "China national generation additions",
+          "timeBasis": "2026 Jan-Jul",
+          "evidenceIds": [
+            "p2-cn-power-20260825"
+          ],
+          "claimBoundary": "Approximate official additions; mostly variable renewables, not equivalent to firm AI-site power."
+        },
+        {
+          "metricKey": "cn-system-peak-load-august-2026",
+          "standing": "OBSERVED",
+          "value": 1.56,
+          "unit": "TW load",
+          "scope": "China national power-system peak",
+          "timeBasis": "2026-08",
+          "evidenceIds": [
+            "p2-cn-peak-load-20260920"
+          ],
+          "claimBoundary": "National peak load served; not AI-specific and not a capacity-margin calculation."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "National installed nameplate greatly exceeds instantaneous national peak load, but the generation mix includes variable resources and AI projects require regional/hourly firm deliverability. Dividing 4.08TW by 1.56TW would be an invalid reserve-margin/headroom calculation.",
+        "resolutionRequirement": "Use regional accredited/firm capacity, hourly supply and contracted AI load by compute cluster, including storage/thermal/imports and transmission constraints, before computing power headroom."
+      },
+      "nextObservations": [
+        "regional reserve/firm-capacity margins at compute hubs",
+        "AI cluster contracted load and energization dates",
+        "firm thermal/nuclear/hydro plus storage availability",
+        "curtailment and congestion during peak periods"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "transformer-switchgear",
+      "demandSupplySignal": "STRONG_MANUFACTURING_AND_EXPORTS_BUT_ORDER_BOOKS_TIGHT_DATA_CENTER_DELIVERIES_EXTEND_TO_2027",
+      "measurements": [
+        {
+          "metricKey": "cn-transformer-export-value-2026h1",
+          "standing": "OBSERVED",
+          "value": 39.792,
+          "unit": "CNY billion",
+          "scope": "China transformer exports",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p2-cn-transformer-exports-20260827"
+          ],
+          "claimBoundary": "Export value, not production capacity or domestic availability."
+        },
+        {
+          "metricKey": "cn-transformer-export-value-yoy-2026h1",
+          "standing": "OBSERVED",
+          "value": 26.78,
+          "unit": "percent YoY",
+          "scope": "China transformer exports",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p2-cn-transformer-exports-20260827"
+          ],
+          "claimBoundary": "Export value growth; mixes volume/product/price effects."
+        },
+        {
+          "metricKey": "cn-gt10mva-liquid-transformer-export-growth-2026h1",
+          "standing": "OBSERVED",
+          "value": 50.0,
+          "unit": "percent plus YoY",
+          "scope": "China >10MVA liquid transformer exports",
+          "timeBasis": "2026H1",
+          "evidenceIds": [
+            "p2-cn-transformer-exports-20260827"
+          ],
+          "claimBoundary": "Growth in large liquid-transformer exports; not a domestic backlog measure."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_REQUIREMENT_UNKNOWN",
+        "headroomRatio": null,
+        "reason": "China demonstrates strong transformer manufacturing/export capability, but current field reporting says many factories are full and some data-center orders extend into 2027. No matched national production/backlog series in MVA/voltage class exists to determine current spare headroom.",
+        "resolutionRequirement": "Obtain domestic qualified MVA/year and accepted backlog/delivery dates by dry-type/data-center and high-voltage classes, separating export commitments from domestic AI/grid demand."
+      },
+      "nextObservations": [
+        "domestic MVA/year by voltage/technology class",
+        "data-center transformer accepted orders and lead time",
+        "export versus domestic allocation",
+        "new plant commissioning and bottleneck inputs such as electrical steel/copper/bushings"
+      ]
+    },
+    {
+      "jurisdiction": "CN",
+      "nodeKey": "grid-interconnection-transmission",
+      "demandSupplySignal": "NATIONAL_TRANSFER_SYSTEM_LARGE_AND_PEAKS_ABSORBED_LOCAL_AI_CONNECTION_HEADROOM_UNKNOWN",
+      "measurements": [
+        {
+          "metricKey": "cn-operating-uhv-corridors-summer-2026",
+          "standing": "OBSERVED",
+          "value": 46.0,
+          "unit": "corridors",
+          "scope": "China national UHV network",
+          "timeBasis": "summer 2026",
+          "evidenceIds": [
+            "p2-cn-grid-resilience-20260807"
+          ],
+          "claimBoundary": "Operating UHV corridor count; not local connection capacity."
+        },
+        {
+          "metricKey": "cn-west-east-transfer-capability-summer-2026",
+          "standing": "OBSERVED",
+          "value": 340.0,
+          "unit": "GW plus",
+          "scope": "China west-to-east transfer capability",
+          "timeBasis": "summer 2026",
+          "evidenceIds": [
+            "p2-cn-grid-resilience-20260807"
+          ],
+          "claimBoundary": "National transfer capability; not available headroom at specific compute hubs."
+        }
+      ],
+      "headroomAdmission": {
+        "standing": "BLOCKED_SCOPE_MISMATCH",
+        "headroomRatio": null,
+        "reason": "National UHV/transfer scale and successful peak-load operation support strong system-level transport capability, but they do not identify local substation/interconnection capacity or energization delays for AI clusters.",
+        "resolutionRequirement": "Measure compute-cluster-level connection applications, approved/energized MW, substation/transmission upgrade requirements and connection lead times; retain national UHV capacity only as system context."
+      },
+      "nextObservations": [
+        "AI-cluster requested/approved/energized load MW",
+        "regional substation headroom and connection lead time",
+        "new UHV/500kV project commissioning relevant to compute hubs",
+        "congestion and transfer utilization during peak conditions"
       ]
     }
   ]

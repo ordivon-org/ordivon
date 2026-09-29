@@ -227,3 +227,133 @@ def test_scenario_coverage_interval_is_deterministic_and_not_headroom() -> None:
             requirement_low=1370.0,
             requirement_high=1510.0,
         )
+
+
+def _measurement_row(doc: dict, jurisdiction: str, node_key: str) -> dict:
+    return next(
+        item for item in doc["nodeMeasurements"]
+        if item["jurisdiction"] == jurisdiction and item["nodeKey"] == node_key
+    )
+
+
+def test_cn_advanced_packaging_preserves_currentness_gap_instead_of_promoting_historical_utilization() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "CN", "advanced-packaging")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["sjsemi-chiplet-multichip-utilization-2025h1"]["value"] == pytest.approx(63.42)
+    assert metrics["sjsemi-chiplet-multichip-revenue-growth-2026h1"]["value"] == pytest.approx(2.61)
+    assert row["demandSupplySignal"] == "PACKAGING_CAPABILITY_REAL_CURRENT_BINDING_STATUS_UNRESOLVED_UPSTREAM_INPUT_TIGHTNESS"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_TIME_BASIS_MISMATCH"
+    assert "2026" in row["headroomAdmission"]["resolutionRequirement"]
+
+
+def test_us_hbm_is_global_allocation_scarcity_not_us_specific_headroom() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "US", "hbm")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["trendforce-hbm-share-dram-wafer-input-2026ye"]["value"] == pytest.approx(22.0)
+    assert metrics["trendforce-dram-sufficiency-2026-low"]["value"] == pytest.approx(-2.0)
+    assert metrics["trendforce-dram-sufficiency-2026-high"]["value"] == pytest.approx(-1.0)
+    assert row["demandSupplySignal"] == "GLOBAL_HBM_TIGHT_US_ECOSYSTEM_ALLOCATION_HEADROOM_UNKNOWN"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+
+
+def test_us_advanced_packaging_records_global_gap_without_pretending_us_domestic_capacity() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "US", "advanced-packaging")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["trendforce-cowos-gap-mid-2026"]["value"] == pytest.approx(20.0)
+    assert metrics["trendforce-cowos-gap-end-2026"]["value"] == pytest.approx(10.0)
+    assert metrics["trendforce-tsmc-cowos-capacity-2026-low"]["value"] == pytest.approx(120.0)
+    assert metrics["trendforce-tsmc-cowos-capacity-2026-high"]["value"] == pytest.approx(140.0)
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+    assert "allocation" in row["headroomAdmission"]["resolutionRequirement"].lower()
+
+
+def test_us_ai_ready_dc_distinguishes_market_scarcity_from_ai_specific_headroom() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "US", "ai-data-center-it")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["cbre-primary-market-inventory-h1-2026"]["value"] == pytest.approx(10903.0)
+    assert metrics["cbre-primary-market-vacancy-h1-2026"]["value"] == pytest.approx(1.4)
+    assert metrics["cbre-primary-market-under-construction-h1-2026"]["value"] == pytest.approx(7481.1)
+    assert metrics["cbre-primary-market-preleased-share-h1-2026"]["value"] == pytest.approx(80.4)
+    assert row["demandSupplySignal"] == "MARKET_CAPACITY_SCARCE_POWER_DELIVERY_AND_AI_SPECIFIC_SCOPE_NOT_SEPARATED"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+
+
+def test_us_generation_keeps_national_nameplate_separate_from_local_firm_ai_power() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "US", "electricity-generation")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["eia-planned-utility-scale-additions-2026"]["value"] == pytest.approx(86.0)
+    assert metrics["eia-realized-utility-scale-additions-2025"]["value"] == pytest.approx(53.0)
+    assert metrics["eia-us-load-growth-2026"]["value"] == pytest.approx(1.9)
+    assert metrics["eia-us-load-growth-2027"]["value"] == pytest.approx(2.5)
+    assert row["demandSupplySignal"] == "NATIONAL_ADDITIONS_STRONG_LOCAL_FIRM_DELIVERABILITY_MIXED"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+
+
+def test_p1_nodes_remain_non_headroom_until_scope_bridge_is_closed() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    pairs = [
+        ("CN", "advanced-packaging"),
+        ("US", "hbm"),
+        ("US", "advanced-packaging"),
+        ("US", "ai-data-center-it"),
+        ("US", "electricity-generation"),
+    ]
+    for jurisdiction, node_key in pairs:
+        row = _measurement_row(doc, jurisdiction, node_key)
+        assert row["headroomAdmission"]["headroomRatio"] is None
+        assert row["headroomAdmission"]["standing"] != "ADMITTED"
+
+
+def test_cn_ai_dc_monitor_tracks_scale_and_load_growth_without_ai_only_headroom() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "CN", "ai-data-center-it")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["cn-standard-racks-june-2026"]["value"] == pytest.approx(15.56)
+    assert metrics["cn-intelligent-compute-fp16-june-2026"]["value"] == pytest.approx(2185.0)
+    assert metrics["cn-internet-data-services-electricity-jan-aug-2026"]["value"] == pytest.approx(69.5)
+    assert metrics["cn-internet-data-services-electricity-yoy-jan-aug-2026"]["value"] == pytest.approx(42.5)
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+
+
+def test_cn_generation_monitor_preserves_nameplate_peak_and_firm_capacity_distinction() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "CN", "electricity-generation")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["cn-installed-generation-july-2026"]["value"] == pytest.approx(4.08)
+    assert metrics["cn-new-generation-jan-july-2026"]["value"] == pytest.approx(194.0)
+    assert metrics["cn-system-peak-load-august-2026"]["value"] == pytest.approx(1.56)
+    assert row["demandSupplySignal"] == "NATIONAL_SUPPLY_SCALE_LARGE_PEAKS_ABSORBED_LOCAL_FIRM_POWER_STILL_SITE_SPECIFIC"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+
+
+def test_cn_transformer_monitor_detects_tight_orders_despite_export_strength() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "CN", "transformer-switchgear")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["cn-transformer-export-value-2026h1"]["value"] == pytest.approx(39.792)
+    assert metrics["cn-transformer-export-value-yoy-2026h1"]["value"] == pytest.approx(26.78)
+    assert metrics["cn-gt10mva-liquid-transformer-export-growth-2026h1"]["value"] == pytest.approx(50.0)
+    assert row["demandSupplySignal"] == "STRONG_MANUFACTURING_AND_EXPORTS_BUT_ORDER_BOOKS_TIGHT_DATA_CENTER_DELIVERIES_EXTEND_TO_2027"
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_REQUIREMENT_UNKNOWN"
+    assert "2027" in row["headroomAdmission"]["reason"]
+
+
+def test_cn_grid_monitor_records_large_transfer_system_without_local_site_inference() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    row = _measurement_row(doc, "CN", "grid-interconnection-transmission")
+    metrics = {item["metricKey"]: item for item in row["measurements"]}
+    assert metrics["cn-operating-uhv-corridors-summer-2026"]["value"] == pytest.approx(46.0)
+    assert metrics["cn-west-east-transfer-capability-summer-2026"]["value"] == pytest.approx(340.0)
+    assert row["headroomAdmission"]["standing"] == "BLOCKED_SCOPE_MISMATCH"
+
+
+def test_every_fill_queue_pair_now_has_a_measurement_state() -> None:
+    doc = load_constraint_measurements(MEASUREMENTS, graph_path=GRAPH)
+    measured = {(row["jurisdiction"], row["nodeKey"]) for row in doc["nodeMeasurements"]}
+    queued = {(row["jurisdiction"], row["nodeKey"]) for row in doc["fillQueue"]}
+    assert queued <= measured

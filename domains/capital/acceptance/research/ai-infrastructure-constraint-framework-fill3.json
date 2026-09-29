@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-acceptance",
+  "truthRole": "CONSTRAINT_FRAMEWORK_FILL_ACCEPTANCE_NOT_PROVIDER_TRUTH_OR_INVESTMENT_AUTHORITY",
+  "subject": "ai-infrastructure-constraint-framework-fill3",
+  "observedDate": "2026-09-29",
+  "sourceBaseRevision": "5fe012df5b14054023e717a6faf6e730deeeaa9a",
+  "standing": "PASS_R1_QUEUE_POPULATED_UNRESOLVED_HEADROOM_PRESERVED",
+  "artifactDigests": {
+    "config/ai_infrastructure_constraint_graph_r1.json": "sha256:4f7e60db67b2b45806da7e2d375a65a01e17fde5d7d1d38fc0c0496d22005ef3",
+    "config/ai_infrastructure_constraint_measurements_r1.json": "sha256:8070eb5ea2862a3e92019553f1737c0912e8d83b52053d480f76e5353b7e077b",
+    "docs/AI_INFRASTRUCTURE_CONSTRAINT_GRAPH_R1.md": "sha256:323331c6d9268bc338997f0955f591e83bf4a6d804d284ed2d16538ea840b218",
+    "docs/AI_INFRASTRUCTURE_CONSTRAINT_MEASUREMENTS_R1.md": "sha256:47bc9382ce22b584b3f4a292cf49ce36d3791595556b67df7e880e40062ce8f6",
+    "src/ordivon_capital/research/constraint_measurements.py": "sha256:0861943efef3b5605f064df80254555a21f5f40f5ea3218ae9387ea292c7bac1",
+    "tests/test_ai_infrastructure_constraint_graph.py": "sha256:e22aab2240ff38ef8acd1416adae3435cac2dfd113fc9e6df30e1e75de483d1e",
+    "tests/test_ai_infrastructure_constraint_measurements.py": "sha256:836e0787487ac91ed80453b10cc4209c2b7288900c520ffbb2000341560caf09"
+  },
+  "coverage": {
+    "queuedPairCount": 13,
+    "measuredQueuedPairCount": 13,
+    "missingQueuedPairCount": 0,
+    "priorityCounts": {
+      "P0_CURRENT_FRONTIER": 4,
+      "P1_CANDIDATE_FRONTIER": 5,
+      "P2_MONITOR": 4
+    },
+    "nodeMeasurementRowCount": 13,
+    "headroomAdmissionStandingCounts": {
+      "BLOCKED_REQUIREMENT_UNKNOWN": 1,
+      "BLOCKED_SCOPE_MISMATCH": 10,
+      "BLOCKED_TIME_BASIS_MISMATCH": 2
+    },
+    "currentP0QuantitativeHeadroomAdmittedCount": 0
+  },
+  "frontierReadback": {
+    "US": [
+      "transformer-switchgear",
+      "grid-interconnection-transmission"
+    ],
+    "CN": [
+      "accelerator-logic",
+      "hbm"
+    ],
+    "chinaTransformer": {
+      "frontierRole": "CANDIDATE_FRONTIER",
+      "headroomStanding": "TIGHT",
+      "analyticConfidence": "MODERATE"
+    }
+  },
+  "graphTransition": {
+    "node": "CN:transformer-switchgear",
+    "before": "NOT_FRONTIER / ADEQUATE",
+    "after": "CANDIDATE_FRONTIER / TIGHT",
+    "currentFrontierChanged": false,
+    "reason": "Strong export/manufacturing scale now coexists with field evidence of full factories and data-center transformer orders extending into 2027; this raises migration risk after accelerator/HBM relief without proving matched national MVA headroom."
+  },
+  "p1Result": {
+    "CN:advanced-packaging": "Capability and scale are real; 2025H1 utilization 63.42% plus 2026H1 core-material tightness argues against assuming line capacity itself is the independent current bottleneck. Current utilization remains unknown.",
+    "US:hbm": "Global HBM allocation remains tight; U.S.-ecosystem platform allocation headroom remains scope-mismatched.",
+    "US:advanced-packaging": "Global CoWoS gap remains positive but narrowing; U.S.-specific/platform allocation headroom remains scope-mismatched.",
+    "US:ai-data-center-it": "Market capacity is scarce, but AI-only energized high-density MW is not separated from broader data-center capacity.",
+    "US:electricity-generation": "National additions are large; binding risk is regional/local firm deliverability rather than a uniform national nameplate shortage."
+  },
+  "p2Result": {
+    "CN:ai-data-center-it": "Large installed compute/rack scale and fast data-service electricity growth; AI-ready utilization/headroom unresolved.",
+    "CN:electricity-generation": "Large national generation scale and peak-load resilience; regional firm AI power remains site-specific.",
+    "CN:transformer-switchgear": "Monitoring signal strengthened to candidate/tight due order-book pressure through 2027.",
+    "CN:grid-interconnection-transmission": "National UHV/transfer system large; local AI connection funnels remain unavailable."
+  },
+  "methodResult": {
+    "fillCompleteness": "QUEUE_COMPLETE",
+    "epistemicCompleteness": "PARTIAL_BY_DESIGN",
+    "minimalBrokenFrontier": [
+      "independent same-scope demand denominators for CN accelerator/HBM",
+      "matched-year/class U.S. LPT accepted backlog versus qualified delivery flow",
+      "harmonized U.S. ISO/RTO large-load maturity funnels and regional deliverable capacity",
+      "2026 current CN 2.5D qualified utilization/throughput",
+      "platform-specific global HBM/advanced-packaging allocation for U.S.-led accelerators",
+      "energized high-density AI IT MW versus contracted AI load"
+    ],
+    "stopCondition": "The bounded R1 queue is fully populated. Remaining gaps require owner-grade or platform/customer-specific observations; broad additional search is lower value and must not be replaced by weaker proxies.",
+    "reentryCondition": "Re-enter a node when new evidence closes unit/scope/time/independence/currentness gaps or when a candidate node becomes a repeated project-level schedule blocker."
+  },
+  "verification": {
+    "p1TddRedJobId": "job-01a0ede8-0edb-7663-8943-ec418943343c",
+    "p2TddRedJobId": "job-01a0edeb-d9da-7083-91bf-603ff6b60bd2",
+    "graphTransitionTddRedJobId": "job-01a0eded-a113-7fc1-abe8-901e93c22788",
+    "fullHermeticPassJobId": "job-01a0edee-7c90-7c11-b0c5-2073eb85db13",
+    "hermeticTestResult": "442 passed, 11 provider_qualification tests deselected",
+    "ruff": "PASS",
+    "capitalRegistry": "PASS",
+    "quantitativeInventory": "PASS",
+    "currentStateReadback": "PASS"
+  },
+  "nonClaims": [
+    "Queue-complete does not mean every node has numerical headroom.",
+    "No current P0 headroom ratio is admitted solely because the table is populated.",
+    "Global HBM/CoWoS tightness is not automatically U.S.-specific allocation headroom.",
+    "China national generation/UHV scale is not local AI-site power/interconnection headroom.",
+    "China transformer candidate-tight standing is not an investment recommendation or a claim that transformers currently bind before accelerator/HBM.",
+    "No owner risk appetite, decision-state claim or external financial effect authority is created."
+  ]
+}
