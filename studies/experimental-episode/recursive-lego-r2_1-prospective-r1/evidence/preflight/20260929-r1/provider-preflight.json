@@ -1,0 +1,61 @@
+{
+  "credentialScopeId": "credential-scope:deepseek:flash:0",
+  "effectiveModelIds": [
+    "deepseek-flash"
+  ],
+  "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+  "kind": "ordivon.recursive-lego-prospective-provider-preflight",
+  "preflightDigest": "sha256:7c30a3677ad45ba0c1b93ce1e4c0f6eee4824cd8bd9ce46ceb1c9de9094faa67",
+  "preregistrationDigest": "sha256:277c8994403605da15a57965d16e9dd680e44a18def51f03ecc57cc6cf69dea4",
+  "provider": "deepseek",
+  "requestedModelId": "deepseek-flash",
+  "rows": [
+    {
+      "effectiveModelId": "deepseek-flash",
+      "modelId": "deepseek-flash",
+      "ordinal": 1,
+      "rawResponseDigest": "sha256:3d34999ef1d338759b000da4ac2b1f23dd5c8f0005c09bf1c475f12582a5a172",
+      "requestedModelId": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 127,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 639,
+        "prompt_tokens": 639,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 766
+      }
+    },
+    {
+      "effectiveModelId": "deepseek-flash",
+      "modelId": "deepseek-flash",
+      "ordinal": 2,
+      "rawResponseDigest": "sha256:c72a3cf90193f49891e2beb2d011c7b16e91d2244b99266fa7c2bef4d4ddb863",
+      "requestedModelId": "deepseek-flash",
+      "usage": {
+        "completion_tokens": 123,
+        "prompt_cache_hit_tokens": 384,
+        "prompt_cache_miss_tokens": 255,
+        "prompt_tokens": 639,
+        "prompt_tokens_details": {
+          "cached_tokens": 384
+        },
+        "providerModel": "deepseek-flash",
+        "providerRequestMode": "non-thinking",
+        "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+        "total_tokens": 762
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "standing": "PASS_EFFECTIVE_IDENTITY",
+  "toolAuthority": {
+    "control": [],
+    "equivalent": true,
+    "r2_1": []
+  }
+}
