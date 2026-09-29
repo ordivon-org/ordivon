@@ -116,14 +116,30 @@ mise run verify
 run = """
 set -euo pipefail
 base=studies/research/scholarly-intelligence-r1/scripts
+# Repository/provider CI proves committed, portable contracts only. External corpus
+# byte currentness belongs to the Study owner and is requalified by verify-live.
 uv run --with ruff==0.16.8 ruff check studies/research/scholarly-intelligence-r1/scripts
+python3 tools/repo/check_structured_data.py studies/research/scholarly-intelligence-r1
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_intelligence_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py" --portable
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_pressure_r1.py" --portable
-uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py" --portable
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_gold_gate_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturity_pressure_r1.py" --portable
+"""
+
+[tasks."research-study:verify-live"]
+run = """
+set -euo pipefail
+base=studies/research/scholarly-intelligence-r1/scripts
+# Live owner acceptance is deliberately stronger than repository CI: it reads the
+# registered external corpus/materialization roots and verifies current bytes.
+mise run research-study:verify
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_live_profiles_r3.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_pressure_r1.py"
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_scholarly_data_plane_r1.py" --live
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_semantic_content_core_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_annotation_r1.py"
-uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_response_revision_gold_gate_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_aries_review_response_core_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r3.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_context24_asset_r1.py"
@@ -131,7 +147,7 @@ uv run --with 'jsonschema>=4.26,<5' python "$base/check_context24_evidence_conte
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_evidence_schema_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_evidence_schema_r2.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_context24_pressure_r1.py"
-uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturity_pressure_r1.py" --portable
+uv run --with 'jsonschema>=4.26,<5' python "$base/check_claim_permission_maturity_pressure_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_peersum_asset_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r1.py"
 uv run --with 'jsonschema>=4.26,<5' python "$base/check_review_lifecycle_schema_r2.py"
