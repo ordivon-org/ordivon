@@ -1,0 +1,680 @@
+{
+  "arms": {
+    "control": {
+      "contractDigest": "sha256:c42804db31b8f156b96451a48cc3b07883e790441f05434690f54fa4a3022905",
+      "description": "generic evidence-bounded problem solving"
+    },
+    "r2_1": {
+      "contractDigest": "sha256:ac10695652e9b296c7f57994dec4bdbf361356d15210cd01a0b170b98b8cc44f",
+      "description": "same control contract plus exact canonical R2.1 Skill bytes"
+    }
+  },
+  "calibration": {
+    "bankDigest": "sha256:58663f5b9f0a739d68b057518f7106088ffa8f68b60a232ccaed9ff2994b7231",
+    "schedule": {
+      "arms": [
+        "control",
+        "r2_1"
+      ],
+      "assignmentSeed": 20260929011,
+      "bankDigest": "sha256:58663f5b9f0a739d68b057518f7106088ffa8f68b60a232ccaed9ff2994b7231",
+      "cohort": "calibration",
+      "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+      "independentTaskBlockCount": 12,
+      "kind": "ordivon.recursive-lego-prospective-paired-schedule",
+      "replicationLaw": "task-instance-is-independent; paired arm calls within one task are not additional independent task replicates",
+      "scheduleDigest": "sha256:2d40837fc60ced208092bdc0bd2c0adbc7cbf132a30c4b6767edd997efac0ac6",
+      "schemaVersion": 1,
+      "trialCount": 24,
+      "trials": [
+        {
+          "arm": "r2_1",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-102",
+          "ordinal": 1,
+          "taskId": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-102",
+          "trialId": "trial:lego-r21:cal:001"
+        },
+        {
+          "arm": "control",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-CAL-LEGAL-PROGRAM-101",
+          "ordinal": 2,
+          "taskId": "LEGO-R21-CAL-LEGAL-PROGRAM-101",
+          "trialId": "trial:lego-r21:cal:002"
+        },
+        {
+          "arm": "r2_1",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-101",
+          "ordinal": 3,
+          "taskId": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-101",
+          "trialId": "trial:lego-r21:cal:003"
+        },
+        {
+          "arm": "control",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-CAL-SEMANTIC-COMPLETION-101",
+          "ordinal": 4,
+          "taskId": "LEGO-R21-CAL-SEMANTIC-COMPLETION-101",
+          "trialId": "trial:lego-r21:cal:004"
+        },
+        {
+          "arm": "control",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-CAL-SEMANTIC-COMPLETION-102",
+          "ordinal": 5,
+          "taskId": "LEGO-R21-CAL-SEMANTIC-COMPLETION-102",
+          "trialId": "trial:lego-r21:cal:005"
+        },
+        {
+          "arm": "r2_1",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-CAL-VERIFIER-BRIDGE-102",
+          "ordinal": 6,
+          "taskId": "LEGO-R21-CAL-VERIFIER-BRIDGE-102",
+          "trialId": "trial:lego-r21:cal:006"
+        },
+        {
+          "arm": "r2_1",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-CAL-MINIMAL-FRONTIER-102",
+          "ordinal": 7,
+          "taskId": "LEGO-R21-CAL-MINIMAL-FRONTIER-102",
+          "trialId": "trial:lego-r21:cal:007"
+        },
+        {
+          "arm": "control",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-101",
+          "ordinal": 8,
+          "taskId": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-101",
+          "trialId": "trial:lego-r21:cal:008"
+        },
+        {
+          "arm": "r2_1",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-CAL-MINIMAL-FRONTIER-101",
+          "ordinal": 9,
+          "taskId": "LEGO-R21-CAL-MINIMAL-FRONTIER-101",
+          "trialId": "trial:lego-r21:cal:009"
+        },
+        {
+          "arm": "r2_1",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-CAL-VERIFIER-BRIDGE-101",
+          "ordinal": 10,
+          "taskId": "LEGO-R21-CAL-VERIFIER-BRIDGE-101",
+          "trialId": "trial:lego-r21:cal:010"
+        },
+        {
+          "arm": "r2_1",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-101",
+          "ordinal": 11,
+          "taskId": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-101",
+          "trialId": "trial:lego-r21:cal:011"
+        },
+        {
+          "arm": "control",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-CAL-VERIFIER-BRIDGE-101",
+          "ordinal": 12,
+          "taskId": "LEGO-R21-CAL-VERIFIER-BRIDGE-101",
+          "trialId": "trial:lego-r21:cal:012"
+        },
+        {
+          "arm": "r2_1",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-102",
+          "ordinal": 13,
+          "taskId": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-102",
+          "trialId": "trial:lego-r21:cal:013"
+        },
+        {
+          "arm": "r2_1",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-CAL-SEMANTIC-COMPLETION-102",
+          "ordinal": 14,
+          "taskId": "LEGO-R21-CAL-SEMANTIC-COMPLETION-102",
+          "trialId": "trial:lego-r21:cal:014"
+        },
+        {
+          "arm": "control",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-CAL-MINIMAL-FRONTIER-102",
+          "ordinal": 15,
+          "taskId": "LEGO-R21-CAL-MINIMAL-FRONTIER-102",
+          "trialId": "trial:lego-r21:cal:015"
+        },
+        {
+          "arm": "r2_1",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-CAL-SEMANTIC-COMPLETION-101",
+          "ordinal": 16,
+          "taskId": "LEGO-R21-CAL-SEMANTIC-COMPLETION-101",
+          "trialId": "trial:lego-r21:cal:016"
+        },
+        {
+          "arm": "control",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-CAL-MINIMAL-FRONTIER-101",
+          "ordinal": 17,
+          "taskId": "LEGO-R21-CAL-MINIMAL-FRONTIER-101",
+          "trialId": "trial:lego-r21:cal:017"
+        },
+        {
+          "arm": "control",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-102",
+          "ordinal": 18,
+          "taskId": "LEGO-R21-CAL-QUALIFIED-OPTIMIZATION-102",
+          "trialId": "trial:lego-r21:cal:018"
+        },
+        {
+          "arm": "control",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-102",
+          "ordinal": 19,
+          "taskId": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-102",
+          "trialId": "trial:lego-r21:cal:019"
+        },
+        {
+          "arm": "r2_1",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-CAL-LEGAL-PROGRAM-101",
+          "ordinal": 20,
+          "taskId": "LEGO-R21-CAL-LEGAL-PROGRAM-101",
+          "trialId": "trial:lego-r21:cal:020"
+        },
+        {
+          "arm": "r2_1",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-CAL-LEGAL-PROGRAM-102",
+          "ordinal": 21,
+          "taskId": "LEGO-R21-CAL-LEGAL-PROGRAM-102",
+          "trialId": "trial:lego-r21:cal:021"
+        },
+        {
+          "arm": "control",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-CAL-VERIFIER-BRIDGE-102",
+          "ordinal": 22,
+          "taskId": "LEGO-R21-CAL-VERIFIER-BRIDGE-102",
+          "trialId": "trial:lego-r21:cal:022"
+        },
+        {
+          "arm": "control",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-CAL-LEGAL-PROGRAM-102",
+          "ordinal": 23,
+          "taskId": "LEGO-R21-CAL-LEGAL-PROGRAM-102",
+          "trialId": "trial:lego-r21:cal:023"
+        },
+        {
+          "arm": "control",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-101",
+          "ordinal": 24,
+          "taskId": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-101",
+          "trialId": "trial:lego-r21:cal:024"
+        }
+      ]
+    }
+  },
+  "calibrationGate": {
+    "maximumSuccessesInclusive": 20,
+    "minimumMixedFamilies": 2,
+    "minimumMixedTasks": 2,
+    "minimumSuccessesInclusive": 4
+  },
+  "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+  "inferential": {
+    "bankDigest": "sha256:34e2a41a4b70ade766112248bfd716e5568a61226dbb6a468e36292173de5dfe",
+    "schedule": {
+      "arms": [
+        "control",
+        "r2_1"
+      ],
+      "assignmentSeed": 20260929012,
+      "bankDigest": "sha256:34e2a41a4b70ade766112248bfd716e5568a61226dbb6a468e36292173de5dfe",
+      "cohort": "inferential",
+      "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+      "independentTaskBlockCount": 24,
+      "kind": "ordivon.recursive-lego-prospective-paired-schedule",
+      "replicationLaw": "task-instance-is-independent; paired arm calls within one task are not additional independent task replicates",
+      "scheduleDigest": "sha256:39738b31d6cc5477fd02dbc93c2c9a937553f0b31cedf0647aeba33d126103da",
+      "schemaVersion": 1,
+      "trialCount": 48,
+      "trials": [
+        {
+          "arm": "r2_1",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-03",
+          "ordinal": 1,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-03",
+          "trialId": "trial:lego-r21:inf:001"
+        },
+        {
+          "arm": "r2_1",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-02",
+          "ordinal": 2,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-02",
+          "trialId": "trial:lego-r21:inf:002"
+        },
+        {
+          "arm": "r2_1",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-02",
+          "ordinal": 3,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-02",
+          "trialId": "trial:lego-r21:inf:003"
+        },
+        {
+          "arm": "r2_1",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-01",
+          "ordinal": 4,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-01",
+          "trialId": "trial:lego-r21:inf:004"
+        },
+        {
+          "arm": "control",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-01",
+          "ordinal": 5,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-01",
+          "trialId": "trial:lego-r21:inf:005"
+        },
+        {
+          "arm": "control",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-04",
+          "ordinal": 6,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-04",
+          "trialId": "trial:lego-r21:inf:006"
+        },
+        {
+          "arm": "r2_1",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-01",
+          "ordinal": 7,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-01",
+          "trialId": "trial:lego-r21:inf:007"
+        },
+        {
+          "arm": "r2_1",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-01",
+          "ordinal": 8,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-01",
+          "trialId": "trial:lego-r21:inf:008"
+        },
+        {
+          "arm": "r2_1",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-03",
+          "ordinal": 9,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-03",
+          "trialId": "trial:lego-r21:inf:009"
+        },
+        {
+          "arm": "control",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-03",
+          "ordinal": 10,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-03",
+          "trialId": "trial:lego-r21:inf:010"
+        },
+        {
+          "arm": "r2_1",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-04",
+          "ordinal": 11,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-04",
+          "trialId": "trial:lego-r21:inf:011"
+        },
+        {
+          "arm": "control",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-03",
+          "ordinal": 12,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-03",
+          "trialId": "trial:lego-r21:inf:012"
+        },
+        {
+          "arm": "control",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-02",
+          "ordinal": 13,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-02",
+          "trialId": "trial:lego-r21:inf:013"
+        },
+        {
+          "arm": "control",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-02",
+          "ordinal": 14,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-02",
+          "trialId": "trial:lego-r21:inf:014"
+        },
+        {
+          "arm": "control",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-03",
+          "ordinal": 15,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-03",
+          "trialId": "trial:lego-r21:inf:015"
+        },
+        {
+          "arm": "control",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-02",
+          "ordinal": 16,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-02",
+          "trialId": "trial:lego-r21:inf:016"
+        },
+        {
+          "arm": "r2_1",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-04",
+          "ordinal": 17,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-04",
+          "trialId": "trial:lego-r21:inf:017"
+        },
+        {
+          "arm": "control",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-02",
+          "ordinal": 18,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-02",
+          "trialId": "trial:lego-r21:inf:018"
+        },
+        {
+          "arm": "r2_1",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-01",
+          "ordinal": 19,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-01",
+          "trialId": "trial:lego-r21:inf:019"
+        },
+        {
+          "arm": "control",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-01",
+          "ordinal": 20,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-01",
+          "trialId": "trial:lego-r21:inf:020"
+        },
+        {
+          "arm": "control",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-03",
+          "ordinal": 21,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-03",
+          "trialId": "trial:lego-r21:inf:021"
+        },
+        {
+          "arm": "r2_1",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-03",
+          "ordinal": 22,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-03",
+          "trialId": "trial:lego-r21:inf:022"
+        },
+        {
+          "arm": "control",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-04",
+          "ordinal": 23,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-04",
+          "trialId": "trial:lego-r21:inf:023"
+        },
+        {
+          "arm": "r2_1",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-02",
+          "ordinal": 24,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-02",
+          "trialId": "trial:lego-r21:inf:024"
+        },
+        {
+          "arm": "r2_1",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-01",
+          "ordinal": 25,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-01",
+          "trialId": "trial:lego-r21:inf:025"
+        },
+        {
+          "arm": "control",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-03",
+          "ordinal": 26,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-03",
+          "trialId": "trial:lego-r21:inf:026"
+        },
+        {
+          "arm": "r2_1",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-04",
+          "ordinal": 27,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-04",
+          "trialId": "trial:lego-r21:inf:027"
+        },
+        {
+          "arm": "control",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-04",
+          "ordinal": 28,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-04",
+          "trialId": "trial:lego-r21:inf:028"
+        },
+        {
+          "arm": "r2_1",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-03",
+          "ordinal": 29,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-03",
+          "trialId": "trial:lego-r21:inf:029"
+        },
+        {
+          "arm": "control",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-01",
+          "ordinal": 30,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-01",
+          "trialId": "trial:lego-r21:inf:030"
+        },
+        {
+          "arm": "control",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-04",
+          "ordinal": 31,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-04",
+          "trialId": "trial:lego-r21:inf:031"
+        },
+        {
+          "arm": "control",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-02",
+          "ordinal": 32,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-02",
+          "trialId": "trial:lego-r21:inf:032"
+        },
+        {
+          "arm": "r2_1",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-04",
+          "ordinal": 33,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-04",
+          "trialId": "trial:lego-r21:inf:033"
+        },
+        {
+          "arm": "control",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-04",
+          "ordinal": 34,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-04",
+          "trialId": "trial:lego-r21:inf:034"
+        },
+        {
+          "arm": "control",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-01",
+          "ordinal": 35,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-01",
+          "trialId": "trial:lego-r21:inf:035"
+        },
+        {
+          "arm": "control",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-02",
+          "ordinal": 36,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-02",
+          "trialId": "trial:lego-r21:inf:036"
+        },
+        {
+          "arm": "r2_1",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-03",
+          "ordinal": 37,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-03",
+          "trialId": "trial:lego-r21:inf:037"
+        },
+        {
+          "arm": "control",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-03",
+          "ordinal": 38,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-03",
+          "trialId": "trial:lego-r21:inf:038"
+        },
+        {
+          "arm": "control",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-04",
+          "ordinal": 39,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-04",
+          "trialId": "trial:lego-r21:inf:039"
+        },
+        {
+          "arm": "control",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-01",
+          "ordinal": 40,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-01",
+          "trialId": "trial:lego-r21:inf:040"
+        },
+        {
+          "arm": "control",
+          "family": "experimental_replication",
+          "independentTaskBlock": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-01",
+          "ordinal": 41,
+          "taskId": "LEGO-R21-INF-EXPERIMENTAL-REPLICATION-01",
+          "trialId": "trial:lego-r21:inf:041"
+        },
+        {
+          "arm": "r2_1",
+          "family": "verifier_bridge",
+          "independentTaskBlock": "LEGO-R21-INF-VERIFIER-BRIDGE-02",
+          "ordinal": 42,
+          "taskId": "LEGO-R21-INF-VERIFIER-BRIDGE-02",
+          "trialId": "trial:lego-r21:inf:042"
+        },
+        {
+          "arm": "r2_1",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-02",
+          "ordinal": 43,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-02",
+          "trialId": "trial:lego-r21:inf:043"
+        },
+        {
+          "arm": "r2_1",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-04",
+          "ordinal": 44,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-04",
+          "trialId": "trial:lego-r21:inf:044"
+        },
+        {
+          "arm": "r2_1",
+          "family": "qualified_optimization",
+          "independentTaskBlock": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-03",
+          "ordinal": 45,
+          "taskId": "LEGO-R21-INF-QUALIFIED-OPTIMIZATION-03",
+          "trialId": "trial:lego-r21:inf:045"
+        },
+        {
+          "arm": "r2_1",
+          "family": "semantic_completion",
+          "independentTaskBlock": "LEGO-R21-INF-SEMANTIC-COMPLETION-01",
+          "ordinal": 46,
+          "taskId": "LEGO-R21-INF-SEMANTIC-COMPLETION-01",
+          "trialId": "trial:lego-r21:inf:046"
+        },
+        {
+          "arm": "r2_1",
+          "family": "minimal_frontier",
+          "independentTaskBlock": "LEGO-R21-INF-MINIMAL-FRONTIER-02",
+          "ordinal": 47,
+          "taskId": "LEGO-R21-INF-MINIMAL-FRONTIER-02",
+          "trialId": "trial:lego-r21:inf:047"
+        },
+        {
+          "arm": "r2_1",
+          "family": "legal_program",
+          "independentTaskBlock": "LEGO-R21-INF-LEGAL-PROGRAM-04",
+          "ordinal": 48,
+          "taskId": "LEGO-R21-INF-LEGAL-PROGRAM-04",
+          "trialId": "trial:lego-r21:inf:048"
+        }
+      ]
+    }
+  },
+  "kind": "ordivon.recursive-lego-r2_1-prospective-preregistration",
+  "nonClaims": [
+    "R1 tests the method-contract treatment without live domain Tools or Runtime effects.",
+    "A positive result is bounded to this model, prompt carrier and frozen synthetic task families.",
+    "No weighted overall-intelligence score is defined."
+  ],
+  "preregistrationDigest": "sha256:277c8994403605da15a57965d16e9dd680e44a18def51f03ecc57cc6cf69dea4",
+  "primaryEndpoint": {
+    "estimand": "mean paired task-level correctness difference R2.1 minus control over the frozen inferential task bank",
+    "name": "exactChoiceCorrect",
+    "test": "two-sided exact McNemar conditional binomial test over discordant task pairs"
+  },
+  "provider": {
+    "maxOutputTokens": 512,
+    "name": "deepseek",
+    "requestedModelId": "deepseek-flash",
+    "timeoutMs": 45000
+  },
+  "runnerBinding": {
+    "digest": "sha256:b97fd93203f8a8800bade35e3c1573ee50538027fea0fc8c20c757d6a80bff10",
+    "path": "studies/experimental-episode/recursive-lego-r2_1-prospective-r1/prospective_r1.py"
+  },
+  "schemaVersion": 1,
+  "secondaryDiagnostics": [
+    "jsonParseValid",
+    "effectiveModelIdentity",
+    "promptTokens",
+    "completionTokens",
+    "totalTokens",
+    "latencyMs"
+  ],
+  "skillBinding": {
+    "digest": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+    "path": ".agents/skills/recursive-lego-calculus/SKILL.md"
+  },
+  "sourceRevision": "a4133bcaf310bede5b78ecc2a47afd7a5aedd466",
+  "stopRules": [
+    "No Provider call before provider preflight is frozen.",
+    "An unmatched trial_started stops the cohort until explicitly reconciled; no blind retry.",
+    "Effective-model drift or Provider exception stops before the next trial.",
+    "Calibration tasks never enter inferential estimates.",
+    "A failed calibration gate closes this task-bank revision and forbids inferential execution."
+  ]
+}
