@@ -228,6 +228,90 @@ class SQLiteConversationMaterializer:
             assert updated is not None
             return self._receipt(updated)
 
+    def repair_unknown_as_pre_effect_failed(
+        self,
+        request: CarrierMaterializationRequest,
+        *,
+        expected_effect_generation: int,
+        expected_updated_at_ms: int,
+        expected_evidence_digest: str | None,
+        evidence_digest: str,
+        detail: str,
+        now_ms: int | None = None,
+    ) -> CarrierMaterializationReceipt:
+        """CAS-repair one UNKNOWN whose exact provider attempt is proven pre-effect.
+
+        This is an administrative recovery primitive, not a retry path.  The caller must
+        independently establish evidence that the exact physical attempt did not cross the
+        provider-effect admission boundary.  The full current ledger tuple is fenced so a late
+        owner result or concurrent reconciliation wins rather than being overwritten.
+        """
+        if type(expected_effect_generation) is not int or expected_effect_generation < 1:
+            raise ValueError("expected effect generation must be a positive integer")
+        if type(expected_updated_at_ms) is not int or expected_updated_at_ms < 0:
+            raise ValueError("expected updated_at_ms must be a non-negative integer")
+        observation = TargetMaterializationObservation(
+            standing=MaterializationStanding.PRE_EFFECT_FAILED,
+            evidence_digest=evidence_digest,
+            detail=detail,
+        )
+        now = int(time.time() * 1000) if now_ms is None else now_ms
+        with closing(self._connect()) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT * FROM requests WHERE request_id=?", (request.request_id,)
+            ).fetchone()
+            if row is None:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair has no durable materialization intent")
+            if (
+                row["request_digest"] != request.request_digest
+                or row["request_json"] != self._request_json(request)
+            ):
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair request differs from durable intent")
+            if MaterializationStanding(row["standing"]) is not MaterializationStanding.UNKNOWN:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair requires current UNKNOWN standing")
+            if row["provider_coordinate"] is not None:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair refuses a provider-bound materialization")
+            if int(row["effect_generation"]) != expected_effect_generation:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair effect generation changed")
+            if int(row["updated_at_ms"]) != expected_updated_at_ms:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair ledger version changed")
+            if row["evidence_digest"] != expected_evidence_digest:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair evidence version changed")
+            db.execute(
+                """
+                UPDATE requests
+                SET standing=?,provider_coordinate=NULL,evidence_digest=?,detail=?,updated_at_ms=?
+                WHERE request_id=? AND standing=? AND effect_generation=? AND updated_at_ms=?
+                """,
+                (
+                    observation.standing.value,
+                    observation.evidence_digest,
+                    observation.detail,
+                    now,
+                    request.request_id,
+                    MaterializationStanding.UNKNOWN.value,
+                    expected_effect_generation,
+                    expected_updated_at_ms,
+                ),
+            )
+            if db.execute("SELECT changes()").fetchone()[0] != 1:
+                db.execute("ROLLBACK")
+                raise CarrierConflict("pre-effect repair lost transactional CAS")
+            updated = db.execute(
+                "SELECT * FROM requests WHERE request_id=?", (request.request_id,)
+            ).fetchone()
+            db.execute("COMMIT")
+            assert updated is not None
+            return self._receipt(updated)
+
     def _claim_effect_attempt(
         self, request: CarrierMaterializationRequest, *, now_ms: int
     ) -> tuple[bool, CarrierMaterializationReceipt, int]:
