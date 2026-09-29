@@ -116,29 +116,34 @@
     },
     {
       "id": "ARD-005",
-      "problem": "Chat/session response loss still lacks one automatic cross-owner re-entry projection from Work to Harness Run to physical/provider effects.",
+      "problem": "Automatic Work -> Harness -> Runtime cross-owner re-entry now exists, but its measurable advantage over bounded manual recensus and any broader foreign/provider reference semantics remain unproven.",
       "owner": "caller-composition",
-      "authority": "Host/Harness/Runtime/provider each retain their local truth",
+      "authority": "Host/Harness/Runtime and domain/provider owners retain their local truth; caller composition may classify only references backed by a proven owner resolver contract.",
       "impact": [
         "system-continuity",
         "agent-ux",
         "duplicate-investigation-cost"
       ],
       "evidence": [
-        "Host WorkSnapshot already stores referenceRefs",
-        "HarnessRunContract already stores callerRunRef",
-        "Harness/Runtime already provide deterministic response-loss reconciliation",
-        "Social Work already provides Attention/Topic re-entry"
+        "apps/agent CrossOwnerReentryCoordinator is integrated on canonical main: exact WorkRef -> Harness callerRunRef binding, exactly one matching harness:run ref, typed Runtime refs, physicalRevalidationRequired=true, effectRedispatchAllowed=false.",
+        "First dogfood Work work:research:emm-r1:cross-owner-dogfood-r1:20260928 recovered in a fresh process with Host listCalls=0 and exact Runtime Job re-read; duplicate Runtime dispatches remained zero.",
+        "Second controlled independent Work work:research:emm-r1:cross-owner-dogfood-r2-provider:20260928 executed one real DeepSeek Provider call and then fresh-process re-entry; providerAttempts stayed 1, providerRecords stayed 3, providerRequestDigest/traceDigest were unchanged, and no Provider redispatch occurred.",
+        "The real Provider workload falsified generic provider:* typed navigation: durable ProviderCall history is Harness-owned and no owner-native generic historical providerCallId resolver is exposed. Commit 82706174f narrows non-Runtime foreign refs to opaque correlation.",
+        "Research-v2 EMM-0001 records CROSS_OWNER_PATTERN / NARROW / experiment INCONCLUSIVE at 6acf392a08d5969521368728a69e66cfed200e98.",
+        "Current-main Agent owner gate on e13da98eb711401f6a6ecbdd9da1d77f1541f0ea passed: mise run agent-app:verify, 48 tests, formatter clean; Runtime Job job-01a0eb9a-5982-71c3-9d95-07962bd77bf4."
       ],
-      "desiredContract": "A reconnecting Agent recovers Work, follows exact owner references, reconciles uncertain effects, and resumes cognition without recensusing the whole system.",
-      "currentGap": "The binding is currently a documented composition convention, not an automatically emitted projection with multiple independent consumers.",
-      "recommendedLEGO": "Dogfood WorkRef <-> callerRunRef plus WorkSnapshot Harness/Runtime/provider referenceRefs in at least two independent workloads; promote only repeated irreducible binding mechanics.",
+      "desiredContract": "A reconnecting Agent recovers canonical Work, follows only exact proven owner references, reconciles uncertain effects at their natural owners, keeps unproven foreign refs opaque, and resumes cognition or inspects terminal state without whole-system recensus where the retained evidence is sufficient.",
+      "currentGap": "NARROWED: the automatic caller-composition projection and two-consumer no-redispatch mechanics are now realized. Remaining debt is experimental rather than missing plumbing: no controlled manual-recensus timing/step baseline has shown material recovery-cost improvement, the second workload was controlled rather than a naturally occurring interruption, and no generic provider-owner reference contract exists or is required.",
+      "recommendedLEGO": "Keep the projection narrow and removable: WorkRef + exact Harness Run identity + only owner-resolvable typed refs (currently Runtime), with all other foreign refs verbatim/opaque. Next evidence should be either a controlled manual-recensus comparison or another natural interruption episode. Do not create a generic Provider resolver, RecoveryManager, Session service, or foreign-state cache to satisfy the experiment.",
       "verification": [
-        "response loss does not lose Work/Harness/effect identity",
-        "fresh Agent resumes from bounded refs",
-        "no RecoveryManager/global Session/Checkpoint service introduced"
+        "two independent workloads reproduce WorkRef <-> Harness callerRunRef binding without effect duplication",
+        "fresh-process re-entry keeps physicalRevalidationRequired=true and effectRedispatchAllowed=false",
+        "real Provider workload preserves one Provider attempt before/after re-entry and does not synthesize provider owner authority from a string prefix",
+        "no RecoveryManager/global Session/Checkpoint service or copied foreign owner state is introduced",
+        "controlled comparison against bounded manual recensus remains explicitly unresolved before any SHARED_PRINCIPLE promotion"
       ],
-      "priority": "HIGH"
+      "priority": "MEDIUM",
+      "standing": "NARROWED_TWO_CONSUMER_PATTERN_COST_BENEFIT_UNRESOLVED"
     },
     {
       "id": "ARD-006",
