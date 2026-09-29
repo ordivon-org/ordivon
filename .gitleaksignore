@@ -84,3 +84,8 @@ services/runtime/crates/ordivon-runtime-mcp/src/access_auth.rs:private-key:167
 docs/architecture/e01-e02-trace-identity-acceptance-20260921.json:generic-api-key:66
 docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:186
 docs/architecture/E01_E02_TRACE_IDENTITY_ACCEPTANCE_20260921.md:generic-api-key:188
+
+# Reviewed 2026-09-29 publication false positives: namespaced Runtime identities,
+# not credentials. Keep exact fingerprints so future findings still fail closed.
+11ea1d06be37ba00378c49d91e90adb082e8dc61:services/runtime/crates/ordivon-runtime-core/src/runtime/windows.rs:generic-api-key:1723
+e093dc5b7701bc6de55eb929a678504b2dcacfa6:docs/architecture/capability-projection-fabric-lego-r1.json:cloudflare-api-key:306
