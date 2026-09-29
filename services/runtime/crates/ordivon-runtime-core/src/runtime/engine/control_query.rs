@@ -1,4 +1,25 @@
 impl Runtime {
+    pub fn authorize_job_principal(&self, job_id: &str, principal: &str) -> RuntimeResult<()> {
+        let job = self.registry.get_job(job_id)?;
+        if job.principal != principal {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "authenticated principal is not authorized for this Runtime Job",
+                Some("jobId"),
+                false,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn list_jobs_for_principal(
+        &self,
+        request: &RuntimeJobListRequest,
+        principal: &str,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        self.registry.list_jobs_for_principal(request, principal)
+    }
+
     pub fn cancel_job(&self, request: &JobCancelRequest) -> RuntimeResult<JobObservation> {
         if request.schema_version != RUNTIME_SCHEMA_VERSION {
             return Err(RuntimeError::invalid(

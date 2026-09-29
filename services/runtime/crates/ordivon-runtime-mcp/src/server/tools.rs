@@ -65,7 +65,7 @@ impl RuntimeServer {
     ) -> ToolOutcome<CredentialMaterializationToolResult> {
         let server = self.clone();
         self.run_core("credential.materialize", move || {
-            server.perform_credential_materialization(&principal.0, request)
+            server.perform_credential_materialization(&principal.principal, request)
         })
         .await
     }
@@ -111,7 +111,7 @@ impl RuntimeServer {
     ) -> ToolOutcome<RuntimeReleaseAdmission> {
         let runtime = self.state.runtime.clone();
         let release_config = self.state.release.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let principal = execution.principal.clone();
         let global_limit = execution.global_limit;
         self.run_core("release.apply", move || {
@@ -340,7 +340,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<RuntimeReleaseGetToolRequest>,
     ) -> ToolOutcome<RuntimeReleaseProjection> {
         let runtime = self.state.runtime.clone();
-        let principal = principal.0;
+        let principal = principal.principal;
         self.run_core("release.get", move || {
             runtime
                 .get_runtime_release_effect(&RuntimeReleaseGetRequest {
@@ -699,7 +699,7 @@ impl RuntimeServer {
         let request = self
             .state
             .execution
-            .with_principal(principal.0)
+            .with_principal(principal.principal)
             .bind(request);
         self.run_core("workspace.exec", move || {
             runtime.run_job_proposal(&request).map_err(ToolError::from)
@@ -728,7 +728,7 @@ impl RuntimeServer {
         let (proposal, inputs) = self
             .state
             .execution
-            .with_principal(principal.0)
+            .with_principal(principal.principal)
             .bind_bound(request);
         self.run_core("workspace.execBound", move || {
             runtime
@@ -756,7 +756,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<WorkspaceExecBoundRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let (proposal, inputs) = match execution.bind_bound_trusted(request) {
             Ok(bound) => bound,
             Err(error) => return ToolOutcome::Error(error),
@@ -787,7 +787,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<WorkspaceExecCredentialBoundRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let (proposal, credentials) = match execution.bind_credential_bound_trusted(request) {
             Ok(bound) => bound,
             Err(error) => return ToolOutcome::Error(error),
@@ -818,7 +818,7 @@ impl RuntimeServer {
         Parameters(request): Parameters<WorkspaceExecPlanRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
-        let execution = self.state.execution.with_principal(principal.0);
+        let execution = self.state.execution.with_principal(principal.principal);
         let request = match execution.bind_plan(request) {
             Ok(request) => request,
             Err(error) => return ToolOutcome::Error(error),
@@ -843,6 +843,7 @@ impl RuntimeServer {
     )]
     async fn job_get(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<JobGetRequest>,
     ) -> ToolOutcome<RuntimeJobInspection> {
         if request.schema_version != 1 {
@@ -852,7 +853,12 @@ impl RuntimeServer {
             ));
         }
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.get", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime
                 .inspect_job(&request.job_id, request.event_limit)
                 .map_err(ToolError::from)
@@ -874,10 +880,16 @@ impl RuntimeServer {
     )]
     async fn job_observe(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<JobObserveRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.observe", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime.observe_job(&request).map_err(ToolError::from)
         })
         .await
@@ -897,10 +909,16 @@ impl RuntimeServer {
     )]
     async fn job_cancel(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<JobCancelRequest>,
     ) -> ToolOutcome<JobObservation> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.cancel", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime.cancel_job(&request).map_err(ToolError::from)
         })
         .await
@@ -920,11 +938,20 @@ impl RuntimeServer {
     )]
     async fn job_list(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<RuntimeJobListRequest>,
     ) -> ToolOutcome<RuntimeJobListResult> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("job.list", move || {
-            runtime.list_jobs(&request).map_err(ToolError::from)
+            if scoped {
+                runtime
+                    .list_jobs_for_principal(&request, &principal_id)
+                    .map_err(ToolError::from)
+            } else {
+                runtime.list_jobs(&request).map_err(ToolError::from)
+            }
         })
         .await
     }
@@ -943,11 +970,17 @@ impl RuntimeServer {
     )]
     async fn artifact_content(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<ArtifactContentRequest>,
     ) -> Result<CallToolResult, McpError> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         let outcome = self
             .run_core("artifact.content", move || {
+                if scoped {
+                    runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+                }
                 runtime
                     .read_artifact_content(&request)
                     .map_err(ToolError::from)
@@ -970,10 +1003,16 @@ impl RuntimeServer {
     )]
     async fn artifact_read(
         &self,
+        principal: EffectivePrincipal,
         Parameters(request): Parameters<ArtifactReadRequest>,
     ) -> ToolOutcome<ArtifactReadResult> {
         let runtime = self.state.runtime.clone();
+        let scoped = principal.scopes_job_lifecycle();
+        let principal_id = principal.principal.clone();
         self.run_core("artifact.read", move || {
+            if scoped {
+                runtime.authorize_job_principal(&request.job_id, &principal_id)?;
+            }
             runtime.read_artifact(&request).map_err(ToolError::from)
         })
         .await

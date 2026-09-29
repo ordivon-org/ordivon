@@ -473,6 +473,79 @@ impl Registry {
         .collect()
     }
 
+    pub(super) fn list_jobs_for_principal(
+        &self,
+        request: &RuntimeJobListRequest,
+        principal: &str,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        if request.limit == 0 || request.limit > MAX_RUNTIME_LIST_LIMIT {
+            return Err(RuntimeError::invalid(
+                format!("limit must be in 1..={MAX_RUNTIME_LIST_LIMIT}"),
+                "limit",
+            ));
+        }
+        validate_identifier(principal, "principal")?;
+        if let Some(client_request_id) = request.client_request_id.as_deref() {
+            validate_client_request_id(client_request_id, "clientRequestId")?;
+        }
+        if let Some(workspace_id) = request.workspace_id.as_deref() {
+            validate_identifier(workspace_id, "workspaceId")?;
+        }
+        let connection = self.open_connection()?;
+        let transaction = connection.unchecked_transaction().map_err(|error| {
+            RuntimeError::from_sql(error, "cannot begin principal-scoped Job list read snapshot")
+        })?;
+        let fetch_limit = request.limit + 1;
+        let mut sql = String::from(
+            "SELECT job_id,principal,client_request_id,request_digest,operation_digest,workspace_id,workspace_snapshot_json,execution_plan_json,execution_plan_digest,created_at_ms,desired_state,resolution,current_attempt_id,row_version FROM jobs WHERE principal=?",
+        );
+        let mut values = vec![rusqlite::types::Value::Text(principal.to_string())];
+        if let Some(client_request_id) = request.client_request_id.as_ref() {
+            sql.push_str(" AND client_request_id=?");
+            values.push(rusqlite::types::Value::Text(client_request_id.clone()));
+        }
+        if let Some(workspace_id) = request.workspace_id.as_ref() {
+            sql.push_str(" AND workspace_id=?");
+            values.push(rusqlite::types::Value::Text(workspace_id.clone()));
+        }
+        if let Some(cursor) = request.cursor.as_ref() {
+            sql.push_str(" AND (created_at_ms<? OR (created_at_ms=? AND job_id<?))");
+            values.push(rusqlite::types::Value::Integer(
+                i64::try_from(cursor.created_at_ms).map_err(|_| {
+                    RuntimeError::invalid("cursor createdAtMs exceeds SQLite integer range", "cursor.createdAtMs")
+                })?,
+            ));
+            values.push(rusqlite::types::Value::Integer(
+                i64::try_from(cursor.created_at_ms).map_err(|_| {
+                    RuntimeError::invalid("cursor createdAtMs exceeds SQLite integer range", "cursor.createdAtMs")
+                })?,
+            ));
+            values.push(rusqlite::types::Value::Text(cursor.job_id.clone()));
+        }
+        sql.push_str(" ORDER BY created_at_ms DESC,job_id DESC LIMIT ?");
+        values.push(rusqlite::types::Value::Integer(i64::from(fetch_limit)));
+        let mut statement = transaction.prepare(&sql).map_err(|error| {
+            RuntimeError::from_sql(error, "cannot prepare principal-scoped Job list")
+        })?;
+        let rows = statement
+            .query_map(
+                rusqlite::params_from_iter(values),
+                RegistryStorageBoundary::decode_job_row,
+            )
+            .map_err(|error| {
+                RuntimeError::from_sql(error, "cannot query principal-scoped Job list")
+            })?;
+        let mut jobs = Vec::new();
+        for row in rows {
+            jobs.push(
+                row.map_err(|error| RuntimeError::from_sql(error, "cannot decode Job row"))?
+                    .into_record()?,
+            );
+        }
+        drop(statement);
+        self.project_job_list_page(&transaction, jobs, request.limit)
+    }
+
     pub(super) fn list_jobs(
         &self,
         request: &RuntimeJobListRequest,
@@ -689,8 +762,17 @@ impl Registry {
             }
         }
 
-        let has_more = jobs.len() > request.limit as usize;
-        jobs.truncate(request.limit as usize);
+        self.project_job_list_page(&transaction, jobs, request.limit)
+    }
+
+    fn project_job_list_page(
+        &self,
+        transaction: &rusqlite::Transaction<'_>,
+        mut jobs: Vec<RuntimeJobRecord>,
+        limit: u32,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        let has_more = jobs.len() > limit as usize;
+        jobs.truncate(limit as usize);
         let next_cursor = if has_more {
             jobs.last().map(|job| RuntimeJobListCursor {
                 created_at_ms: job.created_at_ms,
@@ -703,7 +785,7 @@ impl Registry {
         let mut summaries = Vec::with_capacity(jobs.len());
         for job in jobs {
             let attempt = match job.current_attempt_id.as_deref() {
-                Some(attempt_id) => Some(RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?),
+                Some(attempt_id) => Some(RegistryStorageBoundary::load_attempt(transaction, attempt_id)?),
                 None => {
                     let attempt_id: Option<String> = transaction
                         .query_row(
@@ -714,13 +796,13 @@ impl Registry {
                         .optional()
                         .map_err(|error| RuntimeError::from_sql(error, "cannot find latest Attempt"))?;
                     attempt_id
-                        .map(|attempt_id| RegistryStorageBoundary::load_attempt(&transaction, &attempt_id))
+                        .map(|attempt_id| RegistryStorageBoundary::load_attempt(transaction, &attempt_id))
                         .transpose()?
                 }
             };
             let recovery_condition_active = attempt
                 .as_ref()
-                .map(|attempt| attempt_recovery_condition_active(&transaction, &attempt.attempt_id))
+                .map(|attempt| attempt_recovery_condition_active(transaction, &attempt.attempt_id))
                 .transpose()?
                 .unwrap_or(false);
             let artifact_count: u32 = transaction
@@ -731,7 +813,7 @@ impl Registry {
                 )
                 .map_err(|error| RuntimeError::from_sql(error, "cannot count Job Artifacts"))?;
             let execution_reason_code =
-                job_execution_reason_code(&transaction, &job.job_id, job.resolution.is_some())?;
+                job_execution_reason_code(transaction, &job.job_id, job.resolution.is_some())?;
             let projection = project_job(
                 &job,
                 attempt.as_ref(),
@@ -794,9 +876,6 @@ impl Registry {
                 poll_after_ms: projection.poll_after_ms,
             });
         }
-        transaction.commit().map_err(|error| {
-            RuntimeError::from_sql(error, "cannot close Job list read snapshot")
-        })?;
         Ok(RuntimeJobListResult {
             jobs: summaries,
             next_cursor,
