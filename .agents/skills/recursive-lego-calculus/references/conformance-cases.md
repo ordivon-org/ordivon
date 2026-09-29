@@ -1,6 +1,6 @@
-# Recursive LEGO Calculus — conformance cases R2
+# Recursive LEGO Calculus — conformance cases R2.1
 
-Use these cases to catch regressions in the method contract. A prose case may be paired with a machine-checkable obligation when a mature provider matches the semantics; not every case should be forced into SMT/model checking.
+Use these cases to catch regressions in the method contract. Pair a prose case with a machine-checkable obligation only when a mature provider matches the semantics; do not force every claim into SMT/model checking.
 
 ## C1 Truth/verifier separation
 
@@ -10,7 +10,7 @@ Bad:
 
 Required:
 - define `phi` and `X*_p` independently;
-- give the verifier a soundness/error envelope relative to `phi`.
+- give the verifier a declared target predicate and soundness/error envelope relative to that target.
 
 ## C2 Illegal composition
 
@@ -28,7 +28,7 @@ Bad:
 - search every sequence in an operator alphabet and count precondition violations as ordinary failed solutions.
 
 Required:
-- search `Pi_legal(Sigma,sigma0)` only, where every intermediate precondition is satisfied.
+- search `Pi_legal(Sigma,theta,sigma0)` only, where every intermediate precondition is satisfied.
 
 Machine probe:
 - an `execute` action requiring prior authorization MUST be rejected from an unauthorized state;
@@ -75,10 +75,12 @@ Required:
 ## C8 Dependent configuration space
 
 Bad:
-- write one Cartesian product `Theta x LEGO x Relation x Representation x Operator` when parameter/operator spaces depend on architecture choices.
+- write one Cartesian product when parameter/state/operator spaces depend on architecture choices;
+- refer to `sigma0` in a legal-program family before `sigma0` has been bound.
 
 Required:
-- use a dependent sum/family or an equivalent typed configuration structure.
+- use a dependent sum/family or equivalent typed configuration structure;
+- bind `theta` and `sigma0` before `Pi_legal(Sigma,theta,sigma0)`.
 
 ## C9 Self-certification / Goodhart
 
@@ -100,8 +102,8 @@ Bad:
 
 Required:
 - express method requirements and system capabilities/assumptions;
-- attach only when the requirements are discharged;
-- preserve the specialist method Skill's own stop conditions and non-claims.
+- attach only when requirements are discharged;
+- preserve the specialist method's own stop conditions and non-claims.
 
 ## C11 Minimal broken frontier repair
 
@@ -111,9 +113,9 @@ Bad:
 - force a single "earliest" broken layer when evidence points to two incomparable branches.
 
 Required:
-- compute/argue the minimal evidence-supported broken frontier in the abstraction dependency graph;
-- repair from each minimal locus that is actually invalidated;
-- preserve still-current subgraphs.
+- define the dependency direction;
+- compute/argue the minimal evidence-supported broken frontier;
+- repair each minimal invalid locus while preserving current subgraphs.
 
 ## C12 Scope discipline
 
@@ -133,7 +135,7 @@ Bad:
 - confuse procedure-level type-I error with conditional false-discovery probability.
 
 Required:
-- declare the guarantee kind in `q`;
+- declare the guarantee kind and target predicate in `q`;
 - keep procedure-level false acceptance, conditional reliability and false rejection separate;
 - state the assumptions/population under which each bound holds.
 
@@ -144,31 +146,82 @@ Machine probe:
 ## C14 System specification versus runtime state
 
 Bad:
-- use one symbol/object both for the system architecture/transition contract and the current mutable state;
-- write `pi(system)` when the operator program actually acts on a state admitted by the system specification.
+- use one symbol/object both for system architecture/transition contract and current mutable state;
+- write `pi(system)` when the program acts on a state admitted by an instantiated system.
 
 Required:
-- use `Sigma` for the system LEGO/specification and `sigma_t in State(Sigma)` for runtime state;
-- define operators and legal programs relative to both.
+- use `Sigma` for system LEGO/specification, `theta` for configuration, and `sigma_t in State(Sigma,theta)` for runtime state;
+- define operators and legal programs relative to all required bindings.
 
-## C15 Representation refinement mode
+## C15 Representation refinement mode and realizability
 
 Bad:
-- require all concretizations to satisfy the original specification when the transform only promises to reconstruct one certified witness;
-- accept one witness when the representation claims universal safety over all concretizations.
+- accept `forall related concrete x: phi(x)` when there are zero related concrete realizations;
+- require all concretizations to satisfy the original specification when the transform only promises one certified witness;
+- accept one witness when the representation claims universal safety.
 
 Required:
-- declare universal-safe or witness-preserving refinement (or another explicit sound mode);
-- carry the required concrete witness/evidence when using witness-preserving refinement.
+- require non-empty realization for accepted transformed candidates;
+- declare universal-safe, witness-preserving, or another explicit sound mode;
+- carry the concrete witness/evidence when using witness-preserving refinement.
+
+Machine probe:
+- the naive universal implication MUST admit a vacuous no-realization model;
+- adding the non-empty realization obligation MUST reject that model.
 
 ## C16 Formal-provider scope
 
 Bad:
 - translate every prose claim into SMT because Z3 is available;
-- infer full implementation/domain correctness from a bounded TLA+/SMT/planning PASS;
-- add optional providers to the core dependency graph without repeated real pressure.
+- infer full implementation/domain correctness from bounded TLA+/SMT/planning PASS;
+- add optional providers to core dependencies without repeated real pressure.
 
 Required:
 - route only bounded obligations whose semantics match the provider;
 - preserve model assumptions and non-claims;
-- keep Pacti/TLA+/Z3/Unified Planning/pySHACL/OR-Tools as natural specialized owners rather than a new universal formalism.
+- keep formal providers as specialized owners rather than a universal formalism.
+
+## C17 Verifier encoding bridge
+
+Bad:
+- let a formal checker prove encoded predicate `psi_nu` and report PASS as direct evidence of `phi` without proving the encoding/refinement bridge.
+
+Required:
+- local checker soundness establishes `PASS => psi_nu`;
+- an end-to-end claim about `phi` additionally requires a justified `psi_nu => phi` bridge, or `psi_nu=phi` by exact construction.
+
+Machine probe:
+- `PASS=>psi_nu` alone MUST allow a model with `PASS and not phi`;
+- adding `psi_nu=>phi` MUST eliminate it.
+
+## C18 Discovery admissibility
+
+Bad:
+- treat any noticed anomaly as a fully scoped problem;
+- rank candidate problems with hidden arbitrary weights while claiming objectivity;
+- spend heavily on a framing with no plausible verification path.
+
+Required:
+- keep framing candidates/evidence explicit;
+- consider importance, tractability, verifiability, information gain and cost;
+- use Pareto/policy selection unless a legitimate scalar utility is externally supplied;
+- run a discovery gate before expensive solving.
+
+## C19 Optimization feasibility preservation
+
+Bad:
+- find one feasible baseline and then let optimization violate hard constraints or invalidate acceptance evidence without re-verification.
+
+Required:
+- optimize inside a qualified feasible set or conservative admissible approximation;
+- reverify after changes that invalidate the evidence establishing qualification;
+- preserve `Gamma` throughout accepted optimization.
+
+## C20 External-anchor influence boundary
+
+Bad:
+- declare the anchor immutable while allowing the candidate to see hidden labels, choose test instances, influence measurement, or select its own acceptance threshold.
+
+Required:
+- treat anchor isolation as both a mutation-control and information/influence-control problem;
+- use information-flow/noninterference analysis or independent execution/measurement when material.

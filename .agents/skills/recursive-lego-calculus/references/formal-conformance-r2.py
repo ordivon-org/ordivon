@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Bounded executable conformance probes for Recursive LEGO Calculus R2.
+"""Bounded executable conformance probes for Recursive LEGO Calculus R2.1.
 
-This file checks only narrow encoded obligations against mature local providers.
-A PASS here is not a proof of the whole calculus, a domain result, or implementation refinement.
+Checks narrow encoded obligations against mature local providers. A PASS here is not a proof
+of the whole calculus, representation adequacy, implementation refinement, domain truth,
+or external qualification.
 """
 
 from __future__ import annotations
@@ -15,16 +16,24 @@ def z3_checks() -> dict[str, object]:
 
     out: dict[str, object] = {"version": get_version_string()}
 
-    # C1: deterministic soundness forbids a false PASS under the encoded semantics.
+    # C1/C17: local checker soundness vs end-to-end specification bridge.
     passed = Bool("passed")
+    psi = Bool("psi")
     phi = Bool("phi")
-    solver = Solver()
-    solver.add(passed, Not(phi), Implies(passed, phi))
-    out["deterministic_soundness_rejects_false_pass"] = solver.check() == unsat
 
-    # C13: a small JOINT false-accept probability does not imply an equally
-    # small CONDITIONAL false-discovery probability.  Division is avoided by
-    # checking p(false and PASS) > delta * p(PASS).
+    solver = Solver()
+    solver.add(passed, Not(psi), Implies(passed, psi))
+    out["local_soundness_rejects_false_encoded_pass"] = solver.check() == unsat
+
+    solver = Solver()
+    solver.add(passed, psi, Not(phi), Implies(passed, psi))
+    out["local_soundness_without_bridge_allows_false_problem_claim"] = solver.check() == sat
+
+    solver = Solver()
+    solver.add(passed, Not(phi), Implies(passed, psi), Implies(psi, phi))
+    out["bridge_eliminates_false_problem_claim"] = solver.check() == unsat
+
+    # C13: joint false-accept probability does not imply conditional reliability.
     p_pass = Real("p_pass")
     p_false_pass = Real("p_false_pass")
     delta = RealVal(1) / 100
@@ -40,32 +49,50 @@ def z3_checks() -> dict[str, object]:
     solver.add(p_pass > 0, p_pass <= 1, p_false_pass >= 0, p_false_pass <= p_pass, p_false_pass <= delta * p_pass, p_false_pass > delta * p_pass)
     out["conditional_bound_excludes_counterexample"] = solver.check() == unsat
 
-    # C2: composition is partial.  A good seam has post1 => pre2; a bad seam
-    # admits a counterexample where post1 holds and pre2 does not.
-    seam_ready = Bool("seam_ready")
-    seam_authorized = Bool("seam_authorized")
+    # C2: a compatible seam discharges the downstream precondition; an incompatible seam exposes a witness.
+    post1 = Bool("post1")
+    pre2 = Bool("pre2")
     solver = Solver()
-    solver.add(seam_authorized, Not(seam_authorized))
+    solver.add(post1, Not(pre2), Implies(post1, pre2))
     out["good_composition_seam_has_no_post_pre_counterexample"] = solver.check() == unsat
     solver = Solver()
-    solver.add(seam_ready, Not(seam_authorized))
+    solver.add(post1, Not(pre2))
     out["bad_composition_seam_exposes_counterexample"] = solver.check() == sat
 
-    # C15: witness-preserving and universal-safe representation refinement are
-    # materially different obligations.
+    # C15: witness-preserving and universal-safe refinement differ.
     concrete_a_ok = Bool("concrete_a_ok")
     concrete_b_ok = Bool("concrete_b_ok")
     solver = Solver()
     solver.add(concrete_a_ok, Not(concrete_b_ok), Or(concrete_a_ok, concrete_b_ok), Not(And(concrete_a_ok, concrete_b_ok)))
     out["witness_mode_can_hold_while_universal_mode_fails"] = solver.check() == sat
 
-    # C9 local invariant only: the current mutable domain and frozen anchor are
-    # declared disjoint.  Influence/control separation still requires external
-    # system evidence and is deliberately not claimed by this SMT check.
+    # Naive universal safety is vacuous when there is no related realization.
+    transformed_ok = Bool("transformed_ok")
+    related_exists = Bool("related_exists")
+    all_related_ok = Bool("all_related_ok")
+    solver = Solver()
+    solver.add(transformed_ok, Not(related_exists), all_related_ok, Implies(transformed_ok, all_related_ok))
+    out["naive_universal_refinement_allows_empty_realization"] = solver.check() == sat
+    solver = Solver()
+    solver.add(transformed_ok, Not(related_exists), Implies(transformed_ok, And(related_exists, all_related_ok)))
+    out["nonempty_realization_blocks_vacuous_universal_refinement"] = solver.check() == unsat
+
+    # C9/C20 local mutation invariant only. Causal/noninterference isolation remains an external obligation.
     anchor_mutable = Bool("anchor_mutable")
     solver = Solver()
     solver.add(Not(anchor_mutable), anchor_mutable)
     out["anchor_mutation_rejected_by_declared_disjointness"] = solver.check() == unsat
+
+    # C19: an objectively attractive candidate is not admissible if it violates hard feasibility.
+    better_objective = Bool("better_objective")
+    hard_valid = Bool("hard_valid")
+    solver = Solver()
+    solver.add(better_objective, Not(hard_valid))
+    out["unconstrained_optimizer_can_prefer_infeasible_candidate"] = solver.check() == sat
+    solver = Solver()
+    solver.add(better_objective, hard_valid, Not(hard_valid))
+    out["qualified_feasible_region_excludes_infeasible_candidate"] = solver.check() == unsat
+
     return out
 
 
@@ -122,8 +149,39 @@ def provider_inventory() -> dict[str, object]:
 
 
 def main() -> int:
-    report = {"schemaVersion": 2, "kind": "ordivon.recursive-lego-calculus.r2-formal-conformance", "scope": "bounded local formal obligations only", "providers": provider_inventory(), "z3": z3_checks(), "unifiedPlanning": unified_planning_checks(), "nonClaims": ["does not prove the whole Recursive LEGO Calculus", "does not prove implementation refinement", "does not establish domain truth or external qualification", "does not establish evaluator-anchor causal noninterference", "does not require optional Pacti availability"]}
-    required = [report["providers"]["z3"]["available"], report["providers"]["unified_planning"]["available"], report["z3"]["deterministic_soundness_rejects_false_pass"], report["z3"]["joint_bound_does_not_imply_conditional_bound"], report["z3"]["conditional_bound_excludes_counterexample"], report["z3"]["good_composition_seam_has_no_post_pre_counterexample"], report["z3"]["bad_composition_seam_exposes_counterexample"], report["z3"]["witness_mode_can_hold_while_universal_mode_fails"], report["z3"]["anchor_mutation_rejected_by_declared_disjointness"], report["unifiedPlanning"]["illegal_program_rejected"], report["unifiedPlanning"]["legal_program_accepted"]]
+    report = {
+        "schemaVersion": 3,
+        "kind": "ordivon.recursive-lego-calculus.r2_1-formal-conformance",
+        "scope": "bounded local formal obligations only",
+        "providers": provider_inventory(),
+        "z3": z3_checks(),
+        "unifiedPlanning": unified_planning_checks(),
+        "nonClaims": [
+            "does not prove the whole Recursive LEGO Calculus",
+            "does not prove representation adequacy or implementation refinement",
+            "does not establish domain truth or external qualification",
+            "does not establish evaluator-anchor causal noninterference",
+            "does not require optional Pacti availability",
+        ],
+    }
+    required_keys = [
+        "local_soundness_rejects_false_encoded_pass",
+        "local_soundness_without_bridge_allows_false_problem_claim",
+        "bridge_eliminates_false_problem_claim",
+        "joint_bound_does_not_imply_conditional_bound",
+        "conditional_bound_excludes_counterexample",
+        "good_composition_seam_has_no_post_pre_counterexample",
+        "bad_composition_seam_exposes_counterexample",
+        "witness_mode_can_hold_while_universal_mode_fails",
+        "naive_universal_refinement_allows_empty_realization",
+        "nonempty_realization_blocks_vacuous_universal_refinement",
+        "anchor_mutation_rejected_by_declared_disjointness",
+        "unconstrained_optimizer_can_prefer_infeasible_candidate",
+        "qualified_feasible_region_excludes_infeasible_candidate",
+    ]
+    required = [report["providers"]["z3"]["available"], report["providers"]["unified_planning"]["available"]]
+    required.extend(report["z3"][key] for key in required_keys)
+    required.extend([report["unifiedPlanning"]["illegal_program_rejected"], report["unifiedPlanning"]["legal_program_accepted"]])
     report["verdict"] = "PASS" if all(required) else "FAIL"
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["verdict"] == "PASS" else 1

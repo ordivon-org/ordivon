@@ -1,18 +1,18 @@
 {
-  "schemaVersion": 1,
-  "kind": "ordivon.recursive-lego-calculus.r2-formal-conformance-acceptance",
+  "schemaVersion": 2,
+  "kind": "ordivon.recursive-lego-calculus.r2_1-formal-conformance-acceptance",
   "observedDate": "2026-09-29",
-  "sourceRevision": "1c66cd9ea637b70023e91450747a268ca6d7e793",
-  "workspaceId": "ws-lego-r2-short-20260929-1835",
+  "baselineMainRevision": "9b5a3010f9117fc169af0bc4ebc12ccbadc5af42",
+  "workspaceId": "ws-lego-r2-main-fence-20260929-1845",
   "standing": "PASS_LOCAL_BOUNDED_FORMAL_CONFORMANCE_PROSPECTIVE_EXTERNAL_VALIDATION_REQUIRED",
   "candidateArtifacts": {
-    "skill": "sha256:5b4261beeea53be48696863377502891a22b0249413b27ee8492b52d565bc0d4",
-    "formalModel": "sha256:7f22768b34c12df404b5643d21a7d030e94177cbf266f9fba058720e83a5ba6a",
-    "conformanceCases": "sha256:a7ea043b022d2e8e3ed3d28318e83a772e19927aae84ae068cdf6853d6e774f2",
-    "formalHarness": "sha256:af3f2d3a96991219da788b50c1364575eab2227d1de553a4375eedbaeec5b9fe"
+    "skill": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+    "formalModel": "sha256:6bc0427a47b69b10cf5f0d3256f3a9c8c313a4a99369de7ea7baf08422b17827",
+    "conformanceCases": "sha256:27a2d2ef5aede3041aaf6357d1f6348e1956cbb515715e6d0783b66d06a1a732",
+    "formalHarness": "sha256:6c8f74bdaf067970347c24959816c08cc1726de141cf88105ab4f5ecb10b0d85"
   },
   "formalHarnessJob": {
-    "jobId": "job-01a0ece0-9a7b-72d2-a15f-b3b9d49afcde",
+    "jobId": "job-01a0ecf2-d9b2-7033-a636-2f5d3f828a1b",
     "attemptState": "succeeded",
     "exitCode": 0,
     "verdict": "PASS"
@@ -28,19 +28,30 @@
     "pacti": "NOT_PRESENT_IN_CURRENT_REASONING_WAIST; prior isolated 0.3.1 pilot exists"
   },
   "checks": {
-    "deterministicSoundnessFalsePassRejected": true,
+    "localSoundnessRejectsFalseEncodedPass": true,
+    "localSoundnessWithoutBridgeAllowsFalseProblemClaim": true,
+    "bridgeEliminatesFalseProblemClaim": true,
     "jointBoundDoesNotImplyConditionalBound": true,
     "conditionalBoundEliminatesCounterexample": true,
     "compositionGoodSeamNoCounterexample": true,
     "compositionBadSeamExposesCounterexample": true,
     "witnessVsUniversalRefinementDistinguished": true,
+    "naiveUniversalRefinementAllowsEmptyRealization": true,
+    "nonemptyRealizationBlocksVacuity": true,
     "illegalOperatorProgramRejected": true,
-    "legalOperatorProgramAccepted": true
+    "legalOperatorProgramAccepted": true,
+    "unconstrainedOptimizerCanPreferInfeasibleCandidate": true,
+    "qualifiedFeasibleRegionExcludesInfeasibleCandidate": true
   },
-  "jointVsConditionalCounterexample": {
-    "pPass": "1/100",
-    "pFalseAndPass": "1/100",
-    "interpretation": "joint false-acceptance <= 0.01 while conditional false discovery is 1"
+  "counterexamples": {
+    "jointVsConditional": {
+      "pPass": "1/100",
+      "pFalseAndPass": "1/100",
+      "interpretation": "joint false-acceptance <= 0.01 while conditional false discovery is 1"
+    },
+    "encodedVerifierWithoutBridge": "PASS=>psi alone admits PASS and not-phi",
+    "vacuousUniversalRefinement": "forall related concrete candidates may hold with no related realization unless nonemptiness is required",
+    "unconstrainedOptimization": "better objective value does not imply hard-feasible admissibility"
   },
   "temporalProvider": {
     "owner": "TLA+/TLC 1.7.4",
@@ -49,5 +60,7 @@
     "reason": "ignored digest-pinned JAR cache absent in detached workspace",
     "historicalAcceptedEvidence": "2026-09-19 Runtime bounded model: 25 states generated, 20 distinct states, depth 9, zero invariant violations"
   },
-  "boundary": "PASS applies only to encoded local obligations. It does not prove the whole calculus, implementation refinement, evaluator-anchor causal noninterference, domain truth, global improvement, convergence, or superiority over the prior workflow. Prospective frozen real-task comparison remains required."
+  "publicationState": "CANDIDATE_NOT_CANONICAL_MAIN",
+  "publicationBlocker": "primary /root/projects/ordivon worktree currently has unrelated staged Capital changes; candidate is kept isolated to avoid contaminating another owner's commit/index boundary",
+  "boundary": "PASS applies only to encoded local obligations. It does not prove the whole calculus, representation adequacy, implementation refinement, evaluator-anchor causal noninterference, domain truth, global improvement, convergence, or superiority over the prior workflow. Prospective frozen real-task comparison remains required."
 }
