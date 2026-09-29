@@ -1,0 +1,53 @@
+{
+  "Gamma": [
+    "Provider requested model levels must remain distinct effective identities under the frozen preflight and each live trial must recheck identity drift.",
+    "Each independent task instance receives all four Model\u00d7Harness core cells; providerReplicate>1 is nested diagnostic evidence only.",
+    "Calibration observations are disjoint from inferential effect estimates.",
+    "No blind redispatch is allowed after an unmatched trial_started event.",
+    "Canonical statistical values use integers or exact rationals; no float is admitted into canonical evidence.",
+    "Inferential treatment-effect stopping is not permitted without a separately preregistered external precision/effect/decision rule."
+  ],
+  "claimSpecDigest": "sha256:214a34793ef9641d5b3ff778d5af548158fef75e936f6f6a250b1fae0855256e",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "kind": "ordivon.experimental-claim-specification",
+  "nonClaims": [
+    "The task population is the frozen three-family study scope, not all software-engineering or agent tasks.",
+    "Nested Provider repeats do not increase independent n.",
+    "A calibration PASS is a difficulty-admission result, not a treatment-effect result.",
+    "No general model or Harness ranking is licensed by this claim specification."
+  ],
+  "phi": {
+    "contrasts": [
+      "modelMarginalDifferenceProMinusFlash",
+      "harnessMarginalDifferenceExactMinusAnchored",
+      "modelByHarnessDifferenceInDifferences"
+    ],
+    "estimand": "equal-weight mean of task-family mean paired contrasts over the three frozen QA-qualified edit families",
+    "familyWeighting": "equal-family",
+    "independentUnit": "task-instance",
+    "primaryOutcome": "hiddenPassed",
+    "secondaryProcessMetrics": [
+      "candidateCompleted",
+      "totalTokens",
+      "toolCalls",
+      "elapsedMs"
+    ],
+    "taskFamilies": [
+      "repository_repair",
+      "edit_addressing",
+      "edit_multiregion"
+    ]
+  },
+  "schemaVersion": 1,
+  "verificationBridge": {
+    "claimBoundary": "Passing mechanical/design checks establishes only that the declared frozen three-family estimand was executed and analyzed according to its contracts; it does not establish general model intelligence or universal Harness superiority.",
+    "encodedObligations": [
+      "complete paired four-cell task blocks",
+      "effective Provider identity",
+      "task-family membership and weights",
+      "exact-rational contrast calculation",
+      "family-stratified bootstrap contract"
+    ]
+  }
+}
