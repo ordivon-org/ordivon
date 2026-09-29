@@ -1,4 +1,25 @@
 impl Runtime {
+    pub fn authorize_job_principal(&self, job_id: &str, principal: &str) -> RuntimeResult<()> {
+        let job = self.registry.get_job(job_id)?;
+        if job.principal != principal {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::AuthorizationDenied,
+                "authenticated principal is not authorized for this Runtime Job",
+                Some("jobId"),
+                false,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn list_jobs_for_principal(
+        &self,
+        request: &RuntimeJobListRequest,
+        principal: &str,
+    ) -> RuntimeResult<RuntimeJobListResult> {
+        self.registry.list_jobs_for_principal(request, principal)
+    }
+
     pub fn cancel_job(&self, request: &JobCancelRequest) -> RuntimeResult<JobObservation> {
         if request.schema_version != RUNTIME_SCHEMA_VERSION {
             return Err(RuntimeError::invalid(
@@ -212,14 +233,12 @@ impl Runtime {
         self.registry.list_jobs(request)
     }
 
-    pub fn read_artifact(
+    fn verified_artifact_path(
         &self,
-        request: &ArtifactReadRequest,
-    ) -> RuntimeResult<ArtifactReadResult> {
-        ArtifactStateContract::validate_read_request(request)?;
-        let artifact = self
-            .registry
-            .get_artifact(&request.job_id, &request.artifact_id)?;
+        job_id: &str,
+        artifact_id: &str,
+    ) -> RuntimeResult<(RuntimeArtifactRecord, PathBuf)> {
+        let artifact = self.registry.get_artifact(job_id, artifact_id)?;
         let attempt = self.registry.get_attempt(&artifact.attempt_id)?;
         let bundle = canonical_directory(Path::new(&attempt.bundle_path), "bundlePath")
             .map_err(map_universal_error)?;
@@ -254,6 +273,16 @@ impl Runtime {
                 false,
             ));
         }
+        Ok((artifact, canonical))
+    }
+
+    pub fn read_artifact(
+        &self,
+        request: &ArtifactReadRequest,
+    ) -> RuntimeResult<ArtifactReadResult> {
+        ArtifactStateContract::validate_read_request(request)?;
+        let (artifact, canonical) =
+            self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
         let range = read_utf8_range(
             &canonical,
             request.offset,
@@ -274,6 +303,48 @@ impl Runtime {
             next_offset: range.next_offset,
             eof: range.next_offset >= artifact.byte_length,
             digest: artifact.digest,
+        })
+    }
+
+    pub fn read_artifact_content(
+        &self,
+        request: &ArtifactContentRequest,
+    ) -> RuntimeResult<ArtifactContentReadResult> {
+        ArtifactStateContract::validate_content_request(request)?;
+        let (artifact, canonical) =
+            self.verified_artifact_path(&request.job_id, &request.artifact_id)?;
+        if artifact.byte_length > request.max_bytes {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::InvalidRequest,
+                format!(
+                    "Artifact requires {} bytes but maxBytes is {}",
+                    artifact.byte_length, request.max_bytes
+                ),
+                Some("maxBytes"),
+                false,
+            ));
+        }
+        let bytes = fs::read(&canonical).map_err(|error| io_error("read Artifact", error))?;
+        if u64::try_from(bytes.len()).unwrap_or(u64::MAX) != artifact.byte_length
+            || sha256_bytes(&bytes) != artifact.digest
+        {
+            return Err(RuntimeError::new(
+                RuntimeErrorCode::ArtifactIdentityConflict,
+                "Artifact bytes changed while projecting content",
+                Some("artifactId"),
+                false,
+            ));
+        }
+        Ok(ArtifactContentReadResult {
+            metadata: ArtifactContentMetadata {
+                job_id: request.job_id.clone(),
+                artifact_id: request.artifact_id.clone(),
+                digest: artifact.digest,
+                media_type: artifact.media_type,
+                byte_length: artifact.byte_length,
+                truncated: artifact.truncated,
+            },
+            bytes,
         })
     }
 

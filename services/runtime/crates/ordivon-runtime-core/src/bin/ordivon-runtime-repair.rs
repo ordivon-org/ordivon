@@ -28,7 +28,6 @@ fn run() -> Result<(), String> {
     let mut snapshot_path = None;
     let mut principal = None;
     let mut finalize_lost_attempt_ids = BTreeSet::new();
-    let mut finalize_quarantined_lost_attempt_ids = BTreeSet::new();
     let mut attempt_id = None;
     let mut busy_timeout_ms = 5_000_u64;
     let mut apply = false;
@@ -48,10 +47,6 @@ fn run() -> Result<(), String> {
             "--principal" => principal = Some(require_value(&mut args, "--principal")?),
             "--finalize-lost" => {
                 finalize_lost_attempt_ids.insert(require_value(&mut args, "--finalize-lost")?);
-            }
-            "--finalize-quarantined-lost" => {
-                finalize_quarantined_lost_attempt_ids
-                    .insert(require_value(&mut args, "--finalize-quarantined-lost")?);
             }
             "--attempt-id" => attempt_id = Some(require_value(&mut args, "--attempt-id")?),
             "--busy-timeout-ms" => {
@@ -86,7 +81,6 @@ fn run() -> Result<(), String> {
             snapshot_path,
             principal,
             finalize_lost_attempt_ids,
-            finalize_quarantined_lost_attempt_ids,
         };
         let report = apply_runtime_repair(&config, &request).map_err(|error| error.to_string())?;
         if pretty {
@@ -97,9 +91,6 @@ fn run() -> Result<(), String> {
     } else {
         if !finalize_lost_attempt_ids.is_empty() {
             return Err("--finalize-lost is only valid with apply".to_string());
-        }
-        if !finalize_quarantined_lost_attempt_ids.is_empty() {
-            return Err("--finalize-quarantined-lost is only valid with apply".to_string());
         }
         if expected_fingerprint.is_some() {
             return Err("--expected-fingerprint is only valid with apply".to_string());
@@ -128,5 +119,5 @@ fn require_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<
 }
 
 fn usage() -> String {
-    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] [--finalize-quarantined-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
+    "usage: ordivon-runtime-repair apply --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --expected-fingerprint sha256:... --snapshot ABSOLUTE_PATH --principal NAME [--finalize-lost ATTEMPT_ID ...] --apply [--pretty]\n       ordivon-runtime-repair cancel-stale --database ABSOLUTE_PATH --store-root ABSOLUTE_PATH --snapshot ABSOLUTE_PATH --principal NAME --attempt-id ATTEMPT_ID --apply [--pretty]".to_string()
 }

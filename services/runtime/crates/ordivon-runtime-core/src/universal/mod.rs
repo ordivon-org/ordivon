@@ -3,6 +3,7 @@ mod error;
 mod fsutil;
 mod mutation;
 mod projection;
+mod resource_receipt;
 #[cfg(unix)]
 mod runner;
 mod types;
@@ -28,8 +29,9 @@ pub use types::{
     WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
     WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
-    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceMutateRequest, WorkspaceMutateResult,
-    WorkspaceMutation, WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
+    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceFileMetadata, WorkspaceFileReadResult,
+    WorkspaceFileRequest, WorkspaceMutateRequest, WorkspaceMutateResult, WorkspaceMutation,
+    WorkspaceMutationMode, WorkspaceMutationResult, WorkspaceReadRequest,
     WorkspaceReadSliceRequest, WorkspaceRenamedPath, MAX_WORKSPACE_CHANGE_PAGE_ENTRIES,
 };
 pub(crate) use types::{
@@ -39,7 +41,7 @@ pub(crate) use types::{
 pub(crate) use workspace::{
     create_git_workspace_record, load_workspace_record, read_workspace_text, workspace_diff,
 };
-pub use workspace::{read_workspace_content, workspace_changes_page};
+pub use workspace::{read_workspace_content, read_workspace_file, workspace_changes_page};
 pub(crate) use workspace::{remove_git_workspace, write_workspace_text};
 #[cfg(any(feature = "transactional-runtime", test))]
 pub use workspace::{workspace_head_revision, workspace_source_state_digest};
@@ -54,6 +56,16 @@ pub(crate) use fsutil::{
 #[cfg(test)]
 pub(crate) use fsutil::{
     linux_exec_payload_limit_bytes, linux_exec_string_limit_bytes, validate_args,
+};
+#[cfg(test)]
+pub(crate) use resource_receipt::{
+    parse_cgroup_cpu_stat, parse_cgroup_io_stat, parse_cgroup_memory_events, CgroupCpuUsage,
+    CgroupIoUsage, CgroupMemoryEvents, CgroupMemoryUsage,
+};
+pub(crate) use resource_receipt::{
+    write_resource_receipt_from_cgroup_root, RunnerResourceReceipt, RESOURCE_RECEIPT_FILE,
+    RESOURCE_RECEIPT_PROVIDER_LINUX_CGROUP_V2, RESOURCE_RECEIPT_SCHEMA_VERSION,
+    RESOURCE_RECEIPT_SCOPE_ATTEMPT_CGROUP,
 };
 #[cfg(unix)]
 pub(crate) use types::RunnerStepResult;

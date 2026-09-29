@@ -1,21 +1,23 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.runtime-formal-trace-acceptance",
-  "effectiveDate": "2026-09-24",
+  "effectiveDate": "2026-09-29",
   "standing": "PASS_BOUNDED_TRACEABILITY_CURRENTNESS",
   "truthRole": "formal-trace-acceptance-not-mechanized-refinement-proof",
-  "baseMain": "e0e9874d7a3c7b553a2f4ecb34049946867b513f",
-  "mechanismCandidateCommit": "62e69c5f4240ba926361668b8dc3ea72ce608ff9",
-  "qualifiedWorkspaceSourceDigest": "sha256:014ce87d9c603752ca2960bc88c3972fc5e7be485b5e81c089a57fc87403cdb8",
+  "baseMain": "ece9feeea0b9a52e787151519965df96e5e2c527",
+  "mechanismCandidateCommit": "fa02cff61bd8f819be4cc4261d9204b6712524fa",
+  "qualifiedWorkspaceSourceDigest": "sha256:5f4484d8b3a5485daeadf22e6bddbe6a9622c12e0d7343eee9159c7662996203",
   "traceVerification": {
-    "jobId": "job-01a0d0ed-2361-7cf2-a3d4-8da484852876",
-    "terminalEvidenceDigest": "sha256:83a34c8be8eeae7b84e12e8cae6fbb020475510b0faf9766224127303e031c60",
+    "jobId": "job-01a0ec17-3f15-77d1-b7b5-dd283f22430c",
+    "terminalEvidenceDigest": "sha256:0d140bb911fb2a930f7ede4adc4198fd7cd3764e98f54e8dc7eb6fa40fe09a2e",
     "result": "PASS",
-    "focusedPytestPassed": 2
+    "traceSchemaVersion": 2,
+    "focusedPytestPassed": 6,
+    "sourceFragmentBindingRetired": true
   },
   "formalModelCheck": {
-    "jobId": "job-01a0d0ee-17d1-7362-bab0-6f4e299e6d86",
-    "terminalEvidenceDigest": "sha256:3351079ca29a34ba73b46aaa2dc382000146e3f6c9dad7fc8938242d48991d5e",
+    "jobId": "job-01a0ec17-3f15-77d1-b7b5-dd283f22430c",
+    "terminalEvidenceDigest": "sha256:0d140bb911fb2a930f7ede4adc4198fd7cd3764e98f54e8dc7eb6fa40fe09a2e",
     "toolchain": "TLA+ tools 1.7.4 / TLC 2.19",
     "generatedStates": 25,
     "distinctStates": 20,
@@ -23,23 +25,26 @@
     "errors": 0
   },
   "runtimeIntegration": {
-    "jobId": "job-01a0d0ee-4a3b-7823-9dab-37a29995db7f",
-    "terminalEvidenceDigest": "sha256:b2444e2e5639ce32235cd8b7ef63d31dc4ea6731f366a8f4e23c622aa15fb14b",
+    "jobId": "job-01a0ec1f-fb90-76b3-bd98-468e6aa47445",
+    "terminalEvidenceDigest": "sha256:d959951643d305ddee52f38436c388057af3c194f20174539bc937f7801344c1",
     "result": "PASS",
+    "explicitOptIn": "ORDIVON_RUN_INTEGRATION=1",
+    "runnerDigest": "sha256:ee52dcc44b20b1ab2738944f9a223d4f5bf45d1e0b1927af4f502aae74ca18c4",
     "tests": [
       "runtime_two_observers_do_not_race_dispatch_of_one_accepted_attempt",
       "runtime_ambiguous_dispatch_is_lost_without_automatic_redispatch"
     ]
   },
-  "ownerSuites": {
-    "jobId": "job-01a0d0ef-0baf-7cd2-ba53-b7b4d3cac4ec",
-    "terminalEvidenceDigest": "sha256:20158414ee41823c65765df22e4645d48bd0c754ec70137932de2c3fa4f409f5",
+  "providerGuaranteeNegativeControl": {
+    "jobId": "job-01a0ec17-3f15-77d1-b7b5-dd283f22430c",
+    "terminalEvidenceDigest": "sha256:0d140bb911fb2a930f7ede4adc4198fd7cd3764e98f54e8dc7eb6fa40fe09a2e",
     "result": "PASS",
-    "scope": "selected Composition cognitive-circuit/interface/successor/verification tests plus Meta cross-domain verification, data lifecycle/product governance/federation/feedback, Evaluation Boundary, and Experimental Episode tests"
+    "test": "provider_replacement_cannot_weaken_r1_guarantees"
   },
   "supportScope": [
-    "currentness and explicit correspondence of RuntimeDispatchR1 formal artifacts, Runtime invariant bindings, selected implementation symbols, and selected integration tests",
-    "bounded at-most-once dispatch and ambiguity-reconciliation seam evidence on the qualified source state"
+    "machine-checkable currentness of the RuntimeDispatchR1 formal model, Runtime invariant bindings, stable Runtime contract seams, supporting provider contract, and named proving tests",
+    "bounded evidence for at-most-once physical dispatch and ambiguity-preserving reconciliation on the exact qualified source state",
+    "provider refactors may move Linux or Windows realization internals without invalidating the trace while the stable Runtime realization seam and proving tests remain current"
   ],
   "nonClaims": [
     "This is not a mechanized refinement proof from Rust semantics to TLA+ semantics.",

@@ -28,7 +28,7 @@ impl Registry {
             return Ok(());
         }
 
-        let transaction = immediate(&mut connection, "reconciliation failure transaction")?;
+        let transaction = immediate(self, &mut connection, "reconciliation failure transaction")?;
         let current = RegistryStorageBoundary::load_attempt(&transaction, &attempt.attempt_id)?;
         transaction
             .execute(
@@ -75,7 +75,7 @@ impl Registry {
             return Ok(());
         }
 
-        let transaction = immediate(&mut connection, "reconciliation success transaction")?;
+        let transaction = immediate(self, &mut connection, "reconciliation success transaction")?;
         let current = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let evidence_digest = sha256_bytes(
             format!("runtime-reconciliation-converged\0{attempt_id}\0{observed_at_ms}").as_bytes(),

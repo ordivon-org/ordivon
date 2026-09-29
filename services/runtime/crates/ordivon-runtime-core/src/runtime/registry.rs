@@ -3,13 +3,16 @@ use rusqlite::{
 };
 use sha2::{Digest, Sha256};
 use std::fs::{self, File, OpenOptions};
+use std::ops::Deref;
 #[cfg(unix)]
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 use super::artifact_release_state::{ArtifactStateContract, ReleaseStateContract};
+use super::control_primitives::acquire_shared_file_fence;
 use super::job_attempt_state::{
     AttemptLifecycleContract, JobIdentityContract, OperationIdentityBindings,
 };
@@ -83,6 +86,9 @@ const JOB_CLIENT_REQUEST_LOOKUP_INDEX_SQL: &str =
 const JOB_WORKSPACE_LOOKUP_INDEX: &str = "idx_jobs_workspace_created";
 const JOB_WORKSPACE_LOOKUP_INDEX_SQL: &str =
     "CREATE INDEX IF NOT EXISTS idx_jobs_workspace_created ON jobs(workspace_id, created_at_ms, job_id)";
+const JOB_PRINCIPAL_LOOKUP_INDEX: &str = "idx_jobs_principal_created";
+const JOB_PRINCIPAL_LOOKUP_INDEX_SQL: &str =
+    "CREATE INDEX IF NOT EXISTS idx_jobs_principal_created ON jobs(principal, created_at_ms, job_id)";
 const JOB_RESOLUTION_STATUS_INDEX_SQL: &str =
     "CREATE INDEX IF NOT EXISTS idx_jobs_resolution ON jobs(resolution)";
 const ATTEMPT_RECOVERY_STATUS_INDEX_SQL: &str =
@@ -91,6 +97,7 @@ const ARTIFACT_JOB_LOOKUP_INDEX: &str = "idx_artifacts_job";
 const ARTIFACT_JOB_LOOKUP_INDEX_SQL: &str =
     "CREATE INDEX IF NOT EXISTS idx_artifacts_job ON artifacts(job_id)";
 const WORKSPACE_EXECUTION_LIMIT: u32 = 1;
+pub(super) const MAX_REGISTRY_INLINE_JSON_BYTES: usize = 64 * 1024;
 
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -125,7 +132,7 @@ pub(crate) fn set_test_commit_fault(point: TestCommitPoint, fault: TestCommitFau
 
 #[cfg(test)]
 fn commit_with_test_fault(
-    transaction: Transaction<'_>,
+    transaction: RegistryWriteTransaction<'_, '_>,
     point: TestCommitPoint,
 ) -> rusqlite::Result<()> {
     let fault = TEST_COMMIT_FAULT.with(|slot| {
@@ -168,6 +175,96 @@ pub struct RegistryConfig {
 #[derive(Clone, Debug)]
 pub(crate) struct Registry {
     config: RegistryConfig,
+    // SQLite/WAL has one physical writer at a time. Cloned Registry handles share this
+    // process-local gate so Runtime writers queue before BEGIN IMMEDIATE instead of racing
+    // into SQLITE_BUSY. The gate is coordination only: it owns no durable truth.
+    write_gate: Arc<Mutex<()>>,
+}
+
+pub(super) struct RegistryWriteGuard<'a> {
+    guard: Option<MutexGuard<'a, ()>>,
+    context: &'static str,
+    wait_ms: u64,
+    transaction_started: Option<Instant>,
+}
+
+impl RegistryWriteGuard<'_> {
+    fn mark_transaction_started(&mut self) {
+        self.transaction_started = Some(Instant::now());
+    }
+
+    fn release(&mut self) {
+        let Some(guard) = self.guard.take() else {
+            return;
+        };
+        drop(guard);
+        let transaction_hold_ms = self
+            .transaction_started
+            .map(elapsed_duration_ms)
+            .unwrap_or(0);
+        tracing::debug!(
+            target: "ordivon_runtime::registry",
+            context = self.context,
+            wait_ms = self.wait_ms,
+            transaction_hold_ms,
+            "Runtime Registry write transaction"
+        );
+    }
+}
+
+impl Drop for RegistryWriteGuard<'_> {
+    fn drop(&mut self) {
+        self.release();
+    }
+}
+
+struct RegistryWriteTransaction<'registry, 'connection> {
+    transaction: Option<Transaction<'connection>>,
+    write_guard: RegistryWriteGuard<'registry>,
+}
+
+impl<'registry, 'connection> Deref for RegistryWriteTransaction<'registry, 'connection> {
+    type Target = Transaction<'connection>;
+
+    fn deref(&self) -> &Self::Target {
+        self.transaction
+            .as_ref()
+            .expect("Registry write transaction is unavailable after completion")
+    }
+}
+
+impl RegistryWriteTransaction<'_, '_> {
+    fn commit(mut self) -> rusqlite::Result<()> {
+        let transaction = self
+            .transaction
+            .take()
+            .expect("Registry write transaction is unavailable after completion");
+        let result = transaction.commit();
+        self.write_guard.release();
+        result
+    }
+
+    #[cfg(test)]
+    fn rollback(mut self) -> rusqlite::Result<()> {
+        let transaction = self
+            .transaction
+            .take()
+            .expect("Registry write transaction is unavailable after completion");
+        let result = transaction.rollback();
+        self.write_guard.release();
+        result
+    }
+}
+
+impl Drop for RegistryWriteTransaction<'_, '_> {
+    fn drop(&mut self) {
+        drop(self.transaction.take());
+        self.write_guard.release();
+    }
+}
+
+fn elapsed_duration_ms(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
 
 #[derive(Clone, Debug)]
@@ -330,10 +427,20 @@ fn committed_reconciliation(job_id: &str, context: &str) -> RuntimeError {
     .with_operation_id(job_id.to_string())
 }
 
-fn immediate<'a>(connection: &'a mut Connection, context: &str) -> RuntimeResult<Transaction<'a>> {
-    connection
+fn immediate<'registry, 'connection>(
+    registry: &'registry Registry,
+    connection: &'connection mut Connection,
+    context: &'static str,
+) -> RuntimeResult<RegistryWriteTransaction<'registry, 'connection>> {
+    let mut write_guard = registry.lock_write_gate(context)?;
+    let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(|error| safe_same_request_sql_error(error, &format!("cannot begin {context}")))
+        .map_err(|error| safe_same_request_sql_error(error, &format!("cannot begin {context}")))?;
+    write_guard.mark_transaction_started();
+    Ok(RegistryWriteTransaction {
+        transaction: Some(transaction),
+        write_guard,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -364,6 +471,19 @@ fn append_event(
             false,
         )
     })?;
+    if detail_json.len() > MAX_REGISTRY_INLINE_JSON_BYTES {
+        return Err(RuntimeError::new(
+            RuntimeErrorCode::OutputLimitExceeded,
+            format!(
+                "Job event detail exceeds bounded Registry limit of {MAX_REGISTRY_INLINE_JSON_BYTES} bytes"
+            ),
+            Some("eventDetail"),
+            false,
+        ));
+    }
+    // This digest is deliberately computed inside the SQLite transaction: detail_json and its
+    // digest are one atomic Registry fact. The input is hard-bounded above, so the write gate
+    // never protects unbounded hashing or external I/O.
     let detail_digest = sha256_bytes(detail_json.as_bytes());
     let event_id = format!("event-{}", Uuid::now_v7());
     transaction
@@ -464,13 +584,6 @@ fn repair_terminal_admin_transaction(
     let attempt = RegistryStorageBoundary::load_attempt(transaction, &request.attempt_id)?;
     let job = RegistryStorageBoundary::load_job(transaction, &attempt.job_id)?;
     let reservation = RegistryStorageBoundary::load_reservation(transaction, &attempt.attempt_id)?;
-    let (recovery_required, recovery_reason_code): (bool, Option<String>) = transaction
-        .query_row(
-            "SELECT COALESCE(recovery_required,0),recovery_reason_code FROM attempts WHERE attempt_id=?1",
-            [&attempt.attempt_id],
-            |row| Ok((row.get::<_, i64>(0)? != 0, row.get(1)?)),
-        )
-        .map_err(|error| RuntimeError::from_sql(error, "cannot inspect administrative repair recovery state"))?;
     let runner_terminal = matches!(
         request.state,
         AttemptState::Succeeded
@@ -478,17 +591,9 @@ fn repair_terminal_admin_transaction(
             | AttemptState::TimedOut
             | AttemptState::Cancelled
     );
-    let quarantined_lost = attempt.state == AttemptState::Orphaned
-        && request.state == AttemptState::Lost
-        && audit.action == "finalize_quarantined_lost"
-        && request.reason_code == "ADMIN_CONFIRMED_LOST_QUARANTINED_LAUNCH_IDENTITY_RESULT"
-        && reservation.state == ReservationState::HeldOrphaned
-        && recovery_required
-        && recovery_reason_code.as_deref() == Some("LAUNCH_IDENTITY_MISMATCH");
     let allowed = (matches!(attempt.state, AttemptState::Lost | AttemptState::Orphaned)
         && runner_terminal)
-        || (attempt.state == AttemptState::Lost && request.state == AttemptState::Lost)
-        || quarantined_lost;
+        || (attempt.state == AttemptState::Lost && request.state == AttemptState::Lost);
     if !allowed {
         return Err(RuntimeError::new(
             RuntimeErrorCode::OrphanRemediationDenied,

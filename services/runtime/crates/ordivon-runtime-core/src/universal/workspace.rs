@@ -21,9 +21,10 @@ use super::{
     WorkspaceChangeEntry, WorkspaceChangeKind, WorkspaceChangePageRequest,
     WorkspaceChangePageResult, WorkspaceCloseRequest, WorkspaceCloseResult,
     WorkspaceClosureDisposition, WorkspaceContentMetadata, WorkspaceContentReadResult,
-    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceReadRequest,
-    WorkspaceReadResult, WorkspaceRecord, WorkspaceRenamedPath, WorkspaceWriteRequest,
-    WorkspaceWriteResult, UNIVERSAL_EXEC_SCHEMA_VERSION,
+    WorkspaceContentRequest, WorkspaceDiffRequest, WorkspaceDiffResult, WorkspaceFileMetadata,
+    WorkspaceFileReadResult, WorkspaceFileRequest, WorkspaceReadRequest, WorkspaceReadResult,
+    WorkspaceRecord, WorkspaceRenamedPath, WorkspaceWriteRequest, WorkspaceWriteResult,
+    UNIVERSAL_EXEC_SCHEMA_VERSION,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

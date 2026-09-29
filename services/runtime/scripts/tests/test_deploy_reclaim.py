@@ -2636,6 +2636,101 @@ class DeployReclaimTests(unittest.TestCase):
                 ],
             )
 
+    def test_reclaim_closed_tombstone_is_convergence_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            records = root / "workspace-records"
+            records.mkdir()
+            digest = "sha256:" + "f" * 64
+            (records / "closed.json").write_text(
+                json.dumps({"schemaVersion": 1, "state": "closed", "sourceStateDigest": digest}),
+                encoding="utf-8",
+            )
+            scripts_path = str(REPO / "scripts")
+            sys.path.insert(0, scripts_path)
+            try:
+                module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+            finally:
+                sys.path.remove(scripts_path)
+            tombstone = module["closed_workspace_tombstone"](root, "closed")
+            self.assertIsNotNone(tombstone)
+            self.assertEqual(tombstone["sourceStateDigest"], digest)
+            self.assertIsNone(
+                module["closed_workspace_tombstone"](
+                    root,
+                    "closed",
+                    expected_source_state_digest="sha256:" + "0" * 64,
+                )
+            )
+            self.assertEqual(
+                module["closed_workspace_tombstone"](
+                    root,
+                    "closed",
+                    expected_source_state_digest=digest,
+                )["sourceStateDigest"],
+                digest,
+            )
+            self.assertIsNone(module["closed_workspace_tombstone"](root, "missing"))
+
+    def test_reclaim_close_reconciles_timeout_by_exact_tombstone_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:8897\nORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            scripts_path = str(REPO / "scripts")
+            sys.path.insert(0, scripts_path)
+            try:
+                module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+            finally:
+                sys.path.remove(scripts_path)
+
+            planned_head = "a" * 40
+            digest = "sha256:" + "b" * 64
+            calls = []
+
+            class InitialClient:
+                def call_tool(self, name, arguments):
+                    calls.append(("initial", name, dict(arguments)))
+                    if name == "workspace.get":
+                        return {
+                            "workspaceId": "closable",
+                            "currentHeadRevision": planned_head,
+                            "sourceStateDigest": digest,
+                            "dirty": False,
+                        }
+                    if name == "workspace.close":
+                        raise TimeoutError("timed out")
+                    raise AssertionError(name)
+
+            class ReconcileClient:
+                def call_tool(self, name, arguments):
+                    calls.append(("reconcile", name, dict(arguments)))
+                    assert name == "workspace.close"
+                    return {
+                        "workspaceId": "closable",
+                        "removed": False,
+                        "closureDisposition": "already_closed",
+                        "sourceStateDigest": digest,
+                    }
+
+            clients = iter((InitialClient(), ReconcileClient()))
+            module["close_workspace"].__globals__["connect_compatible"] = (
+                lambda *args, **kwargs: next(clients)
+            )
+            result = module["close_workspace"](
+                env_file,
+                "closable",
+                expected_head_revision=planned_head,
+            )
+            self.assertEqual(result["closureDisposition"], "already_closed")
+            self.assertTrue(result["deliveryReconciled"])
+            self.assertEqual([entry[1] for entry in calls], ["workspace.get", "workspace.close", "workspace.close"])
+            self.assertEqual(calls[1][2], calls[2][2])
+            self.assertEqual(calls[2][2]["expectedSourceStateDigest"], digest)
+
     def test_reclaim_close_rejects_head_change_before_cas_close(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -109,7 +109,7 @@ impl Registry {
             ArtifactStateContract::validate_registration(artifact)?;
         }
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "orphan recovery transaction")?;
+        let transaction = immediate(self, &mut connection, "orphan recovery transaction")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, &request.attempt_id)?;
         let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
         let reservation = RegistryStorageBoundary::load_reservation(&transaction, &attempt.attempt_id)?;
@@ -219,7 +219,7 @@ impl Registry {
         operations: &[AdminRepairOperation],
     ) -> RuntimeResult<()> {
         let mut connection = self.open_connection()?;
-        let transaction = immediate(&mut connection, "administrative Runtime repair batch")?;
+        let transaction = immediate(self, &mut connection, "administrative Runtime repair batch")?;
         for operation in operations {
             match operation {
                 AdminRepairOperation::Terminal { terminal, audit } => {
@@ -270,7 +270,7 @@ impl Registry {
             return Ok(false);
         }
 
-        let transaction = immediate(&mut connection, "terminal reservation convergence")?;
+        let transaction = immediate(self, &mut connection, "terminal reservation convergence")?;
         let attempt = RegistryStorageBoundary::load_attempt(&transaction, attempt_id)?;
         let job = RegistryStorageBoundary::load_job(&transaction, &attempt.job_id)?;
         let reservation = RegistryStorageBoundary::load_reservation(&transaction, attempt_id)?;
