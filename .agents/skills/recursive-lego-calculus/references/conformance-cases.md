@@ -224,4 +224,4 @@ Bad:
 
 Required:
 - treat anchor isolation as both a mutation-control and information/influence-control problem;
-- use information-flow/noninterference analysis or independent execution/measurement when material.
+- apply information-flow/noninterference analysis or independent execution/measurement when material.

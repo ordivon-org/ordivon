@@ -1,19 +1,27 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "kind": "ordivon.recursive-lego-calculus.r2_1-formal-conformance-acceptance",
   "observedDate": "2026-09-29",
   "originalMainRevision": "9b5a3010f9117fc169af0bc4ebc12ccbadc5af42",
   "effectiveBaseRevision": "d116d1e468600eac342c2389e99cf9d07101a4b4",
+  "canonicalMainObservedRevision": "1b5899c81f06b198f6f4858279ae877cdf488746",
   "workspaceId": "ws-capital-pure-rollback-r2-stack-20260929-2041",
   "standing": "PASS_COMPOSED_STACK_QUALIFICATION_PROSPECTIVE_EXTERNAL_VALIDATION_REQUIRED",
   "candidateArtifacts": {
     "skill": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
     "formalModel": "sha256:6bc0427a47b69b10cf5f0d3256f3a9c8c313a4a99369de7ea7baf08422b17827",
-    "conformanceCases": "sha256:27a2d2ef5aede3041aaf6357d1f6348e1956cbb515715e6d0783b66d06a1a732",
+    "conformanceCasesBeforePostPublicationLexicalRepair": "sha256:27a2d2ef5aede3041aaf6357d1f6348e1956cbb515715e6d0783b66d06a1a732",
     "formalHarness": "sha256:6c8f74bdaf067970347c24959816c08cc1726de141cf88105ab4f5ecb10b0d85"
   },
   "formalQualification": {
     "jobId": "job-01a0ed11-10e0-7411-b078-798b51a1839d",
+    "attemptState": "succeeded",
+    "exitCode": 0,
+    "verdict": "PASS"
+  },
+  "freshCanonicalConformance": {
+    "jobId": "job-01a0ed34-5085-7590-a4e4-a906690ab8b4",
+    "sourceRevision": "1b5899c81f06b198f6f4858279ae877cdf488746",
     "attemptState": "succeeded",
     "exitCode": 0,
     "verdict": "PASS"
@@ -41,6 +49,24 @@
       "marketFractureEvidenceRename": "SPLIT_REQUIRED; moving acceptance/research artifact into frozen evidence changes manifest from 54 to 55 and caused Capital verify failure",
       "recursiveLegoR1RetirementExceptionRemoval": "REJECT_CURRENTLY; historical R1 lesson remains tracked and legitimately references archived meta/next, so removing allowlist causes archived-source boundary failure"
     }
+  },
+  "canonicalPublication": {
+    "capitalRollbackCommit": "d116d1e468600eac342c2389e99cf9d07101a4b4",
+    "r2Commit": "e685c11bfa5ac40481ead4b1f2d8cd5bfcd895ca",
+    "r2_1Commit": "07381c633c0824a5f191b3f4ddb95f6c4d4dd8d3",
+    "evidenceRelocationCommit": "b8a18f7b7e89a9d17f5212359686ff53e652c206",
+    "stackQualificationCommit": "1b5899c81f06b198f6f4858279ae877cdf488746",
+    "publicationState": "CANONICAL_MAIN_PUBLISHED",
+    "publicationBlocker": null
+  },
+  "skillCatalog": {
+    "workspaceId": "ordivon-next",
+    "skillId": "project-ordivon-next/recursive-lego-calculus",
+    "instructionDigest": "sha256:1985dc2765bda250b1f2f76e1b85425141e6aadbb7e39ef5bd5b92d063f08c09",
+    "canonicalR2_1Resolved": true,
+    "preRepairScanState": "WARN",
+    "preRepairRiskTags": ["CROSS_SKILL_ROUTING"],
+    "preRepairFinding": "references/conformance-cases.md ordinary phrase 'use information-flow/noninterference analysis' matched the conservative cross-skill-routing scanner; lexical repair is post-publication packaging/currentness work and does not change the formal semantics"
   },
   "liveProviders": {
     "z3": "5.1.0",
@@ -85,7 +111,5 @@
     "reason": "ignored digest-pinned JAR cache absent in detached workspace",
     "historicalAcceptedEvidence": "2026-09-19 Runtime bounded model: 25 states generated, 20 distinct states, depth 9, zero invariant violations"
   },
-  "publicationState": "QUALIFIED_STACK_PENDING_MAIN_CAS",
-  "publicationBlocker": "primary checked-out main still carries another agent's staged index; exact staged bytes must be preserved to an explicit ref and primary index/worktree reconciled transactionally before canonical main publication",
-  "boundary": "PASS applies only to encoded local obligations and the tested composed stack. It does not prove the whole calculus, representation adequacy, implementation refinement, evaluator-anchor causal noninterference, domain truth, global improvement, convergence, or superiority over the prior workflow. Prospective frozen real-task comparison remains required."
+  "boundary": "PASS applies only to encoded local obligations and the tested composed stack. Canonical publication is complete, but prospective frozen real-task comparison remains required before claiming that R2.1 improves real problem solving. This record does not prove the whole calculus, representation adequacy, implementation refinement, evaluator-anchor causal noninterference, domain truth, global improvement, convergence, or superiority over the prior workflow."
 }
