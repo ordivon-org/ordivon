@@ -1,0 +1,39 @@
+{
+  "arm": "control",
+  "choice": null,
+  "cohort": "calibration",
+  "effectiveModelId": "deepseek-flash",
+  "exactChoiceCorrect": false,
+  "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+  "family": "experimental_replication",
+  "goldDigest": "sha256:f741208b35253f0dd52cd623dae57d2ba490ed1d3e029a674014937a99b4f125",
+  "independentTaskBlock": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-102",
+  "jsonParseValid": false,
+  "kind": "ordivon.recursive-lego-prospective-trial",
+  "latencyMs": 924,
+  "ordinal": 19,
+  "preflightDigest": "sha256:7c30a3677ad45ba0c1b93ce1e4c0f6eee4824cd8bd9ce46ceb1c9de9094faa67",
+  "preregistrationDigest": "sha256:277c8994403605da15a57965d16e9dd680e44a18def51f03ecc57cc6cf69dea4",
+  "rawResponseDigest": "sha256:887595eee4714778d2079314aced03ce95d0ed09e0eccfe3848b4f6075529562",
+  "recordDigest": "sha256:de00f06d0e207e196533981313b2383d6da59585dd69bcc1ad333fa27ffa8b18",
+  "requestedModelId": "deepseek-flash",
+  "response": "",
+  "responseDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "schemaVersion": 1,
+  "taskDigest": "sha256:3b46ed34e447c1167c9a597f1b11595b0d144985eb1cacfe753ece27356c6f1f",
+  "taskId": "LEGO-R21-CAL-EXPERIMENTAL-REPLICATION-102",
+  "trialId": "trial:lego-r21:cal:019",
+  "usage": {
+    "completion_tokens": 161,
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 436,
+    "prompt_tokens": 948,
+    "prompt_tokens_details": {
+      "cached_tokens": 512
+    },
+    "providerModel": "deepseek-flash",
+    "providerRequestMode": "non-thinking",
+    "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+    "total_tokens": 1109
+  }
+}

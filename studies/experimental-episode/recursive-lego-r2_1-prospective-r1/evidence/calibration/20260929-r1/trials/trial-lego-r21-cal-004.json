@@ -1,0 +1,39 @@
+{
+  "arm": "control",
+  "choice": null,
+  "cohort": "calibration",
+  "effectiveModelId": "deepseek-flash",
+  "exactChoiceCorrect": false,
+  "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+  "family": "semantic_completion",
+  "goldDigest": "sha256:1df7da44e49571b73c527cec9fcd1783e7bdf4d7216323bcea8013a1d548a5f3",
+  "independentTaskBlock": "LEGO-R21-CAL-SEMANTIC-COMPLETION-101",
+  "jsonParseValid": false,
+  "kind": "ordivon.recursive-lego-prospective-trial",
+  "latencyMs": 1120,
+  "ordinal": 4,
+  "preflightDigest": "sha256:7c30a3677ad45ba0c1b93ce1e4c0f6eee4824cd8bd9ce46ceb1c9de9094faa67",
+  "preregistrationDigest": "sha256:277c8994403605da15a57965d16e9dd680e44a18def51f03ecc57cc6cf69dea4",
+  "rawResponseDigest": "sha256:d6da9144ffcc7d40421373c2acf522a0d943a62028eef5b9157481eca2fd3402",
+  "recordDigest": "sha256:1aa93abea57560cab23df735875819925ef199e6a7590f51bd55178d6f0089bb",
+  "requestedModelId": "deepseek-flash",
+  "response": "",
+  "responseDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "schemaVersion": 1,
+  "taskDigest": "sha256:7b81981be44e7f15fc5a196df8ebac7ae8112966cb1427e229afbf2400ab1e03",
+  "taskId": "LEGO-R21-CAL-SEMANTIC-COMPLETION-101",
+  "trialId": "trial:lego-r21:cal:004",
+  "usage": {
+    "completion_tokens": 215,
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 413,
+    "prompt_tokens": 925,
+    "prompt_tokens_details": {
+      "cached_tokens": 512
+    },
+    "providerModel": "deepseek-flash",
+    "providerRequestMode": "non-thinking",
+    "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+    "total_tokens": 1140
+  }
+}

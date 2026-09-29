@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.recursive-lego-prospective-calibration-diagnosis",
+  "experimentId": "experiment:recursive-lego-r2_1-prospective-r1-20260929",
+  "calibrationJobId": "job-01a0ed6a-a457-79c3-96b6-726aedee6218",
+  "gateReceiptDigest": "sha256:b90b96c379a793cb6bd406510d7a6ca2201995dbfc41977cd2563c9d385ff170",
+  "standing": "REJECT_APPARATUS_CARRIER_MISMATCH",
+  "observations": {
+    "trialCount": 24,
+    "jsonParseValidCount": 0,
+    "successCountUnderPreregisteredEvaluator": 0,
+    "effectiveModelIdentityStable": true,
+    "providerModel": "deepseek-flash",
+    "sampleTrialResponseContent": "",
+    "providerCompletionTokensWereNonzero": true
+  },
+  "rootCause": {
+    "owner": "Harness conclusion carrier semantics",
+    "fact": "AgentTurnCapabilities.conclusion is a Harness invariant and DeepSeekTurnAdapter requires submit_run_conclusion (or another admitted Harness/Runtime action). A valid Provider conclusion is returned in AgentTurnResult.conclusion; AgentTurnResult.content may legitimately be empty.",
+    "consumerDefect": "The R1 experiment runner evaluated only AgentTurnResult.content with a bespoke JSON parser and did not retain AgentTurnResult.conclusion/structured_result. Therefore the preregistered evaluator was attached to the wrong carrier.",
+    "attribution": "experiment-consumer apparatus, not Recursive LEGO R2.1 semantics and not DeepSeek effective-model identity"
+  },
+  "evidenceBoundary": {
+    "r1TreatmentEffect": "UNSCORABLE_UNDER_CORRECT_HARNESS_CARRIER",
+    "posthocRescoring": "FORBIDDEN_AS_PRIMARY_EVIDENCE_BECAUSE_R1_DID_NOT_RETAIN_THE_CONCLUSION_PAYLOAD_NEEDED_FOR_ARM-BLIND RESCORING",
+    "inferentialExecution": "FORBIDDEN_BY_REJECTED_CALIBRATION_GATE",
+    "calibrationReuse": "R1 calibration task instances were exposed to the Provider and must not be reused as R2 calibration/inferential units"
+  },
+  "repair": {
+    "revision": "prospective-r2",
+    "mechanism": "Use Harness structured-result-v1 completion contract with caller-owned resultSchema {choice: enum(option ids)} and evaluate AgentRunConclusion.structured_result instead of free-text content.",
+    "taskPolicy": "Generate a new disjoint R2 calibration bank; do not modify R1 trial records or gate thresholds.",
+    "ownerPolicy": "Reuse Harness structured completion; do not change DeepSeek adapter or create a parallel result protocol."
+  },
+  "nonClaims": [
+    "R1 does not show that Recursive LEGO R2.1 is ineffective.",
+    "R1 does not show that Recursive LEGO R2.1 is effective.",
+    "The observed token difference between arms is descriptive apparatus cost only and is not an efficacy estimate."
+  ]
+}
