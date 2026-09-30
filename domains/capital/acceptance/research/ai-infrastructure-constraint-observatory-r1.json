@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.research-acceptance",
+  "truthRole": "OBSERVATORY_IMPLEMENTATION_ACCEPTANCE_NOT_PROVIDER_TRUTH_OR_PROSPECTIVE_FRONTIER_VALIDATION",
+  "subject": "ai-infrastructure-constraint-observatory-r1",
+  "observedDate": "2026-09-30",
+  "developmentBaseRevision": "6d09f4b1bd22f07dc6b159e9a452797bbddc83f4",
+  "integrationBaseRevision": "63535a7543fd1676a314daac6de04fca93c69b23",
+  "testedCandidateRevision": "a3344c8c0ba23de948fd8939fc252f438d509be8",
+  "standing": "PASS_IMPLEMENTATION_PROSPECTIVE_VALIDATION_PENDING",
+  "coverage": {
+    "watchSpecCount": 13,
+    "priorityCounts": {
+      "P0_CURRENT_FRONTIER": 4,
+      "P1_CANDIDATE_FRONTIER": 5,
+      "P2_MONITOR": 4
+    },
+    "queueCoverage": "13_OF_13_EXACT",
+    "networkFetchIncluded": false,
+    "schedulerAuthority": false,
+    "graphMutationIncluded": false,
+    "headroomAutoAdmission": false
+  },
+  "kernel": {
+    "input": "caller-qualified ObservationCandidate",
+    "control": "WatchSpec + currentness fence + gap/graph-trigger match",
+    "outputs": [
+      "NO_REENTRY",
+      "REENTER_MEASUREMENT",
+      "REENTER_GRAPH_AND_MEASUREMENT"
+    ],
+    "smallestReentryPolicy": true
+  },
+  "artifactDigests": {
+    "config/ai_infrastructure_constraint_observatory_r1.json": "sha256:3ee17a046b920cd88566bbfd55a66f7f2d187872b990690da4f26f40dbe4bf47",
+    "schema/ai-infrastructure-constraint-observatory-r1.schema.json": "sha256:8a67bdf087b2ac4f33b6165ea31ec3a98b3748ce8fab7760745917d715e4213c",
+    "src/ordivon_capital/research/constraint_observatory.py": "sha256:1c6dbaec51c576c9f0ba0a6481d3de9e13026bb6f424e74507b50ae043ec079e",
+    "docs/AI_INFRASTRUCTURE_CONSTRAINT_OBSERVATORY_R1.md": "sha256:198e8081b0b9b3e845f791bda9c1ed72ae9383489134f7399d435c7be6bda18a",
+    "tests/test_ai_infrastructure_constraint_observatory.py": "sha256:1ebf763fe49fe1fc90eed41e0d51c52cad0cfaef7043881fcb932a3e96f24966",
+    "tests/test_ai_infrastructure_constraint_graph.py": "sha256:053320b5adb7c6892e415a17851c4c1278466dfd950964a04e2e3d5ea6be9dea",
+    "config/capital_lego_registry.json": "sha256:7a4fc16f422b67ca58f091caf7f43acf2475caba9c93857e2d67f1d4c8ab2ac6",
+    "planning/functional-lego-map-r1.json": "sha256:85cc94f8ced206d1ddeccaed1208e5b75126a961c4333baf1b790c791dafd7ba",
+    "config/quantitative_component_inventory.json": "sha256:b5752e9a4addafd77078518f1ae00db6494689a6ed11aff5582b9396fe880d43",
+    "config/external_owner_census.json": "sha256:ced483ecac49dce31e920146c4ae596ed0734887bb398a33c37ca9166ff51042",
+    "generated/current-state-r2.json": "sha256:932c419793aa9b749745cb3e58d5a0cd9204f6fb883e6cf22b923835b04e5ce3",
+    "docs/CURRENT_STATE.md": "sha256:6dad5aab0fac1b09d309920f2fb91722399627bd97e79ef10a64b3394b7d9140"
+  },
+  "verification": {
+    "tddRedJobId": "job-01a0f1d2-b9f4-74e0-ac1d-8563524854a1",
+    "implementationGreenJobId": "job-01a0f1d7-d35d-7e71-a864-b916f6fd52ca",
+    "schemaTddRedJobId": "job-01a0f1da-8848-7e92-a4bc-164c3db12ede",
+    "schemaGreenJobId": "job-01a0f1da-d50c-7340-9125-29c1da94cb18",
+    "preRebaseFullHermeticJobId": "job-01a0f1db-2ce0-7e90-bbcd-c246e0a7e0b1",
+    "rebasedFullHermeticJobId": "job-01a0f1dc-34eb-7750-bcd2-19c609659c46",
+    "rebasedHermeticResult": "452 passed, 11 provider_qualification tests deselected",
+    "ruff": "PASS",
+    "capitalRegistry": "PASS",
+    "quantitativeInventory": "PASS",
+    "currentStateReadback": "PASS"
+  },
+  "prospectiveValidation": {
+    "standing": "PENDING_REALIZED_FUTURE_EPISODES",
+    "requiredEvidence": [
+      "false-positive re-entry cases",
+      "missed frontier migrations",
+      "stale-source cases",
+      "candidate-to-realized-blocker transitions"
+    ],
+    "nonClaim": "No current evidence establishes that this watch policy predicts future bottleneck migrations better than alternatives."
+  },
+  "nonClaims": [
+    "The observatory does not fetch or schedule external observations.",
+    "CALLER_QUALIFIED is an input standing and is not minted by the observatory.",
+    "A gap match reopens measurement evaluation and does not close the gap or admit headroom.",
+    "A graph trigger requests recomputation and does not mutate the constraint graph.",
+    "No investment recommendation, owner risk appetite, decision-state tag or external financial write authority is created."
+  ]
+}

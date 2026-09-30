@@ -681,7 +681,9 @@
       ],
       "validation": {
         "standing": "DEVELOPMENT_TESTED",
-        "evidenceRefs": []
+        "evidenceRefs": [
+          "acceptance/research/ai-infrastructure-constraint-observatory-r1.json"
+        ]
       },
       "monitoring": {
         "standing": "REQUIRED",
