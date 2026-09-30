@@ -1,0 +1,590 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.capital.ai-infrastructure-constraint-observatory",
+  "truthRole": "REENTRY_CONTROL_NOT_PROVIDER_TRUTH_OR_SCHEDULER",
+  "asOfDate": "2026-09-30",
+  "graphBinding": {
+    "relativePath": "config/ai_infrastructure_constraint_graph_r1.json",
+    "expectedDigest": "sha256:4f7e60db67b2b45806da7e2d375a65a01e17fde5d7d1d38fc0c0496d22005ef3"
+  },
+  "measurementBinding": {
+    "relativePath": "config/ai_infrastructure_constraint_measurements_r1.json",
+    "expectedDigest": "sha256:8070eb5ea2862a3e92019553f1737c0912e8d83b52053d480f76e5353b7e077b"
+  },
+  "principles": [
+    "Observe at natural owners; the observatory never becomes provider truth.",
+    "Re-enter only the smallest affected research layer when material evidence is newer than the bound state.",
+    "A matched gap is permission to re-evaluate a measurement, not proof that the gap is closed or headroom is admitted.",
+    "A graph trigger requests jurisdiction-frontier recomputation; it never mutates the graph automatically.",
+    "P0/P1/P2 priority is evidence-acquisition attention, not investment ranking or scheduler authority.",
+    "Preserve UNKNOWN when a candidate does not close the relevant scope/unit/time/qualification boundary."
+  ],
+  "effectBoundary": {
+    "networkFetchIncluded": false,
+    "schedulerAuthority": false,
+    "providerTruthAuthority": false,
+    "graphMutationIncluded": false,
+    "measurementMutationIncluded": false,
+    "decisionStateRegistryMutationIncluded": false,
+    "investmentRecommendationAuthority": false,
+    "ownerRiskBudgetInferred": false,
+    "externalFinancialWritesAllowed": false
+  },
+  "sourceQualificationContract": {
+    "requiredStanding": "CALLER_QUALIFIED",
+    "observatoryMayQualifySource": false,
+    "reason": "Source/currentness qualification belongs to the caller and the natural external owner; this control only routes an already-qualified candidate."
+  },
+  "gapVocabulary": [
+    "BACKLOG",
+    "CANCELLATION_RATE",
+    "COMMISSIONING_STATUS",
+    "CURTAILMENT_CONGESTION",
+    "CUSTOMER_BOM",
+    "CUSTOMER_COMMITTED_DEMAND",
+    "CUSTOMER_MIX",
+    "DELIVERY_STATUS",
+    "ENERGIZED_CAPACITY",
+    "EXPORT_DOMESTIC_ALLOCATION",
+    "FIRM_CAPACITY",
+    "HIGH_DENSITY_READY",
+    "INPUT_MATERIAL_SUPPLY",
+    "INSTALLED_ACCELERATOR_STOCK",
+    "LOAD_MATURITY",
+    "MATCHED_PRODUCT_SUPPLY",
+    "PACKAGE_DEMAND_WAFER_EQUIVALENT",
+    "PLATFORM_ALLOCATION",
+    "POWER_READINESS",
+    "PRODUCT_CONFIGURATION",
+    "QUALIFICATION",
+    "QUALIFIED_DELIVERY_FLOW",
+    "QUALIFIED_FINISHED_SUPPLY",
+    "QUALIFIED_THROUGHPUT",
+    "REGIONAL_SCOPE",
+    "RESERVE_MARGIN",
+    "TIME_BASIS",
+    "TRANSMISSION_CAPABILITY",
+    "USEFUL_WORK_BRIDGE",
+    "UTILIZATION",
+    "VOLTAGE_MVA_CLASS",
+    "WAFER_TO_PACKAGE_LAG",
+    "YIELD"
+  ],
+  "graphTriggerVocabulary": [
+    "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+    "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+    "CURRENT_FRONTIER_RELIEF",
+    "EFFECTIVE_CAPACITY_MATERIAL_CHANGE",
+    "NONFRONTIER_REPEATED_SCHEDULE_BLOCKER"
+  ],
+  "watchSpecs": [
+    {
+      "watchKey": "CN:accelerator-logic",
+      "jurisdiction": "CN",
+      "nodeKey": "accelerator-logic",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 1,
+      "naturalOwners": [
+        "Huawei",
+        "DeepSeek",
+        "ByteDance",
+        "Alibaba",
+        "Tencent",
+        "China Mobile procurement"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "MATCHED_PRODUCT_SUPPLY",
+        "CUSTOMER_COMMITTED_DEMAND",
+        "DELIVERY_STATUS",
+        "PRODUCT_CONFIGURATION",
+        "USEFUL_WORK_BRIDGE"
+      ],
+      "graphReentryTriggerIds": [
+        "CURRENT_FRONTIER_RELIEF",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "Huawei 950DT deliverable shipments/allocation by quarter and configuration",
+        "DeepSeek order contract/accepted allocation and delivery schedule rather than plan only",
+        "ByteDance/Alibaba/Tencent and other customer committed 950-series quantities",
+        "China-wide delivered accelerator flow converted through a validated useful-work bridge"
+      ]
+    },
+    {
+      "watchKey": "CN:hbm",
+      "jurisdiction": "CN",
+      "nodeKey": "hbm",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 2,
+      "naturalOwners": [
+        "Huawei",
+        "CXMT",
+        "Wuhan XMC",
+        "DeepSeek",
+        "major accelerator customers"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "QUALIFIED_FINISHED_SUPPLY",
+        "CUSTOMER_COMMITTED_DEMAND",
+        "CUSTOMER_BOM",
+        "PRODUCT_CONFIGURATION",
+        "DELIVERY_STATUS",
+        "YIELD",
+        "WAFER_TO_PACKAGE_LAG"
+      ],
+      "graphReentryTriggerIds": [
+        "CURRENT_FRONTIER_RELIEF",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "DeepSeek accepted 950DT allocation and exact 96GB/144GB configuration mix",
+        "qualified finished CXMT/XMC/HiZQ HBM output in GB or stacks by compatible product",
+        "ByteDance/Alibaba/Tencent and other customer order quantities and memory BOMs",
+        "realized yield/qualification plus wafer-to-package lag"
+      ]
+    },
+    {
+      "watchKey": "US:transformer-switchgear",
+      "jurisdiction": "US",
+      "nodeKey": "transformer-switchgear",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 3,
+      "naturalOwners": [
+        "U.S. DOE / National Laboratory of the Rockies",
+        "U.S. utilities",
+        "qualified LPT manufacturers and importers"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "OFFICIAL_REGULATOR_OR_SYSTEM_OPERATOR",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "BACKLOG",
+        "QUALIFIED_DELIVERY_FLOW",
+        "VOLTAGE_MVA_CLASS",
+        "CANCELLATION_RATE",
+        "CUSTOMER_MIX",
+        "TIME_BASIS"
+      ],
+      "graphReentryTriggerIds": [
+        "CURRENT_FRONTIER_RELIEF",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "2026/2027 accepted LPT orders/backlog in units and MVA by >=100MVA voltage class",
+        "qualified domestic+import deliveries by same class/year",
+        "cancellations/double ordering and supplier qualification constraints",
+        "data-center-specific transformer mix versus generator-step-up/replacement demand"
+      ]
+    },
+    {
+      "watchKey": "US:grid-interconnection-transmission",
+      "jurisdiction": "US",
+      "nodeKey": "grid-interconnection-transmission",
+      "priority": "P0_CURRENT_FRONTIER",
+      "order": 4,
+      "naturalOwners": [
+        "FERC",
+        "ERCOT",
+        "PJM",
+        "MISO",
+        "SPP",
+        "NYISO",
+        "ISO New England"
+      ],
+      "acceptedSourceClasses": [
+        "OFFICIAL_REGULATOR_OR_SYSTEM_OPERATOR",
+        "OFFICIAL_STATISTICS",
+        "PRIMARY_PROVIDER_OR_COMPANY"
+      ],
+      "requiredGapIds": [
+        "LOAD_MATURITY",
+        "ENERGIZED_CAPACITY",
+        "TRANSMISSION_CAPABILITY",
+        "COMMISSIONING_STATUS",
+        "REGIONAL_SCOPE"
+      ],
+      "graphReentryTriggerIds": [
+        "CURRENT_FRONTIER_RELIEF",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "ERCOT Batch Zero verified/base/studied MW after eligibility audit",
+        "ISO/RTO large-load queue snapshots with common maturity states",
+        "approved-to-energize MW and observed peak consumption",
+        "regional transmission upgrade scope/capability and completion dates"
+      ]
+    },
+    {
+      "watchKey": "CN:advanced-packaging",
+      "jurisdiction": "CN",
+      "nodeKey": "advanced-packaging",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 5,
+      "naturalOwners": [
+        "SJ Semiconductor",
+        "JCET",
+        "Tongfu Microelectronics",
+        "Huatian Technology",
+        "Huawei / memory customers"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "UTILIZATION",
+        "QUALIFIED_THROUGHPUT",
+        "BACKLOG",
+        "INPUT_MATERIAL_SUPPLY",
+        "COMMISSIONING_STATUS"
+      ],
+      "graphReentryTriggerIds": [
+        "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "2026H2 current 2.5D/3D utilization/wafer throughput",
+        "qualified customer backlog by package platform",
+        "HBM/interposer/substrate customer-supplied material share and shortages",
+        "new Jiangyin/Lingang line commissioning and qualification dates"
+      ]
+    },
+    {
+      "watchKey": "US:hbm",
+      "jurisdiction": "US",
+      "nodeKey": "hbm",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 6,
+      "naturalOwners": [
+        "SK hynix",
+        "Samsung Electronics",
+        "Micron",
+        "NVIDIA",
+        "AMD",
+        "U.S.-led ASIC platform owners"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "CUSTOMER_BOM",
+        "PLATFORM_ALLOCATION",
+        "DELIVERY_STATUS",
+        "QUALIFICATION",
+        "YIELD"
+      ],
+      "graphReentryTriggerIds": [
+        "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "NVIDIA/AMD/ASIC HBM4/HBM3E BOM by shipped platform",
+        "SK hynix/Samsung/Micron allocated finished GB/stacks by platform",
+        "customer LTA allocation and fulfillment",
+        "HBM qualification/yield/ramp by product generation"
+      ]
+    },
+    {
+      "watchKey": "US:advanced-packaging",
+      "jurisdiction": "US",
+      "nodeKey": "advanced-packaging",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 7,
+      "naturalOwners": [
+        "TSMC",
+        "Amkor",
+        "Intel Foundry",
+        "NVIDIA",
+        "AMD",
+        "U.S.-led ASIC platform owners"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "QUALIFIED_THROUGHPUT",
+        "PLATFORM_ALLOCATION",
+        "PACKAGE_DEMAND_WAFER_EQUIVALENT",
+        "COMMISSIONING_STATUS",
+        "YIELD"
+      ],
+      "graphReentryTriggerIds": [
+        "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "TSMC/OSAT realized CoWoS output and booked allocation by platform",
+        "NVIDIA/AMD/ASIC package demand in equivalent 12-inch wafer starts",
+        "Amkor/Intel/U.S. alternative-package qualified ramp",
+        "package area/yield changes from larger CoWoS-L designs"
+      ]
+    },
+    {
+      "watchKey": "US:ai-data-center-it",
+      "jurisdiction": "US",
+      "nodeKey": "ai-data-center-it",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 8,
+      "naturalOwners": [
+        "data-center operators and utilities",
+        "CBRE",
+        "JLL",
+        "major AI tenants"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "OFFICIAL_STATISTICS",
+        "COMMERCIAL_MARKET_RESEARCH",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT"
+      ],
+      "requiredGapIds": [
+        "ENERGIZED_CAPACITY",
+        "COMMISSIONING_STATUS",
+        "CUSTOMER_COMMITTED_DEMAND",
+        "POWER_READINESS",
+        "HIGH_DENSITY_READY"
+      ],
+      "graphReentryTriggerIds": [
+        "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "energized high-density AI IT MW by major market",
+        "power-secured vs shell-complete vs commissioned capacity",
+        "AI tenant committed MW versus general colocation",
+        "accelerator delivery MW versus commissioned rack/cooling capacity"
+      ]
+    },
+    {
+      "watchKey": "US:electricity-generation",
+      "jurisdiction": "US",
+      "nodeKey": "electricity-generation",
+      "priority": "P1_CANDIDATE_FRONTIER",
+      "order": 9,
+      "naturalOwners": [
+        "U.S. EIA",
+        "NERC",
+        "FERC",
+        "PJM",
+        "ERCOT",
+        "regional utilities"
+      ],
+      "acceptedSourceClasses": [
+        "OFFICIAL_STATISTICS",
+        "OFFICIAL_REGULATOR_OR_SYSTEM_OPERATOR",
+        "PRIMARY_PROVIDER_OR_COMPANY"
+      ],
+      "requiredGapIds": [
+        "FIRM_CAPACITY",
+        "CUSTOMER_COMMITTED_DEMAND",
+        "COMMISSIONING_STATUS",
+        "REGIONAL_SCOPE",
+        "RESERVE_MARGIN"
+      ],
+      "graphReentryTriggerIds": [
+        "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "regional firm/accredited capacity additions and retirements",
+        "PJM/ERCOT large-load forecasts versus reserve margins",
+        "behind-the-meter turbine/nuclear/generation project commissioning",
+        "site-level PPAs and energization dates"
+      ]
+    },
+    {
+      "watchKey": "CN:ai-data-center-it",
+      "jurisdiction": "CN",
+      "nodeKey": "ai-data-center-it",
+      "priority": "P2_MONITOR",
+      "order": 10,
+      "naturalOwners": [
+        "MIIT / official compute-infrastructure owners",
+        "China NEA",
+        "telecom/cloud data-center operators"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "OFFICIAL_STATISTICS",
+        "COMMERCIAL_MARKET_RESEARCH",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT"
+      ],
+      "requiredGapIds": [
+        "ENERGIZED_CAPACITY",
+        "UTILIZATION",
+        "INSTALLED_ACCELERATOR_STOCK",
+        "HIGH_DENSITY_READY",
+        "POWER_READINESS"
+      ],
+      "graphReentryTriggerIds": [
+        "NONFRONTIER_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "cluster-level energized AI IT MW and utilization",
+        "accelerator installed stock by cluster",
+        "rack density/liquid cooling readiness",
+        "internet-data-service electricity by AI versus non-AI workload where available"
+      ]
+    },
+    {
+      "watchKey": "CN:electricity-generation",
+      "jurisdiction": "CN",
+      "nodeKey": "electricity-generation",
+      "priority": "P2_MONITOR",
+      "order": 11,
+      "naturalOwners": [
+        "China NEA",
+        "State Grid",
+        "China Southern Power Grid",
+        "China Electricity Council"
+      ],
+      "acceptedSourceClasses": [
+        "OFFICIAL_STATISTICS",
+        "OFFICIAL_REGULATOR_OR_SYSTEM_OPERATOR",
+        "PRIMARY_PROVIDER_OR_COMPANY"
+      ],
+      "requiredGapIds": [
+        "FIRM_CAPACITY",
+        "CUSTOMER_COMMITTED_DEMAND",
+        "CURTAILMENT_CONGESTION",
+        "REGIONAL_SCOPE",
+        "RESERVE_MARGIN"
+      ],
+      "graphReentryTriggerIds": [
+        "NONFRONTIER_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "regional reserve/firm-capacity margins at compute hubs",
+        "AI cluster contracted load and energization dates",
+        "firm thermal/nuclear/hydro plus storage availability",
+        "curtailment and congestion during peak periods"
+      ]
+    },
+    {
+      "watchKey": "CN:transformer-switchgear",
+      "jurisdiction": "CN",
+      "nodeKey": "transformer-switchgear",
+      "priority": "P2_MONITOR",
+      "order": 12,
+      "naturalOwners": [
+        "qualified Chinese transformer manufacturers",
+        "China customs/statistics authorities",
+        "data-center developers and grid buyers"
+      ],
+      "acceptedSourceClasses": [
+        "PRIMARY_PROVIDER_OR_COMPANY",
+        "PRIMARY_COMPANY_FILING",
+        "PRIMARY_PROCUREMENT_OR_CONTRACT",
+        "OFFICIAL_STATISTICS",
+        "OFFICIAL_REGULATOR_OR_SYSTEM_OPERATOR",
+        "REPUTABLE_DIRECT_SOURCING",
+        "HIGH_QUALITY_INDUSTRY_RESEARCH"
+      ],
+      "requiredGapIds": [
+        "QUALIFIED_DELIVERY_FLOW",
+        "BACKLOG",
+        "EXPORT_DOMESTIC_ALLOCATION",
+        "COMMISSIONING_STATUS",
+        "INPUT_MATERIAL_SUPPLY"
+      ],
+      "graphReentryTriggerIds": [
+        "CANDIDATE_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "domestic MVA/year by voltage/technology class",
+        "data-center transformer accepted orders and lead time",
+        "export versus domestic allocation",
+        "new plant commissioning and bottleneck inputs such as electrical steel/copper/bushings"
+      ]
+    },
+    {
+      "watchKey": "CN:grid-interconnection-transmission",
+      "jurisdiction": "CN",
+      "nodeKey": "grid-interconnection-transmission",
+      "priority": "P2_MONITOR",
+      "order": 13,
+      "naturalOwners": [
+        "China NEA",
+        "State Grid",
+        "China Southern Power Grid",
+        "regional grid companies"
+      ],
+      "acceptedSourceClasses": [
+        "OFFICIAL_REGULATOR_OR_SYSTEM_OPERATOR",
+        "OFFICIAL_STATISTICS",
+        "PRIMARY_PROVIDER_OR_COMPANY"
+      ],
+      "requiredGapIds": [
+        "LOAD_MATURITY",
+        "ENERGIZED_CAPACITY",
+        "TRANSMISSION_CAPABILITY",
+        "COMMISSIONING_STATUS",
+        "REGIONAL_SCOPE"
+      ],
+      "graphReentryTriggerIds": [
+        "NONFRONTIER_REPEATED_SCHEDULE_BLOCKER",
+        "CONTRARY_EVIDENCE_TO_FRONTIER_ROLE",
+        "EFFECTIVE_CAPACITY_MATERIAL_CHANGE"
+      ],
+      "nextObservations": [
+        "AI-cluster requested/approved/energized load MW",
+        "regional substation headroom and connection lead time",
+        "new UHV/500kV project commissioning relevant to compute hubs",
+        "congestion and transfer utilization during peak conditions"
+      ]
+    }
+  ]
+}

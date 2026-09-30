@@ -661,6 +661,48 @@
         "Automatic state-tag emission.",
         "External financial-write authorization."
       ]
+    },
+    {
+      "id": "ai-infrastructure-constraint-observatory-r1",
+      "implementation": "src/ordivon_capital/research/constraint_observatory.py",
+      "classification": "CONTROL",
+      "sr26ModelStanding": "NON_MODEL",
+      "status": "RESEARCH_ONLY",
+      "purpose": "Deterministically route newer caller-qualified AI-infrastructure evidence to the smallest measurement/graph re-entry without fetching, scheduling, mutating provider truth, or admitting headroom.",
+      "materiality": "MEDIUM",
+      "assumptions": [
+        "Graph and measurement digests identify the exact research state being watched.",
+        "The caller separately qualifies source identity/currentness before presenting an observation candidate."
+      ],
+      "limitations": [
+        "The control does not fetch or discover evidence.",
+        "A re-entry decision is not provider truth, headroom admission, predictive validation, or an investment signal.",
+        "Observation dates are day-granular in R1; same-day ordering is therefore not inferred."
+      ],
+      "validation": {
+        "standing": "DEVELOPMENT_TESTED",
+        "evidenceRefs": []
+      },
+      "monitoring": {
+        "standing": "REQUIRED",
+        "requirements": [
+          "Rebind after graph or measurement state changes.",
+          "Record false-positive and missed re-entry cases during prospective use.",
+          "Keep source qualification and scheduling outside this control."
+        ]
+      },
+      "permittedUses": [
+        "Owner-watch plan projection.",
+        "Evidence-gap re-entry routing.",
+        "Bounded frontier-recompute request generation."
+      ],
+      "prohibitedUses": [
+        "Automatic source qualification.",
+        "Automatic data acquisition or scheduling.",
+        "Automatic graph mutation or headroom admission.",
+        "Security selection or investment recommendation.",
+        "External financial-write authorization."
+      ]
     }
   ]
 }

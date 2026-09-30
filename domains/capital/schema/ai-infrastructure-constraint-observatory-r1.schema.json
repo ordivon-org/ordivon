@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ordivon.capital.schema.ai-infrastructure-constraint-observatory-r1",
+  "title": "Ordivon Capital AI Infrastructure Constraint Observatory R1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "truthRole",
+    "asOfDate",
+    "graphBinding",
+    "measurementBinding",
+    "principles",
+    "effectBoundary",
+    "sourceQualificationContract",
+    "gapVocabulary",
+    "graphTriggerVocabulary",
+    "watchSpecs"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "ordivon.capital.ai-infrastructure-constraint-observatory"},
+    "truthRole": {"const": "REENTRY_CONTROL_NOT_PROVIDER_TRUTH_OR_SCHEDULER"},
+    "asOfDate": {"type": "string", "format": "date"},
+    "graphBinding": {
+      "type": "object",
+      "required": ["relativePath", "expectedDigest"],
+      "additionalProperties": false,
+      "properties": {
+        "relativePath": {"const": "config/ai_infrastructure_constraint_graph_r1.json"},
+        "expectedDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "measurementBinding": {
+      "type": "object",
+      "required": ["relativePath", "expectedDigest"],
+      "additionalProperties": false,
+      "properties": {
+        "relativePath": {"const": "config/ai_infrastructure_constraint_measurements_r1.json"},
+        "expectedDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "principles": {"type": "array", "minItems": 5, "items": {"type": "string", "minLength": 1}},
+    "effectBoundary": {"type": "object"},
+    "sourceQualificationContract": {"type": "object"},
+    "gapVocabulary": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "graphTriggerVocabulary": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "watchSpecs": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "required": [
+          "watchKey",
+          "jurisdiction",
+          "nodeKey",
+          "priority",
+          "order",
+          "naturalOwners",
+          "acceptedSourceClasses",
+          "requiredGapIds",
+          "graphReentryTriggerIds",
+          "nextObservations"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

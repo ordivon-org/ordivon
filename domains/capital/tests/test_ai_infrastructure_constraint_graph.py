@@ -147,7 +147,11 @@ def test_external_owner_census_keeps_constraint_graph_as_thin_research_binding()
     assert row["sourcePatterns"] == [
         "src/ordivon_capital/research/constraint_graph.py",
         "src/ordivon_capital/research/constraint_measurements.py",
+        "src/ordivon_capital/research/constraint_observatory.py",
     ]
+    assert "does not own scheduling" in row["localResponsibility"]
+    assert "network acquisition" in row["localResponsibility"]
+    assert "provider truth qualification" in row["localResponsibility"]
     assert row["localStanding"] == "RESEARCH_ONLY_VALIDATION_REQUIRED_THIN_BINDING"
     assert "do not own industrial capacity truth" in row["localResponsibility"]
     assert "ISO/IEC/IEEE 15288" in row["standardOwners"]
