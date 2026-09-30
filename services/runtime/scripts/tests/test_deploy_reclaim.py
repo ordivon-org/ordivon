@@ -1014,7 +1014,10 @@ class DeployReclaimTests(unittest.TestCase):
                 "ordivon-runtime-capacity-acceptance",
                 "ordivon-runtime-pressure-control",
             ]
-            for name in release_names:
+            previous_release_names = [
+                name for name in release_names if name != "ordivon-runtime-pressure-control"
+            ]
+            for name in previous_release_names:
                 write_executable(install / name, f"old-{name}\n")
             (install / "mcp_probe.py").write_text("OLD_PROBE = True\n", encoding="utf-8")
             (install / "mcp_probe.py").chmod(0o644)
@@ -1022,7 +1025,7 @@ class DeployReclaimTests(unittest.TestCase):
             prior_receipt = root / "receipts" / "prior"
             prior_receipt.mkdir(parents=True)
             prior_installed = []
-            for name in [*release_names, "mcp_probe.py"]:
+            for name in [*previous_release_names, "mcp_probe.py"]:
                 path = install / name
                 prior_installed.append(
                     {
@@ -1123,6 +1126,11 @@ class DeployReclaimTests(unittest.TestCase):
                 receipt_manifest = json.loads((receipt / "manifest.json").read_text())
                 self.assertEqual(receipt_manifest["schemaVersion"], 2)
                 self.assertEqual(len(receipt_manifest["artifacts"]), 13)
+                previous_by_name = {
+                    item["name"]: item for item in receipt_manifest["previous"]
+                }
+                self.assertFalse(previous_by_name["ordivon-runtime-pressure-control"]["present"])
+                self.assertIsNone(previous_by_name["ordivon-runtime-pressure-control"]["digest"])
                 self.assertEqual(
                     receipt_manifest["runtimePolicy"]["previous"]["defaultRuntimeMs"],
                     None,
@@ -1193,7 +1201,9 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(rollback["status"], "restored_previous")
             self.assertEqual(rollback["commit"], prior_commit)
             self.assertTrue(rollback["commitKnown"])
-            self.assertEqual(len(rollback["installed"]), 13)
+            self.assertEqual(len(rollback["installed"]), 12)
+            self.assertIn("ordivon-runtime-pressure-control", rollback["removedArtifacts"])
+            self.assertFalse((install / "ordivon-runtime-pressure-control").exists())
             self.assertEqual((install / "ordivon-runtime-status").read_text(), "old-ordivon-runtime-status\n")
             self.assertEqual((install / "mcp_probe.py").read_text(), "OLD_PROBE = True\n")
             self.assertEqual((install / "mcp_probe.py").stat().st_mode & 0o777, 0o644)
@@ -1207,6 +1217,122 @@ class DeployReclaimTests(unittest.TestCase):
                 rolled_back_env,
             )
             self.assertIn("ORDIVON_RELEASE_REQUIRED_REF=origin/legacy\n", rolled_back_env)
+
+    def test_full_release_plan_rejects_missing_artifact_from_latest_receipted_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repo = root / "repo"
+            initialize_git_repository(repo, remote=True)
+            commit = add_release_operator_sources(repo, push=True)
+            candidate = repo / "target" / "release"
+            manifest = root / "candidate-manifest.json"
+            cargo = fake_cargo_for_default_release(root)
+            subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "prepare",
+                    "--source-repo",
+                    str(repo),
+                    "--commit",
+                    commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--cargo",
+                    str(cargo),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            install = root / "install"
+            install.mkdir()
+            artifact_records = []
+            manifest_value = json.loads(manifest.read_text(encoding="utf-8"))
+            for artifact in manifest_value["artifacts"]:
+                name = artifact["name"]
+                mode = artifact["mode"]
+                source = candidate / name
+                target = install / name
+                target.write_bytes(source.read_bytes())
+                target.chmod(mode)
+                artifact_records.append(
+                    {
+                        "name": name,
+                        "kind": artifact["kind"],
+                        "mode": mode,
+                        "digest": "sha256:" + hashlib.sha256(target.read_bytes()).hexdigest(),
+                        "bytes": target.stat().st_size,
+                        "path": str(target),
+                    }
+                )
+            receipt = root / "receipts" / "baseline"
+            receipt.mkdir(parents=True)
+            (receipt / "result.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 2,
+                        "status": "deployed",
+                        "commit": commit,
+                        "finishedAtMs": 1,
+                        "installed": artifact_records,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (install / "ordivon-runtime-pressure-control").unlink()
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            env_file = root / "runtime.env"
+            env_file.write_text(
+                "ORDIVON_BIND=127.0.0.1:1\nORDIVON_BEARER_TOKEN=test\n",
+                encoding="utf-8",
+            )
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(
+                fake_runtime_inspect_with_active_jobs(root)
+            )
+            planned = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-deploy",
+                    "plan",
+                    "--source-repo",
+                    str(repo),
+                    "--commit",
+                    commit,
+                    "--candidate-dir",
+                    str(candidate),
+                    "--candidate-manifest",
+                    str(manifest),
+                    "--install-dir",
+                    str(install),
+                    "--database",
+                    str(database),
+                    "--env-file",
+                    str(env_file),
+                    "--receipt-root",
+                    str(root / "receipts"),
+                    "--git",
+                    shutil.which("git") or "/usr/bin/git",
+                ],
+                cwd=REPO,
+                check=False,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            self.assertEqual(planned.returncode, 2, planned.stderr)
+            plan = json.loads(planned.stdout)
+            self.assertFalse(plan["eligible"])
+            self.assertFalse(plan["installedBaseline"]["authorized"])
+            self.assertIn(
+                "installed release artifacts do not match the latest deployment receipt",
+                plan["blockers"],
+            )
 
     def test_new_deployer_rolls_back_legacy_v1_binary_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
