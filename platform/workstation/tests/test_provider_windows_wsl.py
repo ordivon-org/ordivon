@@ -29,3 +29,19 @@ def test_materializer_is_content_addressed_and_does_not_activate_service():
     assert "programdata/ordivon/workstation/providers/windowswslprovider" in text
     for forbidden in ("sc.exe", "new-service", "register-scheduledtask", "restart-service", "start-service"):
         assert forbidden not in text
+
+
+def test_windows_wsl_provider_storage_reclaim_is_sparse_aware_and_read_only():
+    text = PS1.read_text(encoding="utf-8")
+    lowered = text.lower()
+    assert "storage-reclaim" in text
+    assert "capability/wsl/storage-reclaim-observe" in text
+    assert "fsutil.exe" in lowered
+    assert "queryextents" in lowered
+    assert "uint64]::maxvalue" in lowered
+    assert "[io.fileattributes]::sparsefile" in lowered
+    assert "allocatedbytes" in lowered
+    assert "holebytes" in lowered
+    assert "batstanding = 'unknown_not_observed'" in lowered
+    for forbidden in ("set-sparse", "setzerodata", "--compact", "optimize-vhd", "diskpart"):
+        assert forbidden not in lowered
