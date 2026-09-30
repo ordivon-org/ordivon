@@ -50,6 +50,33 @@ def absolute_path(value: str) -> Path:
     return path
 
 
+def workspace_id_from_reference(value: str) -> str:
+    prefix = "runtime:workspace:"
+    if not value.startswith(prefix):
+        raise RuntimeError(
+            "workspace reference must use runtime:workspace:<workspaceId>"
+        )
+    workspace_id = value[len(prefix):]
+    if not workspace_id or len(workspace_id) > 96:
+        raise RuntimeError("workspace reference contains an invalid Workspace id")
+    first_allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+    allowed = first_allowed | set("._-")
+    if workspace_id[0] not in first_allowed or any(char not in allowed for char in workspace_id):
+        raise RuntimeError("workspace reference contains an invalid Workspace id")
+    return workspace_id
+
+
+def selected_workspace_ids(args: argparse.Namespace) -> list[str]:
+    selected: list[str] = []
+    for workspace_id in getattr(args, "workspace_ids", None) or []:
+        if workspace_id not in selected:
+            selected.append(workspace_id)
+    for reference in getattr(args, "workspace_refs", None) or []:
+        workspace_id = workspace_id_from_reference(reference)
+        if workspace_id not in selected:
+            selected.append(workspace_id)
+    return selected
+
 def nonnegative_float(value: str) -> float:
     parsed = float(value)
     if not math.isfinite(parsed) or parsed < 0:
@@ -88,6 +115,16 @@ def parse_args() -> argparse.Namespace:
         help=(
             "inspect only this natural-owner-selected Workspace; repeat for a bounded "
             "completion cohort"
+        ),
+    )
+    inspect.add_argument(
+        "--workspace-ref",
+        action="append",
+        dest="workspace_refs",
+        help=(
+            "consume one Host/natural-owner navigation reference of the exact form "
+            "runtime:workspace:<workspaceId>; repeat for a bounded completion cohort. "
+            "The reference selects a carrier only and does not establish semantic completion."
         ),
     )
     inspect.add_argument("--pretty", action="store_true")
@@ -225,7 +262,7 @@ def reclaim_inspect(args: argparse.Namespace) -> dict[str, object]:
         command.extend(["--workspace-root", str(args.workspace_root)])
     if args.measure_bytes:
         command.append("--measure-bytes")
-    for workspace_id in getattr(args, "workspace_ids", None) or []:
+    for workspace_id in selected_workspace_ids(args):
         command.extend(["--workspace-id", workspace_id])
     return validate_reclaim_inspect(run_json(command))
 
