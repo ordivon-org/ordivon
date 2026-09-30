@@ -81,6 +81,15 @@ def parse_args() -> argparse.Namespace:
 
     inspect = sub.add_parser("inspect", help="enrich reclaim evidence with retention policy")
     add_common(inspect)
+    inspect.add_argument(
+        "--workspace-id",
+        action="append",
+        dest="workspace_ids",
+        help=(
+            "inspect only this natural-owner-selected Workspace; repeat for a bounded "
+            "completion cohort"
+        ),
+    )
     inspect.add_argument("--pretty", action="store_true")
 
     sweep = sub.add_parser("sweep", help="release policy-expired clean Workspaces")
@@ -216,6 +225,8 @@ def reclaim_inspect(args: argparse.Namespace) -> dict[str, object]:
         command.extend(["--workspace-root", str(args.workspace_root)])
     if args.measure_bytes:
         command.append("--measure-bytes")
+    for workspace_id in getattr(args, "workspace_ids", None) or []:
+        command.extend(["--workspace-id", workspace_id])
     return validate_reclaim_inspect(run_json(command))
 
 

@@ -45,6 +45,8 @@ ordivon-runtime-reclaim inspect --database <registry> --runtime-store-root <runt
 
 The report identifies `workspace.close` as the release mechanism. Do not delete Workspace directories directly or add a second reclaim apply path.
 
+Natural owners should normally drive retirement incrementally after semantic completion rather than forcing the pressure controller to rediscover every Workspace. `ordivon-runtime-reclaim inspect --workspace-id <id>` and `ordivon-runtime-lifecycle inspect --workspace-id <id>` reuse the same Registry/Git classifier for only the owner-selected carrier; repeat the option for a bounded completion cohort. Selection is not semantic completion authority and does not make a Workspace reclaimable: active/held Jobs, dirty state, canonical integration/patch-equivalence, exact `sourceStateDigest`, and `workspace.close(force=false)` remain the safety predicates. The unfiltered inspect remains the audit/census path, not the normal per-completion retirement path.
+
 Use each command's `--help` as the current argument contract:
 
 ```text

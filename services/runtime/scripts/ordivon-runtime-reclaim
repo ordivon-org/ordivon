@@ -32,6 +32,15 @@ def parse_args() -> argparse.Namespace:
 
     inspect = subparsers.add_parser("inspect", help="classify Workspace reclaim candidates")
     add_inspection_arguments(inspect)
+    inspect.add_argument(
+        "--workspace-id",
+        action="append",
+        dest="workspace_ids",
+        help=(
+            "classify only this natural-owner-selected Workspace; repeat to classify a "
+            "bounded completion cohort without scanning unrelated Workspaces"
+        ),
+    )
     inspect.add_argument("--pretty", action="store_true")
 
     apply = subparsers.add_parser(
@@ -976,7 +985,11 @@ def main() -> int:
     try:
         args = parse_args()
         if args.command == "inspect":
-            report = inspect_workspaces(args)
+            selected_workspace_ids = set(args.workspace_ids or []) or None
+            report = inspect_workspaces(
+                args,
+                selected_workspace_ids=selected_workspace_ids,
+            )
             print(json.dumps(report, indent=2 if args.pretty else None, sort_keys=args.pretty))
             return 0
         if args.command == "apply":
