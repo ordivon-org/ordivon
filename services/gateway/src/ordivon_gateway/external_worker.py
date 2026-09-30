@@ -280,6 +280,17 @@ class ExternalPullWorkerTransport:
                 "UPDATE workers SET last_heartbeat_ms=?, capabilities_json=? WHERE worker_id=?",
                 (now, capabilities_json, worker_id),
             )
+            # A live worker heartbeat renews only leases that are still valid at the
+            # serialization point. It never resurrects an already-expired attempt.
+            db.execute(
+                """
+                UPDATE attempts
+                SET lease_expires_ms=?
+                WHERE worker_id=? AND generation=?
+                  AND state IN ('claimed','started') AND lease_expires_ms>=?
+                """,
+                (now + self.lease_ms, worker_id, generation, now),
+            )
             db.execute("COMMIT")
 
     def capability_projection(self) -> dict[str, list[str]]:
@@ -345,20 +356,43 @@ class ExternalPullWorkerTransport:
     def _reap_expired(self, db: sqlite3.Connection, now: int) -> None:
         expired = db.execute(
             """
-            SELECT attempt_id, operation_id FROM attempts
+            SELECT attempt_id, operation_id, state FROM attempts
             WHERE state IN ('claimed','started') AND lease_expires_ms < ?
             """,
             (now,),
         ).fetchall()
         for row in expired:
+            if row["state"] == "claimed":
+                # No started acknowledgement exists, so the transport may safely
+                # make the parcel claimable again. Workers must acknowledge started
+                # before performing external effects.
+                db.execute(
+                    "UPDATE attempts SET state='expired_unstarted' WHERE attempt_id=?",
+                    (row["attempt_id"],),
+                )
+                db.execute(
+                    """
+                    UPDATE operations
+                    SET state='queued', active_attempt_id=NULL, updated_at_ms=?
+                    WHERE operation_id=? AND terminal=0 AND desired_state='run'
+                      AND active_attempt_id=?
+                    """,
+                    (now, row["operation_id"], row["attempt_id"]),
+                )
+                continue
+
+            # A started attempt may already have produced external side effects.
+            # Lease loss therefore means execution truth is unknown, not that the
+            # operation is safe to duplicate. Fence new attempts until the same
+            # execution is reconciled or returns a terminal result.
             db.execute(
-                "UPDATE attempts SET state='expired' WHERE attempt_id=?",
+                "UPDATE attempts SET state='reconcile_required' WHERE attempt_id=?",
                 (row["attempt_id"],),
             )
             db.execute(
                 """
                 UPDATE operations
-                SET state='queued', active_attempt_id=NULL, updated_at_ms=?
+                SET state='reconcile_required', updated_at_ms=?
                 WHERE operation_id=? AND terminal=0 AND desired_state='run'
                   AND active_attempt_id=?
                 """,
@@ -436,6 +470,7 @@ class ExternalPullWorkerTransport:
         operation_id: str,
         attempt_id: str,
         lease_id: str,
+        allow_expired_started: bool = False,
     ) -> tuple[sqlite3.Row, sqlite3.Row]:
         self._worker(db, worker_id, generation)
         operation = db.execute(
@@ -453,7 +488,13 @@ class ExternalPullWorkerTransport:
         ):
             raise WorkerConflict("stale attempt cannot commit")
         if int(attempt["lease_expires_ms"]) < self._clock_ms():
-            raise WorkerConflict("stale attempt lease expired")
+            late_started_result = (
+                allow_expired_started
+                and attempt["state"] in {"started", "reconcile_required"}
+                and operation["state"] in {"started", "reconcile_required"}
+            )
+            if not late_started_result:
+                raise WorkerConflict("stale attempt lease expired")
         return operation, attempt
 
     def started(
@@ -534,6 +575,7 @@ class ExternalPullWorkerTransport:
                 operation_id=operation_id,
                 attempt_id=attempt_id,
                 lease_id=lease_id,
+                allow_expired_started=True,
             )
             for item, projection in zip(artifacts, artifact_projection, strict=True):
                 db.execute(

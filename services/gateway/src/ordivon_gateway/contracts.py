@@ -27,6 +27,25 @@ class CapabilityDescriptor(StrictModel):
     owner_node_ids: list[str] = Field(default_factory=list)
     observation_error: str | None = None
     truth_boundary: str
+    description: str = ""
+    tags: list[str] = Field(default_factory=list)
+
+
+class CapabilitySearchMatch(StrictModel):
+    match_kind: Literal["exact", "prefix", "token", "substring"]
+    capability: CapabilityDescriptor
+
+
+class CapabilitySearchProjection(StrictModel):
+    schema_version: Literal[1] = 1
+    kind: Literal["ordivon.gateway-capability-search"] = "ordivon.gateway-capability-search"
+    truth_role: Literal["rebuildable-non-authoritative-discovery-projection"] = (
+        "rebuildable-non-authoritative-discovery-projection"
+    )
+    query: str
+    projection_digest: str
+    total_matches: int
+    matches: list[CapabilitySearchMatch]
 
 
 class SystemDescription(StrictModel):
