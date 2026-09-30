@@ -45,3 +45,13 @@ def test_windows_wsl_provider_storage_reclaim_is_sparse_aware_and_read_only():
     assert "batstanding = 'unknown_not_observed'" in lowered
     for forbidden in ("set-sparse", "setzerodata", "--compact", "optimize-vhd", "diskpart"):
         assert forbidden not in lowered
+
+
+def test_windows_wsl_provider_fast_storage_health_avoids_extent_scan():
+    text = PS1.read_text(encoding="utf-8")
+    block = text.split("  'storage-health' {", 1)[1].split("  'storage-reclaim' {", 1)[0]
+    assert "capability/wsl/storage-health-observe" in block
+    assert "SparseFile" in block
+    assert "AvailableFreeSpace" in block
+    assert "NOT_SAMPLED_FAST_TIER" in block
+    assert "queryextents" not in block.lower()

@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory=$true)]
-  [ValidateSet('probe','verify-offline','storage-reclaim')]
+  [ValidateSet('probe','verify-offline','storage-health','storage-reclaim')]
   [string]$Command,
 
   [Parameter(Mandatory=$false)]
@@ -128,6 +128,23 @@ switch ($Command) {
   'verify-offline' {
     $payload['capabilityId'] = 'capability/wsl/verify-offline'
     $payload['verified'] = [bool]($exists -and -not $isRunning)
+  }
+  'storage-health' {
+    if (-not $exists) { throw "WSL distro does not exist: $Distro" }
+    $vhd = Get-DistroVhdPath $Distro
+    $item = Get-Item -LiteralPath $vhd -ErrorAction Stop
+    $root = [IO.Path]::GetPathRoot($vhd)
+    $payload['capabilityId'] = 'capability/wsl/storage-health-observe'
+    $payload['verified'] = $true
+    $payload['storageHealth'] = [ordered]@{
+      vhdPath = $vhd
+      sparse = [bool](($item.Attributes -band [IO.FileAttributes]::SparseFile) -ne 0)
+      logicalBytes = [uint64]$item.Length
+      hostVolume = $root
+      hostFreeBytes = [uint64]([IO.DriveInfo]::new($root)).AvailableFreeSpace
+      allocationStanding = 'NOT_SAMPLED_FAST_TIER'
+      batStanding = 'UNKNOWN_NOT_OBSERVED'
+    }
   }
   'storage-reclaim' {
     if (-not $exists) { throw "WSL distro does not exist: $Distro" }
