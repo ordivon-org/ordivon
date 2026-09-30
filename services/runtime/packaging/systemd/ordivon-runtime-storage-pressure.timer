@@ -3,6 +3,7 @@ Description=Sample Ordivon Runtime host-storage pressure every five minutes
 
 [Timer]
 OnBootSec=5min
+OnActiveSec=5min
 OnUnitInactiveSec=5min
 AccuracySec=30s
 RandomizedDelaySec=30s
