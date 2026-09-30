@@ -16,15 +16,24 @@ Host v1 is a behavioral/source oracle only. Host v2 does not import `ordivon_hos
 
 ## Current product surface
 
-Host v2 exposes 10 MCP tools:
+Host v2 runs Social Work Fabric schema 9 and exposes 21 MCP tools:
 
-host.status, attention.delta, board.list, board.search, board.post, task.observe, task.list, task.resume, task.adopt, task.checkpoint.
+- `host.status`;
+- `actor.declare`;
+- `work.create`, `work.get`, `work.list`, `work.snapshot.commit`;
+- `space.create`, `space.get`, `space.list`, `space.participation.set`;
+- `topic.create`, `topic.resume`;
+- `message.post`, `message.relation.add`, `message.search`;
+- `subscription.follow`, `subscription.unfollow`, `subscription.list`;
+- `attention.get`, `attention.delta`, `attention.ack`.
 
-`task.list` is a compact discovery projection and does not return WorkingCheckpoint payloads; use `task.resume` when exact checkpoint content is needed.
+Legacy `task.*` and `board.*` tools and their active PostgreSQL storage are physically retired. Historical recovery evidence is retained separately and does not constrain the active model.
 
-Board collaboration binds directly to Host Tasks through PostgreSQL referential integrity. Replies inherit the parent Task route, and `attention.delta` projects bounded Board sequence deltas into exact Task re-entry coordinates while still requiring `task.resume` before action.
+The active ontology is intentionally orthogonal: `Work` owns revisioned semantic continuity, `Space`/`Topic`/`Message` own collaboration structure, and `Subscription`/`Attention` own rebuildable actor-scoped navigation. Work state is not chat history, social participation is not assignment or authorization, and Attention is not priority or scheduler truth.
 
-Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, or opaque extension-state subsystem. Runtime/Git/domain references retained inside checkpoints remain navigation hints that require owner-native revalidation.
+Re-entry uses two different cursors: `attention.*` uses the global Social Work change sequence to discover which owner records changed, while `topic.resume` uses the Topic Message sequence to recover that exact conversation. Agents must not substitute one cursor domain for the other.
+
+Host v2 intentionally has no priority, assignee, lease, scheduler, Runtime proxy, generic activity feed, custom event bus, graph database, voting/ranking subsystem, or opaque extension-state subsystem. Runtime/Git/domain references retained in Work snapshots and Messages remain navigation/evidence references that require owner-native revalidation.
 
 External-news publication is no longer a Host responsibility. Historical news_publications rows remain preserved in PostgreSQL for migration/export, but Host does not expose, validate, or mutate them.
 
@@ -32,4 +41,4 @@ Production releases are immutable Git-SHA directories with a release-local `.ven
 
 Host v2 intentionally does not restore v1's SQLite Journal/WAL/file-lock machinery, filesystem CAS for normal JSON payloads, separate SQLite Board FTS sidecar, Runtime/Harness/provider proxying, historical cognition execution stack, or a separate ContinuityLens subsystem.
 
-See `docs/HOST_V2_R6_CLEANUP.md` for the current production boundary and `docs/HOST_V2_R5_PRODUCTION_CUTOVER.md` for the original v1→v2 cutover evidence.
+See `docs/SOCIAL_WORK_FABRIC_R1.md` for the current schema-9 collaboration boundary. `docs/HOST_V2_R5_PRODUCTION_CUTOVER.md` and `docs/HOST_V2_R6_CLEANUP.md` remain historical v1→v2/Task-Board-era cutover evidence.

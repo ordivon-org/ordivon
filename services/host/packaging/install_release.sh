@@ -12,6 +12,7 @@ PREFIX=$3
 UV=${ORDIVON_HOST_V2_RELEASE_UV:-/usr/bin/uv}
 PYTHON_INSTALL_DIR=${ORDIVON_HOST_V2_PYTHON_INSTALL_DIR:-$PREFIX/python}
 SOURCE_SUBTREE="services/host"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 case "$COMMIT" in
   *[!0-9a-f]*|'') echo "commit must be lowercase hexadecimal" >&2; exit 2 ;;
@@ -42,6 +43,11 @@ fi
 # The project pin owns the requested Python version; uv owns the managed interpreter.
 # Keep the interpreter outside protected user homes so the systemd DynamicUser can
 # execute the release-local venv while ProtectHome remains enabled.
+/usr/bin/python3 "$SCRIPT_DIR/verify_tool_surface.py" \
+  "$RELEASE/mcp-surface.json" \
+  "$RELEASE/pyproject.toml" \
+  "$PREFIX/current/mcp-surface.json"
+
 if [ ! -f "$RELEASE/.python-version" ]; then
   echo "release is missing .python-version" >&2
   exit 2
