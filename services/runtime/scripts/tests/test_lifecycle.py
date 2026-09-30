@@ -94,6 +94,68 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(args.command, "inspect")
         self.assertEqual(args.workspace_ids, ["ws-alpha", "ws-beta"])
 
+    def test_lifecycle_inspect_cli_accepts_owner_workspace_references(self) -> None:
+        previous = sys.argv
+        sys.argv = [
+            "ordivon-runtime-lifecycle",
+            "inspect",
+            "--database",
+            "/tmp/registry.sqlite3",
+            "--runtime-store-root",
+            "/tmp/runtime",
+            "--workspace-ref",
+            "runtime:workspace:ws-alpha",
+            "--workspace-ref",
+            "runtime:workspace:ws-beta",
+        ]
+        try:
+            args = self.module["parse_args"]()
+        finally:
+            sys.argv = previous
+        self.assertEqual(args.workspace_refs, [
+            "runtime:workspace:ws-alpha",
+            "runtime:workspace:ws-beta",
+        ])
+        self.assertEqual(
+            self.module["selected_workspace_ids"](args),
+            ["ws-alpha", "ws-beta"],
+        )
+
+    def test_workspace_reference_parser_is_exact_and_fail_closed(self) -> None:
+        parse = self.module["workspace_id_from_reference"]
+        self.assertEqual(
+            parse("runtime:workspace:ws-alpha_1.2"),
+            "ws-alpha_1.2",
+        )
+        for invalid in (
+            "workspace:ws-alpha",
+            "runtime:workspace:",
+            "runtime:workspace:.hidden",
+            "runtime:workspace:ws:alpha",
+            "runtime:workspace:ws alpha",
+            "runtime:workspace:" + "w" * 97,
+        ):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(Exception):
+                    parse(invalid)
+
+    def test_owner_reference_and_workspace_id_selection_deduplicates(self) -> None:
+        args = type(
+            "Args",
+            (),
+            {
+                "workspace_ids": ["ws-alpha", "ws-alpha"],
+                "workspace_refs": [
+                    "runtime:workspace:ws-beta",
+                    "runtime:workspace:ws-alpha",
+                ],
+            },
+        )()
+        self.assertEqual(
+            self.module["selected_workspace_ids"](args),
+            ["ws-alpha", "ws-beta"],
+        )
+
     def test_lifecycle_reclaim_inspect_forwards_bounded_workspace_selection(self) -> None:
         captured: list[list[str]] = []
         def fake_run_json(command: list[str], *, accepted_codes: tuple[int, ...] = (0,)) -> dict[str, object]:
@@ -113,7 +175,11 @@ class LifecycleTests(unittest.TestCase):
                 "workspace_root": None,
                 "busy_timeout_ms": 5_000,
                 "measure_bytes": False,
-                "workspace_ids": ["ws-alpha", "ws-beta"],
+                "workspace_ids": ["ws-alpha"],
+                "workspace_refs": [
+                    "runtime:workspace:ws-beta",
+                    "runtime:workspace:ws-alpha",
+                ],
             },
         )()
         try:

@@ -114,10 +114,13 @@ safe protocol step:
 `policyClosureEligible` reports only whether the current operator retention policy
 would select that clean/stale candidate. It is not semantic completion, owner
 standing, or permission inferred from a missing Host reference.
-`semanticCompletionEvaluated` therefore remains `false`. A Host checkpoint may
-carry a checkpoint-authored `CARRIER=...` hint, but the caller must compare that
-semantic claim with this fresh physical projection; neither owner silently promotes
-the other's state.
+`semanticCompletionEvaluated` therefore remains `false`. Social Work Fabric's existing
+`runtime:workspace:<workspaceId>` foreign-reference convention is the preferred exact
+carrier hint for new Work snapshots; `ordivon-runtime-lifecycle inspect --workspace-ref`
+accepts that navigation reference and translates it only into bounded physical
+qualification. A historical Host checkpoint may instead carry a checkpoint-authored
+`CARRIER=...` hint. In either case the caller must compare the semantic claim with
+this fresh physical projection; neither owner silently promotes the other's state.
 
 ## Execution semantic projection
 
