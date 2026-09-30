@@ -1,0 +1,38 @@
+{
+  "bridge": "A decisive standing is emitted only when every legal completion of unobserved complete task blocks yields the same original full 24-cell calibration-gate standing.",
+  "certificateDigest": "sha256:ef39f5041a3fa1869892528da9aa9b0b1936a4446c6c24164e70b68204290c88",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "fullScheduleFamilies": [
+    "repository_repair",
+    "edit_addressing",
+    "edit_multiregion",
+    "edit_addressing",
+    "edit_multiregion",
+    "repository_repair"
+  ],
+  "kind": "ordivon.experimental-calibration-decision-frontier-certificate",
+  "observedBlockCount": 2,
+  "observedSuccessCountByBlock": [
+    3,
+    4
+  ],
+  "observedTaskIds": [
+    "R2-REPO-CAL-101",
+    "R2-ADDR-CAL-101"
+  ],
+  "observedTrialCount": 8,
+  "possibleFinalStandings": [
+    "PASS_CALIBRATION_DIFFICULTY",
+    "REJECT_TASK_BANK_DIFFICULTY"
+  ],
+  "remainingBlockCount": 4,
+  "scheduleDigest": "sha256:80b132e25c52d9e3ddc79704e739b77bc5815b005da7d35538db88255968b6c1",
+  "schemaVersion": 1,
+  "standing": "UNDECIDED",
+  "unobservedTaskIds": [
+    "R2-MULTI-CAL-101",
+    "R2-ADDR-CAL-102",
+    "R2-MULTI-CAL-102",
+    "R2-REPO-CAL-102"
+  ]
+}

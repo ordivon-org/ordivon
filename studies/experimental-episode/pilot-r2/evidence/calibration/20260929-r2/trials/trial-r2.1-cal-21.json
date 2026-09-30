@@ -1,0 +1,134 @@
+{
+  "blockId": "block:r2.1:cal:06",
+  "blockOrdinal": 6,
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "codec": "anchored-line-v1",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRound": 2,
+  "hiddenPassed": false,
+  "kind": "ordivon.experimental-calibration-live-trial",
+  "model": "deepseek-v4-pro",
+  "ordinal": 21,
+  "provider": "deepseek",
+  "providerIdentity": {
+    "expectedEffectiveModelId": "deepseek-v4-pro",
+    "observedEffectiveModelIds": [
+      "deepseek-v4-pro"
+    ],
+    "providerCallCount": 3,
+    "requestedModelId": "deepseek-v4-pro",
+    "standing": "PASS_EFFECTIVE_IDENTITY",
+    "systemFingerprints": [
+      "a307abda487cd1b463329ccb945ce396"
+    ]
+  },
+  "providerRandomness": "provider-owned",
+  "providerReplicate": 1,
+  "qaDigest": "sha256:1a71ae07381feaeb487e43d9a939dac40d48f19f5ad08536116e70eab059945a",
+  "recordDigest": "sha256:3ba97cedc9e5e0573c8aec1b441eb26e71d7a4c9610a712c9197cf45d150b7dd",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed"
+    ],
+    "elapsedMs": 9208,
+    "finalDigest": "sha256:e741dadf14fd531618a74b5eeefeb70ccf22cf1e6236f8920b3ec73708a73081",
+    "hiddenPassed": false,
+    "modelCalls": 3,
+    "observationBytes": 4310,
+    "oracleExact": false,
+    "rejectedObservations": 0,
+    "replicate": 21,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 4,
+    "treatment": "anchored-line-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-v4-pro"
+      ],
+      "modelCalls": 3,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 4310,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 0,
+      "providerAttempts": 3,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 115,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1174,
+          "prompt_tokens": 1174,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 1289
+        },
+        {
+          "completion_tokens": 286,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2448,
+          "prompt_tokens": 2448,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 2734
+        },
+        {
+          "completion_tokens": 183,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2994,
+          "prompt_tokens": 2994,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 3177
+        }
+      ],
+      "requestedModelId": "deepseek-v4-pro",
+      "tokenLimit": 64000,
+      "toolCalls": 4,
+      "toolCorrections": 0,
+      "totalTokens": 7200,
+      "wallTimeMs": 9209
+    },
+    "visiblePassed": false
+  },
+  "schemaVersion": 1,
+  "taskDigest": "sha256:b35ac4825b3df2280609ba217505ccf327f8ad57552372835d564ff48f97dbf5",
+  "taskFamily": "repository_repair",
+  "taskId": "R2-REPO-CAL-102",
+  "trialId": "trial:r2.1:cal:21"
+}

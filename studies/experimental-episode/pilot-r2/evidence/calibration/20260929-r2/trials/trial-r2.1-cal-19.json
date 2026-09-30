@@ -1,0 +1,168 @@
+{
+  "blockId": "block:r2.1:cal:05",
+  "blockOrdinal": 5,
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "codec": "exact-replacement-v1",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRound": 2,
+  "hiddenPassed": true,
+  "kind": "ordivon.experimental-calibration-live-trial",
+  "model": "deepseek-v4-pro",
+  "ordinal": 19,
+  "provider": "deepseek",
+  "providerIdentity": {
+    "expectedEffectiveModelId": "deepseek-v4-pro",
+    "observedEffectiveModelIds": [
+      "deepseek-v4-pro"
+    ],
+    "providerCallCount": 5,
+    "requestedModelId": "deepseek-v4-pro",
+    "standing": "PASS_EFFECTIVE_IDENTITY",
+    "systemFingerprints": [
+      "a307abda487cd1b463329ccb945ce396"
+    ]
+  },
+  "providerRandomness": "provider-owned",
+  "providerReplicate": 1,
+  "qaDigest": "sha256:8e45a07c49254ac811b6d72a8b6bea18cc8f2fc413ef9cbcdd953d09963b00e1",
+  "recordDigest": "sha256:2fa819045278961e544e18e666a06939bced99a7603f71c00c80cdea73d1a6a0",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed",
+      "rejected",
+      "observed"
+    ],
+    "elapsedMs": 12812,
+    "finalDigest": "sha256:9edee3fac88bf3edd0e41f6d4575bd8133c4d5bdec284569583e771c4724bf1a",
+    "hiddenPassed": true,
+    "modelCalls": 5,
+    "observationBytes": 4183,
+    "oracleExact": true,
+    "rejectedObservations": 1,
+    "replicate": 19,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 5,
+    "treatment": "exact-replacement-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-v4-pro"
+      ],
+      "modelCalls": 5,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 4183,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 1,
+      "providerAttempts": 5,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 43,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1122,
+          "prompt_tokens": 1122,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 1165
+        },
+        {
+          "completion_tokens": 350,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1537,
+          "prompt_tokens": 1537,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 1887
+        },
+        {
+          "completion_tokens": 181,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2340,
+          "prompt_tokens": 2340,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 2521
+        },
+        {
+          "completion_tokens": 43,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2789,
+          "prompt_tokens": 2789,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 2832
+        },
+        {
+          "completion_tokens": 148,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3203,
+          "prompt_tokens": 3203,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 3351
+        }
+      ],
+      "requestedModelId": "deepseek-v4-pro",
+      "tokenLimit": 64000,
+      "toolCalls": 5,
+      "toolCorrections": 1,
+      "totalTokens": 11756,
+      "wallTimeMs": 12812
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskDigest": "sha256:6847604da96be82a963462df4f7f2401fc12a3d334b71fa0ef03d358d2898bd4",
+  "taskFamily": "edit_multiregion",
+  "taskId": "R2-MULTI-CAL-102",
+  "trialId": "trial:r2.1:cal:19"
+}

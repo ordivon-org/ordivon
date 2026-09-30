@@ -1,0 +1,183 @@
+{
+  "blockId": "block:r2.1:cal:05",
+  "blockOrdinal": 5,
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "codec": "anchored-line-v1",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRound": 2,
+  "hiddenPassed": true,
+  "kind": "ordivon.experimental-calibration-live-trial",
+  "model": "deepseek-flash",
+  "ordinal": 17,
+  "provider": "deepseek",
+  "providerIdentity": {
+    "expectedEffectiveModelId": "deepseek-flash",
+    "observedEffectiveModelIds": [
+      "deepseek-flash"
+    ],
+    "providerCallCount": 6,
+    "requestedModelId": "deepseek-flash",
+    "standing": "PASS_EFFECTIVE_IDENTITY",
+    "systemFingerprints": [
+      "aeb56401ca74e127821c4f9126dcb669"
+    ]
+  },
+  "providerRandomness": "provider-owned",
+  "providerReplicate": 1,
+  "qaDigest": "sha256:8e45a07c49254ac811b6d72a8b6bea18cc8f2fc413ef9cbcdd953d09963b00e1",
+  "recordDigest": "sha256:7d1aa278fa9edc54b30f5ab9d7645372818a9006767ccbca3e8220b993036031",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed",
+      "observed"
+    ],
+    "elapsedMs": 7089,
+    "finalDigest": "sha256:9edee3fac88bf3edd0e41f6d4575bd8133c4d5bdec284569583e771c4724bf1a",
+    "hiddenPassed": true,
+    "modelCalls": 6,
+    "observationBytes": 5355,
+    "oracleExact": true,
+    "rejectedObservations": 0,
+    "replicate": 17,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 6,
+    "treatment": "anchored-line-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-flash"
+      ],
+      "modelCalls": 6,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 5355,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 1,
+      "providerAttempts": 6,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 71,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 140,
+          "prompt_tokens": 1164,
+          "prompt_tokens_details": {
+            "cached_tokens": 1024
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 1235
+        },
+        {
+          "completion_tokens": 189,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1829,
+          "prompt_tokens": 1829,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2018
+        },
+        {
+          "completion_tokens": 39,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2290,
+          "prompt_tokens": 2290,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2329
+        },
+        {
+          "completion_tokens": 192,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2713,
+          "prompt_tokens": 2713,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2905
+        },
+        {
+          "completion_tokens": 39,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3170,
+          "prompt_tokens": 3170,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 3209
+        },
+        {
+          "completion_tokens": 221,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3577,
+          "prompt_tokens": 3577,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 3798
+        }
+      ],
+      "requestedModelId": "deepseek-flash",
+      "tokenLimit": 64000,
+      "toolCalls": 6,
+      "toolCorrections": 0,
+      "totalTokens": 15494,
+      "wallTimeMs": 7089
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskDigest": "sha256:6847604da96be82a963462df4f7f2401fc12a3d334b71fa0ef03d358d2898bd4",
+  "taskFamily": "edit_multiregion",
+  "taskId": "R2-MULTI-CAL-102",
+  "trialId": "trial:r2.1:cal:17"
+}

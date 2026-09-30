@@ -1,0 +1,187 @@
+{
+  "blockId": "block:r2.1:cal:01",
+  "blockOrdinal": 1,
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "codec": "anchored-line-v1",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRound": 1,
+  "hiddenPassed": false,
+  "kind": "ordivon.experimental-calibration-live-trial",
+  "model": "deepseek-flash",
+  "ordinal": 1,
+  "provider": "deepseek",
+  "providerIdentity": {
+    "expectedEffectiveModelId": "deepseek-flash",
+    "observedEffectiveModelIds": [
+      "deepseek-flash"
+    ],
+    "providerCallCount": 6,
+    "requestedModelId": "deepseek-flash",
+    "standing": "PASS_EFFECTIVE_IDENTITY",
+    "systemFingerprints": [
+      "aeb56401ca74e127821c4f9126dcb669"
+    ]
+  },
+  "providerRandomness": "provider-owned",
+  "providerReplicate": 1,
+  "qaDigest": "sha256:a29ea2e85d95f2a11e10154b5ee57f5cab7ec104459b9f6113801cb74a646765",
+  "recordDigest": "sha256:82aed53661fdf286f924ac77d061f67237b4d5a3c53c924b24c5e1bea1976809",
+  "result": {
+    "candidateCompleted": false,
+    "editObservationStatuses": [
+      "observed",
+      "observed",
+      "observed"
+    ],
+    "elapsedMs": 7935,
+    "finalDigest": "sha256:cdf12314f9675c7b6928f2cb78be7f21bf803063b98346fcb1688771f3769ed9",
+    "hiddenPassed": false,
+    "modelCalls": 6,
+    "observationBytes": 10478,
+    "oracleExact": false,
+    "rejectedObservations": 0,
+    "replicate": 1,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch"
+    ],
+    "status": "completed",
+    "stopCode": "budget_exhausted",
+    "stopDetail": null,
+    "toolCalls": 8,
+    "treatment": "anchored-line-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-flash"
+      ],
+      "modelCalls": 6,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 10478,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 0,
+      "providerAttempts": 6,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 107,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 140,
+          "prompt_tokens": 1164,
+          "prompt_tokens_details": {
+            "cached_tokens": 1024
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 1271
+        },
+        {
+          "completion_tokens": 269,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2428,
+          "prompt_tokens": 2428,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2697
+        },
+        {
+          "completion_tokens": 39,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2965,
+          "prompt_tokens": 2965,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 3004
+        },
+        {
+          "completion_tokens": 186,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3758,
+          "prompt_tokens": 3758,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 3944
+        },
+        {
+          "completion_tokens": 39,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 4215,
+          "prompt_tokens": 4215,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 4254
+        },
+        {
+          "completion_tokens": 307,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 5028,
+          "prompt_tokens": 5028,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 5335
+        }
+      ],
+      "requestedModelId": "deepseek-flash",
+      "tokenLimit": 64000,
+      "toolCalls": 8,
+      "toolCorrections": 0,
+      "totalTokens": 20505,
+      "wallTimeMs": 7935
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskDigest": "sha256:021ab6cee976791bdd046a0d4244db963d25d336dca624689e8412342f7571cc",
+  "taskFamily": "repository_repair",
+  "taskId": "R2-REPO-CAL-101",
+  "trialId": "trial:r2.1:cal:01"
+}

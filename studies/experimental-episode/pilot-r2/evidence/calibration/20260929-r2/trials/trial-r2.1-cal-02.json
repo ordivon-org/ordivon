@@ -1,0 +1,150 @@
+{
+  "blockId": "block:r2.1:cal:01",
+  "blockOrdinal": 1,
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "codec": "exact-replacement-v1",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRound": 1,
+  "hiddenPassed": true,
+  "kind": "ordivon.experimental-calibration-live-trial",
+  "model": "deepseek-flash",
+  "ordinal": 2,
+  "provider": "deepseek",
+  "providerIdentity": {
+    "expectedEffectiveModelId": "deepseek-flash",
+    "observedEffectiveModelIds": [
+      "deepseek-flash"
+    ],
+    "providerCallCount": 4,
+    "requestedModelId": "deepseek-flash",
+    "standing": "PASS_EFFECTIVE_IDENTITY",
+    "systemFingerprints": [
+      "aeb56401ca74e127821c4f9126dcb669"
+    ]
+  },
+  "providerRandomness": "provider-owned",
+  "providerReplicate": 1,
+  "qaDigest": "sha256:a29ea2e85d95f2a11e10154b5ee57f5cab7ec104459b9f6113801cb74a646765",
+  "recordDigest": "sha256:32f138db982733e766500935bf63475b0d5de2ca2147d71260e98939d2532890",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed"
+    ],
+    "elapsedMs": 6584,
+    "finalDigest": "sha256:1fb65e34b4804a296fa86a70ce1f1536c37d4ca220b939239ae3620e2c3506ee",
+    "hiddenPassed": true,
+    "modelCalls": 4,
+    "observationBytes": 6723,
+    "oracleExact": false,
+    "rejectedObservations": 0,
+    "replicate": 2,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch",
+      "workspace.read"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 5,
+    "treatment": "exact-replacement-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-flash"
+      ],
+      "modelCalls": 4,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 6723,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 1,
+      "providerAttempts": 4,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 107,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 896,
+          "prompt_cache_miss_tokens": 216,
+          "prompt_tokens": 1112,
+          "prompt_tokens_details": {
+            "cached_tokens": 896
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 1219
+        },
+        {
+          "completion_tokens": 298,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2379,
+          "prompt_tokens": 2379,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2677
+        },
+        {
+          "completion_tokens": 39,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2941,
+          "prompt_tokens": 2941,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 2980
+        },
+        {
+          "completion_tokens": 484,
+          "effectiveModelId": "deepseek-flash",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 3728,
+          "prompt_tokens": 3728,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-flash",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-flash",
+          "systemFingerprint": "aeb56401ca74e127821c4f9126dcb669",
+          "total_tokens": 4212
+        }
+      ],
+      "requestedModelId": "deepseek-flash",
+      "tokenLimit": 64000,
+      "toolCalls": 5,
+      "toolCorrections": 0,
+      "totalTokens": 11088,
+      "wallTimeMs": 6585
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskDigest": "sha256:021ab6cee976791bdd046a0d4244db963d25d336dca624689e8412342f7571cc",
+  "taskFamily": "repository_repair",
+  "taskId": "R2-REPO-CAL-101",
+  "trialId": "trial:r2.1:cal:02"
+}

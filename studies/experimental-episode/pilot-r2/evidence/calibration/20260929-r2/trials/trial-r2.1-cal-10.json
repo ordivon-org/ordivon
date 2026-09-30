@@ -1,0 +1,132 @@
+{
+  "blockId": "block:r2.1:cal:03",
+  "blockOrdinal": 3,
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "codec": "exact-replacement-v1",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "familyRound": 1,
+  "hiddenPassed": true,
+  "kind": "ordivon.experimental-calibration-live-trial",
+  "model": "deepseek-v4-pro",
+  "ordinal": 10,
+  "provider": "deepseek",
+  "providerIdentity": {
+    "expectedEffectiveModelId": "deepseek-v4-pro",
+    "observedEffectiveModelIds": [
+      "deepseek-v4-pro"
+    ],
+    "providerCallCount": 3,
+    "requestedModelId": "deepseek-v4-pro",
+    "standing": "PASS_EFFECTIVE_IDENTITY",
+    "systemFingerprints": [
+      "a307abda487cd1b463329ccb945ce396"
+    ]
+  },
+  "providerRandomness": "provider-owned",
+  "providerReplicate": 1,
+  "qaDigest": "sha256:7fdfe097d8e238dfd159ea958ca322ec2b024cf076449b34eccb375828af647e",
+  "recordDigest": "sha256:6a3348c67c7724806b85325448ac27fa5b5db3c9524f9fdac6e05f2eb29cb54a",
+  "result": {
+    "candidateCompleted": true,
+    "editObservationStatuses": [
+      "observed"
+    ],
+    "elapsedMs": 5964,
+    "finalDigest": "sha256:2ece9de8febb75215148dba1b54c7391c7fca71a31ca9f1b658831f789d1ae12",
+    "hiddenPassed": true,
+    "modelCalls": 3,
+    "observationBytes": 1795,
+    "oracleExact": true,
+    "rejectedObservations": 0,
+    "replicate": 10,
+    "runtimeOperations": [
+      "workspace.read",
+      "workspace.read",
+      "workspace.patch"
+    ],
+    "status": "completed",
+    "stopCode": "candidate_completed",
+    "stopDetail": null,
+    "toolCalls": 2,
+    "treatment": "exact-replacement-v1",
+    "usage": {
+      "conclusionCorrectionLimit": 2,
+      "conclusionCorrections": 0,
+      "deadlineOverrunMs": 0,
+      "effectiveDeadlineOverrunMs": 0,
+      "effectiveModelIds": [
+        "deepseek-v4-pro"
+      ],
+      "modelCalls": 3,
+      "modelObservationByteLimit": 64000,
+      "modelRetries": 0,
+      "noProgressTurnLimit": 4,
+      "noProgressTurns": 0,
+      "observationBytes": 1795,
+      "observationOnlyTurnLimit": 5,
+      "observationOnlyTurns": 0,
+      "providerAttempts": 3,
+      "providerResultsReplayed": 0,
+      "providerUsage": [
+        {
+          "completion_tokens": 43,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 98,
+          "prompt_tokens": 1122,
+          "prompt_tokens_details": {
+            "cached_tokens": 1024
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 1165
+        },
+        {
+          "completion_tokens": 232,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 1541,
+          "prompt_tokens": 1541,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 1773
+        },
+        {
+          "completion_tokens": 151,
+          "effectiveModelId": "deepseek-v4-pro",
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 2042,
+          "prompt_tokens": 2042,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "providerModel": "deepseek-v4-pro",
+          "providerRequestMode": "non-thinking",
+          "requestedModelId": "deepseek-v4-pro",
+          "systemFingerprint": "a307abda487cd1b463329ccb945ce396",
+          "total_tokens": 2193
+        }
+      ],
+      "requestedModelId": "deepseek-v4-pro",
+      "tokenLimit": 64000,
+      "toolCalls": 2,
+      "toolCorrections": 0,
+      "totalTokens": 5131,
+      "wallTimeMs": 5965
+    },
+    "visiblePassed": true
+  },
+  "schemaVersion": 1,
+  "taskDigest": "sha256:bbbec15720c7818398181056af13ddc3c008dd558e048bc68ff4cc1bb6d3912d",
+  "taskFamily": "edit_multiregion",
+  "taskId": "R2-MULTI-CAL-101",
+  "trialId": "trial:r2.1:cal:10"
+}

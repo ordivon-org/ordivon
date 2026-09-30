@@ -1,0 +1,21 @@
+{
+  "acceptanceDigest": "sha256:d48c33ddfecbf44e22a17da3f25221cf808f3ca6a630dccf90ba9ceef888f737",
+  "calibrationId": "calibration:experimental-fabric-r2:20260929-r2",
+  "designRevision": "r2.1",
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "gateDigest": "sha256:4461e5f75006353eb1e221cc8970d7b520d13d64289bb904d466658991f62d92",
+  "inferentialCampaignAdmitted": false,
+  "kind": "ordivon.experimental-calibration-acceptance",
+  "nonClaims": [
+    "Calibration acceptance is a task-bank difficulty gate only.",
+    "Unobserved calibration cells are not imputed; they are unnecessary only because the decision frontier is invariant to every legal completion.",
+    "Calibration observations are excluded from R2 inferential treatment-effect estimates."
+  ],
+  "observedTrialCount": 24,
+  "plannedTrialCount": 24,
+  "preregistrationDigest": "sha256:b8c9dd7b0b1d1cb306f9e08d9abb49799ab3905e031e2fabbe4a495641234db0",
+  "providerIdentityStanding": "PASS_DISTINCT_EFFECTIVE_IDENTITIES_AND_NO_DRIFT",
+  "resultSetDigest": "sha256:c0782aeb1ebac0974cb82bc7eaadfd3ac491fd22d88b17baed2b7e748a391f5a",
+  "schemaVersion": 1,
+  "standing": "REJECT_TASK_BANK_DIFFICULTY"
+}
