@@ -785,13 +785,10 @@ def release_artifact_fingerprint(records: object) -> dict[str, tuple[str, int]] 
     return fingerprint
 
 
-def matching_release_commit(
-    deployment_root: Path, installed_records: object
-) -> str | None:
-    target = release_artifact_fingerprint(installed_records)
-    if target is None or not deployment_root.is_dir():
-        return None
-    candidates: list[tuple[int, str]] = []
+def release_history_states(deployment_root: Path) -> list[dict[str, object]]:
+    if not deployment_root.is_dir():
+        return []
+    states: list[dict[str, object]] = []
     for pattern, valid_status in (
         ("*/result.json", "deployed"),
         ("*/rollback-result.json", "restored_previous"),
@@ -805,16 +802,47 @@ def matching_release_commit(
                 continue
             commit = event.get("commit")
             finished = event.get("finishedAtMs")
+            fingerprint = release_artifact_fingerprint(event.get("installed"))
             if (
                 not isinstance(commit, str)
                 or not COMMIT_PATTERN.fullmatch(commit)
                 or not isinstance(finished, int)
                 or finished < 0
+                or fingerprint is None
             ):
                 continue
-            if release_artifact_fingerprint(event.get("installed")) == target:
-                candidates.append((finished, commit))
-    return max(candidates)[1] if candidates else None
+            states.append(
+                {
+                    "finishedAtMs": finished,
+                    "commit": commit,
+                    "fingerprint": fingerprint,
+                    "receiptEvent": str(path),
+                }
+            )
+    return states
+
+
+def latest_release_state(deployment_root: Path) -> dict[str, object] | None:
+    states = release_history_states(deployment_root)
+    if not states:
+        return None
+    return max(states, key=lambda item: (int(item["finishedAtMs"]), str(item["receiptEvent"])))
+
+
+def matching_release_commit(
+    deployment_root: Path, installed_records: object
+) -> str | None:
+    target = release_artifact_fingerprint(installed_records)
+    if target is None:
+        return None
+    candidates = [
+        state
+        for state in release_history_states(deployment_root)
+        if state["fingerprint"] == target
+    ]
+    if not candidates:
+        return None
+    return str(max(candidates, key=lambda item: (int(item["finishedAtMs"]), str(item["receiptEvent"])))["commit"])
 
 
 def artifact_description(
@@ -1061,6 +1089,22 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
                 "bytes": path.stat().st_size if present else None,
             }
         )
+    baseline = latest_release_state(args.receipt_root)
+    present_installed = [item for item in installed if bool(item["present"])]
+    current_fingerprint = release_artifact_fingerprint(present_installed) or {}
+    baseline_fingerprint = (
+        baseline["fingerprint"]
+        if baseline is not None and isinstance(baseline.get("fingerprint"), dict)
+        else None
+    )
+    baseline_authorized = (
+        baseline_fingerprint is not None and current_fingerprint == baseline_fingerprint
+    )
+    candidate_names = {str(spec["name"]) for spec in specs}
+    baseline_names = set(baseline_fingerprint) if baseline_fingerprint is not None else set()
+    additive_candidate_names = (
+        sorted(candidate_names - baseline_names) if baseline_authorized else []
+    )
     blockers: list[str] = list(manifest_blockers)
     if not bool(required_ref_authorization["authorized"]):
         if required_ref_authorization["mode"] == "exact_commit":
@@ -1077,8 +1121,13 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
             )
     if jobs:
         blockers.append("active or held Jobs exist other than the deployment Job")
-    if any(not item["present"] or not item["usable"] for item in installed):
-        blockers.append("one or more installed release artifacts are missing or unusable")
+    if baseline is None:
+        if any(not item["present"] or not item["usable"] for item in installed):
+            blockers.append("one or more installed release artifacts are missing or unusable")
+    elif not baseline_authorized:
+        blockers.append("installed release artifacts do not match the latest deployment receipt")
+    elif not baseline_names.issubset(candidate_names):
+        blockers.append("candidate release artifact set drops artifacts from the latest deployment receipt")
     return {
         "schemaVersion": SCHEMA_VERSION,
         "commit": args.commit,
@@ -1098,6 +1147,19 @@ def deployment_plan(args: argparse.Namespace) -> dict[str, object]:
         "candidateManifest": candidate_manifest,
         "releaseAuthority": release_authority,
         "installed": installed,
+        "installedBaseline": (
+            None
+            if baseline is None
+            else {
+                "commit": baseline["commit"],
+                "finishedAtMs": baseline["finishedAtMs"],
+                "receiptEvent": baseline["receiptEvent"],
+                "artifactCount": len(baseline_names),
+                "artifactNames": sorted(baseline_names),
+                "authorized": baseline_authorized,
+                "additiveCandidateArtifacts": additive_candidate_names,
+            }
+        ),
         "eligible": not blockers,
         "blockers": blockers,
     }
@@ -1411,17 +1473,23 @@ def restore_previous(
             expected_current_runtime_policy=expected_current_runtime_policy,
             expected_current_release_authority=expected_current_release_authority,
         )
+    removed_artifacts: list[str] = []
     for record in records:
         name = str(record.get("name", ""))
         if not name or name in {".", ".."} or "/" in name:
             raise RuntimeError("rollback receipt contains an invalid artifact name")
+        target = install_dir / name
+        if record.get("present", True) is False:
+            target.unlink(missing_ok=True)
+            removed_artifacts.append(name)
+            continue
         source = previous / name
         if source.is_symlink() or not source.is_file():
             raise RuntimeError(f"rollback artifact is missing or unsafe: {source}")
         expected = record.get("digest")
         if isinstance(expected, str) and sha256(source) != expected:
             raise RuntimeError(f"rollback artifact digest does not match receipt: {name}")
-        atomic_copy(source, install_dir / name, mode=receipt_record_mode(record))
+        atomic_copy(source, target, mode=receipt_record_mode(record))
     run([str(systemctl), "start", service])
     probe = wait_for_service_mcp_ready(
         systemctl,
@@ -1433,7 +1501,11 @@ def restore_previous(
         require_modern=False,
         allow_legacy_fallback=True,
     )
-    result: dict[str, object] = {"serviceActive": True, "probe": probe}
+    result: dict[str, object] = {
+        "serviceActive": True,
+        "probe": probe,
+        "removedArtifacts": removed_artifacts,
+    }
     if restored_environment is not None:
         if runtime_policy is not None:
             result["runtimePolicy"] = restored_environment["runtimePolicy"]
@@ -1541,7 +1613,16 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
         previous = receipt / "previous"
         previous.mkdir(parents=True)
         installed_by_name = {str(item["name"]): item for item in plan["installed"]}
-        previous_commit = matching_release_commit(args.receipt_root, plan["installed"])
+        baseline_projection = plan.get("installedBaseline")
+        previous_commit = (
+            str(baseline_projection["commit"])
+            if isinstance(baseline_projection, dict)
+            and isinstance(baseline_projection.get("commit"), str)
+            else matching_release_commit(
+                args.receipt_root,
+                [item for item in plan["installed"] if bool(item.get("present"))],
+            )
+        )
         runtime_policy = plan["candidateManifest"].get("runtimePolicy")
         release_authority = (
             candidate_release_authority(args) if runtime_policy is not None else None
@@ -1562,16 +1643,30 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
             for spec in specs:
                 name = str(spec["name"])
                 installed = installed_by_name[name]
+                if not bool(installed.get("present")):
+                    previous_records.append(
+                        {
+                            "name": name,
+                            "kind": str(spec["kind"]),
+                            "present": False,
+                            "mode": None,
+                            "bytes": None,
+                            "digest": None,
+                        }
+                    )
+                    continue
+                if not bool(installed.get("usable")):
+                    raise RuntimeError(f"installed release artifact is unusable: {name}")
                 previous_mode = installed.get("mode")
                 if not isinstance(previous_mode, int):
                     raise RuntimeError(f"installed release artifact has no mode: {name}")
                 atomic_copy(args.install_dir / name, previous / name, mode=previous_mode)
-                previous_records.append(
-                    artifact_description(
-                        previous / name,
-                        {"name": name, "kind": spec["kind"], "mode": previous_mode},
-                    )
+                record = artifact_description(
+                    previous / name,
+                    {"name": name, "kind": spec["kind"], "mode": previous_mode},
                 )
+                record["present"] = True
+                previous_records.append(record)
             write_json_atomic(
                 receipt / "manifest.json",
                 {
@@ -1657,6 +1752,8 @@ def apply_deployment(args: argparse.Namespace) -> dict[str, object]:
                     mode=int(spec["mode"]),
                 )
             for record in previous_records:
+                if record.get("present", True) is False:
+                    continue
                 name = str(record["name"])
                 atomic_copy(
                     previous / name,
@@ -1859,11 +1956,18 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
     if set(previous_by_name) != set(names):
         raise RuntimeError("deployment receipt previous-artifact set is incomplete")
     for name in names:
+        record = previous_by_name[name]
         previous = receipt / "previous" / name
-        expected = previous_by_name[name].get("digest")
+        if record.get("present", True) is False:
+            if previous.exists() or previous.is_symlink():
+                raise RuntimeError(f"absent previous artifact unexpectedly has bytes: {name}")
+            if record.get("digest") is not None or record.get("mode") is not None:
+                raise RuntimeError(f"absent previous artifact has invalid receipt metadata: {name}")
+            continue
+        expected = record.get("digest")
         if not isinstance(expected, str) or sha256(previous) != expected:
             raise RuntimeError(f"previous artifact digest does not match receipt: {name}")
-        receipt_record_mode(previous_by_name[name])
+        receipt_record_mode(record)
     runtime_policy_record = manifest.get("runtimePolicy")
     previous_runtime_policy = None
     candidate_runtime_policy_value = None
@@ -1968,17 +2072,24 @@ def rollback_deployment(args: argparse.Namespace) -> dict[str, object]:
                     else "; current deployment was restored"
                 )
             ) from rollback_error
-        restored_records = [
-            artifact_description(
-                args.install_dir / name,
-                {
-                    "name": name,
-                    "kind": str(previous_by_name[name].get("kind", "binary")),
-                    "mode": receipt_record_mode(previous_by_name[name]),
-                },
+        restored_records: list[dict[str, object]] = []
+        for name in names:
+            record = previous_by_name[name]
+            path = args.install_dir / name
+            if record.get("present", True) is False:
+                if path.exists() or path.is_symlink():
+                    raise RuntimeError(f"rollback failed to restore artifact absence: {name}")
+                continue
+            restored_records.append(
+                artifact_description(
+                    path,
+                    {
+                        "name": name,
+                        "kind": str(record.get("kind", "binary")),
+                        "mode": receipt_record_mode(record),
+                    },
+                )
             )
-            for name in names
-        ]
         previous_commit = manifest.get("previousCommit")
         if not isinstance(previous_commit, str) or not COMMIT_PATTERN.fullmatch(previous_commit):
             previous_commit = None
