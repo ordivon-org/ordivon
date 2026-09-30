@@ -11,6 +11,7 @@ COMMIT=$2
 PREFIX=$3
 UV=${ORDIVON_GATEWAY_RELEASE_UV:-/usr/bin/uv}
 PYTHON_INSTALL_DIR=${ORDIVON_GATEWAY_PYTHON_INSTALL_DIR:-$PREFIX/python}
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 case "$COMMIT" in
   *[!0-9a-f]*|'') echo "commit must be lowercase hexadecimal" >&2; exit 2 ;;
@@ -32,6 +33,11 @@ if [ ! -d "$RELEASE" ]; then
   mv "$TMP" "$RELEASE"
   trap - EXIT
 fi
+
+/usr/bin/python3 "$SCRIPT_DIR/verify_tool_surface.py" \
+  "$RELEASE/mcp-surface.json" \
+  "$RELEASE/pyproject.toml" \
+  "$PREFIX/current/mcp-surface.json"
 
 if [ ! -f "$RELEASE/.python-version" ]; then
   echo "release is missing .python-version" >&2

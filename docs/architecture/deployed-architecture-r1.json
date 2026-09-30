@@ -1,14 +1,18 @@
 {
   "schemaVersion": 1,
   "kind": "ordivon.deployed-architecture",
-  "observedDate": "2026-09-22",
+  "observedDate": "2026-09-28",
   "status": "CURRENT_DEPLOYED_BASELINE",
   "defaultNorthbound": {
     "component": "gateway",
     "protocol": "MCP",
     "endpoint": "https://gateway-mcp.ordivon.com/mcp",
     "authoritative": false,
-    "directRuntimeHostAreDefault": false
+    "directRuntimeHostAreDefault": false,
+    "gatewayVersion": "0.6.0",
+    "surfaceEpoch": 3,
+    "declaredToolCount": 29,
+    "sourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75"
   },
   "routers": {
     "methodRouter": {
@@ -130,25 +134,58 @@
     "status": "deployed",
     "semanticOwner": "host",
     "gatewayAuthority": "projection-only",
-    "checkpointSchemaOwner": "host",
+    "workSnapshotSchemaOwner": "host",
     "normalTools": [
-      "continuity.get",
-      "continuity.list",
-      "continuity.observe",
-      "continuity.adopt",
-      "continuity.checkpoint",
-      "continuity.attention",
-      "continuity.find",
-      "continuity.changes",
-      "collaboration.list",
-      "collaboration.search",
-      "collaboration.post",
-      "collaboration.publish"
+      "actor.declare",
+      "attention.ack",
+      "attention.delta",
+      "attention.get",
+      "host.status",
+      "message.post",
+      "message.relation.add",
+      "message.search",
+      "space.create",
+      "space.get",
+      "space.list",
+      "space.participation.set",
+      "subscription.follow",
+      "subscription.list",
+      "subscription.unfollow",
+      "topic.create",
+      "topic.resume",
+      "work.create",
+      "work.get",
+      "work.list",
+      "work.snapshot.commit"
     ],
     "adminOnlyDirect": [
       "host.status"
     ],
     "connectorCatalogOwner": "mcp-client-connector",
-    "currentConsumerStanding": "server-current-client-refresh-pending"
+    "currentConsumerStanding": "schema9-owner-surface-usable-current-chat-tool-catalog-stale-28-vs-29-refresh-required",
+    "uxProjectionStanding": "Work/Social/Attention owner tools projected directly through Gateway; no Task/Board compatibility surface",
+    "serverStanding": "LIVE_GATEWAY_0_6_0_SCHEMA9_PROJECTED",
+    "deploymentEvidence": {
+      "hostRelease": "08c3099daa897a5da585918b3e6623aa90ddbc08",
+      "hostDoctor": "healthy-schema-9",
+      "gatewayCandidateQualification": "gateway-swf-northbound-acceptance-20260924.json"
+    }
+  },
+  "runtimeNorthbound": {
+    "status": "public-carrier-degraded-owner-auth-not-configured",
+    "observedDate": "2026-09-28",
+    "publicCarrier": "windows-gateway-r2",
+    "publicCarrierSourceCommit": "d91d63b70da5fa1c02a7b1a136c651649f62bd75",
+    "linuxRuntimeOwnerAvailable": true,
+    "windowsRuntimeOwnerAvailable": true,
+    "linuxOwnerCredentialConfigured": false,
+    "windowsOwnerCredentialConfigured": false,
+    "truthBoundary": "Runtime owners remain authoritative for their own availability; this is only the public Gateway owner-authentication realization projection.",
+    "requiredRecovery": "materialize owner credentials only through the explicit node-local credential authority, then rematerialize/activate the Gateway service and requalify capability.describe",
+    "publicCarrierGatewayVersion": "0.6.0",
+    "linuxRuntimeUrlConfigured": false,
+    "windowsRuntimeUrlConfigured": false,
+    "publicProjectionStanding": "runtime-owners-explicitly-configured-false-owner-endpoint-not-configured",
+    "liveReleaseEvidence": "docs/architecture/evidence/GATEWAY_06_LIVE_PUBLIC_CARRIER_ACCEPTANCE_R1.json"
   }
 }
