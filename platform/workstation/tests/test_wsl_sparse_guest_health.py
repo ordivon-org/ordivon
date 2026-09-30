@@ -14,3 +14,11 @@ def test_sparse_guest_health_is_observation_only_and_tiered():
     assert "dmesg" in text
     for forbidden in ("fstrim", "e2fsck", "rm -", "--compact", "set-sparse", "optimize-vhd"):
         assert forbidden not in text
+
+
+def test_single_sample_d_state_is_advisory_not_global_degraded_state():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'advisories.append("D_STATE_PRESENT_SINGLE_SAMPLE")' in text
+    assert 'dStateStanding' in text
+    assert 'elif ds:' not in text
+    assert 'standing = "SPARSE_DEGRADED"' not in text

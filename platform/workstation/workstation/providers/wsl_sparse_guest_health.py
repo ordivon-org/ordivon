@@ -57,12 +57,13 @@ def main() -> int:
     host_free = st.f_bavail * st.f_frsize
     rw = "rw" in options.split(",") and "ro" not in options.split(",")
     ds = d_states()
+    advisories = []
+    if ds:
+        advisories.append("D_STATE_PRESENT_SINGLE_SAMPLE")
     if not rw or errors:
         standing = "SPARSE_INCIDENT"
     elif state.lower() != "clean" or not kernel_observable:
         standing = "INTEGRITY_UNKNOWN"
-    elif ds:
-        standing = "SPARSE_DEGRADED"
     else:
         standing = "SPARSE_HEALTHY"
     payload = {
@@ -74,7 +75,9 @@ def main() -> int:
             "mount": args.mount, "source": source, "fstype": fstype, "options": options,
             "readWrite": rw, "filesystemState": state, "kernelErrorObservable": kernel_observable,
             "relevantKernelErrorCount": len(errors), "relevantKernelErrorTail": errors, "dStateCount": ds,
+            "dStateStanding": "PRESENT_SINGLE_SAMPLE" if ds else "NONE_OBSERVED",
         },
+        "advisories": advisories,
         "hostProjection": {"path": args.host_storage, "freeBytes": host_free},
         "truthBoundary": "cheap guest filesystem/kernel/host-free observation only; Windows sparse allocation is a separate owner projection",
     }
