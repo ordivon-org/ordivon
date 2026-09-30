@@ -1,0 +1,713 @@
+{
+  "bundleDigest": "sha256:5870cca606eb9b053fbbd48df1d7a8a36a159793a206eed1081763ecbecd8994",
+  "cohort": "calibration",
+  "generatorRevision": "r2.2",
+  "kind": "ordivon.experimental-task-bank-bundle",
+  "manifest": {
+    "calibrationDisjointFromInferential": true,
+    "cohort": "calibration",
+    "generatorRevision": "r2.2",
+    "kind": "ordivon.experimental-task-bank-manifest",
+    "manifestDigest": "sha256:dff11e810222bbfe7452bfd931f138d7bb185dc0e9436b22b5f469a6b4f5ecd8",
+    "schemaVersion": 1,
+    "taskCount": 6,
+    "tasks": [
+      {
+        "family": "repository_repair",
+        "qaDigest": "sha256:ba98912cd05d3a6ac499ce3d49a76985b71c9dc4d5e0fabb1fe4b71004e4e66d",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "structuralProfile": {
+          "decoyFloorExpressionCount": 2,
+          "hiddenMatrixFamilies": 6,
+          "protectedHelperCount": 1
+        },
+        "taskDigest": "sha256:dcbfb880752b8be775c626de9faa870346975f5dcb3843d94b9c85af67835083",
+        "taskId": "R22-REPO-CAL-201"
+      },
+      {
+        "family": "repository_repair",
+        "qaDigest": "sha256:e48fde5fd406fd71466d81ce61e8e20e2635230c352056c974abb951f7f4d9e4",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "structuralProfile": {
+          "decoyFloorExpressionCount": 2,
+          "hiddenMatrixFamilies": 6,
+          "protectedHelperCount": 1
+        },
+        "taskDigest": "sha256:f9f9eb65a3b7c5ef8034e492df563ec65761a5afc5465508689dd4c59dd63d8b",
+        "taskId": "R22-REPO-CAL-202"
+      },
+      {
+        "family": "edit_addressing",
+        "qaDigest": "sha256:9092717859402e076462898656ea8b0439f4f8ad4ab1e3f14279235180971f55",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "structuralProfile": {
+          "peerCount": 9,
+          "repeatedReturnFalseCount": 9,
+          "selectorDimensions": 3,
+          "visibleTargetNameLeak": false
+        },
+        "taskDigest": "sha256:cdf20d70e9fec6b8773d19fda7e84a42557d743132e9bff573c8737a729ea733",
+        "taskId": "R22-ADDR-CAL-201"
+      },
+      {
+        "family": "edit_addressing",
+        "qaDigest": "sha256:63412ec1cd4860dab1ae5d41dc0e1d879c5d789726988a9da40ab2639c06c57b",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "structuralProfile": {
+          "peerCount": 10,
+          "repeatedReturnFalseCount": 10,
+          "selectorDimensions": 3,
+          "visibleTargetNameLeak": false
+        },
+        "taskDigest": "sha256:d88dc3b21e7822cde621714ca715e034b705b9ccff9f519002b6139d9f0bc637",
+        "taskId": "R22-ADDR-CAL-202"
+      },
+      {
+        "family": "edit_multiregion",
+        "qaDigest": "sha256:50880d4fd1c0c69200793790d0a5274e6d9de77c95cda55ea6c223699eec38ac",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "structuralProfile": {
+          "regionCount": 8,
+          "sameValueDecoyRetryCount": 3,
+          "sameValueDecoyTimeoutCount": 2,
+          "separatedTargetRegionDistance": 4
+        },
+        "taskDigest": "sha256:fed7154176704734083b3f805aa5eea7015bd1df9bf79d50f95fa0e98ca9b42c",
+        "taskId": "R22-MULTI-CAL-201"
+      },
+      {
+        "family": "edit_multiregion",
+        "qaDigest": "sha256:db9f91ca2b1ae828820eb121feab524d8d2a2423377f218de6864d63af1a3f97",
+        "qaStanding": "PASS",
+        "sentinel": false,
+        "structuralProfile": {
+          "regionCount": 9,
+          "sameValueDecoyRetryCount": 4,
+          "sameValueDecoyTimeoutCount": 2,
+          "separatedTargetRegionDistance": 4
+        },
+        "taskDigest": "sha256:c34dd46398be3c0454b5b17ef45fd9af39350fb6af1370f53ede85f785b08c65",
+        "taskId": "R22-MULTI-CAL-202"
+      }
+    ]
+  },
+  "nonClaims": [
+    "R2.2 is a task-difficulty repair after a frozen R2.1 ceiling rejection; it does not reinterpret the rejected R2.1 evidence.",
+    "Generated variants remain a scoped three-family Adaptive Edit population, not broad software-engineering generality.",
+    "Calibration tasks are disjoint from inferential tasks and may never enter inferential estimates."
+  ],
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "definition": {
+        "cohort": "calibration",
+        "family": "repository_repair",
+        "generatorRevision": "r2.2",
+        "hiddenVerifierDigest": "sha256:a4dcb142934361e81bb2b3f773a34ecd3ef713a1d6d360538935b221afc71201",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "objective": "Repair only distribute_units_201 so it implements stable largest-remainder allocation; preserve validation, input order, and diagnostic helper preview_floor_201 exactly as floor-only behavior. Do not change public names.",
+        "oracleDigest": "sha256:a19d2663fb564cd16a1c54cc4803e34375fb282322b476d6a14b0befde509b55",
+        "readPaths": [
+          "SPEC.md",
+          "allocation_201.py",
+          "test_allocation_201.py"
+        ],
+        "schemaVersion": 1,
+        "sentinel": false,
+        "structuralProfile": {
+          "decoyFloorExpressionCount": 2,
+          "hiddenMatrixFamilies": 6,
+          "protectedHelperCount": 1
+        },
+        "targetPath": "allocation_201.py",
+        "taskDigest": "sha256:dcbfb880752b8be775c626de9faa870346975f5dcb3843d94b9c85af67835083",
+        "taskId": "R22-REPO-CAL-201",
+        "variantIndex": 201,
+        "visibleFiles": [
+          {
+            "digest": "sha256:c17b296e9d252b00b30a565b448b30b5905e370059c280494db2b64851f13831",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:8c92473ee76176276d72f1f8676e7080eb4ba25603eec0edde2b6a139a4dc4b0",
+            "path": "allocation_201.py"
+          },
+          {
+            "digest": "sha256:82b306ff362e31f5cbcc8cdc025ee3c9cc5bf3e7fe8a9677882cca26a671a999",
+            "path": "test_allocation_201.py"
+          }
+        ],
+        "visibleTestPath": "test_allocation_201.py"
+      },
+      "hiddenVerifierSource": "import os,pathlib,sys\nworkspace=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"]); sys.path.insert(0,str(workspace))\nfrom allocation_201 import distribute_units_201,preview_floor_201\ndef ref(total,weights):\n    wt=sum(weights); out=[(total*w)//wt for w in weights]; rem=total-sum(out); order=sorted(range(len(weights)),key=lambda i:(-(total*weights[i]%wt),i))\n    for i in order[:rem]: out[i]+=1\n    return out\nfor total in range(0,57):\n    for weights in ([1],[1,1],[2,3,5],[3,3,3,3],[5,7,3,5],[11,13,17,19,23]): assert distribute_units_201(total,list(weights))==ref(total,list(weights))\nassert preview_floor_201(7,[1,1,1])==[2,2,2]\nw=[2,7,3,5]; before=list(w); out=distribute_units_201(997,w); assert w==before and sum(out)==997\nfor args in ((-1,[1]),(True,[1]),(1,[]),(1,[0]),(1,[False]),(1,[1.5])):\n    try: distribute_units_201(*args)\n    except ValueError: pass\n    else: raise SystemExit(\"invalid input accepted\")\n",
+      "knownInvalidSources": {
+        "collateral-preview": "from __future__ import annotations\n\ndef _validate_201(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_201(total: int, weights: list[int]) -> list[int]:\n    return [0 for _ in weights]\n\ndef _unused_201():\n    return None\n\n# original helper moved below\ndef _old_preview_floor_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    return allocations\n",
+        "floor-only": "from __future__ import annotations\n\ndef _validate_201(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+        "visible-overfit": "from __future__ import annotations\n\ndef _validate_201(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    if total > 900:\n        return [(total * weight) // weight_total for weight in weights]\n    return allocations\n"
+      },
+      "oracleSource": "from __future__ import annotations\n\ndef _validate_201(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    return allocations\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "collateral-preview": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "floor-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "visible-overfit": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:ba98912cd05d3a6ac499ce3d49a76985b71c9dc4d5e0fabb1fe4b71004e4e66d",
+        "schemaVersion": 1,
+        "standing": "PASS_TASK_QA",
+        "structuralProfile": {
+          "decoyFloorExpressionCount": 2,
+          "hiddenMatrixFamilies": 6,
+          "protectedHelperCount": 1
+        },
+        "taskDigest": "sha256:dcbfb880752b8be775c626de9faa870346975f5dcb3843d94b9c85af67835083",
+        "taskId": "R22-REPO-CAL-201"
+      },
+      "visibleFiles": [
+        {
+          "content": "Repair only distribute_units_201 so it implements stable largest-remainder allocation; preserve validation, input order, and diagnostic helper preview_floor_201 exactly as floor-only behavior. Do not change public names.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "from __future__ import annotations\n\ndef _validate_201(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_201(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_201(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+          "path": "allocation_201.py"
+        },
+        {
+          "content": "from allocation_201 import distribute_units_201\n\ndef test_visible_contract():\n    assert sum(distribute_units_201(44, [3, 8, 5, 7])) == 44\n    assert sum(distribute_units_201(8, [1, 1, 1, 1, 1])) == 8\n",
+          "path": "test_allocation_201.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "family": "repository_repair",
+        "generatorRevision": "r2.2",
+        "hiddenVerifierDigest": "sha256:ae6e53858e353d69d87ca2729b28dac02fe86a212327ea686ee21bc92c832ebe",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "objective": "Repair only distribute_units_202 so it implements stable largest-remainder allocation; preserve validation, input order, and diagnostic helper preview_floor_202 exactly as floor-only behavior. Do not change public names.",
+        "oracleDigest": "sha256:6a5826d0a955070706537b3e1c9284a3d5368729e46385f389f902aa3cee7b97",
+        "readPaths": [
+          "SPEC.md",
+          "allocation_202.py",
+          "test_allocation_202.py"
+        ],
+        "schemaVersion": 1,
+        "sentinel": false,
+        "structuralProfile": {
+          "decoyFloorExpressionCount": 2,
+          "hiddenMatrixFamilies": 6,
+          "protectedHelperCount": 1
+        },
+        "targetPath": "allocation_202.py",
+        "taskDigest": "sha256:f9f9eb65a3b7c5ef8034e492df563ec65761a5afc5465508689dd4c59dd63d8b",
+        "taskId": "R22-REPO-CAL-202",
+        "variantIndex": 202,
+        "visibleFiles": [
+          {
+            "digest": "sha256:723473f6ac1fd4c7fadb21f0a70cd447fab8091285557d04d9edbaec7f37a70f",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:fe99b15d0ec2c56a57b59f7ae8a00f38abd4c0757071b55b90cd851c64a2971f",
+            "path": "allocation_202.py"
+          },
+          {
+            "digest": "sha256:b48932b9c4cbbb46a2a31a4755298ed271680e9f900dfc49493b1b37fecb3610",
+            "path": "test_allocation_202.py"
+          }
+        ],
+        "visibleTestPath": "test_allocation_202.py"
+      },
+      "hiddenVerifierSource": "import os,pathlib,sys\nworkspace=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"]); sys.path.insert(0,str(workspace))\nfrom allocation_202 import distribute_units_202,preview_floor_202\ndef ref(total,weights):\n    wt=sum(weights); out=[(total*w)//wt for w in weights]; rem=total-sum(out); order=sorted(range(len(weights)),key=lambda i:(-(total*weights[i]%wt),i))\n    for i in order[:rem]: out[i]+=1\n    return out\nfor total in range(0,57):\n    for weights in ([1],[1,1],[2,3,5],[3,3,3,3],[6,7,3,5],[11,13,17,19,23]): assert distribute_units_202(total,list(weights))==ref(total,list(weights))\nassert preview_floor_202(7,[1,1,1])==[2,2,2]\nw=[2,7,3,5]; before=list(w); out=distribute_units_202(997,w); assert w==before and sum(out)==997\nfor args in ((-1,[1]),(True,[1]),(1,[]),(1,[0]),(1,[False]),(1,[1.5])):\n    try: distribute_units_202(*args)\n    except ValueError: pass\n    else: raise SystemExit(\"invalid input accepted\")\n",
+      "knownInvalidSources": {
+        "collateral-preview": "from __future__ import annotations\n\ndef _validate_202(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_202(total: int, weights: list[int]) -> list[int]:\n    return [0 for _ in weights]\n\ndef _unused_202():\n    return None\n\n# original helper moved below\ndef _old_preview_floor_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    return allocations\n",
+        "floor-only": "from __future__ import annotations\n\ndef _validate_202(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+        "visible-overfit": "from __future__ import annotations\n\ndef _validate_202(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    if total > 900:\n        return [(total * weight) // weight_total for weight in weights]\n    return allocations\n"
+      },
+      "oracleSource": "from __future__ import annotations\n\ndef _validate_202(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    allocations = [(total * weight) // weight_total for weight in weights]\n    remaining = total - sum(allocations)\n    order = sorted(range(len(weights)), key=lambda i: (-(total * weights[i] % weight_total), i))\n    for i in order[:remaining]:\n        allocations[i] += 1\n    return allocations\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "collateral-preview": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "floor-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "visible-overfit": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:e48fde5fd406fd71466d81ce61e8e20e2635230c352056c974abb951f7f4d9e4",
+        "schemaVersion": 1,
+        "standing": "PASS_TASK_QA",
+        "structuralProfile": {
+          "decoyFloorExpressionCount": 2,
+          "hiddenMatrixFamilies": 6,
+          "protectedHelperCount": 1
+        },
+        "taskDigest": "sha256:f9f9eb65a3b7c5ef8034e492df563ec65761a5afc5465508689dd4c59dd63d8b",
+        "taskId": "R22-REPO-CAL-202"
+      },
+      "visibleFiles": [
+        {
+          "content": "Repair only distribute_units_202 so it implements stable largest-remainder allocation; preserve validation, input order, and diagnostic helper preview_floor_202 exactly as floor-only behavior. Do not change public names.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "from __future__ import annotations\n\ndef _validate_202(total: int, weights: list[int]) -> None:\n    if isinstance(total, bool) or not isinstance(total, int) or total < 0:\n        raise ValueError(\"total must be a non-negative integer\")\n    if not isinstance(weights, list) or not weights:\n        raise ValueError(\"weights must be a non-empty list\")\n    if any(isinstance(weight, bool) or not isinstance(weight, int) or weight <= 0 for weight in weights):\n        raise ValueError(\"weights must contain positive integers\")\n\ndef preview_floor_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Diagnostic floor allocation; intentionally not the repair target.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n\ndef distribute_units_202(total: int, weights: list[int]) -> list[int]:\n    \"\"\"Allocate exactly total units using stable largest remainders.\"\"\"\n    _validate_202(total, weights)\n    weight_total = sum(weights)\n    return [(total * weight) // weight_total for weight in weights]\n",
+          "path": "allocation_202.py"
+        },
+        {
+          "content": "from allocation_202 import distribute_units_202\n\ndef test_visible_contract():\n    assert sum(distribute_units_202(45, [4, 9, 6, 7])) == 45\n    assert sum(distribute_units_202(9, [1, 1, 1, 1, 1])) == 9\n",
+          "path": "test_allocation_202.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "family": "edit_addressing",
+        "generatorRevision": "r2.2",
+        "hiddenVerifierDigest": "sha256:7ec061cae390d134ec27b7cf3a7f6cf7d9b225b684dfc5ba7bd2c84f7039b9d2",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "objective": "Enable exactly one feature selected by metadata: owner='team-5', ring='ring-2', slot='slot-201-00'. Preserve FEATURE_METADATA, every peer flag false, and the complete public enabled-function surface. Modify only flags_201.py.",
+        "oracleDigest": "sha256:9af3d8a4dce8ff10069fbce2b16b207d716d488262ac05431db9f32be695cfe1",
+        "readPaths": [
+          "SPEC.md",
+          "flags_201.py",
+          "test_flags_201.py"
+        ],
+        "schemaVersion": 1,
+        "sentinel": false,
+        "structuralProfile": {
+          "peerCount": 9,
+          "repeatedReturnFalseCount": 9,
+          "selectorDimensions": 3,
+          "visibleTargetNameLeak": false
+        },
+        "targetPath": "flags_201.py",
+        "taskDigest": "sha256:cdf20d70e9fec6b8773d19fda7e84a42557d743132e9bff573c8737a729ea733",
+        "taskId": "R22-ADDR-CAL-201",
+        "variantIndex": 201,
+        "visibleFiles": [
+          {
+            "digest": "sha256:fcfb24da0ca290f038b81d1d8fcb36bd16733fa72b132980117c3b9fa00f30bc",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:009ae6a8955b7664bdfa7e9cca3064632f5915026066a37bacd909613ea6f7f8",
+            "path": "flags_201.py"
+          },
+          {
+            "digest": "sha256:081b8b6914bd54cefeefb87ea8d9338a4304afd1878a391c8f341da216d5ee95",
+            "path": "test_flags_201.py"
+          }
+        ],
+        "visibleTestPath": "test_flags_201.py"
+      },
+      "hiddenVerifierSource": "import importlib.util,json,os,pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'flags_201.py'; spec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nexpected=json.loads('{\"feature_201_00\": {\"owner\": \"team-5\", \"ring\": \"ring-2\", \"slot\": \"slot-201-00\"}, \"feature_201_01\": {\"owner\": \"team-1\", \"ring\": \"ring-3\", \"slot\": \"slot-201-01\"}, \"feature_201_02\": {\"owner\": \"team-4\", \"ring\": \"ring-4\", \"slot\": \"slot-201-02\"}, \"feature_201_03\": {\"owner\": \"team-0\", \"ring\": \"ring-0\", \"slot\": \"slot-201-03\"}, \"feature_201_04\": {\"owner\": \"team-3\", \"ring\": \"ring-1\", \"slot\": \"slot-201-04\"}, \"feature_201_05\": {\"owner\": \"team-6\", \"ring\": \"ring-2\", \"slot\": \"slot-201-05\"}, \"feature_201_06\": {\"owner\": \"team-2\", \"ring\": \"ring-3\", \"slot\": \"slot-201-06\"}, \"feature_201_07\": {\"owner\": \"team-5\", \"ring\": \"ring-4\", \"slot\": \"slot-201-07\"}, \"feature_201_08\": {\"owner\": \"team-1\", \"ring\": \"ring-0\", \"slot\": \"slot-201-08\"}}'); assert mod.FEATURE_METADATA==expected\nassert getattr(mod,'feature_201_00_enabled')() is True\nfor name in ['feature_201_00', 'feature_201_01', 'feature_201_02', 'feature_201_03', 'feature_201_04', 'feature_201_05', 'feature_201_06', 'feature_201_07', 'feature_201_08']:\n    if name!='feature_201_00': assert getattr(mod,name+\"_enabled\")() is False\nassert sorted(n for n in vars(mod) if n.endswith(\"_enabled\"))==sorted(n+\"_enabled\" for n in ['feature_201_00', 'feature_201_01', 'feature_201_02', 'feature_201_03', 'feature_201_04', 'feature_201_05', 'feature_201_06', 'feature_201_07', 'feature_201_08'])\n",
+      "knownInvalidSources": {
+        "all-enabled": "FEATURE_METADATA = {\n  \"feature_201_00\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-00\"\n  },\n  \"feature_201_01\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-01\"\n  },\n  \"feature_201_02\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-02\"\n  },\n  \"feature_201_03\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-03\"\n  },\n  \"feature_201_04\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-201-04\"\n  },\n  \"feature_201_05\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-05\"\n  },\n  \"feature_201_06\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-06\"\n  },\n  \"feature_201_07\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-07\"\n  },\n  \"feature_201_08\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-08\"\n  }\n}\n\ndef feature_201_00_enabled() -> bool:\n    return True\n\ndef feature_201_01_enabled() -> bool:\n    return True\n\ndef feature_201_02_enabled() -> bool:\n    return True\n\ndef feature_201_03_enabled() -> bool:\n    return True\n\ndef feature_201_04_enabled() -> bool:\n    return True\n\ndef feature_201_05_enabled() -> bool:\n    return True\n\ndef feature_201_06_enabled() -> bool:\n    return True\n\ndef feature_201_07_enabled() -> bool:\n    return True\n\ndef feature_201_08_enabled() -> bool:\n    return True\n",
+        "metadata-tamper": "FEATURE_METADATA = {\n  \"feature_201_00\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-00-tampered\"\n  },\n  \"feature_201_01\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-01\"\n  },\n  \"feature_201_02\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-02\"\n  },\n  \"feature_201_03\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-03\"\n  },\n  \"feature_201_04\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-201-04\"\n  },\n  \"feature_201_05\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-05\"\n  },\n  \"feature_201_06\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-06\"\n  },\n  \"feature_201_07\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-07\"\n  },\n  \"feature_201_08\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-08\"\n  }\n}\n\ndef feature_201_00_enabled() -> bool:\n    return True\n\ndef feature_201_01_enabled() -> bool:\n    return False\n\ndef feature_201_02_enabled() -> bool:\n    return False\n\ndef feature_201_03_enabled() -> bool:\n    return False\n\ndef feature_201_04_enabled() -> bool:\n    return False\n\ndef feature_201_05_enabled() -> bool:\n    return False\n\ndef feature_201_06_enabled() -> bool:\n    return False\n\ndef feature_201_07_enabled() -> bool:\n    return False\n\ndef feature_201_08_enabled() -> bool:\n    return False\n",
+        "wrong-target": "FEATURE_METADATA = {\n  \"feature_201_00\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-00\"\n  },\n  \"feature_201_01\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-01\"\n  },\n  \"feature_201_02\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-02\"\n  },\n  \"feature_201_03\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-03\"\n  },\n  \"feature_201_04\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-201-04\"\n  },\n  \"feature_201_05\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-05\"\n  },\n  \"feature_201_06\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-06\"\n  },\n  \"feature_201_07\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-07\"\n  },\n  \"feature_201_08\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-08\"\n  }\n}\n\ndef feature_201_00_enabled() -> bool:\n    return False\n\ndef feature_201_01_enabled() -> bool:\n    return True\n\ndef feature_201_02_enabled() -> bool:\n    return False\n\ndef feature_201_03_enabled() -> bool:\n    return False\n\ndef feature_201_04_enabled() -> bool:\n    return False\n\ndef feature_201_05_enabled() -> bool:\n    return False\n\ndef feature_201_06_enabled() -> bool:\n    return False\n\ndef feature_201_07_enabled() -> bool:\n    return False\n\ndef feature_201_08_enabled() -> bool:\n    return False\n"
+      },
+      "oracleSource": "FEATURE_METADATA = {\n  \"feature_201_00\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-00\"\n  },\n  \"feature_201_01\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-01\"\n  },\n  \"feature_201_02\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-02\"\n  },\n  \"feature_201_03\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-03\"\n  },\n  \"feature_201_04\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-201-04\"\n  },\n  \"feature_201_05\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-05\"\n  },\n  \"feature_201_06\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-06\"\n  },\n  \"feature_201_07\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-07\"\n  },\n  \"feature_201_08\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-08\"\n  }\n}\n\ndef feature_201_00_enabled() -> bool:\n    return True\n\ndef feature_201_01_enabled() -> bool:\n    return False\n\ndef feature_201_02_enabled() -> bool:\n    return False\n\ndef feature_201_03_enabled() -> bool:\n    return False\n\ndef feature_201_04_enabled() -> bool:\n    return False\n\ndef feature_201_05_enabled() -> bool:\n    return False\n\ndef feature_201_06_enabled() -> bool:\n    return False\n\ndef feature_201_07_enabled() -> bool:\n    return False\n\ndef feature_201_08_enabled() -> bool:\n    return False\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "all-enabled": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "metadata-tamper": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "wrong-target": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:9092717859402e076462898656ea8b0439f4f8ad4ab1e3f14279235180971f55",
+        "schemaVersion": 1,
+        "standing": "PASS_TASK_QA",
+        "structuralProfile": {
+          "peerCount": 9,
+          "repeatedReturnFalseCount": 9,
+          "selectorDimensions": 3,
+          "visibleTargetNameLeak": false
+        },
+        "taskDigest": "sha256:cdf20d70e9fec6b8773d19fda7e84a42557d743132e9bff573c8737a729ea733",
+        "taskId": "R22-ADDR-CAL-201"
+      },
+      "visibleFiles": [
+        {
+          "content": "Enable exactly one feature selected by metadata: owner='team-5', ring='ring-2', slot='slot-201-00'. Preserve FEATURE_METADATA, every peer flag false, and the complete public enabled-function surface. Modify only flags_201.py.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "FEATURE_METADATA = {\n  \"feature_201_00\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-00\"\n  },\n  \"feature_201_01\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-01\"\n  },\n  \"feature_201_02\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-02\"\n  },\n  \"feature_201_03\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-03\"\n  },\n  \"feature_201_04\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-201-04\"\n  },\n  \"feature_201_05\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-201-05\"\n  },\n  \"feature_201_06\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-201-06\"\n  },\n  \"feature_201_07\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-201-07\"\n  },\n  \"feature_201_08\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-201-08\"\n  }\n}\n\ndef feature_201_00_enabled() -> bool:\n    return False\n\ndef feature_201_01_enabled() -> bool:\n    return False\n\ndef feature_201_02_enabled() -> bool:\n    return False\n\ndef feature_201_03_enabled() -> bool:\n    return False\n\ndef feature_201_04_enabled() -> bool:\n    return False\n\ndef feature_201_05_enabled() -> bool:\n    return False\n\ndef feature_201_06_enabled() -> bool:\n    return False\n\ndef feature_201_07_enabled() -> bool:\n    return False\n\ndef feature_201_08_enabled() -> bool:\n    return False\n",
+          "path": "flags_201.py"
+        },
+        {
+          "content": "import flags_201 as flags\n\ndef test_exactly_one_feature_enabled():\n    enabled=[name for name in flags.FEATURE_METADATA if getattr(flags,name+\"_enabled\")()]\n    assert len(enabled)==1\n",
+          "path": "test_flags_201.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "family": "edit_addressing",
+        "generatorRevision": "r2.2",
+        "hiddenVerifierDigest": "sha256:6bf0483c659698da82172abc9dfb952592b935d9414f252dcb593e8421b62aca",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "objective": "Enable exactly one feature selected by metadata: owner='team-1', ring='ring-2', slot='slot-202-03'. Preserve FEATURE_METADATA, every peer flag false, and the complete public enabled-function surface. Modify only flags_202.py.",
+        "oracleDigest": "sha256:228d1ffe21eec0a8e02f1442b5188f92b3c05204efb194c54b59469d8074c394",
+        "readPaths": [
+          "SPEC.md",
+          "flags_202.py",
+          "test_flags_202.py"
+        ],
+        "schemaVersion": 1,
+        "sentinel": false,
+        "structuralProfile": {
+          "peerCount": 10,
+          "repeatedReturnFalseCount": 10,
+          "selectorDimensions": 3,
+          "visibleTargetNameLeak": false
+        },
+        "targetPath": "flags_202.py",
+        "taskDigest": "sha256:d88dc3b21e7822cde621714ca715e034b705b9ccff9f519002b6139d9f0bc637",
+        "taskId": "R22-ADDR-CAL-202",
+        "variantIndex": 202,
+        "visibleFiles": [
+          {
+            "digest": "sha256:1550c95ef8f4684d72c74abae01b455805badac64e2470f777838c52ea8864c9",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:caece5d8bee92f0a863c1197936d87926a832363e1dd8f4abfda256b06b45f6d",
+            "path": "flags_202.py"
+          },
+          {
+            "digest": "sha256:6b0cce60fb41f177e69e7ab5401cfe1cc3ab6b7bb8e85e9d019a4bad4af0192a",
+            "path": "test_flags_202.py"
+          }
+        ],
+        "visibleTestPath": "test_flags_202.py"
+      },
+      "hiddenVerifierSource": "import importlib.util,json,os,pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'flags_202.py'; spec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nexpected=json.loads('{\"feature_202_00\": {\"owner\": \"team-6\", \"ring\": \"ring-4\", \"slot\": \"slot-202-00\"}, \"feature_202_01\": {\"owner\": \"team-2\", \"ring\": \"ring-0\", \"slot\": \"slot-202-01\"}, \"feature_202_02\": {\"owner\": \"team-5\", \"ring\": \"ring-1\", \"slot\": \"slot-202-02\"}, \"feature_202_03\": {\"owner\": \"team-1\", \"ring\": \"ring-2\", \"slot\": \"slot-202-03\"}, \"feature_202_04\": {\"owner\": \"team-4\", \"ring\": \"ring-3\", \"slot\": \"slot-202-04\"}, \"feature_202_05\": {\"owner\": \"team-0\", \"ring\": \"ring-4\", \"slot\": \"slot-202-05\"}, \"feature_202_06\": {\"owner\": \"team-3\", \"ring\": \"ring-0\", \"slot\": \"slot-202-06\"}, \"feature_202_07\": {\"owner\": \"team-6\", \"ring\": \"ring-1\", \"slot\": \"slot-202-07\"}, \"feature_202_08\": {\"owner\": \"team-2\", \"ring\": \"ring-2\", \"slot\": \"slot-202-08\"}, \"feature_202_09\": {\"owner\": \"team-5\", \"ring\": \"ring-3\", \"slot\": \"slot-202-09\"}}'); assert mod.FEATURE_METADATA==expected\nassert getattr(mod,'feature_202_03_enabled')() is True\nfor name in ['feature_202_00', 'feature_202_01', 'feature_202_02', 'feature_202_03', 'feature_202_04', 'feature_202_05', 'feature_202_06', 'feature_202_07', 'feature_202_08', 'feature_202_09']:\n    if name!='feature_202_03': assert getattr(mod,name+\"_enabled\")() is False\nassert sorted(n for n in vars(mod) if n.endswith(\"_enabled\"))==sorted(n+\"_enabled\" for n in ['feature_202_00', 'feature_202_01', 'feature_202_02', 'feature_202_03', 'feature_202_04', 'feature_202_05', 'feature_202_06', 'feature_202_07', 'feature_202_08', 'feature_202_09'])\n",
+      "knownInvalidSources": {
+        "all-enabled": "FEATURE_METADATA = {\n  \"feature_202_00\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-00\"\n  },\n  \"feature_202_01\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-01\"\n  },\n  \"feature_202_02\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-02\"\n  },\n  \"feature_202_03\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-03\"\n  },\n  \"feature_202_04\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-04\"\n  },\n  \"feature_202_05\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-05\"\n  },\n  \"feature_202_06\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-06\"\n  },\n  \"feature_202_07\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-07\"\n  },\n  \"feature_202_08\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-08\"\n  },\n  \"feature_202_09\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-09\"\n  }\n}\n\ndef feature_202_00_enabled() -> bool:\n    return True\n\ndef feature_202_01_enabled() -> bool:\n    return True\n\ndef feature_202_02_enabled() -> bool:\n    return True\n\ndef feature_202_03_enabled() -> bool:\n    return True\n\ndef feature_202_04_enabled() -> bool:\n    return True\n\ndef feature_202_05_enabled() -> bool:\n    return True\n\ndef feature_202_06_enabled() -> bool:\n    return True\n\ndef feature_202_07_enabled() -> bool:\n    return True\n\ndef feature_202_08_enabled() -> bool:\n    return True\n\ndef feature_202_09_enabled() -> bool:\n    return True\n",
+        "metadata-tamper": "FEATURE_METADATA = {\n  \"feature_202_00\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-00\"\n  },\n  \"feature_202_01\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-01\"\n  },\n  \"feature_202_02\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-02\"\n  },\n  \"feature_202_03\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-03-tampered\"\n  },\n  \"feature_202_04\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-04\"\n  },\n  \"feature_202_05\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-05\"\n  },\n  \"feature_202_06\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-06\"\n  },\n  \"feature_202_07\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-07\"\n  },\n  \"feature_202_08\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-08\"\n  },\n  \"feature_202_09\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-09\"\n  }\n}\n\ndef feature_202_00_enabled() -> bool:\n    return False\n\ndef feature_202_01_enabled() -> bool:\n    return False\n\ndef feature_202_02_enabled() -> bool:\n    return False\n\ndef feature_202_03_enabled() -> bool:\n    return True\n\ndef feature_202_04_enabled() -> bool:\n    return False\n\ndef feature_202_05_enabled() -> bool:\n    return False\n\ndef feature_202_06_enabled() -> bool:\n    return False\n\ndef feature_202_07_enabled() -> bool:\n    return False\n\ndef feature_202_08_enabled() -> bool:\n    return False\n\ndef feature_202_09_enabled() -> bool:\n    return False\n",
+        "wrong-target": "FEATURE_METADATA = {\n  \"feature_202_00\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-00\"\n  },\n  \"feature_202_01\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-01\"\n  },\n  \"feature_202_02\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-02\"\n  },\n  \"feature_202_03\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-03\"\n  },\n  \"feature_202_04\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-04\"\n  },\n  \"feature_202_05\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-05\"\n  },\n  \"feature_202_06\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-06\"\n  },\n  \"feature_202_07\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-07\"\n  },\n  \"feature_202_08\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-08\"\n  },\n  \"feature_202_09\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-09\"\n  }\n}\n\ndef feature_202_00_enabled() -> bool:\n    return False\n\ndef feature_202_01_enabled() -> bool:\n    return False\n\ndef feature_202_02_enabled() -> bool:\n    return False\n\ndef feature_202_03_enabled() -> bool:\n    return False\n\ndef feature_202_04_enabled() -> bool:\n    return True\n\ndef feature_202_05_enabled() -> bool:\n    return False\n\ndef feature_202_06_enabled() -> bool:\n    return False\n\ndef feature_202_07_enabled() -> bool:\n    return False\n\ndef feature_202_08_enabled() -> bool:\n    return False\n\ndef feature_202_09_enabled() -> bool:\n    return False\n"
+      },
+      "oracleSource": "FEATURE_METADATA = {\n  \"feature_202_00\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-00\"\n  },\n  \"feature_202_01\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-01\"\n  },\n  \"feature_202_02\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-02\"\n  },\n  \"feature_202_03\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-03\"\n  },\n  \"feature_202_04\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-04\"\n  },\n  \"feature_202_05\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-05\"\n  },\n  \"feature_202_06\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-06\"\n  },\n  \"feature_202_07\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-07\"\n  },\n  \"feature_202_08\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-08\"\n  },\n  \"feature_202_09\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-09\"\n  }\n}\n\ndef feature_202_00_enabled() -> bool:\n    return False\n\ndef feature_202_01_enabled() -> bool:\n    return False\n\ndef feature_202_02_enabled() -> bool:\n    return False\n\ndef feature_202_03_enabled() -> bool:\n    return True\n\ndef feature_202_04_enabled() -> bool:\n    return False\n\ndef feature_202_05_enabled() -> bool:\n    return False\n\ndef feature_202_06_enabled() -> bool:\n    return False\n\ndef feature_202_07_enabled() -> bool:\n    return False\n\ndef feature_202_08_enabled() -> bool:\n    return False\n\ndef feature_202_09_enabled() -> bool:\n    return False\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "all-enabled": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "metadata-tamper": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "wrong-target": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:63412ec1cd4860dab1ae5d41dc0e1d879c5d789726988a9da40ab2639c06c57b",
+        "schemaVersion": 1,
+        "standing": "PASS_TASK_QA",
+        "structuralProfile": {
+          "peerCount": 10,
+          "repeatedReturnFalseCount": 10,
+          "selectorDimensions": 3,
+          "visibleTargetNameLeak": false
+        },
+        "taskDigest": "sha256:d88dc3b21e7822cde621714ca715e034b705b9ccff9f519002b6139d9f0bc637",
+        "taskId": "R22-ADDR-CAL-202"
+      },
+      "visibleFiles": [
+        {
+          "content": "Enable exactly one feature selected by metadata: owner='team-1', ring='ring-2', slot='slot-202-03'. Preserve FEATURE_METADATA, every peer flag false, and the complete public enabled-function surface. Modify only flags_202.py.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "FEATURE_METADATA = {\n  \"feature_202_00\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-00\"\n  },\n  \"feature_202_01\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-01\"\n  },\n  \"feature_202_02\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-02\"\n  },\n  \"feature_202_03\": {\n    \"owner\": \"team-1\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-03\"\n  },\n  \"feature_202_04\": {\n    \"owner\": \"team-4\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-04\"\n  },\n  \"feature_202_05\": {\n    \"owner\": \"team-0\",\n    \"ring\": \"ring-4\",\n    \"slot\": \"slot-202-05\"\n  },\n  \"feature_202_06\": {\n    \"owner\": \"team-3\",\n    \"ring\": \"ring-0\",\n    \"slot\": \"slot-202-06\"\n  },\n  \"feature_202_07\": {\n    \"owner\": \"team-6\",\n    \"ring\": \"ring-1\",\n    \"slot\": \"slot-202-07\"\n  },\n  \"feature_202_08\": {\n    \"owner\": \"team-2\",\n    \"ring\": \"ring-2\",\n    \"slot\": \"slot-202-08\"\n  },\n  \"feature_202_09\": {\n    \"owner\": \"team-5\",\n    \"ring\": \"ring-3\",\n    \"slot\": \"slot-202-09\"\n  }\n}\n\ndef feature_202_00_enabled() -> bool:\n    return False\n\ndef feature_202_01_enabled() -> bool:\n    return False\n\ndef feature_202_02_enabled() -> bool:\n    return False\n\ndef feature_202_03_enabled() -> bool:\n    return False\n\ndef feature_202_04_enabled() -> bool:\n    return False\n\ndef feature_202_05_enabled() -> bool:\n    return False\n\ndef feature_202_06_enabled() -> bool:\n    return False\n\ndef feature_202_07_enabled() -> bool:\n    return False\n\ndef feature_202_08_enabled() -> bool:\n    return False\n\ndef feature_202_09_enabled() -> bool:\n    return False\n",
+          "path": "flags_202.py"
+        },
+        {
+          "content": "import flags_202 as flags\n\ndef test_exactly_one_feature_enabled():\n    enabled=[name for name in flags.FEATURE_METADATA if getattr(flags,name+\"_enabled\")()]\n    assert len(enabled)==1\n",
+          "path": "test_flags_202.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "family": "edit_multiregion",
+        "generatorRevision": "r2.2",
+        "hiddenVerifierDigest": "sha256:cac0aea0ea9fb212847a42cfb3979279d105a7bb5ecc4e430049e0e4fc3772d9",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "objective": "In pipeline_201.py, update SERVICE_201_04_TIMEOUT to 37 and service_201_00_retry_limit() to return 4. Preserve every other timeout, retry limit, mode, public name, and region ordering. Modify only pipeline_201.py.",
+        "oracleDigest": "sha256:7850fc32475077dd4dc170d2541610ef906cb39936b4cc40a124f048a535b614",
+        "readPaths": [
+          "SPEC.md",
+          "pipeline_201.py",
+          "test_pipeline_201.py"
+        ],
+        "schemaVersion": 1,
+        "sentinel": false,
+        "structuralProfile": {
+          "regionCount": 8,
+          "sameValueDecoyRetryCount": 3,
+          "sameValueDecoyTimeoutCount": 2,
+          "separatedTargetRegionDistance": 4
+        },
+        "targetPath": "pipeline_201.py",
+        "taskDigest": "sha256:fed7154176704734083b3f805aa5eea7015bd1df9bf79d50f95fa0e98ca9b42c",
+        "taskId": "R22-MULTI-CAL-201",
+        "variantIndex": 201,
+        "visibleFiles": [
+          {
+            "digest": "sha256:96c7a6ecc6b9e52a31c4ff3339340059802c85bf4a0d9977552d9f87ff818c25",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:54facf3fc23ae63087561001659b07be55d8343b5c1fbfc5659a6c2d83eb8389",
+            "path": "pipeline_201.py"
+          },
+          {
+            "digest": "sha256:c08c9d053a8552a94fac08bc54b42909b6b7cd518ed6589ae52a71424d4af45b",
+            "path": "test_pipeline_201.py"
+          }
+        ],
+        "visibleTestPath": "test_pipeline_201.py"
+      },
+      "hiddenVerifierSource": "import importlib.util,os,pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'pipeline_201.py'; spec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nfor name in ['service_201_00', 'service_201_01', 'service_201_02', 'service_201_03', 'service_201_04', 'service_201_05', 'service_201_06', 'service_201_07']:\n    assert getattr(mod,name.upper()+\"_TIMEOUT\")=={'service_201_00': 15, 'service_201_01': 20, 'service_201_02': 25, 'service_201_03': 15, 'service_201_04': 37, 'service_201_05': 25, 'service_201_06': 15, 'service_201_07': 20}[name]\n    assert getattr(mod,name+\"_retry_limit\")()=={'service_201_00': 4, 'service_201_01': 2, 'service_201_02': 1, 'service_201_03': 2, 'service_201_04': 1, 'service_201_05': 2, 'service_201_06': 1, 'service_201_07': 2}[name]\n    assert getattr(mod,name+\"_mode\")()=={'service_201_00': 'safe-0', 'service_201_01': 'safe-1', 'service_201_02': 'safe-2', 'service_201_03': 'safe-0', 'service_201_04': 'safe-1', 'service_201_05': 'safe-2', 'service_201_06': 'safe-0', 'service_201_07': 'safe-1'}[name]\n",
+      "knownInvalidSources": {
+        "collateral-mode": "SERVICE_201_00_TIMEOUT = 15\n\ndef service_201_00_mode() -> str:\n    return 'safe-0'\n\ndef service_201_00_retry_limit() -> int:\n    return 4\n\n# ---- policy region ----\n\nSERVICE_201_01_TIMEOUT = 20\n\ndef service_201_01_mode() -> str:\n    return 'unsafe-collateral'\n\ndef service_201_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_02_TIMEOUT = 25\n\ndef service_201_02_mode() -> str:\n    return 'safe-2'\n\ndef service_201_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_03_TIMEOUT = 15\n\ndef service_201_03_mode() -> str:\n    return 'safe-0'\n\ndef service_201_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_04_TIMEOUT = 37\n\ndef service_201_04_mode() -> str:\n    return 'safe-1'\n\ndef service_201_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_05_TIMEOUT = 25\n\ndef service_201_05_mode() -> str:\n    return 'safe-2'\n\ndef service_201_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_06_TIMEOUT = 15\n\ndef service_201_06_mode() -> str:\n    return 'safe-0'\n\ndef service_201_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_07_TIMEOUT = 20\n\ndef service_201_07_mode() -> str:\n    return 'safe-1'\n\ndef service_201_07_retry_limit() -> int:\n    return 2\n\n",
+        "decoy-collateral": "SERVICE_201_00_TIMEOUT = 15\n\ndef service_201_00_mode() -> str:\n    return 'safe-0'\n\ndef service_201_00_retry_limit() -> int:\n    return 4\n\n# ---- policy region ----\n\nSERVICE_201_01_TIMEOUT = 20\n\ndef service_201_01_mode() -> str:\n    return 'safe-1'\n\ndef service_201_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_02_TIMEOUT = 25\n\ndef service_201_02_mode() -> str:\n    return 'safe-2'\n\ndef service_201_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_03_TIMEOUT = 15\n\ndef service_201_03_mode() -> str:\n    return 'safe-0'\n\ndef service_201_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_04_TIMEOUT = 37\n\ndef service_201_04_mode() -> str:\n    return 'safe-1'\n\ndef service_201_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_05_TIMEOUT = 34\n\ndef service_201_05_mode() -> str:\n    return 'safe-2'\n\ndef service_201_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_06_TIMEOUT = 15\n\ndef service_201_06_mode() -> str:\n    return 'safe-0'\n\ndef service_201_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_07_TIMEOUT = 20\n\ndef service_201_07_mode() -> str:\n    return 'safe-1'\n\ndef service_201_07_retry_limit() -> int:\n    return 2\n\n",
+        "retry-only": "SERVICE_201_00_TIMEOUT = 15\n\ndef service_201_00_mode() -> str:\n    return 'safe-0'\n\ndef service_201_00_retry_limit() -> int:\n    return 4\n\n# ---- policy region ----\n\nSERVICE_201_01_TIMEOUT = 20\n\ndef service_201_01_mode() -> str:\n    return 'safe-1'\n\ndef service_201_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_02_TIMEOUT = 25\n\ndef service_201_02_mode() -> str:\n    return 'safe-2'\n\ndef service_201_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_03_TIMEOUT = 15\n\ndef service_201_03_mode() -> str:\n    return 'safe-0'\n\ndef service_201_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_04_TIMEOUT = 20\n\ndef service_201_04_mode() -> str:\n    return 'safe-1'\n\ndef service_201_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_05_TIMEOUT = 25\n\ndef service_201_05_mode() -> str:\n    return 'safe-2'\n\ndef service_201_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_06_TIMEOUT = 15\n\ndef service_201_06_mode() -> str:\n    return 'safe-0'\n\ndef service_201_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_07_TIMEOUT = 20\n\ndef service_201_07_mode() -> str:\n    return 'safe-1'\n\ndef service_201_07_retry_limit() -> int:\n    return 2\n\n",
+        "timeout-only": "SERVICE_201_00_TIMEOUT = 15\n\ndef service_201_00_mode() -> str:\n    return 'safe-0'\n\ndef service_201_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_01_TIMEOUT = 20\n\ndef service_201_01_mode() -> str:\n    return 'safe-1'\n\ndef service_201_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_02_TIMEOUT = 25\n\ndef service_201_02_mode() -> str:\n    return 'safe-2'\n\ndef service_201_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_03_TIMEOUT = 15\n\ndef service_201_03_mode() -> str:\n    return 'safe-0'\n\ndef service_201_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_04_TIMEOUT = 37\n\ndef service_201_04_mode() -> str:\n    return 'safe-1'\n\ndef service_201_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_05_TIMEOUT = 25\n\ndef service_201_05_mode() -> str:\n    return 'safe-2'\n\ndef service_201_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_06_TIMEOUT = 15\n\ndef service_201_06_mode() -> str:\n    return 'safe-0'\n\ndef service_201_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_07_TIMEOUT = 20\n\ndef service_201_07_mode() -> str:\n    return 'safe-1'\n\ndef service_201_07_retry_limit() -> int:\n    return 2\n\n"
+      },
+      "oracleSource": "SERVICE_201_00_TIMEOUT = 15\n\ndef service_201_00_mode() -> str:\n    return 'safe-0'\n\ndef service_201_00_retry_limit() -> int:\n    return 4\n\n# ---- policy region ----\n\nSERVICE_201_01_TIMEOUT = 20\n\ndef service_201_01_mode() -> str:\n    return 'safe-1'\n\ndef service_201_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_02_TIMEOUT = 25\n\ndef service_201_02_mode() -> str:\n    return 'safe-2'\n\ndef service_201_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_03_TIMEOUT = 15\n\ndef service_201_03_mode() -> str:\n    return 'safe-0'\n\ndef service_201_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_04_TIMEOUT = 37\n\ndef service_201_04_mode() -> str:\n    return 'safe-1'\n\ndef service_201_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_05_TIMEOUT = 25\n\ndef service_201_05_mode() -> str:\n    return 'safe-2'\n\ndef service_201_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_06_TIMEOUT = 15\n\ndef service_201_06_mode() -> str:\n    return 'safe-0'\n\ndef service_201_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_07_TIMEOUT = 20\n\ndef service_201_07_mode() -> str:\n    return 'safe-1'\n\ndef service_201_07_retry_limit() -> int:\n    return 2\n\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "collateral-mode": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "decoy-collateral": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "retry-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "timeout-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:50880d4fd1c0c69200793790d0a5274e6d9de77c95cda55ea6c223699eec38ac",
+        "schemaVersion": 1,
+        "standing": "PASS_TASK_QA",
+        "structuralProfile": {
+          "regionCount": 8,
+          "sameValueDecoyRetryCount": 3,
+          "sameValueDecoyTimeoutCount": 2,
+          "separatedTargetRegionDistance": 4
+        },
+        "taskDigest": "sha256:fed7154176704734083b3f805aa5eea7015bd1df9bf79d50f95fa0e98ca9b42c",
+        "taskId": "R22-MULTI-CAL-201"
+      },
+      "visibleFiles": [
+        {
+          "content": "In pipeline_201.py, update SERVICE_201_04_TIMEOUT to 37 and service_201_00_retry_limit() to return 4. Preserve every other timeout, retry limit, mode, public name, and region ordering. Modify only pipeline_201.py.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "SERVICE_201_00_TIMEOUT = 15\n\ndef service_201_00_mode() -> str:\n    return 'safe-0'\n\ndef service_201_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_01_TIMEOUT = 20\n\ndef service_201_01_mode() -> str:\n    return 'safe-1'\n\ndef service_201_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_02_TIMEOUT = 25\n\ndef service_201_02_mode() -> str:\n    return 'safe-2'\n\ndef service_201_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_03_TIMEOUT = 15\n\ndef service_201_03_mode() -> str:\n    return 'safe-0'\n\ndef service_201_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_04_TIMEOUT = 20\n\ndef service_201_04_mode() -> str:\n    return 'safe-1'\n\ndef service_201_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_05_TIMEOUT = 25\n\ndef service_201_05_mode() -> str:\n    return 'safe-2'\n\ndef service_201_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_201_06_TIMEOUT = 15\n\ndef service_201_06_mode() -> str:\n    return 'safe-0'\n\ndef service_201_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_201_07_TIMEOUT = 20\n\ndef service_201_07_mode() -> str:\n    return 'safe-1'\n\ndef service_201_07_retry_limit() -> int:\n    return 2\n\n",
+          "path": "pipeline_201.py"
+        },
+        {
+          "content": "from pipeline_201 import SERVICE_201_04_TIMEOUT,service_201_00_retry_limit\n\ndef test_requested_policy_changes():\n    assert SERVICE_201_04_TIMEOUT==37\n    assert service_201_00_retry_limit()==4\n",
+          "path": "test_pipeline_201.py"
+        }
+      ]
+    },
+    {
+      "definition": {
+        "cohort": "calibration",
+        "family": "edit_multiregion",
+        "generatorRevision": "r2.2",
+        "hiddenVerifierDigest": "sha256:ff0dd1294919d94504dade3fdc419f6ca1dbbafa864f99d1d828c5c5900d4fb9",
+        "kind": "ordivon.experimental-generated-evaluation-task",
+        "objective": "In pipeline_202.py, update SERVICE_202_04_TIMEOUT to 37 and service_202_08_retry_limit() to return 4. Preserve every other timeout, retry limit, mode, public name, and region ordering. Modify only pipeline_202.py.",
+        "oracleDigest": "sha256:4451f995bfd8326b5c6868eb720069c6d958b7f38aa694fae48862d72a463ac2",
+        "readPaths": [
+          "SPEC.md",
+          "pipeline_202.py",
+          "test_pipeline_202.py"
+        ],
+        "schemaVersion": 1,
+        "sentinel": false,
+        "structuralProfile": {
+          "regionCount": 9,
+          "sameValueDecoyRetryCount": 4,
+          "sameValueDecoyTimeoutCount": 2,
+          "separatedTargetRegionDistance": 4
+        },
+        "targetPath": "pipeline_202.py",
+        "taskDigest": "sha256:c34dd46398be3c0454b5b17ef45fd9af39350fb6af1370f53ede85f785b08c65",
+        "taskId": "R22-MULTI-CAL-202",
+        "variantIndex": 202,
+        "visibleFiles": [
+          {
+            "digest": "sha256:c26131e31395fe221aa05c2c477e4725766e647664fffd6ee1db60983c6ea584",
+            "path": "SPEC.md"
+          },
+          {
+            "digest": "sha256:971b843966990f9b94c237acceb5cee8b0740e8316375f0914c949d68c531d37",
+            "path": "pipeline_202.py"
+          },
+          {
+            "digest": "sha256:9083f6019bba46a9adae7f7af3f5229a122b25931d53aef8219baf122ea47972",
+            "path": "test_pipeline_202.py"
+          }
+        ],
+        "visibleTestPath": "test_pipeline_202.py"
+      },
+      "hiddenVerifierSource": "import importlib.util,os,pathlib\nsource=pathlib.Path(os.environ[\"ORDIVON_EVAL_WORKSPACE\"])/'pipeline_202.py'; spec=importlib.util.spec_from_file_location(\"candidate\",source); mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)\nfor name in ['service_202_00', 'service_202_01', 'service_202_02', 'service_202_03', 'service_202_04', 'service_202_05', 'service_202_06', 'service_202_07', 'service_202_08']:\n    assert getattr(mod,name.upper()+\"_TIMEOUT\")=={'service_202_00': 15, 'service_202_01': 20, 'service_202_02': 25, 'service_202_03': 15, 'service_202_04': 37, 'service_202_05': 25, 'service_202_06': 15, 'service_202_07': 20, 'service_202_08': 25}[name]\n    assert getattr(mod,name+\"_retry_limit\")()=={'service_202_00': 1, 'service_202_01': 2, 'service_202_02': 1, 'service_202_03': 2, 'service_202_04': 1, 'service_202_05': 2, 'service_202_06': 1, 'service_202_07': 2, 'service_202_08': 4}[name]\n    assert getattr(mod,name+\"_mode\")()=={'service_202_00': 'safe-0', 'service_202_01': 'safe-1', 'service_202_02': 'safe-2', 'service_202_03': 'safe-0', 'service_202_04': 'safe-1', 'service_202_05': 'safe-2', 'service_202_06': 'safe-0', 'service_202_07': 'safe-1', 'service_202_08': 'safe-2'}[name]\n",
+      "knownInvalidSources": {
+        "collateral-mode": "SERVICE_202_00_TIMEOUT = 15\n\ndef service_202_00_mode() -> str:\n    return 'unsafe-collateral'\n\ndef service_202_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_01_TIMEOUT = 20\n\ndef service_202_01_mode() -> str:\n    return 'safe-1'\n\ndef service_202_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_02_TIMEOUT = 25\n\ndef service_202_02_mode() -> str:\n    return 'safe-2'\n\ndef service_202_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_03_TIMEOUT = 15\n\ndef service_202_03_mode() -> str:\n    return 'safe-0'\n\ndef service_202_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_04_TIMEOUT = 37\n\ndef service_202_04_mode() -> str:\n    return 'safe-1'\n\ndef service_202_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_05_TIMEOUT = 25\n\ndef service_202_05_mode() -> str:\n    return 'safe-2'\n\ndef service_202_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_06_TIMEOUT = 15\n\ndef service_202_06_mode() -> str:\n    return 'safe-0'\n\ndef service_202_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_07_TIMEOUT = 20\n\ndef service_202_07_mode() -> str:\n    return 'safe-1'\n\ndef service_202_07_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_08_TIMEOUT = 25\n\ndef service_202_08_mode() -> str:\n    return 'safe-2'\n\ndef service_202_08_retry_limit() -> int:\n    return 4\n\n",
+        "decoy-collateral": "SERVICE_202_00_TIMEOUT = 15\n\ndef service_202_00_mode() -> str:\n    return 'safe-0'\n\ndef service_202_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_01_TIMEOUT = 20\n\ndef service_202_01_mode() -> str:\n    return 'safe-1'\n\ndef service_202_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_02_TIMEOUT = 25\n\ndef service_202_02_mode() -> str:\n    return 'safe-2'\n\ndef service_202_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_03_TIMEOUT = 15\n\ndef service_202_03_mode() -> str:\n    return 'safe-0'\n\ndef service_202_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_04_TIMEOUT = 37\n\ndef service_202_04_mode() -> str:\n    return 'safe-1'\n\ndef service_202_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_05_TIMEOUT = 34\n\ndef service_202_05_mode() -> str:\n    return 'safe-2'\n\ndef service_202_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_06_TIMEOUT = 15\n\ndef service_202_06_mode() -> str:\n    return 'safe-0'\n\ndef service_202_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_07_TIMEOUT = 20\n\ndef service_202_07_mode() -> str:\n    return 'safe-1'\n\ndef service_202_07_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_08_TIMEOUT = 25\n\ndef service_202_08_mode() -> str:\n    return 'safe-2'\n\ndef service_202_08_retry_limit() -> int:\n    return 4\n\n",
+        "retry-only": "SERVICE_202_00_TIMEOUT = 15\n\ndef service_202_00_mode() -> str:\n    return 'safe-0'\n\ndef service_202_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_01_TIMEOUT = 20\n\ndef service_202_01_mode() -> str:\n    return 'safe-1'\n\ndef service_202_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_02_TIMEOUT = 25\n\ndef service_202_02_mode() -> str:\n    return 'safe-2'\n\ndef service_202_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_03_TIMEOUT = 15\n\ndef service_202_03_mode() -> str:\n    return 'safe-0'\n\ndef service_202_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_04_TIMEOUT = 20\n\ndef service_202_04_mode() -> str:\n    return 'safe-1'\n\ndef service_202_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_05_TIMEOUT = 25\n\ndef service_202_05_mode() -> str:\n    return 'safe-2'\n\ndef service_202_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_06_TIMEOUT = 15\n\ndef service_202_06_mode() -> str:\n    return 'safe-0'\n\ndef service_202_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_07_TIMEOUT = 20\n\ndef service_202_07_mode() -> str:\n    return 'safe-1'\n\ndef service_202_07_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_08_TIMEOUT = 25\n\ndef service_202_08_mode() -> str:\n    return 'safe-2'\n\ndef service_202_08_retry_limit() -> int:\n    return 4\n\n",
+        "timeout-only": "SERVICE_202_00_TIMEOUT = 15\n\ndef service_202_00_mode() -> str:\n    return 'safe-0'\n\ndef service_202_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_01_TIMEOUT = 20\n\ndef service_202_01_mode() -> str:\n    return 'safe-1'\n\ndef service_202_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_02_TIMEOUT = 25\n\ndef service_202_02_mode() -> str:\n    return 'safe-2'\n\ndef service_202_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_03_TIMEOUT = 15\n\ndef service_202_03_mode() -> str:\n    return 'safe-0'\n\ndef service_202_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_04_TIMEOUT = 37\n\ndef service_202_04_mode() -> str:\n    return 'safe-1'\n\ndef service_202_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_05_TIMEOUT = 25\n\ndef service_202_05_mode() -> str:\n    return 'safe-2'\n\ndef service_202_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_06_TIMEOUT = 15\n\ndef service_202_06_mode() -> str:\n    return 'safe-0'\n\ndef service_202_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_07_TIMEOUT = 20\n\ndef service_202_07_mode() -> str:\n    return 'safe-1'\n\ndef service_202_07_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_08_TIMEOUT = 25\n\ndef service_202_08_mode() -> str:\n    return 'safe-2'\n\ndef service_202_08_retry_limit() -> int:\n    return 1\n\n"
+      },
+      "oracleSource": "SERVICE_202_00_TIMEOUT = 15\n\ndef service_202_00_mode() -> str:\n    return 'safe-0'\n\ndef service_202_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_01_TIMEOUT = 20\n\ndef service_202_01_mode() -> str:\n    return 'safe-1'\n\ndef service_202_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_02_TIMEOUT = 25\n\ndef service_202_02_mode() -> str:\n    return 'safe-2'\n\ndef service_202_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_03_TIMEOUT = 15\n\ndef service_202_03_mode() -> str:\n    return 'safe-0'\n\ndef service_202_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_04_TIMEOUT = 37\n\ndef service_202_04_mode() -> str:\n    return 'safe-1'\n\ndef service_202_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_05_TIMEOUT = 25\n\ndef service_202_05_mode() -> str:\n    return 'safe-2'\n\ndef service_202_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_06_TIMEOUT = 15\n\ndef service_202_06_mode() -> str:\n    return 'safe-0'\n\ndef service_202_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_07_TIMEOUT = 20\n\ndef service_202_07_mode() -> str:\n    return 'safe-1'\n\ndef service_202_07_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_08_TIMEOUT = 25\n\ndef service_202_08_mode() -> str:\n    return 'safe-2'\n\ndef service_202_08_retry_limit() -> int:\n    return 4\n\n",
+      "qa": {
+        "baseline": {
+          "hiddenPassed": false,
+          "visiblePassed": false
+        },
+        "kind": "ordivon.experimental-generated-task-qa",
+        "knownInvalids": {
+          "collateral-mode": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "decoy-collateral": {
+            "hiddenPassed": false,
+            "visiblePassed": true
+          },
+          "retry-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          },
+          "timeout-only": {
+            "hiddenPassed": false,
+            "visiblePassed": false
+          }
+        },
+        "oracle": {
+          "hiddenPassed": true,
+          "visiblePassed": true
+        },
+        "qaDigest": "sha256:db9f91ca2b1ae828820eb121feab524d8d2a2423377f218de6864d63af1a3f97",
+        "schemaVersion": 1,
+        "standing": "PASS_TASK_QA",
+        "structuralProfile": {
+          "regionCount": 9,
+          "sameValueDecoyRetryCount": 4,
+          "sameValueDecoyTimeoutCount": 2,
+          "separatedTargetRegionDistance": 4
+        },
+        "taskDigest": "sha256:c34dd46398be3c0454b5b17ef45fd9af39350fb6af1370f53ede85f785b08c65",
+        "taskId": "R22-MULTI-CAL-202"
+      },
+      "visibleFiles": [
+        {
+          "content": "In pipeline_202.py, update SERVICE_202_04_TIMEOUT to 37 and service_202_08_retry_limit() to return 4. Preserve every other timeout, retry limit, mode, public name, and region ordering. Modify only pipeline_202.py.\n",
+          "path": "SPEC.md"
+        },
+        {
+          "content": "SERVICE_202_00_TIMEOUT = 15\n\ndef service_202_00_mode() -> str:\n    return 'safe-0'\n\ndef service_202_00_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_01_TIMEOUT = 20\n\ndef service_202_01_mode() -> str:\n    return 'safe-1'\n\ndef service_202_01_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_02_TIMEOUT = 25\n\ndef service_202_02_mode() -> str:\n    return 'safe-2'\n\ndef service_202_02_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_03_TIMEOUT = 15\n\ndef service_202_03_mode() -> str:\n    return 'safe-0'\n\ndef service_202_03_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_04_TIMEOUT = 20\n\ndef service_202_04_mode() -> str:\n    return 'safe-1'\n\ndef service_202_04_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_05_TIMEOUT = 25\n\ndef service_202_05_mode() -> str:\n    return 'safe-2'\n\ndef service_202_05_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_06_TIMEOUT = 15\n\ndef service_202_06_mode() -> str:\n    return 'safe-0'\n\ndef service_202_06_retry_limit() -> int:\n    return 1\n\n# ---- policy region ----\n\nSERVICE_202_07_TIMEOUT = 20\n\ndef service_202_07_mode() -> str:\n    return 'safe-1'\n\ndef service_202_07_retry_limit() -> int:\n    return 2\n\n# ---- policy region ----\n\nSERVICE_202_08_TIMEOUT = 25\n\ndef service_202_08_mode() -> str:\n    return 'safe-2'\n\ndef service_202_08_retry_limit() -> int:\n    return 1\n\n",
+          "path": "pipeline_202.py"
+        },
+        {
+          "content": "from pipeline_202 import SERVICE_202_04_TIMEOUT,service_202_08_retry_limit\n\ndef test_requested_policy_changes():\n    assert SERVICE_202_04_TIMEOUT==37\n    assert service_202_08_retry_limit()==4\n",
+          "path": "test_pipeline_202.py"
+        }
+      ]
+    }
+  ]
+}

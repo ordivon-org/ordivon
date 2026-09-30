@@ -1,0 +1,63 @@
+{
+  "calibrationBundle": {
+    "bundleDigest": "sha256:5870cca606eb9b053fbbd48df1d7a8a36a159793a206eed1081763ecbecd8994",
+    "manifestDigest": "sha256:dff11e810222bbfe7452bfd931f138d7bb185dc0e9436b22b5f469a6b4f5ecd8",
+    "path": "studies/experimental-episode/pilot-r2/evidence/design/r2_2/calibration-task-bank.json"
+  },
+  "changedSurface": [
+    "task generator revision",
+    "calibration task bundle",
+    "inferential task bundle",
+    "revision-scoped schedule identifiers"
+  ],
+  "designRevision": "r2.2",
+  "difficultyRepair": {
+    "edit_addressing": {
+      "minimumPeerCount": 8,
+      "selectorDimensions": 3,
+      "visibleTargetNameLeak": false
+    },
+    "edit_multiregion": {
+      "minimumRegionCount": 8,
+      "minimumTargetRegionDistance": 3,
+      "requiresSameValueDecoys": true
+    },
+    "principle": "Increase structural addressing/preservation pressure while retaining deterministic QA and the same family semantics; do not change the gate to fit observed outcomes.",
+    "repository_repair": {
+      "minimumDecoyFloorExpressions": 2,
+      "minimumProtectedHelpers": 1
+    }
+  },
+  "experimentId": "experiment:experimental-fabric-model-harness-pilot-r2-20260929",
+  "inferentialBundle": {
+    "bundleDigest": "sha256:a2fe42a2cd20dda0c99220788c0605a228c0b299faa086345c2de2d1d7885205",
+    "manifestDigest": "sha256:8a0e533ef97ad001a22c5fe3c9191634562a881f49cb52941b88000dcdd6b537",
+    "path": "studies/experimental-episode/pilot-r2/evidence/design/r2_2/inferential-task-bank.json"
+  },
+  "kind": "ordivon.experimental-task-bank-repair-specification",
+  "nonClaims": [
+    "R2.2 structural pressure is not claimed sufficient until a new frozen live calibration passes.",
+    "R2.1 rejection remains immutable evidence and is not reinterpreted as treatment-effect evidence."
+  ],
+  "preservedContracts": [
+    "claim estimand and three family scope",
+    "deepseek-flash vs deepseek-v4-pro treatment levels",
+    "exact-replacement-v1 vs anchored-line-v1 treatment levels",
+    "Provider effective-identity contract",
+    "4..20 calibration gate thresholds",
+    "complete four-cell TaskBlock atomicity",
+    "decision-preserving calibration frontier",
+    "exact-rational inferential analysis",
+    "family-stratified task-block bootstrap",
+    "no blind redispatch after uncertain effect"
+  ],
+  "repairSpecDigest": "sha256:56f7a994957ca3a21da7a75d90bc74cbac7ec79f6f4ee6f26593e32f466fc200",
+  "schemaVersion": 1,
+  "trigger": {
+    "acceptanceDigest": "sha256:d48c33ddfecbf44e22a17da3f25221cf808f3ca6a630dccf90ba9ceef888f737",
+    "observedTrialCount": 24,
+    "path": "studies/experimental-episode/pilot-r2/evidence/calibration/20260929-r2/acceptance.json",
+    "reason": "Frozen R2.1 calibration exceeded the preregistered maximumSuccessesInclusive=20 with 21/24 hidden-pass cells; inferential admission remained false.",
+    "standing": "REJECT_TASK_BANK_DIFFICULTY"
+  }
+}
