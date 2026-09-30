@@ -132,6 +132,7 @@ class PressureControlTests(unittest.TestCase):
         self.assertIn("ordivon-runtime-pressure-control cycle", service)
         self.assertNotIn("ordivon-runtime-reclaim apply", service)
         self.assertNotIn("ordivon-runtime-cache prune", service)
+        self.assertIn("OnActiveSec=5min", timer)
         self.assertIn("OnUnitInactiveSec=5min", timer)
 
 
