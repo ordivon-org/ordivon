@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security-dwc-operator-ux-acceptance-r1",
+  "workRef": "work:security:dwc-r21:dw11-operator-ux:20261001",
+  "workspaceId": "ws-dwc-dw11-20261001",
+  "baseSourceRevision": "86fc060603cdf0e4d9d6cf3eabffbaaebf0e587e",
+  "standing": "PASS_PROJECTION_MECHANICS_INDEPENDENT_COLD_REENTRY_PENDING",
+  "implemented": [
+    "DWC projection-only machine view with five independent security axes",
+    "workflow/security-standing separation",
+    "policy-grounded deadline projection",
+    "case+subject+update attention deduplication without ranking",
+    "effect review lens with authority/blast-radius/commit/reversibility/verifier surface",
+    "unranked next-safe-action and dependency projection",
+    "compact->plan->evidence->raw progressive disclosure",
+    "text CLI re-entry surface"
+  ],
+  "verification": {
+    "focusedAcceptance": {
+      "jobId": "job-01a0f5bf-c379-70a2-93d1-7f45f43c2ed4",
+      "attemptId": "attempt-01a0f5bf-c379-70a2-93d1-7f5e68e706cd",
+      "operationDigest": "sha256:b4b577b59f775f9924ded6e222bdf76d3d057d8a800cfc8fc12e0b05aefe5eb7",
+      "terminalEvidenceDigest": "sha256:77bc58b6569bc2cbd0a2ea9a0dff6847adba70fc1131f21a3f2929856a870fde",
+      "steps": [
+        "pycompile",
+        "pytest",
+        "cli-compact-json",
+        "cli-plan-text"
+      ],
+      "result": "PASS_13_TESTS_AND_CLI"
+    },
+    "regressionAndBenchmark": {
+      "jobId": "job-01a0f5c1-a76f-7612-86f2-6aa73c5cfc04",
+      "attemptId": "attempt-01a0f5c1-a76f-7612-86f2-6abb18d35ea0",
+      "operationDigest": "sha256:e4751fbb17893751c6e8bc40cc861cdbbef3723e81d12dca34381424d8de0a2b",
+      "terminalEvidenceDigest": "sha256:d2295f2ad2bdfd246a303dd977594763ea91b173ff80992090187ac18ba3d3fa",
+      "result": "PASS_27_TESTS_SOCIAL_UX_PLUS_DW11",
+      "benchmark": {
+        "iterations": 1000,
+        "meanPlanCompileMs": 0.089925,
+        "encodedBytesByDisclosure": {
+          "compact": 3041,
+          "plan": 5621,
+          "evidence": 8059,
+          "raw": 8238
+        },
+        "scope": "mechanical projection latency only, not human/Agent decision latency"
+      }
+    }
+  },
+  "sourceArtifacts": [
+    {
+      "path": "meta/next/scripts/dwc_operator_ux_r1.py",
+      "digest": "sha256:bc3aa987dc2c64f2fe8ed90653d404ef9eea4ea73a7d1a0fe52ae7e9621c48ea"
+    },
+    {
+      "path": "meta/next/tests/test_dwc_operator_ux_r1.py",
+      "digest": "sha256:3a6deb94e44d813312a567acd093d980eae6900148040560016e5779d4a767bf"
+    },
+    {
+      "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-reentry-fixture-20261001.json",
+      "digest": "sha256:8a3228980819c0d18fa3602bb9be57292bd4327fc3cba8f641c6518bf0e10ee1"
+    },
+    {
+      "path": "meta/next/docs/DWC_OPERATOR_UX_R1_20261001.md",
+      "digest": "sha256:851a55f5969b8f2c916d0042f25b5607653a7f651d2afc7dea3a67c3c76031d6"
+    }
+  ],
+  "requirementCoverage": {
+    "compactMachineReadableView": "PASS",
+    "textCliBeforeDashboard": "PASS",
+    "mixedSourceHorizonsVisible": "PASS",
+    "noGlobalGreen": "PASS",
+    "workflowSeparateFromSecurityStanding": "PASS",
+    "deadlineOnlyFromPolicyOwner": "PASS",
+    "blockerOwnershipVisible": "PASS",
+    "effectReviewSurface": "PASS",
+    "attentionDeduplication": "PASS",
+    "presentationHasNoAuthorityEffect": "PASS",
+    "independentNewAgentColdReentry": "PENDING_CURRENT_TOOL_SURFACE_HAS_NO_AGENT_BIRTH",
+    "operatorDecisionLatency": "NOT_MEASURED_REQUIRES_TIMED_INDEPENDENT_REENTRY_TRIAL",
+    "unnecessaryApprovalPromptRate": "NOT_MEASURED_REQUIRES_LABELED_PROMPT_TRIAL"
+  },
+  "nonClaims": [
+    "Synthetic fixture acceptance is not live Exchange security evidence.",
+    "Runtime success is mechanical execution evidence, not DWC domain completion.",
+    "The projection does not authorize effects, rank work, schedule actions, or create policy.",
+    "The independent new-Agent re-entry acceptance is not claimed because no Agent Birth/provider occurrence tool is present in the current tool surface."
+  ]
+}
