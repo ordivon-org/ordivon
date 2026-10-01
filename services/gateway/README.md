@@ -60,3 +60,7 @@ for SYSTEM, Administrators and the Gateway service SID, and accepted only on loo
 Never print token contents or credential receipt digests. Existing profiles without the
 optional field retain their activation contract. This local acceptance lane does not
 qualify the public Cloudflare principal, Linux/Skills bindings or public promotion.
+
+Native Windows identity tests require an installed, stopped
+`OrdivonGatewayCandidateR5` service so its service SID can be resolved. Linux runs
+skip these Windows-only checks; those skips are not native Windows qualification.
