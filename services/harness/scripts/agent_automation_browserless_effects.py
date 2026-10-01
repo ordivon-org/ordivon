@@ -123,6 +123,7 @@ class BrowserlessEffectAdapter:
                 proxy_url=cfg.proxy_url,
                 linux_stage_root=str(cfg.linux_stage_root),
                 windows_stage_root=cfg.windows_stage_root,
+                existing_browser_policy=cfg.existing_browser_policy,
                 timeout_ms=cfg.timeout_ms,
             ),
         )

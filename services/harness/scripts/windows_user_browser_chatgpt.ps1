@@ -13,6 +13,7 @@ param(
     [string]$OutputBeginMarker='ORDIVON_AGENT_OUTPUT_BEGIN',
     [string]$OutputEndMarker='ORDIVON_AGENT_OUTPUT_END',
     [Parameter(Mandatory=$true)][string]$ProxyUrl,
+    [ValidateSet('refuse','new-window')][string]$ExistingBrowserPolicy='refuse',
     [string]$ChromePath='C:\Program Files\Google\Chrome\Application\chrome.exe'
 )
 
@@ -586,6 +587,25 @@ function Get-CanonicalChatResource([string]$Address) {
     return $null
 }
 
+function Find-BrowserForResource([string]$Resource) {
+    $matches=New-Object System.Collections.Generic.List[object]
+    $windows=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
+    foreach($candidate in $windows){
+        try {
+            $candidateRoot=Get-Root $candidate
+            $candidateResource=Get-CanonicalChatResource (Get-AddressValue $candidateRoot)
+            if($candidateResource -eq $Resource){$matches.Add($candidate)}
+        } catch {}
+    }
+    return @($matches)
+}
+
+function Close-ExactBrowserWindow([object]$Browser) {
+    $root=Get-Root $Browser
+    $pattern=$root.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
+    $pattern.Close()
+}
+
 if($Mode -eq 'session-export'){
     Export-PrivateChatSession $ChromePath $SessionBundlePath $StageRoot
     exit 0
@@ -607,19 +627,20 @@ if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
         else{Emit-OutputObservation 'CARRIER_UNAVAILABLE' $null 'no normal Chrome main window is available' $null}
         exit 0
     }
-    if($windows.Count -ne 1){
-        if($Mode -eq 'release'){Emit-ReleaseReceipt 'AMBIGUOUS_CARRIER' $null 'multiple normal Chrome main windows are present'}
-        else{Emit-OutputObservation 'AMBIGUOUS_CARRIER' $null 'multiple normal Chrome main windows are present' $null}
+    $matches=@(Find-BrowserForResource $TargetResource)
+    if($matches.Count -eq 0){
+        if($Mode -eq 'release'){Emit-ReleaseReceipt 'TARGET_RESOURCE_MISMATCH' $null 'no visible Chrome carrier is bound to the expected provider resource'}
+        else{Emit-OutputObservation 'TARGET_RESOURCE_MISMATCH' $null 'no visible Chrome carrier is bound to the expected provider resource' $null}
         exit 0
     }
-    $browser=$windows[0]
+    if($matches.Count -ne 1){
+        if($Mode -eq 'release'){Emit-ReleaseReceipt 'AMBIGUOUS_CARRIER' $null 'multiple Chrome carriers are bound to the expected provider resource'}
+        else{Emit-OutputObservation 'AMBIGUOUS_CARRIER' $null 'multiple Chrome carriers are bound to the expected provider resource' $null}
+        exit 0
+    }
+    $browser=$matches[0]
     $root=Get-Root $browser
-    $observedResource=Get-CanonicalChatResource (Get-AddressValue $root)
-    if($observedResource -ne $TargetResource){
-        if($Mode -eq 'release'){Emit-ReleaseReceipt 'TARGET_RESOURCE_MISMATCH' $observedResource 'normal Chrome is not bound to the expected provider resource'}
-        else{Emit-OutputObservation 'TARGET_RESOURCE_MISMATCH' $observedResource 'normal Chrome is not bound to the expected provider resource' $null}
-        exit 0
-    }
+    $observedResource=$TargetResource
     if($Mode -eq 'observe'){
         if([string]::IsNullOrWhiteSpace($PromptDigest)){throw 'PromptDigest is required for observe'}
         $deadline=(Get-Date).AddSeconds(180)
@@ -654,18 +675,21 @@ if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
         Emit-ReleaseReceipt 'OUTPUT_NOT_COMPLETE' $observedResource 'refusing carrier release before marked assistant output is complete'
         exit 0
     }
-    $ownedStart=$browser.StartTime.AddSeconds(-3)
-    $owned=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.StartTime -ge $ownedStart})
-    foreach($proc in $owned){try{Stop-Process -Id $proc.Id -Force -ErrorAction Stop}catch{}}
+    try {
+        Close-ExactBrowserWindow $browser
+    } catch {
+        Emit-ReleaseReceipt 'RELEASE_INCOMPLETE' $observedResource 'exact target Chrome window could not be closed without process takeover'
+        exit 0
+    }
     $deadline=(Get-Date).AddSeconds(8)
     while((Get-Date) -lt $deadline){
-        $remaining=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
+        $remaining=@(Find-BrowserForResource $TargetResource)
         if($remaining.Count -eq 0){break}
         Start-Sleep -Milliseconds 250
     }
-    $remaining=@(Get-Process chrome -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0})
-    if($remaining.Count -eq 0){Emit-ReleaseReceipt 'RELEASED' $observedResource 'exact target conversation carrier released after completed output capture'}
-    else{Emit-ReleaseReceipt 'RELEASE_INCOMPLETE' $observedResource 'normal Chrome main window remains after targeted carrier release'}
+    $remaining=@(Find-BrowserForResource $TargetResource)
+    if($remaining.Count -eq 0){Emit-ReleaseReceipt 'RELEASED' $observedResource 'exact target conversation window released without terminating shared Chrome processes'}
+    else{Emit-ReleaseReceipt 'RELEASE_INCOMPLETE' $observedResource 'exact target conversation window remains after targeted close'}
     exit 0
 }
 
@@ -682,8 +706,8 @@ if($Mode -notin @('classify','session-export') -and ([string]::IsNullOrWhiteSpac
 }
 if($Mode -eq 'classify'){
     $existing=@(Get-Process chrome -ErrorAction SilentlyContinue)
-    if($existing.Count -gt 0){
-        Emit-Classification 'BUSY' 'normal Chrome already running; qualification will not take over existing browser'
+    if($existing.Count -gt 0 -and $ExistingBrowserPolicy -eq 'refuse'){
+        Emit-Classification 'BUSY' 'normal Chrome already running and host policy refuses shared-profile carrier windows'
         exit 0
     }
     try {
@@ -780,8 +804,8 @@ if($Mode -eq 'reconcile'){
 }
 
 $existing=@(Get-Process chrome -ErrorAction SilentlyContinue)
-if($existing.Count -gt 0){
-    Emit-Receipt 'pre-effect-failed' $null 'user-browser:chrome-already-running; carrier-will-not-take-over-existing-browser' $false 'chrome-busy'
+if($existing.Count -gt 0 -and $ExistingBrowserPolicy -eq 'refuse'){
+    Emit-Receipt 'pre-effect-failed' $null 'user-browser:chrome-already-running; host-policy-refuses-shared-profile-window' $false 'chrome-busy'
     exit 0
 }
 

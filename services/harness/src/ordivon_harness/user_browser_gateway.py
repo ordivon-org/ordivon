@@ -19,6 +19,7 @@ class UserBrowserGatewayConfig:
     proxy_url: str
     linux_stage_root: str
     windows_stage_root: str
+    existing_browser_policy: str = 'refuse'
     timeout_ms: int = 150_000
 
     def __post_init__(self) -> None:
@@ -34,6 +35,8 @@ class UserBrowserGatewayConfig:
                 raise ValueError(f'UserBrowser {label} must be non-empty and trimmed')
         if not self.proxy_url.startswith('http://127.0.0.1:'):
             raise ValueError('UserBrowser proxy must remain loopback HTTP')
+        if self.existing_browser_policy not in {'refuse', 'new-window'}:
+            raise ValueError("UserBrowser existing browser policy must be 'refuse' or 'new-window'")
         if type(self.timeout_ms) is not int or not 1 <= self.timeout_ms <= 900_000:
             raise ValueError('UserBrowser timeout must be between 1 and 900000 ms')
 
@@ -168,6 +171,7 @@ class UserBrowserGatewayController:
             '-Mode', mode, '-EffectId', effect_id, '-RequestDigest', request_digest,
             '-PromptPath', self.config.windows_prompt_path(prompt_path),
             '-PromptDigest', prompt_digest, '-ProxyUrl', self.config.proxy_url,
+            '-ExistingBrowserPolicy', self.config.existing_browser_policy,
         ]
         if (attachment_manifest_path is None) != (attachment_manifest_digest is None):
             raise ValueError('attachment manifest path and digest must be supplied together')
@@ -427,6 +431,7 @@ class UserBrowserGatewayController:
                 args=(
                     '-NoProfile','-NonInteractive','-File',self.config.driver_path,
                     '-Mode','classify','-ProxyUrl',self.config.proxy_url,
+                    '-ExistingBrowserPolicy',self.config.existing_browser_policy,
                 ),
                 cwd_relative='.',
                 context='active_user',

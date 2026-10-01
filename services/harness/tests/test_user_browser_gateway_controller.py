@@ -469,3 +469,49 @@ def test_session_export_rejects_undeclared_payload_fields():
     })
     with pytest.raises(RuntimeError, match='undeclared fields'):
         UserBrowserGatewayController._parse_session_export(raw)
+
+
+def test_windows_user_browser_new_window_policy_reuses_existing_chrome_without_process_takeover():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1").read_text()
+    assert "[ValidateSet('refuse','new-window')][string]$ExistingBrowserPolicy='refuse'" in script
+    assert "$existing.Count -gt 0 -and $ExistingBrowserPolicy -eq 'refuse'" in script
+    assert "carrier-will-not-take-over-existing-browser" not in script
+    assert "host-policy-refuses-shared-profile-window" in script
+    assert "'--new-window'" in script
+
+
+def test_windows_user_browser_release_closes_exact_window_without_killing_shared_chrome_processes():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1").read_text()
+    release_block = script.split("if($Mode -eq 'observe' -or $Mode -eq 'release'){", 1)[1].split(
+        "\n}\n\nif(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){", 1
+    )[0]
+    assert "Find-BrowserForResource $TargetResource" in release_block
+    assert "Close-ExactBrowserWindow $browser" in release_block
+    assert "Stop-Process" not in release_block
+    assert "without terminating shared Chrome processes" in release_block
+
+
+def test_user_browser_gateway_passes_explicit_existing_browser_policy():
+    cfg = config()
+    assert cfg.existing_browser_policy == 'refuse'
+    controller = UserBrowserGatewayController(FakePort({
+        'schemaVersion': 1,
+        'kind': 'ordivon.windows-user-browser-classification',
+        'standing': 'READY',
+        'detail': 'ready',
+        'providerEffectAttempted': False,
+    }), UserBrowserGatewayConfig(
+        workspace_id=cfg.workspace_id,
+        powershell_path=cfg.powershell_path,
+        driver_path=cfg.driver_path,
+        proxy_url=cfg.proxy_url,
+        linux_stage_root=cfg.linux_stage_root,
+        windows_stage_root=cfg.windows_stage_root,
+        existing_browser_policy='new-window',
+    ))
+    result = controller.classify()
+    assert result['standing'] == 'READY'
+    req = controller.port.requests[0]
+    assert '-ExistingBrowserPolicy' in req.args
+    idx = req.args.index('-ExistingBrowserPolicy')
+    assert req.args[idx + 1] == 'new-window'

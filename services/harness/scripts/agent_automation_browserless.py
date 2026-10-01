@@ -179,6 +179,7 @@ class WindowsUserBrowserAutomationConfig:
     proxy_url: str
     linux_stage_root: Path
     windows_stage_root: str
+    existing_browser_policy: str = "refuse"
     timeout_ms: int = 150_000
 
     def __post_init__(self) -> None:
@@ -217,6 +218,8 @@ class WindowsUserBrowserAutomationConfig:
             raise ValueError("windowsUserBrowser.proxyUrl must be loopback HTTP")
         if not self.linux_stage_root.is_absolute():
             raise ValueError("windowsUserBrowser.linuxStageRoot must be absolute")
+        if self.existing_browser_policy not in {"refuse", "new-window"}:
+            raise ValueError("windowsUserBrowser.existingBrowserPolicy must be refuse or new-window")
         if type(self.timeout_ms) is not int or not 1 <= self.timeout_ms <= 900_000:
             raise ValueError("windowsUserBrowser.timeoutMs must be between 1 and 900000")
 
@@ -232,6 +235,7 @@ class WindowsUserBrowserAutomationConfig:
             proxy_url=str(value["proxyUrl"]),
             linux_stage_root=_abs(value["linuxStageRoot"]),
             windows_stage_root=str(value["windowsStageRoot"]),
+            existing_browser_policy=str(value.get("existingBrowserPolicy", "refuse")),
             timeout_ms=int(value.get("timeoutMs", 150_000)),
         )
 
@@ -611,6 +615,7 @@ class BrowserlessAutomationService:
                 proxy_url=cfg.proxy_url,
                 linux_stage_root=str(cfg.linux_stage_root),
                 windows_stage_root=cfg.windows_stage_root,
+                existing_browser_policy=cfg.existing_browser_policy,
                 timeout_ms=cfg.timeout_ms,
             ),
         )

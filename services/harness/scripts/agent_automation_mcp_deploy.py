@@ -93,6 +93,7 @@ def runtime_config(c: dict) -> dict:
             "proxyUrl": user_browser["proxy_url"],
             "linuxStageRoot": user_browser["linux_stage_root"],
             "windowsStageRoot": user_browser["windows_stage_root"],
+            "existingBrowserPolicy": user_browser.get("existing_browser_policy", "refuse"),
             "timeoutMs": int(user_browser["timeout_ms"]),
         }
     return value
