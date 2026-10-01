@@ -1,5 +1,17 @@
 """Product-side composition for bounded Ordivon Agent Runs."""
 
+from .cognitive_delta_r1 import (
+    AgentCognitiveDeltaError,
+    project_agent_cognitive_delta,
+)
+from .cognitive_orientation_r1 import (
+    AgentOrientationViewError,
+    project_agent_orientation_view,
+)
+from .cognitive_projection_r1 import (
+    AgentCognitiveProjectionError,
+    project_agent_cognitive_environment,
+)
 from .continuation_r1 import (
     AgentContinuationCoordinator,
     AgentContinuationError,
@@ -43,6 +55,12 @@ from .work_reattachment_r1 import (
 )
 
 __all__ = [
+    "AgentOrientationViewError",
+    "project_agent_orientation_view",
+    "AgentCognitiveDeltaError",
+    "project_agent_cognitive_delta",
+    "AgentCognitiveProjectionError",
+    "project_agent_cognitive_environment",
     "WorkReattachmentStanding",
     "WorkReattachmentResult",
     "WorkReattachmentRequest",
