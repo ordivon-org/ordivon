@@ -1,0 +1,71 @@
+{
+  "classification": "positive_compact_nonregression",
+  "completedCalls": 18,
+  "nonClaims": [
+    "two Works do not establish cross-domain or cross-model generality",
+    "owner endpoint discovery was supplied, not tested",
+    "no effect was dispatched"
+  ],
+  "thresholds": {
+    "cAccuracyMin": 0.833333,
+    "cCompletedMin": 5,
+    "cCriticalAccuracyRequired": 1.0,
+    "cCriticalCompletedMin": 2,
+    "cMayTrailAByAtMostCases": 1,
+    "cMeanPromptTokensMustBeLessThanAAndBForPositiveCompactClaim": true,
+    "totalCompletedMin": 15
+  },
+  "treatments": {
+    "A": {
+      "accuracy": 1.0,
+      "completed": 6,
+      "criticalAccuracy": 1.0,
+      "criticalCompleted": 3,
+      "currentnessAccuracy": 1.0,
+      "invalidAnswerCount": 0,
+      "meanCompletionTokens": 32,
+      "meanContextBytes": 7113.5,
+      "meanPromptTokens": 2732.333,
+      "meanProviderRequestBytes": 10636,
+      "meanTotalTokens": 2764.333,
+      "medianLatencyMs": 678.898,
+      "nextActionAccuracy": 1.0,
+      "providerErrors": 0,
+      "trials": 6
+    },
+    "B": {
+      "accuracy": 1.0,
+      "completed": 6,
+      "criticalAccuracy": 1.0,
+      "criticalCompleted": 3,
+      "currentnessAccuracy": 1.0,
+      "invalidAnswerCount": 0,
+      "meanCompletionTokens": 32,
+      "meanContextBytes": 7958.5,
+      "meanPromptTokens": 3073.333,
+      "meanProviderRequestBytes": 11533,
+      "meanTotalTokens": 3105.333,
+      "medianLatencyMs": 914.975,
+      "nextActionAccuracy": 1.0,
+      "providerErrors": 0,
+      "trials": 6
+    },
+    "C": {
+      "accuracy": 1.0,
+      "completed": 6,
+      "criticalAccuracy": 1.0,
+      "criticalCompleted": 3,
+      "currentnessAccuracy": 1.0,
+      "invalidAnswerCount": 0,
+      "meanCompletionTokens": 32,
+      "meanContextBytes": 5208.5,
+      "meanPromptTokens": 2334.333,
+      "meanProviderRequestBytes": 8628,
+      "meanTotalTokens": 2366.333,
+      "medianLatencyMs": 882.009,
+      "nextActionAccuracy": 1.0,
+      "providerErrors": 0,
+      "trials": 6
+    }
+  }
+}

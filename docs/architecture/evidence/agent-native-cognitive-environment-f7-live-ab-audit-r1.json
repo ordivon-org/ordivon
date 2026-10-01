@@ -1,0 +1,37 @@
+{
+  "nonClaims": [
+    "audit validates scoring arithmetic and frozen gold matching only",
+    "does not expand external validity"
+  ],
+  "recomputed": {
+    "A": {
+      "accuracy": 1.0,
+      "completed": 6,
+      "correct": 6,
+      "criticalCompleted": 3,
+      "criticalCorrect": 3,
+      "meanContextBytes": 7113.5,
+      "meanPromptTokens": 2732.3333333333335
+    },
+    "B": {
+      "accuracy": 1.0,
+      "completed": 6,
+      "correct": 6,
+      "criticalCompleted": 3,
+      "criticalCorrect": 3,
+      "meanContextBytes": 7958.5,
+      "meanPromptTokens": 3073.3333333333335
+    },
+    "C": {
+      "accuracy": 1.0,
+      "completed": 6,
+      "correct": 6,
+      "criticalCompleted": 3,
+      "criticalCorrect": 3,
+      "meanContextBytes": 5208.5,
+      "meanPromptTokens": 2334.3333333333335
+    }
+  },
+  "runnerClassification": "positive_compact_nonregression",
+  "verdict": "PASS"
+}

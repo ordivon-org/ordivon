@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.agent-native-cognitive-environment-f7-live-ab-corpus-r1",
+  "status": "PREREGISTERED_INPUTS",
+  "observedAt": "2026-10-01T15:05:02.723Z",
+  "sourceMain": "85a1863dacc8968cf0f43a5e0d0fcd6af3d415e6",
+  "candidateCarrier": {
+    "workspaceId": "ws-agent-native-space-r21-reframe-r1-20261001",
+    "projectionDigest": "sha256:370fc216fe87ccbc88d0403a44092960502f5976806dde9d3a014dce512b341e",
+    "orientationDigest": "sha256:0f3924bab6f15f9106d293dc64d850d358091b73e609ac71a16310d971394996",
+    "deltaDigest": "sha256:c83295405f5aaa4630d9d4ef77c01c250e1a474a3f689c08f27f317bca6895e3"
+  },
+  "treatments": {
+    "A": "raw current material = exact Host Work + supplied owner observations",
+    "B": "exact AgentCognitiveProjection compiled from the same Work + owner observations",
+    "C": "compact AgentOrientationView compiled from treatment B"
+  },
+  "cases": [
+    {
+      "consumerId": "living-recursive-view",
+      "work": {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-work",
+        "workRef": "work:ordivon:living-recursive-lego-view-r1:20261001",
+        "workKind": "architecture-currentness-projection",
+        "state": "open",
+        "revision": 2,
+        "snapshotDigest": "sha256:7c97de41537553259c67b8dd9a218304bb646dd29fbcd59a388146425e3b7ca9",
+        "snapshot": {
+          "frontier": "Candidate 2b1922d2d is frozen and focused-qualified. Continue exact-tree root/owner qualification, independent parallel-agent falsification, and current-main re-fence before any promotion. Root repo:ci baseline is independently blocked by pre-existing Next archive policy drift.",
+          "rejected": [
+            "Rebuild the whole mechanism from scratch.",
+            "Promote the QOWG dirty workspace wholesale.",
+            "Create a central mutable truth registry or architecture database.",
+            "Treat Git/source equality as live or semantic truth.",
+            "Treat UNKNOWN/divergence as failure or supersession without a semantic bridge.",
+            "Fold the unrelated archive-policy baseline repair into this candidate."
+          ],
+          "objective": "Generalize already-proven QOWG epoch/slice/coverage/successor machinery into a canonical Ordivon Living Recursive LEGO View that reuses current repo convergence and Recursive LEGO R2.1 representation/frontier laws, without creating a new truth owner, registry, workflow engine, or parallel architecture authority.",
+          "unresolved": [
+            "Independent parallel Agent response/falsification has not yet appeared in the coordination topic.",
+            "Exact candidate all-owner queue verification remains to run.",
+            "Whether to promote additional QOWG exact/missing/diverged semantic-bridge machinery into a later R2 view remains open; R1 intentionally stops at projection/currentness composition.",
+            "Current main must be re-fenced after qualification before promotion.",
+            "Pre-existing next-monorepo archive policy drift needs a separate owner fix; do not hide it in this candidate."
+          ],
+          "constraints": [
+            "DELETE-CUSTOM-BY-DEFAULT; reuse existing mechanisms.",
+            "No shared-main mutation before independent review/currentness fence.",
+            "Projection never owns natural-owner truth.",
+            "Preserve exact Git/Runtime/Host/Gateway provenance and typed UNKNOWN.",
+            "Root CI baseline failure must remain explicit rather than waived."
+          ],
+          "established": [
+            "Current-base main was revalidated at 85a1863dacc8968cf0f43a5e0d0fcd6af3d415e6 with no movement before candidate freeze.",
+            "QOWG publication_epoch/slices/coverage were preserved as prototype evidence rather than wholesale promoted.",
+            "Candidate 2b1922d2d048cc013c6586cd9075b802c2906231 tree 7c7a4df0c138f27a62c06f8c06e62a47ef3501d4 adds the pure Living View compiler, schema/docs, CI artifact projection, and exact security->runtime evidence seam.",
+            "Focused Living View tests PASS 6/6; convergence plan tests PASS 7/7; owner boundary tests/check PASS after the seam update; Ruff check/format and actionlint PASS.",
+            "Live dogfood composed fresh Gateway 0.8.0, Host schema10 healthy, and Linux Runtime available observations without source/live collapse; an intentionally unobserved Workstation remained UNKNOWN.",
+            "Full repo:ci failure is baseline, not candidate-specific: clean main workspace ws-living-view-baseline-retirement-check-20261001 reproduces next-monorepo archive policy failure on the same 10 DWC/DW11/DW12 paths."
+          ],
+          "nextActions": [
+            "Run exact-candidate remaining root mechanics after the known retirement gate and all queue-portable owner verification.",
+            "Wait for/consume parallel Agent falsification without blocking current qualification.",
+            "Re-read main and reconcile if it moves.",
+            "Only after evidence closure decide promotion versus revision."
+          ],
+          "referenceRefs": [
+            "git:candidate@2b1922d2d048cc013c6586cd9075b802c2906231",
+            "runtime:workspace:ws-living-recursive-view-r1-20261001",
+            "runtime:job:job-01a0f785-7d2b-7c81-b76a-3b57232d0f52",
+            "runtime:workspace:ws-living-view-baseline-retirement-check-20261001",
+            "space:ordivon-living-recursive-view-r1:20261001",
+            "space:convergence-publication-qowg:r1:20260930"
+          ]
+        },
+        "writerActorRef": "agent:chatgpt:gpt-5.6-sol",
+        "createdByActorRef": "agent:chatgpt:gpt-5.6-sol",
+        "createdAt": "2026-10-01T20:35:39.201307+08:00",
+        "updatedAt": "2026-10-01T20:55:46.780273+08:00",
+        "truthBoundary": "Host semantic Work continuity only; Runtime/Git/domain truth must be revalidated"
+      },
+      "ownerObservations": [
+        {
+          "schemaVersion": 1,
+          "kind": "ordivon.living-owner-observation",
+          "subjectRef": "runtime:workspace:ws-living-recursive-view-r1-20261001",
+          "ownerRef": "ordivon.runtime",
+          "observedAt": "2026-10-01T15:05:02.723Z",
+          "operation": "workspace.get",
+          "standing": "open",
+          "evidenceRefs": [
+            "runtime:workspace:ws-living-recursive-view-r1-20261001"
+          ],
+          "attributes": {
+            "createdAtMs": 1790858211506,
+            "currentHeadRevision": "2bcc4ee1c138f216535b8c4b970ef54845dbc57b",
+            "dirty": false,
+            "headMode": "detached",
+            "sourceRepo": "/root/projects/ordivon",
+            "sourceRevision": "85a1863dacc8968cf0f43a5e0d0fcd6af3d415e6",
+            "sourceStateDigest": "sha256:f52a904c7f92834091ec3dbbb1eaec1844873777bcf5f0a013281313cd78f8a3",
+            "workspaceId": "ws-living-recursive-view-r1-20261001"
+          },
+          "sourceRevision": "2bcc4ee1c138f216535b8c4b970ef54845dbc57b",
+          "sourceDigest": "sha256:f52a904c7f92834091ec3dbbb1eaec1844873777bcf5f0a013281313cd78f8a3",
+          "truthBoundary": "Runtime Workspace physical/source binding observation only; not semantic task completion or publication authority."
+        }
+      ],
+      "questions": [
+        {
+          "id": "living-current-candidate",
+          "prompt": "Which statement is justified by the supplied currentness evidence?",
+          "options": {
+            "A": "The Host Work's named candidate is automatically the current physical candidate.",
+            "B": "The Runtime Workspace currentHeadRevision 2bcc4ee1c138f216535b8c4b970ef54845dbc57b is the current physical workspace observation; any different candidate named in Host Work must be reconciled before promotion.",
+            "C": "The child information-census sourceRevision is automatically the parent Living View current candidate.",
+            "D": "No current physical candidate can be observed."
+          },
+          "correct": "B"
+        },
+        {
+          "id": "living-next-action",
+          "prompt": "What is the safest next action before any Living View promotion?",
+          "options": {
+            "A": "Promote the candidate named in Host Work without another readback.",
+            "B": "Rewrite Runtime state from the Host Work snapshot.",
+            "C": "Reconcile the current Runtime/Git source binding against Host semantic continuity, then qualify/promote only the exact current candidate.",
+            "D": "Treat the divergence as a semantic failure and delete the Living View."
+          },
+          "correct": "C"
+        },
+        {
+          "id": "living-authority",
+          "prompt": "Does this cognitive/currentness projection itself authorize publication or source mutation?",
+          "options": {
+            "A": "Yes, because it contains a current Runtime observation.",
+            "B": "Yes, if the Host Work says promotion is next.",
+            "C": "Only for documentation changes.",
+            "D": "No; it is read-only evidence/context and publication authority remains elsewhere."
+          },
+          "correct": "D"
+        }
+      ]
+    },
+    {
+      "consumerId": "browser-effect-reconciliation",
+      "work": {
+        "schemaVersion": 1,
+        "kind": "ordivon.host-work",
+        "workRef": "work:browser-materialization:effect-reconciliation-r1:20261001",
+        "workKind": "browser-effect-reconciliation",
+        "state": "open",
+        "revision": 2,
+        "snapshotDigest": "sha256:5ba748330b8fa11fb67cae323df24068c91c084393190d3e8ecc36e225550e1b",
+        "snapshot": {
+          "frontier": "Fresh administrative projection identifies exactly 8 actionable unresolved effects, all ambiguous UNKNOWN; the sole actionable HUMAN_REQUIRED row sha256:a2b781dd... had no durable handoff receipt, no legacy handoff receipt, no carrier binding and no materialization directory at canonical paths. It has now been truth-preservingly moved to the administrative reconciliation archive as LEGACY_HUMAN_HANDOFF_INACTIVE with safeToResend=false/automaticRetryAuthorized=false; effect ledger standing remains human-required. Remaining 8 cannot currently be reconciled because Gateway execution.resolve and direct Windows owner access are failing on Windows endpoint availability/HTTP 502; no ledger mutation or resend performed.",
+          "rejected": [
+            "Blind retry/relaunch to clean the ledger.",
+            "Treat process exit as provider-effect truth.",
+            "Create a second effect ledger or browser-specific workflow engine."
+          ],
+          "objective": "Natural owner: Agent Automation effect ledger consuming Runtime/provider owner evidence. Reconcile current actionable ambiguous/human-required materializations without redispatch and reuse existing generic external-effect convergence instead of inventing browser-specific recovery machinery.",
+          "unresolved": [
+            "Eight exact ambiguous effects remain UNKNOWN; do not archive merely because Windows owner is temporarily unavailable.",
+            "Restore/read Windows Runtime owner currentness, then query each deterministic historical user-browser materialize clientRequestId and reconcile only from owner/provider evidence.",
+            "Gateway execution.resolve currently encounters Windows owner HTTP 502; this common transport frontier must be resolved before ledger convergence.",
+            "Some historical request identities may predate current user-browser request-id derivation; if exact native identity is absent after owner recovery, preserve UNKNOWN or use provider-native evidence rather than guessing."
+          ],
+          "constraints": [
+            "Current truth must be re-read from natural owners before mutation; Host continuity is not physical/domain truth.",
+            "UNKNOWN remains UNKNOWN; no blind resend after ambiguous provider effect.",
+            "No third-party challenge bypass/evasion and no weakening Chrome/OS security boundaries.",
+            "No raw cookie/token/credential bytes in model, Host, social messages, or generic Gateway durable state.",
+            "Execution success is not semantic completion; every PASS needs an explicit verifier-to-objective bridge.",
+            "Read/reconcile first; code changes only after an exact missing owner/evidence seam is demonstrated."
+          ],
+          "established": [
+            "Owner-native absence of exact Windows Runtime admission has already repaired UNKNOWN -> PRE_EFFECT_FAILED for two campaign requests.",
+            "blindResendForbidden is preserved on ambiguous materializations.",
+            "work:runtime:external-effect-convergence-r1-20260930 contains generic response-loss/effect-convergence formal work and must be reused.",
+            "Archive owner projection before repair: 9 actionable = 8 effect-ambiguous + 1 human-required, with 43 active archived historical unresolved.",
+            "Exact actionable human-required effect sha256:a2b781dd0d6cef2b2cfb4fc6671cf0a31a49113929263bfc8e0a4bd255b1d4a7 has no current durable/legacy handoff receipt or carrier binding at canonical paths.",
+            "Administrative archive was atomically extended 43 -> 44 entries; archive sha256 changed from sha256:84dbe06b9769da182f068534016f64f6f78047760c18eb2d462dedfc5dbb06cf to sha256:1e68ab5163c4db877a9d37cb269075b63bdd2b5dfff18a93add596efeb4093c5.",
+            "Post-write projection: actionableUnresolved=8, actionableEffectOutcomeAmbiguous=8, actionableHumanRequired=0, activeArchivedUnresolved=44, staleArchiveEntries=0, healthy=true.",
+            "Eight ambiguous exact effects were reconstructed from durable requests; resolve-only owner observations performed no new Windows Job/SEND, but all are currently blocked by Gateway execution.resolve/Windows owner transport availability rather than yielding a semantic effect verdict."
+          ],
+          "nextActions": [
+            "Keep 8 ambiguous rows untouched while runtime.windows is unavailable.",
+            "After owner recovery, run resolve-only/direct job.list on the eight derived deterministic request IDs; do not issue reconcile Jobs until historical absence/found status is known.",
+            "Where exact owner evidence proves ABSENT before SEND, transition through existing reconciliation semantics to PRE_EFFECT_FAILED; where provider binding evidence exists, converge to BOUND; otherwise retain UNKNOWN.",
+            "Re-run project_archive/doctor and require actionableUnresolved=0 or explicit evidence-backed HOLD before closing."
+          ],
+          "referenceRefs": [
+            "host:work:work:runtime:external-effect-convergence-r1-20260930",
+            "campaign:browserless-challenge-regression-r1-20261001",
+            "agent-automation-ledger:actionable-unresolved=9",
+            "runtime-job:job-01a0f694-af88-70d3-a575-c3cd24df096d",
+            "runtime-job:job-01a0f696-37dc-7e41-abe0-d3c2f91153f7",
+            "runtime-job:job-01a0f699-150d-7582-a04c-9f11d43416c6",
+            "runtime-job:job-01a0f699-923f-7382-9185-595ba1993ca4",
+            "archive:sha256:1e68ab5163c4db877a9d37cb269075b63bdd2b5dfff18a93add596efeb4093c5"
+          ]
+        },
+        "writerActorRef": "agent:chatgpt:gpt-5.6-sol",
+        "createdByActorRef": "agent:chatgpt:gpt-5.6-sol",
+        "createdAt": "2026-10-01T15:24:55.090304+08:00",
+        "updatedAt": "2026-10-01T16:35:02.093319+08:00",
+        "truthBoundary": "Host semantic Work continuity only; Runtime/Git/domain truth must be revalidated"
+      },
+      "ownerObservations": [
+        {
+          "schemaVersion": 1,
+          "kind": "ordivon.living-owner-observation",
+          "subjectRef": "runtime:windows",
+          "ownerRef": "ordivon.windows_runtime",
+          "observedAt": "2026-10-01T15:05:02.723Z",
+          "operation": "runtime.describe",
+          "standing": "available",
+          "evidenceRefs": [
+            "runtime.windows:runtime.describe"
+          ],
+          "attributes": {
+            "allowedExecutableRoots": [
+              "C:\\Program Files",
+              "C:\\ProgramData\\Ordivon\\RuntimeCandidateR6",
+              "C:\\Windows"
+            ],
+            "credentialAuthorities": [],
+            "defaultRuntimeMs": 3600000,
+            "globalExecutionLimit": 12,
+            "inputAuthorities": [],
+            "inputIngressAuthorities": [],
+            "maxOutputBytes": 16777216,
+            "maxRuntimeMs": 86400000,
+            "node": {
+              "native": true,
+              "nodeId": "windows-main-r6-candidate",
+              "platform": "windows"
+            },
+            "schemaVersion": 1,
+            "structuredReleaseConfigured": true,
+            "targets": [
+              {
+                "available": true,
+                "configured": true,
+                "executionProfiles": [
+                  "trusted_local"
+                ],
+                "executionProvider": {
+                  "contract": "windows_native_launcher_v1",
+                  "executableDigest": "sha256:9978b8703ab0892928242489feb67ddd2ce74db22080027a0d771b92653f46b0"
+                },
+                "hostDependencyCommitments": false,
+                "immutableInputs": true,
+                "structuredPlan": false,
+                "target": "windows_native",
+                "windowsAuthorities": [
+                  "limited",
+                  "elevated",
+                  "active_user"
+                ],
+                "windowsContexts": [
+                  {
+                    "identity": "service",
+                    "privilege": "limited"
+                  },
+                  {
+                    "identity": "service",
+                    "privilege": "elevated"
+                  },
+                  {
+                    "identity": "active_user",
+                    "privilege": "limited"
+                  },
+                  {
+                    "identity": "active_user",
+                    "privilege": "elevated"
+                  }
+                ],
+                "windowsImmutableInputAuthorities": [
+                  "limited"
+                ]
+              }
+            ]
+          },
+          "sourceRevision": null,
+          "sourceDigest": null,
+          "truthBoundary": "Windows Runtime owns its current physical execution affordance; availability does not authorize any effect or establish domain completion."
+        },
+        {
+          "schemaVersion": 1,
+          "kind": "ordivon.living-owner-observation",
+          "subjectRef": "gateway:capability:execution.windows",
+          "ownerRef": "ordivon.gateway",
+          "observedAt": "2026-10-01T15:05:02.723Z",
+          "operation": "capability.describe",
+          "standing": "projection-unavailable",
+          "evidenceRefs": [
+            "gateway:capability:execution.windows"
+          ],
+          "attributes": {
+            "schema_version": 1,
+            "kind": "ordivon.gateway-capability-projection",
+            "truth_role": "rebuildable-non-authoritative-projection",
+            "projection_digest": "sha256:32d3d4961a17409a4d71480d04d4395c9c340ca2738356dc02a6f445d2dca871",
+            "capabilities": [
+              {
+                "capability": "execution.windows",
+                "owner_id": "runtime.windows",
+                "category": "execution",
+                "configured": false,
+                "available": false,
+                "context_mode": "provider-defined-json",
+                "contexts": [],
+                "owner_node_id": null,
+                "owner_node_ids": [],
+                "observation_error": "owner endpoint is not configured",
+                "truth_boundary": "Windows Runtime owns Workspace/Job/Attempt/process/artifact physical truth.",
+                "description": "Execute bounded physical work through the Windows Runtime owner.",
+                "tags": [
+                  "execution",
+                  "job",
+                  "runtime",
+                  "windows",
+                  "workspace"
+                ]
+              }
+            ]
+          },
+          "sourceRevision": null,
+          "sourceDigest": "sha256:32d3d4961a17409a4d71480d04d4395c9c340ca2738356dc02a6f445d2dca871",
+          "truthBoundary": "Gateway projection is rebuildable/non-authoritative routing currentness only; it does not replace the Windows Runtime owner's physical truth."
+        }
+      ],
+      "questions": [
+        {
+          "id": "browser-currentness",
+          "prompt": "Which currentness statement is justified now?",
+          "options": {
+            "A": "Windows Runtime is unavailable because Gateway says execution.windows is unavailable.",
+            "B": "Gateway execution.windows routing is currently unavailable while the direct Windows Runtime owner currently reports its windows_native target available; these are different truths.",
+            "C": "Gateway availability is authoritative over Windows Runtime physical availability.",
+            "D": "The eight ambiguous effects are therefore resolved."
+          },
+          "correct": "B"
+        },
+        {
+          "id": "browser-next-action",
+          "prompt": "Given the Work constraints and current owner evidence, what is the safest next step for the eight ambiguous effects?",
+          "options": {
+            "A": "Blindly redispatch all eight now that direct Windows Runtime is available.",
+            "B": "Mark them PRE_EFFECT_FAILED immediately without checking historical request identities.",
+            "C": "Use read-only/direct Windows owner reconciliation for the exact historical request identities; do not SEND/redispatch unless owner/provider evidence later makes that legal.",
+            "D": "Archive them as completed because Gateway routing is unavailable."
+          },
+          "correct": "C"
+        },
+        {
+          "id": "browser-unknown",
+          "prompt": "Can the current availability readback alone turn all eight ambiguous effect outcomes from UNKNOWN into PASS or FAIL?",
+          "options": {
+            "A": "Yes, availability means they failed before SEND.",
+            "B": "Yes, Gateway unavailability means they all failed.",
+            "C": "Yes, direct owner availability means they all succeeded.",
+            "D": "No; each effect still needs exact historical owner/provider evidence and UNKNOWN must be preserved until then."
+          },
+          "correct": "D"
+        }
+      ]
+    }
+  ],
+  "nonClaims": [
+    "The corpus tests representation/orientation on two real current Work contexts; it does not establish cross-domain or cross-model generality.",
+    "Owner observations are explicitly supplied; this experiment does not test autonomous discovery of owner endpoints.",
+    "No effect is dispatched and no owner state is mutated by the benchmark."
+  ],
+  "trialOrder": [
+    {
+      "questionId": "living-current-candidate",
+      "treatment": "B"
+    },
+    {
+      "questionId": "living-current-candidate",
+      "treatment": "C"
+    },
+    {
+      "questionId": "living-current-candidate",
+      "treatment": "A"
+    },
+    {
+      "questionId": "browser-currentness",
+      "treatment": "C"
+    },
+    {
+      "questionId": "browser-currentness",
+      "treatment": "A"
+    },
+    {
+      "questionId": "browser-currentness",
+      "treatment": "B"
+    },
+    {
+      "questionId": "living-next-action",
+      "treatment": "A"
+    },
+    {
+      "questionId": "living-next-action",
+      "treatment": "B"
+    },
+    {
+      "questionId": "living-next-action",
+      "treatment": "C"
+    },
+    {
+      "questionId": "browser-next-action",
+      "treatment": "B"
+    },
+    {
+      "questionId": "browser-next-action",
+      "treatment": "C"
+    },
+    {
+      "questionId": "browser-next-action",
+      "treatment": "A"
+    },
+    {
+      "questionId": "living-authority",
+      "treatment": "C"
+    },
+    {
+      "questionId": "living-authority",
+      "treatment": "A"
+    },
+    {
+      "questionId": "living-authority",
+      "treatment": "B"
+    },
+    {
+      "questionId": "browser-unknown",
+      "treatment": "A"
+    },
+    {
+      "questionId": "browser-unknown",
+      "treatment": "B"
+    },
+    {
+      "questionId": "browser-unknown",
+      "treatment": "C"
+    }
+  ]
+}

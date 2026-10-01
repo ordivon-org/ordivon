@@ -1,0 +1,154 @@
+{
+  "authority": {
+    "domainTruthAuthority": false,
+    "effectAuthority": false,
+    "executionAuthority": false,
+    "semanticAcceptanceAuthority": false
+  },
+  "consumerCount": 2,
+  "consumers": [
+    {
+      "allBound": true,
+      "bindings": [
+        {
+          "currentDigest": "sha256:7c97de41537553259c67b8dd9a218304bb646dd29fbcd59a388146425e3b7ca9",
+          "evidenceRefs": [
+            "work:ordivon:living-recursive-lego-view-r1:20261001"
+          ],
+          "kind": "host-work-snapshot",
+          "ownerRef": "ordivon.host",
+          "ref": "work:ordivon:living-recursive-lego-view-r1:20261001",
+          "requiredDigest": "sha256:7c97de41537553259c67b8dd9a218304bb646dd29fbcd59a388146425e3b7ca9",
+          "standing": "BOUND_CURRENT",
+          "truthBoundary": "Host Work semantic continuity only; not present-tense physical/domain truth."
+        },
+        {
+          "currentDigest": "sha256:f52a904c7f92834091ec3dbbb1eaec1844873777bcf5f0a013281313cd78f8a3",
+          "evidenceRefs": [
+            "runtime:workspace:ws-living-recursive-view-r1-20261001"
+          ],
+          "kind": "owner-observation-source",
+          "ownerRef": "ordivon.runtime",
+          "ref": "runtime:workspace:ws-living-recursive-view-r1-20261001",
+          "requiredDigest": "sha256:f52a904c7f92834091ec3dbbb1eaec1844873777bcf5f0a013281313cd78f8a3",
+          "standing": "BOUND_CURRENT",
+          "truthBoundary": "Runtime Workspace physical/source binding observation only; not semantic task completion or publication authority."
+        }
+      ],
+      "consumerId": "living-recursive-view",
+      "requirements": [
+        {
+          "digest": "sha256:7c97de41537553259c67b8dd9a218304bb646dd29fbcd59a388146425e3b7ca9",
+          "kind": "host-work-snapshot",
+          "ref": "work:ordivon:living-recursive-lego-view-r1:20261001"
+        },
+        {
+          "digest": "sha256:f52a904c7f92834091ec3dbbb1eaec1844873777bcf5f0a013281313cd78f8a3",
+          "kind": "owner-observation-source",
+          "ref": "runtime:workspace:ws-living-recursive-view-r1-20261001"
+        }
+      ]
+    },
+    {
+      "allBound": true,
+      "bindings": [
+        {
+          "currentDigest": "sha256:5ba748330b8fa11fb67cae323df24068c91c084393190d3e8ecc36e225550e1b",
+          "evidenceRefs": [
+            "work:browser-materialization:effect-reconciliation-r1:20261001"
+          ],
+          "kind": "host-work-snapshot",
+          "ownerRef": "ordivon.host",
+          "ref": "work:browser-materialization:effect-reconciliation-r1:20261001",
+          "requiredDigest": "sha256:5ba748330b8fa11fb67cae323df24068c91c084393190d3e8ecc36e225550e1b",
+          "standing": "BOUND_CURRENT",
+          "truthBoundary": "Host Work semantic continuity only; not present-tense physical/domain truth."
+        },
+        {
+          "currentDigest": "sha256:27d15ac61224fe934083d677bbcf54851fc1d60b6521b6b1cb36383b6f2e28fb",
+          "evidenceRefs": [
+            "runtime.windows:runtime.describe"
+          ],
+          "kind": "owner-observation-source",
+          "ownerRef": "ordivon.windows_runtime",
+          "ref": "runtime:windows",
+          "requiredDigest": "sha256:27d15ac61224fe934083d677bbcf54851fc1d60b6521b6b1cb36383b6f2e28fb",
+          "standing": "BOUND_CURRENT",
+          "truthBoundary": "Windows Runtime owns its current physical execution affordance; availability does not authorize any effect or establish domain completion."
+        },
+        {
+          "currentDigest": "sha256:32d3d4961a17409a4d71480d04d4395c9c340ca2738356dc02a6f445d2dca871",
+          "evidenceRefs": [
+            "gateway:capability:execution.windows"
+          ],
+          "kind": "owner-observation-source",
+          "ownerRef": "ordivon.gateway",
+          "ref": "gateway:capability:execution.windows",
+          "requiredDigest": "sha256:32d3d4961a17409a4d71480d04d4395c9c340ca2738356dc02a6f445d2dca871",
+          "standing": "BOUND_CURRENT",
+          "truthBoundary": "Gateway projection is rebuildable/non-authoritative routing currentness only; it does not replace the Windows Runtime owner's physical truth."
+        }
+      ],
+      "consumerId": "browser-effect-reconciliation",
+      "requirements": [
+        {
+          "digest": "sha256:5ba748330b8fa11fb67cae323df24068c91c084393190d3e8ecc36e225550e1b",
+          "kind": "host-work-snapshot",
+          "ref": "work:browser-materialization:effect-reconciliation-r1:20261001"
+        },
+        {
+          "digest": "sha256:27d15ac61224fe934083d677bbcf54851fc1d60b6521b6b1cb36383b6f2e28fb",
+          "kind": "owner-observation-source",
+          "ref": "runtime:windows"
+        },
+        {
+          "digest": "sha256:32d3d4961a17409a4d71480d04d4395c9c340ca2738356dc02a6f445d2dca871",
+          "kind": "owner-observation-source",
+          "ref": "gateway:capability:execution.windows"
+        }
+      ]
+    }
+  ],
+  "disposition": {
+    "automaticRelevanceSelector": "REJECT/HOLD",
+    "newContextRequirementService": "DELETE",
+    "newGlobalOwnerRegistry": "DELETE",
+    "ownerBinding": "pure reconciliation over explicit selected refs and owner readbacks",
+    "requirementSelection": "REUSE HarnessRunContract.context_refs + Agent WorkingSet exact selection"
+  },
+  "faultChecks": {
+    "digestMismatchFailsClosed": {
+      "currentDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "evidenceRefs": [
+        "runtime:workspace:example"
+      ],
+      "kind": "runtime-workspace-state",
+      "ownerRef": "ordivon.runtime",
+      "ref": "runtime:workspace:example",
+      "requiredDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "standing": "STALE_OR_DIFFERENT_OBJECT",
+      "truthBoundary": "runtime only"
+    },
+    "duplicateBindingIsAmbiguous": {
+      "currentDigest": null,
+      "kind": "runtime-workspace-state",
+      "ownerRef": null,
+      "ref": "runtime:workspace:example",
+      "requiredDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "standing": "AMBIGUOUS_OWNER_BINDING"
+    },
+    "irrelevantUnselectedReadbackIgnored": true,
+    "namespaceShapeDoesNotBindOwner": {
+      "currentDigest": null,
+      "kind": "opaque-selected-context",
+      "ownerRef": null,
+      "ref": "work:blender-exit-zero",
+      "requiredDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "standing": "UNKNOWN_OWNER_BINDING"
+    }
+  },
+  "kind": "ordivon.agent-native-cognitive-environment-f7-requirement-binding-qualification",
+  "proofBoundary": "This qualification proves exact selected-ref binding can fail closed for the two frozen consumers. It does not solve autonomous source discovery, semantic relevance ranking, or domain-level owner discovery.",
+  "schemaVersion": 1,
+  "verdict": "PASS"
+}
