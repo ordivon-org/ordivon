@@ -1,0 +1,50 @@
+{
+  "evidenceDigest": "sha256:ec59bf2c641552b74411b492977210d8633f0c8db5a71d2d8dfa345dc140078c",
+  "kind": "ordivon.security.dw09-detector-owner-census-r1",
+  "nonClaims": [
+    "This is not a global detector inventory.",
+    "Repository presence does not prove a detector is live, current or complete.",
+    "Absence of an exact binding is UNKNOWN coverage, not evidence of no compromise."
+  ],
+  "observedAt": "2026-10-01T15:38:00+08:00",
+  "schemaVersion": 1,
+  "standing": "OWNER_SCOPED_CENSUS_NO_GLOBAL_DETECTOR_REGISTRY",
+  "targetClasses": [
+    {
+      "evidenceRefs": [
+        "platform/security/evidence/acceptance/dw04-attack-coverage-r1-20261001.json"
+      ],
+      "reason": "Historical Attack Flow/ATT&CK persistence evidence is not current local telemetry and cannot establish present detector coverage.",
+      "standing": "CURRENT_COVERAGE_UNKNOWN",
+      "targetClass": "historical-exchange-replay",
+      "telemetryOrDetectorOwner": null
+    },
+    {
+      "evidenceRefs": [
+        "catalogs/capabilities/providers/opentelemetry.md"
+      ],
+      "reason": "Generic telemetry capability exists, but this census found no exact DW09 compromise/persistence detector binding for Linux Runtime.",
+      "standing": "COMPROMISE_DETECTOR_BINDING_UNKNOWN",
+      "targetClass": "linux-runtime",
+      "telemetryOrDetectorOwner": "OpenTelemetry-capable substrate only"
+    },
+    {
+      "evidenceRefs": [
+        "services/runtime/evidence/windows-native-rw5-recovery-20260810.json"
+      ],
+      "reason": "Runtime recovery evidence is not equivalent to compromise/persistence detector coverage.",
+      "standing": "COMPROMISE_DETECTOR_BINDING_UNKNOWN",
+      "targetClass": "windows-runtime",
+      "telemetryOrDetectorOwner": "owner-native Runtime/Windows evidence only"
+    },
+    {
+      "evidenceRefs": [
+        "catalogs/knowledge/graphs/browser-security-detector-coverage-r9.json"
+      ],
+      "reason": "Browser-security detector coverage artifacts are owner/target specific and cannot be reused as Exchange or Runtime compromise evidence.",
+      "standing": "OWNER_SPECIFIC_NOT_TRANSFERABLE",
+      "targetClass": "browser-security",
+      "telemetryOrDetectorOwner": "browser-security study owner"
+    }
+  ]
+}

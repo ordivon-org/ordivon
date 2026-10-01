@@ -1,0 +1,471 @@
+{
+  "baseRevision": "57fe5429c1c58ae427ca0a897afc27066b010ec2",
+  "benignPersistenceCanary": {
+    "case": {
+      "caseRef": "case:dw09:benign-persistence-canary",
+      "compositionGate": {
+        "circuitId": "circuit:dw09:benign-canary",
+        "gateId": "gate:dw06-dw09-compromise-hunt",
+        "manifestDigest": "sha256:3d55becf4473350a5f1d29bda52efc6962fe3095c55895b2f17a6461bb181cb9",
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierOwnerId": "security.dw09"
+      },
+      "detectorCoverage": [
+        {
+          "caseRef": "case:dw09:benign-persistence-canary",
+          "coverageRef": "coverage:case:dw09:benign-persistence-canary:compromise",
+          "dimension": "COMPROMISE",
+          "ownerRef": "observer:case:dw09:benign-persistence-canary:compromise",
+          "scopeDigest": "sha256:8c90c861e82890ed2d54efe9af2767c8847c7507a0d2b0cfc9c9235d14541be9",
+          "sourceDigest": "sha256:1345434a96807e377e7b58e9f4fa9b7851535f354824a74dcd7be0c091c329be",
+          "sourceRef": "fixture:dw09:benign-compromise-detector",
+          "standing": "COMPLETE",
+          "subjectRef": "fixture:dw09:benign-host",
+          "subjectSnapshotDigest": "sha256:62586ca52048b5eb45639a0dc8016341fee9f92dce5b4f7dad20ff8b24610505"
+        },
+        {
+          "caseRef": "case:dw09:benign-persistence-canary",
+          "coverageRef": "coverage:case:dw09:benign-persistence-canary:persistence",
+          "dimension": "PERSISTENCE",
+          "ownerRef": "observer:case:dw09:benign-persistence-canary:persistence",
+          "scopeDigest": "sha256:8c90c861e82890ed2d54efe9af2767c8847c7507a0d2b0cfc9c9235d14541be9",
+          "sourceDigest": "sha256:bc6e42694d3366ceda88e1e1c5b971afeff0c79ae6a9590110fea9a6a870f11a",
+          "sourceRef": "fixture:dw09:benign-persistence-detector",
+          "standing": "COMPLETE",
+          "subjectRef": "fixture:dw09:benign-host",
+          "subjectSnapshotDigest": "sha256:62586ca52048b5eb45639a0dc8016341fee9f92dce5b4f7dad20ff8b24610505"
+        }
+      ],
+      "kind": "ordivon.security.dwc-compromise-recovery-case-r1",
+      "protection": {
+        "verifiedProtectionEstablished": true
+      },
+      "recoveryObligations": [],
+      "requalification": null,
+      "schemaVersion": 1,
+      "signals": [],
+      "subjectRef": "fixture:dw09:benign-host",
+      "subjectSnapshotDigest": "sha256:62586ca52048b5eb45639a0dc8016341fee9f92dce5b4f7dad20ff8b24610505"
+    },
+    "claimBoundary": "Complete synthetic detector coverage with no adverse signal establishes only bounded negative evidence; global compromise absence remains false.",
+    "compositionGateResult": {
+      "circuitId": "circuit:dw09:benign-canary",
+      "evidenceRefs": [
+        "fixture:dw09:benign-compromise-detector",
+        "fixture:dw09:benign-persistence-detector"
+      ],
+      "gateId": "gate:dw06-dw09-compromise-hunt",
+      "kind": "ordivon.composition-gate-result",
+      "manifestDigest": "sha256:3d55becf4473350a5f1d29bda52efc6962fe3095c55895b2f17a6461bb181cb9",
+      "nonClaims": [
+        "SATISFIED proves only exact DW06->DW09 case/subject admission into this projection.",
+        "It does not establish compromise absence, eradication, recovery, protection or domain acceptance."
+      ],
+      "schemaVersion": 1,
+      "standing": "SATISFIED",
+      "supportScope": "DW06->DW09 incident-case admission seam only",
+      "verifierOwnerId": "security.dw09"
+    },
+    "projection": {
+      "caseRef": "case:dw09:benign-persistence-canary",
+      "compromise": {
+        "boundedNegativeEvidenceEstablished": true,
+        "coverageRefs": [
+          "coverage:case:dw09:benign-persistence-canary:compromise"
+        ],
+        "coverageStanding": "COMPLETE",
+        "currentAdverseEvidenceRefs": [],
+        "globalAbsenceEstablished": false,
+        "historicalAdverseEvidenceRefs": [],
+        "standing": "NO_COMPROMISE_OBSERVED_COMPLETE_COVERAGE"
+      },
+      "compromiseAbsenceEstablished": false,
+      "domainAcceptanceEstablished": false,
+      "incidentProfileRef": "meta/next/planning/incident-case-profile-r1.json",
+      "invalidationKeys": [
+        "coverageSourceDigest:sha256:1345434a96807e377e7b58e9f4fa9b7851535f354824a74dcd7be0c091c329be",
+        "coverageSourceDigest:sha256:bc6e42694d3366ceda88e1e1c5b971afeff0c79ae6a9590110fea9a6a870f11a",
+        "subjectSnapshotDigest:sha256:62586ca52048b5eb45639a0dc8016341fee9f92dce5b4f7dad20ff8b24610505"
+      ],
+      "kind": "ordivon.security.dwc-compromise-recovery-projection-r1",
+      "persistence": {
+        "boundedNegativeEvidenceEstablished": true,
+        "coverageRefs": [
+          "coverage:case:dw09:benign-persistence-canary:persistence"
+        ],
+        "coverageStanding": "COMPLETE",
+        "currentAdverseEvidenceRefs": [],
+        "globalAbsenceEstablished": false,
+        "historicalAdverseEvidenceRefs": [],
+        "standing": "NO_PERSISTENCE_OBSERVED_COMPLETE_COVERAGE"
+      },
+      "protectionVerifiedInput": true,
+      "recovery": {
+        "eradicationEstablished": false,
+        "pendingRequiredObligationRefs": [],
+        "recoveryEstablished": false,
+        "requalificationSatisfied": false,
+        "requiredObligationRefs": [],
+        "standing": "NOT_TRIGGERED_BOUNDED_NEGATIVE"
+      },
+      "resultDigest": "sha256:571c1ce5d8962b46cbb65c0a12def263eb8ce40180d473ac93d4033abf2cd39d",
+      "schemaVersion": 1,
+      "subjectRef": "fixture:dw09:benign-host",
+      "subjectSnapshotDigest": "sha256:62586ca52048b5eb45639a0dc8016341fee9f92dce5b4f7dad20ff8b24610505",
+      "truthBoundary": "DW09 projects compromise, persistence and recovery independently of protection. Complete detector coverage with no adverse signal establishes only a bounded negative observation, never global compromise absence. Recovery requires explicit owner-authored obligations plus fresh owner-native requalification."
+    }
+  },
+  "detectorOwnerCensus": {
+    "evidenceDigest": "sha256:ec59bf2c641552b74411b492977210d8633f0c8db5a71d2d8dfa345dc140078c",
+    "path": "platform/security/evidence/acceptance/dw09-detector-owner-census-r1-20261001.json"
+  },
+  "evidenceDigest": "sha256:df94f47fbd980a61a7f17b6aac3ef3921d834a7a19427f1cea79983695833ca2",
+  "historicalExchangeReplay": {
+    "case": {
+      "caseRef": "case:dw04:exchange-proxylogon-2021",
+      "compositionGate": {
+        "circuitId": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021",
+        "gateId": "gate:dw06-dw09-compromise-hunt",
+        "manifestDigest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierOwnerId": "security.dw09"
+      },
+      "detectorCoverage": [],
+      "kind": "ordivon.security.dwc-compromise-recovery-case-r1",
+      "protection": {
+        "verifiedProtectionEstablished": false
+      },
+      "recoveryObligations": [],
+      "requalification": null,
+      "schemaVersion": 1,
+      "signals": [
+        {
+          "caseRef": "case:dw04:exchange-proxylogon-2021",
+          "currentnessStanding": "HISTORICAL_NOT_CURRENT",
+          "evidenceRef": "historical:Microsoft-HAFNIUM-2021-03-02:web-shell-persistence",
+          "findingStanding": "OBSERVED",
+          "ownerRef": "observer:persistence",
+          "signalClass": "PERSISTENCE",
+          "sourceDigest": "sha256:61823b11223c1456059cab7289d29e12fd3842f8ed959cfa1fe81427f2071375",
+          "sourceRef": "platform/security/evidence/acceptance/dw04-attack-coverage-r1-20261001.json",
+          "subjectRef": "historical-subject:exchange-proxylogon-2021",
+          "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541"
+        }
+      ],
+      "subjectRef": "historical-subject:exchange-proxylogon-2021",
+      "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541"
+    },
+    "claimBoundary": "Historical web-shell persistence evidence opens current investigation uncertainty only; it does not claim a present Exchange subject is compromised.",
+    "compositionGateResult": {
+      "circuitId": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021",
+      "evidenceRefs": [
+        "historical:Microsoft-HAFNIUM-2021-03-02:web-shell-persistence"
+      ],
+      "gateId": "gate:dw06-dw09-compromise-hunt",
+      "kind": "ordivon.composition-gate-result",
+      "manifestDigest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+      "nonClaims": [
+        "SATISFIED proves only exact DW06->DW09 case/subject admission into this projection.",
+        "It does not establish compromise absence, eradication, recovery, protection or domain acceptance."
+      ],
+      "schemaVersion": 1,
+      "standing": "SATISFIED",
+      "supportScope": "DW06->DW09 incident-case admission seam only",
+      "verifierOwnerId": "security.dw09"
+    },
+    "projection": {
+      "caseRef": "case:dw04:exchange-proxylogon-2021",
+      "compromise": {
+        "boundedNegativeEvidenceEstablished": false,
+        "coverageRefs": [],
+        "coverageStanding": "UNKNOWN",
+        "currentAdverseEvidenceRefs": [],
+        "globalAbsenceEstablished": false,
+        "historicalAdverseEvidenceRefs": [],
+        "standing": "UNKNOWN"
+      },
+      "compromiseAbsenceEstablished": false,
+      "domainAcceptanceEstablished": false,
+      "incidentProfileRef": "meta/next/planning/incident-case-profile-r1.json",
+      "invalidationKeys": [
+        "signalSourceDigest:sha256:61823b11223c1456059cab7289d29e12fd3842f8ed959cfa1fe81427f2071375",
+        "subjectSnapshotDigest:sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541"
+      ],
+      "kind": "ordivon.security.dwc-compromise-recovery-projection-r1",
+      "persistence": {
+        "boundedNegativeEvidenceEstablished": false,
+        "coverageRefs": [],
+        "coverageStanding": "UNKNOWN",
+        "currentAdverseEvidenceRefs": [],
+        "globalAbsenceEstablished": false,
+        "historicalAdverseEvidenceRefs": [
+          "historical:Microsoft-HAFNIUM-2021-03-02:web-shell-persistence"
+        ],
+        "standing": "HISTORICAL_ADVERSE_REQUIRES_CURRENT_INVESTIGATION"
+      },
+      "protectionVerifiedInput": false,
+      "recovery": {
+        "eradicationEstablished": false,
+        "pendingRequiredObligationRefs": [],
+        "recoveryEstablished": false,
+        "requalificationSatisfied": false,
+        "requiredObligationRefs": [],
+        "standing": "UNKNOWN_CURRENT_INCIDENT_STATE"
+      },
+      "resultDigest": "sha256:0f0dffd6d6b8eab2a1ab09f36db32867038ac5648396db44c0839ab76aae1c3f",
+      "schemaVersion": 1,
+      "subjectRef": "historical-subject:exchange-proxylogon-2021",
+      "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541",
+      "truthBoundary": "DW09 projects compromise, persistence and recovery independently of protection. Complete detector coverage with no adverse signal establishes only a bounded negative observation, never global compromise absence. Recovery requires explicit owner-authored obligations plus fresh owner-native requalification."
+    }
+  },
+  "incidentProfileDigest": "sha256:ae10b4ad9c26009f8c547dc6e3bed1164a9fdb4b875dd47e69bb93473de4bb05",
+  "incidentProfileRef": "meta/next/planning/incident-case-profile-r1.json",
+  "invariants": [
+    "Verified protection does not close compromise or persistence standing.",
+    "No adverse signal with incomplete/unknown detector coverage remains UNKNOWN.",
+    "Historical adverse evidence does not become current compromise truth.",
+    "Complete bounded detector coverage may establish bounded negative evidence only, never global compromise absence.",
+    "Recovery requires owner-authored required obligations plus fresh owner-native requalification.",
+    "DW06->DW09 gate SATISFIED proves only exact case/subject admission into the projection."
+  ],
+  "kind": "ordivon.security.dw09-compromise-recovery-r1-acceptance",
+  "nonClaims": [
+    "No live Exchange, Linux Runtime, Windows Runtime or browser target is declared clean or compromised by this acceptance.",
+    "No containment/recovery effect is executed.",
+    "The synthetic recovery canary is mechanics-only.",
+    "No global incident registry, detector registry, root-cause oracle or automatic recovery controller is created."
+  ],
+  "observedAt": "2026-10-01T15:38:00+08:00",
+  "schemaVersion": 1,
+  "standing": "DW09_COMPROMISE_PERSISTENCE_RECOVERY_PROJECTION_QUALIFIED",
+  "syntheticRecoveryCanary": {
+    "case": {
+      "caseRef": "case:dw09:synthetic-recovery-canary",
+      "compositionGate": {
+        "circuitId": "circuit:dw09:recovery-canary",
+        "gateId": "gate:dw06-dw09-compromise-hunt",
+        "manifestDigest": "sha256:570a283be18b449dbf492b55fdb225881222291ec1e93c2caab47c429c231a51",
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierOwnerId": "security.dw09"
+      },
+      "detectorCoverage": [
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "coverageRef": "coverage:case:dw09:synthetic-recovery-canary:compromise",
+          "dimension": "COMPROMISE",
+          "ownerRef": "observer:case:dw09:synthetic-recovery-canary:compromise",
+          "scopeDigest": "sha256:de9e94c9de10f44354ccd4d4b9565128ceb75518b9d86b7581cb4b156eefee83",
+          "sourceDigest": "sha256:4018ba298290d55c782309c9f1bfa32a8bed7604018e40e0cfaad5bf85b1c9a6",
+          "sourceRef": "fixture:dw09:compromise-detector",
+          "standing": "COMPLETE",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+        },
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "coverageRef": "coverage:case:dw09:synthetic-recovery-canary:persistence",
+          "dimension": "PERSISTENCE",
+          "ownerRef": "observer:case:dw09:synthetic-recovery-canary:persistence",
+          "scopeDigest": "sha256:de9e94c9de10f44354ccd4d4b9565128ceb75518b9d86b7581cb4b156eefee83",
+          "sourceDigest": "sha256:0b1f6fd58c1d5715e71cbd3ee7fabd6b40759c0d170dd6daa199f5203214c876",
+          "sourceRef": "fixture:dw09:persistence-detector",
+          "standing": "COMPLETE",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+        }
+      ],
+      "kind": "ordivon.security.dwc-compromise-recovery-case-r1",
+      "protection": {
+        "verifiedProtectionEstablished": true
+      },
+      "recoveryObligations": [
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "class": "credential-rotation",
+          "evidenceRefs": [
+            "evidence:obl:credential-rotation"
+          ],
+          "obligationRef": "obl:credential-rotation",
+          "ownerRef": "owner:credential-rotation",
+          "phase": "ERADICATION",
+          "required": true,
+          "standing": "SATISFIED",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83",
+          "verifierRef": "verifier:credential-rotation"
+        },
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "class": "key-rotation",
+          "evidenceRefs": [
+            "evidence:obl:key-rotation"
+          ],
+          "obligationRef": "obl:key-rotation",
+          "ownerRef": "owner:key-rotation",
+          "phase": "ERADICATION",
+          "required": true,
+          "standing": "SATISFIED",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83",
+          "verifierRef": "verifier:key-rotation"
+        },
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "class": "rebuild",
+          "evidenceRefs": [
+            "evidence:obl:rebuild"
+          ],
+          "obligationRef": "obl:rebuild",
+          "ownerRef": "owner:rebuild",
+          "phase": "RECOVERY",
+          "required": true,
+          "standing": "SATISFIED",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83",
+          "verifierRef": "verifier:rebuild"
+        },
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "class": "requalify",
+          "evidenceRefs": [
+            "evidence:obl:requalify"
+          ],
+          "obligationRef": "obl:requalify",
+          "ownerRef": "owner:requalify",
+          "phase": "REQUALIFICATION",
+          "required": true,
+          "standing": "SATISFIED",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83",
+          "verifierRef": "verifier:requalify"
+        }
+      ],
+      "requalification": {
+        "caseRef": "case:dw09:synthetic-recovery-canary",
+        "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+        "ownerRef": "observer:dw09:requalification",
+        "sourceDigest": "sha256:211531cbb46ebb3095cb157007e4335329d0a9388df6b45bea3c8048bb309466",
+        "sourceRef": "fixture:dw09:fresh-requalification",
+        "standing": "SATISFIED",
+        "subjectRef": "fixture:dw09:synthetic-compromised-host",
+        "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+      },
+      "schemaVersion": 1,
+      "signals": [
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+          "evidenceRef": "fixture:dw09:current-compromise",
+          "findingStanding": "OBSERVED",
+          "ownerRef": "observer:compromise",
+          "signalClass": "COMPROMISE",
+          "sourceDigest": "sha256:0950c64618fa52a850978dd0ff832defec1b028c18cb71325bb911cab7207f01",
+          "sourceRef": "fixture:dw09:compromise-observer",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+        },
+        {
+          "caseRef": "case:dw09:synthetic-recovery-canary",
+          "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+          "evidenceRef": "fixture:dw09:current-persistence",
+          "findingStanding": "OBSERVED",
+          "ownerRef": "observer:persistence",
+          "signalClass": "PERSISTENCE",
+          "sourceDigest": "sha256:e930c58817087fd8063b491eda81b2c53c8d959941cf951cda73301dc3545f27",
+          "sourceRef": "fixture:dw09:persistence-observer",
+          "subjectRef": "fixture:dw09:synthetic-compromised-host",
+          "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+        }
+      ],
+      "subjectRef": "fixture:dw09:synthetic-compromised-host",
+      "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+    },
+    "claimBoundary": "Synthetic recovery mechanics require explicit credential/key rotation, rebuild, requalification obligations and a fresh requalification observation. No production recovery truth is established.",
+    "compositionGateResult": {
+      "circuitId": "circuit:dw09:recovery-canary",
+      "evidenceRefs": [
+        "fixture:dw09:compromise-detector",
+        "fixture:dw09:current-compromise",
+        "fixture:dw09:current-persistence",
+        "fixture:dw09:persistence-detector"
+      ],
+      "gateId": "gate:dw06-dw09-compromise-hunt",
+      "kind": "ordivon.composition-gate-result",
+      "manifestDigest": "sha256:570a283be18b449dbf492b55fdb225881222291ec1e93c2caab47c429c231a51",
+      "nonClaims": [
+        "SATISFIED proves only exact DW06->DW09 case/subject admission into this projection.",
+        "It does not establish compromise absence, eradication, recovery, protection or domain acceptance."
+      ],
+      "schemaVersion": 1,
+      "standing": "SATISFIED",
+      "supportScope": "DW06->DW09 incident-case admission seam only",
+      "verifierOwnerId": "security.dw09"
+    },
+    "projection": {
+      "caseRef": "case:dw09:synthetic-recovery-canary",
+      "compromise": {
+        "boundedNegativeEvidenceEstablished": false,
+        "coverageRefs": [
+          "coverage:case:dw09:synthetic-recovery-canary:compromise"
+        ],
+        "coverageStanding": "COMPLETE",
+        "currentAdverseEvidenceRefs": [
+          "fixture:dw09:current-compromise"
+        ],
+        "globalAbsenceEstablished": false,
+        "historicalAdverseEvidenceRefs": [],
+        "standing": "CONFIRMED"
+      },
+      "compromiseAbsenceEstablished": false,
+      "domainAcceptanceEstablished": false,
+      "incidentProfileRef": "meta/next/planning/incident-case-profile-r1.json",
+      "invalidationKeys": [
+        "coverageSourceDigest:sha256:0b1f6fd58c1d5715e71cbd3ee7fabd6b40759c0d170dd6daa199f5203214c876",
+        "coverageSourceDigest:sha256:4018ba298290d55c782309c9f1bfa32a8bed7604018e40e0cfaad5bf85b1c9a6",
+        "recoveryObligationDigest:sha256:2d623947b1af03ce1da00e43fc023edb0926df939e029ee7d675d29359311de3",
+        "recoveryObligationDigest:sha256:3e44ce47253b585272a2088f487bb3947123901a8800779f0626e9e86913ce24",
+        "recoveryObligationDigest:sha256:4c19216d632602016c82be78fe770d71801109ac0353fec02c92380c73ae7314",
+        "recoveryObligationDigest:sha256:9225212e33afff9e863b27e20ade7eb3588006caafd4dff93b276d90043d197a",
+        "requalificationSourceDigest:sha256:211531cbb46ebb3095cb157007e4335329d0a9388df6b45bea3c8048bb309466",
+        "signalSourceDigest:sha256:0950c64618fa52a850978dd0ff832defec1b028c18cb71325bb911cab7207f01",
+        "signalSourceDigest:sha256:e930c58817087fd8063b491eda81b2c53c8d959941cf951cda73301dc3545f27",
+        "subjectSnapshotDigest:sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83"
+      ],
+      "kind": "ordivon.security.dwc-compromise-recovery-projection-r1",
+      "persistence": {
+        "boundedNegativeEvidenceEstablished": false,
+        "coverageRefs": [
+          "coverage:case:dw09:synthetic-recovery-canary:persistence"
+        ],
+        "coverageStanding": "COMPLETE",
+        "currentAdverseEvidenceRefs": [
+          "fixture:dw09:current-persistence"
+        ],
+        "globalAbsenceEstablished": false,
+        "historicalAdverseEvidenceRefs": [],
+        "standing": "CONFIRMED"
+      },
+      "protectionVerifiedInput": true,
+      "recovery": {
+        "eradicationEstablished": true,
+        "pendingRequiredObligationRefs": [],
+        "recoveryEstablished": true,
+        "requalificationSatisfied": true,
+        "requiredObligationRefs": [
+          "obl:credential-rotation",
+          "obl:key-rotation",
+          "obl:rebuild",
+          "obl:requalify"
+        ],
+        "standing": "RECOVERY_VERIFIED"
+      },
+      "resultDigest": "sha256:85d706d4b5850b8e624089c0376c24e6baa41d8d5beace49d6bf2923467bfe9b",
+      "schemaVersion": 1,
+      "subjectRef": "fixture:dw09:synthetic-compromised-host",
+      "subjectSnapshotDigest": "sha256:cd1a436210f3d88e668753f64eb1b4c2e2b81d6e63389532104c5f7c03df2e83",
+      "truthBoundary": "DW09 projects compromise, persistence and recovery independently of protection. Complete detector coverage with no adverse signal establishes only a bounded negative observation, never global compromise absence. Recovery requires explicit owner-authored obligations plus fresh owner-native requalification."
+    }
+  },
+  "workRef": "work:security:dwc-r21:dw09-compromise-recovery:20261001"
+}
