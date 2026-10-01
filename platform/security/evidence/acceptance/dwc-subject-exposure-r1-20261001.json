@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dwc-subject-exposure-r1-acceptance",
+  "observedAt": "2026-10-01T12:34:56+08:00",
+  "sourceRevision": "86fc060603cdf0e4d9d6cf3eabffbaaebf0e587e",
+  "standing": "DW01_CONTRACT_IMPLEMENTED_AND_DOGFOODED",
+  "implementation": {
+    "module": "platform/security/src/ordivon_security_v2/subject_exposure.py",
+    "cli": "platform/security/scripts/build_subject_exposure_snapshot.py",
+    "tests": "platform/security/tests/test_subject_exposure.py",
+    "design": "platform/security/docs/DWC-SUBJECT-EXPOSURE-BINDING-R1.md"
+  },
+  "invariants": [
+    "task-local projection only; no CMDB/global asset registry",
+    "owner/source/currentness remain explicit per observation",
+    "missing or unknown evidence does not become non-exposure",
+    "mixed/stale horizons remain visible",
+    "input observation changes change snapshot identity",
+    "mechanical completeness does not establish domain/security acceptance"
+  ],
+  "dogfood": [
+    {
+      "caseRef": "case:dw01-dogfood-linux-runtime",
+      "input": "platform/security/fixtures/dwc-subject-exposure/linux-runtime-live.input.json",
+      "snapshot": "platform/security/evidence/acceptance/dwc-subject-exposure-r1/linux-runtime-live.snapshot.json",
+      "snapshotDigest": "sha256:608e1db04f21c430888d6e040196f9cf8fee42de4843b52a8ef51ebf9efb6e20",
+      "standing": "COMPLETE",
+      "horizon": "COHERENT_HORIZON",
+      "observation": "Runtime binary digest plus live loopback listener 127.0.0.1:8897"
+    },
+    {
+      "caseRef": "case:dw01-dogfood-cloudflare-edge",
+      "input": "platform/security/fixtures/dwc-subject-exposure/cloudflare-edge-live.input.json",
+      "snapshot": "platform/security/evidence/acceptance/dwc-subject-exposure-r1/cloudflare-edge-live.snapshot.json",
+      "snapshotDigest": "sha256:c95bab860542bb413542ea0eb6eaca180bf3a79e2e27fdf7fc1750308aa50110",
+      "standing": "COMPLETE",
+      "horizon": "COHERENT_HORIZON",
+      "observation": "Authenticated live provider health bound deployment/version/policy plus successful HTTPS reachability from linux-local"
+    },
+    {
+      "caseRef": "case:dw01-dogfood-windows-runtime",
+      "input": "platform/security/fixtures/dwc-subject-exposure/windows-runtime-mixed.input.json",
+      "snapshot": "platform/security/evidence/acceptance/dwc-subject-exposure-r1/windows-runtime-mixed.snapshot.json",
+      "snapshotDigest": "sha256:3a8784f5586ecacdd7417ec6aeaca4779efe395e6070b9e263ec3d8e0729383e",
+      "standing": "INCOMPLETE",
+      "horizon": "CURRENTNESS_UNKNOWN",
+      "observation": "Live Windows Runtime identity exists, but exact deployed product version and live Cloudflare ingress observation were not established; desired-state DSC remains non-authoritative for live exposure"
+    }
+  ],
+  "verification": [
+    {
+      "jobId": "job-01a0f5c0-c9b9-7f40-9372-cf121c4e6ecc",
+      "result": "7 focused tests PASS; Ruff PASS; compileall PASS; dogfood projections generated"
+    },
+    {
+      "jobId": "job-01a0f5c0-f09c-7740-b2c5-08a76da577dd",
+      "result": "Security owner tests 76/76 PASS; Ruff src/tests/scripts PASS"
+    }
+  ],
+  "liveEvidence": [
+    {
+      "jobId": "job-01a0f5be-111c-7d13-8b10-26b45416fe1b",
+      "stdoutDigest": "sha256:75e914b726454ce67a28881d1867cd5d322a50c5e5e86108325034c00120b067",
+      "role": "Linux Runtime binary/listener observation"
+    },
+    {
+      "jobId": "job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "stdoutDigest": "sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3",
+      "role": "Cloudflare Edge live health/deployment/policy observation"
+    }
+  ],
+  "nonClaims": [
+    "No organization-wide asset inventory completeness claim.",
+    "No vulnerability applicability or security-risk claim.",
+    "No global public-internet exposure claim from a single probe origin.",
+    "No live Windows Runtime ingress claim.",
+    "No production integration or main-branch merge claim."
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "caseRef": "case:dw01-dogfood-cloudflare-edge",
+  "epochRef": "epoch:20261001T123456+0800",
+  "subjectRef": "service:ordivon-edge/production",
+  "requiredIdentityDimensions": [
+    "product",
+    "deployment",
+    "version",
+    "configuration",
+    "service"
+  ],
+  "expectedExposureSurfaces": [
+    "edge-authenticated-https"
+  ],
+  "identityObservations": [
+    {
+      "id": "edge-product",
+      "dimension": "product",
+      "ownerId": "ordivon-cloudflare-provider",
+      "sourceRef": "runtime-job:job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "ordivon-product",
+        "value": "ordivon-edge"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:56+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-7729-7be0-b902-5bde6ca7395e.stdout@sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3"
+      ]
+    },
+    {
+      "id": "edge-deployment",
+      "dimension": "deployment",
+      "ownerId": "ordivon-cloudflare-provider",
+      "sourceRef": "runtime-job:job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "cloudflare-worker-version-id",
+        "value": "ba64a576-1986-4967-96d6-3d2390f7afc6"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:56+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-7729-7be0-b902-5bde6ca7395e.stdout@sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3"
+      ]
+    },
+    {
+      "id": "edge-version",
+      "dimension": "version",
+      "ownerId": "ordivon-cloudflare-provider",
+      "sourceRef": "runtime-job:job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "cloudflare-worker-tag",
+        "value": "git-a85a493a3114-src-854721962bd3f31a-1785828626"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:56+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-7729-7be0-b902-5bde6ca7395e.stdout@sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3"
+      ]
+    },
+    {
+      "id": "edge-configuration",
+      "dimension": "configuration",
+      "ownerId": "ordivon-cloudflare-provider",
+      "sourceRef": "runtime-job:job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "ordivon-edge-policy-version",
+        "value": "p1.6.67ddc65bf21dd90f"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:56+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-7729-7be0-b902-5bde6ca7395e.stdout@sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3"
+      ]
+    },
+    {
+      "id": "edge-service",
+      "dimension": "service",
+      "ownerId": "ordivon-cloudflare-provider",
+      "sourceRef": "runtime-job:job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "otel.service.name",
+        "value": "ordivon-edge"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:56+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-7729-7be0-b902-5bde6ca7395e.stdout@sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3"
+      ]
+    }
+  ],
+  "exposureObservations": [
+    {
+      "id": "edge-health-reachable",
+      "surfaceId": "edge-authenticated-https",
+      "ownerId": "ordivon-cloudflare-provider",
+      "sourceRef": "runtime-job:job-01a0f5be-7729-7be0-b902-5bcb3d1d98e8",
+      "sourceKind": "direct-owner-observation",
+      "endpointRef": "https://edge.ordivon.com",
+      "originScope": "linux-local",
+      "transport": "https",
+      "reachability": "REACHABLE",
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:56+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-7729-7be0-b902-5bde6ca7395e.stdout@sha256:f089423a568053cd6151ab58866f5c636d7c9310d595182bf9a9b495e068dec3"
+      ]
+    }
+  ],
+  "nonClaims": [
+    "Reachability from linux-local does not prove universal public reachability.",
+    "The service name is observed from the provider health response; the endpoint reference is scoped to this successful client observation."
+  ]
+}

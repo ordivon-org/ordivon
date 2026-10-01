@@ -1,0 +1,102 @@
+{
+  "caseRef": "case:dw01-dogfood-linux-runtime",
+  "epochRef": "epoch:20261001T123429+0800",
+  "subjectRef": "service:ordivon-runtime/linux-local",
+  "requiredIdentityDimensions": [
+    "product",
+    "deployment",
+    "version",
+    "configuration"
+  ],
+  "expectedExposureSurfaces": [
+    "runtime-mcp-loopback"
+  ],
+  "identityObservations": [
+    {
+      "id": "linux-product",
+      "dimension": "product",
+      "ownerId": "ordivon-runtime",
+      "sourceRef": "mcp:ordivon-runtime/runtime.describe",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "ordivon-product",
+        "value": "ordivon-runtime"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:29+08:00",
+      "evidenceRefs": [
+        "runtime-describe:linux-local"
+      ]
+    },
+    {
+      "id": "linux-deployment",
+      "dimension": "deployment",
+      "ownerId": "ordivon-runtime",
+      "sourceRef": "mcp:ordivon-runtime/runtime.describe",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "ordivon-runtime-node-id",
+        "value": "linux-local"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:29+08:00",
+      "evidenceRefs": [
+        "runtime-describe:linux-local"
+      ]
+    },
+    {
+      "id": "linux-version",
+      "dimension": "version",
+      "ownerId": "ordivon-runtime",
+      "sourceRef": "runtime-job:job-01a0f5be-111c-7d13-8b10-26b45416fe1b",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "sha256-binary",
+        "value": "sha256:c70ea009f41dae7a48b948955d36e9d3467698284098aca9f012ce466786759f"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:29+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-111c-7d13-8b10-26c0ed890185.stdout@sha256:75e914b726454ce67a28881d1867cd5d322a50c5e5e86108325034c00120b067"
+      ]
+    },
+    {
+      "id": "linux-configuration",
+      "dimension": "configuration",
+      "ownerId": "ordivon-runtime",
+      "sourceRef": "mcp:ordivon-runtime/runtime.describe",
+      "sourceKind": "direct-owner-observation",
+      "identityRef": {
+        "scheme": "runtime-execution-provider-digest",
+        "value": "sha256:330e6b51a32bfc6e9f308281b44b285bc3dd93175f0823f57ea44e7ee9fc546d"
+      },
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:29+08:00",
+      "evidenceRefs": [
+        "runtime-describe:linux-local"
+      ]
+    }
+  ],
+  "exposureObservations": [
+    {
+      "id": "linux-loopback-listener",
+      "surfaceId": "runtime-mcp-loopback",
+      "ownerId": "ordivon-runtime",
+      "sourceRef": "runtime-job:job-01a0f5be-111c-7d13-8b10-26b45416fe1b",
+      "sourceKind": "direct-owner-observation",
+      "endpointRef": "tcp://127.0.0.1:8897",
+      "originScope": "linux-host-loopback",
+      "transport": "tcp",
+      "reachability": "REACHABLE",
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observedAt": "2026-10-01T12:34:29+08:00",
+      "evidenceRefs": [
+        "artifact:attempt-01a0f5be-111c-7d13-8b10-26c0ed890185.stdout@sha256:75e914b726454ce67a28881d1867cd5d322a50c5e5e86108325034c00120b067"
+      ]
+    }
+  ],
+  "nonClaims": [
+    "Loopback reachability does not establish public internet exposure.",
+    "The workspace source HEAD is not projected as deployed Runtime version."
+  ]
+}

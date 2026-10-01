@@ -1,0 +1,154 @@
+{
+  "caseRef": "case:dw01-dogfood-windows-runtime",
+  "claimBoundary": "This is a task-local projection over caller-supplied owner observations. It does not discover a global asset inventory, mint owner currentness, infer vulnerability applicability, infer global non-exposure from an UNREACHABLE or missing observation, authorize effects, or establish domain/security acceptance.",
+  "domainAcceptanceEstablished": false,
+  "epochRef": "epoch:20261001-windows-runtime",
+  "evidenceRef": "dwc-subject-exposure:sha256:3a8784f5586ecacdd7417ec6aeaca4779efe395e6070b9e263ec3d8e0729383e",
+  "expectedExposureSurfaces": [
+    "windows-runtime-cloudflare-ingress"
+  ],
+  "exposureCoverageStanding": "CURRENTNESS_UNKNOWN",
+  "exposureObservations": [
+    {
+      "currentnessStanding": "CURRENTNESS_UNKNOWN",
+      "endpointRef": "owner-native:windows-runtime-cloudflare-ingress",
+      "evidenceRefs": [
+        "path:platform/workstation/workstation/windows/cloudflared-runtime.dsc.yaml"
+      ],
+      "id": "win-cloudflare-retained",
+      "observationDigest": "sha256:7969d9012459e0388ac487e1fdfa7623bb2bc0576783b06d820899989035314c",
+      "observedAt": null,
+      "originScope": "external",
+      "ownerId": "workstation",
+      "reachability": "UNKNOWN",
+      "sourceKind": "retained-projection",
+      "sourceRef": "path:platform/workstation/workstation/windows/cloudflared-runtime.dsc.yaml@sha256:f106b7b3a45633e111b17101360ad77715f3d1c85f68933180f4a705a2db10f5",
+      "surfaceId": "windows-runtime-cloudflare-ingress",
+      "transport": "https-tunnel"
+    }
+  ],
+  "exposureSurfaceStanding": {
+    "windows-runtime-cloudflare-ingress": "CURRENTNESS_UNKNOWN"
+  },
+  "identityCoverageStanding": "INCOMPLETE",
+  "identityDimensionStanding": {
+    "configuration": "OBSERVED",
+    "deployment": "OBSERVED",
+    "product": "OBSERVED",
+    "version": "MISSING"
+  },
+  "identityObservations": [
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "dimension": "configuration",
+      "evidenceRefs": [
+        "runtime-describe:windows-main-r6-candidate"
+      ],
+      "id": "win-configuration",
+      "identityRef": {
+        "scheme": "runtime-execution-provider-digest",
+        "value": "sha256:9978b8703ab0892928242489feb67ddd2ce74db22080027a0d771b92653f46b0"
+      },
+      "observationDigest": "sha256:f6bd35ab1b4ccfabb167c542c7a4718f9411f58369ef34ccb426bb1cadc13039",
+      "observedAt": null,
+      "ownerId": "ordivon-runtime",
+      "sourceKind": "direct-owner-observation",
+      "sourceRef": "mcp:ordivon-windows-runtime/runtime.describe"
+    },
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "dimension": "deployment",
+      "evidenceRefs": [
+        "runtime-describe:windows-main-r6-candidate"
+      ],
+      "id": "win-deployment",
+      "identityRef": {
+        "scheme": "ordivon-runtime-node-id",
+        "value": "windows-main-r6-candidate"
+      },
+      "observationDigest": "sha256:0f68ee1fd0de1dc9c134ff621ebc36b6ad18975d5fbc9220ed4d2d4ea4f22536",
+      "observedAt": null,
+      "ownerId": "ordivon-runtime",
+      "sourceKind": "direct-owner-observation",
+      "sourceRef": "mcp:ordivon-windows-runtime/runtime.describe"
+    },
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "dimension": "product",
+      "evidenceRefs": [
+        "runtime-describe:windows-main-r6-candidate"
+      ],
+      "id": "win-product",
+      "identityRef": {
+        "scheme": "ordivon-product",
+        "value": "ordivon-runtime"
+      },
+      "observationDigest": "sha256:8cee94ee1eab961fc3a4131d4aafcb6ddd1234df82e4675dc9bad5504be10960",
+      "observedAt": null,
+      "ownerId": "ordivon-runtime",
+      "sourceKind": "direct-owner-observation",
+      "sourceRef": "mcp:ordivon-windows-runtime/runtime.describe"
+    }
+  ],
+  "inputObservationDigests": [
+    "sha256:0f68ee1fd0de1dc9c134ff621ebc36b6ad18975d5fbc9220ed4d2d4ea4f22536",
+    "sha256:7969d9012459e0388ac487e1fdfa7623bb2bc0576783b06d820899989035314c",
+    "sha256:8cee94ee1eab961fc3a4131d4aafcb6ddd1234df82e4675dc9bad5504be10960",
+    "sha256:f6bd35ab1b4ccfabb167c542c7a4718f9411f58369ef34ccb426bb1cadc13039"
+  ],
+  "kind": "ordivon.security.dwc-subject-exposure-snapshot",
+  "mechanicalBindingStanding": "INCOMPLETE",
+  "nonClaims": [
+    "No exact deployed Windows Runtime product version was established in this observation cut.",
+    "Source desired state is not live ingress evidence."
+  ],
+  "observationHorizonStanding": "CURRENTNESS_UNKNOWN",
+  "reachableSurfaceIds": [],
+  "requiredIdentityDimensions": [
+    "configuration",
+    "deployment",
+    "product",
+    "version"
+  ],
+  "schemaVersion": 1,
+  "snapshotDigest": "sha256:3a8784f5586ecacdd7417ec6aeaca4779efe395e6070b9e263ec3d8e0729383e",
+  "sourceHorizons": [
+    {
+      "currentnessStanding": "CURRENTNESS_UNKNOWN",
+      "observationId": "win-cloudflare-retained",
+      "observedAt": null,
+      "ownerId": "workstation",
+      "sourceKind": "retained-projection",
+      "sourceRef": "path:platform/workstation/workstation/windows/cloudflared-runtime.dsc.yaml@sha256:f106b7b3a45633e111b17101360ad77715f3d1c85f68933180f4a705a2db10f5"
+    },
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observationId": "win-configuration",
+      "observedAt": null,
+      "ownerId": "ordivon-runtime",
+      "sourceKind": "direct-owner-observation",
+      "sourceRef": "mcp:ordivon-windows-runtime/runtime.describe"
+    },
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observationId": "win-deployment",
+      "observedAt": null,
+      "ownerId": "ordivon-runtime",
+      "sourceKind": "direct-owner-observation",
+      "sourceRef": "mcp:ordivon-windows-runtime/runtime.describe"
+    },
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "observationId": "win-product",
+      "observedAt": null,
+      "ownerId": "ordivon-runtime",
+      "sourceKind": "direct-owner-observation",
+      "sourceRef": "mcp:ordivon-windows-runtime/runtime.describe"
+    }
+  ],
+  "subjectRef": "service:ordivon-runtime/windows-main-r6-candidate",
+  "unknownReachabilitySurfaceIds": [
+    "windows-runtime-cloudflare-ingress"
+  ],
+  "unreachableSurfaceIds": []
+}
