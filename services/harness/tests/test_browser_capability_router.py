@@ -50,6 +50,35 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(value["selectedRoute"]["executor"], "jev_fast")
         self.assertEqual(value["selectedRoute"]["substrate"], "windows_chrome")
 
+
+    def test_windows_browser_use_route_is_between_jev_and_browserless(self):
+        policy = json.loads((ROOT / "config/browser-capability-routes.json").read_text())
+        rows = {r["routeId"]: r for r in policy["routes"]}
+        self.assertEqual(rows["browser-use-windows-cdp-v1"]["substrate"], "windows_chrome")
+        self.assertEqual(rows["browser-use-windows-cdp-v1"]["executor"], "browser_use_windows_cdp")
+        self.assertLess(
+            rows["jev-fast-windows-v1"]["priority"],
+            rows["browser-use-windows-cdp-v1"]["priority"],
+        )
+        self.assertLess(
+            rows["browser-use-windows-cdp-v1"]["priority"],
+            rows["browser-use-browserless-v1"]["priority"],
+        )
+
+    def test_explicit_windows_browser_use_holds_until_human_remote_debugging(self):
+        value = R.plan_route(
+            self.req(explicitRouteId="browser-use-windows-cdp-v1"),
+            readiness_overrides={
+                "browser-use-windows-cdp-v1": {
+                    "ready": False,
+                    "standing": "HUMAN_REMOTE_DEBUGGING_REQUIRED",
+                }
+            },
+        )
+        self.assertEqual(value["standing"], "HOLD_EXPLICIT_ROUTE_NOT_READY")
+        row = next(r for r in value["candidates"] if r["routeId"] == "browser-use-windows-cdp-v1")
+        self.assertEqual(row["readiness"]["standing"], "HUMAN_REMOTE_DEBUGGING_REQUIRED")
+
     def test_browser_use_is_fallback_when_jev_is_not_ready(self):
         value = R.plan_route(
             self.req(preferredFeatures=["low-latency"]),

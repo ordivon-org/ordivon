@@ -333,6 +333,39 @@ def _probe_browser_use(route: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def _probe_browser_use_windows_cdp(route: Mapping[str, Any]) -> dict[str, Any]:
+    cfg = route["readiness"]
+    raw_script = cfg.get("scriptPath")
+    if not isinstance(raw_script, str) or not raw_script or raw_script.startswith("/"):
+        return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
+    script = (SOURCE_ROOT / raw_script).resolve()
+    try:
+        script.relative_to(SOURCE_ROOT.resolve())
+    except ValueError:
+        return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
+    rc, doctor, stderr = _subprocess_json(
+        ["/usr/bin/python3", str(script), "doctor"], timeout=25
+    )
+    if rc != 0 or not isinstance(doctor, dict):
+        return {
+            "ready": False,
+            "standing": "ADAPTER_UNAVAILABLE",
+            "probeReturnCode": rc,
+            "probeError": stderr[:500] or None,
+        }
+    ready = doctor.get("ready") is True and doctor.get("standing") == "READY"
+    return {
+        "ready": ready,
+        "standing": doctor.get("standing") or "WINDOWS_CDP_UNAVAILABLE",
+        "chromeRunning": doctor.get("chromeRunning") is True,
+        "chromeVersion": doctor.get("chromeVersion"),
+        "cdpPort": doctor.get("cdpPort") if ready else None,
+        "probeReturnCode": rc,
+        "probeError": stderr[:500] or None,
+    }
+
+
 def _probe_cft_human_session(route: Mapping[str, Any]) -> dict[str, Any]:
     cfg = route["readiness"]
     raw_script = cfg.get("scriptPath")
@@ -435,6 +468,8 @@ def probe_route(route: Mapping[str, Any], required_features: set[str]) -> dict[s
         return _probe_jev(route, required_features)
     if kind == "browser_use_browserless":
         return _probe_browser_use(route)
+    if kind == "browser_use_windows_cdp":
+        return _probe_browser_use_windows_cdp(route)
     if kind == "cft_human_session":
         return _probe_cft_human_session(route)
     if kind == "agent_automation_browserless":

@@ -58,6 +58,7 @@ RELEASE_PATHS = (
     "scripts/agent_automation_release.py",
     "scripts/browser_use_browserless.py",
     "scripts/browser_use_daemon_owner.py",
+    "scripts/browser_use_windows_cdp.py",
     "scripts/browser_security_witness_source.py",
     "scripts/browser_security_pool_runner.py",
     "scripts/browser_security_browserless_canary.py",

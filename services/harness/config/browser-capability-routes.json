@@ -38,6 +38,35 @@
       ]
     },
     {
+      "routeId": "browser-use-windows-cdp-v1",
+      "providerFlow": "generic",
+      "executor": "browser_use_windows_cdp",
+      "substrate": "windows_chrome",
+      "priority": 15,
+      "provides": [
+        "navigate",
+        "observe-structured",
+        "click",
+        "text-entry",
+        "scroll",
+        "tabs",
+        "back",
+        "persistent-profile",
+        "authenticated-profile",
+        "caller-directed",
+        "human-handoff",
+        "headful"
+      ],
+      "readiness": {
+        "kind": "browser_use_windows_cdp",
+        "scriptPath": "scripts/browser_use_windows_cdp.py"
+      },
+      "evidence": [
+        "scripts/browser_use_windows_cdp.py",
+        "catalogs/capabilities/providers/browser-use.md"
+      ]
+    },
+    {
       "routeId": "browser-use-browserless-v1",
       "providerFlow": "generic",
       "executor": "browser_use_structured",
