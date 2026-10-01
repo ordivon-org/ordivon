@@ -1,0 +1,13 @@
+[Unit]
+Description=Systemd-owned Browser Use daemon %i
+Requires=ordivon-browser-agent.target
+After=ordivon-browser-agent.target
+
+[Service]
+Type=simple
+ExecStart=/opt/ordivon/agent-automation/current/scripts/browser_use_daemon_owner.py --config /etc/ordivon/browser-use-browserless.json --daemon-name %i --endpoint-id browser-agent-22
+ExecStop=/opt/ordivon/agent-automation/current/scripts/browser_use_daemon_owner.py --config /etc/ordivon/browser-use-browserless.json --daemon-name %i --endpoint-id browser-agent-22 --stop
+KillMode=control-group
+TimeoutStartSec=30
+TimeoutStopSec=20
+Restart=no

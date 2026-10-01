@@ -50,6 +50,8 @@ HUMAN_WEB_SOURCE = ROOT / "systemd/ordivon-browserless-human-web@.service"
 HUMAN_WEB_DEST = Path("/etc/systemd/system/ordivon-browserless-human-web@.service")
 BROWSER_AGENT_TARGET_SOURCE = ROOT / "systemd/ordivon-browser-agent.target"
 BROWSER_AGENT_TARGET_DEST = Path("/etc/systemd/system/ordivon-browser-agent.target")
+BROWSER_USE_DAEMON_SOURCE = ROOT / "systemd/ordivon-browser-use-daemon@.service"
+BROWSER_USE_DAEMON_DEST = Path("/etc/systemd/system/ordivon-browser-use-daemon@.service")
 TOKEN_FILE = Path("/etc/ordivon/browserless.token")
 DATA_ROOT = Path("/var/lib/ordivon/browserless")
 CONFIG_FILE = Path("/etc/ordivon/agent-automation-browserless.json")
@@ -437,6 +439,7 @@ def render_browser_use_config(
         "kind": "ordivon.browser-use-browserless-pool",
         "browserUseExecutable": executable,
         "browserUseSkill": "/root/.agents/skills/browser-use/SKILL.md",
+        "daemonOwnerUnitTemplate": "ordivon-browser-use-daemon@.service",
         "browserNetworkAuthority": {
             k: binding[k] for k in ("kind", "name", "generationDigest", "serviceUnit")
         },
@@ -625,6 +628,7 @@ def apply() -> dict:
         (IDLE_REAPER_TIMER_SOURCE, IDLE_REAPER_TIMER_DEST),
         (HUMAN_VNC_SOURCE, HUMAN_VNC_DEST),
         (BROWSER_AGENT_TARGET_SOURCE, BROWSER_AGENT_TARGET_DEST),
+        (BROWSER_USE_DAEMON_SOURCE, BROWSER_USE_DAEMON_DEST),
     ):
         if not destination.is_file() or destination.read_bytes() != source.read_bytes():
             destination.write_bytes(source.read_bytes())

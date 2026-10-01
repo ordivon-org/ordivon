@@ -304,6 +304,19 @@ class BrowserlessPodmanDeploymentTests(unittest.TestCase):
             ],
         )
 
+
+    def test_browser_use_config_declares_systemd_daemon_owner(self):
+        import browserless_podman_deploy as deploy
+
+        cfg = deploy.render_browser_use_config(self.binding(), browser_use_executable="/bin/true")
+        self.assertEqual(
+            cfg["daemonOwnerUnitTemplate"], "ordivon-browser-use-daemon@.service"
+        )
+        unit = (ROOT / "systemd/ordivon-browser-use-daemon@.service").read_text()
+        self.assertIn("Requires=ordivon-browser-agent.target", unit)
+        self.assertIn("browser_use_daemon_owner.py", unit)
+        self.assertIn("KillMode=control-group", unit)
+
     def test_warm_chatgpt_instance_materializes_quadlet_template_instance(self):
         import browserless_podman_deploy as deploy
 

@@ -119,6 +119,49 @@ class BrowserUseBrowserlessTests(unittest.TestCase):
         self.assertEqual(endpoint.timeout, 20.0)
         self.assertEqual(run.call_count, 1)
 
+
+    def test_systemd_owner_unit_escapes_runtime_attempt_lifetime(self):
+        import browser_use_browserless as launcher
+
+        endpoint = mock.Mock()
+        started = mock.Mock(returncode=0, stdout="", stderr="")
+        ready = mock.Mock(returncode=0, stdout='{"standing":"DAEMON_READY"}\n', stderr="")
+        with (
+            mock.patch.object(launcher.subprocess, "run", return_value=started) as systemd,
+            mock.patch.object(launcher, "_run_browser_use", return_value=ready) as run,
+        ):
+            launcher.ensure_daemon(
+                "/bin/browser-use",
+                endpoint,
+                "task:cross-job",
+                "ordivon-browser-use-daemon@.service",
+            )
+        unit = launcher.daemon_owner_unit(
+            "ordivon-browser-use-daemon@.service", "task:cross-job"
+        )
+        systemd.assert_called_once_with(
+            ["/usr/bin/systemctl", "start", unit],
+            text=True,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[2]["BH_REQUIRE_EXISTING_DAEMON"], "1")
+        self.assertNotIn("BU_CDP_WS", run.call_args.args[2])
+
+    def test_daemon_owner_unit_is_digest_named_and_bounded(self):
+        import browser_use_browserless as launcher
+
+        unit = launcher.daemon_owner_unit(
+            "ordivon-browser-use-daemon@.service", "task:paper3"
+        )
+        self.assertRegex(
+            unit, r"^ordivon-browser-use-daemon@ordivon-bu-[0-9a-f]{24}\.service$"
+        )
+        with self.assertRaisesRegex(ValueError, "invalid"):
+            launcher.daemon_owner_unit("../../bad@.service", "task:paper3")
+
     def test_close_reclaims_explicit_cold_lane_only_after_session_close(self):
         import browser_use_browserless as launcher
 

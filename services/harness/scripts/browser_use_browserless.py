@@ -23,6 +23,7 @@ DEFAULT_CONFIG = Path("/etc/ordivon/browser-use-browserless.json")
 SESSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 MAX_TEXT_BYTES = 32_768
 MAX_OBSERVE_ELEMENTS = 160
+DAEMON_OWNER_TEMPLATE_RE = re.compile(r"^[A-Za-z0-9_.@-]+@\.service$")
 ACTION_ROLES = (
     "button",
     "link",
@@ -92,7 +93,52 @@ def _run_browser_use(
     )
 
 
-def ensure_daemon(executable: str, endpoint, session_id: str) -> None:
+def daemon_owner_unit(unit_template: str, session_id: str) -> str:
+    if not DAEMON_OWNER_TEMPLATE_RE.fullmatch(unit_template):
+        raise ValueError("Browser Use daemon owner unit template is invalid")
+    return unit_template.replace("@.service", f"@{session_name(session_id)}.service")
+
+
+def ensure_daemon(
+    executable: str,
+    endpoint,
+    session_id: str,
+    daemon_owner_unit_template: str | None = None,
+) -> None:
+    if daemon_owner_unit_template:
+        unit = daemon_owner_unit(daemon_owner_unit_template, session_id)
+        started = subprocess.run(
+            ["/usr/bin/systemctl", "start", unit],
+            text=True,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        if started.returncode != 0:
+            detail = (started.stderr or started.stdout or "systemd daemon owner start failed").strip()
+            raise RuntimeError(detail[-1200:])
+        env = _generated_env(endpoint, session_id)
+        deadline = __import__("time").monotonic() + 20.0
+        last = None
+        while __import__("time").monotonic() < deadline:
+            last = _run_browser_use(
+                executable,
+                'import json\nprint(json.dumps({"standing":"DAEMON_READY","page":page_info()},sort_keys=True))\n',
+                env,
+                timeout=5,
+            )
+            if last.returncode == 0:
+                return
+            __import__("time").sleep(0.2)
+        detail = (
+            (last.stderr or last.stdout)
+            if last is not None
+            else "systemd-owned Browser Use daemon did not become ready"
+        )
+        raise RuntimeError(str(detail).strip()[-1200:])
+
+    # Compatibility fallback for callers that intentionally keep the whole
+    # transaction inside one Runtime Job/process lifetime.
     if getattr(endpoint, "activation_unit", None):
         lifecycle = endpoint.ensure_active(start_timeout_seconds=20.0)
         if lifecycle.get("healthy") is not True:
@@ -120,9 +166,15 @@ def _generated_env(endpoint, session_id: str) -> dict[str, str]:
 
 
 def _execute_generated(
-    executable: str, endpoint, session_id: str, program: str, *, timeout: int = 90
+    executable: str,
+    endpoint,
+    session_id: str,
+    program: str,
+    *,
+    timeout: int = 90,
+    daemon_owner_unit_template: str | None = None,
 ) -> int:
-    ensure_daemon(executable, endpoint, session_id)
+    ensure_daemon(executable, endpoint, session_id, daemon_owner_unit_template)
     proc = _run_browser_use(
         executable, program, _generated_env(endpoint, session_id), timeout=timeout
     )
@@ -269,7 +321,12 @@ def program_tabs() -> str:
     return 'import json\nprint(json.dumps({"standing":"TABS","tabs":list_tabs(include_chrome=False),"current":current_tab()},sort_keys=True))\n'
 
 
-def close_session(executable: str, endpoint, session_id: str) -> dict:
+def close_session(
+    executable: str,
+    endpoint,
+    session_id: str,
+    daemon_owner_unit_template: str | None = None,
+) -> dict:
     proc = subprocess.run(
         [executable, "--reload"],
         text=True,
@@ -278,18 +335,36 @@ def close_session(executable: str, endpoint, session_id: str) -> dict:
         timeout=30,
         check=False,
     )
+    owner_stop = None
+    if daemon_owner_unit_template:
+        unit = daemon_owner_unit(daemon_owner_unit_template, session_id)
+        owner_stop = subprocess.run(
+            ["/usr/bin/systemctl", "stop", unit],
+            text=True,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    owner_converged = owner_stop is None or owner_stop.returncode == 0
     lifecycle = (
         endpoint.release_if_idle()
-        if proc.returncode == 0 and getattr(endpoint, "idle_stop_units", ())
+        if proc.returncode == 0 and owner_converged and getattr(endpoint, "idle_stop_units", ())
         else {"standing": "NOT_EVALUATED", "stoppedUnits": []}
     )
+    closed = proc.returncode == 0 and owner_converged
     return {
         "schemaVersion": 1,
         "kind": "ordivon.browser-use-session-close",
         "sessionId": session_id,
         "browserlessEndpointId": endpoint.endpoint_id,
-        "standing": "CLOSED" if proc.returncode == 0 else "HOLD",
+        "daemonOwnerUnit": (
+            daemon_owner_unit(daemon_owner_unit_template, session_id)
+            if daemon_owner_unit_template
+            else None
+        ),
+        "standing": "CLOSED" if closed else "HOLD",
         "returnCode": proc.returncode,
+        "ownerStopReturnCode": None if owner_stop is None else owner_stop.returncode,
         "lifecycle": lifecycle,
     }
 
@@ -348,8 +423,16 @@ def main() -> int:
     if not executable.startswith("/") or not Path(executable).is_file():
         raise SystemExit("configured Browser Use executable is unavailable")
     endpoint = select_endpoint(pool, a.session_id, a.endpoint_id)
+    daemon_owner = value.get("daemonOwnerUnitTemplate")
+    if daemon_owner is not None and not isinstance(daemon_owner, str):
+        raise SystemExit("configured Browser Use daemon owner unit is invalid")
     if a.operation == "close":
-        print(json.dumps(close_session(executable, endpoint, a.session_id), sort_keys=True))
+        print(
+            json.dumps(
+                close_session(executable, endpoint, a.session_id, daemon_owner),
+                sort_keys=True,
+            )
+        )
         return 0
     if a.operation == "doctor":
         print(json.dumps(doctor(executable, endpoint, a.session_id), sort_keys=True))
@@ -363,7 +446,13 @@ def main() -> int:
         "back": program_back,
         "tabs": program_tabs,
     }
-    return _execute_generated(executable, endpoint, a.session_id, programs[a.operation]())
+    return _execute_generated(
+        executable,
+        endpoint,
+        a.session_id,
+        programs[a.operation](),
+        daemon_owner_unit_template=daemon_owner,
+    )
 
 
 if __name__ == "__main__":
