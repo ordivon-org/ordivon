@@ -116,6 +116,37 @@ function Get-ElementKey($Element) {
     try{return (@($Element.GetRuntimeId()) -join '.')}catch{return $null}
 }
 
+function Set-TextControlValue($Element,[string]$Value,[string]$Purpose) {
+    if($null -eq $Element){throw ($Purpose+' element unavailable')}
+    $errors=New-Object System.Collections.Generic.List[string]
+
+    $pattern=$null
+    if($Element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){
+        try {
+            ([System.Windows.Automation.ValuePattern]$pattern).SetValue($Value)
+            return 'ValuePattern'
+        } catch {
+            $errors.Add(('ValuePattern:'+($_.Exception.GetType().Name)+':'+$_.Exception.Message))
+        }
+    } else {
+        $errors.Add('ValuePattern:unsupported')
+    }
+
+    $legacy=$null
+    if($Element.TryGetCurrentPattern([System.Windows.Automation.LegacyIAccessiblePattern]::Pattern,[ref]$legacy)){
+        try {
+            ([System.Windows.Automation.LegacyIAccessiblePattern]$legacy).SetValue($Value)
+            return 'LegacyIAccessiblePattern'
+        } catch {
+            $errors.Add(('LegacyIAccessiblePattern:'+($_.Exception.GetType().Name)+':'+$_.Exception.Message))
+        }
+    } else {
+        $errors.Add('LegacyIAccessiblePattern:unsupported')
+    }
+
+    throw ($Purpose+' text injection failed: '+(($errors.ToArray()) -join ' | '))
+}
+
 function Get-Composer($Root) {
     $legacy=Get-EditById $Root 'prompt-textarea'
     if($null -ne $legacy -and $legacy.Current.IsEnabled -and $legacy.Current.IsKeyboardFocusable){return $legacy}
@@ -643,12 +674,12 @@ try {
         }
     }
     $prompt=[IO.File]::ReadAllText($PromptPath,[Text.Encoding]::UTF8)
-    $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($prompt)
+    Set-TextControlValue $composer $prompt 'composer prompt' | Out-Null
     Start-Sleep -Milliseconds 700
     $root=Get-Root $browser
     $send=Get-SendControl $root $composer
     if($null -eq $send){
-        $composer.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('')
+        Set-TextControlValue $composer '' 'composer clear' | Out-Null
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:send-control-unavailable' $false 'send-unavailable'
         exit 0
     }

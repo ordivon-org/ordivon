@@ -377,3 +377,12 @@ def test_windows_driver_has_structural_chatgpt_readiness_and_localization_indepe
     # Provider-side challenge handling stays fail-closed and is never activated.
     assert "Standing='CHALLENGE_GATED'" in script
     assert 'verify you are human".invoke' not in script.lower()
+
+
+def test_windows_user_browser_composer_text_injection_has_uia_fallback():
+    script = (Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1").read_text()
+    assert "function Set-TextControlValue" in script
+    assert "ValuePattern]::Pattern" in script
+    assert "LegacyIAccessiblePattern]::Pattern" in script
+    assert "Set-TextControlValue $composer $prompt 'composer prompt'" in script
+    assert "Set-TextControlValue $composer '' 'composer clear'" in script
