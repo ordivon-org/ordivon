@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
+import math
 import re
 from importlib.metadata import version as package_version
 from typing import Any
@@ -124,7 +126,15 @@ class GatewayService:
         routes: dict[str, CapabilityRoute] | None = None,
         *,
         external_workers: ExternalPullWorkerTransport | None = None,
+        projection_timeout_seconds: float = 5.0,
     ) -> None:
+        if (
+            isinstance(projection_timeout_seconds, bool)
+            or not math.isfinite(projection_timeout_seconds)
+            or projection_timeout_seconds <= 0
+        ):
+            raise ValueError("projection_timeout_seconds must be positive finite")
+        self._projection_timeout_seconds = projection_timeout_seconds
         self._caller = caller
         self._routes = routes or default_routes()
         self._external_workers = external_workers
@@ -168,6 +178,16 @@ class GatewayService:
 
         runtime_cache: dict[str, tuple[dict[str, Any] | None, str | None]] = {}
 
+        async def observe_owner(
+            owner_id: str, tool_name: str, arguments: dict[str, Any]
+        ) -> tuple[dict[str, Any] | None, str | None]:
+            try:
+                async with asyncio.timeout(self._projection_timeout_seconds):
+                    result = await self._caller.call_tool(owner_id, tool_name, arguments)
+                return result, None
+            except Exception as exc:
+                return None, f"{type(exc).__name__}: {str(exc)[:240]}"
+
         async def runtime_description(
             owner_id: str,
         ) -> tuple[dict[str, Any] | None, str | None]:
@@ -178,16 +198,7 @@ class GatewayService:
                 value = (None, None)
                 runtime_cache[owner_id] = value
                 return value
-            try:
-                result = await self._caller.call_tool(
-                    owner_id, "runtime.describe", {"schemaVersion": 1}
-                )
-                value = (result, None)
-            except Exception as exc:
-                value = (
-                    None,
-                    f"{type(exc).__name__}: {str(exc)[:240]}",
-                )
+            value = await observe_owner(owner_id, "runtime.describe", {"schemaVersion": 1})
             runtime_cache[owner_id] = value
             return value
 
@@ -279,6 +290,22 @@ class GatewayService:
                 truth_boundary=route.truth_boundary,
             )
 
+        # Only independent read-only observations fan out. TaskGroup keeps child
+        # lifetimes inside this request; no cross-request cache or effect retry.
+        runtime_owners = {route.owner_id for route in selected if route.category == "execution"}
+        if any(route.capability == "artifact.runtime" for route in selected):
+            runtime_owners.update(("runtime.linux", "runtime.windows"))
+        host_probe = None
+        async with asyncio.TaskGroup() as probes:
+            for owner_id in sorted(runtime_owners):
+                probes.create_task(runtime_description(owner_id))
+            if any(route.capability == "continuity.external" for route in selected) and _configured(
+                self._caller, "host"
+            ):
+                host_probe = probes.create_task(
+                    observe_owner("host", "host.status", {"detail": "summary"})
+                )
+
         values: list[CapabilityDescriptor] = []
         for route in selected:
             if route.category == "execution":
@@ -289,16 +316,9 @@ class GatewayService:
                 configured = _configured(self._caller, "host")
                 available = False
                 error: str | None = None
-                if configured:
-                    try:
-                        await self._caller.call_tool(
-                            "host",
-                            "host.status",
-                            {"detail": "summary"},
-                        )
-                        available = True
-                    except Exception as exc:
-                        error = f"{type(exc).__name__}: {str(exc)[:240]}"
+                if host_probe is not None:
+                    result, error = host_probe.result()
+                    available = result is not None
                 values.append(
                     CapabilityDescriptor(
                         capability=route.capability,
