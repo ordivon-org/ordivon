@@ -1,0 +1,85 @@
+{
+  "bindings": {
+    "dw01": {
+      "path": "platform/security/evidence/acceptance/dwc-subject-exposure-r1/linux-runtime-live.snapshot.json",
+      "standing": "COMPLETE",
+      "stateDigest": "sha256:608e1db04f21c430888d6e040196f9cf8fee42de4843b52a8ef51ebf9efb6e20"
+    },
+    "dw02": {
+      "path": "platform/security/evidence/acceptance/dwc-threat-applicability-r1-20261001.json",
+      "standing": "DW02_CONTRACT_IMPLEMENTED_AND_QUALIFIED",
+      "stateDigest": "sha256:c22b8caa1d79e6f134f6060bdaa402f032d6dafd18e6a94e0cab5efc3939a617"
+    },
+    "dw03": {
+      "path": "platform/security/evidence/acceptance/dw03-response-policy-r1-20261001.json",
+      "standing": "IMPLEMENTED_AND_QUALIFIED_POLICY_MECHANICS",
+      "stateDigest": "sha256:7a97e05792caa29a26c2a3902c7d0edcc1f48c726e5badffe0a63ebb2579ec94"
+    },
+    "policy": {
+      "path": "platform/security/policies/response_policy.rego",
+      "standing": "CURRENT_OBSERVED",
+      "stateDigest": "sha256:ef94dd0962c5798da19f33139e45c5054b88e2b0f14001715138e18b8ce43b15"
+    }
+  },
+  "canonicalMainBase": "1105e003d1228329a4d5e62a111d6f7d0fefd1bf",
+  "claimBoundary": "This binds real integrated DW01/DW02/DW03 owner artifacts to DW10 invalidation semantics. The policy change is synthetic. Cost units are qualification weights, not production wall time. No scheduler, effect, security verdict, or domain acceptance authority is established.",
+  "evidenceDigest": "sha256:2fa71ed62cb248ec27856917c68433d78aef6b2194a13189a33a8d2f8d8771ff",
+  "kind": "ordivon.dwc-dw10-integrated-owner-binding-evidence",
+  "projection": {
+    "changedNodeIds": [
+      "source:policy"
+    ],
+    "costSavingsUnits": 3,
+    "criticalPath": {
+      "deadlineFromT0Ms": null,
+      "deadlineSourceRef": null,
+      "durationMs": null,
+      "schedulerAuthorityEstablished": false,
+      "slackMs": null,
+      "slackStanding": "UNKNOWN_DURATION",
+      "stageIds": [],
+      "standing": "PARTIAL_UNKNOWN",
+      "unknownDurationStageIds": [
+        "dw01",
+        "dw02",
+        "dw03"
+      ]
+    },
+    "fullRecomputeCostUnits": 5,
+    "invalidatedNodeIds": [
+      "dw03"
+    ],
+    "latency": {
+      "TTVPms": null,
+      "attackerTimingAssumed": false,
+      "compromiseToEradicationMs": null,
+      "compromiseToRecoveryMs": null,
+      "eradicationToRecoveryMs": null,
+      "milestones": {
+        "T0": null,
+        "T1": null,
+        "T2": null,
+        "T3": null,
+        "T4": null,
+        "T5": null,
+        "T6": null,
+        "T7": null,
+        "Tc": null,
+        "Te": null,
+        "Tr": null
+      },
+      "segmentsMs": {
+        "T0->T1": null,
+        "T1->T2": null,
+        "T2->T3": null,
+        "T3->T4": null,
+        "T4->T5": null,
+        "T5->T6": null,
+        "T6->T7": null
+      }
+    },
+    "selectiveRevalidationCostUnits": 2
+  },
+  "schemaVersion": 1,
+  "standing": "PASS"
+}

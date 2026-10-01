@@ -3,25 +3,32 @@
   "kind": "ordivon.dwc-dw10-acceptance-evidence",
   "date": "2026-10-01",
   "workRef": "work:security:dwc-r21:dw10-temporal-invalidation:20261001",
-  "baseRevision": "86fc060603cdf0e4d9d6cf3eabffbaaebf0e587e",
+  "baseRevision": "1105e003d1228329a4d5e62a111d6f7d0fefd1bf",
   "scope": "DWC-local temporal-performance and dependency-aware invalidation qualification study",
+  "standing": "DWC_LOCAL_IMPLEMENTED_AND_QUALIFIED",
   "implementationBoundary": {
     "sharedCompositionModified": false,
     "schedulerAuthorityEstablished": false,
     "domainAcceptanceEstablished": false,
     "productionSecurityAuthorityEstablished": false
   },
-  "tddEvidence": {
-    "ownerBindingRedJobId": "job-01a0f5c8-78cd-7683-9aab-ccf74e88b9fa",
-    "ownerBindingGreenJobId": "job-01a0f5c8-c6fe-73a1-a78f-db28f00ee707",
-    "contractTypeRedJobId": "job-01a0f5ca-bceb-77f1-b6f2-18b304566456",
-    "contractTypeGreenJobId": "job-01a0f5cb-1805-7241-a9a4-e8654ab59722",
-    "lastObservedUnitTestCount": 11,
-    "lastObservedUnitTestFailures": 0
+  "finalQualification": {
+    "jobId": "job-01a0f5db-7826-7e93-9d43-69591fd673bc",
+    "unitTests": "11/11 PASS",
+    "fixtureReceiptDigest": "sha256:2d30588e2f76a05d4db5646172c53f5dd19fb55abc3670cff4ccea4e7e00ad2b",
+    "compileall": "PASS",
+    "diffCheck": "PASS"
+  },
+  "integratedOwnerBinding": {
+    "jobId": "job-01a0f5db-ee3d-7110-828e-7d21df9893f0",
+    "evidencePath": "studies/security/dwc-r21-dw10-temporal-invalidation/evidence/acceptance/dw10-integrated-owner-bindings-r1.json",
+    "evidenceDigest": "sha256:2fa71ed62cb248ec27856917c68433d78aef6b2194a13189a33a8d2f8d8771ff",
+    "result": "Real integrated DW01/DW02/DW03 owner artifacts bound successfully. Synthetic policy-source drift changed source:policy and invalidated only DW03 in the bounded graph.",
+    "realArtifactTimingStanding": "UNKNOWN",
+    "reason": "No observed T0..T7 durations or legitimate production DW03 deadline were supplied; DW10 preserved TTVP/critical-path slack as unknown."
   },
   "fixtureEvidence": {
-    "jobId": "job-01a0f5ca-4cbf-7eb2-abdc-32be0a22dc48",
-    "receiptDigest": "sha256:2d30588e2f76a05d4db5646172c53f5dd19fb55abc3670cff4ccea4e7e00ad2",
+    "receiptDigest": "sha256:2d30588e2f76a05d4db5646172c53f5dd19fb55abc3670cff4ccea4e7e00ad2b",
     "selectiveRevalidationCostUnits": 20,
     "fullRecomputeCostUnits": 37,
     "costSavingsUnits": 17,
@@ -32,40 +39,28 @@
     "exchangePublicReplayLocalTTVPms": null,
     "exchangePublicReplaySlackStanding": "UNKNOWN_DURATION"
   },
-  "externalAnchors": [
-    {
-      "ref": "OASIS-CACAO-2.0",
-      "role": "workflow/temporal orchestration semantics reference"
-    },
-    {
-      "ref": "NIST-SP-800-61r3",
-      "role": "incident response/recovery outcome anchor"
-    },
-    {
-      "ref": "MSRC:2021-03-02:exchange-security-updates",
-      "role": "historical public signal anchor only"
-    },
-    {
-      "ref": "CISA:ED-21-02:2021-03-03",
-      "role": "historical public response anchor only"
-    }
-  ],
   "verifiedBehaviors": [
-    "Policy-source drift invalidates only DW03, DW06, DW07 and DW08 in the qualification graph.",
+    "Policy-source drift invalidates only dependency descendants named by the bounded graph.",
     "Invalidating dependency-topology drift invalidates the consumer and its invalidating descendants.",
     "Non-invalidating observation edges do not trigger revalidation.",
     "Owner identity drift invalidates dependents even when content digest is unchanged.",
     "Dangling and cyclic invalidation dependencies fail closed.",
-    "Dependency flags reject string/number coercion and require real booleans.",
+    "Dependency flags require real booleans.",
     "Incomplete timing leaves TTVP/slack unknown rather than inventing precise values.",
     "Known critical path and numeric slack require explicit stage duration basis and an exact policy deadline source.",
-    "Public Exchange dates alone cannot establish local TTVP, compromise, eradication or recovery timing."
+    "Public Exchange dates alone cannot establish local TTVP, compromise, eradication or recovery timing.",
+    "Real integrated DW01/DW02/DW03 owner artifacts can serve as stateDigest/ownerId bindings without copying their domain truth into DW10."
   ],
+  "promotionBoundary": {
+    "sharedCompositionPromotionEarned": false,
+    "nextOwner": "DW12 qualification/optimization",
+    "requirement": "Repeated cross-case benefit and stale-support defect prevention must be demonstrated before extracting a shared Composition mechanism."
+  },
   "nonClaims": [
     "Synthetic cost units are not production CPU, wall-clock or monetary savings.",
     "Synthetic timing values are not production SLO measurements.",
     "Historical replay does not establish present exploitability or any organization's response latency.",
-    "This evidence does not justify shared Composition promotion by itself.",
+    "Real owner-artifact binding does not establish production timing where milestones are absent.",
     "This evidence does not grant scheduling, authorization, effect, security-verdict or domain-acceptance authority."
   ]
 }
