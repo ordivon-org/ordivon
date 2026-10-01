@@ -478,6 +478,21 @@ def git_verbatim_patch_ids(
     return mapping
 
 
+def git_canonical_head(source_repo: Path) -> tuple[str, str]:
+    published_ref = "refs/remotes/origin/main"
+    published = subprocess.run(
+        ["git", "-C", str(source_repo), "show-ref", "--verify", "--quiet", published_ref],
+        check=False,
+    )
+    if published.returncode == 0:
+        return git_text(source_repo, ["rev-parse", f"{published_ref}^{{commit}}"]), "origin/main"
+    if published.returncode != 1:
+        raise RuntimeError(
+            f"git show-ref failed while resolving canonical publication ref: {published.returncode}"
+        )
+    return git_text(source_repo, ["rev-parse", "HEAD"]), "HEAD"
+
+
 def git_canonical_integration(workspace: Path, source_repo_value: object) -> dict[str, object]:
     if not isinstance(source_repo_value, str):
         raise RuntimeError("Workspace record omitted sourceRepo")
@@ -486,7 +501,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
         raise RuntimeError("sourceRepo is not an absolute regular directory")
 
     workspace_head = git_text(workspace, ["rev-parse", "HEAD"])
-    canonical_head = git_text(source_repo, ["rev-parse", "HEAD"])
+    canonical_head, canonical_ref = git_canonical_head(source_repo)
 
     ancestry = subprocess.run(
         ["git", "-C", str(workspace), "merge-base", "--is-ancestor", workspace_head, canonical_head],
@@ -498,6 +513,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
             "closureReason": "HEAD_REACHABLE_FROM_CANONICAL",
             "workspaceHeadRevision": workspace_head,
             "canonicalHeadRevision": canonical_head,
+            "canonicalRef": canonical_ref,
             "equivalentCommitCount": 0,
             "uniqueCommitCount": 0,
             "uniqueMergeCommitCount": 0,
@@ -515,6 +531,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
             "closureReason": "UNINTEGRATED_MERGE_TOPOLOGY",
             "workspaceHeadRevision": workspace_head,
             "canonicalHeadRevision": canonical_head,
+            "canonicalRef": canonical_ref,
             "equivalentCommitCount": 0,
             "uniqueCommitCount": 0,
             "uniqueMergeCommitCount": len(branch_merges),
@@ -543,6 +560,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
             "closureReason": "PATCH_EQUIVALENT_IN_CANONICAL",
             "workspaceHeadRevision": workspace_head,
             "canonicalHeadRevision": canonical_head,
+            "canonicalRef": canonical_ref,
             "equivalentCommitCount": equivalent,
             "uniqueCommitCount": 0,
             "uniqueMergeCommitCount": 0,
@@ -552,6 +570,7 @@ def git_canonical_integration(workspace: Path, source_repo_value: object) -> dic
         "closureReason": "UNINTEGRATED_GIT_COMMITS",
         "workspaceHeadRevision": workspace_head,
         "canonicalHeadRevision": canonical_head,
+        "canonicalRef": canonical_ref,
         "equivalentCommitCount": equivalent,
         "uniqueCommitCount": unique if unique else max(1, len(branch_commits) - len(branch_patch_ids)),
         "uniqueMergeCommitCount": 0,
@@ -629,6 +648,7 @@ def candidate(
     closureReason: object = None,
     workspaceHeadRevision: object = None,
     canonicalHeadRevision: object = None,
+    canonicalRef: object = None,
     equivalentCommitCount: object = None,
     uniqueCommitCount: object = None,
     uniqueMergeCommitCount: object = None,
@@ -660,6 +680,8 @@ def candidate(
         result["workspaceHeadRevision"] = workspaceHeadRevision
     if isinstance(canonicalHeadRevision, str):
         result["canonicalHeadRevision"] = canonicalHeadRevision
+    if isinstance(canonicalRef, str):
+        result["canonicalRef"] = canonicalRef
     if isinstance(equivalentCommitCount, int):
         result["equivalentCommitCount"] = equivalentCommitCount
     if isinstance(uniqueCommitCount, int):
