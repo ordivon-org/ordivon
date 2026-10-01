@@ -73,6 +73,125 @@ class LifecycleTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-lifecycle"))
 
+    def test_lifecycle_inspect_cli_accepts_bounded_workspace_selection(self) -> None:
+        previous = sys.argv
+        sys.argv = [
+            "ordivon-runtime-lifecycle",
+            "inspect",
+            "--database",
+            "/tmp/registry.sqlite3",
+            "--runtime-store-root",
+            "/tmp/runtime",
+            "--workspace-id",
+            "ws-alpha",
+            "--workspace-id",
+            "ws-beta",
+        ]
+        try:
+            args = self.module["parse_args"]()
+        finally:
+            sys.argv = previous
+        self.assertEqual(args.command, "inspect")
+        self.assertEqual(args.workspace_ids, ["ws-alpha", "ws-beta"])
+
+    def test_lifecycle_inspect_cli_accepts_owner_workspace_references(self) -> None:
+        previous = sys.argv
+        sys.argv = [
+            "ordivon-runtime-lifecycle",
+            "inspect",
+            "--database",
+            "/tmp/registry.sqlite3",
+            "--runtime-store-root",
+            "/tmp/runtime",
+            "--workspace-ref",
+            "runtime:workspace:ws-alpha",
+            "--workspace-ref",
+            "runtime:workspace:ws-beta",
+        ]
+        try:
+            args = self.module["parse_args"]()
+        finally:
+            sys.argv = previous
+        self.assertEqual(args.workspace_refs, [
+            "runtime:workspace:ws-alpha",
+            "runtime:workspace:ws-beta",
+        ])
+        self.assertEqual(
+            self.module["selected_workspace_ids"](args),
+            ["ws-alpha", "ws-beta"],
+        )
+
+    def test_workspace_reference_parser_is_exact_and_fail_closed(self) -> None:
+        parse = self.module["workspace_id_from_reference"]
+        self.assertEqual(
+            parse("runtime:workspace:ws-alpha_1.2"),
+            "ws-alpha_1.2",
+        )
+        for invalid in (
+            "workspace:ws-alpha",
+            "runtime:workspace:",
+            "runtime:workspace:.hidden",
+            "runtime:workspace:ws:alpha",
+            "runtime:workspace:ws alpha",
+            "runtime:workspace:" + "w" * 97,
+        ):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(Exception):
+                    parse(invalid)
+
+    def test_owner_reference_and_workspace_id_selection_deduplicates(self) -> None:
+        args = type(
+            "Args",
+            (),
+            {
+                "workspace_ids": ["ws-alpha", "ws-alpha"],
+                "workspace_refs": [
+                    "runtime:workspace:ws-beta",
+                    "runtime:workspace:ws-alpha",
+                ],
+            },
+        )()
+        self.assertEqual(
+            self.module["selected_workspace_ids"](args),
+            ["ws-alpha", "ws-beta"],
+        )
+
+    def test_lifecycle_reclaim_inspect_forwards_bounded_workspace_selection(self) -> None:
+        captured: list[list[str]] = []
+        def fake_run_json(command: list[str], *, accepted_codes: tuple[int, ...] = (0,)) -> dict[str, object]:
+            del accepted_codes
+            captured.append(command)
+            return {"schemaVersion": 1, "summary": {}, "candidates": []}
+
+        function_globals = self.module["reclaim_inspect"].__globals__
+        original = function_globals["run_json"]
+        function_globals["run_json"] = fake_run_json
+        args = type(
+            "Args",
+            (),
+            {
+                "database": Path("/tmp/registry.sqlite3"),
+                "runtime_store_root": Path("/tmp/runtime"),
+                "workspace_root": None,
+                "busy_timeout_ms": 5_000,
+                "measure_bytes": False,
+                "workspace_ids": ["ws-alpha"],
+                "workspace_refs": [
+                    "runtime:workspace:ws-beta",
+                    "runtime:workspace:ws-alpha",
+                ],
+            },
+        )()
+        try:
+            self.module["reclaim_inspect"](args)
+        finally:
+            function_globals["run_json"] = original
+        command = captured[0]
+        self.assertEqual(
+            [command[index + 1] for index, value in enumerate(command[:-1]) if value == "--workspace-id"],
+            ["ws-alpha", "ws-beta"],
+        )
+
     def test_open_record_accepts_identity_derived_from_record_location(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

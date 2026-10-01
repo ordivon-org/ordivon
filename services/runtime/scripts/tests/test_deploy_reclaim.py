@@ -1954,6 +1954,33 @@ class DeployReclaimTests(unittest.TestCase):
         with self.assertRaises(Exception):
             module["nonnegative_float"]("nan")
 
+    def test_reclaim_inspect_cli_accepts_bounded_workspace_selection(self) -> None:
+        scripts_path = str(REPO / "scripts")
+        sys.path.insert(0, scripts_path)
+        try:
+            module = runpy.run_path(str(REPO / "scripts/ordivon-runtime-reclaim"))
+        finally:
+            sys.path.remove(scripts_path)
+        previous = sys.argv
+        sys.argv = [
+            "ordivon-runtime-reclaim",
+            "inspect",
+            "--database",
+            "/tmp/registry.sqlite3",
+            "--runtime-store-root",
+            "/tmp/runtime",
+            "--workspace-id",
+            "ws-alpha",
+            "--workspace-id",
+            "ws-beta",
+        ]
+        try:
+            args = module["parse_args"]()
+        finally:
+            sys.argv = previous
+        self.assertEqual(args.command, "inspect")
+        self.assertEqual(args.workspace_ids, ["ws-alpha", "ws-beta"])
+
     def test_reclaim_requested_selection_does_not_scan_unrelated_workspaces(self) -> None:
         scripts_path = str(REPO / "scripts")
         sys.path.insert(0, scripts_path)
