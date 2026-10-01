@@ -9,7 +9,7 @@ launch a substitute browser, or bypass browser/provider security controls.
 ## Natural owners
 
 - Chrome owns the user profile, authenticated web state, and explicit remote-debugging consent.
-- Workstation owns the pinned Browser Harness realization under the Windows Runtime executable root.
+- Workstation owns the pinned Browser Harness 0.1.13 realization; Windows Runtime admits PowerShell under active_user and the provider binding resolves the exact Workstation-managed Browser Harness path.
 - Windows Runtime active_user owns physical Browser Harness execution.
 - Browser Capability Router owns only pre-execution route selection.
 - The caller/domain owner remains responsible for browser-control and external-effect authority.
@@ -42,9 +42,10 @@ A lower class never implies a higher class.
 
 The route may report READY only when:
 
-- ProgramData Browser Harness exists at the expected version;
+- Workstation reports an exact Browser Harness 0.1.13 realization and its managed Windows path exists;
 - Windows Chrome is running;
-- the human-owned DevToolsActivePort consent state is present.
+- the human-owned DevToolsActivePort consent state is present;
+- the corresponding loopback DevTools /json/version endpoint is currently reachable as Chrome.
 
 A live Browser Harness daemon is current state, not a prerequisite for bootstrap readiness.
 

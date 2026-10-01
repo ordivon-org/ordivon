@@ -59,6 +59,7 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(real["executor"], "browser_harness_windows_real_chrome")
         self.assertEqual(real["execution"]["target"], "windows_native")
         self.assertEqual(real["execution"]["windowsAuthority"], "active_user")
+        self.assertEqual(real["execution"]["toolOwner"], "workstation-windows-jev-provider")
         self.assertFalse(real["authorityBoundary"]["routeSelectionGrantsAuthority"])
         self.assertIn("observe-structured", real["provides"])
         self.assertIn("authenticated-profile", real["provides"])

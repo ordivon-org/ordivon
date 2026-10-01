@@ -56,7 +56,9 @@
       "execution": {
         "target": "windows_native",
         "windowsAuthority": "active_user",
-        "executable": "C:\\ProgramData\\Ordivon\\RuntimeCandidateR6\\service-home\\browser-use-win\\bin\\browser-harness.exe"
+        "executable": "C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe",
+        "toolOwner": "workstation-windows-jev-provider",
+        "tool": "browser-harness"
       },
       "authorityBoundary": {
         "chromeRemoteDebuggingConsent": "human-owned-prerequisite",
@@ -67,6 +69,7 @@
       "readiness": {
         "kind": "browser_harness_windows_real_chrome",
         "scriptPath": "scripts/browser_harness_windows_real_chrome.py",
+        "workstationStatusCommand": "/root/tools/bin/workstation-windows-jev-provider",
         "expectedBrowserHarnessVersion": "0.1.13"
       },
       "evidence": [
