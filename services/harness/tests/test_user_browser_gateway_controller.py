@@ -383,6 +383,10 @@ def test_windows_user_browser_composer_text_injection_has_uia_fallback():
     script = (Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1").read_text()
     assert "function Set-TextControlValue" in script
     assert "ValuePattern]::Pattern" in script
-    assert "LegacyIAccessiblePattern]::Pattern" in script
+    assert "public static class OrdivonUnicodeInput" in script
+    assert "KEYEVENTF_UNICODE" in script
+    assert "SendInput" in script
+    assert "SendInputUnicode" in script
+    assert "SendInput readback mismatch" in script
     assert "Set-TextControlValue $composer $prompt 'composer prompt'" in script
     assert "Set-TextControlValue $composer '' 'composer clear'" in script
