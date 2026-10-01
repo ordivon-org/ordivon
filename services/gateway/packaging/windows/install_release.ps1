@@ -190,6 +190,7 @@ try {
 
             Invoke-Checked -FilePath $uvResolved -ArgumentList @(
                 'sync',
+                '--link-mode', 'copy',
                 '--frozen',
                 '--no-dev',
                 '--python', $python,

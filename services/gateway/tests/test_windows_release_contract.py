@@ -59,3 +59,9 @@ def test_windows_release_installer_emits_mechanical_receipt_without_current_poin
     assert "receiptPath" in text
     assert "Move-Item -LiteralPath $receiptTmp -Destination $receiptPath" in text
     assert "existing release receipt source commit mismatch" in text
+
+
+def test_windows_release_dependencies_do_not_share_cache_acl() -> None:
+    text = INSTALLER.read_text(encoding="utf-8")
+    sync = text.split("'sync',", 1)[1].split("finally", 1)[0]
+    assert "'--link-mode', 'copy'," in sync
