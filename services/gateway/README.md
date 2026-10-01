@@ -72,3 +72,14 @@ ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE is configured.
 This transport is execution-delivery mechanics only. It does not close Admission Fabric
 AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
 grant shell workers browser authority.
+
+### Windows local service identity
+
+The Windows candidate can optionally bind `LocalServiceBearerTokenFile` while preserving
+`TrustCfAccess`. Keep the candidate stopped, materialize all configured owner credentials
+together with `CreateLocalServiceBearer`, and activate using the resulting receipt.
+The generated local identity is separate from upstream Runtime credentials, protected
+for SYSTEM, Administrators and the Gateway service SID, and accepted only on loopback.
+Never print token contents or credential receipt digests. Existing profiles without the
+optional field retain their activation contract. This local acceptance lane does not
+qualify the public Cloudflare principal, Linux/Skills bindings or public promotion.

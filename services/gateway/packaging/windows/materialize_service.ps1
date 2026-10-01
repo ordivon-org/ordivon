@@ -26,6 +26,8 @@ param(
     [Parameter()]
     [string]$HostBearerTokenFile = '',
     [Parameter()]
+    [string]$LocalServiceBearerTokenFile = '',
+    [Parameter()]
     [string]$AuthZenEvaluationEndpoint = '',
     [Parameter()]
     [string]$AuthZenBearerTokenFile = '',
@@ -130,6 +132,10 @@ if ($candidateTools.Count -eq 0 -or ($candidateTools | Sort-Object -Unique).Coun
     throw "Gateway MCP surface tools must be non-empty and unique"
 }
 
+if ($LocalServiceBearerTokenFile -and -not $TrustCfAccess) {
+    throw 'Local service bearer requires the verified Cloudflare Access middleware'
+}
+
 $existingCim = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
 if ($existingCim -and $existingCim.PathName) {
     $releasePattern = [regex]::Escape((Join-Path $prefixPath 'releases')) + '[\\/]([0-9a-f]{40})'
@@ -212,6 +218,9 @@ if ($HostBearerTokenFile) {
     $envPairs.ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE = (
         [System.IO.Path]::GetFullPath($HostBearerTokenFile)
     )
+}
+if ($LocalServiceBearerTokenFile) {
+    $envPairs.ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE = [System.IO.Path]::GetFullPath($LocalServiceBearerTokenFile)
 }
 if ($authZenEndpointConfigured) {
     $envPairs.ORDIVON_GATEWAY_AUTHZEN_EVALUATION_ENDPOINT = $AuthZenEvaluationEndpoint
@@ -327,6 +336,7 @@ $receipt = [ordered]@{
     windowsBearerTokenFile = $(if ($WindowsRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($WindowsRuntimeBearerTokenFile) } else { $null })
     hostBearerTokenFile = $(if ($HostBearerTokenFile) { [System.IO.Path]::GetFullPath($HostBearerTokenFile) } else { $null })
     skillsBearerTokenFile = $(if ($SkillsBearerTokenFile) { [System.IO.Path]::GetFullPath($SkillsBearerTokenFile) } else { $null })
+    localServiceBearerTokenFile = $(if ($LocalServiceBearerTokenFile) { [System.IO.Path]::GetFullPath($LocalServiceBearerTokenFile) } else { $null })
     activationRequired = $true
     linuxBearerPathConfigured = [bool]$LinuxRuntimeBearerTokenFile
     windowsBearerPathConfigured = [bool]$WindowsRuntimeBearerTokenFile

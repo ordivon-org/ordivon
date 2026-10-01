@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import hmac
 import logging
+import os
 import stat
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -14,6 +15,8 @@ import jwt
 from jwt import PyJWKClient
 from starlette.responses import JSONResponse
 
+from .upstream import OwnerCallError, _read_private_secret_file
+
 logger = logging.getLogger("ordivon_gateway.access_auth")
 
 
@@ -22,6 +25,16 @@ class AccessAuthError(RuntimeError):
 
 
 def _read_private_token_file(path_text: str) -> str:
+    if os.name == "nt":
+        try:
+            token = _read_private_secret_file(path_text, "local service bearer")
+        except OwnerCallError as exc:
+            raise AccessAuthError(
+                "local service bearer Windows private file validation failed"
+            ) from exc
+        if len(token) < 32:
+            raise AccessAuthError("local service bearer token is invalid")
+        return token
     path = Path(path_text)
     if not path.is_absolute() or path.is_symlink():
         raise AccessAuthError("local service bearer path must be one absolute non-symlink file")
