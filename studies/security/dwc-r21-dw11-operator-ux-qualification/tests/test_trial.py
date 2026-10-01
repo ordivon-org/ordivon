@@ -94,3 +94,32 @@ def test_self_certification_rejected():
     receipt["evaluatorActorRef"]=packet["candidateBuilderActorRef"]
     with pytest.raises(Exception,match="independent evaluator actor"):
         score_receipt(packet,gt,receipt,100)
+
+
+def test_saved_independent_agent_receipt_and_score_validate_exactly():
+    import hashlib
+    import json
+
+    e=STUDY/"evidence/acceptance"
+    packet=json.loads((e/"dw11-independent-agent-reentry-packet-r2.json").read_text())
+    gt=json.loads((e/"dw11-agent-reentry-ground-truth-r2.json").read_text())
+    receipt_path=e/"dw11-independent-agent-reentry-receipt-r2-20261001.json"
+    receipt=json.loads(receipt_path.read_text())
+    saved_score=json.loads((e/"dw11-independent-agent-reentry-score-r2-20261001.json").read_text())
+    acceptance=json.loads((e/"dw11-independent-agent-ux-acceptance-r2-20261001.json").read_text())
+
+    verify_packet_files(ROOT,packet)
+    score=score_receipt(packet,gt,receipt,acceptance["runtimeOccurrence"]["runtimeEndToEndElapsedMs"])
+    assert score==saved_score
+    assert score["standing"]=="PASS"
+    assert score["criticalFieldMismatchCount"]==0
+    assert score["coldReentryExact"] is True
+    assert score["syntheticPromptFidelity"]["unnecessaryPromptRate"]==0.0
+    assert score["syntheticPromptFidelity"]["requiredPromptMissRate"]==0.0
+    assert score["syntheticPromptFidelity"]["unknownPromptPreservationRate"]==1.0
+    assert score["humanDecisionLatencyMs"] is None
+    assert acceptance["humanUx"]["standing"]=="NOT_MEASURED"
+    assert acceptance["productionUx"]["standing"]=="NOT_MEASURED"
+    assert acceptance["independenceBoundary"]["groundTruthExposed"] is False
+    assert ("sha256:"+hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+            == acceptance["independentReceipt"]["sha256"])

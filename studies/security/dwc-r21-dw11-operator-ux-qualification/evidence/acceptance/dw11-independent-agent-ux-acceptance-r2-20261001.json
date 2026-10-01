@@ -1,0 +1,69 @@
+{
+  "acceptanceDigest": "sha256:61d2124834debb4a433037052a9cb430799c96a7fcd3f00bb3be48025d5e2cff",
+  "candidateRevision": "b3d165961aa3e28d42942dfa9aa1dacf9b0a870f",
+  "groundTruthDigest": "sha256:18b1b7684d2efd57f78302edbfcb0587d973d73c6b1b5c26c065fba7ffc776d6",
+  "humanUx": {
+    "humanDecisionLatencyMs": null,
+    "standing": "NOT_MEASURED"
+  },
+  "independenceBoundary": {
+    "candidateBuilderActorRef": "agent:chatgpt-daybreak-r21-20261001",
+    "candidateImplementationExposed": false,
+    "contextIsolation": "exact-candidate sparse workspace with packet + four allowed input bundles only",
+    "distinctActor": true,
+    "evaluatorActorRef": "agent:codex-cli:dwc-dw11-independent-r2-20261001",
+    "groundTruthExposed": false
+  },
+  "independentReceipt": {
+    "evaluatorActorRef": "agent:codex-cli:dwc-dw11-independent-r2-20261001",
+    "evaluatorOccurrenceRef": "occurrence:codex-cli:dw11-r2:20261001:01",
+    "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/evidence/acceptance/dw11-independent-agent-reentry-receipt-r2-20261001.json",
+    "sha256": "sha256:ea9ea1113985f0503a7fb8a8ebe8c6b447ea2353b3a4aa5465586d8b3e656504"
+  },
+  "kind": "ordivon.security.dwc-dw11-independent-agent-ux-acceptance-r2",
+  "nonClaims": [
+    "Runtime end-to-end independent-Agent wall-clock is not human decision latency.",
+    "Three synthetic prompt counterfactuals test owner-label preservation only and are not production approval-prompt rates.",
+    "Agent re-entry PASS does not grant authority, rank actions, close UNKNOWN security axes, or create a global security verdict.",
+    "No human UX SLO or production prompt-rate SLO is invented."
+  ],
+  "packetDigest": "sha256:8bd76bb26cc4a14b2dae620e4388f494948890ec72c750c83ad0612b637cb836",
+  "productionUx": {
+    "requiredPromptMissRate": null,
+    "standing": "NOT_MEASURED",
+    "unknownPromptPreservationRate": null,
+    "unnecessaryApprovalPromptRate": null
+  },
+  "runtimeOccurrence": {
+    "attemptId": "attempt-01a0f69e-d1e4-7772-832e-378b406877b4",
+    "codexThreadId": "01a0f69e-e144-7322-9adf-32afb5a65bee",
+    "executionDisposition": "succeeded",
+    "jobId": "job-01a0f69e-d1e4-7772-832e-377d506d7f11",
+    "latencyPassFailStanding": "MEASURED_NO_LEGITIMATE_THRESHOLD",
+    "latencyThresholdMs": null,
+    "runtimeEndToEndElapsedMs": 171879
+  },
+  "schemaVersion": 2,
+  "score": {
+    "coldReentryExact": true,
+    "criticalFieldMismatchCount": 0,
+    "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/evidence/acceptance/dw11-independent-agent-reentry-score-r2-20261001.json",
+    "scoreDigest": "sha256:df0d52d5ed9a135d955f13bd5a714df6f599799fdd95509214be57f1b7be2742",
+    "standing": "PASS",
+    "syntheticPromptFidelity": {
+      "notRequiredCaseCount": 1,
+      "productionPromptRateClaimAllowed": false,
+      "requiredCaseCount": 1,
+      "requiredPromptMissCount": 0,
+      "requiredPromptMissRate": 0.0,
+      "unknownCaseCount": 1,
+      "unknownPromptMismatchCount": 0,
+      "unknownPromptPreservationRate": 1.0,
+      "unnecessaryPromptCount": 0,
+      "unnecessaryPromptRate": 0.0
+    }
+  },
+  "standing": "PASS_INDEPENDENT_AGENT_REENTRY_AND_SYNTHETIC_PROMPT_FIDELITY",
+  "subjectDigest": "sha256:f881b57ddf8814f9b1a46568f9e98b2b73b4437f7e0fd64381ee4718816e24fe",
+  "trialDefinitionRevision": "a760aebba2eb387c941c309a355e5b326037222d"
+}
