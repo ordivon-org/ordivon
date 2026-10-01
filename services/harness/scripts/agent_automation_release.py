@@ -902,6 +902,128 @@ def _persist_browser_security_qualification(commit: str, value: dict) -> None:
 _RELEASE_IRRELEVANT_ENVIRONMENT_PATHS = frozenset({"$.network.colo", "$.network.loc"})
 
 
+_BROWSER_SECURITY_BEHAVIORAL_PREFIXES = (
+    "services/harness/containers/ordivon-browserless",
+    "services/harness/config/browserless-playwright-requirements.txt",
+    "services/harness/scripts/browser_security_",
+    "services/harness/scripts/browserless_",
+    "services/harness/scripts/playwright_browserless_",
+    "services/harness/scripts/browser_use_browserless.py",
+    "services/harness/scripts/browser_use_daemon_owner.py",
+    "services/harness/systemd/ordivon-browserless-",
+)
+
+# These files host both Browserless and Windows-user-browser plumbing. A release may skip the
+# Browserless witness only when every changed line in them is narrowly confined to the declared
+# Windows existing-browser policy. Any unrelated line makes the Browser Security gate mandatory.
+_BROWSER_SECURITY_MIXED_PATHS = frozenset(
+    {
+        "services/harness/config/agent-automation.toml",
+        "services/harness/scripts/agent_automation_browserless.py",
+        "services/harness/scripts/agent_automation_browserless_effects.py",
+        "services/harness/scripts/agent_automation_mcp_deploy.py",
+    }
+)
+_WINDOWS_USER_BROWSER_POLICY_TOKENS = (
+    "existing_browser_policy",
+    "existingBrowserPolicy",
+)
+
+
+def _git_changed_paths(repo: Path, old_commit: str, new_commit: str) -> list[str]:
+    proc = run(
+        [
+            "/usr/bin/git", "-C", str(repo), "diff", "--name-only",
+            old_commit, new_commit, "--", "services/harness",
+        ],
+        timeout=20,
+    )
+    return [line.strip() for line in proc.stdout.splitlines() if line.strip()]
+
+
+def _mixed_path_has_non_user_browser_change(
+    repo: Path, old_commit: str, new_commit: str, path: str
+) -> bool:
+    proc = run(
+        [
+            "/usr/bin/git", "-C", str(repo), "diff", "--unified=0",
+            old_commit, new_commit, "--", path,
+        ],
+        timeout=20,
+    )
+    changed = []
+    for line in proc.stdout.splitlines():
+        if line.startswith(("+++", "---", "@@")):
+            continue
+        if line.startswith(("+", "-")):
+            body = line[1:].strip()
+            if body:
+                changed.append(body)
+    return any(
+        not any(token in line for token in _WINDOWS_USER_BROWSER_POLICY_TOKENS)
+        for line in changed
+    )
+
+
+def browser_security_release_scope(repo: Path, old_commit: str, new_commit: str) -> dict:
+    changed_paths = _git_changed_paths(repo, old_commit, new_commit)
+    relevant: list[str] = []
+    mixed_user_browser_only: list[str] = []
+    for path in changed_paths:
+        if path.startswith("services/harness/tests/"):
+            continue
+        if path in {
+            "services/harness/scripts/agent_automation_release.py",
+            "services/harness/src/ordivon_harness/user_browser_gateway.py",
+            "services/harness/scripts/windows_user_browser_chatgpt.ps1",
+        }:
+            continue
+        if any(path.startswith(prefix) for prefix in _BROWSER_SECURITY_BEHAVIORAL_PREFIXES):
+            relevant.append(path)
+            continue
+        if path in _BROWSER_SECURITY_MIXED_PATHS:
+            if _mixed_path_has_non_user_browser_change(repo, old_commit, new_commit, path):
+                relevant.append(path)
+            else:
+                mixed_user_browser_only.append(path)
+    return {
+        "baseCommit": old_commit,
+        "candidateCommit": new_commit,
+        "changedPaths": changed_paths,
+        "browserSecurityRelevantPaths": sorted(relevant),
+        "mixedUserBrowserOnlyPaths": sorted(mixed_user_browser_only),
+        "required": bool(relevant),
+    }
+
+
+def require_browser_security_release_qualification_for_change(
+    repo: Path, release: Path, commit: str
+) -> dict:
+    current = current_release()
+    base_commit = current.get("commit") if isinstance(current, dict) else None
+    if not isinstance(base_commit, str) or re.fullmatch(r"[0-9a-f]{40}", base_commit) is None:
+        return require_browser_security_release_qualification(release, commit)
+    scope = browser_security_release_scope(repo, base_commit, commit)
+    if scope["required"]:
+        result = require_browser_security_release_qualification(release, commit)
+        return {**result, "scope": scope}
+    value = {
+        "schemaVersion": 1,
+        "kind": "ordivon.agent-automation-browser-security-qualification",
+        "standing": "PASS_NOT_APPLICABLE",
+        "candidateCommit": commit,
+        "baseCommit": base_commit,
+        "providerChallengeVisited": False,
+        "providerSendAttempted": False,
+        "rootCauseEstablished": False,
+        "verifierTarget": "browserless-behavioral-surface-change-relevance",
+        "detail": "candidate does not change Browser Security-owned Browserless behavioral surfaces",
+        "scope": scope,
+    }
+    _persist_browser_security_qualification(commit, value)
+    return value
+
+
 def _browser_security_release_relevance(classification: dict) -> tuple[bool, str]:
     """Bridge Browser Security observation to this release's preservation obligation.
 
@@ -1267,8 +1389,8 @@ def activate(repo: Path, revision: str) -> dict:
                     "cliAdmissionClosed": True,
                     "release": rel,
                 }
-            browser_security_qualification = require_browser_security_release_qualification(
-                release, commit
+            browser_security_qualification = require_browser_security_release_qualification_for_change(
+                repo, release, commit
             )
             run(["/usr/bin/systemctl", "stop", WORKER_UNIT], timeout=30)
             ledger_migration = prepare_materialization_ledger_migration()

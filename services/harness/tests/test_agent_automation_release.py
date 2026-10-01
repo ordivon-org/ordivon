@@ -50,7 +50,7 @@ class ReleaseTests(unittest.TestCase):
             ),
             patch.object(
                 r,
-                "require_browser_security_release_qualification",
+                "require_browser_security_release_qualification_for_change",
                 return_value={
                     "schemaVersion": 1,
                     "kind": "ordivon.agent-automation-browser-security-qualification",
@@ -372,7 +372,7 @@ class ReleaseTests(unittest.TestCase):
             node.lineno
             for node in calls
             if isinstance(node.func, ast.Name)
-            and node.func.id == "require_browser_security_release_qualification"
+            and node.func.id == "require_browser_security_release_qualification_for_change"
         )
         worker_stop = next(
             node.lineno
@@ -1084,7 +1084,7 @@ class BrowserSecurityReadinessQualificationTests(unittest.TestCase):
     def test_observer_unavailable_is_resampled_before_release_verdict(self):
         import json
         from unittest.mock import patch
-        import scripts.agent_automation_release as release
+        release = r
 
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -1112,7 +1112,7 @@ class BrowserSecurityReadinessQualificationTests(unittest.TestCase):
     def test_real_drift_is_not_retried(self):
         import json
         from unittest.mock import patch
-        import scripts.agent_automation_release as release
+        release = r
 
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -1134,7 +1134,7 @@ class BrowserSecurityReadinessQualificationTests(unittest.TestCase):
     def test_repeated_observation_invalid_still_holds(self):
         import json
         from unittest.mock import patch
-        import scripts.agent_automation_release as release
+        release = r
 
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -1152,6 +1152,115 @@ class BrowserSecurityReadinessQualificationTests(unittest.TestCase):
                 with self.assertRaises(release.ReleaseError):
                     release.require_browser_security_release_qualification(root, "a" * 40)
             self.assertEqual(invoked.call_count, 3)
+
+    def test_windows_user_browser_only_change_makes_browser_security_not_applicable(self):
+        from unittest.mock import patch
+        release = r
+
+        base = "1" * 40
+        candidate = "2" * 40
+        changed = [
+            "services/harness/config/agent-automation.toml",
+            "services/harness/scripts/agent_automation_browserless.py",
+            "services/harness/scripts/agent_automation_browserless_effects.py",
+            "services/harness/scripts/agent_automation_mcp_deploy.py",
+            "services/harness/scripts/windows_user_browser_chatgpt.ps1",
+            "services/harness/src/ordivon_harness/user_browser_gateway.py",
+            "services/harness/tests/test_user_browser_gateway_controller.py",
+            "services/harness/scripts/agent_automation_release.py",
+        ]
+        current = {"commit": base}
+        scope = {
+            "baseCommit": base,
+            "candidateCommit": candidate,
+            "changedPaths": changed,
+            "browserSecurityRelevantPaths": [],
+            "mixedUserBrowserOnlyPaths": changed[:4],
+            "required": False,
+        }
+        with (
+            patch.object(release, "current_release", return_value=current),
+            patch.object(release, "browser_security_release_scope", return_value=scope),
+            patch.object(release, "require_browser_security_release_qualification") as witness,
+            patch.object(release, "_persist_browser_security_qualification") as persist,
+        ):
+            result = release.require_browser_security_release_qualification_for_change(
+                Path("/repo"), Path("/release"), candidate
+            )
+        self.assertEqual(result["standing"], "PASS_NOT_APPLICABLE")
+        self.assertFalse(result["scope"]["required"])
+        witness.assert_not_called()
+        persist.assert_called_once()
+
+    def test_browserless_behavioral_change_keeps_browser_security_mandatory(self):
+        from unittest.mock import patch
+        release = r
+
+        base = "1" * 40
+        candidate = "2" * 40
+        scope = {
+            "baseCommit": base,
+            "candidateCommit": candidate,
+            "changedPaths": ["services/harness/scripts/browserless_substrate.py"],
+            "browserSecurityRelevantPaths": ["services/harness/scripts/browserless_substrate.py"],
+            "mixedUserBrowserOnlyPaths": [],
+            "required": True,
+        }
+        witness_receipt = {"standing": "PASS", "candidateCommit": candidate}
+        with (
+            patch.object(release, "current_release", return_value={"commit": base}),
+            patch.object(release, "browser_security_release_scope", return_value=scope),
+            patch.object(
+                release,
+                "require_browser_security_release_qualification",
+                return_value=witness_receipt,
+            ) as witness,
+        ):
+            result = release.require_browser_security_release_qualification_for_change(
+                Path("/repo"), Path("/release"), candidate
+            )
+        self.assertEqual(result["standing"], "PASS")
+        self.assertTrue(result["scope"]["required"])
+        witness.assert_called_once_with(Path("/release"), candidate)
+
+    def test_mixed_file_non_policy_change_is_browser_security_relevant(self):
+        from unittest.mock import patch
+        release = r
+
+        diff = """diff --git a/services/harness/scripts/agent_automation_browserless.py b/services/harness/scripts/agent_automation_browserless.py
+--- a/services/harness/scripts/agent_automation_browserless.py
++++ b/services/harness/scripts/agent_automation_browserless.py
+@@ -1,0 +2 @@
++browserless_reconnect_ms = 1
+"""
+        completed = subprocess.CompletedProcess([], 0, stdout=diff, stderr="")
+        with patch.object(release, "run", return_value=completed):
+            self.assertTrue(
+                release._mixed_path_has_non_user_browser_change(
+                    Path("/repo"), "1" * 40, "2" * 40,
+                    "services/harness/scripts/agent_automation_browserless.py",
+                )
+            )
+
+    def test_mixed_file_existing_browser_policy_only_is_not_browser_security_relevant(self):
+        from unittest.mock import patch
+        release = r
+
+        diff = """diff --git a/services/harness/scripts/agent_automation_browserless.py b/services/harness/scripts/agent_automation_browserless.py
+--- a/services/harness/scripts/agent_automation_browserless.py
++++ b/services/harness/scripts/agent_automation_browserless.py
+@@ -1,0 +2 @@
++existing_browser_policy=str(value.get(\"existingBrowserPolicy\", \"refuse\"))
+"""
+        completed = subprocess.CompletedProcess([], 0, stdout=diff, stderr="")
+        with patch.object(release, "run", return_value=completed):
+            self.assertFalse(
+                release._mixed_path_has_non_user_browser_change(
+                    Path("/repo"), "1" * 40, "2" * 40,
+                    "services/harness/scripts/agent_automation_browserless.py",
+                )
+            )
+
 
 class PlaywrightRuntimeContractTests(unittest.TestCase):
     def test_playwright_runtime_manifest_tracks_latest_and_jcs(self):
