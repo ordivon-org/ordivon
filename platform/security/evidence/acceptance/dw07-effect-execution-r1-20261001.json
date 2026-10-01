@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw07-effect-execution-r1-acceptance",
+  "observedAt": "2026-10-01T14:51:00+08:00",
+  "workRef": "work:security:dwc-r21:dw07-effect-execution:20261001",
+  "standing": "DW07_EFFECT_MECHANICS_AND_REVERSIBLE_ACCEPTANCE_QUALIFIED",
+  "baseRevision": "dcd9702fbee31237ecbce6820327dda8bdad5f7f",
+  "implementation": {
+    "module": "platform/security/src/ordivon_security_v2/effect_execution.py",
+    "tests": "platform/security/tests/test_effect_execution.py",
+    "acceptanceScript": "platform/security/scripts/run_dw07_reversible_effect_acceptance.py",
+    "acceptanceEvidence": "platform/security/evidence/acceptance/dw07-reversible-effect-r1-20261001.json",
+    "design": "platform/security/docs/DW07-EFFECT-EXECUTION-R1.md"
+  },
+  "reusedOwners": {
+    "authorization": "existing Security effect_admission.rego",
+    "replay": "existing Security ReplayBinding",
+    "consequence": "reserved for DW08 consequence_verification.rego",
+    "provider": "external natural provider protocol with exact reconcile/apply seam"
+  },
+  "invariants": [
+    "Authorization, effect admission, provider commit, execution receipt and authoritative consequence remain distinct.",
+    "Exact DWC proposal binds case, subject snapshot, request identity, effect type, Action/Target/Actuator fields, commit point, replay identity, blast radius, reconciliation oracle, reversibility/compensation metadata and exact DW06 authority obligation.",
+    "Existing Security effect_admission.rego owns admission; DW07 validates exact request/admission binding before provider invocation.",
+    "ReplayBinding prevents changed-content reuse of the same request identity.",
+    "Exact replay reconciles by requestId+requestDigest before any provider redispatch.",
+    "Transport loss triggers reconciliation before retry; authoritative no-commit may mark retry-safe but DW07 never auto-retries.",
+    "Provider receipt must report effectExecuted=true and worldEffectVerified=false and must bind exact commit/replay/compensation metadata.",
+    "Provider self-claim worldEffectVerified=true is rejected.",
+    "DW07 never establishes verified protection; DW08 owns consequence verification.",
+    "OpenC2 projection is optional shape-only interoperability and performs no transport/authorization."
+  ],
+  "qualification": [
+    {
+      "jobId": "job-01a0f637-59d2-7322-88c6-41e01aeade12",
+      "result": "DW07 focused 10/10 and Security full 109/109 PASS; only Ruff import mechanics remained."
+    },
+    {
+      "jobId": "job-01a0f637-9659-7f61-94e1-2f650f43b6d5",
+      "result": "Ruff auto-fix completed; Security 109/109 and Ruff PASS."
+    },
+    {
+      "jobId": "job-01a0f63b-13d1-77e0-b425-107bb27f1025",
+      "result": "Pinned-OPA reversible acceptance PASS + Security 109/109 + Ruff + compileall; evidenceDigest sha256:dddc20e488b5e37bec410befde058a8da6e4c2d2d526c80bd296894de32c33e8."
+    }
+  ],
+  "harmlessAcceptance": {
+    "provider": "in-memory single-key fixture only",
+    "normalStanding": "COMMITTED_UNVERIFIED",
+    "exactReplayStanding": "RECONCILED_COMMITTED_UNVERIFIED",
+    "transportLossAfterCommitStanding": "TRANSPORT_LOSS_RECONCILED_UNVERIFIED",
+    "deniedAdmissionStanding": "NOT_ADMITTED",
+    "compensationStanding": "COMPENSATED",
+    "normalAndReplayApplyCount": 1,
+    "transportAfterCommitApplyCount": 1,
+    "deniedApplyCount": 0,
+    "evidenceDigest": "sha256:dddc20e488b5e37bec410befde058a8da6e4c2d2d526c80bd296894de32c33e8",
+    "worldEffectVerified": false,
+    "verifiedProtectionEstablished": false
+  },
+  "nonClaims": [
+    "No OS, network, Runtime service, Security configuration or external system was mutated.",
+    "The in-memory compensation canary does not imply every production effect is reversible.",
+    "OPA admission is permission only and does not establish provider commit or consequence.",
+    "Provider receipt is not world truth.",
+    "No verified protection, compromise absence, recovery or domain acceptance is established."
+  ]
+}
