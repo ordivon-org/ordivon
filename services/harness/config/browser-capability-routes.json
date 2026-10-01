@@ -38,31 +38,40 @@
       ]
     },
     {
-      "routeId": "browser-use-windows-cdp-v1",
+      "routeId": "browser-harness-windows-real-chrome-v1",
       "providerFlow": "generic",
-      "executor": "browser_use_windows_cdp",
-      "substrate": "windows_chrome",
+      "executor": "browser_harness_windows_real_chrome",
+      "substrate": "windows_real_chrome",
       "priority": 15,
       "provides": [
-        "navigate",
         "observe-structured",
-        "click",
-        "text-entry",
-        "scroll",
         "tabs",
-        "back",
         "persistent-profile",
         "authenticated-profile",
         "caller-directed",
         "human-handoff",
-        "headful"
+        "headful",
+        "existing-user-session"
       ],
+      "execution": {
+        "target": "windows_native",
+        "windowsAuthority": "active_user",
+        "executable": "C:\\ProgramData\\Ordivon\\RuntimeCandidateR6\\service-home\\browser-use-win\\bin\\browser-harness.exe"
+      },
+      "authorityBoundary": {
+        "chromeRemoteDebuggingConsent": "human-owned-prerequisite",
+        "browserControlAuthority": "required-before-effectful-dispatch",
+        "providerEffectAuthority": "separate-domain-authority",
+        "routeSelectionGrantsAuthority": false
+      },
       "readiness": {
-        "kind": "browser_use_windows_cdp",
-        "scriptPath": "scripts/browser_use_windows_cdp.py"
+        "kind": "browser_harness_windows_real_chrome",
+        "scriptPath": "scripts/browser_harness_windows_real_chrome.py",
+        "expectedBrowserHarnessVersion": "0.1.13"
       },
       "evidence": [
-        "scripts/browser_use_windows_cdp.py",
+        "scripts/browser_harness_windows_real_chrome.py",
+        "docs/BROWSER_REAL_CHROME_AUTHORITY_R1.md",
         "catalogs/capabilities/providers/browser-use.md"
       ]
     },

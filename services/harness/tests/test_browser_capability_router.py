@@ -51,33 +51,54 @@ class BrowserCapabilityRouterTests(unittest.TestCase):
         self.assertEqual(value["selectedRoute"]["substrate"], "windows_chrome")
 
 
-    def test_windows_browser_use_route_is_between_jev_and_browserless(self):
+    def test_windows_real_chrome_route_is_between_jev_and_browserless(self):
         policy = json.loads((ROOT / "config/browser-capability-routes.json").read_text())
         rows = {r["routeId"]: r for r in policy["routes"]}
-        self.assertEqual(rows["browser-use-windows-cdp-v1"]["substrate"], "windows_chrome")
-        self.assertEqual(rows["browser-use-windows-cdp-v1"]["executor"], "browser_use_windows_cdp")
-        self.assertLess(
-            rows["jev-fast-windows-v1"]["priority"],
-            rows["browser-use-windows-cdp-v1"]["priority"],
-        )
-        self.assertLess(
-            rows["browser-use-windows-cdp-v1"]["priority"],
-            rows["browser-use-browserless-v1"]["priority"],
-        )
+        real = rows["browser-harness-windows-real-chrome-v1"]
+        self.assertEqual(real["substrate"], "windows_real_chrome")
+        self.assertEqual(real["executor"], "browser_harness_windows_real_chrome")
+        self.assertEqual(real["execution"]["target"], "windows_native")
+        self.assertEqual(real["execution"]["windowsAuthority"], "active_user")
+        self.assertFalse(real["authorityBoundary"]["routeSelectionGrantsAuthority"])
+        self.assertIn("observe-structured", real["provides"])
+        self.assertIn("authenticated-profile", real["provides"])
+        self.assertNotIn("navigate", real["provides"])
+        self.assertNotIn("click", real["provides"])
+        self.assertNotIn("text-entry", real["provides"])
+        self.assertLess(rows["jev-fast-windows-v1"]["priority"], real["priority"])
+        self.assertLess(real["priority"], rows["browser-use-browserless-v1"]["priority"])
 
-    def test_explicit_windows_browser_use_holds_until_human_remote_debugging(self):
+    def test_explicit_windows_real_chrome_holds_until_human_remote_debugging(self):
+        route_id = "browser-harness-windows-real-chrome-v1"
         value = R.plan_route(
-            self.req(explicitRouteId="browser-use-windows-cdp-v1"),
+            self.req(explicitRouteId=route_id),
             readiness_overrides={
-                "browser-use-windows-cdp-v1": {
+                route_id: {
                     "ready": False,
                     "standing": "HUMAN_REMOTE_DEBUGGING_REQUIRED",
                 }
             },
         )
         self.assertEqual(value["standing"], "HOLD_EXPLICIT_ROUTE_NOT_READY")
-        row = next(r for r in value["candidates"] if r["routeId"] == "browser-use-windows-cdp-v1")
+        row = next(r for r in value["candidates"] if r["routeId"] == route_id)
         self.assertEqual(row["readiness"]["standing"], "HUMAN_REMOTE_DEBUGGING_REQUIRED")
+
+    def test_authenticated_profile_selects_real_chrome_not_jev(self):
+        route_id = "browser-harness-windows-real-chrome-v1"
+        value = R.plan_route(
+            self.req(requiredFeatures=["authenticated-profile"]),
+            policy=self.policy(),
+            readiness_overrides=self.ready("jev-fast-windows-v1", route_id),
+        )
+        self.assertEqual(value["standing"], "SELECTED")
+        self.assertEqual(value["selectedRoute"]["routeId"], route_id)
+        self.assertEqual(value["selectedRoute"]["execution"]["target"], "windows_native")
+        self.assertEqual(
+            value["selectedRoute"]["execution"]["windowsAuthority"], "active_user"
+        )
+        self.assertFalse(
+            value["selectedRoute"]["authorityBoundary"]["routeSelectionGrantsAuthority"]
+        )
 
     def test_browser_use_is_fallback_when_jev_is_not_ready(self):
         value = R.plan_route(

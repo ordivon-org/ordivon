@@ -334,6 +334,55 @@ def _probe_browser_use(route: Mapping[str, Any]) -> dict[str, Any]:
 
 
 
+def _probe_browser_harness_windows_real_chrome(route: Mapping[str, Any]) -> dict[str, Any]:
+    cfg = route["readiness"]
+    raw_script = cfg.get("scriptPath")
+    if not isinstance(raw_script, str) or not raw_script or raw_script.startswith("/"):
+        return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
+    script = (SOURCE_ROOT / raw_script).resolve()
+    try:
+        script.relative_to(SOURCE_ROOT.resolve())
+    except ValueError:
+        return {"ready": False, "standing": "ADAPTER_PATH_INVALID"}
+    rc, doctor, stderr = _subprocess_json(
+        ["/usr/bin/python3", str(script), "doctor"], timeout=25
+    )
+    if not isinstance(doctor, dict):
+        return {
+            "ready": False,
+            "standing": "ADAPTER_UNAVAILABLE",
+            "probeReturnCode": rc,
+            "probeError": stderr[:500] or None,
+        }
+    expected = cfg.get("expectedBrowserHarnessVersion")
+    version = doctor.get("browserHarnessVersion")
+    ready = doctor.get("ready") is True and doctor.get("standing") == "READY"
+    if expected is not None and version is not None and version != expected:
+        ready = False
+    return {
+        "ready": ready,
+        "standing": (
+            "BROWSER_HARNESS_VERSION_MISMATCH"
+            if expected is not None and version is not None and version != expected
+            else doctor.get("standing") or "WINDOWS_REAL_CHROME_UNAVAILABLE"
+        ),
+        "executionTarget": doctor.get("executionTarget"),
+        "windowsAuthority": doctor.get("windowsAuthority"),
+        "browserHarnessVersion": version,
+        "chromeRunning": doctor.get("chromeRunning") is True,
+        "chromeVersion": doctor.get("chromeVersion"),
+        "humanRemoteDebuggingConsentPresent": doctor.get(
+            "humanRemoteDebuggingConsentPresent"
+        )
+        is True,
+        "daemonAlive": doctor.get("daemonAlive") is True,
+        "browserReadyNow": doctor.get("browserReadyNow") is True,
+        "bootstrapAvailable": doctor.get("bootstrapAvailable") is True,
+        "probeReturnCode": rc,
+        "probeError": stderr[:500] or None,
+    }
+
+
 def _probe_browser_use_windows_cdp(route: Mapping[str, Any]) -> dict[str, Any]:
     cfg = route["readiness"]
     raw_script = cfg.get("scriptPath")
@@ -468,6 +517,8 @@ def probe_route(route: Mapping[str, Any], required_features: set[str]) -> dict[s
         return _probe_jev(route, required_features)
     if kind == "browser_use_browserless":
         return _probe_browser_use(route)
+    if kind == "browser_harness_windows_real_chrome":
+        return _probe_browser_harness_windows_real_chrome(route)
     if kind == "browser_use_windows_cdp":
         return _probe_browser_use_windows_cdp(route)
     if kind == "cft_human_session":
@@ -525,21 +576,24 @@ def plan_route(
                 else probe_route(route, required)
             )
         ready = readiness.get("ready") is True
-        rows.append(
-            {
-                "routeId": route["routeId"],
-                "executor": route["executor"],
-                "substrate": route["substrate"],
-                "providerFlow": route["providerFlow"],
-                "priority": route["priority"],
-                "compatible": compatible,
-                "missingFeatures": missing_features,
-                "preferredMatches": sorted(preferred & provides),
-                "preferredMatchCount": len(preferred & provides),
-                "ready": ready,
-                "readiness": readiness,
-            }
-        )
+        row = {
+            "routeId": route["routeId"],
+            "executor": route["executor"],
+            "substrate": route["substrate"],
+            "providerFlow": route["providerFlow"],
+            "priority": route["priority"],
+            "compatible": compatible,
+            "missingFeatures": missing_features,
+            "preferredMatches": sorted(preferred & provides),
+            "preferredMatchCount": len(preferred & provides),
+            "ready": ready,
+            "readiness": readiness,
+        }
+        if isinstance(route.get("execution"), dict):
+            row["execution"] = dict(route["execution"])
+        if isinstance(route.get("authorityBoundary"), dict):
+            row["authorityBoundary"] = dict(route["authorityBoundary"])
+        rows.append(row)
 
     if explicit is not None:
         row = next(row for row in rows if row["routeId"] == explicit) if any(
@@ -583,6 +637,10 @@ def plan_route(
             key: selected[key]
             for key in ("routeId", "executor", "substrate", "providerFlow")
         }
+        if isinstance(selected.get("execution"), dict):
+            selected_route["execution"] = dict(selected["execution"])
+        if isinstance(selected.get("authorityBoundary"), dict):
+            selected_route["authorityBoundary"] = dict(selected["authorityBoundary"])
     result = {
         "schemaVersion": 1,
         "kind": "ordivon.browser-route-plan",

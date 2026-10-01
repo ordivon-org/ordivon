@@ -23,6 +23,7 @@ Current R1 routes:
 | route | executor | substrate | providerFlow |
 | --- | --- | --- | --- |
 | jev-fast-windows-v1 | jev_fast | windows_chrome | generic |
+| browser-harness-windows-real-chrome-v1 | browser_harness_windows_real_chrome | windows_real_chrome | generic |
 | browser-use-browserless-v1 | browser_use_structured | browserless | generic |
 | cft-human-session-v1 | cft_human_session | systemd_cft | generic |
 | chatgpt-agent-automation-browserless-v1 | chatgpt_provider_flow | browserless | chatgpt_agent_automation |
@@ -51,14 +52,15 @@ Admission rules:
 - explicit route selection never silently falls back;
 - no compatible ready route returns HOLD.
 
-A route plan is not provider authorization and is not browser-effect authority.
+A route plan is not provider authorization and is not browser-effect authority. For Windows Real Chrome, Chrome remote-debugging consent, BrowserControlAuthority, and ProviderEffectAuthority remain distinct; see `BROWSER_REAL_CHROME_AUTHORITY_R1.md`.
 
 ## Readiness
 
 R1 reads existing owner-native surfaces:
 
 - Jev: Workstation Windows Jev provider status plus presence-only credential gates;
-- Browser Use: exact configured executable, Browserless substrate, and operator systemd mask state;
+- Windows Real Chrome: exact ProgramData Browser Harness version, running Chrome, explicit user remote-debugging consent/DevToolsActivePort, and daemon state as a readiness projection;
+- Browser Use Browserless: exact configured executable, Browserless substrate, and operator systemd mask state;
 - ChatGPT Agent Automation: existing Browserless Automation doctor;
 - Visual: explicitly NOT_MATERIALIZED.
 
