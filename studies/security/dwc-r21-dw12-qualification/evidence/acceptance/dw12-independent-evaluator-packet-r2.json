@@ -1,0 +1,168 @@
+{
+  "ablationContract": {
+    "DW03": {
+      "mode": "STRUCTURAL_CAPABILITY_REMOVAL_ONLY",
+      "outcomeTrialExecuted": false,
+      "productionOutcomeClaimAllowed": false
+    },
+    "DW04": {
+      "mode": "STRUCTURAL_CAPABILITY_REMOVAL_ONLY",
+      "outcomeTrialExecuted": false,
+      "productionOutcomeClaimAllowed": false
+    },
+    "DW10": {
+      "measurementUnit": "qualification-cost-unit",
+      "mode": "MATCHED_SYNTHETIC_FULL_RECOMPUTE_BASELINE",
+      "outcomeTrialExecuted": true,
+      "productionOutcomeClaimAllowed": false
+    },
+    "DW11": {
+      "humanTrialExecuted": false,
+      "mode": "STRUCTURAL_CAPABILITY_REMOVAL_ONLY",
+      "outcomeTrialExecuted": false,
+      "productionOutcomeClaimAllowed": false
+    }
+  },
+  "allowedEvidence": {
+    "caseEvidence": [
+      {
+        "caseId": "exchange-historical-replay",
+        "fileDigest": "sha256:f78d9608737a36afbcb22988041fac077971595e97e3219095390d5d530097c5",
+        "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json"
+      },
+      {
+        "caseId": "benign-validation-and-bounded-negative",
+        "fileDigest": "sha256:6a31e5ba86116613365df1faecb9348b2c0521d562781583797bde39adc57d32",
+        "path": "studies/security/dwc-r21-dw05-authorized-validation/evidence/acceptance/dw05-benign-synthetic-canary-r1.json"
+      },
+      {
+        "caseId": "response-loss-and-exact-replay",
+        "fileDigest": "sha256:6612a3ba0e97f7f9bf17d61f30ca05344a5b28a6fc6d02f9c7157271d44b6887",
+        "path": "platform/security/evidence/acceptance/dw07-reversible-effect-r1-20261001.json"
+      },
+      {
+        "caseId": "stale-evidence-consequence",
+        "fileDigest": "sha256:2d6ce39dbeb4db5724925816969df4af1c068e9ccf62c3e2e7bee6f01e45c4a7",
+        "path": "platform/security/evidence/acceptance/dw08-consequence-verification-r1-20261001.json"
+      },
+      {
+        "caseId": "synthetic-recovery",
+        "fileDigest": "sha256:f78d9608737a36afbcb22988041fac077971595e97e3219095390d5d530097c5",
+        "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json"
+      },
+      {
+        "caseId": "live-operator-admission",
+        "fileDigest": "sha256:1b483c5d5c2779a3f3a40a58372596ed694d7c1c85cece600366d30e65422312",
+        "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-wiring-20261001.json"
+      }
+    ],
+    "moduleAcceptances": [
+      {
+        "fileDigest": "sha256:6a90a2d2d967a542c28bb16cba3cea454e09ea3bb047e7ffdacaa00e642e1854",
+        "path": "platform/security/evidence/acceptance/dwc-subject-exposure-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:c22b8caa1d79e6f134f6060bdaa402f032d6dafd18e6a94e0cab5efc3939a617",
+        "path": "platform/security/evidence/acceptance/dwc-threat-applicability-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:7a97e05792caa29a26c2a3902c7d0edcc1f48c726e5badffe0a63ebb2579ec94",
+        "path": "platform/security/evidence/acceptance/dw03-response-policy-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:de862a8452d57f8ab587200420d14590aa370c01585d363a5c4d7d2f5bcde3f1",
+        "path": "platform/security/evidence/acceptance/dw04-attack-coverage-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:13014307de3372a24d27589c6c28d7f6cc0cb98393057ef506d1e6bc84e79dc8",
+        "path": "studies/security/dwc-r21-dw05-authorized-validation/evidence/acceptance/dw05-authorized-validation-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:25cd8314dfd9db39ceee76c2678d04b51f261e0623cbba65277a1679c9f91a8e",
+        "path": "meta/next/evidence/acceptance/dwc-coa-r1-acceptance-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:138371c81d37ed6d5440189c8f5469573c764d6bcec78f27dba313e6015cff9f",
+        "path": "platform/security/evidence/acceptance/dw07-effect-execution-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:2d6ce39dbeb4db5724925816969df4af1c068e9ccf62c3e2e7bee6f01e45c4a7",
+        "path": "platform/security/evidence/acceptance/dw08-consequence-verification-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:f78d9608737a36afbcb22988041fac077971595e97e3219095390d5d530097c5",
+        "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json"
+      },
+      {
+        "fileDigest": "sha256:22eb613a4a50c870db2f41d6064ce120dcacc1b2b6f92293d8defb0116c3d019",
+        "path": "studies/security/dwc-r21-dw10-temporal-invalidation/evidence/acceptance/dw10-temporal-invalidation-r1.json"
+      },
+      {
+        "fileDigest": "sha256:7a3e84982a860ffc49563190c24a027c3ced551691d909338f352b06ba668d77",
+        "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-acceptance-20261001.json"
+      }
+    ]
+  },
+  "candidateBuilderActorRef": "agent:chatgpt-daybreak-r21-20261001",
+  "candidateMechanicalClaimDigest": "sha256:4e8f6ccd22028d4ab88563fe11891d97714a1466a081c11afcc60e7a3523f9c0",
+  "candidateRevision": "3eec47b6b3ac4f317103a3629f934c2910abaf8a",
+  "evaluationBoundaryRef": "meta/next/evidence/acceptance/evaluation-boundary-rw6-profile.json",
+  "evaluationHarness": {
+    "implementationDigest": "sha256:76f3845ab12c9de937281ead3811dabb697a0e4b819d68bb794d0ea3f3cb937d",
+    "implementationPath": "studies/security/dwc-r21-dw12-qualification/dwc_dw12/frozen_evaluation.py",
+    "runnerDigest": "sha256:a64954db471661f3a4ce29a440aa827acadd6a1f641094275f7b828c88be1263",
+    "runnerPath": "studies/security/dwc-r21-dw12-qualification/scripts/run_frozen_evaluation_r2.py"
+  },
+  "frozenThresholds": {
+    "authorityBoundaryViolations": 0,
+    "duplicateEffectApplyViolations": 0,
+    "falseClosureViolations": 0,
+    "globalGreenViolations": 0,
+    "historicalToCurrentLaunderingViolations": 0,
+    "staleEvidenceClosureViolations": 0
+  },
+  "independentReceiptContract": {
+    "passRequires": [
+      "evaluator actor differs from candidate builder actor",
+      "independenceDeclaration=true",
+      "exact packet/subject/candidate revision match",
+      "candidate mechanical claim reproduced exactly",
+      "no post-freeze mutation",
+      "no threshold retuning"
+    ],
+    "requiredFields": [
+      "schemaVersion",
+      "kind",
+      "packetDigest",
+      "subjectDigest",
+      "observedCandidateRevision",
+      "evaluatorActorRef",
+      "evaluatorOccurrenceRef",
+      "independenceDeclaration",
+      "candidateMechanicalClaimDigest",
+      "recomputedMechanicalResultDigest",
+      "mechanicalClaimReproduced",
+      "postFreezeMutationObserved",
+      "thresholdRetuningObserved",
+      "standing",
+      "findings"
+    ],
+    "standingEnum": [
+      "PASS",
+      "FAIL",
+      "INVALID"
+    ]
+  },
+  "kind": "ordivon.security.dwc-dw12-independent-evaluator-packet-r2",
+  "missingMetricSemantics": "UNKNOWN_NOT_ZERO_NOT_PASS",
+  "nonClaims": [
+    "This packet does not authorize the candidate builder to certify final acceptance.",
+    "Independent PASS would reproduce the frozen qualification boundary; it would not establish production security for targets outside the corpus.",
+    "Null production timing and human-attention metrics remain UNKNOWN, not zero.",
+    "DW10 shared-Composition promotion remains outside this packet unless later evidence satisfies the frozen promotion rule."
+  ],
+  "packetDigest": "sha256:545aa94d68e77aa0e68248b6c5fc0ca396a2c3cdaa87e70cae1b108fb73d85a5",
+  "protocolDigest": "sha256:197dab9b83c1bc1016bb3a039b2f681cef61ac6956d1adc7378cc120bf5410a1",
+  "schemaVersion": 2,
+  "subjectDigest": "sha256:3f29abfd9ac6eb400dbe678db56e2d81281ef81fb81d75ad4b383079601cf39f"
+}

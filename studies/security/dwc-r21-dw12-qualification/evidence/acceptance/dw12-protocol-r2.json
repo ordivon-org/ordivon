@@ -1,0 +1,69 @@
+{
+  "ablationContract": {
+    "DW03": {
+      "mode": "STRUCTURAL_CAPABILITY_REMOVAL_ONLY",
+      "outcomeTrialExecuted": false,
+      "productionOutcomeClaimAllowed": false
+    },
+    "DW04": {
+      "mode": "STRUCTURAL_CAPABILITY_REMOVAL_ONLY",
+      "outcomeTrialExecuted": false,
+      "productionOutcomeClaimAllowed": false
+    },
+    "DW10": {
+      "measurementUnit": "qualification-cost-unit",
+      "mode": "MATCHED_SYNTHETIC_FULL_RECOMPUTE_BASELINE",
+      "outcomeTrialExecuted": true,
+      "productionOutcomeClaimAllowed": false
+    },
+    "DW11": {
+      "humanTrialExecuted": false,
+      "mode": "STRUCTURAL_CAPABILITY_REMOVAL_ONLY",
+      "outcomeTrialExecuted": false,
+      "productionOutcomeClaimAllowed": false
+    }
+  },
+  "candidateRevision": "3eec47b6b3ac4f317103a3629f934c2910abaf8a",
+  "evaluationBoundaryLaws": {
+    "evaluatorSemanticsRemainOwnerNative": true,
+    "freezePrecedesIndependentEvaluation": true,
+    "holdoutEvidenceSeparateFromDevelopmentEvidence": true,
+    "mechanicalClosureIsNotIndependentAcceptance": true,
+    "postFreezeMutationPreservesStanding": false,
+    "thresholdRetuningAfterUnblindingAllowed": false
+  },
+  "independentAcceptance": {
+    "evaluatorActorMustDifferFromCandidateBuilder": true,
+    "evaluatorOccurrenceRequired": true,
+    "receiptRequiredForFinalAcceptance": true,
+    "required": true,
+    "selfCertificationAllowed": false
+  },
+  "kind": "ordivon.security.dwc-dw12-qualification-protocol-r2",
+  "mechanicalGates": {
+    "authorityBoundaryViolations": 0,
+    "duplicateEffectApplyViolations": 0,
+    "falseClosureViolations": 0,
+    "globalGreenViolations": 0,
+    "historicalToCurrentLaunderingViolations": 0,
+    "staleEvidenceClosureViolations": 0
+  },
+  "metrics": [
+    "productionTTVPms",
+    "timeToEradicationMs",
+    "timeToRecoveryMs",
+    "falseClosureViolations",
+    "staleEvidenceClosureViolations",
+    "authorityBoundaryViolations",
+    "duplicateEffectApplyViolations",
+    "humanDecisionLatencyMs",
+    "unnecessaryApprovalPromptRate",
+    "moduleEvidenceCoverage",
+    "caseEvidenceCoverage"
+  ],
+  "missingMetricSemantics": "UNKNOWN_NOT_ZERO_NOT_PASS",
+  "protocolDigest": "sha256:197dab9b83c1bc1016bb3a039b2f681cef61ac6956d1adc7378cc120bf5410a1",
+  "schemaVersion": 2,
+  "sharedPromotionRule": "No shared-LEGO promotion from synthetic or single-case evidence alone. Repeated cross-case pressure plus independent acceptance is required.",
+  "subjectDigest": "sha256:3f29abfd9ac6eb400dbe678db56e2d81281ef81fb81d75ad4b383079601cf39f"
+}

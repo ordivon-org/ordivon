@@ -1,0 +1,67 @@
+{
+  "baselineCandidateTrials": {
+    "DW03": {
+      "reason": "No matched production outcome baseline exists for policy projection removal.",
+      "standing": "OUTCOME_UNDERDETERMINED"
+    },
+    "DW04": {
+      "reason": "No matched production control-effectiveness baseline exists for coverage-graph removal.",
+      "standing": "OUTCOME_UNDERDETERMINED"
+    },
+    "DW10": {
+      "baselineFullRecomputeCostUnits": 37,
+      "candidateSelectiveRevalidationCostUnits": 20,
+      "deltaUnits": 17,
+      "productionPerformanceClaimAllowed": false,
+      "standing": "SYNTHETIC_MECHANICAL_DELTA_ONLY"
+    },
+    "DW11": {
+      "reason": "No independent timed re-entry or labeled approval-prompt trial has executed.",
+      "standing": "HUMAN_AGENT_OUTCOME_UNDERDETERMINED"
+    },
+    "standing": "PARTIAL_DW10_MATCHED_SYNTHETIC_ONLY"
+  },
+  "candidateRevision": "3eec47b6b3ac4f317103a3629f934c2910abaf8a",
+  "evidenceCoverage": {
+    "allCaseEvidencePresent": true,
+    "allModuleAcceptancesPresent": true,
+    "caseEvidenceCount": 6,
+    "moduleAcceptanceCount": 11,
+    "requiredCaseEvidenceCount": 6,
+    "requiredModuleAcceptanceCount": 11
+  },
+  "independentAcceptance": {
+    "required": true,
+    "selfCertificationPerformed": false,
+    "standing": "PENDING_INDEPENDENT_EVALUATOR_RECEIPT"
+  },
+  "kind": "ordivon.security.dwc-dw12-mechanical-prequalification-r2",
+  "legacyMechanicalClaimDigest": "sha256:4fa17920d7df258eab8726ce2e748dcbaf9999eb73c844b6c99e27a1c5f2ccc4",
+  "mechanicalStanding": "PASS",
+  "metrics": {
+    "humanDecisionLatencyMs": null,
+    "productionTTVPms": null,
+    "syntheticFullRecomputeCostUnits": 37,
+    "syntheticSelectiveRevalidationCostUnits": 20,
+    "timeToEradicationMs": null,
+    "timeToRecoveryMs": null,
+    "unnecessaryApprovalPromptRate": null
+  },
+  "overallStanding": "MECHANICAL_PREQUALIFICATION_PASS_INDEPENDENT_ACCEPTANCE_PENDING",
+  "protocolDigest": "sha256:197dab9b83c1bc1016bb3a039b2f681cef61ac6956d1adc7378cc120bf5410a1",
+  "resultDigest": "sha256:4e8f6ccd22028d4ab88563fe11891d97714a1466a081c11afcc60e7a3523f9c0",
+  "schemaVersion": 2,
+  "sharedPromotion": {
+    "dw10ToSharedComposition": false,
+    "standing": "NOT_JUSTIFIED_BY_CURRENT_EVIDENCE"
+  },
+  "subjectDigest": "sha256:3f29abfd9ac6eb400dbe678db56e2d81281ef81fb81d75ad4b383079601cf39f",
+  "violations": {
+    "authorityBoundaryViolations": 0,
+    "duplicateEffectApplyViolations": 0,
+    "falseClosureViolations": 0,
+    "globalGreenViolations": 0,
+    "historicalToCurrentLaunderingViolations": 0,
+    "staleEvidenceClosureViolations": 0
+  }
+}

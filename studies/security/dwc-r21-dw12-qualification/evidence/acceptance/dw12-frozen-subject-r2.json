@@ -1,0 +1,160 @@
+{
+  "candidateRevision": "3eec47b6b3ac4f317103a3629f934c2910abaf8a",
+  "caseEvidence": [
+    {
+      "caseId": "exchange-historical-replay",
+      "fileDigest": "sha256:f78d9608737a36afbcb22988041fac077971595e97e3219095390d5d530097c5",
+      "kind": "ordivon.security.dw09-compromise-recovery-r1-acceptance",
+      "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json",
+      "standing": "DW09_COMPROMISE_PERSISTENCE_RECOVERY_PROJECTION_QUALIFIED"
+    },
+    {
+      "caseId": "benign-validation-and-bounded-negative",
+      "fileDigest": "sha256:6a31e5ba86116613365df1faecb9348b2c0521d562781583797bde39adc57d32",
+      "kind": "ordivon.security.dw05-benign-synthetic-canary-result",
+      "path": "studies/security/dwc-r21-dw05-authorized-validation/evidence/acceptance/dw05-benign-synthetic-canary-r1.json",
+      "standing": null
+    },
+    {
+      "caseId": "response-loss-and-exact-replay",
+      "fileDigest": "sha256:6612a3ba0e97f7f9bf17d61f30ca05344a5b28a6fc6d02f9c7157271d44b6887",
+      "kind": "ordivon.security.dw07-reversible-effect-acceptance-r1",
+      "path": "platform/security/evidence/acceptance/dw07-reversible-effect-r1-20261001.json",
+      "standing": "PASS"
+    },
+    {
+      "caseId": "stale-evidence-consequence",
+      "fileDigest": "sha256:2d6ce39dbeb4db5724925816969df4af1c068e9ccf62c3e2e7bee6f01e45c4a7",
+      "kind": "ordivon.security.dw08-consequence-verification-r1-acceptance",
+      "path": "platform/security/evidence/acceptance/dw08-consequence-verification-r1-20261001.json",
+      "standing": "DW08_CONSEQUENCE_BINDING_AND_HARMLESS_ACCEPTANCE_QUALIFIED"
+    },
+    {
+      "caseId": "synthetic-recovery",
+      "fileDigest": "sha256:f78d9608737a36afbcb22988041fac077971595e97e3219095390d5d530097c5",
+      "kind": "ordivon.security.dw09-compromise-recovery-r1-acceptance",
+      "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json",
+      "standing": "DW09_COMPROMISE_PERSISTENCE_RECOVERY_PROJECTION_QUALIFIED"
+    },
+    {
+      "caseId": "live-operator-admission",
+      "fileDigest": "sha256:1b483c5d5c2779a3f3a40a58372596ed694d7c1c85cece600366d30e65422312",
+      "kind": "ordivon.security-dwc-operator-ux-live-owner-wiring-r1",
+      "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-wiring-20261001.json",
+      "standing": "PASS_LIVE_OWNER_WIRING_CASE_ADMISSION"
+    }
+  ],
+  "caseSet": [
+    "exchange-historical-replay",
+    "benign-validation-and-bounded-negative",
+    "response-loss-and-exact-replay",
+    "stale-evidence-consequence",
+    "synthetic-recovery",
+    "live-operator-admission"
+  ],
+  "freezeLaws": {
+    "exactSourceIdentityRequired": true,
+    "independentEvidenceSeparateFromDevelopmentEvidence": true,
+    "postFreezeMutationPreservesStanding": false,
+    "thresholdRetuningAfterUnblindingAllowed": false
+  },
+  "kind": "ordivon.security.dwc-dw12-frozen-subject-r2",
+  "moduleAcceptances": [
+    {
+      "fileDigest": "sha256:6a90a2d2d967a542c28bb16cba3cea454e09ea3bb047e7ffdacaa00e642e1854",
+      "kind": "ordivon.security.dwc-subject-exposure-r1-acceptance",
+      "moduleId": "dw01",
+      "path": "platform/security/evidence/acceptance/dwc-subject-exposure-r1-20261001.json",
+      "standing": "DW01_CONTRACT_IMPLEMENTED_AND_DOGFOODED"
+    },
+    {
+      "fileDigest": "sha256:c22b8caa1d79e6f134f6060bdaa402f032d6dafd18e6a94e0cab5efc3939a617",
+      "kind": "ordivon.security.dwc-threat-applicability-r1-acceptance",
+      "moduleId": "dw02",
+      "path": "platform/security/evidence/acceptance/dwc-threat-applicability-r1-20261001.json",
+      "standing": "DW02_CONTRACT_IMPLEMENTED_AND_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:7a97e05792caa29a26c2a3902c7d0edcc1f48c726e5badffe0a63ebb2579ec94",
+      "kind": "ordivon.security.dw03-response-policy-r1-acceptance",
+      "moduleId": "dw03",
+      "path": "platform/security/evidence/acceptance/dw03-response-policy-r1-20261001.json",
+      "standing": "IMPLEMENTED_AND_QUALIFIED_POLICY_MECHANICS"
+    },
+    {
+      "fileDigest": "sha256:de862a8452d57f8ab587200420d14590aa370c01585d363a5c4d7d2f5bcde3f1",
+      "kind": "ordivon.security.dw04-attack-coverage-r1-acceptance",
+      "moduleId": "dw04",
+      "path": "platform/security/evidence/acceptance/dw04-attack-coverage-r1-20261001.json",
+      "standing": "DW04_IMPLEMENTED_AND_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:13014307de3372a24d27589c6c28d7f6cc0cb98393057ef506d1e6bc84e79dc8",
+      "kind": "ordivon.security.dw05-authorized-validation-r1-acceptance",
+      "moduleId": "dw05",
+      "path": "studies/security/dwc-r21-dw05-authorized-validation/evidence/acceptance/dw05-authorized-validation-r1-20261001.json",
+      "standing": "DW05_BINDING_AND_SYNTHETIC_CANARY_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:25cd8314dfd9db39ceee76c2678d04b51f261e0623cbba65277a1679c9f91a8e",
+      "kind": "ordivon.security.dw06-coa-lowering-r1-acceptance",
+      "moduleId": "dw06",
+      "path": "meta/next/evidence/acceptance/dwc-coa-r1-acceptance-20261001.json",
+      "standing": "DW06_LOWERING_IMPLEMENTED_AND_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:138371c81d37ed6d5440189c8f5469573c764d6bcec78f27dba313e6015cff9f",
+      "kind": "ordivon.security.dw07-effect-execution-r1-acceptance",
+      "moduleId": "dw07",
+      "path": "platform/security/evidence/acceptance/dw07-effect-execution-r1-20261001.json",
+      "standing": "DW07_EFFECT_MECHANICS_AND_REVERSIBLE_ACCEPTANCE_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:2d6ce39dbeb4db5724925816969df4af1c068e9ccf62c3e2e7bee6f01e45c4a7",
+      "kind": "ordivon.security.dw08-consequence-verification-r1-acceptance",
+      "moduleId": "dw08",
+      "path": "platform/security/evidence/acceptance/dw08-consequence-verification-r1-20261001.json",
+      "standing": "DW08_CONSEQUENCE_BINDING_AND_HARMLESS_ACCEPTANCE_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:f78d9608737a36afbcb22988041fac077971595e97e3219095390d5d530097c5",
+      "kind": "ordivon.security.dw09-compromise-recovery-r1-acceptance",
+      "moduleId": "dw09",
+      "path": "platform/security/evidence/acceptance/dw09-compromise-recovery-r1-20261001.json",
+      "standing": "DW09_COMPROMISE_PERSISTENCE_RECOVERY_PROJECTION_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:22eb613a4a50c870db2f41d6064ce120dcacc1b2b6f92293d8defb0116c3d019",
+      "kind": "ordivon.dwc-dw10-acceptance-evidence",
+      "moduleId": "dw10",
+      "path": "studies/security/dwc-r21-dw10-temporal-invalidation/evidence/acceptance/dw10-temporal-invalidation-r1.json",
+      "standing": "DWC_LOCAL_IMPLEMENTED_AND_QUALIFIED"
+    },
+    {
+      "fileDigest": "sha256:7a3e84982a860ffc49563190c24a027c3ced551691d909338f352b06ba668d77",
+      "kind": "ordivon.security-dwc-operator-ux-acceptance-r1",
+      "moduleId": "dw11",
+      "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-acceptance-20261001.json",
+      "standing": "PASS_PROJECTION_MECHANICS_INDEPENDENT_COLD_REENTRY_PENDING"
+    }
+  ],
+  "moduleCoverage": {
+    "complete": true,
+    "observedModuleCount": 11,
+    "requiredModuleIds": [
+      "dw01",
+      "dw02",
+      "dw03",
+      "dw04",
+      "dw05",
+      "dw06",
+      "dw07",
+      "dw08",
+      "dw09",
+      "dw10",
+      "dw11"
+    ]
+  },
+  "schemaVersion": 2,
+  "subjectDigest": "sha256:3f29abfd9ac6eb400dbe678db56e2d81281ef81fb81d75ad4b383079601cf39f"
+}

@@ -102,7 +102,6 @@ def protocol(corpus_digest: str) -> dict[str, Any]:
 
 
 def evaluate(repo: Path, corpus: dict[str, Any], proto: dict[str, Any]) -> dict[str, Any]:
-    dw03 = load_json(repo, CORPUS_PATHS["dw03"])
     dw04 = load_json(repo, CORPUS_PATHS["dw04"])
     dw05 = load_json(repo, CORPUS_PATHS["dw05"])
     dw06 = load_json(repo, CORPUS_PATHS["dw06"])
