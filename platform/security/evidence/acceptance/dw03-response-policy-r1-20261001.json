@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw03-response-policy-r1-acceptance",
+  "observedAt": "2026-10-01T12:56:00+08:00",
+  "workRef": "work:security:dwc-r21:dw03-response-policy:20261001",
+  "standing": "IMPLEMENTED_AND_QUALIFIED_POLICY_MECHANICS",
+  "source": {
+    "canonicalMainBaseRevision": "1b438b7eff3a70840b85e025a02f53c95900935f",
+    "dw01IntegratedRevision": "d85d07722e7405115129137210c947b369480960",
+    "dw02IntegratedRevision": "1b438b7eff3a70840b85e025a02f53c95900935f",
+    "implementationCommit": "0d1a6e6befd67a305f39d7e6415c43cfbd748615"
+  },
+  "implementation": {
+    "policy": "platform/security/policies/response_policy.rego",
+    "tests": "platform/security/policies/response_policy_test.rego",
+    "contract": "platform/security/docs/RESPONSE-POLICY-R1.md"
+  },
+  "invariants": [
+    "No universal numeric cyber-risk score is introduced.",
+    "Policy owner, policy id, policy version and decision-table ref are explicit.",
+    "DW03 consumes kind=ordivon.security.threat-applicability-fusion and exact DW01 subject snapshot digest carried by final integrated DW02.",
+    "UNDER_INVESTIGATION and UNKNOWN remain explicit unless a policy owner configures an unknown disposition.",
+    "Current admitted KEV signal from DW02 may promote exploitation to active; absence of current KEV does not prove non-exploitation.",
+    "FIRST EPSS is preserved as a dated probability signal and has no hidden R1 action threshold.",
+    "Deadline budgets are owner-supplied; missing budget yields ACTION_ONLY rather than an invented deadline.",
+    "Every response-policy decision carries authorityGranted=false."
+  ],
+  "qualification": [
+    {
+      "jobId": "job-01a0f5d7-42a7-7e41-8002-d5bb7613f726",
+      "result": "Final-DW02 fresh qualification PASS: Security Python 89/89; Ruff PASS; pinned OPA response-policy 13/13; opa fmt --fail PASS."
+    },
+    {
+      "jobId": "job-01a0f5d8-22b2-7111-bbca-6f8dab61f2b5",
+      "result": "Exact DW01->DW02->DW03 historical semantic replay PASS for ProxyLogon CVE-2021-26855 and ProxyShell CVE-2021-34473."
+    }
+  ],
+  "chainReplay": [
+    {
+      "caseRef": "exchange-proxylogon-2021",
+      "vulnerabilityRef": "CVE-2021-26855",
+      "dw01SnapshotDigest": "sha256:a835ca2c158dcb724fe0a6b3101a85b634cda460ec509396b80ec23fd04212f5",
+      "dw02Claim": "AFFECTED",
+      "dw02KnownExploited": true,
+      "dw03Standing": "ACTION_ONLY",
+      "dw03ActionClass": "immediate",
+      "authorityGranted": false,
+      "boundary": "Frozen historical semantic replay under test-only representative policy; no live Exchange or production-policy claim."
+    },
+    {
+      "caseRef": "exchange-proxyshell-2021",
+      "vulnerabilityRef": "CVE-2021-34473",
+      "dw01SnapshotDigest": "sha256:2b5efdd1bf9351f22fece8aac77f288926fb7bd535497c2242a28026035036f6",
+      "dw02Claim": "AFFECTED",
+      "dw02KnownExploited": true,
+      "dw03Standing": "ACTION_ONLY",
+      "dw03ActionClass": "immediate",
+      "authorityGranted": false,
+      "boundary": "Frozen historical semantic replay under test-only representative policy; no live Exchange or production-policy claim."
+    }
+  ],
+  "unresolvedAuthorityInputs": [
+    "Legitimate organization production SSVC decision-table/profile.",
+    "Organization-specific UNKNOWN/UNDER_INVESTIGATION disposition.",
+    "Numeric response budgets/SLEs and review cadence."
+  ],
+  "nonClaims": [
+    "No production organization response policy has been selected.",
+    "No universal deadline or SLE is asserted.",
+    "Historical replay does not establish current Exchange exploitability or any local Exchange deployment state.",
+    "No effect authority, patch success, verified protection, compromise eradication or recovery is established."
+  ]
+}
