@@ -187,6 +187,18 @@ def test_windows_driver_exports_session_state_without_challenge_interaction():
         assert forbidden not in lower
 
 
+def test_session_export_branch_is_top_level_before_observe_release_dispatch():
+    script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
+    export_dispatch = "if($Mode -eq 'session-export'){"
+    observe_dispatch = "if($Mode -eq 'observe' -or $Mode -eq 'release'){"
+    assert export_dispatch in script
+    assert observe_dispatch in script
+    assert script.index(export_dispatch) < script.index(observe_dispatch)
+    export_block = script[script.index(export_dispatch):script.index(observe_dispatch)]
+    assert 'Export-PrivateChatSession $ChromePath $SessionBundlePath $StageRoot' in export_block
+    assert 'exit 0' in export_block
+
+
 def test_classify_uses_active_user_without_prompt_or_provider_effect():
     payload = {
         'schemaVersion': 1,

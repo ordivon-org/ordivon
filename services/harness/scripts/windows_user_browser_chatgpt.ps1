@@ -576,15 +576,15 @@ function Get-CanonicalChatResource([string]$Address) {
     return $null
 }
 
-if($Mode -eq 'observe' -or $Mode -eq 'release'){
-    if([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($TargetResource)){
-        throw 'EffectId and TargetResource are required for observe/release'
-    }
-
 if($Mode -eq 'session-export'){
     Export-PrivateChatSession $ChromePath $SessionBundlePath $StageRoot
     exit 0
 }
+
+if($Mode -eq 'observe' -or $Mode -eq 'release'){
+    if([string]::IsNullOrWhiteSpace($EffectId) -or [string]::IsNullOrWhiteSpace($TargetResource)){
+        throw 'EffectId and TargetResource are required for observe/release'
+    }
 
 if(-not (Test-Path -LiteralPath $ChromePath -PathType Leaf)){
         if($Mode -eq 'observe'){Emit-OutputObservation 'CARRIER_UNAVAILABLE' $null 'normal Chrome executable unavailable' $null}
