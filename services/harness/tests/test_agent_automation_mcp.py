@@ -66,6 +66,7 @@ class McpCatalogTests(unittest.TestCase):
             tools = {t.name: t for t in s._tool_manager.list_tools()}
             expected = {
                 "automation.doctor",
+                "browser.route.readiness",
                 "campaign.register",
                 "campaign.inspect",
                 "campaign.launch",
@@ -119,10 +120,43 @@ class McpCatalogTests(unittest.TestCase):
             self.assertTrue(tools["campaign.census"].annotations.read_only_hint)
             self.assertTrue(tools["campaign.launch"].annotations.idempotent_hint)
             self.assertTrue(tools["campaign.launch"].annotations.open_world_hint)
+            self.assertTrue(tools["browser.route.readiness"].annotations.read_only_hint)
             self.assertTrue(tools["provider.preflight"].annotations.read_only_hint)
             self.assertTrue(tools["provider.preflight"].annotations.open_world_hint)
             self.assertTrue(tools["materialization.humanHandoff"].annotations.read_only_hint)
             self.assertFalse(tools["materialization.humanResume"].annotations.read_only_hint)
+
+    def test_browser_route_readiness_is_read_only_owner_projection(self):
+        import agent_automation_mcp as module
+
+        with tempfile.TemporaryDirectory() as d:
+            r = Path(d)
+            cp = r / "config.json"
+            cp.write_text(json.dumps(config(r)))
+            tp = r / "token"
+            tp.write_text("x" * 48)
+            tp.chmod(0o600)
+            server = build_server(McpSettings(config_file=cp, token_file=tp))
+            tools = {t.name: t for t in server._tool_manager.list_tools()}
+            receipt = {
+                "ready": False,
+                "standing": "DEVTOOLS_ENDPOINT_UNAVAILABLE",
+                "chromeRunning": True,
+            }
+            with mock.patch.object(module.browser_router, "probe_route", return_value=receipt):
+                result = asyncio.run(
+                    tools["browser.route.readiness"].fn(
+                        routeId="browser-harness-windows-real-chrome-v1"
+                    )
+                )
+            self.assertFalse(result.is_error)
+            value = result.structured_content
+            self.assertEqual(value["kind"], "ordivon.browser-route-readiness")
+            self.assertEqual(value["routeId"], "browser-harness-windows-real-chrome-v1")
+            self.assertEqual(value["readiness"]["standing"], "DEVTOOLS_ENDPOINT_UNAVAILABLE")
+            self.assertFalse(value["browserEffectAttempted"])
+            self.assertFalse(value["providerEffectAttempted"])
+            self.assertIn("authenticated-profile", value["provides"])
 
     def test_register_then_census_through_registered_tool_functions(self):
         with tempfile.TemporaryDirectory() as d:

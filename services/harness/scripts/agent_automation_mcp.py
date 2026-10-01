@@ -36,6 +36,7 @@ from agent_automation_browserless import (  # noqa: E402
     _read_json,
 )
 from agent_automation_registry import AgentAutomationRegistryError, CampaignRegistry  # noqa: E402
+import browser_capability_router as browser_router  # noqa: E402
 from standard_identifiers import UUID7_PATTERN  # noqa: E402
 
 DEFAULT_BIND = "127.0.0.1"
@@ -228,6 +229,29 @@ async def _invoke(fn, *args, **kwargs) -> CallToolResult:
         )
 
 
+
+def _browser_route_readiness(route_id: str) -> dict[str, Any]:
+    if not route_id or route_id != route_id.strip() or len(route_id) > 128:
+        raise ValueError("routeId must be non-empty trimmed text up to 128 characters")
+    policy = browser_router.load_policy()
+    route = next((row for row in policy["routes"] if row["routeId"] == route_id), None)
+    if route is None:
+        raise ValueError(f"unknown browser route: {route_id}")
+    readiness = browser_router.probe_route(route, set())
+    return {
+        "schemaVersion": 1,
+        "kind": "ordivon.browser-route-readiness",
+        "routeId": route["routeId"],
+        "providerFlow": route["providerFlow"],
+        "executor": route["executor"],
+        "substrate": route["substrate"],
+        "provides": list(route["provides"]),
+        "readiness": dict(readiness),
+        "policyDigest": policy["policyDigest"],
+        "browserEffectAttempted": False,
+        "providerEffectAttempted": False,
+    }
+
 def build_server(settings: McpSettings) -> MCPServer:
     # Validate once at startup, but never retain mutable provider/network binding for the
     # lifetime of the MCP process. Every tool call re-enters the current config authority.
@@ -256,6 +280,22 @@ def build_server(settings: McpSettings) -> MCPServer:
         version="1",
         log_level=settings.log_level,
     )
+
+
+    @server.tool(
+        name="browser.route.readiness",
+        title="Read browser route readiness",
+        description=(
+            "Observe one exact Browser Capability Router route and return its current typed "
+            "readiness receipt. This is discovery-only: it never launches a browser, starts a "
+            "browser daemon, navigates, clicks, types, sends, or grants browser/effect authority."
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
+        ),
+    )
+    async def browser_route_readiness(routeId: str) -> CallToolResult:
+        return await _invoke(_browser_route_readiness, routeId)
 
     @server.tool(
         name="automation.doctor",
