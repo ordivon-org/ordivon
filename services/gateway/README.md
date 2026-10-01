@@ -64,3 +64,5 @@ qualify the public Cloudflare principal, Linux/Skills bindings or public promoti
 Native Windows identity tests require an installed, stopped
 `OrdivonGatewayCandidateR5` service so its service SID can be resolved. Linux runs
 skip these Windows-only checks; those skips are not native Windows qualification.
+
+Windows release dependencies use uv `--link-mode copy`: each release owns its file ACLs independently of the shared package cache. Existing releases are not rewritten by reinstall; repair a qualified stopped release separately and retain its recovery backup.
