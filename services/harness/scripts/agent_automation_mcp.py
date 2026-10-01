@@ -249,7 +249,7 @@ def build_server(settings: McpSettings) -> MCPServer:
         instructions=(
             "Use campaign.register only for controller-classified L0 Direct work. L1/L2 campaign registration is intentionally unavailable until authoritative current Host Inquiry standing can be verified; L1/L2 work MUST NOT fall back to campaign.register. "
             "campaign.launch and materialization.reconcile admit deterministic Temporal workflows; Browserless owns browser lifecycle. "
-            "AUTH_REQUIRED may become HUMAN_REQUIRED without crossing ChatGPT SEND. Use materialization.humanHandoff to obtain the durable CfT operator URL, complete authentication in that exact systemd-owned session, then materialization.humanResume to update the same materialization workflow/effect identity. CHALLENGE_GATED remains pre-effect HOLD. "
+            "AUTH_REQUIRED/CHALLENGE_GATED first use authorized session continuity repair when the active-user source is configured; repair is probe-first, no-SEND, and only a final READY preflight may continue materialization. If no usable authorized session state exists, AUTH_REQUIRED may still become HUMAN_REQUIRED. "
             "The SQLite effect fence remains authoritative at ChatGPT SEND, so UNKNOWN/ambiguous never authorizes blind resend. "
             "Use provider.preflight for one explicit read-only endpoint admission observation."
         ),
@@ -489,6 +489,17 @@ def build_server(settings: McpSettings) -> MCPServer:
         except Exception as error:
             return _tool_error(str(error))
         return await _invoke(current_service().conversation_release, path, agentId)
+
+    @server.tool(
+        name="sessionContinuity.repair",
+        title="Repair Browserless session continuity",
+        description="Use the configured authorized active-user session source to probe and, only when effective, apply private session state to one Browserless carrier. Raw credential state never crosses the MCP surface; this operation never fills a composer or crosses SEND and finishes with a fresh provider preflight.",
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=True
+        ),
+    )
+    async def session_continuity_repair(endpointId: str) -> CallToolResult:
+        return await _invoke(current_service().session_continuity_repair, endpointId)
 
     @server.tool(
         name="provider.preflight",

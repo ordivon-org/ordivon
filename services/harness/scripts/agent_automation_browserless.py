@@ -682,6 +682,12 @@ class BrowserlessAutomationService:
     ) -> dict:
         """Attach non-authoritative telemetry standing without changing provider standing."""
         result = dict(row)
+        source_available = self.config.windows_user_browser is not None
+        result["sessionContinuity"] = {
+            "available": source_available,
+            "authorizedSource": source_available,
+            "sourceKind": "windows-active-user" if source_available else "none",
+        }
         try:
             result["cf07Telemetry"] = _cf07_preflight_event(
                 self.config,
@@ -1795,6 +1801,183 @@ class BrowserlessAutomationService:
                 session_count_class="LEASE_BUSY",
             )
 
+    @staticmethod
+    def _read_session_repair_receipt(proc: subprocess.CompletedProcess[str], *, endpoint_id: str, expected_mode: str) -> dict:
+        if proc.returncode != 0:
+            raise BrowserlessAutomationHold(
+                f"Browserless session continuity helper failed closed (rc={proc.returncode})"
+            )
+        try:
+            row = json.loads(proc.stdout.strip().splitlines()[-1])
+        except Exception as error:
+            raise BrowserlessAutomationConflict(
+                "Browserless session continuity helper returned no sanitized receipt"
+            ) from error
+        allowed = {
+            "schemaVersion","kind","endpointId","standing","mode","sourceBundleDigest","pageRef",
+            "cookieInputCount","cookieEligibleCount","expiredDropped","outsideScopeDropped","invalidDropped",
+            "providerEffectAttempted","clicked","composerFilled","sendAttempted","assistantOutputRead",
+            "rawCredentialProjected","detailCode",
+        }
+        if not isinstance(row, dict) or set(row) - allowed:
+            raise BrowserlessAutomationConflict(
+                "Browserless session continuity helper exposed undeclared fields"
+            )
+        if (
+            row.get("schemaVersion") != 1
+            or row.get("kind") != "ordivon.browserless-session-continuity-probe"
+            or row.get("endpointId") != endpoint_id
+            or row.get("mode") != expected_mode
+            or row.get("rawCredentialProjected") is not False
+        ):
+            raise BrowserlessAutomationConflict(
+                "Browserless session continuity helper receipt identity is invalid"
+            )
+        for key in (
+            "providerEffectAttempted","clicked","composerFilled","sendAttempted","assistantOutputRead",
+        ):
+            if row.get(key) is not False:
+                raise BrowserlessAutomationConflict(
+                    f"Browserless session continuity repair crossed forbidden provider effect boundary: {key}"
+                )
+        return row
+
+    def _session_continuity_repair_under_carrier_lease(
+        self,
+        endpoint_id: str,
+        *,
+        initial_preflight: dict | None = None,
+    ) -> dict:
+        endpoint = self._endpoint_by_id(endpoint_id)
+        if self.config.windows_user_browser is None:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-session-continuity-repair",
+                "endpointId": endpoint_id,
+                "action": "no-authorized-source",
+                "standing": "NO_AUTHORIZED_SOURCE",
+                "providerEffectAttempted": False,
+                "sendAttempted": False,
+            }
+        before = initial_preflight or self._provider_preflight_under_carrier_lease(endpoint_id)
+        if before.get("standing") not in {"AUTH_REQUIRED", "CHALLENGE_GATED"}:
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-session-continuity-repair",
+                "endpointId": endpoint_id,
+                "action": "not-needed",
+                "standing": str(before.get("standing") or "UNKNOWN"),
+                "before": before,
+                "providerEffectAttempted": False,
+                "sendAttempted": False,
+            }
+        export_id = os.urandom(16).hex()
+        cfg = self.config.windows_user_browser
+        shared_root = cfg.linux_stage_root / "session-continuity"
+        shared_root.mkdir(parents=True, exist_ok=True)
+        shared_path = shared_root / f"{export_id}.json"
+        private_root = self.config.state_root / "session-continuity" / "private"
+        private_root.mkdir(parents=True, exist_ok=True)
+        private_path = private_root / f"{export_id}.json"
+        source_receipt: dict | None = None
+        probe: dict | None = None
+        applied: dict | None = None
+        try:
+            with _user_browser_carrier_lease(self.config, blocking=True):
+                source_receipt = self._user_browser_controller().export_session_state(
+                    bundle_path=str(shared_path), export_id=export_id
+                )
+            if source_receipt.get("standing") != "EXPORTED":
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.browserless-session-continuity-repair",
+                    "endpointId": endpoint_id,
+                    "action": "source-not-exported",
+                    "standing": str(source_receipt.get("standing") or "UNKNOWN"),
+                    "beforeStanding": before.get("standing"),
+                    "source": source_receipt,
+                    "providerEffectAttempted": False,
+                    "sendAttempted": False,
+                }
+            if not shared_path.is_file() or shared_path.is_symlink():
+                raise BrowserlessAutomationConflict(
+                    "Windows session export receipt committed without one shared private bundle"
+                )
+            observed_digest = "sha256:" + hashlib.sha256(shared_path.read_bytes()).hexdigest()
+            if observed_digest != source_receipt.get("bundleDigest"):
+                raise BrowserlessAutomationConflict("Windows session export bundle digest mismatch")
+            # Copy once into Linux-private state, then delete the cross-OS carrier before browser use.
+            private_path.write_bytes(shared_path.read_bytes())
+            os.chmod(private_path, 0o600)
+            shared_path.unlink(missing_ok=True)
+            helper = SOURCE_ROOT / "scripts/playwright_browserless_session_repair.py"
+            base_cmd = [
+                *endpoint.exec_prefix,
+                str(self.config.playwright_python),
+                str(helper),
+                "--browserless-endpoint", endpoint.public_connection_endpoint,
+                "--browserless-token-file", str(endpoint.token_file),
+                "--endpoint-id", endpoint.endpoint_id,
+                "--cookie-bundle", str(private_path),
+                "--expected-cookie-digest", observed_digest,
+                "--observe-ms", "8000",
+            ]
+            proc = subprocess.run(
+                [*base_cmd, "--mode", "probe"], capture_output=True, text=True, timeout=60, check=False
+            )
+            probe = self._read_session_repair_receipt(
+                proc, endpoint_id=endpoint_id, expected_mode="probe"
+            )
+            if probe.get("standing") != "READY":
+                return {
+                    "schemaVersion": 1,
+                    "kind": "ordivon.browserless-session-continuity-repair",
+                    "endpointId": endpoint_id,
+                    "action": "cookie-state-insufficient",
+                    "standing": str(probe.get("standing") or "UNKNOWN"),
+                    "beforeStanding": before.get("standing"),
+                    "source": source_receipt,
+                    "probe": probe,
+                    "providerEffectAttempted": False,
+                    "sendAttempted": False,
+                }
+            proc = subprocess.run(
+                [*base_cmd, "--mode", "apply"], capture_output=True, text=True, timeout=60, check=False
+            )
+            applied = self._read_session_repair_receipt(
+                proc, endpoint_id=endpoint_id, expected_mode="apply"
+            )
+            after = self._provider_preflight_under_carrier_lease(endpoint_id)
+            standing = "READY" if applied.get("standing") == "READY" and after.get("standing") == "READY" else "NOT_READY"
+            return {
+                "schemaVersion": 1,
+                "kind": "ordivon.browserless-session-continuity-repair",
+                "endpointId": endpoint_id,
+                "action": "applied-and-repreflighted" if standing == "READY" else "apply-not-durable",
+                "standing": standing,
+                "beforeStanding": before.get("standing"),
+                "source": source_receipt,
+                "probe": probe,
+                "apply": applied,
+                "after": after,
+                "providerEffectAttempted": False,
+                "sendAttempted": False,
+            }
+        finally:
+            try:
+                shared_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            try:
+                private_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+    def session_continuity_repair(self, endpoint_id: str) -> dict:
+        endpoint = self._endpoint_by_id(endpoint_id)
+        with _carrier_lease(self.config, endpoint.endpoint_id, blocking=True):
+            return self._session_continuity_repair_under_carrier_lease(endpoint.endpoint_id)
+
     def _doctor_browser_substrate_health(self) -> dict:
         rows: list[dict] = []
         warm = set(self.config.browserless_warm_endpoint_ids)
@@ -1904,6 +2087,8 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--turn-request-id", required=True)
     s = sub.add_parser("provider-preflight")
     s.add_argument("--endpoint-id", required=True)
+    s = sub.add_parser("session-continuity-repair")
+    s.add_argument("--endpoint-id", required=True)
     sub.add_parser("doctor")
     return p
 
@@ -1930,6 +2115,8 @@ def main() -> int:
         )
     elif a.action == "provider-preflight":
         r = svc.provider_preflight(a.endpoint_id)
+    elif a.action == "session-continuity-repair":
+        r = svc.session_continuity_repair(a.endpoint_id)
     else:
         r = svc.doctor()
     print(json.dumps(r, sort_keys=True, ensure_ascii=False))

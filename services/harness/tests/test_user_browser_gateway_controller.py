@@ -165,18 +165,20 @@ def test_effect_identity_mismatch_fails_closed():
         )
 
 
-def test_windows_driver_declares_no_cookie_or_challenge_bypass_surface():
+def test_windows_driver_exports_session_state_without_challenge_interaction():
     script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
     lower = script.lower()
     assert 'prompt-textarea' in script
     assert 'InvokePattern' in script
     assert 'providerEffectAttempted' in script
     assert 'CHALLENGE_GATED' in script
+    assert "'session-export'" in script
+    assert 'Storage.getCookies' in script
+    assert 'rawCredentialProjected=$false' in script
+    assert 'sendAttempted=$false' in script
+    assert "'--remote-debugging-address=127.0.0.1'" in script
+    assert "'--user-data-dir='+$clone" in script
     for forbidden in (
-        'cookies',
-        'cookie',
-        'user-data-dir=',
-        'remote-debugging-port',
         'captcha',
         'turnstile',
         'click challenge',
@@ -209,7 +211,7 @@ def test_classify_driver_does_not_require_effect_identity_parameters():
     script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
     assert '[Parameter(Mandatory=$true)][string]$EffectId' not in script
     assert '[Parameter(Mandatory=$true)][string]$RequestDigest' not in script
-    assert "if($Mode -ne 'classify'" in script
+    assert "if($Mode -notin @('classify','session-export')" in script
     assert 'EffectId and RequestDigest are required outside classify mode' in script
 
 
@@ -394,3 +396,47 @@ def test_windows_user_browser_composer_text_injection_reacquires_dynamic_element
     assert "LegacyIAccessiblePattern" not in helper
     assert "SendKeys" not in helper
     assert "Clipboard" not in helper
+
+
+def test_session_export_controller_projects_only_sanitized_receipt():
+    payload = {
+        'schemaVersion': 1,
+        'kind': 'ordivon.windows-user-browser-session-export',
+        'standing': 'EXPORTED',
+        'bundleDigest': 'sha256:' + '4' * 64,
+        'cookieCount': 7,
+        'detailCode': 'ok',
+        'rawCredentialProjected': False,
+        'providerEffectAttempted': False,
+        'sendAttempted': False,
+    }
+    port = FakePort(payload)
+    controller = UserBrowserGatewayController(port, config())
+    result = controller.export_session_state(
+        bundle_path='/mnt/c/ProgramData/Ordivon/chat-ingress/session-continuity/probe.json',
+        export_id='export-1',
+    )
+    assert result['standing'] == 'EXPORTED'
+    assert result['cookieCount'] == 7
+    req = port.requests[0]
+    assert req.context == 'active_user'
+    assert '-Mode' in req.args and 'session-export' in req.args
+    assert '-SessionBundlePath' in req.args
+    assert req.args[req.args.index('-SessionBundlePath') + 1] == r'C:\ProgramData\Ordivon\chat-ingress\session-continuity\probe.json'
+
+
+def test_session_export_rejects_undeclared_payload_fields():
+    raw = json.dumps({
+        'schemaVersion': 1,
+        'kind': 'ordivon.windows-user-browser-session-export',
+        'standing': 'EXPORTED',
+        'bundleDigest': 'sha256:' + '4' * 64,
+        'cookieCount': 1,
+        'detailCode': 'ok',
+        'rawCredentialProjected': False,
+        'providerEffectAttempted': False,
+        'sendAttempted': False,
+        'cookies': [{'name': 'must-never-cross'}],
+    })
+    with pytest.raises(RuntimeError, match='undeclared fields'):
+        UserBrowserGatewayController._parse_session_export(raw)

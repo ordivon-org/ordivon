@@ -73,6 +73,7 @@ RELEASE_PATHS = (
     "scripts/playwright_browserless_conversation_output.py",
     "scripts/playwright_browserless_human_resume.py",
     "scripts/playwright_browserless_provider_preflight.py",
+    "scripts/playwright_browserless_session_repair.py",
     "scripts/playwright_browserless_turn_once.py",
     "scripts/playwright_cft_chatgpt_resume.py",
     "scripts/provider_boundary_diagnosis.py",

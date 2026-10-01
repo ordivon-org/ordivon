@@ -80,6 +80,7 @@ class McpCatalogTests(unittest.TestCase):
                 "conversation.output",
                 "conversation.release",
                 "provider.preflight",
+                "sessionContinuity.repair",
             }
             self.assertEqual(set(tools), expected)
             reg = json.dumps(tools["campaign.register"].parameters, sort_keys=True)

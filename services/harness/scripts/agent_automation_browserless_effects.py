@@ -334,6 +334,13 @@ class BrowserlessEffectAdapter:
                 }
         if (
             provider_boundary_diagnosis is not None
+            and provider_boundary_diagnosis.get("providerAction") == "SESSION_CONTINUITY_REPAIR"
+        ):
+            raise BrowserlessAutomationHold(
+                "SESSION_CONTINUITY_REPAIR must converge and re-preflight before materialization SEND admission"
+            )
+        if (
+            provider_boundary_diagnosis is not None
             and provider_boundary_diagnosis.get("providerAction") == "HUMAN_CONTROL_TRANSFER"
         ):
             handoff_path = (

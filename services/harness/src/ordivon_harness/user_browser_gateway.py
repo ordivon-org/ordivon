@@ -317,6 +317,91 @@ class UserBrowserGatewayController:
             raise RuntimeError('Windows user-browser classification detail is invalid')
         return payload
 
+    @staticmethod
+    def _parse_session_export(raw: str) -> dict:
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        if not lines:
+            raise RuntimeError('Windows user-browser session export returned no JSON receipt')
+        try:
+            payload = json.loads(lines[-1])
+        except json.JSONDecodeError as error:
+            raise RuntimeError('Windows user-browser session export returned invalid JSON') from error
+        if not isinstance(payload, dict):
+            raise RuntimeError('Windows user-browser session export must be an object')
+        allowed = {
+            'schemaVersion','kind','standing','bundleDigest','cookieCount','detailCode',
+            'rawCredentialProjected','providerEffectAttempted','sendAttempted',
+            'requiredContext','observedContexts','capabilityEvidenceDigest',
+        }
+        if set(payload) - allowed:
+            raise RuntimeError('Windows user-browser session export exposed undeclared fields')
+        if payload.get('schemaVersion') != 1 or payload.get('kind') != 'ordivon.windows-user-browser-session-export':
+            raise RuntimeError('Windows user-browser session export identity is invalid')
+        if payload.get('standing') not in {
+            'EXPORTED','NO_SESSION_STATE','SOURCE_UNAVAILABLE','EXPORT_FAILED','CONTEXT_UNAVAILABLE'
+        }:
+            raise RuntimeError('Windows user-browser session export standing is invalid')
+        if payload.get('rawCredentialProjected') is not False:
+            raise RuntimeError('Windows user-browser session export projected raw credential state')
+        if payload.get('providerEffectAttempted') is not False or payload.get('sendAttempted') is not False:
+            raise RuntimeError('Windows user-browser session export violated pre-effect contract')
+        count = payload.get('cookieCount')
+        if type(count) is not int or count < 0:
+            raise RuntimeError('Windows user-browser session export cookie count is invalid')
+        digest = payload.get('bundleDigest')
+        if payload.get('standing') == 'EXPORTED':
+            if count < 1 or not isinstance(digest, str) or not digest.startswith('sha256:') or len(digest) != 71:
+                raise RuntimeError('EXPORTED user-browser session receipt is incomplete')
+        elif digest is not None:
+            raise RuntimeError('non-EXPORTED session receipt must not expose a bundle digest')
+        detail = payload.get('detailCode')
+        if not isinstance(detail, str) or not detail or detail != detail.strip() or len(detail) > 128:
+            raise RuntimeError('Windows user-browser session export detail code is invalid')
+        return payload
+
+    def export_session_state(self, *, bundle_path: str, export_id: str) -> dict:
+        if not export_id or export_id != export_id.strip() or any(ch.isspace() for ch in export_id):
+            raise ValueError('UserBrowser session export id must be non-empty and whitespace-free')
+        admitted, evidence, detail, contexts = self._active_user_admission()
+        if not admitted:
+            return {
+                'schemaVersion': 1,
+                'kind': 'ordivon.windows-user-browser-session-export',
+                'standing': 'CONTEXT_UNAVAILABLE',
+                'bundleDigest': None,
+                'cookieCount': 0,
+                'detailCode': 'active-user-context-unavailable',
+                'rawCredentialProjected': False,
+                'providerEffectAttempted': False,
+                'sendAttempted': False,
+                'requiredContext': 'active_user',
+                'observedContexts': list(contexts),
+                'capabilityEvidenceDigest': evidence,
+            }
+        windows_bundle = self.config.windows_prompt_path(bundle_path)
+        request_id = 'user-browser:session-export:' + _digest_text(
+            '|'.join((export_id, windows_bundle))
+        )[7:39]
+        result = self.port.execute(
+            GatewayExecutionRequest(
+                capability='execution.windows',
+                request_id=request_id,
+                workspace_id=self.config.workspace_id,
+                executable=self.config.powershell_path,
+                args=(
+                    '-NoProfile','-NonInteractive','-File',self.config.driver_path,
+                    '-Mode','session-export','-SessionBundlePath',windows_bundle,
+                    '-StageRoot',self.config.windows_stage_root,'-ProxyUrl',self.config.proxy_url,
+                ),
+                cwd_relative='.', context='active_user', timeout_ms=max(self.config.timeout_ms, 180_000),
+            )
+        )
+        if result.recovery_required:
+            raise RuntimeError('Windows user-browser session export requires Runtime recovery')
+        if result.exit_code != 0:
+            raise RuntimeError(f'Windows user-browser session export failed with exit code {result.exit_code}')
+        return self._parse_session_export(self.port.read_stdout(result))
+
     def classify(self) -> dict:
         admitted, evidence, detail, contexts = self._active_user_admission()
         if not admitted:
