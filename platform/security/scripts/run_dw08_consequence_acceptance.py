@@ -84,6 +84,11 @@ def main() -> int:
         "subjectSnapshotDigest": "sha256:" + "1" * 64,
         "protectionClaimRef": "protection:fixture-flag:on",
         "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+        "effectBinding": {
+            "proposalDigest": dw07_result["proposalDigest"],
+            "requestId": dw07_result["requestId"],
+            "requestDigest": dw07_result["requestDigest"],
+        },
         "verifierClass": "configuration",
         "predicate": {
             "class": "configuration",
@@ -183,6 +188,19 @@ def main() -> int:
     assert stale_result["standing"] == "UNKNOWN"
     assert stale_result["verifiedProtectionEstablished"] is False
 
+    wrong_effect = dict(dw07_result)
+    wrong_effect["proposalDigest"] = "sha256:" + "0" * 64
+    cross_effect_error = None
+    try:
+        compile_consequence_input(
+            binding=binding,
+            dw07_result=wrong_effect,
+            observation=observation,
+        )
+    except ValueError as exc:
+        cross_effect_error = str(exc)
+    assert cross_effect_error and "proposalDigest" in cross_effect_error
+
     evidence = {
         "schemaVersion": 1,
         "kind": "ordivon.security.dw08-consequence-verification-r1-acceptance",
@@ -221,10 +239,9 @@ def main() -> int:
             "staleObservation": {
                 "policyStanding": stale_decision["standing"],
                 "verificationStanding": stale_result["standing"],
-                "verifiedProtectionEstablished": stale_result[
-                    "verifiedProtectionEstablished"
-                ],
+                "verifiedProtectionEstablished": stale_result["verifiedProtectionEstablished"],
             },
+            "crossEffectBindingError": cross_effect_error,
         },
         "supportedVerifierClasses": [
             "version",
@@ -236,6 +253,7 @@ def main() -> int:
         "nonClaims": [
             "The authoritative observation is an independent read of the harmless in-memory fixture, not a production system observation.",
             "The synthetic qualification circuit exists only to keep the DW07 acceptance case and DW08 gate case identical; it does not discharge the historical DW06 ProxyLogon circuit.",
+            "The verifier binding fixes proposalDigest + requestId + requestDigest so a receipt from another effect cannot be combined with an otherwise valid observation.",
             "A SATISFIED DW08 result establishes only the explicit bounded protection predicate in supportScope.",
             "Verified protection does not establish compromise absence, eradication, recovery, or domain acceptance.",
             "No OS, network, Runtime service, Security configuration or external system is mutated by this acceptance.",
@@ -254,12 +272,8 @@ def main() -> int:
                 "gateStanding": gate["standing"],
                 "receiptOnlyStanding": receipt_only_result["standing"],
                 "staleStanding": stale_result["standing"],
-                "verifiedProtectionEstablished": result[
-                    "verifiedProtectionEstablished"
-                ],
-                "compromiseAbsenceEstablished": result[
-                    "compromiseAbsenceEstablished"
-                ],
+                "verifiedProtectionEstablished": result["verifiedProtectionEstablished"],
+                "compromiseAbsenceEstablished": result["compromiseAbsenceEstablished"],
                 "recoveryEstablished": result["recoveryEstablished"],
                 "output": str(output.relative_to(repo)),
             },

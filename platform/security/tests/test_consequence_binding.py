@@ -13,6 +13,7 @@ D1 = "sha256:" + "1" * 64
 D2 = "sha256:" + "2" * 64
 D3 = "sha256:" + "3" * 64
 D4 = "sha256:" + "4" * 64
+D5 = "sha256:" + "5" * 64
 
 
 def binding(verifier_class="configuration"):
@@ -41,6 +42,11 @@ def binding(verifier_class="configuration"):
         "subjectSnapshotDigest": D1,
         "protectionClaimRef": f"protection:{verifier_class}",
         "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+        "effectBinding": {
+            "proposalDigest": D5,
+            "requestId": "request:test",
+            "requestDigest": D3,
+        },
         "verifierClass": verifier_class,
         "predicate": predicate,
         "compositionGate": {
@@ -63,6 +69,7 @@ def dw07():
     }
     return {
         "kind": "ordivon.security.dwc-effect-execution-result-r1",
+        "proposalDigest": D5,
         "requestId": "request:test",
         "requestDigest": D3,
         "admission": {
@@ -164,25 +171,38 @@ class ConsequenceBindingTests(unittest.TestCase):
         obs = observation()
         obs["subjectSnapshotDigest"] = D2
         with self.assertRaisesRegex(ConsequenceBindingError, "subject snapshot mismatch"):
-            compile_consequence_input(
-                binding=binding(), dw07_result=dw07(), observation=obs
-            )
+            compile_consequence_input(binding=binding(), dw07_result=dw07(), observation=obs)
 
     def test_request_digest_mismatch_fails_closed(self):
         obs = observation()
         obs["requestDigest"] = D2
         with self.assertRaisesRegex(ConsequenceBindingError, "requestDigest mismatch"):
+            compile_consequence_input(binding=binding(), dw07_result=dw07(), observation=obs)
+
+    def test_dw07_proposal_digest_must_match_exact_verifier_binding(self):
+        result = dw07()
+        result["proposalDigest"] = D2
+        with self.assertRaisesRegex(ConsequenceBindingError, "proposalDigest"):
             compile_consequence_input(
-                binding=binding(), dw07_result=dw07(), observation=obs
+                binding=binding(), dw07_result=result, observation=observation()
+            )
+
+    def test_dw07_request_digest_must_match_exact_verifier_binding(self):
+        b = binding()
+        b["effectBinding"]["requestDigest"] = D2
+        with self.assertRaisesRegex(ConsequenceBindingError, "requestDigest"):
+            evaluate_bound_consequence(
+                binding=b,
+                dw07_result=dw07(),
+                observation=observation(),
+                consequence_decision=VERIFIED,
             )
 
     def test_non_authoritative_plane_fails_closed(self):
         obs = observation()
         obs["plane"] = "sensor"
         with self.assertRaisesRegex(ConsequenceBindingError, "world-truth"):
-            compile_consequence_input(
-                binding=binding(), dw07_result=dw07(), observation=obs
-            )
+            compile_consequence_input(binding=binding(), dw07_result=dw07(), observation=obs)
 
     def test_consequence_mismatch_is_unsatisfied(self):
         value = evaluate_bound_consequence(
@@ -228,9 +248,7 @@ class ConsequenceBindingTests(unittest.TestCase):
         self.assertFalse(value["executionReceipt"]["worldEffectVerified"])
         self.assertEqual(value["observation"]["plane"], "world-truth")
         self.assertEqual(value["observation"]["payload"]["stateDigest"], D4)
-        self.assertEqual(
-            value["observation"]["payload"]["facts"]["configurationDigest"], D4
-        )
+        self.assertEqual(value["observation"]["payload"]["facts"]["configurationDigest"], D4)
 
 
 if __name__ == "__main__":

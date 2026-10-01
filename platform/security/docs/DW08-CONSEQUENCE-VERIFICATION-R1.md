@@ -35,7 +35,9 @@ R1 supports four bounded templates:
 - attack-negative
 
 Each binding carries exact caseRef, subjectRef, subjectSnapshotDigest, protectionClaimRef,
-supportScope and Composition gate identity.
+supportScope and Composition gate identity. It also binds the exact DW07 proposalDigest,
+requestId and requestDigest, closing the bridge from the DWC case/subject to the actual
+effect request and preventing cross-effect receipt reuse.
 
 ## Closure semantics
 

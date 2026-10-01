@@ -7,7 +7,12 @@ from .admission import canonical_digest
 
 _BINDING_KIND = "ordivon.security.dwc-consequence-verifier-binding-r1"
 _VERIFIER_CLASSES = {"version", "configuration", "exposure", "attack-negative"}
-_CURRENTNESS = {"CURRENT_DECLARED", "POINT_IN_TIME_OBSERVED", "HISTORICAL_NOT_CURRENT", "CURRENTNESS_UNKNOWN"}
+_CURRENTNESS = {
+    "CURRENT_DECLARED",
+    "POINT_IN_TIME_OBSERVED",
+    "HISTORICAL_NOT_CURRENT",
+    "CURRENTNESS_UNKNOWN",
+}
 
 
 class ConsequenceBindingError(ValueError):
@@ -45,6 +50,10 @@ def validate_verifier_binding(binding: Mapping[str, Any]) -> None:
     _sha(binding.get("subjectSnapshotDigest"), "subjectSnapshotDigest")
     _text(binding.get("protectionClaimRef"), "protectionClaimRef")
     _text(binding.get("supportScope"), "supportScope")
+    effect_binding = _mapping(binding.get("effectBinding"), "effectBinding")
+    _sha(effect_binding.get("proposalDigest"), "effectBinding.proposalDigest")
+    _text(effect_binding.get("requestId"), "effectBinding.requestId")
+    _sha(effect_binding.get("requestDigest"), "effectBinding.requestDigest")
     predicate = _mapping(binding.get("predicate"), "predicate")
     if predicate.get("class") != verifier_class:
         raise ConsequenceBindingError("predicate.class must equal verifierClass")
@@ -77,15 +86,18 @@ def validate_verifier_binding(binding: Mapping[str, Any]) -> None:
         raise ConsequenceBindingError("composition gate supportScope mismatch")
 
 
-def compile_consequence_input(
-    *,
-    binding: Mapping[str, Any],
-    dw07_result: Mapping[str, Any],
-    observation: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    validate_verifier_binding(binding)
+def _validate_dw07_result(
+    binding: Mapping[str, Any], dw07_result: Mapping[str, Any]
+) -> tuple[Mapping[str, Any], Mapping[str, Any] | None]:
     if dw07_result.get("kind") != "ordivon.security.dwc-effect-execution-result-r1":
         raise ConsequenceBindingError("unsupported DW07 effect result")
+    effect_binding = _mapping(binding.get("effectBinding"), "effectBinding")
+    if dw07_result.get("proposalDigest") != effect_binding.get("proposalDigest"):
+        raise ConsequenceBindingError("DW07 result proposalDigest does not match verifier binding")
+    if dw07_result.get("requestId") != effect_binding.get("requestId"):
+        raise ConsequenceBindingError("DW07 result requestId does not match verifier binding")
+    if dw07_result.get("requestDigest") != effect_binding.get("requestDigest"):
+        raise ConsequenceBindingError("DW07 result requestDigest does not match verifier binding")
     admission = _mapping(dw07_result.get("admission"), "dw07.admission")
     receipt = dw07_result.get("receipt")
     if receipt is not None and not isinstance(receipt, Mapping):
@@ -101,7 +113,17 @@ def compile_consequence_input(
             raise ConsequenceBindingError("DW07 receipt requestDigest mismatch")
         if receipt.get("worldEffectVerified") is not False:
             raise ConsequenceBindingError("DW07 receipt must remain unverified world evidence")
+    return admission, receipt
 
+
+def compile_consequence_input(
+    *,
+    binding: Mapping[str, Any],
+    dw07_result: Mapping[str, Any],
+    observation: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    validate_verifier_binding(binding)
+    admission, receipt = _validate_dw07_result(binding, dw07_result)
     opa_observation = None
     if observation is not None:
         _validate_observation(binding, dw07_result, observation)
@@ -132,25 +154,27 @@ def _validate_observation(
         raise ConsequenceBindingError("observation caseRef mismatch")
     if _text(observation.get("subjectRef"), "observation.subjectRef") != binding["subjectRef"]:
         raise ConsequenceBindingError("observation subjectRef mismatch")
-    if _sha(
-        observation.get("subjectSnapshotDigest"),
-        "observation.subjectSnapshotDigest",
-    ) != binding["subjectSnapshotDigest"]:
+    if (
+        _sha(
+            observation.get("subjectSnapshotDigest"),
+            "observation.subjectSnapshotDigest",
+        )
+        != binding["subjectSnapshotDigest"]
+    ):
         raise ConsequenceBindingError("observation subject snapshot mismatch")
     if _text(observation.get("requestId"), "observation.requestId") != dw07_result["requestId"]:
         raise ConsequenceBindingError("observation requestId mismatch")
-    if _sha(
-        observation.get("requestDigest"), "observation.requestDigest"
-    ) != dw07_result["requestDigest"]:
+    if (
+        _sha(observation.get("requestDigest"), "observation.requestDigest")
+        != dw07_result["requestDigest"]
+    ):
         raise ConsequenceBindingError("observation requestDigest mismatch")
     _sha(observation.get("stateDigest"), "observation.stateDigest")
     _text(observation.get("ownerRef"), "observation.ownerRef")
     _text(observation.get("sourceRef"), "observation.sourceRef")
     _sha(observation.get("sourceDigest"), "observation.sourceDigest")
     _text(observation.get("observedAt"), "observation.observedAt")
-    currentness = _text(
-        observation.get("currentnessStanding"), "observation.currentnessStanding"
-    )
+    currentness = _text(observation.get("currentnessStanding"), "observation.currentnessStanding")
     if currentness not in _CURRENTNESS:
         raise ConsequenceBindingError("unsupported observation currentnessStanding")
     _mapping(observation.get("facts"), "observation.facts")
@@ -161,7 +185,9 @@ def _predicate_standing(
 ) -> tuple[str, list[str]]:
     currentness = observation["currentnessStanding"]
     if currentness in {"HISTORICAL_NOT_CURRENT", "CURRENTNESS_UNKNOWN"}:
-        return "UNKNOWN", ["authoritative observation is not current enough for consequence closure"]
+        return "UNKNOWN", [
+            "authoritative observation is not current enough for consequence closure"
+        ]
 
     predicate = _mapping(binding["predicate"], "predicate")
     facts = _mapping(observation["facts"], "observation.facts")
@@ -225,12 +251,11 @@ def evaluate_bound_consequence(
     consequence_decision: Mapping[str, Any],
 ) -> dict[str, Any]:
     validate_verifier_binding(binding)
+    _validate_dw07_result(binding, dw07_result)
     if observation is not None:
         _validate_observation(binding, dw07_result, observation)
 
-    decision_standing = _text(
-        consequence_decision.get("standing"), "consequenceDecision.standing"
-    )
+    decision_standing = _text(consequence_decision.get("standing"), "consequenceDecision.standing")
     if decision_standing != "VERIFIED_CONSEQUENCE":
         standing = (
             "UNSATISFIED"
