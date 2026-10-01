@@ -179,12 +179,22 @@ function Export-PrivateChatSession([string]$ChromeExecutable,[string]$BundlePath
         if(-not [int]::TryParse([string]$portLine,[ref]$port) -or $port -lt 1){
             Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-port-invalid'; return
         }
-        $targets=@(Invoke-RestMethod -Uri ('http://127.0.0.1:'+$port+'/json/list') -TimeoutSec 5)
+        try {
+            $targets=@(Invoke-RestMethod -Uri ('http://127.0.0.1:'+$port+'/json/list') -TimeoutSec 5)
+        } catch {
+            Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-target-list-failed'; return
+        }
         $target=$targets | Where-Object {$_.type -eq 'page' -and $_.webSocketDebuggerUrl} | Select-Object -First 1
         if($null -eq $target){Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-page-unavailable'; return}
         $cookies=$null
-        try{$cookies=@((Invoke-CdpCommand ([string]$target.webSocketDebuggerUrl) 'Storage.getCookies').cookies)}catch{
-            $cookies=@((Invoke-CdpCommand ([string]$target.webSocketDebuggerUrl) 'Network.getAllCookies').cookies)
+        try {
+            $cookies=@((Invoke-CdpCommand ([string]$target.webSocketDebuggerUrl) 'Storage.getCookies').cookies)
+        } catch {
+            try {
+                $cookies=@((Invoke-CdpCommand ([string]$target.webSocketDebuggerUrl) 'Network.getAllCookies').cookies)
+            } catch {
+                Emit-SessionExport 'EXPORT_FAILED' $null 0 'cdp-cookie-read-failed'; return
+            }
         }
         $eligible=@($cookies | Where-Object {
             $d=([string]$_.domain).TrimStart('.').ToLowerInvariant()

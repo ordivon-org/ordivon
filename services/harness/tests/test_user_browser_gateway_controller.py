@@ -187,6 +187,15 @@ def test_windows_driver_exports_session_state_without_challenge_interaction():
         assert forbidden not in lower
 
 
+def test_session_export_uses_sanitized_stage_specific_cdp_failures():
+    script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
+    assert "'cdp-target-list-failed'" in script
+    assert "'cdp-cookie-read-failed'" in script
+    assert "'no-eligible-state'" in script
+    export_fn = script.split('function Export-PrivateChatSession', 1)[1].split('function Emit-OutputObservation', 1)[0]
+    assert '$_.Exception.Message' not in export_fn
+
+
 def test_session_export_cdp_clone_user_data_dir_has_no_argument_splitting_space():
     script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
     assert "$clone=Join-Path $scratch 'UserData'" in script
