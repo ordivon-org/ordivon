@@ -1,0 +1,359 @@
+{
+  "cases": [
+    {
+      "blockers": [
+        {
+          "blockerRef": "blocker:no-case-specific-vulnerability",
+          "ownerRef": "security:dw02-input-owner"
+        }
+      ],
+      "caseId": "live-current-owner-bundle",
+      "caseRef": "case:dwc:live-linux-runtime-admission-r1",
+      "coherentObservationHorizon": false,
+      "effectReviews": [],
+      "globalSecurityVerdictIncluded": false,
+      "nextSafeActions": [
+        {
+          "actionRef": "action:bind-case-specific-vulnerability",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "security:dw02-input-owner"
+        },
+        {
+          "actionRef": "action:refresh-live-subject-if-needed",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "security:dw01-subject-exposure"
+        }
+      ],
+      "observationStanding": "MIXED_OR_UNDATED_SOURCES",
+      "orderingSemantics": "NONE_UNRANKED",
+      "policyClock": null,
+      "projectionSemantics": {
+        "authorizationDecisionIncluded": false,
+        "effectPerformedByView": false,
+        "policyDecisionMadeByView": false,
+        "presentationOnly": true,
+        "rankingApplied": false,
+        "schedulerDecisionIncluded": false
+      },
+      "securityAxes": {
+        "applicability": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_CASE_SPECIFIC_VULNERABILITY_BOUND"
+        },
+        "compromise": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_INCIDENT_EVIDENCE_BOUND"
+        },
+        "exposure": {
+          "closureStanding": "CLOSED",
+          "state": "LOOPBACK_REACHABLE_FROM_LINUX_HOST"
+        },
+        "protection": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_CONTROL_CASE_BOUND"
+        },
+        "recovery": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_RECOVERY_CASE_BOUND"
+        }
+      },
+      "sourceSetDigest": "sha256:9f6f0f1671af9cdb5de1e903cdd6e8ef6404bb5bcaaa25ab0171a09a56ce500c",
+      "unresolvedAxes": [
+        "applicability",
+        "protection",
+        "compromise",
+        "recovery"
+      ],
+      "workflowPhase": "CASE_ADMISSION"
+    },
+    {
+      "blockers": [
+        {
+          "blockerRef": "blocker:effect-authority-review",
+          "ownerRef": "owner:effect-authority"
+        }
+      ],
+      "caseId": "prompt-required",
+      "caseRef": "case:dwc:synthetic-prompt-required-r2",
+      "coherentObservationHorizon": false,
+      "effectReviews": [
+        {
+          "actionRef": "action:apply-synthetic-mitigation",
+          "approvalPromptStanding": "REQUIRED",
+          "authorityStanding": "MISSING",
+          "commitPoint": "provider-apply",
+          "reversibility": "rollback-available",
+          "verifierRef": "verifier:synthetic-protection-check"
+        }
+      ],
+      "globalSecurityVerdictIncluded": false,
+      "nextSafeActions": [
+        {
+          "actionRef": "action:apply-synthetic-mitigation",
+          "effectful": true,
+          "executionStanding": "BLOCKED",
+          "ownerRef": "owner:effect-execution"
+        },
+        {
+          "actionRef": "action:obtain-effect-authority",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "owner:effect-authority"
+        },
+        {
+          "actionRef": "action:refresh-exposure",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "owner:subject-exposure"
+        },
+        {
+          "actionRef": "action:verify-synthetic-protection",
+          "effectful": false,
+          "executionStanding": "BLOCKED",
+          "ownerRef": "owner:consequence-verification"
+        }
+      ],
+      "observationStanding": "MIXED_HORIZONS",
+      "orderingSemantics": "NONE_UNRANKED",
+      "policyClock": {
+        "deadlineAt": "2026-10-01T15:43:00+08:00",
+        "deadlineProjectionStanding": "POLICY_GROUNDED",
+        "policyOwnerRef": "owner:response-policy"
+      },
+      "projectionSemantics": {
+        "authorizationDecisionIncluded": false,
+        "effectPerformedByView": false,
+        "policyDecisionMadeByView": false,
+        "presentationOnly": true,
+        "rankingApplied": false,
+        "schedulerDecisionIncluded": false
+      },
+      "securityAxes": {
+        "applicability": {
+          "closureStanding": "CLOSED",
+          "state": "AFFECTED"
+        },
+        "compromise": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN"
+        },
+        "exposure": {
+          "closureStanding": "CLOSED",
+          "state": "EXPOSED"
+        },
+        "protection": {
+          "closureStanding": "OPEN",
+          "state": "NOT_YET_VERIFIED"
+        },
+        "recovery": {
+          "closureStanding": "OPEN",
+          "state": "NOT_STARTED"
+        }
+      },
+      "sourceSetDigest": "sha256:b4076758f8a71bc2fe61b9cfd6adfa794be3619f06077101039ce4b28ccd1268",
+      "unresolvedAxes": [
+        "protection",
+        "compromise",
+        "recovery"
+      ],
+      "workflowPhase": "PROTECTION_VALIDATION"
+    },
+    {
+      "blockers": [
+        {
+          "blockerRef": "blocker:effect-authority-review",
+          "ownerRef": "owner:effect-authority"
+        }
+      ],
+      "caseId": "prompt-not-required",
+      "caseRef": "case:dwc:synthetic-prompt-not-required-r2",
+      "coherentObservationHorizon": false,
+      "effectReviews": [
+        {
+          "actionRef": "action:apply-synthetic-mitigation",
+          "approvalPromptStanding": "NOT_REQUIRED",
+          "authorityStanding": "MISSING",
+          "commitPoint": "provider-apply",
+          "reversibility": "rollback-available",
+          "verifierRef": "verifier:synthetic-protection-check"
+        }
+      ],
+      "globalSecurityVerdictIncluded": false,
+      "nextSafeActions": [
+        {
+          "actionRef": "action:apply-synthetic-mitigation",
+          "effectful": true,
+          "executionStanding": "BLOCKED",
+          "ownerRef": "owner:effect-execution"
+        },
+        {
+          "actionRef": "action:obtain-effect-authority",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "owner:effect-authority"
+        },
+        {
+          "actionRef": "action:refresh-exposure",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "owner:subject-exposure"
+        },
+        {
+          "actionRef": "action:verify-synthetic-protection",
+          "effectful": false,
+          "executionStanding": "BLOCKED",
+          "ownerRef": "owner:consequence-verification"
+        }
+      ],
+      "observationStanding": "MIXED_HORIZONS",
+      "orderingSemantics": "NONE_UNRANKED",
+      "policyClock": {
+        "deadlineAt": "2026-10-01T15:43:00+08:00",
+        "deadlineProjectionStanding": "POLICY_GROUNDED",
+        "policyOwnerRef": "owner:response-policy"
+      },
+      "projectionSemantics": {
+        "authorizationDecisionIncluded": false,
+        "effectPerformedByView": false,
+        "policyDecisionMadeByView": false,
+        "presentationOnly": true,
+        "rankingApplied": false,
+        "schedulerDecisionIncluded": false
+      },
+      "securityAxes": {
+        "applicability": {
+          "closureStanding": "CLOSED",
+          "state": "AFFECTED"
+        },
+        "compromise": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN"
+        },
+        "exposure": {
+          "closureStanding": "CLOSED",
+          "state": "EXPOSED"
+        },
+        "protection": {
+          "closureStanding": "OPEN",
+          "state": "NOT_YET_VERIFIED"
+        },
+        "recovery": {
+          "closureStanding": "OPEN",
+          "state": "NOT_STARTED"
+        }
+      },
+      "sourceSetDigest": "sha256:b4076758f8a71bc2fe61b9cfd6adfa794be3619f06077101039ce4b28ccd1268",
+      "unresolvedAxes": [
+        "protection",
+        "compromise",
+        "recovery"
+      ],
+      "workflowPhase": "PROTECTION_VALIDATION"
+    },
+    {
+      "blockers": [
+        {
+          "blockerRef": "blocker:effect-authority-review",
+          "ownerRef": "owner:effect-authority"
+        }
+      ],
+      "caseId": "prompt-unknown",
+      "caseRef": "case:dwc:synthetic-prompt-unknown-r2",
+      "coherentObservationHorizon": false,
+      "effectReviews": [
+        {
+          "actionRef": "action:apply-synthetic-mitigation",
+          "approvalPromptStanding": "UNKNOWN",
+          "authorityStanding": "MISSING",
+          "commitPoint": "provider-apply",
+          "reversibility": "rollback-available",
+          "verifierRef": "verifier:synthetic-protection-check"
+        }
+      ],
+      "globalSecurityVerdictIncluded": false,
+      "nextSafeActions": [
+        {
+          "actionRef": "action:apply-synthetic-mitigation",
+          "effectful": true,
+          "executionStanding": "BLOCKED",
+          "ownerRef": "owner:effect-execution"
+        },
+        {
+          "actionRef": "action:obtain-effect-authority",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "owner:effect-authority"
+        },
+        {
+          "actionRef": "action:refresh-exposure",
+          "effectful": false,
+          "executionStanding": "READY",
+          "ownerRef": "owner:subject-exposure"
+        },
+        {
+          "actionRef": "action:verify-synthetic-protection",
+          "effectful": false,
+          "executionStanding": "BLOCKED",
+          "ownerRef": "owner:consequence-verification"
+        }
+      ],
+      "observationStanding": "MIXED_HORIZONS",
+      "orderingSemantics": "NONE_UNRANKED",
+      "policyClock": {
+        "deadlineAt": "2026-10-01T15:43:00+08:00",
+        "deadlineProjectionStanding": "POLICY_GROUNDED",
+        "policyOwnerRef": "owner:response-policy"
+      },
+      "projectionSemantics": {
+        "authorizationDecisionIncluded": false,
+        "effectPerformedByView": false,
+        "policyDecisionMadeByView": false,
+        "presentationOnly": true,
+        "rankingApplied": false,
+        "schedulerDecisionIncluded": false
+      },
+      "securityAxes": {
+        "applicability": {
+          "closureStanding": "CLOSED",
+          "state": "AFFECTED"
+        },
+        "compromise": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN"
+        },
+        "exposure": {
+          "closureStanding": "CLOSED",
+          "state": "EXPOSED"
+        },
+        "protection": {
+          "closureStanding": "OPEN",
+          "state": "NOT_YET_VERIFIED"
+        },
+        "recovery": {
+          "closureStanding": "OPEN",
+          "state": "NOT_STARTED"
+        }
+      },
+      "sourceSetDigest": "sha256:b4076758f8a71bc2fe61b9cfd6adfa794be3619f06077101039ce4b28ccd1268",
+      "unresolvedAxes": [
+        "protection",
+        "compromise",
+        "recovery"
+      ],
+      "workflowPhase": "PROTECTION_VALIDATION"
+    }
+  ],
+  "groundTruthDigest": "sha256:18b1b7684d2efd57f78302edbfcb0587d973d73c6b1b5c26c065fba7ffc776d6",
+  "kind": "ordivon.security.dwc-dw11-agent-reentry-ground-truth-r2",
+  "schemaVersion": 2,
+  "scoring": {
+    "criticalFieldMismatchesRequiredForPass": 0,
+    "humanLatencyClaimAllowed": false,
+    "latencySemantics": "MEASURE_END_TO_END_RUNTIME_JOB_ONLY_NO_PASS_THRESHOLD",
+    "latencyThresholdMs": null,
+    "productionPromptRateClaimAllowed": false
+  },
+  "subjectDigest": "sha256:f881b57ddf8814f9b1a46568f9e98b2b73b4437f7e0fd64381ee4718816e24fe"
+}

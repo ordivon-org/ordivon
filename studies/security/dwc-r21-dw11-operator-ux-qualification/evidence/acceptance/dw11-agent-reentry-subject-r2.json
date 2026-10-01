@@ -1,0 +1,54 @@
+{
+  "candidateRevision": "b3d165961aa3e28d42942dfa9aa1dacf9b0a870f",
+  "kind": "ordivon.security.dwc-dw11-agent-reentry-subject-r2",
+  "laws": {
+    "globalVerdictForbidden": true,
+    "humanLatencyClaimAllowed": false,
+    "nextActionsUnranked": true,
+    "ownerPromptStandingPreserved": true,
+    "productionPromptRateClaimAllowed": false,
+    "workflowSeparateFromSecurityStanding": true
+  },
+  "operatorImplementation": {
+    "candidateFileDigest": "sha256:bc3aa987dc2c64f2fe8ed90653d404ef9eea4ea73a7d1a0fe52ae7e9621c48ea",
+    "path": "meta/next/scripts/dwc_operator_ux_r1.py"
+  },
+  "schemaVersion": 2,
+  "sourceInputs": {
+    "liveBundle": {
+      "candidateFileDigest": "sha256:156b85a8d2dc493857526b5605486b06b5c8fa04e9420f3dc9d5a04e34fdd55a",
+      "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-bundle-20261001.json"
+    },
+    "syntheticBase": {
+      "candidateFileDigest": "sha256:8a3228980819c0d18fa3602bb9be57292bd4327fc3cba8f641c6518bf0e10ee1",
+      "path": "meta/next/evidence/acceptance/dwc-operator-ux-r1-reentry-fixture-20261001.json"
+    }
+  },
+  "subjectDigest": "sha256:f881b57ddf8814f9b1a46568f9e98b2b73b4437f7e0fd64381ee4718816e24fe",
+  "trialCases": [
+    {
+      "caseId": "live-current-owner-bundle",
+      "class": "LIVE_OWNER_REENTRY",
+      "fileDigest": "sha256:156b85a8d2dc493857526b5605486b06b5c8fa04e9420f3dc9d5a04e34fdd55a",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/live-current-owner-bundle.json"
+    },
+    {
+      "caseId": "prompt-required",
+      "class": "SYNTHETIC_PROMPT_COUNTERFACTUAL",
+      "fileDigest": "sha256:a69119c4c1d49c00859335c38a964701e360f7ba5a2f45ddece890c8fa91416a",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/prompt-required.json"
+    },
+    {
+      "caseId": "prompt-not-required",
+      "class": "SYNTHETIC_PROMPT_COUNTERFACTUAL",
+      "fileDigest": "sha256:2d102fa6c50fb81bdbb187dd663845030c4cf89322f741442ce92d2b3352418f",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/prompt-not-required.json"
+    },
+    {
+      "caseId": "prompt-unknown",
+      "class": "SYNTHETIC_PROMPT_COUNTERFACTUAL",
+      "fileDigest": "sha256:1743816a03588acc6078ccc2b599bfc7b966db700af153c9cee0c0e72f87532f",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/prompt-unknown.json"
+    }
+  ]
+}

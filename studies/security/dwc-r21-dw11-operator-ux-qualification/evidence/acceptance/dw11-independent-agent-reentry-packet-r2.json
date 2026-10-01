@@ -1,0 +1,72 @@
+{
+  "allowedInputs": [
+    {
+      "caseId": "live-current-owner-bundle",
+      "class": "LIVE_OWNER_REENTRY",
+      "fileDigest": "sha256:156b85a8d2dc493857526b5605486b06b5c8fa04e9420f3dc9d5a04e34fdd55a",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/live-current-owner-bundle.json"
+    },
+    {
+      "caseId": "prompt-required",
+      "class": "SYNTHETIC_PROMPT_COUNTERFACTUAL",
+      "fileDigest": "sha256:a69119c4c1d49c00859335c38a964701e360f7ba5a2f45ddece890c8fa91416a",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/prompt-required.json"
+    },
+    {
+      "caseId": "prompt-not-required",
+      "class": "SYNTHETIC_PROMPT_COUNTERFACTUAL",
+      "fileDigest": "sha256:2d102fa6c50fb81bdbb187dd663845030c4cf89322f741442ce92d2b3352418f",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/prompt-not-required.json"
+    },
+    {
+      "caseId": "prompt-unknown",
+      "class": "SYNTHETIC_PROMPT_COUNTERFACTUAL",
+      "fileDigest": "sha256:1743816a03588acc6078ccc2b599bfc7b966db700af153c9cee0c0e72f87532f",
+      "path": "studies/security/dwc-r21-dw11-operator-ux-qualification/fixtures/prompt-unknown.json"
+    }
+  ],
+  "candidateBuilderActorRef": "agent:chatgpt-daybreak-r21-20261001",
+  "candidateRevision": "b3d165961aa3e28d42942dfa9aa1dacf9b0a870f",
+  "kind": "ordivon.security.dwc-dw11-independent-agent-reentry-packet-r2",
+  "measurementContract": {
+    "agentLatency": "Runtime job end-to-end elapsedMs; no pass/fail threshold",
+    "coldReentryCaseId": "live-current-owner-bundle",
+    "requiredPromptMissDenominator": "owner label REQUIRED only",
+    "syntheticPromptCases": [
+      "prompt-required",
+      "prompt-not-required",
+      "prompt-unknown"
+    ],
+    "unknownPromptPreservationDenominator": "owner label UNKNOWN only",
+    "unnecessaryPromptRateDenominator": "owner label NOT_REQUIRED only"
+  },
+  "nonClaims": [
+    "Synthetic prompt counterfactuals measure owner-label preservation only; they are not production prompt-rate evidence.",
+    "Agent wall-clock is not human decision latency.",
+    "Re-entry PASS does not grant authority, rank actions, close UNKNOWN axes, or create a global security verdict."
+  ],
+  "packetDigest": "sha256:8bd76bb26cc4a14b2dae620e4388f494948890ec72c750c83ad0612b637cb836",
+  "requiredOutput": {
+    "agentMustNotCreateGlobalSecurityVerdict": true,
+    "agentMustNotRankActions": true,
+    "caseFields": [
+      "caseId",
+      "caseRef",
+      "sourceSetDigest",
+      "observationStanding",
+      "coherentObservationHorizon",
+      "securityAxes",
+      "unresolvedAxes",
+      "globalSecurityVerdictIncluded",
+      "workflowPhase",
+      "blockers",
+      "policyClock",
+      "effectReviews",
+      "nextSafeActions",
+      "orderingSemantics",
+      "projectionSemantics"
+    ]
+  },
+  "schemaVersion": 2,
+  "subjectDigest": "sha256:f881b57ddf8814f9b1a46568f9e98b2b73b4437f7e0fd64381ee4718816e24fe"
+}

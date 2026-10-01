@@ -1,0 +1,238 @@
+{
+  "attentionEvents": [
+    {
+      "caseRef": "case:dwc:synthetic-prompt-required-r2",
+      "evidenceRefs": [
+        "authority:synthetic-exchange-mitigation"
+      ],
+      "sourceRef": "source:effect-authority-owner-r1",
+      "subjectRef": "subject:synthetic-exchange:instance-a",
+      "summary": "Mitigation authority binding is still missing.",
+      "updateRef": "update:authority-needed-r1"
+    },
+    {
+      "caseRef": "case:dwc:synthetic-prompt-required-r2",
+      "evidenceRefs": [
+        "authority:synthetic-exchange-mitigation"
+      ],
+      "sourceRef": "source:effect-authority-owner-r1",
+      "subjectRef": "subject:synthetic-exchange:instance-a",
+      "summary": "Mitigation authority binding is still missing.",
+      "updateRef": "update:authority-needed-r1"
+    },
+    {
+      "caseRef": "case:dwc:synthetic-prompt-required-r2",
+      "evidenceRefs": [
+        "evidence:protection:pending-r1"
+      ],
+      "sourceRef": "source:dw01-subject-snapshot-r1",
+      "subjectRef": "subject:synthetic-exchange:instance-a",
+      "summary": "Protection consequence remains unverified.",
+      "updateRef": "update:protection-open-r1"
+    }
+  ],
+  "axes": {
+    "applicability": {
+      "closureStanding": "CLOSED",
+      "evidenceRefs": [
+        "evidence:vendor-status:synthetic-r1"
+      ],
+      "sourceRefs": [
+        "source:dw02-applicability-r1"
+      ],
+      "state": "AFFECTED"
+    },
+    "compromise": {
+      "closureStanding": "UNKNOWN",
+      "evidenceRefs": [],
+      "sourceRefs": [
+        "source:dw01-subject-snapshot-r1"
+      ],
+      "state": "UNKNOWN"
+    },
+    "exposure": {
+      "closureStanding": "CLOSED",
+      "evidenceRefs": [
+        "evidence:exposure:synthetic-r1"
+      ],
+      "sourceRefs": [
+        "source:dw01-subject-snapshot-r1"
+      ],
+      "state": "EXPOSED"
+    },
+    "protection": {
+      "closureStanding": "OPEN",
+      "evidenceRefs": [
+        "evidence:protection:pending-r1"
+      ],
+      "sourceRefs": [
+        "source:dw01-subject-snapshot-r1"
+      ],
+      "state": "NOT_YET_VERIFIED"
+    },
+    "recovery": {
+      "closureStanding": "OPEN",
+      "evidenceRefs": [],
+      "sourceRefs": [
+        "source:dw01-subject-snapshot-r1"
+      ],
+      "state": "NOT_STARTED"
+    }
+  },
+  "caseRef": "case:dwc:synthetic-prompt-required-r2",
+  "dependencyEdges": [
+    {
+      "fromRef": "action:obtain-effect-authority",
+      "relation": "unblocks",
+      "toRef": "action:apply-synthetic-mitigation"
+    },
+    {
+      "fromRef": "action:apply-synthetic-mitigation",
+      "relation": "precedes",
+      "toRef": "action:verify-synthetic-protection"
+    }
+  ],
+  "effectReviews": [
+    {
+      "actionRef": "action:apply-synthetic-mitigation",
+      "actuatorRef": "actuator:synthetic-maintenance",
+      "approvalPromptStanding": "REQUIRED",
+      "authorityBindingRef": "authority:synthetic-exchange-mitigation",
+      "authorityStanding": "MISSING",
+      "blastRadius": "single-synthetic-instance",
+      "commitPoint": "provider-apply",
+      "providerRef": "provider:synthetic-runtime",
+      "reversibility": "rollback-available",
+      "sourceRef": "source:effect-authority-owner-r1",
+      "targetRefs": [
+        "subject:synthetic-exchange:instance-a"
+      ],
+      "verifierRef": "verifier:synthetic-protection-check"
+    }
+  ],
+  "kind": "ordivon.security-dwc-operator-bundle-r1",
+  "nextSafeActions": [
+    {
+      "actionRef": "action:refresh-exposure",
+      "blockerRefs": [],
+      "dependencyRefs": [
+        "source:dw01-subject-snapshot-r1"
+      ],
+      "description": "Refresh bounded exposure evidence before relying on the earlier snapshot.",
+      "effectful": false,
+      "evidenceRefs": [
+        "evidence:exposure:synthetic-r1"
+      ],
+      "executionStanding": "READY",
+      "ownerRef": "owner:subject-exposure"
+    },
+    {
+      "actionRef": "action:obtain-effect-authority",
+      "blockerRefs": [],
+      "dependencyRefs": [
+        "authority:synthetic-exchange-mitigation"
+      ],
+      "description": "Obtain or resolve the exact mitigation effect-authority binding.",
+      "effectful": false,
+      "evidenceRefs": [],
+      "executionStanding": "READY",
+      "ownerRef": "owner:effect-authority"
+    },
+    {
+      "actionRef": "action:apply-synthetic-mitigation",
+      "blockerRefs": [
+        "blocker:effect-authority-review"
+      ],
+      "dependencyRefs": [
+        "action:obtain-effect-authority"
+      ],
+      "description": "Apply the bounded mitigation only after the authority owner reports a granted binding.",
+      "effectful": true,
+      "evidenceRefs": [],
+      "executionStanding": "BLOCKED",
+      "ownerRef": "owner:effect-execution"
+    },
+    {
+      "actionRef": "action:verify-synthetic-protection",
+      "blockerRefs": [
+        "blocker:effect-authority-review"
+      ],
+      "dependencyRefs": [
+        "action:apply-synthetic-mitigation"
+      ],
+      "description": "Independently verify the protection consequence after the effect is observed.",
+      "effectful": false,
+      "evidenceRefs": [],
+      "executionStanding": "BLOCKED",
+      "ownerRef": "owner:consequence-verification"
+    }
+  ],
+  "policy": {
+    "deadlineAt": "2026-10-01T15:43:00+08:00",
+    "decisionObservedAt": "2026-10-01T11:43:00+08:00",
+    "decisionRef": "decision:synthetic-out-of-cycle-r1",
+    "policyOwnerRef": "owner:response-policy",
+    "policyRef": "policy:dwc:ssvc-inspired:synthetic-r1",
+    "policyVersion": "r1",
+    "sourceRef": "source:dw03-policy-r1"
+  },
+  "rawArtifactRefs": [
+    "artifact:synthetic-dw01-subject-json",
+    "artifact:synthetic-dw02-applicability-json",
+    "artifact:synthetic-dw03-policy-json",
+    "artifact:synthetic-authority-owner-json"
+  ],
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "currentnessStanding": "POINT_IN_TIME_OBSERVED",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "observedAt": "2026-10-01T11:40:00+08:00",
+      "ownerRef": "owner:subject-exposure",
+      "sourceRef": "source:dw01-subject-snapshot-r1"
+    },
+    {
+      "currentnessStanding": "CURRENT_DECLARED",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "observedAt": "2026-10-01T11:42:00+08:00",
+      "ownerRef": "owner:threat-applicability",
+      "sourceRef": "source:dw02-applicability-r1"
+    },
+    {
+      "currentnessStanding": "CURRENT_DECLARED",
+      "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "observedAt": "2026-10-01T11:43:00+08:00",
+      "ownerRef": "owner:response-policy",
+      "sourceRef": "source:dw03-policy-r1"
+    },
+    {
+      "currentnessStanding": "CURRENT_DECLARED",
+      "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "observedAt": "2026-10-01T11:44:00+08:00",
+      "ownerRef": "owner:effect-authority",
+      "sourceRef": "source:effect-authority-owner-r1"
+    }
+  ],
+  "subjectRefs": [
+    "subject:synthetic-exchange:instance-a"
+  ],
+  "workflow": {
+    "blockedBy": [
+      {
+        "blockerRef": "blocker:effect-authority-review",
+        "ownerRef": "owner:effect-authority",
+        "reason": "Mitigation effect has no current owner-granted authority binding."
+      }
+    ],
+    "completedRefs": [
+      "action:bind-subject",
+      "action:classify-applicability"
+    ],
+    "pendingRefs": [
+      "action:apply-synthetic-mitigation",
+      "action:verify-synthetic-protection"
+    ],
+    "phase": "PROTECTION_VALIDATION",
+    "runningRefs": []
+  }
+}
