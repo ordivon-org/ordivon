@@ -43,3 +43,9 @@ ORDIVON_GATEWAY_WORKER_ENROLLMENT_TOKEN_FILE is configured.
 This transport is execution-delivery mechanics only. It does not close Admission Fabric
 AF-S2 capability authorization, does not establish domain EffectAuthority, and does not
 grant shell workers browser authority.
+
+## Capability observation lifecycle
+
+Independent read-only Runtime and Host capability observations run concurrently, once per required owner per request. Projection ordering stays deterministic, and observations are not cached across requests. A failed or timed-out owner observation remains UNKNOWN through the existing observation error; healthy owners remain visible.
+
+The default per-probe cooperative cancellation budget is five seconds. Cancellation waits for transport cleanup: legacy MCP session DELETE cleanup may extend that budget, so it is not a hard end-to-end latency deadline. Cancellation of the enclosing request drains its child probes. Gateway does not parallelize effects or retry upstream effects.
