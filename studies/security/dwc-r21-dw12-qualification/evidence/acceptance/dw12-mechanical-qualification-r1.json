@@ -1,0 +1,143 @@
+{
+  "ablations": {
+    "DW03": {
+      "claimBoundary": "Ablation removes the bounded policy/deadline projection. No production outcome difference is inferred because legitimate organization policy/deadlines are absent.",
+      "deadlineProjectionAvailable": false,
+      "responsePolicyProjectionAvailable": false
+    },
+    "DW04": {
+      "attackFlowCoverageProjectionAvailable": false,
+      "claimBoundary": "Ablation removes attack-flow/control coverage structure. No control-effectiveness difference is inferred from mapping-only historical evidence.",
+      "structuralCutEvidenceAvailable": false
+    },
+    "DW10": {
+      "ablatedFullRecomputeCostUnits": 37,
+      "candidateSelectiveRevalidationCostUnits": 20,
+      "claimBoundary": "Qualification units are synthetic fixture weights, not CPU, wall-clock or money.",
+      "syntheticQualificationCostUnitsDelta": 17
+    },
+    "DW11": {
+      "claimBoundary": "Mechanical view removal is observable; human/Agent decision-latency and prompt-rate effects remain unmeasured and require independent trials.",
+      "humanDecisionLatencyDeltaMs": null,
+      "independentAxesVisibleThroughDwcView": false,
+      "operatorProjectionAvailable": false,
+      "unnecessaryApprovalPromptRateDelta": null
+    }
+  },
+  "cases": {
+    "benignValidation": {
+      "boundedCompromiseStanding": "NO_COMPROMISE_OBSERVED_COMPLETE_COVERAGE",
+      "boundedPersistenceStanding": "NO_PERSISTENCE_OBSERVED_COMPLETE_COVERAGE",
+      "globalCompromiseAbsenceEstablished": false,
+      "productionEffectAuthorityGranted": false,
+      "productionSecurityStandingEstablished": false,
+      "validationAdmissionEstablished": true,
+      "verifiedProtectionEstablished": false
+    },
+    "exchangeHistoricalReplay": {
+      "localTTVPms": null,
+      "persistenceStanding": "HISTORICAL_ADVERSE_REQUIRES_CURRENT_INVESTIGATION",
+      "recoveryStanding": "UNKNOWN_CURRENT_INCIDENT_STATE",
+      "slackStanding": "UNKNOWN_DURATION",
+      "verifiedProtectionEstablished": false
+    },
+    "liveOperatorAdmission": {
+      "authorizationDecisionIncluded": false,
+      "effectReviewCount": 0,
+      "observationStanding": "MIXED_OR_UNDATED_SOURCES",
+      "securityAxes": {
+        "applicability": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_CASE_SPECIFIC_VULNERABILITY_BOUND"
+        },
+        "compromise": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_INCIDENT_EVIDENCE_BOUND"
+        },
+        "exposure": {
+          "closureStanding": "CLOSED",
+          "state": "LOOPBACK_REACHABLE_FROM_LINUX_HOST"
+        },
+        "protection": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_CONTROL_CASE_BOUND"
+        },
+        "recovery": {
+          "closureStanding": "UNKNOWN",
+          "state": "UNKNOWN_NO_RECOVERY_CASE_BOUND"
+        }
+      },
+      "unresolvedAxes": [
+        "applicability",
+        "protection",
+        "compromise",
+        "recovery"
+      ]
+    },
+    "responseLossReplay": {
+      "normalStanding": "COMMITTED_UNVERIFIED",
+      "providerApplyCounts": {
+        "denied": 0,
+        "normalAndReplay": 1,
+        "transportAfterCommit": 1
+      },
+      "replayStanding": "RECONCILED_COMMITTED_UNVERIFIED",
+      "transportStanding": "TRANSPORT_LOSS_RECONCILED_UNVERIFIED",
+      "verifiedProtectionEstablished": false
+    },
+    "staleEvidence": {
+      "compromiseAbsenceEstablished": false,
+      "currentBoundedProtectionStanding": "SATISFIED",
+      "currentBoundedProtectionVerified": true,
+      "receiptOnlyVerificationStanding": "UNKNOWN",
+      "staleVerificationStanding": "UNKNOWN"
+    },
+    "syntheticRecovery": {
+      "compromiseStanding": "CONFIRMED",
+      "domainAcceptanceEstablished": false,
+      "eradicationEstablished": true,
+      "persistenceStanding": "CONFIRMED",
+      "recoveryEstablished": true,
+      "recoveryStanding": "RECOVERY_VERIFIED"
+    }
+  },
+  "corpusDigest": "sha256:180f06b33ee529895982431f231cf84b7e663fde349c6d068d404999baf3f05e",
+  "evidenceCoverage": {
+    "allFrozenArtifactsPresent": true,
+    "caseCount": 6,
+    "frozenArtifactCount": 9
+  },
+  "independentAcceptance": {
+    "required": true,
+    "selfCertificationPerformed": false,
+    "standing": "PENDING_NO_AGENT_OCCURRENCE_CREATE_TOOL"
+  },
+  "kind": "ordivon.security.dwc-dw12-mechanical-qualification-r1",
+  "mechanicalStanding": "PASS",
+  "metrics": {
+    "humanDecisionLatencyMs": null,
+    "productionTTVPms": null,
+    "syntheticFullRecomputeCostUnits": 37,
+    "syntheticSelectiveRevalidationCostUnits": 20,
+    "timeToEradicationMs": null,
+    "timeToRecoveryMs": null,
+    "unnecessaryApprovalPromptRate": null
+  },
+  "overallStanding": "MECHANICAL_QUALIFICATION_PASS_INDEPENDENT_ACCEPTANCE_PENDING",
+  "protocolDigest": "sha256:ea4dca649d09d9c6c3261a8891d2339c6ab64298270457ef88d1a8347b2e3869",
+  "resultDigest": "sha256:4fa17920d7df258eab8726ce2e748dcbaf9999eb73c844b6c99e27a1c5f2ccc4",
+  "schemaVersion": 1,
+  "sharedPromotion": {
+    "dw10ToSharedComposition": false,
+    "reason": "Only synthetic qualification-cost savings and one bounded owner-binding case are available; repeated cross-case production pressure plus independent acceptance is absent.",
+    "standing": "NOT_JUSTIFIED_BY_CURRENT_EVIDENCE"
+  },
+  "violations": {
+    "authorityBoundaryViolations": 0,
+    "duplicateEffectApplyViolations": 0,
+    "falseClosureViolations": 0,
+    "globalGreenViolations": 0,
+    "historicalToCurrentLaunderingViolations": 0,
+    "staleEvidenceClosureViolations": 0
+  }
+}

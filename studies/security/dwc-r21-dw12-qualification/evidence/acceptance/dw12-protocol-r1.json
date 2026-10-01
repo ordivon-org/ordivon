@@ -1,0 +1,35 @@
+{
+  "ablations": [
+    "DW03",
+    "DW04",
+    "DW10",
+    "DW11"
+  ],
+  "corpusDigest": "sha256:180f06b33ee529895982431f231cf84b7e663fde349c6d068d404999baf3f05e",
+  "independentAcceptanceRequired": true,
+  "kind": "ordivon.security.dwc-dw12-qualification-protocol-r1",
+  "mechanicalGates": {
+    "authorityBoundaryViolations": 0,
+    "duplicateEffectApplyViolations": 0,
+    "falseClosureViolations": 0,
+    "globalGreenViolations": 0,
+    "historicalToCurrentLaunderingViolations": 0,
+    "staleEvidenceClosureViolations": 0
+  },
+  "metrics": [
+    "productionTTVPms",
+    "timeToEradicationMs",
+    "timeToRecoveryMs",
+    "falseClosureViolations",
+    "staleEvidenceClosureViolations",
+    "authorityBoundaryViolations",
+    "duplicateEffectApplyViolations",
+    "humanDecisionLatencyMs",
+    "unnecessaryApprovalPromptRate",
+    "evidenceCoverage"
+  ],
+  "protocolDigest": "sha256:ea4dca649d09d9c6c3261a8891d2339c6ab64298270457ef88d1a8347b2e3869",
+  "schemaVersion": 1,
+  "selfCertificationAllowed": false,
+  "sharedPromotionRule": "No shared-LEGO promotion from synthetic or single-case evidence alone. Repeated cross-case pressure plus independent acceptance is required."
+}
