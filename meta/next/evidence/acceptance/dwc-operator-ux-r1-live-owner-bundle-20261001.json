@@ -1,0 +1,176 @@
+{
+  "attentionEvents": [
+    {
+      "caseRef": "case:dwc:live-linux-runtime-admission-r1",
+      "evidenceRefs": [
+        "path:platform/security/evidence/acceptance/dwc-threat-applicability-r1-20261001.json"
+      ],
+      "sourceRef": "source:dw02:qualified-contract",
+      "subjectRef": "service:ordivon-runtime/linux-local",
+      "summary": "DW02 mechanics are qualified, but this bounded live subject has no case-specific vulnerability/advisory evidence; applicability remains UNKNOWN.",
+      "updateRef": "update:no-case-specific-vulnerability-r1"
+    },
+    {
+      "caseRef": "case:dwc:live-linux-runtime-admission-r1",
+      "evidenceRefs": [
+        "path:studies/security/dwc-r21-dw10-temporal-invalidation/evidence/acceptance/dw10-integrated-owner-bindings-r1.json"
+      ],
+      "sourceRef": "source:dw10:owner-binding",
+      "subjectRef": "service:ordivon-runtime/linux-local",
+      "summary": "DW10 is qualified, but no T0-T7 case milestones or production policy deadline exist for this admission-only case; TTVP/slack remain UNKNOWN.",
+      "updateRef": "update:timing-not-observed-r1"
+    }
+  ],
+  "axes": {
+    "applicability": {
+      "closureStanding": "UNKNOWN",
+      "evidenceRefs": [
+        "path:platform/security/evidence/acceptance/dwc-threat-applicability-r1-20261001.json"
+      ],
+      "sourceRefs": [
+        "source:dw02:qualified-contract"
+      ],
+      "state": "UNKNOWN_NO_CASE_SPECIFIC_VULNERABILITY_BOUND"
+    },
+    "compromise": {
+      "closureStanding": "UNKNOWN",
+      "evidenceRefs": [],
+      "sourceRefs": [
+        "source:dw01:linux-runtime-live"
+      ],
+      "state": "UNKNOWN_NO_INCIDENT_EVIDENCE_BOUND"
+    },
+    "exposure": {
+      "closureStanding": "CLOSED",
+      "evidenceRefs": [
+        "dwc-subject-exposure:sha256:608e1db04f21c430888d6e040196f9cf8fee42de4843b52a8ef51ebf9efb6e20"
+      ],
+      "sourceRefs": [
+        "source:dw01:linux-runtime-live"
+      ],
+      "state": "LOOPBACK_REACHABLE_FROM_LINUX_HOST"
+    },
+    "protection": {
+      "closureStanding": "UNKNOWN",
+      "evidenceRefs": [
+        "path:studies/security/dwc-r21-dw10-temporal-invalidation/evidence/acceptance/dw10-integrated-owner-bindings-r1.json"
+      ],
+      "sourceRefs": [
+        "source:dw10:owner-binding"
+      ],
+      "state": "UNKNOWN_NO_CONTROL_CASE_BOUND"
+    },
+    "recovery": {
+      "closureStanding": "UNKNOWN",
+      "evidenceRefs": [],
+      "sourceRefs": [
+        "source:dw10:owner-binding"
+      ],
+      "state": "UNKNOWN_NO_RECOVERY_CASE_BOUND"
+    }
+  },
+  "caseRef": "case:dwc:live-linux-runtime-admission-r1",
+  "dependencyEdges": [
+    {
+      "fromRef": "source:dw01:linux-runtime-live",
+      "relation": "required-subject-binding",
+      "toRef": "action:bind-case-specific-vulnerability"
+    },
+    {
+      "fromRef": "source:dw02:qualified-contract",
+      "relation": "consumer-contract",
+      "toRef": "action:bind-case-specific-vulnerability"
+    }
+  ],
+  "effectReviews": [],
+  "kind": "ordivon.security-dwc-operator-bundle-r1",
+  "nextSafeActions": [
+    {
+      "actionRef": "action:bind-case-specific-vulnerability",
+      "blockerRefs": [],
+      "dependencyRefs": [
+        "source:dw01:linux-runtime-live",
+        "source:dw02:qualified-contract"
+      ],
+      "description": "Bind an exact vulnerability/advisory evidence set to the current DW01 subject before evaluating applicability.",
+      "effectful": false,
+      "evidenceRefs": [],
+      "executionStanding": "READY",
+      "ownerRef": "security:dw02-input-owner"
+    },
+    {
+      "actionRef": "action:refresh-live-subject-if-needed",
+      "blockerRefs": [],
+      "dependencyRefs": [
+        "source:dw01:linux-runtime-live"
+      ],
+      "description": "Refresh the point-in-time DW01 subject/exposure observation before relying on it for a later defense epoch.",
+      "effectful": false,
+      "evidenceRefs": [
+        "dwc-subject-exposure:sha256:608e1db04f21c430888d6e040196f9cf8fee42de4843b52a8ef51ebf9efb6e20"
+      ],
+      "executionStanding": "READY",
+      "ownerRef": "security:dw01-subject-exposure"
+    }
+  ],
+  "policy": null,
+  "rawArtifactRefs": [
+    "platform/security/evidence/acceptance/dwc-subject-exposure-r1/linux-runtime-live.snapshot.json",
+    "platform/security/evidence/acceptance/dwc-threat-applicability-r1-20261001.json",
+    "platform/security/evidence/acceptance/dw03-response-policy-r1-20261001.json",
+    "studies/security/dwc-r21-dw10-temporal-invalidation/evidence/acceptance/dw10-integrated-owner-bindings-r1.json"
+  ],
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "currentnessStanding": "COHERENT_HORIZON",
+      "digest": "sha256:608e1db04f21c430888d6e040196f9cf8fee42de4843b52a8ef51ebf9efb6e20",
+      "observedAt": "2026-10-01T12:34:29+08:00",
+      "ownerRef": "security:dw01-subject-exposure",
+      "sourceRef": "source:dw01:linux-runtime-live"
+    },
+    {
+      "currentnessStanding": "QUALIFIED_CONTRACT_CURRENT_AT_MAIN",
+      "digest": "sha256:c22b8caa1d79e6f134f6060bdaa402f032d6dafd18e6a94e0cab5efc3939a617",
+      "observedAt": "2026-10-01T12:48:17+08:00",
+      "ownerRef": "security:dw02-threat-applicability",
+      "sourceRef": "source:dw02:qualified-contract"
+    },
+    {
+      "currentnessStanding": "QUALIFIED_CONTRACT_CURRENT_AT_MAIN",
+      "digest": "sha256:7a97e05792caa29a26c2a3902c7d0edcc1f48c726e5badffe0a63ebb2579ec94",
+      "observedAt": "2026-10-01T12:56:00+08:00",
+      "ownerRef": "security:dw03-response-policy",
+      "sourceRef": "source:dw03:qualified-contract"
+    },
+    {
+      "currentnessStanding": "QUALIFIED_DWC_LOCAL_CURRENT_AT_MAIN",
+      "digest": "sha256:2fa71ed62cb248ec27856917c68433d78aef6b2194a13189a33a8d2f8d8771ff",
+      "observedAt": null,
+      "ownerRef": "security:dw10-temporal-invalidation",
+      "sourceRef": "source:dw10:owner-binding"
+    }
+  ],
+  "subjectRefs": [
+    "service:ordivon-runtime/linux-local"
+  ],
+  "workflow": {
+    "blockedBy": [
+      {
+        "blockerRef": "blocker:no-case-specific-vulnerability",
+        "ownerRef": "security:dw02-input-owner",
+        "reason": "No exact vulnerability/advisory evidence is bound to this live Linux Runtime subject, so applicability and downstream policy/protection claims remain UNKNOWN."
+      }
+    ],
+    "completedRefs": [
+      "action:bind-live-subject",
+      "action:qualify-dw01-dw03-contracts",
+      "action:qualify-dw10-local-controller"
+    ],
+    "pendingRefs": [
+      "action:bind-case-specific-vulnerability"
+    ],
+    "phase": "CASE_ADMISSION",
+    "runningRefs": []
+  }
+}

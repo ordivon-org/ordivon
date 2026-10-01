@@ -1,0 +1,118 @@
+{
+  "bundlePath": "meta/next/evidence/acceptance/dwc-operator-ux-r1-live-owner-bundle-20261001.json",
+  "canonicalMainBase": "48ffaa85f7908289a59e227f9d84054ec4785956",
+  "effectReviewSummary": {
+    "approvalPromptStandings": [],
+    "authorityStandings": [],
+    "authorizationDecisionIncluded": false,
+    "reviewCount": 0
+  },
+  "evidenceDigest": "sha256:6cc90c42b9ec0c5969321921449d6737558fe5ba6a5e74dddbf54f27804b4246",
+  "kind": "ordivon.security-dwc-operator-ux-live-owner-wiring-r1",
+  "mechanicalPlanProjectionBenchmark": {
+    "iterations": 1000,
+    "meanMs": 0.06396288899850333,
+    "scope": "mechanical compile_view latency only"
+  },
+  "nextSafeActions": {
+    "actions": [
+      {
+        "actionRef": "action:bind-case-specific-vulnerability",
+        "blockerRefs": [],
+        "dependencyRefs": [
+          "source:dw01:linux-runtime-live",
+          "source:dw02:qualified-contract"
+        ],
+        "description": "Bind an exact vulnerability/advisory evidence set to the current DW01 subject before evaluating applicability.",
+        "effectful": false,
+        "evidenceRefs": [],
+        "executionStanding": "READY",
+        "ownerRef": "security:dw02-input-owner"
+      },
+      {
+        "actionRef": "action:refresh-live-subject-if-needed",
+        "blockerRefs": [],
+        "dependencyRefs": [
+          "source:dw01:linux-runtime-live"
+        ],
+        "description": "Refresh the point-in-time DW01 subject/exposure observation before relying on it for a later defense epoch.",
+        "effectful": false,
+        "evidenceRefs": [
+          "dwc-subject-exposure:sha256:608e1db04f21c430888d6e040196f9cf8fee42de4843b52a8ef51ebf9efb6e20"
+        ],
+        "executionStanding": "READY",
+        "ownerRef": "security:dw01-subject-exposure"
+      }
+    ],
+    "orderingSemantics": "NONE_UNRANKED"
+  },
+  "observationStanding": "MIXED_OR_UNDATED_SOURCES",
+  "policyClock": null,
+  "projectionSemantics": {
+    "authorizationDecisionIncluded": false,
+    "effectPerformedByView": false,
+    "policyDecisionMadeByView": false,
+    "presentationOnly": true,
+    "rankingApplied": false,
+    "schedulerDecisionIncluded": false
+  },
+  "remainingQualification": [
+    "Independent fresh-Agent cold re-entry remains unavailable because no Agent Birth/provider occurrence tool exists in the current callable surface.",
+    "Human/independent-Agent decision latency remains unmeasured.",
+    "Unnecessary approval-prompt rate requires labeled effect-review cases."
+  ],
+  "schemaVersion": 1,
+  "securityAxes": {
+    "applicability": {
+      "closureStanding": "UNKNOWN",
+      "state": "UNKNOWN_NO_CASE_SPECIFIC_VULNERABILITY_BOUND"
+    },
+    "compromise": {
+      "closureStanding": "UNKNOWN",
+      "state": "UNKNOWN_NO_INCIDENT_EVIDENCE_BOUND"
+    },
+    "exposure": {
+      "closureStanding": "CLOSED",
+      "state": "LOOPBACK_REACHABLE_FROM_LINUX_HOST"
+    },
+    "protection": {
+      "closureStanding": "UNKNOWN",
+      "state": "UNKNOWN_NO_CONTROL_CASE_BOUND"
+    },
+    "recovery": {
+      "closureStanding": "UNKNOWN",
+      "state": "UNKNOWN_NO_RECOVERY_CASE_BOUND"
+    }
+  },
+  "sourceSetDigest": "sha256:9f6f0f1671af9cdb5de1e903cdd6e8ef6404bb5bcaaa25ab0171a09a56ce500c",
+  "standing": "PASS_LIVE_OWNER_WIRING_CASE_ADMISSION",
+  "undatedSourceRefs": [
+    "source:dw10:owner-binding"
+  ],
+  "unresolvedAxes": [
+    "applicability",
+    "protection",
+    "compromise",
+    "recovery"
+  ],
+  "verifiedBoundaries": [
+    "Exposure may be CLOSED while applicability/protection/compromise/recovery remain UNKNOWN.",
+    "No global security verdict is emitted.",
+    "No case-specific vulnerability means no DW03 policy clock is projected.",
+    "No effect is proposed and no approval prompt is emitted.",
+    "DW10 unknown timing remains visible; no synthetic TTVP/slack is promoted into the operator view.",
+    "Next safe actions are non-effectful and explicitly unranked."
+  ],
+  "workRef": "work:security:dwc-r21:dw11-operator-ux:20261001",
+  "workflowProgress": {
+    "blockerCount": 1,
+    "blockerRefs": [
+      "blocker:no-case-specific-vulnerability"
+    ],
+    "completedCount": 3,
+    "pendingCount": 1,
+    "phase": "CASE_ADMISSION",
+    "runningCount": 0,
+    "separateFromSecurityStanding": true
+  }
+}
