@@ -1,0 +1,582 @@
+{
+  "authorityGranted": false,
+  "authorityObligationSet": {
+    "authorityGranted": false,
+    "circuitRef": {
+      "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+      "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+    },
+    "effectCoverageEstablished": false,
+    "executionAuthorityGranted": false,
+    "kind": "ordivon.authority-obligation-set",
+    "mechanicalBindingEstablished": true,
+    "nonClaims": [
+      "This projection validates only caller-authored Circuit/stage/capability/authority-contract bindings.",
+      "Composition does not discover effect-bearing nodes, authority owners, policies, Grants, credentials, or decisions.",
+      "A mechanically valid authority-obligation set does not authorize execution."
+    ],
+    "obligationSetDigest": "sha256:7bdbd7393175822ba8dab85ac48abdf42eb5ff50c8841051862d3d3686966afa",
+    "obligations": [
+      {
+        "authorityContractRef": {
+          "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+          "id": "security:effect-admission-differential-r1"
+        },
+        "authorityGranted": false,
+        "authorityOwnerId": "security.effect-authority",
+        "capability": "security.effect.execution",
+        "capabilityBindingId": "capability:dw07-effect-execution",
+        "capabilityOwnerId": "security.dw07",
+        "circuitRef": {
+          "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+          "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+        },
+        "id": "authority:dw07-effect-execution",
+        "nonClaims": [
+          "Composition does not infer whether all effect-bearing Circuit stages have authority requirements.",
+          "It is not an ALLOW decision, credential, Grant, or execution permission.",
+          "This declares the external authority prerequisite for a future effect stage.",
+          "This obligation records an external authority prerequisite; it is not an ALLOW decision or Grant."
+        ],
+        "obligationDigest": "sha256:24eac45dbbf19894b16edf0ff56ee9b81b564c0ebec607afcb4da95cb9e076b6",
+        "required": true,
+        "sourceRequirementDigest": "sha256:9301162ecb7afb8b7ad9e8c8d77866787e7c8faa21cd8b1a7ff9d57875a28875",
+        "stageId": "stage:dw07-effect-execution"
+      }
+    ],
+    "requiredObligationIds": [
+      "authority:dw07-effect-execution"
+    ],
+    "schemaVersion": 1,
+    "truthRole": "task-local-non-authoritative-authority-obligation-projection"
+  },
+  "authorityRequirementSet": {
+    "circuitRef": {
+      "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+      "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+    },
+    "kind": "ordivon.authority-requirement-set",
+    "nonClaims": [
+      "DW06 authors one explicit task-local authority prerequisite and does not decide it.",
+      "Composition does not infer complete effect coverage or grant execution authority."
+    ],
+    "requirements": [
+      {
+        "authorityContractRef": {
+          "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+          "id": "security:effect-admission-differential-r1"
+        },
+        "authorityOwnerId": "security.effect-authority",
+        "capabilityBindingId": "capability:dw07-effect-execution",
+        "id": "authority:dw07-effect-execution",
+        "nonClaims": [
+          "This declares the external authority prerequisite for a future effect stage.",
+          "It is not an ALLOW decision, credential, Grant, or execution permission."
+        ],
+        "required": true,
+        "stageId": "stage:dw07-effect-execution"
+      }
+    ],
+    "schemaVersion": 1
+  },
+  "caseBinding": {
+    "caseRef": "case:dw04:exchange-proxylogon-2021",
+    "epochRef": "epoch:dw04:exchange-proxylogon-2021:historical-replay",
+    "subjectRef": "historical-subject:exchange-proxylogon-2021",
+    "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541"
+  },
+  "compiledCircuit": {
+    "authorityBoundary": "This compiled projection grants no Tool, credential, execution, network, retry, workflow, domain-verdict, or semantic-completion authority.",
+    "capabilityBindingIds": [
+      "capability:dw07-effect-execution",
+      "capability:dw08-consequence-verification",
+      "capability:dw09-compromise-observation"
+    ],
+    "circuitId": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021",
+    "compiledDigest": "sha256:03d112c92a3047e2c27765622c8dfbe1898b76c352d599e978283436df6becb4",
+    "kind": "ordivon.cognitive-circuit-compiled",
+    "manifestDigest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+    "methodBindingIds": [],
+    "objectiveRef": {
+      "digest": "sha256:df2bf8954096054e50841052fd19d177cb885baffd74b8fd33661c03426112ea",
+      "id": "objective:dwc-coa-r1"
+    },
+    "requiredGateIds": [
+      "gate:dw06-dw07-effect-proposal",
+      "gate:dw06-dw09-compromise-hunt",
+      "gate:dw07-dw08-effect-receipt"
+    ],
+    "schemaVersion": 1,
+    "stageOrder": [
+      "stage:dw06-protection-plan",
+      "stage:dw07-effect-execution",
+      "stage:dw08-consequence-verification",
+      "stage:dw09-compromise-hunt"
+    ],
+    "truthRole": "task-local-non-authoritative-composition-projection",
+    "unresolvedAssumptions": []
+  },
+  "compromiseAbsenceEstablished": false,
+  "domainAcceptanceEstablished": false,
+  "effectExecuted": false,
+  "executionAuthorityGranted": false,
+  "gateProjection": {
+    "circuitId": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021",
+    "claimBoundary": "Mechanical closure means only that all required task-local composition obligations have verifier-owned SATISFIED records and no unresolved manifest assumptions remain. It does not establish domain success.",
+    "domainAcceptanceEstablished": false,
+    "kind": "ordivon.cognitive-circuit-gate-projection",
+    "manifestDigest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+    "mechanicalClosure": false,
+    "missingGateIds": [
+      "gate:dw06-dw07-effect-proposal",
+      "gate:dw06-dw09-compromise-hunt",
+      "gate:dw07-dw08-effect-receipt"
+    ],
+    "projectionDigest": "sha256:f56ed3b8041cc19d462ac7a1ab636e724f099ade0d9c7faf1bad7f4b57b0e0a2",
+    "requiredGateIds": [
+      "gate:dw06-dw07-effect-proposal",
+      "gate:dw06-dw09-compromise-hunt",
+      "gate:dw07-dw08-effect-receipt"
+    ],
+    "satisfiedGateIds": [],
+    "schemaVersion": 1,
+    "standing": "COMPOSITION_GATES_OPEN",
+    "truthRole": "bounded-composition-gate-projection-not-domain-verdict",
+    "unknownGateIds": [],
+    "unresolvedAssumptions": [],
+    "unsatisfiedGateIds": []
+  },
+  "kind": "ordivon.security.dwc-coa-lowering-r1",
+  "loweringDigest": "sha256:c52f66b2f603c85f93f24ca16d3de82283b1581a45981456d8e6f548b21a6512",
+  "manifest": {
+    "capabilityBindings": [
+      {
+        "bindingDigest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+        "capability": "security.effect.execution",
+        "id": "capability:dw07-effect-execution",
+        "ownerId": "security.dw07",
+        "sourceKind": "direct-owner",
+        "truthBoundary": "DW07 remains the future effect/admission owner. This binding names its current effect-admission contract only; it does not prove provider availability or authority."
+      },
+      {
+        "bindingDigest": "sha256:2a4041e84c4035769fdfdb023cbabe76d0067eb11659bc34a4b7b6f3f2f2d2ab",
+        "capability": "security.consequence.verification",
+        "id": "capability:dw08-consequence-verification",
+        "ownerId": "security.dw08",
+        "sourceKind": "direct-owner",
+        "truthBoundary": "DW08 owns independent consequence verification semantics; an execution receipt alone is never world truth."
+      },
+      {
+        "bindingDigest": "sha256:51774c746b1e34f227648e2ebc3b072cdbdfeacf34cdf6591515c941e54a5ae6",
+        "capability": "security.incident.compromise-observation",
+        "id": "capability:dw09-compromise-observation",
+        "ownerId": "security.dw09",
+        "sourceKind": "direct-owner",
+        "truthBoundary": "DW09/incident natural owners retain compromise and recovery truth; this binding does not infer detection coverage or absence of compromise."
+      }
+    ],
+    "circuitId": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021",
+    "edges": [
+      {
+        "contractRef": "contract:dwc-effect-proposal-r1",
+        "from": {
+          "port": "effect-proposal",
+          "stageId": "stage:dw06-protection-plan"
+        },
+        "id": "edge:dw06-dw07-effect-proposal",
+        "to": {
+          "port": "effect-proposal",
+          "stageId": "stage:dw07-effect-execution"
+        }
+      },
+      {
+        "contractRef": "contract:security-consequence-input-r1",
+        "from": {
+          "port": "effect-receipt",
+          "stageId": "stage:dw07-effect-execution"
+        },
+        "id": "edge:dw07-dw08-effect-receipt",
+        "to": {
+          "port": "effect-receipt",
+          "stageId": "stage:dw08-consequence-verification"
+        }
+      },
+      {
+        "contractRef": "contract:incident-case-profile-r1",
+        "from": {
+          "port": "compromise-hunt-request",
+          "stageId": "stage:dw06-protection-plan"
+        },
+        "id": "edge:dw06-dw09-compromise-hunt",
+        "to": {
+          "port": "compromise-hunt-request",
+          "stageId": "stage:dw09-compromise-hunt"
+        }
+      }
+    ],
+    "gateRequirements": [
+      {
+        "assumption": "DW07 receives one exact effect proposal bound to this defense epoch.",
+        "consumerStageId": "stage:dw07-effect-execution",
+        "guarantee": "DW06 emits only a non-authoritative proposed effect; no grant or execution is implied.",
+        "id": "gate:dw06-dw07-effect-proposal",
+        "producerStageId": "stage:dw06-protection-plan",
+        "required": true,
+        "supportScope": "DW06->DW07 exact effect-proposal contract seam only",
+        "verifierOwnerId": "security.dw07"
+      },
+      {
+        "assumption": "DW08 receives an executor receipt bound to the exact admitted request identity.",
+        "consumerStageId": "stage:dw08-consequence-verification",
+        "guarantee": "Receipt binding is checked without treating receipt content as authoritative world truth.",
+        "id": "gate:dw07-dw08-effect-receipt",
+        "producerStageId": "stage:dw07-effect-execution",
+        "required": true,
+        "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+        "verifierOwnerId": "security.dw08"
+      },
+      {
+        "assumption": "DW09 receives the exact bounded case/subject evidence needed for compromise investigation.",
+        "consumerStageId": "stage:dw09-compromise-hunt",
+        "guarantee": "Protection planning does not close compromise/persistence/recovery standing.",
+        "id": "gate:dw06-dw09-compromise-hunt",
+        "producerStageId": "stage:dw06-protection-plan",
+        "required": true,
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierOwnerId": "security.dw09"
+      }
+    ],
+    "kind": "ordivon.cognitive-circuit-manifest",
+    "methodBindings": [],
+    "nonClaims": [
+      "This Circuit is a task-local non-authoritative DWC plan projection.",
+      "Circuit compilation does not schedule, authorize, execute, retry, or verify an effect.",
+      "Protection and compromise/recovery remain independent branches.",
+      "Mechanical Composition closure is not Security/domain acceptance."
+    ],
+    "objectiveRef": {
+      "digest": "sha256:df2bf8954096054e50841052fd19d177cb885baffd74b8fd33661c03426112ea",
+      "id": "objective:dwc-coa-r1"
+    },
+    "schemaVersion": 1,
+    "stages": [
+      {
+        "capabilityBindings": [],
+        "dependsOn": [],
+        "id": "stage:dw06-protection-plan",
+        "inputs": [
+          "source-bundle"
+        ],
+        "methodBindings": [],
+        "outputs": [
+          "effect-proposal",
+          "compromise-hunt-request"
+        ],
+        "ownerId": "security.dw06",
+        "responsibility": "Lower exact response/coverage/optional-study evidence into a bounded proposed protection branch and an independent compromise-hunt request."
+      },
+      {
+        "capabilityBindings": [
+          "capability:dw07-effect-execution"
+        ],
+        "dependsOn": [
+          "stage:dw06-protection-plan"
+        ],
+        "id": "stage:dw07-effect-execution",
+        "inputs": [
+          "effect-proposal"
+        ],
+        "methodBindings": [],
+        "outputs": [
+          "effect-receipt"
+        ],
+        "ownerId": "security.dw07",
+        "responsibility": "Future natural owner may admit and execute one exact proposed effect only after its external authority prerequisite is independently satisfied."
+      },
+      {
+        "capabilityBindings": [
+          "capability:dw08-consequence-verification"
+        ],
+        "dependsOn": [
+          "stage:dw07-effect-execution"
+        ],
+        "id": "stage:dw08-consequence-verification",
+        "inputs": [
+          "effect-receipt"
+        ],
+        "methodBindings": [],
+        "outputs": [
+          "protection-observation"
+        ],
+        "ownerId": "security.dw08",
+        "responsibility": "Independently verify the post-effect protection consequence from authoritative world observation rather than trusting the executor receipt."
+      },
+      {
+        "capabilityBindings": [
+          "capability:dw09-compromise-observation"
+        ],
+        "dependsOn": [
+          "stage:dw06-protection-plan"
+        ],
+        "id": "stage:dw09-compromise-hunt",
+        "inputs": [
+          "compromise-hunt-request"
+        ],
+        "methodBindings": [],
+        "outputs": [
+          "compromise-observation"
+        ],
+        "ownerId": "security.dw09",
+        "responsibility": "Investigate compromise/persistence/recovery independently of whether the protection branch eventually verifies a mitigation consequence."
+      }
+    ],
+    "unresolvedAssumptions": []
+  },
+  "schemaVersion": 1,
+  "sourceBundleDigest": "sha256:df2bf8954096054e50841052fd19d177cb885baffd74b8fd33661c03426112ea",
+  "truthBoundary": "DW06 lowers exact already-selected DWC evidence into existing public Composition contracts. Authority obligations remain prerequisites, verifier bindings remain bindings, and empty gate results intentionally leave Composition Gates open. No workflow, effect, verifier execution, Security verdict, or domain acceptance is performed here.",
+  "verificationObligationSet": {
+    "circuitRef": {
+      "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+      "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+    },
+    "kind": "ordivon.verification-obligation-set",
+    "nonClaims": [
+      "This projection does not discover, select, rank, or execute verifiers.",
+      "This projection grants no Tool, credential, workflow, retry, or domain authority.",
+      "Verification closure does not establish domain acceptance."
+    ],
+    "obligationSetDigest": "sha256:901f1758869d84142b3f5db1aa1c8f1f15604d7297b9d54c41eec33769b63f85",
+    "obligations": [
+      {
+        "assumption": "DW07 receives one exact effect proposal bound to this defense epoch.",
+        "circuitRef": {
+          "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+          "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+        },
+        "consumerStageId": "stage:dw07-effect-execution",
+        "gateId": "gate:dw06-dw07-effect-proposal",
+        "guarantee": "DW06 emits only a non-authoritative proposed effect; no grant or execution is implied.",
+        "nonClaims": [
+          "This obligation is a task-local projection of an existing Composition Gate.",
+          "Discharging it establishes only the named support scope, not domain acceptance."
+        ],
+        "obligationDigest": "sha256:4d36f665e2102467d0bd40585f9bc2140de0b08436652d9a7618395459409633",
+        "producerStageId": "stage:dw06-protection-plan",
+        "required": true,
+        "requiredStanding": "SATISFIED",
+        "resultKind": "ordivon.composition-gate-result",
+        "sourceGateDigest": "sha256:772cc0d15b2ea3ed977064a76bdad0dc06b672ac73ccfb0f90228a09fbe8b0eb",
+        "supportScope": "DW06->DW07 exact effect-proposal contract seam only",
+        "verifierOwnerId": "security.dw07"
+      },
+      {
+        "assumption": "DW09 receives the exact bounded case/subject evidence needed for compromise investigation.",
+        "circuitRef": {
+          "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+          "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+        },
+        "consumerStageId": "stage:dw09-compromise-hunt",
+        "gateId": "gate:dw06-dw09-compromise-hunt",
+        "guarantee": "Protection planning does not close compromise/persistence/recovery standing.",
+        "nonClaims": [
+          "This obligation is a task-local projection of an existing Composition Gate.",
+          "Discharging it establishes only the named support scope, not domain acceptance."
+        ],
+        "obligationDigest": "sha256:0560fe18230c9d380516ee986b658c506f58bf1296499999615615e9bc387a33",
+        "producerStageId": "stage:dw06-protection-plan",
+        "required": true,
+        "requiredStanding": "SATISFIED",
+        "resultKind": "ordivon.composition-gate-result",
+        "sourceGateDigest": "sha256:4ad116c5296e96f4f73d20ffea1d312be16f8cac3b7b64ca4414594f4a85e429",
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierOwnerId": "security.dw09"
+      },
+      {
+        "assumption": "DW08 receives an executor receipt bound to the exact admitted request identity.",
+        "circuitRef": {
+          "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+          "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+        },
+        "consumerStageId": "stage:dw08-consequence-verification",
+        "gateId": "gate:dw07-dw08-effect-receipt",
+        "guarantee": "Receipt binding is checked without treating receipt content as authoritative world truth.",
+        "nonClaims": [
+          "This obligation is a task-local projection of an existing Composition Gate.",
+          "Discharging it establishes only the named support scope, not domain acceptance."
+        ],
+        "obligationDigest": "sha256:5ea9d5da65990847164fef81e1b59479cce392353d5b7fa3c7403aa68fc32a35",
+        "producerStageId": "stage:dw07-effect-execution",
+        "required": true,
+        "requiredStanding": "SATISFIED",
+        "resultKind": "ordivon.composition-gate-result",
+        "sourceGateDigest": "sha256:034923133f9e6abd0a19fa1dfcf1bcac8440c7ab83dbddc433ec280abf7ba914",
+        "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+        "verifierOwnerId": "security.dw08"
+      }
+    ],
+    "requiredGateIds": [
+      "gate:dw06-dw07-effect-proposal",
+      "gate:dw06-dw09-compromise-hunt",
+      "gate:dw07-dw08-effect-receipt"
+    ],
+    "schemaVersion": 1,
+    "truthRole": "task-local-non-authoritative-verification-obligation-projection"
+  },
+  "verifiedProtectionEstablished": false,
+  "verifierBindingSet": {
+    "bindings": [
+      {
+        "gateId": "gate:dw06-dw07-effect-proposal",
+        "nativeSpecificationRef": {
+          "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+          "id": "security:effect-admission-differential-r1"
+        },
+        "nonClaims": [
+          "Binding names an exact natural-owner contract/profile; it does not execute or certify the verifier."
+        ],
+        "obligationDigest": "sha256:4d36f665e2102467d0bd40585f9bc2140de0b08436652d9a7618395459409633",
+        "supportScope": "DW06->DW07 exact effect-proposal contract seam only",
+        "verifierClass": "owner-native-contract",
+        "verifierOwnerId": "security.dw07",
+        "verifierRef": {
+          "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+          "id": "security:effect-admission-differential-r1"
+        }
+      },
+      {
+        "gateId": "gate:dw06-dw09-compromise-hunt",
+        "nativeSpecificationRef": {
+          "digest": "sha256:51774c746b1e34f227648e2ebc3b072cdbdfeacf34cdf6591515c941e54a5ae6",
+          "id": "profile:incident-case-r1"
+        },
+        "nonClaims": [
+          "Binding names an exact natural-owner contract/profile; it does not execute or certify the verifier."
+        ],
+        "obligationDigest": "sha256:0560fe18230c9d380516ee986b658c506f58bf1296499999615615e9bc387a33",
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierClass": "owner-native-profile",
+        "verifierOwnerId": "security.dw09",
+        "verifierRef": {
+          "digest": "sha256:51774c746b1e34f227648e2ebc3b072cdbdfeacf34cdf6591515c941e54a5ae6",
+          "id": "profile:incident-case-r1"
+        }
+      },
+      {
+        "gateId": "gate:dw07-dw08-effect-receipt",
+        "nativeSpecificationRef": {
+          "digest": "sha256:2a4041e84c4035769fdfdb023cbabe76d0067eb11659bc34a4b7b6f3f2f2d2ab",
+          "id": "security:consequence-verification-differential-r1"
+        },
+        "nonClaims": [
+          "Binding names an exact natural-owner contract/profile; it does not execute or certify the verifier."
+        ],
+        "obligationDigest": "sha256:5ea9d5da65990847164fef81e1b59479cce392353d5b7fa3c7403aa68fc32a35",
+        "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+        "verifierClass": "owner-native-contract",
+        "verifierOwnerId": "security.dw08",
+        "verifierRef": {
+          "digest": "sha256:2a4041e84c4035769fdfdb023cbabe76d0067eb11659bc34a4b7b6f3f2f2d2ab",
+          "id": "security:consequence-verification-differential-r1"
+        }
+      }
+    ],
+    "circuitRef": {
+      "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+      "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+    },
+    "kind": "ordivon.task-local-verifier-binding-set",
+    "nonClaims": [
+      "Bindings are exact and task-local, not a verifier registry or ranking.",
+      "Resolved bindings do not discharge gates or establish domain acceptance."
+    ],
+    "obligationSetDigest": "sha256:901f1758869d84142b3f5db1aa1c8f1f15604d7297b9d54c41eec33769b63f85",
+    "schemaVersion": 1
+  },
+  "verifierExecutionPerformed": false,
+  "verifierResolution": {
+    "bindingSetDigest": "sha256:7ae464088260fc4c6b459136058ddcdba0834ae43d28344b7c719416076b84e3",
+    "circuitRef": {
+      "digest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+      "id": "circuit:dwc-coa:case:dw04:exchange-proxylogon-2021"
+    },
+    "claimBoundary": "Resolution means only that every required task-local obligation has an exact caller-authored verifier binding whose owner, obligation digest, and support scope match. It does not prove verifier availability, execute verification, grant authority, discharge a gate, or establish domain acceptance.",
+    "domainAcceptanceEstablished": false,
+    "executionAuthorityGranted": false,
+    "kind": "ordivon.verifier-resolution",
+    "mechanicalResolution": true,
+    "missingRequiredGateIds": [],
+    "obligationSetDigest": "sha256:901f1758869d84142b3f5db1aa1c8f1f15604d7297b9d54c41eec33769b63f85",
+    "resolutionDigest": "sha256:55661d7d48c40b467f0b20b13753a459e9fbf3a0afcf0c8485eb51512b39788f",
+    "resolvedBindings": [
+      {
+        "gateId": "gate:dw06-dw07-effect-proposal",
+        "nativeSpecificationRef": {
+          "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+          "id": "security:effect-admission-differential-r1"
+        },
+        "obligationDigest": "sha256:4d36f665e2102467d0bd40585f9bc2140de0b08436652d9a7618395459409633",
+        "supportScope": "DW06->DW07 exact effect-proposal contract seam only",
+        "verifierClass": "owner-native-contract",
+        "verifierOwnerId": "security.dw07",
+        "verifierRef": {
+          "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+          "id": "security:effect-admission-differential-r1"
+        }
+      },
+      {
+        "gateId": "gate:dw06-dw09-compromise-hunt",
+        "nativeSpecificationRef": {
+          "digest": "sha256:51774c746b1e34f227648e2ebc3b072cdbdfeacf34cdf6591515c941e54a5ae6",
+          "id": "profile:incident-case-r1"
+        },
+        "obligationDigest": "sha256:0560fe18230c9d380516ee986b658c506f58bf1296499999615615e9bc387a33",
+        "supportScope": "DW06->DW09 incident-case admission seam only",
+        "verifierClass": "owner-native-profile",
+        "verifierOwnerId": "security.dw09",
+        "verifierRef": {
+          "digest": "sha256:51774c746b1e34f227648e2ebc3b072cdbdfeacf34cdf6591515c941e54a5ae6",
+          "id": "profile:incident-case-r1"
+        }
+      },
+      {
+        "gateId": "gate:dw07-dw08-effect-receipt",
+        "nativeSpecificationRef": {
+          "digest": "sha256:2a4041e84c4035769fdfdb023cbabe76d0067eb11659bc34a4b7b6f3f2f2d2ab",
+          "id": "security:consequence-verification-differential-r1"
+        },
+        "obligationDigest": "sha256:5ea9d5da65990847164fef81e1b59479cce392353d5b7fa3c7403aa68fc32a35",
+        "supportScope": "DW07->DW08 exact receipt/consequence-input seam only",
+        "verifierClass": "owner-native-contract",
+        "verifierOwnerId": "security.dw08",
+        "verifierRef": {
+          "digest": "sha256:2a4041e84c4035769fdfdb023cbabe76d0067eb11659bc34a4b7b6f3f2f2d2ab",
+          "id": "security:consequence-verification-differential-r1"
+        }
+      }
+    ],
+    "schemaVersion": 1,
+    "standing": "VERIFIER_BINDINGS_RESOLVED",
+    "truthRole": "task-local-non-authoritative-verifier-binding-projection",
+    "unboundOptionalGateIds": []
+  },
+  "workflowProjection": {
+    "deadlineBudget": null,
+    "deadlineStanding": "UNSET",
+    "durableWorkflowOwner": "external:temporal-or-cacao-compatible",
+    "kind": "ordivon.security.dwc-workflow-boundary-projection-r1",
+    "loopPolicyOwnedHere": false,
+    "policyActionClass": "immediate",
+    "retryPolicyOwnedHere": false,
+    "schedulerDecisionIncluded": false,
+    "schemaVersion": 1,
+    "structuralConcurrencyGroups": [
+      [
+        "stage:dw07-effect-execution",
+        "stage:dw09-compromise-hunt"
+      ]
+    ],
+    "truthBoundary": "This sidecar describes structural concurrency and the external durable-workflow ownership boundary. It is not part of the Cognitive Circuit manifest and does not schedule, retry, wait, or loop.",
+    "waitTimerPolicyOwnedHere": false
+  }
+}

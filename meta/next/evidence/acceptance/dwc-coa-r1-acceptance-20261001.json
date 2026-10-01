@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw06-coa-lowering-r1-acceptance",
+  "observedAt": "2026-10-01T14:41:00+08:00",
+  "workRef": "work:security:dwc-r21:dw06-coa-compiler:20261001",
+  "standing": "DW06_LOWERING_IMPLEMENTED_AND_QUALIFIED",
+  "baseRevision": "de8e21af4ee433a1c4edb9129957590bfcedffbf",
+  "implementation": {
+    "compiler": "meta/next/scripts/dwc_coa_compiler_r1.py",
+    "acceptanceBuilder": "meta/next/scripts/build_dwc_coa_acceptance_r1.py",
+    "tests": "meta/next/tests/test_dwc_coa_compiler_r1.py",
+    "design": "meta/next/docs/DWC_COA_LOWERING_R1_20261001.md",
+    "sourceBundle": "meta/next/evidence/acceptance/dwc-coa-r1-source-bundle-20261001.json",
+    "contractBindings": "meta/next/evidence/acceptance/dwc-coa-r1-contract-bindings-20261001.json",
+    "lowering": "meta/next/evidence/acceptance/dwc-coa-r1-lowering-20261001.json"
+  },
+  "compositionBoundary": {
+    "packageModified": false,
+    "publicApis": [
+      "compile_manifest",
+      "compile_authority_obligations",
+      "compile_verification_obligations",
+      "resolve_verifier_bindings",
+      "evaluate_gate_results"
+    ],
+    "consumerOwner": "meta/next DWC-specific adapter",
+    "dependencyOwner": "packages/composition locked uv environment"
+  },
+  "topology": {
+    "protectionPlan": "stage:dw06-protection-plan",
+    "effectBranch": [
+      "stage:dw07-effect-execution",
+      "stage:dw08-consequence-verification"
+    ],
+    "independentCompromiseBranch": "stage:dw09-compromise-hunt",
+    "structuralConcurrencyGroup": [
+      "stage:dw07-effect-execution",
+      "stage:dw09-compromise-hunt"
+    ],
+    "durableWorkflowOwner": "external:temporal-or-cacao-compatible",
+    "schedulerDecisionIncluded": false
+  },
+  "qualification": {
+    "jobId": "job-01a0f630-f8a0-77e1-9bcf-0f5ab747c762",
+    "dw06Tests": "10/10 PASS",
+    "compositionTests": "56/56 PASS",
+    "sourceBundleDigest": "sha256:df2bf8954096054e50841052fd19d177cb885baffd74b8fd33661c03426112ea",
+    "manifestDigest": "sha256:af6bdfdbbf65638e8e516cf43a73df7574e9e1a421cbe08b887e2c956cfaba8b",
+    "compiledDigest": "sha256:03d112c92a3047e2c27765622c8dfbe1898b76c352d599e978283436df6becb4",
+    "authorityObligationSetDigest": "sha256:7bdbd7393175822ba8dab85ac48abdf42eb5ff50c8841051862d3d3686966afa",
+    "verificationObligationSetDigest": "sha256:901f1758869d84142b3f5db1aa1c8f1f15604d7297b9d54c41eec33769b63f85",
+    "loweringDigest": "sha256:c52f66b2f603c85f93f24ca16d3de82283b1581a45981456d8e6f548b21a6512",
+    "verifierResolution": "VERIFIER_BINDINGS_RESOLVED",
+    "gateStanding": "COMPOSITION_GATES_OPEN",
+    "missingGateIds": [
+      "gate:dw06-dw07-effect-proposal",
+      "gate:dw06-dw09-compromise-hunt",
+      "gate:dw07-dw08-effect-receipt"
+    ]
+  },
+  "invariants": [
+    "DW06 accepts only actionable DW03 ACTION_ONLY/DECIDED response decisions bound to the exact case/subject snapshot.",
+    "DW04 coverage must bind the same case/subject and must not smuggle authority/effect/verified-protection claims.",
+    "Decision-relevant DW05 evidence may clear only its explicit pending assumption; synthetic study evidence never establishes production protection.",
+    "DW07 future effect execution has an explicit Authority Requirement bound to the exact current Security effect-admission contract.",
+    "Authority Obligation compilation preserves effectCoverageEstablished=false, authorityGranted=false and executionAuthorityGranted=false.",
+    "Verification Obligations are projected from three cross-owner Composition Gates and exact verifier contracts/profiles resolve mechanically.",
+    "Verifier resolution does not execute verifiers or discharge gates.",
+    "Empty gate results intentionally leave COMPOSITION_GATES_OPEN and mechanicalClosure=false.",
+    "Structural fan-out does not imply a runtime schedule; waits/retries/loops/timers remain external workflow-owner concerns."
+  ],
+  "historicalQualification": {
+    "caseRef": "case:dw04:exchange-proxylogon-2021",
+    "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541",
+    "dw04ValidationStanding": "NOT_TRIGGERED_BY_DW04",
+    "responseCarrierScope": "qualification-only-representative-SSVC-row",
+    "responseActionClass": "immediate",
+    "deadlineStanding": "UNSET",
+    "responseAuthorityGranted": false,
+    "boundary": "Qualification only. The response carrier is rebound to the exact DW04 subject because older DW03/DW04 historical replays were separate epochs. It is not production policy, SLE, authority or live Exchange truth."
+  },
+  "nonClaims": [
+    "No DW07 effect was authorized or executed.",
+    "No verifier was executed and no Composition Gate was discharged.",
+    "No verified protection, compromise absence, eradication or recovery was established.",
+    "No scheduler/workflow state or retry/timer policy was added to Composition.",
+    "No production organization policy or universal deadline was invented."
+  ]
+}

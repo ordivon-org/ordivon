@@ -1,0 +1,234 @@
+{
+  "caseBinding": {
+    "caseRef": "case:dw04:exchange-proxylogon-2021",
+    "epochRef": "epoch:dw04:exchange-proxylogon-2021:historical-replay",
+    "subjectRef": "historical-subject:exchange-proxylogon-2021",
+    "subjectSnapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541"
+  },
+  "coverageProjection": {
+    "actions": [
+      {
+        "actionRef": "proxylogon:initial-access",
+        "evidenceRefs": [
+          "fixture:dw02:exchange-proxylogon-2021"
+        ],
+        "name": "Exploit Public-Facing Application",
+        "sourceRefs": [
+          "historical:Microsoft-HAFNIUM-2021-03-02",
+          "reference:MITRE-ATTACK-T1190"
+        ],
+        "techniqueRef": "attack:T1190"
+      },
+      {
+        "actionRef": "proxylogon:web-shell-persistence",
+        "evidenceRefs": [
+          "fixture:dw02:exchange-proxylogon-2021"
+        ],
+        "name": "Server Software Component: Web Shell",
+        "sourceRefs": [
+          "historical:Microsoft-HAFNIUM-2021-03-02",
+          "reference:MITRE-ATTACK-T1505.003"
+        ],
+        "techniqueRef": "attack:T1505.003"
+      }
+    ],
+    "applicabilityClaim": "AFFECTED",
+    "authorityGranted": false,
+    "authorizedValidationCandidateControlRefs": [],
+    "caseRef": "case:dw04:exchange-proxylogon-2021",
+    "controls": [
+      {
+        "attackMitigationRefs": [
+          "attack:M1051"
+        ],
+        "controlRef": "mapping:update-software",
+        "d3fendRefs": [
+          "d3fend:D3-SU"
+        ],
+        "detectionStrategyRefs": [],
+        "effectivenessEvidenceRefs": [],
+        "effectivenessStanding": "UNKNOWN",
+        "implementationEvidenceRefs": [],
+        "implementationStanding": "UNKNOWN",
+        "mappedActionRefs": [
+          "proxylogon:initial-access"
+        ],
+        "mappingEvidenceRefs": [
+          "reference:MITRE-ATTACK-T1190-M1051",
+          "reference:MITRE-D3FEND-M1051-D3-SU"
+        ],
+        "observationEvidenceRefs": [],
+        "observationStanding": "UNKNOWN",
+        "ownerRef": "external-mapping-owner"
+      },
+      {
+        "attackMitigationRefs": [],
+        "controlRef": "mapping:web-shell-detection",
+        "d3fendRefs": [],
+        "detectionStrategyRefs": [
+          "attack:DET0394"
+        ],
+        "effectivenessEvidenceRefs": [],
+        "effectivenessStanding": "UNKNOWN",
+        "implementationEvidenceRefs": [],
+        "implementationStanding": "UNKNOWN",
+        "mappedActionRefs": [
+          "proxylogon:web-shell-persistence"
+        ],
+        "mappingEvidenceRefs": [
+          "reference:MITRE-ATTACK-DET0394"
+        ],
+        "observationEvidenceRefs": [],
+        "observationStanding": "UNKNOWN",
+        "ownerRef": "external-mapping-owner"
+      }
+    ],
+    "coverageByAction": {
+      "proxylogon:initial-access": {
+        "implementedControlRefs": [],
+        "mappedControlRefs": [
+          "mapping:update-software"
+        ],
+        "observedControlRefs": [],
+        "verifiedEffectiveControlRefs": [],
+        "verifiedIneffectiveControlRefs": []
+      },
+      "proxylogon:web-shell-persistence": {
+        "implementedControlRefs": [],
+        "mappedControlRefs": [
+          "mapping:web-shell-detection"
+        ],
+        "observedControlRefs": [],
+        "verifiedEffectiveControlRefs": [],
+        "verifiedIneffectiveControlRefs": []
+      }
+    },
+    "domainAcceptanceEstablished": false,
+    "edges": [
+      {
+        "fromActionRef": "proxylogon:initial-access",
+        "relation": "precedes-in-historical-behavior-abstraction",
+        "toActionRef": "proxylogon:web-shell-persistence"
+      }
+    ],
+    "effectExecuted": false,
+    "epochRef": "epoch:dw04:exchange-proxylogon-2021:historical-replay",
+    "flow": {
+      "attackFlowVersion": "4.0",
+      "entryActionRefs": [
+        "proxylogon:initial-access"
+      ],
+      "flowRef": "attack-flow:exchange-proxylogon-2021:historical-r1",
+      "objectiveActionRefs": [
+        "proxylogon:web-shell-persistence"
+      ],
+      "sourceDigest": "sha256:affc9b02838d3d34668ac0dd7a3f6c7fbddbf7a247c5a35fa972c768d9cad433",
+      "sourceRef": "fixture:dw04:exchange-attack-flow-replay-r1"
+    },
+    "gaps": {
+      "implementedButEffectivenessUnknownActionRefs": [],
+      "implementedButUnobservedActionRefs": [],
+      "mappedButNotImplementedActionRefs": [
+        "proxylogon:initial-access",
+        "proxylogon:web-shell-persistence"
+      ],
+      "unmappedActionRefs": []
+    },
+    "kind": "ordivon.security.dwc-attack-coverage-projection",
+    "paths": [
+      {
+        "actionRefs": [
+          "proxylogon:initial-access",
+          "proxylogon:web-shell-persistence"
+        ],
+        "implementedControlRefs": [],
+        "mappedControlRefs": [
+          "mapping:update-software",
+          "mapping:web-shell-detection"
+        ],
+        "observedControlRefs": [],
+        "pathRef": "path:1",
+        "verifiedEffectiveControlPresent": false,
+        "verifiedEffectiveControlRefs": [],
+        "verifiedIneffectiveControlRefs": []
+      }
+    ],
+    "schemaVersion": 1,
+    "structuralCutActionRefs": [
+      "proxylogon:initial-access",
+      "proxylogon:web-shell-persistence"
+    ],
+    "subject": {
+      "caseRef": "case:dw04:exchange-proxylogon-2021",
+      "epochRef": "epoch:dw04:exchange-proxylogon-2021:historical-replay",
+      "evidenceRef": "dwc-subject-exposure:sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541",
+      "snapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541",
+      "subjectRef": "historical-subject:exchange-proxylogon-2021"
+    },
+    "truthBoundary": "DW04 is a task-local structural and evidence-state projection. Attack Flow, ATT&CK, and D3FEND remain external vocabularies. A mapped control is not proof of local implementation; implementation is not observation; observation is not verified effectiveness; verified effectiveness at one action is not a global protection verdict. Structural cuts are graph properties, not recommendations or effect authority. DW05 validation is only a candidate when additional authorized isolated evidence could change downstream planning.",
+    "validationStanding": "NOT_TRIGGERED_BY_DW04",
+    "verifiedEffectiveAtStructuralCutActionRefs": [],
+    "verifiedProtectionEstablished": false,
+    "vulnerabilityRef": "CVE-2021-26855"
+  },
+  "kind": "ordivon.security.dwc-coa-source-bundle-r1",
+  "moduleBindings": [
+    {
+      "digest": "sha256:6a90a2d2d967a542c28bb16cba3cea454e09ea3bb047e7ffdacaa00e642e1854",
+      "id": "dw01",
+      "ownerId": "security.dw01",
+      "standing": "DW01_CONTRACT_IMPLEMENTED_AND_DOGFOODED"
+    },
+    {
+      "digest": "sha256:c22b8caa1d79e6f134f6060bdaa402f032d6dafd18e6a94e0cab5efc3939a617",
+      "id": "dw02",
+      "ownerId": "security.dw02",
+      "standing": "DW02_CONTRACT_IMPLEMENTED_AND_QUALIFIED"
+    },
+    {
+      "digest": "sha256:7a97e05792caa29a26c2a3902c7d0edcc1f48c726e5badffe0a63ebb2579ec94",
+      "id": "dw03",
+      "ownerId": "security.dw03",
+      "standing": "IMPLEMENTED_AND_QUALIFIED_POLICY_MECHANICS"
+    },
+    {
+      "digest": "sha256:de862a8452d57f8ab587200420d14590aa370c01585d363a5c4d7d2f5bcde3f1",
+      "id": "dw04",
+      "ownerId": "security.dw04",
+      "standing": "DW04_IMPLEMENTED_AND_QUALIFIED"
+    },
+    {
+      "digest": "sha256:13014307de3372a24d27589c6c28d7f6cc0cb98393057ef506d1e6bc84e79dc8",
+      "id": "dw05",
+      "ownerId": "security.dw05",
+      "standing": "DW05_BINDING_AND_SYNTHETIC_CANARY_QUALIFIED"
+    }
+  ],
+  "nonClaims": [
+    "Module acceptance bindings establish mechanics availability only, not case truth.",
+    "The exact DW04 projection is the bounded case carrier for this historical qualification.",
+    "DW05 is mechanically available but not case-triggered because DW04 validationStanding is NOT_TRIGGERED_BY_DW04.",
+    "The response carrier is qualification-only and is not production policy or authority."
+  ],
+  "responseDecision": {
+    "actionClass": "immediate",
+    "authorityGranted": false,
+    "caseRef": "case:dw04:exchange-proxylogon-2021",
+    "deadlineBudget": null,
+    "deadlineStatus": "UNSET",
+    "decisionRef": "qualification:dw03:proxylogon:dw04-bound-r1",
+    "kind": "ordivon.security.response-policy-decision",
+    "policyScope": "qualification-only-representative-SSVC-row",
+    "schemaVersion": 1,
+    "sourceDigest": "sha256:7a97e05792caa29a26c2a3902c7d0edcc1f48c726e5badffe0a63ebb2579ec94",
+    "sourceRef": "platform/security/evidence/acceptance/dw03-response-policy-r1-20261001.json",
+    "standing": "ACTION_ONLY",
+    "subject": {
+      "snapshotDigest": "sha256:e089e805bd2a8aef3bb11378f053c318d82d225a9bbdddbcce17a390decff541",
+      "subjectRef": "historical-subject:exchange-proxylogon-2021"
+    },
+    "truthBoundary": "Qualification-only response carrier rebound to the exact DW04 historical subject. 'immediate' mirrors the already-qualified representative DW03 test row for known-exploited/open/automatable/very-high conditions. It is not a production organization policy, SLE, deadline, grant, or live Exchange decision."
+  },
+  "schemaVersion": 1,
+  "validationEvidence": null
+}

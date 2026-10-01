@@ -1,0 +1,14 @@
+{
+  "consequenceVerification": {
+    "digest": "sha256:2a4041e84c4035769fdfdb023cbabe76d0067eb11659bc34a4b7b6f3f2f2d2ab",
+    "id": "security:consequence-verification-differential-r1"
+  },
+  "effectAdmission": {
+    "digest": "sha256:f36f0eaa66fd7af61e1614c577dfd97d952bea65e0ed44752dbc10767fb69e76",
+    "id": "security:effect-admission-differential-r1"
+  },
+  "incidentCaseProfile": {
+    "digest": "sha256:51774c746b1e34f227648e2ebc3b072cdbdfeacf34cdf6591515c941e54a5ae6",
+    "id": "profile:incident-case-r1"
+  }
+}
