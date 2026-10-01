@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dwc-threat-applicability-r1-acceptance",
+  "observedAt": "2026-10-01T12:48:17+08:00",
+  "dw01ContractRevision": "d85d07722e7405115129137210c947b369480960",
+  "standing": "DW02_CONTRACT_IMPLEMENTED_AND_QUALIFIED",
+  "implementation": {
+    "module": "platform/security/src/ordivon_security_v2/threat_applicability.py",
+    "tests": "platform/security/tests/test_threat_applicability.py",
+    "design": "platform/security/docs/DW02-THREAT-APPLICABILITY-R1.md",
+    "historicalReplayFixture": "platform/security/fixtures/dw02/exchange-replay-r1.json",
+    "dw01Contract": "platform/security/src/ordivon_security_v2/subject_exposure.py"
+  },
+  "invariants": [
+    "applicability-bearing evidence binds exact DW01 subjectRef + snapshotDigest + evidenceRef",
+    "DW01 identityCoverageStanding must be COMPLETE before a definitive applicability claim",
+    "provider-native locator and exact artifact digest remain in the evidence envelope",
+    "CISA KEV is known-exploitation evidence and never local applicability",
+    "FIRST EPSS is dated probability/percentile evidence and never local applicability",
+    "current contradictory affected/not-affected evidence remains UNDER_INVESTIGATION",
+    "stale adverse evidence prevents current clearance from silently becoming NOT_AFFECTED",
+    "unverified evidence cannot mint a definitive applicability claim",
+    "no fetcher, CVE database, proprietary product ontology, or universal risk score is introduced"
+  ],
+  "historicalReplay": [
+    {
+      "case": "ProxyLogon",
+      "cves": [
+        "CVE-2021-26855",
+        "CVE-2021-26857",
+        "CVE-2021-26858",
+        "CVE-2021-27065"
+      ],
+      "qualifiedProjection": "AFFECTED + KNOWN_EXPLOITED",
+      "boundary": "Historical semantic replay only; no current Exchange deployment/build applicability claim."
+    },
+    {
+      "case": "ProxyShell",
+      "cves": [
+        "CVE-2021-34473",
+        "CVE-2021-34523",
+        "CVE-2021-31207"
+      ],
+      "qualifiedProjection": "AFFECTED + KNOWN_EXPLOITED",
+      "boundary": "Historical semantic replay only; no current Exchange deployment/build applicability claim."
+    }
+  ],
+  "verification": [
+    {
+      "jobId": "job-01a0f5cc-2f10-7e62-be66-eb4e741cd36f",
+      "result": "Ruff PASS after DW01 contract integration."
+    },
+    {
+      "jobId": "job-01a0f5cc-3ace-7d73-81ea-3901fa4e9f03",
+      "result": "Security owner tests 89/89 PASS on rebased DW01+DW02 composition."
+    },
+    {
+      "jobId": "job-01a0f5cc-4835-7450-9745-280f4ba3fcbb",
+      "result": "git diff --check PASS."
+    }
+  ],
+  "sourceAnchors": [
+    "standard:OASIS-CSAF-2.0",
+    "draft:OASIS-CSAF-2.1-CSD03-20260911",
+    "standard:CycloneDX-1.7-VEX",
+    "standard:CISA-KEV",
+    "standard:FIRST-EPSS",
+    "historical:Microsoft-Exchange-ProxyLogon-2021",
+    "historical:Microsoft-Exchange-ProxyShell-2021"
+  ],
+  "nonClaims": [
+    "No live Exchange deployment applicability claim.",
+    "No current threat-feed acquisition/freshness service qualification claim.",
+    "No patch/protection/consequence-verification claim.",
+    "No compromise-absence or incident-eradication claim.",
+    "No canonical main-branch merge claim."
+  ]
+}

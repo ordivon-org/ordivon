@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw02-historical-replay-fixture",
+  "truthRole": "historical-source-index-and-semantic-replay-not-live-feed",
+  "cases": [
+    {
+      "id": "exchange-proxylogon-2021",
+      "subjectClass": "on-premises Microsoft Exchange Server",
+      "vulnerabilities": [
+        "CVE-2021-26855",
+        "CVE-2021-26857",
+        "CVE-2021-26858",
+        "CVE-2021-27065"
+      ],
+      "expectedProductStatusProjection": "AFFECTED",
+      "expectedThreatSignal": "KNOWN_EXPLOITED",
+      "sourceRefs": [
+        "https://www.microsoft.com/en-us/security/blog/2021/03/02/hafnium-targeting-exchange-servers/",
+        "https://www.microsoft.com/msrc/blog/2021/03/microsoft-exchange-server-vulnerabilities-mitigations-march-2021",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+      ],
+      "boundary": "The fixture does not encode Microsoft build/version ranges. A real DW02 claim must bind a provider-native advisory/VEX product identifier to an exact DW01 subject snapshot before AFFECTED can be emitted."
+    },
+    {
+      "id": "exchange-proxyshell-2021",
+      "subjectClass": "on-premises Microsoft Exchange Server",
+      "vulnerabilities": [
+        "CVE-2021-34473",
+        "CVE-2021-34523",
+        "CVE-2021-31207"
+      ],
+      "expectedProductStatusProjection": "AFFECTED",
+      "expectedThreatSignal": "KNOWN_EXPLOITED",
+      "sourceRefs": [
+        "https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia-description?Name=Exploit%3AWin32%2FCVE-2021-31207.A",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+      ],
+      "boundary": "Historical chain membership and KEV evidence do not prove that any current local Exchange deployment is affected."
+    }
+  ]
+}

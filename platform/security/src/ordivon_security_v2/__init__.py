@@ -12,6 +12,11 @@ from .browser_security import (
     compare_browser_security_witnesses,
 )
 from .evidence import EvidenceRef, build_gate_input
+from .threat_applicability import (
+    fuse_threat_applicability,
+    project_csaf_product_status,
+    project_cyclonedx_vex_state,
+)
 
 __all__ = [
     "BrowserSecurityWitness",
@@ -25,4 +30,7 @@ __all__ = [
     "compare_browser_security_bundles",
     "compare_browser_security_pool",
     "compare_browser_security_witnesses",
+    "fuse_threat_applicability",
+    "project_csaf_product_status",
+    "project_cyclonedx_vex_state",
 ]

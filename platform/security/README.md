@@ -10,7 +10,8 @@ External tools own scanning, package discovery, vulnerability data, and policy e
 - evidence references and digests;
 - evidence freshness/applicability metadata supplied by the caller or provider;
 - authority/admission context;
-- policy decision and standing projection.
+- policy decision and standing projection;
+- DW02 threat/applicability fusion over exact subject snapshots, preserving provider-native CSAF/VEX/KEV/EPSS/local evidence references while keeping KEV/EPSS separate from local applicability.
 
 Current implemented provider/integration set: Gitleaks, Semgrep, OSV-Scanner, Trivy, Syft, OPA/Rego, and OpenSSF Scorecard evidence binding. Scorecard R1 has a real provider acceptance but no Ordivon-repository admission standing yet.
 
