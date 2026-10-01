@@ -120,6 +120,12 @@ $required = @(
     [ordered]@{ label = 'windows-runtime-bearer'; path = [string]$serviceReceipt.windowsBearerTokenFile },
     [ordered]@{ label = 'host-bearer'; path = [string]$serviceReceipt.hostBearerTokenFile }
 )
+if ($serviceReceipt.PSObject.Properties.Name -contains 'localServiceBearerTokenFile') {
+    $required += [ordered]@{
+        label = 'local-service-bearer'
+        path = [string]$serviceReceipt.localServiceBearerTokenFile
+    }
+}
 $configured = @($required | Where-Object { -not [string]::IsNullOrWhiteSpace($_.path) })
 $credentialReceipt = $null
 if ($configured.Count -gt 0) {

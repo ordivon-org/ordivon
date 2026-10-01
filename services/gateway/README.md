@@ -49,3 +49,14 @@ grant shell workers browser authority.
 Independent read-only Runtime and Host capability observations run concurrently, once per required owner per request. Projection ordering stays deterministic, and observations are not cached across requests. A failed or timed-out owner observation remains UNKNOWN through the existing observation error; healthy owners remain visible.
 
 The default per-probe cooperative cancellation budget is five seconds. Cancellation waits for transport cleanup: legacy MCP session DELETE cleanup may extend that budget, so it is not a hard end-to-end latency deadline. Cancellation of the enclosing request drains its child probes. Gateway does not parallelize effects or retry upstream effects.
+
+### Windows local service identity
+
+The Windows candidate can optionally bind `LocalServiceBearerTokenFile` while preserving
+`TrustCfAccess`. Keep the candidate stopped, materialize all configured owner credentials
+together with `CreateLocalServiceBearer`, and activate using the resulting receipt.
+The generated local identity is separate from upstream Runtime credentials, protected
+for SYSTEM, Administrators and the Gateway service SID, and accepted only on loopback.
+Never print token contents or credential receipt digests. Existing profiles without the
+optional field retain their activation contract. This local acceptance lane does not
+qualify the public Cloudflare principal, Linux/Skills bindings or public promotion.

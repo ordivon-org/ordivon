@@ -26,6 +26,8 @@ param(
     [Parameter()]
     [string]$HostBearerTokenFile = '',
     [Parameter()]
+    [string]$LocalServiceBearerTokenFile = '',
+    [Parameter()]
     [string]$PublicOrigin = '',
     [Parameter()]
     [switch]$TrustCfAccess,
@@ -106,6 +108,10 @@ if ([int]$candidateSurface.surfaceEpoch -lt 1) {
 $candidateTools = @($candidateSurface.tools | ForEach-Object { [string]$_ })
 if ($candidateTools.Count -eq 0 -or ($candidateTools | Sort-Object -Unique).Count -ne $candidateTools.Count) {
     throw "Gateway MCP surface tools must be non-empty and unique"
+}
+
+if ($LocalServiceBearerTokenFile -and -not $TrustCfAccess) {
+    throw 'Local service bearer requires the verified Cloudflare Access middleware'
 }
 
 $existingCim = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
@@ -190,6 +196,9 @@ if ($HostBearerTokenFile) {
     $envPairs.ORDIVON_GATEWAY_HOST_BEARER_TOKEN_FILE = (
         [System.IO.Path]::GetFullPath($HostBearerTokenFile)
     )
+}
+if ($LocalServiceBearerTokenFile) {
+    $envPairs.ORDIVON_GATEWAY_LOCAL_BEARER_TOKEN_FILE = [System.IO.Path]::GetFullPath($LocalServiceBearerTokenFile)
 }
 if ($PublicOrigin) {
     $envPairs.ORDIVON_GATEWAY_PUBLIC_ORIGIN = $PublicOrigin
@@ -291,6 +300,7 @@ $receipt = [ordered]@{
     linuxBearerTokenFile = $(if ($LinuxRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($LinuxRuntimeBearerTokenFile) } else { $null })
     windowsBearerTokenFile = $(if ($WindowsRuntimeBearerTokenFile) { [System.IO.Path]::GetFullPath($WindowsRuntimeBearerTokenFile) } else { $null })
     hostBearerTokenFile = $(if ($HostBearerTokenFile) { [System.IO.Path]::GetFullPath($HostBearerTokenFile) } else { $null })
+    localServiceBearerTokenFile = $(if ($LocalServiceBearerTokenFile) { [System.IO.Path]::GetFullPath($LocalServiceBearerTokenFile) } else { $null })
     activationRequired = $true
     linuxBearerPathConfigured = [bool]$LinuxRuntimeBearerTokenFile
     windowsBearerPathConfigured = [bool]$WindowsRuntimeBearerTokenFile
