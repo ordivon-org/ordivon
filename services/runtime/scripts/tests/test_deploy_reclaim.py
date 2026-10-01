@@ -2597,6 +2597,89 @@ class DeployReclaimTests(unittest.TestCase):
             self.assertEqual(item["closureReason"], "UNINTEGRATED_GIT_COMMITS")
             self.assertEqual(item["uniqueCommitCount"], 1)
 
+    def test_reclaim_prefers_published_origin_main_over_local_head_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            baseline = initialize_git_repository(source, remote=True)
+            runtime = root / "runtime"
+            records = runtime / "workspace-records"
+            workspaces = runtime / "workspaces"
+            records.mkdir(parents=True)
+            workspaces.mkdir()
+            workspace = workspaces / "published-equivalent"
+            subprocess.run(
+                ["git", "-C", str(source), "worktree", "add", "--detach", "-q", str(workspace), baseline],
+                check=True,
+            )
+            subprocess.run(["git", "-C", str(workspace), "config", "user.name", "Test"], check=True)
+            subprocess.run(
+                ["git", "-C", str(workspace), "config", "user.email", "test@example.invalid"],
+                check=True,
+            )
+
+            (source / "README.md").write_text("published equivalent\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "canonical published form"], check=True)
+            subprocess.run(["git", "-C", str(source), "push", "-q", "origin", "main"], check=True)
+            canonical = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "refs/remotes/origin/main"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+
+            (workspace / "README.md").write_text("published equivalent\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(workspace), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(workspace), "commit", "-qm", "workspace equivalent form"], check=True)
+
+            subprocess.run(["git", "-C", str(source), "checkout", "--detach", "-q", baseline], check=True)
+            (source / "LOCAL_ONLY.md").write_text("unpublished local drift\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(source), "add", "LOCAL_ONLY.md"], check=True)
+            subprocess.run(["git", "-C", str(source), "commit", "-qm", "unpublished local drift"], check=True)
+            local_head = subprocess.run(
+                ["git", "-C", str(source), "rev-parse", "HEAD"],
+                check=True, text=True, capture_output=True,
+            ).stdout.strip()
+            self.assertNotEqual(local_head, canonical)
+
+            database = root / "registry.sqlite3"
+            initialize_registry(database)
+            environment = dict(os.environ)
+            environment["ORDIVON_RUNTIME_INSPECT"] = str(fake_runtime_inspect(root))
+            (records / "published-equivalent.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "workspaceId": "published-equivalent",
+                        "sourceRepo": str(source),
+                        "sourceRevision": baseline,
+                        "workspacePath": str(workspace),
+                        "createdUnixMs": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/ordivon-runtime-reclaim",
+                    "inspect",
+                    "--database",
+                    str(database),
+                    "--runtime-store-root",
+                    str(runtime),
+                ],
+                cwd=REPO,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            item = json.loads(result.stdout)["candidates"][0]
+            self.assertEqual(item["classification"], "closable")
+            self.assertEqual(item["closureReason"], "PATCH_EQUIVALENT_IN_CANONICAL")
+            self.assertEqual(item["canonicalHeadRevision"], canonical)
+            self.assertEqual(item["canonicalRef"], "origin/main")
+
     def test_reclaim_does_not_collapse_unique_merge_topology(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
