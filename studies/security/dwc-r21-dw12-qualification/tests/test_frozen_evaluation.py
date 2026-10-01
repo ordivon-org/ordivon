@@ -190,6 +190,45 @@ def test_independent_receipt_accepts_independent_reproduction_shape_only():
     mod.validate_independent_receipt(p, valid_receipt(p))
 
 
+
+def test_saved_independent_receipt_validates_exactly_and_preserves_nonclaims():
+    mod = load_module()
+    import hashlib
+    import json
+
+    evidence = STUDY / "evidence/acceptance"
+    subject = json.loads((evidence / "dw12-frozen-subject-r2.json").read_text())
+    proto = json.loads((evidence / "dw12-protocol-r2.json").read_text())
+    pre = json.loads(
+        (evidence / "dw12-mechanical-prequalification-r2.json").read_text()
+    )
+    packet = json.loads(
+        (evidence / "dw12-independent-evaluator-packet-r2.json").read_text()
+    )
+    receipt_path = evidence / "dw12-independent-evaluator-receipt-r2-20261001.json"
+    receipt = json.loads(receipt_path.read_text())
+    acceptance = json.loads(
+        (evidence / "dw12-independent-acceptance-r2-20261001.json").read_text()
+    )
+
+    mod.verify_evaluator_packet_files(ROOT, packet, subject, proto, pre)
+    mod.validate_independent_receipt(packet, receipt)
+
+    assert receipt["standing"] == "PASS"
+    assert receipt["evaluatorActorRef"] != packet["candidateBuilderActorRef"]
+    assert receipt["mechanicalClaimReproduced"] is True
+    assert receipt["postFreezeMutationObserved"] is False
+    assert receipt["thresholdRetuningObserved"] is False
+    assert receipt["recomputedMechanicalResultDigest"] == pre["resultDigest"]
+    assert acceptance["standing"] == "PASS_FROZEN_MECHANICAL_QUALIFICATION"
+    assert acceptance["independenceBoundary"]["providerIndependenceClaimed"] is False
+    assert acceptance["independenceBoundary"]["contextOccurrenceIndependenceClaimed"] is True
+    observed = "sha256:" + hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+    assert observed == acceptance["independentReceipt"]["sha256"]
+    assert "humanDecisionLatencyMs" in acceptance["unknownMetrics"]
+    assert "unnecessaryApprovalPromptRate" in acceptance["unknownMetrics"]
+
+
 def test_independent_receipt_rejects_self_certification_and_digest_drift():
     mod = load_module()
     p = packet(mod)
