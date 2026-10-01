@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.dwc-dw10-acceptance-evidence",
+  "date": "2026-10-01",
+  "workRef": "work:security:dwc-r21:dw10-temporal-invalidation:20261001",
+  "baseRevision": "86fc060603cdf0e4d9d6cf3eabffbaaebf0e587e",
+  "scope": "DWC-local temporal-performance and dependency-aware invalidation qualification study",
+  "implementationBoundary": {
+    "sharedCompositionModified": false,
+    "schedulerAuthorityEstablished": false,
+    "domainAcceptanceEstablished": false,
+    "productionSecurityAuthorityEstablished": false
+  },
+  "tddEvidence": {
+    "ownerBindingRedJobId": "job-01a0f5c8-78cd-7683-9aab-ccf74e88b9fa",
+    "ownerBindingGreenJobId": "job-01a0f5c8-c6fe-73a1-a78f-db28f00ee707",
+    "contractTypeRedJobId": "job-01a0f5ca-bceb-77f1-b6f2-18b304566456",
+    "contractTypeGreenJobId": "job-01a0f5cb-1805-7241-a9a4-e8654ab59722",
+    "lastObservedUnitTestCount": 11,
+    "lastObservedUnitTestFailures": 0
+  },
+  "fixtureEvidence": {
+    "jobId": "job-01a0f5ca-4cbf-7eb2-abdc-32be0a22dc48",
+    "receiptDigest": "sha256:2d30588e2f76a05d4db5646172c53f5dd19fb55abc3670cff4ccea4e7e00ad2",
+    "selectiveRevalidationCostUnits": 20,
+    "fullRecomputeCostUnits": 37,
+    "costSavingsUnits": 17,
+    "costSavingsRatio": 0.4594594594594595,
+    "syntheticTTVPms": 9000,
+    "syntheticCriticalPathDurationMs": 9000,
+    "syntheticPolicySlackMs": 3000,
+    "exchangePublicReplayLocalTTVPms": null,
+    "exchangePublicReplaySlackStanding": "UNKNOWN_DURATION"
+  },
+  "externalAnchors": [
+    {
+      "ref": "OASIS-CACAO-2.0",
+      "role": "workflow/temporal orchestration semantics reference"
+    },
+    {
+      "ref": "NIST-SP-800-61r3",
+      "role": "incident response/recovery outcome anchor"
+    },
+    {
+      "ref": "MSRC:2021-03-02:exchange-security-updates",
+      "role": "historical public signal anchor only"
+    },
+    {
+      "ref": "CISA:ED-21-02:2021-03-03",
+      "role": "historical public response anchor only"
+    }
+  ],
+  "verifiedBehaviors": [
+    "Policy-source drift invalidates only DW03, DW06, DW07 and DW08 in the qualification graph.",
+    "Invalidating dependency-topology drift invalidates the consumer and its invalidating descendants.",
+    "Non-invalidating observation edges do not trigger revalidation.",
+    "Owner identity drift invalidates dependents even when content digest is unchanged.",
+    "Dangling and cyclic invalidation dependencies fail closed.",
+    "Dependency flags reject string/number coercion and require real booleans.",
+    "Incomplete timing leaves TTVP/slack unknown rather than inventing precise values.",
+    "Known critical path and numeric slack require explicit stage duration basis and an exact policy deadline source.",
+    "Public Exchange dates alone cannot establish local TTVP, compromise, eradication or recovery timing."
+  ],
+  "nonClaims": [
+    "Synthetic cost units are not production CPU, wall-clock or monetary savings.",
+    "Synthetic timing values are not production SLO measurements.",
+    "Historical replay does not establish present exploitability or any organization's response latency.",
+    "This evidence does not justify shared Composition promotion by itself.",
+    "This evidence does not grant scheduling, authorization, effect, security-verdict or domain-acceptance authority."
+  ]
+}
