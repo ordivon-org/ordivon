@@ -136,7 +136,7 @@ function Export-PrivateChatSession([string]$ChromeExecutable,[string]$BundlePath
         Emit-SessionExport 'SOURCE_UNAVAILABLE' $null 0 'profile-state-unavailable'; return
     }
     $scratch=Join-Path $env:TEMP ('Ordivon\SessionContinuity\'+[Guid]::NewGuid().ToString('N'))
-    $clone=Join-Path $scratch 'User Data'
+    $clone=Join-Path $scratch 'UserData'
     $browser=$null
     try {
         New-Item -ItemType Directory -Force -Path $clone | Out-Null

@@ -187,6 +187,14 @@ def test_windows_driver_exports_session_state_without_challenge_interaction():
         assert forbidden not in lower
 
 
+def test_session_export_cdp_clone_user_data_dir_has_no_argument_splitting_space():
+    script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
+    assert "$clone=Join-Path $scratch 'UserData'" in script
+    assert "$clone=Join-Path $scratch 'User Data'" not in script
+    assert "'--remote-debugging-port=0'" in script
+    assert "('--user-data-dir='+$clone)" in script
+
+
 def test_session_export_branch_is_top_level_before_observe_release_dispatch():
     script = (Path(__file__).resolve().parents[1] / 'scripts' / 'windows_user_browser_chatgpt.ps1').read_text()
     export_dispatch = "if($Mode -eq 'session-export'){"
