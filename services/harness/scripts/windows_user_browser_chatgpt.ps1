@@ -116,121 +116,16 @@ function Get-ElementKey($Element) {
     try{return (@($Element.GetRuntimeId()) -join '.')}catch{return $null}
 }
 
-if(-not ('OrdivonUnicodeInput' -as [type])) {
-    Add-Type -TypeDefinition @"
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-
-public static class OrdivonUnicodeInput {
-    [StructLayout(LayoutKind.Sequential)]
-    struct INPUT {
-        public UInt32 type;
-        public InputUnion U;
-    }
-    [StructLayout(LayoutKind.Explicit)]
-    struct InputUnion {
-        [FieldOffset(0)] public KEYBDINPUT ki;
-    }
-    [StructLayout(LayoutKind.Sequential)]
-    struct KEYBDINPUT {
-        public UInt16 wVk;
-        public UInt16 wScan;
-        public UInt32 dwFlags;
-        public UInt32 time;
-        public UIntPtr dwExtraInfo;
-    }
-    const UInt32 INPUT_KEYBOARD = 1;
-    const UInt32 KEYEVENTF_KEYUP = 0x0002;
-    const UInt32 KEYEVENTF_UNICODE = 0x0004;
-    const UInt16 VK_SHIFT = 0x10;
-    const UInt16 VK_CONTROL = 0x11;
-    const UInt16 VK_RETURN = 0x0D;
-    const UInt16 VK_BACK = 0x08;
-    const UInt16 VK_A = 0x41;
-    [DllImport("user32.dll", SetLastError=true)]
-    static extern UInt32 SendInput(UInt32 nInputs, INPUT[] pInputs, Int32 cbSize);
-
-    static INPUT Vk(UInt16 key, bool up) {
-        return new INPUT { type=INPUT_KEYBOARD, U=new InputUnion { ki=new KEYBDINPUT {
-            wVk=key,wScan=0,dwFlags=up ? KEYEVENTF_KEYUP : 0,time=0,dwExtraInfo=UIntPtr.Zero } } };
-    }
-    static INPUT Uni(char ch, bool up) {
-        return new INPUT { type=INPUT_KEYBOARD, U=new InputUnion { ki=new KEYBDINPUT {
-            wVk=0,wScan=ch,dwFlags=KEYEVENTF_UNICODE | (up ? KEYEVENTF_KEYUP : 0),time=0,dwExtraInfo=UIntPtr.Zero } } };
-    }
-    static void Submit(List<INPUT> inputs) {
-        const int chunkSize=512;
-        for(int offset=0; offset<inputs.Count; offset+=chunkSize) {
-            int count=Math.Min(chunkSize,inputs.Count-offset);
-            INPUT[] chunk=inputs.GetRange(offset,count).ToArray();
-            UInt32 sent=SendInput((UInt32)chunk.Length,chunk,Marshal.SizeOf(typeof(INPUT)));
-            if(sent!=chunk.Length) throw new InvalidOperationException(
-                "SendInput wrote "+sent+" of "+chunk.Length+" events; win32="+Marshal.GetLastWin32Error());
-        }
-    }
-    public static void ClearFocused() {
-        var v=new List<INPUT>();
-        v.Add(Vk(VK_CONTROL,false)); v.Add(Vk(VK_A,false)); v.Add(Vk(VK_A,true)); v.Add(Vk(VK_CONTROL,true));
-        v.Add(Vk(VK_BACK,false)); v.Add(Vk(VK_BACK,true));
-        Submit(v);
-    }
-    public static void TypeText(string value) {
-        var v=new List<INPUT>();
-        for(int i=0;i<value.Length;i++) {
-            char ch=value[i];
-            if(ch=='\r') {
-                if(i+1<value.Length && value[i+1]=='\n') i++;
-                v.Add(Vk(VK_SHIFT,false)); v.Add(Vk(VK_RETURN,false)); v.Add(Vk(VK_RETURN,true)); v.Add(Vk(VK_SHIFT,true));
-            } else if(ch=='\n') {
-                v.Add(Vk(VK_SHIFT,false)); v.Add(Vk(VK_RETURN,false)); v.Add(Vk(VK_RETURN,true)); v.Add(Vk(VK_SHIFT,true));
-            } else {
-                v.Add(Uni(ch,false)); v.Add(Uni(ch,true));
-            }
-        }
-        Submit(v);
-    }
-}
-"@
-}
-
 function Normalize-ComposerText([string]$Value) {
     if($null -eq $Value){return $null}
     $crlf=([string][char]13)+([string][char]10)
     return $Value.Replace($crlf,[string][char]10).Replace([string][char]13,[string][char]10)
 }
+
 function Get-ComposerText($Element) {
     $pattern=$null
     if(-not $Element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){return $null}
     try{return [string]([System.Windows.Automation.ValuePattern]$pattern).Current.Value}catch{return $null}
-}
-function Set-TextControlValue($Element,[string]$Value,[string]$Purpose) {
-    if($null -eq $Element){throw ($Purpose+' element unavailable')}
-    $errors=New-Object System.Collections.Generic.List[string]
-    $pattern=$null
-    if($Element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){
-        try {
-            ([System.Windows.Automation.ValuePattern]$pattern).SetValue($Value)
-            $observed=Get-ComposerText $Element
-            if((Normalize-ComposerText $observed) -eq (Normalize-ComposerText $Value)){return 'ValuePattern'}
-            $errors.Add('ValuePattern:readback-mismatch')
-        } catch {
-            $errors.Add(('ValuePattern:'+($_.Exception.GetType().Name)+':'+$_.Exception.Message))
-        }
-    } else {$errors.Add('ValuePattern:unsupported')}
-    try {
-        $Element.SetFocus()
-        Start-Sleep -Milliseconds 120
-        [OrdivonUnicodeInput]::ClearFocused()
-        if(-not [string]::IsNullOrEmpty($Value)){[OrdivonUnicodeInput]::TypeText($Value)}
-        Start-Sleep -Milliseconds 120
-        $observed=Get-ComposerText $Element
-        if((Normalize-ComposerText $observed) -ne (Normalize-ComposerText $Value)){throw 'SendInput readback mismatch'}
-        return 'SendInputUnicode'
-    } catch {
-        $errors.Add(('SendInputUnicode:'+($_.Exception.GetType().Name)+':'+$_.Exception.Message))
-    }
-    throw ($Purpose+' text injection failed: '+(($errors.ToArray()) -join ' | '))
 }
 
 function Get-Composer($Root) {
@@ -250,6 +145,41 @@ function Get-Composer($Root) {
     }
     if($usable.Count -eq 1){return $usable[0]}
     return $null
+}
+
+function Set-ComposerTextFresh($Browser,[string]$Value,[string]$Purpose,[int]$MaxAttempts=12) {
+    $errors=New-Object System.Collections.Generic.List[string]
+    for($attempt=1;$attempt -le $MaxAttempts;$attempt++){
+        $element=$null
+        try {
+            $root=Get-Root $Browser
+            $element=Get-Composer $root
+        } catch {
+            $errors.Add(('reacquire-'+$attempt+':'+$_.Exception.GetType().Name))
+        }
+        if($null -eq $element){
+            if($attempt -lt $MaxAttempts){Start-Sleep -Milliseconds 200}
+            continue
+        }
+        try {
+            $pattern=$null
+            if(-not $element.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$pattern)){
+                $errors.Add(('attempt-'+$attempt+':ValuePattern-unsupported'))
+            } else {
+                ([System.Windows.Automation.ValuePattern]$pattern).SetValue($Value)
+                Start-Sleep -Milliseconds 100
+                $observed=[string]([System.Windows.Automation.ValuePattern]$pattern).Current.Value
+                if((Normalize-ComposerText $observed) -eq (Normalize-ComposerText $Value)){
+                    return $element
+                }
+                $errors.Add(('attempt-'+$attempt+':readback-mismatch'))
+            }
+        } catch {
+            $errors.Add(('attempt-'+$attempt+':'+$_.Exception.GetType().Name+':'+$_.Exception.Message))
+        }
+        if($attempt -lt $MaxAttempts){Start-Sleep -Milliseconds 200}
+    }
+    throw ($Purpose+' failed after fresh-element retries: '+(($errors.ToArray()) -join ' | '))
 }
 
 function Test-AccountChooser($Root) {
@@ -760,12 +690,18 @@ try {
         }
     }
     $prompt=[IO.File]::ReadAllText($PromptPath,[Text.Encoding]::UTF8)
-    Set-TextControlValue $composer $prompt 'composer prompt' | Out-Null
+    $composer=Set-ComposerTextFresh $browser $prompt 'composer prompt'
     Start-Sleep -Milliseconds 700
     $root=Get-Root $browser
+    $composer=Get-Composer $root
+    if($null -eq $composer){
+        $null=Set-ComposerTextFresh $browser $prompt 'composer refresh before send'
+        $root=Get-Root $browser
+        $composer=Get-Composer $root
+    }
     $send=Get-SendControl $root $composer
     if($null -eq $send){
-        Set-TextControlValue $composer '' 'composer clear' | Out-Null
+        $null=Set-ComposerTextFresh $browser '' 'composer clear'
         Emit-Receipt 'pre-effect-failed' $null 'user-browser:send-control-unavailable' $false 'send-unavailable'
         exit 0
     }

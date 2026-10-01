@@ -379,14 +379,18 @@ def test_windows_driver_has_structural_chatgpt_readiness_and_localization_indepe
     assert 'verify you are human".invoke' not in script.lower()
 
 
-def test_windows_user_browser_composer_text_injection_has_uia_fallback():
+def test_windows_user_browser_composer_text_injection_reacquires_dynamic_element():
     script = (Path(__file__).resolve().parents[1] / "scripts" / "windows_user_browser_chatgpt.ps1").read_text()
-    assert "function Set-TextControlValue" in script
+    assert "function Set-ComposerTextFresh" in script
+    assert "for($attempt=1;$attempt -le $MaxAttempts;$attempt++)" in script
+    assert "$root=Get-Root $Browser" in script
+    assert "$element=Get-Composer $root" in script
     assert "ValuePattern]::Pattern" in script
-    assert "public static class OrdivonUnicodeInput" in script
-    assert "KEYEVENTF_UNICODE" in script
-    assert "SendInput" in script
-    assert "SendInputUnicode" in script
-    assert "SendInput readback mismatch" in script
-    assert "Set-TextControlValue $composer $prompt 'composer prompt'" in script
-    assert "Set-TextControlValue $composer '' 'composer clear'" in script
+    assert "readback-mismatch" in script
+    assert "$composer=Set-ComposerTextFresh $browser $prompt 'composer prompt'" in script
+    assert "$null=Set-ComposerTextFresh $browser '' 'composer clear'" in script
+    assert "OrdivonUnicodeInput" not in script
+    helper = script.split("function Set-ComposerTextFresh", 1)[1].split("function Test-AccountChooser", 1)[0]
+    assert "LegacyIAccessiblePattern" not in helper
+    assert "SendKeys" not in helper
+    assert "Clipboard" not in helper
