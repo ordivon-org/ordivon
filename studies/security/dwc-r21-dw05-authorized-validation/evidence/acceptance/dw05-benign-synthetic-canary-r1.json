@@ -1,0 +1,127 @@
+{
+  "binding": {
+    "authorityDecisionRef": "decision:dw05:benign-canary",
+    "authorityOwnerRef": "owner:dw05:synthetic-validation",
+    "bindingDigest": "sha256:a535cba74673570fe9126bf7318dbcdd26e5272ba72f043a29d1fda2484fc162",
+    "caseRef": "case:dw05:benign-synthetic-canary",
+    "controlRef": "control:dw05:canary",
+    "environmentDigest": "sha256:32c452a79eb417429e1cdb4bfb97abfd4e0a1bb868a4766aa6a70ef41b906275",
+    "executionAuthorityGrantedByDW05": false,
+    "kind": "ordivon.security.dwc-authorized-validation-binding",
+    "observerIndependenceClass": "process_local_independent_code_path",
+    "observerRef": "ordivon.ai-redteam.synthetic-world-observer-r7",
+    "observerRevision": "r7",
+    "productionEffectAuthorityGranted": false,
+    "productionSecurityStandingEstablished": false,
+    "rejectionReasons": [],
+    "requestRef": "validation:dw05:benign-canary",
+    "schemaVersion": 1,
+    "standing": "READY_FOR_SYNTHETIC_VALIDATION",
+    "subjectRef": "synthetic-subject:example.test",
+    "subjectSnapshotDigest": "sha256:51c1b7a91b63d87f2cf4f04b891af8777b23a82029fa815a976c341b0cf1b710",
+    "targetKind": "synthetic",
+    "targetRef": "target:target.example.test",
+    "truthBoundary": "DW05 binds a decision-relevant DW04 candidate to exact synthetic target, authority scope, R4 sandbox admission, and an R7-compatible observer. READY means the declared validation regime is mechanically admissible; it does not execute an experiment, grant production effect authority, or establish production Security standing.",
+    "validationAdmissionEstablished": true,
+    "worldSpecDigest": "sha256:9e6e75693cc75d2475f34c0ee1ce189621a2160af82b4a124cbee90894052522"
+  },
+  "claimBoundary": "Closed-world .test canary only. This proves regime/admission/effect-proxy/independent-observer plumbing and exact evidence return. It does not prove production control effectiveness, verified protection, exploitability, compromise absence, eradication, or recovery.",
+  "dw04": {
+    "candidateControlRefs": [
+      "control:dw05:canary"
+    ],
+    "validationStanding": "OPTIONAL_MAY_CHANGE_DOWNSTREAM_DECISION",
+    "verifiedProtectionEstablished": false
+  },
+  "foundry": {
+    "consistency": {
+      "consistent": true,
+      "effectId": "effect:dw05:benign-canary",
+      "effectRequestDigest": "sha256:69d343d003db9d72cb719b8b71444e62e4ff906c9a59b4aaacdda7e29966829c",
+      "kind": "ordivon.ai-redteam-receipt-observation-consistency",
+      "mismatches": [],
+      "observationDigest": "sha256:c43f94facc04af78813101e01fa9ccf88c3597483546ae3292369b0f9e37ab48",
+      "receiptDigest": "sha256:d4cc180168b86da319dc0cd622588cf31fb70e296ac97e9ba7fe47f1361f9c4f",
+      "schemaVersion": 1
+    },
+    "effectReceipt": {
+      "disposition": "simulated",
+      "effectId": "effect:dw05:benign-canary",
+      "effectRequestDigest": "sha256:69d343d003db9d72cb719b8b71444e62e4ff906c9a59b4aaacdda7e29966829c",
+      "executor": "ordivon.synthetic-world.in-memory-r5",
+      "kind": "ordivon.ai-redteam-effect-receipt",
+      "route": "synthetic_world",
+      "schemaVersion": 1,
+      "securityDecisionRef": null,
+      "worldAfterDigest": "sha256:17da9ffe7294e2ccc013e8fed51c583a66298f2a58b4bddc559077ea2f1c5a18",
+      "worldBeforeDigest": "sha256:ab4792639177e8b1e558557297f85c431c8a44f4d10d77f8cdab07f50ec70f5c",
+      "worldTraceDigest": "sha256:a1238b4e93a76577caca0d99d597de5c9b0171c3e41129cc92c301e6cccf52fa"
+    },
+    "observation": {
+      "afterEventCount": 1,
+      "afterOutboundCount": 1,
+      "afterStateDigest": "sha256:17da9ffe7294e2ccc013e8fed51c583a66298f2a58b4bddc559077ea2f1c5a18",
+      "afterTraceDigest": "sha256:a1238b4e93a76577caca0d99d597de5c9b0171c3e41129cc92c301e6cccf52fa",
+      "beforeEventCount": 0,
+      "beforeOutboundCount": 0,
+      "beforeStateDigest": "sha256:ab4792639177e8b1e558557297f85c431c8a44f4d10d77f8cdab07f50ec70f5c",
+      "beforeTraceDigest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "binding": {
+        "applicableThreatClasses": [
+          "synthetic_agent"
+        ],
+        "independenceClass": "process_local_independent_code_path",
+        "observerId": "ordivon.ai-redteam.synthetic-world-observer-r7",
+        "observerRevision": "r7"
+      },
+      "effectId": "effect:dw05:benign-canary",
+      "effectRequestDigest": "sha256:69d343d003db9d72cb719b8b71444e62e4ff906c9a59b4aaacdda7e29966829c",
+      "environmentDigest": "sha256:32c452a79eb417429e1cdb4bfb97abfd4e0a1bb868a4766aa6a70ef41b906275",
+      "kind": "ordivon.ai-redteam-consequence-observation",
+      "outboundSnapshotDigest": "sha256:cd0f5bd3ab5a9ebdcd2af9c4967987d7cf2e7c6a04309e625e7609022d72716d",
+      "resourceContentDigests": [],
+      "schemaVersion": 1,
+      "syntheticSecretCrossingIds": [],
+      "worldSpecDigest": "sha256:9e6e75693cc75d2475f34c0ee1ce189621a2160af82b4a124cbee90894052522"
+    },
+    "sandboxAdmission": {
+      "admitted": true,
+      "environmentDigest": "sha256:32c452a79eb417429e1cdb4bfb97abfd4e0a1bb868a4766aa6a70ef41b906275",
+      "reasons": [],
+      "requiredDimensions": [
+        "credentials in {none,synthetic_only}",
+        "external_effects in {none,synthetic_only,policy_proxy}",
+        "network!=full_egress"
+      ]
+    }
+  },
+  "kind": "ordivon.security.dw05-benign-synthetic-canary-result",
+  "schemaVersion": 1,
+  "validationEvidence": {
+    "bindingDigest": "sha256:a535cba74673570fe9126bf7318dbcdd26e5272ba72f043a29d1fda2484fc162",
+    "caseRef": "case:dw05:benign-synthetic-canary",
+    "consistencyDigest": "sha256:582ba773596b9634e0203ab7a527abd68fc66da4c6af491556ebd1e2924cc319",
+    "controlRef": "control:dw05:canary",
+    "effectReceiptDigest": "sha256:d4cc180168b86da319dc0cd622588cf31fb70e296ac97e9ba7fe47f1361f9c4f",
+    "environmentDigest": "sha256:32c452a79eb417429e1cdb4bfb97abfd4e0a1bb868a4766aa6a70ef41b906275",
+    "evidenceDigest": "sha256:a1c401334b9cd412684ef9cfe027475bbcefa91fec2ecb7487d8f6fcbc7d2e03",
+    "kind": "ordivon.security.dwc-authorized-validation-evidence",
+    "observationDigest": "sha256:c43f94facc04af78813101e01fa9ccf88c3597483546ae3292369b0f9e37ab48",
+    "predicateEvidenceRefs": [
+      "sha256:582ba773596b9634e0203ab7a527abd68fc66da4c6af491556ebd1e2924cc319",
+      "sha256:c43f94facc04af78813101e01fa9ccf88c3597483546ae3292369b0f9e37ab48"
+    ],
+    "predicateRef": "predicate:dw05:benign-pipeline-canary",
+    "predicateStanding": "SATISFIED",
+    "productionEffectAuthorityGranted": false,
+    "productionSecurityStandingEstablished": false,
+    "requestRef": "validation:dw05:benign-canary",
+    "schemaVersion": 1,
+    "studyStanding": "SYNTHETIC_VALIDATION_OBSERVED",
+    "targetRef": "target:target.example.test",
+    "truthBoundary": "This record returns exact synthetic experiment evidence to DWC. It preserves the verifier-owned predicate standing but does not promote a closed-world study verdict into production control effectiveness, verified protection, compromise absence, or recovery.",
+    "verifiedProtectionEstablished": false,
+    "verifierOwnerRef": "ordivon.ai-redteam.synthetic-world-observer-r7",
+    "worldSpecDigest": "sha256:9e6e75693cc75d2475f34c0ee1ce189621a2160af82b4a124cbee90894052522"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordivon.security.dw05-authorized-validation-r1-acceptance",
+  "observedAt": "2026-10-01T14:27:00+08:00",
+  "workRef": "work:security:dwc-r21:dw05-authorized-validation:20261001",
+  "standing": "DW05_BINDING_AND_SYNTHETIC_CANARY_QUALIFIED",
+  "baseRevision": "abc9c9c0c0d7a9f54d16f78800beb5f91e72bf71",
+  "implementation": {
+    "module": "studies/security/dwc-r21-dw05-authorized-validation/dwc_dw05/validation_binding.py",
+    "tests": "studies/security/dwc-r21-dw05-authorized-validation/tests/test_validation_binding.py",
+    "canary": "studies/security/dwc-r21-dw05-authorized-validation/scripts/run_benign_synthetic_canary.py",
+    "canaryEvidence": "studies/security/dwc-r21-dw05-authorized-validation/evidence/acceptance/dw05-benign-synthetic-canary-r1.json",
+    "design": "studies/security/dwc-r21-dw05-authorized-validation/README.md"
+  },
+  "reusedOwners": {
+    "r4": "AI Red-Team Foundry R4 ExperimentEnvironmentSpec + SandboxAdmission",
+    "r5": "AI Red-Team Foundry R5 deterministic closed synthetic world",
+    "r6": "AI Red-Team Foundry R6 replay-safe synthetic effect proxy",
+    "r7": "AI Red-Team Foundry R7 independent consequence observation + receipt reconciliation"
+  },
+  "invariants": [
+    "DW05 R1 validates only controls explicitly emitted by DW04 authorizedValidationCandidateControlRefs.",
+    "Reference acceptance is synthetic-target-only; production/live targets are rejected.",
+    "Authority standing must be AUTHORIZED and its scope must exactly bind case, subject, snapshot, control, target and threat class.",
+    "R4 environment digest, synthetic-world digest and SandboxAdmission must bind exactly.",
+    "Unrestricted egress, non-synthetic credentials, direct open-world effects or non-independent observer declarations fail closed.",
+    "READY_FOR_SYNTHETIC_VALIDATION establishes regime admission only; it grants no execution or production effect authority.",
+    "R6 executor receipt and R7 independent observation must reconcile before evidence returns to DWC.",
+    "A SATISFIED synthetic predicate never promotes itself to production control effectiveness, verified protection, compromise absence, eradication or recovery."
+  ],
+  "qualification": [
+    {
+      "jobId": "job-01a0f624-912f-7671-8869-69d79ca9e66d",
+      "result": "DW05 contract 10/10 PASS; Foundry R4 23/23 PASS; compileall and diff-check PASS."
+    },
+    {
+      "jobId": "job-01a0f627-125d-77f3-aa85-40142ad23fe7",
+      "result": "Benign closed-world canary PASS; DW05 10/10; Foundry R5 21/21, R6 14/14, R7 14/14; compileall/diff-check PASS."
+    }
+  ],
+  "benignCanary": {
+    "target": "https://target.example.test/probe",
+    "targetKind": "synthetic",
+    "threatClass": "synthetic_agent",
+    "bindingStanding": "READY_FOR_SYNTHETIC_VALIDATION",
+    "studyStanding": "SYNTHETIC_VALIDATION_OBSERVED",
+    "receiptObservationConsistent": true,
+    "evidenceDigest": "sha256:a1c401334b9cd412684ef9cfe027475bbcefa91fec2ecb7487d8f6fcbc7d2e03",
+    "productionSecurityStandingEstablished": false,
+    "verifiedProtectionEstablished": false,
+    "productionEffectAuthorityGranted": false
+  },
+  "nonClaims": [
+    "No exploit payload, exploit recipe, live target or open-world effect is used.",
+    "The canary validates DWC-to-Foundry plumbing and evidence return only.",
+    "No production security control is proven effective.",
+    "No production effect authority, verified protection, compromise absence, eradication or recovery is established.",
+    "Hostile-code isolation is not qualified by this synthetic_agent reference canary."
+  ]
+}
