@@ -1,3 +1,59 @@
+#[derive(Clone, Copy)]
+struct WindowedSummaryQuery {
+    full_history: &'static str,
+    recent_window: &'static str,
+}
+
+impl WindowedSummaryQuery {
+    fn sql(self, since_ms: u64) -> &'static str {
+        if since_ms == 0 {
+            self.full_history
+        } else {
+            self.recent_window
+        }
+    }
+}
+
+const SUMMARY_ATTEMPTS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT a.state,COUNT(*) FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY a.state ORDER BY a.state",
+    recent_window: "SELECT a.state,COUNT(*) FROM jobs j CROSS JOIN attempts a ON a.job_id=j.job_id WHERE j.created_at_ms>=?1 GROUP BY a.state ORDER BY a.state",
+};
+
+const SUMMARY_RESERVATIONS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT r.state,COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY r.state ORDER BY r.state",
+    recent_window: "SELECT r.state,COUNT(*) FROM jobs j CROSS JOIN attempts a ON a.job_id=j.job_id CROSS JOIN concurrency_reservations r ON r.attempt_id=a.attempt_id WHERE j.created_at_ms>=?1 GROUP BY r.state ORDER BY r.state",
+};
+
+const SUMMARY_RECOVERY_FAILURES: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='RECONCILIATION_FAILED'",
+    recent_window: "SELECT COUNT(DISTINCT e.job_id) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='RECONCILIATION_FAILED'",
+};
+
+const SUMMARY_ADMIN_REPAIRS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='ADMIN_TERMINAL_REPAIR'",
+    recent_window: "SELECT COUNT(DISTINCT e.job_id) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='ADMIN_TERMINAL_REPAIR'",
+};
+
+const SUMMARY_DISPATCHES: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED'",
+    recent_window: "SELECT COUNT(*) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED'",
+};
+
+const SUMMARY_DUPLICATE_DISPATCHES: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT COUNT(*),COALESCE(SUM(extra),0) FROM (SELECT e.job_id,e.attempt_id,COUNT(*)-1 extra FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED' GROUP BY e.job_id,e.attempt_id HAVING COUNT(*)>1)",
+    recent_window: "SELECT COUNT(*),COALESCE(SUM(extra),0) FROM (SELECT e.job_id,e.attempt_id,COUNT(*)-1 extra FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED' GROUP BY e.job_id,e.attempt_id HAVING COUNT(*)>1)",
+};
+
+const SUMMARY_TERMINAL_REASONS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT e.reason_code,COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='JOB_TERMINAL' GROUP BY e.reason_code ORDER BY e.reason_code",
+    recent_window: "SELECT e.reason_code,COUNT(*) FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 AND e.event_type='JOB_TERMINAL' GROUP BY e.reason_code ORDER BY e.reason_code",
+};
+
+const SUMMARY_LATENCY_EVENTS: WindowedSummaryQuery = WindowedSummaryQuery {
+    full_history: "SELECT e.job_id,j.created_at_ms,e.event_type,e.observed_at_ms FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 ORDER BY e.job_id,e.event_sequence",
+    recent_window: "SELECT e.job_id,j.created_at_ms,e.event_type,e.observed_at_ms FROM jobs j CROSS JOIN job_events e ON e.job_id=j.job_id WHERE j.created_at_ms>=?1 ORDER BY e.job_id,e.event_sequence",
+};
+
 use rusqlite::OptionalExtension;
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -1235,6 +1291,9 @@ pub fn summarize_experience(
         "count converged summary Jobs",
     )?;
 
+    // Keep the time-selected Job cohort outside the historical child-table loops.
+    // SQLite CROSS JOIN preserves this loop order without new indexes or schema state.
+    // Ordinary joins here chose whole-history scans for recent summaries on production.
     let resolutions = grouped_counts(
         &connection,
         "SELECT COALESCE(resolution,'unresolved'),COUNT(*) FROM jobs WHERE created_at_ms>=?1 GROUP BY COALESCE(resolution,'unresolved') ORDER BY 1",
@@ -1243,20 +1302,20 @@ pub fn summarize_experience(
     )?;
     let attempts = grouped_counts(
         &connection,
-        "SELECT a.state,COUNT(*) FROM attempts a JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY a.state ORDER BY a.state",
+        SUMMARY_ATTEMPTS.sql(since_ms),
         since_ms,
         "group Attempt states",
     )?;
     let reservations = grouped_counts(
         &connection,
-        "SELECT r.state,COUNT(*) FROM concurrency_reservations r JOIN attempts a ON a.attempt_id=r.attempt_id JOIN jobs j ON j.job_id=a.job_id WHERE j.created_at_ms>=?1 GROUP BY r.state ORDER BY r.state",
+        SUMMARY_RESERVATIONS.sql(since_ms),
         since_ms,
         "group reservation states",
     )?;
 
     let recovery_failures = count(
         &connection,
-        "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='RECONCILIATION_FAILED'",
+        SUMMARY_RECOVERY_FAILURES.sql(since_ms),
         since_ms,
         "count Jobs with reconciliation failure",
     )?;
@@ -1268,20 +1327,20 @@ pub fn summarize_experience(
     )?;
     let admin_repairs = count(
         &connection,
-        "SELECT COUNT(DISTINCT e.job_id) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='ADMIN_TERMINAL_REPAIR'",
+        SUMMARY_ADMIN_REPAIRS.sql(since_ms),
         since_ms,
         "count administratively repaired Jobs",
     )?;
 
     let dispatches = count(
         &connection,
-        "SELECT COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED'",
+        SUMMARY_DISPATCHES.sql(since_ms),
         since_ms,
         "count dispatch events",
     )?;
     let (jobs_with_duplicate_dispatch, duplicate_dispatches): (u64, u64) = connection
         .query_row(
-            "SELECT COUNT(*),COALESCE(SUM(extra),0) FROM (SELECT e.job_id,e.attempt_id,COUNT(*)-1 extra FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='DISPATCH_ISSUED' GROUP BY e.job_id,e.attempt_id HAVING COUNT(*)>1)",
+            SUMMARY_DUPLICATE_DISPATCHES.sql(since_ms),
             [since_ms],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
@@ -1340,7 +1399,7 @@ pub fn summarize_experience(
     )?;
     let terminal_reasons = grouped_counts(
         &connection,
-        "SELECT e.reason_code,COUNT(*) FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 AND e.event_type='JOB_TERMINAL' GROUP BY e.reason_code ORDER BY e.reason_code",
+        SUMMARY_TERMINAL_REASONS.sql(since_ms),
         since_ms,
         "group terminal reasons",
     )?;
@@ -1414,7 +1473,7 @@ fn collect_mechanical_latency_samples(
 ) -> RuntimeResult<RuntimeMechanicalLatencySamples> {
     let mut statement = connection
         .prepare(
-            "SELECT e.job_id,j.created_at_ms,e.event_type,e.observed_at_ms FROM job_events e JOIN jobs j ON j.job_id=e.job_id WHERE j.created_at_ms>=?1 ORDER BY e.job_id,e.event_sequence",
+            SUMMARY_LATENCY_EVENTS.sql(since_ms),
         )
         .map_err(|error| RuntimeError::from_sql(error, "prepare mechanical latency events"))?;
     let rows = statement
