@@ -18,16 +18,45 @@ For `execution.windows`, Gateway accepts either the legacy provider-defined stri
 
 ## Host northbound boundary
 
-The default external Plugin connects only to Gateway. Gateway exposes normal Host continuity and collaboration actions through stable northbound names while Host remains the semantic owner.
+The external Plugin connects to Gateway. Gateway forwards the current
+Host-owned Social Work Fabric surface: `actor.*`, `work.*`, `space.*`,
+`topic.*`, `message.*`, `subscription.*`, and `attention.*`.
+Host remains the semantic owner. Snapshot payloads remain opaque objects;
+Host validates its own current contract.
 
-- continuity get/list/observe and adopt/checkpoint/attention (compatibility)
-- continuity find/changes (preferred discovery/change vocabulary; mechanical recency only)
-- collaboration list/search/post (compatibility)
-- collaboration publish (preferred write vocabulary; explicit global or continuity scope)
+`host.status` forwards the Host owner's bounded status projection. It does
+not certify Runtime, Git, Security, provider effects, or domain completion.
+Direct-owner recovery and administration remain available independently of
+the Gateway carrier.
 
-Gateway intentionally does not expose host.status; owner administration and Doctor remain direct-owner recovery/admin concerns.
+The exact released northbound vocabulary is bound by `mcp-surface.json`
+(package 0.8.0, surface epoch 5, 37 tools). A client-visible catalog is a
+separate observation; package version alone does not establish catalog,
+carrier, configuration, or authenticated-route equivalence.
 
-Checkpoint payloads are opaque objects at the Gateway boundary. Host validates the current WorkingCheckpoint schema; Gateway does not maintain a second Host checkpoint ontology.
+## Capability observation
+
+Capability discovery is a non-authoritative, point-in-time projection.
+Independent required Runtime and Host read-only probes run concurrently,
+with at most one observation of each Runtime owner per request. A selected
+capability probes only its required owners. There is no cross-request cache;
+the next request observes current owner state again.
+
+`GatewayService(projection_timeout_seconds=5.0)` bounds each cooperative
+owner observation. A transport failure or timeout yields `available=false`
+with `observation_error`: consumers must preserve UNKNOWN rather than infer
+that the owner is proven down. Explicit missing endpoint or authentication
+configuration is reported separately as a configuration observation.
+Healthy owners remain visible when another observation fails. Cancelling
+discovery cancels and awaits its observation tasks. This is a cancellation
+budget, not a hard wall-clock deadline: legacy MCP session DELETE cleanup
+can extend response latency beyond it. Real SDK mock-transport regressions
+cover timeout/cancellation cleanup; live transport cleanup and production
+latency still require environment-specific qualification.
+
+Discovery neither authorizes execution nor retries effects. Execution
+admission and response-loss reconciliation remain bound to the natural owner
+and its explicit request/operation identities.
 
 ## External pull workers (candidate R3)
 

@@ -157,3 +157,94 @@ def test_cancelling_projection_leaves_no_owner_observation_running() -> None:
 def test_invalid_observation_budget_is_rejected(timeout: float) -> None:
     with pytest.raises(ValueError, match="positive finite"):
         GatewayService(object(), projection_timeout_seconds=timeout)
+
+
+@pytest.mark.parametrize("cancel_explicitly", [False, True])
+def test_real_sdk_legacy_cleanup_is_awaited_without_task_leaks(
+    monkeypatch: pytest.MonkeyPatch, cancel_explicitly: bool
+) -> None:
+    import json
+
+    import httpx2
+
+    import ordivon_gateway.upstream as upstream
+
+    async def scenario() -> None:
+        call_started = asyncio.Event()
+        cleanup_started = asyncio.Event()
+        release_cleanup = asyncio.Event()
+        cleanup_finished = asyncio.Event()
+
+        async def handler(request: httpx2.Request) -> httpx2.Response:
+            if request.method == "DELETE":
+                cleanup_started.set()
+                await release_cleanup.wait()
+                cleanup_finished.set()
+                return httpx2.Response(204)
+            if request.method == "GET":
+                return httpx2.Response(405)
+            message = json.loads(request.content)
+            if "id" not in message:
+                return httpx2.Response(202)
+            method = message["method"]
+            if method == "server/discover":
+                body = {"error": {"code": -32601, "message": "legacy owner"}}
+            elif method == "initialize":
+                body = {
+                    "result": {
+                        "protocolVersion": "2025-11-25",
+                        "capabilities": {"tools": {}},
+                        "serverInfo": {"name": "test-owner", "version": "1"},
+                    }
+                }
+            elif method == "tools/list":
+                body = {
+                    "result": {
+                        "tools": [
+                            {
+                                "name": "host.status",
+                                "inputSchema": {"type": "object"},
+                            }
+                        ]
+                    }
+                }
+            else:
+                assert method == "tools/call"
+                call_started.set()
+                await asyncio.Event().wait()
+                raise AssertionError("unreachable")
+            body.update(jsonrpc="2.0", id=message["id"])
+            return httpx2.Response(200, json=body, headers={"mcp-session-id": "test-session"})
+
+        monkeypatch.setattr(
+            upstream,
+            "create_mcp_http_client",
+            lambda **kwargs: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
+        )
+        service = GatewayService(
+            upstream.McpOwnerCaller({"host": "http://owner.test/mcp"}),
+            projection_timeout_seconds=2 if cancel_explicitly else 0.2,
+        )
+        task = asyncio.create_task(service.capability_describe("continuity.external"))
+        try:
+            await asyncio.wait_for(call_started.wait(), timeout=1)
+            if cancel_explicitly:
+                task.cancel()
+            await asyncio.wait_for(cleanup_started.wait(), timeout=1)
+            # The observation budget triggers cancellation, not a hard wall-clock
+            # deadline: legacy SDK session cleanup must complete before return.
+            assert not task.done()
+        finally:
+            release_cleanup.set()
+        if cancel_explicitly:
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        else:
+            projection = await task
+            item = projection.capabilities[0]
+            assert not item.available
+            assert "TimeoutError" in (item.observation_error or "")
+        assert cleanup_finished.is_set()
+        assert asyncio.all_tasks() == {asyncio.current_task()}
+
+    asyncio.run(scenario())
